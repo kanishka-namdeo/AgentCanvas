@@ -12,7 +12,10 @@ import { LayersPanel } from '@/components/canvas/LayersPanel';
 import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
 import { AgentPanel } from '@/components/canvas/AgentPanel';
 import { useCanvasStore } from '@/lib/canvas/store';
-import { Bot, PenTool, Github, Wifi, WifiOff } from 'lucide-react';
+import { SessionSidebar } from '@/components/sessions/SessionSidebar';
+import { SessionHeader } from '@/components/sessions/SessionHeader';
+import { RunHistoryPanel } from '@/components/sessions/RunHistoryPanel';
+import { PenTool, Github, Wifi, WifiOff, Bot } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 export default function Home() {
@@ -51,7 +54,7 @@ export default function Home() {
         <div className="flex items-center gap-3 text-[11px] text-slate-500">
           <div className="flex items-center gap-1.5">
             <Bot className="h-3.5 w-3.5" />
-            <span>Agent-driven · Pi SDK</span>
+            <span>Agent-driven · session-managed</span>
           </div>
           <div className="flex items-center gap-1.5">
             {connected ? (
@@ -62,7 +65,7 @@ export default function Home() {
             ) : (
               <>
                 <WifiOff className="h-3.5 w-3.5 text-rose-400" />
-                <span>offline</span>
+                <span>offline · session-state still works</span>
               </>
             )}
           </div>
@@ -78,10 +81,17 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main split: left sidebar | canvas | right sidebar (agent + properties) */}
+      {/* Main split: sessions | layers/props | canvas | chat+history */}
       <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
-          {/* Left sidebar: layers + properties (small) */}
-          <ResizablePanel defaultSize={18} minSize={14} maxSize={28}>
+          {/* Sessions sidebar */}
+          <ResizablePanel defaultSize={14} minSize={10} maxSize={22}>
+            <SessionSidebar />
+          </ResizablePanel>
+
+          <ResizableHandle />
+
+          {/* Layers + properties */}
+          <ResizablePanel defaultSize={16} minSize={12} maxSize={26}>
             <ResizablePanelGroup direction="vertical">
               <ResizablePanel defaultSize={55} minSize={20}>
                 <LayersPanel />
@@ -96,7 +106,7 @@ export default function Home() {
           <ResizableHandle />
 
           {/* Center: toolbar + canvas */}
-          <ResizablePanel defaultSize={54} minSize={30}>
+          <ResizablePanel defaultSize={46} minSize={30}>
             <div className="flex h-full">
               <Toolbar />
               <div className="flex-1 min-w-0 relative">
@@ -107,9 +117,22 @@ export default function Home() {
 
           <ResizableHandle />
 
-          {/* Right sidebar: agent chat */}
-          <ResizablePanel defaultSize={28} minSize={20} maxSize={45}>
-            <AgentPanel />
+          {/* Right: chat header + agent panel + run history */}
+          <ResizablePanel defaultSize={24} minSize={18} maxSize={42}>
+            <ResizablePanelGroup direction="vertical">
+              <ResizablePanel defaultSize={62} minSize={25}>
+                <div className="flex flex-col h-full bg-white">
+                  <SessionHeader />
+                  <div className="flex-1 min-h-0">
+                    <AgentPanel hideHeader />
+                  </div>
+                </div>
+              </ResizablePanel>
+              <ResizableHandle />
+              <ResizablePanel defaultSize={38} minSize={15}>
+                <RunHistoryPanel />
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </ResizablePanel>
         </ResizablePanelGroup>
     </div>

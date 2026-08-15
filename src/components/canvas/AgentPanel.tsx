@@ -109,7 +109,7 @@ const PROMPT_GROUPS: PromptGroup[] = [
   },
 ];
 
-export function AgentPanel() {
+export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const turns = useCanvasStore((s) => s.turns);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const connected = useCanvasStore((s) => s.connected);
@@ -137,7 +137,8 @@ export function AgentPanel() {
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Header */}
+      {/* Header (optional — hidden when used inside a panel that already has SessionHeader) */}
+      {!hideHeader && (
       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200">
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -156,6 +157,7 @@ export function AgentPanel() {
           {connected ? 'connected' : 'offline'}
         </div>
       </div>
+      )}
 
       {/* Status strip: tokens + heatmap state */}
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-100 bg-slate-50/50 text-[10px] text-slate-500">
@@ -268,15 +270,25 @@ export function AgentPanel() {
 }
 
 function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>['turns'][number] }) {
+  const forkActiveSession = useCanvasStore((s) => s.forkActiveSession);
   if (turn.role === 'user') {
     return (
-      <div className="flex gap-2">
+      <div className="group flex gap-2">
         <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
           <User className="h-3 w-3 text-slate-600" />
         </div>
         <div className="flex-1 text-xs text-slate-700 bg-slate-50 rounded-lg p-2">
           {turn.text}
         </div>
+        {turn.messageId && (
+          <button
+            onClick={() => forkActiveSession(turn.messageId)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded text-slate-400 hover:text-violet-600 hover:bg-violet-50"
+            title="Fork chat from this message"
+          >
+            <GitBranch className="h-3 w-3" />
+          </button>
+        )}
       </div>
     );
   }
