@@ -98,3 +98,53 @@ Artifacts:
 - /home/z/my-project/src/components/canvas/Toolbar.tsx
 - /home/z/my-project/scripts/screenshot-ui-after.ts
 - /home/z/my-project/download/ui-polish-after/{01-initial,02-hover-session,03-input-focused,04-snapshots-tab,05-runs-expanded}.png
+
+---
+Task ID: dox-tree-init
+Agent: main (Super Z)
+Task: Initialize and set up a DOX tree in the project according to https://github.com/agent0ai/dox/blob/main/AGENTS.md
+
+Work Log:
+- Fetched and read the upstream dox AGENTS.md (raw from https://raw.githubusercontent.com/agent0ai/dox/main/AGENTS.md). Understood the framework: hierarchical AGENTS.md files acting as binding work contracts, with a default section order (Purpose / Ownership / Local Contracts / Work Guidance / Verification / Child DOX Index) and a "read before editing, update after editing" protocol.
+- Surveyed the existing project structure to identify durable folder boundaries: src/lib/{agent,canvas,sessions}, src/components/{canvas,sessions,ui}, src/app + src/app/api, scripts, mini-services/canvas-sync, prisma, research, tests.
+- Read key files to ensure AGENTS.md content is accurate: package.json (scripts + deps), prisma/schema.prisma (Document/Shape/AgentAction models), src/lib/agent/runner.ts (LLM shim policy + system prompt), src/lib/canvas/store.ts (Zustand + session bridge), mini-services/canvas-sync/index.ts (Socket.IO contract), scripts/start-dev.sh, tests/python-runtime-build.sh, research/pi_agent_sdk.json.
+- Created 14 AGENTS.md files (1 root + 13 children), each following the dox default section order:
+  - /home/z/my-project/AGENTS.md (root rail — project-wide contracts, tech stack, hard rules, verification, full Child DOX Index table)
+  - src/lib/agent/AGENTS.md (24-tool surface, LLM shim policy, system prompt, event stream shape, number safety / the s.x.toFixed fix)
+  - src/lib/canvas/AGENTS.md (store contract, React subscription safety / EMPTY_TOKENS, patch null-safety, types ↔ Prisma sync)
+  - src/lib/sessions/AGENTS.md (Session/Run/Message/ToolCallRecord/Snapshot data model, run status state machine, fork model, restore model, persistence)
+  - src/components/canvas/AGENTS.md (Canvas/Toolbar/LayersPanel/PropertiesPanel/AgentPanel contracts, design token usage, null-safe shape access)
+  - src/components/sessions/AGENTS.md (SessionSidebar/SessionHeader/RunHistoryPanel/StatusBadge contracts, StatusBadge color map as single source of truth)
+  - src/components/ui/AGENTS.md (shadcn primitives — do not hand-edit, style override policy, ~50-component inventory)
+  - src/app/AGENTS.md (layout, 4-pane page, --ac-* design token system, Tailwind 4)
+  - src/app/api/AGENTS.md (/api/agent SSE-style stream contract, /api health check, HTTP fallback equivalence with WebSocket)
+  - scripts/AGENTS.md (script persistence rule, shell + Playwright conventions)
+  - mini-services/canvas-sync/AGENTS.md (Socket.IO on port 3003, in-memory DocState, event protocol, coupling with canvas types + runner)
+  - prisma/AGENTS.md (datasource, Document/Shape/AgentAction models, migration rules, sync with src/lib/canvas/types.ts)
+  - research/AGENTS.md (read-only — do not edit, 7-file inventory)
+  - tests/AGENTS.md (runtime build smoke tests, NOT app unit tests, depends on ../.zscripts/)
+- Verified tree integrity: `find` confirms all 14 AGENTS.md files exist at expected paths. (A pre-existing /home/z/my-project/skills/design/design-templates/ppt/AGENTS.md is inside the skills folder — not part of project source, left untouched.)
+
+Stage Summary:
+- 14 AGENTS.md files installed, totaling ~940 lines of operational documentation.
+- Root AGENTS.md is the DOX rail: lists all 13 direct children in a Child DOX Index table with scope summaries.
+- Each child AGENTS.md follows the dox default section order (Purpose / Ownership / Local Contracts / Work Guidance / Verification / Child DOX Index) and restates root contracts locally where relevant (design tokens, React subscription safety, LLM shim policy, script persistence).
+- Captured the previously-fixed bugs as durable contracts: the s.x.toFixed number-safety rule (in agent/AGENTS.md), the EMPTY_TOKENS stable-reference rule (in canvas/AGENTS.md), the HTTP fallback equivalence rule (in api/AGENTS.md), the append-only snapshot restore rule (in sessions/AGENTS.md).
+- No source code changed — this is a pure documentation install.
+- Future agents editing this repo MUST now walk the DOX chain (root → nearest owning AGENTS.md) before editing, and run a DOX closeout pass after editing.
+
+Artifacts:
+- /home/z/my-project/AGENTS.md
+- /home/z/my-project/src/lib/agent/AGENTS.md
+- /home/z/my-project/src/lib/canvas/AGENTS.md
+- /home/z/my-project/src/lib/sessions/AGENTS.md
+- /home/z/my-project/src/components/canvas/AGENTS.md
+- /home/z/my-project/src/components/sessions/AGENTS.md
+- /home/z/my-project/src/components/ui/AGENTS.md
+- /home/z/my-project/src/app/AGENTS.md
+- /home/z/my-project/src/app/api/AGENTS.md
+- /home/z/my-project/scripts/AGENTS.md
+- /home/z/my-project/mini-services/canvas-sync/AGENTS.md
+- /home/z/my-project/prisma/AGENTS.md
+- /home/z/my-project/research/AGENTS.md
+- /home/z/my-project/tests/AGENTS.md
