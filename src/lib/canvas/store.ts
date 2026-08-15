@@ -123,11 +123,32 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   select: (ids) => set({ selectedIds: ids }),
 
   promptAgent: (text) => {
-    const { socket, connected, documentId, turns } = get();
-    if (!socket || !connected) return;
+    const { socket, connected, documentId, turns, document } = get();
+    // If WebSocket is connected, route through it (live broadcast to all
+    // viewers). Otherwise fall back to a direct HTTP call to /api/agent
+    // so the app still works for a single viewer without the sync service.
+    if (socket && connected) {
+      const userTurn: ChatTurn = {
+        id: `u-${Date.now()}`,
+        role: 'user',
+        text,
+        toolCalls: [],
+        streaming: false,
+      };
+      const assistantTurn: ChatTurn = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        text: '',
+        toolCalls: [],
+        streaming: true,
+      };
+      set({ turns: [...turns, userTurn, assistantTurn], agentBusy: true });
+      socket.emit('client', { type: 'agent:prompt', documentId, prompt: text } satisfies ClientEvent);
+      return;
+    }
 
-    // Append a user turn + a placeholder assistant turn that will be filled
-    // in as events stream back.
+    // Fallback: direct HTTP fetch to /api/agent. Apply patches + agent
+    // events directly to local state. This is single-viewer only.
     const userTurn: ChatTurn = {
       id: `u-${Date.now()}`,
       role: 'user',
@@ -144,7 +165,44 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     };
     set({ turns: [...turns, userTurn, assistantTurn], agentBusy: true });
 
-    socket.emit('client', { type: 'agent:prompt', documentId, prompt: text } satisfies ClientEvent);
+    (async () => {
+      try {
+        const res = await fetch('/api/agent', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ documentId, prompt: text, canvasState: get().document }),
+        });
+        if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let nl: number;
+          while ((nl = buf.indexOf('\n')) >= 0) {
+            const line = buf.slice(0, nl).trim();
+            buf = buf.slice(nl + 1);
+            if (!line) continue;
+            try {
+              const evt = JSON.parse(line) as
+                | { type: 'patch'; patch: CanvasPatch; toolCallId?: string }
+                | { type: 'agent_event'; event: SyncEvent };
+              if (evt.type === 'patch') {
+                set((s) => ({ document: applyPatchToCanvas(s.document, evt.patch) }));
+                get()._onSync({ type: 'canvas:patch', patch: evt.patch, toolCallId: evt.toolCallId });
+              } else {
+                get()._onSync(evt.event);
+              }
+            } catch { /* ignore malformed lines */ }
+          }
+        }
+        get()._onSync({ type: 'agent:turn_end' });
+      } catch (err: any) {
+        get()._onSync({ type: 'agent:error', message: err?.message ?? 'unknown error' });
+      }
+    })();
   },
 
   setDocumentName: (name) =>
@@ -154,7 +212,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const state = get();
     switch (event.type) {
       case 'canvas:full': {
-        set({ document: event.document });
+        // Normalize — older server builds may omit tokens/heatmap.
+        const doc = event.document;
+        if (!doc.tokens) doc.tokens = { colors: [], textStyles: [] };
+        if (!('heatmap' in doc)) doc.heatmap = null;
+        set({ document: doc });
         break;
       }
       case 'canvas:patch': {
@@ -273,4 +335,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 /// Helper — find a shape by id.
 export function findShape(doc: CanvasDocument, id: string): Shape | undefined {
   return doc.shapes.find((s) => s.id === id);
+}
+
+// Expose the store globally so the demo / browser console can drive the
+// agent directly when the WebSocket sync is unavailable (e.g. when the
+// dev server's HMR has put the socket in a bad state).
+if (typeof window !== 'undefined') {
+  (window as any).__canvasStore = useCanvasStore;
 }

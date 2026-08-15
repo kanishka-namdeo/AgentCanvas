@@ -355,7 +355,7 @@ export function Canvas() {
         </defs>
         <g transform={`translate(${panX}, ${panY}) scale(${zoom})`}>
           {/* Shapes — pointer events re-enabled per shape */}
-          {document.shapes
+          {(document.shapes ?? [])
             .slice()
             .sort((a, b) => a.zIndex - b.zIndex)
             .map((shape) => (

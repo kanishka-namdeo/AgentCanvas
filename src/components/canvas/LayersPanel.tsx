@@ -40,11 +40,11 @@ export function LayersPanel() {
 
   // Build a tree: top-level shapes (parentId null) first, with children
   // indented under their parent. Render top-to-bottom = highest z-index first.
-  const sortedTop = [...document.shapes]
+  const sortedTop = [...(document.shapes ?? [])]
     .filter((s) => !s.parentId)
     .sort((a, b) => b.zIndex - a.zIndex);
   const childrenOf = (id: string) =>
-    document.shapes.filter((s) => s.parentId === id).sort((a, b) => b.zIndex - a.zIndex);
+    (document.shapes ?? []).filter((s) => s.parentId === id).sort((a, b) => b.zIndex - a.zIndex);
 
   const renderShape = (shape: Shape, depth: number): React.ReactNode => {
     const selected = selectedIds.includes(shape.id);
@@ -160,7 +160,7 @@ export function LayersPanel() {
           <Layers className="h-3.5 w-3.5" />
           Layers
         </div>
-        <span className="text-[10px] text-slate-400">{document.shapes.length} shape{document.shapes.length === 1 ? '' : 's'}</span>
+        <span className="text-[10px] text-slate-400">{(document.shapes ?? []).length} shape{(document.shapes ?? []).length === 1 ? '' : 's'}</span>
       </div>
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-1">

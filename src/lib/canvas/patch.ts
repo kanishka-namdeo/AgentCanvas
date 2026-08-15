@@ -46,11 +46,16 @@ function normalizeShape(input: Partial<Shape>, fallbackZ: number): Shape {
 }
 
 export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): CanvasDocument {
+  // Defensive: if a stale document arrives (e.g. from a server that hasn't
+  // been recompiled to include the tokens/heatmap fields), normalize it so
+  // we never crash downstream components.
+  const safeTokens = canvas.tokens ?? { colors: [], textStyles: [] };
+  const safeShapes = canvas.shapes ?? [];
   // Always clone tokens & heatmap so we don't mutate shared state.
   const next: CanvasDocument = {
     ...canvas,
-    shapes: [...canvas.shapes],
-    tokens: { colors: [...canvas.tokens.colors], textStyles: [...canvas.tokens.textStyles] },
+    shapes: [...safeShapes],
+    tokens: { colors: [...safeTokens.colors], textStyles: [...safeTokens.textStyles] },
     heatmap: canvas.heatmap ? { ...canvas.heatmap, points: [...canvas.heatmap.points] } : null,
   };
 

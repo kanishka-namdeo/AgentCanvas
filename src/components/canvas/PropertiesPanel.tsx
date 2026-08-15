@@ -112,15 +112,15 @@ export function PropertiesPanel() {
             <div className="flex items-center gap-1.5 mb-2">
               <Palette className="h-3 w-3 text-slate-500" />
               <Label className="text-[11px] text-slate-500">Design Tokens</Label>
-              <span className="text-[10px] text-slate-400 ml-auto">{document.tokens.colors.length} color(s)</span>
+              <span className="text-[10px] text-slate-400 ml-auto">{(document.tokens?.colors ?? []).length} color(s)</span>
             </div>
-            {document.tokens.colors.length === 0 ? (
+            {(document.tokens?.colors ?? []).length === 0 ? (
               <div className="text-[10px] text-slate-400 px-2 py-3 border border-dashed border-slate-200 rounded text-center">
                 No tokens yet. Ask the agent: <em>&quot;Generate a triadic palette from #0ea5e9&quot;</em>
               </div>
             ) : (
               <div className="space-y-1">
-                {document.tokens.colors.map((c) => (
+                {(document.tokens?.colors ?? []).map((c) => (
                   <div key={c.key} className="flex items-center gap-2 text-[10px]">
                     <div
                       className="w-4 h-4 rounded border border-slate-200 flex-shrink-0"

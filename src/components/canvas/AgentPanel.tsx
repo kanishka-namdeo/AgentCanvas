@@ -32,6 +32,11 @@ import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers,
 } from 'lucide-react';
+import type { DesignTokens } from '@/lib/canvas/types';
+
+// Stable empty tokens object — avoids creating a new reference on every
+// selector call (which would cause an infinite re-render loop in Zustand).
+const EMPTY_TOKENS: DesignTokens = { colors: [], textStyles: [] };
 
 interface PromptGroup {
   id: string;
@@ -109,7 +114,7 @@ export function AgentPanel() {
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const connected = useCanvasStore((s) => s.connected);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
-  const tokens = useCanvasStore((s) => s.document.tokens);
+  const tokens = useCanvasStore((s) => s.document.tokens ?? EMPTY_TOKENS);
   const heatmapOn = useCanvasStore((s) => !!s.document.heatmap);
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
@@ -123,7 +128,7 @@ export function AgentPanel() {
 
   const submit = () => {
     const text = input.trim();
-    if (!text || agentBusy || !connected) return;
+    if (!text || agentBusy) return;
     promptAgent(text);
     setInput('');
   };
@@ -209,7 +214,7 @@ export function AgentPanel() {
                   <button
                     key={i}
                     onClick={() => promptAgent(p)}
-                    disabled={!connected || agentBusy}
+                    disabled={agentBusy}
                     className="block w-full text-left text-xs px-3 py-2 rounded border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-600 disabled:opacity-50"
                   >
                     {p}
@@ -237,7 +242,7 @@ export function AgentPanel() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask the agent to design something…"
           className="text-xs resize-none min-h-[60px] max-h-[120px] border-slate-200"
-          disabled={!connected || agentBusy}
+          disabled={agentBusy}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -250,7 +255,7 @@ export function AgentPanel() {
           <Button
             size="sm"
             onClick={submit}
-            disabled={!connected || agentBusy || !input.trim()}
+            disabled={agentBusy || !input.trim()}
             className="h-7 text-xs"
           >
             <Send className="h-3 w-3 mr-1" />
