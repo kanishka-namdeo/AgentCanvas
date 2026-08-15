@@ -25,10 +25,10 @@ import {
 } from 'lucide-react';
 import { StatusDot } from './StatusBadge';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 
 function relativeTime(iso: string): string {
@@ -197,26 +197,31 @@ export function SessionSidebar() {
                           <MoreHorizontal className="h-3.5 w-3.5" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="text-[11px]" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => handleRename(session.id, session.title)}>
+                      <DropdownMenuContent align="end" className="text-[11px] min-w-[180px]" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4 truncate">
+                          {session.title}
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="py-1.5" onClick={() => handleRename(session.id, session.title)}>
                           <Pencil className="h-3 w-3 mr-2" /> Rename
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => useSessionStore.getState().togglePin(session.id)}>
+                        <DropdownMenuItem className="py-1.5" onClick={() => useSessionStore.getState().togglePin(session.id)}>
                           {session.pinned ? <PinOff className="h-3 w-3 mr-2" /> : <Pin className="h-3 w-3 mr-2" />}
                           {session.pinned ? 'Unpin' : 'Pin'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => useSessionStore.getState().toggleStar(session.id)}>
+                        <DropdownMenuItem className="py-1.5" onClick={() => useSessionStore.getState().toggleStar(session.id)}>
                           <Star className="h-3 w-3 mr-2" /> {session.starred ? 'Unstar' : 'Star'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => forkActiveSession(null)}>
+                        <DropdownMenuItem className="py-1.5" onClick={() => forkActiveSession(null)}>
                           <GitFork className="h-3 w-3 mr-2" /> Fork from here
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => useSessionStore.getState().archiveSession(session.id)}>
+                        <DropdownMenuItem className="py-1.5" onClick={() => useSessionStore.getState().archiveSession(session.id)}>
                           <Archive className="h-3 w-3 mr-2" /> Archive
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-rose-600 focus:text-rose-700"
+                          variant="destructive"
+                          className="py-1.5"
                           onClick={() => {
                             if (confirm(`Delete "${session.title}"? This cannot be undone.`)) {
                               useSessionStore.getState().deleteSession(session.id);
@@ -280,20 +285,41 @@ export function SessionSidebar() {
       <Dialog open={renamingId !== null} onOpenChange={(open) => !open && setRenamingId(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm">Rename chat</DialogTitle>
+            <DialogTitle className="text-sm ac-text-1">Rename chat</DialogTitle>
+            <DialogDescription className="text-[11px] ac-text-3">
+              This name appears in the sidebar. You can change it any time.
+            </DialogDescription>
           </DialogHeader>
-          <Input
-            value={renameValue}
-            onChange={(e) => setRenameValue(e.target.value)}
-            placeholder="Chat title"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commitRename();
-            }}
-          />
-          <DialogFooter>
-            <Button size="sm" variant="ghost" onClick={() => setRenamingId(null)}>Cancel</Button>
-            <Button size="sm" onClick={commitRename}>Save</Button>
+          <div className="space-y-1.5 py-1">
+            <label htmlFor="rename-input" className="text-[10px] font-medium uppercase tracking-wide ac-text-4">
+              Title
+            </label>
+            <Input
+              id="rename-input"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder="Chat title"
+              autoFocus
+              className="h-8 text-[12px] ac-border-default focus-visible:ac-border-strong"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename();
+                if (e.key === 'Escape') setRenamingId(null);
+              }}
+            />
+          </div>
+          <DialogFooter className="gap-1.5">
+            <Button size="sm" variant="ghost" className="ac-text-2 hover:ac-text-1" onClick={() => setRenamingId(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="text-white border-0"
+              style={{ backgroundColor: 'var(--ac-accent)' }}
+              disabled={!renameValue.trim()}
+              onClick={commitRename}
+            >
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

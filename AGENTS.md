@@ -119,4 +119,4 @@ Direct child `AGENTS.md` files. Each owns its subtree; read the nearest one befo
 | `research/AGENTS.md` | Read-only research notes (JSON). Reference only — do not edit. |
 | `tests/AGENTS.md` | Runtime build shell scripts (Python/DB container smoke tests). |
 
-Root-owned files (no child `AGENTS.md`): `package.json`, `bun.lock`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `components.json`, `Caddyfile`, `instrumentation.ts`, `worklog.md`, `db/custom.db`, `public/`, `download/`, `examples/`, `tool-results/`.
+Root-owned files (no child `AGENTS.md`): `package.json`, `bun.lock`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `components.json`, `Caddyfile`, `instrumentation.ts`, `worklog.md`, `db/custom.db`, `public/`, `download/`, `examples/`, `tool-results/`, `src/components/ThemeToggle.tsx` (small standalone client component — toggles the `.dark` class on `<html>`; documented in `src/app/AGENTS.md` under "Dark mode").

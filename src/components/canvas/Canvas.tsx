@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import type { CanvasPatch, HeatmapOverlay, Shape } from '@/lib/canvas/types';
+import { PenLine, MousePointerClick } from 'lucide-react';
 
 interface DragState {
   kind: 'pan' | 'move' | 'resize';
@@ -329,11 +330,54 @@ export function Canvas() {
         className="absolute inset-0"
         style={{
           backgroundImage:
-            'radial-gradient(circle, rgba(15,23,42,0.08) 1px, transparent 1px)',
+            'radial-gradient(circle, color-mix(in oklch, var(--ac-text-primary) 12%, transparent) 1px, transparent 1px)',
           backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
           backgroundPosition: `${panX}px ${panY}px`,
         }}
       />
+
+      {/* Empty-canvas drop zone — subtle, screen-centered, fades out when shapes exist. */}
+      {document.shapes.length === 0 && (
+        <div
+          data-empty-bg="true"
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{
+            animation: 'ac-fade-in 240ms ease-out',
+          }}
+        >
+          <div
+            className="flex flex-col items-center gap-3 px-10 py-8 rounded-xl border-2 border-dashed max-w-md text-center"
+            style={{
+              borderColor: 'var(--ac-border-strong)',
+              backgroundColor: 'color-mix(in oklch, var(--ac-surface-0) 70%, transparent)',
+              backdropFilter: 'blur(2px)',
+            }}
+          >
+            <div
+              className="flex items-center justify-center h-12 w-12 rounded-lg"
+              style={{
+                backgroundColor: 'var(--ac-accent-soft)',
+                color: 'var(--ac-accent)',
+                boxShadow: 'inset 0 0 0 1px var(--ac-accent-border)',
+              }}
+            >
+              <PenLine className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="text-[14px] font-semibold ac-text-1">Empty canvas</div>
+              <div className="text-[12px] ac-text-3 leading-relaxed">
+                Describe what you want to build in the panel on the right,
+                <br />
+                or pick a shape from the toolbar to drop one in.
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 mt-1 text-[10px] ac-text-4">
+              <MousePointerClick className="h-3 w-3" />
+              <span>Tip: try “Design a login form” in the chat</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <svg
         className="absolute inset-0"
@@ -378,22 +422,28 @@ export function Canvas() {
       </svg>
 
       {/* Zoom indicator */}
-      <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-white/90 backdrop-blur rounded-md border border-slate-200 shadow-sm px-2 py-1 text-xs text-slate-600">
+      <div
+        className="absolute bottom-3 left-3 flex items-center gap-2 backdrop-blur rounded-md border shadow-sm px-2 py-1 text-xs ac-text-2 ac-transition"
+        style={{
+          backgroundColor: 'color-mix(in oklch, var(--ac-surface-0) 88%, transparent)',
+          borderColor: 'var(--ac-border-default)',
+        }}
+      >
         <button
-          className="px-1 hover:text-slate-900"
+          className="px-1 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
           onClick={() => setViewport((v) => ({ ...v, zoom: Math.max(0.1, v.zoom * 0.9) }))}
         >
           −
         </button>
-        <span className="tabular-nums w-12 text-center">{Math.round(zoom * 100)}%</span>
+        <span className="tabular-nums w-12 text-center ac-text-2">{Math.round(zoom * 100)}%</span>
         <button
-          className="px-1 hover:text-slate-900"
+          className="px-1 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
           onClick={() => setViewport((v) => ({ ...v, zoom: Math.min(4, v.zoom * 1.1) }))}
         >
           +
         </button>
         <button
-          className="ml-1 px-2 py-0.5 rounded hover:bg-slate-100 text-slate-500"
+          className="ml-1 px-2 py-0.5 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
           onClick={() => setViewport({ zoom: 1, panX: 120, panY: 80 })}
         >
           Reset

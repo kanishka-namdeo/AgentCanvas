@@ -25,7 +25,17 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
 - "New chat" button is a solid violet primary CTA (the brand accent), visually distinct from secondary actions.
 - Active session row uses `.ac-active-row` (2px left accent bar + soft violet bg).
 - Pinned sessions sort first; archived sessions collapse into a disclosure section at the bottom.
-- Context menu actions: Rename (inline), Pin/Unpin, Star/Unstar, Fork, Archive/Unarchive, Delete (with confirm).
+- Context menu actions: Rename (opens Dialog), Pin/Unpin, Star/Unstar, "Fork from here", Archive/Unarchive, Delete (with confirm).
+- Context menu (`DropdownMenuContent`):
+  - `min-w-[180px]` for consistent width.
+  - Opens with a `DropdownMenuLabel` showing the session title (uppercase, `ac-text-4`, truncated) — provides context for which session the menu applies to.
+  - Items use `py-1.5` (slightly taller than the primitive's default `py-1.5` — kept consistent).
+  - Destructive item (Delete) uses the primitive's `variant="destructive"` (NOT a hand-rolled `text-rose-600` class) so it swaps correctly in dark mode.
+- Rename Dialog (`DialogContent`):
+  - Has `DialogDescription` ("This name appears in the sidebar…") for context — not just a bare title + input.
+  - Input is wrapped in a labeled group: `<label>` "TITLE" (uppercase, `ac-text-4`) + `Input` with `ac-border-default` → `focus-visible:ac-border-strong`.
+  - Input handles `Enter` (save) and `Escape` (cancel) via `onKeyDown`.
+  - Footer: ghost Cancel button (`ac-text-2` → `ac-text-1` on hover) + brand-colored Save button (`backgroundColor: var(--ac-accent)`, white text). Save is `disabled` when the input is empty.
 - Empty state: friendly message + CTA pointing at the New button.
 - Search filters by title (case-insensitive substring).
 - Subtle scrollbars via `.ac-hide-scrollbar`.

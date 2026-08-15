@@ -10,6 +10,7 @@ Utility scripts for development, screenshots, and watchdogs. Mix of shell (`.sh`
 - `start-canvas-sync.sh` — launcher for the `mini-services/canvas-sync/` Socket.IO service on port 3003.
 - `canvas-sync-watchdog.sh` — monitors the canvas-sync service and restarts it if it dies.
 - `screenshot-ui-after.ts` — Playwright script. Captures 5 UI states (initial, hover-session, input-focused, snapshots-tab, runs-expanded) to `download/ui-polish-after/`. Run via `bunx tsx scripts/screenshot-ui-after.ts`.
+- `screenshot-polish-pass2.ts` — Playwright script. Captures 8 states covering the three pass-2 deliverables: empty-canvas drop zone, "New chat" hover, session row hover, dropdown menu open, rename dialog, dark-mode empty, dark-mode dropdown, dark-mode rename dialog. Output to `download/polish-pass2/`. Run via `bunx tsx scripts/screenshot-polish-pass2.ts`.
 
 ## Local Contracts
 

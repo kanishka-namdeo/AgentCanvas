@@ -163,6 +163,47 @@
   --ac-info-soft: oklch(0.95 0.04 240);
 }
 
+/* ---------------------------------------------------------------------------
+   Dark-mode variant — activates when <html> or any ancestor has .dark class.
+   OKLCH makes this a pure lightness inversion: same hues, inverted L axis.
+   The utility classes (.ac-text-1, .ac-border-default, etc.) pick up these
+   values automatically — no component changes needed.
+   --------------------------------------------------------------------------- */
+.dark {
+  /* Text hierarchy — inverted L axis, slightly desaturated for comfort */
+  --ac-text-primary:    oklch(0.97 0.005 264);
+  --ac-text-secondary:  oklch(0.82 0.01 264);
+  --ac-text-tertiary:   oklch(0.68 0.012 264);
+  --ac-text-quaternary: oklch(0.55 0.012 264);
+  --ac-text-faint:      oklch(0.42 0.01 264);
+
+  /* Border scale — lighter than text but visible against dark surfaces */
+  --ac-border-subtle:   oklch(0.26 0.008 264);
+  --ac-border-default:  oklch(0.32 0.01 264);
+  --ac-border-strong:   oklch(0.42 0.014 264);
+
+  /* Surface elevation — darkest at the page, lighter for raised panels */
+  --ac-surface-0: oklch(0.17 0.008 264);
+  --ac-surface-1: oklch(0.20 0.009 264);
+  --ac-surface-2: oklch(0.24 0.01 264);
+  --ac-surface-3: oklch(0.28 0.012 264);
+
+  /* Brand accent — slightly brighter so it pops on dark */
+  --ac-accent:        oklch(0.68 0.20 295);
+  --ac-accent-soft:   oklch(0.30 0.06 295);
+  --ac-accent-border: oklch(0.48 0.12 295);
+
+  /* Status — soft variants are darker (not glaring) on dark */
+  --ac-success:      oklch(0.70 0.16 150);
+  --ac-success-soft: oklch(0.30 0.05 150);
+  --ac-warning:      oklch(0.75 0.16 70);
+  --ac-warning-soft: oklch(0.32 0.06 70);
+  --ac-danger:       oklch(0.68 0.22 25);
+  --ac-danger-soft:  oklch(0.32 0.06 25);
+  --ac-info:         oklch(0.70 0.18 240);
+  --ac-info-soft:    oklch(0.30 0.05 240);
+}
+
 /* Utility classes — semantic, used everywhere in the app */
 @layer utilities {
   .ac-text-1 { color: var(--ac-text-primary); }
@@ -212,4 +253,10 @@
   .ac-hide-scrollbar:hover::-webkit-scrollbar-thumb {
     background-color: var(--ac-border-strong);
   }
+}
+
+/* Keyframes — used by the empty-canvas drop zone and other subtle entrances */
+@keyframes ac-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

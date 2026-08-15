@@ -15,6 +15,7 @@ import { useCanvasStore } from '@/lib/canvas/store';
 import { SessionSidebar } from '@/components/sessions/SessionSidebar';
 import { SessionHeader } from '@/components/sessions/SessionHeader';
 import { RunHistoryPanel } from '@/components/sessions/RunHistoryPanel';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { PenTool, Github, Wifi, WifiOff, Bot } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
@@ -78,6 +79,7 @@ export default function Home() {
             <Github className="h-3 w-3" />
             <span>SDK docs</span>
           </a>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -121,7 +123,7 @@ export default function Home() {
           <ResizablePanel defaultSize={24} minSize={18} maxSize={42}>
             <ResizablePanelGroup direction="vertical">
               <ResizablePanel defaultSize={62} minSize={25}>
-                <div className="flex flex-col h-full bg-white">
+                <div className="flex flex-col h-full ac-surface-0">
                   <SessionHeader />
                   <div className="flex-1 min-h-0">
                     <AgentPanel hideHeader />

@@ -148,3 +148,64 @@ Artifacts:
 - /home/z/my-project/prisma/AGENTS.md
 - /home/z/my-project/research/AGENTS.md
 - /home/z/my-project/tests/AGENTS.md
+
+---
+Task ID: polish-pass2
+Agent: main (Super Z)
+Task: Three-part polish pass — (1) subtle empty-canvas drop zone, (2) dark-mode token variant, (3) polish rename Dialog + dropdown menus.
+
+Work Log:
+- Read the DOX chain before editing: root AGENTS.md → src/components/canvas/AGENTS.md (for Canvas.tsx), src/app/AGENTS.md (for globals.css + page.tsx), src/components/sessions/AGENTS.md (for SessionSidebar.tsx).
+- Task 1 — Empty-canvas drop zone (src/components/canvas/Canvas.tsx):
+  - Added a centered placeholder shown when `document.shapes.length === 0`. Dashed `--ac-border-strong` border, `--ac-surface-0` 70% bg with 2px backdrop blur, violet icon tile (PenLine) using `--ac-accent-soft`/`--ac-accent`/`--ac-accent-border`, "Empty canvas" heading + descriptive subtitle + tip line ("Tip: try "Design a login form" in the chat").
+  - `pointer-events: none` so it never blocks canvas clicks. `data-empty-bg="true"` so the existing click-to-clear-selection handler still works through it.
+  - Fades in via new `ac-fade-in` keyframe (opacity 0→1 + 4px upward translate, 240ms ease-out).
+  - Disappears the moment the first shape is added (conditional render on `document.shapes.length === 0`).
+  - Bonus: tokenized the backdrop grid dot color (was hardcoded `rgba(15,23,42,0.08)` → now `color-mix(in oklch, var(--ac-text-primary) 12%, transparent)`) so it swaps correctly in dark mode.
+  - Bonus: tokenized the zoom indicator (was `bg-white/90 border-slate-200 text-slate-600` → now `--ac-surface-0` via color-mix, `--ac-border-default`, `ac-text-2/3`).
+- Task 2 — Dark-mode token variant (src/app/globals.css):
+  - Added a `.dark` selector block that redefines every `--ac-*` token. OKLCH makes this a pure lightness inversion: same hues, inverted L axis. Text goes 0.21→0.97, surfaces go 1.0→0.17, borders go 0.88→0.32, etc.
+  - Brand accent brightened slightly on dark (0.55→0.68 L) so it pops; `-soft` variants inverted to darker tints (0.96→0.30 L) so they don't glare.
+  - Status colors brightened on dark; their `-soft` variants darkened.
+  - Added `ac-fade-in` keyframe at the end of the file (outside the utilities layer so it's globally available).
+  - Fixed doc inaccuracy: project uses `.dark` class (per `@custom-variant dark (&:is(.dark *))` at top of globals.css), NOT `[data-theme="dark"]` as the previous AGENTS.md draft claimed.
+  - Created `src/components/ThemeToggle.tsx` — small client component that flips `.dark` on `<html>`, persists to `localStorage['agentcanvas-theme']`, respects `prefers-color-scheme` on first visit, uses `suppressHydrationWarning`-safe mount pattern.
+  - Wired the toggle into the top bar of `src/app/page.tsx` (next to the "SDK docs" link).
+  - Fixed `bg-white` on the chat column container in page.tsx → `ac-surface-0` so it swaps correctly in dark mode.
+- Task 3 — Rename Dialog + dropdown menu polish (src/components/sessions/SessionSidebar.tsx):
+  - Dropdown menu: added `DropdownMenuLabel` showing the session title at the top (uppercase, `ac-text-4`, truncated) — gives the user context for which session the menu applies to. Added `min-w-[180px]` for consistent width. Items use `py-1.5` for slightly taller touch targets. Destructive item (Delete) switched from hand-rolled `text-rose-600 focus:text-rose-700` class to the primitive's built-in `variant="destructive"` — cleaner + dark-mode safe (the primitive's own CSS handles dark variant).
+  - Rename Dialog: added `DialogDescription` ("This name appears in the sidebar. You can change it any time.") for context. Wrapped the input in a labeled group (`<label>` "TITLE" + `Input`). Input handles `Escape` (cancel) in addition to `Enter` (save). Footer Cancel button is ghost with `ac-text-2` → `ac-text-1` hover. Save button is brand-colored (`backgroundColor: var(--ac-accent)`, white text) and `disabled` when the input is empty.
+- Verification:
+  - `bunx tsc --noEmit` — 12 errors, ALL pre-existing (Toolbar.tsx, runner.ts, tools.ts, patch.ts). Zero new errors in any file I touched (Canvas.tsx, SessionSidebar.tsx, page.tsx, globals.css, ThemeToggle.tsx).
+  - Wrote `scripts/screenshot-polish-pass2.ts` (Playwright, 8 states) and captured to `download/polish-pass2/`.
+  - VLM audit (via subagent) on 5 key screenshots: ALL PASS. Confirmed drop zone renders correctly, dropdown has header label + destructive Delete styling, rename dialog has description + labeled input + brand Save button, dark mode swaps all chrome correctly. Two minor notes from audit: (a) "Fork from here" vs "Fork" — kept as "Fork from here" (original copy, more descriptive); (b) canvas workspace stays light in dark mode — by design, since `document.background` is a user-controlled document property (like Figma), not a UI surface.
+- DOX closeout pass:
+  - Updated `src/app/AGENTS.md`: rewrote the design token system section (corrected token names, added keyframes, added full Dark mode section, fixed `.dark` vs `[data-theme="dark"]` inaccuracy, documented that the canvas workspace does NOT swap to dark by design). Updated Layout contract (removed inaccurate "next-themes Provider" claim — ThemeToggle uses localStorage directly). Updated Page contract (mentioned ThemeToggle in top bar, documented `bg-white` → `ac-surface-0` fix).
+  - Updated `src/components/canvas/AGENTS.md`: added Empty-canvas drop zone contract, Backdrop grid color-mix contract, Zoom indicator tokenization contract.
+  - Updated `src/components/sessions/AGENTS.md`: rewrote SessionSidebar.tsx contract with full dropdown menu polish details (DropdownMenuLabel, min-w, variant=destructive) and rename Dialog polish details (DialogDescription, labeled input, Enter/Escape handling, brand Save button, disabled-when-empty).
+  - Updated `scripts/AGENTS.md`: added screenshot-polish-pass2.ts to the file inventory.
+  - Updated root `AGENTS.md`: added `src/components/ThemeToggle.tsx` to the root-owned files list with a cross-reference to `src/app/AGENTS.md`'s Dark mode section.
+
+Stage Summary:
+- 5 files modified: Canvas.tsx, globals.css, SessionSidebar.tsx, page.tsx, + 4 AGENTS.md files updated.
+- 2 files created: ThemeToggle.tsx, scripts/screenshot-polish-pass2.ts.
+- 8 screenshots in `/home/z/my-project/download/polish-pass2/` covering all three deliverables in both light and dark mode.
+- Zero new TypeScript errors.
+- Dev server healthy at http://127.0.0.1:3000/.
+- Dark mode is now a first-class citizen: the toggle persists across reloads, respects OS preference on first visit, and every panel/dialog/dropdown swaps correctly. The only surface that doesn't swap is the canvas workspace itself — by design (it's the document, not chrome).
+- The empty-canvas drop zone is the audit's "last critical note" — now resolved with a subtle, branded, fade-in placeholder that disappears the moment the first shape lands.
+- Rename Dialog and dropdown menu now match the polish level of the rest of the app: labeled, described, branded Save button, destructive variant, context-providing menu header.
+
+Artifacts:
+- /home/z/my-project/src/components/canvas/Canvas.tsx (drop zone + tokenized zoom indicator + tokenized backdrop grid)
+- /home/z/my-project/src/app/globals.css (.dark token variant + ac-fade-in keyframe)
+- /home/z/my-project/src/components/ThemeToggle.tsx (NEW)
+- /home/z/my-project/src/app/page.tsx (ThemeToggle in top bar + bg-white → ac-surface-0)
+- /home/z/my-project/src/components/sessions/SessionSidebar.tsx (polished dropdown + rename Dialog)
+- /home/z/my-project/scripts/screenshot-polish-pass2.ts (NEW)
+- /home/z/my-project/download/polish-pass2/{01-empty-canvas-dropzone, 02-new-chat-hover, 03-session-row-hover, 04-dropdown-menu-open, 05-rename-dialog, 06-dark-mode-empty, 07-dark-mode-dropdown, 08-dark-mode-rename-dialog}.png
+- /home/z/my-project/AGENTS.md (root-owned files list updated)
+- /home/z/my-project/src/app/AGENTS.md (token system + dark mode + layout/page contracts updated)
+- /home/z/my-project/src/components/canvas/AGENTS.md (Canvas.tsx contracts updated)
+- /home/z/my-project/src/components/sessions/AGENTS.md (SessionSidebar contracts updated)
+- /home/z/my-project/scripts/AGENTS.md (screenshot-polish-pass2.ts added)

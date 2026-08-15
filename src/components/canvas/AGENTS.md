@@ -25,6 +25,9 @@ Canvas UI components: the drawing surface, the toolbar, the layers panel, the pr
   - Renders shapes as SVG elements (rectangles, ellipses, lines, text) or HTML (frames/groups).
   - All shape property access MUST be null-safe (`shape?.x ?? 0`) — the LLM can emit patches referencing deleted shapes.
   - Numeric fields used in `toFixed` / `Math.round` MUST be coerced via `Number()` first.
+  - **Empty-canvas drop zone**: when `document.shapes.length === 0`, renders a subtle centered placeholder (dashed `--ac-border-strong` border, `--ac-surface-0` 70% bg with 2px backdrop blur, violet icon tile using `--ac-accent-soft`/`--ac-accent`/`--ac-accent-border`, "Empty canvas" heading + descriptive subtitle + tip line). `pointer-events: none` so it never blocks canvas clicks. Fades in via the `ac-fade-in` keyframe. Disappears the moment the first shape is added.
+  - **Backdrop grid**: uses `color-mix(in oklch, var(--ac-text-primary) 12%, transparent)` (NOT a hardcoded `rgba(15,23,42,0.08)`) so the dot grid swaps correctly in dark mode.
+  - **Zoom indicator** (bottom-left): all colors come from `--ac-*` tokens (`ac-text-2/3`, `ac-surface-0` via `color-mix`, `ac-border-default`, `ac-surface-2` for hover). No `slate-{n}` / `bg-white/90` literals.
 - `PropertiesPanel.tsx`:
   - Reads `selectedId`, looks up the shape, renders a form.
   - Form fields dispatch `canvas_update_shape` via the canvas store (NOT the agent) for direct edits.
