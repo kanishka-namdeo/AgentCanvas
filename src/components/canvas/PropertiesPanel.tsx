@@ -83,24 +83,24 @@ export function PropertiesPanel() {
 
   if (selected.length === 0) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="px-3 py-2 border-b border-slate-200 text-xs font-medium text-slate-700">
+      <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
+        <div className="px-3 py-2 border-b ac-border-subtle text-[11px] font-semibold uppercase tracking-wide ac-text-2">
           Properties
         </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <div className="flex-1 overflow-y-auto p-3 space-y-3 ac-hide-scrollbar">
           <div>
-            <Label className="text-[11px] text-slate-500">Canvas Background</Label>
+            <Label className="text-[11px] ac-text-3">Canvas Background</Label>
             <div className="flex items-center gap-2 mt-1">
               <input
                 type="color"
                 value={document.background}
                 onChange={(e) => setCanvasBackground(e.target.value)}
-                className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
+                className="h-7 w-7 rounded border ac-border-default cursor-pointer"
               />
               <Input
                 value={document.background}
                 onChange={(e) => setCanvasBackground(e.target.value)}
-                className="h-7 text-xs"
+                className="h-7 text-xs ac-text-2 ac-border-default"
               />
             </div>
           </div>
@@ -110,12 +110,12 @@ export function PropertiesPanel() {
           {/* Design tokens panel */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
-              <Palette className="h-3 w-3 text-slate-500" />
-              <Label className="text-[11px] text-slate-500">Design Tokens</Label>
-              <span className="text-[10px] text-slate-400 ml-auto">{(document.tokens?.colors ?? []).length} color(s)</span>
+              <Palette className="h-3 w-3 ac-text-4" />
+              <Label className="text-[11px] ac-text-3">Design Tokens</Label>
+              <span className="text-[10px] ac-text-4 ml-auto">{(document.tokens?.colors ?? []).length} color(s)</span>
             </div>
             {(document.tokens?.colors ?? []).length === 0 ? (
-              <div className="text-[10px] text-slate-400 px-2 py-3 border border-dashed border-slate-200 rounded text-center">
+              <div className="text-[10px] ac-text-4 px-2 py-3 border border-dashed ac-border-subtle rounded text-center">
                 No tokens yet. Ask the agent: <em>&quot;Generate a triadic palette from #0ea5e9&quot;</em>
               </div>
             ) : (
@@ -123,11 +123,11 @@ export function PropertiesPanel() {
                 {(document.tokens?.colors ?? []).map((c) => (
                   <div key={c.key} className="flex items-center gap-2 text-[10px]">
                     <div
-                      className="w-4 h-4 rounded border border-slate-200 flex-shrink-0"
+                      className="w-4 h-4 rounded border ac-border-default flex-shrink-0"
                       style={{ background: c.value }}
                     />
-                    <span className="text-slate-700 font-mono">{c.key}</span>
-                    <span className="text-slate-400 ml-auto font-mono">{c.value}</span>
+                    <span className="ac-text-2 font-mono">{c.key}</span>
+                    <span className="ac-text-4 ml-auto font-mono">{c.value}</span>
                   </div>
                 ))}
               </div>
@@ -136,7 +136,7 @@ export function PropertiesPanel() {
 
           <Separator />
 
-          <div className="px-2 py-3 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded">
+          <div className="px-2 py-4 text-center text-xs ac-text-4 border border-dashed ac-border-subtle rounded">
             Select a shape to edit its properties.
           </div>
         </div>
@@ -151,13 +151,13 @@ export function PropertiesPanel() {
   const hasAutoLayout = !!shape.autoLayout && (shape.type === 'frame' || shape.type === 'group');
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-3 py-2 border-b border-slate-200 text-xs font-medium text-slate-700 flex items-center gap-1.5">
+    <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
+      <div className="px-3 py-2 border-b ac-border-subtle text-[11px] font-semibold uppercase tracking-wide ac-text-2 flex items-center gap-1.5">
         Properties{isMulti ? ` (${selected.length} selected)` : ''}
         {!isMulti && isComponentMaster && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal text-sky-700 border-sky-200">Master</Badge>}
         {!isMulti && isComponentInstance && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal text-violet-700 border-violet-200">Instance</Badge>}
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 ac-hide-scrollbar">
         {/* Multi-selection quick actions */}
         {isMulti && (
           <>

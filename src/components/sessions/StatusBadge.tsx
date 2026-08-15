@@ -17,12 +17,12 @@ interface StatusConfig {
 }
 
 const RUN_STATUS_CONFIG: Record<RunStatus, StatusConfig> = {
-  queued:              { label: 'queued',      cls: 'text-slate-600 bg-slate-100 border-slate-200',         icon: Clock },
+  queued:              { label: 'queued',      cls: 'text-slate-700 bg-slate-100 border-slate-300',         icon: Clock },
   in_progress:         { label: 'running',     cls: 'text-blue-700 bg-blue-50 border-blue-200',            icon: Loader2, pulse: true },
   awaiting_tool:       { label: 'tool',        cls: 'text-amber-700 bg-amber-50 border-amber-200',         icon: Loader2, pulse: true },
   cancelling:          { label: 'cancelling',  cls: 'text-orange-700 bg-orange-50 border-orange-200',      icon: Loader2, pulse: true },
-  cancelled:           { label: 'cancelled',   cls: 'text-slate-500 bg-slate-50 border-slate-200',         icon: Ban },
-  completed:           { label: 'completed',   cls: 'text-emerald-700 bg-emerald-50 border-emerald-200',   icon: CheckCircle2 },
+  cancelled:           { label: 'cancelled',   cls: 'text-slate-600 bg-slate-100 border-slate-300',         icon: Ban },
+  completed:           { label: 'completed',   cls: 'text-emerald-800 bg-emerald-100 border-emerald-300',  icon: CheckCircle2 },
   failed:              { label: 'failed',      cls: 'text-rose-700 bg-rose-50 border-rose-200',            icon: XCircle },
   incomplete:          { label: 'incomplete',  cls: 'text-amber-700 bg-amber-50 border-amber-200',         icon: AlertTriangle },
 };

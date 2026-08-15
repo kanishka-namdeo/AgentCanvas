@@ -136,57 +136,59 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const activePrompts = PROMPT_GROUPS.find((g) => g.id === activeGroup)?.prompts ?? [];
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
       {/* Header (optional — hidden when used inside a panel that already has SessionHeader) */}
       {!hideHeader && (
-      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200">
+      <div className="flex items-center justify-between px-3 py-2 border-b ac-border-subtle">
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Bot className="h-4 w-4 text-slate-700" />
+            <Bot className="h-4 w-4 ac-text-2" />
             {agentBusy && (
               <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             )}
           </div>
-          <span className="text-xs font-medium text-slate-700">Agent</span>
-          <Badge variant="outline" className="text-[10px] h-4 px-1 py-0 font-normal">
+          <span className="text-xs font-medium ac-text-2">Agent</span>
+          <Badge variant="outline" className="text-[10px] h-4 px-1 py-0 font-normal ac-text-3 ac-border-default">
             Pi SDK · 24 tools
           </Badge>
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+        <div className="flex items-center gap-1.5 text-[10px] ac-text-3">
           <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-rose-400'}`} />
           {connected ? 'connected' : 'offline'}
         </div>
       </div>
       )}
 
-      {/* Status strip: tokens + heatmap state */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-100 bg-slate-50/50 text-[10px] text-slate-500">
+      {/* Status strip: tokens + heatmap state — tighter, more polished */}
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b ac-border-subtle ac-surface-1 text-[10px] ac-text-3">
         <span className="flex items-center gap-1">
-          <Palette className="h-3 w-3" />
+          <Palette className="h-3 w-3 ac-text-4" />
           {tokens.colors.length} color token{tokens.colors.length === 1 ? '' : 's'}
         </span>
-        <span className="text-slate-300">·</span>
+        <span className="ac-text-5">·</span>
         <span className="flex items-center gap-1">
-          <Activity className="h-3 w-3" />
+          <Activity className="h-3 w-3 ac-text-4" />
           heatmap {heatmapOn ? 'on' : 'off'}
         </span>
       </div>
 
       {/* Conversation */}
-      <ScrollArea ref={scrollRef} className="flex-1 min-h-0">
+      <ScrollArea ref={scrollRef} className="flex-1 min-h-0 ac-hide-scrollbar">
         <div className="p-3 space-y-3">
           {turns.length === 0 && (
             <div className="space-y-3">
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
-                <div className="flex items-center gap-1.5 mb-2 font-medium text-slate-700">
-                  <Sparkles className="h-3.5 w-3.5" />
+              <div className="rounded-lg border ac-border-subtle ac-surface-1 p-3 text-xs ac-text-2">
+                <div className="flex items-center gap-1.5 mb-1.5 font-medium ac-text-1">
+                  <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--ac-accent)' }} />
                   How does this work?
                 </div>
-                This is a Figma-like canvas where the primary user is an AI agent.
-                The agent (powered by the Pi Agent SDK&apos;s tool-calling API) sees the
-                canvas state and manipulates it through 24 tools — covering wireframes,
-                user flows, diagrams, design tokens, palettes, heatmaps, copy, and audits.
-                You can also draw manually — the agent will see your edits.
+                <p className="leading-relaxed">
+                  This is a Figma-like canvas where the primary user is an AI agent.
+                  The agent (powered by the Pi Agent SDK&apos;s tool-calling API) sees the
+                  canvas state and manipulates it through 24 tools — covering wireframes,
+                  user flows, diagrams, design tokens, palettes, heatmaps, copy, and audits.
+                  You can also draw manually — the agent will see your edits.
+                </p>
               </div>
 
               {/* Scenario prompt groups */}
@@ -198,10 +200,10 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                     <button
                       key={g.id}
                       onClick={() => setActiveGroup(g.id)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
+                      className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium border ac-transition ac-focus-ring ${
                         active
-                          ? 'bg-slate-900 text-white border-slate-900'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                          ? 'ac-text-1 ac-surface-0 ac-border-default shadow-sm'
+                          : 'ac-text-3 ac-surface-1 ac-border-subtle hover:ac-text-1'
                       }`}
                     >
                       <Icon className="h-3 w-3" />
@@ -211,15 +213,18 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                 })}
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {activePrompts.map((p, i) => (
                   <button
                     key={i}
                     onClick={() => promptAgent(p)}
                     disabled={agentBusy}
-                    className="block w-full text-left text-xs px-3 py-2 rounded border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-600 disabled:opacity-50"
+                    className="group/prompt block w-full text-left text-[11px] px-2.5 py-1.5 rounded-md border ac-border-subtle hover:ac-surface-1 hover:ac-border-default ac-text-2 disabled:opacity-50 ac-transition ac-focus-ring flex items-center gap-2"
                   >
-                    {p}
+                    <span className="flex-1">{p}</span>
+                    <span className="opacity-0 group-hover/prompt:opacity-100 ac-text-4 transition-opacity flex-shrink-0">
+                      <Send className="h-2.5 w-2.5" />
+                    </span>
                   </button>
                 ))}
               </div>
@@ -229,7 +234,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             <TurnBubble key={turn.id} turn={turn} />
           ))}
           {agentBusy && (
-            <div className="flex items-center gap-2 text-xs text-slate-400 px-1">
+            <div className="flex items-center gap-2 text-xs ac-text-4 px-1">
               <Loader2 className="h-3 w-3 animate-spin" />
               agent is working…
             </div>
@@ -237,32 +242,35 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
         </div>
       </ScrollArea>
 
-      {/* Input */}
-      <div className="border-t border-slate-200 p-2">
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask the agent to design something…"
-          className="text-xs resize-none min-h-[60px] max-h-[120px] border-slate-200"
-          disabled={agentBusy}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-        />
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-[10px] text-slate-400">Enter to send · Shift+Enter for newline</span>
-          <Button
-            size="sm"
-            onClick={submit}
-            disabled={agentBusy || !input.trim()}
-            className="h-7 text-xs"
-          >
-            <Send className="h-3 w-3 mr-1" />
-            Send
-          </Button>
+      {/* Input — grouped with Send button (visual unity) */}
+      <div className="border-t ac-border-subtle p-2 ac-surface-0">
+        <div className="rounded-lg border ac-border-default ac-surface-0 focus-within:ac-border-strong ac-transition shadow-sm">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask the agent to design something…"
+            className="text-xs resize-none min-h-[44px] max-h-[120px] border-0 shadow-none focus-visible:ring-0 ac-text-2 placeholder:ac-text-4 bg-transparent"
+            disabled={agentBusy}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+          />
+          <div className="flex items-center justify-between px-2 pb-1.5 pt-0.5 border-t ac-border-subtle">
+            <span className="text-[10px] ac-text-4">Enter to send · Shift+Enter for newline</span>
+            <Button
+              size="sm"
+              onClick={submit}
+              disabled={agentBusy || !input.trim()}
+              className="h-6 text-[11px] text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ backgroundColor: 'var(--ac-accent)' }}
+            >
+              <Send className="h-3 w-3 mr-1" />
+              Send
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -274,16 +282,16 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
   if (turn.role === 'user') {
     return (
       <div className="group flex gap-2">
-        <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-          <User className="h-3 w-3 text-slate-600" />
+        <div className="w-6 h-6 rounded-full ac-surface-2 flex items-center justify-center flex-shrink-0">
+          <User className="h-3 w-3 ac-text-3" />
         </div>
-        <div className="flex-1 text-xs text-slate-700 bg-slate-50 rounded-lg p-2">
+        <div className="flex-1 text-xs ac-text-1 ac-surface-1 rounded-lg rounded-tl-sm p-2">
           {turn.text}
         </div>
         {turn.messageId && (
           <button
             onClick={() => forkActiveSession(turn.messageId)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded text-slate-400 hover:text-violet-600 hover:bg-violet-50"
+            className="opacity-0 group-hover:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
             title="Fork chat from this message"
           >
             <GitBranch className="h-3 w-3" />
@@ -295,7 +303,7 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
 
   return (
     <div className="flex gap-2">
-      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0">
+      <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0 shadow-sm">
         <Bot className="h-3 w-3 text-white" />
       </div>
       <div className="flex-1 space-y-2">
@@ -305,10 +313,10 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
         ))}
         {/* Text */}
         {turn.text && (
-          <div className="text-xs text-slate-700 whitespace-pre-wrap">{turn.text}</div>
+          <div className="text-xs ac-text-1 whitespace-pre-wrap leading-relaxed">{turn.text}</div>
         )}
         {turn.streaming && !turn.text && turn.toolCalls.length === 0 && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+          <div className="flex items-center gap-1.5 text-xs ac-text-4">
             <Loader2 className="h-3 w-3 animate-spin" />
             thinking…
           </div>
@@ -324,26 +332,26 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
   // Color-code by tool category for quick visual scanning.
   const category = toolCategory(tc.name);
   return (
-    <div className="rounded border border-slate-200 bg-slate-50/60 px-2 py-1.5">
-      <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-700">
-        <Wrench className="h-3 w-3 text-slate-400" />
-        <code className="text-[10px] bg-slate-200/60 px-1 py-0.5 rounded">{tc.name}</code>
+    <div className="rounded-md border ac-border-subtle ac-surface-1 px-2 py-1.5">
+      <div className="flex items-center gap-1.5 text-[11px] font-medium ac-text-1">
+        <Wrench className="h-3 w-3 ac-text-4" />
+        <code className="text-[10px] ac-surface-2 ac-text-2 px-1 py-0.5 rounded font-mono">{tc.name}</code>
         {category && (
           <Badge variant="outline" className={`text-[9px] h-3.5 px-1 py-0 font-normal ${category.cls}`}>
             {category.label}
           </Badge>
         )}
-        {pending && <Loader2 className="h-3 w-3 animate-spin text-slate-400 ml-auto" />}
+        {pending && <Loader2 className="h-3 w-3 animate-spin ac-text-4 ml-auto" />}
         {success === true && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-auto" />}
         {success === false && <XCircle className="h-3 w-3 text-rose-500 ml-auto" />}
       </div>
       {tc.argsPreview && (
-        <pre className="mt-1 text-[10px] text-slate-500 font-mono overflow-x-auto whitespace-pre-wrap break-all">
+        <pre className="mt-1 text-[10px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all">
           {tc.argsPreview}
         </pre>
       )}
       {tc.summary && (
-        <div className="mt-1 text-[10px] text-slate-500">{tc.summary}</div>
+        <div className="mt-1 text-[10px] ac-text-3">{tc.summary}</div>
       )}
     </div>
   );

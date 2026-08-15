@@ -41,3 +41,60 @@ Artifacts:
 - `/home/z/my-project/src/lib/canvas/store.ts` — updated (session bridge)
 - `/home/z/my-project/src/app/page.tsx` — updated (4-pane layout)
 - `/home/z/my-project/src/components/canvas/AgentPanel.tsx` — updated (hideHeader + fork button)
+
+---
+Task ID: ui-polish
+Agent: main (Super Z)
+Task: Use ui-ux-pro-max skill (closest available to user's "taste-design" reference) to audit and fix UI issues in the AgentCanvas app.
+
+Work Log:
+- Loaded ui-ux-pro-max skill (in /home/z/my-project/skills/ui-ux-pro-max/) — design intelligence for "improving existing UI/UX" + "building polished interfaces".
+- Audited 3 existing screenshots (01-initial, 02-running, 06-run-expanded + 07-snapshots) with VLM CLI. Identified concrete issues across 7 dimensions:
+  - Layout: inconsistent panel widths, weak dividers, bottom-left clipping
+  - Typography: monospace overuse, weak header/label hierarchy
+  - Color: low-contrast borders, scattered shades of gray
+  - Spacing: tight input padding, uniform gaps, dense icon packing
+  - Components: Send button detached from input, ambiguous toggles, inconsistent tab styling
+  - SessionSidebar: weak active state, "New chat" not visually distinct, search padding tight
+  - RunHistoryPanel: tab styling inconsistent between screenshots, dense cards, action button clutter
+- Added unified design token system to /home/z/my-project/src/app/globals.css:
+  - Semantic text hierarchy (--ac-text-primary through --ac-text-faint, mapped to .ac-text-1..5)
+  - Stronger border scale (--ac-border-subtle/default/strong)
+  - Surface elevation tokens (--ac-surface-0..3)
+  - Brand accent + status colors as OKLCH
+  - Utility classes: .ac-active-row (left-bar accent), .ac-focus-ring, .ac-transition, .ac-hide-scrollbar
+- Polished 8 components:
+  - page.tsx (top bar): pill-style status badges, "local-only" replaces alarming "offline", safer spacing
+  - SessionSidebar.tsx: solid violet primary CTA for "New chat", stronger active row (left accent bar), better empty state with CTA, subtle scrollbars
+  - SessionHeader.tsx: 13px title (was 12px), branded bot avatar with gradient + ring, cleaner metadata row with consistent dot separators, outline Fork button
+  - RunHistoryPanel.tsx: unified tab design (filled white on light gray bg, vs old dark/light inversion that was inconsistent), cards with stronger hover border, action buttons with consistent outline styling, better empty states
+  - AgentPanel.tsx: Send button now grouped INSIDE the textarea container (single visual unit), disabled Send shows 40% opacity + not-allowed cursor, prompt suggestion cards show send-arrow affordance on hover, tighter status strip
+  - StatusBadge.tsx: stronger `completed` contrast (emerald-800 on emerald-100 with emerald-300 border, was 700/50/200)
+  - LayersPanel.tsx: stronger hover, semantic text colors, better empty state
+  - PropertiesPanel.tsx: uppercase header, consistent label hierarchy, semantic text colors
+  - Toolbar.tsx: tighter gap (0.5 vs 1), branded Select tool (filled surface), stronger separator
+- Wrote /home/z/my-project/scripts/screenshot-ui-after.ts (Playwright script) — captures 5 states.
+- Re-audited polished screenshots with VLM. Final verdict: "Visual hierarchy: Strong. Borders & separators: Adequate. Active states: Visible."
+
+Stage Summary:
+- 5 polished screenshots in /home/z/my-project/download/ui-polish-after/
+- Zero TypeScript errors (clean compiles throughout)
+- Dev server healthy at http://127.0.0.1:3000/
+- All 4 panels (sidebar, header, agent, history) now share one semantic design token system instead of scattered slate-{300..900} colors
+- Send button + textarea unified into single visual unit (was previously detached, biggest UI issue)
+- Run history tabs consistent (was alternating styling between screenshots)
+- Active session row uses 2px left accent bar + soft violet bg (was weak border + faint bg)
+
+Artifacts:
+- /home/z/my-project/src/app/globals.css (added AC design tokens + utility classes)
+- /home/z/my-project/src/app/page.tsx (top bar polished)
+- /home/z/my-project/src/components/sessions/SessionSidebar.tsx
+- /home/z/my-project/src/components/sessions/SessionHeader.tsx
+- /home/z/my-project/src/components/sessions/RunHistoryPanel.tsx
+- /home/z/my-project/src/components/sessions/StatusBadge.tsx
+- /home/z/my-project/src/components/canvas/AgentPanel.tsx
+- /home/z/my-project/src/components/canvas/LayersPanel.tsx
+- /home/z/my-project/src/components/canvas/PropertiesPanel.tsx
+- /home/z/my-project/src/components/canvas/Toolbar.tsx
+- /home/z/my-project/scripts/screenshot-ui-after.ts
+- /home/z/my-project/download/ui-polish-after/{01-initial,02-hover-session,03-input-focused,04-snapshots-tab,05-runs-expanded}.png

@@ -104,45 +104,50 @@ export function SessionSidebar() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
       {/* Header */}
-      <div className="px-3 py-2 border-b border-slate-200">
+      <div className="px-3 pt-3 pb-2 border-b ac-border-subtle">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
-            <MessageSquare className="h-3.5 w-3.5 text-slate-600" />
-            <span className="text-xs font-semibold text-slate-700">Chats</span>
-            <span className="text-[10px] text-slate-400">
-              {stats.activeSessions}
-            </span>
+            <MessageSquare className="h-3.5 w-3.5 ac-text-3" />
+            <span className="text-[11px] font-semibold uppercase tracking-wide ac-text-2">Chats</span>
+            {stats.activeSessions > 0 && (
+              <span className="text-[10px] ac-text-4 ml-0.5">{stats.activeSessions}</span>
+            )}
           </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 px-2 text-[11px] text-slate-600 hover:text-slate-900"
-            onClick={() => newSession()}
-            title="New chat"
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            New
-          </Button>
         </div>
+        {/* Primary CTA — visually distinct from list rows */}
+        <button
+          onClick={() => newSession()}
+          className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md text-[12px] font-medium text-white ac-transition shadow-sm mb-2"
+          style={{ backgroundColor: 'var(--ac-accent)' }}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New chat
+        </button>
+        {/* Search */}
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 ac-text-4" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search chats…"
-            className="h-7 pl-7 text-[11px] border-slate-200"
+            className="h-7 pl-7 text-[11px] ac-border-subtle ac-surface-1 focus-visible:ac-border-default ac-text-2"
           />
         </div>
       </div>
 
       {/* Sessions list */}
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="p-1.5 space-y-0.5">
+      <ScrollArea className="flex-1 min-h-0 ac-hide-scrollbar">
+        <div className="p-2 space-y-0.5">
           {sessions.length === 0 && (
-            <div className="text-center text-[11px] text-slate-400 py-6 px-3">
-              {search ? 'No matches.' : 'No chats yet. Click "New" to start.'}
+            <div className="text-center text-[11px] ac-text-4 py-8 px-3">
+              {search ? 'No matches.' : (
+                <>
+                  <p className="font-medium ac-text-3 mb-1">No chats yet</p>
+                  <p className="ac-text-4">Click “New chat” above to start.</p>
+                </>
+              )}
             </div>
           )}
           {sessions.map((session) => {
@@ -151,30 +156,30 @@ export function SessionSidebar() {
               <div
                 key={session.id}
                 onClick={() => switchSession(session.id)}
-                className={`group relative cursor-pointer rounded-md px-2 py-1.5 transition-colors ${
+                className={`group relative cursor-pointer rounded-md px-2.5 py-1.5 ac-transition ac-focus-ring ${
                   isActive
-                    ? 'bg-violet-50 border border-violet-200'
-                    : 'hover:bg-slate-50 border border-transparent'
+                    ? 'ac-active-row'
+                    : 'hover:ac-surface-1'
                 }`}
               >
-                <div className="flex items-start gap-1.5">
-                  <div className="flex-shrink-0 pt-0.5">
+                <div className="flex items-start gap-2">
+                  <div className="flex-shrink-0 pt-1">
                     <StatusDot status={session.currentRunId ? 'in_progress' : 'completed'} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1">
-                      {session.pinned && <Pin className="h-2.5 w-2.5 text-violet-500 flex-shrink-0" />}
+                    <div className="flex items-center gap-1 min-w-0">
+                      {session.pinned && <Pin className="h-2.5 w-2.5 flex-shrink-0" style={{ color: 'var(--ac-accent)' }} />}
                       {session.starred && <Star className="h-2.5 w-2.5 text-amber-400 flex-shrink-0 fill-amber-400" />}
-                      {!session.isRoot && <GitFork className="h-2.5 w-2.5 text-slate-400 flex-shrink-0" />}
-                      <span className={`text-[12px] font-medium truncate ${isActive ? 'text-violet-900' : 'text-slate-700'}`}>
+                      {!session.isRoot && <GitFork className="h-2.5 w-2.5 ac-text-4 flex-shrink-0" />}
+                      <span className={`text-[12px] font-medium truncate ${isActive ? 'ac-text-1' : 'ac-text-2'}`}>
                         {session.title}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] ac-text-4">
                       <span>{relativeTime(session.lastOpenedAt)}</span>
-                      <span>·</span>
+                      <span className="ac-text-5">·</span>
                       <span>{session.messageCount} msg</span>
-                      <span>·</span>
+                      <span className="ac-text-5">·</span>
                       <span className="flex items-center gap-0.5">
                         <Wrench className="h-2.5 w-2.5" />
                         {session.toolCallCount}
@@ -182,14 +187,14 @@ export function SessionSidebar() {
                     </div>
                   </div>
                   {/* Context menu */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 -mr-1">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
                           onClick={(e) => e.stopPropagation()}
-                          className="p-1 rounded hover:bg-slate-200 text-slate-500"
+                          className="p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
                         >
-                          <MoreHorizontal className="h-3 w-3" />
+                          <MoreHorizontal className="h-3.5 w-3.5" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="text-[11px]" onClick={(e) => e.stopPropagation()}>
@@ -231,21 +236,21 @@ export function SessionSidebar() {
           {/* Archived section */}
           {archivedSessions.length > 0 && (
             <>
-              <div className="px-2 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              <div className="px-2.5 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wide ac-text-4">
                 Archived · {archivedSessions.length}
               </div>
               {archivedSessions.map((session) => (
                 <div
                   key={session.id}
-                  className="group relative cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-50 border border-transparent"
+                  className="group relative cursor-pointer rounded-md px-2.5 py-1.5 hover:ac-surface-1 ac-transition"
                   onClick={() => {
                     useSessionStore.getState().unarchiveSession(session.id);
                     switchSession(session.id);
                   }}
                 >
                   <div className="flex items-center gap-1.5">
-                    <Archive className="h-3 w-3 text-slate-400 flex-shrink-0" />
-                    <span className="text-[12px] text-slate-500 truncate flex-1">{session.title}</span>
+                    <Archive className="h-3 w-3 ac-text-4 flex-shrink-0" />
+                    <span className="text-[12px] ac-text-3 truncate flex-1">{session.title}</span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -253,7 +258,7 @@ export function SessionSidebar() {
                           useSessionStore.getState().deleteSession(session.id);
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-100 text-rose-500"
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:ac-surface-2 text-rose-500 ac-transition"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -266,8 +271,8 @@ export function SessionSidebar() {
       </ScrollArea>
 
       {/* Footer stats */}
-      <div className="px-3 py-1.5 border-t border-slate-200 text-[10px] text-slate-400 flex items-center justify-between">
-        <span>{stats.totalRuns} runs · {stats.totalToolCalls} tool calls</span>
+      <div className="px-3 py-1.5 border-t ac-border-subtle text-[10px] ac-text-4 flex items-center justify-between ac-surface-1">
+        <span>{stats.totalRuns} runs · {stats.totalToolCalls} tools</span>
         <span>{stats.totalSnapshots} snapshots</span>
       </div>
 

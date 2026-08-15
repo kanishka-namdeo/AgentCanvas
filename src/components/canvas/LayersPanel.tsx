@@ -57,8 +57,8 @@ export function LayersPanel() {
       <ContextMenu key={shape.id}>
         <ContextMenuTrigger asChild>
           <div
-            className={`group flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer ${
-              selected ? 'bg-sky-50 text-sky-900' : 'hover:bg-slate-100 text-slate-700'
+            className={`group flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer ac-transition ${
+              selected ? 'bg-sky-50 text-sky-900' : 'hover:ac-surface-1 ac-text-2'
             }`}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
             onClick={(e) => {
@@ -72,7 +72,7 @@ export function LayersPanel() {
             }}
             onDoubleClick={() => setEditingId(shape.id)}
           >
-            <span className="text-[10px] w-4 text-center text-slate-500">{TYPE_ICON[shape.type] ?? '?'}</span>
+            <span className="text-[10px] w-4 text-center ac-text-4">{TYPE_ICON[shape.type] ?? '?'}</span>
             {editingId === shape.id ? (
               <Input
                 autoFocus
@@ -105,7 +105,7 @@ export function LayersPanel() {
               <span className="text-[9px] px-1 py-0 rounded bg-violet-100 text-violet-700 font-medium" title="Component instance">I</span>
             )}
             <button
-              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-700"
+              className="opacity-0 group-hover:opacity-100 ac-text-4 hover:ac-text-1 ac-transition"
               onClick={(e) => {
                 e.stopPropagation();
                 sendPatch({ op: 'update', shapeId: shape.id, shape: { visible: !shape.visible }, summary: `${shape.visible ? 'Hid' : 'Showed'} ${shape.name}` });
@@ -114,7 +114,7 @@ export function LayersPanel() {
               {shape.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
             </button>
             <button
-              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-700"
+              className="opacity-0 group-hover:opacity-100 ac-text-4 hover:ac-text-1 ac-transition"
               onClick={(e) => {
                 e.stopPropagation();
                 sendPatch({ op: 'update', shapeId: shape.id, shape: { locked: !shape.locked }, summary: `${shape.locked ? 'Unlocked' : 'Locked'} ${shape.name}` });
@@ -154,19 +154,20 @@ export function LayersPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200">
-        <div className="flex items-center gap-2 text-xs font-medium text-slate-700">
-          <Layers className="h-3.5 w-3.5" />
+    <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
+      <div className="flex items-center justify-between px-3 py-2 border-b ac-border-subtle">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide ac-text-2">
+          <Layers className="h-3.5 w-3.5 ac-text-3" />
           Layers
         </div>
-        <span className="text-[10px] text-slate-400">{(document.shapes ?? []).length} shape{(document.shapes ?? []).length === 1 ? '' : 's'}</span>
+        <span className="text-[10px] ac-text-4">{(document.shapes ?? []).length} shape{(document.shapes ?? []).length === 1 ? '' : 's'}</span>
       </div>
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="flex-1 min-h-0 ac-hide-scrollbar">
         <div className="p-1">
           {sortedTop.length === 0 ? (
-            <div className="px-3 py-6 text-center text-xs text-slate-400">
-              No layers yet. Ask the agent to create something, or use the toolbar.
+            <div className="px-3 py-8 text-center">
+              <p className="text-[11px] font-medium ac-text-3 mb-1">No layers yet</p>
+              <p className="text-[11px] ac-text-4">Ask the agent to create something, or use the toolbar.</p>
             </div>
           ) : (
             sortedTop.map((shape) => renderShape(shape, 0))

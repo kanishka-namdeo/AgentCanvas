@@ -58,12 +58,16 @@ export function Toolbar() {
     sendPatch(patch);
   };
 
+  // Shared button class — primary tools get a stronger hover affordance.
+  const btnCls =
+    'h-8 w-8 ac-text-2 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring';
+
   return (
-    <div className="flex flex-col items-center gap-1 p-2 border-r border-slate-200 bg-white">
+    <div className="flex flex-col items-center gap-0.5 p-1.5 border-r ac-border-default ac-surface-0">
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-slate-600"
+        className="h-8 w-8 ac-text-1 ac-surface-1 ac-transition ac-focus-ring"
         title="Select (V)"
       >
         <MousePointer2 className="h-4 w-4" />
@@ -71,16 +75,16 @@ export function Toolbar() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-slate-600"
+        className={btnCls}
         title="Pan (Hold Space)"
       >
         <Hand className="h-4 w-4" />
       </Button>
-      <Separator className="my-1 w-6" />
+      <Separator className="my-1 w-5 ac-border-default" />
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-slate-600 hover:bg-slate-100"
+        className={btnCls}
         title="Rectangle"
         onClick={() => createShape('rectangle')}
       >
@@ -89,7 +93,7 @@ export function Toolbar() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-slate-600 hover:bg-slate-100"
+        className={btnCls}
         title="Ellipse"
         onClick={() => createShape('ellipse')}
       >
@@ -98,7 +102,7 @@ export function Toolbar() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-slate-600 hover:bg-slate-100"
+        className={btnCls}
         title="Text"
         onClick={() => createShape('text')}
       >
@@ -107,7 +111,7 @@ export function Toolbar() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-slate-600 hover:bg-slate-100"
+        className={btnCls}
         title="Line"
         onClick={() => createShape('line')}
       >
@@ -116,17 +120,17 @@ export function Toolbar() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-slate-600 hover:bg-slate-100"
+        className={btnCls}
         title="Frame"
         onClick={() => createShape('frame')}
       >
         <Frame className="h-4 w-4" />
       </Button>
-      <Separator className="my-1 w-6" />
+      <Separator className="my-1 w-5 ac-border-default" />
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-rose-500 hover:bg-rose-50"
+        className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600 ac-transition ac-focus-ring"
         title="Clear canvas"
         onClick={() => {
           if (confirm('Clear all shapes from the canvas?')) {

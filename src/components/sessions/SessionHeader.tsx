@@ -39,8 +39,8 @@ export function SessionHeader() {
 
   if (!session) {
     return (
-      <div className="px-3 py-2 border-b border-slate-200 text-[11px] text-slate-400">
-        No active chat — create one to begin.
+      <div className="px-3 py-3 border-b ac-border-subtle text-[11px] ac-text-4 ac-surface-1 text-center">
+        No active chat — click <span className="font-medium ac-text-3">New chat</span> to begin.
       </div>
     );
   }
@@ -60,12 +60,14 @@ export function SessionHeader() {
   };
 
   return (
-    <div className="px-3 py-2 border-b border-slate-200 bg-white">
-      <div className="flex items-center gap-2">
-        <div className="relative flex-shrink-0">
-          <Bot className="h-4 w-4 text-slate-700" />
+    <div className="px-3 py-2.5 border-b ac-border-subtle ac-surface-0">
+      <div className="flex items-start gap-2">
+        <div className="relative flex-shrink-0 mt-0.5">
+          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-sm">
+            <Bot className="h-3.5 w-3.5 text-white" />
+          </div>
           {currentRun && (
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 animate-pulse ring-2 ring-white" />
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -81,43 +83,43 @@ export function SessionHeader() {
                   setEditing(false);
                 }
               }}
-              className="h-6 text-xs px-1.5"
+              className="h-6 text-[13px] px-1.5 font-semibold ac-border-default"
               autoFocus
             />
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="block w-full text-left text-xs font-semibold text-slate-800 truncate hover:bg-slate-50 rounded px-1 py-0.5 -mx-1"
+              className="block w-full text-left text-[13px] font-semibold ac-text-1 truncate hover:ac-surface-1 rounded px-1.5 py-0.5 -mx-1.5 ac-transition ac-focus-ring"
               title="Click to rename"
             >
               {session.title}
             </button>
           )}
-          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-400">
+          <div className="flex items-center gap-1.5 mt-1 px-0.5 text-[10px] ac-text-4">
             <StatusBadge status={status} />
             {!session.isRoot && (
-              <span className="flex items-center gap-0.5 text-violet-600">
+              <span className="flex items-center gap-0.5" style={{ color: 'var(--ac-accent)' }}>
                 <GitFork className="h-2.5 w-2.5" />
                 forked
               </span>
             )}
             {lastRun && (
               <>
-                <span>·</span>
+                <span className="ac-text-5">·</span>
                 <span className="flex items-center gap-0.5">
                   <Clock className="h-2.5 w-2.5" />
                   {relativeTime(lastRun.createdAt)}
                 </span>
               </>
             )}
-            <span>·</span>
-            <span>{session.model}</span>
+            <span className="ac-text-5">·</span>
+            <span className="font-mono ac-text-4">{session.model}</span>
           </div>
         </div>
         <Button
           size="sm"
-          variant="ghost"
-          className="h-6 px-2 text-[10px] text-slate-500"
+          variant="outline"
+          className="h-6 px-2 text-[10px] ac-text-2 ac-border-default hover:ac-surface-1 ac-transition flex-shrink-0 mt-0.5"
           onClick={() => forkActiveSession(null)}
           title="Fork this chat"
         >

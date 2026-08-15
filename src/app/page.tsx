@@ -34,48 +34,48 @@ export default function Home() {
   }, [init, documentId]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-slate-50 text-slate-900 overflow-hidden">
+    <div className="h-screen w-screen flex flex-col ac-surface-1 ac-text-1 overflow-hidden">
       {/* Top bar */}
-      <header className="flex items-center justify-between px-3 py-2 border-b border-slate-200 bg-white">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <div className="w-7 h-7 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-              <PenTool className="h-4 w-4 text-white" />
+      <header className="flex items-center justify-between px-4 h-11 border-b ac-border-default ac-surface-0 flex-shrink-0">
+        {/* Brand + document name */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-sm">
+              <PenTool className="h-3.5 w-3.5 text-white" />
             </div>
-            <span className="font-semibold text-sm tracking-tight">AgentCanvas</span>
+            <span className="font-semibold text-[13px] tracking-tight ac-text-1">AgentCanvas</span>
           </div>
-          <span className="text-slate-300">/</span>
+          <span className="ac-text-5 text-xs select-none">/</span>
           <Input
             value={document.name}
             onChange={(e) => setDocumentName(e.target.value)}
-            className="h-7 w-48 text-xs border-transparent hover:border-slate-200 focus-visible:border-slate-200"
+            className="h-7 w-52 text-xs border-transparent bg-transparent hover:ac-border-subtle focus-visible:ac-border-default ac-text-2"
           />
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <Bot className="h-3.5 w-3.5" />
-            <span>Agent-driven · session-managed</span>
+        {/* Status pills */}
+        <div className="flex items-center gap-1.5 text-[11px]">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md ac-surface-1 ac-text-2 border ac-border-subtle">
+            <Bot className="h-3 w-3" />
+            <span>Agent-driven</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            {connected ? (
-              <>
-                <Wifi className="h-3.5 w-3.5 text-emerald-500" />
-                <span>{viewerCount} viewer{viewerCount === 1 ? '' : 's'}</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="h-3.5 w-3.5 text-rose-400" />
-                <span>offline · session-state still works</span>
-              </>
-            )}
-          </div>
+          {connected ? (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border" style={{ backgroundColor: 'var(--ac-success-soft)', borderColor: 'var(--ac-success-soft)', color: 'var(--ac-success)' }}>
+              <Wifi className="h-3 w-3" />
+              <span>{viewerCount} viewer{viewerCount === 1 ? '' : 's'}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md ac-surface-1 ac-text-3 border ac-border-subtle" title="Live sync unavailable — sessions, runs, and snapshots still work via localStorage">
+              <WifiOff className="h-3 w-3" />
+              <span>local-only</span>
+            </div>
+          )}
           <a
             href="https://pi.dev/docs/latest/sdk"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 text-slate-400 hover:text-slate-700"
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md ac-text-3 hover:ac-text-1 ac-transition"
           >
-            <Github className="h-3.5 w-3.5" />
+            <Github className="h-3 w-3" />
             <span>SDK docs</span>
           </a>
         </div>
