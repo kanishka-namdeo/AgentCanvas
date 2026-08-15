@@ -151,22 +151,32 @@ You may call multiple tools in one turn if it helps. Stop calling tools when the
 Prefer the high-level generator tools (generate_wireframe, generate_user_flow, generate_diagram)
 over hand-placing many shapes — they produce well-structured output and conserve tool-call budget.`;
 
+/// Round to integer for compact snapshot display. Defensive against
+/// non-numeric values that might slip through if a future patch path
+/// bypasses normalizeShape.
+function round(v: unknown): number {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
 /// Build a textual snapshot of the canvas for the system message.
 function canvasSnapshot(canvas: CanvasDocument): string {
-  const shapeLines = canvas.shapes.length === 0
+  const shapes = canvas.shapes ?? [];
+  const tokens = canvas.tokens ?? { colors: [], textStyles: [] };
+  const shapeLines = shapes.length === 0
     ? '  (empty)'
-    : canvas.shapes.map((s) =>
-        `  • ${s.id} | ${s.type} "${s.name}" | pos=(${s.x.toFixed(0)},${s.y.toFixed(0)}) size=${s.width.toFixed(0)}×${s.height.toFixed(0)} fill=${s.fill}${s.text ? ` text="${s.text}"` : ''}${s.parentId ? ` parent=${s.parentId}` : ''}${s.componentId ? ` component=${s.componentId}` : ''}${s.autoLayout ? ` autoLayout=${s.autoLayout.direction}` : ''}`,
+    : shapes.map((s) =>
+        `  • ${s.id} | ${s.type} "${s.name}" | pos=(${round(s.x)},${round(s.y)}) size=${round(s.width)}×${round(s.height)} fill=${s.fill}${s.text ? ` text="${s.text}"` : ''}${s.parentId ? ` parent=${s.parentId}` : ''}${s.componentId ? ` component=${s.componentId}` : ''}${s.autoLayout ? ` autoLayout=${s.autoLayout.direction}` : ''}`,
       ).join('\n');
-  const tokenLines = canvas.tokens.colors.length === 0
+  const tokenLines = tokens.colors.length === 0
     ? '  (no tokens)'
-    : canvas.tokens.colors.map((c) => `  • ${c.key} = ${c.value}  (${c.name})`).join('\n');
+    : tokens.colors.map((c) => `  • ${c.key} = ${c.value}  (${c.name})`).join('\n');
   return `Current canvas state:
 - Background: ${canvas.background}
-- Tokens (${canvas.tokens.colors.length} colors, ${canvas.tokens.textStyles.length} text styles):
+- Tokens (${tokens.colors.length} colors, ${tokens.textStyles.length} text styles):
 ${tokenLines}
 - Heatmap: ${canvas.heatmap ? `on (${canvas.heatmap.points.length} points, frame ${canvas.heatmap.frameId})` : 'off'}
-- Shapes (${canvas.shapes.length}):
+- Shapes (${shapes.length}):
 ${shapeLines}`;
 }
 

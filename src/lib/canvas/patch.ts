@@ -17,28 +17,42 @@ function randomId(): string {
   return `id-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+// Coerce a value to a finite number, falling back to `def` if missing or
+// invalid. LLM tool callers frequently pass numeric fields as strings
+// (e.g. "x": "100") — this normalizes them so downstream code can rely on
+// `s.x.toFixed(0)` etc. without crashing.
+function num(v: unknown, def: number): number {
+  if (v === null || v === undefined) return def;
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : def;
+}
+
+function str(v: unknown, def: string): string {
+  return v === null || v === undefined ? def : String(v);
+}
+
 function normalizeShape(input: Partial<Shape>, fallbackZ: number): Shape {
   return {
     id: input.id ?? randomId(),
     type: (input.type as Shape['type']) ?? 'rectangle',
-    name: input.name ?? 'Shape',
-    x: input.x ?? 0,
-    y: input.y ?? 0,
-    width: input.width ?? 100,
-    height: input.height ?? 100,
-    rotation: input.rotation ?? 0,
-    opacity: input.opacity ?? 1,
-    fill: input.fill ?? '#e2e8f0',
-    stroke: input.stroke ?? '#0f172a',
-    strokeWidth: input.strokeWidth ?? 0,
-    radius: input.radius ?? 0,
-    text: input.text,
-    fontSize: input.fontSize ?? 16,
-    textColor: input.textColor ?? '#0f172a',
+    name: str(input.name, 'Shape'),
+    x: num(input.x, 0),
+    y: num(input.y, 0),
+    width: num(input.width, 100),
+    height: num(input.height, 100),
+    rotation: num(input.rotation, 0),
+    opacity: Math.max(0, Math.min(1, num(input.opacity, 1))),
+    fill: str(input.fill, '#e2e8f0'),
+    stroke: str(input.stroke, '#0f172a'),
+    strokeWidth: num(input.strokeWidth, 0),
+    radius: num(input.radius, 0),
+    text: input.text === null || input.text === undefined ? undefined : String(input.text),
+    fontSize: num(input.fontSize, 16),
+    textColor: str(input.textColor, '#0f172a'),
     parentId: input.parentId ?? null,
-    zIndex: input.zIndex ?? fallbackZ,
-    locked: input.locked ?? false,
-    visible: input.visible ?? true,
+    zIndex: num(input.zIndex, fallbackZ),
+    locked: !!input.locked,
+    visible: input.visible !== false,
     autoLayout: input.autoLayout ?? null,
     tokenBinding: input.tokenBinding ?? null,
     componentId: input.componentId ?? null,
@@ -78,7 +92,7 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
     case 'update': {
       if (!patch.shapeId || !patch.shape) break;
       next.shapes = next.shapes.map((s) =>
-        s.id === patch.shapeId ? { ...s, ...patch.shape! } : s,
+        s.id === patch.shapeId ? normalizeShape({ ...s, ...patch.shape! }, s.zIndex) : s,
       );
       break;
     }
@@ -86,7 +100,7 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       if (!patch.updates) break;
       const map = new Map(patch.updates.map((u) => [u.id, u.changes]));
       next.shapes = next.shapes.map((s) =>
-        map.has(s.id) ? { ...s, ...map.get(s.id)! } : s,
+        map.has(s.id) ? normalizeShape({ ...s, ...map.get(s.id)! }, s.zIndex) : s,
       );
       break;
     }

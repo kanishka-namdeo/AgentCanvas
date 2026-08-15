@@ -98,7 +98,7 @@ const ShapeTypeSchema = Type.Union(
 );
 
 const ShapeInputSchema = Type.Object({
-  type: ShapeTypeSchema,
+  type: Type.Optional(ShapeTypeSchema),
   name: Type.Optional(Type.String({ description: 'Layer name shown in the layers panel' })),
   x: Type.Optional(Type.Number({ description: 'Canvas-space X (top-left origin)' })),
   y: Type.Optional(Type.Number({ description: 'Canvas-space Y' })),
@@ -121,7 +121,8 @@ const ShapeInputSchema = Type.Object({
 /// LLMs sometimes pass numbers as strings (e.g. `x: "400"` instead of `400`).
 /// This helper normalizes those before they reach the patch layer.
 function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shape> {
-  const out: Partial<Shape> = { type: params.type as Shape['type'] };
+  const out: Partial<Shape> = {};
+  if (params.type !== undefined) out.type = params.type as Shape['type'];
   if (params.name !== undefined) out.name = String(params.name);
   if (params.x !== undefined) out.x = Number(params.x) || 0;
   if (params.y !== undefined) out.y = Number(params.y) || 0;
@@ -198,18 +199,20 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     async execute(toolCallId, params) {
       const id = crypto.randomUUID();
       const coerced = coerceShapeInput(params);
+      // Default type to 'rectangle' if the LLM omitted it.
+      if (!coerced.type) coerced.type = 'rectangle';
       const patch: CanvasPatch = {
         op: 'add',
         shapeId: id,
         shape: { id, ...coerced, zIndex: ctx.getShapes().length },
-        summary: `Created ${params.type}${params.name ? ` "${params.name}"` : ''} at (${coerced.x ?? 0}, ${coerced.y ?? 0})`,
+        summary: `Created ${coerced.type}${params.name ? ` "${params.name}"` : ''} at (${coerced.x ?? 0}, ${coerced.y ?? 0})`,
       };
       ctx.applyPatch(patch);
       return {
         content: [
           {
             type: 'text',
-            text: `Created ${params.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.`,
+            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.`,
           },
         ],
         details: { shapeId: id, patch },
@@ -230,31 +233,51 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       'To change text content, set `text`. To change color, set `fill` (hex like #ff0000).',
     ],
     parameters: Type.Object({
-      shapeId: Type.String({ description: 'ID of the shape to update' }),
+      shapeId: Type.Optional(Type.String({ description: 'ID of the shape to update (alias: id)' })),
+      id: Type.Optional(Type.String({ description: 'Alias for shapeId' })),
       changes: ShapeInputSchema,
     }),
     async execute(toolCallId, params) {
-      const existing = ctx.getShapes().find((s) => s.id === params.shapeId);
+      // Tolerate LLMs that pass `id` instead of `shapeId`.
+      const shapeId = params.shapeId ?? (params as any).id;
+      const existing = ctx.getShapes().find((s) => s.id === shapeId);
       if (!existing) {
         return {
-          content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }],
-          details: { error: 'not_found', shapeId: params.shapeId },
+          content: [{ type: 'text', text: `Error: no shape with id ${shapeId}` }],
+          details: { error: 'not_found', shapeId },
           isError: true as any,
         };
       }
-      const coerced = coerceShapeInput(params.changes);
+      // Tolerate LLMs that pass changes as top-level fields instead of
+      // nesting them under `changes`. If `changes` is missing/empty but
+      // the LLM passed x/y/fill/etc at the top level, treat those as the
+      // changes.
+      let rawChanges = params.changes;
+      if (!rawChanges || Object.keys(rawChanges).length === 0) {
+        // Strip metadata fields, keep shape fields.
+        const { shapeId: _s, id: _i, changes: _c, ...rest } = params as any;
+        rawChanges = rest;
+      }
+      const coerced = coerceShapeInput(rawChanges);
+      // If the LLM passed no actual changes, bail out gracefully.
+      if (Object.keys(coerced).length === 0) {
+        return {
+          content: [{ type: 'text', text: `No changes provided for ${existing.name}.` }],
+          details: { shapeId },
+        };
+      }
       const patch: CanvasPatch = {
         op: 'update',
-        shapeId: params.shapeId,
+        shapeId,
         shape: coerced,
         summary: `Updated ${existing.name}: ${Object.keys(coerced).join(', ')}`,
       };
       ctx.applyPatch(patch);
       return {
         content: [
-          { type: 'text', text: `Updated ${existing.name} (${params.shapeId}). Changed: ${Object.keys(coerced).join(', ')}.` },
+          { type: 'text', text: `Updated ${existing.name} (${shapeId}). Changed: ${Object.keys(coerced).join(', ')}.` },
         ],
-        details: { shapeId: params.shapeId, patch },
+        details: { shapeId, patch },
       };
     },
   });
@@ -306,12 +329,14 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({}),
     async execute(toolCallId, params) {
       const shapes = ctx.getShapes();
+      const r = (v: unknown) => { const n = typeof v === 'number' ? v : Number(v); return Number.isFinite(n) ? Math.round(n) : 0; };
       const summary = shapes
         .map(
           (s) =>
-            `• ${s.id} | ${s.type} "${s.name}" | pos=(${s.x.toFixed(0)},${s.y.toFixed(0)}) size=${s.width.toFixed(0)}×${s.height.toFixed(0)} fill=${s.fill}${s.text ? ` text="${s.text}"` : ''}`,
+            `• ${s.id} | ${s.type} "${s.name}" | pos=(${r(s.x)},${r(s.y)}) size=${r(s.width)}×${r(s.height)} fill=${s.fill}${s.text ? ` text="${s.text}"` : ''}`,
         )
         .join('\n');
+      // (s.text ? ... : '') guards against undefined — only shows text= when there's actual text.
       return {
         content: [
           {
@@ -1283,7 +1308,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
           const ratio = contrastRatio(s.textColor, s.fill);
           if (ratio < 4.5) {
             lowContrast++;
-            findings.push(`• Low-contrast text "${s.text.slice(0, 30)}…" on fill ${s.fill}: ratio ${ratio.toFixed(1)} (< 4.5 WCAG AA).`);
+            findings.push(`• Low-contrast text "${(s.text ?? '').slice(0, 30)}…" on fill ${s.fill}: ratio ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'} (< 4.5 WCAG AA).`);
           }
         }
       }
