@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://pi.dev",
+    "name": "Pi Coding Agent",
+    "snippet": "A terminal-based coding agent . Pi is a minimal agent harness. Customize Pi with extensions, skills, prompt templates, and themes. Four modes: interactive, ...",
+    "host_name": "pi.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/earendil-works/pi",
+    "name": "earendil-works/pi: AI agent toolkit: unified LLM API",
+    "snippet": "This is the home of the Pi agent harness project including our self extensible coding agent . Agent runtime with tool calling and state management",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pi.dev/docs/latest/sdk",
+    "name": "SDK · Documentation",
+    "snippet": "The SDK provides programmatic access to pi's agent capabilities . Use it to embed pi in other applications, build custom interfaces, or integrate with automated ...",
+    "host_name": "pi.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://roman.pt/posts/pi-sdk-version",
+    "name": "Agent engineering: Pi SDK",
+    "snippet": "Jun 7, 2026 — The Claude Agent SDK has more built-in structure. Pi's SDK gives you a session with tools and a prompt, and you build the rest yourself.",
+    "host_name": "roman.pt",
+    "rank": 3,
+    "date": "Jun 7, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://x.com/dabit3/article/2023986942300627132",
+    "name": "How to Build a Custom Agent Framework with PI",
+    "snippet": "Feb 18, 2026 — PI is a toolkit for building AI agents . agent with built-in tools, pi-coding-agent has 7 built-in tools. Four are active by default",
+    "host_name": "x.com",
+    "rank": 4,
+    "date": "Feb 18, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://lucumr.pocoo.org/2026/1/31/pi",
+    "name": "Pi: The Minimal Agent Within OpenClaw",
+    "snippet": "Jan 31, 2026 — Pi's underlying AI SDK is written so that a session can really contain many different messages from many different model providers.",
+    "host_name": "lucumr.pocoo.org",
+    "rank": 5,
+    "date": "Jan 31, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://nader.substack.com/p/how-to-build-a-custom-agent-framework",
+    "name": "How to Build a Custom Agent Framework with PI",
+    "snippet": "PI is a TypeScript toolkit for building AI agents . It's a monorepo of packages that layer on top of each other: pi-ai handles LLM ... Read more",
+    "host_name": "nader.substack.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://openai.github.io/openai-agents-python",
+    "name": "OpenAI Agents SDK",
+    "snippet": "Function tools : Turn any Python function into a tool with automatic schema generation and Pydantic-powered validation.",
+    "host_name": "openai.github.io",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.openai.com/api/docs/guides/agents",
+    "name": "Agents SDK | OpenAI API",
+    "snippet": "Agents are applications that plan, call tools , collaborate across specialists, and keep enough state to complete multi-step work. Read more",
+    "host_name": "developers.openai.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mtugrull.medium.com/unpacking-openais-agents-sdk-a-technical-deep-dive-into-the-future-of-ai-agents-af32dd56e9d1",
+    "name": "Unpacking OpenAI's Agents SDK: A Technical Deep Dive into",
+    "snippet": "The Agents SDK allows developers to integrate tools by defining a Python function and marking it with a decorator like @ tool or using pre-built ... Read more",
+    "host_name": "mtugrull.medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/79731216/function-call-with-openai-agent-sdk-with-ollama-fails",
+    "name": "Function call with OpenAI Agent SDK with Ollama fails",
+    "snippet": "I'm having trouble getting function call working with OpenAI Agent SDK and Ollama. Using UV, python -12 and added \"openai>=1.68.2\" trying to use ...",
+    "host_name": "stackoverflow.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.temporal.io/ai-cookbook/tool-call-openai-python",
+    "name": "Tool calling agent | AI Cookbook | Temporal Documentation",
+    "snippet": "Build a simple, non-looping Python agent that lets the LLM choose tools and then invokes the chosen tools with Temporal and OpenAI.",
+    "host_name": "docs.temporal.io",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.decodingai.com/p/tool-calling-from-scratch-to-production",
+    "name": "AI Tool Calling: From Scratch to Production",
+    "snippet": "Oct 28, 2025 — Learn to implement, debug, and scale tool calling for AI agents . Build from scratch with Python, then deploy with Gemini API.",
+    "host_name": "www.decodingai.com",
+    "rank": 5,
+    "date": "Oct 28, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.aurelio.ai/learn/openai-agents-sdk",
+    "name": "Building with OpenAI's Agents SDK",
+    "snippet": "May 6, 2025 — Agent loop: Built-in loop handling tool calls , sending results to the LLM, and continuing execution until completion · Python -first: Uses native ... Read more",
+    "host_name": "www.aurelio.ai",
+    "rank": 6,
+    "date": "May 6, 2025",
+    "favicon": ""
+  }
+]

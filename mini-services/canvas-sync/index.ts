@@ -13,7 +13,8 @@
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch, Shape } from '../../src/lib/canvas/types.ts';
+import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from '../../src/lib/canvas/types.ts';
+import { applyPatchToCanvas } from '../../src/lib/canvas/patch.ts';
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -43,6 +44,8 @@ function ensureDocument(documentId: string): DocState {
         background: '#f8fafc',
         viewport: { zoom: 1, panX: 0, panY: 0 },
         shapes: [],
+        tokens: { colors: [], textStyles: [] },
+        heatmap: null,
       },
       subscribers: new Set(),
     };
@@ -51,68 +54,10 @@ function ensureDocument(documentId: string): DocState {
   return doc;
 }
 
-/// Apply a patch to a document state and return the updated document.
+/// Apply a patch to a document state using the shared pure patch logic.
 function applyPatch(state: DocState, patch: CanvasPatch): CanvasDocument {
-  const doc = state.document;
-  switch (patch.op) {
-    case 'add': {
-      if (!patch.shape) break;
-      const newShape: Shape = {
-        id: patch.shape.id ?? crypto.randomUUID(),
-        type: (patch.shape.type as Shape['type']) ?? 'rectangle',
-        name: patch.shape.name ?? 'Shape',
-        x: patch.shape.x ?? 0,
-        y: patch.shape.y ?? 0,
-        width: patch.shape.width ?? 100,
-        height: patch.shape.height ?? 100,
-        rotation: patch.shape.rotation ?? 0,
-        opacity: patch.shape.opacity ?? 1,
-        fill: patch.shape.fill ?? '#e2e8f0',
-        stroke: patch.shape.stroke ?? '#0f172a',
-        strokeWidth: patch.shape.strokeWidth ?? 0,
-        radius: patch.shape.radius ?? 0,
-        text: patch.shape.text,
-        fontSize: patch.shape.fontSize ?? 16,
-        textColor: patch.shape.textColor ?? '#0f172a',
-        parentId: patch.shape.parentId ?? null,
-        zIndex: patch.shape.zIndex ?? doc.shapes.length,
-        locked: patch.shape.locked ?? false,
-        visible: patch.shape.visible ?? true,
-      };
-      doc.shapes = [...doc.shapes, newShape];
-      break;
-    }
-    case 'update': {
-      if (!patch.shapeId || !patch.shape) break;
-      doc.shapes = doc.shapes.map((s) =>
-        s.id === patch.shapeId ? { ...s, ...patch.shape } : s,
-      );
-      break;
-    }
-    case 'remove': {
-      const ids = new Set(patch.shapeIds ?? (patch.shapeId ? [patch.shapeId] : []));
-      doc.shapes = doc.shapes.filter((s) => !ids.has(s.id));
-      break;
-    }
-    case 'clear': {
-      doc.shapes = [];
-      break;
-    }
-    case 'background': {
-      if (patch.background) doc.background = patch.background;
-      break;
-    }
-    case 'viewport': {
-      if (patch.viewport) doc.viewport = patch.viewport;
-      break;
-    }
-    case 'select': {
-      // No state change — purely visual highlight. The patch itself is the
-      // signal; the frontend reacts on receipt.
-      break;
-    }
-  }
-  return doc;
+  state.document = applyPatchToCanvas(state.document, patch);
+  return state.document;
 }
 
 function broadcast(state: DocState, event: SyncEvent, except?: string) {

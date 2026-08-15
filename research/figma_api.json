@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/rest-api",
+    "name": "Introduction | Developer Docs",
+    "snippet": "The Figma API is based on the REST structure. Endpoints allow you to perform a number of actions: s Projects Components and styles Work with variables Manage ...",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/resource-library/design-tokens",
+    "name": "Design Tokens: How to Sync Design and Code in Figma",
+    "snippet": "Step 1: Create your primitive variables · Step 2: Connect your semantic tokens · Step 3: Unlock themes with variable modes · Step 4: Sync to code with Dev Mode. Read more",
+    "host_name": "www.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.supernova.io/blog/understanding-the-differences-between-figma-variables-and-design-tokens",
+    "name": "Understanding the Differences Between Figma Variables",
+    "snippet": "Nov 9, 2023 — “ design tokens are indivisible pieces. One group of components has variables , Figma has 3 types of API : Plugin, widget, and REST . REST API is ...",
+    "host_name": "www.supernova.io",
+    "rank": 2,
+    "date": "Nov 9, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/DesignSystems/comments/1f2by0l/how_do_you_manage_figma_variables_tokens_and_sync",
+    "name": "How do you manage Figma variables, tokens, and sync",
+    "snippet": "Hey everyone,\n\nI'm curious to hear about how you're all managing your design system workflows in Figma, especially when it comes to using variables and ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15339657135383-Guide-to-variables-in-Figma",
+    "name": "Guide to variables in Figma",
+    "snippet": "Use variables and modes to implement design tokens for your design ... REST API includes endpoints for querying, creating, updating, and deleting variables . Read more",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@NateBaldwin/synchronizing-figma-variables-with-design-tokens-3a6c6adbf7da",
+    "name": "Synchronizing Figma variables with Design Tokens",
+    "snippet": "Figma's REST API offers us a promising opportunity to finally tie our design tokens directly to design resources and integrate Figma as part of ...",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

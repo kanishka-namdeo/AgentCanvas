@@ -13,7 +13,7 @@
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch, Shape } from './types';
+import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from './types';
 import { applyPatchToCanvas } from './patch';
 
 const PORT = 3003;
@@ -36,6 +36,8 @@ function ensureDocument(documentId: string): DocState {
         background: '#f8fafc',
         viewport: { zoom: 1, panX: 0, panY: 0 },
         shapes: [],
+        tokens: { colors: [], textStyles: [] },
+        heatmap: null,
       },
       subscribers: new Set(),
     };

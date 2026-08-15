@@ -70,6 +70,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     background: '#f8fafc',
     viewport: { zoom: 1, panX: 0, panY: 0 },
     shapes: [],
+    tokens: { colors: [], textStyles: [] },
+    heatmap: null,
   },
   selectedIds: [],
   agentHighlightIds: [],

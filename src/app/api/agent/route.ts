@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
     background: '#f8fafc',
     viewport: { zoom: 1, panX: 0, panY: 0 },
     shapes: [],
+    tokens: { colors: [], textStyles: [] },
+    heatmap: null,
   };
 
   if (!prompt.trim()) {

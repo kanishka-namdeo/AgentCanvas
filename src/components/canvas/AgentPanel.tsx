@@ -10,6 +10,17 @@
 // All agent events arrive as `SyncEvent`s over the WebSocket and are
 // reduced into `ChatTurn[]` in the canvas store. This component just renders
 // that state.
+//
+// === SCENARIO PROMPTS =====================================================
+//
+// The preset prompts are grouped by the research-driven scenarios that the
+// extended tool surface supports (see /research/*.json + tools.ts):
+//   - Wireframes (mobile/web templates)
+//   - User flows (multi-screen)
+//   - Diagrams (flowchart / mindmap)
+//   - Design systems (palettes, tokens, audit)
+//   - Analysis (heatmap, copy, audit)
+// Each prompt is a one-click example that exercises a specific tool.
 
 import { useEffect, useRef, useState } from 'react';
 import { useCanvasStore, type AgentToolCallEntry } from '@/lib/canvas/store';
@@ -17,13 +28,80 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles } from 'lucide-react';
+import {
+  Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
+  Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers,
+} from 'lucide-react';
 
-const PRESET_PROMPTS = [
-  'Create a mobile app login screen with a header, email/password fields, and a sign-in button.',
-  'Design a dashboard card showing monthly revenue with a number, a small trend label, and an icon.',
-  'Make a simple landing page hero: a large headline, a subheadline, and two CTA buttons.',
-  'Draw a 4-step horizontal process flow with arrows between boxes.',
+interface PromptGroup {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  prompts: string[];
+}
+
+const PROMPT_GROUPS: PromptGroup[] = [
+  {
+    id: 'wireframes',
+    label: 'Wireframes',
+    icon: Smartphone,
+    prompts: [
+      'Design a mobile login screen with logo, email/password fields, and sign-in button.',
+      'Build a mobile dashboard with stat cards, a chart placeholder, and a tab bar.',
+      'Make a web landing page hero with headline, subheadline, and two CTAs.',
+      'Design a web pricing page with three tiers, the middle one featured.',
+    ],
+  },
+  {
+    id: 'flows',
+    label: 'User Flows',
+    icon: GitBranch,
+    prompts: [
+      'Generate a 3-step onboarding user flow (welcome → permissions → done).',
+      'Create an ecommerce flow: browse → product → cart → checkout.',
+      'Design a signup funnel: landing → signup → verify → dashboard.',
+    ],
+  },
+  {
+    id: 'diagrams',
+    label: 'Diagrams',
+    icon: LayoutDashboard,
+    prompts: [
+      'Draw a flowchart with these steps: Idea, Research, Design, Build, Ship.',
+      'Make a mindmap with "Product Strategy" at the center and 5 branches: Users, Market, Tech, Revenue, Risks.',
+    ],
+  },
+  {
+    id: 'design-systems',
+    label: 'Design Systems',
+    icon: Palette,
+    prompts: [
+      'Generate a triadic palette from #0ea5e9 and apply it to all shapes.',
+      'Create a monochromatic palette from #16a34a, save it as tokens, and apply to existing shapes.',
+      'Audit my design for consistency issues and report findings.',
+    ],
+  },
+  {
+    id: 'analysis',
+    label: 'Analysis',
+    icon: Activity,
+    prompts: [
+      'Predict the attention heatmap for the first frame on the canvas.',
+      'Fill every text shape with realistic placeholder copy about "project management".',
+      'Organize my layers — rename and re-order them by reading order.',
+    ],
+  },
+  {
+    id: 'layers',
+    label: 'Layers & Layout',
+    icon: Layers,
+    prompts: [
+      'Align all selected shapes to the left.',
+      'Distribute these shapes evenly horizontally.',
+      'Group all the stat cards into one group.',
+      'Apply horizontal Auto Layout with 8px gap to the selected frame.',
+    ],
+  },
 ];
 
 export function AgentPanel() {
@@ -31,7 +109,10 @@ export function AgentPanel() {
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const connected = useCanvasStore((s) => s.connected);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
+  const tokens = useCanvasStore((s) => s.document.tokens);
+  const heatmapOn = useCanvasStore((s) => !!s.document.heatmap);
   const [input, setInput] = useState('');
+  const [activeGroup, setActiveGroup] = useState<string>('wireframes');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new content.
@@ -47,6 +128,8 @@ export function AgentPanel() {
     setInput('');
   };
 
+  const activePrompts = PROMPT_GROUPS.find((g) => g.id === activeGroup)?.prompts ?? [];
+
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
@@ -60,13 +143,26 @@ export function AgentPanel() {
           </div>
           <span className="text-xs font-medium text-slate-700">Agent</span>
           <Badge variant="outline" className="text-[10px] h-4 px-1 py-0 font-normal">
-            Pi SDK
+            Pi SDK · 24 tools
           </Badge>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
           <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-rose-400'}`} />
           {connected ? 'connected' : 'offline'}
         </div>
+      </div>
+
+      {/* Status strip: tokens + heatmap state */}
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-100 bg-slate-50/50 text-[10px] text-slate-500">
+        <span className="flex items-center gap-1">
+          <Palette className="h-3 w-3" />
+          {tokens.colors.length} color token{tokens.colors.length === 1 ? '' : 's'}
+        </span>
+        <span className="text-slate-300">·</span>
+        <span className="flex items-center gap-1">
+          <Activity className="h-3 w-3" />
+          heatmap {heatmapOn ? 'on' : 'off'}
+        </span>
       </div>
 
       {/* Conversation */}
@@ -81,23 +177,45 @@ export function AgentPanel() {
                 </div>
                 This is a Figma-like canvas where the primary user is an AI agent.
                 The agent (powered by the Pi Agent SDK&apos;s tool-calling API) sees the
-                canvas state and manipulates it through tools like
-                <code className="mx-1 px-1 py-0.5 bg-slate-200 rounded text-[10px]">canvas_create_shape</code>
-                and
-                <code className="mx-1 px-1 py-0.5 bg-slate-200 rounded text-[10px]">canvas_update_shape</code>.
+                canvas state and manipulates it through 24 tools — covering wireframes,
+                user flows, diagrams, design tokens, palettes, heatmaps, copy, and audits.
                 You can also draw manually — the agent will see your edits.
               </div>
-              <div className="text-xs text-slate-500 font-medium">Try asking:</div>
-              {PRESET_PROMPTS.map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => promptAgent(p)}
-                  disabled={!connected || agentBusy}
-                  className="block w-full text-left text-xs px-3 py-2 rounded border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-600 disabled:opacity-50"
-                >
-                  {p}
-                </button>
-              ))}
+
+              {/* Scenario prompt groups */}
+              <div className="flex flex-wrap gap-1">
+                {PROMPT_GROUPS.map((g) => {
+                  const Icon = g.icon;
+                  const active = activeGroup === g.id;
+                  return (
+                    <button
+                      key={g.id}
+                      onClick={() => setActiveGroup(g.id)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
+                        active
+                          ? 'bg-slate-900 text-white border-slate-900'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {g.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-1.5">
+                {activePrompts.map((p, i) => (
+                  <button
+                    key={i}
+                    onClick={() => promptAgent(p)}
+                    disabled={!connected || agentBusy}
+                    className="block w-full text-left text-xs px-3 py-2 rounded border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-600 disabled:opacity-50"
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {turns.map((turn) => (
@@ -186,11 +304,18 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
 function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
   const success = tc.success;
   const pending = success === undefined;
+  // Color-code by tool category for quick visual scanning.
+  const category = toolCategory(tc.name);
   return (
     <div className="rounded border border-slate-200 bg-slate-50/60 px-2 py-1.5">
       <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-700">
         <Wrench className="h-3 w-3 text-slate-400" />
         <code className="text-[10px] bg-slate-200/60 px-1 py-0.5 rounded">{tc.name}</code>
+        {category && (
+          <Badge variant="outline" className={`text-[9px] h-3.5 px-1 py-0 font-normal ${category.cls}`}>
+            {category.label}
+          </Badge>
+        )}
         {pending && <Loader2 className="h-3 w-3 animate-spin text-slate-400 ml-auto" />}
         {success === true && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-auto" />}
         {success === false && <XCircle className="h-3 w-3 text-rose-500 ml-auto" />}
@@ -205,4 +330,29 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
       )}
     </div>
   );
+}
+
+function toolCategory(name: string): { label: string; cls: string } | null {
+  if (name.startsWith('canvas_create') || name.startsWith('canvas_update') || name.startsWith('canvas_delete') || name === 'canvas_list_shapes' || name === 'canvas_clear' || name === 'canvas_set_background' || name === 'canvas_select_shape') {
+    return { label: 'core', cls: 'text-slate-500 border-slate-300' };
+  }
+  if (name.includes('duplicate') || name.includes('group') || name.includes('align') || name.includes('organize')) {
+    return { label: 'layers', cls: 'text-amber-700 border-amber-200' };
+  }
+  if (name.includes('auto_layout')) {
+    return { label: 'auto-layout', cls: 'text-emerald-700 border-emerald-200' };
+  }
+  if (name.includes('component')) {
+    return { label: 'component', cls: 'text-sky-700 border-sky-200' };
+  }
+  if (name.includes('palette') || name.includes('tokens')) {
+    return { label: 'design-system', cls: 'text-fuchsia-700 border-fuchsia-200' };
+  }
+  if (name.startsWith('canvas_generate_wireframe') || name.startsWith('canvas_generate_user_flow') || name.startsWith('canvas_generate_diagram')) {
+    return { label: 'generator', cls: 'text-violet-700 border-violet-200' };
+  }
+  if (name.includes('heatmap') || name.includes('audit') || name.includes('copy')) {
+    return { label: 'analysis', cls: 'text-rose-700 border-rose-200' };
+  }
+  return null;
 }

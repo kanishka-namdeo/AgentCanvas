@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040451373-Guide-to-auto-layout",
+    "name": "Guide to auto layout",
+    "snippet": "Elements in an auto layout frame are automatically arranged in a frame based on direction, spacing, padding, alignment, and other auto layout properties.",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/release-notes",
+    "name": "Figma product news and release notes",
+    "snippet": "Design closer to CSS with the updated auto layout option. New ... Copy a Make preview onto the canvas as design layers ; Generate a design ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.instagram.com/reel/DCRtUy8gOIT",
+    "name": "Beginners guide to Auto Layout in Figma One",
+    "snippet": "Auto Layout is a Figma feature that helps you automatically arrange, align and distribute elements inside a container . Direction: Arrange items ...",
+    "host_name": "www.instagram.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1opw6ab/do_you_use_auto_layout_a_lot_when_designing",
+    "name": "Do you use Auto Layout a lot when designing?",
+    "snippet": "Hi! I recently posted a layer organization plugin, and someone commented that Auto Layout handles alignment, but frames and groups aren't used.\n\nBut whether ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@joeyabanks/config-2024-everything-new-in-figma-8c12e86303aa",
+    "name": "Config 2024: Everything New in Figma | by Joey Banks",
+    "snippet": "New in Figma Updates to Auto Layout , responsive prototypes, Slides, and more! Auto Layout is assembling the layer structure correctly to get ...",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/31271851622807-Use-Figma-Design-tools-in-Figma-Buzz",
+    "name": "Use Figma Design tools in Figma Buzz",
+    "snippet": "Figma Buzz lets you access Figma Design features such as auto layout , the layers panel, and advanced layer properties from the canvas. Read more",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.zeplin.io/collaboration/when-and-when-not-to-use-auto-layout-in-figma",
+    "name": "When (and when not) to use Auto Layout in Figma",
+    "snippet": "Nov 23, 2022 — Auto Layout is a property in Figma that helps you build flexible frames and components that adapt to your UI designs as you add more to them. Read more",
+    "host_name": "blog.zeplin.io",
+    "rank": 6,
+    "date": "Nov 23, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/blog/making-the-move-to-ui3-a-guide-to-figmas-next-chapter",
+    "name": "Making the Move to UI3: A Guide to Figma's Next Chapter",
+    "snippet": "Mar 25, 2025 — Figma's AI features in UI3 help streamline your process, from generating placeholder content to rewriting text and automating tedious tasks like ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 7,
+    "date": "Mar 25, 2025",
+    "favicon": ""
+  }
+]

@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
-import type { CanvasPatch, Shape } from '@/lib/canvas/types';
+import type { CanvasPatch, HeatmapOverlay, Shape } from '@/lib/canvas/types';
 
 interface DragState {
   kind: 'pan' | 'move' | 'resize';
@@ -341,6 +341,18 @@ export function Canvas() {
         height={size.h}
         style={{ pointerEvents: 'none' }}
       >
+        <defs>
+          {/* Radial gradient used for heatmap fixation points. */}
+          <radialGradient id="heatmap-fixation" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(239, 68, 68, 0.65)" />
+            <stop offset="50%" stopColor="rgba(249, 115, 22, 0.35)" />
+            <stop offset="100%" stopColor="rgba(234, 88, 12, 0)" />
+          </radialGradient>
+          {/* Marker for component instance badge. */}
+          <pattern id="component-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(14, 165, 233, 0.35)" strokeWidth="2" />
+          </pattern>
+        </defs>
         <g transform={`translate(${panX}, ${panY}) scale(${zoom})`}>
           {/* Shapes — pointer events re-enabled per shape */}
           {document.shapes
@@ -357,6 +369,11 @@ export function Canvas() {
                 onResizeHandleMouseDown={onResizeHandleMouseDown}
               />
             ))}
+
+          {/* Attention heatmap overlay — rendered on top of shapes. */}
+          {document.heatmap && (
+            <HeatmapRenderer overlay={document.heatmap} zoom={zoom} />
+          )}
         </g>
       </svg>
 
@@ -525,6 +542,15 @@ function ShapeRenderer({
   const handleSize = HANDLE_SIZE / zoom;
   const handles: NonNullable<DragState['handle']>[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
+  // Component instance badge: small "◆" in the top-left corner for instances,
+  // or a filled corner for the master component.
+  const isComponentMaster = shape.componentId === shape.id;
+  const isComponentInstance = shape.componentId && shape.componentId !== shape.id;
+
+  // Auto-layout indicator: a small dashed border with a "AL" badge for
+  // frames/groups that have auto-layout applied.
+  const hasAutoLayout = !!shape.autoLayout && (shape.type === 'frame' || shape.type === 'group');
+
   return (
     <g>
       {highlighted && (
@@ -547,6 +573,42 @@ function ShapeRenderer({
         </rect>
       )}
       {element}
+
+      {/* Auto-layout visual indicator (dashed inner border + badge). */}
+      {hasAutoLayout && (
+        <>
+          <rect
+            x={shape.x + 2 / zoom}
+            y={shape.y + 2 / zoom}
+            width={shape.width - 4 / zoom}
+            height={shape.height - 4 / zoom}
+            fill="none"
+            stroke="#22c55e"
+            strokeWidth={1 / zoom}
+            strokeDasharray={`${4 / zoom} ${3 / zoom}`}
+            style={{ pointerEvents: 'none' }}
+          />
+          <g style={{ pointerEvents: 'none' }} transform={`translate(${shape.x + 4 / zoom}, ${shape.y - 14 / zoom})`}>
+            <rect width={36 / zoom} height={12 / zoom} rx={2 / zoom} fill="#22c55e" />
+            <text x={18 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">AL</text>
+          </g>
+        </>
+      )}
+
+      {/* Component master / instance indicators. */}
+      {isComponentMaster && (
+        <g style={{ pointerEvents: 'none' }} transform={`translate(${shape.x + shape.width - 16 / zoom}, ${shape.y + 4 / zoom})`}>
+          <rect width={12 / zoom} height={12 / zoom} rx={2 / zoom} fill="#0ea5e9" />
+          <text x={6 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">M</text>
+        </g>
+      )}
+      {isComponentInstance && (
+        <g style={{ pointerEvents: 'none' }} transform={`translate(${shape.x + shape.width - 16 / zoom}, ${shape.y + 4 / zoom})`}>
+          <rect width={12 / zoom} height={12 / zoom} rx={2 / zoom} fill="#a78bfa" />
+          <text x={6 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">I</text>
+        </g>
+      )}
+
       {selected && (
         <>
           <rect
@@ -578,6 +640,53 @@ function ShapeRenderer({
           })}
         </>
       )}
+    </g>
+  );
+}
+
+// ---- Heatmap renderer -------------------------------------------------------
+//
+// Renders the attention heatmap overlay. Each fixation point is drawn as a
+// soft radial gradient circle whose radius scales with intensity. The whole
+// overlay is mixed onto the canvas using a 'screen'-like blend so it
+// highlights rather than obscures the underlying design.
+
+function HeatmapRenderer({ overlay, zoom }: { overlay: HeatmapOverlay; zoom: number }) {
+  // Each fixation point: radius scaled by intensity.
+  // Max radius ~ 80px at intensity 1.0.
+  return (
+    <g style={{ pointerEvents: 'none' }} opacity={0.85}>
+      {/* Bounding outline so the user can see what was analyzed. */}
+      <rect
+        x={overlay.x}
+        y={overlay.y}
+        width={overlay.width}
+        height={overlay.height}
+        fill="none"
+        stroke="#ef4444"
+        strokeWidth={1.5 / zoom}
+        strokeDasharray={`${6 / zoom} ${4 / zoom}`}
+      />
+      {overlay.points.map((p, i) => {
+        const radius = 30 + p.intensity * 60;
+        return (
+          <circle
+            key={i}
+            cx={p.x}
+            cy={p.y}
+            r={radius}
+            fill="url(#heatmap-fixation)"
+            opacity={0.4 + p.intensity * 0.5}
+          />
+        );
+      })}
+      {/* Heatmap label badge in the top-left of the analyzed frame. */}
+      <g transform={`translate(${overlay.x + 6 / zoom}, ${overlay.y + 6 / zoom})`}>
+        <rect width={120 / zoom} height={16 / zoom} rx={3 / zoom} fill="rgba(239, 68, 68, 0.92)" />
+        <text x={60 / zoom} y={11 / zoom} fontSize={10 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">
+          Attention heatmap
+        </text>
+      </g>
     </g>
   );
 }
