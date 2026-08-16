@@ -42,7 +42,11 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState('');
 
+  // Sync local title state when the active session changes. setState-in-
+  // effect is intentional: `title` is a controlled-input buffer that must
+  // reset whenever the user switches sessions or renames externally.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (session) setTitle(session.title);
   }, [session?.id, session?.title]);
 

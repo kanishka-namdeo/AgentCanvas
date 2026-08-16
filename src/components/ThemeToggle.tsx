@@ -33,8 +33,12 @@ export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   // Hydrate from localStorage on mount (avoids SSR flash).
+  // setState-in-effect is intentional here: we need to read localStorage
+  // (a browser-only API) after mount and reflect it in state. The cascading
+  // render is exactly one extra frame on first paint — acceptable.
   useEffect(() => {
     const initial = getInitialTheme();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(initial);
     applyTheme(initial);
     setMounted(true);

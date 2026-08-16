@@ -1,12 +1,37 @@
 {
-  "name": "nextjs_tailwind_shadcn_ts",
+  "name": "co-canvas",
   "version": "0.2.1",
   "private": true,
+  "description": "An AI-native collaborative canvas — Figma for AI agents. Chat in natural language; the agent reasons and draws for you.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kanishka-namdeo/co-canvas.git"
+  },
+  "homepage": "https://github.com/kanishka-namdeo/co-canvas#readme",
+  "bugs": {
+    "url": "https://github.com/kanishka-namdeo/co-canvas/issues"
+  },
+  "keywords": [
+    "ai-agent",
+    "canvas",
+    "whiteboard",
+    "figma",
+    "design-tool",
+    "nextjs",
+    "react",
+    "prisma",
+    "socket-io",
+    "pi-agent-sdk",
+    "z-ai",
+    "realtime"
+  ],
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
