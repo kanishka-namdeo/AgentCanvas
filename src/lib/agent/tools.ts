@@ -2450,6 +2450,117 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     },
   });
 
+  // =====================================================================
+  // WEB RESEARCH TOOLS (web_search + web_fetch)
+  //
+  // Zero-config, no-API-key web access. Tries four providers in sequence:
+  //   1. z.ai web_search / page_reader (sandbox-native, auto-credentials)
+  //   2. DuckDuckGo HTML (no key)
+  //   3. Startpage (no key, Google-index)
+  //   4. Jina AI (s.jina.ai / r.jina.ai, no auth)
+  //
+  // See `src/lib/web/search.ts` and `src/lib/web/fetch.ts` for details.
+  // These tools are read-only — they return text content for the LLM and
+  // never mutate the canvas.
+  // =====================================================================
+
+  const webSearchTool = defineTool({
+    name: 'web_search',
+    label: 'Web Search',
+    description:
+      'Search the web for up-to-date information. Returns a numbered list of results with title, URL, snippet, and publish date. ' +
+      'Use this when the user asks about current events, recent releases, real-world products, or anything not in your training data. ' +
+      'Works with zero configuration — no API key needed. Tries multiple search engines (z.ai, DuckDuckGo, Startpage, Jina) in fallback order.',
+    promptSnippet: 'Search the web for current information (no API key needed).',
+    promptGuidelines: [
+      'Call web_search when you need real-world, current, or factual information you don\'t already know.',
+      'Pass a concise natural-language query — the same as you would type into Google.',
+      'After searching, use web_fetch on a specific result URL to read the full page if you need more detail than the snippet.',
+      'You can call web_search multiple times with different queries if needed.',
+    ],
+    parameters: Type.Object({
+      query: Type.String({ description: 'The search query (natural language, like "nextjs 16 features" or "best color palette for fintech apps")' }),
+      limit: Type.Optional(Type.Number({ description: 'Max results to return (default 8, max 30)' })),
+      recency: Type.Optional(Type.Union(
+        [
+          Type.Literal('day'),
+          Type.Literal('week'),
+          Type.Literal('month'),
+          Type.Literal('year'),
+        ],
+        { description: 'Restrict to results from the last day/week/month/year. Omit for no filter.' },
+      )),
+    }),
+    async execute(toolCallId, params) {
+      // Lazy-load the web module so it never imports on the canvas-only path.
+      const { webSearch, formatSearchForLLM } = await import('../web/search.ts');
+      try {
+        const res = await webSearch({
+          query: params.query,
+          limit: params.limit,
+          recency: params.recency,
+        });
+        const text = formatSearchForLLM(res);
+        return {
+          content: [{ type: 'text', text }],
+          details: { provider: res.provider, count: res.results.length, error: res.error },
+        };
+      } catch (err: any) {
+        return {
+          content: [{ type: 'text', text: `Web search failed: ${err?.message ?? String(err)}` }],
+          details: { error: err?.message },
+          isError: true as any,
+        };
+      }
+    },
+  });
+
+  const webFetchTool = defineTool({
+    name: 'web_fetch',
+    label: 'Fetch Web Page',
+    description:
+      'Fetch a URL and return its content as clean readable markdown / plain text. ' +
+      'Handles HTML (with readability extraction), JSON (pretty-printed), RSS/Atom feeds, and plain text. ' +
+      'Use this to read a specific web page — e.g. a blog post, documentation page, or API response — in full. ' +
+      'Works with zero configuration — no API key needed. Falls back through readability → z.ai page_reader → Jina Reader.',
+    promptSnippet: 'Fetch a URL and return readable markdown (no API key needed).',
+    promptGuidelines: [
+      'Call web_fetch when you have a specific URL and want to read its content.',
+      'The URL can be a full https:// URL or a bare domain like "example.com" (https:// is added automatically).',
+      'Output is markdown for HTML pages, pretty-printed JSON for API responses, and a top-10 item list for feeds.',
+      'Content is capped at 500,000 chars; if truncated, the response notes it.',
+      'Set `raw: true` to skip readability extraction and return the cleaned raw HTML.',
+    ],
+    parameters: Type.Object({
+      url: Type.String({ description: 'The URL to fetch (https://example.com/page or bare example.com)' }),
+      raw: Type.Optional(Type.Boolean({ description: 'If true, return cleaned raw HTML without readability extraction (default false)' })),
+    }),
+    async execute(toolCallId, params) {
+      const { webFetch, formatFetchForLLM } = await import('../web/fetch.ts');
+      try {
+        const result = await webFetch({ url: params.url, raw: params.raw });
+        const text = formatFetchForLLM(result);
+        return {
+          content: [{ type: 'text', text }],
+          details: {
+            url: result.finalUrl,
+            contentType: result.contentType,
+            method: result.method,
+            bytes: result.bytes,
+            truncated: result.truncated,
+            title: result.title,
+          },
+        };
+      } catch (err: any) {
+        return {
+          content: [{ type: 'text', text: `Web fetch failed: ${err?.message ?? String(err)}` }],
+          details: { url: params.url, error: err?.message },
+          isError: true as any,
+        };
+      }
+    },
+  });
+
   return [
     // Core
     createShape,
@@ -2521,6 +2632,9 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     uploadImage,
     searchIcons,
     generateImage,
+    // Web research (zero-config, no API key)
+    webSearchTool,
+    webFetchTool,
   ];
 }
 
