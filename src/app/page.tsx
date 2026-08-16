@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -18,7 +18,7 @@ import { SessionHeader } from '@/components/sessions/SessionHeader';
 import { RunHistoryPanel } from '@/components/sessions/RunHistoryPanel';
 import { RunStopButton } from '@/components/sessions/RunStopButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { PenTool, Github, Wifi, WifiOff, Bot, PanelLeft, PanelRight, PanelLeftClose, PanelRightClose } from 'lucide-react';
+import { PenTool, Github, Wifi, WifiOff, Bot, PanelLeft, PanelRight, PanelLeftClose, PanelRightClose, PanelBottom, PanelBottomClose, Maximize2, Minimize2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -43,14 +43,81 @@ export default function Home() {
   const layersPanelRef = useRef<ImperativePanelHandle>(null);
   const propertiesPanelRef = useRef<ImperativePanelHandle>(null);
   const rightPanelRef = useRef<ImperativePanelHandle>(null);
+  const historyPanelRef = useRef<ImperativePanelHandle>(null);
 
   // Track collapsed state so the toggle button icon flips.
   const [sessionsCollapsed, setSessionsCollapsed] = useState(false);
   const [layersCollapsed, setLayersCollapsed] = useState(false);
   const [propertiesCollapsed, setPropertiesCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
 
-  // Keyboard shortcuts: ⌘1 sessions, ⌘2 layers, ⌘3 properties, ⌘4 right column.
+  // Zen mode — collapses all peripheral panels (sessions, layers, right column)
+  // for a focused canvas view. Shortcut: ⌘\ (Cmd/Ctrl + Backslash).
+  // Toggle again to restore the previous layout. Derived from panel states so
+  // it stays correct even after a reload (autoSaveId may restore a collapsed layout).
+  const isZenMode = sessionsCollapsed && layersCollapsed && rightCollapsed;
+  const zenSnapshot = useRef<{
+    sessionsCollapsed: boolean;
+    layersCollapsed: boolean;
+    rightCollapsed: boolean;
+    sessionsSize: number;
+    layersSize: number;
+    rightSize: number;
+  } | null>(null);
+  const toggleZen = useCallback(() => {
+    if (!isZenMode) {
+      // Entering zen — snapshot current peripheral states + exact sizes, then collapse all.
+      zenSnapshot.current = {
+        sessionsCollapsed,
+        layersCollapsed,
+        rightCollapsed,
+        sessionsSize: sessionsPanelRef.current?.getSize() ?? 14,
+        layersSize: layersPanelRef.current?.getSize() ?? 16,
+        rightSize: rightPanelRef.current?.getSize() ?? 24,
+      };
+      sessionsPanelRef.current?.collapse();
+      layersPanelRef.current?.collapse();
+      rightPanelRef.current?.collapse();
+      setSessionsCollapsed(true);
+      setLayersCollapsed(true);
+      setRightCollapsed(true);
+    } else {
+      // Exiting zen — restore each panel to its pre-zen state + exact size.
+      const snap = zenSnapshot.current;
+      if (snap) {
+        // First, expand/collapse each panel to match its pre-zen collapsed state.
+        if (snap.sessionsCollapsed) sessionsPanelRef.current?.collapse();
+        else sessionsPanelRef.current?.expand();
+        if (snap.layersCollapsed) layersPanelRef.current?.collapse();
+        else layersPanelRef.current?.expand();
+        if (snap.rightCollapsed) rightPanelRef.current?.collapse();
+        else rightPanelRef.current?.expand();
+        setSessionsCollapsed(snap.sessionsCollapsed);
+        setLayersCollapsed(snap.layersCollapsed);
+        setRightCollapsed(snap.rightCollapsed);
+        // Then restore exact sizes on the next frame. Without this, sequential
+        // expand() calls redistribute space proportionally and panels don't
+        // return to their exact pre-zen pixel sizes.
+        requestAnimationFrame(() => {
+          if (!snap.sessionsCollapsed) sessionsPanelRef.current?.resize(snap.sessionsSize);
+          if (!snap.layersCollapsed) layersPanelRef.current?.resize(snap.layersSize);
+          if (!snap.rightCollapsed) rightPanelRef.current?.resize(snap.rightSize);
+        });
+      } else {
+        // No snapshot (e.g. after reload in zen) — expand all to defaults.
+        sessionsPanelRef.current?.expand();
+        layersPanelRef.current?.expand();
+        rightPanelRef.current?.expand();
+        setSessionsCollapsed(false);
+        setLayersCollapsed(false);
+        setRightCollapsed(false);
+      }
+    }
+  }, [isZenMode, sessionsCollapsed, layersCollapsed, rightCollapsed]);
+
+  // Keyboard shortcuts: ⌘1 sessions, ⌘2 layers, ⌘3 properties, ⌘4 right column,
+  // ⌘5 history, ⌘\ zen mode (collapse all peripheral panels).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
@@ -59,10 +126,12 @@ export default function Home() {
       else if (e.key === '2') { e.preventDefault(); toggle(layersPanelRef, layersCollapsed, setLayersCollapsed); }
       else if (e.key === '3') { e.preventDefault(); toggle(propertiesPanelRef, propertiesCollapsed, setPropertiesCollapsed); }
       else if (e.key === '4') { e.preventDefault(); toggle(rightPanelRef, rightCollapsed, setRightCollapsed); }
+      else if (e.key === '5') { e.preventDefault(); toggle(historyPanelRef, historyCollapsed, setHistoryCollapsed); }
+      else if (e.key === '\\') { e.preventDefault(); toggleZen(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [sessionsCollapsed, layersCollapsed, propertiesCollapsed, rightCollapsed]);
+  }, [sessionsCollapsed, layersCollapsed, propertiesCollapsed, rightCollapsed, historyCollapsed, toggleZen]);
 
   return (
     <div className="h-screen w-screen flex flex-col ac-surface-1 ac-text-1 overflow-hidden">
@@ -124,6 +193,23 @@ export default function Home() {
             icon={PanelRight}
             closeIcon={PanelRightClose}
           />
+          <CollapseToggle
+            collapsed={historyCollapsed}
+            onClick={() => toggle(historyPanelRef, historyCollapsed, setHistoryCollapsed)}
+            title="Toggle history (⌘5)"
+            icon={PanelBottom}
+            closeIcon={PanelBottomClose}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleZen}
+            title="Zen mode — hide all panels (⌘\)"
+            aria-label="Toggle zen mode"
+            className={`h-7 w-7 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring ${isZenMode ? 'ac-surface-1 ac-text-1' : ''}`}
+          >
+            {isZenMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </Button>
 
           <div className="w-px h-5 ac-border-subtle border-l mx-0.5" />
 
@@ -159,7 +245,7 @@ export default function Home() {
       </header>
 
       {/* Main split: sessions | layers | canvas | properties/chat/history */}
-      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
+      <ResizablePanelGroup direction="horizontal" autoSaveId="co-canvas-layout-h" className="flex-1 min-h-0">
           {/* Col 1 — Sessions sidebar (collapsible) */}
           <ResizablePanel
             ref={sessionsPanelRef}
@@ -215,7 +301,7 @@ export default function Home() {
             onCollapse={() => setRightCollapsed(true)}
             onExpand={() => setRightCollapsed(false)}
           >
-            <ResizablePanelGroup direction="vertical">
+            <ResizablePanelGroup direction="vertical" autoSaveId="co-canvas-layout-v">
               {/* Properties (top) — collapsible */}
               <ResizablePanel
                 ref={propertiesPanelRef}
@@ -235,7 +321,15 @@ export default function Home() {
               </ResizablePanel>
               <ResizableHandle />
               {/* History (bottom) */}
-              <ResizablePanel defaultSize={18} minSize={10} collapsible collapsedSize={0}>
+              <ResizablePanel
+                ref={historyPanelRef}
+                defaultSize={18}
+                minSize={10}
+                collapsible
+                collapsedSize={0}
+                onCollapse={() => setHistoryCollapsed(true)}
+                onExpand={() => setHistoryCollapsed(false)}
+              >
                 <RunHistoryPanel />
               </ResizablePanel>
             </ResizablePanelGroup>
