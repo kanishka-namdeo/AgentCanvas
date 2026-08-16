@@ -477,3 +477,33 @@ Artifacts:
 - /home/z/my-project/tests/integration/conversation.test.ts (NEW, 7 tests)
 - /home/z/my-project/tests/AGENTS.md (added integration test inventory table + updated verification counts)
 - /home/z/my-project/src/lib/agent/AGENTS.md (updated LLM shim policy with injection contract)
+
+---
+Task ID: clone-setup-run
+Agent: main (Z.ai Code)
+Task: Clone, set up, and run the AgentCanvas app from https://github.com/kanishka-namdeo/AgentCanvas
+
+Work Log:
+- Cloned the AgentCanvas repo to /tmp/AgentCanvas and inspected README, package.json, .env.example, prisma/schema.prisma, next.config.ts, Caddyfile, and instrumentation.ts to understand setup requirements.
+- Confirmed AgentCanvas is a Next.js 16 + React 19 + TypeScript + Tailwind 4 + Prisma 6 (SQLite) + Zustand + Socket.IO project — fully compatible with the sandbox stack.
+- Stopped the pre-existing template dev server (pkill next/next-server) and freed port 3000.
+- Cleaned the template files in /home/z/my-project (removed old src/, prisma/, public/, configs, node_modules, .next, dev.log) and copied the entire AgentCanvas repo contents in (preserving the repo's own worklog.md as historical context).
+- Created /home/z/my-project/.env with DATABASE_URL="file:./db/custom.db" and NODE_ENV="development" (z-ai-web-dev-sdk auto-resolves credentials in the sandbox, so no API key needed).
+- Ran `bun install` — 1048 packages installed in ~4s.
+- Ran `bun run db:generate` (Prisma client generated) and `bun run db:push` (SQLite DB created at db/custom.db, schema synced).
+- Launched the dev server via the sandbox-sanctioned `.zscripts/dev.sh` launcher (it backgrounds `bun run dev`, disowns the PID, waits for health check, then starts mini-services). Next.js dev server came up on port 3000; the in-process canvas-sync WebSocket service (started by instrumentation.ts) bound to port 3003.
+- Note: the standalone `mini-services/canvas-sync` service failed to start because port 3003 was already taken by the in-process service — this is the intended design (in-process service wins; standalone is the fallback). No action needed.
+- Verified end-to-end with Agent Browser:
+  - Opened http://localhost:3000/ → page title "AgentCanvas — Figma for AI agents", full 4-panel workspace rendered (sessions sidebar, canvas + toolbar, properties, agent chat).
+  - No page errors, no console errors (only React DevTools info + HMR connected).
+  - Manual canvas interactivity: clicked the Rectangle toolbar tool → "Rectangle 1" shape created and appeared in the Layers panel (canvas store + layers panel wired correctly).
+  - Agent feature: clicked the "Design a mobile login screen…" example prompt → run lifecycle fired (Run button → Stop, input disabled, "Runs · 1"), agent completed in 27.3s with 8 tool calls (canvas_generate_wireframe + 7× canvas_generate_copy), drew "Email field", "Password field", "Sign in button" shapes onto the canvas, captured a snapshot ("Snapshots · 1"). All POST /api/agent returned 200.
+  - Dark mode toggle works; mobile viewport (390×844) renders responsively.
+- Confirmed server persists across tool calls and remains healthy: HTTP 200 on /, WebSocket listening on :3003 (held by in-process next-server, pid 2183).
+
+Stage Summary:
+- AgentCanvas is cloned, installed, database-initialized, and running at http://localhost:3000/ (dev server PID 2162/2183, persistent via .zscripts/dev.sh).
+- The complete app is functional: 4-panel workspace, manual canvas tools, 50+ agent tools, real-time Socket.IO sync (in-process on :3003), session/run/snapshot persistence (localStorage), dark mode, responsive layout.
+- LLM integration (z-ai-web-dev-sdk) works with auto-resolved sandbox credentials — agent runs complete successfully and mutate the canvas.
+- Non-fatal noise in dev.log: "MODULE_NOT_FOUND: expression is too dynamic" unhandledRejections from the pi-coding-agent dynamic-import path — do not block agent execution (all /api/agent calls return 200). The standalone canvas-sync mini-service failing to bind :3003 is expected (in-process service owns it).
+- Artifacts: screenshots saved to .zscripts/agentcanvas-home.png, agentcanvas-rect.png, agentcanvas-result.png, agentcanvas-dark.png, agentcanvas-mobile.png.
