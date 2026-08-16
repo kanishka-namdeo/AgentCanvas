@@ -1,0 +1,101 @@
+// Prisma schema for AgentCanvas — a Figma-like design tool where AI agents
+// (driven by the Pi Agent SDK) are the primary users of the canvas.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A design document — analogous to a Figma file. Holds many shapes
+/// and stores a complete revision history of agent actions.
+model Document {
+  id        String   @id @default(cuid())
+  name      String   @default("Untitled")
+  /// JSON-serialized canvas viewport (zoom, pan) at last save.
+  viewport  String   @default("{}")
+  /// Canvas background color (hex).
+  background String  @default("#f8fafc")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shapes    Shape[]
+  actions   AgentAction[]
+}
+
+/// A single visual node on the canvas — rectangle, ellipse, text, line, etc.
+/// Stored as a flat list; parent/child (group) relationships are encoded
+/// inside `parentId`. This mirrors Figma's node tree at a small scale.
+model Shape {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  /// Shape kind: "rectangle" | "ellipse" | "text" | "line" | "frame" | "group"
+  type       String
+  /// User/agent-visible name (shown in the layers panel).
+  name       String
+  /// Position (canvas-space, top-left origin).
+  x          Float    @default(0)
+  y          Float    @default(0)
+  width      Float    @default(100)
+  height     Float    @default(100)
+  /// Rotation in degrees.
+  rotation   Float    @default(0)
+  /// Opacity 0..1.
+  opacity    Float    @default(1)
+  /// Fill color (hex) — empty string means no fill.
+  fill       String   @default("#e2e8f0")
+  /// Stroke color (hex).
+  stroke     String   @default("#0f172a")
+  /// Stroke width in px.
+  strokeWidth Float   @default(0)
+  /// Border radius in px (rectangles / frames).
+  radius     Float    @default(0)
+  /// Text content (only for type = "text").
+  text       String?
+  /// Font size for text shapes.
+  fontSize   Float    @default(16)
+  /// Text color (hex).
+  textColor  String   @default("#0f172a")
+  /// Optional parent group/frame id.
+  parentId   String?
+  /// Stacking order — higher = drawn on top.
+  zIndex     Int      @default(0)
+  /// Whether the layer is locked (agent cannot mutate).
+  locked     Boolean  @default(false)
+  /// Whether the layer is hidden from rendering.
+  visible    Boolean  @default(true)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([parentId])
+}
+
+/// Audit log of every tool call the agent made against a document.
+/// Useful for replay, undo, and showing the user what the agent did.
+model AgentAction {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  /// The Pi Agent SDK tool name, e.g. "canvas_create_shape".
+  tool       String
+  /// JSON-serialized arguments passed to the tool.
+  arguments  String
+  /// JSON-serialized result returned by the tool.
+  result     String
+  /// Whether the tool execution succeeded.
+  success    Boolean  @default(true)
+  /// Wall-clock duration of the tool call in ms.
+  durationMs Int      @default(0)
+
+  createdAt  DateTime @default(now())
+
+  @@index([documentId])
+}

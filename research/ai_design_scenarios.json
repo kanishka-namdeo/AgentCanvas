@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.figma.com/blog/design-systems-ai-mcp",
+    "name": "Design Systems And AI: Why MCP Servers Are The Unlock",
+    "snippet": "Aug 6, 2025 — With the Figma MCP server, an AI agent can use design context to help audit differences between your designs and codebase. They can: Audit usage ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 0,
+    "date": "Aug 6, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxdesign.cc/agentic-ai-design-systems-figma-a-practical-guide-6ab0b681718d",
+    "name": "Agentic AI, design systems & Figma: a practical guide",
+    "snippet": "Mar 31, 2026 — MCP stands for Model Context Protocol. It's a standardised way for an AI agent to connect to a tool and read information from it. Figma has one. Read more",
+    "host_name": "uxdesign.cc",
+    "rank": 1,
+    "date": "Mar 31, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/UXDesign/comments/1oq08xy/has_anyone_successfully_used_ai_to_help_build_a",
+    "name": "Has anyone successfully used AI to help build a design",
+    "snippet": "Hey everyone, long-time reader, first-time poster 👋\n\nI’m a senior UX designer at an organisation with a fairly large SaaS product. I'm in the process ...",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxpilot.ai",
+    "name": "UX Pilot - Superfast UX/UI Design with AI",
+    "snippet": "Idea to design in lightspeed. Start from a sketch, a thought or a PRD import. UX Pilot helps you ideate, refine and visualize your ideas. Learn more. Read more",
+    "host_name": "uxpilot.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/future-ux/i-reviewed-6-ai-powered-ui-tools-in-60-minutes-c304bff79181",
+    "name": "I reviewed 6 AI-powered UI tools in 60 minutes",
+    "snippet": "Key takeaways from using several AI tools for UX/ UI design · Figma Make — available to test quickly in Figma · UX Pilot AI — a plugin for Figma. Read more",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.eleken.co/blog-posts/ai-design-system",
+    "name": "AI Design Systems: Tools and Workflows [Guide]",
+    "snippet": "Jun 8, 2026 — AI design systems combine traditional design system principles with AI-powered workflows to help teams build, document, and maintain products. Read more",
+    "host_name": "www.eleken.co",
+    "rank": 5,
+    "date": "Jun 8, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://learn.thedesignsystem.guide/p/ai-ux-patterns-for-design-systems-661",
+    "name": "AI UX Patterns for Design Systems (part 2)",
+    "snippet": "May 2, 2025 — Interfaces where users can connect and automate AI agents visually through drag-and-drop tools . Examples : Connecting a sentiment analysis model ... Read more",
+    "host_name": "learn.thedesignsystem.guide",
+    "rank": 6,
+    "date": "May 2, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.parallelhq.com/blog/automating-design-systems-with-ai",
+    "name": "Automating Design Systems with AI: 2026 Workflow Guide",
+    "snippet": "Mar 7, 2026 — Automating design systems with AI is about letting a machine handle repetitive tasks so people can focus on solving problems. It combines the ... Read more",
+    "host_name": "www.parallelhq.com",
+    "rank": 7,
+    "date": "Mar 7, 2026",
+    "favicon": ""
+  }
+]

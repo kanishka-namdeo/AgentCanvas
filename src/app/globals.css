@@ -1,0 +1,262 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ============================================================
+   App-specific design tokens (AgentCanvas)
+   Layered on top of shadcn defaults — used by all panels.
+   ============================================================ */
+:root {
+  /* Text hierarchy — replaces ad-hoc text-slate-{300..900} */
+  --ac-text-primary:   oklch(0.21 0.02 264);   /* slate-900 ish */
+  --ac-text-secondary: oklch(0.45 0.02 264);   /* slate-600 */
+  --ac-text-tertiary:  oklch(0.58 0.02 264);   /* slate-500 */
+  --ac-text-quaternary:oklch(0.70 0.02 264);   /* slate-400 */
+  --ac-text-faint:     oklch(0.82 0.015 264);  /* slate-300 */
+
+  /* Border scale — stronger than default slate-200 */
+  --ac-border-subtle:  oklch(0.95 0.005 264);  /* slate-100 ish */
+  --ac-border-default: oklch(0.88 0.01 264);   /* slate-200 + 1 step */
+  --ac-border-strong:  oklch(0.78 0.015 264);  /* slate-300 */
+
+  /* Surface elevation (very subtle, for nested panels) */
+  --ac-surface-0: oklch(1 0 0);                /* white */
+  --ac-surface-1: oklch(0.985 0.003 264);      /* slate-50 */
+  --ac-surface-2: oklch(0.97 0.005 264);       /* slate-100 */
+  --ac-surface-3: oklch(0.94 0.008 264);       /* slate-100 + */
+
+  /* Brand accent (violet → fuchsia) */
+  --ac-accent: oklch(0.55 0.22 295);
+  --ac-accent-soft: oklch(0.96 0.04 295);
+  --ac-accent-border: oklch(0.85 0.07 295);
+
+  /* Status */
+  --ac-success: oklch(0.55 0.16 150);
+  --ac-success-soft: oklch(0.95 0.04 150);
+  --ac-warning: oklch(0.62 0.16 70);
+  --ac-warning-soft: oklch(0.95 0.05 70);
+  --ac-danger:  oklch(0.55 0.22 25);
+  --ac-danger-soft: oklch(0.95 0.05 25);
+  --ac-info:    oklch(0.55 0.18 240);
+  --ac-info-soft: oklch(0.95 0.04 240);
+}
+
+/* ---------------------------------------------------------------------------
+   Dark-mode variant — activates when <html> or any ancestor has .dark class.
+   OKLCH makes this a pure lightness inversion: same hues, inverted L axis.
+   The utility classes (.ac-text-1, .ac-border-default, etc.) pick up these
+   values automatically — no component changes needed.
+   --------------------------------------------------------------------------- */
+.dark {
+  /* Text hierarchy — inverted L axis, slightly desaturated for comfort */
+  --ac-text-primary:    oklch(0.97 0.005 264);
+  --ac-text-secondary:  oklch(0.82 0.01 264);
+  --ac-text-tertiary:   oklch(0.68 0.012 264);
+  --ac-text-quaternary: oklch(0.55 0.012 264);
+  --ac-text-faint:      oklch(0.42 0.01 264);
+
+  /* Border scale — lighter than text but visible against dark surfaces */
+  --ac-border-subtle:   oklch(0.26 0.008 264);
+  --ac-border-default:  oklch(0.32 0.01 264);
+  --ac-border-strong:   oklch(0.42 0.014 264);
+
+  /* Surface elevation — darkest at the page, lighter for raised panels */
+  --ac-surface-0: oklch(0.17 0.008 264);
+  --ac-surface-1: oklch(0.20 0.009 264);
+  --ac-surface-2: oklch(0.24 0.01 264);
+  --ac-surface-3: oklch(0.28 0.012 264);
+
+  /* Brand accent — slightly brighter so it pops on dark */
+  --ac-accent:        oklch(0.68 0.20 295);
+  --ac-accent-soft:   oklch(0.30 0.06 295);
+  --ac-accent-border: oklch(0.48 0.12 295);
+
+  /* Status — soft variants are darker (not glaring) on dark */
+  --ac-success:      oklch(0.70 0.16 150);
+  --ac-success-soft: oklch(0.30 0.05 150);
+  --ac-warning:      oklch(0.75 0.16 70);
+  --ac-warning-soft: oklch(0.32 0.06 70);
+  --ac-danger:       oklch(0.68 0.22 25);
+  --ac-danger-soft:  oklch(0.32 0.06 25);
+  --ac-info:         oklch(0.70 0.18 240);
+  --ac-info-soft:    oklch(0.30 0.05 240);
+}
+
+/* Utility classes — semantic, used everywhere in the app */
+@layer utilities {
+  .ac-text-1 { color: var(--ac-text-primary); }
+  .ac-text-2 { color: var(--ac-text-secondary); }
+  .ac-text-3 { color: var(--ac-text-tertiary); }
+  .ac-text-4 { color: var(--ac-text-quaternary); }
+  .ac-text-5 { color: var(--ac-text-faint); }
+
+  .ac-border-subtle  { border-color: var(--ac-border-subtle); }
+  .ac-border-default { border-color: var(--ac-border-default); }
+  .ac-border-strong  { border-color: var(--ac-border-strong); }
+
+  .ac-surface-0 { background-color: var(--ac-surface-0); }
+  .ac-surface-1 { background-color: var(--ac-surface-1); }
+  .ac-surface-2 { background-color: var(--ac-surface-2); }
+  .ac-surface-3 { background-color: var(--ac-surface-3); }
+
+  /* Active item left-bar accent — used by SessionSidebar rows */
+  .ac-active-row {
+    background-color: var(--ac-accent-soft);
+    box-shadow: inset 2px 0 0 0 var(--ac-accent);
+  }
+
+  /* Subtle focus ring (replaces default heavy blue ring on icon buttons) */
+  .ac-focus-ring:focus-visible {
+    outline: 2px solid var(--ac-accent);
+    outline-offset: 1px;
+    border-radius: 4px;
+  }
+
+  /* Smooth, cheap transitions on interactive surfaces */
+  .ac-transition {
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  }
+
+  /* Hide scrollbars but keep scrollable (for nested lists) */
+  .ac-hide-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ac-border-default) transparent;
+  }
+  .ac-hide-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+  .ac-hide-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .ac-hide-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--ac-border-default);
+    border-radius: 3px;
+  }
+  .ac-hide-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: var(--ac-border-strong);
+  }
+}
+
+/* Keyframes — used by the empty-canvas drop zone and other subtle entrances */
+@keyframes ac-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
