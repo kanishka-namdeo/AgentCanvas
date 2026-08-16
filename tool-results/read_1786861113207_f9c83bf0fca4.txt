@@ -1,0 +1,593 @@
+     1→  1199→          {
+     2→  1200→            type: 'text',
+     3→  1201→            text: `Generated attention heatmap for frame "${frame.name}". ${points.length} fixation points predicted. Higher-intensity areas are where users are most likely to look first.`,
+     4→  1202→          },
+     5→  1203→        ],
+     6→  1204→        details: { patch, pointCount: points.length },
+     7→  1205→      };
+     8→  1206→    },
+     9→  1207→  });
+    10→  1208→
+    11→  1209→  // =====================================================================
+    12→  1210→  // COPY / TEXT GENERATION (research: Figma AI placeholder content)
+    13→  1211→  // =====================================================================
+    14→  1212→
+    15→  1213→  const generateCopy = defineTool({
+    16→  1214→    name: 'canvas_generate_copy',
+    17→  1215→    label: 'Generate Placeholder Copy',
+    18→  1216→    description:
+    19→  1217→      'Generate realistic placeholder copy for a text shape. Variants: heading (short punchy title), ' +
+    20→  1218→      'subheading (one-sentence subtitle), body (lorem-style paragraph), button (CTA label), caption, microcopy. ' +
+    21→  1219→      'Updates the text content of an existing text shape in place.',
+    22→  1220→    promptSnippet: 'Fill a text shape with realistic placeholder copy.',
+    23→  1221→    parameters: Type.Object({
+    24→  1222→      shapeId: Type.String({ description: 'ID of the text shape to fill' }),
+    25→  1223→      variant: Type.Union(
+    26→  1224→        [
+    27→  1225→          Type.Literal('heading'),
+    28→  1226→          Type.Literal('subheading'),
+    29→  1227→          Type.Literal('body'),
+    30→  1228→          Type.Literal('button'),
+    31→  1229→          Type.Literal('caption'),
+    32→  1230→          Type.Literal('microcopy'),
+    33→  1231→        ],
+    34→  1232→        { description: 'Copy variant' },
+    35→  1233→      ),
+    36→  1234→      topic: Type.Optional(Type.String({ description: 'Optional topic to anchor the copy (e.g. "project management")' })),
+    37→  1235→    }),
+    38→  1236→    async execute(toolCallId, params) {
+    39→  1237→      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+    40→  1238→      if (!shape) {
+    41→  1239→        return {
+    42→  1240→          content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }],
+    43→  1241→          details: { error: 'not_found' },
+    44→  1242→          isError: true as any,
+    45→  1243→        };
+    46→  1244→      }
+    47→  1245→      const topic = params.topic?.trim() || 'your product';
+    48→  1246→      const copy = COPY_VARIANTS[params.variant](topic);
+    49→  1247→      const patch: CanvasPatch = {
+    50→  1248→        op: 'update',
+    51→  1249→        shapeId: params.shapeId,
+    52→  1250→        shape: { text: copy },
+    53→  1251→        summary: `Filled "${shape.name}" with ${params.variant} copy`,
+    54→  1252→      };
+    55→  1253→      ctx.applyPatch(patch);
+    56→  1254→      return {
+    57→  1255→        content: [{ type: 'text', text: `Updated text shape ${params.shapeId} with ${params.variant} copy: "${copy.slice(0, 60)}…"` }],
+    58→  1256→        details: { patch, copy },
+    59→  1257→      };
+    60→  1258→    },
+    61→  1259→  });
+    62→  1260→
+    63→  1261→  // =====================================================================
+    64→  1262→  // DESIGN AUDITING (research: AI design-system audit)
+    65→  1263→  // =====================================================================
+    66→  1264→
+    67→  1265→  const auditDesign = defineTool({
+    68→  1266→    name: 'canvas_audit_design',
+    69→  1267→    label: 'Audit Design Consistency',
+    70→  1268→    description:
+    71→  1269→      'Audit the current canvas for design-consistency issues. Returns a textual report covering: ' +
+    72→  1270→      'color palette drift (too many distinct colors), spacing inconsistencies, ' +
+    73→  1271→      'font-size proliferation, low-contrast text, and unaligned shapes. ' +
+    74→  1272→      'Does NOT mutate the canvas — pure analysis. The agent can then act on the findings.',
+    75→  1273→    promptSnippet: 'Audit the canvas for design-consistency issues (read-only).',
+    76→  1274→    parameters: Type.Object({}),
+    77→  1275→    async execute(toolCallId, params) {
+    78→  1276→      const shapes = ctx.getShapes();
+    79→  1277→      const tokens = ctx.getTokens();
+    80→  1278→      const findings: string[] = [];
+    81→  1279→
+    82→  1280→      // 1. Color drift
+    83→  1281→      const colors = new Set<string>();
+    84→  1282→      for (const s of shapes) {
+    85→  1283→        colors.add(s.fill.toLowerCase());
+    86→  1284→        if (s.type === 'text') colors.add(s.textColor.toLowerCase());
+    87→  1285→      }
+    88→  1286→      colors.delete('transparent');
+    89→  1287→      if (colors.size > 8) {
+    90→  1288→        findings.push(`• Color drift: ${colors.size} distinct colors. Consider consolidating to ≤ 6 + binding to tokens.`);
+    91→  1289→      } else {
+    92→  1290→        findings.push(`• Color usage: ${colors.size} distinct colors (good).`);
+    93→  1291→      }
+    94→  1292→
+    95→  1293→      // 2. Font sizes
+    96→  1294→      const fontSizes = new Set<number>();
+    97→  1295→      for (const s of shapes) {
+    98→  1296→        if (s.type === 'text') fontSizes.add(s.fontSize);
+    99→  1297→      }
+   100→  1298→      if (fontSizes.size > 5) {
+   101→  1299→        findings.push(`• Type scale: ${fontSizes.size} distinct font sizes (consider a 4-5 step scale).`);
+   102→  1300→      } else {
+   103→  1301→        findings.push(`• Type scale: ${fontSizes.size} distinct font sizes (good).`);
+   104→  1302→      }
+   105→  1303→
+   106→  1304→      // 3. Low-contrast text
+   107→  1305→      let lowContrast = 0;
+   108→  1306→      for (const s of shapes) {
+   109→  1307→        if (s.type === 'text') {
+   110→  1308→          const ratio = contrastRatio(s.textColor, s.fill);
+   111→  1309→          if (ratio < 4.5) {
+   112→  1310→            lowContrast++;
+   113→  1311→            findings.push(`• Low-contrast text "${(s.text ?? '').slice(0, 30)}…" on fill ${s.fill}: ratio ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'} (< 4.5 WCAG AA).`);
+   114→  1312→          }
+   115→  1313→        }
+   116→  1314→      }
+   117→  1315→      if (lowContrast === 0) findings.push('• Text contrast: all text passes WCAG AA (good).');
+   118→  1316→
+   119→  1317→      // 4. Tokens usage
+   120→  1318→      const boundCount = shapes.filter((s) => s.tokenBinding && (s.tokenBinding.fillToken || s.tokenBinding.textToken)).length;
+   121→  1319→      if (tokens.colors.length === 0) {
+   122→  1320→        findings.push(`• No design tokens defined — consider using canvas_generate_palette + canvas_apply_palette (bindToTokens=true).`);
+   123→  1321→      } else {
+   124→  1322→        findings.push(`• Design tokens: ${tokens.colors.length} color tokens defined; ${boundCount}/${shapes.length} shapes bound.`);
+   125→  1323→      }
+   126→  1324→
+   127→  1325→      // 5. Alignment: detect near-misses (shapes that almost align but not quite)
+   128→  1326→      const xLines = new Map<number, number>();
+   129→  1327→      for (const s of shapes) {
+   130→  1328→        const key = Math.round(s.x / 4) * 4;
+   131→  1329→        xLines.set(key, (xLines.get(key) ?? 0) + 1);
+   132→  1330→      }
+   133→  1331→      const misaligned = shapes.filter((s) => {
+   134→  1332→        const k = Math.round(s.x / 4) * 4;
+   135→  1333→        return (xLines.get(k) ?? 0) < 2 && (xLines.get(Math.round((s.x + 4) / 4) * 4) ?? 0) >= 2;
+   136→  1334→      });
+   137→  1335→      if (misaligned.length > 0) {
+   138→  1336→        findings.push(`• Possible alignment near-miss: ${misaligned.length} shape(s) within 4px of an alignment grid line.`);
+   139→  1337→      }
+   140→  1338→
+   141→  1339→      const report = `Design audit (${shapes.length} shapes, ${tokens.colors.length} tokens):\n${findings.join('\n')}`;
+   142→  1340→      return {
+   143→  1341→        content: [{ type: 'text', text: report }],
+   144→  1342→        details: { findings, colorCount: colors.size, fontSizeCount: fontSizes.size, lowContrastCount: lowContrast },
+   145→  1343→      };
+   146→  1344→    },
+   147→  1345→  });
+   148→  1346→
+   149→  1347→  return [
+   150→  1348→    // Core
+   151→  1349→    createShape,
+   152→  1350→    updateShape,
+   153→  1351→    deleteShape,
+   154→  1352→    listShapes,
+   155→  1353→    clearCanvas,
+   156→  1354→    setBackground,
+   157→  1355→    selectShape,
+   158→  1356→    // Layer org
+   159→  1357→    duplicateShape,
+   160→  1358→    groupShapes,
+   161→  1359→    ungroupShapes,
+   162→  1360→    alignShapes,
+   163→  1361→    organizeLayers,
+   164→  1362→    // Auto layout
+   165→  1363→    applyAutoLayout,
+   166→  1364→    // Components
+   167→  1365→    createComponent,
+   168→  1366→    instantiateComponent,
+   169→  1367→    // Tokens / palette
+   170→  1368→    updateTokens,
+   171→  1369→    applyPalette,
+   172→  1370→    generatePalette,
+   173→  1371→    // Generators
+   174→  1372→    generateWireframe,
+   175→  1373→    generateUserFlow,
+   176→  1374→    generateDiagram,
+   177→  1375→    // Analysis
+   178→  1376→    predictHeatmap,
+   179→  1377→    generateCopy,
+   180→  1378→    auditDesign,
+   181→  1379→  ];
+   182→  1380→}
+   183→  1381→
+   184→  1382→// ---- Convert Pi tools → OpenAI tool spec -----------------------------------
+   185→  1383→//
+   186→  1384→// The Pi Agent SDK normally drives tools through `pi-ai` provider adapters.
+   187→  1385→// In this sandbox we don't have Anthropic/OpenAI keys, so we run the agent
+   188→  1386→// via `z-ai-web-dev-sdk` (which speaks the OpenAI tool-calling format).
+   189→  1387→// This helper converts our TypeBox-defined Pi tools into the JSON-schema
+   190→  1388→// tool spec that the LLM expects.
+   191→  1389→
+   192→  1390→import { Value } from '@sinclair/typebox/value';
+   193→  1391→
+   194→  1392→export interface OpenAIToolSpec {
+   195→  1393→  type: 'function';
+   196→  1394→  function: {
+   197→  1395→    name: string;
+   198→  1396→    description: string;
+   199→  1397→    parameters: object;
+   200→  1398→  };
+   201→  1399→}
+   202→  1400→
+   203→  1401→export function toolsToOpenAISpec(tools: ReturnType<typeof createCanvasTools>): OpenAIToolSpec[] {
+   204→  1402→  return tools.map((t) => ({
+   205→  1403→    type: 'function',
+   206→  1404→    function: {
+   207→  1405→      name: t.name,
+   208→  1406→      description: t.description,
+   209→  1407→      // TypeBox schemas ARE JSON-schema, so we can pass them through after
+   210→  1408→      // cleaning up any TypeBox-specific symbols.
+   211→  1409→      parameters: Value.Clean(t.parameters, {}) as object,
+   212→  1410→    },
+   213→  1411→  }));
+   214→  1412→}
+   215→  1413→
+   216→  1414→// ---- Execute a tool by name -------------------------------------------------
+   217→  1415→
+   218→  1416→export async function executeTool(
+   219→  1417→  tools: ReturnType<typeof createCanvasTools>,
+   220→  1418→  toolName: string,
+   221→  1419→  args: any,
+   222→  1420→): Promise<{ content: string; patch?: CanvasPatch; patches?: CanvasPatch[]; isError?: boolean }> {
+   223→  1421→  const tool = tools.find((t) => t.name === toolName);
+   224→  1422→  if (!tool) {
+   225→  1423→    return { content: `Unknown tool: ${toolName}`, isError: true };
+   226→  1424→  }
+   227→  1425→  try {
+   228→  1426→    const result = await tool.execute(
+   229→  1427→      `call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   230→  1428→      args,
+   231→  1429→      undefined,
+   232→  1430→      undefined,
+   233→  1431→      undefined as any,
+   234→  1432→    );
+   235→  1433→    const text = result.content.map((c: any) => c.text ?? '').join('\n');
+   236→  1434→    const patch = (result.details as any)?.patch as CanvasPatch | undefined;
+   237→  1435→    const isError = (result as any).isError === true;
+   238→  1436→    return { content: text, patch, isError };
+   239→  1437→  } catch (err: any) {
+   240→  1438→    return { content: `Tool execution failed: ${err.message}`, isError: true };
+   241→  1439→  }
+   242→  1440→}
+   243→  1441→
+   244→  1442→// ---- Wireframe / user-flow / diagram builders ------------------------------
+   245→  1443→//
+   246→  1444→// Pure functions that emit arrays of partial shapes. Used by the
+   247→  1445→// generate_wireframe / generate_user_flow / generate_diagram tools.
+   248→  1446→// Kept deterministic so the LLM can predict their output.
+   249→  1447→
+   250→  1448→interface WireframeResult {
+   251→  1449→  frameId: string;
+   252→  1450→  shapes: Array<Partial<Shape> & { id: string }>;
+   253→  1451→}
+   254→  1452→
+   255→  1453→function buildWireframe(template: string, ox: number, oy: number): WireframeResult {
+   256→  1454→  const frameId = crypto.randomUUID();
+   257→  1455→  const shapes: Array<Partial<Shape> & { id: string }> = [];
+   258→  1456→  const GRAY = '#e2e8f0';
+   259→  1457→  const DARK = '#475569';
+   260→  1458→  const LIGHT = '#f1f5f9';
+   261→  1459→  const add = (s: Partial<Shape> & { id: string }) => shapes.push(s);
+   262→  1460→
+   263→  1461→  // Helper for a basic frame.
+   264→  1462→  const addFrame = (w: number, h: number, name: string) => {
+   265→  1463→    add({
+   266→  1464→      id: frameId,
+   267→  1465→      type: 'frame',
+   268→  1466→      name,
+   269→  1467→      x: ox, y: oy, width: w, height: h,
+   270→  1468→      fill: '#ffffff', stroke: DARK, strokeWidth: 1, radius: 0,
+   271→  1469→      fontSize: 16, textColor: DARK,
+   272→  1470→    });
+   273→  1471→  };
+   274→  1472→
+   275→  1473→  switch (template) {
+   276→  1474→    case 'mobile_login': {
+   277→  1475→      addFrame(375, 667, 'Mobile / Login');
+   278→  1476→      add({ id: crypto.randomUUID(), type: 'text', name: 'Logo', x: ox + 137, y: oy + 80, width: 100, height: 32, fill: 'transparent', text: 'Logo', fontSize: 24, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   279→  1477→      add({ id: crypto.randomUUID(), type: 'text', name: 'Heading', x: ox + 32, y: oy + 160, width: 200, height: 28, fill: 'transparent', text: 'Welcome back', fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   280→  1478→      add({ id: crypto.randomUUID(), type: 'text', name: 'Subheading', x: ox + 32, y: oy + 196, width: 250, height: 20, fill: 'transparent', text: 'Sign in to continue', fontSize: 14, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   281→  1479→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Email field', x: ox + 32, y: oy + 256, width: 311, height: 48, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   282→  1480→      add({ id: crypto.randomUUID(), type: 'text', name: 'Email label', x: ox + 48, y: oy + 270, width: 100, height: 16, fill: 'transparent', text: 'Email', fontSize: 13, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   283→  1481→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Password field', x: ox + 32, y: oy + 320, width: 311, height: 48, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   284→  1482→      add({ id: crypto.randomUUID(), type: 'text', name: 'Password label', x: ox + 48, y: oy + 334, width: 100, height: 16, fill: 'transparent', text: 'Password', fontSize: 13, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   285→  1483→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Sign in button', x: ox + 32, y: oy + 392, width: 311, height: 48, fill: DARK, stroke: 'transparent', strokeWidth: 0, radius: 8, fontSize: 14, textColor: '#ffffff' });
+   286→  1484→      add({ id: crypto.randomUUID(), type: 'text', name: 'Sign in label', x: ox + 150, y: oy + 410, width: 80, height: 16, fill: 'transparent', text: 'Sign in', fontSize: 14, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   287→  1485→      add({ id: crypto.randomUUID(), type: 'text', name: 'Forgot password', x: ox + 110, y: oy + 460, width: 160, height: 16, fill: 'transparent', text: 'Forgot password?', fontSize: 13, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   288→  1486→      break;
+   289→  1487→    }
+   290→  1488→    case 'mobile_signup': {
+   291→  1489→      addFrame(375, 667, 'Mobile / Signup');
+   292→  1490→      add({ id: crypto.randomUUID(), type: 'text', name: 'Heading', x: ox + 32, y: oy + 80, width: 250, height: 28, fill: 'transparent', text: 'Create account', fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   293→  1491→      add({ id: crypto.randomUUID(), type: 'text', name: 'Subheading', x: ox + 32, y: oy + 116, width: 280, height: 20, fill: 'transparent', text: 'Join us in 30 seconds', fontSize: 14, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   294→  1492→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Name field', x: ox + 32, y: oy + 176, width: 311, height: 48, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   295→  1493→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Email field', x: ox + 32, y: oy + 240, width: 311, height: 48, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   296→  1494→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Password field', x: ox + 32, y: oy + 304, width: 311, height: 48, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   297→  1495→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'CTA button', x: ox + 32, y: oy + 376, width: 311, height: 48, fill: DARK, stroke: 'transparent', strokeWidth: 0, radius: 8, fontSize: 14, textColor: '#ffffff' });
+   298→  1496→      add({ id: crypto.randomUUID(), type: 'text', name: 'CTA label', x: ox + 130, y: oy + 394, width: 120, height: 16, fill: 'transparent', text: 'Create account', fontSize: 14, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   299→  1497→      add({ id: crypto.randomUUID(), type: 'text', name: 'Sign in link', x: ox + 90, y: oy + 450, width: 200, height: 16, fill: 'transparent', text: 'Already have an account? Sign in', fontSize: 13, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   300→  1498→      break;
+   301→  1499→    }
+   302→  1500→    case 'mobile_dashboard': {
+   303→  1501→      addFrame(375, 667, 'Mobile / Dashboard');
+   304→  1502→      // Header
+   305→  1503→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Header', x: ox, y: oy, width: 375, height: 64, fill: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 16, textColor: '#ffffff' });
+   306→  1504→      add({ id: crypto.randomUUID(), type: 'text', name: 'Header title', x: ox + 16, y: oy + 22, width: 200, height: 20, fill: 'transparent', text: 'Dashboard', fontSize: 18, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   307→  1505→      // Stats cards
+   308→  1506→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Stat 1', x: ox + 16, y: oy + 88, width: 165, height: 80, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   309→  1507→      add({ id: crypto.randomUUID(), type: 'text', name: 'Stat 1 value', x: ox + 28, y: oy + 108, width: 100, height: 24, fill: 'transparent', text: '$12,430', fontSize: 20, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   310→  1508→      add({ id: crypto.randomUUID(), type: 'text', name: 'Stat 1 label', x: ox + 28, y: oy + 138, width: 100, height: 16, fill: 'transparent', text: 'Revenue', fontSize: 12, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   311→  1509→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Stat 2', x: ox + 193, y: oy + 88, width: 165, height: 80, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   312→  1510→      add({ id: crypto.randomUUID(), type: 'text', name: 'Stat 2 value', x: ox + 205, y: oy + 108, width: 100, height: 24, fill: 'transparent', text: '1,284', fontSize: 20, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   313→  1511→      add({ id: crypto.randomUUID(), type: 'text', name: 'Stat 2 label', x: ox + 205, y: oy + 138, width: 100, height: 16, fill: 'transparent', text: 'Users', fontSize: 12, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   314→  1512→      // Chart placeholder
+   315→  1513→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Chart', x: ox + 16, y: oy + 184, width: 343, height: 180, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   316→  1514→      add({ id: crypto.randomUUID(), type: 'text', name: 'Chart label', x: ox + 32, y: oy + 200, width: 200, height: 16, fill: 'transparent', text: 'Revenue (last 30 days)', fontSize: 13, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   317→  1515→      // List
+   318→  1516→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'List item 1', x: ox + 16, y: oy + 380, width: 343, height: 56, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   319→  1517→      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Avatar 1', x: ox + 28, y: oy + 392, width: 32, height: 32, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+   320→  1518→      add({ id: crypto.randomUUID(), type: 'text', name: 'Item 1 title', x: ox + 72, y: oy + 396, width: 200, height: 16, fill: 'transparent', text: 'Sarah Chen', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   321→  1519→      add({ id: crypto.randomUUID(), type: 'text', name: 'Item 1 sub', x: ox + 72, y: oy + 414, width: 200, height: 14, fill: 'transparent', text: 'Pro · 2 min ago', fontSize: 12, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   322→  1520→      // Tab bar
+   323→  1521→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Tab bar', x: ox, y: oy + 615, width: 375, height: 52, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
+   324→  1522→      break;
+   325→  1523→    }
+   326→  1524→    case 'web_landing': {
+   327→  1525→      addFrame(1280, 800, 'Web / Landing');
+   328→  1526→      // Nav
+   329→  1527→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Nav', x: ox, y: oy, width: 1280, height: 64, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
+   330→  1528→      add({ id: crypto.randomUUID(), type: 'text', name: 'Logo', x: ox + 48, y: oy + 22, width: 100, height: 20, fill: 'transparent', text: 'Brand', fontSize: 18, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   331→  1529→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Nav CTA', x: ox + 1130, y: oy + 14, width: 100, height: 36, fill: DARK, stroke: 'transparent', strokeWidth: 0, radius: 6, fontSize: 14, textColor: '#ffffff' });
+   332→  1530→      add({ id: crypto.randomUUID(), type: 'text', name: 'Nav CTA label', x: ox + 1152, y: oy + 24, width: 60, height: 16, fill: 'transparent', text: 'Sign up', fontSize: 13, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   333→  1531→      // Hero
+   334→  1532→      add({ id: crypto.randomUUID(), type: 'text', name: 'Hero heading', x: ox + 48, y: oy + 200, width: 600, height: 64, fill: 'transparent', text: 'Build better, ship faster', fontSize: 48, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   335→  1533→      add({ id: crypto.randomUUID(), type: 'text', name: 'Hero subheading', x: ox + 48, y: oy + 280, width: 560, height: 48, fill: 'transparent', text: 'The platform that turns ideas into products. Trusted by 10,000+ teams.', fontSize: 18, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   336→  1534→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Primary CTA', x: ox + 48, y: oy + 360, width: 160, height: 48, fill: DARK, stroke: 'transparent', strokeWidth: 0, radius: 8, fontSize: 14, textColor: '#ffffff' });
+   337→  1535→      add({ id: crypto.randomUUID(), type: 'text', name: 'Primary CTA label', x: ox + 80, y: oy + 376, width: 100, height: 16, fill: 'transparent', text: 'Get started', fontSize: 14, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   338→  1536→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Secondary CTA', x: ox + 224, y: oy + 360, width: 140, height: 48, fill: 'transparent', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   339→  1537→      add({ id: crypto.randomUUID(), type: 'text', name: 'Secondary CTA label', x: ox + 250, y: oy + 376, width: 90, height: 16, fill: 'transparent', text: 'Watch demo', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   340→  1538→      // Hero image placeholder
+   341→  1539→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Hero image', x: ox + 720, y: oy + 160, width: 480, height: 320, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 12, fontSize: 14, textColor: DARK });
+   342→  1540→      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Image icon', x: ox + 936, y: oy + 296, width: 48, height: 48, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+   343→  1541→      // Logos strip
+   344→  1542→      add({ id: crypto.randomUUID(), type: 'text', name: 'Logos label', x: ox + 48, y: oy + 560, width: 200, height: 16, fill: 'transparent', text: 'Trusted by', fontSize: 13, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   345→  1543→      for (let i = 0; i < 5; i++) {
+   346→  1544→        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Logo ${i + 1}`, x: ox + 48 + i * 200, y: oy + 600, width: 160, height: 32, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 4, fontSize: 14, textColor: DARK });
+   347→  1545→      }
+   348→  1546→      break;
+   349→  1547→    }
+   350→  1548→    case 'web_dashboard': {
+   351→  1549→      addFrame(1280, 800, 'Web / Dashboard');
+   352→  1550→      // Sidebar
+   353→  1551→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Sidebar', x: ox, y: oy, width: 240, height: 800, fill: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: '#ffffff' });
+   354→  1552→      add({ id: crypto.randomUUID(), type: 'text', name: 'Sidebar logo', x: ox + 24, y: oy + 24, width: 120, height: 20, fill: 'transparent', text: 'Dashboard', fontSize: 18, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   355→  1553→      for (let i = 0; i < 5; i++) {
+   356→  1554→        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Nav item ${i + 1}`, x: ox + 16, y: oy + 80 + i * 48, width: 208, height: 36, fill: i === 0 ? '#334155' : 'transparent', stroke: 'transparent', strokeWidth: 0, radius: 6, fontSize: 14, textColor: '#ffffff' });
+   357→  1555→      }
+   358→  1556→      // Topbar
+   359→  1557→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Topbar', x: ox + 240, y: oy, width: 1040, height: 64, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
+   360→  1558→      add({ id: crypto.randomUUID(), type: 'text', name: 'Page title', x: ox + 264, y: oy + 22, width: 200, height: 20, fill: 'transparent', text: 'Overview', fontSize: 18, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   361→  1559→      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'User avatar', x: ox + 1192, y: oy + 16, width: 32, height: 32, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+   362→  1560→      // Stats cards
+   363→  1561→      for (let i = 0; i < 4; i++) {
+   364→  1562→        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Stat card ${i + 1}`, x: ox + 264 + i * 248, y: oy + 96, width: 232, height: 96, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   365→  1563→        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} label`, x: ox + 280 + i * 248, y: oy + 112, width: 100, height: 14, fill: 'transparent', text: ['Revenue', 'Users', 'Orders', 'Churn'][i], fontSize: 12, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   366→  1564→        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} value`, x: ox + 280 + i * 248, y: oy + 132, width: 150, height: 28, fill: 'transparent', text: ['$12.4k', '1,284', '342', '2.1%'][i], fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   367→  1565→      }
+   368→  1566→      // Chart
+   369→  1567→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Main chart', x: ox + 264, y: oy + 224, width: 720, height: 320, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   370→  1568→      add({ id: crypto.randomUUID(), type: 'text', name: 'Chart title', x: ox + 280, y: oy + 240, width: 200, height: 16, fill: 'transparent', text: 'Revenue over time', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   371→  1569→      // Right panel
+   372→  1570→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Right panel', x: ox + 1000, y: oy + 224, width: 256, height: 320, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   373→  1571→      add({ id: crypto.randomUUID(), type: 'text', name: 'Panel title', x: ox + 1016, y: oy + 240, width: 200, height: 16, fill: 'transparent', text: 'Recent activity', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   374→  1572→      for (let i = 0; i < 4; i++) {
+   375→  1573→        add({ id: crypto.randomUUID(), type: 'ellipse', name: `Activity avatar ${i + 1}`, x: ox + 1016, y: oy + 280 + i * 56, width: 24, height: 24, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+   376→  1574→        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Activity line ${i + 1}a`, x: ox + 1056, y: oy + 282 + i * 56, width: 160, height: 8, fill: LIGHT, stroke: 'transparent', strokeWidth: 0, radius: 4, fontSize: 14, textColor: DARK });
+   377→  1575→        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Activity line ${i + 1}b`, x: ox + 1056, y: oy + 296 + i * 56, width: 100, height: 8, fill: LIGHT, stroke: 'transparent', strokeWidth: 0, radius: 4, fontSize: 14, textColor: DARK });
+   378→  1576→      }
+   379→  1577→      break;
+   380→  1578→    }
+   381→  1579→    case 'web_blog': {
+   382→  1580→      addFrame(1280, 800, 'Web / Blog');
+   383→  1581→      // Header
+   384→  1582→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Header', x: ox, y: oy, width: 1280, height: 80, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
+   385→  1583→      add({ id: crypto.randomUUID(), type: 'text', name: 'Brand', x: ox + 80, y: oy + 28, width: 120, height: 24, fill: 'transparent', text: 'Blog', fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   386→  1584→      // Hero post
+   387→  1585→      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Hero image', x: ox + 80, y: oy + 120, width: 640, height: 360, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 12, fontSize: 14, textColor: DARK });
+   388→  1586→      add({ id: crypto.randomUUID(), type: 'text', name: 'Hero title', x: ox + 760, y: oy + 140, width: 440, height: 56, fill: 'transparent', text: 'Designing for the AI era', fontSize: 32, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   389→  1587→      add({ id: crypto.randomUUID(), type: 'text', name: 'Hero excerpt', x: ox + 760, y: oy + 220, width: 440, height: 120, fill: 'transparent', text: 'How AI is reshaping the design workflow, from research to delivery, and what it means for product teams in 2026.', fontSize: 15, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   390→  1588→      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Author avatar', x: ox + 760, y: oy + 360, width: 40, height: 40, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+   391→  1589→      add({ id: crypto.randomUUID(), type: 'text', name: 'Author name', x: ox + 812, y: oy + 364, width: 200, height: 16, fill: 'transparent', text: 'Sarah Chen · 6 min read', fontSize: 13, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   392→  1590→      // Post grid
+   393→  1591→      for (let i = 0; i < 3; i++) {
+   394→  1592→        const px = ox + 80 + i * 386;
+   395→  1593→        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Post ${i + 1} image`, x: px, y: oy + 540, width: 360, height: 180, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+   396→  1594→        add({ id: crypto.randomUUID(), type: 'text', name: `Post ${i + 1} title`, x: px, y: oy + 740, width: 360, height: 24, fill: 'transparent', text: ['AI design tools', 'Design systems', 'Prototyping'][i], fontSize: 16, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   397→  1595→      }
+   398→  1596→      break;
+   399→  1597→    }
+   400→  1598→    case 'web_pricing': {
+   401→  1599→      addFrame(1280, 800, 'Web / Pricing');
+   402→  1600→      add({ id: crypto.randomUUID(), type: 'text', name: 'Page heading', x: ox + 440, y: oy + 80, width: 400, height: 48, fill: 'transparent', text: 'Simple, transparent pricing', fontSize: 36, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   403→  1601→      add({ id: crypto.randomUUID(), type: 'text', name: 'Page subheading', x: ox + 380, y: oy + 140, width: 520, height: 24, fill: 'transparent', text: 'Start free. Upgrade when you grow.', fontSize: 16, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   404→  1602→      for (let i = 0; i < 3; i++) {
+   405→  1603→        const px = ox + 240 + i * 320;
+   406→  1604→        const featured = i === 1;
+   407→  1605→        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Tier ${i + 1} card`, x: px, y: oy + 220, width: 280, height: 440, fill: '#ffffff', stroke: featured ? DARK : GRAY, strokeWidth: featured ? 2 : 1, radius: 12, fontSize: 14, textColor: DARK });
+   408→  1606→        add({ id: crypto.randomUUID(), type: 'text', name: `Tier ${i + 1} name`, x: px + 24, y: oy + 248, width: 200, height: 20, fill: 'transparent', text: ['Starter', 'Pro', 'Enterprise'][i], fontSize: 18, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   409→  1607→        add({ id: crypto.randomUUID(), type: 'text', name: `Tier ${i + 1} price`, x: px + 24, y: oy + 288, width: 200, height: 40, fill: 'transparent', text: ['$0', '$24', 'Custom'][i], fontSize: 36, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+   410→  1608→        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Tier ${i + 1} CTA`, x: px + 24, y: oy + 360, width: 232, height: 40, fill: featured ? DARK : LIGHT, stroke: 'transparent', strokeWidth: 0, radius: 8, fontSize: 14, textColor: featured ? '#ffffff' : DARK });
+   411→  1609→        for (let j = 0; j < 4; j++) {
+   412→  1610→          add({ id: crypto.randomUUID(), type: 'rectangle', name: `Tier ${i + 1} feature ${j + 1}`, x: px + 24, y: oy + 420 + j * 28, width: 200, height: 8, fill: LIGHT, stroke: 'transparent', strokeWidth: 0, radius: 4, fontSize: 14, textColor: DARK });
+   413→  1611→        }
+   414→  1612→      }
+   415→  1613→      break;
+   416→  1614→    }
+   417→  1615→    default: {
+   418→  1616→      // Fallback: empty frame.
+   419→  1617→      addFrame(400, 300, 'Wireframe');
+   420→  1618→      break;
+   421→  1619→    }
+   422→  1620→  }
+   423→  1621→  return { frameId, shapes };
+   424→  1622→}
+   425→  1623→
+   426→  1624→interface UserFlowResult {
+   427→  1625→  frameIds: string[];
+   428→  1626→  shapes: Array<Partial<Shape> & { id: string }>;
+   429→  1627→}
+   430→  1628→
+   431→  1629→function buildUserFlow(flow: string, ox: number, oy: number): UserFlowResult {
+   432→  1630→  // Each step is a mobile screen (375 wide) with a 64px gap.
+   433→  1631→  const SCREEN_W = 375;
+   434→  1632→  const GAP = 80;
+   435→  1633→  const ARROW_COLOR = '#94a3b8';
+   436→  1634→
+   437→  1635→  const flows: Record<string, string[]> = {
+   438→  1636→    onboarding: ['mobile_login', 'mobile_signup', 'mobile_dashboard'],
+   439→  1637→    ecommerce: ['web_landing', 'mobile_dashboard', 'mobile_dashboard', 'mobile_login'],
+   440→  1638→    auth: ['mobile_login', 'mobile_dashboard', 'mobile_dashboard'],
+   441→  1639→    signup_funnel: ['web_landing', 'mobile_signup', 'mobile_login', 'mobile_dashboard'],
+   442→  1640→  };
+   443→  1641→  const screens = flows[flow] ?? flows.onboarding;
+   444→  1642→
+   445→  1643→  const frameIds: string[] = [];
+   446→  1644→  const shapes: Array<Partial<Shape> & { id: string }> = [];
+   447→  1645→
+   448→  1646→  screens.forEach((tmpl, i) => {
+   449→  1647→    const sx = ox + i * (SCREEN_W + GAP);
+   450→  1648→    const wf = buildWireframe(tmpl, sx, oy);
+   451→  1649→    // Rename the frame to include the step number.
+   452→  1650→    wf.shapes[0] = { ...wf.shapes[0], name: `Step ${i + 1}` };
+   453→  1651→    shapes.push(...wf.shapes);
+   454→  1652→    frameIds.push(wf.frameId);
+   455→  1653→
+   456→  1654→    // Add an arrow connector to the next screen.
+   457→  1655→    if (i < screens.length - 1) {
+   458→  1656→      const arrowStartX = sx + SCREEN_W;
+   459→  1657→      const arrowEndX = sx + SCREEN_W + GAP;
+   460→  1658→      const arrowY = oy + 300;
+   461→  1659→      shapes.push({
+   462→  1660→        id: crypto.randomUUID(),
+   463→  1661→        type: 'line',
+   464→  1662→        name: `Arrow ${i + 1}→${i + 2}`,
+   465→  1663→        x: arrowStartX,
+   466→  1664→        y: arrowY,
+   467→  1665→        width: arrowEndX - arrowStartX,
+   468→  1666→        height: 0,
+   469→  1667→        fill: ARROW_COLOR,
+   470→  1668→        stroke: ARROW_COLOR,
+   471→  1669→        strokeWidth: 2,
+   472→  1670→        radius: 0,
+   473→  1671→        fontSize: 14,
+   474→  1672→        textColor: ARROW_COLOR,
+   475→  1673→      });
+   476→  1674→    }
+   477→  1675→  });
+   478→  1676→  return { frameIds, shapes };
+   479→  1677→}
+   480→  1678→
+   481→  1679→interface DiagramResult {
+   482→  1680→  shapes: Array<Partial<Shape> & { id: string }>;
+   483→  1681→}
+   484→  1682→
+   485→  1683→function buildDiagram(template: string, labels: string[], ox: number, oy: number): DiagramResult {
+   486→  1684→  const shapes: Array<Partial<Shape> & { id: string }> = [];
+   487→  1685→  const NODE_W = 160;
+   488→  1686→  const NODE_H = 56;
+   489→  1687→  const NODE_FILL = '#ffffff';
+   490→  1688→  const NODE_STROKE = '#475569';
+   491→  1689→  const ARROW = '#94a3b8';
+   492→  1690→
+   493→  1691→  const addNode = (label: string, x: number, y: number) => {
+   494→  1692→    shapes.push({
+   495→  1693→      id: crypto.randomUUID(),
+   496→  1694→      type: 'rectangle',
+   497→  1695→      name: label,
+   498→  1696→      x, y, width: NODE_W, height: NODE_H,
+   499→  1697→      fill: NODE_FILL, stroke: NODE_STROKE, strokeWidth: 1, radius: 8,
+   500→  1698→      fontSize: 13, textColor: '#0f172a',
+   501→  1699→    });
+   502→  1700→    shapes.push({
+   503→  1701→      id: crypto.randomUUID(),
+   504→  1702→      type: 'text',
+   505→  1703→      name: `${label} label`,
+   506→  1704→      x: x + 12, y: y + 18, width: NODE_W - 24, height: 20,
+   507→  1705→      fill: 'transparent', text: label, fontSize: 13, textColor: '#0f172a',
+   508→  1706→      stroke: 'transparent', strokeWidth: 0, radius: 0,
+   509→  1707→    });
+   510→  1708→  };
+   511→  1709→  const addArrow = (x1: number, y1: number, x2: number, y2: number) => {
+   512→  1710→    shapes.push({
+   513→  1711→      id: crypto.randomUUID(),
+   514→  1712→      type: 'line',
+   515→  1713→      name: 'connector',
+   516→  1714→      x: x1, y: y1, width: x2 - x1, height: y2 - y1,
+   517→  1715→      fill: ARROW, stroke: ARROW, strokeWidth: 2, radius: 0,
+   518→  1716→      fontSize: 14, textColor: ARROW,
+   519→  1717→    });
+   520→  1718→  };
+   521→  1719→
+   522→  1720→  if (template === 'flowchart') {
+   523→  1721→    // Top-down: each node centered, vertical arrow between.
+   524→  1722→    const cx = ox + 200;
+   525→  1723→    let cy = oy;
+   526→  1724→    const STEP = NODE_H + 60;
+   527→  1725→    labels.forEach((label, i) => {
+   528→  1726→      addNode(label, cx, cy);
+   529→  1727→      if (i < labels.length - 1) {
+   530→  1728→        addArrow(cx + NODE_W / 2, cy + NODE_H, cx + NODE_W / 2, cy + STEP);
+   531→  1729→      }
+   532→  1730→      cy += STEP;
+   533→  1731→    });
+   534→  1732→  } else {
+   535→  1733→    // Mindmap: central node + radial children.
+   536→  1734→    const cx = ox + 360;
+   537→  1735→    const cy = oy + 280;
+   538→  1736→    const centerLabel = labels[0];
+   539→  1737→    addNode(centerLabel, cx - NODE_W / 2, cy - NODE_H / 2);
+   540→  1738→    const radius = 220;
+   541→  1739→    const childCount = labels.length - 1;
+   542→  1740→    for (let i = 1; i < labels.length; i++) {
+   543→  1741→      const angle = (i - 1) / Math.max(1, childCount) * Math.PI * 2;
+   544→  1742→      const px = cx + Math.cos(angle) * radius - NODE_W / 2;
+   545→  1743→      const py = cy + Math.sin(angle) * radius - NODE_H / 2;
+   546→  1744→      addArrow(cx, cy, px + NODE_W / 2, py + NODE_H / 2);
+   547→  1745→      addNode(labels[i], px, py);
+   548→  1746→    }
+   549→  1747→  }
+   550→  1748→  return { shapes };
+   551→  1749→}
+   552→  1750→
+   553→  1751→// ---- Copy generation variants ----------------------------------------------
+   554→  1752→
+   555→  1753→const COPY_VARIANTS: Record<string, (topic: string) => string> = {
+   556→  1754→  heading: (t) => `The fastest way to ship ${t}`,
+   557→  1755→  subheading: (t) => `Everything you need to build, launch, and grow ${t} — without the busywork.`,
+   558→  1756→  body: (t) =>
+   559→  1757→    `${capitalize(t)} is changing fast. Teams that ship quickly win, and teams that don't fall behind. ` +
+   560→  1758→    `Our platform brings design, code, and feedback into one shared space, so you can move from idea to production ` +
+   561→  1759→    `in days, not months. Built for modern product teams who care about both speed and craft.`,
+   562→  1760→  button: (_t) => `Get started free`,
+   563→  1761→  caption: (t) => `A closer look at how ${t} works in practice.`,
+   564→  1762→  microcopy: (_t) => `We'll never share your email. Unsubscribe anytime.`,
+   565→  1763→};
+   566→  1764→
+   567→  1765→// ---- Color utilities -------------------------------------------------------
+   568→  1766→
+   569→  1767→function capitalize(s: string): string {
+   570→  1768→  return s.charAt(0).toUpperCase() + s.slice(1);
+   571→  1769→}
+   572→  1770→
+   573→  1771→function luminance(hex: string): number {
+   574→  1772→  const m = hex.replace('#', '');
+   575→  1773→  const r = parseInt(m.slice(0, 2), 16) / 255;
+   576→  1774→  const g = parseInt(m.slice(2, 4), 16) / 255;
+   577→  1775→  const b = parseInt(m.slice(4, 6), 16) / 255;
+   578→  1776→  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+   579→  1777→  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+   580→  1778→}
+   581→  1779→
+   582→  1780→function contrastRatio(fg: string, bg: string): number {
+   583→  1781→  const l1 = luminance(fg);
+   584→  1782→  const l2 = luminance(bg);
+   585→  1783→  const lighter = Math.max(l1, l2);
+   586→  1784→  const darker = Math.min(l1, l2);
+   587→  1785→  return (lighter + 0.05) / (darker + 0.05);
+   588→  1786→}
+   589→  1787→
+   590→  1788→function isHighContrast(a: string, b: string): boolean {
+   591→  1789→  return contrastRatio(a, b) > 4.5;
+   592→  1790→}
+   593→  1791→
