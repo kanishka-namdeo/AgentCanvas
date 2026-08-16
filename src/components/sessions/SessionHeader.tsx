@@ -1,7 +1,16 @@
 'use client';
 
 // Compact header for the active session — title, model, status badge,
-// fork button. Sits at the top of the agent chat panel.
+// fork button.
+//
+// Two variants:
+//   - default   — full layout (avatar + title + meta + Fork), used inside
+//                 the right column when the layout puts the chat panel on
+//                 the right (legacy / fallback layout).
+//   - compact   — single-row layout that fits inside the 44px top header:
+//                 small avatar (with status dot) + inline-editable title +
+//                 StatusBadge + Fork button. Drops the model + relative-time
+//                 meta to save horizontal space.
 
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
@@ -24,7 +33,7 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export function SessionHeader() {
+export function SessionHeader({ compact = false }: { compact?: boolean }) {
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
   const session = useSessionStore((s) => (activeSessionId ? s.sessions[activeSessionId] : undefined));
   const runsMap = useSessionStore((s) => s.runs);
@@ -38,6 +47,11 @@ export function SessionHeader() {
   }, [session?.id, session?.title]);
 
   if (!session) {
+    if (compact) {
+      return (
+        <span className="text-[11px] ac-text-4 italic">No active chat</span>
+      );
+    }
     return (
       <div className="px-3 py-3 border-b ac-border-subtle text-[11px] ac-text-4 ac-surface-1 text-center">
         No active chat — click <span className="font-medium ac-text-3">New chat</span> to begin.
@@ -58,6 +72,56 @@ export function SessionHeader() {
     }
     setEditing(false);
   };
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="relative flex-shrink-0">
+          <div className="w-5 h-5 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-sm">
+            <Bot className="h-3 w-3 text-white" />
+          </div>
+          {currentRun && (
+            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse ring-1 ring-white" />
+          )}
+        </div>
+        {editing ? (
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitTitle();
+              if (e.key === 'Escape') {
+                setTitle(session.title);
+                setEditing(false);
+              }
+            }}
+            className="h-6 text-[12px] px-1.5 font-medium ac-border-default max-w-[180px]"
+            autoFocus
+          />
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            className="text-[12px] font-medium ac-text-1 truncate hover:ac-surface-1 rounded px-1.5 py-0.5 -mx-1.5 ac-transition ac-focus-ring max-w-[180px]"
+            title="Click to rename"
+          >
+            {session.title}
+          </button>
+        )}
+        <StatusBadge status={status} />
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-6 px-2 text-[10px] ac-text-2 ac-border-default hover:ac-surface-1 ac-transition flex-shrink-0"
+          onClick={() => forkActiveSession(null)}
+          title="Fork this chat"
+        >
+          <GitFork className="h-3 w-3 mr-1" />
+          Fork
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="px-3 py-2.5 border-b ac-border-subtle ac-surface-0">

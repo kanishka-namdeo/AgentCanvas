@@ -119,6 +119,18 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Register a global focus hook so the top-header Run button can focus
+  // the chat input without prop-drilling. Cleared on unmount.
+  useEffect(() => {
+    (window as any).__focusAgentInput = () => {
+      inputRef.current?.focus();
+    };
+    return () => {
+      delete (window as any).__focusAgentInput;
+    };
+  }, []);
 
   // Auto-scroll to bottom on new content.
   useEffect(() => {
@@ -246,6 +258,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
       <div className="border-t ac-border-subtle p-2 ac-surface-0">
         <div className="rounded-lg border ac-border-default ac-surface-0 focus-within:ac-border-strong ac-transition shadow-sm">
           <Textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask the agent to design something…"

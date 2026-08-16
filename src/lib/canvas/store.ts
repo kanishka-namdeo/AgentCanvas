@@ -66,6 +66,11 @@ interface CanvasState {
   sendPatch: (patch: CanvasPatch) => void;
   select: (ids: string[]) => void;
   promptAgent: (text: string) => void;
+  /// Stop the in-flight agent turn. Aborts the HTTP fetch (when in fallback
+  /// mode), finalizes the last assistant message + run as `cancelled`, and
+  /// emits a synthetic `agent:turn_end` so the rest of the pipeline (snapshot
+  /// capture, run closeout) runs as if the agent had finished normally.
+  stopAgent: () => void;
   setDocumentName: (name: string) => void;
   /// Switch the active session for this document. Rebuilds `turns` from
   /// the session store's messages and replaces the canvas with the
@@ -83,6 +88,13 @@ interface CanvasState {
 }
 
 let highlightTimeout: any;
+/// AbortController for the in-flight agent HTTP request (fallback path).
+/// Null when no request is in flight, or when the agent is running over the
+/// WebSocket (which doesn't currently support cancellation — stopAgent will
+/// still finalize the local turn, but the server will keep running to
+/// completion and its events will arrive afterwards; they're a no-op because
+/// `agentBusy` is already false).
+let agentAbort: AbortController | null = null;
 
 const EMPTY_DOC: CanvasDocument = {
   id: 'default',
@@ -242,12 +254,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
     // Fallback: direct HTTP fetch to /api/agent. Apply patches + agent
     // events directly to local state. This is single-viewer only.
+    agentAbort = new AbortController();
+    const signal = agentAbort.signal;
     (async () => {
       try {
         const res = await fetch('/api/agent', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ documentId, prompt: text, canvasState: get().document }),
+          signal,
         });
         if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
         const reader = res.body.getReader();
@@ -277,9 +292,61 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         }
         get()._onSync({ type: 'agent:turn_end' });
       } catch (err: any) {
-        get()._onSync({ type: 'agent:error', message: err?.message ?? 'unknown error' });
+        if (err?.name === 'AbortError') {
+          // User clicked Stop — finalize as cancelled. Don't surface an error.
+          get()._onSync({ type: 'agent:turn_end' });
+        } else {
+          get()._onSync({ type: 'agent:error', message: err?.message ?? 'unknown error' });
+        }
+      } finally {
+        agentAbort = null;
       }
     })();
+  },
+
+  stopAgent: () => {
+    const { agentBusy } = get();
+    if (!agentBusy) return;
+    // Abort the in-flight HTTP fetch (if any).
+    if (agentAbort) {
+      agentAbort.abort();
+      agentAbort = null;
+    } else {
+      // WebSocket path — server will keep running but we finalize locally.
+      // The synthetic turn_end below mirrors the closeout that _onSync does
+      // for the natural-completion path.
+      const last = get().turns[get().turns.length - 1];
+      if (last?.messageId) {
+        useSessionStore.getState().finalizeAssistantMessage(last.messageId, 'complete');
+      }
+      if (last?.runId) {
+        const ss = useSessionStore.getState();
+        const run = ss.getRun(last.runId);
+        if (run && run.status !== 'completed' && run.status !== 'failed') {
+          ss.endRun(last.runId, 'cancelled');
+        }
+      }
+      if (last?.sessionId) {
+        useSessionStore.getState().captureSnapshot(
+          last.sessionId,
+          get().document,
+          {
+            source: 'turn_end',
+            sourceRunId: last.runId ?? undefined,
+            sourceMessageId: last.messageId ?? undefined,
+            createdBy: 'user',
+          },
+        );
+      }
+      set((s) => {
+        const turns = [...s.turns];
+        const li = turns[turns.length - 1];
+        if (li && li.role === 'assistant') {
+          turns[turns.length - 1] = { ...li, streaming: false };
+        }
+        return { turns, agentBusy: false };
+      });
+    }
   },
 
   setDocumentName: (name) =>

@@ -209,3 +209,45 @@ Artifacts:
 - /home/z/my-project/src/components/canvas/AGENTS.md (Canvas.tsx contracts updated)
 - /home/z/my-project/src/components/sessions/AGENTS.md (SessionSidebar contracts updated)
 - /home/z/my-project/scripts/AGENTS.md (screenshot-polish-pass2.ts added)
+
+---
+Task ID: layout-restructure-p0
+Agent: main (Super Z)
+Task: Implement P0 layout improvements (1) move PropertiesPanel to right column above AgentPanel, (2) make all panels collapsible, (3) add global Run/Stop control to top header.
+
+Work Log:
+- Read page.tsx, SessionHeader, PropertiesPanel, AgentPanel, resizable.tsx, canvas store, runner, sessions types/store, package.json — built complete mental model of current 4-pane layout wiring.
+- Added `stopAgent` action to `src/lib/canvas/store.ts`:
+  - Module-level `agentAbort: AbortController | null` ref.
+  - `promptAgent` HTTP fallback now creates an AbortController and passes `signal` to `fetch()`. Catch path distinguishes `AbortError` (silent finalize) from real errors.
+  - `stopAgent()` action: if HTTP in flight → abort (catch will finalize). If WebSocket path → finalize locally (set last turn `streaming=false`, `agentBusy=false`, capture snapshot with `createdBy:'user'`, end run with `'cancelled'` status if not already terminal).
+- Refactored `src/components/sessions/SessionHeader.tsx` to support a `compact` prop:
+  - Default: full avatar + title + meta + Fork (unchanged from before, used as fallback).
+  - Compact: small 20×20 avatar with status pulse + inline-editable title (max 180px) + StatusBadge + Fork button — fits in the 44px top header.
+- Created `src/components/sessions/RunStopButton.tsx`:
+  - Idle: violet "Run" button (uses `--ac-accent`) that focuses the chat input via a `window.__focusAgentInput` global hook.
+  - Busy: red "Stop" button (uses `--ac-danger`) with a pulsing white dot, calls `stopAgent()`.
+- Updated `src/components/canvas/AgentPanel.tsx`:
+  - Added `inputRef` and a `useEffect` that registers `window.__focusAgentInput = () => inputRef.current?.focus()` on mount, deletes on unmount.
+  - Wired `ref={inputRef}` to the `<Textarea>`.
+- Rewrote `src/app/page.tsx`:
+  - Top header now has 3 sections: left (brand + doc name), center (compact SessionHeader), right (Run/Stop + 4 collapse toggles + status pills + theme).
+  - 4 collapse toggle buttons (Sessions / Layers / Properties / Right column) wired to imperative panel refs via `ref.current.collapse()` / `.expand()`.
+  - Keyboard shortcuts: ⌘1 Sessions, ⌘2 Layers, ⌘3 Properties, ⌘4 Right column — toggle collapse.
+  - New 4-column layout: Sessions | Layers | Canvas | (Properties top / Chat middle / History bottom).
+  - All 4 outer panels + Properties + RunHistory use `collapsible` + `collapsedSize={0}` + `onCollapse`/`onExpand` to track collapsed state.
+  - PropertiesPanel moved from left (Col 2 bottom) to right (Col 4 top) — Figma-conventional placement.
+  - SessionHeader (compact) moved from Col 4 top to the top header bar.
+  - AgentPanel now renders standalone in Col 4 middle (no longer wrapped with SessionHeader).
+  - `CollapseToggle` helper component for the icon buttons.
+  - `toggle()` helper for the ref + state flip pattern.
+- Verified TypeScript: `npx tsc --noEmit` shows zero new errors in any touched file (page.tsx, SessionHeader, RunStopButton, AgentPanel, canvas/store.ts). Pre-existing errors in tools.ts/runner.ts/patch.ts/Toolbar.tsx/skills/ unchanged.
+- Verified production build: `npx next build` → "✓ Compiled successfully in 26.2s", all 4 routes generated.
+
+Stage Summary:
+- Layout is now Figma-conventional: navigation/structure on the left (Sessions, Layers), work in the center (Canvas), inspect/interact on the right (Properties, Chat, History).
+- All 6 panels are collapsible via header toggle buttons or ⌘1–⌘4 keyboard shortcuts. Collapsed panels free their full width for the canvas.
+- Global Run/Stop button in the top header gives the agent's run state a permanent home — no more hunting for the buried Send button to know if the agent is working.
+- Stop actually works: HTTP fallback path is aborted mid-stream via `AbortController`; WebSocket path finalizes the run as `cancelled` locally (server keeps running but its late events are no-ops since `agentBusy` is already false).
+- AgentPanel registers `window.__focusAgentInput` on mount so the Run button can focus the chat input without prop-drilling.
+- Files touched: src/app/page.tsx (rewrite), src/lib/canvas/store.ts (+stopAgent +abort wiring), src/components/sessions/SessionHeader.tsx (+compact prop), src/components/sessions/RunStopButton.tsx (new), src/components/canvas/AgentPanel.tsx (+inputRef +focus hook).
