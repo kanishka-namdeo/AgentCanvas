@@ -30,6 +30,7 @@
 
 import ZAI from 'z-ai-web-dev-sdk';
 import { createCanvasTools, executeTool, toolsToOpenAISpec, type CanvasToolContext } from './tools.ts';
+import { createPenTools, PEN_TOOL_NAMES } from './pen-tools';
 import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types.ts';
 import { applyPatchToCanvas } from '../canvas/patch.ts';
 import { classifyIntent } from './classifier';
@@ -181,6 +182,39 @@ If a "WEB RESEARCH SUMMARY" section is present in the user's message, the resear
 been done for you by a sub-agent. Use that summary directly — do NOT call web_search or web_fetch
 again. Proceed straight to designing based on the research findings.
 
+=== .pen FORMAT ALIGNMENT (pen.dev) =========================================
+This canvas serializes to the pen.dev .pen file format (JSON, version 2.17).
+When you build designs, prefer pen.dev terminology so the output is faithful
+to the .pen ontology on export:
+
+  - VARIABLES: use pen_set_variable to define design tokens keyed by dotted
+    names ("color.primary", "spacing.md", "text.body.size"). Reference them
+    via "$name". For theme-aware tokens pass 'themedValues' (e.g. one value
+    for mode=light, another for mode=dark). Prefer variables over hardcoded
+    colors so the design system stays editable.
+  - THEMES: use pen_apply_theme to set a theme axis value (e.g. mode=dark)
+    on a frame; descendants inherit it. Common axes: mode (light/dark),
+    spacing (regular/condensed), device (phone/tablet/desktop).
+  - COMPONENTS & INSTANCES: mark a reusable component with reusable=true
+    (via canvas_create_component), then create instances with pen_create_ref.
+    Customize instances via 'descendants' (keyed by slash-separated ID path,
+    e.g. "ok-button/label"). Include a 'type' in an override to fully
+    replace a descendant node.
+  - SLOTS: use pen_mark_slot on a frame inside a component to mark where
+    recommended child components can be inserted (e.g. a content slot in a
+    card that accepts round-button instances).
+  - FLEXBOX LAYOUT: frames support flexbox via autoLayout (direction, gap,
+    padding, alignX, alignY) which maps to .pen's layout/gap/padding/
+    justifyContent/alignItems. Prefer flex layouts over manual x/y for
+    contained UI.
+  - NODE TYPES: the .pen format supports rectangle, ellipse, polygon, path
+    (SVG geometry), text, frame, group, note, context, prompt, icon, script,
+    ref. Our runtime maps these onto a flat shape list (Phase C will add the
+    full tree model); the .pen exporter reconstructs the tree on save.
+  - EXPORT: when the user asks to "export as .pen" or "save for pen.dev",
+    call pen_export_pen. The UI also has a ".pen" menu in the header for
+    manual export/import.
+
 When you need real-world information that is NOT already provided, call web_search / web_fetch
 (only available if the web_research skill is active).`;
 
@@ -226,12 +260,18 @@ function buildSystemPrompt(
 }
 
 /// Filter the tool specs to only include the tools for the active skill.
+/// The .pen-aligned tools (pen_*) are ALWAYS available regardless of skill,
+/// because they expose pen.dev concepts (variables, themes, refs, slots)
+/// that are relevant to every design task.
 function filterToolSpecs(
   allSpecs: ReturnType<typeof toolsToOpenAISpec>,
   category: SkillCategory,
 ): ReturnType<typeof toolsToOpenAISpec> {
   const allowedNames = new Set(getToolNamesForCategory(category));
-  return allSpecs.filter((s) => allowedNames.has(s.function.name));
+  const penNameSet = new Set<string>(PEN_TOOL_NAMES);
+  return allSpecs.filter(
+    (s) => allowedNames.has(s.function.name) || penNameSet.has(s.function.name),
+  );
 }
 
 // ---- Run the agent loop ---------------------------------------------------
@@ -253,7 +293,12 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   };
 
   // Create all tools (we'll filter the visible subset based on the skill).
-  const tools = createCanvasTools(ctx);
+  // The .pen-aligned tools (pen_set_variable, pen_create_ref, …) are always
+  // available — they expose pen.dev concepts (variables, themes, refs,
+  // slots) that complement the granular canvas_* tool surface.
+  const canvasTools = createCanvasTools(ctx);
+  const penTools = createPenTools(ctx);
+  const tools = [...canvasTools, ...penTools] as ReturnType<typeof createCanvasTools>;
   const allToolSpecs = toolsToOpenAISpec(tools);
 
   // Initialize the LLM client.

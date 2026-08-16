@@ -18,6 +18,7 @@ import { SessionHeader } from '@/components/sessions/SessionHeader';
 import { RunHistoryPanel } from '@/components/sessions/RunHistoryPanel';
 import { RunStopButton } from '@/components/sessions/RunStopButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { PenFileMenu } from '@/components/canvas/PenFileMenu';
 import { PenTool, Github, Wifi, WifiOff, Bot, PanelLeft, PanelRight, PanelLeftClose, PanelRightClose, PanelBottom, PanelBottomClose, Maximize2, Minimize2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -240,6 +241,7 @@ export default function Home() {
               <span className="hidden lg:inline">SDK docs</span>
             </a>
           </div>
+          <PenFileMenu />
           <ThemeToggle />
         </div>
       </header>
