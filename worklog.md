@@ -377,3 +377,54 @@ Artifacts:
 - /home/z/my-project/src/components/canvas/Canvas.tsx (1-line change: export ShapeRenderer)
 - /home/z/my-project/package.json (added test/test:watch/test:ui/test:coverage scripts)
 - /home/z/my-project/tests/AGENTS.md (rewritten with full Vitest section)
+
+---
+Task ID: integration-testing
+Agent: main (Super Z)
+Task: Add integration tests for the 30 new agent tools — cross-module coverage that the unit tests don't provide. Fix whatever breaks.
+
+Work Log:
+- Read worklog to confirm previous scope: 165 unit tests across patch.ts, tools.ts, store.ts, ShapeRenderer. Vitest already configured with `tests/integration/**/*.test.{ts,tsx}` in the include pattern but no integration tests written.
+- Reviewed runner.ts (LLM driver — not testable without API keys), store.ts `_onSync` (the WebSocket event handler that drives all UI state), tools.ts `executeTool` (in-memory tool dispatch), patch.ts `applyPatchToCanvas` (pure patch application), Canvas.tsx (React subscription via `useCanvasStore((s) => s.document)`).
+- Identified the integration boundary that matters: tool → ctx.applyPatch → useCanvasStore._onSync → undo/redo + session store mirroring. The unit tests cover each module in isolation; integration tests verify the wiring across them.
+- Wrote 4 integration test files (44 tests total):
+  1. `tests/integration/pipeline.test.ts` (10 tests): tool → store → undo/redo pipeline. Each new tool category gets a full-chain test: create_shape → undo → redo, z-order → undo, token binding → token update → re-theme, bulk_update_by_filter → undo (atomic revert of multiple shapes), reorder → undo, export_json round-trip (export → clear → bulk_add re-import). Also a simulated agent turn (agent:message_start → tool_call_start → canvas:patch → tool_call_end → turn_end) driven through _onSync, verifying the store + session store end up consistent. Error path. Undo/redo op interception. Select patch doesn't push to undo stack.
+  2. `tests/integration/scenarios.test.ts` (7 tests): realistic multi-tool design workflows. "Design a card" (create → text → group → shadow → per-corner radii → undo all → redo all). "Design system with tokens + binding" (update_tokens → create 3 buttons → apply_token bind → re-theme via token update → unbind one → re-theme). "Find & replace text" across 4 text shapes. "Lock + hide + find" with undo. "Z-order across multiple operations" (bring_to_front → move_backward → send_to_back → 3× undo). "Export SVG" reflects latest fills + ellipse rendering. "Generate wireframe" emits one bulk_add patch that's atomic on undo/redo.
+  3. `tests/integration/session-bridge.test.ts` (10 tests): session store mirroring. Message stream (delta → end → turn_end) lands in assistant message + live turn. Tool call start/end recorded on the run with success/failure status. Snapshot captured at turn_end (with createdBy='agent'). Duplicate turn_end guard (no duplicate snapshot). stopAgent on WebSocket path finalizes as cancelled + captures user-created snapshot. Error path finalizes run as failed. Session switching restores canvas + rebuilds turns. newSession clears canvas. forkActiveSession creates child session inheriting canvas.
+  4. `tests/integration/renderer.test.tsx` (17 tests): Canvas component subscription to store mutations. Empty canvas renders no shapes. Add/update/remove/clear patches reflected in SVG. All shape types rendered correctly (rectangle, ellipse, text, path/polygon, image). Shadow filter, gradient fill, per-corner radii rendered. Undo/redo reflected in DOM. Hidden shapes render nothing. bulk_add renders all shapes in one update. Background op changes container style. Heatmap op renders circles.
+
+Bugs found in the TESTS (not source bugs — my incorrect assumptions about tool parameter shapes):
+- `canvas_create_shape` takes shape fields at the top level of args (`{ type, name, x, y, ... }`), NOT wrapped under `shape:`. The tool's parameter schema is `ShapeInputSchema` directly. I had been passing `{ shape: { type, name, ... } }` which silently dropped all fields → shapes defaulted to 100×100 #e2e8f0 with name 'Shape'. Fixed by flattening all create_shape calls.
+- `canvas_update_tokens` takes `colors` and `textStyles` at the top level, NOT wrapped under `tokens:`. Fixed by flattening.
+- `canvas_set_shadow` takes `x, y, blur, color, spread?, inset?` at the top level, NOT wrapped under `shadow:`. Fixed.
+- `canvas_set_corner_radius_per_corner` takes `topLeft, topRight, bottomRight, bottomLeft` at the top level, NOT wrapped under `radii:`. Fixed.
+- `canvas_bulk_update_by_filter` takes the filter fields (`type, fill, nameContains, parentId`) at the top level, NOT wrapped under `filter:`. Fixed.
+- `canvas_find_shapes` doesn't have a `search_text` parameter — it filters by NAME only, not by text content. Fixed by removing the `search_text: true` arg and adjusting assertions. Find & replace text is a separate tool (`canvas_find_replace_text`).
+- `canvas_export_json` returns text wrapped in ```json ... ``` fences, not raw JSON. Fixed by extracting the JSON between the fences with a regex.
+- `canvas_group_shapes` content text doesn't include the new group id (the id is generated inside `applyPatchToCanvas`). Fixed by looking up the group by `type === 'group'` after the patch.
+- Renderer tests needed `act()` wrapping for store-driven state updates so React flushes them before assertions. Added an `applyPatch` helper that wraps `_onSync` in `act()`.
+- Background color assertion: jsdom converts `#0f172a` to `rgb(15, 23, 42)` when read back from `style.background`. Fixed by asserting against the rgb form.
+
+No source-code bugs found — all 4 failures were test bugs. The integration tests pass cleanly once the parameter shapes are correct, which validates that the 30 new tools + patch ops + store wiring + session bridge + React subscription are all correctly integrated end-to-end.
+
+Verification:
+- `bun run test` → "Test Files 8 passed (8)" / "Tests 209 passed (209)" in ~10s. (165 unit + 44 integration = 209 total.)
+- All 4 integration test files pass:
+  - tests/integration/pipeline.test.ts: 10/10
+  - tests/integration/scenarios.test.ts: 7/7
+  - tests/integration/session-bridge.test.ts: 10/10
+  - tests/integration/renderer.test.tsx: 17/17
+- Pre-existing unit tests still pass (no regressions).
+
+Stage Summary:
+- 44 new integration tests across 4 files, all passing.
+- Integration coverage spans the 4 boundaries that matter for the 30 new tools: (1) tool → patch → store → undo/redo, (2) realistic multi-tool design scenarios, (3) agent event stream → session store mirroring, (4) Canvas React component subscription to store mutations.
+- Found and fixed 8 test bugs (wrong parameter shapes for create_shape, update_tokens, set_shadow, set_corner_radius_per_corner, bulk_update_by_filter, find_shapes; JSON extraction from export_json; group id lookup).
+- Zero source-code changes needed — the production code was correct; my tests had wrong assumptions about tool argument shapes.
+- Test infrastructure: `bun run test` runs all 209 tests in ~10s. `bun run test:watch` for dev. `bun run test:ui` for the Vitest UI. `bun run test:coverage` for coverage.
+
+Artifacts:
+- /home/z/my-project/tests/integration/pipeline.test.ts (NEW, 10 tests)
+- /home/z/my-project/tests/integration/scenarios.test.ts (NEW, 7 tests)
+- /home/z/my-project/tests/integration/session-bridge.test.ts (NEW, 10 tests)
+- /home/z/my-project/tests/integration/renderer.test.tsx (NEW, 17 tests)
