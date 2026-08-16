@@ -1,0 +1,768 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→// Infinite canvas renderer for AgentCanvas.
+     4→     4→//
+     5→     5→// Renders every shape in the document as SVG. Supports:
+     6→     6→//   - pan (middle-mouse drag or space-drag)
+     7→     7→//   - zoom (wheel)
+     8→     8→//   - click to select
+     9→     9→//   - drag to move selected shapes
+    10→    10→//   - resize handles on the active selection
+    11→    11→//   - agent-highlight glow (briefly shown when the agent uses canvas_select_shape)
+    12→    12→//
+    13→    13→// Local edits emit CanvasPatches via the store so other viewers (and the
+    14→    14→// agent) see them. Agent-originated patches arrive via the same store and
+    15→    15→// are rendered identically — there is no visual distinction between human
+    16→    16→// and agent edits at the canvas level, by design.
+    17→    17→
+    18→    18→import { useCallback, useEffect, useRef, useState } from 'react';
+    19→    19→import { useCanvasStore, findShape } from '@/lib/canvas/store';
+    20→    20→import type { CanvasPatch, HeatmapOverlay, Shape } from '@/lib/canvas/types';
+    21→    21→import { PenLine, MousePointerClick } from 'lucide-react';
+    22→    22→
+    23→    23→interface DragState {
+    24→    24→  kind: 'pan' | 'move' | 'resize';
+    25→    25→  startX: number;
+    26→    26→  startY: number;
+    27→    27→  /// Original positions of the shapes being moved (canvas-space).
+    28→    28→  originals?: Array<{ id: string; x: number; y: number; width: number; height: number }>;
+    29→    29→  /// Resize handle being dragged.
+    30→    30→  handle?: 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'e' | 'w';
+    31→    31→  /// Original pan when starting a pan drag.
+    32→    32→  panX?: number;
+    33→    33→  panY?: number;
+    34→    34→}
+    35→    35→
+    36→    36→const HANDLE_SIZE = 8;
+    37→    37→const MIN_SIZE = 4;
+    38→    38→
+    39→    39→export function Canvas() {
+    40→    40→  const document = useCanvasStore((s) => s.document);
+    41→    41→  const selectedIds = useSelectedIds();
+    42→    42→  const agentHighlightIds = useCanvasStore((s) => s.agentHighlightIds);
+    43→    43→  const sendPatch = useCanvasStore((s) => s.sendPatch);
+    44→    44→  const select = useCanvasStore((s) => s.select);
+    45→    45→
+    46→    46→  const containerRef = useRef<HTMLDivElement>(null);
+    47→    47→  const [viewport, setViewport] = useState({ zoom: 1, panX: 120, panY: 80 });
+    48→    48→  const [dragState, setDragState] = useState<DragState | null>(null);
+    49→    49→  const [spaceDown, setSpaceDown] = useState(false);
+    50→    50→  const [size, setSize] = useState({ w: 1200, h: 800 });
+    51→    51→
+    52→    52→  // Track container size for responsive rendering.
+    53→    53→  useEffect(() => {
+    54→    54→    const el = containerRef.current;
+    55→    55→    if (!el) return;
+    56→    56→    const ro = new ResizeObserver((entries) => {
+    57→    57→      for (const e of entries) {
+    58→    58→        setSize({ w: e.contentRect.width, h: e.contentRect.height });
+    59→    59→      }
+    60→    60→    });
+    61→    61→    ro.observe(el);
+    62→    62→    return () => ro.disconnect();
+    63→    63→  }, []);
+    64→    64→
+    65→    65→  // Keyboard: space to pan, delete to remove selection, escape to clear.
+    66→    66→  useEffect(() => {
+    67→    67→    const onDown = (e: KeyboardEvent) => {
+    68→    68→      if (e.code === 'Space' && !isEditableTarget(e.target)) {
+    69→    69→        setSpaceDown(true);
+    70→    70→      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+    71→    71→        if (isEditableTarget(e.target)) return;
+    72→    72→        if (selectedIds.length > 0) {
+    73→    73→          const patch: CanvasPatch = {
+    74→    74→            op: 'remove',
+    75→    75→            shapeIds: selectedIds,
+    76→    76→            summary: `Deleted ${selectedIds.length} shape(s)`,
+    77→    77→          };
+    78→    78→          sendPatch(patch);
+    79→    79→          select([]);
+    80→    80→        }
+    81→    81→      } else if (e.key === 'Escape') {
+    82→    82→        select([]);
+    83→    83→      }
+    84→    84→    };
+    85→    85→    const onUp = (e: KeyboardEvent) => {
+    86→    86→      if (e.code === 'Space') setSpaceDown(false);
+    87→    87→    };
+    88→    88→    window.addEventListener('keydown', onDown);
+    89→    89→    window.addEventListener('keyup', onUp);
+    90→    90→    return () => {
+    91→    91→      window.removeEventListener('keydown', onDown);
+    92→    92→      window.removeEventListener('keyup', onUp);
+    93→    93→    };
+    94→    94→  }, [selectedIds, sendPatch, select]);
+    95→    95→
+    96→    96→  // ---- Coordinate conversion -------------------------------------------------
+    97→    97→  const screenToCanvas = useCallback(
+    98→    98→    (sx: number, sy: number) => {
+    99→    99→      const rect = containerRef.current?.getBoundingClientRect();
+   100→   100→      if (!rect) return { x: 0, y: 0 };
+   101→   101→      const x = (sx - rect.left - viewport.panX) / viewport.zoom;
+   102→   102→      const y = (sy - rect.top - viewport.panY) / viewport.zoom;
+   103→   103→      return { x, y };
+   104→   104→    },
+   105→   105→    [viewport],
+   106→   106→  );
+   107→   107→
+   108→   108→  // ---- Wheel zoom ------------------------------------------------------------
+   109→   109→  const onWheel = useCallback(
+   110→   110→    (e: React.WheelEvent) => {
+   111→   111→      e.preventDefault();
+   112→   112→      const rect = containerRef.current?.getBoundingClientRect();
+   113→   113→      if (!rect) return;
+   114→   114→      const mouseX = e.clientX - rect.left;
+   115→   115→      const mouseY = e.clientY - rect.top;
+   116→   116→      const delta = -e.deltaY * 0.0015;
+   117→   117→      const newZoom = Math.max(0.1, Math.min(4, viewport.zoom * (1 + delta)));
+   118→   118→      // Keep the point under the cursor stable.
+   119→   119→      const canvasX = (mouseX - viewport.panX) / viewport.zoom;
+   120→   120→      const canvasY = (mouseY - viewport.panY) / viewport.zoom;
+   121→   121→      const newPanX = mouseX - canvasX * newZoom;
+   122→   122→      const newPanY = mouseY - canvasY * newZoom;
+   123→   123→      setViewport({ zoom: newZoom, panX: newPanX, panY: newPanY });
+   124→   124→    },
+   125→   125→    [viewport],
+   126→   126→  );
+   127→   127→
+   128→   128→  // Disable passive wheel listener so we can preventDefault.
+   129→   129→  useEffect(() => {
+   130→   130→    const el = containerRef.current;
+   131→   131→    if (!el) return;
+   132→   132→    const handler = (e: WheelEvent) => {
+   133→   133→      e.preventDefault();
+   134→   134→      const rect = el.getBoundingClientRect();
+   135→   135→      const mouseX = e.clientX - rect.left;
+   136→   136→      const mouseY = e.clientY - rect.top;
+   137→   137→      const delta = -e.deltaY * 0.0015;
+   138→   138→      setViewport((vp) => {
+   139→   139→        const newZoom = Math.max(0.1, Math.min(4, vp.zoom * (1 + delta)));
+   140→   140→        const canvasX = (mouseX - vp.panX) / vp.zoom;
+   141→   141→        const canvasY = (mouseY - vp.panY) / vp.zoom;
+   142→   142→        return {
+   143→   143→          zoom: newZoom,
+   144→   144→          panX: mouseX - canvasX * newZoom,
+   145→   145→          panY: mouseY - canvasY * newZoom,
+   146→   146→        };
+   147→   147→      });
+   148→   148→    };
+   149→   149→    el.addEventListener('wheel', handler, { passive: false });
+   150→   150→    return () => el.removeEventListener('wheel', handler);
+   151→   151→  }, []);
+   152→   152→
+   153→   153→  // ---- Mouse interactions ----------------------------------------------------
+   154→   154→  const onMouseDown = useCallback(
+   155→   155→    (e: React.MouseEvent) => {
+   156→   156→      const rect = containerRef.current?.getBoundingClientRect();
+   157→   157→      if (!rect) return;
+   158→   158→      const sx = e.clientX - rect.left;
+   159→   159→      const sy = e.clientY - rect.top;
+   160→   160→
+   161→   161→      // Middle mouse OR space+left → pan
+   162→   162→      if (e.button === 1 || (e.button === 0 && spaceDown)) {
+   163→   163→        setDragState({
+   164→   164→          kind: 'pan',
+   165→   165→          startX: sx,
+   166→   166→          startY: sy,
+   167→   167→          panX: viewport.panX,
+   168→   168→          panY: viewport.panY,
+   169→   169→        });
+   170→   170→        return;
+   171→   171→      }
+   172→   172→
+   173→   173→      if (e.button !== 0) return;
+   174→   174→
+   175→   175→      // Click on empty canvas → clear selection.
+   176→   176→      // (SVG group for shapes handles its own clicks.)
+   177→   177→      if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.emptyBg === 'true') {
+   178→   178→        select([]);
+   179→   179→      }
+   180→   180→    },
+   181→   181→    [spaceDown, viewport, select],
+   182→   182→  );
+   183→   183→
+   184→   184→  const onMouseMove = useCallback(
+   185→   185→    (e: React.MouseEvent) => {
+   186→   186→      if (!dragState) return;
+   187→   187→      const rect = containerRef.current?.getBoundingClientRect();
+   188→   188→      if (!rect) return;
+   189→   189→      const sx = e.clientX - rect.left;
+   190→   190→      const sy = e.clientY - rect.top;
+   191→   191→
+   192→   192→      if (dragState.kind === 'pan') {
+   193→   193→        setViewport((vp) => ({
+   194→   194→          ...vp,
+   195→   195→          panX: (dragState.panX ?? 0) + (sx - dragState.startX),
+   196→   196→          panY: (dragState.panY ?? 0) + (sy - dragState.startY),
+   197→   197→        }));
+   198→   198→        return;
+   199→   199→      }
+   200→   200→
+   201→   201→      const dxCanvas = (sx - dragState.startX) / viewport.zoom;
+   202→   202→      const dyCanvas = (sy - dragState.startY) / viewport.zoom;
+   203→   203→
+   204→   204→      if (dragState.kind === 'move' && dragState.originals) {
+   205→   205→        // Move every selected shape by the delta. We update the store directly
+   206→   206→        // (no patch roundtrip — the human's drag is local state). When the
+   207→   207→        // drag ends we emit a single patch.
+   208→   208→        for (const orig of dragState.originals) {
+   209→   209→          const patch: CanvasPatch = {
+   210→   210→            op: 'update',
+   211→   211→            shapeId: orig.id,
+   212→   212→            shape: { x: orig.x + dxCanvas, y: orig.y + dyCanvas },
+   213→   213→            summary: '',
+   214→   214→          };
+   215→   215→          // Send without summary to avoid log spam during drag — we'll send
+   216→   216→          // a final summary on mouseup.
+   217→   217→          sendPatch(patch);
+   218→   218→        }
+   219→   219→        // Reset startX/Y so we get incremental deltas — actually simpler to
+   220→   220→        // keep originals and recompute. Already handled above.
+   221→   221→      } else if (dragState.kind === 'resize' && dragState.originals && dragState.handle) {
+   222→   222→        const orig = dragState.originals[0];
+   223→   223→        if (!orig) return;
+   224→   224→        let { x, y, width, height } = orig;
+   225→   225→        const h = dragState.handle;
+   226→   226→        if (h.includes('e')) width = Math.max(MIN_SIZE, orig.width + dxCanvas);
+   227→   227→        if (h.includes('s')) height = Math.max(MIN_SIZE, orig.height + dyCanvas);
+   228→   228→        if (h.includes('w')) {
+   229→   229→          const newWidth = Math.max(MIN_SIZE, orig.width - dxCanvas);
+   230→   230→          x = orig.x + (orig.width - newWidth);
+   231→   231→          width = newWidth;
+   232→   232→        }
+   233→   233→        if (h.includes('n')) {
+   234→   234→          const newHeight = Math.max(MIN_SIZE, orig.height - dyCanvas);
+   235→   235→          y = orig.y + (orig.height - newHeight);
+   236→   236→          height = newHeight;
+   237→   237→        }
+   238→   238→        const patch: CanvasPatch = {
+   239→   239→          op: 'update',
+   240→   240→          shapeId: orig.id,
+   241→   241→          shape: { x, y, width, height },
+   242→   242→          summary: '',
+   243→   243→        };
+   244→   244→        sendPatch(patch);
+   245→   245→      }
+   246→   246→    },
+   247→   247→    [dragState, viewport.zoom, sendPatch],
+   248→   248→  );
+   249→   249→
+   250→   250→  const onMouseUp = useCallback(() => {
+   251→   251→    if (dragState?.kind === 'move' && dragState.originals) {
+   252→   252→      // Emit a final summary patch so other viewers see the move in the log.
+   253→   253→      // (The actual position is already synced via the incremental patches.)
+   254→   254→    }
+   255→   255→    setDragState(null);
+   256→   256→  }, [dragState]);
+   257→   257→
+   258→   258→  // ---- Shape interaction handlers -------------------------------------------
+   259→   259→  const onShapeMouseDown = useCallback(
+   260→   260→    (e: React.MouseEvent, shape: Shape) => {
+   261→   261→      if (spaceDown || e.button !== 0) return;
+   262→   262→      e.stopPropagation();
+   263→   263→      const rect = containerRef.current?.getBoundingClientRect();
+   264→   264→      if (!rect) return;
+   265→   265→      const sx = e.clientX - rect.left;
+   266→   266→      const sy = e.clientY - rect.top;
+   267→   267→
+   268→   268→      let newSelected: string[];
+   269→   269→      if (e.shiftKey) {
+   270→   270→        newSelected = selectedIds.includes(shape.id)
+   271→   271→          ? selectedIds.filter((id) => id !== shape.id)
+   272→   272→          : [...selectedIds, shape.id];
+   273→   273→      } else if (!selectedIds.includes(shape.id)) {
+   274→   274→        newSelected = [shape.id];
+   275→   275→      } else {
+   276→   276→        newSelected = selectedIds;
+   277→   277→      }
+   278→   278→      select(newSelected);
+   279→   279→
+   280→   280→      setDragState({
+   281→   281→        kind: 'move',
+   282→   282→        startX: sx,
+   283→   283→        startY: sy,
+   284→   284→        originals: newSelected
+   285→   285→          .map((id) => findShape(document, id))
+   286→   286→          .filter((s): s is Shape => !!s)
+   287→   287→          .map((s) => ({ id: s.id, x: s.x, y: s.y, width: s.width, height: s.height })),
+   288→   288→      });
+   289→   289→    },
+   290→   290→    [spaceDown, selectedIds, document, select],
+   291→   291→  );
+   292→   292→
+   293→   293→  const onResizeHandleMouseDown = useCallback(
+   294→   294→    (e: React.MouseEvent, shape: Shape, handle: NonNullable<DragState['handle']>) => {
+   295→   295→      e.stopPropagation();
+   296→   296→      e.preventDefault();
+   297→   297→      const rect = containerRef.current?.getBoundingClientRect();
+   298→   298→      if (!rect) return;
+   299→   299→      setDragState({
+   300→   300→        kind: 'resize',
+   301→   301→        handle,
+   302→   302→        startX: e.clientX - rect.left,
+   303→   303→        startY: e.clientY - rect.top,
+   304→   304→        originals: [
+   305→   305→          { id: shape.id, x: shape.x, y: shape.y, width: shape.width, height: shape.height },
+   306→   306→        ],
+   307→   307→      });
+   308→   308→    },
+   309→   309→    [],
+   310→   310→  );
+   311→   311→
+   312→   312→  // ---- Render ---------------------------------------------------------------
+   313→   313→  const { zoom, panX, panY } = viewport;
+   314→   314→  const selectedSet = new Set(selectedIds);
+   315→   315→  const highlightSet = new Set(agentHighlightIds);
+   316→   316→
+   317→   317→  return (
+   318→   318→    <div
+   319→   319→      ref={containerRef}
+   320→   320→      className={`relative w-full h-full overflow-hidden select-none ${spaceDown ? 'cursor-grab' : 'cursor-default'}`}
+   321→   321→      style={{ background: document.background }}
+   322→   322→      onMouseDown={onMouseDown}
+   323→   323→      onMouseMove={onMouseMove}
+   324→   324→      onMouseUp={onMouseUp}
+   325→   325→      onMouseLeave={onMouseUp}
+   326→   326→    >
+   327→   327→      {/* Infinite-canvas backdrop grid */}
+   328→   328→      <div
+   329→   329→        data-empty-bg="true"
+   330→   330→        className="absolute inset-0"
+   331→   331→        style={{
+   332→   332→          backgroundImage:
+   333→   333→            'radial-gradient(circle, color-mix(in oklch, var(--ac-text-primary) 12%, transparent) 1px, transparent 1px)',
+   334→   334→          backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
+   335→   335→          backgroundPosition: `${panX}px ${panY}px`,
+   336→   336→        }}
+   337→   337→      />
+   338→   338→
+   339→   339→      {/* Empty-canvas drop zone — subtle, screen-centered, fades out when shapes exist. */}
+   340→   340→      {document.shapes.length === 0 && (
+   341→   341→        <div
+   342→   342→          data-empty-bg="true"
+   343→   343→          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+   344→   344→          style={{
+   345→   345→            animation: 'ac-fade-in 240ms ease-out',
+   346→   346→          }}
+   347→   347→        >
+   348→   348→          <div
+   349→   349→            className="flex flex-col items-center gap-3 px-10 py-8 rounded-xl border-2 border-dashed max-w-md text-center"
+   350→   350→            style={{
+   351→   351→              borderColor: 'var(--ac-border-strong)',
+   352→   352→              backgroundColor: 'color-mix(in oklch, var(--ac-surface-0) 70%, transparent)',
+   353→   353→              backdropFilter: 'blur(2px)',
+   354→   354→            }}
+   355→   355→          >
+   356→   356→            <div
+   357→   357→              className="flex items-center justify-center h-12 w-12 rounded-lg"
+   358→   358→              style={{
+   359→   359→                backgroundColor: 'var(--ac-accent-soft)',
+   360→   360→                color: 'var(--ac-accent)',
+   361→   361→                boxShadow: 'inset 0 0 0 1px var(--ac-accent-border)',
+   362→   362→              }}
+   363→   363→            >
+   364→   364→              <PenLine className="h-5 w-5" />
+   365→   365→            </div>
+   366→   366→            <div className="space-y-1">
+   367→   367→              <div className="text-[14px] font-semibold ac-text-1">Empty canvas</div>
+   368→   368→              <div className="text-[12px] ac-text-3 leading-relaxed">
+   369→   369→                Describe what you want to build in the panel on the right,
+   370→   370→                <br />
+   371→   371→                or pick a shape from the toolbar to drop one in.
+   372→   372→              </div>
+   373→   373→            </div>
+   374→   374→            <div className="flex items-center gap-1.5 mt-1 text-[10px] ac-text-4">
+   375→   375→              <MousePointerClick className="h-3 w-3" />
+   376→   376→              <span>Tip: try “Design a login form” in the chat</span>
+   377→   377→            </div>
+   378→   378→          </div>
+   379→   379→        </div>
+   380→   380→      )}
+   381→   381→
+   382→   382→      <svg
+   383→   383→        className="absolute inset-0"
+   384→   384→        width={size.w}
+   385→   385→        height={size.h}
+   386→   386→        style={{ pointerEvents: 'none' }}
+   387→   387→      >
+   388→   388→        <defs>
+   389→   389→          {/* Radial gradient used for heatmap fixation points. */}
+   390→   390→          <radialGradient id="heatmap-fixation" cx="50%" cy="50%" r="50%">
+   391→   391→            <stop offset="0%" stopColor="rgba(239, 68, 68, 0.65)" />
+   392→   392→            <stop offset="50%" stopColor="rgba(249, 115, 22, 0.35)" />
+   393→   393→            <stop offset="100%" stopColor="rgba(234, 88, 12, 0)" />
+   394→   394→          </radialGradient>
+   395→   395→          {/* Marker for component instance badge. */}
+   396→   396→          <pattern id="component-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+   397→   397→            <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(14, 165, 233, 0.35)" strokeWidth="2" />
+   398→   398→          </pattern>
+   399→   399→        </defs>
+   400→   400→        <g transform={`translate(${panX}, ${panY}) scale(${zoom})`}>
+   401→   401→          {/* Shapes — pointer events re-enabled per shape */}
+   402→   402→          {(document.shapes ?? [])
+   403→   403→            .slice()
+   404→   404→            .sort((a, b) => a.zIndex - b.zIndex)
+   405→   405→            .map((shape) => (
+   406→   406→              <ShapeRenderer
+   407→   407→                key={shape.id}
+   408→   408→                shape={shape}
+   409→   409→                selected={selectedSet.has(shape.id)}
+   410→   410→                highlighted={highlightSet.has(shape.id)}
+   411→   411→                zoom={zoom}
+   412→   412→                onShapeMouseDown={onShapeMouseDown}
+   413→   413→                onResizeHandleMouseDown={onResizeHandleMouseDown}
+   414→   414→              />
+   415→   415→            ))}
+   416→   416→
+   417→   417→          {/* Attention heatmap overlay — rendered on top of shapes. */}
+   418→   418→          {document.heatmap && (
+   419→   419→            <HeatmapRenderer overlay={document.heatmap} zoom={zoom} />
+   420→   420→          )}
+   421→   421→        </g>
+   422→   422→      </svg>
+   423→   423→
+   424→   424→      {/* Zoom indicator */}
+   425→   425→      <div
+   426→   426→        className="absolute bottom-3 left-3 flex items-center gap-2 backdrop-blur rounded-md border shadow-sm px-2 py-1 text-xs ac-text-2 ac-transition"
+   427→   427→        style={{
+   428→   428→          backgroundColor: 'color-mix(in oklch, var(--ac-surface-0) 88%, transparent)',
+   429→   429→          borderColor: 'var(--ac-border-default)',
+   430→   430→        }}
+   431→   431→      >
+   432→   432→        <button
+   433→   433→          className="px-1 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
+   434→   434→          onClick={() => setViewport((v) => ({ ...v, zoom: Math.max(0.1, v.zoom * 0.9) }))}
+   435→   435→        >
+   436→   436→          −
+   437→   437→        </button>
+   438→   438→        <span className="tabular-nums w-12 text-center ac-text-2">{Math.round(zoom * 100)}%</span>
+   439→   439→        <button
+   440→   440→          className="px-1 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
+   441→   441→          onClick={() => setViewport((v) => ({ ...v, zoom: Math.min(4, v.zoom * 1.1) }))}
+   442→   442→        >
+   443→   443→          +
+   444→   444→        </button>
+   445→   445→        <button
+   446→   446→          className="ml-1 px-2 py-0.5 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
+   447→   447→          onClick={() => setViewport({ zoom: 1, panX: 120, panY: 80 })}
+   448→   448→        >
+   449→   449→          Reset
+   450→   450→        </button>
+   451→   451→      </div>
+   452→   452→    </div>
+   453→   453→  );
+   454→   454→}
+   455→   455→
+   456→   456→// Hook to keep selectedIds stable across renders when nothing changed.
+   457→   457→function useSelectedIds() {
+   458→   458→  return useCanvasStore((s) => s.selectedIds);
+   459→   459→}
+   460→   460→
+   461→   461→function isEditableTarget(target: EventTarget | null): boolean {
+   462→   462→  if (!target) return false;
+   463→   463→  const el = target as HTMLElement;
+   464→   464→  if (el.isContentEditable) return true;
+   465→   465→  const tag = el.tagName;
+   466→   466→  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+   467→   467→}
+   468→   468→
+   469→   469→// ---- Shape renderer --------------------------------------------------------
+   470→   470→
+   471→   471→interface ShapeRendererProps {
+   472→   472→  shape: Shape;
+   473→   473→  selected: boolean;
+   474→   474→  highlighted: boolean;
+   475→   475→  zoom: number;
+   476→   476→  onShapeMouseDown: (e: React.MouseEvent, shape: Shape) => void;
+   477→   477→  onResizeHandleMouseDown: (
+   478→   478→    e: React.MouseEvent,
+   479→   479→    shape: Shape,
+   480→   480→    handle: NonNullable<DragState['handle']>,
+   481→   481→  ) => void;
+   482→   482→}
+   483→   483→
+   484→   484→function ShapeRenderer({
+   485→   485→  shape,
+   486→   486→  selected,
+   487→   487→  highlighted,
+   488→   488→  zoom,
+   489→   489→  onShapeMouseDown,
+   490→   490→  onResizeHandleMouseDown,
+   491→   491→}: ShapeRendererProps) {
+   492→   492→  if (!shape.visible) return null;
+   493→   493→
+   494→   494→  const commonProps = {
+   495→   495→    style: { pointerEvents: 'auto' as const, cursor: 'move' },
+   496→   496→    onMouseDown: (e: React.MouseEvent) => onShapeMouseDown(e, shape),
+   497→   497→    opacity: shape.opacity,
+   498→   498→  };
+   499→   499→
+   500→   500→  const stroke = shape.strokeWidth > 0 ? shape.stroke : 'none';
+   501→   501→  const strokeWidth = shape.strokeWidth;
+   502→   502→
+   503→   503→  let element: React.ReactNode;
+   504→   504→  switch (shape.type) {
+   505→   505→    case 'rectangle':
+   506→   506→    case 'frame': {
+   507→   507→      element = (
+   508→   508→        <rect
+   509→   509→          x={shape.x}
+   510→   510→          y={shape.y}
+   511→   511→          width={shape.width}
+   512→   512→          height={shape.height}
+   513→   513→          rx={shape.radius}
+   514→   514→          ry={shape.radius}
+   515→   515→          fill={shape.fill}
+   516→   516→          stroke={stroke}
+   517→   517→          strokeWidth={strokeWidth}
+   518→   518→          {...commonProps}
+   519→   519→        />
+   520→   520→      );
+   521→   521→      break;
+   522→   522→    }
+   523→   523→    case 'ellipse': {
+   524→   524→      element = (
+   525→   525→        <ellipse
+   526→   526→          cx={shape.x + shape.width / 2}
+   527→   527→          cy={shape.y + shape.height / 2}
+   528→   528→          rx={shape.width / 2}
+   529→   529→          ry={shape.height / 2}
+   530→   530→          fill={shape.fill}
+   531→   531→          stroke={stroke}
+   532→   532→          strokeWidth={strokeWidth}
+   533→   533→          {...commonProps}
+   534→   534→        />
+   535→   535→      );
+   536→   536→      break;
+   537→   537→    }
+   538→   538→    case 'line': {
+   539→   539→      element = (
+   540→   540→        <line
+   541→   541→          x1={shape.x}
+   542→   542→          y1={shape.y}
+   543→   543→          x2={shape.x + shape.width}
+   544→   544→          y2={shape.y + shape.height}
+   545→   545→          stroke={shape.fill}
+   546→   546→          strokeWidth={Math.max(2, strokeWidth)}
+   547→   547→          strokeLinecap="round"
+   548→   548→          {...commonProps}
+   549→   549→        />
+   550→   550→      );
+   551→   551→      break;
+   552→   552→    }
+   553→   553→    case 'text': {
+   554→   554→      element = (
+   555→   555→        <text
+   556→   556→          x={shape.x}
+   557→   557→          y={shape.y + shape.fontSize}
+   558→   558→          fontSize={shape.fontSize}
+   559→   559→          fill={shape.textColor}
+   560→   560→          fontFamily="Inter, system-ui, sans-serif"
+   561→   561→          {...commonProps}
+   562→   562→        >
+   563→   563→          {shape.text}
+   564→   564→        </text>
+   565→   565→      );
+   566→   566→      break;
+   567→   567→    }
+   568→   568→    case 'group': {
+   569→   569→      // Group is invisible — just a transparent container for its children.
+   570→   570→      // In this MVP we don't recurse into children; groups render as a
+   571→   571→      // labeled outline so the user can still select/move them.
+   572→   572→      element = (
+   573→   573→        <rect
+   574→   574→          x={shape.x}
+   575→   575→          y={shape.y}
+   576→   576→          width={shape.width}
+   577→   577→          height={shape.height}
+   578→   578→          fill="transparent"
+   579→   579→          stroke={shape.stroke}
+   580→   580→          strokeWidth={1}
+   581→   581→          strokeDasharray="4 4"
+   582→   582→          {...commonProps}
+   583→   583→        />
+   584→   584→      );
+   585→   585→      break;
+   586→   586→    }
+   587→   587→    default: {
+   588→   588→      element = null;
+   589→   589→    }
+   590→   590→  }
+   591→   591→
+   592→   592→  const handleSize = HANDLE_SIZE / zoom;
+   593→   593→  const handles: NonNullable<DragState['handle']>[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+   594→   594→
+   595→   595→  // Component instance badge: small "◆" in the top-left corner for instances,
+   596→   596→  // or a filled corner for the master component.
+   597→   597→  const isComponentMaster = shape.componentId === shape.id;
+   598→   598→  const isComponentInstance = shape.componentId && shape.componentId !== shape.id;
+   599→   599→
+   600→   600→  // Auto-layout indicator: a small dashed border with a "AL" badge for
+   601→   601→  // frames/groups that have auto-layout applied.
+   602→   602→  const hasAutoLayout = !!shape.autoLayout && (shape.type === 'frame' || shape.type === 'group');
+   603→   603→
+   604→   604→  return (
+   605→   605→    <g>
+   606→   606→      {highlighted && (
+   607→   607→        <rect
+   608→   608→          x={shape.x - 4 / zoom}
+   609→   609→          y={shape.y - 4 / zoom}
+   610→   610→          width={shape.width + 8 / zoom}
+   611→   611→          height={shape.height + 8 / zoom}
+   612→   612→          fill="none"
+   613→   613→          stroke="#f59e0b"
+   614→   614→          strokeWidth={2 / zoom}
+   615→   615→          style={{ pointerEvents: 'none' }}
+   616→   616→        >
+   617→   617→          <animate
+   618→   618→            attributeName="stroke-opacity"
+   619→   619→            values="1;0.4;1"
+   620→   620→            dur="0.8s"
+   621→   621→            repeatCount="indefinite"
+   622→   622→          />
+   623→   623→        </rect>
+   624→   624→      )}
+   625→   625→      {element}
+   626→   626→
+   627→   627→      {/* Auto-layout visual indicator (dashed inner border + badge). */}
+   628→   628→      {hasAutoLayout && (
+   629→   629→        <>
+   630→   630→          <rect
+   631→   631→            x={shape.x + 2 / zoom}
+   632→   632→            y={shape.y + 2 / zoom}
+   633→   633→            width={shape.width - 4 / zoom}
+   634→   634→            height={shape.height - 4 / zoom}
+   635→   635→            fill="none"
+   636→   636→            stroke="#22c55e"
+   637→   637→            strokeWidth={1 / zoom}
+   638→   638→            strokeDasharray={`${4 / zoom} ${3 / zoom}`}
+   639→   639→            style={{ pointerEvents: 'none' }}
+   640→   640→          />
+   641→   641→          <g style={{ pointerEvents: 'none' }} transform={`translate(${shape.x + 4 / zoom}, ${shape.y - 14 / zoom})`}>
+   642→   642→            <rect width={36 / zoom} height={12 / zoom} rx={2 / zoom} fill="#22c55e" />
+   643→   643→            <text x={18 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">AL</text>
+   644→   644→          </g>
+   645→   645→        </>
+   646→   646→      )}
+   647→   647→
+   648→   648→      {/* Component master / instance indicators. */}
+   649→   649→      {isComponentMaster && (
+   650→   650→        <g style={{ pointerEvents: 'none' }} transform={`translate(${shape.x + shape.width - 16 / zoom}, ${shape.y + 4 / zoom})`}>
+   651→   651→          <rect width={12 / zoom} height={12 / zoom} rx={2 / zoom} fill="#0ea5e9" />
+   652→   652→          <text x={6 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">M</text>
+   653→   653→        </g>
+   654→   654→      )}
+   655→   655→      {isComponentInstance && (
+   656→   656→        <g style={{ pointerEvents: 'none' }} transform={`translate(${shape.x + shape.width - 16 / zoom}, ${shape.y + 4 / zoom})`}>
+   657→   657→          <rect width={12 / zoom} height={12 / zoom} rx={2 / zoom} fill="#a78bfa" />
+   658→   658→          <text x={6 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">I</text>
+   659→   659→        </g>
+   660→   660→      )}
+   661→   661→
+   662→   662→      {selected && (
+   663→   663→        <>
+   664→   664→          <rect
+   665→   665→            x={shape.x - 1 / zoom}
+   666→   666→            y={shape.y - 1 / zoom}
+   667→   667→            width={shape.width + 2 / zoom}
+   668→   668→            height={shape.height + 2 / zoom}
+   669→   669→            fill="none"
+   670→   670→            stroke="#0ea5e9"
+   671→   671→            strokeWidth={1.5 / zoom}
+   672→   672→            style={{ pointerEvents: 'none' }}
+   673→   673→          />
+   674→   674→          {handles.map((h) => {
+   675→   675→            const pos = handlePosition(shape, h);
+   676→   676→            return (
+   677→   677→              <rect
+   678→   678→                key={h}
+   679→   679→                x={pos.x - handleSize / 2}
+   680→   680→                y={pos.y - handleSize / 2}
+   681→   681→                width={handleSize}
+   682→   682→                height={handleSize}
+   683→   683→                fill="white"
+   684→   684→                stroke="#0ea5e9"
+   685→   685→                strokeWidth={1 / zoom}
+   686→   686→                style={{ pointerEvents: 'auto', cursor: cursorForHandle(h) }}
+   687→   687→                onMouseDown={(e) => onResizeHandleMouseDown(e, shape, h)}
+   688→   688→              />
+   689→   689→            );
+   690→   690→          })}
+   691→   691→        </>
+   692→   692→      )}
+   693→   693→    </g>
+   694→   694→  );
+   695→   695→}
+   696→   696→
+   697→   697→// ---- Heatmap renderer -------------------------------------------------------
+   698→   698→//
+   699→   699→// Renders the attention heatmap overlay. Each fixation point is drawn as a
+   700→   700→// soft radial gradient circle whose radius scales with intensity. The whole
+   701→   701→// overlay is mixed onto the canvas using a 'screen'-like blend so it
+   702→   702→// highlights rather than obscures the underlying design.
+   703→   703→
+   704→   704→function HeatmapRenderer({ overlay, zoom }: { overlay: HeatmapOverlay; zoom: number }) {
+   705→   705→  // Each fixation point: radius scaled by intensity.
+   706→   706→  // Max radius ~ 80px at intensity 1.0.
+   707→   707→  return (
+   708→   708→    <g style={{ pointerEvents: 'none' }} opacity={0.85}>
+   709→   709→      {/* Bounding outline so the user can see what was analyzed. */}
+   710→   710→      <rect
+   711→   711→        x={overlay.x}
+   712→   712→        y={overlay.y}
+   713→   713→        width={overlay.width}
+   714→   714→        height={overlay.height}
+   715→   715→        fill="none"
+   716→   716→        stroke="#ef4444"
+   717→   717→        strokeWidth={1.5 / zoom}
+   718→   718→        strokeDasharray={`${6 / zoom} ${4 / zoom}`}
+   719→   719→      />
+   720→   720→      {overlay.points.map((p, i) => {
+   721→   721→        const radius = 30 + p.intensity * 60;
+   722→   722→        return (
+   723→   723→          <circle
+   724→   724→            key={i}
+   725→   725→            cx={p.x}
+   726→   726→            cy={p.y}
+   727→   727→            r={radius}
+   728→   728→            fill="url(#heatmap-fixation)"
+   729→   729→            opacity={0.4 + p.intensity * 0.5}
+   730→   730→          />
+   731→   731→        );
+   732→   732→      })}
+   733→   733→      {/* Heatmap label badge in the top-left of the analyzed frame. */}
+   734→   734→      <g transform={`translate(${overlay.x + 6 / zoom}, ${overlay.y + 6 / zoom})`}>
+   735→   735→        <rect width={120 / zoom} height={16 / zoom} rx={3 / zoom} fill="rgba(239, 68, 68, 0.92)" />
+   736→   736→        <text x={60 / zoom} y={11 / zoom} fontSize={10 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">
+   737→   737→          Attention heatmap
+   738→   738→        </text>
+   739→   739→      </g>
+   740→   740→    </g>
+   741→   741→  );
+   742→   742→}
+   743→   743→
+   744→   744→function handlePosition(shape: Shape, handle: NonNullable<DragState['handle']>): { x: number; y: number } {
+   745→   745→  const { x, y, width, height } = shape;
+   746→   746→  const cx = x + width / 2;
+   747→   747→  const cy = y + height / 2;
+   748→   748→  switch (handle) {
+   749→   749→    case 'nw': return { x, y };
+   750→   750→    case 'n':  return { x: cx, y };
+   751→   751→    case 'ne': return { x: x + width, y };
+   752→   752→    case 'e':  return { x: x + width, y: cy };
+   753→   753→    case 'se': return { x: x + width, y: y + height };
+   754→   754→    case 's':  return { x: cx, y: y + height };
+   755→   755→    case 'sw': return { x, y: y + height };
+   756→   756→    case 'w':  return { x, y: cy };
+   757→   757→  }
+   758→   758→}
+   759→   759→
+   760→   760→function cursorForHandle(h: NonNullable<DragState['handle']>): string {
+   761→   761→  switch (h) {
+   762→   762→    case 'nw': case 'se': return 'nwse-resize';
+   763→   763→    case 'ne': case 'sw': return 'nesw-resize';
+   764→   764→    case 'n':  case 's':  return 'ns-resize';
+   765→   765→    case 'e':  case 'w':  return 'ew-resize';
+   766→   766→  }
+   767→   767→}
+   768→   768→
