@@ -1,18 +1,26 @@
 'use client';
 
-// Layers panel — lists every shape on the canvas, grouped by z-order.
+// Layers panel — lists every node in the .pen tree (resolved flat render
+// list, ordered depth-first by zIndex), grouped by parent/child.
 // Click to select; double-click to rename; eye icon to toggle visibility.
 //
-// Extended with:
-//   - Parent/child indentation (groups and frames contain children)
-//   - Badges for component master (M), component instance (I), auto-layout (AL)
-//   - Token-binding dot indicator
-//   - Right-click menu: Delete, Rename, Duplicate
+// Tree-aware (.pen model):
+//   - Parent/child indentation (frames and groups contain children).
+//   - Per-type lucide icons covering every resolved ShapeType value (incl.
+//     path, image); frame/group use container-style icons.
+//   - Badges: component master (M), component instance (◆ ref), auto-layout
+//     (AL), effective theme (e.g. 🌙 dark), token-binding dot.
+//   - Footer: document variable + theme-axis counts (the .pen design-system
+//     layer).
+//   - Right-click menu: Delete, Rename, Duplicate.
 
-import { useState } from 'react';
+import { useState, type ReactNode, type ComponentType } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
-import type { CanvasPatch, Shape } from '@/lib/canvas/types';
-import { Eye, EyeOff, Lock, Unlock, Trash2, Layers, Copy } from 'lucide-react';
+import type { CanvasPatch, Shape, ShapeType } from '@/lib/canvas/types';
+import {
+  Eye, EyeOff, Lock, Unlock, Trash2, Layers, Copy,
+  Frame, Group, Square, Circle, Type, Slash, Spline, Image as ImageIcon, Braces,
+} from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,14 +30,38 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 
-const TYPE_ICON: Record<string, string> = {
-  rectangle: '▭',
-  ellipse: '◯',
-  text: 'T',
-  line: '╱',
-  frame: '▢',
-  group: '▤',
+// Per-type icon. Frame and group (the .pen containers) use container-style
+// icons. All 8 resolved ShapeType values are covered, so the lookup never
+// falls back to the placeholder.
+const TYPE_ICON: Record<ShapeType, ComponentType<{ className?: string }>> = {
+  rectangle: Square,
+  ellipse: Circle,
+  text: Type,
+  line: Slash,
+  frame: Frame,
+  group: Group,
+  path: Spline,
+  image: ImageIcon,
 };
+
+/**
+ * Render a compact, human-friendly label for a node's effective theme.
+ *   { mode: 'dark' }                       -> "🌙 dark"
+ *   { mode: 'light' }                      -> "☀️ light"
+ *   { mode: 'dark', spacing: 'compact' }   -> "mode:dark · spacing:compact"
+ * Returns null when the theme is empty/absent (badge stays hidden).
+ */
+function themeLabel(theme: Record<string, string> | undefined | null): string | null {
+  if (!theme) return null;
+  const entries = Object.entries(theme).filter(([, v]) => v !== undefined && v !== '');
+  if (entries.length === 0) return null;
+  if (entries.length === 1 && entries[0][0] === 'mode') {
+    const v = entries[0][1];
+    const emoji = v === 'dark' ? '🌙' : v === 'light' ? '☀️' : '🎨';
+    return `${emoji} ${v}`;
+  }
+  return entries.map(([k, v]) => `${k}:${v}`).join(' · ');
+}
 
 export function LayersPanel() {
   const document = useCanvasStore((s) => s.document);
@@ -40,19 +72,22 @@ export function LayersPanel() {
 
   // Build a tree: top-level shapes (parentId null) first, with children
   // indented under their parent. Render top-to-bottom = highest z-index first.
-  const sortedTop = [...(document.shapes ?? [])]
+  const shapes = document.shapes ?? [];
+  const sortedTop = [...shapes]
     .filter((s) => !s.parentId)
     .sort((a, b) => b.zIndex - a.zIndex);
   const childrenOf = (id: string) =>
-    (document.shapes ?? []).filter((s) => s.parentId === id).sort((a, b) => b.zIndex - a.zIndex);
+    shapes.filter((s) => s.parentId === id).sort((a, b) => b.zIndex - a.zIndex);
 
-  const renderShape = (shape: Shape, depth: number): React.ReactNode => {
+  const renderShape = (shape: Shape, depth: number): ReactNode => {
     const selected = selectedIds.includes(shape.id);
     const children = childrenOf(shape.id);
     const isComponentMaster = shape.componentId === shape.id;
     const isComponentInstance = !!shape.componentId && shape.componentId !== shape.id;
     const hasAutoLayout = !!shape.autoLayout;
     const hasTokenBinding = !!shape.tokenBinding && (!!shape.tokenBinding.fillToken || !!shape.tokenBinding.textToken);
+    const themeStr = themeLabel(shape.theme);
+    const TypeIcon = TYPE_ICON[shape.type] ?? Square;
     return (
       <ContextMenu key={shape.id}>
         <ContextMenuTrigger asChild>
@@ -72,7 +107,9 @@ export function LayersPanel() {
             }}
             onDoubleClick={() => setEditingId(shape.id)}
           >
-            <span className="text-[10px] w-4 text-center ac-text-4">{TYPE_ICON[shape.type] ?? '?'}</span>
+            <span className="w-4 flex items-center justify-center ac-text-4">
+              <TypeIcon className="h-3 w-3" />
+            </span>
             {editingId === shape.id ? (
               <Input
                 autoFocus
@@ -92,6 +129,14 @@ export function LayersPanel() {
               <span className="flex-1 truncate">{shape.name}</span>
             )}
             {/* Badges */}
+            {themeStr && (
+              <span
+                className="text-[9px] px-1 py-0 rounded ac-surface-2 ac-text-3 font-medium"
+                title={`Effective theme: ${themeStr}`}
+              >
+                {themeStr}
+              </span>
+            )}
             {hasTokenBinding && (
               <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-500" title="Bound to design token" />
             )}
@@ -102,7 +147,7 @@ export function LayersPanel() {
               <span className="text-[9px] px-1 py-0 rounded bg-sky-100 text-sky-700 font-medium" title="Component master">M</span>
             )}
             {isComponentInstance && (
-              <span className="text-[9px] px-1 py-0 rounded bg-violet-100 text-violet-700 font-medium" title="Component instance">I</span>
+              <span className="text-[9px] px-1 py-0 rounded bg-violet-100 text-violet-700 font-medium" title="Component instance (ref)">◆</span>
             )}
             <button
               className="opacity-0 group-hover:opacity-100 ac-text-4 hover:ac-text-1 ac-transition"
@@ -153,6 +198,13 @@ export function LayersPanel() {
     );
   };
 
+  // .pen design-system summary: document variables (count of keys) + theme
+  // axes (count of axes in `document.themes`). Both are optional on a .pen
+  // document; absent means zero.
+  const nodeCount = shapes.length;
+  const variableCount = document.variables ? Object.keys(document.variables).length : 0;
+  const themeAxisCount = document.themes ? Object.keys(document.themes).length : 0;
+
   return (
     <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
       <div className="flex items-center justify-between px-3 py-2 border-b ac-border-subtle">
@@ -160,13 +212,13 @@ export function LayersPanel() {
           <Layers className="h-3.5 w-3.5 ac-text-3" />
           Layers
         </div>
-        <span className="text-[10px] ac-text-4">{(document.shapes ?? []).length} shape{(document.shapes ?? []).length === 1 ? '' : 's'}</span>
+        <span className="text-[10px] ac-text-4">{nodeCount} node{nodeCount === 1 ? '' : 's'}</span>
       </div>
       <ScrollArea className="flex-1 min-h-0 ac-hide-scrollbar">
         <div className="p-1">
           {sortedTop.length === 0 ? (
             <div className="px-3 py-8 text-center">
-              <p className="text-[11px] font-medium ac-text-3 mb-1">No layers yet</p>
+              <p className="text-[11px] font-medium ac-text-3 mb-1">No nodes yet</p>
               <p className="text-[11px] ac-text-4">Ask the agent to create something, or use the toolbar.</p>
             </div>
           ) : (
@@ -174,6 +226,15 @@ export function LayersPanel() {
           )}
         </div>
       </ScrollArea>
+      {/* .pen design-system summary footer */}
+      <div className="border-t ac-border-subtle px-3 py-1.5 flex items-center gap-1.5 text-[10px] ac-text-4">
+        <Braces className="h-3 w-3 ac-text-4" aria-hidden />
+        <span>
+          {variableCount} variable{variableCount === 1 ? '' : 's'}
+          {' · '}
+          {themeAxisCount} theme axis{themeAxisCount === 1 ? '' : 'es'}
+        </span>
+      </div>
     </div>
   );
 }

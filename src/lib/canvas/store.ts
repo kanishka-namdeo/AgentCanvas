@@ -14,7 +14,9 @@
 import { create } from 'zustand';
 import { io, type Socket } from 'socket.io-client';
 import type { CanvasDocument, CanvasPatch, ClientEvent, Shape, SyncEvent } from '@/lib/canvas/types';
+import { createEmptyCanvasDocument } from '@/lib/canvas/types';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
+import { resolvePenTree } from '@/lib/pen/resolve';
 import { useSessionStore, hydrateSessionStore } from '@/lib/sessions';
 
 /// A single chat turn — either the user's prompt or the agent's response.
@@ -126,15 +128,7 @@ let highlightTimeout: any;
 /// `agentBusy` is already false).
 let agentAbort: AbortController | null = null;
 
-const EMPTY_DOC: CanvasDocument = {
-  id: 'default',
-  name: 'Untitled',
-  background: '#f8fafc',
-  viewport: { zoom: 1, panX: 0, panY: 0 },
-  shapes: [],
-  tokens: { colors: [], textStyles: [] },
-  heatmap: null,
-};
+const EMPTY_DOC: CanvasDocument = createEmptyCanvasDocument('default', 'Untitled');
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   document: EMPTY_DOC,
@@ -485,10 +479,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const state = get();
     switch (event.type) {
       case 'canvas:full': {
-        // Normalize — older server builds may omit tokens/heatmap.
+        // Normalize — older server builds may omit the derived caches.
         const doc = event.document;
+        if (!doc.children) doc.children = [];
+        if (!doc.shapes) doc.shapes = resolvePenTree(doc);
         if (!doc.tokens) doc.tokens = { colors: [], textStyles: [] };
-        if (doc.heatmap === undefined) doc.heatmap = null;
+        if (!doc.viewport) doc.viewport = { zoom: 1, panX: 120, panY: 80 };
         set({ document: doc });
         break;
       }

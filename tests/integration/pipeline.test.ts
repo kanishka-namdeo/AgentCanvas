@@ -133,11 +133,11 @@ function firstShapeId(content: string): string {
 describe('integration: tool → store._onSync → undo/redo', () => {
   beforeEach(() => resetStore());
 
-  it('canvas_create_shape → undo reverts the shape', async () => {
+  it('pen_create_shape → undo reverts the shape', async () => {
     const { ctx } = makeIntegrationCtx();
     // Shape fields are at the top level of the args (ShapeInputSchema is the
     // tool's parameter schema).
-    const r = await runTool(ctx, 'canvas_create_shape', {
+    const r = await runTool(ctx, 'pen_create_shape', {
       type: 'rectangle',
       name: 'Card',
       x: 10,
@@ -174,7 +174,7 @@ describe('integration: tool → store._onSync → undo/redo', () => {
     const { ctx } = makeIntegrationCtx();
 
     // Bring 'a' to the front.
-    await runTool(ctx, 'canvas_bring_to_front', { shapeIds: ['a'] });
+    await runTool(ctx, 'pen_bring_to_front', { shapeIds: ['a'] });
 
     const after = useCanvasStore.getState().document;
     expect(after.shapes.map((s) => s.id)).toEqual(['b', 'c', 'a']);
@@ -193,12 +193,12 @@ describe('integration: tool → store._onSync → undo/redo', () => {
     const { ctx } = makeIntegrationCtx();
 
     // 1. Define a token — `colors` is at the top level of the tool's params.
-    await runTool(ctx, 'canvas_update_tokens', {
+    await runTool(ctx, 'pen_update_tokens', {
       colors: [{ name: 'Primary', key: 'primary', value: '#ff0000' }],
     });
 
     // 2. Create a shape.
-    const createRes = await runTool(ctx, 'canvas_create_shape', {
+    const createRes = await runTool(ctx, 'pen_create_shape', {
       type: 'rectangle',
       name: 'Btn',
       x: 0, y: 0, width: 100, height: 40,
@@ -207,7 +207,7 @@ describe('integration: tool → store._onSync → undo/redo', () => {
     expect(shapeId).not.toBe('');
 
     // 3. Bind it to the token — this immediately applies the token's value.
-    const bindRes = await runTool(ctx, 'canvas_bind_shape_to_token', {
+    const bindRes = await runTool(ctx, 'pen_bind_shape_to_token', {
       shapeId,
       tokenKey: 'primary',
       property: 'fill',
@@ -220,7 +220,7 @@ describe('integration: tool → store._onSync → undo/redo', () => {
     expect(bound.fill.toLowerCase()).toBe('#ff0000');
 
     // 4. Update the token value.
-    await runTool(ctx, 'canvas_update_tokens', {
+    await runTool(ctx, 'pen_update_tokens', {
       colors: [{ name: 'Primary', key: 'primary', value: '#00ff00' }],
     });
 
@@ -239,7 +239,7 @@ describe('integration: tool → store._onSync → undo/redo', () => {
     const { ctx } = makeIntegrationCtx();
 
     // Filter is at the top level — not nested under `filter:`.
-    const r = await runTool(ctx, 'canvas_bulk_update_by_filter', {
+    const r = await runTool(ctx, 'pen_bulk_update_by_filter', {
       fill: '#ff0000',
       changes: { fill: '#00ff00' },
     });
@@ -267,7 +267,7 @@ describe('integration: tool → store._onSync → undo/redo', () => {
     ]));
     const { ctx } = makeIntegrationCtx();
 
-    await runTool(ctx, 'canvas_reorder_shape', { shapeId: 'd', zIndex: 0 });
+    await runTool(ctx, 'pen_reorder_shape', { shapeId: 'd', zIndex: 0 });
 
     const after = useCanvasStore.getState().document;
     expect(after.shapes.map((s) => s.id)).toEqual(['d', 'a', 'b', 'c']);
@@ -285,7 +285,7 @@ describe('integration: tool → store._onSync → undo/redo', () => {
     ]));
     const { ctx } = makeIntegrationCtx();
 
-    const exportResult = await runTool(ctx, 'canvas_export_json', {});
+    const exportResult = await runTool(ctx, 'pen_export_json', {});
     expect(exportResult.isError).toBeFalsy();
     expect(exportResult.content).toContain('Red');
     expect(exportResult.content).toContain('Green');
@@ -297,7 +297,7 @@ describe('integration: tool → store._onSync → undo/redo', () => {
     expect(parsed.shapes).toHaveLength(2);
 
     // Clear the canvas, then re-import.
-    await runTool(ctx, 'canvas_clear', {});
+    await runTool(ctx, 'pen_clear', {});
     expect(useCanvasStore.getState().document.shapes).toHaveLength(0);
 
     // Re-import via a bulk_add patch (simulating a future "import_json" tool).
@@ -376,7 +376,7 @@ describe('integration: simulated agent turn through _onSync', () => {
 
   it('a single create_shape turn leaves the store + session store consistent', async () => {
     const { sessionId, runId, assistantMessageId } = await simulateTurn(
-      'canvas_create_shape',
+      'pen_create_shape',
       { type: 'rectangle', name: 'Hero', x: 0, y: 0, width: 200, height: 100 },
       {
         op: 'add',
@@ -393,7 +393,7 @@ describe('integration: simulated agent turn through _onSync', () => {
     expect(s.agentBusy).toBe(false);
     expect(s.turns).toHaveLength(2);
     expect(s.turns[1].toolCalls).toHaveLength(1);
-    expect(s.turns[1].toolCalls[0].name).toBe('canvas_create_shape');
+    expect(s.turns[1].toolCalls[0].name).toBe('pen_create_shape');
     expect(s.turns[1].toolCalls[0].success).toBe(true);
 
     // Session store: run completed, tool call recorded, snapshot captured.
@@ -403,7 +403,7 @@ describe('integration: simulated agent turn through _onSync', () => {
 
     const toolCalls = ss.listToolCalls(runId);
     expect(toolCalls).toHaveLength(1);
-    expect(toolCalls[0].name).toBe('canvas_create_shape');
+    expect(toolCalls[0].name).toBe('pen_create_shape');
     expect(toolCalls[0].status).toBe('success');
 
     const messages = ss.listMessages(sessionId);
@@ -454,7 +454,7 @@ describe('integration: simulated agent turn through _onSync', () => {
     resetStore(makeDoc([makeShape('a')]));
     useCanvasStore.setState({ undoStack: [prior], redoStack: [] });
 
-    // Emit an undo patch (as canvas_undo tool would).
+    // Emit an undo patch (as pen_undo tool would).
     useCanvasStore.getState()._onSync({
       type: 'canvas:patch',
       patch: { op: 'undo', summary: 'undo last' },

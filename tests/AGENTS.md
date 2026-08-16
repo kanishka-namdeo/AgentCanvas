@@ -90,7 +90,7 @@ Each prints a "passed" message on success and exits non-zero on failure.
 
 - The shell tests are low-priority — they exist to verify a deployment pipeline that is not the primary deliverable of this repo.
 - The Vitest tests are the canonical app-level test suite. When adding new agent tools, new patch ops, or new Shape fields, ADD CORRESPONDING TESTS to the matching file in `tests/unit/`. The pattern is established — copy a similar test and adapt.
-- For new tools: add a `describe('tools: canvas_<name>', ...)` block to `tests/unit/tools.test.ts`. Cover the happy path + at least one error path (missing shape, wrong type, etc.).
+- For new tools: add a `describe('tools: pen_<name>', ...)` block to `tests/unit/tools.test.ts`. Cover the happy path + at least one error path (missing shape, wrong type, etc.).
 - For new patch ops: add a `describe('patch: <op>', ...)` block to `tests/unit/patch.test.ts`. Cover the mutation + the purity (new shape objects, not mutated originals).
 - For new Shape fields: add normalization tests to `tests/unit/patch.test.ts` (under `patch: normalizeShape`) and rendering tests to `tests/unit/ShapeRenderer.test.tsx`.
 - For new store actions: add tests to `tests/unit/store.test.ts`. Reset state in `beforeEach`.

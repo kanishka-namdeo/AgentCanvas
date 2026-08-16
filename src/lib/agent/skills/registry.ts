@@ -18,9 +18,9 @@
 //   7. vector       — paths/booleans/masks
 //
 // Core tools (always loaded regardless of skill):
-//   canvas_create_shape, canvas_update_shape, canvas_delete_shape,
-//   canvas_list_shapes, canvas_clear, canvas_set_background,
-//   canvas_select_shape, canvas_undo, canvas_redo
+//   pen_create_shape, pen_update_shape, pen_delete_shape,
+//   pen_list_shapes, pen_clear, pen_set_background,
+//   pen_select_shape, pen_undo, pen_redo
 //
 // This reduces per-turn tool count from 56 → ~15-20 (core + one skill),
 // well within the "safe zone" (<25 tools) identified by the research.
@@ -33,15 +33,15 @@ import type { Skill, SkillCategory } from './types';
 // creating, updating, deleting, listing, or selecting shapes.
 
 export const CORE_TOOL_NAMES = [
-  'canvas_create_shape',
-  'canvas_update_shape',
-  'canvas_delete_shape',
-  'canvas_list_shapes',
-  'canvas_clear',
-  'canvas_set_background',
-  'canvas_select_shape',
-  'canvas_undo',
-  'canvas_redo',
+  'pen_create_shape',
+  'pen_update_shape',
+  'pen_delete_shape',
+  'pen_list_shapes',
+  'pen_clear',
+  'pen_set_background',
+  'pen_select_shape',
+  'pen_undo',
+  'pen_redo',
 ] as const;
 
 // ---- The 7 skills ----------------------------------------------------------
@@ -62,24 +62,24 @@ pleasing screen on the canvas from the user's description.
 
 === STRATEGY (follow this order) ==========================================
 
-1. If the request matches a built-in template, call canvas_generate_wireframe FIRST.
+1. If the request matches a built-in template, call pen_generate_wireframe FIRST.
    Templates: mobile_login, mobile_signup, mobile_dashboard, web_landing, web_dashboard,
    web_blog, web_pricing. This produces a well-structured starting point in one call.
 
 2. If the request is a multi-screen flow (onboarding, ecommerce, auth, signup_funnel),
-   call canvas_generate_user_flow instead.
+   call pen_generate_user_flow instead.
 
-3. If the request is a diagram (flowchart, mindmap), call canvas_generate_diagram.
+3. If the request is a diagram (flowchart, mindmap), call pen_generate_diagram.
 
-4. After generating, use canvas_list_shapes to see what was created, then refine with
-   canvas_update_shape (move/resize/recolor individual shapes).
+4. After generating, use pen_list_shapes to see what was created, then refine with
+   pen_update_shape (move/resize/recolor individual shapes).
 
-5. Use canvas_generate_copy to fill text shapes with realistic placeholder copy.
+5. Use pen_generate_copy to fill text shapes with realistic placeholder copy.
 
-6. Use canvas_apply_palette to apply a harmonious color scheme (or canvas_generate_palette
+6. Use pen_apply_palette to apply a harmonious color scheme (or pen_generate_palette
    first to create one from a base color).
 
-7. Use canvas_search_icons to add Lucide icons (check, x, search, settings, user, etc.).
+7. Use pen_search_icons to add Lucide icons (check, x, search, settings, user, etc.).
 
 === ARGUMENT RULES (CRITICAL — read before calling tools) =================
 
@@ -107,18 +107,18 @@ The task is complete when the canvas shows a recognizable, well-structured scree
 matches the user's description. Do NOT spend more than 8-10 tool calls — the generator
 tools are designed to produce most of the layout in one call. Refine selectively.`,
     allowedTools: [
-      'canvas_generate_wireframe',
-      'canvas_generate_user_flow',
-      'canvas_generate_diagram',
-      'canvas_generate_copy',
-      'canvas_create_shape',
-      'canvas_update_shape',
-      'canvas_upload_image',
-      'canvas_search_icons',
-      'canvas_generate_image',
-      'canvas_update_tokens',
-      'canvas_apply_palette',
-      'canvas_generate_palette',
+      'pen_generate_wireframe',
+      'pen_generate_user_flow',
+      'pen_generate_diagram',
+      'pen_generate_copy',
+      'pen_create_shape',
+      'pen_update_shape',
+      'pen_upload_image',
+      'pen_search_icons',
+      'pen_generate_image',
+      'pen_update_tokens',
+      'pen_apply_palette',
+      'pen_generate_palette',
     ],
     keywords: [
       'design', 'build', 'create', 'make', 'wireframe', 'mockup', 'screen',
@@ -144,22 +144,22 @@ new shapes (if the user wants new shapes, that's the wireframe skill).
 
 === BEFORE YOU START ======================================================
 
-Always call canvas_list_shapes FIRST to see what shapes exist and their current positions.
+Always call pen_list_shapes FIRST to see what shapes exist and their current positions.
 You need shape IDs to target them with layout operations.
 
 === TOOL SELECTION GUIDE ==================================================
 
-• "align these shapes" → canvas_align_shapes (kind=left|right|center_h|top|bottom|center_v)
-• "space them evenly" / "distribute" → canvas_align_shapes (kind=distribute_h|distribute_v)
-• "group these" → canvas_group_shapes (wraps in a group shape)
-• "ungroup" → canvas_ungroup_shapes
-• "organize my layers" → canvas_organize_layers (auto-renames + re-zindexes everything)
-• "duplicate this" → canvas_duplicate_shape (offsets 24px)
-• "apply auto layout" → canvas_apply_auto_layout (direction, gap, padding, alignX, alignY)
-• "bring to front" / "send to back" → canvas_bring_to_front / canvas_send_to_back
-• "move forward" / "move backward" → canvas_move_forward / canvas_move_backward
-• "lock this" / "unlock" → canvas_set_locked
-• "hide this" / "show" → canvas_set_visible
+• "align these shapes" → pen_align_shapes (kind=left|right|center_h|top|bottom|center_v)
+• "space them evenly" / "distribute" → pen_align_shapes (kind=distribute_h|distribute_v)
+• "group these" → pen_group_shapes (wraps in a group shape)
+• "ungroup" → pen_ungroup_shapes
+• "organize my layers" → pen_organize_layers (auto-renames + re-zindexes everything)
+• "duplicate this" → pen_duplicate_shape (offsets 24px)
+• "apply auto layout" → pen_apply_auto_layout (direction, gap, padding, alignX, alignY)
+• "bring to front" / "send to back" → pen_bring_to_front / pen_send_to_back
+• "move forward" / "move backward" → pen_move_forward / pen_move_backward
+• "lock this" / "unlock" → pen_set_locked
+• "hide this" / "show" → pen_set_visible
 
 === ARGUMENT RULES ========================================================
 
@@ -172,19 +172,19 @@ You need shape IDs to target them with layout operations.
 The task is complete when the shapes are arranged as the user requested. Typically 2-4
 tool calls: list_shapes → align/group/organize → confirm.`,
     allowedTools: [
-      'canvas_align_shapes',
-      'canvas_group_shapes',
-      'canvas_ungroup_shapes',
-      'canvas_duplicate_shape',
-      'canvas_organize_layers',
-      'canvas_apply_auto_layout',
-      'canvas_bring_to_front',
-      'canvas_send_to_back',
-      'canvas_move_forward',
-      'canvas_move_backward',
-      'canvas_reorder_shape',
-      'canvas_set_locked',
-      'canvas_set_visible',
+      'pen_align_shapes',
+      'pen_group_shapes',
+      'pen_ungroup_shapes',
+      'pen_duplicate_shape',
+      'pen_organize_layers',
+      'pen_apply_auto_layout',
+      'pen_bring_to_front',
+      'pen_send_to_back',
+      'pen_move_forward',
+      'pen_move_backward',
+      'pen_reorder_shape',
+      'pen_set_locked',
+      'pen_set_visible',
     ],
     keywords: [
       'align', 'distribute', 'center', 'space', 'arrange', 'organize',
@@ -209,30 +209,30 @@ existing shapes — colors, gradients, shadows, blurs, corner radii, and design 
 
 === BEFORE YOU START ======================================================
 
-Call canvas_list_shapes to see what exists. For token-based styling, call canvas_list_tokens
+Call pen_list_shapes to see what exists. For token-based styling, call pen_list_tokens
 to see the current design tokens.
 
 === TOOL SELECTION GUIDE ==================================================
 
 COLORS & PALETTES:
-• "recolor everything" / "apply a new palette" → canvas_apply_palette
+• "recolor everything" / "apply a new palette" → pen_apply_palette
   CRITICAL: palette must be a REAL ARRAY of hex strings: ["#f8fafc", "#3b82f6", ...]
   NEVER pass palette as a string. Pass bindToTokens=true to also create color tokens.
-• "generate a palette from this color" → canvas_generate_palette (baseColor, rule)
+• "generate a palette from this color" → pen_generate_palette (baseColor, rule)
   rules: analogous, complementary, triadic, monochromatic, split_complementary
-• "set up design tokens" → canvas_update_tokens (define named colors + text styles)
-• "bind this shape to a token" → canvas_bind_shape_to_token
-• "apply a token to shapes" → canvas_apply_token
+• "set up design tokens" → pen_update_tokens (define named colors + text styles)
+• "bind this shape to a token" → pen_bind_shape_to_token
+• "apply a token to shapes" → pen_apply_token
 
 EFFECTS:
-• "add a gradient" → canvas_set_gradient_fill (type=linear|radial, angle, stops)
-• "add a shadow" → canvas_set_shadow (x, y, blur, color, spread?, inset?)
-• "add blur" → canvas_set_blur (radius in px)
-• "round specific corners" → canvas_set_corner_radius_per_corner (topLeft, topRight, ...)
+• "add a gradient" → pen_set_gradient_fill (type=linear|radial, angle, stops)
+• "add a shadow" → pen_set_shadow (x, y, blur, color, spread?, inset?)
+• "add blur" → pen_set_blur (radius in px)
+• "round specific corners" → pen_set_corner_radius_per_corner (topLeft, topRight, ...)
 
 BULK:
-• "update all shapes matching X" → canvas_bulk_update_by_filter (filter + changes)
-• "find and replace text" → canvas_find_replace_text (find, replace)
+• "update all shapes matching X" → pen_bulk_update_by_filter (filter + changes)
+• "find and replace text" → pen_find_replace_text (find, replace)
 
 === ARGUMENT RULES (CRITICAL) ==============================================
 
@@ -248,19 +248,19 @@ BULK:
 
 The task is complete when the shapes have the requested visual style. Typically 2-5 tool calls.`,
     allowedTools: [
-      'canvas_apply_palette',
-      'canvas_generate_palette',
-      'canvas_update_tokens',
-      'canvas_apply_token',
-      'canvas_bind_shape_to_token',
-      'canvas_unbind_shape',
-      'canvas_list_tokens',
-      'canvas_set_gradient_fill',
-      'canvas_set_shadow',
-      'canvas_set_blur',
-      'canvas_set_corner_radius_per_corner',
-      'canvas_find_replace_text',
-      'canvas_bulk_update_by_filter',
+      'pen_apply_palette',
+      'pen_generate_palette',
+      'pen_update_tokens',
+      'pen_apply_token',
+      'pen_bind_shape_to_token',
+      'pen_unbind_shape',
+      'pen_list_tokens',
+      'pen_set_gradient_fill',
+      'pen_set_shadow',
+      'pen_set_blur',
+      'pen_set_corner_radius_per_corner',
+      'pen_find_replace_text',
+      'pen_bulk_update_by_filter',
     ],
     keywords: [
       'color', 'colour', 'recolor', 'restyle', 'retheme', 'palette',
@@ -276,7 +276,7 @@ The task is complete when the shapes have the requested visual style. Typically 
     name: 'Inspect & Analyze',
     description:
       'Audit, analyze, and inspect the canvas without modifying it. Use when the user asks to ' +
-      '"audit", "check", "analyze", "inspect", "find", "list", "predict heatmap", ' +
+      '"audit", "check", "analyze", "inspect", "find", "list", ' +
       '"check consistency", "find issues", or "what shapes are on the canvas". ' +
       'Read-only — returns information as text, never mutates the canvas.',
     body: `You are in INSPECT & ANALYZE mode. Your job is to gather information about the canvas
@@ -284,21 +284,18 @@ and report it to the user. You do NOT modify the canvas — all tools in this sk
 
 === TOOL SELECTION GUIDE ==================================================
 
-• "what's on the canvas" / "list shapes" → canvas_list_shapes
-• "find all rectangles" / "find shapes with fill X" → canvas_find_shapes
+• "what's on the canvas" / "list shapes" → pen_list_shapes
+• "find all rectangles" / "find shapes with fill X" → pen_find_shapes
   filter by: type, fill, name, parentId
-• "check my design" / "audit consistency" → canvas_audit_design
+• "check my design" / "audit consistency" → pen_audit_design
   Returns findings about: color drift, type scale issues, low-contrast text,
   token usage, alignment near-misses.
-• "where will users look" / "predict attention" → canvas_predict_heatmap
-  Pass a frame shapeId. Overlays a heatmap on that frame.
-• "what tokens do I have" → canvas_list_tokens
+• "what tokens do I have" → pen_list_tokens
 
 === REPORTING =============================================================
 
 After calling the tool(s), summarize the findings clearly for the user:
 • For audits, list each issue with severity (high/medium/low) and a suggested fix.
-• For heatmaps, describe where attention is concentrated and what's being ignored.
 • For find/list, give a concise summary (count + types) rather than dumping every shape.
 
 === COMPLETION CRITERIA ===================================================
@@ -306,15 +303,14 @@ After calling the tool(s), summarize the findings clearly for the user:
 The task is complete when you've reported the information the user asked for. Typically 1-2
 tool calls. Do NOT make changes — if the user wants fixes, they'll ask in a follow-up.`,
     allowedTools: [
-      'canvas_list_shapes',
-      'canvas_find_shapes',
-      'canvas_audit_design',
-      'canvas_predict_heatmap',
-      'canvas_list_tokens',
+      'pen_list_shapes',
+      'pen_find_shapes',
+      'pen_audit_design',
+      'pen_list_tokens',
     ],
     keywords: [
       'audit', 'check', 'analyze', 'inspect', 'find', 'list', 'search',
-      'heatmap', 'attention', 'consistency', 'issues', 'problems',
+      'consistency', 'issues', 'problems',
       'what shapes', 'show me', 'count', 'how many', 'where',
       'contrast', 'accessibility', 'a11y',
       'review my', 'review the', 'check my', 'check the',
@@ -335,10 +331,10 @@ format: code, SVG, PNG, or JSON.
 
 === TOOL SELECTION GUIDE ==================================================
 
-• "export as JSON" → canvas_export_json (full canvas document as JSON)
-• "get the SVG" → canvas_export_svg (optional frameId to export just one frame)
-• "export as PNG" → canvas_export_png (returns an SVG data URL renderable in browsers)
-• "copy as code" / "generate HTML" / "give me React" → canvas_copy_as_code
+• "export as JSON" → pen_export_json (full canvas document as JSON)
+• "get the SVG" → pen_export_svg (optional frameId to export just one frame)
+• "export as PNG" → pen_export_png (returns an SVG data URL renderable in browsers)
+• "copy as code" / "generate HTML" / "give me React" → pen_copy_as_code
   format: "html" | "react" | "tailwind"
 
 === REPORTING =============================================================
@@ -353,10 +349,10 @@ After calling the tool, present the result to the user:
 The task is complete when the exported content has been generated and presented. Typically
 1 tool call. Do NOT modify the canvas — export is read-only.`,
     allowedTools: [
-      'canvas_export_json',
-      'canvas_export_svg',
-      'canvas_export_png',
-      'canvas_copy_as_code',
+      'pen_export_json',
+      'pen_export_svg',
+      'pen_export_png',
+      'pen_copy_as_code',
     ],
     keywords: [
       'export', 'download', 'copy as code', 'svg', 'png', 'json',
@@ -438,17 +434,17 @@ polygons, and boolean combinations — that go beyond the basic rectangle/ellips
 
 === TOOL SELECTION GUIDE ==================================================
 
-• "draw a path" / "make a polygon" → canvas_create_path
+• "draw a path" / "make a polygon" → pen_create_path
   Pass an array of {x, y} points. Set closed=true for a filled polygon,
   closed=false for a stroked polyline.
 
-• "combine these shapes" / "union" → canvas_boolean_op (operation="union")
-• "subtract" → canvas_boolean_op (operation="subtract")
-• "intersect" → canvas_boolean_op (operation="intersect")
-• "exclude" → canvas_boolean_op (operation="exclude")
+• "combine these shapes" / "union" → pen_boolean_op (operation="union")
+• "subtract" → pen_boolean_op (operation="subtract")
+• "intersect" → pen_boolean_op (operation="intersect")
+• "exclude" → pen_boolean_op (operation="exclude")
   Pass shapeId1 + shapeId2. The result replaces shapeId1.
 
-• "mask this with that" / "clip" → canvas_mask_with
+• "mask this with that" / "clip" → pen_mask_with
   Pass shapeId (the content) + maskId (the clipping shape).
   The content shape is clipped to the mask shape's geometry.
 
@@ -463,11 +459,11 @@ polygons, and boolean combinations — that go beyond the basic rectangle/ellips
 
 The task is complete when the custom vector shape has been created. Typically 1-3 tool calls.`,
     allowedTools: [
-      'canvas_create_path',
-      'canvas_boolean_op',
-      'canvas_mask_with',
-      'canvas_create_shape',
-      'canvas_update_shape',
+      'pen_create_path',
+      'pen_boolean_op',
+      'pen_mask_with',
+      'pen_create_shape',
+      'pen_update_shape',
     ],
     keywords: [
       'path', 'polygon', 'polyline', 'vector', 'freeform', 'custom shape',
@@ -530,39 +526,39 @@ export function getToolNamesForCategory(category: SkillCategory): string[] {
 
 export const ALL_TOOL_NAMES = [
   // Core
-  'canvas_create_shape', 'canvas_update_shape', 'canvas_delete_shape',
-  'canvas_list_shapes', 'canvas_clear', 'canvas_set_background', 'canvas_select_shape',
+  'pen_create_shape', 'pen_update_shape', 'pen_delete_shape',
+  'pen_list_shapes', 'pen_clear', 'pen_set_background', 'pen_select_shape',
   // Layout
-  'canvas_duplicate_shape', 'canvas_group_shapes', 'canvas_ungroup_shapes',
-  'canvas_align_shapes', 'canvas_organize_layers', 'canvas_apply_auto_layout',
+  'pen_duplicate_shape', 'pen_group_shapes', 'pen_ungroup_shapes',
+  'pen_align_shapes', 'pen_organize_layers', 'pen_apply_auto_layout',
   // Components
-  'canvas_create_component', 'canvas_instantiate_component',
+  'pen_create_component', 'pen_instantiate_component',
   // Tokens / palette
-  'canvas_update_tokens', 'canvas_apply_palette', 'canvas_generate_palette',
+  'pen_update_tokens', 'pen_apply_palette', 'pen_generate_palette',
   // Generators
-  'canvas_generate_wireframe', 'canvas_generate_user_flow', 'canvas_generate_diagram',
+  'pen_generate_wireframe', 'pen_generate_user_flow', 'pen_generate_diagram',
   // Analysis
-  'canvas_predict_heatmap', 'canvas_generate_copy', 'canvas_audit_design',
+  'pen_generate_copy', 'pen_audit_design',
   // Token binding
-  'canvas_bind_shape_to_token', 'canvas_unbind_shape', 'canvas_list_tokens', 'canvas_apply_token',
+  'pen_bind_shape_to_token', 'pen_unbind_shape', 'pen_list_tokens', 'pen_apply_token',
   // Lock & visibility
-  'canvas_set_locked', 'canvas_set_visible',
+  'pen_set_locked', 'pen_set_visible',
   // Z-order
-  'canvas_bring_to_front', 'canvas_send_to_back', 'canvas_move_forward', 'canvas_move_backward',
-  'canvas_reorder_shape',
+  'pen_bring_to_front', 'pen_send_to_back', 'pen_move_forward', 'pen_move_backward',
+  'pen_reorder_shape',
   // Undo / redo
-  'canvas_undo', 'canvas_redo',
+  'pen_undo', 'pen_redo',
   // Export
-  'canvas_export_json', 'canvas_export_svg', 'canvas_export_png', 'canvas_copy_as_code',
+  'pen_export_json', 'pen_export_svg', 'pen_export_png', 'pen_copy_as_code',
   // Find & filter
-  'canvas_find_shapes', 'canvas_bulk_update_by_filter', 'canvas_find_replace_text',
+  'pen_find_shapes', 'pen_bulk_update_by_filter', 'pen_find_replace_text',
   // Vector
-  'canvas_create_path', 'canvas_boolean_op', 'canvas_mask_with',
+  'pen_create_path', 'pen_boolean_op', 'pen_mask_with',
   // Effects
-  'canvas_set_gradient_fill', 'canvas_set_shadow', 'canvas_set_blur',
-  'canvas_set_corner_radius_per_corner',
+  'pen_set_gradient_fill', 'pen_set_shadow', 'pen_set_blur',
+  'pen_set_corner_radius_per_corner',
   // Images
-  'canvas_upload_image', 'canvas_search_icons', 'canvas_generate_image',
+  'pen_upload_image', 'pen_search_icons', 'pen_generate_image',
   // Web research
   'web_search', 'web_fetch',
 ] as const;

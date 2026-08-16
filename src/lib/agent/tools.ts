@@ -9,54 +9,54 @@
 // === TOOL INVENTORY (research-driven) =====================================
 //
 // Core canvas ops (existing):
-//   canvas_create_shape, canvas_update_shape, canvas_delete_shape,
-//   canvas_list_shapes, canvas_clear, canvas_set_background, canvas_select_shape
+//   pen_create_shape, pen_update_shape, pen_delete_shape,
+//   pen_list_shapes, pen_clear, pen_set_background, pen_select_shape
 //
 // Extended scenarios (added based on /research/*.json findings):
 //
 //   1. Auto Layout (Figma Auto Layout — see figma_features.json)
-//      - canvas_apply_auto_layout
+//      - pen_apply_auto_layout
 //
 //   2. Components & Variants (Figma component system)
-//      - canvas_create_component
-//      - canvas_instantiate_component
+//      - pen_create_component
+//      - pen_instantiate_component
 //
 //   3. Layer organization (Figma layers panel + AI plugins)
-//      - canvas_duplicate_shape
-//      - canvas_group_shapes
-//      - canvas_ungroup_shapes
-//      - canvas_align_shapes
-//      - canvas_organize_layers
+//      - pen_duplicate_shape
+//      - pen_group_shapes
+//      - pen_ungroup_shapes
+//      - pen_align_shapes
+//      - pen_organize_layers
 //
 //   4. Design tokens / variables (Figma Variables + AI design systems)
-//      - canvas_update_tokens
-//      - canvas_apply_palette
-//      - canvas_generate_palette
+//      - pen_update_tokens
+//      - pen_apply_palette
+//      - pen_generate_palette
 //
 //   5. Wireframe generation (Uizard / Galileo AI / Figma Make)
-//      - canvas_generate_wireframe
+//      - pen_generate_wireframe
 //
 //   6. Multi-screen user flows (UX Pilot, Galileo AI)
-//      - canvas_generate_user_flow
+//      - pen_generate_user_flow
 //
 //   7. Diagram / flowchart generation (Figma AI diagrams)
-//      - canvas_generate_diagram
+//      - pen_generate_diagram
 //
 //   8. Attention heatmap prediction (Uizard predictive heat map)
-//      - canvas_predict_heatmap
+//      - pen_predict_heatmap
 //
 //   9. Copy / text generation (Figma AI placeholder content)
-//      - canvas_generate_copy
+//      - pen_generate_copy
 //
 //  10. Design auditing (AI design-system audit — ai_design_scenarios.json)
-//      - canvas_audit_design
+//      - pen_audit_design
 //
 // The agent backend (see `src/lib/agent/runner.ts`) registers these tools
 // with the LLM and invokes their `execute` when the LLM calls them.
 
 import { Type, type Static } from '@sinclair/typebox';
 import { defineTool } from '@earendil-works/pi-coding-agent';
-import type { CanvasPatch, HeatmapOverlay, Shape, ShapeType, AutoLayout, DesignTokens, ColorToken, TextStyleToken } from '../canvas/types.ts';
+import type { CanvasPatch, Shape, ShapeType, AutoLayout, DesignTokens, ColorToken, TextStyleToken } from '../canvas/types.ts';
 
 // ---- Tool execution context -------------------------------------------------
 //
@@ -286,14 +286,14 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const createShape = defineTool({
-    name: 'canvas_create_shape',
+    name: 'pen_create_shape',
     label: 'Create Shape',
     description:
       'Create a new shape on the canvas. Use this to add rectangles, ellipses, text, lines, frames (artboards), or groups. ' +
       'Returns the new shape id. The shape appears immediately on every viewer\'s screen.',
     promptSnippet: 'Create canvas shapes (rectangle, ellipse, text, line, frame).',
     promptGuidelines: [
-      'When the user asks to "add" / "draw" / "create" / "put" a shape, use canvas_create_shape.',
+      'When the user asks to "add" / "draw" / "create" / "put" a shape, use pen_create_shape.',
       'Always specify `type`, `x`, `y`, `width`, `height`. For text shapes include `text`, `fontSize`, `textColor`.',
       'Coordinates are canvas-space pixels; the visible area at zoom 1 is roughly 0..1200 x 0..800.',
     ],
@@ -323,14 +323,14 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const updateShape = defineTool({
-    name: 'canvas_update_shape',
+    name: 'pen_update_shape',
     label: 'Update Shape',
     description:
       'Update one or more properties of an existing shape. Only the fields you provide are changed; others stay the same. ' +
       'Use this to move, resize, recolor, or edit text. Returns the patched shape.',
     promptSnippet: 'Update properties of an existing shape (position, size, fill, text, …).',
     promptGuidelines: [
-      'Call canvas_list_shapes first if you don\'t know the id.',
+      'Call pen_list_shapes first if you don\'t know the id.',
       'You may pass any subset of shape properties — only the ones you include are changed.',
       'To change text content, set `text`. To change color, set `fill` (hex like #ff0000).',
     ],
@@ -385,12 +385,12 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const deleteShape = defineTool({
-    name: 'canvas_delete_shape',
+    name: 'pen_delete_shape',
     label: 'Delete Shape',
     description: 'Delete one or more shapes from the canvas by id. This is permanent for the current session.',
     promptSnippet: 'Delete shapes by id.',
     promptGuidelines: [
-      'Use canvas_list_shapes to find ids before deleting.',
+      'Use pen_list_shapes to find ids before deleting.',
       'You can delete multiple shapes in one call by passing multiple ids.',
     ],
     parameters: Type.Object({
@@ -429,7 +429,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const listShapes = defineTool({
-    name: 'canvas_list_shapes',
+    name: 'pen_list_shapes',
     label: 'List Shapes',
     description:
       'List every shape currently on the canvas. Returns each shape\'s id, name, type, position, size, and key style. ' +
@@ -464,7 +464,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const clearCanvas = defineTool({
-    name: 'canvas_clear',
+    name: 'pen_clear',
     label: 'Clear Canvas',
     description: 'Remove every shape from the canvas. Use sparingly — this is destructive and cannot be undone in this demo.',
     promptSnippet: 'Wipe the canvas clean.',
@@ -483,7 +483,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const setBackground = defineTool({
-    name: 'canvas_set_background',
+    name: 'pen_set_background',
     label: 'Set Background',
     description: 'Set the canvas background color.',
     promptSnippet: 'Set canvas background color.',
@@ -505,7 +505,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const selectShape = defineTool({
-    name: 'canvas_select_shape',
+    name: 'pen_select_shape',
     label: 'Select Shape',
     description:
       'Visually highlight one or more shapes on the canvas (a brief flash). Use this to point at a shape you just created or are describing.',
@@ -532,7 +532,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const duplicateShape = defineTool({
-    name: 'canvas_duplicate_shape',
+    name: 'pen_duplicate_shape',
     label: 'Duplicate Shapes',
     description:
       'Duplicate one or more shapes. Each copy is offset 24px down-right from its original. ' +
@@ -540,7 +540,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     promptSnippet: 'Duplicate shapes (with new ids).',
     promptGuidelines: [
       'Use this when the user asks to "copy" / "duplicate" / "repeat" a shape.',
-      'The duplicate is offset 24px — use canvas_align_shapes or canvas_update_shape to reposition.',
+      'The duplicate is offset 24px — use pen_align_shapes or pen_update_shape to reposition.',
     ],
     parameters: Type.Object({
       shapeIds: Type.Array(Type.String(), { description: 'Ids of shapes to duplicate' }),
@@ -569,7 +569,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const groupShapes = defineTool({
-    name: 'canvas_group_shapes',
+    name: 'pen_group_shapes',
     label: 'Group Shapes',
     description:
       'Wrap one or more shapes in a group. The group becomes a new container shape with its own bounding box; ' +
@@ -594,7 +594,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const ungroupShapes = defineTool({
-    name: 'canvas_ungroup_shapes',
+    name: 'pen_ungroup_shapes',
     label: 'Ungroup Shapes',
     description: 'Dissolve one or more groups. Children keep their position; their parentId is cleared.',
     promptSnippet: 'Dissolve groups.',
@@ -616,7 +616,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const alignShapes = defineTool({
-    name: 'canvas_align_shapes',
+    name: 'pen_align_shapes',
     label: 'Align / Distribute Shapes',
     description:
       'Align or distribute multiple shapes. Alignment snaps to min/max/average; distribution spaces them evenly. ' +
@@ -654,7 +654,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const organizeLayers = defineTool({
-    name: 'canvas_organize_layers',
+    name: 'pen_organize_layers',
     label: 'Organize Layers',
     description:
       'Automatically rename and re-zIndex all shapes based on type and reading order. ' +
@@ -694,7 +694,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const applyAutoLayout = defineTool({
-    name: 'canvas_apply_auto_layout',
+    name: 'pen_apply_auto_layout',
     label: 'Apply Auto Layout',
     description:
       'Apply an Auto Layout configuration to a frame or group. The container\'s children will be arranged ' +
@@ -702,7 +702,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       'Only meaningful for `frame` or `group` shapes.',
     promptSnippet: 'Configure Auto Layout on a frame/group (direction, gap, padding, alignment).',
     promptGuidelines: [
-      'The frame must already exist — create it with canvas_create_shape first.',
+      'The frame must already exist — create it with pen_create_shape first.',
       'Children (shapes whose parentId points at this frame) will be repositioned.',
     ],
     parameters: Type.Object({
@@ -787,11 +787,11 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const createComponent = defineTool({
-    name: 'canvas_create_component',
+    name: 'pen_create_component',
     label: 'Create Component',
     description:
       'Mark an existing shape as a reusable component (sets componentId = its own id, so it can be instantiated). ' +
-      'The shape becomes the "main instance" — future calls to canvas_instantiate_component create linked copies.',
+      'The shape becomes the "main instance" — future calls to pen_instantiate_component create linked copies.',
     promptSnippet: 'Turn a shape into a reusable component.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'ID of the shape to mark as a component' }),
@@ -820,7 +820,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const instantiateComponent = defineTool({
-    name: 'canvas_instantiate_component',
+    name: 'pen_instantiate_component',
     label: 'Instantiate Component',
     description:
       'Create a linked instance of an existing component. The instance copies the component\'s shape but ' +
@@ -877,7 +877,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const updateTokens = defineTool({
-    name: 'canvas_update_tokens',
+    name: 'pen_update_tokens',
     label: 'Update Design Tokens',
     description:
       'Update the document\'s design tokens — named colors and text styles that shapes can bind to. ' +
@@ -886,7 +886,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     promptSnippet: 'Update design tokens (color palette, text styles).',
     promptGuidelines: [
       'Token keys use dotted paths: `bg.primary`, `accent`, `text.heading`, etc.',
-      'After updating tokens, use canvas_apply_palette to bind shapes to them.',
+      'After updating tokens, use pen_apply_palette to bind shapes to them.',
     ],
     parameters: Type.Object({
       colors: Type.Optional(Type.Array(
@@ -937,7 +937,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const applyPalette = defineTool({
-    name: 'canvas_apply_palette',
+    name: 'pen_apply_palette',
     label: 'Apply Palette to Shapes',
     description:
       'Recolor a set of shapes using a new palette. Each shape\'s fill is mapped to the closest color in the palette ' +
@@ -1009,7 +1009,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const generatePalette = defineTool({
-    name: 'canvas_generate_palette',
+    name: 'pen_generate_palette',
     label: 'Generate Harmonious Palette',
     description:
       'Generate a harmonious 5-color palette from a base color using color-theory rules. ' +
@@ -1074,7 +1074,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         content: [
           {
             type: 'text',
-            text: `Generated ${params.rule} palette: ${palette.join(', ')}.\nSaved as palette.1..palette.5 tokens. Use canvas_apply_palette to apply to shapes.`,
+            text: `Generated ${params.rule} palette: ${palette.join(', ')}.\nSaved as palette.1..palette.5 tokens. Use pen_apply_palette to apply to shapes.`,
           },
         ],
         details: { patch, palette, rule: params.rule },
@@ -1087,7 +1087,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const generateWireframe = defineTool({
-    name: 'canvas_generate_wireframe',
+    name: 'pen_generate_wireframe',
     label: 'Generate Wireframe',
     description:
       'Generate a wireframe layout from a template. Places a frame plus placeholder shapes (low-fidelity, grayscale). ' +
@@ -1096,7 +1096,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     promptSnippet: 'Generate a wireframe screen from a template (mobile/web).',
     promptGuidelines: [
       'Use this for "make a login screen", "design a dashboard", "wireframe a landing page", etc.',
-      'After generating, you can recolor with canvas_apply_palette and refine with canvas_update_shape.',
+      'After generating, you can recolor with pen_apply_palette and refine with pen_update_shape.',
     ],
     parameters: Type.Object({
       template: Type.Union(
@@ -1141,7 +1141,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const generateUserFlow = defineTool({
-    name: 'canvas_generate_user_flow',
+    name: 'pen_generate_user_flow',
     label: 'Generate Multi-Screen User Flow',
     description:
       'Generate a connected series of screens representing a user flow. Places 3-5 frames side by side with arrows between them. ' +
@@ -1189,7 +1189,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const generateDiagram = defineTool({
-    name: 'canvas_generate_diagram',
+    name: 'pen_generate_diagram',
     label: 'Generate Diagram',
     description:
       'Generate a flowchart or mind-map diagram from a list of nodes. Nodes can be linked with arrows. ' +
@@ -1228,102 +1228,18 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   // =====================================================================
-  // ATTENTION HEATMAP PREDICTION (research: Uizard predictive heat map)
+  // ATTENTION HEATMAP — REMOVED for .pen format purity.
+  // pen.dev has no analysis-overlay concept; predictive heatmaps are not
+  // part of the .pen ontology. The pen_predict_heatmap tool and the
+  // `heatmap` patch op / `HeatmapOverlay` type have been dropped.
   // =====================================================================
-
-  const predictHeatmap = defineTool({
-    name: 'canvas_predict_heatmap',
-    label: 'Predict Attention Heatmap',
-    description:
-      'Generate a predicted attention heatmap overlay for a frame. Uses a heuristic model: high intensity near ' +
-      'text shapes (especially large headings), top-left of the frame, and contrasting colors. ' +
-      'The heatmap renders as a semi-transparent overlay on the canvas. Pass `clear: true` to remove an existing overlay.',
-    promptSnippet: 'Show a predicted attention heatmap over a frame.',
-    parameters: Type.Object({
-      frameId: Type.String({ description: 'ID of the frame to analyze' }),
-      clear: Type.Optional(Type.Boolean({ description: 'If true, remove the existing heatmap overlay' })),
-    }),
-    async execute(toolCallId, params) {
-      if (params.clear) {
-        const patch: CanvasPatch = {
-          op: 'heatmap',
-          heatmap: null,
-          summary: 'Cleared heatmap overlay',
-        };
-        ctx.applyPatch(patch);
-        return {
-          content: [{ type: 'text', text: 'Heatmap overlay cleared.' }],
-          details: { patch },
-        };
-      }
-      const frame = ctx.getShapes().find((s) => s.id === params.frameId);
-      if (!frame) {
-        return {
-          content: [{ type: 'text', text: `Error: no frame with id ${params.frameId}` }],
-          details: { error: 'not_found' },
-          isError: true as any,
-        };
-      }
-      // Find shapes inside this frame.
-      const children = ctx.getShapes().filter((s) =>
-        s.id !== frame.id &&
-        s.x >= frame.x && s.x + s.width <= frame.x + frame.width &&
-        s.y >= frame.y && s.y + s.height <= frame.y + frame.height,
-      );
-      // Build heatmap points: one per child, intensity heuristic.
-      const points = children.map((c) => {
-        let intensity = 0.3;
-        if (c.type === 'text') {
-          intensity = Math.min(1, 0.5 + c.fontSize / 80);
-        } else if (c.type === 'ellipse') {
-          intensity = 0.6; // avatars / CTAs draw the eye
-        } else if (c.fill && isHighContrast(c.fill, frame.fill)) {
-          intensity = 0.7;
-        }
-        // Top-left bias.
-        const relX = (c.x - frame.x) / frame.width;
-        const relY = (c.y - frame.y) / frame.height;
-        const bias = Math.max(0, 1 - (relX + relY) * 0.8);
-        intensity = Math.min(1, intensity + bias * 0.2);
-        return {
-          x: c.x + c.width / 2,
-          y: c.y + c.height / 2,
-          intensity,
-        };
-      });
-      const overlay: HeatmapOverlay = {
-        frameId: params.frameId,
-        x: frame.x,
-        y: frame.y,
-        width: frame.width,
-        height: frame.height,
-        points,
-        createdAt: Date.now(),
-      };
-      const patch: CanvasPatch = {
-        op: 'heatmap',
-        heatmap: overlay,
-        summary: `Predicted heatmap for "${frame.name}" (${points.length} fixation points)`,
-      };
-      ctx.applyPatch(patch);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Generated attention heatmap for frame "${frame.name}". ${points.length} fixation points predicted. Higher-intensity areas are where users are most likely to look first.`,
-          },
-        ],
-        details: { patch, pointCount: points.length },
-      };
-    },
-  });
 
   // =====================================================================
   // COPY / TEXT GENERATION (research: Figma AI placeholder content)
   // =====================================================================
 
   const generateCopy = defineTool({
-    name: 'canvas_generate_copy',
+    name: 'pen_generate_copy',
     label: 'Generate Placeholder Copy',
     description:
       'Generate realistic placeholder copy for a text shape. Variants: heading (short punchy title), ' +
@@ -1375,7 +1291,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const auditDesign = defineTool({
-    name: 'canvas_audit_design',
+    name: 'pen_audit_design',
     label: 'Audit Design Consistency',
     description:
       'Audit the current canvas for design-consistency issues. Returns a textual report covering: ' +
@@ -1429,7 +1345,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       // 4. Tokens usage
       const boundCount = shapes.filter((s) => s.tokenBinding && (s.tokenBinding.fillToken || s.tokenBinding.textToken)).length;
       if (tokens.colors.length === 0) {
-        findings.push(`• No design tokens defined — consider using canvas_generate_palette + canvas_apply_palette (bindToTokens=true).`);
+        findings.push(`• No design tokens defined — consider using pen_generate_palette + pen_apply_palette (bindToTokens=true).`);
       } else {
         findings.push(`• Design tokens: ${tokens.colors.length} color tokens defined; ${boundCount}/${shapes.length} shapes bound.`);
       }
@@ -1464,15 +1380,15 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const bindShapeToToken = defineTool({
-    name: 'canvas_bind_shape_to_token',
+    name: 'pen_bind_shape_to_token',
     label: 'Bind Shape to Token',
     description:
       'Bind a shape property (fill, stroke, or textColor) to a named design token. ' +
       'When the token value changes, the bound property auto-updates. ' +
-      'Use this after canvas_update_tokens or canvas_apply_palette to create a live link.',
+      'Use this after pen_update_tokens or pen_apply_palette to create a live link.',
     promptSnippet: 'Bind a shape property to a design token (live link).',
     promptGuidelines: [
-      'The tokenKey must match a key in the document\'s color tokens. Call canvas_list_tokens to see available keys.',
+      'The tokenKey must match a key in the document\'s color tokens. Call pen_list_tokens to see available keys.',
       'Binding fill: the shape\'s fill is set to the token value immediately and re-computed on token changes.',
     ],
     parameters: Type.Object({
@@ -1507,7 +1423,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const unbindShape = defineTool({
-    name: 'canvas_unbind_shape',
+    name: 'pen_unbind_shape',
     label: 'Unbind Shape from Token',
     description: 'Remove a token binding from a shape property. The shape keeps its current color value but will no longer auto-update when the token changes.',
     promptSnippet: 'Remove a token binding from a shape.',
@@ -1534,9 +1450,9 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const listTokens = defineTool({
-    name: 'canvas_list_tokens',
+    name: 'pen_list_tokens',
     label: 'List Design Tokens',
-    description: 'List all design tokens (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before canvas_bind_shape_to_token to see available token keys.',
+    description: 'List all design tokens (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before pen_bind_shape_to_token to see available token keys.',
     promptSnippet: 'List all design tokens (colors + text styles).',
     parameters: Type.Object({}),
     async execute(toolCallId) {
@@ -1549,10 +1465,10 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const applyToken = defineTool({
-    name: 'canvas_apply_token',
+    name: 'pen_apply_token',
     label: 'Apply Token to Shapes',
     description: 'Apply a design token\'s value to one or more shapes. Optionally also bind the shapes to the token (live link). ' +
-      'This is the batch version of canvas_bind_shape_to_token.',
+      'This is the batch version of pen_bind_shape_to_token.',
     promptSnippet: 'Apply a token value to multiple shapes at once.',
     parameters: Type.Object({
       shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to apply the token to' }),
@@ -1602,7 +1518,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const setLocked = defineTool({
-    name: 'canvas_set_locked',
+    name: 'pen_set_locked',
     label: 'Lock / Unlock Shapes',
     description: 'Lock or unlock one or more shapes. Locked shapes cannot be moved or resized by direct manipulation (but can still be updated via tools).',
     promptSnippet: 'Lock or unlock shapes.',
@@ -1619,7 +1535,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const setVisible = defineTool({
-    name: 'canvas_set_visible',
+    name: 'pen_set_visible',
     label: 'Show / Hide Shapes',
     description: 'Show or hide one or more shapes. Hidden shapes are not rendered but remain in the document. Useful for creating alternative states or simplifying a complex canvas.',
     promptSnippet: 'Show or hide shapes.',
@@ -1642,7 +1558,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const bringToFront = defineTool({
-    name: 'canvas_bring_to_front',
+    name: 'pen_bring_to_front',
     label: 'Bring to Front',
     description: 'Move one or more shapes to the top of the z-order (above all other shapes).',
     promptSnippet: 'Bring shapes to the front of the z-order.',
@@ -1657,7 +1573,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const sendToBack = defineTool({
-    name: 'canvas_send_to_back',
+    name: 'pen_send_to_back',
     label: 'Send to Back',
     description: 'Move one or more shapes to the bottom of the z-order (below all other shapes).',
     promptSnippet: 'Send shapes to the back of the z-order.',
@@ -1672,7 +1588,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const moveForward = defineTool({
-    name: 'canvas_move_forward',
+    name: 'pen_move_forward',
     label: 'Move Forward',
     description: 'Move a shape one level forward (above its current neighbor).',
     promptSnippet: 'Move a shape one level up in the z-order.',
@@ -1687,7 +1603,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const moveBackward = defineTool({
-    name: 'canvas_move_backward',
+    name: 'pen_move_backward',
     label: 'Move Backward',
     description: 'Move a shape one level backward (below its current neighbor).',
     promptSnippet: 'Move a shape one level down in the z-order.',
@@ -1702,7 +1618,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const reorderShape = defineTool({
-    name: 'canvas_reorder_shape',
+    name: 'pen_reorder_shape',
     label: 'Reorder Shape',
     description: 'Move a shape to a specific z-index position. Other shapes shift to make room.',
     promptSnippet: 'Move a shape to a specific z-index.',
@@ -1725,7 +1641,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const undoCanvas = defineTool({
-    name: 'canvas_undo',
+    name: 'pen_undo',
     label: 'Undo',
     description: 'Undo the last canvas change. Can be called multiple times to undo further back. ' +
       'NOTE: this only affects the local (client) canvas state — it does not reverse agent tool calls in the chat history.',
@@ -1739,7 +1655,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const redoCanvas = defineTool({
-    name: 'canvas_redo',
+    name: 'pen_redo',
     label: 'Redo',
     description: 'Redo a previously undone canvas change. Can be called multiple times.',
     promptSnippet: 'Redo a previously undone change.',
@@ -1759,7 +1675,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const exportJson = defineTool({
-    name: 'canvas_export_json',
+    name: 'pen_export_json',
     label: 'Export as JSON',
     description: 'Export the full canvas document as a JSON string. Includes all shapes, tokens, background, and viewport. Useful for backup or migration.',
     promptSnippet: 'Export the canvas as JSON.',
@@ -1772,7 +1688,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const exportSvg = defineTool({
-    name: 'canvas_export_svg',
+    name: 'pen_export_svg',
     label: 'Export as SVG',
     description: 'Export the canvas as an SVG string. Each shape is rendered as its SVG element. Useful for embedding in documents or converting to PNG.',
     promptSnippet: 'Export the canvas as SVG.',
@@ -1837,7 +1753,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const exportPng = defineTool({
-    name: 'canvas_export_png',
+    name: 'pen_export_png',
     label: 'Export as PNG (data URL)',
     description: 'Export the canvas as an SVG data URL that can be used in <img> tags or downloaded. ' +
       'True PNG rasterization requires a browser; this tool returns an SVG data URL which any browser can render and convert to PNG.',
@@ -1891,7 +1807,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const copyAsCode = defineTool({
-    name: 'canvas_copy_as_code',
+    name: 'pen_copy_as_code',
     label: 'Copy as Code',
     description: 'Generate HTML + Tailwind CSS code from the canvas shapes. Useful for handoff to developers. ' +
       'Each shape becomes a positioned div; text shapes become <span> elements. ' +
@@ -1947,11 +1863,11 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
   // PHASE 2c: FIND & FILTER (3 tools)
   // Lets the agent query and bulk-transform shapes without first calling
-  // canvas_list_shapes and filtering client-side.
+  // pen_list_shapes and filtering client-side.
   // =====================================================================
 
   const findShapes = defineTool({
-    name: 'canvas_find_shapes',
+    name: 'pen_find_shapes',
     label: 'Find Shapes',
     description: 'Find shapes matching a filter. Returns shape IDs and a summary. Read-only. ' +
       'Use this to bulk-select shapes by type, color, name, or parent. ' +
@@ -1976,9 +1892,9 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const bulkUpdateByFilter = defineTool({
-    name: 'canvas_bulk_update_by_filter',
+    name: 'pen_bulk_update_by_filter',
     label: 'Bulk Update by Filter',
-    description: 'Update all shapes matching a filter. Combines canvas_find_shapes + canvas_update_shape into one call. ' +
+    description: 'Update all shapes matching a filter. Combines pen_find_shapes + pen_update_shape into one call. ' +
       'Example: "make all ellipses red" → filter type=ellipse, changes fill=#ff0000.',
     promptSnippet: 'Update all shapes matching a filter in one call.',
     parameters: Type.Object({
@@ -2006,7 +1922,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const findReplaceText = defineTool({
-    name: 'canvas_find_replace_text',
+    name: 'pen_find_replace_text',
     label: 'Find & Replace Text',
     description: 'Find and replace text across all text shapes on the canvas. Supports plain string matching. ' +
       'Example: find "Lorem" replace "Welcome" — updates every text shape containing "Lorem".',
@@ -2035,7 +1951,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const createPath = defineTool({
-    name: 'canvas_create_path',
+    name: 'pen_create_path',
     label: 'Create Path / Polygon',
     description: 'Create a freeform path shape from a list of points. ' +
       'If closed=true, the path is filled (polygon); if closed=false, it\'s a stroked polyline. ' +
@@ -2086,7 +2002,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const booleanOp = defineTool({
-    name: 'canvas_boolean_op',
+    name: 'pen_boolean_op',
     label: 'Boolean Operation',
     description: 'Combine two shapes using a boolean operation. ' +
       'NOTE: this is a simplified implementation — true vector boolean math requires a polygon-clipping library. ' +
@@ -2129,10 +2045,10 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const maskWith = defineTool({
-    name: 'canvas_mask_with',
+    name: 'pen_mask_with',
     label: 'Mask with Shape',
     description: 'Clip a shape using another shape as a mask. The mask shape\'s geometry defines the visible region of the target. ' +
-      'To remove a mask, call this with maskId=null (or use canvas_update_shape to clear maskId).',
+      'To remove a mask, call this with maskId=null (or use pen_update_shape to clear maskId).',
     promptSnippet: 'Mask one shape with another.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape to be masked (clipped)' }),
@@ -2162,7 +2078,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const setGradientFill = defineTool({
-    name: 'canvas_set_gradient_fill',
+    name: 'pen_set_gradient_fill',
     label: 'Set Gradient Fill',
     description: 'Set a linear or radial gradient fill on a shape. Overrides the solid `fill` color. ' +
       'Provide 2+ stops (offset 0..1, color hex). For linear, specify angle 0..360 (0=→, 90=↓, 180=←, 270=↑).',
@@ -2196,7 +2112,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const setShadow = defineTool({
-    name: 'canvas_set_shadow',
+    name: 'pen_set_shadow',
     label: 'Set Drop Shadow',
     description: 'Apply a drop shadow to a shape. Set blur=0 and color=transparent to remove. ' +
       'The shadow is rendered via an SVG filter on the client.',
@@ -2230,7 +2146,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const setBlur = defineTool({
-    name: 'canvas_set_blur',
+    name: 'pen_set_blur',
     label: 'Set Blur',
     description: 'Apply a Gaussian blur to a shape. Set radius to 0 to remove. Rendered via an SVG filter.',
     promptSnippet: 'Apply a Gaussian blur to a shape.',
@@ -2251,7 +2167,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const setCornerRadiusPerCorner = defineTool({
-    name: 'canvas_set_corner_radius_per_corner',
+    name: 'pen_set_corner_radius_per_corner',
     label: 'Set Per-Corner Radii',
     description: 'Set independent border radii for each corner of a rectangle or frame. ' +
       'Overrides the uniform `radius` property.',
@@ -2289,7 +2205,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
   const uploadImage = defineTool({
-    name: 'canvas_upload_image',
+    name: 'pen_upload_image',
     label: 'Place Image',
     description: 'Place an image on the canvas from a data URL or remote URL. ' +
       'Use this for logos, photos, or any raster image. The image is rendered via an SVG <image> element. ' +
@@ -2331,7 +2247,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const searchIcons = defineTool({
-    name: 'canvas_search_icons',
+    name: 'pen_search_icons',
     label: 'Place Icon',
     description: 'Place a Lucide icon on the canvas as a path shape. ' +
       'Renders the icon as a stroked polyline path. ' +
@@ -2386,7 +2302,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   const generateImage = defineTool({
-    name: 'canvas_generate_image',
+    name: 'pen_generate_image',
     label: 'Generate Image (placeholder)',
     description: 'Generate an image from a text prompt and place it on the canvas. ' +
       'NOTE: in this sandbox, this tool places a placeholder rectangle with the prompt text — ' +
@@ -2446,7 +2362,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       };
       const textPatch: CanvasPatch = { op: 'add', shapeId: textId, shape: textShape, summary: 'Image prompt label' };
       ctx.applyPatch(textPatch);
-      return { content: [{ type: 'text', text: `Placed an image placeholder at (${params.x}, ${params.y}), size ${w}×${h}. Prompt: "${params.prompt}". Replace it with canvas_upload_image once you have the generated image.` }], details: { shapeId: id, prompt: params.prompt, patch } };
+      return { content: [{ type: 'text', text: `Placed an image placeholder at (${params.x}, ${params.y}), size ${w}×${h}. Prompt: "${params.prompt}". Replace it with pen_upload_image once you have the generated image.` }], details: { shapeId: id, prompt: params.prompt, patch } };
     },
   });
 
@@ -2589,8 +2505,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     generateWireframe,
     generateUserFlow,
     generateDiagram,
-    // Analysis
-    predictHeatmap,
+    // Analysis (heatmap tool removed for .pen purity)
     generateCopy,
     auditDesign,
     // Phase 1a: Token binding
@@ -2729,12 +2644,12 @@ export async function executeTool(
 /// Repair arguments where the LLM passed an array as a stringified JSON string.
 ///
 /// Known-affected parameters (from the assess-skills test):
-///   - palette (canvas_apply_palette, canvas_generate_palette)
-///   - shapeIds (canvas_align_shapes, canvas_group_shapes, etc.)
-///   - nodes (canvas_generate_diagram)
-///   - updates (canvas_bulk_update_by_filter)
-///   - stops (canvas_set_gradient_fill)
-///   - points (canvas_create_path)
+///   - palette (pen_apply_palette, pen_generate_palette)
+///   - shapeIds (pen_align_shapes, pen_group_shapes, etc.)
+///   - nodes (pen_generate_diagram)
+///   - updates (pen_bulk_update_by_filter)
+///   - stops (pen_set_gradient_fill)
+///   - points (pen_create_path)
 ///
 /// For each of these, if the value is a string that looks like a JSON array,
 /// parse it into a real array.
@@ -3105,8 +3020,4 @@ function contrastRatio(fg: string, bg: string): number {
   const lighter = Math.max(l1, l2);
   const darker = Math.min(l1, l2);
   return (lighter + 0.05) / (darker + 0.05);
-}
-
-function isHighContrast(a: string, b: string): boolean {
-  return contrastRatio(a, b) > 4.5;
 }

@@ -32,7 +32,40 @@ import ZAI from 'z-ai-web-dev-sdk';
 import { createCanvasTools, executeTool, toolsToOpenAISpec, type CanvasToolContext } from './tools.ts';
 import { createPenTools, PEN_TOOL_NAMES } from './pen-tools';
 import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types.ts';
+import { createEmptyCanvasDocument } from '../canvas/types.ts';
 import { applyPatchToCanvas } from '../canvas/patch.ts';
+import { resolvePenTree } from '../pen/resolve';
+
+/// Normalize an incoming canvas into a valid CanvasDocument with a .pen tree
+/// and populated derived caches. Handles:
+///   - legacy flat-shape docs (no `children`): builds a tree from shapes[]
+///   - missing derived caches (shapes/tokens): recomputes via resolvePenTree
+///   - missing runtime fields (id/name/viewport): defaults
+function normalizeCanvas(input: Partial<CanvasDocument> | null | undefined): CanvasDocument {
+  if (!input || typeof input !== 'object') {
+    return createEmptyCanvasDocument('default');
+  }
+  const doc = input as CanvasDocument;
+  // Ensure runtime fields.
+  if (!doc.id) doc.id = 'default';
+  if (!doc.name) doc.name = 'Untitled';
+  if (!doc.viewport) doc.viewport = { zoom: 1, panX: 120, panY: 80 };
+  if (!doc.version) doc.version = '2.17';
+  // Ensure the .pen tree exists.
+  if (!Array.isArray(doc.children)) {
+    // Legacy flat-shape doc: we can't reconstruct a meaningful tree from
+    // absolute-positioned shapes here, so start with an empty tree. (The
+    // agent will create new nodes via tools.)
+    doc.children = [];
+  }
+  // Recompute derived caches if missing or stale.
+  if (!Array.isArray(doc.shapes) || doc.shapes.length === 0) {
+    doc.shapes = resolvePenTree(doc);
+  }
+  if (!doc.tokens) doc.tokens = { colors: [], textStyles: [] };
+  if (!doc.background) doc.background = '#f8fafc';
+  return doc;
+}
 import { classifyIntent } from './classifier';
 import { generatePlan, formatPlanForPrompt, updatePlanStepStatus } from './planner';
 import { dispatchWebResearchSubAgent } from './subagents/web-research';
@@ -152,12 +185,12 @@ ${'${PLAN_SECTION}'}
 - When creating multiple shapes, give each a sensible name (e.g. "Header", "Card", "Avatar").
 - Coordinates are canvas-space pixels. The viewport at zoom 1 shows roughly 0..1200 x 0..800.
   Center of visible area is around (600, 400). Place groups of shapes around a focal point.
-- Always call canvas_list_shapes before updating/deleting existing shapes so you know the ids.
+- Always call pen_list_shapes before updating/deleting existing shapes so you know the ids.
 - After creating shapes, briefly summarize what you did in 1-2 sentences. Do not narrate every step.
 - If the user asks for something you cannot do with the available tools, say so clearly.
 - Prefer HIGH-LEVEL generator tools (generate_wireframe, generate_user_flow, generate_diagram)
   over hand-placing many shapes — they produce well-structured output and conserve tool-call budget.
-- Use canvas_bulk_update_by_filter to update many shapes at once, NOT individual update_shape calls.
+- Use pen_bulk_update_by_filter to update many shapes at once, NOT individual update_shape calls.
 
 === ARGUMENT TYPE RULES (CRITICAL — read before calling tools) ==============
 
@@ -196,7 +229,7 @@ to the .pen ontology on export:
     on a frame; descendants inherit it. Common axes: mode (light/dark),
     spacing (regular/condensed), device (phone/tablet/desktop).
   - COMPONENTS & INSTANCES: mark a reusable component with reusable=true
-    (via canvas_create_component), then create instances with pen_create_ref.
+    (via pen_create_component), then create instances with pen_create_ref.
     Customize instances via 'descendants' (keyed by slash-separated ID path,
     e.g. "ok-button/label"). Include a 'type' in an override to fully
     replace a descendant node.
@@ -236,12 +269,24 @@ function canvasSnapshot(canvas: CanvasDocument): string {
   const tokenLines = tokens.colors.length === 0
     ? '  (no tokens)'
     : tokens.colors.map((c) => `  • ${c.key} = ${c.value}  (${c.name})`).join('\n');
-  return `Current canvas state:
+  const varLines = !canvas.variables || Object.keys(canvas.variables).length === 0
+    ? '  (no variables)'
+    : Object.entries(canvas.variables).map(([k, v]) => {
+        const val = Array.isArray(v.value) ? `${(v.value as any[]).length} themed value(s)` : String(v.value);
+        return `  • $${k} (${v.type}) = ${val}`;
+      }).join('\n');
+  const themeLines = !canvas.themes || Object.keys(canvas.themes).length === 0
+    ? '  (no theme axes)'
+    : Object.entries(canvas.themes).map(([axis, vals]) => `  • ${axis}: [${vals.join(', ')}]`).join('\n');
+  return `Current canvas state (.pen v${canvas.version}):
 - Background: ${canvas.background}
-- Tokens (${tokens.colors.length} colors, ${tokens.textStyles.length} text styles):
+- Variables (${canvas.variables ? Object.keys(canvas.variables).length : 0}):
+${varLines}
+- Theme axes:
+${themeLines}
+- Tokens (derived: ${tokens.colors.length} colors, ${tokens.textStyles.length} text styles):
 ${tokenLines}
-- Heatmap: ${canvas.heatmap ? `on (${canvas.heatmap.points.length} points, frame ${canvas.heatmap.frameId})` : 'off'}
-- Shapes (${shapes.length}):
+- Resolved nodes (${shapes.length}):
 ${shapeLines}`;
 }
 
@@ -280,11 +325,14 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   const { documentId, prompt, canvas: initialCanvas, llm: injectedLlm, signal } = opts;
 
   // Per-session mutable state. The tools close over this via `ctx`.
-  let canvas: CanvasDocument = JSON.parse(JSON.stringify(initialCanvas));
+  // Normalize the incoming canvas: ensure it has a .pen tree (`children`)
+  // and derived caches (`shapes`, `tokens`). Older callers may send a
+  // legacy flat-shape doc or omit the derived fields.
+  let canvas: CanvasDocument = normalizeCanvas(initialCanvas);
 
   const ctx: CanvasToolContext = {
-    getShapes: () => canvas.shapes,
-    getTokens: () => canvas.tokens,
+    getShapes: () => canvas.shapes ?? [],
+    getTokens: () => canvas.tokens ?? { colors: [], textStyles: [] },
     getDocument: () => canvas,
     applyPatch(patch: CanvasPatch): CanvasPatch {
       canvas = applyPatchToCanvas(canvas, patch);
@@ -295,7 +343,7 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   // Create all tools (we'll filter the visible subset based on the skill).
   // The .pen-aligned tools (pen_set_variable, pen_create_ref, …) are always
   // available — they expose pen.dev concepts (variables, themes, refs,
-  // slots) that complement the granular canvas_* tool surface.
+  // slots) that complement the granular pen_* tool surface.
   const canvasTools = createCanvasTools(ctx);
   const penTools = createPenTools(ctx);
   const tools = [...canvasTools, ...penTools] as ReturnType<typeof createCanvasTools>;

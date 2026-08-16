@@ -11,7 +11,7 @@
 //     the post-run-1 canvas state in its system snapshot).
 //   - The full chain runner → useCanvasStore._onSync → session store
 //     mirroring (run end-to-end through the actual UI store, not a mock).
-//   - Undo/redo via the canvas_undo / canvas_redo tools — the runner emits
+//   - Undo/redo via the pen_undo / pen_redo tools — the runner emits
 //     op=undo patches, the store intercepts them, the canvas reverts.
 //   - Token binding propagation across runs (run 1 binds, run 2 re-themes
 //     via token update, all bound shapes recolor).
@@ -253,7 +253,7 @@ describe('conversation: multi-run flow — run 2 sees run 1 output', () => {
   it('run 1 creates a shape, run 2 updates it (LLM sees prior canvas in system snapshot)', async () => {
     // Run 1: create a shape.
     const llm1 = new MockLLM([
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'Hero', x: 0, y: 0, width: 400, height: 200, fill: '#ff0000' } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'Hero', x: 0, y: 0, width: 400, height: 200, fill: '#ff0000' } }] },
       { content: 'Created a Hero shape.' },
     ]);
     const run1 = await runThroughStore('create a hero shape', llm1);
@@ -269,7 +269,7 @@ describe('conversation: multi-run flow — run 2 sees run 1 output', () => {
     const llm2 = new MockLLM([
       {
         tool_calls: [{
-          name: 'canvas_update_shape',
+          name: 'pen_update_shape',
           args: { shapeId: '__DYNAMIC__', changes: { fill: '#00ff00' } },
         }],
       },
@@ -323,17 +323,17 @@ describe('conversation: multi-run flow — run 2 sees run 1 output', () => {
 describe('conversation: undo/redo via tools', () => {
   beforeEach(() => resetStore());
 
-  it('canvas_undo tool emits op=undo patch — store intercepts + reverts canvas', async () => {
+  it('pen_undo tool emits op=undo patch — store intercepts + reverts canvas', async () => {
     // Seed the canvas with two shapes via direct store manipulation.
     resetStore(makeDoc([
       makeShape('a', { fill: '#ff0000' }),
       makeShape('b', { fill: '#00ff00' }),
     ]));
 
-    // Run: create a third shape, then call canvas_undo.
+    // Run: create a third shape, then call pen_undo.
     const llm = new MockLLM([
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'C', x: 0, y: 0, width: 50, height: 50, fill: '#0000ff' } }] },
-      { tool_calls: [{ name: 'canvas_undo', args: {} }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'C', x: 0, y: 0, width: 50, height: 50, fill: '#0000ff' } }] },
+      { tool_calls: [{ name: 'pen_undo', args: {} }] },
       { content: 'Created and then undid.' },
     ]);
 
@@ -354,16 +354,16 @@ describe('conversation: undo/redo via tools', () => {
     expect(useCanvasStore.getState().redoStack[0].shapes).toHaveLength(3);
   });
 
-  it('canvas_redo after canvas_undo restores the change', async () => {
+  it('pen_redo after pen_undo restores the change', async () => {
     resetStore(makeDoc([makeShape('a')]));
 
     const llm = new MockLLM([
       // Create a shape (pushes undo stack).
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'B', x: 0, y: 0, width: 50, height: 50 } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'B', x: 0, y: 0, width: 50, height: 50 } }] },
       // Undo it (pops undo, pushes redo).
-      { tool_calls: [{ name: 'canvas_undo', args: {} }] },
+      { tool_calls: [{ name: 'pen_undo', args: {} }] },
       // Redo it (pops redo, pushes undo).
-      { tool_calls: [{ name: 'canvas_redo', args: {} }] },
+      { tool_calls: [{ name: 'pen_redo', args: {} }] },
       { content: 'Done.' },
     ]);
 
@@ -386,8 +386,8 @@ describe('conversation: token binding across runs', () => {
   it('run 1 binds shape to token; run 2 re-themes via token update', async () => {
     // Run 1: define token, create shape, bind it.
     const llm1 = new MockLLM([
-      { tool_calls: [{ name: 'canvas_update_tokens', args: { colors: [{ name: 'Brand', key: 'brand', value: '#3b82f6' }] } }] },
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'Btn', x: 0, y: 0, width: 100, height: 40, fill: '#cccccc' } }] },
+      { tool_calls: [{ name: 'pen_update_tokens', args: { colors: [{ name: 'Brand', key: 'brand', value: '#3b82f6' }] } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'Btn', x: 0, y: 0, width: 100, height: 40, fill: '#cccccc' } }] },
       { content: 'Set up a brand token + button.' },
     ]);
     const run1 = await runThroughStore('set up a brand button', llm1);
@@ -395,7 +395,7 @@ describe('conversation: token binding across runs', () => {
 
     // Bind the button to the token (separate run for clarity).
     const llm1b = new MockLLM([
-      { tool_calls: [{ name: 'canvas_bind_shape_to_token', args: { shapeId: '__DYNAMIC__', tokenKey: 'brand', property: 'fill' } }] },
+      { tool_calls: [{ name: 'pen_bind_shape_to_token', args: { shapeId: '__DYNAMIC__', tokenKey: 'brand', property: 'fill' } }] },
       { content: 'Bound.' },
     ]);
     const originalCreate = llm1b.chat.completions.create.bind(llm1b);
@@ -422,7 +422,7 @@ describe('conversation: token binding across runs', () => {
 
     // Run 2: re-theme by updating the token.
     const llm2 = new MockLLM([
-      { tool_calls: [{ name: 'canvas_update_tokens', args: { colors: [{ name: 'Brand', key: 'brand', value: '#ef4444' }] } }] },
+      { tool_calls: [{ name: 'pen_update_tokens', args: { colors: [{ name: 'Brand', key: 'brand', value: '#ef4444' }] } }] },
       { content: 'Re-themed to red.' },
     ]);
     await runThroughStore('re-theme to red', llm2);
@@ -460,7 +460,7 @@ describe('conversation: error recovery across runs', () => {
 
     // Run 2: succeeds.
     const llm2 = new MockLLM([
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'Recovery', x: 0, y: 0, width: 100, height: 50 } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'Recovery', x: 0, y: 0, width: 100, height: 50 } }] },
       { content: 'Recovered.' },
     ]);
     await runThroughStore('try again', llm2);
@@ -487,19 +487,19 @@ describe('conversation: snapshot accumulation across runs', () => {
 
   it('each run captures exactly one snapshot at turn_end — no duplicates, no missing', async () => {
     const llm1 = new MockLLM([
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'A', x: 0, y: 0, width: 50, height: 50 } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'A', x: 0, y: 0, width: 50, height: 50 } }] },
       { content: 'done' },
     ]);
     await runThroughStore('create A', llm1);
 
     const llm2 = new MockLLM([
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'B', x: 60, y: 0, width: 50, height: 50 } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'B', x: 60, y: 0, width: 50, height: 50 } }] },
       { content: 'done' },
     ]);
     await runThroughStore('create B', llm2);
 
     const llm3 = new MockLLM([
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'C', x: 120, y: 0, width: 50, height: 50 } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'C', x: 120, y: 0, width: 50, height: 50 } }] },
       { content: 'done' },
     ]);
     await runThroughStore('create C', llm3);
@@ -548,7 +548,7 @@ describe('conversation: full chat history across runs', () => {
       const llm = new MockLLM([
         {
           tool_calls: [{
-            name: 'canvas_create_shape',
+            name: 'pen_create_shape',
             args: { type: 'rectangle', name: names[i], x: i * 60, y: 0, width: 50, height: 50, fill: colors[i] },
           }],
         },

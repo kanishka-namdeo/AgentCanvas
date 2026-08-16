@@ -1,6 +1,6 @@
 // .pen-aligned pi agent tools.
 //
-// These tools expose pen.dev concepts that the legacy `canvas_*` tool surface
+// These tools expose pen.dev concepts that the legacy `pen_*` tool surface
 // doesn't fully capture:
 //
 //   1. pen_set_variable        — create/update a document variable ($name)
@@ -12,8 +12,8 @@
 //   5. pen_mark_slot           — mark a frame as a slot for recommended components
 //   6. pen_export_pen          — export the canvas as a .pen file (returns JSON)
 //
-// These tools are ADDITIVE — the existing 54 canvas_* tools keep working.
-// The agent can use whichever surface fits the task: canvas_* for granular
+// These tools are ADDITIVE — the existing 54 pen_* tools keep working.
+// The agent can use whichever surface fits the task: pen_* for granular
 // shape edits, pen_* for design-system / component-instance / theming work.
 //
 // Because our internal CanvasDocument model is still flat-shape-list (Phase C
@@ -192,12 +192,12 @@ export function createPenTools(ctx: CanvasToolContext) {
     label: 'Create Component Instance (ref)',
     description:
       'Create a pen.dev component INSTANCE — a `ref` node that reuses a reusable component (one marked ' +
-      'with reusable:true / created via canvas_create_component). The instance replicates the component ' +
+      'with reusable:true / created via pen_create_component). The instance replicates the component ' +
       'tree but can override individual descendant properties via `descendants`. ' +
       'Maps to .pen `ref` + `descendants`.',
     promptSnippet: 'Instantiate a reusable component as a `ref`, with optional descendant overrides.',
     promptGuidelines: [
-      'First mark a shape as reusable via canvas_create_component (or set reusable=true).',
+      'First mark a shape as reusable via pen_create_component (or set reusable=true).',
       'Pass the componentId as `ref`. The instance inherits the component tree.',
       'Use `descendants` to override properties: { "label": { "text": "Cancel" } }.',
       'Descendant keys are slash-separated ID paths: "ok-button/label".',
@@ -493,7 +493,106 @@ export function createPenTools(ctx: CanvasToolContext) {
     },
   });
 
-  return [setVariable, applyTheme, createRef, overrideDescendant, markSlot, exportPen];
+  // ---- Tool: pen_set_theme_axis -------------------------------------------
+
+  const setThemeAxis = defineTool({
+    name: 'pen_set_theme_axis',
+    label: 'Define Theme Axis',
+    description:
+      'Define (or update) a pen.dev theme axis at the document level. A theme axis is a named ' +
+      'dimension along which variables can vary — e.g. `mode: ["light", "dark"]` or ' +
+      '`spacing: ["regular", "condensed"]` or `device: ["phone", "tablet", "desktop"]`. ' +
+      'The FIRST value is the default. Variables can then have theme-conditional values ' +
+      'that resolve based on a node\'s effective theme. Maps to .pen `themes`.',
+    promptSnippet: 'Define a multi-axis theme (e.g. mode: light/dark, spacing: regular/condensed).',
+    promptGuidelines: [
+      'Common axes: mode (light/dark), spacing (regular/condensed), device (phone/tablet/desktop).',
+      'The first value in `values` is the default theme value for that axis.',
+      'After defining an axis, use pen_set_variable with themedValues to make variables theme-aware.',
+      'Use pen_apply_theme to set a theme value on a specific node.',
+    ],
+    parameters: Type.Object({
+      axis: Type.String({ description: 'Theme axis name, e.g. "mode" or "spacing".' }),
+      values: Type.Array(Type.String(), {
+        description: 'Allowed values for this axis, in priority order. First = default. E.g. ["light", "dark"].',
+      }),
+    }),
+    async execute(_toolCallId, params) {
+      const values = Array.isArray(params?.values) ? params.values.map(String) : [];
+      if (!params?.axis || values.length === 0) {
+        return {
+          content: [{ type: 'text', text: 'Error: `axis` and at least one `values` entry are required.' }],
+          details: { error: 'missing_args' },
+          isError: true as any,
+        };
+      }
+      const patch: CanvasPatch = {
+        op: 'set_theme_axis',
+        themeAxis: params.axis,
+        themeValues: values,
+        summary: `Defined theme axis "${params.axis}": [${values.join(', ')}]`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [
+          {
+            type: 'text',
+            text:
+              `Defined theme axis "${params.axis}" with ${values.length} value(s): [${values.join(', ')}]. ` +
+              `Default = "${values[0]}". Variables can now use themedValues with { ${params.axis}: "<value>" } ` +
+              `and nodes can set their theme via pen_apply_theme.`,
+          },
+        ],
+        details: { axis: params.axis, values, patch },
+      };
+    },
+  });
+
+  // ---- Tool: pen_list_themes ----------------------------------------------
+
+  const listThemes = defineTool({
+    name: 'pen_list_themes',
+    label: 'List Themes & Variables',
+    description:
+      'List all pen.dev theme axes and document variables. Returns the theme axis definitions ' +
+      'and every variable (key, type, value or themed-values). Read-only — useful before applying ' +
+      'themes or binding variables.',
+    promptSnippet: 'List all theme axes and $variables (read-only).',
+    promptGuidelines: [
+      'Use this to see what variables and theme axes exist before editing them.',
+      'Returns theme axes (axis -> values) and variables (key -> type + value).',
+    ],
+    parameters: Type.Object({}),
+    async execute(_toolCallId, _params) {
+      const doc = ctx.getDocument();
+      const themes = doc.themes ?? {};
+      const variables = doc.variables ?? {};
+      const themeLines = Object.keys(themes).length === 0
+        ? '  (no theme axes defined)'
+        : Object.entries(themes).map(([axis, vals]) => `  • ${axis}: [${vals.join(', ')}]`).join('\n');
+      const varLines = Object.keys(variables).length === 0
+        ? '  (no variables defined)'
+        : Object.entries(variables).map(([k, v]) => {
+            const val = Array.isArray(v.value)
+              ? `${(v.value as any[]).length} themed value(s)`
+              : String(v.value);
+            return `  • $${k} (${v.type}) = ${val}`;
+          }).join('\n');
+      return {
+        content: [
+          {
+            type: 'text',
+            text:
+              `Theme axes (${Object.keys(themes).length}):\n${themeLines}\n\n` +
+              `Variables (${Object.keys(variables).length}):\n${varLines}`,
+          },
+        ],
+        details: { themes, variables },
+      };
+    },
+  });
+
+  return [setVariable, applyTheme, createRef, overrideDescendant, markSlot, exportPen, setThemeAxis, listThemes];
 }
 
 export const PEN_TOOL_NAMES = [
@@ -503,4 +602,6 @@ export const PEN_TOOL_NAMES = [
   'pen_override_descendant',
   'pen_mark_slot',
   'pen_export_pen',
+  'pen_set_theme_axis',
+  'pen_list_themes',
 ] as const;

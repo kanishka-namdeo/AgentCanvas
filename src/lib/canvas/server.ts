@@ -33,11 +33,14 @@ function ensureDocument(documentId: string): DocState {
       document: {
         id: documentId,
         name: 'Untitled',
+        version: '2.17',
+        children: [],
+        variables: undefined,
+        themes: undefined,
         background: '#f8fafc',
         viewport: { zoom: 1, panX: 0, panY: 0 },
         shapes: [],
         tokens: { colors: [], textStyles: [] },
-        heatmap: null,
       },
       subscribers: new Set(),
     };
