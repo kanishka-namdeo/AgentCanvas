@@ -56,6 +56,20 @@ function normalizeShape(input: Partial<Shape>, fallbackZ: number): Shape {
     autoLayout: input.autoLayout ?? null,
     tokenBinding: input.tokenBinding ?? null,
     componentId: input.componentId ?? null,
+    // Phase 5 extended fields — all optional, default to null/0/empty.
+    points: Array.isArray(input.points) ? input.points.map((p) => ({ x: num((p as any).x, 0), y: num((p as any).y, 0) })) : null,
+    closed: input.closed ?? false,
+    src: input.src ?? null,
+    radii: input.radii ? {
+      topLeft: num((input.radii as any).topLeft, 0),
+      topRight: num((input.radii as any).topRight, 0),
+      bottomRight: num((input.radii as any).bottomRight, 0),
+      bottomLeft: num((input.radii as any).bottomLeft, 0),
+    } : null,
+    gradient: input.gradient ?? null,
+    shadow: input.shadow ?? null,
+    blur: num(input.blur, 0),
+    maskId: input.maskId ?? null,
   };
 }
 
@@ -297,12 +311,71 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       next.heatmap = patch.heatmap ?? null;
       break;
     }
+    case 'select': {
+      // No document mutation — UI-only.
+      break;
+    }
+    case 'zorder': {
+      const ids = new Set(patch.shapeIds ?? (patch.shapeId ? [patch.shapeId] : []));
+      if (ids.size === 0) break;
+      const kind = patch.zorderKind ?? 'front';
+      // Sort shapes by current zIndex to compute new indices.
+      const sorted = [...next.shapes].sort((a, b) => a.zIndex - b.zIndex);
+      let newOrder: Shape[];
+      if (kind === 'front') {
+        const movers = sorted.filter((s) => ids.has(s.id));
+        const rest = sorted.filter((s) => !ids.has(s.id));
+        newOrder = [...rest, ...movers];
+      } else if (kind === 'back') {
+        const movers = sorted.filter((s) => ids.has(s.id));
+        const rest = sorted.filter((s) => !ids.has(s.id));
+        newOrder = [...movers, ...rest];
+      } else if (kind === 'forward') {
+        // Swap each mover with the shape one z-level above it.
+        newOrder = [...sorted];
+        for (let i = sorted.length - 2; i >= 0; i--) {
+          if (ids.has(sorted[i].id) && !ids.has(sorted[i + 1].id)) {
+            newOrder[i] = sorted[i + 1];
+            newOrder[i + 1] = sorted[i];
+          }
+        }
+      } else { // backward
+        newOrder = [...sorted];
+        for (let i = 1; i < sorted.length; i++) {
+          if (ids.has(sorted[i].id) && !ids.has(sorted[i - 1].id)) {
+            newOrder[i] = sorted[i - 1];
+            newOrder[i - 1] = sorted[i];
+          }
+        }
+      }
+      // Renumber z-indices and create new shape objects (purity).
+      next.shapes = newOrder.map((s, i) => ({ ...s, zIndex: i }));
+      break;
+    }
+    case 'reorder': {
+      // Move a single shape to a specific zIndex, shifting others.
+      if (!patch.shapeId || patch.zIndex === undefined) break;
+      const target = next.shapes.find((s) => s.id === patch.shapeId);
+      if (!target) break;
+      const targetZ = Math.max(0, Math.min(patch.zIndex, next.shapes.length - 1));
+      const without = next.shapes.filter((s) => s.id !== patch.shapeId);
+      without.sort((a, b) => a.zIndex - b.zIndex);
+      const reordered = [...without];
+      reordered.splice(targetZ, 0, target);
+      next.shapes = reordered.map((s, i) => ({ ...s, zIndex: i }));
+      break;
+    }
     case 'viewport': {
       if (patch.viewport) next.viewport = patch.viewport;
       break;
     }
-    case 'select': {
-      // No document mutation — UI-only.
+    case 'undo':
+    case 'redo': {
+      // No-op here — the canvas store intercepts these ops BEFORE calling
+      // applyPatchToCanvas, because they require access to the undo/redo
+      // stacks which the pure patch function doesn't have. If we reach
+      // here, it means the store didn't intercept (e.g. server-side
+      // application), so we just return the document unchanged.
       break;
     }
   }

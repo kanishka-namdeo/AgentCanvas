@@ -38,7 +38,7 @@ const SYSTEM_PROMPT = `You are an AI design agent operating a Figma-like canvas 
 
 You can see the current canvas state and manipulate it through tools. Your job is to take the user's natural-language request and produce a visually pleasing, production-ready design on the canvas.
 
-=== TOOL CATEGORIES (24 tools) =============================================
+=== TOOL CATEGORIES (54 tools) =============================================
 
 CORE CANVAS OPS:
   canvas_create_shape, canvas_update_shape, canvas_delete_shape,
@@ -75,6 +75,54 @@ ANALYSIS (read-only):
                              (heading/subheading/body/button/caption/microcopy)
   canvas_audit_design      — audit the canvas for consistency issues (color drift, type scale,
                              low-contrast text, token usage, alignment near-misses)
+
+TOKEN BINDING (design-system live links):
+  canvas_bind_shape_to_token   — bind a shape property (fill/stroke/textColor) to a color token
+  canvas_unbind_shape          — remove a token binding from a shape property
+  canvas_list_tokens           — list all design tokens (read-only)
+  canvas_apply_token           — apply a token value to multiple shapes (optionally bind)
+
+LOCK & VISIBILITY:
+  canvas_set_locked        — lock/unlock shapes (prevents direct manipulation)
+  canvas_set_visible       — show/hide shapes
+
+Z-ORDER:
+  canvas_bring_to_front    — move shapes to the top of the z-order
+  canvas_send_to_back      — move shapes to the bottom of the z-order
+  canvas_move_forward      — move a shape one level up
+  canvas_move_backward     — move a shape one level down
+  canvas_reorder_shape     — move a shape to a specific z-index
+
+UNDO / REDO:
+  canvas_undo              — undo the last canvas change
+  canvas_redo              — redo a previously undone change
+
+EXPORT & HANDOFF:
+  canvas_export_json       — export the full canvas as JSON
+  canvas_export_svg        — export the canvas (or a frame) as an SVG string
+  canvas_export_png        — export as an SVG data URL (renderable in browsers)
+  canvas_copy_as_code      — generate HTML/React/Tailwind code from the canvas
+
+FIND & FILTER:
+  canvas_find_shapes       — find shapes by type/fill/name/parent (read-only)
+  canvas_bulk_update_by_filter — update all shapes matching a filter in one call
+  canvas_find_replace_text — find and replace text across all text shapes
+
+VECTOR EDITING:
+  canvas_create_path       — create a freeform path/polygon from a list of points
+  canvas_boolean_op        — boolean-combine two shapes (union/subtract/intersect/exclude)
+  canvas_mask_with         — clip a shape using another shape as a mask
+
+EFFECTS & STYLING:
+  canvas_set_gradient_fill — set a linear/radial gradient fill on a shape
+  canvas_set_shadow        — apply a drop shadow to a shape
+  canvas_set_blur          — apply a Gaussian blur to a shape
+  canvas_set_corner_radius_per_corner — set independent radii for each corner
+
+IMAGE SUPPORT:
+  canvas_upload_image      — place an image from a data URL or remote URL
+  canvas_search_icons      — place a Lucide icon (30+ icons available) as a path
+  canvas_generate_image    — place an image placeholder (AI generation not wired)
 
 === DESIGN PRINCIPLES ======================================================
 
@@ -192,6 +240,7 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   const ctx: CanvasToolContext = {
     getShapes: () => canvas.shapes,
     getTokens: () => canvas.tokens,
+    getDocument: () => canvas,
     applyPatch(patch: CanvasPatch): CanvasPatch {
       // Apply locally so the next tool call sees the updated state.
       canvas = applyPatchToCanvas(canvas, patch);

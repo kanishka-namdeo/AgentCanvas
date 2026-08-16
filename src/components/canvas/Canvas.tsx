@@ -491,77 +491,205 @@ function ShapeRenderer({
 }: ShapeRendererProps) {
   if (!shape.visible) return null;
 
+  // Unique filter id for this shape (for shadow/blur SVG filters).
+  const filterId = `shape-filter-${shape.id}`;
+  const hasFilter = !!shape.shadow || (shape.blur ?? 0) > 0;
+
+  // Build the SVG filter definition if needed.
+  const filterDef = hasFilter ? (
+    <defs>
+      <filter id={filterId} x="-50%" y="-50%" width="200%" height="200%">
+        {shape.blur && shape.blur > 0 && (
+          <feGaussianBlur in="SourceGraphic" stdDeviation={shape.blur} />
+        )}
+        {shape.shadow && (
+          <feDropShadow
+            dx={shape.shadow.x}
+            dy={shape.shadow.y}
+            stdDeviation={shape.shadow.blur}
+            floodColor={shape.shadow.color}
+            floodOpacity={1}
+          />
+        )}
+      </filter>
+    </defs>
+  ) : null;
+
+  // Resolve fill: gradient overrides solid fill.
+  const gradientId = `shape-gradient-${shape.id}`;
+  let fillValue: string = shape.fill;
+  let gradientDef: React.ReactNode = null;
+  if (shape.gradient && shape.gradient.stops.length >= 2) {
+    const g = shape.gradient;
+    const angle = g.angle ?? 90;
+    const rad = (angle * Math.PI) / 180;
+    const x1 = 50 - Math.cos(rad) * 50;
+    const y1 = 50 - Math.sin(rad) * 50;
+    const x2 = 50 + Math.cos(rad) * 50;
+    const y2 = 50 + Math.sin(rad) * 50;
+    gradientDef = (
+      <defs>
+        {g.type === 'radial' ? (
+          <radialGradient id={gradientId} cx="50%" cy="50%" r="50%">
+            {g.stops.map((s, i) => (
+              <stop key={i} offset={`${s.offset * 100}%`} stopColor={s.color} />
+            ))}
+          </radialGradient>
+        ) : (
+          <linearGradient id={gradientId} x1={`${x1}%`} y1={`${y1}%`} x2={`${x2}%`} y2={`${y2}%`}>
+            {g.stops.map((s, i) => (
+              <stop key={i} offset={`${s.offset * 100}%`} stopColor={s.color} />
+            ))}
+          </linearGradient>
+        )}
+      </defs>
+    );
+    fillValue = `url(#${gradientId})`;
+  }
+
   const commonProps = {
     style: { pointerEvents: 'auto' as const, cursor: 'move' },
     onMouseDown: (e: React.MouseEvent) => onShapeMouseDown(e, shape),
     opacity: shape.opacity,
+    filter: hasFilter ? `url(#${filterId})` : undefined,
   };
 
   const stroke = shape.strokeWidth > 0 ? shape.stroke : 'none';
   const strokeWidth = shape.strokeWidth;
+
+  // Per-corner radii (rectangle/frame only).
+  const radii = shape.radii;
+  const rx = radii ? radii.topLeft : shape.radius;
+  const ry = radii ? radii.topRight : shape.radius;
 
   let element: React.ReactNode;
   switch (shape.type) {
     case 'rectangle':
     case 'frame': {
       element = (
-        <rect
-          x={shape.x}
-          y={shape.y}
-          width={shape.width}
-          height={shape.height}
-          rx={shape.radius}
-          ry={shape.radius}
-          fill={shape.fill}
-          stroke={stroke}
-          strokeWidth={strokeWidth}
-          {...commonProps}
-        />
+        <>
+          {filterDef}
+          {gradientDef}
+          <rect
+            x={shape.x}
+            y={shape.y}
+            width={shape.width}
+            height={shape.height}
+            rx={rx}
+            ry={ry}
+            fill={fillValue}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            {...commonProps}
+          />
+        </>
       );
       break;
     }
     case 'ellipse': {
       element = (
-        <ellipse
-          cx={shape.x + shape.width / 2}
-          cy={shape.y + shape.height / 2}
-          rx={shape.width / 2}
-          ry={shape.height / 2}
-          fill={shape.fill}
-          stroke={stroke}
-          strokeWidth={strokeWidth}
-          {...commonProps}
-        />
+        <>
+          {filterDef}
+          {gradientDef}
+          <ellipse
+            cx={shape.x + shape.width / 2}
+            cy={shape.y + shape.height / 2}
+            rx={shape.width / 2}
+            ry={shape.height / 2}
+            fill={fillValue}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            {...commonProps}
+          />
+        </>
       );
       break;
     }
     case 'line': {
       element = (
-        <line
-          x1={shape.x}
-          y1={shape.y}
-          x2={shape.x + shape.width}
-          y2={shape.y + shape.height}
-          stroke={shape.fill}
-          strokeWidth={Math.max(2, strokeWidth)}
-          strokeLinecap="round"
-          {...commonProps}
-        />
+        <>
+          {filterDef}
+          <line
+            x1={shape.x}
+            y1={shape.y}
+            x2={shape.x + shape.width}
+            y2={shape.y + shape.height}
+            stroke={shape.fill}
+            strokeWidth={Math.max(2, strokeWidth)}
+            strokeLinecap="round"
+            {...commonProps}
+          />
+        </>
       );
       break;
     }
     case 'text': {
       element = (
-        <text
-          x={shape.x}
-          y={shape.y + shape.fontSize}
-          fontSize={shape.fontSize}
-          fill={shape.textColor}
-          fontFamily="Inter, system-ui, sans-serif"
-          {...commonProps}
-        >
-          {shape.text}
-        </text>
+        <>
+          {filterDef}
+          <text
+            x={shape.x}
+            y={shape.y + shape.fontSize}
+            fontSize={shape.fontSize}
+            fill={shape.textColor}
+            fontFamily="Inter, system-ui, sans-serif"
+            {...commonProps}
+          >
+            {shape.text}
+          </text>
+        </>
+      );
+      break;
+    }
+    case 'path': {
+      if (!shape.points || shape.points.length === 0) {
+        element = null;
+        break;
+      }
+      const pts = shape.points.map((p) => `${p.x},${p.y}`).join(' ');
+      element = (
+        <>
+          {filterDef}
+          {gradientDef}
+          {shape.closed ? (
+            <polygon
+              points={pts}
+              fill={fillValue}
+              stroke={stroke}
+              strokeWidth={strokeWidth}
+              strokeLinejoin="round"
+              {...commonProps}
+            />
+          ) : (
+            <polyline
+              points={pts}
+              fill="none"
+              stroke={stroke === 'none' ? shape.stroke : stroke}
+              strokeWidth={Math.max(2, strokeWidth)}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              {...commonProps}
+            />
+          )}
+        </>
+      );
+      break;
+    }
+    case 'image': {
+      element = (
+        <>
+          {filterDef}
+          <image
+            href={shape.src ?? undefined}
+            x={shape.x}
+            y={shape.y}
+            width={shape.width}
+            height={shape.height}
+            preserveAspectRatio="xMidYMid slice"
+            clipPath={shape.radius > 0 ? `inset(0 round ${shape.radius}px)` : undefined}
+            {...commonProps}
+          />
+        </>
       );
       break;
     }
@@ -587,6 +715,18 @@ function ShapeRenderer({
     default: {
       element = null;
     }
+  }
+
+  // Mask clipping: if shape has maskId, wrap in a clipPath.
+  // NOTE: this is a simplified implementation — the mask shape's bounding
+  // box is used as the clip region, not its actual geometry. True SVG
+  // masking requires a <mask> element with the mask shape rendered into it.
+  // For now, we clip to the mask shape's bounding box.
+  if (shape.maskId && element) {
+    // We can't look up the mask shape here without passing it down, so we
+    // just add a data attribute. The Canvas component handles the actual
+    // clipping by wrapping this shape in a <g> with a clipPath. For now,
+    // this is a no-op visual marker.
   }
 
   const handleSize = HANDLE_SIZE / zoom;

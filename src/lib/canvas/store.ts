@@ -60,6 +60,10 @@ interface CanvasState {
   documentId: string;
   /// Active session id (mirrors sessionStore.activeSessionByDoc[documentId]).
   activeSessionId: string | null;
+  /// Undo/redo stacks (client-side). Capped at 50 entries to bound memory.
+  /// Pushed before every mutating patch; popped on undo/redo.
+  undoStack: CanvasDocument[];
+  redoStack: CanvasDocument[];
 
   // Actions ---------------------------------------------------------------
   init: (documentId: string) => () => void;
@@ -71,6 +75,10 @@ interface CanvasState {
   /// emits a synthetic `agent:turn_end` so the rest of the pipeline (snapshot
   /// capture, run closeout) runs as if the agent had finished normally.
   stopAgent: () => void;
+  /// Undo the last canvas change. Pops the undo stack.
+  undo: () => void;
+  /// Redo a previously undone change. Pops the redo stack.
+  redo: () => void;
   setDocumentName: (name: string) => void;
   /// Switch the active session for this document. Rebuilds `turns` from
   /// the session store's messages and replaces the canvas with the
@@ -117,6 +125,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   agentBusy: false,
   documentId: 'default',
   activeSessionId: null,
+  undoStack: [],
+  redoStack: [],
 
   init: (documentId) => {
     // Hydrate the persisted session store from localStorage (client-only).
@@ -349,6 +359,28 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
   },
 
+  undo: () => {
+    const { undoStack, document, redoStack } = get();
+    if (undoStack.length === 0) return;
+    const prev = undoStack[undoStack.length - 1];
+    set({
+      document: prev,
+      undoStack: undoStack.slice(0, -1),
+      redoStack: [...redoStack, document].slice(-50),
+    });
+  },
+
+  redo: () => {
+    const { redoStack, document, undoStack } = get();
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    set({
+      document: next,
+      redoStack: redoStack.slice(0, -1),
+      undoStack: [...undoStack, document].slice(-50),
+    });
+  },
+
   setDocumentName: (name) =>
     set((s) => ({ document: { ...s.document, name } })),
 
@@ -439,7 +471,27 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'canvas:patch': {
-        set((s) => ({ document: applyPatchToCanvas(s.document, event.patch) }));
+        // Intercept undo/redo — these require access to the undo/redo stacks.
+        if (event.patch.op === 'undo') {
+          get().undo();
+          break;
+        }
+        if (event.patch.op === 'redo') {
+          get().redo();
+          break;
+        }
+        // For all other mutating ops, push the current document to the undo
+        // stack before applying. Non-mutating ops (select) don't push.
+        const isMutating = event.patch.op !== 'select';
+        if (isMutating) {
+          set((s) => ({
+            undoStack: [...s.undoStack, s.document].slice(-50),
+            redoStack: [], // clear redo on new mutation
+            document: applyPatchToCanvas(s.document, event.patch),
+          }));
+        } else {
+          set((s) => ({ document: applyPatchToCanvas(s.document, event.patch) }));
+        }
         // If this is a "select" patch from the agent, briefly highlight.
         if (event.patch.op === 'select' && event.patch.shapeIds) {
           set({ agentHighlightIds: event.patch.shapeIds });

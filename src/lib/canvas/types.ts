@@ -12,7 +12,10 @@ export type ShapeType =
   | 'text'
   | 'line'
   | 'frame'
-  | 'group';
+  | 'group'
+  // Extended shape types (Phase 5):
+  | 'path'   // arbitrary polygon / polyline defined by `points`
+  | 'image'; // raster image referenced by `src` (data URL or remote URL)
 
 /// Auto-layout configuration for container shapes (frames / groups).
 /// Mirrors Figma's Auto Layout: children of a frame with `autoLayout` set
@@ -37,6 +40,42 @@ export interface TokenBinding {
   fillToken?: string;
   textToken?: string;
   strokeToken?: string;
+}
+
+/// A 2D point in canvas-space. Used by `path` shapes.
+export interface PathPoint {
+  x: number;
+  y: number;
+}
+
+/// Per-corner border radii. When set, overrides the uniform `radius` field.
+export interface CornerRadii {
+  topLeft: number;
+  topRight: number;
+  bottomRight: number;
+  bottomLeft: number;
+}
+
+/// Linear or radial gradient fill. When set on a shape, `fill` is ignored
+/// at render time (but kept in sync as the first stop's color for audit).
+export interface GradientFill {
+  type: 'linear' | 'radial';
+  /// 0..360 — angle for linear gradients (ignored for radial).
+  angle: number;
+  /// Stops sorted by offset ascending. 2..many.
+  stops: Array<{ offset: number; color: string }>;
+}
+
+/// Drop shadow effect. Rendered via an SVG filter.
+export interface ShadowEffect {
+  x: number;
+  y: number;
+  blur: number;
+  /// Hex color. Alpha is taken from the color's alpha channel.
+  color: string;
+  spread?: number;
+  /// If true, the shadow renders inside the shape (inset). Default false.
+  inset?: boolean;
 }
 
 export interface Shape {
@@ -68,6 +107,24 @@ export interface Shape {
   /// Marks this shape as an instance of a component definition.
   /// `componentId` points at the original component shape (same canvas).
   componentId?: string | null;
+  // ---- Extended properties (Phase 5) -------------------------------------
+  /// For `path` shapes: the list of points (canvas-space). When `closed`
+  /// is true the path is filled; otherwise it's a stroked polyline.
+  points?: PathPoint[] | null;
+  closed?: boolean;
+  /// For `image` shapes: the source URL (data URL or remote URL).
+  src?: string | null;
+  /// Per-corner radii (overrides `radius` for rectangle/frame shapes).
+  radii?: CornerRadii | null;
+  /// Gradient fill (overrides `fill` at render time).
+  gradient?: GradientFill | null;
+  /// Drop shadow effect (rendered via SVG filter).
+  shadow?: ShadowEffect | null;
+  /// Gaussian blur radius in px (rendered via SVG filter).
+  blur?: number;
+  /// If set, this shape is clipped by the shape with id `maskId`. The
+  /// mask shape's geometry defines the visible region.
+  maskId?: string | null;
 }
 
 export interface Viewport {
@@ -162,7 +219,13 @@ export interface CanvasPatch {
     | 'ungroup'         // dissolve a group (clears parentId on children)
     | 'align'           // align/distribute selected shapes
     | 'tokens'          // update design tokens
-    | 'heatmap';        // set / clear attention heatmap overlay
+    | 'heatmap'         // set / clear attention heatmap overlay
+    // Phase 1+2+5 ops:
+    | 'zorder'          // bring_to_front / send_to_back / forward / backward
+    | 'reorder'         // move a shape to a specific zIndex
+    | 'viewport'        // set viewport (pan/zoom)
+    | 'undo'            // client-side: pop undo stack
+    | 'redo';           // client-side: pop redo stack
   shapeId?: string;
   /// Full or partial shape payload for 'add' / 'update'.
   shape?: Partial<Shape>;
@@ -188,6 +251,10 @@ export interface CanvasPatch {
   /// Alignment kind for 'align' op.
   alignKind?: 'left' | 'center_h' | 'right' | 'top' | 'center_v' | 'bottom'
     | 'distribute_h' | 'distribute_v';
+  /// For 'zorder' op — which direction to move the shape(s) in the stack.
+  zorderKind?: 'front' | 'back' | 'forward' | 'backward';
+  /// For 'reorder' op — the target zIndex.
+  zIndex?: number;
   /// Human-readable summary the UI can show next to the tool call.
   summary: string;
 }

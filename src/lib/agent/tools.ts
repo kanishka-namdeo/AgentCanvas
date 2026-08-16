@@ -81,6 +81,9 @@ export interface CanvasToolContext {
   getTokens: () => DesignTokens;
   /// Apply a patch (the tool's effect) and return the patched document.
   applyPatch: (patch: CanvasPatch) => CanvasPatch;
+  /// Read-only snapshot of the full document (background, viewport, etc.).
+  /// Used by export tools. Optional — the runner always provides it.
+  getDocument?: () => import('../canvas/types.ts').CanvasDocument;
 }
 
 // ---- Parameter schemas ------------------------------------------------------
@@ -93,6 +96,8 @@ const ShapeTypeSchema = Type.Union(
     Type.Literal('line'),
     Type.Literal('frame'),
     Type.Literal('group'),
+    Type.Literal('path'),
+    Type.Literal('image'),
   ],
   { description: 'Shape kind' },
 );
@@ -113,6 +118,10 @@ const ShapeInputSchema = Type.Object({
   text: Type.Optional(Type.String({ description: 'Text content (type=text only)' })),
   fontSize: Type.Optional(Type.Number({ description: 'Font size for text shapes' })),
   textColor: Type.Optional(Type.String({ description: 'Text color hex' })),
+  // Phase 5 extended fields:
+  src: Type.Optional(Type.String({ description: 'Image source URL (data URL or remote) — type=image only' })),
+  closed: Type.Optional(Type.Boolean({ description: 'For path shapes: close the path (fill it). Default false.' })),
+  blur: Type.Optional(Type.Number({ description: 'Gaussian blur radius in px' })),
 });
 
 // ---- Helpers ----------------------------------------------------------------
@@ -137,6 +146,44 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
   if (params.text !== undefined) out.text = String(params.text);
   if (params.fontSize !== undefined) out.fontSize = Number(params.fontSize) || 16;
   if (params.textColor !== undefined) out.textColor = String(params.textColor);
+  // Phase 5 extended fields:
+  if ((params as any).src !== undefined) out.src = String((params as any).src);
+  if ((params as any).closed !== undefined) out.closed = !!(params as any).closed;
+  if ((params as any).blur !== undefined) out.blur = Number((params as any).blur) || 0;
+  if (Array.isArray((params as any).points)) {
+    out.points = (params as any).points.map((p: any) => ({ x: Number(p.x) || 0, y: Number(p.y) || 0 }));
+  }
+  if ((params as any).radii) {
+    const r = (params as any).radii;
+    out.radii = {
+      topLeft: Number(r.topLeft) || 0,
+      topRight: Number(r.topRight) || 0,
+      bottomRight: Number(r.bottomRight) || 0,
+      bottomLeft: Number(r.bottomLeft) || 0,
+    };
+  }
+  if ((params as any).gradient) {
+    const g = (params as any).gradient;
+    out.gradient = {
+      type: g.type === 'radial' ? 'radial' : 'linear',
+      angle: Number(g.angle) || 0,
+      stops: Array.isArray(g.stops) ? g.stops.map((s: any) => ({ offset: Number(s.offset) || 0, color: String(s.color) })) : [],
+    };
+  }
+  if ((params as any).shadow) {
+    const sh = (params as any).shadow;
+    out.shadow = {
+      x: Number(sh.x) || 0,
+      y: Number(sh.y) || 0,
+      blur: Number(sh.blur) || 0,
+      color: String(sh.color ?? '#000000'),
+      spread: sh.spread !== undefined ? Number(sh.spread) : 0,
+      inset: !!sh.inset,
+    };
+  }
+  if ((params as any).maskId !== undefined) out.maskId = (params as any).maskId ? String((params as any).maskId) : null;
+  if ((params as any).locked !== undefined) out.locked = !!(params as any).locked;
+  if ((params as any).visible !== undefined) out.visible = (params as any).visible !== false;
   return out;
 }
 
@@ -175,6 +222,61 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } {
   }
   return { h, s: s * 100, l: l * 100 };
 }
+
+/// Escape a string for safe inclusion in XML/SVG text content.
+function escapeXml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+/// Escape a string for safe inclusion in HTML text content.
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/// Escape a string for use in a RegExp.
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/// A curated subset of Lucide icon path data (24×24 viewBox).
+/// Each icon is an array of {x, y} polyline points. These are simplified
+/// approximations of the real Lucide icons — enough for placeholder use.
+const LUCIDE_ICONS: Record<string, Array<{ x: number; y: number }>> = {
+  check: [{ x: 20, y: 6 }, { x: 9, y: 17 }, { x: 4, y: 12 }],
+  x: [{ x: 18, y: 6 }, { x: 6, y: 18 }, { x: 6, y: 6 }, { x: 18, y: 18 }],
+  plus: [{ x: 12, y: 5 }, { x: 12, y: 19 }, { x: 5, y: 12 }, { x: 19, y: 12 }],
+  minus: [{ x: 5, y: 12 }, { x: 19, y: 12 }],
+  'arrow-right': [{ x: 5, y: 12 }, { x: 19, y: 12 }, { x: 12, y: 5 }, { x: 12, y: 19 }],
+  'arrow-left': [{ x: 19, y: 12 }, { x: 5, y: 12 }, { x: 12, y: 19 }, { x: 12, y: 5 }],
+  'arrow-up': [{ x: 12, y: 19 }, { x: 12, y: 5 }, { x: 5, y: 12 }, { x: 19, y: 12 }],
+  'arrow-down': [{ x: 12, y: 5 }, { x: 12, y: 19 }, { x: 5, y: 12 }, { x: 19, y: 12 }],
+  'chevron-down': [{ x: 6, y: 9 }, { x: 12, y: 15 }, { x: 18, y: 9 }],
+  'chevron-up': [{ x: 18, y: 15 }, { x: 12, y: 9 }, { x: 6, y: 15 }],
+  'chevron-left': [{ x: 15, y: 18 }, { x: 9, y: 12 }, { x: 15, y: 6 }],
+  'chevron-right': [{ x: 9, y: 18 }, { x: 15, y: 12 }, { x: 9, y: 6 }],
+  search: [{ x: 11, y: 11 }, { x: 21, y: 21 }, { x: 11, y: 11 }, { x: 11, y: 8 }, { x: 8, y: 8 }, { x: 8, y: 11 }, { x: 11, y: 11 }],
+  settings: [{ x: 12, y: 12 }, { x: 12, y: 12 }, { x: 19, y: 12 }, { x: 19, y: 12 }, { x: 12, y: 5 }, { x: 12, y: 5 }, { x: 5, y: 12 }, { x: 5, y: 12 }],
+  user: [{ x: 20, y: 21 }, { x: 20, y: 21 }, { x: 16, y: 16 }, { x: 12, y: 12 }, { x: 8, y: 16 }, { x: 4, y: 21 }, { x: 4, y: 21 }],
+  heart: [{ x: 20, y: 8 }, { x: 20, y: 8 }, { x: 12, y: 8 }, { x: 4, y: 8 }, { x: 4, y: 8 }, { x: 12, y: 21 }, { x: 20, y: 8 }],
+  star: [{ x: 12, y: 2 }, { x: 15, y: 8 }, { x: 22, y: 8 }, { x: 17, y: 13 }, { x: 19, y: 20 }, { x: 12, y: 16 }, { x: 5, y: 20 }, { x: 7, y: 13 }, { x: 2, y: 8 }, { x: 9, y: 8 }, { x: 12, y: 2 }],
+  bell: [{ x: 18, y: 8 }, { x: 18, y: 8 }, { x: 6, y: 8 }, { x: 6, y: 8 }, { x: 6, y: 8 }, { x: 18, y: 8 }, { x: 16, y: 16 }, { x: 8, y: 16 }, { x: 18, y: 8 }, { x: 12, y: 2 }, { x: 6, y: 8 }],
+  mail: [{ x: 4, y: 4 }, { x: 20, y: 4 }, { x: 20, y: 20 }, { x: 4, y: 20 }, { x: 4, y: 4 }, { x: 4, y: 4 }, { x: 12, y: 13 }, { x: 20, y: 4 }],
+  phone: [{ x: 22, y: 16 }, { x: 22, y: 16 }, { x: 16, y: 16 }, { x: 13, y: 13 }, { x: 13, y: 13 }, { x: 11, y: 11 }, { x: 11, y: 11 }, { x: 8, y: 8 }, { x: 2, y: 8 }, { x: 2, y: 8 }],
+  calendar: [{ x: 3, y: 4 }, { x: 21, y: 4 }, { x: 21, y: 20 }, { x: 3, y: 20 }, { x: 3, y: 4 }, { x: 3, y: 4 }, { x: 8, y: 2 }, { x: 8, y: 6 }, { x: 16, y: 2 }, { x: 16, y: 6 }],
+  clock: [{ x: 12, y: 12 }, { x: 12, y: 12 }, { x: 12, y: 6 }, { x: 12, y: 6 }, { x: 12, y: 12 }, { x: 16, y: 12 }, { x: 12, y: 12 }],
+  home: [{ x: 3, y: 12 }, { x: 12, y: 3 }, { x: 21, y: 12 }, { x: 5, y: 12 }, { x: 5, y: 21 }, { x: 19, y: 21 }, { x: 19, y: 12 }],
+  menu: [{ x: 3, y: 6 }, { x: 21, y: 6 }, { x: 3, y: 12 }, { x: 21, y: 12 }, { x: 3, y: 18 }, { x: 21, y: 18 }],
+  share: [{ x: 4, y: 12 }, { x: 4, y: 12 }, { x: 12, y: 20 }, { x: 12, y: 20 }, { x: 12, y: 20 }, { x: 20, y: 12 }, { x: 20, y: 12 }, { x: 12, y: 4 }, { x: 12, y: 4 }, { x: 12, y: 4 }, { x: 4, y: 12 }],
+  download: [{ x: 12, y: 3 }, { x: 12, y: 15 }, { x: 7, y: 10 }, { x: 12, y: 15 }, { x: 17, y: 10 }, { x: 4, y: 21 }, { x: 20, y: 21 }],
+  upload: [{ x: 12, y: 21 }, { x: 12, y: 9 }, { x: 7, y: 14 }, { x: 12, y: 9 }, { x: 17, y: 14 }, { x: 4, y: 3 }, { x: 20, y: 3 }],
+  edit: [{ x: 12, y: 20 }, { x: 9, y: 20 }, { x: 9, y: 20 }, { x: 5, y: 16 }, { x: 5, y: 16 }, { x: 16, y: 5 }, { x: 16, y: 5 }, { x: 19, y: 8 }, { x: 19, y: 8 }, { x: 8, y: 19 }],
+  trash: [{ x: 3, y: 6 }, { x: 21, y: 6 }, { x: 8, y: 6 }, { x: 8, y: 6 }, { x: 8, y: 6 }, { x: 16, y: 6 }, { x: 16, y: 6 }, { x: 19, y: 6 }, { x: 19, y: 6 }, { x: 18, y: 20 }, { x: 6, y: 20 }, { x: 6, y: 6 }],
+  copy: [{ x: 9, y: 9 }, { x: 9, y: 9 }, { x: 9, y: 21 }, { x: 9, y: 21 }, { x: 9, y: 21 }, { x: 21, y: 21 }, { x: 21, y: 21 }, { x: 21, y: 9 }, { x: 21, y: 9 }, { x: 9, y: 9 }, { x: 9, y: 9 }, { x: 4, y: 4 }, { x: 4, y: 4 }, { x: 4, y: 16 }],
+  lock: [{ x: 5, y: 11 }, { x: 5, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 5, y: 11 }, { x: 5, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 11 }],
+  unlock: [{ x: 5, y: 11 }, { x: 5, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 5, y: 11 }, { x: 5, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 4 }],
+  eye: [{ x: 2, y: 12 }, { x: 12, y: 12 }, { x: 22, y: 12 }, { x: 12, y: 12 }, { x: 2, y: 12 }, { x: 12, y: 5 }, { x: 12, y: 5 }, { x: 19, y: 12 }, { x: 19, y: 12 }, { x: 12, y: 19 }, { x: 12, y: 19 }, { x: 5, y: 12 }],
+  'eye-off': [{ x: 2, y: 2 }, { x: 2, y: 2 }, { x: 22, y: 22 }, { x: 9, y: 9 }, { x: 9, y: 9 }, { x: 15, y: 15 }, { x: 15, y: 15 }, { x: 2, y: 12 }, { x: 12, y: 12 }, { x: 22, y: 12 }],
+};
 
 // ---- Tool factory -----------------------------------------------------------
 
@@ -1344,6 +1446,1000 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     },
   });
 
+  // =====================================================================
+  // PHASE 1a: TOKEN BINDING (4 tools)
+  // Closes the half-wired tokenBinding loop — apply_palette's bindToTokens
+  // flag created tokens without binding them; these tools let the agent
+  // explicitly bind/unbind shapes to tokens.
+  // =====================================================================
+
+  const bindShapeToToken = defineTool({
+    name: 'canvas_bind_shape_to_token',
+    label: 'Bind Shape to Token',
+    description:
+      'Bind a shape property (fill, stroke, or textColor) to a named design token. ' +
+      'When the token value changes, the bound property auto-updates. ' +
+      'Use this after canvas_update_tokens or canvas_apply_palette to create a live link.',
+    promptSnippet: 'Bind a shape property to a design token (live link).',
+    promptGuidelines: [
+      'The tokenKey must match a key in the document\'s color tokens. Call canvas_list_tokens to see available keys.',
+      'Binding fill: the shape\'s fill is set to the token value immediately and re-computed on token changes.',
+    ],
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'ID of the shape to bind' }),
+      tokenKey: Type.String({ description: 'Token key (e.g. "bg.primary", "accent")' }),
+      property: Type.Union(
+        [Type.Literal('fill'), Type.Literal('stroke'), Type.Literal('textColor')],
+        { description: 'Which property to bind' },
+      ),
+    }),
+    async execute(toolCallId, params) {
+      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      if (!shape) {
+        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found', shapeId: params.shapeId }, isError: true as any };
+      }
+      const token = ctx.getTokens().colors.find((c) => c.key === params.tokenKey);
+      if (!token) {
+        return { content: [{ type: 'text', text: `Error: no color token with key "${params.tokenKey}"` }], details: { error: 'token_not_found', tokenKey: params.tokenKey }, isError: true as any };
+      }
+      const binding = { ...(shape.tokenBinding ?? {}) };
+      if (params.property === 'fill') { binding.fillToken = params.tokenKey; }
+      else if (params.property === 'stroke') { binding.strokeToken = params.tokenKey; }
+      else { binding.textToken = params.tokenKey; }
+      const changes: Partial<Shape> = { tokenBinding: binding };
+      if (params.property === 'fill') changes.fill = token.value;
+      else if (params.property === 'stroke') changes.stroke = token.value;
+      else changes.textColor = token.value;
+      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: changes, summary: `Bound ${params.property} to token "${params.tokenKey}"` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Bound ${shape.name}.${params.property} to token "${params.tokenKey}" (${token.value}).` }], details: { shapeId: params.shapeId, tokenKey: params.tokenKey, property: params.property, patch } };
+    },
+  });
+
+  const unbindShape = defineTool({
+    name: 'canvas_unbind_shape',
+    label: 'Unbind Shape from Token',
+    description: 'Remove a token binding from a shape property. The shape keeps its current color value but will no longer auto-update when the token changes.',
+    promptSnippet: 'Remove a token binding from a shape.',
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'ID of the shape to unbind' }),
+      property: Type.Union(
+        [Type.Literal('fill'), Type.Literal('stroke'), Type.Literal('textColor')],
+        { description: 'Which property to unbind' },
+      ),
+    }),
+    async execute(toolCallId, params) {
+      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      if (!shape) {
+        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+      }
+      const binding = { ...(shape.tokenBinding ?? {}) };
+      if (params.property === 'fill') delete binding.fillToken;
+      else if (params.property === 'stroke') delete binding.strokeToken;
+      else delete binding.textToken;
+      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: { tokenBinding: Object.keys(binding).length === 0 ? null : binding }, summary: `Unbound ${params.property} from token` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Unbound ${shape.name}.${params.property}.` }], details: { shapeId: params.shapeId, property: params.property, patch } };
+    },
+  });
+
+  const listTokens = defineTool({
+    name: 'canvas_list_tokens',
+    label: 'List Design Tokens',
+    description: 'List all design tokens (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before canvas_bind_shape_to_token to see available token keys.',
+    promptSnippet: 'List all design tokens (colors + text styles).',
+    parameters: Type.Object({}),
+    async execute(toolCallId) {
+      const tokens = ctx.getTokens();
+      const colorLines = tokens.colors.map((c) => `  ${c.key.padEnd(20)} ${c.value}  (${c.name})`);
+      const textLines = tokens.textStyles.map((t) => `  ${t.key.padEnd(20)} ${t.fontSize}px/${t.fontWeight}  ${t.color}  (${t.name})`);
+      const report = `=== Color Tokens (${tokens.colors.length}) ===\n${colorLines.join('\n') || '  (none)'}\n\n=== Text Style Tokens (${tokens.textStyles.length}) ===\n${textLines.join('\n') || '  (none)'}`;
+      return { content: [{ type: 'text', text: report }], details: { colorCount: tokens.colors.length, textStyleCount: tokens.textStyles.length } };
+    },
+  });
+
+  const applyToken = defineTool({
+    name: 'canvas_apply_token',
+    label: 'Apply Token to Shapes',
+    description: 'Apply a design token\'s value to one or more shapes. Optionally also bind the shapes to the token (live link). ' +
+      'This is the batch version of canvas_bind_shape_to_token.',
+    promptSnippet: 'Apply a token value to multiple shapes at once.',
+    parameters: Type.Object({
+      shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to apply the token to' }),
+      tokenKey: Type.String({ description: 'Token key to apply' }),
+      property: Type.Union(
+        [Type.Literal('fill'), Type.Literal('stroke'), Type.Literal('textColor')],
+        { description: 'Which property to set' },
+      ),
+      bind: Type.Optional(Type.Boolean({ description: 'If true, also create a live binding (default false)' })),
+    }),
+    async execute(toolCallId, params) {
+      const token = ctx.getTokens().colors.find((c) => c.key === params.tokenKey);
+      if (!token) {
+        return { content: [{ type: 'text', text: `Error: no color token with key "${params.tokenKey}"` }], details: { error: 'token_not_found' }, isError: true as any };
+      }
+      const shapes = ctx.getShapes();
+      const updates = params.shapeIds
+        .map((id) => shapes.find((s) => s.id === id))
+        .filter((s): s is Shape => !!s)
+        .map((s) => {
+          const changes: Partial<Shape> = {};
+          if (params.property === 'fill') changes.fill = token.value;
+          else if (params.property === 'stroke') changes.stroke = token.value;
+          else changes.textColor = token.value;
+          if (params.bind) {
+            const binding = { ...(s.tokenBinding ?? {}) };
+            if (params.property === 'fill') binding.fillToken = params.tokenKey;
+            else if (params.property === 'stroke') binding.strokeToken = params.tokenKey;
+            else binding.textToken = params.tokenKey;
+            changes.tokenBinding = binding;
+          }
+          return { id: s.id, changes };
+        });
+      if (updates.length === 0) {
+        return { content: [{ type: 'text', text: 'No matching shapes found.' }], details: { error: 'not_found' }, isError: true as any };
+      }
+      const patch: CanvasPatch = { op: 'update_many', updates, summary: `Applied token "${params.tokenKey}" to ${updates.length} shape(s)${params.bind ? ' (bound)' : ''}` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Applied token "${params.tokenKey}" (${token.value}) to ${updates.length} shape(s).` }], details: { count: updates.length, tokenKey: params.tokenKey, patch } };
+    },
+  });
+
+  // =====================================================================
+  // PHASE 1b: LOCK & VISIBILITY (2 tools)
+  // The `locked` and `visible` fields exist on Shape but no tool touched
+  // them. These tools make them agent-accessible.
+  // =====================================================================
+
+  const setLocked = defineTool({
+    name: 'canvas_set_locked',
+    label: 'Lock / Unlock Shapes',
+    description: 'Lock or unlock one or more shapes. Locked shapes cannot be moved or resized by direct manipulation (but can still be updated via tools).',
+    promptSnippet: 'Lock or unlock shapes.',
+    parameters: Type.Object({
+      shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to lock/unlock' }),
+      locked: Type.Boolean({ description: 'true to lock, false to unlock' }),
+    }),
+    async execute(toolCallId, params) {
+      const updates = params.shapeIds.map((id) => ({ id, changes: { locked: params.locked } as Partial<Shape> }));
+      const patch: CanvasPatch = { op: 'update_many', updates, summary: `${params.locked ? 'Locked' : 'Unlocked'} ${params.shapeIds.length} shape(s)` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `${params.locked ? 'Locked' : 'Unlocked'} ${params.shapeIds.length} shape(s).` }], details: { count: params.shapeIds.length, locked: params.locked, patch } };
+    },
+  });
+
+  const setVisible = defineTool({
+    name: 'canvas_set_visible',
+    label: 'Show / Hide Shapes',
+    description: 'Show or hide one or more shapes. Hidden shapes are not rendered but remain in the document. Useful for creating alternative states or simplifying a complex canvas.',
+    promptSnippet: 'Show or hide shapes.',
+    parameters: Type.Object({
+      shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to show/hide' }),
+      visible: Type.Boolean({ description: 'true to show, false to hide' }),
+    }),
+    async execute(toolCallId, params) {
+      const updates = params.shapeIds.map((id) => ({ id, changes: { visible: params.visible } as Partial<Shape> }));
+      const patch: CanvasPatch = { op: 'update_many', updates, summary: `${params.visible ? 'Showed' : 'Hid'} ${params.shapeIds.length} shape(s)` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `${params.visible ? 'Showed' : 'Hid'} ${params.shapeIds.length} shape(s).` }], details: { count: params.shapeIds.length, visible: params.visible, patch } };
+    },
+  });
+
+  // =====================================================================
+  // PHASE 1c: Z-ORDER (4 tools)
+  // Currently zIndex is only set at creation or via organize_layers.
+  // These tools let the agent reorder individual shapes.
+  // =====================================================================
+
+  const bringToFront = defineTool({
+    name: 'canvas_bring_to_front',
+    label: 'Bring to Front',
+    description: 'Move one or more shapes to the top of the z-order (above all other shapes).',
+    promptSnippet: 'Bring shapes to the front of the z-order.',
+    parameters: Type.Object({
+      shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to bring to front' }),
+    }),
+    async execute(toolCallId, params) {
+      const patch: CanvasPatch = { op: 'zorder', shapeIds: params.shapeIds, zorderKind: 'front', summary: `Brought ${params.shapeIds.length} shape(s) to front` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Brought ${params.shapeIds.length} shape(s) to front.` }], details: { count: params.shapeIds.length, patch } };
+    },
+  });
+
+  const sendToBack = defineTool({
+    name: 'canvas_send_to_back',
+    label: 'Send to Back',
+    description: 'Move one or more shapes to the bottom of the z-order (below all other shapes).',
+    promptSnippet: 'Send shapes to the back of the z-order.',
+    parameters: Type.Object({
+      shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to send to back' }),
+    }),
+    async execute(toolCallId, params) {
+      const patch: CanvasPatch = { op: 'zorder', shapeIds: params.shapeIds, zorderKind: 'back', summary: `Sent ${params.shapeIds.length} shape(s) to back` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Sent ${params.shapeIds.length} shape(s) to back.` }], details: { count: params.shapeIds.length, patch } };
+    },
+  });
+
+  const moveForward = defineTool({
+    name: 'canvas_move_forward',
+    label: 'Move Forward',
+    description: 'Move a shape one level forward (above its current neighbor).',
+    promptSnippet: 'Move a shape one level up in the z-order.',
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'Shape ID to move forward' }),
+    }),
+    async execute(toolCallId, params) {
+      const patch: CanvasPatch = { op: 'zorder', shapeIds: [params.shapeId], zorderKind: 'forward', summary: 'Moved shape forward' };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: 'Moved shape forward.' }], details: { shapeId: params.shapeId, patch } };
+    },
+  });
+
+  const moveBackward = defineTool({
+    name: 'canvas_move_backward',
+    label: 'Move Backward',
+    description: 'Move a shape one level backward (below its current neighbor).',
+    promptSnippet: 'Move a shape one level down in the z-order.',
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'Shape ID to move backward' }),
+    }),
+    async execute(toolCallId, params) {
+      const patch: CanvasPatch = { op: 'zorder', shapeIds: [params.shapeId], zorderKind: 'backward', summary: 'Moved shape backward' };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: 'Moved shape backward.' }], details: { shapeId: params.shapeId, patch } };
+    },
+  });
+
+  const reorderShape = defineTool({
+    name: 'canvas_reorder_shape',
+    label: 'Reorder Shape',
+    description: 'Move a shape to a specific z-index position. Other shapes shift to make room.',
+    promptSnippet: 'Move a shape to a specific z-index.',
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'Shape ID to reorder' }),
+      zIndex: Type.Number({ description: 'Target z-index (0 = bottom)' }),
+    }),
+    async execute(toolCallId, params) {
+      const patch: CanvasPatch = { op: 'reorder', shapeId: params.shapeId, zIndex: params.zIndex, summary: `Moved shape to z-index ${params.zIndex}` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Moved shape to z-index ${params.zIndex}.` }], details: { shapeId: params.shapeId, zIndex: params.zIndex, patch } };
+    },
+  });
+
+  // =====================================================================
+  // PHASE 2a: UNDO / REDO (2 tools)
+  // Emits special 'undo' / 'redo' patches. The canvas store intercepts
+  // these (it maintains the undo/redo stacks client-side). The server-side
+  // patch applier is a no-op for these ops.
+  // =====================================================================
+
+  const undoCanvas = defineTool({
+    name: 'canvas_undo',
+    label: 'Undo',
+    description: 'Undo the last canvas change. Can be called multiple times to undo further back. ' +
+      'NOTE: this only affects the local (client) canvas state — it does not reverse agent tool calls in the chat history.',
+    promptSnippet: 'Undo the last canvas change.',
+    parameters: Type.Object({}),
+    async execute(toolCallId) {
+      const patch: CanvasPatch = { op: 'undo' as any, summary: 'Undo' };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: 'Undid the last canvas change.' }], details: { patch } };
+    },
+  });
+
+  const redoCanvas = defineTool({
+    name: 'canvas_redo',
+    label: 'Redo',
+    description: 'Redo a previously undone canvas change. Can be called multiple times.',
+    promptSnippet: 'Redo a previously undone change.',
+    parameters: Type.Object({}),
+    async execute(toolCallId) {
+      const patch: CanvasPatch = { op: 'redo' as any, summary: 'Redo' };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: 'Redid the last undone change.' }], details: { patch } };
+    },
+  });
+
+  // =====================================================================
+  // PHASE 2b: EXPORT (4 tools)
+  // Serialize the canvas to JSON, SVG, or code. The agent returns the
+  // exported content as text in the tool result — the user can copy it
+  // from the chat.
+  // =====================================================================
+
+  const exportJson = defineTool({
+    name: 'canvas_export_json',
+    label: 'Export as JSON',
+    description: 'Export the full canvas document as a JSON string. Includes all shapes, tokens, background, and viewport. Useful for backup or migration.',
+    promptSnippet: 'Export the canvas as JSON.',
+    parameters: Type.Object({}),
+    async execute(toolCallId) {
+      const doc = ctx.getDocument?.() ?? { shapes: ctx.getShapes(), tokens: ctx.getTokens() };
+      const json = JSON.stringify(doc, null, 2);
+      return { content: [{ type: 'text', text: `Canvas JSON (${json.length} chars):\n\`\`\`json\n${json.slice(0, 4000)}${json.length > 4000 ? '\n... (truncated, see full output in details)' : ''}\n\`\`\`` }], details: { json, charCount: json.length } };
+    },
+  });
+
+  const exportSvg = defineTool({
+    name: 'canvas_export_svg',
+    label: 'Export as SVG',
+    description: 'Export the canvas as an SVG string. Each shape is rendered as its SVG element. Useful for embedding in documents or converting to PNG.',
+    promptSnippet: 'Export the canvas as SVG.',
+    parameters: Type.Object({
+      frameId: Type.Optional(Type.String({ description: 'If provided, export only shapes inside this frame' })),
+    }),
+    async execute(toolCallId, params) {
+      const allShapes = ctx.getShapes();
+      let shapes = allShapes;
+      if (params.frameId) {
+        const frame = allShapes.find((s) => s.id === params.frameId);
+        if (frame) {
+          // Export shapes whose bounding box is inside the frame.
+          shapes = allShapes.filter((s) =>
+            s.id !== params.frameId &&
+            s.x >= frame.x && s.y >= frame.y &&
+            s.x + s.width <= frame.x + frame.width &&
+            s.y + s.height <= frame.y + frame.height,
+          );
+        }
+      }
+      // Compute bounding box.
+      if (shapes.length === 0) {
+        return { content: [{ type: 'text', text: 'No shapes to export.' }], details: { error: 'empty' } };
+      }
+      const minX = Math.min(...shapes.map((s) => s.x));
+      const minY = Math.min(...shapes.map((s) => s.y));
+      const maxX = Math.max(...shapes.map((s) => s.x + s.width));
+      const maxY = Math.max(...shapes.map((s) => s.y + s.height));
+      const w = maxX - minX;
+      const h = maxY - minY;
+      // Build SVG elements.
+      const els = shapes.map((s) => {
+        const rx = s.x - minX;
+        const ry = s.y - minY;
+        const stroke = s.strokeWidth > 0 ? ` stroke="${s.stroke}" stroke-width="${s.strokeWidth}"` : '';
+        switch (s.type) {
+          case 'rectangle':
+          case 'frame':
+            return `  <rect x="${rx}" y="${ry}" width="${s.width}" height="${s.height}" rx="${s.radius}" fill="${s.fill}"${stroke}/>`;
+          case 'ellipse':
+            return `  <ellipse cx="${rx + s.width / 2}" cy="${ry + s.height / 2}" rx="${s.width / 2}" ry="${s.height / 2}" fill="${s.fill}"${stroke}/>`;
+          case 'line':
+            return `  <line x1="${rx}" y1="${ry}" x2="${rx + s.width}" y2="${ry + s.height}" stroke="${s.fill}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round"/>`;
+          case 'text':
+            return `  <text x="${rx}" y="${ry + s.fontSize}" font-size="${s.fontSize}" fill="${s.textColor}" font-family="Inter, sans-serif">${escapeXml(s.text ?? '')}</text>`;
+          case 'path':
+            if (!s.points || s.points.length === 0) return '';
+            const pts = s.points.map((p) => `${p.x - minX},${p.y - minY}`).join(' ');
+            return s.closed
+              ? `  <polygon points="${pts}" fill="${s.fill}"${stroke}/>`
+              : `  <polyline points="${pts}" fill="none" stroke="${s.stroke}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+          case 'image':
+            return `  <image x="${rx}" y="${ry}" width="${s.width}" height="${s.height}" href="${s.src ?? ''}"/>`;
+          default:
+            return '';
+        }
+      }).filter(Boolean).join('\n');
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n${els}\n</svg>`;
+      return { content: [{ type: 'text', text: `SVG exported (${w}×${h}, ${shapes.length} shapes). Length: ${svg.length} chars.\n\`\`\`svg\n${svg.slice(0, 4000)}${svg.length > 4000 ? '\n... (truncated)' : ''}\n\`\`\`` }], details: { svg, width: w, height: h, shapeCount: shapes.length } };
+    },
+  });
+
+  const exportPng = defineTool({
+    name: 'canvas_export_png',
+    label: 'Export as PNG (data URL)',
+    description: 'Export the canvas as an SVG data URL that can be used in <img> tags or downloaded. ' +
+      'True PNG rasterization requires a browser; this tool returns an SVG data URL which any browser can render and convert to PNG.',
+    promptSnippet: 'Export the canvas as an image data URL.',
+    parameters: Type.Object({
+      frameId: Type.Optional(Type.String({ description: 'If provided, export only shapes inside this frame' })),
+    }),
+    async execute(toolCallId, params) {
+      const allShapes = ctx.getShapes();
+      let shapes = allShapes;
+      if (params.frameId) {
+        const frame = allShapes.find((s) => s.id === params.frameId);
+        if (frame) {
+          shapes = allShapes.filter((s) =>
+            s.id !== params.frameId &&
+            s.x >= frame.x && s.y >= frame.y &&
+            s.x + s.width <= frame.x + frame.width &&
+            s.y + s.height <= frame.y + frame.height,
+          );
+        }
+      }
+      if (shapes.length === 0) {
+        return { content: [{ type: 'text', text: 'No shapes to export.' }], details: { error: 'empty' } };
+      }
+      const minX = Math.min(...shapes.map((s) => s.x));
+      const minY = Math.min(...shapes.map((s) => s.y));
+      const maxX = Math.max(...shapes.map((s) => s.x + s.width));
+      const maxY = Math.max(...shapes.map((s) => s.y + s.height));
+      const w = maxX - minX;
+      const h = maxY - minY;
+      const els = shapes.map((s) => {
+        const rx = s.x - minX;
+        const ry = s.y - minY;
+        const stroke = s.strokeWidth > 0 ? ` stroke="${s.stroke}" stroke-width="${s.strokeWidth}"` : '';
+        switch (s.type) {
+          case 'rectangle': case 'frame':
+            return `<rect x="${rx}" y="${ry}" width="${s.width}" height="${s.height}" rx="${s.radius}" fill="${s.fill}"${stroke}/>`;
+          case 'ellipse':
+            return `<ellipse cx="${rx + s.width / 2}" cy="${ry + s.height / 2}" rx="${s.width / 2}" ry="${s.height / 2}" fill="${s.fill}"${stroke}/>`;
+          case 'line':
+            return `<line x1="${rx}" y1="${ry}" x2="${rx + s.width}" y2="${ry + s.height}" stroke="${s.fill}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round"/>`;
+          case 'text':
+            return `<text x="${rx}" y="${ry + s.fontSize}" font-size="${s.fontSize}" fill="${s.textColor}" font-family="Inter, sans-serif">${escapeXml(s.text ?? '')}</text>`;
+          default: return '';
+        }
+      }).join('');
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${els}</svg>`;
+      const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+      return { content: [{ type: 'text', text: `Exported as SVG data URL (${w}×${h}, ${shapes.length} shapes). Length: ${dataUrl.length} chars. Use in an <img src="..."> tag.` }], details: { dataUrl, width: w, height: h, shapeCount: shapes.length } };
+    },
+  });
+
+  const copyAsCode = defineTool({
+    name: 'canvas_copy_as_code',
+    label: 'Copy as Code',
+    description: 'Generate HTML + Tailwind CSS code from the canvas shapes. Useful for handoff to developers. ' +
+      'Each shape becomes a positioned div; text shapes become <span> elements. ' +
+      'Supports: html (standalone HTML), react (JSX component), tailwind (Tailwind classes).',
+    promptSnippet: 'Generate HTML/React/Tailwind code from the canvas.',
+    parameters: Type.Object({
+      frameId: Type.Optional(Type.String({ description: 'If provided, export only shapes inside this frame' })),
+      framework: Type.Union(
+        [Type.Literal('html'), Type.Literal('react'), Type.Literal('tailwind')],
+        { description: 'Output format' },
+      ),
+    }),
+    async execute(toolCallId, params) {
+      const allShapes = ctx.getShapes();
+      let shapes = allShapes;
+      if (params.frameId) {
+        const frame = allShapes.find((s) => s.id === params.frameId);
+        if (frame) {
+          shapes = allShapes.filter((s) => s.id !== params.frameId && s.x >= frame.x && s.y >= frame.y && s.x + s.width <= frame.x + frame.width && s.y + s.height <= frame.y + frame.height);
+        }
+      }
+      if (shapes.length === 0) {
+        return { content: [{ type: 'text', text: 'No shapes to export.' }], details: { error: 'empty' } };
+      }
+      const minX = Math.min(...shapes.map((s) => s.x));
+      const minY = Math.min(...shapes.map((s) => s.y));
+      const els = shapes.map((s) => {
+        const x = Math.round(s.x - minX);
+        const y = Math.round(s.y - minY);
+        const w = Math.round(s.width);
+        const h = Math.round(s.height);
+        if (s.type === 'text') {
+          const fs = Math.round(s.fontSize);
+          return `    <span style="position:absolute;left:${x}px;top:${y}px;font-size:${fs}px;color:${s.textColor};font-family:Inter,sans-serif">${escapeHtml(s.text ?? '')}</span>`;
+        }
+        const r = Math.round(s.radius);
+        const radius = r > 0 ? `;border-radius:${r}px` : '';
+        const stroke = s.strokeWidth > 0 ? `;border:${s.strokeWidth}px solid ${s.stroke}` : '';
+        return `    <div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${s.fill}${radius}${stroke}"></div>`;
+      }).join('\n');
+      const totalW = Math.max(...shapes.map((s) => s.x + s.width)) - minX;
+      const totalH = Math.max(...shapes.map((s) => s.y + s.height)) - minY;
+      let code: string;
+      if (params.framework === 'react') {
+        code = `export function CanvasExport() {\n  return (\n    <div style={{ position: 'relative', width: ${Math.round(totalW)}, height: ${Math.round(totalH)} }}>\n${els}\n    </div>\n  );\n}`;
+      } else {
+        code = `<div style="position:relative;width:${Math.round(totalW)}px;height:${Math.round(totalH)}px">\n${els}\n</div>`;
+      }
+      return { content: [{ type: 'text', text: `Generated ${params.framework} code (${shapes.length} shapes, ${Math.round(totalW)}×${Math.round(totalH)}):\n\`\`\`${params.framework === 'react' ? 'tsx' : 'html'}\n${code}\n\`\`\`` }], details: { code, framework: params.framework, shapeCount: shapes.length } };
+    },
+  });
+
+  // =====================================================================
+  // PHASE 2c: FIND & FILTER (3 tools)
+  // Lets the agent query and bulk-transform shapes without first calling
+  // canvas_list_shapes and filtering client-side.
+  // =====================================================================
+
+  const findShapes = defineTool({
+    name: 'canvas_find_shapes',
+    label: 'Find Shapes',
+    description: 'Find shapes matching a filter. Returns shape IDs and a summary. Read-only. ' +
+      'Use this to bulk-select shapes by type, color, name, or parent. ' +
+      'Example: find all ellipses, find all shapes with fill #ff0000, find all children of a frame.',
+    promptSnippet: 'Find shapes by type/color/name/parent.',
+    parameters: Type.Object({
+      type: Type.Optional(ShapeTypeSchema),
+      fill: Type.Optional(Type.String({ description: 'Filter by exact fill color' })),
+      nameContains: Type.Optional(Type.String({ description: 'Filter by name (substring match)' })),
+      parentId: Type.Optional(Type.String({ description: 'Filter by parent shape ID' })),
+    }),
+    async execute(toolCallId, params) {
+      let results = ctx.getShapes();
+      if (params.type) results = results.filter((s) => s.type === params.type);
+      if (params.fill) results = results.filter((s) => s.fill === params.fill);
+      if (params.nameContains) results = results.filter((s) => s.name.toLowerCase().includes(params.nameContains!.toLowerCase()));
+      if (params.parentId) results = results.filter((s) => s.parentId === params.parentId);
+      const lines = results.map((s) => `  ${s.id}  ${s.type.padEnd(10)} "${s.name}"  (${Math.round(s.x)},${Math.round(s.y)}) ${Math.round(s.width)}×${Math.round(s.height)} fill=${s.fill}`);
+      const report = `Found ${results.length} shape(s):\n${lines.join('\n') || '  (none)'}`;
+      return { content: [{ type: 'text', text: report }], details: { count: results.length, shapeIds: results.map((s) => s.id) } };
+    },
+  });
+
+  const bulkUpdateByFilter = defineTool({
+    name: 'canvas_bulk_update_by_filter',
+    label: 'Bulk Update by Filter',
+    description: 'Update all shapes matching a filter. Combines canvas_find_shapes + canvas_update_shape into one call. ' +
+      'Example: "make all ellipses red" → filter type=ellipse, changes fill=#ff0000.',
+    promptSnippet: 'Update all shapes matching a filter in one call.',
+    parameters: Type.Object({
+      type: Type.Optional(ShapeTypeSchema),
+      fill: Type.Optional(Type.String({ description: 'Filter by current fill color' })),
+      nameContains: Type.Optional(Type.String({ description: 'Filter by name (substring)' })),
+      parentId: Type.Optional(Type.String({ description: 'Filter by parent ID' })),
+      changes: ShapeInputSchema,
+    }),
+    async execute(toolCallId, params) {
+      let matches = ctx.getShapes();
+      if (params.type) matches = matches.filter((s) => s.type === params.type);
+      if (params.fill) matches = matches.filter((s) => s.fill === params.fill);
+      if (params.nameContains) matches = matches.filter((s) => s.name.toLowerCase().includes(params.nameContains!.toLowerCase()));
+      if (params.parentId) matches = matches.filter((s) => s.parentId === params.parentId);
+      if (matches.length === 0) {
+        return { content: [{ type: 'text', text: 'No shapes matched the filter.' }], details: { error: 'no_matches', count: 0 } };
+      }
+      const coerced = coerceShapeInput(params.changes);
+      const updates = matches.map((s) => ({ id: s.id, changes: coerced }));
+      const patch: CanvasPatch = { op: 'update_many', updates, summary: `Bulk-updated ${matches.length} shape(s): ${Object.keys(coerced).join(', ')}` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Updated ${matches.length} shape(s) with ${Object.keys(coerced).join(', ')}.` }], details: { count: matches.length, patch } };
+    },
+  });
+
+  const findReplaceText = defineTool({
+    name: 'canvas_find_replace_text',
+    label: 'Find & Replace Text',
+    description: 'Find and replace text across all text shapes on the canvas. Supports plain string matching. ' +
+      'Example: find "Lorem" replace "Welcome" — updates every text shape containing "Lorem".',
+    promptSnippet: 'Find and replace text in all text shapes.',
+    parameters: Type.Object({
+      find: Type.String({ description: 'Text to find (exact substring match)' }),
+      replace: Type.String({ description: 'Replacement text' }),
+    }),
+    async execute(toolCallId, params) {
+      const textShapes = ctx.getShapes().filter((s) => s.type === 'text' && s.text && s.text.includes(params.find));
+      if (textShapes.length === 0) {
+        return { content: [{ type: 'text', text: `No text shapes containing "${params.find}" found.` }], details: { count: 0 } };
+      }
+      const updates = textShapes.map((s) => ({ id: s.id, changes: { text: s.text!.replace(new RegExp(escapeRegex(params.find), 'g'), params.replace) } as Partial<Shape> }));
+      const patch: CanvasPatch = { op: 'update_many', updates, summary: `Replaced "${params.find}" → "${params.replace}" in ${updates.length} text shape(s)` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Replaced "${params.find}" with "${params.replace}" in ${updates.length} text shape(s).` }], details: { count: updates.length, patch } };
+    },
+  });
+
+  // =====================================================================
+  // PHASE 5a: VECTOR EDITING (3 tools)
+  // create_path: arbitrary polygon / polyline
+  // boolean_op: simplified — creates a group + sets maskId
+  // mask_with: sets maskId on a shape
+  // =====================================================================
+
+  const createPath = defineTool({
+    name: 'canvas_create_path',
+    label: 'Create Path / Polygon',
+    description: 'Create a freeform path shape from a list of points. ' +
+      'If closed=true, the path is filled (polygon); if closed=false, it\'s a stroked polyline. ' +
+      'Points are canvas-space {x, y} coordinates. Minimum 2 points.',
+    promptSnippet: 'Create a path/polyline from points.',
+    parameters: Type.Object({
+      points: Type.Array(Type.Object({ x: Type.Number(), y: Type.Number() }), { description: 'List of {x, y} points (min 2)' }),
+      closed: Type.Optional(Type.Boolean({ description: 'Close the path and fill it (polygon). Default false.' })),
+      name: Type.Optional(Type.String({ description: 'Layer name' })),
+      fill: Type.Optional(Type.String({ description: 'Fill color (closed paths only)' })),
+      stroke: Type.Optional(Type.String({ description: 'Stroke color' })),
+      strokeWidth: Type.Optional(Type.Number({ description: 'Stroke width in px' })),
+    }),
+    async execute(toolCallId, params) {
+      if (!Array.isArray(params.points) || params.points.length < 2) {
+        return { content: [{ type: 'text', text: 'Error: need at least 2 points' }], details: { error: 'invalid_points' }, isError: true as any };
+      }
+      const id = crypto.randomUUID();
+      const pts = params.points.map((p) => ({ x: Number(p.x) || 0, y: Number(p.y) || 0 }));
+      const xs = pts.map((p) => p.x);
+      const ys = pts.map((p) => p.y);
+      const minX = Math.min(...xs);
+      const minY = Math.min(...ys);
+      const maxX = Math.max(...xs);
+      const maxY = Math.max(...ys);
+      const shape: Partial<Shape> = {
+        id,
+        type: 'path',
+        name: params.name ?? 'Path',
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY,
+        fill: params.fill ?? '#e2e8f0',
+        stroke: params.stroke ?? '#0f172a',
+        strokeWidth: params.strokeWidth ?? (params.closed ? 0 : 2),
+        radius: 0,
+        fontSize: 16,
+        textColor: '#0f172a',
+        points: pts,
+        closed: params.closed ?? false,
+        zIndex: ctx.getShapes().length,
+      };
+      const patch: CanvasPatch = { op: 'add', shapeId: id, shape, summary: `Created ${params.closed ? 'polygon' : 'polyline'} with ${pts.length} points` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Created path with id ${id}, ${pts.length} points. Bounding box: (${Math.round(minX)},${Math.round(minY)}) ${Math.round(maxX - minX)}×${Math.round(maxY - minY)}.` }], details: { shapeId: id, pointCount: pts.length, patch } };
+    },
+  });
+
+  const booleanOp = defineTool({
+    name: 'canvas_boolean_op',
+    label: 'Boolean Operation',
+    description: 'Combine two shapes using a boolean operation. ' +
+      'NOTE: this is a simplified implementation — true vector boolean math requires a polygon-clipping library. ' +
+      'union: groups both shapes under a single group with unified fill. ' +
+      'subtract: sets the second shape as a mask (clips the first). ' +
+      'intersect: same as subtract (mask intersection). ' +
+      'exclude: hides the second shape (visual approximation).',
+    promptSnippet: 'Boolean-combine two shapes (union/subtract/intersect/exclude).',
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'Primary shape' }),
+      otherShapeId: Type.String({ description: 'Second shape' }),
+      operation: Type.Union(
+        [Type.Literal('union'), Type.Literal('subtract'), Type.Literal('intersect'), Type.Literal('exclude')],
+        { description: 'Boolean operation' },
+      ),
+    }),
+    async execute(toolCallId, params) {
+      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      const other = ctx.getShapes().find((s) => s.id === params.otherShapeId);
+      if (!shape || !other) {
+        return { content: [{ type: 'text', text: `Error: one or both shapes not found` }], details: { error: 'not_found' }, isError: true as any };
+      }
+      if (params.operation === 'union') {
+        // Group both shapes and unify their fill.
+        const patch: CanvasPatch = { op: 'group', shapeIds: [params.shapeId, params.otherShapeId], groupId: crypto.randomUUID(), summary: `Union: grouped ${shape.name} + ${other.name}` };
+        ctx.applyPatch(patch);
+        return { content: [{ type: 'text', text: `Union: grouped "${shape.name}" and "${other.name}" into a single group.` }], details: { operation: 'union', patch } };
+      }
+      if (params.operation === 'subtract' || params.operation === 'intersect') {
+        // Set maskId on the first shape to the second shape's id.
+        const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: { maskId: params.otherShapeId }, summary: `${params.operation}: masked ${shape.name} with ${other.name}` };
+        ctx.applyPatch(patch);
+        return { content: [{ type: 'text', text: `${params.operation}: set "${other.name}" as a mask on "${shape.name}".` }], details: { operation: params.operation, patch } };
+      }
+      // exclude — hide the second shape (approximation).
+      const patch: CanvasPatch = { op: 'update', shapeId: params.otherShapeId, shape: { visible: false }, summary: `Exclude: hid ${other.name}` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Exclude: hid "${other.name}" (approximation).` }], details: { operation: 'exclude', patch } };
+    },
+  });
+
+  const maskWith = defineTool({
+    name: 'canvas_mask_with',
+    label: 'Mask with Shape',
+    description: 'Clip a shape using another shape as a mask. The mask shape\'s geometry defines the visible region of the target. ' +
+      'To remove a mask, call this with maskId=null (or use canvas_update_shape to clear maskId).',
+    promptSnippet: 'Mask one shape with another.',
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'Shape to be masked (clipped)' }),
+      maskShapeId: Type.Optional(Type.String({ description: 'Shape to use as mask. Omit or set to null to remove the mask.' })),
+    }),
+    async execute(toolCallId, params) {
+      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      if (!shape) {
+        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+      }
+      const maskId = params.maskShapeId ?? null;
+      if (maskId) {
+        const mask = ctx.getShapes().find((s) => s.id === maskId);
+        if (!mask) {
+          return { content: [{ type: 'text', text: `Error: no mask shape with id ${maskId}` }], details: { error: 'mask_not_found' }, isError: true as any };
+        }
+      }
+      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: { maskId }, summary: maskId ? `Masked ${shape.name}` : `Removed mask from ${shape.name}` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: maskId ? `Masked "${shape.name}" with shape ${maskId}.` : `Removed mask from "${shape.name}".` }], details: { shapeId: params.shapeId, maskId, patch } };
+    },
+  });
+
+  // =====================================================================
+  // PHASE 5b: EFFECTS & STYLING (4 tools)
+  // gradient fill, drop shadow, blur, per-corner radii
+  // =====================================================================
+
+  const setGradientFill = defineTool({
+    name: 'canvas_set_gradient_fill',
+    label: 'Set Gradient Fill',
+    description: 'Set a linear or radial gradient fill on a shape. Overrides the solid `fill` color. ' +
+      'Provide 2+ stops (offset 0..1, color hex). For linear, specify angle 0..360 (0=→, 90=↓, 180=←, 270=↑).',
+    promptSnippet: 'Apply a gradient fill to a shape.',
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'Shape ID' }),
+      type: Type.Union([Type.Literal('linear'), Type.Literal('radial')], { description: 'Gradient type' }),
+      angle: Type.Optional(Type.Number({ description: 'Angle in degrees (linear only). Default 90.' })),
+      stops: Type.Array(Type.Object({
+        offset: Type.Number({ description: '0..1' }),
+        color: Type.String({ description: 'Hex color' }),
+      }), { description: 'Color stops (min 2)' }),
+    }),
+    async execute(toolCallId, params) {
+      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      if (!shape) {
+        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+      }
+      if (!Array.isArray(params.stops) || params.stops.length < 2) {
+        return { content: [{ type: 'text', text: 'Error: need at least 2 gradient stops' }], details: { error: 'invalid_stops' }, isError: true as any };
+      }
+      const gradient = {
+        type: params.type === 'radial' ? 'radial' as const : 'linear' as const,
+        angle: params.angle ?? 90,
+        stops: params.stops.map((s) => ({ offset: Number(s.offset) || 0, color: String(s.color) })),
+      };
+      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: { gradient, fill: gradient.stops[0].color }, summary: `Set ${gradient.type} gradient on ${shape.name}` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Set ${gradient.type} gradient (${gradient.stops.length} stops) on "${shape.name}".` }], details: { shapeId: params.shapeId, gradient, patch } };
+    },
+  });
+
+  const setShadow = defineTool({
+    name: 'canvas_set_shadow',
+    label: 'Set Drop Shadow',
+    description: 'Apply a drop shadow to a shape. Set blur=0 and color=transparent to remove. ' +
+      'The shadow is rendered via an SVG filter on the client.',
+    promptSnippet: 'Apply a drop shadow to a shape.',
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'Shape ID' }),
+      x: Type.Number({ description: 'X offset in px' }),
+      y: Type.Number({ description: 'Y offset in px' }),
+      blur: Type.Number({ description: 'Blur radius in px' }),
+      color: Type.String({ description: 'Shadow color (hex, e.g. #00000033 for semi-transparent black)' }),
+      spread: Type.Optional(Type.Number({ description: 'Spread in px (default 0)' })),
+      inset: Type.Optional(Type.Boolean({ description: 'Inset shadow (default false)' })),
+    }),
+    async execute(toolCallId, params) {
+      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      if (!shape) {
+        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+      }
+      const shadow = {
+        x: Number(params.x) || 0,
+        y: Number(params.y) || 0,
+        blur: Number(params.blur) || 0,
+        color: String(params.color),
+        spread: params.spread !== undefined ? Number(params.spread) : 0,
+        inset: !!params.inset,
+      };
+      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: { shadow }, summary: `Set shadow on ${shape.name}` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Set shadow (${shadow.x},${shadow.y}, blur ${shadow.blur}px) on "${shape.name}".` }], details: { shapeId: params.shapeId, shadow, patch } };
+    },
+  });
+
+  const setBlur = defineTool({
+    name: 'canvas_set_blur',
+    label: 'Set Blur',
+    description: 'Apply a Gaussian blur to a shape. Set radius to 0 to remove. Rendered via an SVG filter.',
+    promptSnippet: 'Apply a Gaussian blur to a shape.',
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'Shape ID' }),
+      radius: Type.Number({ description: 'Blur radius in px (0 to remove)' }),
+    }),
+    async execute(toolCallId, params) {
+      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      if (!shape) {
+        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+      }
+      const blur = Math.max(0, Number(params.radius) || 0);
+      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: { blur }, summary: `Set blur ${blur}px on ${shape.name}` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Set blur ${blur}px on "${shape.name}".` }], details: { shapeId: params.shapeId, blur, patch } };
+    },
+  });
+
+  const setCornerRadiusPerCorner = defineTool({
+    name: 'canvas_set_corner_radius_per_corner',
+    label: 'Set Per-Corner Radii',
+    description: 'Set independent border radii for each corner of a rectangle or frame. ' +
+      'Overrides the uniform `radius` property.',
+    promptSnippet: 'Set per-corner border radii on a shape.',
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'Shape ID (rectangle or frame)' }),
+      topLeft: Type.Number({ description: 'Top-left radius in px' }),
+      topRight: Type.Number({ description: 'Top-right radius in px' }),
+      bottomRight: Type.Number({ description: 'Bottom-right radius in px' }),
+      bottomLeft: Type.Number({ description: 'Bottom-left radius in px' }),
+    }),
+    async execute(toolCallId, params) {
+      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      if (!shape) {
+        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+      }
+      if (shape.type !== 'rectangle' && shape.type !== 'frame') {
+        return { content: [{ type: 'text', text: `Error: per-corner radii only apply to rectangle/frame shapes (got ${shape.type})` }], details: { error: 'wrong_type', shapeType: shape.type }, isError: true as any };
+      }
+      const radii = {
+        topLeft: Math.max(0, Number(params.topLeft) || 0),
+        topRight: Math.max(0, Number(params.topRight) || 0),
+        bottomRight: Math.max(0, Number(params.bottomRight) || 0),
+        bottomLeft: Math.max(0, Number(params.bottomLeft) || 0),
+      };
+      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: { radii }, summary: `Set per-corner radii on ${shape.name}` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Set per-corner radii (${radii.topLeft}/${radii.topRight}/${radii.bottomRight}/${radii.bottomLeft}) on "${shape.name}".` }], details: { shapeId: params.shapeId, radii, patch } };
+    },
+  });
+
+  // =====================================================================
+  // PHASE 5c: IMAGE SUPPORT (3 tools)
+  // upload_image, search_icons (Lucide path data), generate_image (placeholder)
+  // =====================================================================
+
+  const uploadImage = defineTool({
+    name: 'canvas_upload_image',
+    label: 'Place Image',
+    description: 'Place an image on the canvas from a data URL or remote URL. ' +
+      'Use this for logos, photos, or any raster image. The image is rendered via an SVG <image> element. ' +
+      'Data URLs (base64) are preferred for persistence; remote URLs may break if the host goes down.',
+    promptSnippet: 'Place an image on the canvas.',
+    parameters: Type.Object({
+      src: Type.String({ description: 'Image source — data URL (data:image/...) or remote URL (https://...)' }),
+      x: Type.Number({ description: 'Canvas-space X' }),
+      y: Type.Number({ description: 'Canvas-space Y' }),
+      width: Type.Optional(Type.Number({ description: 'Display width in px (default: natural width, max 400)' })),
+      height: Type.Optional(Type.Number({ description: 'Display height in px (default: natural height, max 400)' })),
+      name: Type.Optional(Type.String({ description: 'Layer name' })),
+    }),
+    async execute(toolCallId, params) {
+      const id = crypto.randomUUID();
+      const w = Number(params.width) || 200;
+      const h = Number(params.height) || 200;
+      const shape: Partial<Shape> = {
+        id,
+        type: 'image',
+        name: params.name ?? 'Image',
+        x: Number(params.x) || 0,
+        y: Number(params.y) || 0,
+        width: w,
+        height: h,
+        fill: 'transparent',
+        stroke: '#94a3b8',
+        strokeWidth: 0,
+        radius: 0,
+        fontSize: 16,
+        textColor: '#0f172a',
+        src: String(params.src),
+        zIndex: ctx.getShapes().length,
+      };
+      const patch: CanvasPatch = { op: 'add', shapeId: id, shape, summary: `Placed image "${params.name ?? 'Image'}" at (${params.x}, ${params.y})` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Placed image with id ${id} at (${params.x}, ${params.y}), size ${w}×${h}.` }], details: { shapeId: id, patch } };
+    },
+  });
+
+  const searchIcons = defineTool({
+    name: 'canvas_search_icons',
+    label: 'Place Icon',
+    description: 'Place a Lucide icon on the canvas as a path shape. ' +
+      'Renders the icon as a stroked polyline path. ' +
+      'Available icons: check, x, plus, minus, arrow-right, arrow-left, arrow-up, arrow-down, ' +
+      'chevron-down, chevron-up, chevron-left, chevron-right, search, settings, user, heart, ' +
+      'star, bell, mail, phone, calendar, clock, home, menu, share, download, upload, ' +
+      'edit, trash, copy, lock, unlock, eye, eye-off.',
+    promptSnippet: 'Place a Lucide icon on the canvas.',
+    parameters: Type.Object({
+      icon: Type.String({ description: 'Icon name (see description for list)' }),
+      x: Type.Number({ description: 'Canvas-space X' }),
+      y: Type.Number({ description: 'Canvas-space Y' }),
+      size: Type.Optional(Type.Number({ description: 'Icon size in px (default 24)' })),
+      stroke: Type.Optional(Type.String({ description: 'Stroke color (default #0f172a)' })),
+      strokeWidth: Type.Optional(Type.Number({ description: 'Stroke width (default 2)' })),
+    }),
+    async execute(toolCallId, params) {
+      const iconData = LUCIDE_ICONS[params.icon.toLowerCase()];
+      if (!iconData) {
+        const available = Object.keys(LUCIDE_ICONS).join(', ');
+        return { content: [{ type: 'text', text: `Icon "${params.icon}" not found. Available: ${available}` }], details: { error: 'icon_not_found', requested: params.icon, available: Object.keys(LUCIDE_ICONS) }, isError: true as any };
+      }
+      const id = crypto.randomUUID();
+      const sz = Number(params.size) || 24;
+      const sw = params.strokeWidth ?? 2;
+      const sc = params.stroke ?? '#0f172a';
+      // Lucide icons are 24×24 viewBox. Scale to requested size.
+      const scale = sz / 24;
+      const points = iconData.map((p: { x: number; y: number }) => ({ x: (params.x || 0) + p.x * scale, y: (params.y || 0) + p.y * scale }));
+      const shape: Partial<Shape> = {
+        id,
+        type: 'path',
+        name: `Icon: ${params.icon}`,
+        x: params.x || 0,
+        y: params.y || 0,
+        width: sz,
+        height: sz,
+        fill: 'transparent',
+        stroke: sc,
+        strokeWidth: sw,
+        radius: 0,
+        fontSize: 16,
+        textColor: '#0f172a',
+        points,
+        closed: false,
+        zIndex: ctx.getShapes().length,
+      };
+      const patch: CanvasPatch = { op: 'add', shapeId: id, shape, summary: `Placed icon "${params.icon}" at (${params.x}, ${params.y})` };
+      ctx.applyPatch(patch);
+      return { content: [{ type: 'text', text: `Placed icon "${params.icon}" with id ${id} at (${params.x}, ${params.y}), size ${sz}px.` }], details: { shapeId: id, icon: params.icon, patch } };
+    },
+  });
+
+  const generateImage = defineTool({
+    name: 'canvas_generate_image',
+    label: 'Generate Image (placeholder)',
+    description: 'Generate an image from a text prompt and place it on the canvas. ' +
+      'NOTE: in this sandbox, this tool places a placeholder rectangle with the prompt text — ' +
+      'actual AI image generation requires the image-generation API. ' +
+      'The placeholder uses a dashed border so the user knows to replace it.',
+    promptSnippet: 'Generate an image from a prompt and place it.',
+    parameters: Type.Object({
+      prompt: Type.String({ description: 'Image generation prompt' }),
+      x: Type.Number({ description: 'Canvas-space X' }),
+      y: Type.Number({ description: 'Canvas-space Y' }),
+      width: Type.Optional(Type.Number({ description: 'Width in px (default 320)' }),
+      ),
+      height: Type.Optional(Type.Number({ description: 'Height in px (default 200)' }),
+      ),
+    }),
+    async execute(toolCallId, params) {
+      const id = crypto.randomUUID();
+      const w = Number(params.width) || 320;
+      const h = Number(params.height) || 200;
+      // Create a placeholder rectangle with a label.
+      const shape: Partial<Shape> = {
+        id,
+        type: 'rectangle',
+        name: `Generated: ${params.prompt.slice(0, 30)}`,
+        x: Number(params.x) || 0,
+        y: Number(params.y) || 0,
+        width: w,
+        height: h,
+        fill: '#f1f5f9',
+        stroke: '#94a3b8',
+        strokeWidth: 2,
+        radius: 8,
+        fontSize: 13,
+        textColor: '#64748b',
+        zIndex: ctx.getShapes().length,
+      };
+      const patch: CanvasPatch = { op: 'add', shapeId: id, shape, summary: `Placed image placeholder for "${params.prompt.slice(0, 40)}"` };
+      ctx.applyPatch(patch);
+      // Also add a text label.
+      const textId = crypto.randomUUID();
+      const textShape: Partial<Shape> = {
+        id: textId,
+        type: 'text',
+        name: 'Image prompt label',
+        x: (params.x || 0) + 12,
+        y: (params.y || 0) + h / 2,
+        width: w - 24,
+        height: 32,
+        fill: 'transparent',
+        stroke: 'transparent',
+        strokeWidth: 0,
+        radius: 0,
+        fontSize: 13,
+        textColor: '#64748b',
+        text: `AI image: ${params.prompt.slice(0, 50)}`,
+        zIndex: (shape.zIndex ?? 0) + 1,
+      };
+      const textPatch: CanvasPatch = { op: 'add', shapeId: textId, shape: textShape, summary: 'Image prompt label' };
+      ctx.applyPatch(textPatch);
+      return { content: [{ type: 'text', text: `Placed an image placeholder at (${params.x}, ${params.y}), size ${w}×${h}. Prompt: "${params.prompt}". Replace it with canvas_upload_image once you have the generated image.` }], details: { shapeId: id, prompt: params.prompt, patch } };
+    },
+  });
+
   return [
     // Core
     createShape,
@@ -1376,6 +2472,45 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     predictHeatmap,
     generateCopy,
     auditDesign,
+    // Phase 1a: Token binding
+    bindShapeToToken,
+    unbindShape,
+    listTokens,
+    applyToken,
+    // Phase 1b: Lock & visibility
+    setLocked,
+    setVisible,
+    // Phase 1c: Z-order
+    bringToFront,
+    sendToBack,
+    moveForward,
+    moveBackward,
+    reorderShape,
+    // Phase 2a: Undo / redo
+    undoCanvas,
+    redoCanvas,
+    // Phase 2b: Export
+    exportJson,
+    exportSvg,
+    exportPng,
+    copyAsCode,
+    // Phase 2c: Find & filter
+    findShapes,
+    bulkUpdateByFilter,
+    findReplaceText,
+    // Phase 5a: Vector editing
+    createPath,
+    booleanOp,
+    maskWith,
+    // Phase 5b: Effects & styling
+    setGradientFill,
+    setShadow,
+    setBlur,
+    setCornerRadiusPerCorner,
+    // Phase 5c: Image support
+    uploadImage,
+    searchIcons,
+    generateImage,
   ];
 }
 
