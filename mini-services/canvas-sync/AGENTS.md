@@ -22,7 +22,7 @@ The service speaks the same `ClientEvent` / `SyncEvent` unions defined in `src/l
 
 **Client → server (`ClientEvent`)**:
 - `subscribe` `{ documentId }` — join a document's room.
-- `prompt` `{ documentId, prompt }` — start an agent run (the service calls the agent runner directly, not via HTTP).
+- `prompt` `{ documentId, prompt }` — start an agent run (the service calls `/api/agent` via HTTP fetch and relays the streamed events to subscribers).
 - `unsubscribe` `{ documentId }` — leave a room.
 
 **Server → client (`SyncEvent`)**:
@@ -31,12 +31,12 @@ The service speaks the same `ClientEvent` / `SyncEvent` unions defined in `src/l
 ### In-memory state
 - `documents: Map<string, DocState>` where `DocState = { document: CanvasDocument, subscribers: Set<string> }`.
 - On `subscribe`: if the document is not in the map, create an empty one. (In production this would load from Prisma; for the demo, the first subscriber triggers an empty document.)
-- On `prompt`: the service runs the agent runner in-process (imports `runAgent` from `../../src/lib/agent/runner.ts`) and fans out every event to all subscribers.
+- On `prompt`: the service calls `POST /api/agent` via HTTP fetch, streams the response, and fans out every event to all subscribers.
 - Patches are applied to the in-memory document via `applyPatchToCanvas` from `../../src/lib/canvas/patch.ts` — the same pure function the frontend uses.
 
 ### Coupling
 - This service imports from `../../src/lib/canvas/types.ts` and `../../src/lib/canvas/patch.ts`. Changes to those files affect this service.
-- This service imports from `../../src/lib/agent/runner.ts` to run the agent. Changes to the runner affect this service.
+- This service calls `/api/agent` (owned by `src/app/api/agent/route.ts`) to run the agent. Changes to the runner or the route contract affect this service.
 - The TypeScript import path uses `.ts` extensions (Bun resolves them; Node would not without `--experimental-specifier-resolution=node` or a build step).
 
 ### When to use this vs HTTP

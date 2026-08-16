@@ -21,13 +21,13 @@ Utility scripts for development, screenshots, and watchdogs. Mix of shell (`.sh`
 
 ### Shell script rules
 - `set -e` (or `set -euo pipefail` for stricter) at the top.
-- `cd /home/z/my-project` explicitly — do not rely on the caller's CWD.
+- `cd "$(dirname "$0")/.."` explicitly — do not rely on the caller's CWD.
 - Quote all paths with spaces (none currently, but be defensive).
 - Kill commands use `pkill -9 -f "..." 2>/dev/null || true` — never fail the script if the process isn't running.
 
 ### Playwright / TS script rules
 - Run via `bunx tsx scripts/<name>.ts` — the project has no global Playwright install, `tsx` resolves it.
-- Output paths MUST be absolute under `/home/z/my-project/download/`.
+- Output paths MUST be relative to the repo root under `download/`.
 - Capture screenshots at a consistent viewport (default 1440x900).
 - Name files with a 2-digit prefix for sort order: `01-initial.png`, `02-running.png`, etc.
 
@@ -42,6 +42,8 @@ Utility scripts for development, screenshots, and watchdogs. Mix of shell (`.sh`
 - `bash scripts/start-dev.sh` — should print "Dev server ready after Ns" and exit 0.
 - `bash scripts/start-canvas-sync.sh` — should leave the canvas-sync service running on port 3003.
 - `bunx tsx scripts/screenshot-ui-after.ts` — should produce 5 PNGs in `download/ui-polish-after/`.
+
+> **Windows note**: These shell scripts use Linux-only utilities (`setsid`, `ss`, `pkill`, `tail`) and won't run on Windows PowerShell. On Windows, use `bun run dev` directly.
 
 ## Child DOX Index
 

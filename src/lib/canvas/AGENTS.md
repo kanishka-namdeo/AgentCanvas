@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The canvas state layer: types, the Zustand store that is the single source of truth for the React UI, patch application logic, and the server-side canvas loader.
+The canvas state layer: types, the Zustand store that is the single source of truth for the React UI, patch application logic, and the Socket.IO canvas-sync service.
 
 The store intentionally has no direct dependency on the Pi Agent SDK — the agent runs server-side; the frontend only renders the result of tool calls (canvas patches) and the chat stream.
 
@@ -11,7 +11,7 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - `types.ts` — `CanvasDocument`, `Shape`, `CanvasPatch`, `SyncEvent`, `ClientEvent`, `CanvasToolContext`. Owned by this folder; consumed by `agent/`, `sessions/`, `components/canvas/`, `app/api/`.
 - `store.ts` — the Zustand store. Single source of truth for the React UI. Bridges every prompt + event into the persistent session store.
 - `patch.ts` — `applyPatchToCanvas(document, patch)`. Pure function. Null-safe.
-- `server.ts` — server-side canvas loader (Prisma queries). Used by the API route to hydrate the initial canvas before running the agent.
+- `server.ts` — Socket.IO WebSocket service for live canvas broadcast. NOT a Prisma loader. (Note: the server-side canvas loading is currently handled inline in the API route, not via a dedicated loader module.)
 
 ## Local Contracts
 
@@ -21,11 +21,11 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - The store has an HTTP fallback: if the WebSocket connection fails, `promptAgent` falls back to `fetch('/api/agent')` and parses the chunked SSE-style response. Do not remove the fallback — it is the primary path in the sandbox.
 - The store bridges into `useSessionStore`: `promptAgent` starts a Run + appends Messages; `_onSync` mirrors every event (deltas, tool calls, errors) into the session store; `turn_end` captures a Snapshot.
 - `_syncTurnsFromSession` rebuilds the live `turns` buffer from session-store messages when switching sessions. Tool calls are joined by `runId`.
-- The store uses `skipHydration: true` on the session store + manual `hydrateSessionStore()` call in `init()` to avoid SSR hydration mismatches.
+- The store bridges into `useSessionStore`, which uses `skipHydration: true` + a manual `hydrateSessionStore()` call in `init()` to avoid SSR hydration mismatches.
 
 ### React subscription safety
 - Zustand selectors MUST return stable references. Never write `useCanvasStore((s) => s.document.tokens ?? { colors: [], textStyles: [] })` — the `?? {}` creates a new object every render and triggers an infinite loop.
-- Use a module-level `EMPTY_TOKENS` constant (already defined in `store.ts`) for fallback values.
+- Use a stable module-level fallback constant (e.g. `EMPTY_TOKENS`) for selectors returning arrays or objects — never inline `?? {}` / `?? []`.
 - Same rule applies to any selector returning an array or object.
 
 ### Patch contract (`patch.ts`)
@@ -33,17 +33,49 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - Every shape access MUST be null-safe: `document.shapes.find((s) => s.id === id)?.x ?? 0`. The LLM can reference shape IDs that no longer exist (e.g. after a `canvas_clear`); the patch layer MUST not crash.
 - Numeric coercion: all numeric fields from the LLM MUST be passed through `Number()` before use. The patch layer is the last defense against `s.x.toFixed is not a function`.
 - Patches are append-only in the session store; the patch layer itself is stateless.
+- The full set of patch ops (14):
+  - **Core ops**: `add`, `update`, `remove`, `clear`, `background`, `select`.
+  - **Extended ops**: `bulk_add`, `update_many`, `duplicate`, `group`, `ungroup`, `align`, `tokens`, `heatmap`.
+  - **Phase 1+2+5 ops**: `zorder`, `reorder`, `viewport`, `undo`, `redo`.
+- `undo` and `redo` are client-side only — they pop the undo/redo stacks and do not produce server-side mutations.
 
 ### Types contract (`types.ts`)
-- `Shape` mirrors the Prisma `Shape` model exactly (field names, types, defaults). If you change one, change the other.
+- `Shape` extends the Prisma `Shape` model with additional fields used by the rendering and tool layers. The Prisma model is currently **stale** — it lacks the extended fields listed below. This is a known gap: when changing Shape fields, the Prisma schema should be updated to match, but currently it has not been.
+- Extended Shape fields beyond the Prisma model:
+  - `autoLayout?: AutoLayout | null` — auto-layout config for frame/group shapes (direction, padding, gap, alignment).
+  - `tokenBinding?: TokenBinding | null` — design token binding (`fillToken`, `textToken`, `strokeToken`).
+  - `componentId?: string | null` — marks shape as a component instance.
+  - `points?: PathPoint[] | null` — for path shapes (canvas-space 2D points).
+  - `closed?: boolean` — for path shapes (filled vs stroked).
+  - `src?: string | null` — for image shapes (data URL or remote URL).
+  - `radii?: CornerRadii | null` — per-corner border radii.
+  - `gradient?: GradientFill | null` — linear/radial gradient fill.
+  - `shadow?: ShadowEffect | null` — drop shadow effect.
+  - `blur?: number` — Gaussian blur radius.
+  - `maskId?: string | null` — clip mask reference.
+- Supporting types:
+  - `AutoLayout` — direction, padding, gap, horizontal/vertical alignment.
+  - `TokenBinding` — `fillToken`, `textToken`, `strokeToken` references.
+  - `PathPoint` — canvas-space 2D point (`x`, `y`).
+  - `CornerRadii` — per-corner radii (`topLeft`, `topRight`, `bottomLeft`, `bottomRight`).
+  - `GradientFill` — linear/radial gradient (`angle`, `stops`, `type`).
+  - `ShadowEffect` — drop shadow (`color`, `offsetX`, `offsetY`, `blur`, `spread`).
+  - `ColorToken` — design system color token (`name`, `value`, `hex`).
+  - `TextStyleToken` — design system text style token (`name`, `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`).
+  - `DesignTokens` — container for `colors` and `textStyles` arrays.
+  - `HeatmapPoint` — single heatmap data point (`x`, `y`, `intensity`).
+  - `HeatmapOverlay` — heatmap overlay config (`points`, `radius`, `opacity`).
 - `CanvasPatch` is the delta format the agent emits. It is NOT the same as the Prisma model — it carries `{ op, shapeId, updates }` style operations.
 - `SyncEvent` is the Pi-compatible event union: `chat_delta`, `tool_call_start`, `tool_call_end`, `error`, `turn_end`, etc. Adding a new event kind requires updating the canvas store's `_onSync` handler.
 - `CanvasToolContext` is the bag passed to `executeTool` — it carries the document, the patch sink, and the event emitter.
 
-### Server loader (`server.ts`)
-- `getCanvasDocument(documentId)` loads a document + all its shapes from Prisma, returns a `CanvasDocument`.
-- Used by `/api/agent` to hydrate the initial canvas before running the agent.
-- Returns a stable empty document if the ID does not exist (do not throw — the agent can create shapes against a fresh document).
+### WebSocket service (`server.ts`)
+- `server.ts` is a standalone Socket.IO service (NOT a Prisma document loader). It runs on port 3003 and broadcasts canvas patches + agent events to connected viewers.
+- It maintains per-document state in memory (`Map<documentId, DocState>`).
+- On `subscribe`: creates an empty document if not in the map.
+- On `prompt`: calls the agent runner and fans out events to all subscribers.
+- Patches are applied via `applyPatchToCanvas` from `patch.ts`.
+- The API route (`/api/agent`) handles document loading directly via Prisma — there is no dedicated server-side loader module.
 
 ## Work Guidance
 

@@ -7,7 +7,7 @@ shadcn/ui primitives: Radix UI wrappers styled with `class-variance-authority` a
 ## Ownership
 
 - Every file in this folder is a shadcn/ui component generated via `bunx shadcn@latest add <component>`.
-- The component inventory is registered in `/home/z/my-project/components.json`.
+- The component inventory is registered in `components.json`.
 - Owned by the shadcn/ui upstream + the project's `components.json` config. Not owned by any individual feature.
 
 ## Local Contracts

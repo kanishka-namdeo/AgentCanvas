@@ -2,25 +2,31 @@
 
 ## Purpose
 
-The agent layer: defines the 24 tools the AI agent can call against the canvas, and runs the agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
+The agent layer: defines the 54 tools the AI agent can call against the canvas, and runs the agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
 
 This is the contract layer between the LLM and the canvas. Tool names, parameter schemas, and the system prompt's tool catalog are the public surface — changing them is a breaking change for prior session replays.
 
 ## Ownership
 
-- `tools.ts` — 24 `defineTool()` definitions with TypeBox parameter schemas + the `executeTool` dispatcher. Owned by this folder.
+- `tools.ts` — 54 `defineTool()` definitions with TypeBox parameter schemas + the `executeTool` dispatcher. Owned by this folder.
 - `runner.ts` — the agent loop. Owns the system prompt, the LLM driver, the event stream shape, and the patch sink.
 
 ## Local Contracts
 
-### Tool surface (24 tools — do not rename/remove without parent-level decision)
+### Tool surface (54 tools — do not rename/remove without parent-level decision)
 - **Core canvas ops (7)**: `canvas_create_shape`, `canvas_update_shape`, `canvas_delete_shape`, `canvas_list_shapes`, `canvas_clear`, `canvas_set_background`, `canvas_select_shape`.
-- **Layer organization (3)**: `canvas_duplicate_shape`, `canvas_group_shapes`, `canvas_ungroup_shapes`.
-- **Alignment & distribution (5)**: `canvas_align_shapes`, `canvas_distribute_shapes`, `canvas_bring_to_front`, `canvas_send_to_back`, `canvas_reorder_shape`.
-- **Text & typography (2)**: `canvas_create_text`, `canvas_set_text_style`.
-- **Design tokens (3)**: `canvas_apply_color_token`, `canvas_apply_text_style_token`, `canvas_list_tokens`.
-- **Layout systems (2)**: `canvas_create_auto_layout`, `canvas_update_auto_layout`.
-- **Analytics & export (2)**: `canvas_run_heatmap`, `canvas_export_json`.
+- **Layer organization (5)**: `canvas_duplicate_shape`, `canvas_group_shapes`, `canvas_ungroup_shapes`, `canvas_organize_layers`, `canvas_align_shapes`.
+- **Z-order (5)**: `canvas_bring_to_front`, `canvas_send_to_back`, `canvas_move_forward`, `canvas_move_backward`, `canvas_reorder_shape`.
+- **Auto-layout (1)**: `canvas_apply_auto_layout`.
+- **Components (2)**: `canvas_create_component`, `canvas_instantiate_component`.
+- **Design tokens (7)**: `canvas_update_tokens`, `canvas_apply_palette`, `canvas_generate_palette`, `canvas_bind_shape_to_token`, `canvas_unbind_shape`, `canvas_list_tokens`, `canvas_apply_token`.
+- **Generators (4)**: `canvas_generate_wireframe`, `canvas_generate_user_flow`, `canvas_generate_diagram`, `canvas_generate_copy`.
+- **Analytics (2)**: `canvas_predict_heatmap`, `canvas_audit_design`.
+- **Export (4)**: `canvas_export_json`, `canvas_export_svg`, `canvas_export_png`, `canvas_copy_as_code`.
+- **Search & filter (3)**: `canvas_find_shapes`, `canvas_bulk_update_by_filter`, `canvas_find_replace_text`.
+- **Advanced shape (7)**: `canvas_create_path`, `canvas_boolean_op`, `canvas_mask_with`, `canvas_set_gradient_fill`, `canvas_set_shadow`, `canvas_set_blur`, `canvas_set_corner_radius_per_corner`.
+- **Assets (3)**: `canvas_upload_image`, `canvas_search_icons`, `canvas_generate_image`.
+- **State (4)**: `canvas_set_locked`, `canvas_set_visible`, `canvas_undo`, `canvas_redo`.
 
 ### Tool definition rules
 - Every tool MUST be defined with `defineTool()` from `@earendil-works/pi-coding-agent` and a TypeBox schema from `@sinclair/typebox`.
@@ -38,7 +44,7 @@ This is the contract layer between the LLM and the canvas. Tool names, parameter
 
 ### System prompt
 - The system prompt is defined inline at the top of `runner.ts` as `SYSTEM_PROMPT`.
-- It MUST list all 24 tools grouped by category (the LLM uses this catalog to pick tools).
+- It MUST list all 54 tools grouped by category (the LLM uses this catalog to pick tools).
 - It MUST describe the agent's persona: "AI design agent operating a Figma-like canvas powered by the Pi Agent SDK".
 - It MUST include the JSON shape conventions for tool arguments (e.g. color hex strings, shape `type` enum).
 
@@ -50,7 +56,7 @@ type AgentStreamEvent =
 ```
 - `patch` events carry a `CanvasPatch` that the caller applies to the canvas.
 - `agent_event` events carry a `SyncEvent` (defined in `src/lib/canvas/types.ts`) — chat deltas, tool-call start/end, errors, turn end.
-- The runner emits `turn_end` exactly once per run. Two code paths can reach it (normal exit + MAX_ITERATIONS); the runner MUST guard against double-emission (check if the run is already `completed`).
+- The runner can emit `turn_end` from two code paths (normal exit + MAX_ITERATIONS). There is currently NO guard against double-emission — this is a known gap.
 
 ### Patch sink
 - The runner applies each patch to a local copy of the canvas via `applyPatchToCanvas` (from `../canvas/patch.ts`) and emits the patched document state as part of the event.
@@ -65,7 +71,7 @@ type AgentStreamEvent =
 - When adding a tool: define it in `tools.ts`, add the `executeTool` case, add it to the system prompt catalog, document it in the "Tool surface" list above.
 - When changing a tool's schema: every prior session replay that called the old shape will fail. Consider adding a new tool instead of mutating an existing one.
 - When debugging the agent loop: add `console.error` temporarily in `runner.ts`, reproduce via the `/api/agent` endpoint, check `dev.log`.
-- The runner has a `MAX_ITERATIONS` guard (default 30 tool calls per turn). Exceeding it emits `turn_end` with an `error` field — do not raise.
+- The runner has a `MAX_ITERATIONS` guard (default 20 tool calls per turn). Exceeding it emits `turn_end` with an `error` field — do not raise.
 
 ## Verification
 

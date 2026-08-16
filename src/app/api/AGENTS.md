@@ -22,14 +22,14 @@ Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop serve
 }
 ```
 
-**Response**: a chunked `text/event-stream`-style response (NOT a single JSON blob). Each chunk is a serialized `AgentStreamEvent`:
+**Response**: a chunked `application/x-ndjson`-style response (NOT a single JSON blob). Each chunk is a serialized `AgentStreamEvent`:
 - `{ kind: 'patch', patch: CanvasPatch, toolCallId?: string }`
 - `{ kind: 'agent_event', event: SyncEvent }`
 
 **Contract**:
 - The route MUST start the agent runner via `runAgent(options)` from `src/lib/agent/runner.ts`.
 - The route MUST stream events as they arrive — do not buffer the entire run before responding.
-- The route MUST set `Content-Type: text/event-stream` and disable buffering (`Cache-Control: no-cache, no-transform`, `Connection: keep-alive`).
+- The route MUST set `Content-Type: application/x-ndjson; charset=utf-8` and disable buffering (`Cache-Control: no-cache, no-transform`, `Connection: keep-alive`).
 - The route MUST handle the case where the canvas store sent a stale `documentId` — load the document via `getCanvasDocument(documentId)` from `src/lib/canvas/server.ts`, fall back to the `canvas` field in the request body if the DB has no such document.
 - The route MUST emit a final `turn_end` event and close the stream. If the runner throws, emit an `error` event with the message and a 200 status (do not return 500 mid-stream — the client is already reading).
 - The route is the ONLY server-side consumer of the runner. Do not call the runner from elsewhere.
@@ -39,7 +39,7 @@ Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop serve
 - When the WebSocket IS available, the canvas store prefers it (lower latency, bidirectional). The HTTP path is the fallback.
 
 ### `/api` (`route.ts`)
-- `GET /api` returns `{ ok: true, service: 'agentcanvas', time: <epoch_ms> }`.
+- `GET /api` returns `{ message: "Hello, world!" }`.
 - Used by uptime checks and the frontend's initial connectivity probe.
 - Do not add side effects (no DB writes, no auth).
 

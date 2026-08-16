@@ -6,7 +6,7 @@
 
 ## Purpose
 
-AgentCanvas is a Figma-like design tool where the primary user of the canvas is an AI agent driven by the Pi Agent SDK (`@earendil-works/pi-coding-agent`). The agent exposes 24 tools (defined via `defineTool()` with TypeBox schemas) that mutate a canvas document: create/update/delete shapes, group/ungroup, align, distribute, apply design tokens, run heatmaps, etc. A human user chats with the agent in natural language; the agent reasons and emits canvas patches that render live in the browser.
+AgentCanvas is a Figma-like design tool where the primary user of the canvas is an AI agent driven by the Pi Agent SDK (`@earendil-works/pi-coding-agent`). The agent exposes 54 tools (defined via `defineTool()` with TypeBox schemas) that mutate a canvas document: core shape ops (create/update/delete/list/select/clear/background), layer organization (duplicate/group/ungroup/organize), alignment, z-order (bring-to-front/send-to-back/move-forward/move-backward/reorder), text & copy generation, design tokens (update/apply/generate/bind/unbind/list), auto-layout, components (create/instantiate), generators (wireframe/user-flow/diagram), analytics & audit (heatmap prediction, design audit), export (JSON/SVG/PNG/code), search & filter (find/bulk-update/find-replace), advanced shape effects (path, boolean ops, masking, gradient fill, shadow, blur, per-corner radii), assets (image upload, icon search, image generation), and state (lock/visible/undo/redo). A human user chats with the agent in natural language; the agent reasons and emits canvas patches that render live in the browser.
 
 The app is a Next.js 16 + React 19 + TypeScript monorepo with:
 - A Zustand canvas store (frontend, single source of truth for the React UI).
@@ -19,7 +19,7 @@ The app is a Next.js 16 + React 19 + TypeScript monorepo with:
 
 - **Repo owner**: project maintainer (single team, no per-folder owners yet).
 - **Canvas state**: owned by `src/lib/canvas/` — the Zustand store is the single source of truth for the React UI. Do not mutate canvas state from outside the store's actions.
-- **Agent loop**: owned by `src/lib/agent/` — the runner + 24 tool definitions. Tool definitions are the contract between the LLM and the canvas; changing a tool's schema is a breaking change for the agent.
+- **Agent loop**: owned by `src/lib/agent/` — the runner + 54 tool definitions. Tool definitions are the contract between the LLM and the canvas; changing a tool's schema is a breaking change for the agent.
 - **Session persistence**: owned by `src/lib/sessions/` — Session/Run/Message/ToolCallRecord/Snapshot models + Zustand store with `persist` middleware. The canvas store bridges into this store; do not write to the session store directly from UI components.
 - **UI components**: owned by their respective folders (`src/components/canvas/`, `src/components/sessions/`, `src/components/ui/`).
 - **Design tokens**: owned by `src/app/globals.css` (the `--ac-*` custom properties). All UI components MUST consume tokens via the `.ac-text-*`, `.ac-border-*`, `.ac-surface-*`, `.ac-active-row`, `.ac-focus-ring`, `.ac-transition`, `.ac-hide-scrollbar` utility classes — do NOT hardcode `slate-{n}` / `zinc-{n}` color literals in components.
@@ -45,7 +45,7 @@ The app is a Next.js 16 + React 19 + TypeScript monorepo with:
 - **`'use client'` directive required** on any file that uses hooks, Zustand, or browser APIs. Server components must not import from `src/lib/canvas/store.ts`, `src/lib/sessions/store.ts`, or any `src/components/**` file that is client-only.
 - **Canvas patches are append-only.** The session store records every tool call; restoring a snapshot creates a NEW snapshot (Lovable model), never overwrites history.
 - **Tool schema changes are breaking.** Adding a new tool is safe; renaming, removing, or changing the parameter schema of an existing tool invalidates prior session replays.
-- **All files MUST live under `/home/z/my-project/`.** Final deliverables go to `/home/z/my-project/download/`; generation scripts go to `/home/z/my-project/scripts/`.
+- **All files MUST live under the repo root.** Final deliverables go to `download/` (repo root); generation scripts go to `scripts/`.
 
 ### LLM shim policy
 - The runner (`src/lib/agent/runner.ts`) currently drives the loop with `z-ai-web-dev-sdk`. The event stream still mirrors Pi's `AgentSessionEvent` union.
@@ -53,9 +53,9 @@ The app is a Next.js 16 + React 19 + TypeScript monorepo with:
 - Do NOT add a second LLM driver. There is one shim, one swap point.
 
 ### File output policy (for AI agents working in this repo)
-- Generation scripts (Python/Node/Shell longer than ~10 lines) MUST be saved to `/home/z/my-project/scripts/` before execution — no inline `python -c` or heredoc pipes.
-- Final user-facing deliverables (documents, images, datasets) go to `/home/z/my-project/download/`.
-- Append-only work log at `/home/z/my-project/worklog.md` — read it before working, append a new section after finishing (format: `---` separator + Task ID + Agent + Task + Work Log + Stage Summary).
+- Generation scripts (Python/Node/Shell longer than ~10 lines) MUST be saved to `scripts/` before execution — no inline `python -c` or heredoc pipes.
+- Final user-facing deliverables (documents, images, datasets) go to `download/` (repo root).
+- Append-only work log at `worklog.md` (repo root) — read it before working, append a new section after finishing (format: `---` separator + Task ID + Agent + Task + Work Log + Stage Summary).
 
 ## Work Guidance
 
@@ -93,7 +93,7 @@ The app is a Next.js 16 + React 19 + TypeScript monorepo with:
 - **Build**: `bun run build`.
 - **Runtime smoke test**: `bun run dev` then open `http://127.0.0.1:3000/`, type a prompt, verify the agent produces shapes on the canvas.
 - **UI regression**: `bunx tsx scripts/screenshot-ui-after.ts` captures 5 states to `download/ui-polish-after/`.
-- **No automated test runner** is configured. Manual verification + screenshots is the current bar.
+- **Tests**: `bun run test` runs the Vitest suite (unit + integration tests). Manual screenshots via `scripts/screenshot-ui-after.ts` supplement automated tests.
 
 ## User Preferences
 
@@ -105,8 +105,8 @@ Direct child `AGENTS.md` files. Each owns its subtree; read the nearest one befo
 
 | Path | Scope |
 |------|-------|
-| `src/lib/agent/AGENTS.md` | 24 Pi Agent SDK tool definitions + the agent runner loop (LLM shim, event stream, system prompt). |
-| `src/lib/canvas/AGENTS.md` | Canvas types, Zustand store (single source of truth for the UI), patch application, server-side canvas loader. |
+| `src/lib/agent/AGENTS.md` | 54 Pi Agent SDK tool definitions + the agent runner loop (LLM shim, event stream, system prompt). |
+| `src/lib/canvas/AGENTS.md` | Canvas types, Zustand store (single source of truth for the UI), patch application, Socket.IO canvas-sync service. |
 | `src/lib/sessions/AGENTS.md` | Session/Run/Message/ToolCallRecord/Snapshot types + persisted Zustand store (localStorage, fork/restore). |
 | `src/components/canvas/AGENTS.md` | Canvas UI: `Canvas`, `Toolbar`, `LayersPanel`, `PropertiesPanel`, `AgentPanel`. |
 | `src/components/sessions/AGENTS.md` | Session UI: `SessionSidebar`, `SessionHeader`, `RunHistoryPanel`, `StatusBadge`. |
@@ -119,4 +119,4 @@ Direct child `AGENTS.md` files. Each owns its subtree; read the nearest one befo
 | `research/AGENTS.md` | Read-only research notes (JSON). Reference only — do not edit. |
 | `tests/AGENTS.md` | Runtime build shell scripts (Python/DB container smoke tests). |
 
-Root-owned files (no child `AGENTS.md`): `package.json`, `bun.lock`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `components.json`, `Caddyfile`, `instrumentation.ts`, `worklog.md`, `db/custom.db`, `public/`, `download/`, `examples/`, `tool-results/`, `src/components/ThemeToggle.tsx` (small standalone client component — toggles the `.dark` class on `<html>`; documented in `src/app/AGENTS.md` under "Dark mode").
+Root-owned files (no child `AGENTS.md`): `package.json`, `bun.lock`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `components.json`, `Caddyfile`, `instrumentation.ts`, `worklog.md`, `db/custom.db`, `public/`, `download/`, `examples/`, `tool-results/`, `src/components/ThemeToggle.tsx` (small standalone client component — toggles the `.dark` class on `<html>`; documented in `src/app/AGENTS.md` under "Dark mode"), `src/lib/db.ts` (Prisma client singleton), `src/lib/utils.ts` (shared utility functions), `src/hooks/use-mobile.ts` (responsive breakpoint hook), `src/hooks/use-toast.ts` (toast notification hook).

@@ -42,10 +42,10 @@ queued → in_progress → awaiting_tool → completed
 State transitions are append-only: a `completed` run cannot go back to `in_progress`. The store guards against this.
 
 ### Persistence
-- `persist` middleware with `localStorage` key `agentcanvas-sessions`.
+- `persist` middleware with `localStorage` key `agentcanvas.sessions.v1`.
 - `skipHydration: true` to avoid SSR hydration mismatches. The canvas store calls `hydrateSessionStore()` explicitly in its `init()` action.
 - Schema version is `1`. Bump + add `migrate` if the shape changes.
-- The store is the ONLY writer to `localStorage['agentcanvas-sessions']`. Do not write to it directly from components.
+- The store is the ONLY writer to `localStorage['agentcanvas.sessions.v1']`. Do not write to it directly from components.
 
 ### Fork model (mirrors v0)
 - `forkSession(parentSessionId, snapshotId)` creates a new Session with `parentId = parentSessionId`, `forkedFromSnapshotId = snapshotId`.
@@ -75,7 +75,7 @@ State transitions are append-only: a `completed` run cannot go back to `in_progr
 - Manual: create a session, run the agent, reload the page — the session + messages + tool calls + snapshots MUST reappear.
 - Manual: fork a session — the new session should have the parent's canvas but no messages.
 - Manual: restore a snapshot — a new snapshot should appear in the list, the canvas should revert to the restored state.
-- Check `localStorage['agentcanvas-sessions']` in the browser console — should be a single JSON blob with the full store shape.
+- Check `localStorage['agentcanvas.sessions.v1']` in the browser console — should be a single JSON blob with the full store shape.
 
 ## Child DOX Index
 
