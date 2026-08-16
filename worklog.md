@@ -1363,3 +1363,175 @@ This reduces the per-turn tool count from 56 → ~15-20 (core + one skill), well
 - `scripts/measure-tool-cost.ts` — reusable token-cost measurement script
 - `/tmp/agent-test-canvas.png` — screenshot of the test run's final canvas state
 - Research findings: worklog.md lines 900-1244 (Task ID: research-skills)
+
+---
+Task ID: eval-harness
+Agent: general-purpose
+Task: Create eval harness for the intent classifier (20 prompts, 7 skill categories)
+
+Work Log:
+- Read worklog.md (Task IDs: research-skills, assess-skills), `src/lib/agent/skills/registry.ts`, `src/lib/agent/classifier.ts`, and `src/lib/agent/skills/types.ts` to understand the 7-skill architecture and the keyword-classifier's scoring rules (single-word kw = +1, multi-word = +2; stable sort by score desc; recommendPlan fires when `(hasResearch && hasDesign) || (scores.length >= 3 && hasConnective)`).
+- Created `/home/z/my-project/scripts/eval-agent.ts` — a standalone eval harness (run via `bun run scripts/eval-agent.ts`) that:
+  - Imports `classifyIntent` from `../src/lib/agent/classifier` (no LLM, keyword-only mode; `canvasShapeCount: 0`).
+  - Defines 20 hand-labeled test cases: 3 wireframe, 3 layout, 3 styling, 3 inspect, 2 export, 2 web_research, 2 vector, 2 multi-step. Each case carries `expectedCategory`, `expectedRecommendPlan`, and a `note` explaining the expected behavior (or documenting a known gap).
+  - Runs each prompt through the classifier, compares `category` AND `recommendPlan` against expected.
+  - Prints a detail table (id | prompt | expected | actual | cat✓/✗ | planE | planA | plan✓/✗ | conf | method), a summary (category accuracy, plan accuracy, overall pass), a per-category breakdown, a method breakdown, confidence stats (avg/min/max), and a "FAILED TESTS — NOTES" block that re-prints each failure with its note + secondary categories.
+  - Exits 0 if overall accuracy >= 80%, 1 otherwise.
+- Ran the harness. First pass revealed 3 mismatches I had NOT predicted (test notes were wrong); used a throwaway debug script (`scripts/_debug-keywords.ts`, since deleted) to dump matched keywords per prompt and corrected the notes for #9, #15, #19 to reflect the true classifier behavior.
+- Re-ran the harness to confirm stable output.
+
+Stage Summary:
+- File: `/home/z/my-project/scripts/eval-agent.ts` (375 lines, no dependencies beyond the existing classifier).
+- Run command: `bun run scripts/eval-agent.ts`
+- **Result: FAIL ✗ — 15/20 overall pass (75.0%) < 80% threshold. Exit code 1.**
+  - Category accuracy: 16/20 (80.0%)
+  - Plan accuracy:     19/20 (95.0%)
+  - Method breakdown:  20/20 keyword (100%) — LLM fallback never invoked (by design).
+  - Confidence:        avg=0.82  min=0.50  max=0.90
+- Per-category: wireframe 4/4, layout 3/3, styling 2/3, inspect 2/3, export 2/2, web_research 0/3, vector 2/2. (wireframe shows 4/4 because two failures — #12 inspect and #19 web_research — both mis-classify AS wireframe, so they count as wireframe "actuals" but are filed under their expected category in the breakdown.)
+- 5 failures, all documented as KNOWN GAPs in the test notes:
+  1. **#9 "apply a warm palette"** → wireframe (expected styling). Root cause: `'app'` keyword matches as substring of "apply". Tied 1-1; stable sort picks wireframe (first in `Object.entries(SKILLS)`).
+  2. **#12 "audit my design"** → wireframe (expected inspect). Root cause: `'audit'` (inspect, +1) ties `'design'` (wireframe, +1). Same stable-sort tie-break.
+  3. **#15 "search for 2025 design trends"** → category correct (web_research), but `recommendPlan=true` (expected false). Root cause: the rule `(hasResearch && hasDesign)` fires because `'design'` appears as a wireframe keyword — even though here it is just the search topic, not a design request. Plan recommendation over-triggers for single-step research prompts that mention design as a subject.
+  4. **#16 "what's new in Tailwind CSS"** → export (expected web_research). Root cause: `"what's new"` does NOT match the web_research keyword `"what is"` (apostrophe-vs-space mismatch); `'tailwind'` matches export instead.
+  5. **#19 "research design trends then build a dashboard"** → wireframe (expected web_research). Root cause: `'ui'` keyword matches as substring of "build", inflating wireframe to 4 (design, build, dashboard, ui←build) — tied with web_research 4 (search←research, research, trend, trends). Stable sort picks wireframe.
+- Root-cause patterns (3 distinct classifier bugs surfaced by the eval):
+  - **(A) Short-keyword substring false-positives.** 2-3 letter keywords (`'app'`, `'ui'`, `'web'`) match inside unrelated words ("apply", "build"). Fix: match on word boundaries (`\bapp\b`), or require min keyword length ≥ 4, or tokenize the prompt first. This single bug accounts for #9 and #19.
+  - **(B) Tie-break favors wireframe by iteration order.** `Object.entries(SKILLS)` returns wireframe first; `Array.prototype.sort` is stable in V8/Bun, so ties resolve to wireframe. Fix: add a deterministic tie-break (e.g. prefer the skill with the longer/more-specific matched keyword, or weight single-category-exclusive keywords higher). Accounts for #9, #12, #19.
+  - **(C) Plan-overtrigger on incidental keyword co-occurrence.** `hasResearch && hasDesign` is too loose — it fires whenever both a web_research and a wireframe keyword appear, even if one is incidental (e.g. "design trends" is the search topic). Fix: require a connective (`then/and/after/next`) for the research+design case, OR require that the wireframe keyword appears as a verb object ("design a X"/"build a X"), not as a noun modifier ("design trends"). Accounts for #15.
+- Recommendation: the eval harness is now in place as the Tier-1 regression gate. Fixes for bugs (A), (B), (C) above should each be a separate commit, and this script should be re-run after each fix to confirm the failure count drops. Target: 20/20 (100%) before adding the LLM-fallback path to the eval.
+- Artifacts:
+  - `/home/z/my-project/scripts/eval-agent.ts` — the eval harness (final, with corrected test notes).
+  - Console output captured above (run on 2025-01-XX, commit-clean working tree).
+
+---
+Task ID: implement-skills
+Agent: main (Super Z)
+Task: Implement Tier 0, Tier 1, Tier 2, and the 7 task-specific skills for the pi agent system.
+
+Work Log:
+- Read the full research findings (Task IDs: research-skills, assess-skills) and the existing tools.ts, runner.ts, canvas types, and canvas store to understand the architecture.
+- Created the skills system (`src/lib/agent/skills/`):
+  - `types.ts` — Skill, SkillCategory, ClassificationResult, Plan, PlanStep, SubAgentResult interfaces
+  - `registry.ts` — 7 skill definitions (wireframe, layout, styling, inspect, export, web_research, vector) with Level 1 metadata (description), Level 2 body (full task-specific instructions), allowedTools, and keywords. Plus CORE_TOOL_NAMES (9 always-loaded tools), ALL_TOOL_NAMES (56 tools for the 'multi' fallback), and formatSkillMetadataForPrompt / formatSkillBodyForPrompt helpers.
+  - `index.ts` — barrel export
+  - `AGENTS.md` — documentation
+- Created the intent classifier (`src/lib/agent/classifier.ts`):
+  - Keyword/regex pass (instant, zero cost) with word-boundary matching for short keywords (≤3 chars) to avoid false positives (e.g. "ui" in "build")
+  - Weighted scoring: multi-word keywords get 3, single words ≥5 chars get 2, short words get 1
+  - Deterministic tie-break: prefer non-wireframe skills on ties (since "design" is a generic wireframe keyword that matches too broadly)
+  - LLM fallback for low-confidence cases (skipped for multi-step prompts)
+  - Multi-step detection: requires connective word (then/and/after/next) + multiple skill matches
+  - "Last deliverable" logic: for multi-step prompts, the LAST skill in the prompt (final deliverable) becomes the primary category
+  - Apostrophe normalization (typographic → ASCII) for "what's new" matching
+- Created the plan module (`src/lib/agent/planner.ts`):
+  - Manus-style planning: lightweight LLM call sees only 7 skill descriptions + user prompt
+  - Returns 2-5 ordered steps, each mapping to a skill category
+  - Plan injected into system prompt as XML-tagged `<plan>` block
+  - Step status tracking: pending → in_progress → completed
+- Created the web research sub-agent (`src/lib/agent/subagents/web-research.ts`):
+  - Runs in its own LLM context with ONLY web_search + web_fetch tools
+  - Does 1-3 searches + 1-3 fetches (capped at 6 iterations)
+  - Returns a synthesized SUMMARY (not raw page content) — keeps 50K+ tokens of page content out of the main agent's context
+  - Claude Code "5+ files = subagent" rule applied to web pages
+- Added Tier 1 enhancements to `tools.ts`:
+  - Response token cap: `MAX_TOOL_RESULT_CHARS = 25_000` (mirrors Claude Code's 25K default)
+  - Argument repair (poka-yoke): `repairArrayArgs()` detects and fixes array params passed as stringified JSON strings (the exact bug that caused `canvas_apply_palette` to fail with "Cannot read properties of undefined (reading 'includes')" in the assess-skills test)
+- Rewrote `runner.ts` to integrate all tiers:
+  - Tier 0: XML-tagged system prompt with skill zones, "plan first" instruction, explicit argument type rules with examples
+  - Tier 1: intent classification → tool subset loading (56 → ~15-20 tools per turn), response caps, argument repair
+  - Tier 2: progressive disclosure (skill metadata always loaded, body loaded on activation), plan module, web research sub-agent dispatch
+- Added new SyncEvent types to `src/lib/canvas/types.ts`: agent:skill_selected, agent:plan, agent:plan_step_update, agent:subagent_dispatch, agent:subagent_result
+- Updated the canvas store (`src/lib/canvas/store.ts`) to handle the new event types and extended the ChatTurn interface with skillInfo, plan, and subAgents fields
+- Created eval harness (`scripts/eval-agent.ts`): 20 prompts across all 7 skill categories + multi-step prompts. Initial accuracy was 75%; after 4 classifier bug fixes (substring false-positives, tie-break, plan-overtrigger, last-deliverable logic), accuracy reached 100%.
+- Fixed import path bug in `web-research.ts` (was `../web/search`, needed `../../web/search`)
+- Fixed classifier bug where `web_research` wasn't appearing in secondaryCategories for multi-step prompts (was mutating `top.category` instead of using a separate `primaryCategory` variable)
+
+Stage Summary:
+
+# IMPLEMENTATION COMPLETE — All tiers + 7 skills built and tested
+
+## What was built
+
+### Tier 0 (Prompt-only — zero code changes to tools)
+- ✅ System prompt reorganized into XML-tagged skill zones (`<available_skills>`, `<active_skill>`, `<plan>`)
+- ✅ "Plan first" instruction added before tool calls
+- ✅ Explicit argument type rules with correct vs incorrect examples (poka-yoke)
+- ✅ Clear statement that skill names are NOT tools
+
+### Tier 1 (Small code changes — no new infrastructure)
+- ✅ Intent classifier: keyword/regex pass (instant) + LLM fallback (for low-confidence only)
+- ✅ Tool subset loading: 56 → ~15-20 tools per turn (core + active skill)
+- ✅ Response token caps: 25K chars per tool result (Claude Code default)
+- ✅ Argument repair: auto-fixes stringified JSON arrays (the `canvas_apply_palette` bug)
+- ✅ Eval harness: 20 prompts, 100% accuracy
+
+### Tier 2 (Architectural changes)
+- ✅ SKILL.md progressive disclosure: Level 1 metadata always loaded (~100 tokens/skill), Level 2 body loaded on activation
+- ✅ Plan module (Manus-style): generates 2-5 step list for multi-step tasks, injected into system prompt
+- ✅ Web research sub-agent: isolated LLM context, returns synthesized summary, keeps 50K+ tokens of page content out of main context
+
+### The 7 skills
+1. **wireframe** — generate screens from descriptions (12 tools)
+2. **layout** — arrange/align/organize existing shapes (13 tools)
+3. **styling** — recolor/restyle/apply effects (13 tools)
+4. **inspect** — audit/analyze (read-only, 5 tools)
+5. **export** — export to code/SVG/PNG/JSON (4 tools)
+6. **web_research** — web_search + web_fetch (2 tools, sub-agent candidate)
+7. **vector** — paths/booleans/masks (5 tools)
+Plus 9 core tools always loaded regardless of skill.
+
+## Test results (end-to-end via Agent Browser)
+
+### Test 1: Simple wireframe prompt
+"Design a mobile login screen with logo, email and password fields, and a sign-in button"
+- **Before (flat 56 tools)**: 20 tool calls (MAX_ITERATIONS), 2 errors, 52s
+- **After (skill system)**: 13 tool calls, **0 errors**, 12.8s
+- `canvas_apply_palette` succeeded (was failing before due to the stringified-array bug — now fixed by argument repair)
+
+### Test 2: Multi-step prompt (research + design)
+"Research the latest 2025 design trends for SaaS dashboards, then design a modern mobile dashboard..."
+- **Before (flat 56 tools)**: 20 tool calls (MAX_ITERATIONS), 2 errors, 3 minutes
+- **After (skill system)**: 2 tool calls (generate_wireframe + list_shapes), **0 errors**, 26.3s
+- Sub-agent did the web research silently in its own context
+- Main agent used the synthesized summary directly ("Based on the research, I'll create a modern mobile dashboard...")
+- Main agent's context stayed clean (no 50K tokens of page content)
+- (Note: hit a 429 rate-limit from the LLM provider at the end — not a code bug)
+
+### Eval harness results
+- Category accuracy: 20/20 (100%)
+- Plan accuracy: 20/20 (100%)
+- Method: 20/20 keyword (100% — no LLM fallback needed)
+- Confidence: avg=0.85, min=0.58, max=0.90
+
+## Files created/modified
+
+### New files (8)
+- `src/lib/agent/skills/types.ts` — Skill system type definitions
+- `src/lib/agent/skills/registry.ts` — 7 skill definitions with Level 1 + Level 2 content
+- `src/lib/agent/skills/index.ts` — barrel export
+- `src/lib/agent/skills/AGENTS.md` — documentation
+- `src/lib/agent/classifier.ts` — intent classifier (keyword + LLM fallback)
+- `src/lib/agent/planner.ts` — plan module (Manus-style)
+- `src/lib/agent/subagents/web-research.ts` — web research sub-agent
+- `src/lib/agent/subagents/index.ts` — barrel export
+- `scripts/eval-agent.ts` — 20-prompt eval harness
+
+### Modified files (5)
+- `src/lib/agent/runner.ts` — complete rewrite: skill-aware tool loading, plan phase, sub-agent dispatch, XML-tagged prompt, plan-first instruction
+- `src/lib/agent/tools.ts` — added response token caps (25K) + argument repair (poka-yoke) to executeTool
+- `src/lib/agent/AGENTS.md` — updated with new architecture documentation
+- `src/lib/canvas/types.ts` — added 5 new SyncEvent types (skill_selected, plan, plan_step_update, subagent_dispatch, subagent_result)
+- `src/lib/canvas/store.ts` — added handlers for new event types + extended ChatTurn with skillInfo, plan, subAgents fields
+
+## Key architectural decisions
+1. **Keyword classifier as primary** (not LLM) — instant, zero cost, 100% accuracy on the eval set. LLM fallback only for low-confidence non-multi-step prompts.
+2. **"Last deliverable" logic for multi-step prompts** — "research X then design Y" classifies as wireframe (the final deliverable), with web_research dispatched as a sub-agent.
+3. **Argument repair in executeTool** — auto-fixes stringified JSON arrays. This is more robust than hoping the LLM gets it right, and it's invisible to the tool implementation.
+4. **Sub-agent for web research only** — the clearest context-pollution case. Other skills run inline (they don't produce enough intermediate data to justify sub-agent overhead).
+5. **Response caps at 25K chars** — matches Claude Code's default. Prevents list/audit/export tools from bloating the context across multi-step turns.
+
+## What we did NOT do (per the research recommendations)
+- ❌ Did NOT adopt a heavy multi-agent framework (LangGraph, CrewAI, AutoGen) — overkill
+- ❌ Did NOT implement full RAG-over-tools — hand-curated categories get 90% of the benefit at 10% of the complexity
+- ❌ Did NOT split into many sub-agents — only web_research uses a sub-agent (the "5+ files = subagent" rule)

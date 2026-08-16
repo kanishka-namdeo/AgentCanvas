@@ -2671,6 +2671,15 @@ export function toolsToOpenAISpec(tools: ReturnType<typeof createCanvasTools>): 
 }
 
 // ---- Execute a tool by name -------------------------------------------------
+//
+// Extended with per-tool response token caps (Tier 1). Claude Code defaults
+// to 25,000 tokens per tool response; we cap at MAX_TOOL_RESULT_CHARS
+// (~25K chars ≈ 6K tokens) to prevent context bloat on list/audit/export
+// tools that can produce very large outputs.
+
+/// Maximum characters a tool result can return before truncation.
+/// ~25K chars ≈ 6K tokens. Mirrors Claude Code's 25K-token default cap.
+export const MAX_TOOL_RESULT_CHARS = 25_000;
 
 export async function executeTool(
   tools: ReturnType<typeof createCanvasTools>,
@@ -2681,21 +2690,75 @@ export async function executeTool(
   if (!tool) {
     return { content: `Unknown tool: ${toolName}`, isError: true };
   }
+
+  // ---- Argument repair (poka-yoke) ----------------------------------------
+  // The LLM occasionally passes array parameters as stringified JSON strings
+  // (e.g. palette="[\"#fff\",\"#000\"]" instead of ["#fff","#000"]). This is
+  // a known failure mode with large tool registries (see worklog.md
+  // assess-skills task). We detect and repair it here so the tool doesn't
+  // crash with "Cannot read properties of undefined (reading 'includes')".
+  const repairedArgs = repairArrayArgs(args);
+
   try {
     const result = await tool.execute(
       `call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      args,
+      repairedArgs,
       undefined,
       undefined,
       undefined as any,
     );
-    const text = result.content.map((c: any) => c.text ?? '').join('\n');
+    let text = result.content.map((c: any) => c.text ?? '').join('\n');
     const patch = (result.details as any)?.patch as CanvasPatch | undefined;
     const isError = (result as any).isError === true;
+
+    // ---- Response token cap (Tier 1) ----------------------------------------
+    // Truncate overly long tool results to prevent context bloat across
+    // multi-step turns. List/audit/export tools can return 50K+ chars.
+    if (text.length > MAX_TOOL_RESULT_CHARS) {
+      const truncated = text.slice(0, MAX_TOOL_RESULT_CHARS);
+      const remainingLines = text.slice(MAX_TOOL_RESULT_CHARS).split('\n').length;
+      text = truncated + `\n\n…[truncated: ${remainingLines} more lines omitted. Refine your query or use a filter to see specific results.]`;
+    }
+
     return { content: text, patch, isError };
   } catch (err: any) {
     return { content: `Tool execution failed: ${err.message}`, isError: true };
   }
+}
+
+/// Repair arguments where the LLM passed an array as a stringified JSON string.
+///
+/// Known-affected parameters (from the assess-skills test):
+///   - palette (canvas_apply_palette, canvas_generate_palette)
+///   - shapeIds (canvas_align_shapes, canvas_group_shapes, etc.)
+///   - nodes (canvas_generate_diagram)
+///   - updates (canvas_bulk_update_by_filter)
+///   - stops (canvas_set_gradient_fill)
+///   - points (canvas_create_path)
+///
+/// For each of these, if the value is a string that looks like a JSON array,
+/// parse it into a real array.
+function repairArrayArgs(args: any): any {
+  if (!args || typeof args !== 'object') return args;
+  const repaired = { ...args };
+
+  const arrayParams = ['palette', 'shapeIds', 'nodes', 'updates', 'stops', 'points', 'shapeId'];
+
+  for (const param of arrayParams) {
+    const val = (repaired as any)[param];
+    if (typeof val === 'string' && val.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) {
+          (repaired as any)[param] = parsed;
+        }
+      } catch {
+        // Not valid JSON — leave as-is and let the tool handle the error.
+      }
+    }
+  }
+
+  return repaired;
 }
 
 // ---- Wireframe / user-flow / diagram builders ------------------------------

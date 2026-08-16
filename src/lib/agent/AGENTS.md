@@ -2,51 +2,108 @@
 
 ## Purpose
 
-The agent layer: defines the 54 tools the AI agent can call against the canvas, and runs the agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
+The agent layer: defines the 56 tools the AI agent can call against the canvas, and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
 
-This is the contract layer between the LLM and the canvas. Tool names, parameter schemas, and the system prompt's tool catalog are the public surface — changing them is a breaking change for prior session replays.
+This is the contract layer between the LLM and the canvas. Tool names, parameter schemas, skill definitions, and the system prompt's tool catalog are the public surface — changing them is a breaking change for prior session replays.
+
+## Architecture (Tier 0 + Tier 1 + Tier 2)
+
+The agent now uses a **skill-aware routing architecture** (see worklog.md, Task IDs: research-skills, assess-skills, implement-skills):
+
+```
+User prompt
+    │
+    ▼
+┌─────────────────────┐
+│ Intent Classifier    │  Tier 1: keyword/regex → LLM fallback
+│ (classifier.ts)      │  Returns: SkillCategory + confidence + recommendPlan
+└────────┬────────────┘
+         │
+    ┌────┴────┐
+    │ Plan?   │  Tier 2: for multi-step prompts, generate step list
+    │ (planner│  (Manus-style planning module)
+    │ .ts)    │
+    └────┬────┘
+         │
+    ┌────┴────────┐
+    │ Sub-agent?  │  Tier 2: for web_research, dispatch isolated LLM context
+    │ (subagents/ │  Returns synthesized summary (not raw page content)
+    │ web-research)│
+    └────┬────────┘
+         │
+         ▼
+┌─────────────────────┐
+│ Main Agent Loop      │  Tier 0: XML-tagged system prompt with skill zones
+│ (runner.ts)          │  + "plan first" instruction
+│                      │  Tier 1: only ~15-20 tools loaded (core + active skill)
+│                      │  + response token caps (25K chars)
+│                      │  + argument repair (poka-yoke for stringified arrays)
+└─────────────────────┘
+```
 
 ## Ownership
 
-- `tools.ts` — 54 `defineTool()` definitions with TypeBox parameter schemas + the `executeTool` dispatcher. Owned by this folder.
-- `runner.ts` — the agent loop. Owns the system prompt, the LLM driver, the event stream shape, and the patch sink.
+- `tools.ts` — 56 `defineTool()` definitions + `executeTool` dispatcher (with response caps + argument repair). Owned by this folder.
+- `runner.ts` — the agent loop. Owns the system prompt template, LLM driver, event stream shape, skill integration, plan/sub-agent dispatch.
+- `classifier.ts` — intent classifier (keyword pass + LLM fallback). Routes prompts to skill categories.
+- `planner.ts` — plan module. Generates step lists for multi-step tasks.
+- `skills/` — skill system (types, registry, metadata formatters).
+- `subagents/` — sub-agent implementations (currently just web-research).
 
 ## Local Contracts
 
-### Tool surface (54 tools — do not rename/remove without parent-level decision)
-- **Core canvas ops (7)**: `canvas_create_shape`, `canvas_update_shape`, `canvas_delete_shape`, `canvas_list_shapes`, `canvas_clear`, `canvas_set_background`, `canvas_select_shape`.
-- **Layer organization (5)**: `canvas_duplicate_shape`, `canvas_group_shapes`, `canvas_ungroup_shapes`, `canvas_organize_layers`, `canvas_align_shapes`.
-- **Z-order (5)**: `canvas_bring_to_front`, `canvas_send_to_back`, `canvas_move_forward`, `canvas_move_backward`, `canvas_reorder_shape`.
-- **Auto-layout (1)**: `canvas_apply_auto_layout`.
-- **Components (2)**: `canvas_create_component`, `canvas_instantiate_component`.
-- **Design tokens (7)**: `canvas_update_tokens`, `canvas_apply_palette`, `canvas_generate_palette`, `canvas_bind_shape_to_token`, `canvas_unbind_shape`, `canvas_list_tokens`, `canvas_apply_token`.
-- **Generators (4)**: `canvas_generate_wireframe`, `canvas_generate_user_flow`, `canvas_generate_diagram`, `canvas_generate_copy`.
-- **Analytics (2)**: `canvas_predict_heatmap`, `canvas_audit_design`.
-- **Export (4)**: `canvas_export_json`, `canvas_export_svg`, `canvas_export_png`, `canvas_copy_as_code`.
-- **Search & filter (3)**: `canvas_find_shapes`, `canvas_bulk_update_by_filter`, `canvas_find_replace_text`.
-- **Advanced shape (7)**: `canvas_create_path`, `canvas_boolean_op`, `canvas_mask_with`, `canvas_set_gradient_fill`, `canvas_set_shadow`, `canvas_set_blur`, `canvas_set_corner_radius_per_corner`.
-- **Assets (3)**: `canvas_upload_image`, `canvas_search_icons`, `canvas_generate_image`.
-- **State (4)**: `canvas_set_locked`, `canvas_set_visible`, `canvas_undo`, `canvas_redo`.
+### Tool surface (56 tools — do not rename/remove without parent-level decision)
+- **Core (9)**: create_shape, update_shape, delete_shape, list_shapes, clear, set_background, select_shape, undo, redo
+- **Wireframe (12)**: generate_wireframe, generate_user_flow, generate_diagram, generate_copy, create_shape, update_shape, upload_image, search_icons, generate_image, update_tokens, apply_palette, generate_palette
+- **Layout (13)**: align_shapes, group_shapes, ungroup_shapes, duplicate_shape, organize_layers, apply_auto_layout, bring_to_front, send_to_back, move_forward, move_backward, reorder_shape, set_locked, set_visible
+- **Styling (13)**: apply_palette, generate_palette, update_tokens, apply_token, bind_shape_to_token, unbind_shape, list_tokens, set_gradient_fill, set_shadow, set_blur, set_corner_radius_per_corner, find_replace_text, bulk_update_by_filter
+- **Inspect (5)**: list_shapes, find_shapes, audit_design, predict_heatmap, list_tokens
+- **Export (4)**: export_json, export_svg, export_png, copy_as_code
+- **Vector (5)**: create_path, boolean_op, mask_with, create_shape, update_shape
+- **Web (2)**: web_search, web_fetch
+- **Other (6)**: create_component, instantiate_component, find_shapes, bulk_update_by_filter, find_replace_text, generate_copy
 
-### Tool definition rules
-- Every tool MUST be defined with `defineTool()` from `@earendil-works/pi-coding-agent` and a TypeBox schema from `@sinclair/typebox`.
-- Every tool MUST have a `description` field that the LLM reads to decide when to call it.
-- Tool names use `snake_case` with the `canvas_` prefix (except none currently break this rule).
-- Parameter names use `camelCase`.
-- The `executeTool` switch MUST handle every tool name; an unknown name returns `{ ok: false, error: 'Unknown tool' }`.
+### Skill categories (7 + multi)
+wireframe, layout, styling, inspect, export, web_research, vector, multi
+
+### executeTool enhancements (Tier 1)
+- **Response token cap**: `MAX_TOOL_RESULT_CHARS = 25_000` — tool results are truncated to prevent context bloat
+- **Argument repair (poka-yoke)**: `repairArrayArgs()` detects and fixes array params passed as stringified JSON strings (e.g. `palette="[\"#fff\"]"` → `palette=["#fff"]`). Known-affected params: palette, shapeIds, nodes, updates, stops, points, shapeId
+
+### System prompt (Tier 0)
+- Defined as `SYSTEM_PROMPT_TEMPLATE` in `runner.ts`
+- Uses `${SKILL_METADATA}`, `${SKILL_BODY}`, `${PLAN_SECTION}` placeholders filled at runtime
+- XML-tagged zones: `<available_skills>`, `<active_skill>`, `<plan>`
+- Includes "PLAN FIRST" instruction before tool calls
+- Includes "ARGUMENT TYPE RULES" with explicit examples of correct vs incorrect formatting
+- Explicitly states skill names are NOT tools
 
 ### LLM shim policy (root contract, restated for locality)
-- The runner currently drives the loop with `z-ai-web-dev-sdk` (ZAI) because the sandbox has no Anthropic/OpenAI key.
-- The event stream (`AgentStreamEvent` union) mirrors Pi's `AgentSessionEvent` shape so consumers do not change when the driver swaps.
-- Swap point: the LLM client in `runner.ts`. The runner accepts an optional `llm?: LLMClient` in `AgentRunOptions`. If omitted (production), the runner constructs the ZAI client via `ZAI.create()`. If provided (tests), the runner uses the injected client directly. Replace with `createAgentSession` from `@earendil-works/pi-coding-agent` to go native Pi. Do NOT add a second driver.
-- ZAI speaks the OpenAI tool-calling protocol; the runner translates OpenAI tool-call deltas into Pi-style events.
-- The `LLMClient` interface (exported from `runner.ts`) is the minimal contract: `chat.completions.create({ messages, tools, tool_choice, temperature })` returning `{ choices: [{ message: { content?, tool_calls? } }] }`. Any OpenAI-compatible client satisfies this.
+- The runner drives the loop with `z-ai-web-dev-sdk` (ZAI) because the sandbox has no Anthropic/OpenAI key.
+- The event stream (`AgentStreamEvent` union) mirrors Pi's `AgentSessionEvent` shape.
+- Swap point: the LLM client in `runner.ts`. Replace with `createAgentSession` from `@earendil-works/pi-coding-agent` to go native Pi.
+- The `LLMClient` interface is the minimal contract: `chat.completions.create({ messages, tools, tool_choice, temperature })`.
 
-### System prompt
-- The system prompt is defined inline at the top of `runner.ts` as `SYSTEM_PROMPT`.
-- It MUST list all 54 tools grouped by category (the LLM uses this catalog to pick tools).
-- It MUST describe the agent's persona: "AI design agent operating a Figma-like canvas powered by the Pi Agent SDK".
-- It MUST include the JSON shape conventions for tool arguments (e.g. color hex strings, shape `type` enum).
+### Intent classifier
+- Primary: keyword/regex pass (instant, zero cost). Short keywords (≤3 chars) use word-boundary matching to avoid false positives (e.g. "ui" in "build").
+- Fallback: lightweight LLM call seeing only 7 skill descriptions (not 56 tools). Only used when keyword confidence < 0.5 AND not a multi-step prompt.
+- Multi-step detection: requires a connective word (then/and/after/next) + multiple skill matches. For multi-step, the LAST skill in the prompt (final deliverable) becomes the primary category.
+- Eval: `bun run scripts/eval-agent.ts` — 20 prompts, currently 100% accuracy.
+
+### Plan module
+- Triggered when `classification.recommendPlan` is true
+- Makes a lightweight LLM call seeing only skill descriptions + user prompt
+- Returns 2-5 ordered steps, each mapping to a skill category
+- Plan is injected into the system prompt as an XML-tagged `<plan>` block
+- Step status updated as execution proceeds (pending → in_progress → completed)
+
+### Web research sub-agent
+- Triggered when `web_research` is in secondary categories AND `recommendPlan` is true
+- Runs in its own LLM context with ONLY web_search + web_fetch tools
+- Does 1-3 searches + 1-3 fetches (capped at 6 iterations)
+- Returns a synthesized SUMMARY (not raw page content) — keeps 50K+ tokens of page content out of the main agent's context
+- Summary injected into main agent's context as "WEB RESEARCH SUMMARY"
+- If the primary task IS web research (not "research then design"), the summary IS the answer
 
 ### Event stream shape
 ```ts
@@ -58,30 +115,39 @@ type AgentStreamEvent =
 - `agent_event` events carry a `SyncEvent` (defined in `src/lib/canvas/types.ts`) — chat deltas, tool-call start/end, errors, turn end.
 - The runner can emit `turn_end` from two code paths (normal exit + MAX_ITERATIONS). There is currently NO guard against double-emission — this is a known gap.
 
+Extended SyncEvent types (in `src/lib/canvas/types.ts`):
+- `agent:skill_selected` — intent classifier picked a skill
+- `agent:plan` — plan module generated a step list
+- `agent:plan_step_update` — a plan step changed status
+- `agent:subagent_dispatch` — a sub-agent was spawned
+- `agent:subagent_result` — a sub-agent returned its result
+
 ### Patch sink
 - The runner applies each patch to a local copy of the canvas via `applyPatchToCanvas` (from `../canvas/patch.ts`) and emits the patched document state as part of the event.
 - The runner does NOT touch the database or the Zustand store — it is a pure producer. The API route is the consumer that forwards events to viewers.
 
 ### Number safety
-- All numeric shape fields (`x`, `y`, `width`, `height`, `rotation`, `opacity`, `fontSize`, `strokeWidth`, `radius`) MUST be coerced with `Number()` before any `.toFixed()` / `Math.round()` call. The `round()` helper in `runner.ts` exists for this — use it. Never call `.toFixed()` directly on a value that might be a string from the LLM.
-- Prior bug: `s.x.toFixed is not a function` when the LLM returned `x` as a string. Fixed by routing all numeric outputs through `round()`.
+- All numeric shape fields MUST be coerced with `Number()` before any `.toFixed()` / `Math.round()` call. The `round()` helper in `runner.ts` exists for this.
 
 ## Work Guidance
 
-- When adding a tool: define it in `tools.ts`, add the `executeTool` case, add it to the system prompt catalog, document it in the "Tool surface" list above.
-- When changing a tool's schema: every prior session replay that called the old shape will fail. Consider adding a new tool instead of mutating an existing one.
-- When debugging the agent loop: add `console.error` temporarily in `runner.ts`, reproduce via the `/api/agent` endpoint, check `dev.log`.
+- When adding a tool: define it in `tools.ts`, add the `executeTool` case, add it to the relevant skill's `allowedTools` in `skills/registry.ts`, add it to `ALL_TOOL_NAMES`, update the system prompt if needed.
+- When adding a skill: see `skills/AGENTS.md`.
+- When changing a tool's schema: every prior session replay that called the old shape will fail. Consider adding a new tool instead.
+- When debugging the agent loop: check `dev.log`, reproduce via `/api/agent`, use Agent Browser for end-to-end verification.
 - The runner has a `MAX_ITERATIONS` guard (default 20 tool calls per turn). Exceeding it emits `turn_end` with an `error` field — do not raise.
 
 ## Verification
 
-- `bunx tsc --noEmit` — typecheck (note: existing `tools.ts` has pre-existing `any` warnings; do not add more).
-- Manual: open the app, type a prompt like "create a login form", verify the agent emits 5-15 tool calls and the canvas updates live.
+- `bunx tsc --noEmit` — typecheck
+- `bun run lint` — ESLint
+- `bun run scripts/eval-agent.ts` — intent classifier eval (20 prompts, 100% accuracy)
+- `bun run scripts/measure-tool-cost.ts` — token cost measurement
+- Manual: Agent Browser end-to-end test with prompts from each skill category
 - Check `dev.log` for runtime errors during a run.
-- The runner is exercised end-to-end by `scripts/screenshot-ui-after.ts` (captures agent-working state).
 
 ## Child DOX Index
 
-No child AGENTS.md files in this folder.
-
-*Siblings: `../canvas/AGENTS.md` (Canvas state), `../sessions/AGENTS.md` (Session persistence).*
+| Path | Scope |
+|------|-------|
+| `skills/AGENTS.md` | Skill system: types, registry (7 skills), progressive disclosure levels, eval harness. |

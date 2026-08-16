@@ -36,6 +36,28 @@ export interface ChatTurn {
   sessionId?: string;
   runId?: string;
   messageId?: string;
+  /// Skill selected by the intent classifier for this turn (Tier 1).
+  skillInfo?: {
+    category: string;
+    confidence: number;
+    method: string;
+    toolCount: number;
+  };
+  /// Execution plan for multi-step tasks (Tier 2).
+  plan?: Array<{
+    step: number;
+    description: string;
+    skill: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  }>;
+  /// Sub-agents dispatched during this turn (Tier 2).
+  subAgents?: Array<{
+    type: string;
+    task: string;
+    status: 'running' | 'completed' | 'failed';
+    summary?: string;
+    toolCalls?: number;
+  }>;
 }
 
 export interface AgentToolCallEntry {
@@ -657,6 +679,104 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
       case 'presence': {
         set({ viewerCount: event.viewerCount });
+        break;
+      }
+      case 'agent:skill_selected': {
+        // Store the selected skill for UI display. Don't disrupt the turn.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant') {
+            turns[turns.length - 1] = {
+              ...last,
+              skillInfo: {
+                category: event.category,
+                confidence: event.confidence,
+                method: event.method,
+                toolCount: event.toolCount,
+              },
+            };
+          }
+          return { turns };
+        });
+        break;
+      }
+      case 'agent:plan': {
+        // Store the plan for UI display.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant') {
+            turns[turns.length - 1] = {
+              ...last,
+              plan: event.steps.map((st) => ({
+                step: st.step,
+                description: st.description,
+                skill: st.skill as any,
+                status: st.status as any,
+              })),
+            };
+          }
+          return { turns };
+        });
+        break;
+      }
+      case 'agent:plan_step_update': {
+        // Update a plan step's status.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last?.plan) {
+            turns[turns.length - 1] = {
+              ...last,
+              plan: last.plan.map((ps) =>
+                ps.step === event.step
+                  ? { ...ps, status: event.status as any }
+                  : ps,
+              ),
+            };
+          }
+          return { turns };
+        });
+        break;
+      }
+      case 'agent:subagent_dispatch': {
+        // Show the sub-agent dispatch in the chat.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant') {
+            const subAgents = [...(last.subAgents || []), {
+              type: event.subAgentType,
+              task: event.task,
+              status: 'running' as const,
+            }];
+            turns[turns.length - 1] = { ...last, subAgents };
+          }
+          return { turns };
+        });
+        break;
+      }
+      case 'agent:subagent_result': {
+        // Update the sub-agent result.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last?.subAgents) {
+            const subAgents = last.subAgents.map((sa) =>
+              sa.type === event.subAgentType && sa.status === 'running'
+                ? {
+                    ...sa,
+                    status: event.success ? ('completed' as const) : ('failed' as const),
+                    summary: event.summary,
+                    toolCalls: event.toolCalls,
+                  }
+                : sa,
+            );
+            turns[turns.length - 1] = { ...last, subAgents };
+          }
+          return { turns };
+        });
         break;
       }
       default: {

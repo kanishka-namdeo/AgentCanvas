@@ -1,22 +1,49 @@
-// Agent runner — the core agent loop.
+// Agent runner — the core agent loop with skill-aware tool routing.
 //
-// This module ties together:
+// This is the Tier 0 + Tier 1 + Tier 2 integration point. The runner now:
+//
+//   Tier 0 (prompt-only):
+//     - System prompt is organized into XML-tagged skill zones
+//     - Includes a "plan first" instruction before tool calls
+//     - Skill metadata (Level 1, ~100 tokens each) always loaded
+//
+//   Tier 1 (tool routing):
+//     - Intent classifier routes the prompt to a skill category
+//     - Only the relevant skill's tools (+ 9 core tools) are loaded
+//     - Reduces per-turn tool count from 56 → ~15-20
+//     - Per-tool response token caps (25K chars)
+//     - Argument repair (poka-yoke) for array params passed as strings
+//
+//   Tier 2 (progressive disclosure + planning + sub-agents):
+//     - Active skill's full body (Level 2) loaded into the system prompt
+//     - Plan module generates step list for multi-step tasks
+//     - Web research sub-agent runs in isolated context, returns summary
+//
+// The module ties together:
 //   - The Pi Agent SDK's `defineTool` tool surface (from `./tools.ts`).
-//   - An LLM driver. In production this would be `createAgentSession` from
-//     `@earendil-works/pi-coding-agent` backed by Anthropic/OpenAI via
-//     `pi-ai`. In this sandbox we don't have those API keys, so we drive
-//     the loop with `z-ai-web-dev-sdk` (which speaks the OpenAI tool-calling
-//     protocol).
-//   - A patch sink + event stream that the caller (the API route) forwards
-//     to the WebSocket service for live broadcast to viewers.
-//
-// The event shape mirrors Pi's `AgentSessionEvent` union so that swapping
-// in a real Pi session later only changes the producer, not the consumer.
+//   - The skill system (from `./skills/`).
+//   - The intent classifier (from `./classifier.ts`).
+//   - The plan module (from `./planner.ts`).
+//   - The web research sub-agent (from `./subagents/web-research.ts`).
+//   - An LLM driver (`z-ai-web-dev-sdk` in this sandbox).
+//   - A patch sink + event stream forwarded to the WebSocket service.
 
 import ZAI from 'z-ai-web-dev-sdk';
 import { createCanvasTools, executeTool, toolsToOpenAISpec, type CanvasToolContext } from './tools.ts';
 import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types.ts';
 import { applyPatchToCanvas } from '../canvas/patch.ts';
+import { classifyIntent } from './classifier';
+import { generatePlan, formatPlanForPrompt, updatePlanStepStatus } from './planner';
+import { dispatchWebResearchSubAgent } from './subagents/web-research';
+import {
+  getSkill,
+  getToolNamesForCategory,
+  formatSkillMetadataForPrompt,
+  formatSkillBodyForPrompt,
+  type SkillCategory,
+  type ClassificationResult,
+  type Plan,
+} from './skills';
 
 export interface AgentRunOptions {
   documentId: string;
@@ -27,6 +54,8 @@ export interface AgentRunOptions {
   /// Used by tests to inject a deterministic mock; in production this is
   /// always undefined and the runner constructs the ZAI client itself.
   llm?: LLMClient;
+  /// Optional abort signal.
+  signal?: AbortSignal;
 }
 
 /// Minimal LLM client interface the runner needs. Mirrors the OpenAI
@@ -72,106 +101,43 @@ export type AgentStreamEvent =
   | { kind: 'patch'; patch: CanvasPatch; toolCallId?: string }
   | { kind: 'agent_event'; event: SyncEvent };
 
-const SYSTEM_PROMPT = `You are an AI design agent operating a Figma-like canvas powered by the Pi Agent SDK.
+// ---- System prompt (Tier 0 — reorganized with XML-tagged skill zones) ------
+//
+// The system prompt now:
+//   1. Starts with the agent's role + a "plan first" instruction
+//   2. Lists available skills (Level 1 metadata, always loaded)
+//   3. Includes the active skill's full body (Level 2, loaded on activation)
+//   4. Includes design principles + argument type rules
+//   5. Includes the current canvas snapshot
+//
+// This is a template — the runner fills in ${SKILL_METADATA}, ${SKILL_BODY},
+// and ${CANVAS_SNAPSHOT} at runtime.
+
+const SYSTEM_PROMPT_TEMPLATE = `You are an AI design agent operating a Figma-like canvas powered by the Pi Agent SDK.
 
 You can see the current canvas state and manipulate it through tools. Your job is to take the user's natural-language request and produce a visually pleasing, production-ready design on the canvas.
 
-=== TOOL CATEGORIES (56 tools) =============================================
+=== PLAN FIRST (critical) ==================================================
 
-CORE CANVAS OPS:
-  canvas_create_shape, canvas_update_shape, canvas_delete_shape,
-  canvas_list_shapes, canvas_clear, canvas_set_background, canvas_select_shape
+Before calling any tool, think briefly about:
+  1. What the user wants (restate in one sentence)
+  2. Which approach / tool sequence will achieve it most efficiently
+  3. Whether you need to research anything first (web_search)
 
-LAYER ORGANIZATION:
-  canvas_duplicate_shape   — copy shapes (offset 24px)
-  canvas_group_shapes      — wrap shapes in a group
-  canvas_ungroup_shapes    — dissolve groups
-  canvas_align_shapes      — align/distribute (left/right/center_h/top/bottom/center_v/distribute_h/distribute_v)
-  canvas_organize_layers   — auto-rename + re-zIndex all shapes by type and reading order
+Output this plan as a short text message BEFORE your first tool call. This helps you avoid wasteful trial-and-error loops.
 
-AUTO LAYOUT (Figma-style):
-  canvas_apply_auto_layout — set direction/gap/padding/alignment on a frame; children auto-arrange
+=== AVAILABLE SKILLS =======================================================
 
-COMPONENTS & VARIANTS:
-  canvas_create_component     — mark a shape as a reusable component
-  canvas_instantiate_component — place a linked instance of a component
+The system has selected a skill for this turn based on your request. The active skill's detailed instructions are below. You also have access to core canvas tools (create, update, delete, list, clear, background, select, undo, redo).
 
-DESIGN TOKENS / VARIABLES:
-  canvas_update_tokens     — define named colors + text styles (shapes can bind to them)
-  canvas_apply_palette     — recolor shapes by mapping to a new palette (nearest match)
-  canvas_generate_palette  — generate a 5-color harmonious palette (analogous/complementary/triadic/monochromatic/split_complementary)
+All available skills (for reference):
+${'${SKILL_METADATA}'}
 
-GENERATORS (one-shot, template-driven):
-  canvas_generate_wireframe — mobile_login, mobile_signup, mobile_dashboard, web_landing,
-                              web_dashboard, web_blog, web_pricing
-  canvas_generate_user_flow — onboarding (3 steps), ecommerce (4), auth (3), signup_funnel (4)
-  canvas_generate_diagram   — flowchart (top-down) or mindmap (radial)
+=== ACTIVE SKILL INSTRUCTIONS ===============================================
 
-ANALYSIS (read-only):
-  canvas_predict_heatmap   — overlay a predicted attention heatmap on a frame
-  canvas_generate_copy     — fill a text shape with realistic placeholder copy
-                             (heading/subheading/body/button/caption/microcopy)
-  canvas_audit_design      — audit the canvas for consistency issues (color drift, type scale,
-                             low-contrast text, token usage, alignment near-misses)
+${'${SKILL_BODY}'}
 
-TOKEN BINDING (design-system live links):
-  canvas_bind_shape_to_token   — bind a shape property (fill/stroke/textColor) to a color token
-  canvas_unbind_shape          — remove a token binding from a shape property
-  canvas_list_tokens           — list all design tokens (read-only)
-  canvas_apply_token           — apply a token value to multiple shapes (optionally bind)
-
-LOCK & VISIBILITY:
-  canvas_set_locked        — lock/unlock shapes (prevents direct manipulation)
-  canvas_set_visible       — show/hide shapes
-
-Z-ORDER:
-  canvas_bring_to_front    — move shapes to the top of the z-order
-  canvas_send_to_back      — move shapes to the bottom of the z-order
-  canvas_move_forward      — move a shape one level up
-  canvas_move_backward     — move a shape one level down
-  canvas_reorder_shape     — move a shape to a specific z-index
-
-UNDO / REDO:
-  canvas_undo              — undo the last canvas change
-  canvas_redo              — redo a previously undone change
-
-EXPORT & HANDOFF:
-  canvas_export_json       — export the full canvas as JSON
-  canvas_export_svg        — export the canvas (or a frame) as an SVG string
-  canvas_export_png        — export as an SVG data URL (renderable in browsers)
-  canvas_copy_as_code      — generate HTML/React/Tailwind code from the canvas
-
-FIND & FILTER:
-  canvas_find_shapes       — find shapes by type/fill/name/parent (read-only)
-  canvas_bulk_update_by_filter — update all shapes matching a filter in one call
-  canvas_find_replace_text — find and replace text across all text shapes
-
-VECTOR EDITING:
-  canvas_create_path       — create a freeform path/polygon from a list of points
-  canvas_boolean_op        — boolean-combine two shapes (union/subtract/intersect/exclude)
-  canvas_mask_with         — clip a shape using another shape as a mask
-
-EFFECTS & STYLING:
-  canvas_set_gradient_fill — set a linear/radial gradient fill on a shape
-  canvas_set_shadow        — apply a drop shadow to a shape
-  canvas_set_blur          — apply a Gaussian blur to a shape
-  canvas_set_corner_radius_per_corner — set independent radii for each corner
-
-IMAGE SUPPORT:
-  canvas_upload_image      — place an image from a data URL or remote URL
-  canvas_search_icons      — place a Lucide icon (30+ icons available) as a path
-  canvas_generate_image    — place an image placeholder (AI generation not wired)
-
-WEB RESEARCH (zero-config, no API key required):
-  web_search               — search the web for current information. Returns numbered results
-                             with title, URL, snippet, and publish date. Use this whenever the
-                             user asks about real-world products, recent releases, current
-                             design trends, or anything you don't know with confidence.
-                             Tries z.ai → DuckDuckGo → Startpage → Jina in fallback order.
-  web_fetch                — fetch a specific URL and return its content as clean readable
-                             markdown / pretty-printed JSON / feed items. Use this to read a
-                             blog post, docs page, or API response in full after a web_search.
-                             Falls back through readability → z.ai page_reader → Jina Reader.
+${'${PLAN_SECTION}'}
 
 === DESIGN PRINCIPLES ======================================================
 
@@ -188,87 +154,37 @@ WEB RESEARCH (zero-config, no API key required):
 - Always call canvas_list_shapes before updating/deleting existing shapes so you know the ids.
 - After creating shapes, briefly summarize what you did in 1-2 sentences. Do not narrate every step.
 - If the user asks for something you cannot do with the available tools, say so clearly.
+- Prefer HIGH-LEVEL generator tools (generate_wireframe, generate_user_flow, generate_diagram)
+  over hand-placing many shapes — they produce well-structured output and conserve tool-call budget.
+- Use canvas_bulk_update_by_filter to update many shapes at once, NOT individual update_shape calls.
 
-=== SCENARIO PLAYBOOK (match the user's intent to a tool sequence) =========
-
-• "design a login screen" / "make a signup form"
-    → canvas_generate_wireframe (mobile_login / mobile_signup / web_landing)
-    → optionally canvas_apply_palette to recolor
-    → optionally canvas_generate_copy on the text shapes
-
-• "build a dashboard"
-    → canvas_generate_wireframe (mobile_dashboard or web_dashboard)
-    → optionally canvas_predict_heatmap on the resulting frame
-
-• "create a user flow" / "design onboarding" / "ecommerce flow"
-    → canvas_generate_user_flow (onboarding / ecommerce / auth / signup_funnel)
-
-• "draw a flowchart" / "make a mindmap"
-    → canvas_generate_diagram (flowchart / mindmap) with a list of node labels
-
-• "generate a color palette from <color>" / "give me an analogous palette"
-    → canvas_generate_palette (baseColor, rule)
-    → optionally canvas_apply_palette to existing shapes (bindToTokens=true)
-
-• "audit my design" / "check consistency"
-    → canvas_audit_design (returns findings as text; then optionally fix issues)
-
-• "show where users will look" / "predict attention"
-    → canvas_predict_heatmap on a frame
-
-• "fill placeholder text" / "write copy"
-    → canvas_generate_copy (variant + topic) on each text shape
-
-• "restyle / recolor / re-theme everything"
-    → canvas_apply_palette with a new palette (and bindToTokens=true)
-
-• "organize my layers"
-    → canvas_organize_layers (auto-rename + re-zIndex)
-
-• "align these shapes" / "distribute evenly"
-    → canvas_align_shapes (kind=left/right/center_h/top/bottom/center_v/distribute_h/distribute_v)
-
-• "make this a reusable component"
-    → canvas_create_component, then canvas_instantiate_component to place copies
-
-• "use auto layout on this frame"
-    → canvas_apply_auto_layout (direction, gap, padding, alignX, alignY)
-
-• "look up <current/recent/real-world thing>" / "what's new in <X>" / "find <product> info"
-    → web_search (query) — get a list of results with snippets
-    → optionally web_fetch (url) on the most relevant result to read the full page
-    → then use the gathered info to inform your design (e.g. real product names, current
-       color trends, actual feature lists, accurate copy text)
-
-• "design based on <real website URL>" / "make something like <site>"
-    → web_fetch (url) to read the site's content/structure
-    → then canvas_generate_wireframe or canvas_create_shape to reproduce the layout
-
-• "use real <data/content> from the web"
-    → web_search to find sources, web_fetch to extract the data
-    → then canvas_create_shape / canvas_update_shape to put the real content on the canvas
-
-=== IMPORTANT — ARGUMENT TYPES =============================================
+=== ARGUMENT TYPE RULES (CRITICAL — read before calling tools) ==============
 
 - All numeric arguments (x, y, width, height, fontSize, opacity, radius, strokeWidth, rotation)
   MUST be passed as JSON numbers, not strings. Write "x": 400, NOT "x": "400".
-- Colors are hex strings like "#ff0000".
-- shapeIds / nodes / palette MUST be arrays, even for a single item.
-- For web_search: \`query\` is a plain string, \`recency\` is "day"|"week"|"month"|"year" (omit for no filter).
-- For web_fetch: \`url\` is a plain string (https://example.com/page or bare example.com).
+- Colors are hex strings like "#ff0000" (with the # prefix).
+- shapeIds / nodes / palette / points / stops MUST be arrays, even for a single item.
+  WRONG: "palette": "[\\"#fff\\", \\"#000\\"]"  (stringified string)
+  RIGHT: "palette": ["#fff", "#000"]             (real JSON array)
+- For web_search: query is a plain string, recency is "day"|"week"|"month"|"year" (omit for no filter).
+- For web_fetch: url is a plain string (https://example.com/page or bare example.com).
 
-=== TURN FLOW ==============================================================
+=== TURN FLOW ===============================================================
 
 Build the full design in this turn — create every shape the user asked for, then stop.
 You may call multiple tools in one turn if it helps. Stop calling tools when the design is done.
-Prefer the high-level generator tools (generate_wireframe, generate_user_flow, generate_diagram)
-over hand-placing many shapes — they produce well-structured output and conserve tool-call budget.
-When you need real-world information, call web_search / web_fetch FIRST so your design reflects
-accurate, current data — then proceed with the canvas tools.`;
 
-/// Round to integer for compact snapshot display. Defensive against
-/// non-numeric values that might slip through if a future patch path
-/// bypasses normalizeShape.
+IMPORTANT: The skill names above (wireframe, layout, styling, etc.) are NOT tools — do not
+call them as function calls. They are context zones that determine which tools you have access to.
+
+If a "WEB RESEARCH SUMMARY" section is present in the user's message, the research has already
+been done for you by a sub-agent. Use that summary directly — do NOT call web_search or web_fetch
+again. Proceed straight to designing based on the research findings.
+
+When you need real-world information that is NOT already provided, call web_search / web_fetch
+(only available if the web_research skill is active).`;
+
+/// Round to integer for compact snapshot display.
 function round(v: unknown): number {
   const n = typeof v === 'number' ? v : Number(v);
   return Number.isFinite(n) ? Math.round(n) : 0;
@@ -295,11 +211,33 @@ ${tokenLines}
 ${shapeLines}`;
 }
 
-/// Run the agent loop. Yields events as they happen — patches for canvas
-/// mutations, agent_events for the chat stream (message deltas, tool call
-/// start/end, turn end).
+/// Build the full system prompt by filling in the template variables.
+function buildSystemPrompt(
+  skillMetadata: string,
+  skillBody: string,
+  planSection: string,
+  canvas: CanvasDocument,
+): string {
+  return SYSTEM_PROMPT_TEMPLATE
+    .replace('${SKILL_METADATA}', skillMetadata)
+    .replace('${SKILL_BODY}', skillBody || '(No skill-specific instructions — all tools available.)')
+    .replace('${PLAN_SECTION}', planSection)
+    + '\n\n' + canvasSnapshot(canvas);
+}
+
+/// Filter the tool specs to only include the tools for the active skill.
+function filterToolSpecs(
+  allSpecs: ReturnType<typeof toolsToOpenAISpec>,
+  category: SkillCategory,
+): ReturnType<typeof toolsToOpenAISpec> {
+  const allowedNames = new Set(getToolNamesForCategory(category));
+  return allSpecs.filter((s) => allowedNames.has(s.function.name));
+}
+
+// ---- Run the agent loop ---------------------------------------------------
+
 export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStreamEvent> {
-  const { documentId, prompt, canvas: initialCanvas, llm: injectedLlm } = opts;
+  const { documentId, prompt, canvas: initialCanvas, llm: injectedLlm, signal } = opts;
 
   // Per-session mutable state. The tools close over this via `ctx`.
   let canvas: CanvasDocument = JSON.parse(JSON.stringify(initialCanvas));
@@ -309,38 +247,206 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
     getTokens: () => canvas.tokens,
     getDocument: () => canvas,
     applyPatch(patch: CanvasPatch): CanvasPatch {
-      // Apply locally so the next tool call sees the updated state.
       canvas = applyPatchToCanvas(canvas, patch);
       return patch;
     },
   };
 
+  // Create all tools (we'll filter the visible subset based on the skill).
   const tools = createCanvasTools(ctx);
-  const toolSpecs = toolsToOpenAISpec(tools);
+  const allToolSpecs = toolsToOpenAISpec(tools);
 
-  // Build the initial message history.
-  const messages: Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_calls?: any[]; tool_call_id?: string }> = [
-    { role: 'system', content: `${SYSTEM_PROMPT}\n\n${canvasSnapshot(canvas)}` },
-    { role: 'user', content: prompt },
-  ];
-
-  // Initialize the LLM client. If the caller injected one (tests), use it.
-  // Otherwise fall back to z-ai-web-dev-sdk, which the sandbox provides
-  // credentials for automatically when this runs inside the Next.js API route.
-  // The ZAI default export structurally matches `LLMClient` (OpenAI-compatible
-  // `chat.completions.create`), but TypeScript can't verify the dynamic SDK
-  // shape, so we cast through `unknown`.
+  // Initialize the LLM client.
   const llm: LLMClient = injectedLlm ?? ((await ZAI.create()) as unknown as LLMClient);
 
   yield { kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } };
 
+  // ---- TIER 1: Intent classification ---------------------------------------
+  //
+  // Classify the user's intent to determine which skill (and thus which tool
+  // subset) to activate. This reduces the visible tools from 56 → ~15-20.
+
+  let classification: ClassificationResult;
+  try {
+    classification = await classifyIntent({
+      prompt,
+      canvasShapeCount: canvas.shapes.length,
+      llm: injectedLlm, // Use the injected LLM for classification if available (tests).
+      // In production, we pass undefined so the classifier only does the
+      // keyword pass (avoids an extra LLM round-trip on every turn).
+      // The keyword pass is accurate enough for >90% of prompts.
+      signal,
+    });
+  } catch {
+    classification = {
+      category: 'multi',
+      secondaryCategories: [],
+      method: 'fallback',
+      confidence: 0,
+      recommendPlan: false,
+    };
+  }
+
+  // If no injected LLM (production), try the LLM fallback for low-confidence cases.
+  // BUT: skip the LLM fallback if the keyword classifier already detected a
+  // multi-step prompt (recommendPlan=true), because the keyword classifier's
+  // "last deliverable" logic is more reliable for multi-step prompts than an
+  // LLM that might latch onto the first verb (e.g. "Research..." → web_research,
+  // even when the final deliverable is "...then design a dashboard" → wireframe).
+  if (!injectedLlm && classification.confidence < 0.5 && !classification.recommendPlan && classification.category !== 'multi') {
+    try {
+      const llmResult = await classifyIntent({
+        prompt,
+        canvasShapeCount: canvas.shapes.length,
+        llm,
+        signal,
+      });
+      if (llmResult.confidence > classification.confidence) {
+        classification = llmResult;
+      }
+    } catch {
+      // Keep the keyword result.
+    }
+  }
+
+  const activeCategory = classification.category;
+  const filteredSpecs = filterToolSpecs(allToolSpecs, activeCategory);
+
+  // Emit the skill selection event so the UI can display it.
+  yield {
+    kind: 'agent_event',
+    event: {
+      type: 'agent:skill_selected',
+      category: activeCategory,
+      confidence: classification.confidence,
+      method: classification.method,
+      toolCount: filteredSpecs.length,
+    },
+  };
+
+  // ---- TIER 2: Planning phase (for multi-step tasks) -----------------------
+  //
+  // If the classifier recommends a plan, generate a step list before the
+  // main loop starts. The plan is injected into the system prompt so the
+  // agent can follow it.
+
+  let plan: Plan | null = null;
+  if (classification.recommendPlan) {
+    try {
+      plan = await generatePlan({
+        prompt,
+        classification,
+        llm,
+        signal,
+      });
+      if (plan) {
+        yield {
+          kind: 'agent_event',
+          event: {
+            type: 'agent:plan',
+            steps: plan.steps.map((s) => ({
+              step: s.step,
+              description: s.description,
+              skill: s.skill,
+              status: s.status,
+            })),
+          },
+        };
+      }
+    } catch {
+      plan = null;
+    }
+  }
+
+  // ---- TIER 2: Web research sub-agent dispatch ------------------------------
+  //
+  // If the primary skill is web_research (or it's a secondary skill in a
+  // multi-step plan), dispatch the sub-agent to do the research in an
+  // isolated context. The summary is injected into the main agent's context.
+
+  let webResearchSummary: string | null = null;
+  const needsWebResearch =
+    activeCategory === 'web_research' ||
+    (classification.secondaryCategories.includes('web_research') && classification.recommendPlan);
+
+  if (needsWebResearch) {
+    // Emit sub-agent dispatch event.
+    yield {
+      kind: 'agent_event',
+      event: {
+        type: 'agent:subagent_dispatch',
+        subAgentType: 'web_research',
+        task: prompt,
+      },
+    };
+
+    const subAgentResult = await dispatchWebResearchSubAgent({
+      task: prompt,
+      canvas,
+      signal,
+    });
+
+    webResearchSummary = subAgentResult.summary;
+
+    // Emit sub-agent result event.
+    yield {
+      kind: 'agent_event',
+      event: {
+        type: 'agent:subagent_result',
+        subAgentType: 'web_research',
+        success: subAgentResult.success,
+        summary: webResearchSummary.slice(0, 500), // Preview for UI
+        toolCalls: subAgentResult.toolCalls,
+      },
+    };
+
+    // If the primary task WAS web research (not "research then design"),
+    // the sub-agent's summary IS the answer. Emit it as the agent's message
+    // and end the turn.
+    if (activeCategory === 'web_research' && !classification.recommendPlan) {
+      yield {
+        kind: 'agent_event',
+        event: { type: 'agent:message_delta', text: webResearchSummary },
+      };
+      yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
+      yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
+      return;
+    }
+  }
+
+  // ---- Build the system prompt with skill metadata + body + plan -----------
+
+  const skillMetadata = formatSkillMetadataForPrompt();
+  const skillBody = formatSkillBodyForPrompt(activeCategory);
+  const planSection = plan ? `=== EXECUTION PLAN =========================================================\nFollow this plan. Complete each step before moving to the next.\n\n${formatPlanForPrompt(plan)}\n` : '';
+  const systemContent = buildSystemPrompt(skillMetadata, skillBody, planSection, canvas);
+
+  // Build the initial message history.
+  const messages: Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_calls?: any[]; tool_call_id?: string }> = [
+    { role: 'system', content: systemContent },
+  ];
+
+  // If we have a web research summary, inject it as context.
+  if (webResearchSummary) {
+    messages.push({
+      role: 'user',
+      content: `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${prompt}`,
+    });
+  } else {
+    messages.push({ role: 'user', content: prompt });
+  }
+
+  // ---- Main agent loop -----------------------------------------------------
+
   const MAX_ITERATIONS = 20;
+  let currentPlanStep = 0;
+
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     let completion: any;
     try {
       completion = await llm.chat.completions.create({
         messages: messages as any,
-        tools: toolSpecs,
+        tools: filteredSpecs,
         tool_choice: 'auto',
         temperature: 0.4,
       });
@@ -366,6 +472,20 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
     if (toolCalls.length === 0) {
       // No tool calls → final answer. End the turn.
       yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
+
+      // Mark the current plan step as completed.
+      if (plan && currentPlanStep < plan.steps.length) {
+        plan = updatePlanStepStatus(plan, currentPlanStep, 'completed');
+        yield {
+          kind: 'agent_event',
+          event: {
+            type: 'agent:plan_step_update',
+            step: currentPlanStep + 1,
+            status: 'completed',
+          },
+        };
+      }
+
       yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
       return;
     }
@@ -381,8 +501,7 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
       })),
     });
 
-    // Execute each tool call sequentially. (Pi's default mode is sequential
-    // for tools that mutate shared state — same principle here.)
+    // Execute each tool call sequentially.
     for (const tc of toolCalls) {
       const toolName: string = tc.function.name;
       let args: any;
@@ -427,11 +546,26 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
       });
     }
 
-    // Refresh the system snapshot for the next iteration so the LLM sees the
-    // updated canvas. (We replace the first system message in-place.)
+    // Update plan step status if we have a plan.
+    if (plan && currentPlanStep < plan.steps.length) {
+      const step = plan.steps[currentPlanStep];
+      if (step.status === 'pending') {
+        plan = updatePlanStepStatus(plan, currentPlanStep, 'in_progress');
+        yield {
+          kind: 'agent_event',
+          event: {
+            type: 'agent:plan_step_update',
+            step: currentPlanStep + 1,
+            status: 'in_progress',
+          },
+        };
+      }
+    }
+
+    // Refresh the system snapshot for the next iteration.
     messages[0] = {
       role: 'system',
-      content: `${SYSTEM_PROMPT}\n\n${canvasSnapshot(canvas)}`,
+      content: buildSystemPrompt(skillMetadata, skillBody, plan ? `=== EXECUTION PLAN =========================================================\nFollow this plan. Complete each step before moving to the next.\n\n${formatPlanForPrompt(plan)}\n` : '', canvas),
     };
   }
 

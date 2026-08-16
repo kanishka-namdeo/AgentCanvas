@@ -263,6 +263,13 @@ export interface CanvasPatch {
 /// These intentionally mirror the shape of Pi's `AgentSessionEvent`
 /// union so the same UI reducer can handle both a real Pi session
 /// and our z-ai-web-dev-sdk backed driver.
+///
+/// Extended with skill-system events (Tier 0/1/2):
+///   - agent:skill_selected — the intent classifier picked a skill
+///   - agent:plan — the plan module generated a step list
+///   - agent:plan_step_update — a plan step changed status
+///   - agent:subagent_dispatch — a sub-agent was spawned
+///   - agent:subagent_result — a sub-agent returned its result
 export type SyncEvent =
   | { type: 'canvas:patch'; patch: CanvasPatch; toolCallId?: string }
   | { type: 'canvas:full'; document: CanvasDocument }
@@ -274,6 +281,11 @@ export type SyncEvent =
   | { type: 'agent:tool_call_end'; toolCallId: string; success: boolean; summary: string }
   | { type: 'agent:turn_end' }
   | { type: 'agent:error'; message: string }
+  | { type: 'agent:skill_selected'; category: string; confidence: number; method: string; toolCount: number }
+  | { type: 'agent:plan'; steps: Array<{ step: number; description: string; skill: string; status: string }> }
+  | { type: 'agent:plan_step_update'; step: number; status: string }
+  | { type: 'agent:subagent_dispatch'; subAgentType: string; task: string }
+  | { type: 'agent:subagent_result'; subAgentType: string; success: boolean; summary: string; toolCalls: number }
   | { type: 'presence'; viewerCount: number };
 
 /// Events the WebSocket client can send to the server.
