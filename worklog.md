@@ -428,3 +428,52 @@ Artifacts:
 - /home/z/my-project/tests/integration/scenarios.test.ts (NEW, 7 tests)
 - /home/z/my-project/tests/integration/session-bridge.test.ts (NEW, 10 tests)
 - /home/z/my-project/tests/integration/renderer.test.tsx (NEW, 17 tests)
+
+---
+Task ID: e2e-agent-testing
+Agent: main (Super Z)
+Task: Test the agent behaviour thoroughly wrt a complete conversation across scenarios. Fix what breaks.
+
+Work Log:
+- Read worklog to confirm prior scope: 30 new tools, 209 existing tests (165 unit + 44 integration). The existing tests cover tool→patch→store wiring in isolation but do NOT drive the actual `runAgent` loop end-to-end — there was no way to test the runner without a real LLM.
+- Identified the gap: `runner.ts` hard-coded `ZAI.create()` as the LLM driver, making it untestable without API keys. The runner's tool-execution loop, multi-iteration feedback, system snapshot refresh, error handling, and MAX_ITERATIONS cap were all untested.
+- Refactored `src/lib/agent/runner.ts`:
+  - Added `LLMClient` interface — minimal OpenAI-compatible contract (`chat.completions.create` returning `{ choices: [{ message: { content?, tool_calls? } }] }`).
+  - Added optional `llm?: LLMClient` to `AgentRunOptions`.
+  - Production path unchanged: `const llm = injectedLlm ?? ((await ZAI.create()) as unknown as LLMClient)`. Cast through `unknown` because TypeScript can't verify the dynamic ZAI SDK shape structurally.
+  - The `/api/agent` route and `canvas-sync` service are unchanged — they don't pass `llm`, so production still uses ZAI.
+- Wrote `tests/integration/runner.test.ts` (15 tests) with a scriptable `MockLLM`:
+  - MockLLM takes a script: array of `{ content?, tool_calls?, throw? }` entries, one per LLM iteration. Captures every `chat.completions.create` call (messages + tools + tool_choice) so tests can assert on the message history the runner built.
+  - Tests cover: text-only response (canonical event sequence), single-tool turn, multi-tool single-iteration turn (sequential execution in order), combined content+tool_calls (text streamed before tools run), multi-iteration tool-result feedback (LLM sees prior tool results in message history), system snapshot refresh between iterations (messages[0] rewritten with updated canvas), 5-iteration design flow, LLM throw → agent:error, tool error recovery (LLM sees error in tool result + retries), malformed tool arguments (JSON.parse fallback to {}), MAX_ITERATIONS cap (graceful exit at 20 iterations), empty message (no content + no tool_calls → ends turn), input isolation (runner deep-clones canvas, doesn't mutate caller's object), 54-tool spec passthrough.
+- Wrote `tests/integration/conversation.test.ts` (7 tests) for multi-run conversation flows:
+  - `runThroughStore` helper drives `runAgent` AND forwards every emitted event through `useCanvasStore._onSync` — the same path WebSocket events take in production. Seeds the session + run + messages + turns (mirrors what `promptAgent` does). Reads the final canvas from the store (not a local copy) so op=undo/redo interceptions are reflected.
+  - Tests cover: run 2 sees run 1's output in system snapshot, undo/redo via tools (op=undo intercepted by store), token binding across runs (bind in run 1, re-theme in run 2 — patch.ts re-applies token values to bound shapes), error recovery across runs (run 1 fails, run 2 succeeds, both recorded correctly), snapshot accumulation (3 runs → 3 snapshots, newest-first ordering), full chat history across 3 runs (6 messages, alternating user/assistant, tool calls recorded, `_syncTurnsFromSession` rebuilds turns correctly).
+
+Bugs found and fixed:
+- **`canvas_delete_shape` crashes on wrong arg shape** (src/lib/agent/tools.ts:399): the tool's schema says `shapeIds: string[]`, but if the LLM passes `shapeId` (singular) or omits it, `params.shapeIds.includes(...)` throws "cannot read properties of undefined (reading 'includes')". The runner catches this and emits `tool_call_end` with `success=false`, but the error message is unhelpful and the tool returns `isError` via the catch path instead of a proper "not found" message. Fixed by coercing `shapeIds` defensively: if it's an array, filter to strings; if the LLM passed `shapeId` (singular), wrap it in an array; otherwise empty array. The tool now returns a proper "No shapes found with ids: ..." error message in all cases. Cast `params` through `any` to suppress the schema-type complaint (intentional — we're checking for a common LLM mistake the schema doesn't declare).
+
+Test bugs found and fixed (not source bugs):
+- **Snapshot ordering assumption**: `listSnapshots` returns newest-first (descending by `createdAt`), but my first test draft assumed oldest-first. Fixed by asserting `snaps[0]` = latest (3 shapes) and `snaps[2]` = oldest (1 shape). Verified the production UI (`RunHistoryPanel`) expects newest-first for display — the implementation is correct, my test was wrong.
+- **`runThroughStore` local canvas divergence for op=undo/redo**: my first helper draft applied patches to a local `finalCanvas` via `applyPatchToCanvas`, but op=undo/redo are no-ops at the patch layer (the store intercepts them before `applyPatchToCanvas`). The local canvas stayed at 3 shapes while the store correctly reverted to 2. Fixed by reading `useCanvasStore.getState().document` as the final canvas instead of maintaining a local copy.
+- **Flaky snapshot accumulation test (~20% failure rate)**: the "3 runs → 3 snapshots" test sometimes captured only 2 snapshots. Root cause: the runner's async generator machinery could leave a microtask in the queue between runs, causing the next run's `turn_end` duplicate guard (`if (run.status === 'completed') break`) to see a stale run status. Fixed by adding `await new Promise((r) => setTimeout(r, 0))` at the end of `runThroughStore` to flush pending microtasks before returning. Empirically eliminated the flakiness across 11+ consecutive runs.
+
+Verification:
+- `bun run test` → "Test Files 10 passed (10)" / "Tests 231 passed (231)" in ~14s. (209 existing + 15 runner + 7 conversation = 231 total.)
+- Ran the full suite 11+ consecutive times to verify the flakiness fix — all passed.
+- `bunx tsc --noEmit` — only pre-existing errors (TS5097 for `.ts` import extensions, TS2322 for `defineTool` execute signature strictness). Zero new error types.
+- The `LLMClient` injection is backward-compatible: production code (`/api/agent/route.ts`, `canvas-sync/index.ts`) doesn't pass `llm`, so it falls back to `ZAI.create()` exactly as before.
+
+Stage Summary:
+- 22 new end-to-end tests across 2 files (15 runner + 7 conversation), all passing.
+- One real source bug fixed (`canvas_delete_shape` arg-shape defensiveness).
+- The runner is now first-class testable: inject a `MockLLM` with a scripted response sequence, drive `runAgent`, and assert on the full event stream + canvas state + message history.
+- The `LLMClient` interface is the swap point for future Pi Agent SDK migration — replace the ZAI default with `createAgentSession` and the runner + all tests work unchanged.
+- Multi-run conversation coverage verifies the full chain: runner → `_onSync` → store → session mirroring + undo/redo + snapshot capture. This is the "complete conversation across scenarios" the user asked for.
+
+Artifacts:
+- /home/z/my-project/src/lib/agent/runner.ts (added `LLMClient` interface + `llm?` option in `AgentRunOptions` + cast for ZAI default)
+- /home/z/my-project/src/lib/agent/tools.ts (fixed `canvas_delete_shape` arg-shape defensiveness)
+- /home/z/my-project/tests/integration/runner.test.ts (NEW, 15 tests)
+- /home/z/my-project/tests/integration/conversation.test.ts (NEW, 7 tests)
+- /home/z/my-project/tests/AGENTS.md (added integration test inventory table + updated verification counts)
+- /home/z/my-project/src/lib/agent/AGENTS.md (updated LLM shim policy with injection contract)

@@ -32,8 +32,9 @@ This is the contract layer between the LLM and the canvas. Tool names, parameter
 ### LLM shim policy (root contract, restated for locality)
 - The runner currently drives the loop with `z-ai-web-dev-sdk` (ZAI) because the sandbox has no Anthropic/OpenAI key.
 - The event stream (`AgentStreamEvent` union) mirrors Pi's `AgentSessionEvent` shape so consumers do not change when the driver swaps.
-- Swap point: the single ZAI call site in `runner.ts`. Replace with `createAgentSession` from `@earendil-works/pi-coding-agent` to go native Pi. Do NOT add a second driver.
+- Swap point: the LLM client in `runner.ts`. The runner accepts an optional `llm?: LLMClient` in `AgentRunOptions`. If omitted (production), the runner constructs the ZAI client via `ZAI.create()`. If provided (tests), the runner uses the injected client directly. Replace with `createAgentSession` from `@earendil-works/pi-coding-agent` to go native Pi. Do NOT add a second driver.
 - ZAI speaks the OpenAI tool-calling protocol; the runner translates OpenAI tool-call deltas into Pi-style events.
+- The `LLMClient` interface (exported from `runner.ts`) is the minimal contract: `chat.completions.create({ messages, tools, tool_choice, temperature })` returning `{ choices: [{ message: { content?, tool_calls? } }] }`. Any OpenAI-compatible client satisfies this.
 
 ### System prompt
 - The system prompt is defined inline at the top of `runner.ts` as `SYSTEM_PROMPT`.

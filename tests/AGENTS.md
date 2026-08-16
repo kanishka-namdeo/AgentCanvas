@@ -23,6 +23,17 @@ Two kinds of tests live here:
 | `store.test.ts` | `useCanvasStore` undo/redo behavior — `undo()` / `redo()` actions, `_onSync` undo/redo interception, undo-stack push before mutating patches, redo-stack clearing on mutation, 50-entry cap, full undo/redo cycle, and select-patch non-mutation. Bypasses `init()` (which opens a WebSocket) by directly setting state. |
 | `ShapeRenderer.test.tsx` | The `ShapeRenderer` component — new shape types (`path` → polygon/polyline, `image`), new effects (gradient fill, drop shadow, blur, per-corner radii), visibility, selected/highlighted states, and regression coverage for existing shape types. Calls `ShapeRenderer` directly inside an `<svg>` wrapper. |
 
+### Vitest integration tests (`tests/integration/`)
+
+| File | What it covers |
+|------|----------------|
+| `pipeline.test.ts` | Full pipeline: tool → `ctx.applyPatch` → `useCanvasStore._onSync` → undo/redo. Each new tool category gets a full-chain test (create+undo+redo, z-order+undo, token binding+re-theme, bulk_update+undo, reorder+undo, export_json round-trip). Also a simulated agent turn driven through `_onSync` verifying the store + session store end up consistent. |
+| `scenarios.test.ts` | Realistic multi-tool design workflows: "Design a card" (create→text→group→shadow→per-corner radii→undo all→redo all), "Design system with tokens + binding" (update_tokens→create buttons→apply_token bind→re-theme→unbind→re-theme), "Find & replace text", "Lock + hide + find" with undo, "Z-order across multiple operations", "Export SVG reflects latest fills", "Generate wireframe emits one atomic bulk_add". |
+| `session-bridge.test.ts` | Session store mirroring: message stream → assistant message + live turn, tool call start/end recorded on the run, snapshot captured at turn_end (with createdBy='agent'), duplicate turn_end guard, stopAgent finalizes as cancelled + user-created snapshot, error path finalizes run as failed, session switching restores canvas + rebuilds turns, newSession clears canvas, forkActiveSession creates child session. |
+| `renderer.test.tsx` | Canvas component subscription to store mutations: empty canvas, add/update/remove/clear, all shape types (rectangle, ellipse, text, path, image), shadow/gradient/per-corner radii rendering, undo/redo reflected in DOM, hidden shapes, bulk_add, background op, heatmap op. |
+| `runner.test.ts` | **End-to-end runner tests** — drives `runAgent` with a scriptable `MockLLM` that returns deterministic completions per iteration. Covers: text-only response, single-tool turn, multi-tool single-iteration turn, combined content+tool_calls, multi-iteration tool-result feedback (LLM sees prior tool results), system snapshot refresh between iterations, 5-iteration design flow, LLM throw → agent:error, tool error recovery (LLM sees error in tool result), malformed tool arguments (JSON.parse fallback to {}), MAX_ITERATIONS cap (graceful exit), empty message (no content + no tool_calls), input isolation (runner deep-clones canvas, doesn't mutate caller's object), 54-tool spec passthrough. |
+| `conversation.test.ts` | **Multi-run conversation flows** — sequences of `runAgent` calls wired through `useCanvasStore._onSync`, verifying the full chain: runner → store → session mirroring + undo/redo. Covers: run 2 sees run 1's output in system snapshot, undo/redo via tools (op=undo intercepted by store), token binding across runs (bind in run 1, re-theme in run 2), error recovery across runs (run 1 fails, run 2 succeeds, both recorded correctly), snapshot accumulation (3 runs → 3 snapshots, newest-first ordering), full chat history across 3 runs (6 messages, alternating user/assistant, tool calls recorded). |
+
 ### Setup file (`tests/setup.ts`)
 - Registers `@testing-library/jest-dom` matchers.
 - Polyfills `crypto.randomUUID` (for older jsdom), `matchMedia`, `ResizeObserver`, and `SVGElement.prototype.getBBox` — all of which jsdom lacks but our code relies on.
@@ -86,7 +97,7 @@ Each prints a "passed" message on success and exits non-zero on failure.
 
 ## Verification
 
-- `bun run test` — should print "Test Files 4 passed (4)" and "Tests 165 passed (165)" (or higher as tests are added).
+- `bun run test` — should print "Test Files 10 passed (10)" and "Tests 231 passed (231)" (or higher as tests are added).
 - `bash tests/python-runtime-build.sh` — should print "python runtime build tests passed".
 - `bash tests/database-runtime-build.sh` — should print the corresponding pass message.
 - These tests are NOT part of CI (no CI is configured).

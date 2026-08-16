@@ -23,6 +23,44 @@ export interface AgentRunOptions {
   prompt: string;
   /// Snapshot of the canvas at the start of the turn.
   canvas: CanvasDocument;
+  /// Optional LLM client override. Defaults to `z-ai-web-dev-sdk` (ZAI).
+  /// Used by tests to inject a deterministic mock; in production this is
+  /// always undefined and the runner constructs the ZAI client itself.
+  llm?: LLMClient;
+}
+
+/// Minimal LLM client interface the runner needs. Mirrors the OpenAI
+/// tool-calling protocol shape that `z-ai-web-dev-sdk` exposes, so the
+/// real ZAI client satisfies this interface without adaptation.
+///
+/// Tests pass a `MockLLM` that returns scripted completions per iteration.
+export interface LLMClient {
+  chat: {
+    completions: {
+      create: (params: {
+        messages: Array<{
+          role: 'system' | 'user' | 'assistant' | 'tool';
+          content: string;
+          tool_calls?: any[];
+          tool_call_id?: string;
+        }>;
+        tools?: any[];
+        tool_choice?: string | any;
+        temperature?: number;
+      }) => Promise<{
+        choices: Array<{
+          message: {
+            content?: string | null;
+            tool_calls?: Array<{
+              id: string;
+              type: 'function';
+              function: { name: string; arguments: string };
+            }>;
+          };
+        }>;
+      }>;
+    };
+  };
 }
 
 export interface AgentRunHandle {
@@ -232,7 +270,7 @@ ${shapeLines}`;
 /// mutations, agent_events for the chat stream (message deltas, tool call
 /// start/end, turn end).
 export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStreamEvent> {
-  const { documentId, prompt, canvas: initialCanvas } = opts;
+  const { documentId, prompt, canvas: initialCanvas, llm: injectedLlm } = opts;
 
   // Per-session mutable state. The tools close over this via `ctx`.
   let canvas: CanvasDocument = JSON.parse(JSON.stringify(initialCanvas));
@@ -257,9 +295,13 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
     { role: 'user', content: prompt },
   ];
 
-  // Initialize the z-ai-web-dev-sdk client. The sandbox provides credentials
-  // automatically when this runs inside the Next.js API route.
-  const zai = await ZAI.create();
+  // Initialize the LLM client. If the caller injected one (tests), use it.
+  // Otherwise fall back to z-ai-web-dev-sdk, which the sandbox provides
+  // credentials for automatically when this runs inside the Next.js API route.
+  // The ZAI default export structurally matches `LLMClient` (OpenAI-compatible
+  // `chat.completions.create`), but TypeScript can't verify the dynamic SDK
+  // shape, so we cast through `unknown`.
+  const llm: LLMClient = injectedLlm ?? ((await ZAI.create()) as unknown as LLMClient);
 
   yield { kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } };
 
@@ -267,7 +309,7 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     let completion: any;
     try {
-      completion = await zai.chat.completions.create({
+      completion = await llm.chat.completions.create({
         messages: messages as any,
         tools: toolSpecs,
         tool_choice: 'auto',

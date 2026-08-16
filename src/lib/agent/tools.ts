@@ -397,17 +397,27 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       shapeIds: Type.Array(Type.String(), { description: 'Ids of shapes to delete' }),
     }),
     async execute(toolCallId, params) {
-      const existing = ctx.getShapes().filter((s) => params.shapeIds.includes(s.id));
+      // Defensive against LLM arg-shape errors: the schema says shapeIds is an
+      // array, but LLMs occasionally pass `shapeId` (singular) or omit it
+      // entirely. Coerce to an empty array so we return a proper "not found"
+      // error instead of crashing inside `params.shapeIds.includes(...)`.
+      // (Cast through `any` because the schema only declares `shapeIds`, but
+      // we intentionally check for the common LLM mistake of passing `shapeId`.)
+      const p = params as any;
+      const shapeIds: string[] = Array.isArray(p?.shapeIds)
+        ? p.shapeIds.filter((id: unknown): id is string => typeof id === 'string')
+        : (typeof p?.shapeId === 'string' ? [p.shapeId] : []);
+      const existing = ctx.getShapes().filter((s) => shapeIds.includes(s.id));
       if (existing.length === 0) {
         return {
-          content: [{ type: 'text', text: `No shapes found with ids: ${params.shapeIds.join(', ')}` }],
+          content: [{ type: 'text', text: `No shapes found with ids: ${shapeIds.join(', ') || '(none)'}` }],
           details: { error: 'not_found' },
           isError: true as any,
         };
       }
       const patch: CanvasPatch = {
         op: 'remove',
-        shapeIds: params.shapeIds,
+        shapeIds,
         summary: `Deleted ${existing.length} shape${existing.length === 1 ? '' : 's'}: ${existing.map((s) => s.name).join(', ')}`,
       };
       ctx.applyPatch(patch);
