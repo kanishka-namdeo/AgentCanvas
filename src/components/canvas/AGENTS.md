@@ -65,4 +65,6 @@ Canvas UI components: the drawing surface, the toolbar, the layers panel, the pr
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder is flat.
+No child AGENTS.md files in this folder.
+
+*Siblings: `../sessions/AGENTS.md` (Session management UI), `../ui/AGENTS.md` (shadcn/ui primitives).*

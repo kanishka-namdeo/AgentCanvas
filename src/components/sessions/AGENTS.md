@@ -86,4 +86,6 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder is flat.
+No child AGENTS.md files in this folder.
+
+*Siblings: `../canvas/AGENTS.md` (Canvas UI components), `../ui/AGENTS.md` (shadcn/ui primitives).*

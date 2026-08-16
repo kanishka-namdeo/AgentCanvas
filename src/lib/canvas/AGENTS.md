@@ -93,4 +93,6 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder is flat: `types.ts`, `store.ts`, `patch.ts`, `server.ts`.
+No child AGENTS.md files in this folder.
+
+*Siblings: `../agent/AGENTS.md` (Agent layer), `../sessions/AGENTS.md` (Session persistence).*

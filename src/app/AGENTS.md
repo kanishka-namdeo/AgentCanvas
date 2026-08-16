@@ -73,4 +73,6 @@ The Next.js App Router entry point: the root layout, the main page (the 4-pane A
 
 | Path | Scope |
 |------|-------|
-| `api/AGENTS.md` | API routes: `/api/agent` (SSE-style agent run endpoint) and `/api` (health check). |
+| `api/AGENTS.md` | API routes: `/api/agent` (SSE agent run endpoint) and `/api` (health check) |
+
+*Note: `src/components/` and `src/lib/` do not have their own AGENTS.md files; only their subfolders do.*

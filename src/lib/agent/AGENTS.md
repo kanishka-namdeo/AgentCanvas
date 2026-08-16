@@ -82,4 +82,6 @@ type AgentStreamEvent =
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder is flat: `tools.ts` + `runner.ts`.
+No child AGENTS.md files in this folder.
+
+*Siblings: `../canvas/AGENTS.md` (Canvas state), `../sessions/AGENTS.md` (Session persistence).*

@@ -79,4 +79,6 @@ State transitions are append-only: a `completed` run cannot go back to `in_progr
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder is flat: `types.ts`, `store.ts`, `index.ts`.
+No child AGENTS.md files in this folder.
+
+*Siblings: `../agent/AGENTS.md` (Agent layer), `../canvas/AGENTS.md` (Canvas state).*
