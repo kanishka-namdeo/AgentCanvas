@@ -323,3 +323,57 @@ Stage Summary:
 - `canvas_boolean_op` is a simplified approximation (union=group, subtract/intersect=mask, exclude=hide) — documented in the tool description.
 - `canvas_generate_image` places a placeholder (AI image-gen API not wired in this pass).
 - Files touched: types.ts, patch.ts, tools.ts, runner.ts, store.ts, Canvas.tsx, AgentPanel.tsx.
+
+---
+Task ID: programmatic-testing
+Agent: main (Super Z)
+Task: Set up programmatic testing for the 30 new agent tools + new patch ops + undo/redo + new ShapeRenderer paths. Fix whatever breaks.
+
+Work Log:
+- Read worklog to confirm previous scope: 30 new tools across Phase 1+2+5, new Shape fields (points/closed/src/radii/gradient/shadow/blur/maskId), new patch ops (zorder/reorder/viewport/undo/redo), client-side undo/redo stacks. No app-level test runner existed.
+- Explored types.ts, patch.ts (384 lines), tools.ts (2926 lines, 54 tools), store.ts (680 lines, undo/redo + _onSync), Canvas.tsx (ShapeRenderer at line 484).
+- Confirmed pre-existing TS errors are all the same pattern (defineTool execute signature strictness) — Next.js build skips them. Not in scope to fix.
+- Installed vitest@4 + @vitest/ui + jsdom + @testing-library/react + @testing-library/jest-dom + @vitejs/plugin-react as devDependencies.
+- Wrote `vitest.config.ts` (root): jsdom environment, globals, setup file, `@` → `./src` alias (mirrors tsconfig.json), include pattern `tests/unit/**/*.test.{ts,tsx}` + `tests/integration/**`, coverage includes patch.ts/store.ts/tools.ts/Canvas.tsx.
+- Wrote `tests/setup.ts`: registers jest-dom matchers, polyfills crypto.randomUUID / matchMedia / ResizeObserver / SVGElement.getBBox for jsdom.
+- Wrote `tests/unit/patch.test.ts` (33 tests): zorder (front/back/forward/backward, multi-shape, default-to-front, empty no-op, purity), reorder (target z, clamp high, clamp negative, missing shapeId, not-found), undo/redo (no-op at patch layer), viewport, normalizeShape for every new Phase 5 field (points/closed/src/radii/gradient/shadow/blur/maskId), numeric-string coercion (LLM safety), opacity clamp, tokens-patch binding re-application (fill/stroke/textColor).
+- Wrote `tests/unit/tools.test.ts` (85 tests): in-memory harness wrapping `applyPatch` so mutations are visible to subsequent `getShapes()` calls. Every one of the 30 new tools has at least one happy-path test + error-path test (missing shape/token/wrong type). Registration sanity check: 54 tools total, unique names, non-empty descriptions.
+- Wrote `tests/unit/store.test.ts` (18 tests): undo() pops + pushes to redo, no-op on empty, 50-cap. redo() pops + pushes to undo, no-op on empty, 50-cap. _onSync intercepts op=undo/redo and calls actions. _onSync pushes current doc to undoStack before mutating patches, clears redoStack on mutation, does NOT push for non-mutating select patches, 50-cap on push. Full undo/redo cycle. Multi-mutation undo chain. Coverage of new ops (zorder/reorder/viewport all push to undoStack).
+- Wrote `tests/unit/ShapeRenderer.test.tsx` (29 tests): exported `ShapeRenderer` from Canvas.tsx (non-breaking change — just adds `export` keyword). Tests path (closed→polygon, open→polyline, empty-points→null), image (href, null-src), gradient (linear/radial, fill=url(...), <2 stops no-op, angle math for 0° and 90°, gradient on ellipse/path/frame), shadow (feDropShadow attrs, filter applied to rect), blur (feGaussianBlur, no filter when blur=0, shadow+blur combined), per-corner radii (rx=topLeft, ry=topRight, fallback to uniform, frames), maskId (no-op visual marker), visibility (visible=false renders nothing), selected state (10 rects = 1 main + 1 outline + 8 handles), highlighted state (amber animated outline).
+
+Bugs found and fixed:
+- **`canvas_bulk_update_by_filter` missing `isError: true` on no matches** (src/lib/agent/tools.ts:1988): the source set `details.error: 'no_matches'` but didn't set `isError: true`, inconsistent with `canvas_apply_token` which does. Fixed by adding `isError: true as any`. This was the only real source-code bug surfaced by the tests.
+
+Test bugs found and fixed (not source bugs):
+- `canvas_export_svg` frameId test was checking for the literal string "inner" (shape name) in SVG output — SVG only contains coordinates. Rewrote to assert on SVG width/height + fill color inclusion/exclusion.
+- `canvas_export_png` test was checking for `data:image/svg+xml;base64,` in `content`, but the data URL is in `details.dataUrl` (executeTool only surfaces content + patch). Rewrote to call `tool.execute` directly so we can inspect `details.dataUrl`.
+- `canvas_find_shapes` substring test asserted `r.content.not.toContain('b')` — failed because "Submit Button" contains 'b'. Rewrote to assert on shape id (`s-a` vs `s-b`) and shape name.
+- `ShapeRenderer` text-shape test failed because the `makeShape` test helper didn't include `text` in the returned object — `text: 'Hello'` was silently dropped. Fixed by adding `text: overrides.text` to the helper.
+- `ShapeRenderer` gradient-angle test had a wrong first assertion (`x1=50%` for angle=0; correct math is `x1=0%`). Removed the wrong assertion and added a second angle (90°) for fuller coverage.
+- `ShapeRenderer` selected-state test expected 9 rects but got 10 — forgot to count the selection outline rect. Corrected to 10 and added a more specific assertion (8 handle rects have `fill="white"`).
+
+Verification:
+- `bun run test` → "Test Files 4 passed (4)" / "Tests 165 passed (165)" in ~5s.
+- `bun run test:watch` → starts and re-runs on file changes.
+- `npx next build` → "✓ Compiled successfully" / 4 routes generated. Source-code change (adding `isError: true` to bulkUpdateByFilter and `export` to ShapeRenderer) didn't break the build.
+- Pre-existing TS errors unchanged — no new errors introduced.
+
+Stage Summary:
+- 165 programmatic tests across 4 files, all passing.
+- One real source bug fixed (`canvas_bulk_update_by_filter` missing `isError`).
+- One non-breaking export added (`ShapeRenderer` now exported from Canvas.tsx for testability).
+- Test infrastructure is now first-class: `bun run test` / `test:watch` / `test:ui` / `test:coverage` scripts wired into package.json.
+- Pattern is established for future tests: copy a similar `describe(...)` block, adapt the assertions. The `tests/AGENTS.md` documents where each kind of test belongs.
+- Coverage is focused on the new code (Phase 1+2+5): every new patch op, every new tool, every new Shape field, every new ShapeRenderer path is exercised. Existing code (add/update/remove/group/align/etc.) gets light regression coverage.
+
+Artifacts:
+- /home/z/my-project/vitest.config.ts (NEW)
+- /home/z/my-project/tests/setup.ts (NEW)
+- /home/z/my-project/tests/unit/patch.test.ts (NEW, 33 tests)
+- /home/z/my-project/tests/unit/tools.test.ts (NEW, 85 tests)
+- /home/z/my-project/tests/unit/store.test.ts (NEW, 18 tests)
+- /home/z/my-project/tests/unit/ShapeRenderer.test.tsx (NEW, 29 tests)
+- /home/z/my-project/src/lib/agent/tools.ts (1-line fix: bulkUpdateByFilter isError)
+- /home/z/my-project/src/components/canvas/Canvas.tsx (1-line change: export ShapeRenderer)
+- /home/z/my-project/package.json (added test/test:watch/test:ui/test:coverage scripts)
+- /home/z/my-project/tests/AGENTS.md (rewritten with full Vitest section)

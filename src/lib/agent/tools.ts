@@ -1985,7 +1985,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       if (params.nameContains) matches = matches.filter((s) => s.name.toLowerCase().includes(params.nameContains!.toLowerCase()));
       if (params.parentId) matches = matches.filter((s) => s.parentId === params.parentId);
       if (matches.length === 0) {
-        return { content: [{ type: 'text', text: 'No shapes matched the filter.' }], details: { error: 'no_matches', count: 0 } };
+        return { content: [{ type: 'text', text: 'No shapes matched the filter.' }], details: { error: 'no_matches', count: 0 }, isError: true as any };
       }
       const coerced = coerceShapeInput(params.changes);
       const updates = matches.map((s) => ({ id: s.id, changes: coerced }));

@@ -481,7 +481,7 @@ interface ShapeRendererProps {
   ) => void;
 }
 
-function ShapeRenderer({
+export function ShapeRenderer({
   shape,
   selected,
   highlighted,
