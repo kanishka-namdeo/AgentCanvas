@@ -1,6 +1,6 @@
 <div align="center">
 
-# co-canvas
+# AgentCanvas
 
 **An AI-native collaborative canvas — Figma for AI agents.**
 
