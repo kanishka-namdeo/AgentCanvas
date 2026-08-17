@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040451373-Guide-to-auto-layout",
+    "name": "Guide to auto layout",
+    "snippet": "Padding is the empty or white space between the edge of a parent auto layout frame and its objects. Gap between is the distance or distribution between objects ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/42031586813719-Use-auto-layout-with-CSS-Flexbox-in-mind",
+    "name": "Use auto layout with CSS Flexbox in mind",
+    "snippet": "This article covers changes coming to auto layout as part of an update that brings it closer in line with how CSS flexbox behaves. Read more",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jamieryan.ie/writing/what-the-fig-is-auto-layout",
+    "name": "Figma | Auto Layout - Jamie Ryan",
+    "snippet": "Feb 7, 2023 — Auto - Layout direction flex-direction Space between items gap Padding padding / margin By default, you can set horizontal and vertical padding . ...",
+    "host_name": "www.jamieryan.ie",
+    "rank": 2,
+    "date": "Feb 7, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxcel.com/blog/master-auto-layout-in-figma-with-this-tutorial-158",
+    "name": "Master Auto Layout in Figma with This Tutorial",
+    "snippet": "Feb 6, 2026 — Padding controls the space around the edges of a frame, as well as the gap between elements inside the frame. You can set padding in two ways.",
+    "host_name": "uxcel.com",
+    "rank": 3,
+    "date": "Feb 6, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@david-supik/figma-auto-layout-mastery-building-truly-responsive-components-3cfb6b8e67f9",
+    "name": "Figma Auto Layout Mastery: Building Truly Responsive",
+    "snippet": "Any padding or gap field in an auto layout frame can now be wired to a Figma variable. Change the variable value in one place and every frame ...",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/31289464393751-Use-the-horizontal-and-vertical-flows-in-auto-layout",
+    "name": "Use the horizontal and vertical flows in auto layout",
+    "snippet": "Padding controls the empty or white space between the boundary of an auto layout frame and the frame's child objects. You can set padding uniformly, vertically ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gist.github.com/eonist/9176796e746f35c9a69afaf4b679e509",
+    "name": "Comprehensive Guide to Figma Auto Layout: From Basics",
+    "snippet": "Padding in Figma Auto Layout provides essential \"breathing room\" between content and container edges, creating visual hierarchy and improving readability. Read more",
+    "host_name": "gist.github.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -362,6 +362,198 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       }
       break;
     }
+    // ---- v2.0 additions — Figma-aligned ontology --------------------------
+    case 'create_component': {
+      if (!patch.shapeId) break;
+      next.children = updateNode(next.children, patch.shapeId, { reusable: true } as Partial<PenChild>);
+      break;
+    }
+    case 'create_component_set': {
+      // Create a new frame with metadata.isComponentSet=true and re-parent
+      // the named children into it.
+      const id = crypto.randomUUID();
+      const childIds = new Set(patch.childIds ?? []);
+      const moved: PenChild[] = [];
+      const remaining: PenChild[] = [];
+      for (const c of next.children) {
+        if (childIds.has((c as PenChild & { id?: string }).id ?? '')) {
+          moved.push(c);
+        } else {
+          remaining.push(c);
+        }
+      }
+      const setNode: PenChild = {
+        type: 'frame',
+        id,
+        name: (patch.shape as { name?: string } | undefined)?.name ?? 'Component Set',
+        x: 0, y: 0, width: 'fit_content', height: 'fit_content',
+        layout: 'horizontal', gap: 16, padding: 16,
+        reusable: false,
+        metadata: { isComponentSet: true },
+        children: moved,
+      } as PenChild;
+      next.children = [...remaining, setNode];
+      break;
+    }
+    case 'create_instance': {
+      // Add a PenRef node pointing at the component.
+      const id = crypto.randomUUID();
+      const refNode: PenChild = {
+        type: 'ref',
+        id,
+        ref: patch.componentId ?? patch.refId ?? '',
+        name: `Instance of ${patch.componentId ?? patch.refId ?? '?'}`,
+        x: (patch.shape as { x?: number } | undefined)?.x ?? 0,
+        y: (patch.shape as { y?: number } | undefined)?.y ?? 0,
+        variantValues: patch.variantValues,
+      } as PenChild;
+      next.children = [...next.children, refNode];
+      break;
+    }
+    case 'set_component_property': {
+      if (!patch.shapeId || !patch.componentProperty) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node) break;
+      const meta = ((node as PenChild & { metadata?: Record<string, unknown> }).metadata) ?? {};
+      const props = (meta.componentProperties as Record<string, unknown> | undefined) ?? {};
+      props[patch.componentProperty.name] = {
+        type: patch.componentProperty.type,
+        defaultValue: patch.componentProperty.defaultValue,
+        variantOptions: patch.componentProperty.variantOptions,
+        preferredValues: patch.componentProperty.preferredValues,
+      };
+      meta.componentProperties = props as { [name: string]: PenComponentPropertyDefinition };
+      next.children = updateNode(next.children, patch.shapeId, { metadata: meta } as Partial<PenChild>);
+      break;
+    }
+    case 'detach_instance': {
+      if (!patch.shapeId) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node || node.type !== 'ref') break;
+      // Replace the ref with a flat frame (best-effort: copy the ref's own props).
+      const ref = node as PenChild & { ref?: string; name?: string; x?: number; y?: number; width?: unknown; height?: unknown };
+      const flat: Partial<PenChild> = {
+        type: 'frame',
+        name: ref.name ?? 'Detached',
+        x: (typeof ref.x === 'number' ? ref.x : 0),
+        y: (typeof ref.y === 'number' ? ref.y : 0),
+        width: typeof ref.width === 'number' ? ref.width : 100,
+        height: typeof ref.height === 'number' ? ref.height : 100,
+        metadata: { detachedFrom: ref.ref },
+      };
+      next.children = updateNode(next.children, patch.shapeId, flat);
+      break;
+    }
+    case 'create_boolean_op': {
+      const id = crypto.randomUUID();
+      const childIds = new Set(patch.childIds ?? []);
+      const moved: PenChild[] = [];
+      const remaining: PenChild[] = [];
+      for (const c of next.children) {
+        if (childIds.has((c as PenChild & { id?: string }).id ?? '')) moved.push(c);
+        else remaining.push(c);
+      }
+      const boolNode: PenChild = {
+        type: 'boolean_op',
+        id,
+        name: (patch.shape as { name?: string } | undefined)?.name ?? 'Boolean',
+        operation: patch.operation ?? 'union',
+        x: 0, y: 0, width: 100, height: 100,
+        children: moved,
+      } as PenChild;
+      next.children = [...remaining, boolNode];
+      break;
+    }
+    case 'set_constraints': {
+      if (!patch.shapeId || !patch.constraints) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node) break;
+      const meta = ((node as PenChild & { metadata?: Record<string, unknown> }).metadata) ?? {};
+      meta.constraints = patch.constraints as { horizontal: 'left' | 'right' | 'center' | 'left_right' | 'scale'; vertical: 'top' | 'bottom' | 'center' | 'top_bottom' | 'scale' };
+      next.children = updateNode(next.children, patch.shapeId, { metadata: meta } as Partial<PenChild>);
+      break;
+    }
+    case 'set_layout_position': {
+      if (!patch.shapeId || !patch.layoutPosition) break;
+      next.children = updateNode(next.children, patch.shapeId, { layoutPosition: patch.layoutPosition } as Partial<PenChild>);
+      break;
+    }
+    case 'set_grid_layout': {
+      if (!patch.shapeId || !patch.gridConfig) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node || node.type !== 'frame') break;
+      const meta = ((node as PenChild & { metadata?: Record<string, unknown> }).metadata) ?? {};
+      meta.gridLayout = patch.gridConfig as { gridRowCount?: number; gridColumnCount?: number; gridRowGap?: number; gridColumnGap?: number; gridColumnsSizing?: string; gridRowsSizing?: string };
+      next.children = updateNode(next.children, patch.shapeId, { layout: 'grid', metadata: meta } as Partial<PenChild>);
+      break;
+    }
+    case 'set_overflow': {
+      if (!patch.shapeId || !patch.overflow) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node || node.type !== 'frame') break;
+      const meta = ((node as PenChild & { metadata?: Record<string, unknown> }).metadata) ?? {};
+      meta.overflow = patch.overflow;
+      next.children = updateNode(next.children, patch.shapeId, { clip: true, metadata: meta } as Partial<PenChild>);
+      break;
+    }
+    case 'set_mask': {
+      if (!patch.shapeId) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node) break;
+      const meta = ((node as PenChild & { metadata?: Record<string, unknown> }).metadata) ?? {};
+      meta.isMask = true;
+      meta.maskType = patch.maskType ?? 'alpha';
+      next.children = updateNode(next.children, patch.shapeId, { metadata: meta } as Partial<PenChild>);
+      break;
+    }
+    case 'clear_mask': {
+      if (!patch.shapeId) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node) break;
+      const meta = ((node as PenChild & { metadata?: Record<string, unknown> }).metadata) ?? {};
+      delete meta.isMask;
+      delete meta.maskType;
+      next.children = updateNode(next.children, patch.shapeId, { metadata: meta } as Partial<PenChild>);
+      break;
+    }
+    case 'set_blend_mode': {
+      if (!patch.shapeId || !patch.blendMode) break;
+      next.children = updateNode(next.children, patch.shapeId, { blendMode: patch.blendMode } as Partial<PenChild>);
+      break;
+    }
+    case 'set_corner_smoothing': {
+      if (!patch.shapeId || patch.cornerSmoothing === undefined) break;
+      // Clamp to [0, 1] at the patch level too (defense in depth — the tool
+      // also clamps, but patches can be created by other callers).
+      const clamped = Math.max(0, Math.min(1, patch.cornerSmoothing));
+      next.children = updateNode(next.children, patch.shapeId, { cornerSmoothing: clamped } as Partial<PenChild>);
+      break;
+    }
+    case 'set_stroke_dashes': {
+      if (!patch.shapeId || !patch.strokeDashes) break;
+      next.children = updateNode(next.children, patch.shapeId, { strokeDashes: patch.strokeDashes } as Partial<PenChild>);
+      break;
+    }
+    case 'bind_field': {
+      if (!patch.shapeId || !patch.bindField || !patch.bindVariableKey) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node) break;
+      // Replace the literal field value with a $variable reference.
+      const update: Record<string, unknown> = {};
+      update[patch.bindField] = `$${patch.bindVariableKey}`;
+      next.children = updateNode(next.children, patch.shapeId, update as Partial<PenChild>);
+      break;
+    }
+    case 'unbind_field': {
+      if (!patch.shapeId || !patch.bindField) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node) break;
+      // Best-effort: clear the field (the renderer will fall back to defaults).
+      const update: Record<string, unknown> = {};
+      update[patch.bindField] = undefined;
+      next.children = updateNode(next.children, patch.shapeId, update as Partial<PenChild>);
+      break;
+    }
     case 'select': {
       // UI-only — no document mutation.
       break;

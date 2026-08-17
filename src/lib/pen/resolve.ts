@@ -22,6 +22,7 @@ import type {
   PenDocument,
   PenFill,
   PenFills,
+  PenFrame,
   PenLayout,
   PenTheme,
   PenVariableDef,
@@ -407,7 +408,7 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
       const parentContentW = parent ? parent.width - resolvePadding((parent.node as PenLayout).padding).left - resolvePadding((parent.node as PenLayout).padding).right : 0;
       const parentContentH = parent ? parent.height - resolvePadding((parent.node as PenLayout).padding).top - resolvePadding((parent.node as PenLayout).padding).bottom : 0;
 
-      if ((n.type === 'frame' || n.type === 'group') && (n.children?.length ?? 0) > 0) {
+      if ((n.type === 'frame' || n.type === 'group' || n.type === 'boolean_op') && (n.children?.length ?? 0) > 0) {
         const kids = resolve(n.children!, rn, rn.theme);
         const { width, height } = computeIntrinsicSize(n, kids, parentContentW, parentContentH);
         rn.width = width;
@@ -557,9 +558,21 @@ function mapNodeType(node: PenChild): Shape['type'] {
   // Legacy Shape types (image, line) are preserved as-is so they round-trip.
   const t = (node as { type: string }).type;
   if (t === 'image' || t === 'line') return t as Shape['type'];
+
+  // v2.0: any node with reusable:true is a Component, regardless of base type.
+  // (Figma's ComponentNode is always a Frame, but .pen allows reusable on any node.)
+  if ((node as PenChild & { reusable?: boolean }).reusable) return 'component';
+
   switch (node.type) {
     case 'rectangle': return 'rectangle';
-    case 'frame': return 'frame';
+    case 'frame': {
+      // Detect frame-like kinds via metadata flags.
+      const meta = (node as PenFrame & { metadata?: Record<string, unknown> }).metadata;
+      if (meta?.isComponentSet) return 'component_set';
+      if (meta?.isSection) return 'section';
+      if (meta?.isSlice) return 'slice';
+      return 'frame';
+    }
     case 'group': return 'group';
     case 'ellipse': return 'ellipse';
     case 'text':
@@ -567,10 +580,12 @@ function mapNodeType(node: PenChild): Shape['type'] {
     case 'context':
     case 'prompt': return 'text';
     case 'path': return 'path';
-    case 'icon': return 'text'; // best-effort: render icon as text glyph
-    case 'polygon': return 'ellipse'; // best-effort
+    case 'icon': return 'icon';
+    case 'polygon': return 'polygon';
+    case 'star': return 'star';
     case 'script': return 'frame'; // best-effort
-    case 'ref': return 'rectangle'; // shouldn't happen (refs are expanded)
+    case 'ref': return 'instance';
+    case 'boolean_op': return 'boolean_op';
     default: return 'rectangle';
   }
 }
@@ -587,7 +602,7 @@ function mapTextContent(node: PenChild): string | undefined {
   return undefined;
 }
 
-/** Map extra .pen-specific fields onto the Shape (points for paths, src for images). */
+/** Map extra .pen-specific fields onto the Shape (points for paths, src for images, v2.0 ontology fields). */
 function mapNodeExtras(
   shape: Shape,
   node: PenChild,
@@ -612,6 +627,116 @@ function mapNodeExtras(
         shape.type = 'image';
         break;
       }
+    }
+  }
+
+  // ---- v2.0 additions — propagate Figma-aligned ontology fields ----------------
+  const n = node as PenChild & {
+    blendMode?: string;
+    cornerSmoothing?: number;
+    strokeDashes?: number[];
+    strokeMiterLimit?: number;
+    strokeAlignment?: 'inner' | 'center' | 'outer';
+    strokeLinejoin?: 'miter' | 'bevel' | 'round';
+    strokeLinecap?: 'butt' | 'round' | 'square';
+    layoutPosition?: 'auto' | 'absolute';
+    metadata?: Record<string, unknown>;
+  };
+
+  // Blend mode + corner smoothing + stroke extras
+  if (n.blendMode) shape.blendMode = n.blendMode;
+  if (n.cornerSmoothing !== undefined) shape.cornerSmoothing = n.cornerSmoothing;
+  if (n.strokeDashes) shape.strokeDashes = n.strokeDashes;
+  if (n.strokeMiterLimit !== undefined) shape.strokeMiterLimit = n.strokeMiterLimit;
+  if (n.strokeAlignment) shape.strokeAlignment = n.strokeAlignment;
+  if (n.strokeLinejoin) shape.strokeLinejoin = n.strokeLinejoin;
+  if (n.strokeLinecap) shape.strokeLinecap = n.strokeLinecap;
+
+  // Per-side stroke weights
+  const sw = (node as any).strokeWidth;
+  if (typeof sw === 'object' && sw !== null && !Array.isArray(sw)) {
+    shape.individualStrokeWeights = {
+      top: num(sw.top, 0),
+      right: num(sw.right, 0),
+      bottom: num(sw.bottom, 0),
+      left: num(sw.left, 0),
+    };
+  }
+
+  // Layout position
+  if (n.layoutPosition) shape.layoutPosition = n.layoutPosition;
+
+  // Metadata-sourced fields
+  const meta = n.metadata as Record<string, unknown> | undefined;
+  if (meta) {
+    if (meta.constraints) {
+      shape.constraints = meta.constraints as { horizontal: string; vertical: string };
+    }
+    if (meta.gridLayout) {
+      shape.gridLayout = meta.gridLayout as Shape['gridLayout'];
+    }
+    if (meta.overflow) {
+      shape.overflow = meta.overflow as Shape['overflow'];
+    }
+    if (meta.isMask) {
+      shape.isMask = true;
+      shape.maskType = (meta.maskType as 'alpha' | 'vector' | 'luminance') ?? 'alpha';
+    }
+    if (meta.componentProperties) {
+      shape.componentProperties = meta.componentProperties as Record<string, unknown>;
+    }
+    if (meta.variantProperties) {
+      shape.variantProperties = meta.variantProperties as Record<string, string>;
+    }
+    if (meta.layoutGrids) {
+      shape.layoutGrids = meta.layoutGrids as unknown[];
+    }
+    if (meta.isSection) shape.isSection = true;
+    if (meta.isSlice) shape.isSlice = true;
+  }
+
+  // Type-specific fields
+  switch (node.type) {
+    case 'polygon': {
+      const p = node as PenChild & { polygonCount?: number };
+      if (p.polygonCount !== undefined) shape.polygonCount = typeof p.polygonCount === 'number' ? p.polygonCount : 6;
+      break;
+    }
+    case 'star': {
+      const s = node as PenChild & { pointCount?: number; innerRadius?: number };
+      if (s.pointCount !== undefined) shape.pointCount = typeof s.pointCount === 'number' ? s.pointCount : 5;
+      if (s.innerRadius !== undefined) shape.innerRadius = typeof s.innerRadius === 'number' ? s.innerRadius : 0.5;
+      break;
+    }
+    case 'ellipse': {
+      const e = node as PenChild & { innerRadius?: number; startAngle?: number; sweepAngle?: number };
+      if (e.innerRadius !== undefined) shape.innerRingRadius = typeof e.innerRadius === 'number' ? e.innerRadius : 0;
+      if (e.startAngle !== undefined) shape.startAngle = typeof e.startAngle === 'number' ? e.startAngle : 0;
+      if (e.sweepAngle !== undefined) shape.sweepAngle = typeof e.sweepAngle === 'number' ? e.sweepAngle : 360;
+      break;
+    }
+    case 'icon': {
+      const ic = node as PenChild & { library?: string; icon?: string; weight?: number };
+      shape.iconLibrary = typeof ic.library === 'string' ? ic.library : 'lucide';
+      shape.iconName = typeof ic.icon === 'string' ? ic.icon : '';
+      if (ic.weight !== undefined && typeof ic.weight === 'number') shape.iconWeight = ic.weight;
+      break;
+    }
+    case 'boolean_op': {
+      const b = node as PenChild & { operation?: string };
+      if (b.operation) shape.booleanOperation = b.operation as 'union' | 'intersect' | 'subtract' | 'exclude';
+      break;
+    }
+    case 'ref': {
+      const r = node as PenChild & { ref?: string; variantValues?: Record<string, string> };
+      if (r.ref) shape.componentId = r.ref;
+      if (r.variantValues) shape.variantValues = r.variantValues;
+      break;
+    }
+    case 'frame': {
+      const f = node as PenChild & { clip?: boolean };
+      if (f.clip !== undefined) shape.clip = !!f.clip;
+      break;
     }
   }
 }

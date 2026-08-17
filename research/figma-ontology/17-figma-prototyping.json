@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040035834-Prototype-triggers",
+    "name": "Prototype triggers",
+    "snippet": "The trigger determines what type of interaction with the hotspot will cause the prototype to advance. This could be a mouse or touch interaction click, and ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/allow-hover-and-click-together-12231",
+    "name": "Allow Hover AND Click together",
+    "snippet": "Apr 26, 2021 — If you add the hover on the component level you can add the click when prototyping . Or does your button change changes state when clicked?  ...",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "Apr 26, 2021",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=0047qy7XHzI",
+    "name": "Figma Tip: Prototyping with \"after delay\" and \"trigger after",
+    "snippet": "In this Figma tip we cover using after delay and trigger after delay to make more robust prototypes with automatic transitions.",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/18opp1b/is_it_possible_yet_to_have_a_hover_and_a_click_on",
+    "name": "Is it possible yet to have a hover and a click on the same",
+    "snippet": "So what you need to do is to put the Hover interaction on the DEFAULT variant and the On Click interaction on the HOVER variant.",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360061175334-Create-interactive-components-with-variants",
+    "name": "Create interactive components with variants",
+    "snippet": "Interactive components allow you to create prototype interactions between variants. In the example below, we have added an interaction with a hover trigger on ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

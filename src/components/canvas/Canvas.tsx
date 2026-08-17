@@ -563,7 +563,14 @@ export function ShapeRenderer({
   let element: React.ReactNode;
   switch (shape.type) {
     case 'rectangle':
-    case 'frame': {
+    case 'frame':
+    case 'component':
+    case 'component_set':
+    case 'instance':
+    case 'section':
+    case 'slice':
+    case 'note':
+    case 'boolean_op': {
       element = (
         <>
           {filterDef}
@@ -617,6 +624,91 @@ export function ShapeRenderer({
             strokeLinecap="round"
             {...commonProps}
           />
+        </>
+      );
+      break;
+    }
+    case 'polygon': {
+      // Regular N-sided polygon
+      const sides = shape.polygonCount ?? 6;
+      const cx = shape.x + shape.width / 2;
+      const cy = shape.y + shape.height / 2;
+      const rx = shape.width / 2;
+      const ry = shape.height / 2;
+      const pts = Array.from({ length: sides }, (_, i) => {
+        const angle = (Math.PI * 2 * i) / sides - Math.PI / 2;
+        return `${cx + rx * Math.cos(angle)},${cy + ry * Math.sin(angle)}`;
+      }).join(' ');
+      element = (
+        <>
+          {filterDef}
+          {gradientDef}
+          <polygon
+            points={pts}
+            fill={fillValue}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            {...commonProps}
+          />
+        </>
+      );
+      break;
+    }
+    case 'star': {
+      const points = shape.pointCount ?? 5;
+      const inner = shape.innerRadius ?? 0.5;
+      const cx = shape.x + shape.width / 2;
+      const cy = shape.y + shape.height / 2;
+      const rx = shape.width / 2;
+      const ry = shape.height / 2;
+      const pts = Array.from({ length: points * 2 }, (_, i) => {
+        const angle = (Math.PI * i) / points - Math.PI / 2;
+        const r = i % 2 === 0 ? 1 : inner;
+        return `${cx + rx * r * Math.cos(angle)},${cy + ry * r * Math.sin(angle)}`;
+      }).join(' ');
+      element = (
+        <>
+          {filterDef}
+          {gradientDef}
+          <polygon
+            points={pts}
+            fill={fillValue}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            {...commonProps}
+          />
+        </>
+      );
+      break;
+    }
+    case 'icon': {
+      // Render as a placeholder rect with the icon's initials
+      // (Real icon rendering requires loading the icon library SVG.)
+      element = (
+        <>
+          {filterDef}
+          <rect
+            x={shape.x}
+            y={shape.y}
+            width={shape.width}
+            height={shape.height}
+            fill={fillValue}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            rx={rx}
+            ry={ry}
+            {...commonProps}
+          />
+          <text
+            x={shape.x + shape.width / 2}
+            y={shape.y + shape.height / 2 + 4}
+            fontSize={Math.min(shape.width, shape.height) * 0.4}
+            fill={shape.textColor ?? '#ffffff'}
+            textAnchor="middle"
+            style={{ pointerEvents: 'none' }}
+          >
+            {(shape.iconName ?? 'icon').slice(0, 2).toUpperCase()}
+          </text>
         </>
       );
       break;

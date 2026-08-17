@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/34208860210199-Use-gradients-as-a-fill-or-stroke",
+    "name": "Use gradients as a fill or stroke",
+    "snippet": "You can apply gradients to a layer's fill or stroke. Radia l: A circular gradient with one color at the center. Four gradient types: Linear, Radial, Angular, ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.captain-design.com/blog/learn-figma-basics-part-7-fill-mode-stroke-and-effects",
+    "name": "Learn Figma Basics, Part 7: Fill mode, stroke, and effects",
+    "snippet": "The fill mode allows you to apply a solid color, a gradient , or an image to an object. gradient effects: linear , radial , angular, and diamond. Select Linear",
+    "host_name": "www.captain-design.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041003694-Guide-to-fills",
+    "name": "Guide to fills",
+    "snippet": "A stroke fill is the visible outline of a closed layer or open vector path. You can use the color picker in the Stroke section of the right sidebar to apply ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxcel.com/lessons/paints-gradients-492",
+    "name": "Paints & Gradients Interactive Lesson",
+    "snippet": "Jul 14, 2025 — Figma offers tools for creating smooth transitions and adjusting angles, ensuring your gradients enhance your designs without overpowering them. Read more",
+    "host_name": "uxcel.com",
+    "rank": 3,
+    "date": "Jul 14, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/how-do-i-reproduce-this-brushstroke-gradient-effect-in-figma-44198",
+    "name": "How do I reproduce this brushstroke gradient effect in Figma?",
+    "snippet": "Aug 22, 2025 — What I've tried so far: Standard linear and radial gradients → looks too flat. Multiple fills with blending modes → closer, but still not ... Read more",
+    "host_name": "forum.figma.com",
+    "rank": 4,
+    "date": "Aug 22, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://bringyourownlaptop.com/blog/gradients-in-figma",
+    "name": "Step-by-step guide to gradients in Figma",
+    "snippet": "Gradient-filled strokes can be a clever way to point out certain actions or steps in a user interface flow when solid colors may feel too strong or to display ... Read more",
+    "host_name": "bringyourownlaptop.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

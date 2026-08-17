@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/list-down-all-the-possible-attributes-in-figma-property-in-plugin-17638",
+    "name": "List down all the possible attributes in figma property",
+    "snippet": "Oct 20, 2023 — Hi Could I ask a question?\nI have a componet called Fruit. I created an intance of Fruit in my Figma document. It has properties like colour, origin ...",
+    "host_name": "forum.figma.com",
+    "rank": 0,
+    "date": "Oct 20, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/figma",
+    "name": "figma | Developer Docs",
+    "snippet": "These are APIs available to create new styles and retrieve existing ones in the current document. The newly created styles are local to the current document and ... Read more",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/openai/plugins/blob/main/plugins/figma/skills/figma-use/references/plugin-api-standalone.index.md",
+    "name": "plugin-api-standalone.index.md - figma-use",
+    "snippet": "Sub- APIs ( properties on figma ). Property, Interface ... BlendMixin , L6339, opacity , blendMode , isMask ... BaseNodeMixin SceneNodeMixin ChildrenMixin ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/api-reference",
+    "name": "API Reference | Developer Docs",
+    "snippet": "You can access most of the Plugin API through the figma global object and its sub-objects. You'll find properties and functions that allow you to view ... Read more",
+    "host_name": "developers.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/77731926/figma-plugin-api-how-to-add-component-properties-to-component",
+    "name": "Figma Plugin API, How to add component properties",
+    "snippet": "I am trying to make a plugin that documents color styles but I am having trouble with settign up the color token card component. I figured out how ...",
+    "host_name": "stackoverflow.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/EffectStyle",
+    "name": "EffectStyle | Developer Docs",
+    "snippet": "Lets you store custom information on any node or style, private to your plugin . The total size of your entry ( pluginId , key , value ) cannot exceed 100 kB. Read more",
+    "host_name": "developers.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins",
+    "name": "Introduction | Developer Docs",
+    "snippet": "The Plugin API supports both read and write access to Figma's editors, allowing developers to view, create, and modify the contents of files.",
+    "host_name": "developers.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/4407275338775-BYFP-Introduction-to-Plugins-API",
+    "name": "BYFP: Introduction to Plugins & API",
+    "snippet": "An API or Application Programming Interface allows two applications to talk to each other. Our plugin creates a request to Figma , and Figma's API delivers a ...",
+    "host_name": "help.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

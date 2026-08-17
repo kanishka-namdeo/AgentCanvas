@@ -101,7 +101,13 @@ export function PropertiesPanel() {
   const setAutoLayout = (changes: Partial<AutoLayout>) => {
     if (selected.length !== 1) return;
     const shape = selected[0];
-    if (shape.type !== 'frame' && shape.type !== 'group') return;
+    // v2.0: treat component / component_set / instance / section / slice / boolean_op
+    // as frame-like for property-panel purposes.
+    const isFrameLike = shape.type === 'frame' || shape.type === 'group' ||
+      shape.type === 'component' || shape.type === 'component_set' ||
+      shape.type === 'instance' || shape.type === 'section' ||
+      shape.type === 'slice' || shape.type === 'boolean_op';
+    if (!isFrameLike) return;
     const current = shape.autoLayout ?? { direction: 'vertical', gap: 8, padding: 16, alignX: 'center', alignY: 'center' };
     const next = { ...current, ...changes };
     sendPatch({ op: 'update', shapeId: shape.id, shape: { autoLayout: next }, summary: `Auto Layout: ${JSON.stringify(changes)}` });

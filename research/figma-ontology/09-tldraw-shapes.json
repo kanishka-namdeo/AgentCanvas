@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://tldraw.dev/docs/shapes",
+    "name": "Shapes • tldraw Docs",
+    "snippet": "The Tldraw component includes default shapes like geo , text , arrow , and draw. You can create your own shapes by defining a shape type and a ShapeUtil class. ...",
+    "host_name": "tldraw.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/tldraw/tldraw/blob/main/packages/tlschema/src/shapes/TLArrowShape.ts",
+    "name": "tldraw/packages/tlschema/src/shapes/TLArrowShape.ts at",
+    "snippet": "* Defines all the configurable aspects of an arrow shape , including visual styling,. * geometry , text labeling, and positioning. Arrows can connect two points ... Read more",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tldraw.dev/sdk-features/shapes",
+    "name": "Shapes • tldraw Docs",
+    "snippet": "A geo shape stores its width, height, and geometry type . A text shape stores its text content and font size. Each shape type defines its own props structure. Read more",
+    "host_name": "tldraw.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://examples.tldraw.com",
+    "name": "tldraw examples",
+    "snippet": "Examples for using tldraw - a library for building infinite canvases with React . shape Arrow binding options Custom geo types Custom shape",
+    "host_name": "examples.tldraw.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tldraw-tldraw.mintlify.app/api/schema",
+    "name": "Schema and types - tldraw",
+    "snippet": "Type definitions and schema creation for tldraw . Create a complete tldraw schema with shapes and bindings. Available shapes : arrow - Directional lines that can ...",
+    "host_name": "tldraw-tldraw.mintlify.app",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tldraw.substack.com/p/whats-new-in-tldraw",
+    "name": "What's new in tldraw - by Lu Wilson and Taha",
+    "snippet": "Short arrows move smoothly from shape to shape . Arrows can even point to and from a shape they're inside of. Clicking from one text shape to ...",
+    "host_name": "tldraw.substack.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

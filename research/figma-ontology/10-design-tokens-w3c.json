@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.designtokens.org/tr/drafts/format",
+    "name": "Design Tokens Format Module 2025.10",
+    "snippet": "Jul 30, 2026 — This document describes the technical specification for a file format to exchange design tokens between different tools.",
+    "host_name": "www.designtokens.org",
+    "rank": 0,
+    "date": "Jul 30, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version",
+    "name": "Design Tokens specification reaches first stable version",
+    "snippet": "Oct 28, 2025 — Design tokens : the single source of truth for colors , typography , spacing , and other design decisions – have long been fragmented across ...",
+    "host_name": "www.w3.org",
+    "rank": 1,
+    "date": "Oct 28, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://backlight.dev/blog/design-tokens",
+    "name": "Design Tokens and how a W3C specification will help",
+    "snippet": "Feb 28, 2022 — We utilize Design Tokens to describe visual styles. The most common examples are colors, typography, radii, spacing , sizing, and shadows.",
+    "host_name": "backlight.dev",
+    "rank": 2,
+    "date": "Feb 28, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.w3.org/community/design-tokens",
+    "name": "Design Tokens Community Group",
+    "snippet": "Feb 5, 2022 — Design tokens: the single source of truth for colors, typography, spacing, and other design decisions – have long been fragmented across ...",
+    "host_name": "www.w3.org",
+    "rank": 3,
+    "date": "Feb 5, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxdesign.cc/design-tokens-with-confidence-862119eb819b",
+    "name": "Design tokens with confidence",
+    "snippet": "Jan 19, 2026 — Design tokens are all your design decisions , that define a design system's aesthetic properties, everything from colors and font sizes to ...",
+    "host_name": "uxdesign.cc",
+    "rank": 4,
+    "date": "Jan 19, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://zeroheight.com/learn/the-design-tokens-spec-dtcg-explained",
+    "name": "The design tokens spec (DTCG) explained",
+    "snippet": "Jun 12, 2026 — The DTCG spec defines a standard format for design tokens so tools can share them without conversion scripts. Here's what it covers and how ...",
+    "host_name": "zeroheight.com",
+    "rank": 5,
+    "date": "Jun 12, 2026",
+    "favicon": ""
+  }
+]

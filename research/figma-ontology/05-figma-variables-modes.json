@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/14506821864087-Overview-of-variables-collections-and-modes",
+    "name": "Overview of variables, collections, and modes",
+    "snippet": "If you have a complex design system and wish to implement design tokens , you can alias color variables to do so. ... Different color themes , like light and dark ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/variable-aliases-to-have-different-values-on-different-modes-30234",
+    "name": "Variable aliases to have different values on different modes",
+    "snippet": "Jun 26, 2024 — I agree this is possible to have different values on different modes. I mean technically it works.\nI have two collections primitive colors and semantic ...",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "Jun 26, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@courtneyjordan/figma-variables-for-light-and-dark-mode-made-easy-319c180c449b",
+    "name": "Figma variables for light and dark mode — made easy",
+    "snippet": "If you're trying to switch between light mode and dark mode , but see multiple “variants” of dark mode coming up in the Appearance section, with ... Read more",
+    "host_name": "medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15343816063383-Modes-for-variables",
+    "name": "Modes for variables",
+    "snippet": "Variables allow us to store reusable values that can be applied to various design properties—such as color , spacing values, and dimensions. Variable modes ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zeroheight.com/learn/naming-your-design-tokens-in-figma-variables-groups-and-conventions",
+    "name": "Naming your design tokens in Figma: variables, groups",
+    "snippet": "Jun 22, 2026 — This article covers naming conventions at each tier of the token hierarchy in Figma (primitives, semantic aliases , and component tokens )",
+    "host_name": "zeroheight.com",
+    "rank": 4,
+    "date": "Jun 22, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.supernova.io/blog/what-are-figma-variables-modes-collections",
+    "name": "What Are Figma Variables, Modes, and Collections?",
+    "snippet": "Jul 8, 2024 — Figma variables are a powerful feature that allow designers to create reusable values for properties like colors , text styles, typography, and ... Read more",
+    "host_name": "www.supernova.io",
+    "rank": 5,
+    "date": "Jul 8, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.fourzerothree.in/p/organizing-colour-variables-in-figma",
+    "name": "Organizing colour variables in Figma",
+    "snippet": "Jan 19, 2025 — The variables panel helps optimize the creation and organization of variables . Collections can house a) variables and b) modes .",
+    "host_name": "www.fourzerothree.in",
+    "rank": 6,
+    "date": "Jan 19, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/how-to-use-completely-different-color-pallets-in-light-vs-dark-mode-while-using-semantic-tokens-53469",
+    "name": "How to use completely different color pallets in light vs dark",
+    "snippet": "Apr 29, 2026 — Hello,Looks like Figma doesn’t give you an option to chose dark mode colors when you assigning semantic tokens, in the menu only light mode colors even ...",
+    "host_name": "forum.figma.com",
+    "rank": 7,
+    "date": "Apr 29, 2026",
+    "favicon": ""
+  }
+]

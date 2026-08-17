@@ -2482,6 +2482,431 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     },
   });
 
+  // =====================================================================
+  // v2.0 ADDITIONS — Figma-aligned ontology
+  //
+  // See docs/tool-catalog.md for the full spec and docs/figma-ontology.md
+  // for the Figma ↔ .pen mapping. These tools expose Component Sets,
+  // Component Properties, Constraints, GridLayout, Overflow, Masks,
+  // BlendModes, CornerSmoothing, StrokeDashes, Field binding, and
+  // Theme axes — the missing Figma concepts that v1.x tools didn't cover.
+  // =====================================================================
+
+  const createComponentSet = defineTool({
+    name: 'pen_create_component_set',
+    label: 'Create Component Set',
+    description:
+      'Group multiple Components into a Component Set (variant family). The Components must already exist as reusable nodes. ' +
+      'A new Frame is created with metadata.isComponentSet=true, and the Components are re-parented into it. ' +
+      'Optionally declares variant axes (e.g. { state: ["default","hover","disabled"] }).',
+    promptSnippet: 'Group components into a variant family (Component Set).',
+    parameters: Type.Object({
+      componentIds: Type.Array(Type.String(), { description: 'IDs of existing Components to group' }),
+      name: Type.Optional(Type.String({ description: 'Display name for the Component Set' })),
+      parent: Type.Optional(Type.String({ description: 'Parent node ID; default = root' })),
+      variantAxes: Type.Optional(Type.Record(Type.String(), Type.Array(Type.String()))),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'create_component_set',
+        childIds: params.componentIds,
+        shape: { name: params.name ?? 'Component Set' },
+        shapeId: params.parent,
+        componentProperty: params.variantAxes
+          ? { name: '__variant_axes__', type: 'variant', defaultValue: '', variantOptions: [] }
+          : undefined,
+        summary: `Created Component Set with ${params.componentIds.length} components`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Created Component Set containing ${params.componentIds.length} components.` }],
+        details: { patch, componentIds: params.componentIds },
+      };
+    },
+  });
+
+  const setComponentProperty = defineTool({
+    name: 'pen_set_component_property',
+    label: 'Set Component Property',
+    description:
+      'Define or update a Component Property on a Component. Property types: boolean, string, variant, instance_swap. ' +
+      'Variant properties require variantOptions. Instance-swap properties may declare preferredValues.',
+    promptSnippet: 'Define a component property (boolean / text / variant / instance_swap).',
+    parameters: Type.Object({
+      componentId: Type.String({ description: 'ID of the Component node' }),
+      name: Type.String({ description: 'Property name (e.g. "showIcon", "label", "state")' }),
+      type: Type.Union([Type.Literal('boolean'), Type.Literal('string'), Type.Literal('variant'), Type.Literal('instance_swap')], {
+        description: 'Property type',
+      }),
+      defaultValue: Type.Union([Type.Boolean(), Type.String()], { description: 'Default value for instances' }),
+      variantOptions: Type.Optional(Type.Array(Type.String())),
+      preferredValues: Type.Optional(Type.Array(Type.Object({
+        type: Type.Union([Type.Literal('COMPONENT'), Type.Literal('COMPONENT_SET')]),
+        key: Type.String(),
+      }))),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'set_component_property',
+        shapeId: params.componentId,
+        componentProperty: {
+          name: params.name,
+          type: params.type,
+          defaultValue: params.defaultValue,
+          variantOptions: params.variantOptions,
+          preferredValues: params.preferredValues,
+        },
+        summary: `Set component property "${params.name}" (${params.type}) on ${params.componentId}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Component property "${params.name}" (${params.type}) set.` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const detachInstance = defineTool({
+    name: 'pen_detach_instance',
+    label: 'Detach Instance',
+    description:
+      'Convert an instance (PenRef) into a flat Frame with the same content. Severs the link to the main Component — ' +
+      'future Component updates will NOT propagate to the detached frame.',
+    promptSnippet: 'Detach an instance from its component.',
+    parameters: Type.Object({
+      instanceId: Type.String({ description: 'ID of the instance (PenRef) to detach' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'detach_instance',
+        shapeId: params.instanceId,
+        summary: `Detached instance ${params.instanceId} from its component`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Instance ${params.instanceId} detached.` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const setConstraints = defineTool({
+    name: 'pen_set_constraints',
+    label: 'Set Constraints',
+    description:
+      'Set horizontal + vertical layout constraints on a child of a non-Auto-Layout frame. ' +
+      'Horizontal: left | right | center | left_right | scale. Vertical: top | bottom | center | top_bottom | scale. ' +
+      'Only meaningful when the parent has layout:none.',
+    promptSnippet: 'Set resize constraints on a child node.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the child node' }),
+      horizontal: Type.Union([
+        Type.Literal('left'), Type.Literal('right'), Type.Literal('center'),
+        Type.Literal('left_right'), Type.Literal('scale'),
+      ], { description: 'Horizontal constraint' }),
+      vertical: Type.Union([
+        Type.Literal('top'), Type.Literal('bottom'), Type.Literal('center'),
+        Type.Literal('top_bottom'), Type.Literal('scale'),
+      ], { description: 'Vertical constraint' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'set_constraints',
+        shapeId: params.nodeId,
+        constraints: { horizontal: params.horizontal, vertical: params.vertical },
+        summary: `Constraints set: H=${params.horizontal} V=${params.vertical}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Constraints set on ${params.nodeId}: H=${params.horizontal} V=${params.vertical}` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const setLayoutPosition = defineTool({
+    name: 'pen_set_layout_position',
+    label: 'Set Layout Position',
+    description:
+      'Toggle layoutPosition: "auto" (participates in parent Auto Layout) or "absolute" (positioned manually via x/y).',
+    promptSnippet: 'Toggle auto/absolute layout positioning.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the node' }),
+      position: Type.Union([Type.Literal('auto'), Type.Literal('absolute')], {
+        description: '"auto" = participates in parent Auto Layout; "absolute" = manual x/y',
+      }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'set_layout_position',
+        shapeId: params.nodeId,
+        layoutPosition: params.position,
+        summary: `Layout position set to ${params.position}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Layout position on ${params.nodeId}: ${params.position}` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const setGridLayout = defineTool({
+    name: 'pen_set_grid_layout',
+    label: 'Set Grid Layout',
+    description:
+      'Apply CSS-grid-like Auto Layout to a frame. Sets layout:grid and stores grid config in metadata.gridLayout. ' +
+      'columnsSizing / rowsSizing accept CSS grid-template-columns / grid-template-rows strings.',
+    promptSnippet: 'Apply grid auto-layout to a frame.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the frame' }),
+      rows: Type.Optional(Type.Number({ description: 'Number of rows' })),
+      columns: Type.Optional(Type.Number({ description: 'Number of columns' })),
+      rowGap: Type.Optional(Type.Number({ description: 'Gap between rows in px' })),
+      columnGap: Type.Optional(Type.Number({ description: 'Gap between columns in px' })),
+      columnsSizing: Type.Optional(Type.String({ description: 'CSS grid-template-columns, e.g. "1fr 1fr 1fr" or "200px 1fr"' })),
+      rowsSizing: Type.Optional(Type.String({ description: 'CSS grid-template-rows' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'set_grid_layout',
+        shapeId: params.nodeId,
+        gridConfig: {
+          rows: params.rows,
+          columns: params.columns,
+          rowGap: params.rowGap,
+          columnGap: params.columnGap,
+          columnsSizing: params.columnsSizing,
+          rowsSizing: params.rowsSizing,
+        },
+        summary: `Grid layout applied to ${params.nodeId}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Grid layout applied to ${params.nodeId}.` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const setOverflow = defineTool({
+    name: 'pen_set_overflow',
+    label: 'Set Overflow',
+    description:
+      'Set overflow mode on a frame: "hidden" clips content; "scroll-x", "scroll-y", "scroll-both" enable scrolling. ' +
+      'Implies clip:true for non-hidden modes too.',
+    promptSnippet: 'Set overflow / scroll behavior on a frame.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the frame' }),
+      overflow: Type.Union([
+        Type.Literal('hidden'), Type.Literal('scroll-x'),
+        Type.Literal('scroll-y'), Type.Literal('scroll-both'),
+      ], { description: 'Overflow mode' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'set_overflow',
+        shapeId: params.nodeId,
+        overflow: params.overflow,
+        summary: `Overflow set to ${params.overflow}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Overflow on ${params.nodeId}: ${params.overflow}` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const setMask = defineTool({
+    name: 'pen_set_mask',
+    label: 'Set Mask',
+    description:
+      'Mark a node as a mask. maskType: "alpha" uses the node alpha channel; "vector" uses fill regions; ' +
+      '"luminance" uses per-pixel luminance. The mask clips the visibility of sibling nodes in front of it.',
+    promptSnippet: 'Mark a node as a mask (alpha / vector / luminance).',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the node to mark as a mask' }),
+      maskType: Type.Union([
+        Type.Literal('alpha'), Type.Literal('vector'), Type.Literal('luminance'),
+      ], { description: 'Mask type' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'set_mask',
+        shapeId: params.nodeId,
+        maskType: params.maskType,
+        summary: `Mask set: ${params.maskType}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Node ${params.nodeId} is now a ${params.maskType} mask.` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const clearMask = defineTool({
+    name: 'pen_clear_mask',
+    label: 'Clear Mask',
+    description: 'Remove the mask flag from a node.',
+    promptSnippet: 'Remove mask from a node.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the node' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'clear_mask',
+        shapeId: params.nodeId,
+        summary: `Mask cleared on ${params.nodeId}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Mask cleared on ${params.nodeId}.` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const setBlendMode = defineTool({
+    name: 'pen_set_blend_mode',
+    label: 'Set Blend Mode',
+    description:
+      'Set blend mode on a node. Values: normal, darken, multiply, linearBurn, colorBurn, lighten, screen, ' +
+      'linearDodge, colorDodge, overlay, softLight, hardLight, difference, exclusion, hue, saturation, color, luminosity.',
+    promptSnippet: 'Set blend mode on a node.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the node' }),
+      blendMode: Type.String({ description: 'Blend mode (camelCase, e.g. "colorBurn")' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'set_blend_mode',
+        shapeId: params.nodeId,
+        blendMode: params.blendMode,
+        summary: `Blend mode set to ${params.blendMode}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Blend mode on ${params.nodeId}: ${params.blendMode}` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const setCornerSmoothing = defineTool({
+    name: 'pen_set_corner_smoothing',
+    label: 'Set Corner Smoothing',
+    description:
+      'Set iOS-style "squircle" corner smoothing. Range 0..1. 0 = perfectly circular; 0.6 ≈ iOS 7 icon shape. ' +
+      'Only affects nodes with non-zero cornerRadius.',
+    promptSnippet: 'Apply iOS-squircle corner smoothing.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the node' }),
+      smoothing: Type.Number({ description: 'Smoothing value 0..1 (0.6 = iOS squircle)' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'set_corner_smoothing',
+        shapeId: params.nodeId,
+        cornerSmoothing: Math.max(0, Math.min(1, params.smoothing)),
+        summary: `Corner smoothing set to ${params.smoothing}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Corner smoothing on ${params.nodeId}: ${params.smoothing}` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const setStrokeDashes = defineTool({
+    name: 'pen_set_stroke_dashes',
+    label: 'Set Stroke Dashes',
+    description:
+      'Set the dash pattern for a node\'s stroke. Format: [dash, gap, dash, gap, ...]. ' +
+      'Pass an empty array to reset to solid.',
+    promptSnippet: 'Set stroke dash pattern.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the node' }),
+      dashes: Type.Array(Type.Number(), { description: 'Dash pattern, e.g. [4, 2] for 4px dash + 2px gap' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'set_stroke_dashes',
+        shapeId: params.nodeId,
+        strokeDashes: params.dashes,
+        summary: `Stroke dashes set: [${params.dashes.join(', ')}]`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Stroke dashes on ${params.nodeId}: [${params.dashes.join(', ')}]` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const bindFieldToVariable = defineTool({
+    name: 'pen_bind_field_to_variable',
+    label: 'Bind Field to Variable',
+    description:
+      'Bind a node field (fill, stroke, width, height, cornerRadius, fontSize, opacity, strokeWidth) to a $variable. ' +
+      'The variable\'s value (resolved for the active theme) is used at render time.',
+    promptSnippet: 'Bind a node field to a $variable.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the node' }),
+      field: Type.Union([
+        Type.Literal('fill'), Type.Literal('stroke'), Type.Literal('width'),
+        Type.Literal('height'), Type.Literal('cornerRadius'), Type.Literal('fontSize'),
+        Type.Literal('opacity'), Type.Literal('strokeWidth'),
+      ], { description: 'Field to bind' }),
+      variableKey: Type.String({ description: 'Variable key, e.g. "brand.primary"' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'bind_field',
+        shapeId: params.nodeId,
+        bindField: params.field,
+        bindVariableKey: params.variableKey,
+        summary: `Bound ${params.field} to $${params.variableKey}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Bound ${params.field} on ${params.nodeId} to $${params.variableKey}` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const unbindField = defineTool({
+    name: 'pen_unbind_field',
+    label: 'Unbind Field',
+    description:
+      'Remove a variable binding from a node field. Replaces the variable reference with the current resolved literal value.',
+    promptSnippet: 'Remove a variable binding from a field.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'ID of the node' }),
+      field: Type.String({ description: 'Field to unbind' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'unbind_field',
+        shapeId: params.nodeId,
+        bindField: params.field,
+        summary: `Unbound ${params.field} on ${params.nodeId}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Unbound ${params.field} on ${params.nodeId}.` }],
+        details: { patch },
+      };
+    },
+  });
+
+  // NOTE: pen_set_theme_axis is defined in src/lib/agent/pen-tools.ts (already).
+  // We don't redefine it here to avoid a duplicate-name collision in the
+  // combined tool spec. The constant PEN_TOOL_NAMES lists it as always-available.
+
   return [
     // Core
     createShape,
@@ -2555,6 +2980,22 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     // Web research (zero-config, no API key)
     webSearchTool,
     webFetchTool,
+    // ---- v2.0 additions — Figma-aligned ontology ---------------------------
+    createComponentSet,
+    setComponentProperty,
+    detachInstance,
+    setConstraints,
+    setLayoutPosition,
+    setGridLayout,
+    setOverflow,
+    setMask,
+    clearMask,
+    setBlendMode,
+    setCornerSmoothing,
+    setStrokeDashes,
+    bindFieldToVariable,
+    unbindField,
+    // pen_set_theme_axis is provided by src/lib/agent/pen-tools.ts
   ];
 }
 

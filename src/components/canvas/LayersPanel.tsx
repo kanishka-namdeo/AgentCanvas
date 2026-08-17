@@ -20,6 +20,7 @@ import type { CanvasPatch, Shape, ShapeType } from '@/lib/canvas/types';
 import {
   Eye, EyeOff, Lock, Unlock, Trash2, Layers, Copy,
   Frame, Group, Square, Circle, Type, Slash, Spline, Image as ImageIcon, Braces,
+  Hexagon, Star, StickyNote, Smile, Boxes, Box, GitBranch, Scissors, SquareDashedBottomCode,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -31,8 +32,9 @@ import {
 } from '@/components/ui/context-menu';
 
 // Per-type icon. Frame and group (the .pen containers) use container-style
-// icons. All 8 resolved ShapeType values are covered, so the lookup never
-// falls back to the placeholder.
+// icons. All resolved ShapeType values are covered, so the lookup never
+// falls back to the placeholder. v2.0 adds polygon, star, note, icon,
+// component, component_set, instance, boolean_op, section, slice.
 const TYPE_ICON: Record<ShapeType, ComponentType<{ className?: string }>> = {
   rectangle: Square,
   ellipse: Circle,
@@ -42,6 +44,16 @@ const TYPE_ICON: Record<ShapeType, ComponentType<{ className?: string }>> = {
   group: Group,
   path: Spline,
   image: ImageIcon,
+  polygon: Hexagon,
+  star: Star,
+  note: StickyNote,
+  icon: Smile,
+  component: Box,
+  component_set: Boxes,
+  instance: GitBranch,
+  boolean_op: SquareDashedBottomCode,
+  section: Braces,
+  slice: Scissors,
 };
 
 /**
