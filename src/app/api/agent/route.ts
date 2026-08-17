@@ -9,10 +9,19 @@
 // The WebSocket mini-service (mini-services/canvas-sync) calls this route
 // and re-emits the events as socket.io `sync` messages so every viewer
 // sees the agent work in real time.
+//
+// Settings (Phase 1+2+3 of the settings workflow) are passed in the request
+// body as `settings`. The runner reads them to override the previous
+// hard-coded defaults (temperature 0.4, maxIterations 20, planFirst true,
+// defaultPalette 'slate', skillSelectionMode 'auto', LLM provider config).
+// When `settings` is omitted (e.g. legacy callers), the runner falls back
+// to those defaults — keeping the existing test suite green.
 
 import { NextRequest } from 'next/server';
 import { runAgent } from '@/lib/agent/runner';
 import type { CanvasDocument } from '@/lib/canvas/types';
+import type { AgentRunSettings } from '@/lib/settings/types';
+import { DEFAULT_SETTINGS } from '@/lib/settings/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -34,6 +43,23 @@ export async function POST(req: NextRequest) {
     tokens: { colors: [], textStyles: [] },
   };
 
+  // Settings — extract only the agent-run-relevant subset. Unknown fields
+  // are ignored. If `settings` is missing (legacy callers), fall back to the
+  // app defaults so the runner sees the previous hard-coded values.
+  const settings: AgentRunSettings | undefined = body.settings
+    ? {
+        temperature: typeof body.settings.temperature === 'number' ? body.settings.temperature : DEFAULT_SETTINGS.temperature,
+        maxIterations: typeof body.settings.maxIterations === 'number' ? body.settings.maxIterations : DEFAULT_SETTINGS.maxIterations,
+        planFirst: typeof body.settings.planFirst === 'boolean' ? body.settings.planFirst : DEFAULT_SETTINGS.planFirst,
+        defaultPalette: body.settings.defaultPalette ?? DEFAULT_SETTINGS.defaultPalette,
+        skillSelectionMode: body.settings.skillSelectionMode ?? DEFAULT_SETTINGS.skillSelectionMode,
+        llmProvider: body.settings.llmProvider ?? DEFAULT_SETTINGS.llmProvider,
+        apiKey: typeof body.settings.apiKey === 'string' ? body.settings.apiKey : '',
+        modelName: typeof body.settings.modelName === 'string' ? body.settings.modelName : '',
+        apiBaseUrl: typeof body.settings.apiBaseUrl === 'string' ? body.settings.apiBaseUrl : '',
+      }
+    : undefined;
+
   if (!prompt.trim()) {
     return new Response(JSON.stringify({ error: 'prompt is required' }), {
       status: 400,
@@ -49,7 +75,7 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        for await (const ev of runAgent({ documentId, prompt, canvas })) {
+        for await (const ev of runAgent({ documentId, prompt, canvas, settings })) {
           if (ev.kind === 'patch') {
             send({ type: 'patch', patch: ev.patch, toolCallId: ev.toolCallId });
           } else {

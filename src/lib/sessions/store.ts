@@ -143,6 +143,11 @@ interface SessionStoreState {
   restoreSnapshot: (sessionId: string, snapshotId: string) => Snapshot | undefined;
   bookmarkSnapshot: (snapshotId: string) => void;
   labelSnapshot: (snapshotId: string, label: string) => void;
+  /// Permanently delete a snapshot. Refuses to delete bookmarked snapshots
+  /// (the user marked them as keepers). Updates the parent session's
+  /// snapshotIds list. If the session's currentSnapshotId was pointing at
+  /// the deleted snapshot, repoints it to the most recent remaining snapshot.
+  deleteSnapshot: (snapshotId: string) => void;
 
   // ---- Bulk ----
   clearAllForDocument: (documentId: string) => void;
@@ -783,6 +788,45 @@ export const useSessionStore = create<SessionStoreState>()(
         });
       },
 
+      deleteSnapshot: (snapshotId) => {
+        set((s) => {
+          const snap = s.snapshots[snapshotId];
+          if (!snap || snap.bookmarked) return s; // refuse to delete bookmarked
+          const sessionId = snap.sessionId;
+          const session = s.sessions[sessionId];
+          if (!session) {
+            // Session already gone — just drop the snapshot.
+            const snapshots = { ...s.snapshots };
+            delete snapshots[snapshotId];
+            return { snapshots };
+          }
+          const newSnapshotIds = session.snapshotIds.filter((id) => id !== snapshotId);
+          // Repoint currentSnapshotId if it was the deleted one.
+          const newCurrent = session.currentSnapshotId === snapshotId
+            ? (newSnapshotIds.length > 0
+                ? [...newSnapshotIds]
+                    .map((id) => s.snapshots[id])
+                    .filter(Boolean)
+                    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]?.id ?? null
+                : null)
+            : session.currentSnapshotId;
+          const snapshots = { ...s.snapshots };
+          delete snapshots[snapshotId];
+          return {
+            snapshots,
+            sessions: {
+              ...s.sessions,
+              [sessionId]: {
+                ...session,
+                snapshotIds: newSnapshotIds,
+                currentSnapshotId: newCurrent,
+                updatedAt: nowISO(),
+              },
+            },
+          };
+        });
+      },
+
       // ---- Bulk ----
       clearAllForDocument: (documentId) => {
         const sessions = Object.values(get().sessions).filter(
@@ -835,6 +879,54 @@ export function hydrateSessionStore() {
   if (persistApi?.rehydrate) {
     persistApi.rehydrate();
   }
+}
+
+/// Sweep idle sessions: archive any active session whose `lastOpenedAt` is
+/// older than the given threshold. Called from page.tsx on app mount, using
+/// the `autoArchiveIdleAfter` setting ('never' = no-op).
+/// Returns the number of sessions archived.
+export function sweepIdleSessions(threshold: 'never' | '7d' | '30d'): number {
+  if (threshold === 'never') return 0;
+  const days = threshold === '7d' ? 7 : 30;
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const store = useSessionStore.getState();
+  const idle = Object.values(store.sessions).filter((s) => {
+    if (s.status !== 'active') return false;
+    const last = new Date(s.lastOpenedAt).getTime();
+    return Number.isFinite(last) && last < cutoff;
+  });
+  for (const s of idle) {
+    store.archiveSession(s.id);
+  }
+  return idle.length;
+}
+
+/// Approximate localStorage usage in bytes, attributed to the known
+/// AgentCanvas keys. Used by the Settings dialog's "Storage usage" display.
+export function estimateLocalStorageUsage(): {
+  sessions: number;
+  settings: number;
+  theme: number;
+  total: number;
+  percentageOfQuota: number | null;
+} {
+  if (typeof window === 'undefined') {
+    return { sessions: 0, settings: 0, theme: 0, total: 0, percentageOfQuota: null };
+  }
+  const byteLen = (s: string | null) => (s ? new Blob([s]).size : 0);
+  const sessions = byteLen(localStorage.getItem('agentcanvas.sessions.v1'));
+  const settings = byteLen(localStorage.getItem('agentcanvas.settings.v1'));
+  const theme = byteLen(localStorage.getItem('agentcanvas-theme'));
+  const total = sessions + settings + theme;
+  // navigator.storage.estimate() returns { usage, quota } if available.
+  // We can use it to show the % of the browser's quota consumed.
+  let percentageOfQuota: number | null = null;
+  if (navigator.storage?.estimate) {
+    // Fire-and-forget — we can't await here without making the caller async.
+    // The Settings UI can call navigator.storage.estimate() directly if it
+    // wants a fresh number; this is a best-effort cache.
+  }
+  return { sessions, settings, theme, total, percentageOfQuota };
 }
 
 // Expose globally so the demo / console can drive sessions if needed.

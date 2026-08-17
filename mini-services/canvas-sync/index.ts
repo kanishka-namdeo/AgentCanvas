@@ -108,7 +108,7 @@ io.on('connection', (socket) => {
         // this to the Next.js API route via fetch, then stream the API's
         // SSE response back out as `sync` events.
         console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${event.prompt.slice(0, 80)}…`);
-        driveAgent(event.documentId, event.prompt, socket.id).catch((err) => {
+        driveAgent(event.documentId, event.prompt, socket.id, event.settings).catch((err) => {
           console.error('[canvas-sync] agent drive failed:', err);
         });
         break;
@@ -141,7 +141,7 @@ io.on('connection', (socket) => {
 // bridges the Server-Sent-Events stream back into socket.io `sync` events
 // so every subscribed viewer sees the agent work in real time.
 
-async function driveAgent(documentId: string, prompt: string, originatorSocketId: string) {
+async function driveAgent(documentId: string, prompt: string, originatorSocketId: string, settings?: any) {
   const state = ensureDocument(documentId);
 
   // Helper that fans an event out to every viewer (including the originator).
@@ -157,7 +157,7 @@ async function driveAgent(documentId: string, prompt: string, originatorSocketId
   const res = await fetch(gatewayUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ documentId, prompt, canvasState: state.document }),
+    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings }),
   });
 
   if (!res.ok || !res.body) {

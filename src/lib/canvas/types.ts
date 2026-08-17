@@ -15,6 +15,7 @@
 
 import type { PenChild, PenDocument, PenVariableDef, PenTheme } from '../pen/types';
 import { PEN_FORMAT_VERSION } from '../pen/types';
+import type { AgentRunSettings } from '../settings/types';
 
 // ---- Resolved render node (what the renderer sees) -----------------------
 
@@ -261,4 +262,4 @@ export type ClientEvent =
   | { type: 'subscribe'; documentId: string }
   | { type: 'canvas:patch'; patch: CanvasPatch }
   | { type: 'canvas:request_full'; documentId: string }
-  | { type: 'agent:prompt'; documentId: string; prompt: string };
+  | { type: 'agent:prompt'; documentId: string; prompt: string; settings?: AgentRunSettings };

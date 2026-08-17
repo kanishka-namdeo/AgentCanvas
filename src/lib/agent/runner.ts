@@ -32,6 +32,8 @@ import ZAI from 'z-ai-web-dev-sdk';
 import { createCanvasTools, executeTool, toolsToOpenAISpec, type CanvasToolContext } from './tools';
 import { createPenTools, PEN_TOOL_NAMES } from './pen-tools';
 import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types';
+import type { AgentRunSettings, DefaultPalette } from '../settings/types';
+import { PALETTES } from '../settings/types';
 import { createEmptyCanvasDocument } from '../canvas/types';
 import { applyPatchToCanvas } from '../canvas/patch';
 import { resolvePenTree } from '../pen/resolve';
@@ -90,6 +92,12 @@ export interface AgentRunOptions {
   llm?: LLMClient;
   /// Optional abort signal.
   signal?: AbortSignal;
+  /// User-tunable run settings (temperature, maxIterations, planFirst,
+  /// defaultPalette, skillSelectionMode, LLM provider config). When omitted,
+  /// the runner uses the previous hard-coded defaults (0.4 / 20 / true / 'slate'
+  /// / 'auto' / zai-auto). This keeps the existing test suite (which doesn't
+  /// pass settings) working without modification.
+  settings?: AgentRunSettings;
 }
 
 /// Minimal LLM client interface the runner needs. Mirrors the OpenAI
@@ -151,14 +159,7 @@ const SYSTEM_PROMPT_TEMPLATE = `You are an AI design agent operating a Figma-lik
 
 You can see the current canvas state and manipulate it through tools. Your job is to take the user's natural-language request and produce a visually pleasing, production-ready design on the canvas.
 
-=== PLAN FIRST (critical) ==================================================
-
-Before calling any tool, think briefly about:
-  1. What the user wants (restate in one sentence)
-  2. Which approach / tool sequence will achieve it most efficiently
-  3. Whether you need to research anything first (web_search)
-
-Output this plan as a short text message BEFORE your first tool call. This helps you avoid wasteful trial-and-error loops.
+${'${PLAN_FIRST_SECTION}'}
 
 === AVAILABLE SKILLS =======================================================
 
@@ -177,11 +178,8 @@ ${'${PLAN_SECTION}'}
 
 - Be deliberate about layout: use a grid, align shapes, leave breathing room.
 - Pick harmonious colors. Default to a modern, minimal palette unless told otherwise.
-  Suggested palettes:
-  • Slate: bg #f8fafc, fills #e2e8f0 / #cbd5e1 / #94a3b8, accent #0ea5e9, text #0f172a
-  • Warm: bg #fff7ed, fills #fed7aa / #fdba74 / #fb923c, accent #ea580c, text #431407
-  • Forest: bg #f0fdf4, fills #dcfce7 / #bbf7d0 / #86efac, accent #16a34a, text #052e16
-  • Mono: bg #fafaf9, fills #e7e5e4 / #d6d3d1 / #a8a29e, accent #18181b, text #18181b
+  Suggested palettes (the first one is your default — prefer it unless the user asks otherwise):
+${'${PALETTES_LIST}'}
 - When creating multiple shapes, give each a sensible name (e.g. "Header", "Card", "Avatar").
 - Coordinates are canvas-space pixels. The viewport at zoom 1 shows roughly 0..1200 x 0..800.
   Center of visible area is around (600, 400). Place groups of shapes around a focal point.
@@ -290,17 +288,51 @@ ${tokenLines}
 ${shapeLines}`;
 }
 
+/// Build the palettes list string with the user's default palette first.
+/// Example output:
+///   • Slate (default): bg #f8fafc, fills #e2e8f0 / #cbd5e1 / #94a3b8, accent #0ea5e9, text #0f172a
+///   • Warm: bg #fff7ed, fills #fed7aa / #fdba74 / #fb923c, accent #ea580c, text #431407
+///   • Forest: bg #f0fdf4, fills #dcfce7 / #bbf7d0 / #86efac, accent #16a34a, text #052e16
+///   • Mono: bg #fafaf9, fills #e7e5e4 / #d6d3d1 / #a8a29e, accent #18181b, text #18181b
+function buildPalettesList(defaultPalette: DefaultPalette): string {
+  const order: DefaultPalette[] = [defaultPalette, ...(['slate', 'warm', 'forest', 'mono'] as DefaultPalette[]).filter((p) => p !== defaultPalette)];
+  return order.map((key) => {
+    const p = PALETTES[key];
+    const isDefault = key === defaultPalette;
+    const fillsStr = p.fills.join(' / ');
+    return `  • ${p.name}${isDefault ? ' (default)' : ''}: bg ${p.bg}, fills ${fillsStr}, accent ${p.accent}, text ${p.text}`;
+  }).join('\n');
+}
+
+/// Build the "PLAN FIRST" section. When planFirst is false, the section is
+/// omitted entirely — the agent just calls tools without a preamble.
+function buildPlanFirstSection(planFirst: boolean): string {
+  if (!planFirst) return '';
+  return `=== PLAN FIRST (critical) ==================================================
+
+Before calling any tool, think briefly about:
+  1. What the user wants (restate in one sentence)
+  2. Which approach / tool sequence will achieve it most efficiently
+  3. Whether you need to research anything first (web_search)
+
+Output this plan as a short text message BEFORE your first tool call. This helps you avoid wasteful trial-and-error loops.`;
+}
+
 /// Build the full system prompt by filling in the template variables.
 function buildSystemPrompt(
   skillMetadata: string,
   skillBody: string,
   planSection: string,
   canvas: CanvasDocument,
+  defaultPalette: DefaultPalette,
+  planFirst: boolean,
 ): string {
   return SYSTEM_PROMPT_TEMPLATE
+    .replace('${PLAN_FIRST_SECTION}', buildPlanFirstSection(planFirst))
     .replace('${SKILL_METADATA}', skillMetadata)
     .replace('${SKILL_BODY}', skillBody || '(No skill-specific instructions — all tools available.)')
     .replace('${PLAN_SECTION}', planSection)
+    .replace('${PALETTES_LIST}', buildPalettesList(defaultPalette))
     + '\n\n' + canvasSnapshot(canvas);
 }
 
@@ -319,10 +351,75 @@ function filterToolSpecs(
   );
 }
 
+// ---- OpenAI-compatible LLM client ------------------------------------------
+//
+// A minimal fetch-based client that satisfies the LLMClient interface.
+// Used when the user configures a custom OpenAI-compatible endpoint
+// (Together AI, Groq, Anyscale, local Ollama, etc.).
+//
+// Only the chat.completions.create shape is implemented — that's all the
+// runner needs. Streaming is NOT supported here (the runner calls without
+// `stream: true` and reads `choices[0].message`); if the user's endpoint
+// defaults to streaming, we explicitly pass `stream: false`.
+
+function createOpenAICompatibleClient(opts: {
+  apiKey: string;
+  baseURL: string;
+  model: string;
+}): LLMClient {
+  const { apiKey, baseURL, model } = opts;
+  const url = baseURL.replace(/\/+$/, '') + '/chat/completions';
+
+  return {
+    chat: {
+      completions: {
+        create: async (params: any) => {
+          const body: Record<string, unknown> = {
+            model,
+            messages: params.messages,
+            temperature: params.temperature ?? 0.4,
+            stream: false,
+          };
+          if (params.tools && params.tools.length > 0) {
+            body.tools = params.tools;
+            body.tool_choice = params.tool_choice ?? 'auto';
+          }
+
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+            },
+            body: JSON.stringify(body),
+          });
+
+          if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(`OpenAI-compatible LLM error ${res.status}: ${text.slice(0, 300)}`);
+          }
+
+          const json = await res.json();
+          // The OpenAI response shape is what the runner expects.
+          return json;
+        },
+      },
+    },
+  };
+}
+
 // ---- Run the agent loop ---------------------------------------------------
 
 export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStreamEvent> {
-  const { documentId, prompt, canvas: initialCanvas, llm: injectedLlm, signal } = opts;
+  const { documentId, prompt, canvas: initialCanvas, llm: injectedLlm, signal, settings } = opts;
+
+  // Resolve settings with defaults. Tests don't pass settings, so we fall back
+  // to the previous hard-coded values to keep the existing test suite green.
+  const temperature = settings?.temperature ?? 0.4;
+  const maxIterations = settings?.maxIterations ?? 20;
+  const planFirst = settings?.planFirst ?? true;
+  const defaultPalette = settings?.defaultPalette ?? 'slate';
+  const skillSelectionMode = settings?.skillSelectionMode ?? 'auto';
 
   // Per-session mutable state. The tools close over this via `ctx`.
   // Normalize the incoming canvas: ensure it has a .pen tree (`children`)
@@ -350,7 +447,28 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   const allToolSpecs = toolsToOpenAISpec(tools);
 
   // Initialize the LLM client.
-  const llm: LLMClient = injectedLlm ?? ((await ZAI.create()) as unknown as LLMClient);
+  // - If a mock is injected (tests), use it.
+  // - If settings specify a custom OpenAI-compatible endpoint, build a fetch-based client.
+  // - Otherwise (default), use ZAI.create() — which auto-resolves credentials in
+  //   the z.ai sandbox, or uses ZAI_API_KEY / OPENAI_API_KEY env vars outside it.
+  let llm: LLMClient;
+  if (injectedLlm) {
+    llm = injectedLlm;
+  } else if (settings?.llmProvider === 'openai-compatible' && settings.apiBaseUrl) {
+    llm = createOpenAICompatibleClient({
+      apiKey: settings.apiKey,
+      baseURL: settings.apiBaseUrl,
+      model: settings.modelName || 'gpt-4o',
+    });
+  } else {
+    // zai-auto OR zai-key (both go through ZAI.create; the env var or
+    // sandbox auto-resolution handles credentialing. If the user explicitly
+    // set ZAI_API_KEY via the settings UI, we'd ideally pass it to ZAI.create,
+    // but the current SDK shape doesn't expose that — so we rely on the env
+    // var being set. The settings field is still useful as documentation +
+    // for the openai-compatible path.)
+    llm = (await ZAI.create()) as unknown as LLMClient;
+  }
 
   yield { kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } };
 
@@ -358,48 +476,63 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   //
   // Classify the user's intent to determine which skill (and thus which tool
   // subset) to activate. This reduces the visible tools from 56 → ~15-20.
+  //
+  // If the user has set skillSelectionMode='manual' in Settings, we skip the
+  // classifier and use the 'multi' category — which exposes all core tools +
+  // all .pen tools. This is the "no skill pinning" escape hatch for power
+  // users who don't want the classifier guessing.
 
   let classification: ClassificationResult;
-  try {
-    classification = await classifyIntent({
-      prompt,
-      canvasShapeCount: canvas.shapes.length,
-      // Don't pass the LLM here — the classifier's keyword pass is enough,
-      // and passing the LLM would consume an extra MockLLM script entry in
-      // tests + add a round-trip in production. The production LLM fallback
-      // for low-confidence cases runs below (guarded by !injectedLlm).
-      llm: undefined,
-      signal,
-    });
-  } catch {
+  if (skillSelectionMode === 'manual') {
     classification = {
       category: 'multi',
       secondaryCategories: [],
-      method: 'fallback',
-      confidence: 0,
+      method: 'manual',
+      confidence: 1,
       recommendPlan: false,
     };
-  }
-
-  // If no injected LLM (production), try the LLM fallback for low-confidence cases.
-  // BUT: skip the LLM fallback if the keyword classifier already detected a
-  // multi-step prompt (recommendPlan=true), because the keyword classifier's
-  // "last deliverable" logic is more reliable for multi-step prompts than an
-  // LLM that might latch onto the first verb (e.g. "Research..." → web_research,
-  // even when the final deliverable is "...then design a dashboard" → wireframe).
-  if (!injectedLlm && classification.confidence < 0.5 && !classification.recommendPlan && classification.category !== 'multi') {
+  } else {
     try {
-      const llmResult = await classifyIntent({
+      classification = await classifyIntent({
         prompt,
         canvasShapeCount: canvas.shapes.length,
-        llm,
+        // Don't pass the LLM here — the classifier's keyword pass is enough,
+        // and passing the LLM would consume an extra MockLLM script entry in
+        // tests + add a round-trip in production. The production LLM fallback
+        // for low-confidence cases runs below (guarded by !injectedLlm).
+        llm: undefined,
         signal,
       });
-      if (llmResult.confidence > classification.confidence) {
-        classification = llmResult;
-      }
     } catch {
-      // Keep the keyword result.
+      classification = {
+        category: 'multi',
+        secondaryCategories: [],
+        method: 'fallback',
+        confidence: 0,
+        recommendPlan: false,
+      };
+    }
+
+    // If no injected LLM (production), try the LLM fallback for low-confidence cases.
+    // BUT: skip the LLM fallback if the keyword classifier already detected a
+    // multi-step prompt (recommendPlan=true), because the keyword classifier's
+    // "last deliverable" logic is more reliable for multi-step prompts than an
+    // LLM that might latch onto the first verb (e.g. "Research..." → web_research,
+    // even when the final deliverable is "...then design a dashboard" → wireframe).
+    if (!injectedLlm && classification.confidence < 0.5 && !classification.recommendPlan && classification.category !== 'multi') {
+      try {
+        const llmResult = await classifyIntent({
+          prompt,
+          canvasShapeCount: canvas.shapes.length,
+          llm,
+          signal,
+        });
+        if (llmResult.confidence > classification.confidence) {
+          classification = llmResult;
+        }
+      } catch {
+        // Keep the keyword result.
+      }
     }
   }
 
@@ -513,7 +646,7 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   const skillMetadata = formatSkillMetadataForPrompt();
   const skillBody = formatSkillBodyForPrompt(activeCategory);
   const planSection = plan ? `=== EXECUTION PLAN =========================================================\nFollow this plan. Complete each step before moving to the next.\n\n${formatPlanForPrompt(plan)}\n` : '';
-  const systemContent = buildSystemPrompt(skillMetadata, skillBody, planSection, canvas);
+  const systemContent = buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst);
 
   // Build the initial message history.
   const messages: Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_calls?: any[]; tool_call_id?: string }> = [
@@ -532,17 +665,19 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
 
   // ---- Main agent loop -----------------------------------------------------
 
-  const MAX_ITERATIONS = 20;
+  // MAX_ITERATIONS comes from settings (default 20). Each iteration is one
+  // LLM round-trip + zero or more tool calls. The loop exits early when the
+  // LLM produces a message with no tool_calls (= final answer).
   let currentPlanStep = 0;
 
-  for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
+  for (let iter = 0; iter < maxIterations; iter++) {
     let completion: any;
     try {
       completion = await llm.chat.completions.create({
         messages: messages as any,
         tools: filteredSpecs,
         tool_choice: 'auto',
-        temperature: 0.4,
+        temperature,
       });
     } catch (err: any) {
       yield { kind: 'agent_event', event: { type: 'agent:error', message: `LLM request failed: ${err.message}` } };
@@ -659,11 +794,11 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
     // Refresh the system snapshot for the next iteration.
     messages[0] = {
       role: 'system',
-      content: buildSystemPrompt(skillMetadata, skillBody, plan ? `=== EXECUTION PLAN =========================================================\nFollow this plan. Complete each step before moving to the next.\n\n${formatPlanForPrompt(plan)}\n` : '', canvas),
+      content: buildSystemPrompt(skillMetadata, skillBody, plan ? `=== EXECUTION PLAN =========================================================\nFollow this plan. Complete each step before moving to the next.\n\n${formatPlanForPrompt(plan)}\n` : '', canvas, defaultPalette, planFirst),
     };
   }
 
-  // If we hit MAX_ITERATIONS, stop gracefully.
+  // If we hit maxIterations, stop gracefully.
   yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
   yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
 }

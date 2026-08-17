@@ -100,7 +100,7 @@ export function startCanvasSyncService() {
         }
         case 'agent:prompt': {
           console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${event.prompt.slice(0, 80)}…`);
-          driveAgent(event.documentId, event.prompt).catch((err) => {
+          driveAgent(event.documentId, event.prompt, event.settings).catch((err) => {
             console.error('[canvas-sync] agent drive failed:', err);
           });
           break;
@@ -132,7 +132,7 @@ export function startCanvasSyncService() {
 // Calls the Next.js /api/agent route over HTTP and bridges the NDJSON
 // stream back out as socket.io `sync` events.
 
-async function driveAgent(documentId: string, prompt: string) {
+async function driveAgent(documentId: string, prompt: string, settings?: import('../settings/types').AgentRunSettings) {
   const state = ensureDocument(documentId);
 
   const fanout = (event: SyncEvent) => {
@@ -148,7 +148,7 @@ async function driveAgent(documentId: string, prompt: string) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ documentId, prompt, canvasState: state.document }),
+    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings }),
   });
 
   if (!res.ok || !res.body) {

@@ -13,6 +13,8 @@ import { LayersPanel } from '@/components/canvas/LayersPanel';
 import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
 import { AgentPanel } from '@/components/canvas/AgentPanel';
 import { CommandPalette } from '@/components/canvas/CommandPalette';
+import { SettingsDialog } from '@/components/settings/SettingsDialog';
+import { useSettings } from '@/lib/settings/store';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { SessionSidebar } from '@/components/sessions/SessionSidebar';
 import { SessionHeader } from '@/components/sessions/SessionHeader';
@@ -23,7 +25,7 @@ import { PenFileMenu } from '@/components/canvas/PenFileMenu';
 import {
   PenTool, Bot, PanelLeft, PanelRight, PanelLeftClose, PanelRightClose,
   Maximize2, Minimize2, MessageSquare, Sliders, History as HistoryIcon,
-  Layers as LayersIcon, Search,
+  Layers as LayersIcon, Search, Settings,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -63,6 +65,20 @@ export default function Home() {
   const [rightTab, setRightTab] = useState<RightTab>('chat');
   // ⌘K command palette visibility.
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // Settings dialog visibility.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Auto-archive idle sessions on app mount, per the user's setting.
+  // Runs once after hydration. Safe to call multiple times.
+  useEffect(() => {
+    import('@/lib/sessions').then(({ sweepIdleSessions }) => {
+      const threshold = useSettings.getState().autoArchiveIdleAfter;
+      const n = sweepIdleSessions(threshold);
+      if (n > 0) {
+        console.log(`[settings] auto-archived ${n} idle session(s) (threshold: ${threshold})`);
+      }
+    });
+  }, []);
 
   // When the user starts a run, jump to the Chat tab so they see streaming output.
   useEffect(() => {
@@ -119,7 +135,7 @@ export default function Home() {
     }
   }, [isZenMode, leftCollapsed, rightCollapsed]);
 
-  // Keyboard shortcuts: ⌘1 left column, ⌘2 right column, ⌘K command palette, ⌘\ zen mode.
+  // Keyboard shortcuts: ⌘1 left column, ⌘2 right column, ⌘K command palette, ⌘, settings, ⌘\ zen mode.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
@@ -130,6 +146,10 @@ export default function Home() {
         e.preventDefault();
         setPaletteOpen((v) => !v);
       }
+      else if (e.key === ',') {
+        e.preventDefault();
+        setSettingsOpen((v) => !v);
+      }
       else if (e.key === '\\') { e.preventDefault(); toggleZen(); }
     };
     window.addEventListener('keydown', onKey);
@@ -138,7 +158,10 @@ export default function Home() {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="h-screen w-screen flex flex-col ac-surface-1 ac-text-1 overflow-hidden">
+      <div
+        className="h-screen w-screen flex flex-col ac-surface-1 ac-text-1 overflow-hidden"
+        data-density={useSettings.getState().density}
+      >
         {/* ───────────────────────── Top bar ───────────────────────── */}
         <header className="flex items-center justify-between px-3 h-11 border-b ac-border-default ac-surface-0 flex-shrink-0 gap-3">
           {/* Left: brand + doc name */}
@@ -217,6 +240,19 @@ export default function Home() {
             </Button>
 
             <PenFileMenu />
+
+            {/* Settings — opens the settings dialog */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSettingsOpen(true)}
+              title="Settings"
+              aria-label="Open settings"
+              className="h-7 w-7 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring"
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </Button>
+
             <ThemeToggle />
           </div>
         </header>
@@ -277,6 +313,9 @@ export default function Home() {
 
       {/* ⌘K command palette — fuzzy-searchable preset prompts */}
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+
+      {/* Settings dialog — agent behavior, LLM provider, sessions, appearance, data, shortcuts */}
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </TooltipProvider>
   );
 }

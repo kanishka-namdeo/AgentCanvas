@@ -18,6 +18,8 @@ import { createEmptyCanvasDocument } from '@/lib/canvas/types';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
 import { resolvePenTree } from '@/lib/pen/resolve';
 import { useSessionStore, hydrateSessionStore } from '@/lib/sessions';
+import { useSettings } from '@/lib/settings/store';
+import { agentRunSettings } from '@/lib/settings/types';
 
 /// A single chat turn — either the user's prompt or the agent's response.
 /// This is the LIVE streaming buffer; the session store is the persistent
@@ -269,11 +271,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // If WebSocket is connected, route through it (live broadcast to all
     // viewers). Otherwise fall back to a direct HTTP call to /api/agent
     // so the app still works for a single viewer without the sync service.
+    //
+    // Both paths inject the user's agent-run settings (temperature,
+    // maxIterations, planFirst, defaultPalette, skillSelectionMode,
+    // LLM provider config) from the settings store.
+    const settings = agentRunSettings(useSettings.getState());
     if (socket && connected) {
       socket.emit('client', {
         type: 'agent:prompt',
         documentId,
         prompt: text,
+        settings,
       } satisfies ClientEvent);
       return;
     }
@@ -287,7 +295,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         const res = await fetch('/api/agent', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ documentId, prompt: text, canvasState: get().document }),
+          body: JSON.stringify({ documentId, prompt: text, canvasState: get().document, settings }),
           signal,
         });
         if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -630,16 +638,46 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           }
         }
         if (last?.sessionId) {
-          useSessionStore.getState().captureSnapshot(
-            last.sessionId,
-            get().document,
-            {
-              source: 'turn_end',
-              sourceRunId: last.runId ?? undefined,
-              sourceMessageId: last.messageId ?? undefined,
-              createdBy: 'agent',
-            },
-          );
+          // Snapshot cadence — respect the user's settings. Default is
+          // 'every-turn'. 'every-N-turns' captures only on every Nth turn
+          // (using the session's runCount as the counter). 'manual' skips
+          // auto-capture entirely; the user must use the History panel's
+          // "Capture current state" button.
+          const cadence = useSettings.getState().snapshotCadence;
+          const maxSnaps = useSettings.getState().maxSnapshotsPerSession;
+          const sess = useSessionStore.getState().sessions[last.sessionId];
+          const turnNumber = sess?.runCount ?? 0;
+          const shouldCapture =
+            cadence === 'every-turn' ||
+            (cadence === 'every-3-turns' && turnNumber % 3 === 0) ||
+            (cadence === 'every-5-turns' && turnNumber % 5 === 0);
+          // cadence === 'manual' → shouldCapture stays false
+
+          if (shouldCapture) {
+            useSessionStore.getState().captureSnapshot(
+              last.sessionId,
+              get().document,
+              {
+                source: 'turn_end',
+                sourceRunId: last.runId ?? undefined,
+                sourceMessageId: last.messageId ?? undefined,
+                createdBy: 'agent',
+              },
+            );
+            // Enforce max snapshots per session — trim oldest, but never
+            // delete bookmarked snapshots (the user marked them as keepers).
+            if (sess && sess.snapshotIds.length >= maxSnaps) {
+              const allSnaps = useSessionStore.getState().snapshots;
+              const candidates = sess.snapshotIds
+                .map((id) => allSnaps[id])
+                .filter((s) => s && !s.bookmarked)
+                .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+              const excess = (sess.snapshotIds.length + 1) - maxSnaps;
+              for (let i = 0; i < excess && i < candidates.length; i++) {
+                useSessionStore.getState().deleteSnapshot?.(candidates[i].id);
+              }
+            }
+          }
           if (last.runId) {
             useSessionStore.getState().endRun(last.runId, 'completed');
           }
