@@ -126,10 +126,10 @@ const TEST_CASES: TestCase[] = [
   },
   {
     id: 11,
-    prompt: 'predict heatmap',
+    prompt: 'list all variables and theme axes',
     expectedCategory: 'inspect',
     expectedRecommendPlan: false,
-    note: 'Single inspect keyword (heatmap). "predict" is not a keyword.',
+    note: 'Inspect keywords "list" + "variables". Maps to pen_list_themes (read-only inspect).',
   },
   {
     id: 12,

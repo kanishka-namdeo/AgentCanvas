@@ -59,7 +59,7 @@ All of these fields are optional in the TypeScript type, so the Prisma model sti
 
 ### Sync with TypeScript types
 - `prisma/schema.prisma` `Shape` ⟷ `src/lib/canvas/types.ts` `Shape`.
-- `prisma/schema.prisma` `Document` ⟷ `src/lib/canvas/types.ts` `CanvasDocument` (note: `CanvasDocument` also includes `tokens` and `heatmap` which are NOT in the Prisma model — they are in-memory only for now).
+- `prisma/schema.prisma` `Document` ⟷ `src/lib/canvas/types.ts` `CanvasDocument` (note: `CanvasDocument` is now a **.pen tree model** — it carries `children: PenChild[]`, `variables`, `themes` as the source of truth, plus derived `shapes`/`tokens`/`background` caches. The Prisma model is a **flat Shape[]** and is **stale** — it doesn't model the tree, variables, or themes. Persistence currently stays client-side in localStorage; migrating to Prisma would require a tree table with adjacency list). The `heatmap` field was REMOVED for .pen format purity.
 - Changing one without the other will cause type errors in `src/lib/canvas/server.ts`.
 - **Current state**: the sync is **incomplete** — the Prisma `Shape` model is missing the extended fields listed in "Known schema drift" above. When updating the Prisma schema to match, all of these fields would need to be added as optional JSON or nullable columns.
 

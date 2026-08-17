@@ -18,8 +18,8 @@
 //   - Wireframes (mobile/web templates)
 //   - User flows (multi-screen)
 //   - Diagrams (flowchart / mindmap)
-//   - Design systems (palettes, tokens, audit)
-//   - Analysis (heatmap, copy, audit)
+//   - Design systems (palettes, variables, audit)
+//   - Analysis (copy, audit, organize)
 // Each prompt is a one-click example that exercises a specific tool.
 
 import { useEffect, useRef, useState } from 'react';
@@ -91,8 +91,8 @@ const PROMPT_GROUPS: PromptGroup[] = [
     label: 'Analysis',
     icon: Activity,
     prompts: [
-      'Predict the attention heatmap for the first frame on the canvas.',
       'Fill every text shape with realistic placeholder copy about "project management".',
+      'Audit my design for color contrast and alignment issues, then report findings.',
       'Organize my layers — rename and re-order them by reading order.',
     ],
   },
@@ -115,7 +115,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const connected = useCanvasStore((s) => s.connected);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
   const tokens = useCanvasStore((s) => s.document.tokens ?? EMPTY_TOKENS);
-  const heatmapOn = useCanvasStore((s) => !!s.document.heatmap);
+  const variableCount = useCanvasStore((s) => s.document.variables ? Object.keys(s.document.variables).length : 0);
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -161,7 +161,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
           </div>
           <span className="text-xs font-medium ac-text-2">Agent</span>
           <Badge variant="outline" className="text-[10px] h-4 px-1 py-0 font-normal ac-text-3 ac-border-default">
-            Pi SDK · 24 tools
+            .pen · 60+ tools
           </Badge>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] ac-text-3">
@@ -171,16 +171,16 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
       </div>
       )}
 
-      {/* Status strip: tokens + heatmap state — tighter, more polished */}
+      {/* Status strip: variables + tokens — .pen design-system layer */}
       <div className="flex items-center gap-2 px-3 py-1.5 border-b ac-border-subtle ac-surface-1 text-[10px] ac-text-3">
         <span className="flex items-center gap-1">
           <Palette className="h-3 w-3 ac-text-4" />
-          {tokens.colors.length} color token{tokens.colors.length === 1 ? '' : 's'}
+          {variableCount} variable{variableCount === 1 ? '' : 's'}
         </span>
         <span className="ac-text-5">·</span>
         <span className="flex items-center gap-1">
-          <Activity className="h-3 w-3 ac-text-4" />
-          heatmap {heatmapOn ? 'on' : 'off'}
+          <Layers className="h-3 w-3 ac-text-4" />
+          {tokens.colors.length} color token{tokens.colors.length === 1 ? '' : 's'}
         </span>
       </div>
 
@@ -197,9 +197,10 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                 <p className="leading-relaxed">
                   This is a Figma-like canvas where the primary user is an AI agent.
                   The agent (powered by the Pi Agent SDK&apos;s tool-calling API) sees the
-                  canvas state and manipulates it through 24 tools — covering wireframes,
-                  user flows, diagrams, design tokens, palettes, heatmaps, copy, and audits.
-                  You can also draw manually — the agent will see your edits.
+                  canvas state — a .pen object tree — and manipulates it through 60+ tools
+                  covering wireframes, user flows, diagrams, variables, themes, component
+                  instances, slots, copy, and audits. You can also draw manually — the
+                  agent will see your edits.
                 </p>
               </div>
 
@@ -371,8 +372,17 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
 }
 
 function toolCategory(name: string): { label: string; cls: string } | null {
-  if (name.startsWith('canvas_create') || name.startsWith('canvas_update') || name.startsWith('canvas_delete') || name === 'canvas_list_shapes' || name === 'canvas_clear' || name === 'canvas_set_background' || name === 'canvas_select_shape') {
+  // Core canvas ops
+  if (name.startsWith('pen_create') || name.startsWith('pen_update') || name.startsWith('pen_delete') || name === 'pen_list_shapes' || name === 'pen_clear' || name === 'pen_set_background' || name === 'pen_select_shape') {
     return { label: 'core', cls: 'text-slate-500 border-slate-300' };
+  }
+  // .pen design-system tools: variables, themes
+  if (name.startsWith('pen_set_variable') || name.startsWith('pen_apply_theme') || name.startsWith('pen_set_theme') || name.startsWith('pen_list_themes')) {
+    return { label: 'design-system', cls: 'text-fuchsia-700 border-fuchsia-200' };
+  }
+  // .pen component-instance tools: refs + descendants + slots
+  if (name.startsWith('pen_create_ref') || name.startsWith('pen_override_descendant') || name.startsWith('pen_mark_slot') || name.startsWith('pen_export_pen')) {
+    return { label: 'component', cls: 'text-sky-700 border-sky-200' };
   }
   if (name.includes('duplicate') || name.includes('group') || name.includes('align') || name.includes('organize')) {
     return { label: 'layers', cls: 'text-amber-700 border-amber-200' };
@@ -386,10 +396,10 @@ function toolCategory(name: string): { label: string; cls: string } | null {
   if (name.includes('palette') || name.includes('tokens')) {
     return { label: 'design-system', cls: 'text-fuchsia-700 border-fuchsia-200' };
   }
-  if (name.startsWith('canvas_generate_wireframe') || name.startsWith('canvas_generate_user_flow') || name.startsWith('canvas_generate_diagram')) {
+  if (name.startsWith('pen_generate_wireframe') || name.startsWith('pen_generate_user_flow') || name.startsWith('pen_generate_diagram')) {
     return { label: 'generator', cls: 'text-violet-700 border-violet-200' };
   }
-  if (name.includes('heatmap') || name.includes('audit') || name.includes('copy')) {
+  if (name.includes('audit') || name.includes('copy')) {
     return { label: 'analysis', cls: 'text-rose-700 border-rose-200' };
   }
   return null;

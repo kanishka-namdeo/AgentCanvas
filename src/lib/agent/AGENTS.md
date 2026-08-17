@@ -57,7 +57,7 @@ User prompt
 - **Wireframe (12)**: generate_wireframe, generate_user_flow, generate_diagram, generate_copy, create_shape, update_shape, upload_image, search_icons, generate_image, update_tokens, apply_palette, generate_palette
 - **Layout (13)**: align_shapes, group_shapes, ungroup_shapes, duplicate_shape, organize_layers, apply_auto_layout, bring_to_front, send_to_back, move_forward, move_backward, reorder_shape, set_locked, set_visible
 - **Styling (13)**: apply_palette, generate_palette, update_tokens, apply_token, bind_shape_to_token, unbind_shape, list_tokens, set_gradient_fill, set_shadow, set_blur, set_corner_radius_per_corner, find_replace_text, bulk_update_by_filter
-- **Inspect (5)**: list_shapes, find_shapes, audit_design, predict_heatmap, list_tokens
+- **Inspect (4)**: list_shapes, find_shapes, audit_design, list_tokens (predict_heatmap REMOVED for .pen purity)
 - **Export (4)**: export_json, export_svg, export_png, copy_as_code
 - **Vector (5)**: create_path, boolean_op, mask_with, create_shape, update_shape
 - **Web (2)**: web_search, web_fetch

@@ -1,10 +1,11 @@
-// Measure the token cost of the pi agent's 58-tool registry + system prompt.
+// Measure the token cost of the pi agent's tool registry + system prompt.
 //
 // Estimates tokens as chars/4 (industry-standard heuristic for English text).
 // The real cost is higher because JSON schemas have more punctuation, but this
 // gives a ballpark for the "every LLM call pays this" overhead.
 
 import { createCanvasTools, toolsToOpenAISpec, type CanvasToolContext } from '../src/lib/agent/tools.ts';
+import { createPenTools } from '../src/lib/agent/pen-tools';
 import { readFileSync } from 'node:fs';
 
 async function main() {
@@ -12,14 +13,16 @@ async function main() {
     getShapes: () => [],
     getTokens: () => ({ colors: [], textStyles: [] }),
     getDocument: () => ({
-      id: 'x', name: 'x', background: '#fff',
+      id: 'x', name: 'x', version: '2.17',
+      children: [], variables: undefined, themes: undefined,
+      background: '#fff',
       viewport: { zoom: 1, panX: 0, panY: 0 },
-      shapes: [], tokens: { colors: [], textStyles: [] }, heatmap: null,
-    }),
+      shapes: [], tokens: { colors: [], textStyles: [] },
+    } as any),
     applyPatch: () => ({ op: 'noop' }),
   };
 
-  const tools = createCanvasTools(ctx);
+  const tools = [...createCanvasTools(ctx), ...createPenTools(ctx)] as ReturnType<typeof createCanvasTools>;
   const specs = toolsToOpenAISpec(tools);
 
   console.log(`Tool count: ${specs.length}`);
@@ -68,7 +71,8 @@ async function main() {
   const categories: Record<string, number> = {};
   sizes.forEach((s: any) => {
     const prefix = s.name.split('_').slice(0, 2).join('_');
-    const cat = prefix.startsWith('canvas_') ? s.name.split('_')[1] + '_tools' : prefix;
+    // All tools now use the `pen_` prefix (renamed from `canvas_`).
+    const cat = s.name.split('_')[1] + '_tools';
     categories[cat] = (categories[cat] || 0) + 1;
   });
   Object.entries(categories).sort((a, b) => b[1] - a[1]).forEach(([cat, count]) => {

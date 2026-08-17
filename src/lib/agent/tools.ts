@@ -42,8 +42,8 @@
 //   7. Diagram / flowchart generation (Figma AI diagrams)
 //      - pen_generate_diagram
 //
-//   8. Attention heatmap prediction (Uizard predictive heat map)
-//      - pen_predict_heatmap
+//   8. REMOVED: Attention heatmap prediction (Uizard predictive heat map)
+//      Dropped for .pen format purity — pen.dev has no analysis-overlay concept.
 //
 //   9. Copy / text generation (Figma AI placeholder content)
 //      - pen_generate_copy

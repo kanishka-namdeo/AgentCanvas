@@ -30,7 +30,6 @@ function makeDoc(shapes: Shape[] = []): CanvasDocument {
     viewport: { zoom: 1, panX: 0, panY: 0 },
     shapes,
     tokens: { colors: [], textStyles: [] },
-    heatmap: null,
   };
 }
 
@@ -109,7 +108,7 @@ describe('renderer integration: document mutations appear in the SVG', () => {
 
   it('renders an empty canvas with no shapes', () => {
     const { container } = renderCanvas();
-    // No shape rects should be present (just the heatmap-defs gradients etc).
+    // No shape rects should be present (just the <defs> gradients etc).
     const rects = container.querySelectorAll('rect, ellipse, circle, polygon, polyline, image, text');
     expect(rects.length).toBe(0);
   });
@@ -345,25 +344,5 @@ describe('renderer integration: document mutations appear in the SVG', () => {
     // After the patch, jsdom converts #0f172a to its rgb equivalent.
     const outerAfter = container.firstChild as HTMLElement;
     expect(outerAfter.style.background).toContain('rgb(15, 23, 42)');
-  });
-
-  it('heatmap op overlays a heatmap element on the canvas', () => {
-    const { container } = renderCanvas();
-    applyPatch({
-      op: 'heatmap',
-      heatmap: {
-        x: 0, y: 0, width: 400, height: 200,
-        frameId: undefined,
-        points: [
-          { x: 100, y: 100, intensity: 0.8 },
-          { x: 200, y: 80, intensity: 0.5 },
-        ],
-        createdAt: Date.now(),
-      },
-      summary: 'predict heatmap',
-    });
-    // Heatmap renders fixation points as <circle> elements.
-    const circles = container.querySelectorAll('circle');
-    expect(circles.length).toBeGreaterThanOrEqual(2);
   });
 });

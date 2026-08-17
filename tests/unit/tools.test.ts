@@ -37,7 +37,6 @@ function makeHarness(): TestHarness {
     viewport: { zoom: 1, panX: 0, panY: 0 },
     shapes: [],
     tokens: { colors: [], textStyles: [] },
-    heatmap: null,
   };
   const patches: CanvasPatch[] = [];
 
@@ -52,7 +51,9 @@ function makeHarness(): TestHarness {
       // Mutate in place — `doc` is the same reference the ctx closures hold.
       doc.shapes = next.shapes;
       doc.tokens = next.tokens;
-      doc.heatmap = next.heatmap;
+      doc.children = next.children;
+      doc.variables = next.variables;
+      doc.themes = next.themes;
       doc.background = next.background;
       doc.viewport = next.viewport;
       return p;
@@ -65,8 +66,10 @@ function makeHarness(): TestHarness {
     ctx,
     reset() {
       doc.shapes = [];
+      doc.children = [];
+      doc.variables = undefined;
+      doc.themes = undefined;
       doc.tokens = { colors: [], textStyles: [] };
-      doc.heatmap = null;
       patches.length = 0;
     },
     addShape(s) {

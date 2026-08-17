@@ -31,9 +31,9 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ## 🎬 Screenshots
 
-| The workspace | Agent thinking | Heatmap overlay |
+| The workspace | Agent thinking | Dashboard generated |
 | :---: | :---: | :---: |
-| ![Initial workspace](./download/dashboard-demo/01-initial.png) | ![Agent thinking](./download/dashboard-demo/03-agent-thinking.png) | ![Heatmap](./download/dashboard-demo/07-heatmap-overlay.png) |
+| ![Initial workspace](./download/dashboard-demo/01-initial.png) | ![Agent thinking](./download/dashboard-demo/03-agent-thinking.png) | ![Dashboard](./download/dashboard-demo/05b-dashboard-full.png) |
 
 | Dashboard generated | Dark mode | Session history |
 | :---: | :---: | :---: |
@@ -47,10 +47,10 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ### 🤖 AI agent at the wheel
 - **Natural-language → canvas.** Type a prompt; the agent plans + executes a sequence of typed tool calls.
-- **50+ canvas tools** — shapes, layers, groups, components, Auto Layout, design tokens, gradients, shadows, blur, masks, boolean ops, freeform paths.
+- **60+ `.pen`-aligned tools** — shapes, layers, groups, component instances (refs + descendant overrides), slots, Auto Layout (flexbox), variables (theme-conditional `$name`), multi-axis themes, gradients, shadows, blur, masks, boolean ops, freeform paths.
 - **One-shot generators** — wireframes (mobile/web), multi-screen user flows, flowcharts, mindmaps, color palettes.
-- **AI analysis** — predictive attention heatmap, design audit (color/type/contrast/alignment), AI copy generation.
-- **Streaming responses** — agent thoughts + tool-call cards stream in live, Figma-canvas mutations happen as you watch.
+- **AI analysis** — design audit (color/type/contrast/alignment), AI copy generation.
+- **Streaming responses** — agent thoughts + tool-call cards stream in live, `.pen` tree mutations happen as you watch.
 
 ### 🎨 Full design tool, not just a toy
 - **Infinite SVG canvas** — pan (middle-mouse / space-drag), zoom (wheel), 8-handle resize, drag-move, delete-to-remove.
@@ -121,11 +121,12 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 │  (OpenAI-compat)    │     by editing one call site)
 │                     │
 │  executeTool()      │
-│  ├─ canvas_create_shape
-│  ├─ canvas_generate_wireframe
-│  ├─ canvas_apply_palette
-│  ├─ canvas_predict_heatmap
-│  └─ … 50+ tools
+│  ├─ pen_create_shape
+│  ├─ pen_generate_wireframe
+│  ├─ pen_apply_palette
+│  ├─ pen_set_variable
+│  ├─ pen_create_ref
+│  └─ … 60+ tools
 └─────────┬───────────┘
           │
           ▼
@@ -256,14 +257,14 @@ bun run test:ui
 
 | File | What it covers |
 | --- | --- |
-| `tests/unit/patch.test.ts` | Pure patch-application logic (add/update/remove/clear/group/align/heatmap/…) |
+| `tests/unit/patch.test.ts` | Pure patch-application logic (add/update/remove/clear/group/align/tokens/zorder/...) |
 | `tests/unit/store.test.ts` | Zustand canvas store — `SyncEvent` reduction, undo/redo, turn buffering |
 | `tests/unit/tools.test.ts` | The 50+ tool definitions + `executeTool` dispatch |
 | `tests/unit/ShapeRenderer.test.tsx` | SVG shape rendering for every shape type |
 | `tests/integration/runner.test.ts` | `runAgent` with an injected `MockLLM` — verifies event ordering |
 | `tests/integration/pipeline.test.ts` | End-to-end: prompt → agent → patch → canvas mutation → session-store recording |
 | `tests/integration/renderer.test.tsx` | Canvas rendering after patches apply |
-| `tests/integration/scenarios.test.ts` | Scenario-driven tests (wireframe / user-flow / diagram / palette / heatmap generators) |
+| `tests/integration/scenarios.test.ts` | Scenario-driven tests (wireframe / user-flow / diagram / palette generators) |
 | `tests/integration/conversation.test.ts` | Multi-turn conversation + tool-call recording + streaming |
 | `tests/integration/session-bridge.test.ts` | Canvas-store ↔ session-store bridge (snapshot capture, fork/restore) |
 

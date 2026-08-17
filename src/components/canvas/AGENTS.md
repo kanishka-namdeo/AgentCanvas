@@ -30,7 +30,7 @@ Canvas UI components: the drawing surface, the toolbar, the layers panel, the pr
   - **Zoom indicator** (bottom-left): all colors come from `--ac-*` tokens (`ac-text-2/3`, `ac-surface-0` via `color-mix`, `ac-border-default`, `ac-surface-2` for hover). No `slate-{n}` / `bg-white/90` literals.
 - `PropertiesPanel.tsx`:
   - Reads `selectedId`, looks up the shape, renders a form.
-  - Form fields dispatch `canvas_update_shape` via the canvas store (NOT the agent) for direct edits.
+  - Form fields dispatch `pen_update_shape` via the canvas store (NOT the agent) for direct edits. (Tools were renamed `canvas_*` → `pen_*` for .pen alignment.)
   - Token access MUST be null-safe: `document.tokens?.colors ?? []`, `document.tokens?.textStyles ?? []`.
   - Header uses uppercase + tracking-wide per the design system.
 - `LayersPanel.tsx`:

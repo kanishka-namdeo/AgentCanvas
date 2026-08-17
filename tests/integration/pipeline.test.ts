@@ -30,7 +30,6 @@ function makeDoc(shapes: Shape[] = []): CanvasDocument {
     viewport: { zoom: 1, panX: 0, panY: 0 },
     shapes,
     tokens: { colors: [], textStyles: [] },
-    heatmap: null,
   };
 }
 
