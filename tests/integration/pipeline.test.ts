@@ -17,7 +17,8 @@ import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
 import { createCanvasTools, executeTool } from '@/lib/agent/tools';
 import type { CanvasToolContext } from '@/lib/agent/tools';
-import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types';
+import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types'
+import type { PenChild } from '@/lib/pen/types';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
 
 // ---- Fixtures ----------------------------------------------------------------
@@ -75,8 +76,6 @@ function resetStore(doc: CanvasDocument = makeDoc([])) {
     toolCalls: {},
     snapshots: {},
     activeSessionByDoc: {},
-    activeRunBySession: {},
-    _hydrated: true,
   });
 }
 

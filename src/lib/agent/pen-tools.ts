@@ -31,6 +31,7 @@ import { Type } from '@sinclair/typebox';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { CanvasPatch } from '../canvas/types';
 import type { CanvasToolContext } from './tools';
+import type { PenVariableDef } from '../pen/types';
 import { canvasToPen, serializePenDocument } from '../pen/converters';
 
 export function createPenTools(ctx: CanvasToolContext) {
@@ -77,7 +78,7 @@ export function createPenTools(ctx: CanvasToolContext) {
         ),
       ),
     }),
-    async execute(_toolCallId, params) {
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const doc = ctx.getDocument?.() ?? ({} as any);
       // Tolerate the LLM passing `name` instead of `key`.
       const key = params.key ?? params.name;
@@ -153,7 +154,7 @@ export function createPenTools(ctx: CanvasToolContext) {
         description: 'Theme axis -> value map, e.g. {"mode":"dark"} or {"mode":"dark","spacing":"condensed"}.',
       }),
     }),
-    async execute(_toolCallId, params) {
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return {
@@ -219,7 +220,7 @@ export function createPenTools(ctx: CanvasToolContext) {
       ),
       fill: Type.Optional(Type.String({ description: 'Direct fill override (hex) on the instance root.' })),
     }),
-    async execute(_toolCallId, params) {
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       try {
         const shapes = ctx.getShapes() ?? [];
         // Tolerate the LLM passing `componentId` instead of `ref`.
@@ -339,7 +340,7 @@ export function createPenTools(ctx: CanvasToolContext) {
         description: 'Property overrides. Include `type` to replace the descendant entirely.',
       }),
     }),
-    async execute(_toolCallId, params) {
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return {
@@ -410,7 +411,7 @@ export function createPenTools(ctx: CanvasToolContext) {
         description: 'IDs of recommended reusable child components (e.g. ["round-button","icon-button"]).',
       }),
     }),
-    async execute(_toolCallId, params) {
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const components: string[] = Array.isArray(params?.components)
         ? params.components.map(String)
         : [];
@@ -469,7 +470,7 @@ export function createPenTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       pretty: Type.Optional(Type.Boolean({ description: 'Pretty-print the JSON (default true).' })),
     }),
-    async execute(_toolCallId, params) {
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const doc = ctx.getDocument?.() ?? ({} as any);
       const pen = canvasToPen(doc);
       const json = params.pretty === false ? JSON.stringify(pen) : serializePenDocument(pen);
@@ -517,7 +518,7 @@ export function createPenTools(ctx: CanvasToolContext) {
         description: 'Allowed values for this axis, in priority order. First = default. E.g. ["light", "dark"].',
       }),
     }),
-    async execute(_toolCallId, params) {
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const values = Array.isArray(params?.values) ? params.values.map(String) : [];
       if (!params?.axis || values.length === 0) {
         return {
@@ -563,13 +564,13 @@ export function createPenTools(ctx: CanvasToolContext) {
       'Returns theme axes (axis -> values) and variables (key -> type + value).',
     ],
     parameters: Type.Object({}),
-    async execute(_toolCallId, _params) {
+    async execute(_toolCallId, _params, _signal, _onUpdate, _ctx) {
       const doc = ctx.getDocument?.() ?? ({} as any);
-      const themes = doc.themes ?? {};
-      const variables = doc.variables ?? {};
+      const themes: { [axis: string]: string[] } = (doc as any).themes ?? {};
+      const variables: { [key: string]: PenVariableDef } = (doc as any).variables ?? {};
       const themeLines = Object.keys(themes).length === 0
         ? '  (no theme axes defined)'
-        : Object.entries(themes).map(([axis, vals]) => `  • ${axis}: [${vals.join(', ')}]`).join('\n');
+        : Object.entries(themes).map(([axis, vals]) => `  • ${axis}: [${(vals as string[]).join(', ')}]`).join('\n');
       const varLines = Object.keys(variables).length === 0
         ? '  (no variables defined)'
         : Object.entries(variables).map(([k, v]) => {

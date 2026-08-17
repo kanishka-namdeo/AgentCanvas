@@ -28,7 +28,8 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { runAgent, type LLMClient } from '@/lib/agent/runner';
-import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '@/lib/canvas/types';
+import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '@/lib/canvas/types'
+import type { PenChild } from '@/lib/pen/types';
 
 // ---- Fixtures ----------------------------------------------------------------
 
@@ -97,13 +98,13 @@ class MockLLM implements LLMClient {
     completions: {
       create: async (params: {
         messages: any[];
-        tools: any[];
+        tools?: any[];
         tool_choice?: string;
         temperature?: number;
       }) => {
         this.capturedCalls.push({
           messages: JSON.parse(JSON.stringify(params.messages)),
-          tools: params.tools,
+          tools: params.tools ?? [],
           tool_choice: params.tool_choice as string,
         });
 
@@ -578,18 +579,10 @@ describe('runner: error paths', () => {
     // The LLM returns a tool_call with `arguments: 'not valid json'`.
     // The runner's try/catch around JSON.parse should fall back to {} so the
     // tool still executes (likely erroring, but not crashing the runner).
-    const malformedLLM = new (class extends MockLLM {
-      constructor() {
-        super([{ content: 'done' }]);
-      }
-      chat = {
+    const malformedLLM: LLMClient = {
+      chat: {
         completions: {
-          create: async (params: any) => {
-            (this as any).capturedCalls.push({
-              messages: JSON.parse(JSON.stringify(params.messages)),
-              tools: params.tools,
-              tool_choice: params.tool_choice,
-            });
+          create: async (params: { messages: any[]; tools?: any[]; tool_choice?: string; temperature?: number }) => {
             return {
               choices: [{
                 message: {
@@ -605,14 +598,14 @@ describe('runner: error paths', () => {
             };
           },
         },
-      };
-    })();
+      },
+    } as unknown as LLMClient;
 
     const { events } = await runAndCollect({
       documentId: 'd1',
       prompt: 'create a shape with malformed args',
       canvas: makeDoc([]),
-      llm: malformedLLM,
+      llm: malformedLLM as unknown as LLMClient,
     });
 
     // The tool call ran (didn't crash the runner).
@@ -653,7 +646,7 @@ describe('runner: error paths', () => {
 
   it('LLM returns empty message (no content, no tool_calls) ends the turn', async () => {
     const llm = new MockLLM([
-      { content: null, tool_calls: undefined },
+      { content: undefined, tool_calls: undefined },
     ]);
 
     const { patches, events } = await runAndCollect({
@@ -668,6 +661,7 @@ describe('runner: error paths', () => {
     expect(eventTypes(events)).not.toContain('agent:message_delta');
     expect(eventTypes(events)).toEqual([
       'agent:message_start',
+      'agent:skill_selected',
       'agent:message_end',
       'agent:turn_end',
     ]);
@@ -727,7 +721,7 @@ describe('runner: input isolation', () => {
 // ---- Tests: tool catalog passthrough ----------------------------------------
 
 describe('runner: tool catalog + spec passthrough', () => {
-  it('the LLM receives the full 55-tool spec on every iteration', async () => {
+  it('the LLM receives the skill-filtered tool spec on every iteration', async () => {
     const llm = new MockLLM([
       { content: 'done' },
     ]);
@@ -741,8 +735,11 @@ describe('runner: tool catalog + spec passthrough', () => {
 
     expect(llm.capturedCalls).toHaveLength(1);
     const tools = llm.capturedCalls[0].tools;
-    expect(tools.length).toBe(54);
-    // Tool names should be unique.
+    // The runner skill-filters tools (core + active skill + pen_* tools).
+    // The exact count depends on the classifier's pick for "hi", so we
+    // assert it's a non-empty subset of the full spec, with unique names.
+    expect(tools.length).toBeGreaterThan(0);
+    expect(tools.length).toBeLessThanOrEqual(63); // 55 canvas_* + 8 pen_*
     const names = tools.map((t: any) => t.function.name);
     expect(new Set(names).size).toBe(names.length);
     // tool_choice is 'auto'.

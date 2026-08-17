@@ -22,7 +22,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { runAgent, type LLMClient } from '@/lib/agent/runner';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
-import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '@/lib/canvas/types';
+import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '@/lib/canvas/types'
+import type { PenChild } from '@/lib/pen/types';
 
 // ---- Fixtures ----------------------------------------------------------------
 
@@ -79,8 +80,6 @@ function resetStore(doc: CanvasDocument = makeDoc([])) {
     toolCalls: {},
     snapshots: {},
     activeSessionByDoc: {},
-    activeRunBySession: {},
-    _hydrated: true,
   });
 }
 
@@ -105,13 +104,13 @@ class MockLLM implements LLMClient {
     completions: {
       create: async (params: {
         messages: any[];
-        tools: any[];
+        tools?: any[];
         tool_choice?: string;
         temperature?: number;
       }) => {
         this.capturedCalls.push({
           messages: JSON.parse(JSON.stringify(params.messages)),
-          tools: params.tools,
+          tools: params.tools ?? [],
           tool_choice: params.tool_choice as string,
         });
 

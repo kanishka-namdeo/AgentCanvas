@@ -81,7 +81,9 @@ function mergeTheme(inherited: PenTheme, own: PenTheme | undefined): PenTheme {
 
 // ---- Fill / stroke / effect resolution -----------------------------------
 
-/** Extract the first enabled solid color from a .pen Fills value. */
+/** Extract the first enabled solid color from a .pen Fills value.
+ *  If the fill is a gradient, returns the first stop's color as the
+ *  fallback solid fill (so `shape.fill` stays in sync with the gradient). */
 function resolveSolidColor(fills: PenFills | undefined, variables: any, theme: PenTheme): string {
   if (!fills) return '#e2e8f0';
   const arr = Array.isArray(fills) ? fills : [fills];
@@ -89,6 +91,9 @@ function resolveSolidColor(fills: PenFills | undefined, variables: any, theme: P
     if (typeof f === 'string') return resolveValue(f, variables, theme);
     if (f.enabled === false) continue;
     if (f.type === 'color') return resolveValue(f.color, variables, theme);
+    if (f.type === 'gradient' && f.colors && f.colors.length > 0) {
+      return resolveValue(f.colors[0].color, variables, theme);
+    }
   }
   return '#e2e8f0';
 }
@@ -486,7 +491,7 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
         width: rn.width,
         height: rn.height,
         rotation: num(n.rotation, 0),
-        opacity: n.opacity !== undefined ? num(n.opacity, 1) : 1,
+        opacity: n.opacity !== undefined ? Math.max(0, Math.min(1, num(n.opacity, 1))) : 1,
         fill: resolveSolidColor(fills, vars, theme),
         stroke: stroke.color,
         strokeWidth: stroke.width,
@@ -572,7 +577,8 @@ function mapNodeType(node: PenChild): Shape['type'] {
 
 function mapTextContent(node: PenChild): string | undefined {
   if (node.type === 'text' || node.type === 'note' || node.type === 'context' || node.type === 'prompt') {
-    const c = (node as any).content;
+    // .pen uses `content`; legacy shapes use `text`. Prefer content, fall back to text.
+    const c = (node as any).content ?? (node as any).text;
     return c === undefined ? undefined : String(c);
   }
   if (node.type === 'icon') {

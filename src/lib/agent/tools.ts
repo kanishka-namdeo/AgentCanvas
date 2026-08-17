@@ -298,7 +298,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       'Coordinates are canvas-space pixels; the visible area at zoom 1 is roughly 0..1200 x 0..800.',
     ],
     parameters: ShapeInputSchema,
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const id = crypto.randomUUID();
       const coerced = coerceShapeInput(params);
       // Default type to 'rectangle' if the LLM omitted it.
@@ -339,7 +339,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       id: Type.Optional(Type.String({ description: 'Alias for shapeId' })),
       changes: ShapeInputSchema,
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       // Tolerate LLMs that pass `id` instead of `shapeId`.
       const shapeId = params.shapeId ?? (params as any).id;
       const existing = ctx.getShapes().find((s) => s.id === shapeId);
@@ -396,7 +396,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       shapeIds: Type.Array(Type.String(), { description: 'Ids of shapes to delete' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       // Defensive against LLM arg-shape errors: the schema says shapeIds is an
       // array, but LLMs occasionally pass `shapeId` (singular) or omit it
       // entirely. Coerce to an empty array so we return a proper "not found"
@@ -439,7 +439,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       'Call this before update/delete operations to find the right shape id.',
     ],
     parameters: Type.Object({}),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shapes = ctx.getShapes();
       const r = (v: unknown) => { const n = typeof v === 'number' ? v : Number(v); return Number.isFinite(n) ? Math.round(n) : 0; };
       const summary = shapes
@@ -472,7 +472,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       'Only use when the user explicitly asks to "clear" or "start over".',
     ],
     parameters: Type.Object({}),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = { op: 'clear', summary: 'Cleared canvas' };
       ctx.applyPatch(patch);
       return {
@@ -490,7 +490,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       color: Type.String({ description: 'Background color hex, e.g. #ffffff' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = {
         op: 'background',
         background: params.color,
@@ -513,7 +513,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       shapeIds: Type.Array(Type.String(), { description: 'Ids to select' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = {
         op: 'select',
         shapeIds: params.shapeIds,
@@ -547,7 +547,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       offsetX: Type.Optional(Type.Number({ description: 'Horizontal offset in px (default 24)' })),
       offsetY: Type.Optional(Type.Number({ description: 'Vertical offset in px (default 24)' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const ox = params.offsetX ?? 24;
       const oy = params.offsetY ?? 24;
       const patch: CanvasPatch = {
@@ -579,7 +579,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       shapeIds: Type.Array(Type.String(), { description: 'Ids to group' }),
       name: Type.Optional(Type.String({ description: 'Optional group name' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = {
         op: 'group',
         shapeIds: params.shapeIds,
@@ -601,7 +601,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       groupIds: Type.Array(Type.String(), { description: 'Ids of group shapes to dissolve' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = {
         op: 'ungroup',
         shapeIds: params.groupIds,
@@ -638,7 +638,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         { description: 'Alignment kind' },
       ),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = {
         op: 'align',
         shapeIds: params.shapeIds,
@@ -662,7 +662,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       'frames become "Frame N". Useful for cleaning up messy canvases.',
     promptSnippet: 'Auto-rename and re-order layers by type and position.',
     parameters: Type.Object({}),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shapes = ctx.getShapes();
       const counters: Record<string, number> = {};
       const updates: Array<{ id: string; changes: Partial<Shape> }> = [];
@@ -713,7 +713,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       alignX: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Horizontal alignment (default center)' })),
       alignY: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Vertical alignment (default center)' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const frame = ctx.getShapes().find((s) => s.id === params.frameId);
       if (!frame) {
         return {
@@ -796,7 +796,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       shapeId: Type.String({ description: 'ID of the shape to mark as a component' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return {
@@ -831,7 +831,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       x: Type.Number({ description: 'X position for the new instance' }),
       y: Type.Number({ description: 'Y position for the new instance' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const src = ctx.getShapes().find((s) => s.id === params.componentId);
       if (!src) {
         return {
@@ -909,7 +909,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         { description: 'Text style tokens to add/update' },
       )),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const colors: ColorToken[] = (params.colors ?? []).map((c) => ({
         name: c.name,
         key: c.key,
@@ -949,7 +949,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       palette: Type.Array(Type.String(), { description: 'Array of hex colors to map to (e.g. ["#0f172a","#0ea5e9","#f8fafc"])' }),
       bindToTokens: Type.Optional(Type.Boolean({ description: 'If true, create/update design tokens and bind shapes to them (default false)' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shapes = ctx.getShapes().filter((s) => params.shapeIds.includes(s.id));
       if (shapes.length === 0) {
         return {
@@ -1030,7 +1030,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         { description: 'Color harmony rule' },
       ),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const base = hexToHsl(params.baseColor);
       let hues: number[] = [];
       switch (params.rule) {
@@ -1114,7 +1114,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       x: Type.Optional(Type.Number({ description: 'Frame X position (default 100)' })),
       y: Type.Optional(Type.Number({ description: 'Frame Y position (default 100)' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const x = params.x ?? 100;
       const y = params.y ?? 100;
       const wf = buildWireframe(params.template, x, y);
@@ -1162,7 +1162,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       x: Type.Optional(Type.Number({ description: 'Start X (default 80)' })),
       y: Type.Optional(Type.Number({ description: 'Start Y (default 80)' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const x = params.x ?? 80;
       const y = params.y ?? 80;
       const flow = buildUserFlow(params.flow, x, y);
@@ -1205,7 +1205,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       x: Type.Optional(Type.Number({ description: 'Diagram X origin (default 200)' })),
       y: Type.Optional(Type.Number({ description: 'Diagram Y origin (default 100)' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const x = params.x ?? 200;
       const y = params.y ?? 100;
       const diagram = buildDiagram(params.template, params.nodes, x, y);
@@ -1261,7 +1261,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       ),
       topic: Type.Optional(Type.String({ description: 'Optional topic to anchor the copy (e.g. "project management")' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return {
@@ -1300,7 +1300,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       'Does NOT mutate the canvas — pure analysis. The agent can then act on the findings.',
     promptSnippet: 'Audit the canvas for design-consistency issues (read-only).',
     parameters: Type.Object({}),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shapes = ctx.getShapes();
       const tokens = ctx.getTokens();
       const findings: string[] = [];
@@ -1399,7 +1399,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         { description: 'Which property to bind' },
       ),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found', shapeId: params.shapeId }, isError: true as any };
@@ -1434,16 +1434,21 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         { description: 'Which property to unbind' },
       ),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
       }
       const binding = { ...(shape.tokenBinding ?? {}) };
-      if (params.property === 'fill') delete binding.fillToken;
-      else if (params.property === 'stroke') delete binding.strokeToken;
-      else delete binding.textToken;
-      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: { tokenBinding: Object.keys(binding).length === 0 ? null : binding }, summary: `Unbound ${params.property} from token` };
+      // Bake in the current resolved value before removing the binding, so the
+      // shape retains its last-themed appearance (doesn't revert to the
+      // pre-binding fill).
+      const changes: Partial<Shape> = {};
+      if (params.property === 'fill') { delete binding.fillToken; changes.fill = shape.fill; }
+      else if (params.property === 'stroke') { delete binding.strokeToken; changes.stroke = shape.stroke; }
+      else { delete binding.textToken; changes.textColor = shape.textColor; }
+      changes.tokenBinding = Object.keys(binding).length === 0 ? null : binding;
+      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: changes, summary: `Unbound ${params.property} from token` };
       ctx.applyPatch(patch);
       return { content: [{ type: 'text', text: `Unbound ${shape.name}.${params.property}.` }], details: { shapeId: params.shapeId, property: params.property, patch } };
     },
@@ -1479,7 +1484,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       ),
       bind: Type.Optional(Type.Boolean({ description: 'If true, also create a live binding (default false)' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const token = ctx.getTokens().colors.find((c) => c.key === params.tokenKey);
       if (!token) {
         return { content: [{ type: 'text', text: `Error: no color token with key "${params.tokenKey}"` }], details: { error: 'token_not_found' }, isError: true as any };
@@ -1526,7 +1531,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to lock/unlock' }),
       locked: Type.Boolean({ description: 'true to lock, false to unlock' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const updates = params.shapeIds.map((id) => ({ id, changes: { locked: params.locked } as Partial<Shape> }));
       const patch: CanvasPatch = { op: 'update_many', updates, summary: `${params.locked ? 'Locked' : 'Unlocked'} ${params.shapeIds.length} shape(s)` };
       ctx.applyPatch(patch);
@@ -1543,7 +1548,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to show/hide' }),
       visible: Type.Boolean({ description: 'true to show, false to hide' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const updates = params.shapeIds.map((id) => ({ id, changes: { visible: params.visible } as Partial<Shape> }));
       const patch: CanvasPatch = { op: 'update_many', updates, summary: `${params.visible ? 'Showed' : 'Hid'} ${params.shapeIds.length} shape(s)` };
       ctx.applyPatch(patch);
@@ -1565,7 +1570,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to bring to front' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = { op: 'zorder', shapeIds: params.shapeIds, zorderKind: 'front', summary: `Brought ${params.shapeIds.length} shape(s) to front` };
       ctx.applyPatch(patch);
       return { content: [{ type: 'text', text: `Brought ${params.shapeIds.length} shape(s) to front.` }], details: { count: params.shapeIds.length, patch } };
@@ -1580,7 +1585,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to send to back' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = { op: 'zorder', shapeIds: params.shapeIds, zorderKind: 'back', summary: `Sent ${params.shapeIds.length} shape(s) to back` };
       ctx.applyPatch(patch);
       return { content: [{ type: 'text', text: `Sent ${params.shapeIds.length} shape(s) to back.` }], details: { count: params.shapeIds.length, patch } };
@@ -1595,7 +1600,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape ID to move forward' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = { op: 'zorder', shapeIds: [params.shapeId], zorderKind: 'forward', summary: 'Moved shape forward' };
       ctx.applyPatch(patch);
       return { content: [{ type: 'text', text: 'Moved shape forward.' }], details: { shapeId: params.shapeId, patch } };
@@ -1610,7 +1615,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape ID to move backward' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = { op: 'zorder', shapeIds: [params.shapeId], zorderKind: 'backward', summary: 'Moved shape backward' };
       ctx.applyPatch(patch);
       return { content: [{ type: 'text', text: 'Moved shape backward.' }], details: { shapeId: params.shapeId, patch } };
@@ -1626,7 +1631,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       shapeId: Type.String({ description: 'Shape ID to reorder' }),
       zIndex: Type.Number({ description: 'Target z-index (0 = bottom)' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const patch: CanvasPatch = { op: 'reorder', shapeId: params.shapeId, zIndex: params.zIndex, summary: `Moved shape to z-index ${params.zIndex}` };
       ctx.applyPatch(patch);
       return { content: [{ type: 'text', text: `Moved shape to z-index ${params.zIndex}.` }], details: { shapeId: params.shapeId, zIndex: params.zIndex, patch } };
@@ -1695,7 +1700,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       frameId: Type.Optional(Type.String({ description: 'If provided, export only shapes inside this frame' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const allShapes = ctx.getShapes();
       let shapes = allShapes;
       if (params.frameId) {
@@ -1761,7 +1766,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       frameId: Type.Optional(Type.String({ description: 'If provided, export only shapes inside this frame' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const allShapes = ctx.getShapes();
       let shapes = allShapes;
       if (params.frameId) {
@@ -1820,7 +1825,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         { description: 'Output format' },
       ),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const allShapes = ctx.getShapes();
       let shapes = allShapes;
       if (params.frameId) {
@@ -1879,7 +1884,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       nameContains: Type.Optional(Type.String({ description: 'Filter by name (substring match)' })),
       parentId: Type.Optional(Type.String({ description: 'Filter by parent shape ID' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       let results = ctx.getShapes();
       if (params.type) results = results.filter((s) => s.type === params.type);
       if (params.fill) results = results.filter((s) => s.fill === params.fill);
@@ -1904,7 +1909,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       parentId: Type.Optional(Type.String({ description: 'Filter by parent ID' })),
       changes: ShapeInputSchema,
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       let matches = ctx.getShapes();
       if (params.type) matches = matches.filter((s) => s.type === params.type);
       if (params.fill) matches = matches.filter((s) => s.fill === params.fill);
@@ -1931,7 +1936,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       find: Type.String({ description: 'Text to find (exact substring match)' }),
       replace: Type.String({ description: 'Replacement text' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const textShapes = ctx.getShapes().filter((s) => s.type === 'text' && s.text && s.text.includes(params.find));
       if (textShapes.length === 0) {
         return { content: [{ type: 'text', text: `No text shapes containing "${params.find}" found.` }], details: { count: 0 } };
@@ -1965,7 +1970,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       stroke: Type.Optional(Type.String({ description: 'Stroke color' })),
       strokeWidth: Type.Optional(Type.Number({ description: 'Stroke width in px' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       if (!Array.isArray(params.points) || params.points.length < 2) {
         return { content: [{ type: 'text', text: 'Error: need at least 2 points' }], details: { error: 'invalid_points' }, isError: true as any };
       }
@@ -2019,7 +2024,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         { description: 'Boolean operation' },
       ),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       const other = ctx.getShapes().find((s) => s.id === params.otherShapeId);
       if (!shape || !other) {
@@ -2054,7 +2059,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       shapeId: Type.String({ description: 'Shape to be masked (clipped)' }),
       maskShapeId: Type.Optional(Type.String({ description: 'Shape to use as mask. Omit or set to null to remove the mask.' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
@@ -2092,7 +2097,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         color: Type.String({ description: 'Hex color' }),
       }), { description: 'Color stops (min 2)' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
@@ -2126,7 +2131,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       spread: Type.Optional(Type.Number({ description: 'Spread in px (default 0)' })),
       inset: Type.Optional(Type.Boolean({ description: 'Inset shadow (default false)' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
@@ -2154,7 +2159,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       shapeId: Type.String({ description: 'Shape ID' }),
       radius: Type.Number({ description: 'Blur radius in px (0 to remove)' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
@@ -2179,7 +2184,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       bottomRight: Type.Number({ description: 'Bottom-right radius in px' }),
       bottomLeft: Type.Number({ description: 'Bottom-left radius in px' }),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
         return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
@@ -2219,7 +2224,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       height: Type.Optional(Type.Number({ description: 'Display height in px (default: natural height, max 400)' })),
       name: Type.Optional(Type.String({ description: 'Layer name' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const id = crypto.randomUUID();
       const w = Number(params.width) || 200;
       const h = Number(params.height) || 200;
@@ -2264,7 +2269,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       stroke: Type.Optional(Type.String({ description: 'Stroke color (default #0f172a)' })),
       strokeWidth: Type.Optional(Type.Number({ description: 'Stroke width (default 2)' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const iconData = LUCIDE_ICONS[params.icon.toLowerCase()];
       if (!iconData) {
         const available = Object.keys(LUCIDE_ICONS).join(', ');
@@ -2318,7 +2323,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       height: Type.Optional(Type.Number({ description: 'Height in px (default 200)' }),
       ),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const id = crypto.randomUUID();
       const w = Number(params.width) || 320;
       const h = Number(params.height) || 200;
@@ -2407,7 +2412,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         { description: 'Restrict to results from the last day/week/month/year. Omit for no filter.' },
       )),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       // Lazy-load the web module so it never imports on the canvas-only path.
       const { webSearch, formatSearchForLLM } = await import('../web/search');
       try {
@@ -2451,7 +2456,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       url: Type.String({ description: 'The URL to fetch (https://example.com/page or bare example.com)' }),
       raw: Type.Optional(Type.Boolean({ description: 'If true, return cleaned raw HTML without readability extraction (default false)' })),
     }),
-    async execute(toolCallId, params) {
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const { webFetch, formatFetchForLLM } = await import('../web/fetch');
       try {
         const result = await webFetch({ url: params.url, raw: params.raw });

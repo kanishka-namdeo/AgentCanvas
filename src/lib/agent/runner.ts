@@ -364,10 +364,11 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
     classification = await classifyIntent({
       prompt,
       canvasShapeCount: canvas.shapes.length,
-      llm: injectedLlm, // Use the injected LLM for classification if available (tests).
-      // In production, we pass undefined so the classifier only does the
-      // keyword pass (avoids an extra LLM round-trip on every turn).
-      // The keyword pass is accurate enough for >90% of prompts.
+      // Don't pass the LLM here — the classifier's keyword pass is enough,
+      // and passing the LLM would consume an extra MockLLM script entry in
+      // tests + add a round-trip in production. The production LLM fallback
+      // for low-confidence cases runs below (guarded by !injectedLlm).
+      llm: undefined,
       signal,
     });
   } catch {

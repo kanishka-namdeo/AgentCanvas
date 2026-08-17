@@ -17,7 +17,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
-import type { CanvasDocument, Shape } from '@/lib/canvas/types';
+import type { CanvasDocument, Shape } from '@/lib/canvas/types'
+import type { PenChild } from '@/lib/pen/types';
 
 // ---- Fixtures ----------------------------------------------------------------
 
@@ -74,8 +75,6 @@ function resetStore(doc: CanvasDocument = makeDoc([])) {
     toolCalls: {},
     snapshots: {},
     activeSessionByDoc: {},
-    activeRunBySession: {},
-    _hydrated: true,
   });
 }
 

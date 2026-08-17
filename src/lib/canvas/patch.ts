@@ -46,6 +46,10 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
   }
 
   // Legacy → .pen field mappings.
+  // visible → enabled (legacy Shape.visible maps to .pen Entity.enabled)
+  if (input.visible !== undefined && input.enabled === undefined) {
+    out.enabled = input.visible;
+  }
   if (input.radius !== undefined && input.cornerRadius === undefined) {
     out.cornerRadius = num(input.radius, 0);
   }
@@ -233,11 +237,12 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
         height: maxY - minY,
         children: [],
       } as PenChild;
-      // Move each target under the group.
+      // Insert the group at root FIRST, then move each target under it.
+      // (moveNode needs the group to exist in the tree to find it as a parent.)
+      next.children = insertNode(next.children, groupNode, null);
       for (const id of ids) {
         next.children = moveNode(next.children, id, groupId);
       }
-      next.children = insertNode(next.children, groupNode, null);
       break;
     }
     case 'ungroup': {
@@ -373,36 +378,30 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       for (const parentId of parents) {
         const found = findNodeArray(next.children, targets.find((t) => (t.parentId ?? null) === parentId)!.id);
         if (!found) continue;
-        const siblings = found.array;
-        const moverIdxs = siblings.map((s, i) => (ids.has(s.id) ? i : -1)).filter((i) => i >= 0);
-        const movers = moverIdxs.map((i) => siblings[i]);
-        const rest = siblings.filter((_, i) => !moverIdxs.includes(i));
+        const siblings = [...found.array];
         let newOrder: PenChild[];
-        if (kind === 'front') newOrder = [...rest, ...movers];
-        else if (kind === 'back') newOrder = [...movers, ...rest];
-        else if (kind === 'forward') {
-          newOrder = [...rest];
-          // Insert each mover after the next non-mover... simplified: move to end of rest+1.
-          newOrder = [...rest];
-          for (const m of movers) {
-            const idx = newOrder.findIndex((s) => s.id === m.id);
-            if (idx >= 0 && idx < newOrder.length - 1) {
-              newOrder.splice(idx, 1);
-              newOrder.splice(Math.min(idx + 1, newOrder.length), 0, m);
-            } else {
-              newOrder.push(m);
+        if (kind === 'front') {
+          const movers = siblings.filter((s) => ids.has(s.id));
+          const rest = siblings.filter((s) => !ids.has(s.id));
+          newOrder = [...rest, ...movers];
+        } else if (kind === 'back') {
+          const movers = siblings.filter((s) => ids.has(s.id));
+          const rest = siblings.filter((s) => !ids.has(s.id));
+          newOrder = [...movers, ...rest];
+        } else if (kind === 'forward') {
+          // Move each mover one position toward the end (swap with next non-mover).
+          newOrder = [...siblings];
+          for (let i = newOrder.length - 2; i >= 0; i--) {
+            if (ids.has(newOrder[i].id) && !ids.has(newOrder[i + 1].id)) {
+              [newOrder[i], newOrder[i + 1]] = [newOrder[i + 1], newOrder[i]];
             }
           }
         } else {
-          // backward
-          newOrder = [...rest];
-          for (const m of movers) {
-            const idx = newOrder.findIndex((s) => s.id === m.id);
-            if (idx > 0) {
-              newOrder.splice(idx, 1);
-              newOrder.splice(Math.max(idx - 1, 0), 0, m);
-            } else {
-              newOrder.unshift(m);
+          // backward: move each mover one position toward the start.
+          newOrder = [...siblings];
+          for (let i = 1; i < newOrder.length; i++) {
+            if (ids.has(newOrder[i].id) && !ids.has(newOrder[i - 1].id)) {
+              [newOrder[i], newOrder[i - 1]] = [newOrder[i - 1], newOrder[i]];
             }
           }
         }

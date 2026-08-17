@@ -39,7 +39,8 @@ if (!globalThis.ResizeObserver) {
 // SVG element prototypes — jsdom doesn't implement getBBox / getCTM which
 // some SVG code paths call. Provide no-op shims so they don't throw.
 if (typeof SVGElement !== 'undefined') {
-  if (!SVGElement.prototype.getBBox) {
-    SVGElement.prototype.getBBox = () => ({ x: 0, y: 0, width: 100, height: 100 });
+  const proto = SVGElement.prototype as any;
+  if (!proto.getBBox) {
+    proto.getBBox = () => ({ x: 0, y: 0, width: 100, height: 100 });
   }
 }

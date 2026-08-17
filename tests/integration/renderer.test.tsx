@@ -18,7 +18,8 @@ import { render, cleanup, act } from '@testing-library/react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
 import { Canvas } from '@/components/canvas/Canvas';
-import type { CanvasDocument, Shape } from '@/lib/canvas/types';
+import type { CanvasDocument, Shape } from '@/lib/canvas/types'
+import type { PenChild } from '@/lib/pen/types';
 
 // ---- Fixtures ----------------------------------------------------------------
 
@@ -75,8 +76,6 @@ function resetStore(doc: CanvasDocument = makeDoc([])) {
     toolCalls: {},
     snapshots: {},
     activeSessionByDoc: {},
-    activeRunBySession: {},
-    _hydrated: true,
   });
 }
 

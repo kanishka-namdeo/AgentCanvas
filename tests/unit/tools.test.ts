@@ -15,7 +15,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createCanvasTools, executeTool } from '@/lib/agent/tools';
 import type { CanvasToolContext } from '@/lib/agent/tools';
-import type { CanvasDocument, CanvasPatch, Shape, DesignTokens } from '@/lib/canvas/types';
+import type { CanvasDocument, CanvasPatch, Shape, DesignTokens } from '@/lib/canvas/types'
+import type { PenChild } from '@/lib/pen/types';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
 
 // ---- In-memory test harness --------------------------------------------------
@@ -99,6 +100,13 @@ function makeHarness(): TestHarness {
     },
     setTokens(t) {
       doc.tokens = t;
+      // Also mirror tokens into doc.variables so the resolver's token-binding
+      // logic can resolve $name references (the resolver reads from variables,
+      // not tokens — tokens is the derived view).
+      if (!doc.variables) doc.variables = {};
+      for (const c of t.colors ?? []) {
+        doc.variables[c.key] = { type: 'color', value: c.value };
+      }
     },
   };
 }
