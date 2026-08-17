@@ -73,6 +73,23 @@ export default function Home() {
   // Also enforce the max-sessions-retained cap. Runs once after hydration.
   const density = useSettings((s) => s.density);
 
+  // Sync collapsed state from the ResizablePanel autoSaveId layout.
+  // The `autoSaveId="co-canvas-layout-h"` on the panel group restores the
+  // previous panel sizes from localStorage on mount — but if a panel was
+  // collapsed when the user closed the tab, the restore happens silently
+  // WITHOUT firing `onCollapse`. Our `leftCollapsed`/`rightCollapsed` React
+  // state defaults to `false`, so it desyncs from the actual DOM state:
+  // both the "Toggle left panel" chevron AND the "Show left panel" edge
+  // button would render at the same time. This effect queries the imperative
+  // `isCollapsed()` API after a tick (post-restore) and corrects the state.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (leftPanelRef.current?.isCollapsed?.()) setLeftCollapsed(true);
+      if (rightPanelRef.current?.isCollapsed?.()) setRightCollapsed(true);
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+
   useEffect(() => {
     import('@/lib/sessions').then(({ sweepIdleSessions, enforceSessionCap }) => {
       const settings = useSettings.getState();
@@ -393,7 +410,7 @@ function LeftTabbedPanel({
     { id: 'layers', label: 'Layers', icon: LayersIcon },
   ];
   return (
-    <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
+    <div className={`flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
       {/* Tab strip — also serves as the panel header (collapse chevron on the right) */}
       <div className="flex items-center gap-1 px-1.5 py-1.5 border-b ac-border-subtle ac-surface-0 flex-shrink-0">
         <div className="flex gap-0.5 flex-1 min-w-0">
@@ -458,7 +475,7 @@ function RightTabbedPanel({
     { id: 'history', label: 'History', icon: HistoryIcon },
   ];
   return (
-    <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
+    <div className={`flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
       {/* Tab strip — also serves as the panel header (collapse chevron on the right) */}
       <div className="flex items-center gap-1 px-1.5 py-1.5 border-b ac-border-subtle ac-surface-0 flex-shrink-0">
         <div className="flex gap-0.5 flex-1 min-w-0">
