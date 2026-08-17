@@ -34,6 +34,8 @@ function makeHarness(): TestHarness {
     id: 'doc-1',
     name: 'Test',
     background: '#ffffff',
+    version: '2.17',
+    children: [],
     viewport: { zoom: 1, panX: 0, panY: 0 },
     shapes: [],
     tokens: { colors: [], textStyles: [] },
@@ -88,6 +90,11 @@ function makeHarness(): TestHarness {
         ...s,
       };
       doc.shapes.push(full);
+      // Also mirror the shape into the .pen children tree so the resolver
+      // (which recomputes doc.shapes from doc.children) sees it. The shape's
+      // .pen-native fields (type/x/y/width/height/fill/stroke/...) are valid
+      // .pen node fields; we cast through unknown to satisfy PenChild.
+      doc.children.push(full as unknown as PenChild);
       return full;
     },
     setTokens(t) {

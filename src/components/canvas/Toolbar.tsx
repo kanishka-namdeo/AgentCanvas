@@ -19,13 +19,15 @@ import {
   Hand,
 } from 'lucide-react';
 
-const SHAPE_DEFAULTS: Record<ShapeType, Partial<{ width: number; height: number; fill: string; text: string; fontSize: number }>> = {
+const SHAPE_DEFAULTS: Record<ShapeType, Partial<{ width: number; height: number; fill: string; text: string; fontSize: number; stroke: string }>> = {
   rectangle: { width: 160, height: 100, fill: '#e2e8f0' },
   ellipse:   { width: 120, height: 120, fill: '#fde68a' },
   text:      { width: 200, height: 32,  fill: '#0f172a', text: 'Text', fontSize: 20 },
   line:      { width: 120, height: 0,   fill: '#0f172a' },
   frame:     { width: 320, height: 240, fill: '#ffffff' },
   group:     { width: 240, height: 160, fill: 'transparent', stroke: '#94a3b8' },
+  path:      { width: 120, height: 120, fill: '#e2e8f0' },
+  image:     { width: 160, height: 100, fill: '#e2e8f0' },
 };
 
 export function Toolbar() {

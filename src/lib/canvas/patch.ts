@@ -37,7 +37,11 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
   const out: Partial<PenChild> & Record<string, unknown> = {};
 
   // Direct .pen fields (pass through if present).
-  for (const k of ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'opacity', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'strokeAlignment', 'effect', 'reusable', 'theme', 'enabled', 'flipX', 'flipY', 'layoutPosition', 'metadata', 'layout', 'gap', 'padding', 'justifyContent', 'alignItems', 'layoutIncludeStroke', 'clip', 'placeholder', 'slot', 'content', 'fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'fontStyle', 'underline', 'lineHeight', 'textAlign', 'textAlignVertical', 'strikethrough', 'href', 'textGrowth', 'children', 'geometry', 'viewBox', 'fillRule', 'polygonCount', 'cornerRadius', 'innerRadius', 'startAngle', 'sweepAngle', 'library', 'icon', 'weight', 'scriptUri', 'inputs', 'ref', 'descendants', 'context']) {
+  // Also includes legacy Shape fields that .pen doesn't model natively
+  // (locked, tokenBinding, maskId, points, closed, componentId) — these are
+  // carried as opaque node properties so they survive the tree round-trip
+  // and are surfaced on resolved Shapes by resolvePenTree.
+  for (const k of ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'opacity', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'strokeAlignment', 'effect', 'reusable', 'theme', 'enabled', 'flipX', 'flipY', 'layoutPosition', 'metadata', 'layout', 'gap', 'padding', 'justifyContent', 'alignItems', 'layoutIncludeStroke', 'clip', 'placeholder', 'slot', 'content', 'fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'fontStyle', 'underline', 'lineHeight', 'textAlign', 'textAlignVertical', 'strikethrough', 'href', 'textGrowth', 'children', 'geometry', 'viewBox', 'fillRule', 'polygonCount', 'cornerRadius', 'innerRadius', 'startAngle', 'sweepAngle', 'library', 'icon', 'weight', 'scriptUri', 'inputs', 'ref', 'descendants', 'context', 'locked', 'tokenBinding', 'maskId', 'points', 'closed', 'componentId', 'src']) {
     if (input[k] !== undefined) out[k] = input[k];
   }
 
@@ -45,9 +49,9 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
   if (input.radius !== undefined && input.cornerRadius === undefined) {
     out.cornerRadius = num(input.radius, 0);
   }
-  if (input.radii !== undefined) {
+  if (input.radii !== undefined && input.radii !== null) {
     const r = input.radii as any;
-    out.cornerRadius = [num(r.topLeft, 0), num(r.topRight, 0), num(r.bottomRight, 0), num(r.bottomLeft, 0)];
+    out.cornerRadius = [num(r?.topLeft, 0), num(r?.topRight, 0), num(r?.bottomRight, 0), num(r?.bottomLeft, 0)];
   }
   if (input.text !== undefined && input.content === undefined) {
     out.content = String(input.text);
@@ -68,15 +72,17 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
       out.layout = 'none';
     }
   }
-  // Legacy gradient/shadow/blur → .pen fill/effect arrays (only if not already set).
-  if (input.gradient && out.fill === undefined) {
+  // Legacy gradient/shadow/blur → .pen fill/effect arrays. These take
+  // precedence over a solid fill/effect (they're more specific) so the
+  // gradient/shadow the tool set survives the tree round-trip.
+  if (input.gradient) {
     out.fill = { type: 'gradient', gradientType: input.gradient.type, rotation: input.gradient.angle, colors: input.gradient.stops.map((s: any) => ({ color: s.color, position: s.offset })) };
   }
-  if (input.shadow && out.effect === undefined) {
+  if (input.shadow) {
     const s = input.shadow as any;
     out.effect = { type: 'shadow', shadowType: s.inset ? 'inner' : 'outer', offset: { x: s.x, y: s.y }, blur: s.blur, spread: s.spread ?? 0, color: s.color };
   }
-  if (input.blur !== undefined && num(input.blur, 0) > 0 && out.effect === undefined) {
+  if (input.blur !== undefined && num(input.blur, 0) > 0) {
     out.effect = { type: 'blur', radius: num(input.blur, 0) };
   }
   // Points → path geometry (best-effort).
@@ -461,9 +467,10 @@ function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, i
     opacity: num(partial.opacity, 1),
     enabled: partial.enabled ?? true,
     ...partial,
-    id, // ensure id wins
-    type, // ensure type wins
   };
+  // Ensure id + type win over any spread values.
+  base.id = id;
+  base.type = type as PenChild['type'];
   // Ensure containers have a children array.
   if (type === 'frame' || type === 'group') {
     if (!Array.isArray(base.children)) base.children = [];

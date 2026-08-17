@@ -37,6 +37,8 @@ function makeDoc(shapes: Shape[] = []): CanvasDocument {
     id: 'test-doc',
     name: 'Test',
     background: '#ffffff',
+    version: '2.17',
+    children: shapes as unknown as PenChild[],
     viewport: { zoom: 1, panX: 0, panY: 0 },
     shapes,
     tokens: { colors: [], textStyles: [] },
@@ -228,6 +230,7 @@ describe('runner: basic loop shape', () => {
     // Event sequence: message_start → message_delta → message_end → turn_end.
     expect(eventTypes(events)).toEqual([
       'agent:message_start',
+      'agent:skill_selected',
       'agent:message_delta',
       'agent:message_end',
       'agent:turn_end',
@@ -266,6 +269,7 @@ describe('runner: basic loop shape', () => {
     // message_delta (summary) → message_end → turn_end.
     expect(eventTypes(events)).toEqual([
       'agent:message_start',
+      'agent:skill_selected',
       'agent:tool_call_start',
       'agent:tool_call_end',
       'agent:message_delta',
@@ -532,6 +536,7 @@ describe('runner: error paths', () => {
     expect(patches).toHaveLength(0);
     expect(eventTypes(events)).toEqual([
       'agent:message_start',
+      'agent:skill_selected',
       'agent:error',
     ]);
 

@@ -78,7 +78,7 @@ export function createPenTools(ctx: CanvasToolContext) {
       ),
     }),
     async execute(_toolCallId, params) {
-      const doc = ctx.getDocument();
+      const doc = ctx.getDocument?.() ?? ({} as any);
       // Tolerate the LLM passing `name` instead of `key`.
       const key = params.key ?? params.name;
       if (!key) {
@@ -470,7 +470,7 @@ export function createPenTools(ctx: CanvasToolContext) {
       pretty: Type.Optional(Type.Boolean({ description: 'Pretty-print the JSON (default true).' })),
     }),
     async execute(_toolCallId, params) {
-      const doc = ctx.getDocument();
+      const doc = ctx.getDocument?.() ?? ({} as any);
       const pen = canvasToPen(doc);
       const json = params.pretty === false ? JSON.stringify(pen) : serializePenDocument(pen);
       return {
@@ -564,7 +564,7 @@ export function createPenTools(ctx: CanvasToolContext) {
     ],
     parameters: Type.Object({}),
     async execute(_toolCallId, _params) {
-      const doc = ctx.getDocument();
+      const doc = ctx.getDocument?.() ?? ({} as any);
       const themes = doc.themes ?? {};
       const variables = doc.variables ?? {};
       const themeLines = Object.keys(themes).length === 0

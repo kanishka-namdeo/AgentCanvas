@@ -56,7 +56,7 @@
 
 import { Type, type Static } from '@sinclair/typebox';
 import { defineTool } from '@earendil-works/pi-coding-agent';
-import type { CanvasPatch, Shape, ShapeType, AutoLayout, DesignTokens, ColorToken, TextStyleToken } from '../canvas/types.ts';
+import type { CanvasPatch, Shape, ShapeType, AutoLayout, DesignTokens, ColorToken, TextStyleToken } from '../canvas/types';
 
 // ---- Tool execution context -------------------------------------------------
 //
@@ -83,7 +83,7 @@ export interface CanvasToolContext {
   applyPatch: (patch: CanvasPatch) => CanvasPatch;
   /// Read-only snapshot of the full document (background, viewport, etc.).
   /// Used by export tools. Optional — the runner always provides it.
-  getDocument?: () => import('../canvas/types.ts').CanvasDocument;
+  getDocument?: () => import('../canvas/types').CanvasDocument;
 }
 
 // ---- Parameter schemas ------------------------------------------------------
@@ -2409,7 +2409,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     }),
     async execute(toolCallId, params) {
       // Lazy-load the web module so it never imports on the canvas-only path.
-      const { webSearch, formatSearchForLLM } = await import('../web/search.ts');
+      const { webSearch, formatSearchForLLM } = await import('../web/search');
       try {
         const res = await webSearch({
           query: params.query,
@@ -2452,7 +2452,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       raw: Type.Optional(Type.Boolean({ description: 'If true, return cleaned raw HTML without readability extraction (default false)' })),
     }),
     async execute(toolCallId, params) {
-      const { webFetch, formatFetchForLLM } = await import('../web/fetch.ts');
+      const { webFetch, formatFetchForLLM } = await import('../web/fetch');
       try {
         const result = await webFetch({ url: params.url, raw: params.raw });
         const text = formatFetchForLLM(result);

@@ -29,11 +29,11 @@
 //   - A patch sink + event stream forwarded to the WebSocket service.
 
 import ZAI from 'z-ai-web-dev-sdk';
-import { createCanvasTools, executeTool, toolsToOpenAISpec, type CanvasToolContext } from './tools.ts';
+import { createCanvasTools, executeTool, toolsToOpenAISpec, type CanvasToolContext } from './tools';
 import { createPenTools, PEN_TOOL_NAMES } from './pen-tools';
-import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types.ts';
-import { createEmptyCanvasDocument } from '../canvas/types.ts';
-import { applyPatchToCanvas } from '../canvas/patch.ts';
+import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types';
+import { createEmptyCanvasDocument } from '../canvas/types';
+import { applyPatchToCanvas } from '../canvas/patch';
 import { resolvePenTree } from '../pen/resolve';
 
 /// Normalize an incoming canvas into a valid CanvasDocument with a .pen tree

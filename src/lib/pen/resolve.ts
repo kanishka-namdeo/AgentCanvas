@@ -186,6 +186,21 @@ interface ResolvedNode {
   height: number;
   // Effective theme (inherited):
   theme: PenTheme;
+  // Resolved children (populated during bottom-up pass).
+  _kids?: ResolvedNode[];
+}
+
+/**
+ * Safely read `width`/`height` from any .pen node. These props exist on
+ * most node types (rectangle, ellipse, frame, text, …) but `PenChild` is a
+ * discriminated union and TS can't see them without narrowing. All node
+ * types that lack an explicit width/height default to fit_content/auto.
+ */
+function nodeWidth(node: PenChild): unknown {
+  return (node as { width?: unknown }).width;
+}
+function nodeHeight(node: PenChild): unknown {
+  return (node as { height?: unknown }).height;
 }
 
 /** Compute the intrinsic size of a node, given its (already-sized) children. */
@@ -198,30 +213,33 @@ function computeIntrinsicSize(
   let width: number;
   let height: number;
 
-  if (isFillContainer(node.width)) width = parentContentW;
-  else if (isFitContent(node.width)) width = 0; // computed from children below
-  else width = num(node.width, 100);
+  const w = nodeWidth(node);
+  const h = nodeHeight(node);
 
-  if (isFillContainer(node.height)) height = parentContentH;
-  else if (isFitContent(node.height)) height = 0;
-  else height = num(node.height, 100);
+  if (isFillContainer(w)) width = parentContentW;
+  else if (isFitContent(w)) width = 0; // computed from children below
+  else width = num(w, 100);
+
+  if (isFillContainer(h)) height = parentContentH;
+  else if (isFitContent(h)) height = 0;
+  else height = num(h, 100);
 
   // fit_content: derive from children.
   const layout = (node as PenLayout).layout;
   const gap = num((node as PenLayout).gap, 0);
   const pad = resolvePadding((node as PenLayout).padding);
 
-  if (isFitContent(node.width) || isFitContent(node.height)) {
+  if (isFitContent(w) || isFitContent(h)) {
     if (layout === 'horizontal') {
       const main = children.reduce((acc, c, i) => acc + c.width + (i > 0 ? gap : 0), 0);
       const cross = children.reduce((acc, c) => Math.max(acc, c.height), 0);
-      if (isFitContent(node.width)) width = main + pad.left + pad.right;
-      if (isFitContent(node.height)) height = cross + pad.top + pad.bottom;
+      if (isFitContent(w)) width = main + pad.left + pad.right;
+      if (isFitContent(h)) height = cross + pad.top + pad.bottom;
     } else if (layout === 'vertical') {
       const main = children.reduce((acc, c, i) => acc + c.height + (i > 0 ? gap : 0), 0);
       const cross = children.reduce((acc, c) => Math.max(acc, c.width), 0);
-      if (isFitContent(node.width)) width = cross + pad.left + pad.right;
-      if (isFitContent(node.height)) height = main + pad.top + pad.bottom;
+      if (isFitContent(w)) width = cross + pad.left + pad.right;
+      if (isFitContent(h)) height = main + pad.top + pad.bottom;
     } else {
       // No layout — fit to bounding box of absolutely-positioned children.
       if (children.length > 0) {
@@ -229,13 +247,13 @@ function computeIntrinsicSize(
         const maxY = Math.max(...children.map((c) => c.absY + c.height));
         const minX = Math.min(...children.map((c) => c.absX));
         const minY = Math.min(...children.map((c) => c.absY));
-        if (isFitContent(node.width)) width = (maxX - minX) + pad.left + pad.right;
-        if (isFitContent(node.height)) height = (maxY - minY) + pad.top + pad.bottom;
+        if (isFitContent(w)) width = (maxX - minX) + pad.left + pad.right;
+        if (isFitContent(h)) height = (maxY - minY) + pad.top + pad.bottom;
       }
     }
     // Fallback if no children.
-    if (isFitContent(node.width) && width === 0) width = 100;
-    if (isFitContent(node.height) && height === 0) height = 100;
+    if (isFitContent(w) && width === 0) width = 100;
+    if (isFitContent(h) && height === 0) height = 100;
   }
 
   return { width: Math.max(0, width), height: Math.max(0, height) };
@@ -479,22 +497,41 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
         textColor: resolveSolidColor(fills, vars, theme),
         parentId,
         zIndex: zIndex++,
-        locked: false,
+        locked: (n as any).locked ?? false,
         visible: (n as any).enabled !== false,
         autoLayout,
-        tokenBinding: null,
+        tokenBinding: (n as any).tokenBinding ?? null,
         componentId: (n as any).componentId ?? null,
-        points: null,
-        closed: false,
-        src: null,
-        gradient: resolveGradient(fills, vars, theme),
+        points: (n as any).points ?? null,
+        closed: (n as any).closed ?? false,
+        src: (n as any).src ?? null,
+        gradient: resolveGradient(fills, vars, theme) ?? ((n as any).gradient ?? null),
         shadow,
         blur,
-        maskId: null,
+        maskId: (n as any).maskId ?? null,
         // Effective theme (own + inherited) so the Properties panel can show
         // and edit it via set_node_theme patches.
         theme: rn.theme,
       };
+
+      // Apply legacy token bindings: if the node has a tokenBinding, override
+      // the resolved fill/stroke/textColor with the bound variable's value.
+      // This preserves the "change a token → recolor every bound shape" behavior.
+      const tb = (n as any).tokenBinding;
+      if (tb && vars) {
+        if (tb.fillToken) {
+          const v = resolveValue(`$${tb.fillToken}`, vars, rn.theme);
+          if (typeof v === 'string') shape.fill = v;
+        }
+        if (tb.strokeToken) {
+          const v = resolveValue(`$${tb.strokeToken}`, vars, rn.theme);
+          if (typeof v === 'string') shape.stroke = v;
+        }
+        if (tb.textToken) {
+          const v = resolveValue(`$${tb.textToken}`, vars, rn.theme);
+          if (typeof v === 'string') shape.textColor = v;
+        }
+      }
 
       // Map .pen-specific fields onto Shape extensions.
       mapNodeExtras(shape, n, vars, theme);
@@ -512,6 +549,9 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
 
 /** Map a .pen node type to our renderer's Shape type. */
 function mapNodeType(node: PenChild): Shape['type'] {
+  // Legacy Shape types (image, line) are preserved as-is so they round-trip.
+  const t = (node as { type: string }).type;
+  if (t === 'image' || t === 'line') return t as Shape['type'];
   switch (node.type) {
     case 'rectangle': return 'rectangle';
     case 'frame': return 'frame';

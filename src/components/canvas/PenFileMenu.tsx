@@ -27,7 +27,7 @@ import { useCanvasStore } from '@/lib/canvas/store';
 import { toast } from 'sonner';
 
 export function PenFileMenu() {
-  const document = useCanvasStore((s) => s.document);
+  const canvasDoc = useCanvasStore((s) => s.document);
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<'export' | 'import' | null>(null);
@@ -39,8 +39,8 @@ export function PenFileMenu() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          document,
-          filename: (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-'),
+          document: canvasDoc,
+          filename: (canvasDoc.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-'),
         }),
       });
       if (!res.ok) {
@@ -48,7 +48,7 @@ export function PenFileMenu() {
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       const blob = await res.blob();
-      const filename = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-') + '.pen';
+      const filename = (canvasDoc.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-') + '.pen';
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -58,7 +58,7 @@ export function PenFileMenu() {
       a.remove();
       URL.revokeObjectURL(url);
       toast.success(`Exported ${filename}`, {
-        description: `${document.shapes.length} nodes → .pen format v2.17`,
+        description: `${canvasDoc.shapes.length} nodes → .pen format v2.17`,
       });
     } catch (e: any) {
       toast.error('Export failed', { description: e?.message ?? 'Unknown error' });
@@ -134,7 +134,7 @@ export function PenFileMenu() {
           <DropdownMenuItem onClick={handleExport} className="gap-2 cursor-pointer">
             <Download className="h-3.5 w-3.5" />
             <span>Export as .pen</span>
-            <span className="ml-auto text-[10px] ac-text-5">{document.shapes.length} nodes</span>
+            <span className="ml-auto text-[10px] ac-text-5">{canvasDoc.shapes.length} nodes</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleImportClick} className="gap-2 cursor-pointer">
             <Upload className="h-3.5 w-3.5" />

@@ -510,10 +510,10 @@ export function getSkill(category: SkillCategory): Skill | null {
 
 export function getToolNamesForCategory(category: SkillCategory): string[] {
   if (category === 'multi') {
-    return ALL_TOOL_NAMES as string[];
+    return [...ALL_TOOL_NAMES];
   }
   const skill = SKILLS[category];
-  if (!skill) return CORE_TOOL_NAMES as string[];
+  if (!skill) return [...CORE_TOOL_NAMES];
   // Core tools are always included + skill-specific tools (deduped).
   const combined = new Set<string>([...CORE_TOOL_NAMES, ...skill.allowedTools]);
   return [...combined];

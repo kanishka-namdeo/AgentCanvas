@@ -56,6 +56,8 @@ function makeDoc(shapes: Shape[] = []): CanvasDocument {
     id: 'doc-1',
     name: 'Test doc',
     background: '#ffffff',
+    version: '2.17',
+    children: shapes as unknown as PenChild[],
     viewport: { zoom: 1, panX: 0, panY: 0 },
     shapes,
     tokens: { colors: [], textStyles: [] },
