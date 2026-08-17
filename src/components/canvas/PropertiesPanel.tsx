@@ -210,6 +210,27 @@ export function PropertiesPanel() {
 
           <Separator />
 
+          {/* Document-level .pen design-system summary — moved here from the
+              chat panel's status strip. Belongs here because it's document
+              metadata, not chat metadata. */}
+          <div className="flex items-center gap-3 text-[10px] ac-text-4">
+            <span>
+              <span className="font-mono ac-text-3">
+                {document.variables ? Object.keys(document.variables).length : 0}
+              </span>{' '}
+              variable{(document.variables ? Object.keys(document.variables).length : 0) === 1 ? '' : 's'}
+            </span>
+            <span className="ac-text-5">·</span>
+            <span>
+              <span className="font-mono ac-text-3">
+                {document.themes ? Object.keys(document.themes).length : 0}
+              </span>{' '}
+              theme axis{(document.themes ? Object.keys(document.themes).length : 0) === 1 ? '' : 'es'}
+            </span>
+          </div>
+
+          <Separator />
+
           <div className="px-2 py-4 text-center text-xs ac-text-4 border border-dashed ac-border-subtle rounded">
             Select a node to edit its properties.
           </div>
@@ -376,71 +397,84 @@ export function PropertiesPanel() {
 
         <Separator />
 
-        {/* Fill */}
-        <div>
-          <Label className="text-[11px] text-slate-500">Fill</Label>
-          <div className="flex items-center gap-2 mt-1">
-            <input
-              type="color"
-              value={shape.fill}
-              onChange={(e) => update({ fill: e.target.value })}
-              className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
-            />
-            <Input
-              value={shape.fill}
-              onChange={(e) => update({ fill: e.target.value })}
-              className="h-7 text-xs"
-            />
-          </div>
-        </div>
+        {/* Style — Fill + Stroke + Radius + Opacity, all in one collapsible.
+            Defaults to open. Reduces the always-visible block from ~5
+            sub-sections to just Name + Position/Size + a single Style row. */}
+        <Collapsible defaultOpen>
+          <CollapsibleTrigger asChild>
+            <button type="button" className="group flex items-center gap-1.5 w-full text-left">
+              <ChevronDown className="h-3 w-3 ac-text-4 transition-transform group-data-[state=closed]:-rotate-90" />
+              <Label className="text-[11px] text-slate-500">Style</Label>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 pt-2">
+            {/* Fill */}
+            <div>
+              <Label className="text-[11px] text-slate-500">Fill</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={shape.fill}
+                  onChange={(e) => update({ fill: e.target.value })}
+                  className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
+                />
+                <Input
+                  value={shape.fill}
+                  onChange={(e) => update({ fill: e.target.value })}
+                  className="h-7 text-xs"
+                />
+              </div>
+            </div>
 
-        {/* Stroke */}
-        <div>
-          <Label className="text-[11px] text-slate-500">Stroke</Label>
-          <div className="flex items-center gap-2 mt-1">
-            <input
-              type="color"
-              value={shape.stroke}
-              onChange={(e) => update({ stroke: e.target.value })}
-              className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
-            />
-            <Input
-              type="number"
-              value={shape.strokeWidth}
-              onChange={(e) => update({ strokeWidth: Math.max(0, parseFloat(e.target.value) || 0) })}
-              className="h-7 text-xs w-16"
-              min={0}
-            />
-          </div>
-        </div>
+            {/* Stroke */}
+            <div>
+              <Label className="text-[11px] text-slate-500">Stroke</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={shape.stroke}
+                  onChange={(e) => update({ stroke: e.target.value })}
+                  className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
+                />
+                <Input
+                  type="number"
+                  value={shape.strokeWidth}
+                  onChange={(e) => update({ strokeWidth: Math.max(0, parseFloat(e.target.value) || 0) })}
+                  className="h-7 text-xs w-16"
+                  min={0}
+                />
+              </div>
+            </div>
 
-        {/* Radius (for rectangle/frame) */}
-        {(shape.type === 'rectangle' || shape.type === 'frame') && (
-          <div>
-            <Label className="text-[11px] text-slate-500">Corner Radius: {Math.round(shape.radius)}px</Label>
-            <Slider
-              value={[shape.radius]}
-              onValueChange={(v) => update({ radius: v[0] })}
-              min={0}
-              max={Math.min(shape.width, shape.height) / 2}
-              step={1}
-              className="mt-1"
-            />
-          </div>
-        )}
+            {/* Radius (for rectangle/frame only) */}
+            {(shape.type === 'rectangle' || shape.type === 'frame') && (
+              <div>
+                <Label className="text-[11px] text-slate-500">Corner Radius: {Math.round(shape.radius)}px</Label>
+                <Slider
+                  value={[shape.radius]}
+                  onValueChange={(v) => update({ radius: v[0] })}
+                  min={0}
+                  max={Math.min(shape.width, shape.height) / 2}
+                  step={1}
+                  className="mt-1"
+                />
+              </div>
+            )}
 
-        {/* Opacity */}
-        <div>
-          <Label className="text-[11px] text-slate-500">Opacity: {Math.round(shape.opacity * 100)}%</Label>
-          <Slider
-            value={[shape.opacity * 100]}
-            onValueChange={(v) => update({ opacity: v[0] / 100 })}
-            min={0}
-            max={100}
-            step={1}
-            className="mt-1"
-          />
-        </div>
+            {/* Opacity */}
+            <div>
+              <Label className="text-[11px] text-slate-500">Opacity: {Math.round(shape.opacity * 100)}%</Label>
+              <Slider
+                value={[shape.opacity * 100]}
+                onValueChange={(v) => update({ opacity: v[0] / 100 })}
+                min={0}
+                max={100}
+                step={1}
+                className="mt-1"
+              />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Auto Layout (for frame/group only) — maps to .pen flexbox */}
         {!isMulti && (shape.type === 'frame' || shape.type === 'group') && (

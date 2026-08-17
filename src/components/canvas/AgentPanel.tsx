@@ -32,11 +32,10 @@ import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers,
 } from 'lucide-react';
-import type { DesignTokens } from '@/lib/canvas/types';
 
-// Stable empty tokens object — avoids creating a new reference on every
-// selector call (which would cause an infinite re-render loop in Zustand).
-const EMPTY_TOKENS: DesignTokens = { colors: [], textStyles: [] };
+// Note: the document variables + token counts previously shown in a status
+// strip inside this panel have been moved to the Properties panel's empty
+// state, where document-level metadata belongs. See PropertiesPanel.tsx.
 
 interface PromptGroup {
   id: string;
@@ -114,8 +113,6 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const connected = useCanvasStore((s) => s.connected);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
-  const tokens = useCanvasStore((s) => s.document.tokens ?? EMPTY_TOKENS);
-  const variableCount = useCanvasStore((s) => s.document.variables ? Object.keys(s.document.variables).length : 0);
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -171,19 +168,6 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
       </div>
       )}
 
-      {/* Status strip: variables + tokens — .pen design-system layer */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b ac-border-subtle ac-surface-1 text-[10px] ac-text-3">
-        <span className="flex items-center gap-1">
-          <Palette className="h-3 w-3 ac-text-4" />
-          {variableCount} variable{variableCount === 1 ? '' : 's'}
-        </span>
-        <span className="ac-text-5">·</span>
-        <span className="flex items-center gap-1">
-          <Layers className="h-3 w-3 ac-text-4" />
-          {tokens.colors.length} color token{tokens.colors.length === 1 ? '' : 's'}
-        </span>
-      </div>
-
       {/* Conversation */}
       <ScrollArea ref={scrollRef} className="flex-1 min-h-0 ac-hide-scrollbar">
         <div className="p-3 space-y-3">
@@ -204,7 +188,13 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                 </p>
               </div>
 
-              {/* Scenario prompt groups */}
+              {/* ⌘K hint — promotes discoverability of the command palette */}
+              <div className="text-center text-[10px] ac-text-4">
+                Press <kbd className="px-1 py-0 rounded ac-surface-2 ac-text-3 font-mono">⌘K</kbd> for all preset prompts
+              </div>
+
+              {/* Scenario prompt groups — kept as a secondary discovery surface
+                  for users who don't open the palette. */}
               <div className="flex flex-wrap gap-1">
                 {PROMPT_GROUPS.map((g) => {
                   const Icon = g.icon;
@@ -255,14 +245,14 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
         </div>
       </ScrollArea>
 
-      {/* Input — grouped with Send button (visual unity) */}
+      {/* Input — minimal chrome. Send button only appears when there's input. */}
       <div className="border-t ac-border-subtle p-2 ac-surface-0">
         <div className="rounded-lg border ac-border-default ac-surface-0 focus-within:ac-border-strong ac-transition shadow-sm">
           <Textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask the agent to design something…"
+            placeholder="Ask the agent to design something…  (⌘K for prompts)"
             className="text-xs resize-none min-h-[44px] max-h-[120px] border-0 shadow-none focus-visible:ring-0 ac-text-2 placeholder:ac-text-4 bg-transparent"
             disabled={agentBusy}
             onKeyDown={(e) => {
@@ -272,19 +262,23 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               }
             }}
           />
-          <div className="flex items-center justify-between px-2 pb-1.5 pt-0.5 border-t ac-border-subtle">
-            <span className="text-[10px] ac-text-4">Enter to send · Shift+Enter for newline</span>
-            <Button
-              size="sm"
-              onClick={submit}
-              disabled={agentBusy || !input.trim()}
-              className="h-6 text-[11px] text-white disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: 'var(--ac-accent)' }}
-            >
-              <Send className="h-3 w-3 mr-1" />
-              Send
-            </Button>
-          </div>
+          {/* Action row — only rendered when there's input to send. The
+              placeholder hint inside the textarea already teaches ⌘K behavior,
+              so we don't need a separate "Enter to send" caption. */}
+          {input.trim() && (
+            <div className="flex items-center justify-end px-2 pb-1.5 pt-0.5 border-t ac-border-subtle">
+              <Button
+                size="sm"
+                onClick={submit}
+                disabled={agentBusy}
+                className="h-6 text-[11px] text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'var(--ac-accent)' }}
+              >
+                <Send className="h-3 w-3 mr-1" />
+                Send
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

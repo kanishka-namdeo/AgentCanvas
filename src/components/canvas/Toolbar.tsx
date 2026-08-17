@@ -1,13 +1,19 @@
 'use client';
 
-// Left toolbar — quick actions to manually create shapes (for the human
-// user; the agent has its own tools). Also exposes a "clear" action and
-// the document name editor.
+// Floating toolbar — quick actions to manually create shapes (for the human
+// user; the agent has its own tools). Rendered as a horizontal pill that
+// floats at the bottom-center of the canvas, following the tldraw / Excalidraw
+// pattern. The toolbar sits above canvas content (high z-index) and uses
+// subtle shadow + border for separation from the canvas background.
+//
+// Placement note: the parent (in page.tsx) renders <Toolbar /> inside the
+// canvas's relatively-positioned container, so `absolute bottom-4 left-1/2`
+// here is relative to that container — i.e. the toolbar floats over the
+// canvas, not the whole window.
 
 import { useCanvasStore } from '@/lib/canvas/store';
 import type { CanvasPatch, ShapeType } from '@/lib/canvas/types';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
   Square,
   Circle,
@@ -65,83 +71,96 @@ export function Toolbar() {
     'h-8 w-8 ac-text-2 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring';
 
   return (
-    <div className="flex flex-col items-center gap-0.5 p-1.5 border-r ac-border-default ac-surface-0">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 ac-text-1 ac-surface-1 ac-transition ac-focus-ring"
-        title="Select (V)"
+    // Floating pill — absolutely positioned at bottom-center of the canvas container.
+    // `pointer-events-none` on the wrapper means clicks pass through to the canvas
+    // when not on a button; we re-enable pointer events on the pill itself.
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+      <div
+        className="pointer-events-auto flex items-center gap-0.5 px-1.5 py-1 rounded-full border ac-border-default ac-surface-0 shadow-lg ac-transition"
+        role="toolbar"
+        aria-label="Canvas toolbar"
       >
-        <MousePointer2 className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className={btnCls}
-        title="Pan (Hold Space)"
-      >
-        <Hand className="h-4 w-4" />
-      </Button>
-      <Separator className="my-1 w-5 ac-border-default" />
-      <Button
-        variant="ghost"
-        size="icon"
-        className={btnCls}
-        title="Rectangle"
-        onClick={() => createShape('rectangle')}
-      >
-        <Square className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className={btnCls}
-        title="Ellipse"
-        onClick={() => createShape('ellipse')}
-      >
-        <Circle className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className={btnCls}
-        title="Text"
-        onClick={() => createShape('text')}
-      >
-        <Type className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className={btnCls}
-        title="Line"
-        onClick={() => createShape('line')}
-      >
-        <Minus className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className={btnCls}
-        title="Frame"
-        onClick={() => createShape('frame')}
-      >
-        <Frame className="h-4 w-4" />
-      </Button>
-      <Separator className="my-1 w-5 ac-border-default" />
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600 ac-transition ac-focus-ring"
-        title="Clear canvas"
-        onClick={() => {
-          if (confirm('Clear all shapes from the canvas?')) {
-            sendPatch({ op: 'clear', summary: 'Cleared canvas' });
-          }
-        }}
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 ac-text-1 ac-surface-1 ac-transition ac-focus-ring rounded-full"
+          title="Select (V)"
+        >
+          <MousePointer2 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${btnCls} rounded-full`}
+          title="Pan (Hold Space)"
+        >
+          <Hand className="h-4 w-4" />
+        </Button>
+
+        <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${btnCls} rounded-full`}
+          title="Rectangle"
+          onClick={() => createShape('rectangle')}
+        >
+          <Square className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${btnCls} rounded-full`}
+          title="Ellipse"
+          onClick={() => createShape('ellipse')}
+        >
+          <Circle className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${btnCls} rounded-full`}
+          title="Text"
+          onClick={() => createShape('text')}
+        >
+          <Type className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${btnCls} rounded-full`}
+          title="Line"
+          onClick={() => createShape('line')}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${btnCls} rounded-full`}
+          title="Frame"
+          onClick={() => createShape('frame')}
+        >
+          <Frame className="h-4 w-4" />
+        </Button>
+
+        <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600 ac-transition ac-focus-ring rounded-full"
+          title="Clear canvas"
+          onClick={() => {
+            if (confirm('Clear all shapes from the canvas?')) {
+              sendPatch({ op: 'clear', summary: 'Cleared canvas' });
+            }
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

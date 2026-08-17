@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Plus, Search, MoreHorizontal, Pin, PinOff, GitFork, Archive, Trash2, Pencil, MessageSquare, Wrench, Star,
+  PanelLeft, PanelLeftClose,
 } from 'lucide-react';
 import { StatusDot } from './StatusBadge';
 import {
@@ -46,7 +47,13 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export function SessionSidebar() {
+export function SessionSidebar({
+  collapsed = false,
+  onToggleCollapse,
+}: {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+} = {}) {
   const documentId = useCanvasStore((s) => s.documentId);
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
   const switchSession = useCanvasStore((s) => s.switchSession);
@@ -108,13 +115,25 @@ export function SessionSidebar() {
       {/* Header */}
       <div className="px-3 pt-3 pb-2 border-b ac-border-subtle">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5">
-            <MessageSquare className="h-3.5 w-3.5 ac-text-3" />
-            <span className="text-[11px] font-semibold uppercase tracking-wide ac-text-2">Chats</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <MessageSquare className="h-3.5 w-3.5 ac-text-3 flex-shrink-0" />
+            <span className="text-[11px] font-semibold uppercase tracking-wide ac-text-2 truncate">Chats</span>
             {stats.activeSessions > 0 && (
               <span className="text-[10px] ac-text-4 ml-0.5">{stats.activeSessions}</span>
             )}
           </div>
+          {onToggleCollapse && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleCollapse}
+              title="Toggle chats (⌘1)"
+              aria-label="Toggle chats panel"
+              className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring flex-shrink-0"
+            >
+              {collapsed ? <PanelLeft className="h-3 w-3" /> : <PanelLeftClose className="h-3 w-3" />}
+            </Button>
+          )}
         </div>
         {/* Primary CTA — visually distinct from list rows */}
         <button

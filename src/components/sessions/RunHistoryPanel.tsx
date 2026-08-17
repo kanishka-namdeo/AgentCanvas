@@ -45,7 +45,7 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export function RunHistoryPanel() {
+export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean } = {}) {
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
   const switchSession = useCanvasStore((s) => s.switchSession);
   const document = useCanvasStore((s) => s.document);
@@ -107,21 +107,43 @@ export function RunHistoryPanel() {
 
   return (
     <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
-      {/* Header */}
-      <div className="px-3 pt-2.5 pb-2 border-b ac-border-subtle">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5">
-            <History className="h-3.5 w-3.5 ac-text-3" />
-            <span className="text-[11px] font-semibold uppercase tracking-wide ac-text-2">History</span>
+      {/* Header — full or compact (when hosted inside the right tabbed panel) */}
+      {!hideHeader && (
+        <div className="px-3 pt-2.5 pb-2 border-b ac-border-subtle">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <History className="h-3.5 w-3.5 ac-text-3" />
+              <span className="text-[11px] font-semibold uppercase tracking-wide ac-text-2">History</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] ac-text-4">
+              <span>{runs.length} runs</span>
+              <span className="ac-text-5">·</span>
+              <span>{snapshots.length} snapshots</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] ac-text-4">
-            <span>{runs.length} runs</span>
-            <span className="ac-text-5">·</span>
-            <span>{snapshots.length} snapshots</span>
+          {/* Unified tabs — selected = filled dark, unselected = subtle ghost */}
+          <div className="flex gap-1 p-0.5 ac-surface-2 rounded-md">
+            <button
+              onClick={() => setTab('runs')}
+              className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ${
+                tab === 'runs' ? 'ac-surface-0 ac-text-1 shadow-sm' : 'ac-text-3 hover:ac-text-1'
+              }`}
+            >
+              Runs · {runs.length}
+            </button>
+            <button
+              onClick={() => setTab('snapshots')}
+              className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ${
+                tab === 'snapshots' ? 'ac-surface-0 ac-text-1 shadow-sm' : 'ac-text-3 hover:ac-text-1'
+              }`}
+            >
+              Snapshots · {snapshots.length}
+            </button>
           </div>
         </div>
-        {/* Unified tabs — selected = filled dark, unselected = subtle ghost */}
-        <div className="flex gap-1 p-0.5 ac-surface-2 rounded-md">
+      )}
+      {hideHeader && (
+        <div className="flex items-center gap-1 p-1.5 border-b ac-border-subtle ac-surface-1">
           <button
             onClick={() => setTab('runs')}
             className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ${
@@ -139,7 +161,7 @@ export function RunHistoryPanel() {
             Snapshots · {snapshots.length}
           </button>
         </div>
-      </div>
+      )}
 
       <ScrollArea className="flex-1 min-h-0 ac-hide-scrollbar">
         <div className="p-2 space-y-1.5">

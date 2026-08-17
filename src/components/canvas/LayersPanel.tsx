@@ -20,9 +20,11 @@ import type { CanvasPatch, Shape, ShapeType } from '@/lib/canvas/types';
 import {
   Eye, EyeOff, Lock, Unlock, Trash2, Layers, Copy,
   Frame, Group, Square, Circle, Type, Slash, Spline, Image as ImageIcon, Braces,
+  PanelLeft, PanelLeftClose,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -63,7 +65,13 @@ function themeLabel(theme: Record<string, string> | undefined | null): string | 
   return entries.map(([k, v]) => `${k}:${v}`).join(' · ');
 }
 
-export function LayersPanel() {
+export function LayersPanel({
+  collapsed = false,
+  onToggleCollapse,
+}: {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+} = {}) {
   const document = useCanvasStore((s) => s.document);
   const selectedIds = useCanvasStore((s) => s.selectedIds);
   const select = useCanvasStore((s) => s.select);
@@ -128,27 +136,39 @@ export function LayersPanel() {
             ) : (
               <span className="flex-1 truncate">{shape.name}</span>
             )}
-            {/* Badges */}
-            {themeStr && (
-              <span
-                className="text-[9px] px-1 py-0 rounded ac-surface-2 ac-text-3 font-medium"
-                title={`Effective theme: ${themeStr}`}
-              >
-                {themeStr}
-              </span>
-            )}
-            {hasTokenBinding && (
-              <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-500" title="Bound to design token" />
-            )}
-            {hasAutoLayout && (
-              <span className="text-[9px] px-1 py-0 rounded bg-emerald-100 text-emerald-700 font-medium" title="Auto Layout applied">AL</span>
-            )}
-            {isComponentMaster && (
-              <span className="text-[9px] px-1 py-0 rounded bg-sky-100 text-sky-700 font-medium" title="Component master">M</span>
-            )}
-            {isComponentInstance && (
-              <span className="text-[9px] px-1 py-0 rounded bg-violet-100 text-violet-700 font-medium" title="Component instance (ref)">◆</span>
-            )}
+            {/* Badges — priority order: Master > Instance > AL > theme > token.
+                At most ONE badge is rendered visually; the rest go into the
+                row's `title` attribute so they're still discoverable on hover
+                without crowding the row. */}
+            {(() => {
+              // Build the list of all applicable badges for this row.
+              type Badge = { label: string; node: ReactNode };
+              const all: Badge[] = [];
+              if (isComponentMaster) all.push({ label: 'Master', node: <span className="text-[9px] px-1 py-0 rounded bg-sky-100 text-sky-700 font-medium">M</span> });
+              if (isComponentInstance) all.push({ label: 'Instance (ref)', node: <span className="text-[9px] px-1 py-0 rounded bg-violet-100 text-violet-700 font-medium">◆</span> });
+              if (hasAutoLayout) all.push({ label: 'Auto Layout', node: <span className="text-[9px] px-1 py-0 rounded bg-emerald-100 text-emerald-700 font-medium">AL</span> });
+              if (themeStr) all.push({ label: `theme: ${themeStr}`, node: <span className="text-[9px] px-1 py-0 rounded ac-surface-2 ac-text-3 font-medium">{themeStr}</span> });
+              if (hasTokenBinding) all.push({ label: 'Bound to design token', node: <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-500" /> });
+
+              if (all.length === 0) return null;
+              // Render only the highest-priority badge visually; collect the
+              // rest into a hover tooltip string for the row's title attribute
+              // (which we compose into the parent <div> via aria-label below).
+              const primary = all[0];
+              const restStr = all.length > 1
+                ? ' · also: ' + all.slice(1).map((b) => b.label).join(', ')
+                : '';
+              return (
+                <span
+                  className="flex-shrink-0"
+                  title={all.map((b) => b.label).join(' · ')}
+                  aria-label={all.map((b) => b.label).join(' · ')}
+                  data-extra-badges={restStr}
+                >
+                  {primary.node}
+                </span>
+              );
+            })()}
             <button
               className="opacity-0 group-hover:opacity-100 ac-text-4 hover:ac-text-1 ac-transition"
               onClick={(e) => {
@@ -208,11 +228,25 @@ export function LayersPanel() {
   return (
     <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
       <div className="flex items-center justify-between px-3 py-2 border-b ac-border-subtle">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide ac-text-2">
-          <Layers className="h-3.5 w-3.5 ac-text-3" />
-          Layers
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide ac-text-2 min-w-0">
+          <Layers className="h-3.5 w-3.5 ac-text-3 flex-shrink-0" />
+          <span className="truncate">Layers</span>
+          <span className="text-[10px] ac-text-4 font-normal normal-case tracking-normal">{nodeCount}</span>
         </div>
-        <span className="text-[10px] ac-text-4">{nodeCount} node{nodeCount === 1 ? '' : 's'}</span>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {onToggleCollapse && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleCollapse}
+              title="Toggle layers (⌘2)"
+              aria-label="Toggle layers panel"
+              className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring"
+            >
+              {collapsed ? <PanelLeft className="h-3 w-3" /> : <PanelLeftClose className="h-3 w-3" />}
+            </Button>
+          )}
+        </div>
       </div>
       <ScrollArea className="flex-1 min-h-0 ac-hide-scrollbar">
         <div className="p-1">
