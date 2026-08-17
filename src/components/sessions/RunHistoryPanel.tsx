@@ -20,6 +20,7 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
   ChevronRight, Wrench, Clock, History, Bookmark, BookmarkCheck, RotateCcw, Camera, GitFork,
 } from 'lucide-react';
@@ -87,21 +88,24 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
     const restored = useSessionStore.getState().restoreSnapshot(session.id, snap.id);
     if (restored) {
       useCanvasStore.setState({ document: { ...restored.document, id: session.documentId } });
+      toast.success(`Restored snapshot from ${relativeTime(snap.createdAt)}`, {
+        description: `${snap.nodeCount} nodes`,
+      });
     }
   };
 
   const handleForkFromSnapshot = (snap: Snapshot) => {
-    // Fork the active session, then immediately restore that snapshot in the fork.
-    const forkId = useCanvasStore.getState().forkActiveSession(null);
-    if (!forkId) return;
-    // The fork inherits the parent's currentSnapshotId; if the user wants to
-    // fork from a SPECIFIC snapshot, we restore that snapshot in the new fork.
-    const fork = useSessionStore.getState().getSession(forkId);
+    // Fork the active session AND seed the fork from the clicked snapshot's
+    // document (not the parent's currentSnapshotId). The previous implementation
+    // called forkActiveSession then restoreSnapshot on the fork, but
+    // restoreSnapshot's sessionId guard blocked the cross-session restore,
+    // leaving the fork at the parent's latest state.
+    const fork = useSessionStore.getState().forkSessionFromSnapshot(session.id, snap.id);
     if (fork) {
-      const restored = useSessionStore.getState().restoreSnapshot(fork.id, snap.id);
-      if (restored) {
-        useCanvasStore.setState({ document: { ...restored.document, id: fork.documentId } });
-      }
+      useCanvasStore.getState().switchSession(fork.id);
+      toast.success(`Forked from snapshot`, {
+        description: `${snap.nodeCount} nodes · ${relativeTime(snap.createdAt)}`,
+      });
     }
   };
 
@@ -209,10 +213,13 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
             variant="outline"
             className="w-full h-7 text-[11px] ac-border-default ac-text-2 hover:ac-surface-2 ac-transition"
             onClick={() => {
-              useSessionStore.getState().captureSnapshot(session.id, document, {
+              const snap = useSessionStore.getState().captureSnapshot(session.id, document, {
                 source: 'manual',
                 label: 'Manual snapshot',
                 createdBy: 'user',
+              });
+              toast.success('Captured snapshot', {
+                description: `${snap.nodeCount} nodes`,
               });
             }}
           >

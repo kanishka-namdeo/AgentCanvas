@@ -20,9 +20,9 @@ import { useCanvasStore } from '@/lib/canvas/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
 import {
   Plus, Search, MoreHorizontal, Pin, PinOff, GitFork, Archive, Trash2, Pencil, MessageSquare, Wrench, Star,
-  PanelLeft, PanelLeftClose,
 } from 'lucide-react';
 import { StatusDot } from './StatusBadge';
 import {
@@ -47,19 +47,11 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export function SessionSidebar({
-  collapsed = false,
-  onToggleCollapse,
-}: {
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
-} = {}) {
+export function SessionSidebar() {
   const documentId = useCanvasStore((s) => s.documentId);
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
   const switchSession = useCanvasStore((s) => s.switchSession);
   const newSession = useCanvasStore((s) => s.newSession);
-  const forkActiveSession = useCanvasStore((s) => s.forkActiveSession);
-
   const [search, setSearch] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -122,18 +114,6 @@ export function SessionSidebar({
               <span className="text-[10px] ac-text-4 ml-0.5">{stats.activeSessions}</span>
             )}
           </div>
-          {onToggleCollapse && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onToggleCollapse}
-              title="Toggle chats (⌘1)"
-              aria-label="Toggle chats panel"
-              className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring flex-shrink-0"
-            >
-              {collapsed ? <PanelLeft className="h-3 w-3" /> : <PanelLeftClose className="h-3 w-3" />}
-            </Button>
-          )}
         </div>
         {/* Primary CTA — visually distinct from list rows */}
         <button
@@ -231,11 +211,22 @@ export function SessionSidebar({
                         <DropdownMenuItem className="py-1.5" onClick={() => useSessionStore.getState().toggleStar(session.id)}>
                           <Star className="h-3 w-3 mr-2" /> {session.starred ? 'Unstar' : 'Star'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="py-1.5" onClick={() => forkActiveSession(null)}>
-                          <GitFork className="h-3 w-3 mr-2" /> Fork from here
+                        <DropdownMenuItem className="py-1.5" onClick={() => {
+                          // Fork the session whose row this menu was opened on,
+                          // NOT the currently-active session. Then switch to the fork.
+                          const fork = useSessionStore.getState().forkSession(session.id, null);
+                          if (fork) {
+                            switchSession(fork.id);
+                            toast.success(`Forked chat: ${fork.title}`);
+                          }
+                        }}>
+                          <GitFork className="h-3 w-3 mr-2" /> Fork this chat
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="py-1.5" onClick={() => useSessionStore.getState().archiveSession(session.id)}>
+                        <DropdownMenuItem className="py-1.5" onClick={() => {
+                          useSessionStore.getState().archiveSession(session.id);
+                          toast.success(`Archived "${session.title}"`, { description: 'Find it in the Archived section below.' });
+                        }}>
                           <Archive className="h-3 w-3 mr-2" /> Archive
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -244,6 +235,7 @@ export function SessionSidebar({
                           onClick={() => {
                             if (confirm(`Delete "${session.title}"? This cannot be undone.`)) {
                               useSessionStore.getState().deleteSession(session.id);
+                              toast.success(`Deleted "${session.title}"`);
                             }
                           }}
                         >
@@ -280,9 +272,12 @@ export function SessionSidebar({
                         e.stopPropagation();
                         if (confirm(`Permanently delete "${session.title}"?`)) {
                           useSessionStore.getState().deleteSession(session.id);
+                          toast.success(`Permanently deleted "${session.title}"`);
                         }
                       }}
                       className="opacity-0 group-hover:opacity-100 p-1 rounded hover:ac-surface-2 text-rose-500 ac-transition"
+                      aria-label={`Permanently delete ${session.title}`}
+                      title="Permanently delete"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

@@ -90,6 +90,10 @@ interface CanvasState {
   /// Pushed before every mutating patch; popped on undo/redo.
   undoStack: CanvasDocument[];
   redoStack: CanvasDocument[];
+  /// Active canvas interaction tool. 'select' = click-to-select (default).
+  /// 'pan' = click-and-drag pans the canvas (sticky pan mode). The Space-held
+  /// shortcut in Canvas.tsx overrides this temporarily.
+  toolMode: 'select' | 'pan';
 
   // Actions ---------------------------------------------------------------
   init: (documentId: string) => () => void;
@@ -105,6 +109,8 @@ interface CanvasState {
   undo: () => void;
   /// Redo a previously undone change. Pops the redo stack.
   redo: () => void;
+  /// Set the active canvas tool mode ('select' or 'pan').
+  setToolMode: (mode: 'select' | 'pan') => void;
   setDocumentName: (name: string) => void;
   /// Switch the active session for this document. Rebuilds `turns` from
   /// the session store's messages and replaces the canvas with the
@@ -145,6 +151,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   activeSessionId: null,
   undoStack: [],
   redoStack: [],
+  toolMode: 'select',
 
   init: (documentId) => {
     // Hydrate the persisted session store from localStorage (client-only).
@@ -216,7 +223,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       socket.emit('client', { type: 'canvas:patch', patch } satisfies ClientEvent);
     }
     // Apply locally too so the UI feels instant.
-    set((s) => ({ document: applyPatchToCanvas(s.document, patch) }));
+    // Push to undo stack for mutating ops (matches the _onSync behavior).
+    // Non-mutating ops (select) don't push. This ensures undo works for
+    // manual edits made while disconnected from the WS service.
+    const isMutating = patch.op !== 'select';
+    if (isMutating) {
+      set((s) => ({
+        undoStack: [...s.undoStack, s.document].slice(-50),
+        redoStack: [], // clear redo on new mutation
+        document: applyPatchToCanvas(s.document, patch),
+      }));
+    } else {
+      set((s) => ({ document: applyPatchToCanvas(s.document, patch) }));
+    }
   },
 
   select: (ids) => set({ selectedIds: ids }),
@@ -405,6 +424,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
   },
 
+  setToolMode: (mode) => set({ toolMode: mode }),
+
   setDocumentName: (name) =>
     set((s) => ({ document: { ...s.document, name } })),
 
@@ -440,6 +461,32 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const { activeSessionId, documentId } = get();
     if (!activeSessionId) return null;
     const ss = useSessionStore.getState();
+    // If fromMessageId is provided, try to fork from the snapshot captured at
+    // the end of that message's turn (not the parent's currentSnapshotId).
+    // This makes "Fork from this message" actually seed the fork from that
+    // point in history.
+    if (fromMessageId) {
+      // Find the snapshot whose sourceMessageId === fromMessageId.
+      // If not found, fall back to the closest earlier snapshot.
+      const session = ss.sessions[activeSessionId];
+      if (session) {
+        const allSnaps = session.snapshotIds
+          .map((id) => ss.snapshots[id])
+          .filter(Boolean)
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        const exact = allSnaps.find((s) => s.sourceMessageId === fromMessageId);
+        // Or: the most recent snapshot at or before the message's turn.
+        // For simplicity, use exact match if found; otherwise fall through to default forkSession.
+        if (exact) {
+          const fork = ss.forkSessionFromSnapshot(activeSessionId, exact.id);
+          if (fork) {
+            get().switchSession(fork.id);
+            return fork.id;
+          }
+        }
+      }
+    }
+    // Default: fork from the parent's currentSnapshotId (latest state).
     const fork = ss.forkSession(activeSessionId, fromMessageId ?? null);
     if (!fork) return null;
     get().switchSession(fork.id);

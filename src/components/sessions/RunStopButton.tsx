@@ -2,10 +2,12 @@
 
 // Global Run / Stop control — lives in the top header.
 //
-// When the agent is idle: shows a primary "Run" affordance that focuses the
-// agent input. We don't actually submit on click — the user still types a
-// prompt in the chat panel. The button is essentially a status indicator
-// that doubles as a "click to focus chat" shortcut.
+// When the agent is idle: shows a primary "Ask" button that opens the ⌘K
+// Command Palette. This is a real primary action — the palette lets users
+// search preset prompts or type a custom one. The previous implementation
+// tried to focus the chat input via a window-global hook, which silently
+// failed when the right panel wasn't on the Chat tab (AgentPanel unmounted
+// → global deleted → click was a no-op).
 //
 // When the agent is busy: shows a destructive "Stop" button that calls
 // `stopAgent()` on the canvas store. The button pulses subtly so the user
@@ -18,24 +20,11 @@
 
 import { useCanvasStore } from '@/lib/canvas/store';
 import { Button } from '@/components/ui/button';
-import { Play, Square } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { Play, Square, Sparkles } from 'lucide-react';
 
-export function RunStopButton() {
+export function RunStopButton({ onAsk }: { onAsk: () => void }) {
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const stopAgent = useCanvasStore((s) => s.stopAgent);
-  const focusAgentInputRef = useRef<(() => void) | null>(null);
-
-  // Register a global focus-agent-input hook on window so any component
-  // (including this one) can focus the chat input without prop-drilling.
-  // The AgentPanel registers its input on mount.
-  useEffect(() => {
-    const handler = () => {
-      const fn = (window as any).__focusAgentInput;
-      if (typeof fn === 'function') fn();
-    };
-    focusAgentInputRef.current = handler;
-  }, []);
 
   if (agentBusy) {
     return (
@@ -48,8 +37,9 @@ export function RunStopButton() {
           borderColor: 'var(--ac-danger)',
         }}
         title="Stop the agent"
+        aria-label="Stop the agent"
       >
-        <span className="relative mr-1.5 flex h-2 w-2">
+        <span className="relative mr-1.5 flex h-2 w-2" aria-hidden="true">
           <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-75 animate-ping" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
         </span>
@@ -61,15 +51,16 @@ export function RunStopButton() {
   return (
     <Button
       size="sm"
-      onClick={() => focusAgentInputRef.current?.()}
+      onClick={onAsk}
       className="h-7 px-2.5 text-[11px] font-medium text-white ac-transition ac-focus-ring"
       style={{
         backgroundColor: 'var(--ac-accent)',
       }}
-      title="Focus the chat input to send a prompt"
+      title="Open the command palette to send a prompt"
+      aria-label="Ask the agent"
     >
-      <Play className="h-3 w-3 mr-1" />
-      Run
+      <Sparkles className="h-3 w-3 mr-1" />
+      Ask
     </Button>
   );
 }

@@ -3,9 +3,12 @@
 // Theme toggle — flips between light, dark, and system by adding/removing the
 // `.dark` class on <html>. Cycles through the three modes on click.
 //
-// Source of truth: the settings store (`useSettings.themePreference`).
-// Falls back to the legacy `agentcanvas-theme` localStorage key for backward
-// compat with sessions saved before the settings workflow existed.
+// Source of truth: the settings store (`useSettings.themePreference`). The
+// toggle subscribes to that field so it stays in sync when the theme is
+// changed via Settings → Appearance.
+//
+// Icon convention: shows the icon for the CURRENT state (Sun in light, Moon
+// in dark, Monitor in system) — matches GitHub, Linear, Vercel.
 //
 // The dark-mode token variant is defined in `src/app/globals.css` under the
 // `.dark` selector — it redefines every `--ac-*` token, so all components
@@ -51,49 +54,58 @@ function applyTheme(theme: ThemePreference) {
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<ThemePreference>('system');
-  const [mounted, setMounted] = useState(false);
+  // Subscribe to the settings store so the icon + click cycle stay in sync
+  // when the theme is changed via Settings → Appearance or "Reset to defaults".
+  const themePreference = useSettings((s) => s.themePreference);
   const setSetting = useSettings((s) => s.set);
+  const [mounted, setMounted] = useState(false);
 
-  // Hydrate from localStorage on mount (avoids SSR flash).
+  // Hydrate from localStorage on mount (avoids SSR flash). If the settings
+  // store already has a value, use it; otherwise read from legacy key.
   useEffect(() => {
     const initial = getInitialTheme();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTheme(initial);
+    // If the settings store hasn't been hydrated yet (e.g. first load),
+    // seed it with the value we just read.
+    if (useSettings.getState().themePreference !== initial) {
+      setSetting('themePreference', initial);
+    }
     applyTheme(initial);
     setMounted(true);
-  }, []);
+  }, [setSetting]);
 
   // Subscribe to OS prefers-color-scheme changes when in 'system' mode.
   useEffect(() => {
-    if (theme !== 'system') return;
+    if (themePreference !== 'system') {
+      applyTheme(themePreference);
+      return;
+    }
+    applyTheme('system');
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = () => applyTheme('system');
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
-  }, [theme]);
+  }, [themePreference]);
 
   // Cycle: system → light → dark → system.
   const toggle = () => {
     const next: ThemePreference =
-      theme === 'system' ? 'light' :
-      theme === 'light'  ? 'dark'  : 'system';
-    setTheme(next);
-    applyTheme(next);
-    // Persist to both the settings store and the legacy key (for pre-settings
-    // hydration on next reload).
+      themePreference === 'system' ? 'light' :
+      themePreference === 'light'  ? 'dark'  : 'system';
     setSetting('themePreference', next);
-    // For 'system', store the currently-resolved value in the legacy key so
-    // getInitialTheme() picks the right starting point if the settings store
-    // isn't yet hydrated.
+    // Also write to legacy key for backward compat with any code that still
+    // reads it directly.
     localStorage.setItem(LEGACY_STORAGE_KEY, resolveDark(next) ? 'dark' : 'light');
   };
 
-  const Icon = !mounted ? Monitor : theme === 'light' ? Moon : theme === 'dark' ? Sun : Monitor;
+  // Icon shows the CURRENT state (not the next state).
+  const Icon = !mounted ? Monitor :
+    themePreference === 'light'  ? Sun   :
+    themePreference === 'dark'   ? Moon  :
+                                   Monitor;
   const label = !mounted ? 'Toggle theme' :
-    theme === 'system' ? 'Theme: system (click for light)' :
-    theme === 'light'  ? 'Theme: light (click for dark)'   :
-                         'Theme: dark (click for system)';
+    themePreference === 'system' ? 'Theme: system (click for light)' :
+    themePreference === 'light'  ? 'Theme: light (click for dark)'   :
+                                   'Theme: dark (click for system)';
 
   return (
     <button

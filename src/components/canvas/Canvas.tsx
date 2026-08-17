@@ -42,6 +42,7 @@ export function Canvas() {
   const agentHighlightIds = useCanvasStore((s) => s.agentHighlightIds);
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const select = useCanvasStore((s) => s.select);
+  const toolMode = useCanvasStore((s) => s.toolMode);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ zoom: 1, panX: 120, panY: 80 });
@@ -158,8 +159,8 @@ export function Canvas() {
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
 
-      // Middle mouse OR space+left → pan
-      if (e.button === 1 || (e.button === 0 && spaceDown)) {
+      // Middle mouse OR space+left OR pan-tool-mode+left → pan
+      if (e.button === 1 || (e.button === 0 && (spaceDown || toolMode === 'pan'))) {
         setDragState({
           kind: 'pan',
           startX: sx,
@@ -178,7 +179,7 @@ export function Canvas() {
         select([]);
       }
     },
-    [spaceDown, viewport, select],
+    [spaceDown, toolMode, viewport, select],
   );
 
   const onMouseMove = useCallback(
@@ -258,7 +259,8 @@ export function Canvas() {
   // ---- Shape interaction handlers -------------------------------------------
   const onShapeMouseDown = useCallback(
     (e: React.MouseEvent, shape: Shape) => {
-      if (spaceDown || e.button !== 0) return;
+      // In pan mode, clicking a shape should pan, not select.
+      if (spaceDown || toolMode === 'pan' || e.button !== 0) return;
       e.stopPropagation();
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -287,7 +289,7 @@ export function Canvas() {
           .map((s) => ({ id: s.id, x: s.x, y: s.y, width: s.width, height: s.height })),
       });
     },
-    [spaceDown, selectedIds, document, select],
+    [spaceDown, toolMode, selectedIds, document, select],
   );
 
   const onResizeHandleMouseDown = useCallback(
@@ -317,7 +319,7 @@ export function Canvas() {
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full overflow-hidden select-none ${spaceDown ? 'cursor-grab' : 'cursor-default'}`}
+      className={`relative w-full h-full overflow-hidden select-none ${(spaceDown || toolMode === 'pan') ? 'cursor-grab' : 'cursor-default'}`}
       style={{ background: document.background }}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
@@ -421,19 +423,25 @@ export function Canvas() {
       >
         <button
           className="px-1 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
+          aria-label="Zoom out"
+          title="Zoom out"
           onClick={() => setViewport((v) => ({ ...v, zoom: Math.max(0.1, v.zoom * 0.9) }))}
         >
           −
         </button>
-        <span className="tabular-nums w-12 text-center ac-text-2">{Math.round(zoom * 100)}%</span>
+        <span className="tabular-nums w-12 text-center ac-text-2" aria-live="polite">{Math.round(zoom * 100)}%</span>
         <button
           className="px-1 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
+          aria-label="Zoom in"
+          title="Zoom in"
           onClick={() => setViewport((v) => ({ ...v, zoom: Math.min(4, v.zoom * 1.1) }))}
         >
           +
         </button>
         <button
           className="ml-1 px-2 py-0.5 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
+          aria-label="Reset zoom to 100%"
+          title="Reset zoom to 100%"
           onClick={() => setViewport({ zoom: 1, panX: 120, panY: 80 })}
         >
           Reset

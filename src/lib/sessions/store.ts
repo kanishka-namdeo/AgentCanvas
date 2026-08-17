@@ -116,6 +116,10 @@ interface SessionStoreState {
   unarchiveSession: (id: string) => void;
   deleteSession: (id: string) => void;
   forkSession: (parentId: string, fromMessageId: string | null) => Session | undefined;
+  /// Fork a session and seed the fork from a SPECIFIC snapshot's document
+  /// (not the parent's currentSnapshotId). Used by the RunHistoryPanel's
+  /// "Fork from this snapshot" action. The snapshot must belong to the parent.
+  forkSessionFromSnapshot: (parentId: string, snapshotId: string) => Session | undefined;
   touchSession: (id: string) => void;
 
   // ---- Mutations: Runs ----
@@ -434,6 +438,48 @@ export const useSessionStore = create<SessionStoreState>()(
           };
         }
         set(updates as SessionStoreState);
+        return get().sessions[fork.id];
+      },
+
+      forkSessionFromSnapshot: (parentId, snapshotId) => {
+        const parent = get().sessions[parentId];
+        const snap = get().snapshots[snapshotId];
+        if (!parent || !snap || snap.sessionId !== parentId) return undefined;
+        const ts = nowISO();
+        const fork = makeSession(parent.documentId, {
+          title: `Fork of ${parent.title}`,
+          parentId,
+          forkedFromMessageId: null,
+          forkedFromSnapshotId: snapshotId,
+          isRoot: false,
+          model: parent.model,
+        });
+        // Seed the fork with a deep copy of the requested snapshot's document.
+        const forkSnap: Snapshot = {
+          id: newId('snap'),
+          sessionId: fork.id,
+          parentSnapshotId: snap.id,
+          source: 'fork',
+          sourceRunId: null,
+          sourceMessageId: null,
+          document: deepClone(snap.document),
+          nodeCount: snap.nodeCount,
+          label: `Forked from ${snap.label ?? snap.id.slice(0, 12)}`,
+          bookmarked: false,
+          createdAt: ts,
+          createdBy: 'user',
+        };
+        set({
+          sessions: {
+            ...get().sessions,
+            [fork.id]: { ...fork, currentSnapshotId: forkSnap.id, snapshotIds: [forkSnap.id] },
+          },
+          snapshots: { ...get().snapshots, [forkSnap.id]: forkSnap },
+          activeSessionByDoc: {
+            ...get().activeSessionByDoc,
+            [parent.documentId]: fork.id,
+          },
+        } as Partial<SessionStoreState>);
         return get().sessions[fork.id];
       },
 
@@ -899,6 +945,33 @@ export function sweepIdleSessions(threshold: 'never' | '7d' | '30d'): number {
     store.archiveSession(s.id);
   }
   return idle.length;
+}
+
+/// Enforce the max-sessions-retained cap: if the number of ACTIVE sessions
+/// exceeds `maxRetained`, archive the oldest non-pinned, non-starred active
+/// sessions until under the cap. Pinned + starred sessions are protected
+/// (the user explicitly marked them as keepers). Returns the count archived.
+export function enforceSessionCap(maxRetained: number): number {
+  if (maxRetained <= 0) return 0;
+  const store = useSessionStore.getState();
+  const active = Object.values(store.sessions)
+    .filter((s) => s.status === 'active')
+    .sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt)); // newest first
+  if (active.length <= maxRetained) return 0;
+  // Protect pinned + starred sessions from auto-archive.
+  const candidates = active.filter((s) => !s.pinned && !s.starred);
+  // Archive from the END (oldest) of the candidates list.
+  const toArchive = candidates.slice(maxRetained - active.length > 0 ? 0 : 0);
+  // Simpler: archive the oldest candidates until we're under the cap.
+  // active.length - maxRetained = how many we need to remove.
+  const excess = active.length - maxRetained;
+  let archived = 0;
+  // Candidates are sorted newest-first; archive from the end (oldest).
+  for (let i = candidates.length - 1; i >= 0 && archived < excess; i--) {
+    store.archiveSession(candidates[i].id);
+    archived++;
+  }
+  return archived;
 }
 
 /// Approximate localStorage usage in bytes, attributed to the known

@@ -6,6 +6,11 @@
 // pattern. The toolbar sits above canvas content (high z-index) and uses
 // subtle shadow + border for separation from the canvas background.
 //
+// Tool mode buttons (Select / Pan) toggle the canvas store's `toolMode`
+// field. The Canvas component reads this to decide whether click-drag
+// selects shapes or pans the viewport. Space-held still overrides to pan
+// temporarily (see Canvas.tsx).
+//
 // Placement note: the parent (in page.tsx) renders <Toolbar /> inside the
 // canvas's relatively-positioned container, so `absolute bottom-4 left-1/2`
 // here is relative to that container — i.e. the toolbar floats over the
@@ -39,6 +44,9 @@ const SHAPE_DEFAULTS: Record<ShapeType, Partial<{ width: number; height: number;
 export function Toolbar() {
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const shapes = useCanvasStore((s) => s.document.shapes);
+  const toolMode = useCanvasStore((s) => s.toolMode);
+  const setToolMode = useCanvasStore((s) => s.setToolMode);
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
 
   const createShape = (type: ShapeType) => {
     const defaults = SHAPE_DEFAULTS[type];
@@ -66,9 +74,19 @@ export function Toolbar() {
     sendPatch(patch);
   };
 
-  // Shared button class — primary tools get a stronger hover affordance.
+  // Shared button class for shape-creation tools.
   const btnCls =
-    'h-8 w-8 ac-text-2 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring';
+    'h-8 w-8 ac-text-2 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring rounded-full';
+
+  // Select/Pan toggle button class — active state gets a filled background.
+  const modeBtnCls = (active: boolean) =>
+    `h-8 w-8 ac-transition ac-focus-ring rounded-full ${
+      active
+        ? 'ac-surface-2 ac-text-1 shadow-sm'
+        : 'ac-text-2 hover:ac-text-1 hover:ac-surface-2'
+    }`;
+
+  const canvasEmpty = shapes.length === 0;
 
   return (
     // Floating pill — absolutely positioned at bottom-center of the canvas container.
@@ -83,16 +101,22 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 ac-text-1 ac-surface-1 ac-transition ac-focus-ring rounded-full"
-          title="Select (V)"
+          className={modeBtnCls(toolMode === 'select')}
+          title="Select tool (V) — click to select shapes"
+          aria-label="Select tool"
+          aria-pressed={toolMode === 'select'}
+          onClick={() => setToolMode('select')}
         >
           <MousePointer2 className="h-4 w-4" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} rounded-full`}
-          title="Pan (Hold Space)"
+          className={modeBtnCls(toolMode === 'pan')}
+          title="Pan tool (H) — drag to move the canvas"
+          aria-label="Pan tool"
+          aria-pressed={toolMode === 'pan'}
+          onClick={() => setToolMode('pan')}
         >
           <Hand className="h-4 w-4" />
         </Button>
@@ -102,8 +126,10 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} rounded-full`}
+          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
           title="Rectangle"
+          aria-label="Add rectangle"
+          disabled={agentBusy}
           onClick={() => createShape('rectangle')}
         >
           <Square className="h-4 w-4" />
@@ -111,8 +137,10 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} rounded-full`}
+          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
           title="Ellipse"
+          aria-label="Add ellipse"
+          disabled={agentBusy}
           onClick={() => createShape('ellipse')}
         >
           <Circle className="h-4 w-4" />
@@ -120,8 +148,10 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} rounded-full`}
+          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
           title="Text"
+          aria-label="Add text"
+          disabled={agentBusy}
           onClick={() => createShape('text')}
         >
           <Type className="h-4 w-4" />
@@ -129,8 +159,10 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} rounded-full`}
+          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
           title="Line"
+          aria-label="Add line"
+          disabled={agentBusy}
           onClick={() => createShape('line')}
         >
           <Minus className="h-4 w-4" />
@@ -138,8 +170,10 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} rounded-full`}
+          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
           title="Frame"
+          aria-label="Add frame"
+          disabled={agentBusy}
           onClick={() => createShape('frame')}
         >
           <Frame className="h-4 w-4" />
@@ -150,8 +184,10 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600 ac-transition ac-focus-ring rounded-full"
+          className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600 ac-transition ac-focus-ring rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
           title="Clear canvas"
+          aria-label="Clear canvas"
+          disabled={canvasEmpty || agentBusy}
           onClick={() => {
             if (confirm('Clear all shapes from the canvas?')) {
               sendPatch({ op: 'clear', summary: 'Cleared canvas' });

@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
@@ -69,13 +70,20 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Auto-archive idle sessions on app mount, per the user's setting.
-  // Runs once after hydration. Safe to call multiple times.
+  // Also enforce the max-sessions-retained cap. Runs once after hydration.
+  const density = useSettings((s) => s.density);
+
   useEffect(() => {
-    import('@/lib/sessions').then(({ sweepIdleSessions }) => {
-      const threshold = useSettings.getState().autoArchiveIdleAfter;
-      const n = sweepIdleSessions(threshold);
-      if (n > 0) {
-        console.log(`[settings] auto-archived ${n} idle session(s) (threshold: ${threshold})`);
+    import('@/lib/sessions').then(({ sweepIdleSessions, enforceSessionCap }) => {
+      const settings = useSettings.getState();
+      const idleN = sweepIdleSessions(settings.autoArchiveIdleAfter);
+      const capN = enforceSessionCap(settings.maxSessionsRetained);
+      const total = idleN + capN;
+      if (total > 0) {
+        const parts: string[] = [];
+        if (idleN > 0) parts.push(`${idleN} idle`);
+        if (capN > 0) parts.push(`${capN} over cap`);
+        toast.success(`Auto-archived ${parts.join(' + ')} session${total === 1 ? '' : 's'}`);
       }
     });
   }, []);
@@ -135,22 +143,35 @@ export default function Home() {
     }
   }, [isZenMode, leftCollapsed, rightCollapsed]);
 
-  // Keyboard shortcuts: ⌘1 left column, ⌘2 right column, ⌘K command palette, ⌘, settings, ⌘\ zen mode.
+  // Keyboard shortcuts: ⌘1 left column, ⌘2 right column, ⌘K command palette,
+  // ⌘, settings, ⌘\ zen mode, ⌘Z undo, ⌘⇧Z redo, V select tool, H pan tool.
+  // Undo/redo and tool shortcuts don't require meta.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
-      if (!meta) return;
-      if (e.key === '1') { e.preventDefault(); toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); }
-      else if (e.key === '2') { e.preventDefault(); toggle(rightPanelRef, rightCollapsed, setRightCollapsed); }
-      else if (e.key === 'k' || e.key === 'K') {
-        e.preventDefault();
-        setPaletteOpen((v) => !v);
+      // Meta-required shortcuts:
+      if (meta) {
+        if (e.key === '1') { e.preventDefault(); toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); }
+        else if (e.key === '2') { e.preventDefault(); toggle(rightPanelRef, rightCollapsed, setRightCollapsed); }
+        else if (e.key === 'k' || e.key === 'K') { e.preventDefault(); setPaletteOpen((v) => !v); }
+        else if (e.key === ',') { e.preventDefault(); setSettingsOpen((v) => !v); }
+        else if (e.key === '\\') { e.preventDefault(); toggleZen(); }
+        else if (e.key === 'z' || e.key === 'Z') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            useCanvasStore.getState().redo();
+          } else {
+            useCanvasStore.getState().undo();
+          }
+        }
+        return;
       }
-      else if (e.key === ',') {
-        e.preventDefault();
-        setSettingsOpen((v) => !v);
-      }
-      else if (e.key === '\\') { e.preventDefault(); toggleZen(); }
+      // Non-meta shortcuts — only fire when not typing in an input/textarea.
+      const target = e.target as HTMLElement;
+      const isEditable = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      if (isEditable) return;
+      if (e.key === 'v' || e.key === 'V') { useCanvasStore.getState().setToolMode('select'); }
+      else if (e.key === 'h' || e.key === 'H') { useCanvasStore.getState().setToolMode('pan'); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -160,7 +181,7 @@ export default function Home() {
     <TooltipProvider delayDuration={300}>
       <div
         className="h-screen w-screen flex flex-col ac-surface-1 ac-text-1 overflow-hidden"
-        data-density={useSettings.getState().density}
+        data-density={density}
       >
         {/* ───────────────────────── Top bar ───────────────────────── */}
         <header className="flex items-center justify-between px-3 h-11 border-b ac-border-default ac-surface-0 flex-shrink-0 gap-3">
@@ -201,7 +222,7 @@ export default function Home() {
               <kbd className="hidden md:inline text-[10px] ac-text-5 px-1 py-0 rounded ac-surface-2 font-mono ml-1">⌘K</kbd>
             </Button>
 
-            <RunStopButton />
+            <RunStopButton onAsk={() => setPaletteOpen(true)} />
 
             <div className="w-px h-5 ac-border-subtle border-l mx-0.5" />
 

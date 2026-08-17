@@ -20,11 +20,9 @@ import type { CanvasPatch, Shape, ShapeType } from '@/lib/canvas/types';
 import {
   Eye, EyeOff, Lock, Unlock, Trash2, Layers, Copy,
   Frame, Group, Square, Circle, Type, Slash, Spline, Image as ImageIcon, Braces,
-  PanelLeft, PanelLeftClose,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -65,13 +63,7 @@ function themeLabel(theme: Record<string, string> | undefined | null): string | 
   return entries.map(([k, v]) => `${k}:${v}`).join(' · ');
 }
 
-export function LayersPanel({
-  collapsed = false,
-  onToggleCollapse,
-}: {
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
-} = {}) {
+export function LayersPanel() {
   const document = useCanvasStore((s) => s.document);
   const selectedIds = useCanvasStore((s) => s.selectedIds);
   const select = useCanvasStore((s) => s.select);
@@ -171,6 +163,9 @@ export function LayersPanel({
             })()}
             <button
               className="opacity-0 group-hover:opacity-100 ac-text-4 hover:ac-text-1 ac-transition"
+              aria-label={shape.visible ? `Hide ${shape.name}` : `Show ${shape.name}`}
+              aria-pressed={!shape.visible}
+              title={shape.visible ? 'Hide layer' : 'Show layer'}
               onClick={(e) => {
                 e.stopPropagation();
                 sendPatch({ op: 'update', shapeId: shape.id, shape: { visible: !shape.visible }, summary: `${shape.visible ? 'Hid' : 'Showed'} ${shape.name}` });
@@ -180,6 +175,9 @@ export function LayersPanel({
             </button>
             <button
               className="opacity-0 group-hover:opacity-100 ac-text-4 hover:ac-text-1 ac-transition"
+              aria-label={shape.locked ? `Unlock ${shape.name}` : `Lock ${shape.name}`}
+              aria-pressed={shape.locked}
+              title={shape.locked ? 'Unlock layer' : 'Lock layer'}
               onClick={(e) => {
                 e.stopPropagation();
                 sendPatch({ op: 'update', shapeId: shape.id, shape: { locked: !shape.locked }, summary: `${shape.locked ? 'Unlocked' : 'Locked'} ${shape.name}` });
@@ -232,20 +230,6 @@ export function LayersPanel({
           <Layers className="h-3.5 w-3.5 ac-text-3 flex-shrink-0" />
           <span className="truncate">Layers</span>
           <span className="text-[10px] ac-text-4 font-normal normal-case tracking-normal">{nodeCount}</span>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {onToggleCollapse && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onToggleCollapse}
-              title="Toggle layers (⌘2)"
-              aria-label="Toggle layers panel"
-              className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring"
-            >
-              {collapsed ? <PanelLeft className="h-3 w-3" /> : <PanelLeftClose className="h-3 w-3" />}
-            </Button>
-          )}
         </div>
       </div>
       <ScrollArea className="flex-1 min-h-0 ac-hide-scrollbar">
