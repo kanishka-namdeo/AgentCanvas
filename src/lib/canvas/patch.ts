@@ -133,9 +133,10 @@ function recomputeDerived(doc: CanvasDocument): CanvasDocument {
 
 export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): CanvasDocument {
   // Clone the tree + variables immutably; derived caches recomputed at the end.
+  // Defensive: legacy docs / test fixtures may omit `children` — treat as empty tree.
   const next: CanvasDocument = {
     ...canvas,
-    children: canvas.children.map((c) => ({ ...c })),
+    children: (canvas.children ?? []).map((c) => ({ ...c })),
     variables: canvas.variables ? { ...canvas.variables } : undefined,
     themes: canvas.themes ? { ...canvas.themes } : undefined,
     viewport: { ...canvas.viewport },

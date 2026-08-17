@@ -344,7 +344,7 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
   // First, expand all refs into a working tree (refs become their resolved
   // subtrees). We do this recursively.
   function expandTree(children: PenChild[], inheritedTheme: PenTheme): PenChild[] {
-    return children.flatMap((child) => {
+    return (children ?? []).flatMap((child) => {
       if (child.type === 'ref') {
         const expanded = expandRef(child as PenRef, components);
         return expanded ? [expanded] : [];
@@ -356,7 +356,8 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
     });
   }
 
-  const expanded = expandTree(doc.children, {});
+  // Defensive: if doc.children is missing (e.g. legacy test fixtures), treat as empty.
+  const expanded = expandTree(doc.children ?? [], {});
 
   // Recursive resolve: compute sizes bottom-up, then positions top-down.
   function resolve(

@@ -722,7 +722,7 @@ describe('runner: input isolation', () => {
 // ---- Tests: tool catalog passthrough ----------------------------------------
 
 describe('runner: tool catalog + spec passthrough', () => {
-  it('the LLM receives the full 54-tool spec on every iteration', async () => {
+  it('the LLM receives the full 55-tool spec on every iteration', async () => {
     const llm = new MockLLM([
       { content: 'done' },
     ]);

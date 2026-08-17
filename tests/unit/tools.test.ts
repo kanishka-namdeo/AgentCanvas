@@ -946,9 +946,9 @@ describe('tools: pen_generate_image', () => {
 // ---- Tool registration sanity ------------------------------------------------
 
 describe('tools: registration sanity', () => {
-  it('returns 54 tools total', () => {
+  it('returns 55 tools total', () => {
     const tools = createCanvasTools(h.ctx);
-    expect(tools).toHaveLength(54);
+    expect(tools).toHaveLength(55);
   });
 
   it('every tool has a unique name', () => {
