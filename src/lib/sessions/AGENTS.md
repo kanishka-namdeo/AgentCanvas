@@ -9,8 +9,8 @@ This is the durable record of every conversation the user has had with the agent
 ## Ownership
 
 - `types.ts` — `Session`, `Run`, `Message`, `ToolCallRecord`, `Snapshot`, `RunStatus` state machine. Owned by this folder.
-- `store.ts` — Zustand store with `persist` (localStorage). Full CRUD for sessions/runs/messages/tool-calls/snapshots. Fork via `parentId` + `forkedFromSnapshotId`. Restore via append-only new snapshot (Lovable model).
-- `index.ts` — re-exports `useSessionStore`, `hydrateSessionStore`, and the types.
+- `store.ts` — Zustand store with `persist` (localStorage). Full CRUD for sessions/runs/messages/tool-calls/snapshots. Fork via `parentId` + `forkedFromSnapshotId`. Restore via append-only new snapshot (Lovable model). Includes `forkSessionFromSnapshot`, `deleteSnapshot`, `sweepIdleSessions`, `enforceSessionCap`, `estimateLocalStorageUsage` helpers.
+- `index.ts` — re-exports `useSessionStore`, `hydrateSessionStore`, `sweepIdleSessions`, `enforceSessionCap`, `estimateLocalStorageUsage`, and the types.
 
 ## Local Contracts
 
@@ -48,7 +48,8 @@ State transitions are append-only: a `completed` run cannot go back to `in_progr
 - The store is the ONLY writer to `localStorage['agentcanvas.sessions.v1']`. Do not write to it directly from components.
 
 ### Fork model (mirrors v0)
-- `forkSession(parentSessionId, snapshotId)` creates a new Session with `parentId = parentSessionId`, `forkedFromSnapshotId = snapshotId`.
+- `forkSession(parentSessionId, fromMessageId)` creates a new Session with `parentId = parentSessionId`, `forkedFromSnapshotId = parent.currentSnapshotId`. Seeds the fork from the parent's CURRENT snapshot (latest state).
+- `forkSessionFromSnapshot(parentSessionId, snapshotId)` creates a new Session seeded from a SPECIFIC snapshot's document (not the parent's currentSnapshotId). Used by the RunHistoryPanel's "Fork from this snapshot" action + the AgentPanel's "Fork from this message" action (when a matching snapshot is found). The snapshot must belong to the parent session.
 - The fork inherits the snapshot's canvas document but starts with an empty messages array.
 - The parent session is untouched.
 
@@ -58,6 +59,16 @@ State transitions are append-only: a `completed` run cannot go back to `in_progr
   2. Pushes it into the canvas store.
   3. Creates a NEW Snapshot record (append-only) so the restore itself is auditable.
 - This means the snapshot list grows monotonically; restores are visible in the timeline.
+
+### Snapshot management
+- `deleteSnapshot(snapshotId)` — permanently deletes a snapshot. Refuses to delete bookmarked snapshots (the user marked them as keepers). Updates the parent session's `snapshotIds` list. If the session's `currentSnapshotId` was pointing at the deleted snapshot, repoints it to the most recent remaining snapshot.
+- `captureSnapshot(sessionId, document, opts)` — captures a canvas state. Called automatically on `turn_end` (respecting `snapshotCadence` setting) and manually via the History panel's "Capture current state" button.
+- When `maxSnapshotsPerSession` is exceeded, the canvas store's `turn_end` handler auto-deletes the oldest non-bookmarked snapshots via `deleteSnapshot()`.
+
+### Session lifecycle helpers (standalone functions)
+- `sweepIdleSessions(threshold)` — archives any active session whose `lastOpenedAt` is older than the given threshold ('never' / '7d' / '30d'). Called on app mount in `page.tsx`. Returns the count archived.
+- `enforceSessionCap(maxRetained)` — archives the oldest non-pinned, non-starred active sessions when the total count exceeds `maxRetained`. Pinned + starred sessions are protected. Called on app mount in `page.tsx`. Returns the count archived.
+- `estimateLocalStorageUsage()` — returns byte sizes for `agentcanvas.sessions.v1`, `agentcanvas.settings.v1`, and `agentcanvas-theme` localStorage keys. Used by the Settings dialog's "Storage usage" display.
 
 ### Stats / derived data
 - `getStats(sessionId)` returns counts (messages, runs, tool calls, snapshots). It MUST be memoized at the call site — calling it inside a Zustand selector returns a new object every render and triggers an infinite loop. (Prior bug; fixed by switching to `useMemo` over `sessionsMap`.)

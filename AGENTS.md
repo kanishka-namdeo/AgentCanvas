@@ -116,13 +116,15 @@ When the user requests a durable behavior change, record it here or in the relev
 
 | Path | Scope |
 |------|-------|
-| `src/app/AGENTS.md` | Next.js App Router: root layout, main page (4-pane layout), global styles with `--ac-*` design tokens |
-| `src/components/canvas/AGENTS.md` | Canvas UI components: drawing surface, toolbar, layers, properties, agent chat panel |
+| `src/app/AGENTS.md` | Next.js App Router: root layout, main page (tabbed 3-column layout), global styles with `--ac-*` design tokens + `[data-density="compact"]` rules |
+| `src/components/canvas/AGENTS.md` | Canvas UI components: drawing surface, floating toolbar (toolMode), layers, properties, agent chat, command palette |
 | `src/components/sessions/AGENTS.md` | Session management UI: sidebar, header, run history, status badges |
+| `src/components/settings/AGENTS.md` | Settings dialog: 6-section modal (agent, LLM, sessions, appearance, data, shortcuts) |
 | `src/components/ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers, ~50 component inventory |
-| `src/lib/agent/AGENTS.md` | Agent layer: 54 tools, agent loop runner, system prompt |
-| `src/lib/canvas/AGENTS.md` | Canvas state: Zustand store, types, patches, Socket.IO service |
-| `src/lib/sessions/AGENTS.md` | Session persistence: Zustand store with localStorage, fork/restore |
+| `src/lib/agent/AGENTS.md` | Agent layer: 56 tools, agent loop runner with settings integration, LLM provider swap, system prompt |
+| `src/lib/canvas/AGENTS.md` | Canvas state: Zustand store (toolMode, undo/redo, settings injection), types, patches, Socket.IO service |
+| `src/lib/sessions/AGENTS.md` | Session persistence: Zustand store with localStorage, fork/restore, forkSessionFromSnapshot, sweep/enforce helpers |
+| `src/lib/settings/AGENTS.md` | Settings store: AppSettings + AgentRunSettings types, Zustand persist, PALETTES |
 | `mini-services/canvas-sync/AGENTS.md` | Socket.IO service for live multi-viewer canvas sync |
 | `prisma/AGENTS.md` | Prisma schema: Document, Shape, AgentAction models |
 | `scripts/AGENTS.md` | Dev scripts: server launchers, screenshot automation |

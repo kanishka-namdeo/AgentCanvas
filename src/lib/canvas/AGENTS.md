@@ -16,12 +16,17 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 ## Local Contracts
 
 ### Store contract (`store.ts`)
-- The store holds: `document` (CanvasDocument), `connected` (WebSocket status), `turns` (live streaming chat buffer), `selectedId`, `prompting` (bool), plus actions.
+- The store holds: `document` (CanvasDocument), `connected` (WebSocket status), `turns` (live streaming chat buffer), `selectedIds`, `agentBusy`, `toolMode` ('select' | 'pan'), `undoStack`, `redoStack`, plus actions.
+- **toolMode**: controls canvas interaction mode. `'select'` (default) = click-to-select shapes. `'pan'` = click-drag pans the canvas. Toggled by the Toolbar's Select/Pan buttons + V/H keyboard shortcuts. Space-held temporarily overrides to pan.
+- **Undo/redo**: `undo()` and `redo()` pop/push the stacks (capped at 50). Wired to `⌘Z` / `⌘⇧Z` keyboard shortcuts in `page.tsx`. `sendPatch` pushes to `undoStack` for mutating ops (was previously only pushed when patches arrived over WS — now works for offline edits too).
 - The store exposes a `window.__canvasStore` global in dev for debugging. Do not remove.
-- The store has an HTTP fallback: if the WebSocket connection fails, `promptAgent` falls back to `fetch('/api/agent')` and parses the chunked SSE-style response. Do not remove the fallback — it is the primary path in the sandbox.
-- The store bridges into `useSessionStore`: `promptAgent` starts a Run + appends Messages; `_onSync` mirrors every event (deltas, tool calls, errors) into the session store; `turn_end` captures a Snapshot.
+- **Settings injection**: `promptAgent` calls `agentRunSettings(useSettings.getState())` and injects the result into both the WebSocket emit path (`socket.emit('client', { type: 'agent:prompt', ..., settings })`) and the HTTP fallback path (`fetch('/api/agent', { body: { ..., settings } })`). This ensures the server-side runner respects user-configured temperature, maxIterations, planFirst, defaultPalette, skillSelectionMode, and LLM provider config.
+- The store has an HTTP fallback: if the WebSocket connection fails, `promptAgent` falls back to `fetch('/api/agent')` and parses the chunked NDJSON response. Do not remove the fallback — it is the primary path in the sandbox.
+- The store bridges into `useSessionStore`: `promptAgent` starts a Run + appends Messages; `_onSync` mirrors every event (deltas, tool calls, errors) into the session store; `turn_end` captures a Snapshot (respecting the `snapshotCadence` setting + `maxSnapshotsPerSession` cap).
+- **Snapshot cadence**: `turn_end` handler reads `useSettings.getState().snapshotCadence` ('every-turn' / 'every-3-turns' / 'every-5-turns' / 'manual'). 'manual' skips auto-capture; the user must use the History panel's "Capture current state" button. When `maxSnapshotsPerSession` is exceeded, oldest non-bookmarked snapshots are auto-deleted.
 - `_syncTurnsFromSession` rebuilds the live `turns` buffer from session-store messages when switching sessions. Tool calls are joined by `runId`.
 - The store bridges into `useSessionStore`, which uses `skipHydration: true` + a manual `hydrateSessionStore()` call in `init()` to avoid SSR hydration mismatches.
+- **forkActiveSession(fromMessageId)**: when `fromMessageId` is provided, finds the snapshot whose `sourceMessageId` matches and calls `forkSessionFromSnapshot()` to seed the fork from that point in history (not the parent's latest state). Falls back to `forkSession()` (latest state) if no matching snapshot is found.
 
 ### React subscription safety
 - Zustand selectors MUST return stable references. Never write `useCanvasStore((s) => s.document.tokens ?? { colors: [], textStyles: [] })` — the `?? {}` creates a new object every render and triggers an infinite loop.

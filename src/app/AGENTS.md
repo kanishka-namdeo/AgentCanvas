@@ -19,11 +19,15 @@ The Next.js App Router entry point: the root layout, the main page (the 4-pane A
 - Server component — do not add `'use client'` here.
 
 ### Page (`page.tsx`)
-- The 4-pane layout is the canonical layout. Do not introduce a 5th column without a parent-level decision.
-- Top status bar shows: connection status (pill-style badge — "local-only" replaces the alarming "offline"), document name, agent status, SDK docs link, and the `ThemeToggle` button.
-- The chat column container uses `ac-surface-0` (NOT `bg-white`) so it swaps correctly in dark mode. Do not reintroduce `bg-white` on any panel container.
+- The layout is a **tabbed 3-column** split: `LeftTabbedPanel (Chats/Layers) | Canvas | RightTabbedPanel (Chat/Design/History)`. The previous 4-pane layout (sessions | layers | canvas | properties+chat+history) was decluttered into 3 columns with tabs.
+- Panels use `react-resizable-panels` (`ResizablePanel` + `ResizableHandle`) with `collapsible` + `collapsedSize={0}`. The `autoSaveId="co-canvas-layout-h"` persists panel sizes across reloads.
+- **Collapsed-panel edge buttons**: when a panel is collapsed (width=0), a floating edge tab appears on the screen edge (left or right). Click to expand. This solves the "can't unhide the agent panel" dead-end. A `useEffect` on mount calls `imperativePanelHandle.isCollapsed()` to sync React state with the persisted layout (the library's autoSaveId restore doesn't fire `onCollapse`).
+- **Tab strip also serves as panel header**: each tabbed panel's tab strip includes a collapse chevron on the right. The panel content is `hidden` (display:none) when collapsed to prevent overflow.
+- Top header shows: brand, document name (inline-editable), session title (compact), ⌘K "Ask anything" button, "Ask" RunStopButton (opens Command Palette), connection status (single Bot icon with tooltip), Zen mode, .pen file menu, Settings (gear), ThemeToggle.
+- Keyboard shortcuts: `⌘1` left panel, `⌘2` right panel, `⌘K` command palette, `⌘,` settings, `⌘\` zen mode, `⌘Z` undo, `⌘⇧Z` redo, `V` select tool, `H` pan tool. Non-meta shortcuts (`V`/`H`) are suppressed when typing in inputs/textareas.
+- The page sets `data-density` attribute on the root div (reactively subscribed to `useSettings((s) => s.density)`).
+- On mount, an effect calls `sweepIdleSessions()` + `enforceSessionCap()` from the session store, using the user's settings (`autoArchiveIdleAfter`, `maxSessionsRetained`). Shows a toast if any sessions were archived.
 - The page is a client component (`'use client'`) because it composes client-only panels.
-- The panes use `react-resizable-panels` (`ResizablePanel` + `ResizableHandle`) — keep the resize handles visible (do not set their width to 0).
 
 ### Design token system (`globals.css`)
 - The `--ac-*` custom properties are the project's semantic design system. They are the SINGLE source of truth for colors, borders, surfaces, and focus rings.
@@ -45,8 +49,9 @@ The Next.js App Router entry point: the root layout, the main page (the 4-pane A
 ### Dark mode
 - Dark mode activates when `<html>` or any ancestor has the `.dark` class. The project uses `.dark` (NOT `[data-theme="dark"]`) — see `@custom-variant dark (&:is(.dark *))` at the top of `globals.css`.
 - A `.dark` block in `globals.css` redefines every `--ac-*` token (same hues, inverted L axis via OKLCH). All utility classes pick up the new values automatically — no component changes needed.
-- The toggle is `src/components/ThemeToggle.tsx` — a small client component that flips the `.dark` class on `<html>` and persists the choice to `localStorage['agentcanvas-theme']`. On first visit it respects `prefers-color-scheme`.
-- The toggle is wired into the top bar of `page.tsx` next to the "SDK docs" link.
+- The toggle is `src/components/ThemeToggle.tsx` — cycles through **3 states**: `system → light → dark → system`. Subscribes to `useSettings((s) => s.themePreference)` so it stays in sync with Settings → Appearance changes. On `system`, follows OS `prefers-color-scheme` and re-applies on OS change.
+- Legacy compat: the toggle also writes to `localStorage['agentcanvas-theme']` (the pre-settings key) so `getInitialTheme()` can hydrate before the settings store loads.
+- **Density**: `[data-density="compact"]` rules in `globals.css` scale down fonts (text-[11px]→10px, text-[12px]→11px, text-[13px]→12px) + tighten padding on `.p-2`/`.p-3`/`.px-3`/`.py-2` + tighten `space-y-2`/`space-y-3` gaps. Controlled by the `density` setting; the root div's `data-density` attribute is reactively subscribed in `page.tsx`.
 - **The canvas workspace itself does NOT swap to dark** — `document.background` is a user-controlled document property (like Figma's canvas fill), not a UI surface. Only the chrome (panels, dialogs, dropdowns, toolbar) swaps. This is intentional.
 
 ### Tailwind

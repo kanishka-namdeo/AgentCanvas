@@ -8,9 +8,10 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
 
 ## Ownership
 
-- `SessionSidebar.tsx` — left rail: search, New button, pinned-first sorting, archived section, context menu (Rename / Pin / Star / Fork / Archive / Delete).
-- `SessionHeader.tsx` — top of the agent column: inline-editable title, status badge, fork indicator, Fork button, branded bot avatar.
-- `RunHistoryPanel.tsx` — tabbed (Runs / Snapshots). Expandable run cards with tool-call timeline. Snapshot cards with Restore / Fork / Bookmark.
+- `SessionSidebar.tsx` — left panel tab (Chats): search, New button, pinned-first sorting, archived section, context menu (Rename / Pin / Star / Fork this chat / Archive / Delete). "Fork this chat" calls `forkSession(session.id, null)` directly (NOT `forkActiveSession` — which used the wrong active session). Toasts on Pin/Star/Archive/Delete/Fork.
+- `SessionHeader.tsx` — top of the right panel (compact mode in header): inline-editable title, status badge, fork indicator, Fork button, branded bot avatar.
+- `RunHistoryPanel.tsx` — right panel tab (History): tabbed (Runs / Snapshots). Expandable run cards with tool-call timeline. Snapshot cards with Restore / Fork / Bookmark. "Capture current state" button. Accepts `hideHeader` prop (compact tab strip when inside the right tabbed panel). Toasts on Restore/Fork/Capture/Bookmark.
+- `RunStopButton.tsx` — header button. When idle: shows "Ask" button that opens the Command Palette via `onAsk` prop (replaces the old "Run" button that was a silent no-op when not on Chat tab). When busy: shows "Stop" button with pulsing white dot.
 - `StatusBadge.tsx` — color-coded status pill for runs / tool-calls / sessions. Includes a `StatusDot` variant.
 
 ## Local Contracts
@@ -25,7 +26,7 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
 - "New chat" button is a solid violet primary CTA (the brand accent), visually distinct from secondary actions.
 - Active session row uses `.ac-active-row` (2px left accent bar + soft violet bg).
 - Pinned sessions sort first; archived sessions collapse into a disclosure section at the bottom.
-- Context menu actions: Rename (opens Dialog), Pin/Unpin, Star/Unstar, "Fork from here", Archive/Unarchive, Delete (with confirm).
+- Context menu actions: Rename (opens Dialog), Pin/Unpin, Star/Unstar, "Fork this chat" (calls `forkSession(session.id, null)` — NOT `forkActiveSession`), Archive/Unarchive, Delete (with confirm). All actions show a `sonner` toast on success.
 - Context menu (`DropdownMenuContent`):
   - `min-w-[180px]` for consistent width.
   - Opens with a `DropdownMenuLabel` showing the session title (uppercase, `ac-text-4`, truncated) — provides context for which session the menu applies to.

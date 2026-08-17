@@ -83,6 +83,15 @@ wireframe, layout, styling, inspect, export, web_research, vector, multi
 - The event stream (`AgentStreamEvent` union) mirrors Pi's `AgentSessionEvent` shape.
 - Swap point: the LLM client in `runner.ts`. Replace with `createAgentSession` from `@earendil-works/pi-coding-agent` to go native Pi.
 - The `LLMClient` interface is the minimal contract: `chat.completions.create({ messages, tools, tool_choice, temperature })`.
+- **Settings integration**: `AgentRunOptions` accepts an optional `settings?: AgentRunSettings` field (from `src/lib/settings/types.ts`). When provided, the runner uses:
+  - `settings.temperature` (default 0.4) — replaces the previously hard-coded `0.4`.
+  - `settings.maxIterations` (default 20) — replaces the previously hard-coded `MAX_ITERATIONS = 20`.
+  - `settings.planFirst` (default true) — controls whether the "PLAN FIRST" system-prompt section is included.
+  - `settings.defaultPalette` (default 'slate') — reorders the suggested palettes list in the system prompt so the user's default is first.
+  - `settings.skillSelectionMode` (default 'auto') — when 'manual', skips the classifier and uses the 'multi' category (all core tools).
+- **LLM provider swap**: `settings.llmProvider` controls which LLM client is constructed:
+  - `zai-auto` / `zai-key` → `ZAI.create()` (auto-resolves credentials in sandbox; uses env vars outside).
+  - `openai-compatible` → `createOpenAICompatibleClient({ apiKey, baseURL, model })` — a minimal fetch-based client that POSTs to the user's custom OpenAI-compatible endpoint (OpenAI, Together, Groq, Ollama, etc.). Only `chat.completions.create` is implemented (non-streaming).
 
 ### Intent classifier
 - Primary: keyword/regex pass (instant, zero cost). Short keywords (≤3 chars) use word-boundary matching to avoid false positives (e.g. "ui" in "build").
@@ -135,7 +144,7 @@ Extended SyncEvent types (in `src/lib/canvas/types.ts`):
 - When adding a skill: see `skills/AGENTS.md`.
 - When changing a tool's schema: every prior session replay that called the old shape will fail. Consider adding a new tool instead.
 - When debugging the agent loop: check `dev.log`, reproduce via `/api/agent`, use Agent Browser for end-to-end verification.
-- The runner has a `MAX_ITERATIONS` guard (default 20 tool calls per turn). Exceeding it emits `turn_end` with an `error` field — do not raise.
+- The runner has a `maxIterations` guard (default 20, user-configurable via Settings → Agent → Max tool calls per turn). Exceeding it emits `turn_end` — do not raise.
 
 ## Verification
 

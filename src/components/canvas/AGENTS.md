@@ -6,11 +6,12 @@ Canvas UI components: the drawing surface, the toolbar, the layers panel, the pr
 
 ## Ownership
 
-- `Canvas.tsx` — the SVG/HTML drawing surface. Renders shapes from `useCanvasStore`. Handles pan/zoom (planned), selection, drag.
-- `Toolbar.tsx` — top toolbar: tool selection (Select / Rectangle / Ellipse / Text / Line), zoom controls, background color picker.
-- `LayersPanel.tsx` — left panel: shape list with rename / reorder / lock / hide / delete.
-- `PropertiesPanel.tsx` — right panel: form for the selected shape's properties (position, size, fill, stroke, text, etc.).
-- `AgentPanel.tsx` — bottom panel: chat input + streaming message list + tool-call cards + "Fork from here" button on each user message.
+- `Canvas.tsx` — the SVG/HTML drawing surface. Renders shapes from `useCanvasStore`. Handles pan/zoom, selection, drag, resize. Reads `toolMode` from the store to decide pan vs select on click-drag. Cursor changes to `grab` when `toolMode === 'pan'` or Space is held.
+- `Toolbar.tsx` — **floating pill** at the bottom-center of the canvas (tldraw/Excalidraw pattern). Tool buttons: Select (V), Pan (H), Rectangle, Ellipse, Text, Line, Frame, Clear. Shape buttons are `disabled` when `agentBusy`. Clear is `disabled` when canvas is empty. Select/Pan buttons toggle `toolMode` in the store with `aria-pressed`.
+- `CommandPalette.tsx` — ⌘K command palette (Dialog + cmdk). Fuzzy-searchable list of all 19 preset prompts grouped by category. Supports custom free-form prompts as a fallback. Opens via the "Ask anything" header button or `⌘K`. Disabled when `agentBusy`.
+- `LayersPanel.tsx` — left panel tab: shape list with rename / reorder / lock / hide / delete. Badges capped at 1 visible per row (priority: Master > Instance > AL > theme > token); rest go into hover tooltip.
+- `PropertiesPanel.tsx` — right panel tab (Design): form for the selected shape. Fill/Stroke/Radius/Opacity wrapped in a single "Style" Collapsible. Sections are type-conditional (Auto Layout only for frame/group; Text only for text shapes; Slot only for frames). Empty state shows canvas background + design tokens + variables/themes summary.
+- `AgentPanel.tsx` — right panel tab (Chat): chat input + streaming message list + tool-call cards + "Fork from this message" button on each user message. Status strip (variables/tokens) removed — moved to PropertiesPanel empty state. Send button only renders when there's input.
 
 ## Local Contracts
 
@@ -21,28 +22,43 @@ Canvas UI components: the drawing surface, the toolbar, the layers panel, the pr
 
 ### Component contracts
 - `Canvas.tsx`:
-  - Reads `document.shapes`, `selectedId` from the canvas store.
-  - Renders shapes as SVG elements (rectangles, ellipses, lines, text) or HTML (frames/groups).
+  - Reads `document.shapes`, `selectedIds`, `toolMode` from the canvas store.
+  - `toolMode === 'pan'` makes click-drag pan the canvas (same as Space-held). `onShapeMouseDown` returns early in pan mode (no selection).
+  - Cursor: `cursor-grab` when `spaceDown || toolMode === 'pan'`, else `cursor-default`.
+  - Zoom controls (bottom-left) have `aria-label` + `title` (Zoom out / Zoom in / Reset zoom to 100%).
   - All shape property access MUST be null-safe (`shape?.x ?? 0`) — the LLM can emit patches referencing deleted shapes.
   - Numeric fields used in `toFixed` / `Math.round` MUST be coerced via `Number()` first.
-  - **Empty-canvas drop zone**: when `document.shapes.length === 0`, renders a subtle centered placeholder (dashed `--ac-border-strong` border, `--ac-surface-0` 70% bg with 2px backdrop blur, violet icon tile using `--ac-accent-soft`/`--ac-accent`/`--ac-accent-border`, "Empty canvas" heading + descriptive subtitle + tip line). `pointer-events: none` so it never blocks canvas clicks. Fades in via the `ac-fade-in` keyframe. Disappears the moment the first shape is added.
-  - **Backdrop grid**: uses `color-mix(in oklch, var(--ac-text-primary) 12%, transparent)` (NOT a hardcoded `rgba(15,23,42,0.08)`) so the dot grid swaps correctly in dark mode.
-  - **Zoom indicator** (bottom-left): all colors come from `--ac-*` tokens (`ac-text-2/3`, `ac-surface-0` via `color-mix`, `ac-border-default`, `ac-surface-2` for hover). No `slate-{n}` / `bg-white/90` literals.
+  - **Empty-canvas drop zone**: when `document.shapes.length === 0`, renders a subtle centered placeholder.
+  - **Backdrop grid**: uses `color-mix(in oklch, var(--ac-text-primary) 12%, transparent)` for dark-mode-correct dots.
+- `Toolbar.tsx`:
+  - Floating pill: `absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none` wrapper; inner pill re-enables pointer events.
+  - Select/Pan buttons use `aria-pressed={toolMode === 'select'/'pan'}` + `aria-label`.
+  - Shape buttons use `disabled={agentBusy}` to prevent race conditions.
+  - Clear button uses `disabled={canvasEmpty || agentBusy}`.
+  - All buttons are `rounded-full` (pill style).
+- `CommandPalette.tsx`:
+  - Built on `cmdk` (wrapped by `@/components/ui/command`).
+  - Opens via `⌘K` / `⌘K` or the "Ask anything" header button.
+  - `PROMPT_GROUPS` is a verbatim copy of `AgentPanel.tsx`'s `PROMPT_GROUPS` (intentional duplication — see X5 in the UI audit; extraction to a shared module is a P3 cleanup).
+  - Custom prompt fallback: if query doesn't exactly match a preset, shows a "Send '...' as a custom prompt" item.
+  - `runPrompt()` calls `promptAgent(text)` + closes the palette.
 - `PropertiesPanel.tsx`:
-  - Reads `selectedId`, looks up the shape, renders a form.
-  - Form fields dispatch `pen_update_shape` via the canvas store (NOT the agent) for direct edits. (Tools were renamed `canvas_*` → `pen_*` for .pen alignment.)
-  - Token access MUST be null-safe: `document.tokens?.colors ?? []`, `document.tokens?.textStyles ?? []`.
-  - Header uses uppercase + tracking-wide per the design system.
+  - Reads `selectedIds`, looks up the shape, renders a form.
+  - Fill + Stroke + Radius + Opacity are wrapped in a single "Style" Collapsible (defaultOpen).
+  - Auto Layout, Theme, Slot, Text sections are type-conditional + collapsed by default.
+  - Empty state shows Canvas Background + Design Tokens + variables/themes summary (moved here from AgentPanel's status strip).
+  - Token access MUST be null-safe: `document.tokens?.colors ?? []`.
 - `LayersPanel.tsx`:
   - Renders a flat list of shapes (groups expand inline).
-  - Active row uses `.ac-active-row` (2px left accent bar + soft violet bg).
-  - Empty state: friendly message + CTA.
+  - Badge cluster: at most 1 visible badge per row by priority (Master > Instance > AL > theme > token). Rest go into the row's `title` attribute.
+  - Visibility/lock toggle buttons have `aria-label` + `aria-pressed` + `title`.
+  - Context menu: Delete, Duplicate, Rename.
 - `AgentPanel.tsx`:
-  - Input field is decoupled from the `connected` dependency — it works over both WebSocket and HTTP fallback. Do not re-couple.
-  - Send button is grouped INSIDE the textarea container (single visual unit). Disabled Send shows 40% opacity + `not-allowed` cursor.
-  - Accepts a `hideHeader` prop (the `SessionHeader` component replaces the inline header when in the 4-pane layout).
-  - Each user message has a "Fork from here" button.
-  - Prompt suggestion cards show a send-arrow affordance on hover.
+  - Input field is decoupled from the `connected` dependency — works over both WebSocket and HTTP fallback.
+  - Send button only renders when `input.trim()` is non-empty (cleaner empty state).
+  - Placeholder text includes `(⌘K for prompts)` hint.
+  - Empty state shows ⌘K hint + prompt group chips + preset prompt buttons.
+  - Each user message has a "Fork from this message" button with `aria-label`.
 
 ### React subscription safety (root contract, restated)
 - Zustand selectors MUST return stable references.
