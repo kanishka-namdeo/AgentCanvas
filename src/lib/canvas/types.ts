@@ -1,10 +1,22 @@
-// Shared canvas types — used by the frontend, the WebSocket service,
-// the Pi Agent SDK tool definitions, and the persistence layer.
+// Shared canvas types — now aligned to the .pen (pen.dev) format.
 //
-// Extended with: design tokens, attention heatmap, auto-layout, components,
-// bulk ops, group/ungroup, duplicate, align — mirroring the feature set
-// surfaced by modern AI-driven design tools (Figma UI3, Figma Make,
-// Galileo AI, Uizard, UX Pilot — see /research/*.json).
+// BREAKING CHANGE (Phase C): the source of truth is a .pen object tree
+// (`children: PenChild[]` + `variables` + `themes`). The flat `shapes[]`
+// and `tokens` fields are DERIVED render caches, recomputed on every
+// mutation by `resolvePenTree()`. This mirrors pen.dev's own architecture:
+// the tree is the model; rendering computes layout.
+//
+// The heatmap overlay has been REMOVED for full .pen format purity (pen.dev
+// has no analysis-overlay concept). Predictive-heatmap tooling is dropped.
+//
+// `Shape` is retained as the resolved render-node type the SVG renderer and
+// the layers/properties panels consume. It carries absolute positions,
+// resolved variable values, expanded ref subtrees, and a depth-first zIndex.
+
+import type { PenChild, PenDocument, PenVariableDef, PenTheme } from '../pen/types';
+import { PEN_FORMAT_VERSION } from '../pen/types';
+
+// ---- Resolved render node (what the renderer sees) -----------------------
 
 export type ShapeType =
   | 'rectangle'
@@ -13,42 +25,21 @@ export type ShapeType =
   | 'line'
   | 'frame'
   | 'group'
-  // Extended shape types (Phase 5):
-  | 'path'   // arbitrary polygon / polyline defined by `points`
-  | 'image'; // raster image referenced by `src` (data URL or remote URL)
+  | 'path'
+  | 'image';
 
-/// Auto-layout configuration for container shapes (frames / groups).
-/// Mirrors Figma's Auto Layout: children of a frame with `autoLayout` set
-/// are arranged automatically based on direction, gap, padding, alignment.
+/// Auto-layout configuration for container shapes (frames/groups).
+/// Maps to .pen's flexbox `Layout` (layout/gap/padding/justifyContent/alignItems).
 export interface AutoLayout {
-  /// Layout direction.
   direction: 'horizontal' | 'vertical';
-  /// Gap between children, in px.
   gap: number;
-  /// Padding inside the frame, in px (uniform).
   padding: number;
-  /// Horizontal alignment of children.
   alignX: 'min' | 'center' | 'max';
-  /// Vertical alignment of children.
   alignY: 'min' | 'center' | 'max';
 }
 
-/// Optional per-shape design-token binding. Instead of hardcoding `fill`,
-/// a shape may reference a named token (`bg.primary`, `text.heading`, …)
-/// so that changing the token recolors every bound shape.
-export interface TokenBinding {
-  fillToken?: string;
-  textToken?: string;
-  strokeToken?: string;
-}
-
-/// A 2D point in canvas-space. Used by `path` shapes.
-export interface PathPoint {
-  x: number;
-  y: number;
-}
-
 /// Per-corner border radii. When set, overrides the uniform `radius` field.
+/// Maps to .pen's 4-tuple `cornerRadius`.
 export interface CornerRadii {
   topLeft: number;
   topRight: number;
@@ -56,28 +47,25 @@ export interface CornerRadii {
   bottomLeft: number;
 }
 
-/// Linear or radial gradient fill. When set on a shape, `fill` is ignored
-/// at render time (but kept in sync as the first stop's color for audit).
+/// Linear or radial gradient fill. Resolved from .pen's gradient Fill.
 export interface GradientFill {
   type: 'linear' | 'radial';
-  /// 0..360 — angle for linear gradients (ignored for radial).
   angle: number;
-  /// Stops sorted by offset ascending. 2..many.
   stops: Array<{ offset: number; color: string }>;
 }
 
-/// Drop shadow effect. Rendered via an SVG filter.
+/// Drop shadow effect. Resolved from .pen's shadow Effect.
 export interface ShadowEffect {
   x: number;
   y: number;
   blur: number;
-  /// Hex color. Alpha is taken from the color's alpha channel.
   color: string;
   spread?: number;
-  /// If true, the shadow renders inside the shape (inset). Default false.
   inset?: boolean;
 }
 
+/// A resolved render node — the flattened, absolutely-positioned view of a
+/// .pen tree node, ready for SVG rendering. Produced by `resolvePenTree()`.
 export interface Shape {
   id: string;
   type: ShapeType;
@@ -99,32 +87,20 @@ export interface Shape {
   zIndex: number;
   locked: boolean;
   visible: boolean;
-  /// Auto-layout (only meaningful for `frame` / `group` shapes).
   autoLayout?: AutoLayout | null;
-  /// Token bindings (optional). When set, `fill` / `textColor` / `stroke`
-  /// are recomputed from the document's tokens.
-  tokenBinding?: TokenBinding | null;
-  /// Marks this shape as an instance of a component definition.
-  /// `componentId` points at the original component shape (same canvas).
+  tokenBinding?: { fillToken?: string; textToken?: string; strokeToken?: string } | null;
   componentId?: string | null;
-  // ---- Extended properties (Phase 5) -------------------------------------
-  /// For `path` shapes: the list of points (canvas-space). When `closed`
-  /// is true the path is filled; otherwise it's a stroked polyline.
-  points?: PathPoint[] | null;
+  points?: { x: number; y: number }[] | null;
   closed?: boolean;
-  /// For `image` shapes: the source URL (data URL or remote URL).
   src?: string | null;
-  /// Per-corner radii (overrides `radius` for rectangle/frame shapes).
   radii?: CornerRadii | null;
-  /// Gradient fill (overrides `fill` at render time).
   gradient?: GradientFill | null;
-  /// Drop shadow effect (rendered via SVG filter).
   shadow?: ShadowEffect | null;
-  /// Gaussian blur radius in px (rendered via SVG filter).
   blur?: number;
-  /// If set, this shape is clipped by the shape with id `maskId`. The
-  /// mask shape's geometry defines the visible region.
   maskId?: string | null;
+  /// .pen theme effective on this node (inherited from ancestors + own).
+  /// Enables the properties panel to show/edit the node's theme.
+  theme?: PenTheme;
 }
 
 export interface Viewport {
@@ -133,18 +109,14 @@ export interface Viewport {
   panY: number;
 }
 
-// ---- Design tokens ---------------------------------------------------------
+// ---- Derived token view (for the tokens panel) ---------------------------
 //
-// A lightweight design-system layer: named colors and text styles that
-// can be referenced by shapes (`tokenBinding`) and edited centrally.
-// Inspired by Figma Variables + the AI design-system workflows surfaced
-// in /research/ai_design_scenarios.json ("Design Systems And AI: Why MCP
-// Servers Are The Unlock", "AI design systems combine traditional design
-// system principles with AI-powered workflows").
+// .pen stores variables as `{ [key]: { type, value } }`. The tokens panel
+// and some legacy tools consume a flat array of `{ name, key, value }`.
+// This derived view is recomputed on every mutation.
 
 export interface ColorToken {
   name: string;
-  /// Dotted path, e.g. `bg.primary`, `accent`, `text.muted`.
   key: string;
   value: string;
 }
@@ -163,46 +135,57 @@ export interface DesignTokens {
   textStyles: TextStyleToken[];
 }
 
-// ---- Attention heatmap -----------------------------------------------------
-//
-// A simulated "where will the user look?" overlay. Each point is a
-// predicted fixation. Inspired by Uizard's "predictive heat map of where
-// users will focus" (see /research/ai_design_tools.json).
-export interface HeatmapPoint {
-  x: number;
-  y: number;
-  /// 0..1 intensity.
-  intensity: number;
-}
+// ---- The document: a .pen tree + runtime fields + derived caches ---------
 
-export interface HeatmapOverlay {
-  /// Bounding box of the heatmap (canvas-space). Usually matches a frame.
-  frameId?: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  points: HeatmapPoint[];
-  createdAt: number;
-}
-
-export interface CanvasDocument {
+export interface CanvasDocument extends Omit<PenDocument, 'children'> {
+  /// Runtime: session document id.
   id: string;
+  /// Runtime: display name (also used as the .pen filename).
   name: string;
-  background: string;
+  /// The .pen object tree — SOURCE OF TRUTH.
+  children: PenChild[];
+  /// Runtime: pan/zoom (not a .pen concept).
   viewport: Viewport;
+  /// Derived: canvas background color (from `variables['canvas.background']`
+  /// or '#f8fafc' default). Recomputed on mutation.
+  background: string;
+
+  // ---- Derived render caches (recomputed by resolvePenTree + tokensFromVariables) ----
+  /// Resolved flat render list (absolute positions, expanded refs, resolved
+  /// variables/themes). Recomputed on every mutation.
   shapes: Shape[];
-  /// Design tokens (color palette + text styles). Edited by the agent
-  /// via `canvas_update_tokens`; shapes may bind to them via `tokenBinding`.
+  /// Derived tokens view (from `variables`). Recomputed on every mutation.
   tokens: DesignTokens;
-  /// Transient attention heatmap overlay (or null).
-  heatmap: HeatmapOverlay | null;
 }
 
-/// A canonical patch emitted by every canvas tool. The agent emits one of
-/// these per tool call; the frontend applies it to local state and the
-/// WebSocket service broadcasts it to every other viewer. Mirrors the
-/// `details.patch` pattern documented by the Pi Agent SDK.
+/// Factory: create a fresh empty CanvasDocument (a valid .pen tree).
+export function createEmptyCanvasDocument(id: string, name = 'Untitled'): CanvasDocument {
+  return {
+    id,
+    name,
+    version: PEN_FORMAT_VERSION,
+    themes: undefined,
+    variables: undefined,
+    children: [],
+    viewport: { zoom: 1, panX: 120, panY: 80 },
+    background: '#f8fafc',
+    shapes: [],
+    tokens: { colors: [], textStyles: [] },
+  };
+}
+
+// ---- Patches -------------------------------------------------------------
+//
+// Patch ops are kept stable (add/update/remove/group/ungroup/etc.) so the
+// existing 54 tools keep working during the rename. The applier now operates
+// against the .pen TREE: `add` inserts a node under `shape.parentId` (or
+// root); `update` merges properties onto a tree node; `remove` prunes a
+// subtree; `group` wraps nodes in a frame; `tokens` updates `variables`;
+// `zorder` reorders within siblings; etc.
+//
+// After applying, the applier recomputes `shapes` (via resolvePenTree) and
+// `tokens` (via variables).
+
 export interface CanvasPatch {
   op:
     | 'add'
@@ -211,65 +194,51 @@ export interface CanvasPatch {
     | 'clear'
     | 'background'
     | 'select'
-    // Extended ops (research-driven scenarios):
-    | 'bulk_add'        // wireframe / user-flow / diagram generators
-    | 'update_many'     // apply_palette / restyle / batch update
-    | 'duplicate'       // duplicate shapes (with new ids)
-    | 'group'           // wrap shapes in a group (sets parentId)
-    | 'ungroup'         // dissolve a group (clears parentId on children)
-    | 'align'           // align/distribute selected shapes
-    | 'tokens'          // update design tokens
-    | 'heatmap'         // set / clear attention heatmap overlay
-    // Phase 1+2+5 ops:
-    | 'zorder'          // bring_to_front / send_to_back / forward / backward
-    | 'reorder'         // move a shape to a specific zIndex
-    | 'viewport'        // set viewport (pan/zoom)
-    | 'undo'            // client-side: pop undo stack
-    | 'redo';           // client-side: pop redo stack
+    | 'bulk_add'
+    | 'update_many'
+    | 'duplicate'
+    | 'group'
+    | 'ungroup'
+    | 'align'
+    | 'tokens'
+    | 'zorder'
+    | 'reorder'
+    | 'viewport'
+    | 'undo'
+    | 'redo'
+    // New .pen-aligned ops:
+    | 'set_theme_axis'        // define a theme axis (e.g. mode: [light, dark])
+    | 'set_node_theme'        // set a node's theme (e.g. { mode: dark })
+    | 'set_variable'          // set a single $variable (alias for tokens w/ one color)
+    | 'mark_slot';            // mark a frame as a slot for recommended components
   shapeId?: string;
-  /// Full or partial shape payload for 'add' / 'update'.
-  shape?: Partial<Shape>;
-  /// For 'clear' / 'select' ops.
+  /// Full or partial .pen node payload for 'add' / 'update' (also accepts
+  /// legacy Shape fields like `radius`, `text`, `autoLayout` — the applier
+  /// normalizes them to .pen field names).
+  shape?: Partial<Shape> & Record<string, unknown>;
   shapeIds?: string[];
-  /// For 'bulk_add' — multiple shapes to add in one patch.
   shapes?: Array<Partial<Shape> & { id: string }>;
-  /// For 'update_many' — list of { id, changes }.
   updates?: Array<{ id: string; changes: Partial<Shape> }>;
-  /// For 'duplicate' — ids to duplicate (returns new ids in summary).
-  /// For 'group' — ids to wrap.
-  /// For 'align' — ids to align.
-  /// For 'background' op.
   background?: string;
-  /// For 'viewport' op (reserved; currently unused).
   viewport?: Viewport;
-  /// For 'tokens' op — partial tokens update (merges by key).
   tokens?: Partial<DesignTokens>;
-  /// For 'heatmap' op — null to clear, otherwise set the overlay.
-  heatmap?: HeatmapOverlay | null;
-  /// For 'group' / 'ungroup' — the resulting group shape id.
   groupId?: string;
-  /// Alignment kind for 'align' op.
-  alignKind?: 'left' | 'center_h' | 'right' | 'top' | 'center_v' | 'bottom'
-    | 'distribute_h' | 'distribute_v';
-  /// For 'zorder' op — which direction to move the shape(s) in the stack.
+  alignKind?: 'left' | 'center_h' | 'right' | 'top' | 'center_v' | 'bottom' | 'distribute_h' | 'distribute_v';
   zorderKind?: 'front' | 'back' | 'forward' | 'backward';
-  /// For 'reorder' op — the target zIndex.
   zIndex?: number;
-  /// Human-readable summary the UI can show next to the tool call.
+  // New .pen-aligned fields:
+  themeAxis?: string;                    // for set_theme_axis
+  themeValues?: string[];                // for set_theme_axis
+  theme?: PenTheme;                      // for set_node_theme
+  variableKey?: string;                  // for set_variable
+  variableType?: 'color' | 'number' | 'string' | 'boolean';
+  variableValue?: string | number | boolean | Array<{ value: string | number | boolean; theme?: PenTheme }>;
+  slotComponents?: string[];             // for mark_slot
   summary: string;
 }
 
-/// Events the WebSocket server can push to connected clients.
-/// These intentionally mirror the shape of Pi's `AgentSessionEvent`
-/// union so the same UI reducer can handle both a real Pi session
-/// and our z-ai-web-dev-sdk backed driver.
-///
-/// Extended with skill-system events (Tier 0/1/2):
-///   - agent:skill_selected — the intent classifier picked a skill
-///   - agent:plan — the plan module generated a step list
-///   - agent:plan_step_update — a plan step changed status
-///   - agent:subagent_dispatch — a sub-agent was spawned
-///   - agent:subagent_result — a sub-agent returned its result
+// ---- Sync events (unchanged shape; heatmap events removed) ---------------
+
 export type SyncEvent =
   | { type: 'canvas:patch'; patch: CanvasPatch; toolCallId?: string }
   | { type: 'canvas:full'; document: CanvasDocument }
@@ -288,7 +257,6 @@ export type SyncEvent =
   | { type: 'agent:subagent_result'; subAgentType: string; success: boolean; summary: string; toolCalls: number }
   | { type: 'presence'; viewerCount: number };
 
-/// Events the WebSocket client can send to the server.
 export type ClientEvent =
   | { type: 'subscribe'; documentId: string }
   | { type: 'canvas:patch'; patch: CanvasPatch }

@@ -139,7 +139,7 @@ describe('session bridge: agent message stream → session store', () => {
     useCanvasStore.getState()._onSync({
       type: 'agent:tool_call_start',
       toolCallId: 'tc-1',
-      toolName: 'canvas_create_shape',
+      toolName: 'pen_create_shape',
       argsPreview: '{"shape":{"type":"rectangle"}}',
     });
     useCanvasStore.getState()._onSync({
@@ -154,7 +154,7 @@ describe('session bridge: agent message stream → session store', () => {
     const calls = ss.listToolCalls(runId);
     expect(calls).toHaveLength(1);
     expect(calls[0].id).toBe('tc-1');
-    expect(calls[0].name).toBe('canvas_create_shape');
+    expect(calls[0].name).toBe('pen_create_shape');
     expect(calls[0].status).toBe('success');
     expect(calls[0].summary).toBe('Created rectangle "Button"');
 
@@ -171,7 +171,7 @@ describe('session bridge: agent message stream → session store', () => {
     useCanvasStore.getState()._onSync({
       type: 'agent:tool_call_start',
       toolCallId: 'tc-fail',
-      toolName: 'canvas_delete_shape',
+      toolName: 'pen_delete_shape',
       argsPreview: '{"shapeId":"nope"}',
     });
     useCanvasStore.getState()._onSync({
@@ -321,7 +321,7 @@ describe('session bridge: session switching restores canvas + turns', () => {
     const runB = ss.startRun(sessionB.id, 'do thing', 'user_message');
     ss.appendUserMessage(sessionB.id, runB.id, 'do thing');
     ss.appendAssistantMessage(sessionB.id, runB.id);
-    ss.startToolCall(runB.id, 'tc-b1', 'canvas_create_shape', '{}');
+    ss.startToolCall(runB.id, 'tc-b1', 'pen_create_shape', '{}');
     ss.endToolCall('tc-b1', true, 'created', 'created b2');
 
     // Switch to A first.
@@ -338,7 +338,7 @@ describe('session bridge: session switching restores canvas + turns', () => {
     expect(turns[0].role).toBe('user');
     expect(turns[1].role).toBe('assistant');
     expect(turns[1].toolCalls).toHaveLength(1);
-    expect(turns[1].toolCalls[0].name).toBe('canvas_create_shape');
+    expect(turns[1].toolCalls[0].name).toBe('pen_create_shape');
     expect(turns[1].toolCalls[0].success).toBe(true);
   });
 

@@ -247,7 +247,7 @@ describe('runner: basic loop shape', () => {
 
   it('a single create_shape tool call mutates the canvas + ends the turn', async () => {
     const llm = new MockLLM([
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'Card', x: 10, y: 10, width: 80, height: 50 } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'Card', x: 10, y: 10, width: 80, height: 50 } }] },
       { content: 'Created a Card shape.' },
     ]);
 
@@ -291,9 +291,9 @@ describe('runner: basic loop shape', () => {
     const llm = new MockLLM([
       {
         tool_calls: [
-          { name: 'canvas_create_shape', args: { type: 'rectangle', name: 'A', x: 0, y: 0, width: 50, height: 50 } },
-          { name: 'canvas_create_shape', args: { type: 'rectangle', name: 'B', x: 60, y: 0, width: 50, height: 50 } },
-          { name: 'canvas_create_shape', args: { type: 'rectangle', name: 'C', x: 120, y: 0, width: 50, height: 50 } },
+          { name: 'pen_create_shape', args: { type: 'rectangle', name: 'A', x: 0, y: 0, width: 50, height: 50 } },
+          { name: 'pen_create_shape', args: { type: 'rectangle', name: 'B', x: 60, y: 0, width: 50, height: 50 } },
+          { name: 'pen_create_shape', args: { type: 'rectangle', name: 'C', x: 120, y: 0, width: 50, height: 50 } },
         ],
       },
       { content: 'Created three shapes.' },
@@ -313,9 +313,9 @@ describe('runner: basic loop shape', () => {
     // The tool call sequence in events is in order too.
     const tcSeq = toolCallSequence(events);
     expect(tcSeq.map((t) => t.name)).toEqual([
-      'canvas_create_shape',
-      'canvas_create_shape',
-      'canvas_create_shape',
+      'pen_create_shape',
+      'pen_create_shape',
+      'pen_create_shape',
     ]);
     expect(tcSeq.every((t) => t.success === true)).toBe(true);
 
@@ -330,7 +330,7 @@ describe('runner: basic loop shape', () => {
     const llm = new MockLLM([
       {
         content: 'Let me create a card for you.',
-        tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'Card', x: 0, y: 0, width: 100, height: 60 } }],
+        tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'Card', x: 0, y: 0, width: 100, height: 60 } }],
       },
       { content: 'Done!' },
     ]);
@@ -366,11 +366,11 @@ describe('runner: multi-iteration tool-result feedback', () => {
   it('the LLM sees the tool result from the previous iteration', async () => {
     const llm = new MockLLM([
       // Iteration 1: list shapes (canvas is empty).
-      { tool_calls: [{ name: 'canvas_list_shapes', args: {} }] },
+      { tool_calls: [{ name: 'pen_list_shapes', args: {} }] },
       // Iteration 2: create a shape based on the list result.
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'First', x: 0, y: 0, width: 100, height: 60 } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'First', x: 0, y: 0, width: 100, height: 60 } }] },
       // Iteration 3: list again (should see the new shape).
-      { tool_calls: [{ name: 'canvas_list_shapes', args: {} }] },
+      { tool_calls: [{ name: 'pen_list_shapes', args: {} }] },
       // Iteration 4: done.
       { content: 'Created and verified.' },
     ]);
@@ -408,9 +408,9 @@ describe('runner: multi-iteration tool-result feedback', () => {
   it('the system snapshot is refreshed between iterations (LLM sees updated canvas)', async () => {
     const llm = new MockLLM([
       // Iteration 1: create a shape.
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'Box', x: 0, y: 0, width: 100, height: 100, fill: '#ff0000' } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'Box', x: 0, y: 0, width: 100, height: 100, fill: '#ff0000' } }] },
       // Iteration 2: update that shape's fill.
-      { tool_calls: [{ name: 'canvas_update_shape', args: { shapeId: 'WILL-BE-REPLACED', changes: { fill: '#00ff00' } } }] },
+      { tool_calls: [{ name: 'pen_update_shape', args: { shapeId: 'WILL-BE-REPLACED', changes: { fill: '#00ff00' } } }] },
       // Iteration 3: done.
       { content: 'Updated.' },
     ]);
@@ -421,9 +421,9 @@ describe('runner: multi-iteration tool-result feedback', () => {
     // script: the MockLLM looks at the tool result from iteration 1 to extract
     // the id, then uses it in iteration 2.
     const dynamicScript: ScriptEntry[] = [
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'Box', x: 0, y: 0, width: 100, height: 100, fill: '#ff0000' } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'Box', x: 0, y: 0, width: 100, height: 100, fill: '#ff0000' } }] },
       // The args here are a placeholder; the MockLLM will rewrite them below.
-      { tool_calls: [{ name: 'canvas_update_shape', args: { shapeId: '__DYNAMIC__', changes: { fill: '#00ff00' } } }] },
+      { tool_calls: [{ name: 'pen_update_shape', args: { shapeId: '__DYNAMIC__', changes: { fill: '#00ff00' } } }] },
       { content: 'Updated.' },
     ];
     const dynamicLlm = new MockLLM(dynamicScript);
@@ -479,13 +479,13 @@ describe('runner: multi-iteration tool-result feedback', () => {
     // the canvas + message history consistent across many iterations.
     const llm = new MockLLM([
       // Iter 1: define a color token.
-      { tool_calls: [{ name: 'canvas_update_tokens', args: { colors: [{ name: 'Brand', key: 'brand', value: '#3b82f6' }] } }] },
+      { tool_calls: [{ name: 'pen_update_tokens', args: { colors: [{ name: 'Brand', key: 'brand', value: '#3b82f6' }] } }] },
       // Iter 2: create a card background.
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'Card', x: 0, y: 0, width: 320, height: 200, fill: '#ffffff', radius: 12 } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'Card', x: 0, y: 0, width: 320, height: 200, fill: '#ffffff', radius: 12 } }] },
       // Iter 3: create a title.
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'text', name: 'Title', x: 20, y: 20, width: 280, height: 32, text: 'Hello', fontSize: 24, textColor: '#0f172a' } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'text', name: 'Title', x: 20, y: 20, width: 280, height: 32, text: 'Hello', fontSize: 24, textColor: '#0f172a' } }] },
       // Iter 4: create a body.
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'text', name: 'Body', x: 20, y: 60, width: 280, height: 20, text: 'World', fontSize: 14, textColor: '#475569' } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'text', name: 'Body', x: 20, y: 60, width: 280, height: 20, text: 'World', fontSize: 14, textColor: '#475569' } }] },
       // Iter 5: done.
       { content: 'Designed a card.' },
     ]);
@@ -546,7 +546,7 @@ describe('runner: error paths', () => {
     // The runner should still emit tool_call_end with success=false and
     // continue the loop. The next iteration sees the error in the tool result.
     const llm = new MockLLM([
-      { tool_calls: [{ name: 'canvas_delete_shape', args: { shapeId: 'does-not-exist' } }] },
+      { tool_calls: [{ name: 'pen_delete_shape', args: { shapeId: 'does-not-exist' } }] },
       { content: 'Sorry, that shape does not exist.' },
     ]);
 
@@ -594,7 +594,7 @@ describe('runner: error paths', () => {
                     id: 'call-malformed-1',
                     type: 'function',
                     // Deliberately malformed JSON arguments.
-                    function: { name: 'canvas_create_shape', arguments: '{not valid json' },
+                    function: { name: 'pen_create_shape', arguments: '{not valid json' },
                   }],
                 },
               }],
@@ -624,7 +624,7 @@ describe('runner: error paths', () => {
     // The LLM keeps calling tools forever. The runner should hit MAX_ITERATIONS
     // (20) and exit cleanly with message_end + turn_end.
     const infiniteScript: ScriptEntry[] = Array.from({ length: 25 }, () => ({
-      tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'Box', x: 0, y: 0, width: 10, height: 10 } }],
+      tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'Box', x: 0, y: 0, width: 10, height: 10 } }],
     }));
     const llm = new MockLLM(infiniteScript);
 
@@ -678,7 +678,7 @@ describe('runner: input isolation', () => {
     const initialSnapshot = JSON.stringify(initial);
 
     const llm = new MockLLM([
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'X', x: 0, y: 0, width: 10, height: 10 } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'X', x: 0, y: 0, width: 10, height: 10 } }] },
       { content: 'done' },
     ]);
 
@@ -700,7 +700,7 @@ describe('runner: input isolation', () => {
     const seeded = makeDoc([makeShape('seed-1', { name: 'Seed' })]);
 
     const llm = new MockLLM([
-      { tool_calls: [{ name: 'canvas_create_shape', args: { type: 'rectangle', name: 'New', x: 0, y: 0, width: 10, height: 10 } }] },
+      { tool_calls: [{ name: 'pen_create_shape', args: { type: 'rectangle', name: 'New', x: 0, y: 0, width: 10, height: 10 } }] },
       { content: 'done' },
     ]);
 

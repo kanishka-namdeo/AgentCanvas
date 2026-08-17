@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
-import type { CanvasPatch, HeatmapOverlay, Shape } from '@/lib/canvas/types';
+import type { CanvasPatch, Shape } from '@/lib/canvas/types';
 import { PenLine, MousePointerClick } from 'lucide-react';
 
 interface DragState {
@@ -386,12 +386,6 @@ export function Canvas() {
         style={{ pointerEvents: 'none' }}
       >
         <defs>
-          {/* Radial gradient used for heatmap fixation points. */}
-          <radialGradient id="heatmap-fixation" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(239, 68, 68, 0.65)" />
-            <stop offset="50%" stopColor="rgba(249, 115, 22, 0.35)" />
-            <stop offset="100%" stopColor="rgba(234, 88, 12, 0)" />
-          </radialGradient>
           {/* Marker for component instance badge. */}
           <pattern id="component-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(14, 165, 233, 0.35)" strokeWidth="2" />
@@ -414,10 +408,6 @@ export function Canvas() {
               />
             ))}
 
-          {/* Attention heatmap overlay — rendered on top of shapes. */}
-          {document.heatmap && (
-            <HeatmapRenderer overlay={document.heatmap} zoom={zoom} />
-          )}
         </g>
       </svg>
 
@@ -830,53 +820,6 @@ export function ShapeRenderer({
           })}
         </>
       )}
-    </g>
-  );
-}
-
-// ---- Heatmap renderer -------------------------------------------------------
-//
-// Renders the attention heatmap overlay. Each fixation point is drawn as a
-// soft radial gradient circle whose radius scales with intensity. The whole
-// overlay is mixed onto the canvas using a 'screen'-like blend so it
-// highlights rather than obscures the underlying design.
-
-function HeatmapRenderer({ overlay, zoom }: { overlay: HeatmapOverlay; zoom: number }) {
-  // Each fixation point: radius scaled by intensity.
-  // Max radius ~ 80px at intensity 1.0.
-  return (
-    <g style={{ pointerEvents: 'none' }} opacity={0.85}>
-      {/* Bounding outline so the user can see what was analyzed. */}
-      <rect
-        x={overlay.x}
-        y={overlay.y}
-        width={overlay.width}
-        height={overlay.height}
-        fill="none"
-        stroke="#ef4444"
-        strokeWidth={1.5 / zoom}
-        strokeDasharray={`${6 / zoom} ${4 / zoom}`}
-      />
-      {overlay.points.map((p, i) => {
-        const radius = 30 + p.intensity * 60;
-        return (
-          <circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r={radius}
-            fill="url(#heatmap-fixation)"
-            opacity={0.4 + p.intensity * 0.5}
-          />
-        );
-      })}
-      {/* Heatmap label badge in the top-left of the analyzed frame. */}
-      <g transform={`translate(${overlay.x + 6 / zoom}, ${overlay.y + 6 / zoom})`}>
-        <rect width={120 / zoom} height={16 / zoom} rx={3 / zoom} fill="rgba(239, 68, 68, 0.92)" />
-        <text x={60 / zoom} y={11 / zoom} fontSize={10 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">
-          Attention heatmap
-        </text>
-      </g>
     </g>
   );
 }

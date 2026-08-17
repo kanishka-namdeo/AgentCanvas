@@ -118,7 +118,7 @@ describe('scenario: design a card (create → text → group → align → shado
     const { ctx } = makeIntegrationCtx();
 
     // 1. Card background — shape fields at top level.
-    const cardRes = await run(ctx, 'canvas_create_shape', {
+    const cardRes = await run(ctx, 'pen_create_shape', {
       type: 'rectangle',
       name: 'Card',
       x: 100, y: 100, width: 320, height: 200,
@@ -129,7 +129,7 @@ describe('scenario: design a card (create → text → group → align → shado
     expect(cardId).not.toBe('');
 
     // 2. Title text.
-    const titleRes = await run(ctx, 'canvas_create_shape', {
+    const titleRes = await run(ctx, 'pen_create_shape', {
       type: 'text',
       name: 'Title',
       x: 120, y: 120, width: 280, height: 32,
@@ -138,7 +138,7 @@ describe('scenario: design a card (create → text → group → align → shado
     const titleId = firstShapeId(titleRes.content);
 
     // 3. Body text.
-    const bodyRes = await run(ctx, 'canvas_create_shape', {
+    const bodyRes = await run(ctx, 'pen_create_shape', {
       type: 'text',
       name: 'Body',
       x: 120, y: 160, width: 280, height: 24,
@@ -149,17 +149,17 @@ describe('scenario: design a card (create → text → group → align → shado
     // 4. Group them. The group tool's content doesn't surface the new group
     // id (it's generated inside applyPatchToCanvas), so we look the group
     // up by type after the fact.
-    const groupRes = await run(ctx, 'canvas_group_shapes', { shapeIds: [cardId, titleId, bodyId] });
+    const groupRes = await run(ctx, 'pen_group_shapes', { shapeIds: [cardId, titleId, bodyId] });
     expect(groupRes.isError).toBeFalsy();
 
     // 5. Apply shadow to the card — x/y/blur/color are flat at the top level.
-    await run(ctx, 'canvas_set_shadow', {
+    await run(ctx, 'pen_set_shadow', {
       shapeId: cardId,
       x: 0, y: 4, blur: 12, color: '#000000',
     });
 
     // 6. Per-corner radius on the card (asymmetric for fun) — flat at top level.
-    await run(ctx, 'canvas_set_corner_radius_per_corner', {
+    await run(ctx, 'pen_set_corner_radius_per_corner', {
       shapeId: cardId,
       topLeft: 16, topRight: 16, bottomRight: 4, bottomLeft: 4,
     });
@@ -204,7 +204,7 @@ describe('scenario: design system with tokens + binding', () => {
     const { ctx } = makeIntegrationCtx();
 
     // 1. Define design tokens — `colors` is flat at the top level of the params.
-    await run(ctx, 'canvas_update_tokens', {
+    await run(ctx, 'pen_update_tokens', {
       colors: [
         { name: 'Brand Primary', key: 'brand.primary', value: '#3b82f6' },
         { name: 'Text Body', key: 'text.body', value: '#1e293b' },
@@ -214,7 +214,7 @@ describe('scenario: design system with tokens + binding', () => {
     // 2. Create three button shapes.
     const ids: string[] = [];
     for (let i = 0; i < 3; i++) {
-      const r = await run(ctx, 'canvas_create_shape', {
+      const r = await run(ctx, 'pen_create_shape', {
         type: 'rectangle',
         name: `Btn ${i + 1}`,
         x: i * 120, y: 0, width: 100, height: 40,
@@ -224,7 +224,7 @@ describe('scenario: design system with tokens + binding', () => {
     }
 
     // 3. Bind all three to brand.primary (also applies the value immediately).
-    await run(ctx, 'canvas_apply_token', {
+    await run(ctx, 'pen_apply_token', {
       tokenKey: 'brand.primary',
       shapeIds: ids,
       property: 'fill',
@@ -240,7 +240,7 @@ describe('scenario: design system with tokens + binding', () => {
     }
 
     // 4. Re-theme: change brand.primary to red.
-    await run(ctx, 'canvas_update_tokens', {
+    await run(ctx, 'pen_update_tokens', {
       colors: [{ name: 'Brand Primary', key: 'brand.primary', value: '#ef4444' }],
     });
 
@@ -255,8 +255,8 @@ describe('scenario: design system with tokens + binding', () => {
     }
 
     // 5. Unbind one button and re-theme — only 2 should change.
-    await run(ctx, 'canvas_unbind_shape', { shapeId: ids[0], property: 'fill' });
-    await run(ctx, 'canvas_update_tokens', {
+    await run(ctx, 'pen_unbind_shape', { shapeId: ids[0], property: 'fill' });
+    await run(ctx, 'pen_update_tokens', {
       colors: [{ name: 'Brand Primary', key: 'brand.primary', value: '#10b981' }],
     });
 
@@ -281,7 +281,7 @@ describe('scenario: find & replace text across multiple text shapes', () => {
       ['Body 2', 'sed do eiusmod lorem'],
       ['Footer', 'No match here'],
     ] as const) {
-      const r = await run(ctx, 'canvas_create_shape', {
+      const r = await run(ctx, 'pen_create_shape', {
         type: 'text',
         name,
         x: 0, y: 0, width: 200, height: 24,
@@ -291,7 +291,7 @@ describe('scenario: find & replace text across multiple text shapes', () => {
     }
 
     // find_shapes with no filter returns all.
-    const findRes = await run(ctx, 'canvas_find_shapes', {});
+    const findRes = await run(ctx, 'pen_find_shapes', {});
     expect(findRes.isError).toBeFalsy();
     expect(findRes.content).toContain('Heading');
     expect(findRes.content).toContain('Body 1');
@@ -299,7 +299,7 @@ describe('scenario: find & replace text across multiple text shapes', () => {
     expect(findRes.content).toContain('Footer');
 
     // Find & replace via the dedicated tool.
-    const replaceRes = await run(ctx, 'canvas_find_replace_text', { find: 'lorem', replace: 'real' });
+    const replaceRes = await run(ctx, 'pen_find_replace_text', { find: 'lorem', replace: 'real' });
     expect(replaceRes.isError).toBeFalsy();
     expect(replaceRes.content).toContain('3 text shape');
 
@@ -323,15 +323,15 @@ describe('scenario: lock + hide + find by visibility', () => {
     const { ctx } = makeIntegrationCtx();
 
     // Lock visible-unlocked via the tool.
-    await run(ctx, 'canvas_set_locked', { shapeIds: ['visible-unlocked'], locked: true });
+    await run(ctx, 'pen_set_locked', { shapeIds: ['visible-unlocked'], locked: true });
     expect(useCanvasStore.getState().document.shapes.find((s) => s.id === 'visible-unlocked')!.locked).toBe(true);
 
     // Hide visible-locked via the tool.
-    await run(ctx, 'canvas_set_visible', { shapeIds: ['visible-locked'], visible: false });
+    await run(ctx, 'pen_set_visible', { shapeIds: ['visible-locked'], visible: false });
     expect(useCanvasStore.getState().document.shapes.find((s) => s.id === 'visible-locked')!.visible).toBe(false);
 
     // find_shapes returns all matches regardless of visibility/lock.
-    const findRes = await run(ctx, 'canvas_find_shapes', {});
+    const findRes = await run(ctx, 'pen_find_shapes', {});
     expect(findRes.content).toContain('visible-unlocked');
     expect(findRes.content).toContain('hidden-unlocked');
     expect(findRes.content).toContain('visible-locked');
@@ -357,15 +357,15 @@ describe('scenario: z-order across multiple operations', () => {
     const { ctx } = makeIntegrationCtx();
 
     // Bring 'a' to front.
-    await run(ctx, 'canvas_bring_to_front', { shapeIds: ['a'] });
+    await run(ctx, 'pen_bring_to_front', { shapeIds: ['a'] });
     expect(useCanvasStore.getState().document.shapes.map((s) => s.id)).toEqual(['b', 'c', 'd', 'a']);
 
     // Move 'a' backward by one.
-    await run(ctx, 'canvas_move_backward', { shapeId: 'a' });
+    await run(ctx, 'pen_move_backward', { shapeId: 'a' });
     expect(useCanvasStore.getState().document.shapes.map((s) => s.id)).toEqual(['b', 'c', 'a', 'd']);
 
     // Send 'a' all the way to back.
-    await run(ctx, 'canvas_send_to_back', { shapeIds: ['a'] });
+    await run(ctx, 'pen_send_to_back', { shapeIds: ['a'] });
     expect(useCanvasStore.getState().document.shapes.map((s) => s.id)).toEqual(['a', 'b', 'c', 'd']);
 
     // z-indices should be 0..3 sequential.
@@ -389,13 +389,13 @@ describe('scenario: export SVG reflects the actual document state', () => {
   it('export_svg after a series of mutations includes the latest fills', async () => {
     const { ctx } = makeIntegrationCtx();
 
-    await run(ctx, 'canvas_create_shape', {
+    await run(ctx, 'pen_create_shape', {
       type: 'rectangle',
       name: 'Hero',
       x: 0, y: 0, width: 400, height: 200,
       fill: '#ff0000',
     });
-    await run(ctx, 'canvas_create_shape', {
+    await run(ctx, 'pen_create_shape', {
       type: 'ellipse',
       name: 'Avatar',
       x: 50, y: 50, width: 80, height: 80,
@@ -404,9 +404,9 @@ describe('scenario: export SVG reflects the actual document state', () => {
 
     // Update hero fill.
     const heroId = useCanvasStore.getState().document.shapes[0].id;
-    await run(ctx, 'canvas_update_shape', { shapeId: heroId, changes: { fill: '#0000ff' } });
+    await run(ctx, 'pen_update_shape', { shapeId: heroId, changes: { fill: '#0000ff' } });
 
-    const r = await run(ctx, 'canvas_export_svg', {});
+    const r = await run(ctx, 'pen_export_svg', {});
     expect(r.isError).toBeFalsy();
     expect(r.content).toContain('<svg');
     expect(r.content).toContain('</svg>');
@@ -426,7 +426,7 @@ describe('scenario: multiple shape creations batch into a single bulk_add', () =
   it('generate_wireframe emits one bulk_add patch that creates many shapes atomically', async () => {
     const { ctx, patches } = makeIntegrationCtx();
 
-    const r = await run(ctx, 'canvas_generate_wireframe', {
+    const r = await run(ctx, 'pen_generate_wireframe', {
       template: 'web_landing',
       title: 'Acme',
     });

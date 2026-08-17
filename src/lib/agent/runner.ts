@@ -30,8 +30,42 @@
 
 import ZAI from 'z-ai-web-dev-sdk';
 import { createCanvasTools, executeTool, toolsToOpenAISpec, type CanvasToolContext } from './tools.ts';
+import { createPenTools, PEN_TOOL_NAMES } from './pen-tools';
 import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types.ts';
+import { createEmptyCanvasDocument } from '../canvas/types.ts';
 import { applyPatchToCanvas } from '../canvas/patch.ts';
+import { resolvePenTree } from '../pen/resolve';
+
+/// Normalize an incoming canvas into a valid CanvasDocument with a .pen tree
+/// and populated derived caches. Handles:
+///   - legacy flat-shape docs (no `children`): builds a tree from shapes[]
+///   - missing derived caches (shapes/tokens): recomputes via resolvePenTree
+///   - missing runtime fields (id/name/viewport): defaults
+function normalizeCanvas(input: Partial<CanvasDocument> | null | undefined): CanvasDocument {
+  if (!input || typeof input !== 'object') {
+    return createEmptyCanvasDocument('default');
+  }
+  const doc = input as CanvasDocument;
+  // Ensure runtime fields.
+  if (!doc.id) doc.id = 'default';
+  if (!doc.name) doc.name = 'Untitled';
+  if (!doc.viewport) doc.viewport = { zoom: 1, panX: 120, panY: 80 };
+  if (!doc.version) doc.version = '2.17';
+  // Ensure the .pen tree exists.
+  if (!Array.isArray(doc.children)) {
+    // Legacy flat-shape doc: we can't reconstruct a meaningful tree from
+    // absolute-positioned shapes here, so start with an empty tree. (The
+    // agent will create new nodes via tools.)
+    doc.children = [];
+  }
+  // Recompute derived caches if missing or stale.
+  if (!Array.isArray(doc.shapes) || doc.shapes.length === 0) {
+    doc.shapes = resolvePenTree(doc);
+  }
+  if (!doc.tokens) doc.tokens = { colors: [], textStyles: [] };
+  if (!doc.background) doc.background = '#f8fafc';
+  return doc;
+}
 import { classifyIntent } from './classifier';
 import { generatePlan, formatPlanForPrompt, updatePlanStepStatus } from './planner';
 import { dispatchWebResearchSubAgent } from './subagents/web-research';
@@ -151,12 +185,12 @@ ${'${PLAN_SECTION}'}
 - When creating multiple shapes, give each a sensible name (e.g. "Header", "Card", "Avatar").
 - Coordinates are canvas-space pixels. The viewport at zoom 1 shows roughly 0..1200 x 0..800.
   Center of visible area is around (600, 400). Place groups of shapes around a focal point.
-- Always call canvas_list_shapes before updating/deleting existing shapes so you know the ids.
+- Always call pen_list_shapes before updating/deleting existing shapes so you know the ids.
 - After creating shapes, briefly summarize what you did in 1-2 sentences. Do not narrate every step.
 - If the user asks for something you cannot do with the available tools, say so clearly.
 - Prefer HIGH-LEVEL generator tools (generate_wireframe, generate_user_flow, generate_diagram)
   over hand-placing many shapes — they produce well-structured output and conserve tool-call budget.
-- Use canvas_bulk_update_by_filter to update many shapes at once, NOT individual update_shape calls.
+- Use pen_bulk_update_by_filter to update many shapes at once, NOT individual update_shape calls.
 
 === ARGUMENT TYPE RULES (CRITICAL — read before calling tools) ==============
 
@@ -181,6 +215,39 @@ If a "WEB RESEARCH SUMMARY" section is present in the user's message, the resear
 been done for you by a sub-agent. Use that summary directly — do NOT call web_search or web_fetch
 again. Proceed straight to designing based on the research findings.
 
+=== .pen FORMAT ALIGNMENT (pen.dev) =========================================
+This canvas serializes to the pen.dev .pen file format (JSON, version 2.17).
+When you build designs, prefer pen.dev terminology so the output is faithful
+to the .pen ontology on export:
+
+  - VARIABLES: use pen_set_variable to define design tokens keyed by dotted
+    names ("color.primary", "spacing.md", "text.body.size"). Reference them
+    via "$name". For theme-aware tokens pass 'themedValues' (e.g. one value
+    for mode=light, another for mode=dark). Prefer variables over hardcoded
+    colors so the design system stays editable.
+  - THEMES: use pen_apply_theme to set a theme axis value (e.g. mode=dark)
+    on a frame; descendants inherit it. Common axes: mode (light/dark),
+    spacing (regular/condensed), device (phone/tablet/desktop).
+  - COMPONENTS & INSTANCES: mark a reusable component with reusable=true
+    (via pen_create_component), then create instances with pen_create_ref.
+    Customize instances via 'descendants' (keyed by slash-separated ID path,
+    e.g. "ok-button/label"). Include a 'type' in an override to fully
+    replace a descendant node.
+  - SLOTS: use pen_mark_slot on a frame inside a component to mark where
+    recommended child components can be inserted (e.g. a content slot in a
+    card that accepts round-button instances).
+  - FLEXBOX LAYOUT: frames support flexbox via autoLayout (direction, gap,
+    padding, alignX, alignY) which maps to .pen's layout/gap/padding/
+    justifyContent/alignItems. Prefer flex layouts over manual x/y for
+    contained UI.
+  - NODE TYPES: the .pen format supports rectangle, ellipse, polygon, path
+    (SVG geometry), text, frame, group, note, context, prompt, icon, script,
+    ref. Our runtime maps these onto a flat shape list (Phase C will add the
+    full tree model); the .pen exporter reconstructs the tree on save.
+  - EXPORT: when the user asks to "export as .pen" or "save for pen.dev",
+    call pen_export_pen. The UI also has a ".pen" menu in the header for
+    manual export/import.
+
 When you need real-world information that is NOT already provided, call web_search / web_fetch
 (only available if the web_research skill is active).`;
 
@@ -202,12 +269,24 @@ function canvasSnapshot(canvas: CanvasDocument): string {
   const tokenLines = tokens.colors.length === 0
     ? '  (no tokens)'
     : tokens.colors.map((c) => `  • ${c.key} = ${c.value}  (${c.name})`).join('\n');
-  return `Current canvas state:
+  const varLines = !canvas.variables || Object.keys(canvas.variables).length === 0
+    ? '  (no variables)'
+    : Object.entries(canvas.variables).map(([k, v]) => {
+        const val = Array.isArray(v.value) ? `${(v.value as any[]).length} themed value(s)` : String(v.value);
+        return `  • $${k} (${v.type}) = ${val}`;
+      }).join('\n');
+  const themeLines = !canvas.themes || Object.keys(canvas.themes).length === 0
+    ? '  (no theme axes)'
+    : Object.entries(canvas.themes).map(([axis, vals]) => `  • ${axis}: [${vals.join(', ')}]`).join('\n');
+  return `Current canvas state (.pen v${canvas.version}):
 - Background: ${canvas.background}
-- Tokens (${tokens.colors.length} colors, ${tokens.textStyles.length} text styles):
+- Variables (${canvas.variables ? Object.keys(canvas.variables).length : 0}):
+${varLines}
+- Theme axes:
+${themeLines}
+- Tokens (derived: ${tokens.colors.length} colors, ${tokens.textStyles.length} text styles):
 ${tokenLines}
-- Heatmap: ${canvas.heatmap ? `on (${canvas.heatmap.points.length} points, frame ${canvas.heatmap.frameId})` : 'off'}
-- Shapes (${shapes.length}):
+- Resolved nodes (${shapes.length}):
 ${shapeLines}`;
 }
 
@@ -226,12 +305,18 @@ function buildSystemPrompt(
 }
 
 /// Filter the tool specs to only include the tools for the active skill.
+/// The .pen-aligned tools (pen_*) are ALWAYS available regardless of skill,
+/// because they expose pen.dev concepts (variables, themes, refs, slots)
+/// that are relevant to every design task.
 function filterToolSpecs(
   allSpecs: ReturnType<typeof toolsToOpenAISpec>,
   category: SkillCategory,
 ): ReturnType<typeof toolsToOpenAISpec> {
   const allowedNames = new Set(getToolNamesForCategory(category));
-  return allSpecs.filter((s) => allowedNames.has(s.function.name));
+  const penNameSet = new Set<string>(PEN_TOOL_NAMES);
+  return allSpecs.filter(
+    (s) => allowedNames.has(s.function.name) || penNameSet.has(s.function.name),
+  );
 }
 
 // ---- Run the agent loop ---------------------------------------------------
@@ -240,11 +325,14 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   const { documentId, prompt, canvas: initialCanvas, llm: injectedLlm, signal } = opts;
 
   // Per-session mutable state. The tools close over this via `ctx`.
-  let canvas: CanvasDocument = JSON.parse(JSON.stringify(initialCanvas));
+  // Normalize the incoming canvas: ensure it has a .pen tree (`children`)
+  // and derived caches (`shapes`, `tokens`). Older callers may send a
+  // legacy flat-shape doc or omit the derived fields.
+  let canvas: CanvasDocument = normalizeCanvas(initialCanvas);
 
   const ctx: CanvasToolContext = {
-    getShapes: () => canvas.shapes,
-    getTokens: () => canvas.tokens,
+    getShapes: () => canvas.shapes ?? [],
+    getTokens: () => canvas.tokens ?? { colors: [], textStyles: [] },
     getDocument: () => canvas,
     applyPatch(patch: CanvasPatch): CanvasPatch {
       canvas = applyPatchToCanvas(canvas, patch);
@@ -253,7 +341,12 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   };
 
   // Create all tools (we'll filter the visible subset based on the skill).
-  const tools = createCanvasTools(ctx);
+  // The .pen-aligned tools (pen_set_variable, pen_create_ref, …) are always
+  // available — they expose pen.dev concepts (variables, themes, refs,
+  // slots) that complement the granular pen_* tool surface.
+  const canvasTools = createCanvasTools(ctx);
+  const penTools = createPenTools(ctx);
+  const tools = [...canvasTools, ...penTools] as ReturnType<typeof createCanvasTools>;
   const allToolSpecs = toolsToOpenAISpec(tools);
 
   // Initialize the LLM client.

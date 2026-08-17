@@ -24,11 +24,14 @@ export async function POST(req: NextRequest) {
   const canvas: CanvasDocument = body.canvasState ?? {
     id: documentId,
     name: 'Untitled',
+    version: '2.17',
+    children: [],
+    variables: undefined,
+    themes: undefined,
     background: '#f8fafc',
     viewport: { zoom: 1, panX: 0, panY: 0 },
     shapes: [],
     tokens: { colors: [], textStyles: [] },
-    heatmap: null,
   };
 
   if (!prompt.trim()) {
