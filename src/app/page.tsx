@@ -279,7 +279,9 @@ export default function Home() {
         </header>
 
         {/* ───────────────────────── Main split ───────────────────────── */}
-        <ResizablePanelGroup direction="horizontal" autoSaveId="co-canvas-layout-h" className="flex-1 min-h-0">
+        {/* Wrapper is relative so the collapsed-panel edge buttons can float. */}
+        <div className="relative flex-1 min-h-0">
+        <ResizablePanelGroup direction="horizontal" autoSaveId="co-canvas-layout-h" className="h-full">
           {/* Col 1 — Left: single tabbed panel (Chats / Layers) */}
           <ResizablePanel
             ref={leftPanelRef}
@@ -330,6 +332,39 @@ export default function Home() {
             />
           </ResizablePanel>
         </ResizablePanelGroup>
+
+        {/* ── Collapsed-panel edge buttons ─────────────────────────────────
+            When a panel is collapsed (collapsedSize=0), its own header chevron
+            disappears too — leaving no visible way to bring it back except the
+            ⌘1/⌘2 keyboard shortcuts. These floating edge buttons solve that:
+            a thin tab on the screen edge that's always visible when the panel
+            is collapsed. Click to expand. Matches the pattern used by VS Code,
+            Chrome DevTools, and Figma's collapsed-panel edges. */}
+
+        {/* Left panel collapsed → show expand tab on the left edge */}
+        {leftCollapsed && (
+          <button
+            onClick={() => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed)}
+            title="Show left panel (⌘1)"
+            aria-label="Show left panel"
+            className="absolute top-1/2 -translate-y-1/2 left-0 z-30 flex items-center justify-center h-16 w-5 rounded-r-md border border-l-0 ac-border-default ac-surface-0 shadow-md hover:ac-surface-1 ac-transition ac-focus-ring"
+          >
+            <PanelLeft className="h-3.5 w-3.5 ac-text-2" />
+          </button>
+        )}
+
+        {/* Right panel collapsed → show expand tab on the right edge */}
+        {rightCollapsed && (
+          <button
+            onClick={() => toggle(rightPanelRef, rightCollapsed, setRightCollapsed)}
+            title="Show right panel (⌘2)"
+            aria-label="Show right panel"
+            className="absolute top-1/2 -translate-y-1/2 right-0 z-30 flex items-center justify-center h-16 w-5 rounded-l-md border border-r-0 ac-border-default ac-surface-0 shadow-md hover:ac-surface-1 ac-transition ac-focus-ring"
+          >
+            <PanelRight className="h-3.5 w-3.5 ac-text-2" />
+          </button>
+        )}
+        </div>
       </div>
 
       {/* ⌘K command palette — fuzzy-searchable preset prompts */}
