@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041488473-Apply-effects-to-layers",
+    "name": "Apply effects to layers",
+    "snippet": "When you apply a background blur to a layer , Figma will blur any layers behind your selection on the canvas. You can think of this like a drop shadow , but ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040450253-Masks",
+    "name": "Masks – Figma Learn - Help Center",
+    "snippet": "Use layer blur effects to replicate feathering ; Apply drop and inner shadows to create depth; Add fills, strokes, and gradients with varying opacity. In the ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1j3m1j4/how_to_hide_overflowing_content_in_figma_slides",
+    "name": "How to hide overflowing content in Figma Slides",
+    "snippet": "Select the overflowing element . Go to Effects and apply a Layer Blur. This will create a soft fade effect instead of a hard cut-off. 4 ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://grida.co/docs/@designto-code/figma-blur-effects",
+    "name": "Figma blur effects",
+    "snippet": "In figma , blur effect is supported for text as well as various shapes. The reason that the screen designed in figma looks darker is because it creates a path ...",
+    "host_name": "grida.co",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/option-to-prevent-selecting-clipped-overflow-layers-outside-a-frame-50219",
+    "name": "Option to prevent selecting clipped/overflow layers outside",
+    "snippet": "Jan 28, 2026 — When working in frames with Clip content enabled, I still end up selecting layers that are outside the visible area of the frame.",
+    "host_name": "forum.figma.com",
+    "rank": 4,
+    "date": "Jan 28, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=5oHV8fEWwUA",
+    "name": "Blur effect in Figma",
+    "snippet": "In this tutorial, I will show you how to create layers and background blur in Figma ... How to blend images in Figma using mask tool .",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

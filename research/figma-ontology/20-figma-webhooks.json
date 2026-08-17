@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/file-updated-webhook-doesn-t-trigger-on-file-edits-but-file-commented-works-47856",
+    "name": "FILE_UPDATED webhook doesn't trigger on file edits (but",
+    "snippet": "Nov 26, 2025 — I've been setting up a webhook integration to monitor file changes , and I ran into some confusing behavior with the FILE_UPDATED event .",
+    "host_name": "forum.figma.com",
+    "rank": 0,
+    "date": "Nov 26, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/file-version-update-and-library-publish-webhook-not-triggered-15136",
+    "name": "FILE_VERSION_UPDATE and LIBRARY_PUBLISH",
+    "snippet": "Mar 3, 2023 — Hello everyone,\nBeen creating webhooks for event types FILE_VERSION_UPDATE and LIBRARY_PUBLISH, but nothing gets triggered after publishing styles, components ...",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "Mar 3, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api/webhooks",
+    "name": "Webhooks V2 | Developer Docs",
+    "snippet": "Webhooks allow you to observe when specific events happen in files . For example: a collaborator comments on a file , or you add a new version to a file's history ... Read more",
+    "host_name": "developers.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@nour_99023/an-automation-journey-with-figma-webhooks-f4df82be21b3",
+    "name": "An automation journey with Figma webhooks",
+    "snippet": "The next step is to create the job that will run the command to generate the icon components and create the pull request with the changed files . Read more",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1qczmnr/library_constantly_wants_to_publish_unchanged",
+    "name": "Library constantly wants to publish unchanged components",
+    "snippet": "I am constantly publishing a good portion of my design system despite not doing any changes to my core components . I have gone through my file ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

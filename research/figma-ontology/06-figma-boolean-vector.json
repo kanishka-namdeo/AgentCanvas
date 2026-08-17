@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039957534-Boolean-operations",
+    "name": "Boolean operations",
+    "snippet": "You can apply boolean operations to shape layers, vector paths, and text layers. ... There are four boolean operations: union, subtract, intersect, and exclude . Read more",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://d-libro.com/topic/masking-and-boolean-operations-in-figma",
+    "name": "Figma Masking & Boolean Operations Guide - Topic",
+    "snippet": "Flattening Boolean groups in Figma converts the grouped objects into a single vector object. This action is useful when you want to ensure stability in scaling,",
+    "host_name": "d-libro.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/where-in-ui3-are-the-boolean-operations-i-e-union-subtract-intersect-exclude-29050",
+    "name": "Where in UI3 are the Boolean operations? i.e. Union",
+    "snippet": "Aug 12, 2024 — Call me blind, but…\nWhere in UI3 are the Boolean operations?\ni.e. Union, Subtract, Intersect, Exclude\nThese used to be on the main toolbar.",
+    "host_name": "forum.figma.com",
+    "rank": 2,
+    "date": "Aug 12, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://designcode.io/figma-booleans-and-shapes",
+    "name": "Booleans and Shapes - Design System in Figma",
+    "snippet": "Go to Boolean / Intersect . Then select the Boolean group and go to Boolean / Flatten . Create a circle that's 12x12 and select Subtract . 2018-09-06 13-18 ... Read more",
+    "host_name": "designcode.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/xy9gjk/having_trouble_using_boolean_operations_on_more",
+    "name": "Having trouble using Boolean operations on more complex",
+    "snippet": "I find it much easier to flatten shapes in to a single vector , then use the Fill tool to cut out any parts I want removing. and paste the shape ...",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/design-bootcamp/learning-boolean-function-on-figma-992e7a1af231",
+    "name": "Learning Boolean Function On Figma | by Prakhar Verma",
+    "snippet": "Union: Union combines the selected shapes into a boolean group . If the objects overlap, the new shape's outer path consists of the composite of ... Read more",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

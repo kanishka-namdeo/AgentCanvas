@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15023124644247-Guide-to-Dev-Mode",
+    "name": "Guide to Dev Mode",
+    "snippet": "Connect your Figma Design system and design system in code with Storybook ; Link designs to code, so they always stay in sync, by bringing Github into Figma. Read more",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/dev-mode",
+    "name": "Dev Mode: Design-to-Development",
+    "snippet": "Figma's Development Mode helps developers transfer design into code . Streamline workflows between design and development so that there is more clarity on ...",
+    "host_name": "www.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.animaapp.com/blog/design-to-code/how-to-export-figma-to-react",
+    "name": "Figma to React: How to get clean React code in Figma",
+    "snippet": "The best way to turn Figma to React is to use a dedicated solution, and the most popular plugin is Anima with almost 2 million installs. Read more",
+    "host_name": "www.animaapp.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/code-connect",
+    "name": "Introduction | Developer Docs",
+    "snippet": "Code Connect is a bridge between your codebase and Figma's Dev Mode, connecting components in your repositories directly to components in your design files. Read more",
+    "host_name": "developers.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/blog/introducing-figma-mcp-server",
+    "name": "Introducing our Dev Mode MCP server: Bringing Figma into",
+    "snippet": "Jun 4, 2025 — Dev Mode MCP server, Figma directly into the developer workflow to help LLMs achieve design -informed code generation.",
+    "host_name": "www.figma.com",
+    "rank": 4,
+    "date": "Jun 4, 2025",
+    "favicon": ""
+  }
+]

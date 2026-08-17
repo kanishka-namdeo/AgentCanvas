@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15871097384471-The-difference-between-variables-and-styles",
+    "name": "The difference between variables and styles",
+    "snippet": "A color style is like looking at a “stack” of cards from above, where each card is a fill. Variables can store single, raw values. Variables are built to hold ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1gnhvfs/clarification_about_color_styles_vs_variables",
+    "name": "Clarification about Color Styles vs Variables : r/FigmaDesign",
+    "snippet": "Variables represent a single property:value whereas Styles can be made up of multiple properties (like a Text Style) or multiple values for a ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=gtQ_A3imzsg",
+    "name": "Figma Tutorial: Creating Styles",
+    "snippet": "In this video we'll show you how to create Styles and use them across your designs. Variables Like a Pro. Color Styles and Variables - ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038746534-Create-color-text-effect-and-layout-guide-styles",
+    "name": "Create color, text, effect, and layout guide styles",
+    "snippet": "Guide styles are represented as icons in the Layout guides section of the right sidebar and vary according to type: Uniform grid , Columns, or Rows. Learn more ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/14506821864087-Overview-of-variables-collections-and-modes",
+    "name": "Overview of variables, collections, and modes",
+    "snippet": "Variables are raw values—like color , numbers, and strings—that can change in value depending on the context of a design, such as light and dark modes, ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

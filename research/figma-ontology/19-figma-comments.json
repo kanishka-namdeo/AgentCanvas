@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/rest-api/comments-types",
+    "name": "Comments | Developer Docs",
+    "snippet": "Figma's Commenting mode allows users to leave comments directly on layers or objects on the canvas. you want to suggest an adjustment, provide feedback, or ...",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041547593-View-and-manage-comments",
+    "name": "View and manage comments",
+    "snippet": "Hover over the comment body to activate the to use a reaction . Click to Mark as unread, Copy link to the comment , or Delete the thread if you added the comment . Read more",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api/comments-endpoints",
+    "name": "Endpoints | Developer Docs",
+    "snippet": "Unlike the other endpoints associated with the Figma API , you are able to post comments and reactions to a Figma file - in addition to being able to view ...",
+    "host_name": "developers.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.hypermatic.com/commentful/comments/post-comments",
+    "name": "Posting new Figma comments from the plugin",
+    "snippet": "You can reply to any Figma comment by clicking its card under the Figma Comments tab, then using the built-in markdown editor to write your reply, then click ...",
+    "host_name": "docs.hypermatic.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/figma-api-comments-25317",
+    "name": "Figma api: comments",
+    "snippet": "Feb 29, 2024 — Hi, does Figma in any way allow to interact with comments through it’s api? I.e. retrieve data?",
+    "host_name": "forum.figma.com",
+    "rank": 4,
+    "date": "Feb 29, 2024",
+    "favicon": ""
+  }
+]

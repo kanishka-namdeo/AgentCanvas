@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.penpot.app/technical-guide/developer/data-model/penpot-file-format",
+    "name": "3.02.01. Penpot file format (.penpot) - Help center",
+    "snippet": "Dec 10, 2025 — The . penpot file format is Penpot's native export format for design files . designed to be open , inspectable, and efficient. bool Boolean ...",
+    "host_name": "help.penpot.app",
+    "rank": 0,
+    "date": "Dec 10, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.penpot.app/t/serializer-deserializer-for-the-penpot-format/1429",
+    "name": "Serializer/Deserializer for the .penpot format",
+    "snippet": "Sep 23, 2022 — It is a very early stage figma plugin to export figma files to Penpot format . Basic shapes (rectangles, ellipses). Frames (Boards in Penpot ).  ...",
+    "host_name": "community.penpot.app",
+    "rank": 1,
+    "date": "Sep 23, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.penpot.app/user-guide/export-import/penpot-file-format",
+    "name": "The .penpot file format",
+    "snippet": "A . penpot file is a ZIP archive containing: JSON metadata — human-readable descriptions of your pages, shapes , colors, components, and more Binary media files",
+    "host_name": "help.penpot.app",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/penpot/penpot-files",
+    "name": "Publicly released files and assets of Penpot, The Open-",
+    "snippet": "Penpot is the first Open Source design and prototyping platform meant for cross-domain teams. Penpot is web based and works with open web standards (SVG).",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://whoisryosuke.com/blog/2026/using-penpot-in-2026",
+    "name": "Using Penpot in 2026 - Ryosuke",
+    "snippet": "Mar 31, 2026 — Penpot has 2 ways of handling your design system: styles and design tokens. Similar to Figma, they have a legacy “styles” system that is very ... Read more",
+    "host_name": "whoisryosuke.com",
+    "rank": 4,
+    "date": "Mar 31, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.smashingmagazine.com/2023/02/meet-penpot-open-source-design-platform-designers-developers",
+    "name": "Meet Penpot, An Open-Source Design Platform Made For",
+    "snippet": "Feb 28, 2023 — For example, Penpot's design files are saved in SVG format — the same standard as the most popular image format for vector graphics on the web. Read more",
+    "host_name": "www.smashingmagazine.com",
+    "rank": 5,
+    "date": "Feb 28, 2023",
+    "favicon": ""
+  }
+]

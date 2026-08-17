@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040450513-Create-layout-guides",
+    "name": "Create layout guides",
+    "snippet": "Gutter defines how much space there is between each column or row and the frame in pixels (px). This setting is available for the Stretch type only.",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/best-practices/everything-you-need-to-know-about-layout-grids",
+    "name": "Everything you need to know about layout grids in Figma",
+    "snippet": "When used with stretch grids, this will allow your elements to stay fixed to columns or rows and maintain a fixed space ( gutter ) between them. It results in ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/31289469907863-Use-the-grid-auto-layout-flow",
+    "name": "Use the grid auto layout flow",
+    "snippet": "The grid auto layout flow brings two-dimensional layout control— rows and columns —into your designs. · Gap between sets the distance between columns and rows . Read more",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxcel.com/lessons/layout-grids-439",
+    "name": "Layout Grids Interactive Lesson",
+    "snippet": "Soft grid: Use row or column layout grids with spacing (gutter and margin ) and size (width or height) divisible by 8. This approach offers flexibility,",
+    "host_name": "uxcel.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://bringyourownlaptop.com/blog/how-to-set-up-a-responsive-grid-system-in-figma",
+    "name": "How to Set up a Responsive Grid System in Figma",
+    "snippet": "Gutters – negative space between columns . Gutter: is set to 20 by default, and as we've seen, defines the white space between columns. Remember that gutters ...",
+    "host_name": "bringyourownlaptop.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@royshreya538/mastering-the-grid-system-in-figma-a-guide-to-structured-ui-design-1a72d5803c32",
+    "name": "Mastering the GRID System in Figma",
+    "snippet": "It divides the design space into evenly spaced columns and rows , making it easier to organize content. ... Gutter Width: Defines the spacing ... Read more",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

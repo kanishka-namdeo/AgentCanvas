@@ -102,6 +102,73 @@ export interface Shape {
   /// .pen theme effective on this node (inherited from ancestors + own).
   /// Enables the properties panel to show/edit the node's theme.
   theme?: PenTheme;
+
+  // ---- v2.0 additions — Figma-aligned ontology --------------------------
+
+  /// Blend mode (default 'normal').
+  blendMode?: string;
+  /// iOS-style squircle smoothing. 0..1. 0.6 ≈ iOS 7 icon.
+  cornerSmoothing?: number;
+  /// Per-side stroke weights (when not uniform).
+  individualStrokeWeights?: { top: number; right: number; bottom: number; left: number } | null;
+  /// Dash pattern [dash, gap, ...] or null for solid.
+  strokeDashes?: number[] | null;
+  /// Miter limit angle in degrees. Default 28.96.
+  strokeMiterLimit?: number;
+  /// Stroke alignment: 'inner' | 'center' | 'outer'. Default 'center'.
+  strokeAlignment?: 'inner' | 'center' | 'outer';
+  /// Stroke line join.
+  strokeLinejoin?: 'miter' | 'bevel' | 'round';
+  /// Stroke line cap.
+  strokeLinecap?: 'butt' | 'round' | 'square';
+  /// Layout constraints (non-Auto-Layout only).
+  constraints?: { horizontal: string; vertical: string } | null;
+  /// Layout positioning: 'auto' (participates in parent Auto Layout) or 'absolute' (manual x/y).
+  layoutPosition?: 'auto' | 'absolute';
+  /// Auto-layout child overrides.
+  layoutAlign?: 'inherit' | 'stretch' | 'min' | 'center' | 'max';
+  layoutGrow?: 0 | 1;
+  minWidth?: number; maxWidth?: number; minHeight?: number; maxHeight?: number;
+  /// Grid Auto Layout config (when this is a frame with layout='grid').
+  gridLayout?: {
+    gridRowCount?: number; gridColumnCount?: number;
+    gridRowGap?: number; gridColumnGap?: number;
+    gridColumnsSizing?: string; gridRowsSizing?: string;
+  } | null;
+  /// Overflow mode (frames only).
+  overflow?: 'hidden' | 'scroll-x' | 'scroll-y' | 'scroll-both';
+  /// Clip content (frames only). Synonym for overflow === 'hidden'.
+  clip?: boolean;
+  /// Mask info (if this node is a mask).
+  isMask?: boolean;
+  maskType?: 'alpha' | 'vector' | 'luminance';
+  /// For 'instance' shapes: the variant values active on this instance.
+  variantValues?: { [axis: string]: string } | null;
+  /// For 'component' / 'component_set' shapes: the component property defs.
+  componentProperties?: { [name: string]: unknown } | null;
+  /// For 'component' shapes: this component's variant values.
+  variantProperties?: { [axis: string]: string } | null;
+  /// For 'boolean_op' shapes: the operation.
+  booleanOperation?: 'union' | 'intersect' | 'subtract' | 'exclude';
+  /// For 'icon' shapes: library + icon name + weight.
+  iconLibrary?: string;
+  iconName?: string;
+  iconWeight?: number;
+  /// For 'polygon' shapes: side count.
+  polygonCount?: number;
+  /// For 'star' shapes: point count + inner radius.
+  pointCount?: number;
+  innerRadius?: number;
+  /// For 'ellipse' shapes: arc data.
+  innerRingRadius?: number;
+  startAngle?: number;
+  sweepAngle?: number;
+  /// Layout grids (visual guides, not Auto Layout).
+  layoutGrids?: unknown[] | null;
+  /// Whether this is a Section (canvas region).
+  isSection?: boolean;
+  /// Whether this is a Slice (export-only region).
+  isSlice?: boolean;
 }
 
 export interface Viewport {

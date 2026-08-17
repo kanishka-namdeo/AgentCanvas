@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039956634-Explore-text-properties",
+    "name": "Explore text properties",
+    "snippet": "Use line height to adjust the vertical distance between lines of text . Use letter spacing to adjust the horizontal distance between letters. Line height Line ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/TextNode",
+    "name": "TextNode | Developer Docs",
+    "snippet": "The text node represents text where both the whole node or individual character ranges can have properties such as color (fills), font size, font name, etc.",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/blog/line-height-changes",
+    "name": "Getting to the bottom of line height in Figma | Figma Blog",
+    "snippet": "Apr 25, 2019 — Figma will now distribute extra line height above and below letters , and it will measure line height in a more modern way. It's a purely ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 2,
+    "date": "Apr 25, 2019",
+    "favicon": ""
+  },
+  {
+    "url": "https://typetype.org/blog/figma-typography",
+    "name": "Figma Typography Guide: Variables, Tokens and Design",
+    "snippet": "May 29, 2026 — Basic typography configuration in Figma revolves around four parameters: font size, font weight , line height , and tracking ( letter spacing ). Read more",
+    "host_name": "typetype.org",
+    "rank": 3,
+    "date": "May 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.merkulov.design/text-in-figma",
+    "name": "Text in Figma - Online Documentation",
+    "snippet": "Figma allows you to set a fixed line height in pixels (px) or a line height that's a percentage of the font size (%). Figma uses a font's intrinsic line height ... Read more",
+    "host_name": "docs.merkulov.design",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/christinevallaure_a-figma-text-style-is-a-bundle-of-css-properties-activity-7490398659482726402-zevH",
+    "name": "Christine Vallaure de la Paz's Post",
+    "snippet": "A Figma text style is a bundle of CSS properties, Font family, font size, font weight , line height , letter spacing , sometimes a text case or a ...",
+    "host_name": "www.linkedin.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

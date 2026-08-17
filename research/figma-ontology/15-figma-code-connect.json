@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.figma.com/community/plugin/1650773436177457829/designtodev-handoff-structure-design-tokens-asset-export-to-codereact-html-css-tailwind",
+    "name": "Design‑to‑Dev Handoff - Structure, Design Tokens, Asset",
+    "snippet": "Select any frame and instantly inspect its structure, map it to your design system, export the assets, and generate code . HTML with Tailwind classes inferred ...",
+    "host_name": "www.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.animaapp.com/blog/design-to-code/how-to-export-figma-to-react",
+    "name": "Figma to React: How to get clean React code in Figma",
+    "snippet": "Use the plugin when you need to inspect code in Figma, export React , or prepare a clear handoff for developers. hand off through MCP, export or hand off code ...",
+    "host_name": "www.animaapp.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1mfhfy8/can_we_convert_figma_design_into_code_directly",
+    "name": "Can we convert figma design into code directly",
+    "snippet": "I tried to transfer some designs to code ( React + Tailwind ) using from Figma to Build+Lovable and Claude Code . It was not a straightforward ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/community/plugin/1049994768493726219/inspect-export-to-html-react-tailwindcss",
+    "name": "Inspect - Export to HTML, React, TailwindCSS",
+    "snippet": "A simple way to export your design to HTML or React with TailwindCSS. How to use it? Select a layer you want to export ; Open this plugin; Click copy! Read more",
+    "host_name": "www.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.designsystemscollective.com/how-i-turn-my-figma-designs-into-code-plugins-fasten-your-developer-handoff-d35e9a8017d7",
+    "name": "How I turn my figma designs into code + plugins",
+    "snippet": "Nov 29, 2025 — Use Plugins That Make Handoff Extremely Fast . Figma to Code: Instant HTML, CSS, React, or Tailwind. Design Lint — Remove All Inconsistencies ... Read more",
+    "host_name": "www.designsystemscollective.com",
+    "rank": 4,
+    "date": "Nov 29, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/community/plugin/747985167520967365/builder-io-figma-to-code-ai-apps-react-vue-tailwind-etc",
+    "name": "Builder.io - Figma to Code & AI Apps (React, Vue, Tailwind,",
+    "snippet": "Use AI to turn Figma designs into code , create on-brand designs, or convert websites to Figma in real time. Convert Figma to Code. Read more",
+    "host_name": "www.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

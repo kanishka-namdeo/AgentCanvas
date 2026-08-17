@@ -223,9 +223,10 @@ to the .pen ontology on export:
     via "$name". For theme-aware tokens pass 'themedValues' (e.g. one value
     for mode=light, another for mode=dark). Prefer variables over hardcoded
     colors so the design system stays editable.
-  - THEMES: use pen_apply_theme to set a theme axis value (e.g. mode=dark)
-    on a frame; descendants inherit it. Common axes: mode (light/dark),
-    spacing (regular/condensed), device (phone/tablet/desktop).
+  - THEMES: use pen_set_theme_axis to declare a theme axis (e.g. mode: [light, dark])
+    and pen_apply_theme to set a theme axis value (e.g. mode=dark) on a frame;
+    descendants inherit it. Common axes: mode (light/dark), spacing (regular/condensed),
+    device (phone/tablet/desktop).
   - COMPONENTS & INSTANCES: mark a reusable component with reusable=true
     (via pen_create_component), then create instances with pen_create_ref.
     Customize instances via 'descendants' (keyed by slash-separated ID path,
@@ -238,13 +239,57 @@ to the .pen ontology on export:
     padding, alignX, alignY) which maps to .pen's layout/gap/padding/
     justifyContent/alignItems. Prefer flex layouts over manual x/y for
     contained UI.
-  - NODE TYPES: the .pen format supports rectangle, ellipse, polygon, path
-    (SVG geometry), text, frame, group, note, context, prompt, icon, script,
-    ref. Our runtime maps these onto a flat shape list (Phase C will add the
-    full tree model); the .pen exporter reconstructs the tree on save.
+  - NODE TYPES: the .pen format supports rectangle, ellipse, polygon, star,
+    path (SVG geometry), text, frame, group, note, context, prompt, icon,
+    script, ref, and boolean_op (v2.0). Our runtime maps these onto a flat
+    shape list for rendering; the .pen exporter reconstructs the tree on save.
   - EXPORT: when the user asks to "export as .pen" or "save for pen.dev",
     call pen_export_pen. The UI also has a ".pen" menu in the header for
     manual export/import.
+
+=== v2.0 ONTOLOGY — Figma-aligned extensions (NEW) ==========================
+The .pen format v2.0 introduces Figma-aligned concepts. Use these tools
+when the user's request maps to a Figma workflow:
+
+  - COMPONENT SETS (variant families): use pen_create_component_set to group
+    multiple Components into a variant family (e.g. a Button set with
+    state=default / state=hover / state=disabled variants). The set's
+    metadata.isComponentSet flag is set, and the children are tagged with
+    metadata.variantProperties = { state: "default" } (etc.).
+  - COMPONENT PROPERTIES: use pen_set_component_property to define typed
+    slots on a Component — boolean (toggles like "showIcon"), string (text
+    overrides like "label"), variant (selectable options like "state"),
+    instance_swap (slot for swapping in another component).
+  - DETACH INSTANCE: use pen_detach_instance to convert an instance (PenRef)
+    into a flat Frame, severing the link to the main Component.
+  - CONSTRAINTS: use pen_set_constraints to set horizontal (left/right/
+    center/left_right/scale) and vertical (top/bottom/center/top_bottom/
+    scale) resize constraints on a child of a non-Auto-Layout frame.
+  - LAYOUT POSITIONING: use pen_set_layout_position to toggle "auto"
+    (participates in parent Auto Layout) vs "absolute" (manual x/y).
+  - GRID LAYOUT: use pen_set_grid_layout to apply CSS-grid-like Auto Layout
+    to a frame — rows, columns, rowGap, columnGap, columnsSizing (CSS
+    grid-template-columns string).
+  - OVERFLOW: use pen_set_overflow to set clip / scroll-x / scroll-y /
+    scroll-both on a frame. Implies clip:true.
+  - MASKS: use pen_set_mask to mark a node as a mask (alpha / vector /
+    luminance). The mask clips the visibility of sibling nodes in front
+    of it. Use pen_clear_mask to remove the mask flag.
+  - BLEND MODES: use pen_set_blend_mode to set any of the 18 Figma blend
+    modes (normal, multiply, screen, overlay, colorBurn, etc.).
+  - CORNER SMOOTHING: use pen_set_corner_smoothing to apply iOS-style
+    "squircle" corners (0..1, 0.6 ≈ iOS 7 icon).
+  - STROKE DASHES: use pen_set_stroke_dashes to set a dash pattern
+    [dash, gap, dash, gap, ...].
+  - FIELD BINDING: use pen_bind_field_to_variable to bind a node field
+    (fill/stroke/width/height/cornerRadius/fontSize/opacity/strokeWidth)
+    to a $variable. Use pen_unbind_field to remove the binding.
+  - THEME AXES: use pen_set_theme_axis to declare a theme axis (e.g.
+    mode: [light, dark]). Once declared, variables can carry
+    theme-conditional values keyed by these axis values.
+
+See docs/figma-ontology.md for the full Figma ↔ .pen mapping, and
+docs/tool-catalog.md for the complete tool reference.
 
 When you need real-world information that is NOT already provided, call web_search / web_fetch
 (only available if the web_research skill is active).`;

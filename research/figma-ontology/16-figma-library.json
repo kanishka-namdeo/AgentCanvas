@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360025508373-Publish-a-library",
+    "name": "Publish a library",
+    "snippet": "In a file with components, styles, or variables you'd like to share, select the Assets tab in the left sidebar . · Click the Libraries icon. · From the This file ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041051154-Guide-to-libraries-in-Figma",
+    "name": "Guide to libraries in Figma",
+    "snippet": "Publish a library. Before you can access components, styles, or variables in other files, you need to publish them as a library. · Choose which libraries to use ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039238193-Hide-styles-components-and-variables-when-publishing",
+    "name": "Hide styles, components, and variables when publishing",
+    "snippet": "Like styles and components, you can hide variables when publishing your library . You can only hide variables from the file they originate from.",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1uj1iuj/updated_variables_dont_show_after_publishing",
+    "name": "Updated Variables dont show after publishing library and",
+    "snippet": "Today, I encountered an issue while updating and changing variables and text styles in a library . When I published and updated the consuming ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039234953-Enable-a-library-for-a-team",
+    "name": "Enable a library for a team",
+    "snippet": "Team admins can choose which libraries are available in team files. This allows you to quickly share styles , components and variables across team files. Read more",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039820134-Manage-and-share-styles",
+    "name": "Manage and share styles",
+    "snippet": "You can publish styles on their own, or alongside any components. Note: Publishing assets—styles, components, and variables —to team libraries is available on ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

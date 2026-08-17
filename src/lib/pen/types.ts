@@ -344,6 +344,281 @@ export interface PenScript extends PenEntity, PenSize {
   inputs?: { [key: string]: string | number | boolean | PenVariable };
 }
 
+// ---- v2.0 additions — Figma-aligned ontology -----------------------------
+//
+// These types extend pen.dev's 2.x format with the missing Figma
+// concepts: BooleanOps, Constraints, LayoutGrids, Masks,
+// ComponentProperties, ComponentSets, Variants, StrokeDashes,
+// CornerSmoothing, GridLayout, Overflow, and more.
+//
+// See docs/pen-spec-v2.md for the full spec and docs/figma-ontology.md
+// for the Figma ↔ .pen mapping.
+
+/** Boolean operation: combines children's geometry using set ops. */
+export interface PenBooleanOp
+  extends PenEntity, PenCanHaveChildren, PenCanHaveGraphics, PenCanHaveEffects {
+  type: 'boolean_op';
+  /** Set operation. Non-destructive — children remain in the tree. */
+  operation: 'union' | 'intersect' | 'subtract' | 'exclude';
+}
+
+/** Layout constraint relative to containing Frame (non-Auto-Layout only). */
+export interface PenLayoutConstraint {
+  horizontal: 'left' | 'right' | 'center' | 'left_right' | 'scale';
+  vertical: 'top' | 'bottom' | 'center' | 'top_bottom' | 'scale';
+}
+
+/** Auto-layout child override: alignment + grow + min/max size. */
+export interface PenAutoLayoutChild {
+  /** Cross-axis alignment override (only for children of auto-layout frames). */
+  layoutAlign?: 'inherit' | 'stretch' | 'min' | 'center' | 'max';
+  /** 0 = fixed, 1 = stretch along main axis. */
+  layoutGrow?: 0 | 1;
+  minWidth?: PenNumberOrVariable;
+  maxWidth?: PenNumberOrVariable;
+  minHeight?: PenNumberOrVariable;
+  maxHeight?: PenNumberOrVariable;
+}
+
+/** CSS-grid-like Auto Layout config (when `layout: 'grid'`). */
+export interface PenGridLayout {
+  gridRowCount?: number;
+  gridColumnCount?: number;
+  gridRowGap?: PenNumberOrVariable;
+  gridColumnGap?: PenNumberOrVariable;
+  /** CSS `grid-template-columns` string. */
+  gridColumnsSizing?: string;
+  /** CSS `grid-template-rows` string. */
+  gridRowsSizing?: string;
+}
+
+/** Per-child grid placement (stored on the child's metadata). */
+export interface PenGridChildPlacement {
+  gridChildHorizontalAlign?: 'auto' | 'min' | 'center' | 'max';
+  gridChildVerticalAlign?: 'auto' | 'min' | 'center' | 'max';
+  gridRowSpan?: number;
+  gridColumnSpan?: number;
+}
+
+/** Layout guide overlaid on a frame (not Auto Layout — visual only). */
+export interface PenLayoutGrid {
+  pattern: 'columns' | 'rows' | 'grid';
+  sectionSize: PenNumberOrVariable;
+  visible?: PenBooleanOrVariable;
+  color?: PenColorOrVariable;
+  alignment?: 'min' | 'max' | 'stretch' | 'center';
+  gutterSize?: PenNumberOrVariable;
+  offset?: PenNumberOrVariable;
+  count?: PenNumberOrVariable;
+}
+
+/** Mask configuration for a node. */
+export interface PenMask {
+  isMask: boolean;
+  /** ALPHA = use alpha channel. VECTOR = use fill regions. LUMINANCE = use luminance. */
+  maskType?: 'alpha' | 'vector' | 'luminance';
+}
+
+/** Component Property type (BOOLEAN/TEXT/INSTANCE_SWAP/VARIANT). */
+export type PenComponentPropertyType =
+  | 'boolean'
+  | 'string'
+  | 'variant'
+  | 'instance_swap';
+
+/** Definition of a Component Property on a Component. */
+export interface PenComponentPropertyDefinition {
+  type: PenComponentPropertyType;
+  /** Initial value for instances. boolean | string. */
+  defaultValue: boolean | string;
+  /** Only for type: 'variant'. */
+  variantOptions?: string[];
+  /** Only for type: 'instance_swap'. */
+  preferredValues?: Array<{
+    type: 'COMPONENT' | 'COMPONENT_SET';
+    key: string;
+  }>;
+}
+
+/** A bound variable alias (Figma-style { type, id }). */
+export interface PenVariableAlias {
+  type: 'VARIABLE_ALIAS';
+  id: string;
+}
+
+/** Per-node export setting. */
+export interface PenExportSetting {
+  format: 'png' | 'jpg' | 'svg' | 'pdf';
+  suffix?: string;
+  scale?: number;
+  /** Constraint: 'contain' keeps aspect ratio. */
+  constraint?: { type: 'scale' | 'width' | 'height'; value: number };
+}
+
+/** Author annotation attached to a node. */
+export interface PenAnnotation {
+  label?: string;
+  text?: string;
+  property?: string;
+}
+
+/** Dev handoff status. */
+export interface PenDevStatus {
+  type: 'NONE' | 'READY_FOR_DEV' | 'COMPLETED';
+  description?: string;
+}
+
+// ---- Prototyping (v2.1) — Figma-aligned ----------------------------------
+//
+// These types model Figma's prototyping model: triggers, actions,
+// transitions, and easing. They're stored on a node's metadata
+// (metadata.interactions) rather than as top-level fields, since
+// prototyping is an optional concern that most design files don't use.
+//
+// See docs/figma-ontology.md §16 (Easing) and the Trigger/Action
+// sections of the Figma REST API spec.
+
+/** Easing curve for a prototyping transition. */
+export type PenEasingType =
+  | 'ease_in' | 'ease_out' | 'ease_in_out' | 'linear'
+  | 'ease_in_back' | 'ease_out_back' | 'ease_in_out_back'
+  | 'gentle' | 'quick' | 'bouncy' | 'slow'
+  | 'custom_cubic_bezier' | 'custom_spring';
+
+/** A custom cubic-bezier easing curve (when easingType === 'custom_cubic_bezier'). */
+export interface PenCubicBezier {
+  x1: number; y1: number; x2: number; y2: number;
+}
+
+/** A custom spring easing (when easingType === 'custom_spring'). */
+export interface PenSpringConfig {
+  stiffness?: number;
+  damping?: number;
+  mass?: number;
+}
+
+/** Prototype trigger — what initiates an interaction. */
+export type PenTrigger =
+  | { type: 'on_click' }
+  | { type: 'on_hover' }
+  | { type: 'on_press' }
+  | { type: 'on_drag' }
+  | { type: 'after_timeout'; timeout: number }
+  | { type: 'mouse_enter'; delay?: number }
+  | { type: 'mouse_leave'; delay?: number }
+  | { type: 'mouse_up'; delay?: number }
+  | { type: 'mouse_down'; delay?: number }
+  | { type: 'on_key_down'; device: 'keyboard' | 'xbox_one' | 'ps4' | 'switch_pro' | 'unknown_controller'; keyCodes: number[] }
+  | { type: 'on_media_hit'; mediaHitTime: number }
+  | { type: 'on_media_end' };
+
+/** A prototype action — what happens when a trigger fires. */
+export type PenAction =
+  | { type: 'back' }
+  | { type: 'close' }
+  | { type: 'url'; url: string }
+  | { type: 'navigate'; destinationId: string; transition?: PenTransition }
+  | { type: 'overlay'; destinationId: string; transition?: PenTransition }
+  | { type: 'swap'; destinationId: string; transition?: PenTransition }
+  | { type: 'update_media_runtime'; destinationId: string | null; mediaAction: 'play' | 'pause' | 'toggle_play_pause' | 'mute' | 'unmute' | 'toggle_mute_unmute' }
+  | { type: 'set_variable'; variableId: string; value: unknown }
+  | { type: 'set_variable_mode'; variableCollectionId: string; modeId: string }
+  | { type: 'conditional'; condition: string; trueAction: PenAction; falseAction?: PenAction };
+
+/** A prototyping transition between two frames. */
+export interface PenTransition {
+  type: 'fade' | 'move_in' | 'move_out' | 'push' | 'slide_in' | 'slide_out' | 'reveal' | 'smart_animate' | 'dissolve' | 'none';
+  direction?: 'left' | 'right' | 'up' | 'down';
+  durationMs: number;
+  easing?: PenEasingType;
+  cubicBezier?: PenCubicBezier;
+  springConfig?: PenSpringConfig;
+}
+
+/** A complete interaction: trigger + one or more actions. */
+export interface PenInteraction {
+  trigger: PenTrigger;
+  actions: PenAction[];
+}
+
+/** A comment thread anchored to a node or canvas point. */
+export interface PenComment {
+  id: string;
+  author: string;
+  body: string;
+  createdAt: string;
+  resolved?: boolean;
+  /** Anchor: a node ID, or an {x, y} canvas point. */
+  anchor?: { nodeId?: string; x?: number; y?: number };
+  reactions?: Array<{ emoji: string; user: string }>;
+  replies?: PenComment[];
+}
+
+/**
+ * Per-node metadata bag. Encodes Figma traits that don't fit cleanly
+ * into the discriminated-union model (ComponentSet, Section, Slice,
+ * Mask, ComponentProperties, Constraints, LayoutGrids, …).
+ */
+export interface PenNodeMetadata {
+  // Node-kind flags
+  isComponentSet?: boolean;
+  isSection?: boolean;
+  isSlice?: boolean;
+  isEmbed?: boolean;
+  sectionContentsHidden?: boolean;
+  embedUrl?: string;
+
+  // Component / variant properties
+  componentProperties?: { [name: string]: PenComponentPropertyDefinition };
+  variantProperties?: { [axis: string]: string };
+
+  // Mask
+  isMask?: boolean;
+  maskType?: 'alpha' | 'vector' | 'luminance';
+
+  // Constraints & auto-layout child overrides
+  constraints?: PenLayoutConstraint;
+  autoLayoutChild?: PenAutoLayoutChild;
+  gridPlacement?: PenGridChildPlacement;
+
+  // Grid Auto Layout config (when parent.layout === 'grid')
+  gridLayout?: PenGridLayout;
+
+  // Layout guides (visual only)
+  layoutGrids?: PenLayoutGrid[];
+
+  // Overflow (frames only)
+  overflow?: 'hidden' | 'scroll-x' | 'scroll-y' | 'scroll-both';
+
+  // Export settings
+  exportSettings?: PenExportSetting[];
+
+  // Per-character text overrides (imported, not editable in UI)
+  characterStyleOverrides?: number[];
+  styleOverrideTable?: { [id: string]: unknown };
+
+  // Annotations & dev status
+  annotations?: PenAnnotation[];
+  devStatus?: PenDevStatus;
+
+  // Prototyping (v2.1) — interactions on this node.
+  interactions?: PenInteraction[];
+  /** Outgoing transition when this node is navigated away from. */
+  transitionNodeID?: string;
+  transitionDuration?: number;
+  transitionEasing?: PenEasingType;
+
+  // Variable bindings (Figma-style explicit aliases, optional)
+  boundVariables?: { [field: string]: PenVariableAlias };
+
+  // Plugin / scratch data
+  pluginData?: { [pluginId: string]: unknown };
+  sharedPluginData?: { [namespace: string]: unknown };
+
+  // Free-form extensions
+  [key: string]: unknown;
+}
+
 /** Reuses another object (a component instance). */
 export interface PenRef extends PenEntity {
   type: 'ref';
@@ -384,6 +659,8 @@ export interface PenDocument {
   /** Imported .pen / .lib.pen files: { alias: relativeURI }. */
   imports?: { [alias: string]: string };
   variables?: { [key: string]: PenVariableDef };
+  /** Comment threads anchored to nodes or canvas points (v2.1). */
+  comments?: PenComment[];
   children: PenChild[];
 }
 

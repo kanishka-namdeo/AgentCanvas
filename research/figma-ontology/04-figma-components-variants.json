@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5579474826519-Explore-component-properties",
+    "name": "Explore component properties",
+    "snippet": "The instance swap property allows you to indicate which instances nested in a main component or variant can be swapped. When creating an instance swap property , ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/nested-component-instance-how-do-i-keep-nested-property-values-across-parent-variants-575",
+    "name": "how do I keep nested property values across \"parent",
+    "snippet": "May 13, 2024 — Given a button component with some variants for color:\n\n… and given a popover-button component with the button component nested into it:\n\nI have ...",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "May 13, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038662654-Guide-to-components-in-Figma",
+    "name": "Guide to components in Figma",
+    "snippet": "An instance is a copy of the component you can reuse in your designs. Instances are linked to the main component and receive any updates made to the component .",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.logrocket.com/ux-design/using-component-properties-figma",
+    "name": "Using Figma's instance swap and other component",
+    "snippet": "Mar 28, 2025 — Instances are copies of components that inherit those properties but can be customized individually using overrides . instance overrides are ...",
+    "host_name": "blog.logrocket.com",
+    "rank": 3,
+    "date": "Mar 28, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039150733-Apply-changes-to-instances",
+    "name": "Apply changes to instances",
+    "snippet": "The main component defines the properties of the element The instance is a copy of the component you can reuse in your designs You can make changes to any  ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/do-not-override-all-properties-on-component-variant-swap-20630",
+    "name": "Do not override all properties on component variant swap",
+    "snippet": "Mar 12, 2024 — Currently variant swap acts as a complete component swap. All its properties get overridden and are not controlled by the master component ...",
+    "host_name": "forum.figma.com",
+    "rank": 5,
+    "date": "Mar 12, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@joeyabanks/component-properties-in-figma-1883da7c16e6",
+    "name": "Component Properties in Figma - by Joey Banks",
+    "snippet": "Instance swap properties , which are part of the new component properties feature, allow the creator of a component to easily indicate which ...",
+    "host_name": "medium.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/nodes",
+    "name": "Node Types | Developer Docs",
+    "snippet": "In Figma , the Node is the basis for representing layers. There are many different types of nodes , each with their own set of properties.",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/ComponentNode",
+    "name": "ComponentNode | Developer Docs",
+    "snippet": "ComponentNode Components are UI elements that can be reused across your designs. They are like frames, with the additional ability to have auto-updating copies ...",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/75869688/convert-instance-or-frame-node-to-component-node-through-figma-api",
+    "name": "Convert Instance or Frame node to Component",
+    "snippet": "Through UI it's very easy just right click on element and then Create Component like on screenshot below but I need to do it through Figma API . Read more",
+    "host_name": "stackoverflow.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api/file-node-types",
+    "name": "Node types | Developer Docs",
+    "snippet": "Node type indicates what kind of node you are working with: for example, a FRAME node versus a RECTANGLE node . A node can have additional properties associated ... Read more",
+    "host_name": "developers.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/node-properties",
+    "name": "Shared Node Properties | Developer Docs",
+    "snippet": "Nodes support a range of properties. FrameNode InstanceNode . This is a private API only available to Figma partners",
+    "host_name": "developers.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://crates.io/crates/figma-api",
+    "name": "figma-api - crates.io: Rust Package Registry",
+    "snippet": "Dec 2, 2025 — This is the OpenAPI specification for the Figma REST API . you can easily generate an API client. InstanceNode InstanceSwapPreferredValue",
+    "host_name": "crates.io",
+    "rank": 5,
+    "date": "Dec 2, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/can-t-get-file-nodes-of-component-instance-children-19465",
+    "name": "Can't get file nodes of component instance children",
+    "snippet": "Aug 14, 2024 — I've been using Figma's REST API to grab the text content from specific nodes in my designs with the following endpoint: Read more",
+    "host_name": "forum.figma.com",
+    "rank": 6,
+    "date": "Aug 14, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/gettting-component-s-containing-frame-value-from-rest-api-33519",
+    "name": "Gettting Component's containing_frame value from REST API",
+    "snippet": "Jul 14, 2023 — This works fine, however I'd like to locate the closest component to the text node and get the name of the component's containing frame to help ... Read more",
+    "host_name": "forum.figma.com",
+    "rank": 7,
+    "date": "Jul 14, 2023",
+    "favicon": ""
+  }
+]
