@@ -20,6 +20,13 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { toast } from 'sonner';
 import {
   ChevronRight, Wrench, Clock, History, Bookmark, BookmarkCheck, RotateCcw, Camera, GitFork,
@@ -243,43 +250,83 @@ function RunCard({ run }: { run: Run }) {
   }, [run.toolCallIds, toolCallsMap]);
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <button
-          className="w-full text-left rounded-md border ac-border-subtle hover:ac-border-default hover:ac-surface-1 ac-surface-0 px-2.5 py-1.5 ac-transition ac-focus-ring"
-        >
-          <div className="flex items-start gap-1.5">
-            <ChevronRight className={`h-3 w-3 mt-0.5 ac-text-4 transition-transform ${open ? 'rotate-90' : ''}`} />
-            <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-medium ac-text-1 line-clamp-1">{run.prompt}</div>
-              <div className="flex items-center gap-1.5 mt-1 text-[10px] ac-text-4">
-                <StatusBadge status={run.status} />
-                <span className="flex items-center gap-0.5">
-                  <Clock className="h-2.5 w-2.5" />
-                  {formatDuration(run.durationMs)}
-                </span>
-                <span className="ac-text-5">·</span>
-                <span className="flex items-center gap-0.5">
-                  <Wrench className="h-2.5 w-2.5" />
-                  {toolCalls.length}
-                </span>
-                <span className="ac-text-5 ml-auto">{relativeTime(run.createdAt)}</span>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <Collapsible open={open} onOpenChange={setOpen}>
+          <CollapsibleTrigger asChild>
+            <button
+              className="w-full text-left rounded-md border ac-border-subtle hover:ac-border-default hover:ac-surface-1 ac-surface-0 px-2.5 py-1.5 ac-transition ac-focus-ring"
+            >
+              <div className="flex items-start gap-1.5">
+                <ChevronRight className={`h-3 w-3 mt-0.5 ac-text-4 transition-transform ${open ? 'rotate-90' : ''}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] font-medium ac-text-1 line-clamp-1">{run.prompt}</div>
+                  <div className="flex items-center gap-1.5 mt-1 text-[10px] ac-text-4">
+                    <StatusBadge status={run.status} />
+                    <span className="flex items-center gap-0.5">
+                      <Clock className="h-2.5 w-2.5" />
+                      {formatDuration(run.durationMs)}
+                    </span>
+                    <span className="ac-text-5">·</span>
+                    <span className="flex items-center gap-0.5">
+                      <Wrench className="h-2.5 w-2.5" />
+                      {toolCalls.length}
+                    </span>
+                    <span className="ac-text-5 ml-auto">{relativeTime(run.createdAt)}</span>
+                  </div>
+                </div>
               </div>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="pl-4 pr-1 py-1 space-y-0.5">
+              {toolCalls.length === 0 && (
+                <div className="text-[10px] ac-text-4 italic px-2 py-1">No tool calls in this run.</div>
+              )}
+              {toolCalls.map((tc) => (
+                <ToolCallCard key={tc.id} tc={tc} />
+              ))}
             </div>
-          </div>
-        </button>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div className="pl-4 pr-1 py-1 space-y-0.5">
-          {toolCalls.length === 0 && (
-            <div className="text-[10px] ac-text-4 italic px-2 py-1">No tool calls in this run.</div>
-          )}
-          {toolCalls.map((tc) => (
-            <ToolCallCard key={tc.id} tc={tc} />
-          ))}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+          </CollapsibleContent>
+        </Collapsible>
+      </ContextMenuTrigger>
+      {/* P1-21: Run card right-click — Expand/Collapse, Restore run, Fork
+          from here, Copy prompt, Copy tool calls JSON, Export MD, Delete run. */}
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => setOpen((v) => !v)}>
+          {open ? 'Collapse' : 'Expand'}
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => toast.message('Restore run — not yet implemented (re-run agent from this prompt)')}>
+          Restore run
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => toast.message('Fork from here — use the chat panel Fork button')}>
+          Fork from here
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => {
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(run.prompt).then(() => toast.message('Prompt copied'));
+          }
+        }}>
+          Copy prompt
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => {
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            const data = JSON.stringify(toolCalls, null, 2);
+            navigator.clipboard.writeText(data).then(() => toast.message('Tool calls copied as JSON'));
+          }
+        }}>
+          Copy all tool calls as JSON
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => toast.message('Export run as Markdown — not yet implemented (P2-37)')}>
+          Export run as Markdown
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => toast.message('Delete run — not yet implemented')} className="text-rose-600">
+          Delete run
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -328,62 +375,95 @@ function SnapshotCard({
     manual: 'text-blue-700 bg-blue-50',
   };
   return (
-    <div className={`rounded-md border px-2.5 py-1.5 ac-transition ${
-      isActive ? 'border-emerald-300 bg-emerald-50/40' : 'ac-border-subtle ac-surface-0 hover:ac-border-default hover:ac-surface-1'
-    }`}>
-      <div className="flex items-center gap-1.5">
-        <Camera className="h-3 w-3 ac-text-4" />
-        <span className="text-[11px] font-medium ac-text-1 flex-1 truncate">
-          {snapshot.label ?? snapshot.id.slice(0, 12)}
-        </span>
-        {isActive && (
-          <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1 py-0 rounded font-medium">
-            current
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-1.5 mt-1 text-[9px] ac-text-4">
-        <span className={`px-1 py-0 rounded font-medium ${sourceColor[snapshot.source]}`}>
-          {snapshot.source}
-        </span>
-        <span>{snapshot.nodeCount} nodes</span>
-        <span className="ac-text-5">·</span>
-        <span>{relativeTime(snapshot.createdAt)}</span>
-      </div>
-      <div className="flex items-center gap-1 mt-1.5">
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-5 text-[9px] px-1.5 ac-border-default ac-text-2 hover:ac-surface-1 ac-transition"
-          onClick={onRestore}
-          disabled={isActive}
-          title="Restore this snapshot"
-        >
-          <RotateCcw className="h-2.5 w-2.5 mr-0.5" />
-          Restore
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-5 text-[9px] px-1.5 ac-border-default ac-text-2 hover:ac-surface-1 ac-transition"
-          onClick={onFork}
-          title="Fork from this snapshot"
-        >
-          <GitFork className="h-2.5 w-2.5 mr-0.5" />
-          Fork
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-5 w-5 p-0 ml-auto ac-text-4 hover:ac-text-1 hover:ac-surface-1 ac-transition"
-          onClick={onBookmark}
-          title={snapshot.bookmarked ? 'Remove bookmark' : 'Bookmark'}
-        >
-          {snapshot.bookmarked
-            ? <BookmarkCheck className="h-3 w-3 text-amber-500" />
-            : <Bookmark className="h-3 w-3" />}
-        </Button>
-      </div>
-    </div>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div className={`rounded-md border px-2.5 py-1.5 ac-transition ${
+          isActive ? 'border-emerald-300 bg-emerald-50/40' : 'ac-border-subtle ac-surface-0 hover:ac-border-default hover:ac-surface-1'
+        }`}>
+          <div className="flex items-center gap-1.5">
+            <Camera className="h-3 w-3 ac-text-4" />
+            <span className="text-[11px] font-medium ac-text-1 flex-1 truncate">
+              {snapshot.label ?? snapshot.id.slice(0, 12)}
+            </span>
+            {isActive && (
+              <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1 py-0 rounded font-medium">
+                current
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 mt-1 text-[9px] ac-text-4">
+            <span className={`px-1 py-0 rounded font-medium ${sourceColor[snapshot.source]}`}>
+              {snapshot.source}
+            </span>
+            <span>{snapshot.nodeCount} nodes</span>
+            <span className="ac-text-5">·</span>
+            <span>{relativeTime(snapshot.createdAt)}</span>
+          </div>
+          <div className="flex items-center gap-1 mt-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-5 text-[9px] px-1.5 ac-border-default ac-text-2 hover:ac-surface-1 ac-transition"
+              onClick={onRestore}
+              disabled={isActive}
+              title="Restore this snapshot"
+            >
+              <RotateCcw className="h-2.5 w-2.5 mr-0.5" />
+              Restore
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-5 text-[9px] px-1.5 ac-border-default ac-text-2 hover:ac-surface-1 ac-transition"
+              onClick={onFork}
+              title="Fork from this snapshot"
+            >
+              <GitFork className="h-2.5 w-2.5 mr-0.5" />
+              Fork
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-5 w-5 p-0 ml-auto ac-text-4 hover:ac-text-1 hover:ac-surface-1 ac-transition"
+              onClick={onBookmark}
+              title={snapshot.bookmarked ? 'Remove bookmark' : 'Bookmark'}
+            >
+              {snapshot.bookmarked
+                ? <BookmarkCheck className="h-3 w-3 text-amber-500" />
+                : <Bookmark className="h-3 w-3" />}
+            </Button>
+          </div>
+        </div>
+      </ContextMenuTrigger>
+      {/* P1-22: Snapshot card right-click — Restore, Fork, Bookmark,
+          Rename, Delete, Export .pen, Copy JSON, Set as current. */}
+      <ContextMenuContent>
+        <ContextMenuItem onClick={onRestore} disabled={isActive}>Restore</ContextMenuItem>
+        <ContextMenuItem onClick={onFork}>Fork from here</ContextMenuItem>
+        <ContextMenuItem onClick={onBookmark}>{snapshot.bookmarked ? 'Remove bookmark' : 'Bookmark'}</ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => toast.message('Rename snapshot — not yet implemented (P2-38)')}>
+          Rename snapshot
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => toast.message('Delete snapshot — not yet implemented')} className="text-rose-600">
+          Delete snapshot
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => {
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2)).then(() => toast.message('Snapshot copied as JSON'));
+          }
+        }}>
+          Copy as JSON
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => toast.message('Export as .pen — not yet implemented')}>
+          Export as .pen
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => toast.message('Set as current — not yet implemented (P2-45)')}>
+          Set as current
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

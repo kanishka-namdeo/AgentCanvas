@@ -470,6 +470,67 @@ export function LayersPanel() {
             <ChevronsDownUp className="h-3.5 w-3.5 mr-2" /> Collapse subtree
           </ContextMenuItem>
           <ContextMenuSeparator />
+          {/* P2-42/43/44: Submenus for theme axis / token binding / reparent-to */}
+          {document.themes && Object.keys(document.themes).length > 0 && (
+            <ContextMenuSub>
+              <ContextMenuSubTrigger>
+                <Braces className="h-3.5 w-3.5 mr-2" /> Apply theme axis
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent>
+                {Object.entries(document.themes).map(([axis, values]) => (
+                  values.map((val: string) => (
+                    <ContextMenuItem
+                      key={`${axis}=${val}`}
+                      onClick={() => sendPatch({ op: 'set_node_theme', shapeId: shape.id, theme: { [axis]: val } as Record<string, string>, summary: `Set ${axis}=${val} on ${shape.name}` })}
+                    >
+                      {axis} = {val}
+                    </ContextMenuItem>
+                  ))
+                )).flat()}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+          )}
+          {document.tokens?.colors && document.tokens.colors.length > 0 && (
+            <ContextMenuSub>
+              <ContextMenuSubTrigger>
+                <Braces className="h-3.5 w-3.5 mr-2" /> Bind to token
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent>
+                {document.tokens.colors.map((tok) => (
+                  <ContextMenuItem
+                    key={tok.key}
+                    onClick={() => sendPatch({
+                      op: 'update',
+                      shapeId: shape.id,
+                      shape: { tokenBinding: { fillToken: tok.key } } as Partial<Shape>,
+                      summary: `Bound ${shape.name} fill to ${tok.key}`,
+                    })}
+                  >
+                    {tok.name} ({tok.value})
+                  </ContextMenuItem>
+                ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+          )}
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <Braces className="h-3.5 w-3.5 mr-2" /> Reparent to…
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              <ContextMenuItem onClick={() => sendPatch({ op: 'reparent', shapeId: shape.id, newParentId: null, keepAbsolutePosition: true, summary: `Reparented ${shape.name} → root` })}>
+                (root — top-level)
+              </ContextMenuItem>
+              {shapes.filter((s) => (s.type === 'frame' || s.type === 'group') && s.id !== shape.id).map((parent) => (
+                <ContextMenuItem
+                  key={parent.id}
+                  onClick={() => sendPatch({ op: 'reparent', shapeId: shape.id, newParentId: parent.id, keepAbsolutePosition: true, summary: `Reparented ${shape.name} → ${parent.name}` })}
+                >
+                  {parent.name} ({parent.type})
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+          <ContextMenuSeparator />
           {/* ── Group 8: Existing items (Rename / Delete / Duplicate) ── */}
           <ContextMenuItem onClick={() => setEditingId(shape.id)}>
             <Edit2 className="h-3.5 w-3.5 mr-2" /> Rename

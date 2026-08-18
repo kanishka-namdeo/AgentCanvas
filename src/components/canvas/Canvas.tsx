@@ -40,6 +40,11 @@ interface DragState {
   /// Original pan when starting a pan drag.
   panX?: number;
   panY?: number;
+  /// P2-31: Track whether Alt was held at drag-start. On mouse-up with
+  /// altWasDown, the move handler emits a duplicate patch (creating a copy
+  /// at the dragged-to position) and reverts the original to its starting
+  /// position — the Figma "Alt-drag = duplicate" pattern.
+  altWasDown?: boolean;
 }
 
 const HANDLE_SIZE = 8;
@@ -318,11 +323,31 @@ export function Canvas() {
 
   const onMouseUp = useCallback(() => {
     if (dragState?.kind === 'move' && dragState.originals) {
-      // Emit a final summary patch so other viewers see the move in the log.
-      // (The actual position is already synced via the incremental patches.)
+      // P2-31: If Alt was held at drag-start, emit a duplicate patch (which
+      // creates a copy at the current position + 24 offset) and revert the
+      // original shapes to their starting positions. The duplicate ends up
+      // at (currentPos + 24); the original snaps back to its start.
+      if (dragState.altWasDown && dragState.originals.length > 0) {
+        const ids = dragState.originals.map((o) => o.id);
+        // Emit the duplicate first (creates copies at current position + 24).
+        sendPatch({ op: 'duplicate', shapeIds: ids, summary: `Duplicated ${ids.length} shape(s) via Alt+drag` });
+        // Then revert the originals to their starting positions.
+        const updates = dragState.originals.map((o) => {
+          const s = findShape(document, o.id);
+          // Subtract parent absolute position if nested (same fix as drag handler).
+          let relX = o.x;
+          let relY = o.y;
+          if (s?.parentId) {
+            const parent = findShape(document, s.parentId);
+            if (parent) { relX -= parent.x; relY -= parent.y; }
+          }
+          return { id: o.id, changes: { x: relX, y: relY } };
+        });
+        sendPatch({ op: 'update_many', updates, summary: `Reverted ${updates.length} original(s) to start position (Alt+drag)` });
+      }
     }
     setDragState(null);
-  }, [dragState]);
+  }, [dragState, sendPatch, document]);
 
   // ---- Shape interaction handlers -------------------------------------------
   const onShapeMouseDown = useCallback(
@@ -355,6 +380,8 @@ export function Canvas() {
           .map((id) => findShape(document, id))
           .filter((s): s is Shape => !!s)
           .map((s) => ({ id: s.id, x: s.x, y: s.y, width: s.width, height: s.height })),
+        // P2-31: Track Alt at drag-start for the duplicate-on-drag pattern.
+        altWasDown: e.altKey,
       });
     },
     [spaceDown, toolMode, selectedIds, document, select],

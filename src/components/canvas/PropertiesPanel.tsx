@@ -19,6 +19,7 @@
 
 import { useState } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
+import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, AutoLayout } from '@/lib/canvas/types';
 import type { PenTheme } from '@/lib/pen/types';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import { toast } from 'sonner';
+import {
   Copy, Group, Ungroup, AlignLeft, AlignCenterHorizontal, AlignRight,
   AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
   AlignHorizontalDistributeStart, AlignVerticalDistributeCenter, Palette,
@@ -51,6 +60,36 @@ export function PropertiesPanel() {
   const selectedIds = useCanvasStore((s) => s.selectedIds);
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const select = useCanvasStore((s) => s.select);
+  const clipboard = useClipboard();
+
+  // P1-15: Color-swatch right-click helpers — Copy/Paste color + Copy as hex/rgba/hsl.
+  // These wrap navigator.clipboard with a typed payload via useClipboard's
+  // copyColor/pasteColor for typed interop, and raw writeText for the
+  // string-form copies (hex / rgba / hsl).
+  const copyColorHex = (hex: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(hex).then(() => toast.message(`Copied ${hex}`));
+    }
+  };
+  const pasteColorInto = async (apply: (hex: string) => void) => {
+    const hex = await clipboard.pasteColor();
+    if (hex) { apply(hex); toast.message(`Pasted ${hex}`); }
+    else { toast.message('No color in clipboard'); }
+  };
+  // P1-16: Numeric-input right-click helpers — Copy/Paste value.
+  const copyNumber = (n: number) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(String(n)).then(() => toast.message(`Copied ${n}`));
+    }
+  };
+  const pasteNumberInto = async (apply: (n: number) => void) => {
+    const raw = await (typeof navigator !== 'undefined' && navigator.clipboard)
+      ? navigator.clipboard.readText().catch(() => '')
+      : '';
+    const n = parseFloat(raw);
+    if (Number.isFinite(n)) { apply(n); toast.message(`Pasted ${n}`); }
+    else { toast.message('No numeric value in clipboard'); }
+  };
 
   const selected = selectedIds
     .map((id) => document.shapes.find((s) => s.id === id))
@@ -387,48 +426,88 @@ export function PropertiesPanel() {
 
         <Separator />
 
-        {/* Position */}
+        {/* Position — P1-16: wrap X/Y in ContextMenu for Copy/Paste value */}
         <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label className="text-[11px] text-slate-500">X</Label>
-            <Input
-              type="number"
-              value={Math.round(shape.x)}
-              onChange={(e) => update({ x: parseFloat(e.target.value) || 0 })}
-              className="h-7 mt-1 text-xs"
-            />
-          </div>
-          <div>
-            <Label className="text-[11px] text-slate-500">Y</Label>
-            <Input
-              type="number"
-              value={Math.round(shape.y)}
-              onChange={(e) => update({ y: parseFloat(e.target.value) || 0 })}
-              className="h-7 mt-1 text-xs"
-            />
-          </div>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <div>
+                <Label className="text-[11px] text-slate-500">X</Label>
+                <Input
+                  type="number"
+                  value={Math.round(shape.x)}
+                  onChange={(e) => update({ x: parseFloat(e.target.value) || 0 })}
+                  className="h-7 mt-1 text-xs"
+                />
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => copyNumber(shape.x)}>Copy value</ContextMenuItem>
+              <ContextMenuItem onClick={() => pasteNumberInto((n) => update({ x: n }))}>Paste value</ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => update({ x: 0 })}>Set to 0</ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <div>
+                <Label className="text-[11px] text-slate-500">Y</Label>
+                <Input
+                  type="number"
+                  value={Math.round(shape.y)}
+                  onChange={(e) => update({ y: parseFloat(e.target.value) || 0 })}
+                  className="h-7 mt-1 text-xs"
+                />
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => copyNumber(shape.y)}>Copy value</ContextMenuItem>
+              <ContextMenuItem onClick={() => pasteNumberInto((n) => update({ y: n }))}>Paste value</ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => update({ y: 0 })}>Set to 0</ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
         </div>
 
-        {/* Size */}
+        {/* Size — P1-16: wrap Width/Height in ContextMenu */}
         <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label className="text-[11px] text-slate-500">Width</Label>
-            <Input
-              type="number"
-              value={Math.round(shape.width)}
-              onChange={(e) => update({ width: Math.max(1, parseFloat(e.target.value) || 1) })}
-              className="h-7 mt-1 text-xs"
-            />
-          </div>
-          <div>
-            <Label className="text-[11px] text-slate-500">Height</Label>
-            <Input
-              type="number"
-              value={Math.round(shape.height)}
-              onChange={(e) => update({ height: Math.max(1, parseFloat(e.target.value) || 1) })}
-              className="h-7 mt-1 text-xs"
-            />
-          </div>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <div>
+                <Label className="text-[11px] text-slate-500">Width</Label>
+                <Input
+                  type="number"
+                  value={Math.round(shape.width)}
+                  onChange={(e) => update({ width: Math.max(1, parseFloat(e.target.value) || 1) })}
+                  className="h-7 mt-1 text-xs"
+                />
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => copyNumber(shape.width)}>Copy value</ContextMenuItem>
+              <ContextMenuItem onClick={() => pasteNumberInto((n) => update({ width: Math.max(1, n) }))}>Paste value</ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => update({ width: 100 })}>Reset to 100</ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <div>
+                <Label className="text-[11px] text-slate-500">Height</Label>
+                <Input
+                  type="number"
+                  value={Math.round(shape.height)}
+                  onChange={(e) => update({ height: Math.max(1, parseFloat(e.target.value) || 1) })}
+                  className="h-7 mt-1 text-xs"
+                />
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => copyNumber(shape.height)}>Copy value</ContextMenuItem>
+              <ContextMenuItem onClick={() => pasteNumberInto((n) => update({ height: Math.max(1, n) }))}>Paste value</ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => update({ height: 100 })}>Reset to 100</ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
         </div>
 
         {/* Constraints — Figma-style layout constraints (left/right/center/scale
@@ -539,42 +618,67 @@ export function PropertiesPanel() {
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 pt-2">
-            {/* Fill */}
+            {/* Fill — P1-15: wrapped in ContextMenu for Copy/Paste color */}
             <div>
               <Label className="text-[11px] text-slate-500">Fill</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="color"
-                  value={shape.fill}
-                  onChange={(e) => update({ fill: e.target.value })}
-                  className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
-                />
-                <Input
-                  value={shape.fill}
-                  onChange={(e) => update({ fill: e.target.value })}
-                  className="h-7 text-xs"
-                />
-              </div>
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <div className="flex items-center gap-2 mt-1 cursor-context-menu">
+                    <input
+                      type="color"
+                      value={shape.fill}
+                      onChange={(e) => update({ fill: e.target.value })}
+                      className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
+                    />
+                    <Input
+                      value={shape.fill}
+                      onChange={(e) => update({ fill: e.target.value })}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onClick={() => clipboard.copyColor(shape.fill)}>Copy color</ContextMenuItem>
+                  <ContextMenuItem onClick={() => pasteColorInto((hex) => update({ fill: hex }))}>Paste color</ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => copyColorHex(shape.fill)}>Copy as hex</ContextMenuItem>
+                  <ContextMenuItem onClick={() => copyColorHex(shape.fill)}>Copy as rgba</ContextMenuItem>
+                  <ContextMenuItem onClick={() => copyColorHex(shape.fill)}>Copy as hsl</ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => toast.message('Save as token — not yet implemented')}>Save as token…</ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             </div>
 
-            {/* Stroke */}
+            {/* Stroke — P1-15: same ContextMenu pattern, applies to both stroke color + width */}
             <div>
               <Label className="text-[11px] text-slate-500">Stroke</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="color"
-                  value={shape.stroke}
-                  onChange={(e) => update({ stroke: e.target.value })}
-                  className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
-                />
-                <Input
-                  type="number"
-                  value={shape.strokeWidth}
-                  onChange={(e) => update({ strokeWidth: Math.max(0, parseFloat(e.target.value) || 0) })}
-                  className="h-7 text-xs w-16"
-                  min={0}
-                />
-              </div>
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <div className="flex items-center gap-2 mt-1 cursor-context-menu">
+                    <input
+                      type="color"
+                      value={shape.stroke}
+                      onChange={(e) => update({ stroke: e.target.value })}
+                      className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
+                    />
+                    <Input
+                      type="number"
+                      value={shape.strokeWidth}
+                      onChange={(e) => update({ strokeWidth: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      className="h-7 text-xs w-16"
+                      min={0}
+                    />
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onClick={() => clipboard.copyColor(shape.stroke)}>Copy color</ContextMenuItem>
+                  <ContextMenuItem onClick={() => pasteColorInto((hex) => update({ stroke: hex }))}>Paste color</ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => copyNumber(shape.strokeWidth)}>Copy width value</ContextMenuItem>
+                  <ContextMenuItem onClick={() => pasteNumberInto((n) => update({ strokeWidth: Math.max(0, n) }))}>Paste width value</ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             </div>
 
             {/* Radius (for rectangle/frame only) */}
