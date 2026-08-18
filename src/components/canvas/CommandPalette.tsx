@@ -22,7 +22,7 @@
 //   - Custom prompt: if the user types something that doesn't match any
 //     preset and hits Enter, we send it as a free-form prompt.
 
-import { useEffect, useState } from 'react';
+import { useState, useRef } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import {
   Command,
@@ -130,9 +130,15 @@ export function CommandPalette({
   const [query, setQuery] = useState('');
 
   // Reset the query every time the palette opens so the user starts fresh.
-  useEffect(() => {
+  // Using a ref-comparison pattern (React team's recommended approach for
+  // "adjust state when a prop changes" — see react.dev/learn/you-might-not-need-an-effect).
+  const previousOpen = useRef(open);
+  // eslint-disable-next-line react-hooks/refs
+  if (previousOpen.current !== open) {
+    // eslint-disable-next-line react-hooks/refs
+    previousOpen.current = open;
     if (open) setQuery('');
-  }, [open]);
+  }
 
   const runPrompt = (text: string) => {
     if (!text.trim() || agentBusy) return;

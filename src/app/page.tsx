@@ -203,7 +203,7 @@ export default function Home() {
           if (isEditable) return;
           e.preventDefault();
           // Find the chat scroll area and scroll by one message height (~80px).
-          const chatScroll = typeof document !== 'undefined' ? document.querySelector('.agent-panel-scroll') : null;
+          const chatScroll = typeof globalThis.document !== 'undefined' ? globalThis.document.querySelector('.agent-panel-scroll') : null;
           if (chatScroll) {
             (chatScroll as HTMLElement).scrollBy({ top: e.key === 'ArrowUp' ? -80 : 80, behavior: 'smooth' });
           }
@@ -349,7 +349,7 @@ export default function Home() {
         const nextIdx = e.shiftKey
           ? (currentIdx <= 0 ? all.length - 1 : currentIdx - 1)
           : (currentIdx + 1) % all.length;
-        select([all[nextIdx].id]);
+        state.select([all[nextIdx].id]);
         return;
       }
 

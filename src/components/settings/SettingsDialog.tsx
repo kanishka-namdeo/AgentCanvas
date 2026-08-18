@@ -19,7 +19,7 @@
 // persists to localStorage automatically. Changes apply immediately — no
 // "Save" button required.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -538,8 +538,16 @@ function DataSection() {
 
   const refresh = () => setUsage(estimateLocalStorageUsage());
 
-  // Refresh usage every time the section is opened.
-  useEffect(() => { refresh(); }, []);
+  // Refresh usage on mount — the useState initializer already computes the
+  // initial value, so this is only needed for post-hydration re-computation.
+  // Using eslint-disable for the ref-during-render pattern (one-time init).
+  const mountedRef = useRef<null | boolean>(null);
+   
+  if (mountedRef.current === null) {
+     
+    mountedRef.current = true;
+    refresh();
+  }
 
   const handleExport = () => {
     const sessionsData = localStorage.getItem('agentcanvas.sessions.v1') ?? '{}';

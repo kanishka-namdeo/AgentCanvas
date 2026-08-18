@@ -84,7 +84,7 @@ export interface ClassificationResult {
   secondaryCategories: SkillCategory[];
 
   /// How the classification was made — for debugging and telemetry.
-  method: 'keyword' | 'llm' | 'fallback';
+  method: 'keyword' | 'llm' | 'fallback' | 'manual';
 
   /// Confidence 0..1. Below a threshold, the runner falls back to 'multi'
   /// (all skills loaded).

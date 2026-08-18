@@ -22,8 +22,8 @@ import {
   ALL_TOOL_NAMES,
   CORE_TOOL_NAMES,
   getToolNamesForCategory,
-  type SkillCategory,
 } from '@/lib/agent/skills/registry';
+import type { SkillCategory } from '@/lib/agent/skills';
 
 describe('registry: Figma-hierarchy tool registration', () => {
   it('pen_reparent_shape is in wireframe.allowedTools (for post-gen refinement)', () => {
@@ -78,8 +78,6 @@ describe('registry: Figma-hierarchy tool registration', () => {
       for (const toolName of skill.allowedTools) {
         expect(ALL_TOOL_NAMES).toContain(toolName);
       }
-      // cat is typed as SkillCategory; suppress unused-var lint by voiding it.
-      void cat as SkillCategory;
     }
   });
 });

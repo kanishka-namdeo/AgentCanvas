@@ -57,10 +57,13 @@ export interface UseScrubHandlers {
 
 export function useScrub(opts: UseScrubOptions): UseScrubHandlers {
   const optsRef = useRef(opts);
-  optsRef.current = opts;
   const valueRef = useRef(opts.initialValue);
   const [isScrubbing, setIsScrubbing] = useState(false);
 
+  // Update refs in effects (not during render — React 19 lint rule).
+  useEffect(() => {
+    optsRef.current = opts;
+  });
   // Update valueRef when the prop value changes (e.g. external selection change).
   useEffect(() => {
     if (!isScrubbing) valueRef.current = opts.initialValue;
@@ -108,7 +111,7 @@ export function useScrub(opts: UseScrubOptions): UseScrubHandlers {
     valueRef.current = optsRef.current.initialValue;
     setIsScrubbing(true);
     // Request pointer lock so the cursor stays inside the window.
-    if (typeof document !== 'undefined' && document.documentElement.requestPointerLock) {
+    if (typeof document !== 'undefined' && typeof document.documentElement.requestPointerLock === 'function') {
       try {
         (e.target as HTMLElement).requestPointerLock?.();
       } catch {

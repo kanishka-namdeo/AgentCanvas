@@ -4,7 +4,7 @@
 // The real cost is higher because JSON schemas have more punctuation, but this
 // gives a ballpark for the "every LLM call pays this" overhead.
 
-import { createCanvasTools, toolsToOpenAISpec, type CanvasToolContext } from '../src/lib/agent/tools.ts';
+import { createCanvasTools, toolsToOpenAISpec, type CanvasToolContext } from '../src/lib/agent/tools';
 import { createPenTools } from '../src/lib/agent/pen-tools';
 import { readFileSync } from 'node:fs';
 
@@ -19,7 +19,7 @@ async function main() {
       viewport: { zoom: 1, panX: 0, panY: 0 },
       shapes: [], tokens: { colors: [], textStyles: [] },
     } as any),
-    applyPatch: () => ({ op: 'noop' }),
+    applyPatch: () => ({ op: 'select', summary: 'noop' }),
   };
 
   const tools = [...createCanvasTools(ctx), ...createPenTools(ctx)] as ReturnType<typeof createCanvasTools>;

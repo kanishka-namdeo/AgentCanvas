@@ -19,7 +19,7 @@
 // The hook is intentionally simple — it does not handle keyboard shortcuts
 // directly. page.tsx wires ⌘C/V/X/A and calls into this hook.
 
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import type { Shape, CanvasPatch } from '@/lib/canvas/types';
 import {
@@ -77,10 +77,10 @@ async function writeClipboard(value: string): Promise<void> {
 export function useClipboard() {
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const select = useCanvasStore((s) => s.select);
-  const getShapes = useRef<() => Shape[]>(undefined as unknown as () => Shape[]);
 
-  // Bind getShapes lazily so tests can swap the store out.
-  getShapes.current = () => useCanvasStore.getState().document.shapes ?? [];
+  // Read shapes directly from the store (no ref needed — getState() is
+  // always fresh).
+  const getShapes = () => useCanvasStore.getState().document.shapes ?? [];
 
   const copy = useCallback(async (shapes: Shape[]) => {
     if (shapes.length === 0) return;
@@ -119,7 +119,7 @@ export function useClipboard() {
   }, [copy, sendPatch, select]);
 
   const selectAll = useCallback(() => {
-    const all = getShapes.current();
+    const all = getShapes();
     select(all.map((s) => s.id));
   }, [select]);
 

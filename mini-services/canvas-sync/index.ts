@@ -13,8 +13,8 @@
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from '../../src/lib/canvas/types.ts';
-import { applyPatchToCanvas } from '../../src/lib/canvas/patch.ts';
+import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from '../../src/lib/canvas/types';
+import { applyPatchToCanvas } from '../../src/lib/canvas/patch';
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -41,11 +41,12 @@ function ensureDocument(documentId: string): DocState {
       document: {
         id: documentId,
         name: 'Untitled',
+        version: '2.17',
+        children: [],
         background: '#f8fafc',
         viewport: { zoom: 1, panX: 0, panY: 0 },
         shapes: [],
         tokens: { colors: [], textStyles: [] },
-        heatmap: null,
       },
       subscribers: new Set(),
     };

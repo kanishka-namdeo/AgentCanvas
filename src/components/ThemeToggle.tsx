@@ -70,6 +70,7 @@ export function ThemeToggle() {
       setSetting('themePreference', initial);
     }
     applyTheme(initial);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, [setSetting]);
 

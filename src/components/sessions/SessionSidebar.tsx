@@ -243,8 +243,14 @@ export function SessionSidebar() {
                           <FileText className="h-3 w-3 mr-2" /> Export as Markdown
                         </DropdownMenuItem>
                         <DropdownMenuItem className="py-1.5" onClick={() => {
-                          const sess = useSessionStore.getState().sessions[session.id];
-                          const prompts = (sess?.messages ?? []).filter((m) => m.role === 'user').map((m) => m.content).join('\n\n---\n\n');
+                          const sessState = useSessionStore.getState();
+                          const sess = sessState.sessions[session.id];
+                          const msgs = sessState.messages;
+                          const prompts = (sess?.messageIds ?? [])
+                            .map(id => msgs[id])
+                            .filter(m => m && m.role === 'user')
+                            .map(m => m.text)
+                            .join('\n\n---\n\n');
                           if (typeof navigator !== 'undefined' && navigator.clipboard && prompts) {
                             navigator.clipboard.writeText(prompts).then(() => toast.success('Prompt summary copied to clipboard'));
                           } else {

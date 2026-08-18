@@ -994,7 +994,7 @@ export function estimateLocalStorageUsage(): {
   // navigator.storage.estimate() returns { usage, quota } if available.
   // We can use it to show the % of the browser's quota consumed.
   let percentageOfQuota: number | null = null;
-  if (navigator.storage?.estimate) {
+  if (typeof navigator !== 'undefined' && typeof navigator.storage?.estimate === 'function') {
     // Fire-and-forget — we can't await here without making the caller async.
     // The Settings UI can call navigator.storage.estimate() directly if it
     // wants a fresh number; this is a best-effort cache.

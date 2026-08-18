@@ -83,9 +83,10 @@ export function PropertiesPanel() {
     }
   };
   const pasteNumberInto = async (apply: (n: number) => void) => {
-    const raw = await (typeof navigator !== 'undefined' && navigator.clipboard)
-      ? navigator.clipboard.readText().catch(() => '')
-      : '';
+    let raw = '';
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try { raw = await navigator.clipboard.readText(); } catch { raw = ''; }
+    }
     const n = parseFloat(raw);
     if (Number.isFinite(n)) { apply(n); toast.message(`Pasted ${n}`); }
     else { toast.message('No numeric value in clipboard'); }
