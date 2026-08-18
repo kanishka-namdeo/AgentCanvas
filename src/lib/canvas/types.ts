@@ -65,6 +65,17 @@ export interface ShadowEffect {
   inset?: boolean;
 }
 
+/// Figma-style layout constraints — pin a child's edges to its parent so it
+/// resizes correctly when the parent is resized. Mirrors Figma's constraints
+/// panel (LEFT / RIGHT / LEFT_RIGHT (scale) / CENTER / SCALE horizontal, plus
+/// the equivalent vertical set). Stored on the .pen node as an opaque
+/// property; the renderer does not yet enforce these, but the agent and the
+/// Properties panel can read and edit them.
+export interface Constraints {
+  horizontal: 'left' | 'right' | 'center' | 'scale' | 'left_right';
+  vertical: 'top' | 'bottom' | 'center' | 'scale' | 'top_bottom';
+}
+
 /// A resolved render node — the flattened, absolutely-positioned view of a
 /// .pen tree node, ready for SVG rendering. Produced by `resolvePenTree()`.
 export interface Shape {
@@ -102,6 +113,10 @@ export interface Shape {
   /// .pen theme effective on this node (inherited from ancestors + own).
   /// Enables the properties panel to show/edit the node's theme.
   theme?: PenTheme;
+  /// Figma-style layout constraints (left/right/center/scale per axis). Stored
+  /// on the .pen node; surfaced here so the Properties panel can edit them and
+  /// the agent can reason about responsive behavior.
+  constraints?: Constraints | null;
 }
 
 export interface Viewport {
@@ -211,7 +226,10 @@ export interface CanvasPatch {
     | 'set_theme_axis'        // define a theme axis (e.g. mode: [light, dark])
     | 'set_node_theme'        // set a node's theme (e.g. { mode: dark })
     | 'set_variable'          // set a single $variable (alias for tokens w/ one color)
-    | 'mark_slot';            // mark a frame as a slot for recommended components
+    | 'mark_slot'             // mark a frame as a slot for recommended components
+    // Figma-hierarchy ops:
+    | 'reparent'              // move a node to a new parent (preserves abs position by default)
+    | 'set_constraints';     // set Figma-style constraints on a child
   shapeId?: string;
   /// Full or partial .pen node payload for 'add' / 'update' (also accepts
   /// legacy Shape fields like `radius`, `text`, `autoLayout` — the applier
@@ -235,6 +253,18 @@ export interface CanvasPatch {
   variableType?: 'color' | 'number' | 'string' | 'boolean';
   variableValue?: string | number | boolean | Array<{ value: string | number | boolean; theme?: PenTheme }>;
   slotComponents?: string[];             // for mark_slot
+  // Figma-hierarchy fields:
+  /// New parent for `reparent` op. Use null/empty string for root.
+  newParentId?: string | null;
+  /// Insertion index inside the new parent's children array. Undefined = append.
+  index?: number;
+  /// When true (default), preserve the node's ABSOLUTE position across a
+  /// reparent by remapping its stored relative x/y to the new parent's frame.
+  /// Set to false when you want the stored relative x/y to be reinterpreted
+  /// verbatim against the new parent.
+  keepAbsolutePosition?: boolean;
+  /// Constraints to set on the node (for `set_constraints` op).
+  constraints?: Constraints | null;
   summary: string;
 }
 

@@ -148,6 +148,64 @@ export function isDescendant(children: PenChild[], descendantId: string, ancesto
   return findNode(ancestor.children ?? [], descendantId) !== undefined;
 }
 
+/**
+ * Compute the cumulative x/y offset from root to the node's PARENT — i.e. the
+ * sum of every ancestor's stored relative x/y (NOT including the node itself).
+ *
+ * For a top-level node (parentId === null), this returns {x: 0, y: 0}.
+ * For a nested node, it walks up the tree summing each ancestor's `x` and `y`.
+ *
+ * Used by the `reparent` and `ungroup` patch cases to remap a child's stored
+ * relative coordinates when its parent changes — preserving the child's
+ * absolute position on the canvas (Figma-hierarchy behavior).
+ *
+ * NOTE: this is a SIMPLIFIED offset — it ignores auto-layout (which would
+ * reposition children based on the parent's flexbox settings) and rotation.
+ * For documents that rely on auto-layout, the absolute-position preservation
+ * is best-effort and may need a follow-up `pen_apply_auto_layout` call.
+ */
+export function getAncestorOffset(
+  children: PenChild[],
+  id: string,
+): { x: number; y: number } {
+  const found = findNodeArray(children, id);
+  if (!found || !found.parent) return { x: 0, y: 0 };
+  let offset = { x: 0, y: 0 };
+  let current: PenChild | null = found.parent;
+  // Walk up the parent chain, accumulating stored relative x/y of each ancestor.
+  // Guard against cycles with a visited set (defensive — trees shouldn't cycle).
+  const visited = new Set<string>();
+  while (current && !visited.has(current.id)) {
+    visited.add(current.id);
+    const cx = (current as { x?: unknown }).x;
+    const cy = (current as { y?: unknown }).y;
+    offset.x += typeof cx === 'number' ? cx : Number(cx) || 0;
+    offset.y += typeof cy === 'number' ? cy : Number(cy) || 0;
+    const parentFound = findNodeArray(children, current.id);
+    current = parentFound?.parent ?? null;
+  }
+  return offset;
+}
+
+/**
+ * Compute the absolute x/y of a node = sum of ancestor offsets + node's own
+ * stored relative x/y. Convenience wrapper around `getAncestorOffset`.
+ */
+export function getAbsolutePosition(
+  children: PenChild[],
+  id: string,
+): { x: number; y: number } {
+  const node = findNode(children, id);
+  if (!node) return { x: 0, y: 0 };
+  const ancestorOffset = getAncestorOffset(children, id);
+  const nx = (node as { x?: unknown }).x;
+  const ny = (node as { y?: unknown }).y;
+  return {
+    x: ancestorOffset.x + (typeof nx === 'number' ? nx : Number(nx) || 0),
+    y: ancestorOffset.y + (typeof ny === 'number' ? ny : Number(ny) || 0),
+  };
+}
+
 /** Update a node's properties by id (immutable). */
 export function updateNode(
   children: PenChild[],

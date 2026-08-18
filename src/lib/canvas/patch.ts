@@ -11,10 +11,10 @@
 // Shape fields (radius, text, autoLayout, …) — a normalizer maps legacy
 // fields to their .pen equivalents before inserting into the tree.
 
-import type { CanvasDocument, CanvasPatch, Shape, DesignTokens, ColorToken, TextStyleToken } from './types';
+import type { CanvasDocument, CanvasPatch, Shape, DesignTokens, ColorToken, TextStyleToken, Constraints } from './types';
 import type { PenChild, PenVariableDef, PenTheme } from '../pen/types';
 import { resolvePenTree } from '../pen/resolve';
-import { findNode, findNodeArray, insertNode, removeNode, updateNode, moveNode, deepCloneNode, newId, collectComponents, walkTree } from '../pen/document';
+import { findNode, findNodeArray, insertNode, removeNode, updateNode, moveNode, deepCloneNode, newId, collectComponents, walkTree, getAncestorOffset, getAbsolutePosition, isDescendant } from '../pen/document';
 
 // ---- Helpers --------------------------------------------------------------
 
@@ -41,7 +41,7 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
   // (locked, tokenBinding, maskId, points, closed, componentId) — these are
   // carried as opaque node properties so they survive the tree round-trip
   // and are surfaced on resolved Shapes by resolvePenTree.
-  for (const k of ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'opacity', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'strokeAlignment', 'effect', 'reusable', 'theme', 'enabled', 'flipX', 'flipY', 'layoutPosition', 'metadata', 'layout', 'gap', 'padding', 'justifyContent', 'alignItems', 'layoutIncludeStroke', 'clip', 'placeholder', 'slot', 'content', 'fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'fontStyle', 'underline', 'lineHeight', 'textAlign', 'textAlignVertical', 'strikethrough', 'href', 'textGrowth', 'children', 'geometry', 'viewBox', 'fillRule', 'polygonCount', 'cornerRadius', 'innerRadius', 'startAngle', 'sweepAngle', 'library', 'icon', 'weight', 'scriptUri', 'inputs', 'ref', 'descendants', 'context', 'locked', 'tokenBinding', 'maskId', 'points', 'closed', 'componentId', 'src']) {
+  for (const k of ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'opacity', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'strokeAlignment', 'effect', 'reusable', 'theme', 'enabled', 'flipX', 'flipY', 'layoutPosition', 'metadata', 'layout', 'gap', 'padding', 'justifyContent', 'alignItems', 'layoutIncludeStroke', 'clip', 'placeholder', 'slot', 'content', 'fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'fontStyle', 'underline', 'lineHeight', 'textAlign', 'textAlignVertical', 'strikethrough', 'href', 'textGrowth', 'children', 'geometry', 'viewBox', 'fillRule', 'polygonCount', 'cornerRadius', 'innerRadius', 'startAngle', 'sweepAngle', 'library', 'icon', 'weight', 'scriptUri', 'inputs', 'ref', 'descendants', 'context', 'locked', 'tokenBinding', 'maskId', 'points', 'closed', 'componentId', 'src', 'constraints']) {
     if (input[k] !== undefined) out[k] = input[k];
   }
 
@@ -246,16 +246,42 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       break;
     }
     case 'ungroup': {
+      // Dissolve one or more frames/groups. Children are promoted to the
+      // group's parent (grandparent of children) — NOT to root — preserving
+      // the sibling order the group occupied.
+      //
+      // COORDINATE REMAP (Figma-style): each child's stored x/y is relative
+      // to the group's content origin. When promoted to the grandparent, the
+      // child's new stored x/y must become relative to the grandparent = the
+      // group's own stored x/y + the child's stored x/y. Without this remap,
+      // children would visually jump to a different spot after ungroup.
       const ids = new Set(patch.shapeIds ?? []);
       for (const id of ids) {
-        const group = findNode(next.children, id);
-        if (group && (group.type === 'frame' || group.type === 'group') && group.children) {
-          // Move children up to the group's parent (root for now).
-          for (const child of group.children) {
-            next.children = insertNode(next.children, child, null);
-          }
-          next.children = removeNode(next.children, id);
+        const groupFound = findNodeArray(next.children, id);
+        if (!groupFound) continue;
+        const group = groupFound.array[groupFound.index];
+        if (!group || (group.type !== 'frame' && group.type !== 'group') || !group.children) continue;
+        const groupParent = groupFound.parent;
+        const groupX = num((group as any).x, 0);
+        const groupY = num((group as any).y, 0);
+        // Build remapped children copies (so we don't mutate the original nodes).
+        const remapped = group.children.map((c) => ({
+          ...c,
+          x: num((c as any).x, 0) + groupX,
+          y: num((c as any).y, 0) + groupY,
+        })) as PenChild[];
+        // Insert each remapped child at the group's slot in the grandparent's
+        // children array (or at root if the group was top-level).
+        for (let i = 0; i < remapped.length; i++) {
+          next.children = insertNode(
+            next.children,
+            remapped[i],
+            groupParent ? groupParent.id : null,
+            groupFound.index + i,
+          );
         }
+        // Finally remove the group itself.
+        next.children = removeNode(next.children, id);
       }
       break;
     }
@@ -360,6 +386,61 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       if (node && node.type === 'frame') {
         next.children = updateNode(next.children, patch.shapeId, { slot: patch.slotComponents ?? [] } as Partial<PenChild>);
       }
+      break;
+    }
+    case 'reparent': {
+      // Move a node to a new parent. Figma-hierarchy semantics:
+      //   - newParentId null/empty → root (top-level).
+      //   - Default (keepAbsolutePosition=true): remap the node's stored
+      //     relative x/y so its ABSOLUTE position on the canvas is unchanged.
+      //   - Cannot move a node into itself or one of its own descendants.
+      if (!patch.shapeId) break;
+      const newParentId =
+        patch.newParentId === undefined || patch.newParentId === '' || patch.newParentId === null
+          ? null
+          : patch.newParentId;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node) break;
+      // Reject moving into self or a descendant (would create a cycle).
+      if (newParentId && (newParentId === patch.shapeId || isDescendant(next.children, newParentId, patch.shapeId))) {
+        break;
+      }
+      // If the new parent is a leaf (rectangle/ellipse/text/etc.), bail.
+      if (newParentId) {
+        const newParent = findNode(next.children, newParentId);
+        if (!newParent || (newParent.type !== 'frame' && newParent.type !== 'group')) break;
+      }
+      // Coordinate remap to preserve absolute position.
+      //
+      // The node's stored x/y is RELATIVE to its parent's content origin. To
+      // preserve the node's ABSOLUTE position across the reparent, we need:
+      //   new_node.x = old_absolute - new_parent_absolute
+      //
+      // where old_absolute = getAbsolutePosition(node) = (old ancestor offset) + node.x
+      // and   new_parent_absolute = getAbsolutePosition(new_parent) = (new ancestor offset) + parent.x
+      //       (or {0,0} if reparenting to root).
+      //
+      // Without this remap, the node would visually jump because its stored
+      // relative coords would be reinterpreted against a different parent's
+      // coordinate system.
+      if (patch.keepAbsolutePosition !== false) {
+        const oldAbsolute = getAbsolutePosition(next.children, patch.shapeId);
+        const newParentAbsolute = newParentId ? getAbsolutePosition(next.children, newParentId) : { x: 0, y: 0 };
+        const newX = oldAbsolute.x - newParentAbsolute.x;
+        const newY = oldAbsolute.y - newParentAbsolute.y;
+        next.children = updateNode(next.children, patch.shapeId, { x: newX, y: newY } as Partial<PenChild>);
+      }
+      next.children = moveNode(next.children, patch.shapeId, newParentId, patch.index);
+      break;
+    }
+    case 'set_constraints': {
+      // Set Figma-style layout constraints on a child node. Stored as an opaque
+      // property on the .pen node; survives the tree round-trip and is surfaced
+      // on resolved Shapes by resolvePenTree so the Properties panel can edit it
+      // and the agent can reason about responsive behavior.
+      if (!patch.shapeId) break;
+      const constraints: Constraints | null = patch.constraints ?? null;
+      next.children = updateNode(next.children, patch.shapeId, { constraints } as Partial<PenChild>);
       break;
     }
     case 'select': {

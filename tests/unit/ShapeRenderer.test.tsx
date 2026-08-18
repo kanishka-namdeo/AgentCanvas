@@ -58,6 +58,7 @@ function makeShape(overrides: Partial<Shape> = {}): Shape {
     shadow: overrides.shadow ?? null,
     blur: overrides.blur ?? 0,
     maskId: overrides.maskId ?? null,
+    constraints: overrides.constraints ?? null,
   };
 }
 

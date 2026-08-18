@@ -240,8 +240,22 @@ to the .pen ontology on export:
     contained UI.
   - NODE TYPES: the .pen format supports rectangle, ellipse, polygon, path
     (SVG geometry), text, frame, group, note, context, prompt, icon, script,
-    ref. Our runtime maps these onto a flat shape list (Phase C will add the
-    full tree model); the .pen exporter reconstructs the tree on save.
+    ref. The runtime tree is the source of truth (doc.children: PenChild[]);
+    a derived flat list (doc.shapes with absolute coords + depth-first
+    zIndex) is recomputed by resolvePenTree on every mutation.
+  - HIERARCHY: the canvas is a tree of containers (frames / groups / components
+    / instances / boolean-ops) and leaves (rectangles / ellipses / text /
+    lines / paths / images). Children's stored x/y are RELATIVE to their
+    parent's content origin; resolvePenTree flattens them to absolute. Use
+    pen_reparent_shape to move a node to a new parent (default preserves the
+    node's absolute position via coord remap). Use pen_ungroup_shapes to
+    dissolve a group — children are promoted to the grandparent and their
+    stored x/y is remapped to preserve absolute position.
+  - CONSTRAINTS: Figma-style layout constraints (left/right/center/scale/
+    left_right horizontal, top/bottom/center/scale/top_bottom vertical) can
+    be set on any child via pen_set_constraints. The renderer does not yet
+    enforce these but they are visible in the Properties panel and inform
+    responsive resize intent.
   - EXPORT: when the user asks to "export as .pen" or "save for pen.dev",
     call pen_export_pen. The UI also has a ".pen" menu in the header for
     manual export/import.
@@ -256,14 +270,44 @@ function round(v: unknown): number {
 }
 
 /// Build a textual snapshot of the canvas for the system message.
+///
+/// Renders the canvas as a TREE (indented by depth), mirroring Figma's layers
+/// panel. Children appear nested under their parent frame/group, with their
+/// absolute coords (resolved by `resolvePenTree`) and constraint info shown
+/// inline. This lets the LLM reason about the hierarchy directly instead of
+/// having to mentally reconstruct it from `parent=` annotations on a flat list.
 function canvasSnapshot(canvas: CanvasDocument): string {
   const shapes = canvas.shapes ?? [];
   const tokens = canvas.tokens ?? { colors: [], textStyles: [] };
-  const shapeLines = shapes.length === 0
-    ? '  (empty)'
-    : shapes.map((s) =>
-        `  • ${s.id} | ${s.type} "${s.name}" | pos=(${round(s.x)},${round(s.y)}) size=${round(s.width)}×${round(s.height)} fill=${s.fill}${s.text ? ` text="${s.text}"` : ''}${s.parentId ? ` parent=${s.parentId}` : ''}${s.componentId ? ` component=${s.componentId}` : ''}${s.autoLayout ? ` autoLayout=${s.autoLayout.direction}` : ''}`,
-      ).join('\n');
+
+  // Index shapes by id and by parent for tree traversal.
+  const byId = new Map(shapes.map((s) => [s.id, s] as const));
+  const childrenOf = (parentId: string | null | undefined) =>
+    shapes
+      .filter((s) => (s.parentId ?? null) === (parentId ?? null))
+      .sort((a, b) => b.zIndex - a.zIndex); // top-most paint layer first (matches Layers panel)
+
+  const formatNode = (s: Shape, depth: number): string => {
+    const indent = '  '.repeat(depth + 1);
+    const bullet = depth === 0 ? '•' : '◦';
+    const parent = s.parentId ? byId.get(s.parentId) : null;
+    const parentLabel = parent ? ` (in ${parent.type} "${parent.name}")` : '';
+    const constraintsLabel = s.constraints
+      ? ` constraints=${s.constraints.horizontal}/${s.constraints.vertical}`
+      : '';
+    const textLabel = s.text ? ` text="${s.text}"` : '';
+    const componentLabel = s.componentId ? ` component=${s.componentId}` : '';
+    const autoLayoutLabel = s.autoLayout ? ` autoLayout=${s.autoLayout.direction}` : '';
+    return `${indent}${bullet} ${s.id} | ${s.type} "${s.name}" | pos=(${round(s.x)},${round(s.y)}) size=${round(s.width)}×${round(s.height)} fill=${s.fill}${textLabel}${parentLabel}${componentLabel}${autoLayoutLabel}${constraintsLabel}`;
+  };
+
+  const renderTree = (parentId: string | null, depth: number): string => {
+    const kids = childrenOf(parentId);
+    if (kids.length === 0) return '';
+    return kids.map((s) => formatNode(s, depth) + '\n' + renderTree(s.id, depth + 1)).join('').trimEnd() + '\n';
+  };
+
+  const treeLines = shapes.length === 0 ? '  (empty)' : renderTree(null, 0).trimEnd();
   const tokenLines = tokens.colors.length === 0
     ? '  (no tokens)'
     : tokens.colors.map((c) => `  • ${c.key} = ${c.value}  (${c.name})`).join('\n');
@@ -284,8 +328,8 @@ ${varLines}
 ${themeLines}
 - Tokens (derived: ${tokens.colors.length} colors, ${tokens.textStyles.length} text styles):
 ${tokenLines}
-- Resolved nodes (${shapes.length}):
-${shapeLines}`;
+- Node tree (${shapes.length} node(s), indented = nesting):
+${treeLines}`;
 }
 
 /// Build the palettes list string with the user's default palette first.
@@ -753,8 +797,18 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
 
       const result = await executeTool(tools, toolName, args);
 
-      if (result.patch) {
-        yield { kind: 'patch', patch: result.patch, toolCallId: tc.id };
+      // Emit ALL patches the tool produced. Most tools emit exactly one patch
+      // (returned as `result.patch`). A few tools emit multiple — e.g.
+      // pen_update_shape, when the LLM passes a `parent` arg, emits BOTH an
+      // `update` patch (for the recognized fields) AND a `reparent` patch
+      // (for the parent change). The wrapper coalesces these into
+      // `result.patches` (plural); we fall back to `result.patch` (singular)
+      // for the common single-patch case.
+      const emittedPatches = result.patches && result.patches.length > 0
+        ? result.patches
+        : (result.patch ? [result.patch] : []);
+      for (const p of emittedPatches) {
+        yield { kind: 'patch', patch: p, toolCallId: tc.id };
       }
 
       yield {
@@ -763,7 +817,7 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
           type: 'agent:tool_call_end',
           toolCallId: tc.id,
           success: !result.isError,
-          summary: result.patch?.summary ?? result.content.slice(0, 160),
+          summary: emittedPatches.at(-1)?.summary ?? result.content.slice(0, 160),
         },
       };
 

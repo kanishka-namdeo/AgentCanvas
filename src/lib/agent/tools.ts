@@ -360,26 +360,93 @@ export function createCanvasTools(ctx: CanvasToolContext) {
         const { shapeId: _s, id: _i, changes: _c, ...rest } = params as any;
         rawChanges = rest;
       }
+      // Figma-hierarchy safety net: the LLM may pass `parent` or `parentId`
+      // in the changes (a natural intuition — pen.dev uses `parent`). The
+      // update patch applier silently DROPS this field because ShapeInputSchema
+      // doesn't declare it. Detect it here and route to a separate `reparent`
+      // patch so the LLM's intent is honored, instead of failing silently.
+      // The response also tells the LLM to use pen_reparent_shape directly
+      // next time — turning a silent failure into a successful reparent + an
+      // LLM education hint.
+      let reparentPatch: CanvasPatch | null = null;
+      let reparentHint = '';
+      const changesAny = rawChanges as any;
+      if (changesAny && (changesAny.parent !== undefined || changesAny.parentId !== undefined)) {
+        const newParentRaw = changesAny.parent !== undefined ? changesAny.parent : changesAny.parentId;
+        // Normalize: empty string / null / undefined → null (root).
+        const newParentId =
+          newParentRaw === null || newParentRaw === '' || newParentRaw === undefined
+            ? null
+            : String(newParentRaw);
+        // Validate that the new parent (if not null) exists and is a container.
+        if (newParentId) {
+          const newParent = ctx.getShapes().find((s) => s.id === newParentId);
+          if (!newParent) {
+            return {
+              content: [{ type: 'text', text: `Error: cannot reparent — no shape with id ${newParentId}. Hint: use pen_reparent_shape for moving shapes between parents.` }],
+              details: { error: 'parent_not_found', newParentId },
+              isError: true as any,
+            };
+          }
+          if (newParent.type !== 'frame' && newParent.type !== 'group') {
+            return {
+              content: [{ type: 'text', text: `Error: cannot reparent into ${newParent.type} "${newParent.name}" — parent must be a frame or group. Hint: use pen_reparent_shape.` }],
+              details: { error: 'parent_not_container', parentType: newParent.type },
+              isError: true as any,
+            };
+          }
+        }
+        // Don't allow reparenting into self.
+        if (newParentId === shapeId) {
+          return {
+            content: [{ type: 'text', text: `Error: cannot reparent a shape into itself.` }],
+            details: { error: 'cycle_self' },
+            isError: true as any,
+          };
+        }
+        reparentPatch = {
+          op: 'reparent',
+          shapeId,
+          newParentId,
+          keepAbsolutePosition: true,
+          summary: `Reparented ${existing.name} → ${newParentId ? 'new parent' : 'root'} (via pen_update_shape parent arg)`,
+        };
+        // Strip parent/parentId from the changes so the update patch doesn't
+        // also try to set them (the update op would silently drop them anyway,
+        // but stripping keeps the changes payload clean).
+        const { parent: _p, parentId: _pi, ...restChanges } = changesAny;
+        rawChanges = restChanges;
+        reparentHint = ` Also reparented to ${newParentId ? `parent ${newParentId}` : 'root'} (TIP: use pen_reparent_shape directly for explicit reparenting).`;
+      }
       const coerced = coerceShapeInput(rawChanges);
-      // If the LLM passed no actual changes, bail out gracefully.
-      if (Object.keys(coerced).length === 0) {
+      // If the LLM passed no actual changes (e.g. only `parent`), and we
+      // already emitted a reparent patch, don't bail — return the reparent
+      // result. If there's truly nothing to do, bail.
+      if (Object.keys(coerced).length === 0 && !reparentPatch) {
         return {
           content: [{ type: 'text', text: `No changes provided for ${existing.name}.` }],
           details: { shapeId },
         };
       }
-      const patch: CanvasPatch = {
-        op: 'update',
-        shapeId,
-        shape: coerced,
-        summary: `Updated ${existing.name}: ${Object.keys(coerced).join(', ')}`,
-      };
-      ctx.applyPatch(patch);
+      const patches: CanvasPatch[] = [];
+      if (Object.keys(coerced).length > 0) {
+        patches.push({
+          op: 'update',
+          shapeId,
+          shape: coerced,
+          summary: `Updated ${existing.name}: ${Object.keys(coerced).join(', ')}`,
+        });
+      }
+      if (reparentPatch) patches.push(reparentPatch);
+      // Apply patches in order: update first (sets x/y/etc.), then reparent
+      // (which preserves the absolute position computed from the new x/y).
+      for (const p of patches) ctx.applyPatch(p);
+      const changedKeys = patches.flatMap((p) => Object.keys(p.shape ?? {}));
       return {
         content: [
-          { type: 'text', text: `Updated ${existing.name} (${shapeId}). Changed: ${Object.keys(coerced).join(', ')}.` },
+          { type: 'text', text: `Updated ${existing.name} (${shapeId}).${changedKeys.length ? ` Changed: ${changedKeys.join(', ')}.` : ''}${reparentHint}` },
         ],
-        details: { shapeId, patch },
+        details: { shapeId, patch: patches[0], patches },
       };
     },
   });
@@ -596,8 +663,9 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   const ungroupShapes = defineTool({
     name: 'pen_ungroup_shapes',
     label: 'Ungroup Shapes',
-    description: 'Dissolve one or more groups. Children keep their position; their parentId is cleared.',
-    promptSnippet: 'Dissolve groups.',
+    description: 'Dissolve one or more groups. Children are promoted to the group\'s parent (grandparent) and ' +
+      'their stored x/y is remapped to preserve their absolute canvas position (Figma-hierarchy behavior).',
+    promptSnippet: 'Dissolve groups (children keep their absolute position).',
     parameters: Type.Object({
       groupIds: Type.Array(Type.String(), { description: 'Ids of group shapes to dissolve' }),
     }),
@@ -611,6 +679,173 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       return {
         content: [{ type: 'text', text: `Ungrouped ${params.groupIds.length} group(s).` }],
         details: { patch },
+      };
+    },
+  });
+
+  // =====================================================================
+  // FIGMA HIERARCHY: explicit reparent + constraints
+  // (research: developers.figma.com/docs/plugins/api/FrameNode)
+  // =====================================================================
+
+  const reparentShape = defineTool({
+    name: 'pen_reparent_shape',
+    label: 'Reparent Shape',
+    description:
+      'Move one or more shapes to a new parent (frame or group). Figma-hierarchy semantics: by default each ' +
+      'shape\'s absolute canvas position is preserved by remapping its stored relative x/y to the new parent\'s ' +
+      'coordinate frame. Pass keepAbsolutePosition=false to keep the stored x/y verbatim against the new ' +
+      'parent. Reparenting into the node itself or one of its descendants is rejected (would create a cycle). ' +
+      'Supports batch mode: pass shapeIds (plural) to reparent multiple shapes into the same new parent in one call.',
+    promptSnippet: 'Move shape(s) to a new parent (frame/group).',
+    promptGuidelines: [
+      'The new parent must be a frame or group (containers only). Use null/empty for root.',
+      'By default each shape\'s absolute position is preserved — pass keepAbsolutePosition=false only when ' +
+        'you want the stored relative x/y to be reinterpreted verbatim against the new parent.',
+      'Pass shapeIds (plural array) for batch reparent — all shapes go to the SAME new parent. ' +
+        'Example: shapeIds=["a","b"], newParentId="frame1".',
+    ],
+    parameters: Type.Object({
+      shapeIds: Type.Optional(Type.Array(Type.String(), { description: 'IDs of nodes to move (batch). All shapes reparent to the SAME new parent in one call.' })),
+      shapeId: Type.Optional(Type.String({ description: 'ID of a single node to move (alias for shapeIds: [shapeId])' })),
+      newParentId: Type.Optional(Type.Union(
+        [Type.String({ description: 'ID of the new parent (frame or group)' }), Type.Null()],
+        { description: 'New parent ID, or null/empty to move to root (top-level). Aliases: parentId, parent.' },
+      )),
+      parentId: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Alias for newParentId (.pen convention)' })),
+      parent: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Alias for newParentId' })),
+      index: Type.Optional(Type.Number({ description: 'Insertion index inside the new parent\'s children. Default = append. Only applies to single-shape reparent.' })),
+      keepAbsolutePosition: Type.Optional(Type.Boolean({ description: 'Default true — remap x/y so the node stays put visually. False = keep stored x/y verbatim.' })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const shapes = ctx.getShapes();
+      // Tolerate argument-shape variations:
+      //   - shapeIds (plural array, batch) — primary.
+      //   - shapeId (singular string) — alias, treat as [shapeId].
+      const ids: string[] = Array.isArray(params.shapeIds)
+        ? params.shapeIds.filter((id: unknown): id is string => typeof id === 'string')
+        : (typeof params.shapeId === 'string' ? [params.shapeId] : []);
+      if (ids.length === 0) {
+        return {
+          content: [{ type: 'text', text: 'Error: no shapeId(s) provided. Pass shapeIds (array) or shapeId (string).' }],
+          details: { error: 'no_shape_ids' },
+          isError: true as any,
+        };
+      }
+      // Resolve newParentId from any of the aliases.
+      const newParentRaw = params.newParentId ?? params.parentId ?? params.parent ?? null;
+      const newParentId: string | null =
+        newParentRaw === null || newParentRaw === '' || newParentRaw === undefined
+          ? null
+          : String(newParentRaw);
+      // Validate new parent (if not null) — must be a frame or group.
+      if (newParentId) {
+        const parent = shapes.find((s) => s.id === newParentId);
+        if (!parent) {
+          return {
+            content: [{ type: 'text', text: `Error: no parent shape with id ${newParentId}` }],
+            details: { error: 'parent_not_found', newParentId },
+            isError: true as any,
+          };
+        }
+        if (parent.type !== 'frame' && parent.type !== 'group') {
+          return {
+            content: [{ type: 'text', text: `Error: parent must be a frame or group, got ${parent.type} "${parent.name}"` }],
+            details: { error: 'parent_not_container', parentType: parent.type },
+            isError: true as any,
+          };
+        }
+      }
+      // Reparent each shape, collecting patches + per-shape errors.
+      // Cycle prevention is handled by the patch applier (moveNode uses
+      // isDescendant). We collect errors but still apply the valid reparents.
+      const patches: CanvasPatch[] = [];
+      const errors: string[] = [];
+      const keepAbsolute = params.keepAbsolutePosition ?? true;
+      for (const id of ids) {
+        const shape = shapes.find((s) => s.id === id);
+        if (!shape) { errors.push(`no shape with id ${id}`); continue; }
+        if (newParentId === id) { errors.push(`cannot reparent "${shape.name}" into itself`); continue; }
+        patches.push({
+          op: 'reparent',
+          shapeId: id,
+          newParentId,
+          index: ids.length === 1 ? params.index : undefined, // index only valid for single-shape reparent
+          keepAbsolutePosition: keepAbsolute,
+          summary: `Reparented "${shape.name}" → ${newParentId ? `parent "${shapes.find((s) => s.id === newParentId)?.name ?? newParentId}"` : 'root'}`,
+        });
+      }
+      // Apply patches in order. The patch applier does cycle detection per call.
+      for (const p of patches) ctx.applyPatch(p);
+      const parentLabel = newParentId ? `parent "${newParentId}"` : 'root';
+      const summary = patches.length === 0
+        ? `Reparent failed: ${errors.join('; ')}`
+        : `Reparented ${patches.length} shape(s) → ${parentLabel}.${errors.length ? ` Errors: ${errors.join('; ')}` : ''}`;
+      const isError = patches.length === 0;
+      return {
+        content: [{ type: 'text', text: isError ? `Error: ${summary}` : summary }],
+        details: { patch: patches[0], patches, errors, shapeIds: ids, newParentId },
+        isError: isError ? true as any : undefined,
+      };
+    },
+  });
+
+  const setConstraints = defineTool({
+    name: 'pen_set_constraints',
+    label: 'Set Layout Constraints',
+    description:
+      'Set Figma-style layout constraints on a child node. The renderer does not yet enforce these, but the ' +
+      'Properties panel and the agent can read them to reason about responsive resize behavior. ' +
+      'Horizontal: left / right / center / scale / left_right. Vertical: top / bottom / center / scale / top_bottom. ' +
+      'Pass null to clear.',
+    promptSnippet: 'Set Figma-style layout constraints on a child (left/right/center/scale).',
+    promptGuidelines: [
+      'Constraints only matter for children of frames/groups. Setting them on a top-level node has no effect.',
+      'Common pairs: { horizontal: "left_right", vertical: "top_bottom" } (scales with parent), ' +
+        '{ horizontal: "center", vertical: "center" } (centered), { horizontal: "left", vertical: "top" } (fixed).',
+    ],
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'ID of the node to set constraints on' }),
+      horizontal: Type.Union(
+        [
+          Type.Literal('left'),
+          Type.Literal('right'),
+          Type.Literal('center'),
+          Type.Literal('scale'),
+          Type.Literal('left_right'),
+        ],
+        { description: 'Horizontal constraint' },
+      ),
+      vertical: Type.Union(
+        [
+          Type.Literal('top'),
+          Type.Literal('bottom'),
+          Type.Literal('center'),
+          Type.Literal('scale'),
+          Type.Literal('top_bottom'),
+        ],
+        { description: 'Vertical constraint' },
+      ),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      if (!shape) {
+        return {
+          content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }],
+          details: { error: 'not_found', shapeId: params.shapeId },
+          isError: true as any,
+        };
+      }
+      const patch: CanvasPatch = {
+        op: 'set_constraints',
+        shapeId: params.shapeId,
+        constraints: { horizontal: params.horizontal, vertical: params.vertical },
+        summary: `Set constraints on "${shape.name}" → ${params.horizontal}/${params.vertical}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Set constraints on "${shape.name}" → ${params.horizontal}/${params.vertical}.` }],
+        details: { patch, shapeId: params.shapeId, constraints: patch.constraints },
       };
     },
   });
@@ -2495,6 +2730,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     duplicateShape,
     groupShapes,
     ungroupShapes,
+    reparentShape,
     alignShapes,
     organizeLayers,
     // Auto layout
@@ -2527,6 +2763,8 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     moveForward,
     moveBackward,
     reorderShape,
+    // Figma hierarchy: layout constraints (reparent is in Layer org above)
+    setConstraints,
     // Phase 2a: Undo / redo
     undoCanvas,
     redoCanvas,
@@ -2628,7 +2866,9 @@ export async function executeTool(
       undefined as any,
     );
     let text = result.content.map((c: any) => c.text ?? '').join('\n');
-    const patch = (result.details as any)?.patch as CanvasPatch | undefined;
+    const details = (result.details as any) ?? {};
+    const patch = details.patch as CanvasPatch | undefined;
+    const patches = Array.isArray(details.patches) ? details.patches as CanvasPatch[] : undefined;
     const isError = (result as any).isError === true;
 
     // ---- Response token cap (Tier 1) ----------------------------------------
@@ -2640,7 +2880,7 @@ export async function executeTool(
       text = truncated + `\n\n…[truncated: ${remainingLines} more lines omitted. Refine your query or use a filter to see specific results.]`;
     }
 
-    return { content: text, patch, isError };
+    return { content: text, patch, patches, isError };
   } catch (err: any) {
     return { content: `Tool execution failed: ${err.message}`, isError: true };
   }

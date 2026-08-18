@@ -332,6 +332,42 @@ export function PropertiesPanel() {
           </div>
         )}
 
+        {/* Hierarchy — show the node's current parent and let the user reparent
+            via a dropdown of every container (frame/group) in the document.
+            Mirrors Figma's "Parent" picker in the properties panel. */}
+        {!isMulti && (
+          <div>
+            <Label className="text-[11px] text-slate-500">Parent</Label>
+            <Select
+              value={shape.parentId ?? '__root__'}
+              onValueChange={(v) => {
+                const newParentId = v === '__root__' ? null : v;
+                sendPatch({
+                  op: 'reparent',
+                  shapeId: shape.id,
+                  newParentId,
+                  keepAbsolutePosition: true,
+                  summary: `Reparented "${shape.name}" → ${newParentId ? 'new parent' : 'root'} via Properties`,
+                });
+              }}
+            >
+              <SelectTrigger className="h-7 mt-1 text-xs">
+                <SelectValue placeholder="(root)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__root__">(root — top-level)</SelectItem>
+                {document.shapes
+                  .filter((s) => (s.type === 'frame' || s.type === 'group') && s.id !== shape.id)
+                  .map((parent) => (
+                    <SelectItem key={parent.id} value={parent.id}>
+                      {parent.name} ({parent.type})
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Component — master (reusable) / instance (ref) info */}
         {!isMulti && (isComponentMaster || isComponentInstance) && (
           <div className="flex items-start gap-2 px-2 py-1.5 rounded border ac-border-subtle ac-surface-1">
@@ -394,6 +430,101 @@ export function PropertiesPanel() {
             />
           </div>
         </div>
+
+        {/* Constraints — Figma-style layout constraints (left/right/center/scale
+            per axis). Only meaningful for nested nodes (children of frames or
+            groups), but editable on any node so the agent and user can set
+            resize intent. The renderer does not yet enforce these. */}
+        {!isMulti && (
+          <Collapsible defaultOpen={!!shape.constraints}>
+            <CollapsibleTrigger asChild>
+              <button type="button" className="group flex items-center gap-1.5 w-full text-left">
+                <ChevronDown className="h-3 w-3 ac-text-4 transition-transform group-data-[state=closed]:-rotate-90" />
+                <Label className="text-[11px] text-slate-500">Constraints</Label>
+                {shape.constraints && (
+                  <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal text-amber-700 border-amber-200">
+                    {shape.constraints.horizontal}/{shape.constraints.vertical}
+                  </Badge>
+                )}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 pt-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[11px] text-slate-500">Horizontal</Label>
+                  <Select
+                    value={shape.constraints?.horizontal ?? 'left'}
+                    onValueChange={(v) => {
+                      sendPatch({
+                        op: 'set_constraints',
+                        shapeId: shape.id,
+                        constraints: {
+                          horizontal: v as 'left' | 'right' | 'center' | 'scale' | 'left_right',
+                          vertical: shape.constraints?.vertical ?? 'top',
+                        },
+                        summary: `Set horizontal constraint → ${v}`,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="h-7 mt-1 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="left">Left</SelectItem>
+                      <SelectItem value="right">Right</SelectItem>
+                      <SelectItem value="center">Center</SelectItem>
+                      <SelectItem value="scale">Scale</SelectItem>
+                      <SelectItem value="left_right">Left & Right (scale)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[11px] text-slate-500">Vertical</Label>
+                  <Select
+                    value={shape.constraints?.vertical ?? 'top'}
+                    onValueChange={(v) => {
+                      sendPatch({
+                        op: 'set_constraints',
+                        shapeId: shape.id,
+                        constraints: {
+                          horizontal: shape.constraints?.horizontal ?? 'left',
+                          vertical: v as 'top' | 'bottom' | 'center' | 'scale' | 'top_bottom',
+                        },
+                        summary: `Set vertical constraint → ${v}`,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="h-7 mt-1 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="top">Top</SelectItem>
+                      <SelectItem value="bottom">Bottom</SelectItem>
+                      <SelectItem value="center">Center</SelectItem>
+                      <SelectItem value="scale">Scale</SelectItem>
+                      <SelectItem value="top_bottom">Top & Bottom (scale)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {shape.constraints && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px] w-full"
+                  onClick={() => sendPatch({
+                    op: 'set_constraints',
+                    shapeId: shape.id,
+                    constraints: null,
+                    summary: 'Cleared constraints',
+                  })}
+                >
+                  Clear constraints
+                </Button>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
 
         <Separator />
 

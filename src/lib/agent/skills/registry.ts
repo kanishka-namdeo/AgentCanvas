@@ -81,6 +81,14 @@ pleasing screen on the canvas from the user's description.
 
 7. Use pen_search_icons to add Lucide icons (check, x, search, settings, user, etc.).
 
+8. HIERARCHY: when the prompt asks to "move X into a (new) frame" or "reparent X",
+   FIRST create the target frame with pen_create_shape, THEN call pen_reparent_shape
+   to move the existing shape into it. pen_reparent_shape preserves the shape's
+   absolute canvas position by default — pass keepAbsolutePosition=false if you
+   want the stored relative x/y reinterpreted verbatim against the new parent.
+   Do NOT pass a "parent" field to pen_update_shape — that field is silently
+   ignored; always use pen_reparent_shape for reparenting.
+
 === ARGUMENT RULES (CRITICAL — read before calling tools) =================
 
 • palette MUST be an array of hex strings: ["#f8fafc", "#ffffff", ...]
@@ -119,6 +127,12 @@ tools are designed to produce most of the layout in one call. Refine selectively
       'pen_update_tokens',
       'pen_apply_palette',
       'pen_generate_palette',
+      // Figma-hierarchy: post-generation refinement often involves moving
+      // shapes between frames (e.g. "design X then move Y into a new frame").
+      // Without pen_reparent_shape in the wireframe skill, the LLM has no
+      // way to reparent and falls back to pen_update_shape with a `parent`
+      // arg, which is silently ignored.
+      'pen_reparent_shape',
     ],
     keywords: [
       'design', 'build', 'create', 'make', 'wireframe', 'mockup', 'screen',
@@ -152,7 +166,7 @@ You need shape IDs to target them with layout operations.
 • "align these shapes" → pen_align_shapes (kind=left|right|center_h|top|bottom|center_v)
 • "space them evenly" / "distribute" → pen_align_shapes (kind=distribute_h|distribute_v)
 • "group these" → pen_group_shapes (wraps in a group shape)
-• "ungroup" → pen_ungroup_shapes
+• "ungroup" → pen_ungroup_shapes (children promoted to grandparent, abs pos preserved)
 • "organize my layers" → pen_organize_layers (auto-renames + re-zindexes everything)
 • "duplicate this" → pen_duplicate_shape (offsets 24px)
 • "apply auto layout" → pen_apply_auto_layout (direction, gap, padding, alignX, alignY)
@@ -160,6 +174,20 @@ You need shape IDs to target them with layout operations.
 • "move forward" / "move backward" → pen_move_forward / pen_move_backward
 • "lock this" / "unlock" → pen_set_locked
 • "hide this" / "show" → pen_set_visible
+
+HIERARCHY (Figma-style nesting):
+• "move X into Y" / "reparent X to Y" → pen_reparent_shape (shapeId, newParentId)
+  - newParentId null/empty = promote to root (top-level)
+  - Default keepAbsolutePosition=true — the shape stays put visually (its stored
+    relative x/y is remapped to the new parent's coordinate frame).
+  - Rejects reparenting into self or a descendant (cycle prevention).
+  - DO NOT use pen_update_shape with a "parent" field — that field is silently
+    ignored. Always use pen_reparent_shape.
+• "set constraints" / "pin to edges" → pen_set_constraints (shapeId, horizontal, vertical)
+  - horizontal: left | right | center | scale | left_right
+  - vertical:   top  | bottom | center | scale | top_bottom
+  - Stored on the node; the renderer does not yet enforce these but the agent
+    and the Properties panel can read/edit them for responsive-resize intent.
 
 === ARGUMENT RULES ========================================================
 
@@ -185,6 +213,12 @@ tool calls: list_shapes → align/group/organize → confirm.`,
       'pen_reorder_shape',
       'pen_set_locked',
       'pen_set_visible',
+      // Figma-hierarchy ops — natural home for reparent + constraints.
+      // Reparent moves a shape between parents (preserves absolute position
+      // by default); constraints pin a child's edges to its parent for
+      // responsive resize.
+      'pen_reparent_shape',
+      'pen_set_constraints',
     ],
     keywords: [
       'align', 'distribute', 'center', 'space', 'arrange', 'organize',
@@ -192,6 +226,12 @@ tool calls: list_shapes → align/group/organize → confirm.`,
       'bring to front', 'send to back', 'z-index', 'zorder', 'layer',
       'auto layout', 'lock', 'unlock', 'hide', 'show', 'visible',
       'duplicate', 'copy',
+      // Figma-hierarchy triggers: "move X into Y", "reparent", "container",
+      // "into a frame" — these verbs should make layout a secondary skill
+      // (alongside the primary wireframe/styling/etc.) so the LLM gets
+      // pen_reparent_shape in its tool list.
+      'move', 'reparent', 'container', 'into', 'nest', 'parent',
+      'constraints', 'pin', 'resize',
     ],
   },
 
@@ -531,6 +571,8 @@ export const ALL_TOOL_NAMES = [
   // Layout
   'pen_duplicate_shape', 'pen_group_shapes', 'pen_ungroup_shapes',
   'pen_align_shapes', 'pen_organize_layers', 'pen_apply_auto_layout',
+  // Figma hierarchy
+  'pen_reparent_shape', 'pen_set_constraints',
   // Components
   'pen_create_component', 'pen_instantiate_component',
   // Tokens / palette

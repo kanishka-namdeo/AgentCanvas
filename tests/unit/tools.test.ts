@@ -95,7 +95,33 @@ function makeHarness(): TestHarness {
       // (which recomputes doc.shapes from doc.children) sees it. The shape's
       // .pen-native fields (type/x/y/width/height/fill/stroke/...) are valid
       // .pen node fields; we cast through unknown to satisfy PenChild.
-      doc.children.push(full as unknown as PenChild);
+      //
+      // Figma-hierarchy note: if the shape has a parentId, we nest it inside
+      // that parent's children array (recursively walking the tree). This
+      // makes the test harness reflect the actual .pen tree structure, so
+      // reparent / ungroup / etc. tree-aware ops behave correctly.
+      if (s.parentId) {
+        const insertInto = (children: PenChild[], parentId: string, node: PenChild): boolean => {
+          for (let i = 0; i < children.length; i++) {
+            const c = children[i] as PenChild & { children?: PenChild[] };
+            if (c.id === parentId && (c.type === 'frame' || c.type === 'group')) {
+              if (!Array.isArray(c.children)) c.children = [];
+              c.children.push(node);
+              return true;
+            }
+            if ((c.type === 'frame' || c.type === 'group') && c.children) {
+              if (insertInto(c.children, parentId, node)) return true;
+            }
+          }
+          return false;
+        };
+        if (!insertInto(doc.children as PenChild[], s.parentId, full as unknown as PenChild)) {
+          // Parent not found — fall back to root.
+          doc.children.push(full as unknown as PenChild);
+        }
+      } else {
+        doc.children.push(full as unknown as PenChild);
+      }
       return full;
     },
     setTokens(t) {
@@ -958,12 +984,320 @@ describe('tools: pen_generate_image', () => {
   });
 });
 
+// ---- Figma hierarchy: pen_reparent_shape + pen_set_constraints ---------------
+
+describe('tools: pen_update_shape routes `parent` arg to a reparent patch (safety net)', () => {
+  // Background: when pen_reparent_shape wasn't yet registered in any skill's
+  // allowedTools, the LLM fell back to calling pen_update_shape with a `parent`
+  // arg (intuitively correct — pen.dev uses `parent`). The update patch
+  // applier silently DROPPED the field, so the agent claimed success while no
+  // reparent happened. These tests verify the safety-net routing: pen_update_shape
+  // detects `parent`/`parentId` in changes and emits BOTH an update patch
+  // (for the other fields) AND a reparent patch (for the parent change).
+
+  it('emits both an update patch AND a reparent patch when `parent` is in changes', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 200, y: 100, width: 400, height: 300 });
+    h.addShape({ id: 'rect', x: 50, y: 50, width: 30, height: 30, fill: '#ff0000' });
+    const r = await run(h, 'pen_update_shape', {
+      shapeId: 'rect',
+      changes: { x: 10, y: 20, fill: '#00ff00', parent: 'frame' },
+    });
+    expect(r.isError).toBeFalsy();
+    // The wrapper exposes both patches via `patches` (plural).
+    expect(r.patches).toBeDefined();
+    expect(r.patches?.length).toBe(2);
+    expect(r.patches?.[0].op).toBe('update');
+    expect(r.patches?.[1].op).toBe('reparent');
+    expect(r.patches?.[1].newParentId).toBe('frame');
+    expect(r.patches?.[1].keepAbsolutePosition).toBe(true);
+    // Response text educates the LLM about pen_reparent_shape.
+    expect(r.content).toContain('pen_reparent_shape');
+    // After applying both patches, rect should be inside frame with absolute pos preserved.
+    const updated = h.doc.shapes.find((s) => s.id === 'rect');
+    expect(updated?.parentId).toBe('frame');
+    expect(updated?.fill).toBe('#00ff00');
+    // Absolute x: rect was at (50,50). After update to (10, 20) then reparent
+    // into frame at (200,100) with keepAbsolute=true: stored relative = 10 - 200 = -190?
+    // Actually: reparent preserves the CURRENT absolute (after the update),
+    // so rect.absolute stays (10, 20) after both patches.
+    expect(updated?.x).toBe(10);
+    expect(updated?.y).toBe(20);
+  });
+
+  it('emits only a reparent patch when `parent` is the only change', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 200, y: 100, width: 400, height: 300 });
+    h.addShape({ id: 'rect', x: 300, y: 150, width: 50, height: 50 });
+    const r = await run(h, 'pen_update_shape', {
+      shapeId: 'rect',
+      changes: { parent: 'frame' },
+    });
+    expect(r.isError).toBeFalsy();
+    expect(r.patches?.length).toBe(1);
+    expect(r.patches?.[0].op).toBe('reparent');
+    expect(r.patches?.[0].newParentId).toBe('frame');
+    // Absolute (300, 150) preserved.
+    const updated = h.doc.shapes.find((s) => s.id === 'rect');
+    expect(updated?.parentId).toBe('frame');
+    expect(updated?.x).toBe(300);
+    expect(updated?.y).toBe(150);
+  });
+
+  it('accepts `parentId` as an alias for `parent`', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 0, y: 0, width: 400, height: 300 });
+    h.addShape({ id: 'rect', x: 10, y: 10, width: 30, height: 30 });
+    const r = await run(h, 'pen_update_shape', {
+      shapeId: 'rect',
+      changes: { parentId: 'frame' },
+    });
+    expect(r.isError).toBeFalsy();
+    expect(r.patches?.[0].op).toBe('reparent');
+    expect(r.patches?.[0].newParentId).toBe('frame');
+  });
+
+  it('`parent: null` promotes the shape to root', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 200, y: 100, width: 400, height: 300 });
+    h.addShape({ id: 'rect', x: 10, y: 20, width: 30, height: 30, parentId: 'frame' });
+    const r = await run(h, 'pen_update_shape', {
+      shapeId: 'rect',
+      changes: { parent: null },
+    });
+    expect(r.isError).toBeFalsy();
+    expect(r.patches?.[0].op).toBe('reparent');
+    expect(r.patches?.[0].newParentId).toBeNull();
+    // Absolute (200+10, 100+20) = (210, 120) preserved at root.
+    const updated = h.doc.shapes.find((s) => s.id === 'rect');
+    expect(updated?.parentId).toBeNull();
+    expect(updated?.x).toBe(210);
+    expect(updated?.y).toBe(120);
+  });
+
+  it('returns isError when the parent does not exist', async () => {
+    h.addShape({ id: 'rect', x: 0, y: 0, width: 50, height: 50 });
+    const r = await run(h, 'pen_update_shape', {
+      shapeId: 'rect',
+      changes: { parent: 'no-such-frame' },
+    });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('no shape with id');
+  });
+
+  it('returns isError when the parent is a leaf (non-container)', async () => {
+    h.addShape({ id: 'leaf', type: 'rectangle', x: 0, y: 0, width: 100, height: 100 });
+    h.addShape({ id: 'rect', x: 200, y: 200, width: 50, height: 50 });
+    const r = await run(h, 'pen_update_shape', {
+      shapeId: 'rect',
+      changes: { parent: 'leaf' },
+    });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('frame or group');
+  });
+
+  it('returns isError when reparenting into self', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 0, y: 0, width: 100, height: 100 });
+    const r = await run(h, 'pen_update_shape', {
+      shapeId: 'frame',
+      changes: { parent: 'frame' },
+    });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('itself');
+  });
+
+  it('`parent` arg at the top-level (not nested under `changes`) is also routed', async () => {
+    // LLMs sometimes pass fields at the top level instead of nesting under
+    // `changes`. The tool already tolerates this for x/y/fill/etc. — make
+    // sure the parent routing works in this case too.
+    h.addShape({ id: 'frame', type: 'frame', x: 0, y: 0, width: 100, height: 100 });
+    h.addShape({ id: 'rect', x: 50, y: 50, width: 30, height: 30 });
+    const r = await run(h, 'pen_update_shape', {
+      shapeId: 'rect',
+      parent: 'frame',
+    });
+    expect(r.isError).toBeFalsy();
+    expect(r.patches?.[0].op).toBe('reparent');
+    expect(r.patches?.[0].newParentId).toBe('frame');
+  });
+});
+
+describe('tools: pen_reparent_shape', () => {
+  it('moves a top-level shape into a frame and preserves absolute position', async () => {
+    const frame = h.addShape({ id: 'frame', type: 'frame', x: 200, y: 100, width: 400, height: 300 });
+    const rect = h.addShape({ id: 'rect', x: 300, y: 150, width: 50, height: 50 });
+    void frame; void rect;
+    const r = await run(h, 'pen_reparent_shape', {
+      shapeId: 'rect',
+      newParentId: 'frame',
+    });
+    expect(r.isError).toBeFalsy();
+    expect(h.patches.at(-1)?.op).toBe('reparent');
+    expect(h.patches.at(-1)?.newParentId).toBe('frame');
+    expect(h.patches.at(-1)?.keepAbsolutePosition).toBe(true);
+    // After applying the patch, rect should be inside frame with its ABSOLUTE
+    // position preserved at (300, 150) — the resolve engine flattens the
+    // nested relative coords back to absolute in the resolved flat list.
+    const updated = h.doc.shapes.find((s) => s.id === 'rect');
+    expect(updated?.parentId).toBe('frame');
+    expect(updated?.x).toBe(300);
+    expect(updated?.y).toBe(150);
+  });
+
+  it('moves a nested shape to root and preserves absolute position', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 200, y: 100, width: 400, height: 300 });
+    h.addShape({ id: 'rect', x: 10, y: 20, width: 50, height: 50, parentId: 'frame' });
+    const r = await run(h, 'pen_reparent_shape', {
+      shapeId: 'rect',
+      newParentId: null,
+    });
+    expect(r.isError).toBeFalsy();
+    const updated = h.doc.shapes.find((s) => s.id === 'rect');
+    expect(updated?.parentId).toBeNull();
+    // Absolute (200+10, 100+20) = (210, 120) should be preserved.
+    expect(updated?.x).toBe(210);
+    expect(updated?.y).toBe(120);
+  });
+
+  it('rejects reparenting into a leaf (non-container)', async () => {
+    h.addShape({ id: 'rect1', type: 'rectangle', x: 0, y: 0, width: 50, height: 50 });
+    h.addShape({ id: 'rect2', type: 'rectangle', x: 100, y: 100, width: 50, height: 50 });
+    const r = await run(h, 'pen_reparent_shape', {
+      shapeId: 'rect1',
+      newParentId: 'rect2',
+    });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('frame or group');
+  });
+
+  it('returns isError when the shape does not exist', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 0, y: 0, width: 100, height: 100 });
+    const r = await run(h, 'pen_reparent_shape', {
+      shapeId: 'no-such-shape',
+      newParentId: 'frame',
+    });
+    expect(r.isError).toBe(true);
+  });
+
+  it('returns isError when the new parent does not exist', async () => {
+    h.addShape({ id: 'rect', type: 'rectangle', x: 0, y: 0, width: 50, height: 50 });
+    const r = await run(h, 'pen_reparent_shape', {
+      shapeId: 'rect',
+      newParentId: 'no-such-parent',
+    });
+    expect(r.isError).toBe(true);
+  });
+
+  it('accepts shapeIds (plural array) for batch reparent', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 100, y: 100, width: 400, height: 300 });
+    h.addShape({ id: 'a', x: 50, y: 50, width: 30, height: 30 });
+    h.addShape({ id: 'b', x: 200, y: 200, width: 30, height: 30 });
+    const r = await run(h, 'pen_reparent_shape', {
+      shapeIds: ['a', 'b'],
+      newParentId: 'frame',
+    });
+    expect(r.isError).toBeFalsy();
+    expect(r.patches?.length).toBe(2);
+    expect(r.patches?.[0].op).toBe('reparent');
+    expect(r.patches?.[1].op).toBe('reparent');
+    // Both shapes should be inside frame.
+    const a = h.doc.shapes.find((s) => s.id === 'a');
+    const b = h.doc.shapes.find((s) => s.id === 'b');
+    expect(a?.parentId).toBe('frame');
+    expect(b?.parentId).toBe('frame');
+    // Absolute positions preserved.
+    expect(a?.x).toBe(50);
+    expect(b?.x).toBe(200);
+  });
+
+  it('accepts parentId as an alias for newParentId', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 200, y: 100, width: 400, height: 300 });
+    h.addShape({ id: 'rect', x: 300, y: 150, width: 50, height: 50 });
+    const r = await run(h, 'pen_reparent_shape', {
+      shapeId: 'rect',
+      parentId: 'frame',
+    });
+    expect(r.isError).toBeFalsy();
+    const updated = h.doc.shapes.find((s) => s.id === 'rect');
+    expect(updated?.parentId).toBe('frame');
+  });
+
+  it('accepts parent as an alias for newParentId', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 200, y: 100, width: 400, height: 300 });
+    h.addShape({ id: 'rect', x: 300, y: 150, width: 50, height: 50 });
+    const r = await run(h, 'pen_reparent_shape', {
+      shapeId: 'rect',
+      parent: 'frame',
+    });
+    expect(r.isError).toBeFalsy();
+    const updated = h.doc.shapes.find((s) => s.id === 'rect');
+    expect(updated?.parentId).toBe('frame');
+  });
+
+  it('accepts shapeIds as a stringified JSON array (LLM repair)', async () => {
+    // The LLM often passes array params as stringified JSON. The runner's
+    // repairArrayArgs helper should parse it back to a real array before
+    // the tool sees it. Verify the tool handles the post-repair form.
+    h.addShape({ id: 'frame', type: 'frame', x: 0, y: 0, width: 400, height: 300 });
+    h.addShape({ id: 'a', x: 0, y: 0, width: 30, height: 30 });
+    h.addShape({ id: 'b', x: 50, y: 50, width: 30, height: 30 });
+    // Simulate the post-repair form: shapeIds is already a real array.
+    const r = await run(h, 'pen_reparent_shape', {
+      shapeIds: ['a', 'b'],
+      newParentId: 'frame',
+    });
+    expect(r.isError).toBeFalsy();
+    expect(h.doc.shapes.find((s) => s.id === 'a')?.parentId).toBe('frame');
+    expect(h.doc.shapes.find((s) => s.id === 'b')?.parentId).toBe('frame');
+  });
+
+  it('returns isError when no shapeId(s) provided', async () => {
+    h.addShape({ id: 'frame', type: 'frame', x: 0, y: 0, width: 100, height: 100 });
+    const r = await run(h, 'pen_reparent_shape', {
+      newParentId: 'frame',
+    });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('no shapeId');
+  });
+});
+
+describe('tools: pen_set_constraints', () => {
+  it('sets Figma-style constraints on a node', async () => {
+    h.addShape({ id: 's1' });
+    const r = await run(h, 'pen_set_constraints', {
+      shapeId: 's1',
+      horizontal: 'left_right',
+      vertical: 'top_bottom',
+    });
+    expect(r.isError).toBeFalsy();
+    expect(h.patches.at(-1)?.op).toBe('set_constraints');
+    expect(h.patches.at(-1)?.constraints).toEqual({ horizontal: 'left_right', vertical: 'top_bottom' });
+    expect(h.doc.shapes[0].constraints).toEqual({ horizontal: 'left_right', vertical: 'top_bottom' });
+  });
+
+  it('updates one axis at a time (preserves the other axis from the current value)', async () => {
+    // The tool requires both axes in args, so the agent must pass both.
+    h.addShape({ id: 's1', constraints: { horizontal: 'left', vertical: 'top' } });
+    await run(h, 'pen_set_constraints', {
+      shapeId: 's1',
+      horizontal: 'scale',
+      vertical: 'top',
+    });
+    expect(h.doc.shapes[0].constraints).toEqual({ horizontal: 'scale', vertical: 'top' });
+  });
+
+  it('returns isError when the shape does not exist', async () => {
+    const r = await run(h, 'pen_set_constraints', {
+      shapeId: 'nope',
+      horizontal: 'left',
+      vertical: 'top',
+    });
+    expect(r.isError).toBe(true);
+  });
+});
+
 // ---- Tool registration sanity ------------------------------------------------
 
 describe('tools: registration sanity', () => {
-  it('returns 55 tools total', () => {
+  it('returns 57 tools total', () => {
     const tools = createCanvasTools(h.ctx);
-    expect(tools).toHaveLength(55);
+    expect(tools).toHaveLength(57);
   });
 
   it('every tool has a unique name', () => {

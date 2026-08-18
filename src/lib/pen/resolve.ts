@@ -517,6 +517,8 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
         // Effective theme (own + inherited) so the Properties panel can show
         // and edit it via set_node_theme patches.
         theme: rn.theme,
+        // Figma-style layout constraints (passed through from the .pen node).
+        constraints: (n as any).constraints ?? null,
       };
 
       // Apply legacy token bindings: if the node has a tokenBinding, override

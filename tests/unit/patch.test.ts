@@ -49,6 +49,7 @@ function makeShape(overrides: Partial<Shape> = {}): Shape {
     shadow: overrides.shadow ?? null,
     blur: overrides.blur ?? 0,
     maskId: overrides.maskId ?? null,
+    constraints: overrides.constraints ?? null,
   };
 }
 
@@ -59,6 +60,42 @@ function makeDoc(shapes: Shape[] = []): CanvasDocument {
     background: '#ffffff',
     version: '2.17',
     children: shapes as unknown as PenChild[],
+    viewport: { zoom: 1, panX: 0, panY: 0 },
+    shapes,
+    tokens: { colors: [], textStyles: [] },
+  };
+}
+
+/**
+ * Build a doc with a proper NESTED .pen tree from a flat shape list (using
+ * each shape's `parentId` to assemble the tree). The flat `makeDoc` helper
+ * above leaves everything at the top level — that's fine for tests that don't
+ * care about nesting, but tests that exercise the patch applier's tree-aware
+ * ops (reparent cycle detection, ungroup with nested groups) need a real tree.
+ *
+ * Containers (frame / group) get their `children` array populated from the
+ * shapes whose `parentId` points at them. Leaves are inserted as-is.
+ */
+function makeNestedDoc(shapes: Shape[]): CanvasDocument {
+  const childrenOf = (parentId: string | null) =>
+    shapes.filter((s) => (s.parentId ?? null) === parentId);
+
+  const buildNode = (s: Shape): PenChild => {
+    const base: any = { ...s };
+    if (s.type === 'frame' || s.type === 'group') {
+      const kids = childrenOf(s.id);
+      base.children = kids.map(buildNode);
+    }
+    return base as PenChild;
+  };
+
+  const topLevel = childrenOf(null).map(buildNode);
+  return {
+    id: 'doc-1',
+    name: 'Test doc (nested)',
+    background: '#ffffff',
+    version: '2.17',
+    children: topLevel,
     viewport: { zoom: 1, panX: 0, panY: 0 },
     shapes,
     tokens: { colors: [], textStyles: [] },
@@ -570,5 +607,237 @@ describe('patch: tokens re-applies bindings (regression)', () => {
     }));
     expect(out.shapes[0].stroke).toBe('#111111');
     expect(out.shapes[0].textColor).toBe('#222222');
+  });
+});
+
+// ---- reparent (Figma hierarchy) ----------------------------------------------
+
+describe('patch: reparent', () => {
+  it('moves a top-level shape into a frame and preserves absolute position by default', () => {
+    // Frame at (200, 100). Shape at (300, 150) at root. Reparent shape into
+    // the frame. The shape's absolute position should be PRESERVED at (300, 150).
+    // (Stored relative x/y becomes (100, 50); the resolved flat list shows (300, 150).)
+    const frame = makeShape({ id: 'frame', type: 'frame', x: 200, y: 100, width: 400, height: 300 });
+    const rect = makeShape({ id: 'rect', x: 300, y: 150, width: 50, height: 50 });
+    const doc = makeNestedDoc([frame, rect]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'reparent',
+      shapeId: 'rect',
+      newParentId: 'frame',
+    }));
+    const updatedRect = out.shapes.find((s) => s.id === 'rect');
+    expect(updatedRect?.parentId).toBe('frame');
+    // Absolute position (in the resolved flat list) is preserved.
+    expect(updatedRect?.x).toBe(300);
+    expect(updatedRect?.y).toBe(150);
+  });
+
+  it('moves a nested shape to root and preserves absolute position', () => {
+    // Frame at (200, 100). Child rect inside frame with relative (10, 20)
+    // => absolute (210, 120). Reparent to root. Absolute position (210, 120)
+    // should be preserved.
+    const frame = makeShape({ id: 'frame', type: 'frame', x: 200, y: 100, width: 400, height: 300 });
+    const rect = makeShape({ id: 'rect', x: 10, y: 20, width: 50, height: 50, parentId: 'frame' });
+    const doc = makeNestedDoc([frame, rect]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'reparent',
+      shapeId: 'rect',
+      newParentId: null,
+    }));
+    const updatedRect = out.shapes.find((s) => s.id === 'rect');
+    expect(updatedRect?.parentId).toBeNull();
+    // Absolute (210, 120) is preserved — now also the stored root x/y.
+    expect(updatedRect?.x).toBe(210);
+    expect(updatedRect?.y).toBe(120);
+  });
+
+  it('rejects moving a node into itself (would create a cycle)', () => {
+    const frame = makeShape({ id: 'frame', type: 'frame', x: 0, y: 0, width: 100, height: 100 });
+    const doc = makeNestedDoc([frame]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'reparent',
+      shapeId: 'frame',
+      newParentId: 'frame',
+    }));
+    // Frame should remain at root.
+    const updatedFrame = out.shapes.find((s) => s.id === 'frame');
+    expect(updatedFrame?.parentId).toBeNull();
+  });
+
+  it('rejects moving a node into one of its own descendants', () => {
+    // Outer frame contains Inner frame. Reparenting Outer INTO Inner should
+    // be rejected (would create a cycle: Outer > Inner > Outer > ...).
+    const outer = makeShape({ id: 'outer', type: 'frame', x: 0, y: 0, width: 200, height: 200 });
+    const inner = makeShape({ id: 'inner', type: 'frame', x: 10, y: 10, width: 50, height: 50, parentId: 'outer' });
+    const doc = makeNestedDoc([outer, inner]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'reparent',
+      shapeId: 'outer',
+      newParentId: 'inner',
+    }));
+    // Outer should remain at root (not moved into Inner).
+    const updatedOuter = out.shapes.find((s) => s.id === 'outer');
+    expect(updatedOuter?.parentId).toBeNull();
+  });
+
+  it('does NOT remap x/y when keepAbsolutePosition=false', () => {
+    // Frame at (200, 100). Shape at (300, 150) at root. Reparent with
+    // keepAbsolutePosition=false. Stored x/y stays (300, 150) — which is now
+    // RELATIVE to the frame, so the new absolute becomes (500, 250).
+    const frame = makeShape({ id: 'frame', type: 'frame', x: 200, y: 100, width: 400, height: 300 });
+    const rect = makeShape({ id: 'rect', x: 300, y: 150, width: 50, height: 50 });
+    const doc = makeNestedDoc([frame, rect]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'reparent',
+      shapeId: 'rect',
+      newParentId: 'frame',
+      keepAbsolutePosition: false,
+    }));
+    const updatedRect = out.shapes.find((s) => s.id === 'rect');
+    expect(updatedRect?.parentId).toBe('frame');
+    // Resolved absolute is now 200 + 300 = 500, 100 + 150 = 250 (NOT preserved).
+    expect(updatedRect?.x).toBe(500);
+    expect(updatedRect?.y).toBe(250);
+  });
+
+  it('no-ops when the shapeId is missing', () => {
+    const doc = makeNestedDoc([makeShape({ id: 'a' })]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'reparent',
+      newParentId: null,
+    }));
+    expect(out.shapes).toHaveLength(1);
+    expect(out.shapes[0].id).toBe('a');
+  });
+
+  it('no-ops when the shape is not found', () => {
+    const doc = makeNestedDoc([makeShape({ id: 'a' })]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'reparent',
+      shapeId: 'does-not-exist',
+      newParentId: null,
+    }));
+    expect(out.shapes).toHaveLength(1);
+    expect(out.shapes[0].id).toBe('a');
+  });
+});
+
+// ---- ungroup coordinate remap (Figma hierarchy bug fix) ----------------------
+
+describe('patch: ungroup coord remap', () => {
+  it('remaps children to preserve absolute position when a top-level group is dissolved', () => {
+    // Group at (200, 100) at root. Child rect with stored RELATIVE (10, 20)
+    // => absolute (210, 120). After ungroup, rect is promoted to root and its
+    // absolute (210, 120) is preserved.
+    const group = makeShape({ id: 'g1', type: 'group', x: 200, y: 100, width: 50, height: 50 });
+    const rect = makeShape({ id: 'r1', x: 10, y: 20, width: 30, height: 30, parentId: 'g1' });
+    const doc = makeNestedDoc([group, rect]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'ungroup',
+      shapeIds: ['g1'],
+    }));
+    const updatedRect = out.shapes.find((s) => s.id === 'r1');
+    expect(updatedRect).toBeDefined();
+    expect(updatedRect?.parentId).toBeNull();
+    // Absolute (210, 120) is preserved — now also the stored root x/y.
+    expect(updatedRect?.x).toBe(210);
+    expect(updatedRect?.y).toBe(120);
+  });
+
+  it('remaps children to be relative to the grandparent when a nested group is dissolved', () => {
+    // Outer frame at (100, 50). Inner group inside Outer at relative (10, 10)
+    // => absolute (110, 60). Rect inside group at relative (5, 5) => absolute
+    // (115, 65). After ungrouping the group, rect is promoted to Outer and its
+    // absolute (115, 65) is preserved.
+    const outer = makeShape({ id: 'outer', type: 'frame', x: 100, y: 50, width: 500, height: 500 });
+    const group = makeShape({ id: 'g1', type: 'group', x: 10, y: 10, width: 100, height: 100, parentId: 'outer' });
+    const rect = makeShape({ id: 'r1', x: 5, y: 5, width: 30, height: 30, parentId: 'g1' });
+    const doc = makeNestedDoc([outer, group, rect]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'ungroup',
+      shapeIds: ['g1'],
+    }));
+    const updatedRect = out.shapes.find((s) => s.id === 'r1');
+    expect(updatedRect).toBeDefined();
+    expect(updatedRect?.parentId).toBe('outer'); // promoted to grandparent
+    // Absolute (115, 65) is preserved — the resolved flat list shows the same.
+    expect(updatedRect?.x).toBe(115);
+    expect(updatedRect?.y).toBe(65);
+  });
+
+  it('preserves sibling order when promoting children', () => {
+    // Group with 3 children. After ungroup, children should appear at the
+    // group's slot in the grandparent's children array, in the same order.
+    const group = makeShape({ id: 'g1', type: 'group', x: 0, y: 0, width: 100, height: 100 });
+    const a = makeShape({ id: 'a', x: 0, y: 0, width: 10, height: 10, parentId: 'g1' });
+    const b = makeShape({ id: 'b', x: 0, y: 0, width: 10, height: 10, parentId: 'g1' });
+    const c = makeShape({ id: 'c', x: 0, y: 0, width: 10, height: 10, parentId: 'g1' });
+    const top = makeShape({ id: 'top', x: 0, y: 0, width: 10, height: 10 });
+    const bottom = makeShape({ id: 'bottom', x: 0, y: 0, width: 10, height: 10 });
+    const doc = makeNestedDoc([top, group, bottom, a, b, c]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'ungroup',
+      shapeIds: ['g1'],
+    }));
+    // Top-level order should be: top, a, b, c, bottom (group replaced by its
+    // children in their original order). The resolved flat list orders nodes
+    // depth-first by zIndex, so top-level nodes appear in tree order.
+    const rootLevelIds = out.shapes.filter((s) => !s.parentId).map((s) => s.id);
+    expect(rootLevelIds).toEqual(['top', 'a', 'b', 'c', 'bottom']);
+  });
+});
+
+// ---- set_constraints (Figma hierarchy) ----------------------------------------
+
+describe('patch: set_constraints', () => {
+  it('sets Figma-style constraints on a node', () => {
+    const a = makeShape({ id: 'a' });
+    const doc = makeDoc([a]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'set_constraints',
+      shapeId: 'a',
+      constraints: { horizontal: 'left_right', vertical: 'top_bottom' },
+    }));
+    expect(out.shapes[0].constraints).toEqual({ horizontal: 'left_right', vertical: 'top_bottom' });
+  });
+
+  it('clears constraints when null is passed', () => {
+    const a = makeShape({ id: 'a', constraints: { horizontal: 'scale', vertical: 'center' } });
+    const doc = makeDoc([a]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'set_constraints',
+      shapeId: 'a',
+      constraints: null,
+    }));
+    expect(out.shapes[0].constraints).toBeNull();
+  });
+
+  it('no-ops when the shapeId is missing', () => {
+    const a = makeShape({ id: 'a' });
+    const doc = makeDoc([a]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'set_constraints',
+      constraints: { horizontal: 'left', vertical: 'top' },
+    }));
+    expect(out.shapes[0].constraints).toBeNull();
+  });
+
+  it('survives a tree round-trip (constraints preserved after resolvePenTree)', () => {
+    // Set constraints, then trigger an unrelated mutation (rename) to force
+    // resolvePenTree to re-derive shapes. The constraints should survive.
+    const a = makeShape({ id: 'a' });
+    const doc = makeDoc([a]);
+    let out = applyPatchToCanvas(doc, patch({
+      op: 'set_constraints',
+      shapeId: 'a',
+      constraints: { horizontal: 'center', vertical: 'scale' },
+    }));
+    out = applyPatchToCanvas(out, patch({
+      op: 'update',
+      shapeId: 'a',
+      shape: { name: 'Renamed' },
+    }));
+    expect(out.shapes[0].constraints).toEqual({ horizontal: 'center', vertical: 'scale' });
+    expect(out.shapes[0].name).toBe('Renamed');
   });
 });

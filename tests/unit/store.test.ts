@@ -51,6 +51,7 @@ function makeShape(id: string, fill = '#cccccc'): Shape {
     autoLayout: null, tokenBinding: null, componentId: null,
     points: null, closed: false, src: null, radii: null,
     gradient: null, shadow: null, blur: 0, maskId: null,
+    constraints: null,
   };
 }
 
@@ -413,5 +414,47 @@ describe('store: _onSync canvas:patch — op coverage for new ops', () => {
 
     expect(useCanvasStore.getState().undoStack).toHaveLength(1);
     expect(useCanvasStore.getState().document.viewport).toEqual({ zoom: 2, panX: 50, panY: 25 });
+  });
+
+  it('reparent patches are pushed to undo stack (mutating)', () => {
+    // Figma-hierarchy reparent op should be treated as mutating (undo-able).
+    const frame = { ...makeShape('frame'), type: 'frame' as const };
+    const rect = makeShape('rect');
+    const doc = makeDoc([frame, rect]);
+    resetStore(doc);
+
+    useCanvasStore.getState()._onSync({
+      type: 'canvas:patch',
+      patch: patch({
+        op: 'reparent',
+        shapeId: 'rect',
+        newParentId: 'frame',
+        keepAbsolutePosition: true,
+      }),
+    });
+
+    expect(useCanvasStore.getState().undoStack).toHaveLength(1);
+    // After reparent, rect should be inside frame.
+    const rectShape = useCanvasStore.getState().document.shapes.find((s) => s.id === 'rect');
+    expect(rectShape?.parentId).toBe('frame');
+  });
+
+  it('set_constraints patches are pushed to undo stack (mutating)', () => {
+    const rect = makeShape('rect');
+    const doc = makeDoc([rect]);
+    resetStore(doc);
+
+    useCanvasStore.getState()._onSync({
+      type: 'canvas:patch',
+      patch: patch({
+        op: 'set_constraints',
+        shapeId: 'rect',
+        constraints: { horizontal: 'left_right', vertical: 'top_bottom' },
+      }),
+    });
+
+    expect(useCanvasStore.getState().undoStack).toHaveLength(1);
+    const rectShape = useCanvasStore.getState().document.shapes.find((s) => s.id === 'rect');
+    expect(rectShape?.constraints).toEqual({ horizontal: 'left_right', vertical: 'top_bottom' });
   });
 });
