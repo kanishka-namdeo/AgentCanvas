@@ -9,10 +9,12 @@ import {
 import type { ImperativePanelHandle } from 'react-resizable-panels';
 import { Canvas } from '@/components/canvas/Canvas';
 import { Toolbar } from '@/components/canvas/Toolbar';
+import { TopMenuBar } from '@/components/canvas/TopMenuBar';
 import { LayersPanel } from '@/components/canvas/LayersPanel';
 import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
 import { AgentPanel } from '@/components/canvas/AgentPanel';
 import { CommandPalette } from '@/components/canvas/CommandPalette';
+import { KeyboardShortcutsDialog } from '@/components/canvas/KeyboardShortcutsDialog';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useSettings } from '@/lib/settings/store';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
@@ -70,6 +72,8 @@ export default function Home() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   // Settings dialog visibility.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // ⌘/ keyboard shortcuts modal visibility.
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // Auto-archive idle sessions on app mount, per the user's setting.
   // Also enforce the max-sessions-retained cap. Runs once after hydration.
@@ -186,9 +190,25 @@ export default function Home() {
         // Existing panel-toggle + palette + settings + zen + undo/redo.
         if (e.key === '1') { e.preventDefault(); toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); return; }
         if (e.key === '2') { e.preventDefault(); toggle(rightPanelRef, rightCollapsed, setRightCollapsed); return; }
+        // P1-25: ⌘⇧1 / ⌘⇧2 as ALIASES for the panel toggles (legacy users keep ⌘1/⌘2).
+        if (e.shiftKey && (e.key === '!' || e.key === '1')) { e.preventDefault(); toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); return; }
+        if (e.shiftKey && (e.key === '@' || e.key === '2')) { e.preventDefault(); toggle(rightPanelRef, rightCollapsed, setRightCollapsed); return; }
         if (e.key === 'k' || e.key === 'K') { e.preventDefault(); setPaletteOpen((v) => !v); return; }
         if (e.key === ',') { e.preventDefault(); setSettingsOpen((v) => !v); return; }
         if (e.key === '\\') { e.preventDefault(); toggleZen(); return; }
+        // P1-30: ⌘/ opens the keyboard shortcuts cheat sheet.
+        if (e.key === '/') { e.preventDefault(); setShortcutsOpen((v) => !v); return; }
+        // P2-47: ⌘↑ / ⌘↓ navigate chat messages (scroll the chat panel).
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          if (isEditable) return;
+          e.preventDefault();
+          // Find the chat scroll area and scroll by one message height (~80px).
+          const chatScroll = typeof document !== 'undefined' ? document.querySelector('.agent-panel-scroll') : null;
+          if (chatScroll) {
+            (chatScroll as HTMLElement).scrollBy({ top: e.key === 'ArrowUp' ? -80 : 80, behavior: 'smooth' });
+          }
+          return;
+        }
         if (e.key === 'z' || e.key === 'Z') {
           e.preventDefault();
           if (e.shiftKey) { state.redo(); } else { state.undo(); }
@@ -292,6 +312,47 @@ export default function Home() {
       if (e.key === 'v' || e.key === 'V') { state.setToolMode('select'); return; }
       if (e.key === 'h' || e.key === 'H') { state.setToolMode('pan'); return; }
 
+      // P1-24: Nudge shortcuts — arrows move selection by 1px, ⇧+arrows by 10px.
+      // Emits an op:'update' patch per selected shape with the new x/y.
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if (state.selectedIds.length === 0) return;
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+        const updates = state.selectedIds.map((id) => {
+          const s = findShape(state.document, id);
+          if (!s) return null;
+          // Subtract parent absolute position if nested (same fix as the drag handler).
+          let newX = s.x + dx;
+          let newY = s.y + dy;
+          if (s.parentId) {
+            const parent = findShape(state.document, s.parentId);
+            if (parent) { newX -= parent.x; newY -= parent.y; }
+          }
+          return { id, changes: { x: newX, y: newY } };
+        }).filter((u): u is { id: string; changes: { x: number; y: number } } => u !== null);
+        if (updates.length > 0) {
+          state.sendPatch({ op: 'update_many', updates, summary: `Nuded ${updates.length} shape(s) by (${dx}, ${dy})` });
+        }
+        return;
+      }
+
+      // P2-46: Tab to focus next shape in z-order.
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const all = [...state.document.shapes].sort((a, b) => a.zIndex - b.zIndex);
+        if (all.length === 0) return;
+        const currentIdx = state.selectedIds.length > 0
+          ? all.findIndex((s) => s.id === state.selectedIds[state.selectedIds.length - 1])
+          : -1;
+        const nextIdx = e.shiftKey
+          ? (currentIdx <= 0 ? all.length - 1 : currentIdx - 1)
+          : (currentIdx + 1) % all.length;
+        select([all[nextIdx].id]);
+        return;
+      }
+
       // P0-08: Shape-tool shortcuts — drop at viewport center + select.
       // R rectangle, O ellipse, T text, L line, F frame.
       const shapeKey = e.key.toLowerCase();
@@ -303,6 +364,28 @@ export default function Home() {
         f: { type: 'frame', w: 200, h: 200 },
       };
       const def = shapeDefs[shapeKey];
+      // P1-23: A key applies auto-layout to the currently selected frame.
+      if (shapeKey === 'a') {
+        e.preventDefault();
+        if (state.selectedIds.length === 1) {
+          const s = findShape(state.document, state.selectedIds[0]);
+          if (s && (s.type === 'frame' || s.type === 'group')) {
+            state.sendPatch({
+              op: 'update',
+              shapeId: s.id,
+              shape: { autoLayout: { direction: 'vertical', gap: 8, padding: 16, alignX: 'center', alignY: 'min' } } as Partial<Shape>,
+              summary: `Applied auto-layout (vertical, gap 8, pad 16) to ${s.name}`,
+            });
+          }
+        }
+        return;
+      }
+      // P1-23: P (pen / path tool) — not yet implemented; toast the user.
+      if (shapeKey === 'p') {
+        e.preventDefault();
+        toast.message('Pen tool — use the chat panel: "draw a path through points (10,10) (50,40) (90,10)"');
+        return;
+      }
       if (def) {
         e.preventDefault();
         const vp = state.document.viewport;
@@ -345,6 +428,22 @@ export default function Home() {
         className="h-screen w-screen flex flex-col ac-surface-1 ac-text-1 overflow-hidden"
         data-density={density}
       >
+        {/* ───────────────────────── Top-level menu bar (P1-13) ─────────────────────────
+            File / Edit / View / Insert / Object / Help. Hidden in Zen mode. */}
+        {!isZenMode && (
+          <TopMenuBar
+            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenCommandPalette={() => setPaletteOpen(true)}
+            onToggleZen={toggleZen}
+            onToggleTheme={() => {/* theme cycling handled by ThemeToggle in header */}}
+            onToggleLeftPanel={() => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed)}
+            onToggleRightPanel={() => toggle(rightPanelRef, rightCollapsed, setRightCollapsed)}
+            onNewChat={() => useCanvasStore.getState().newSession()}
+            onExportPen={() => toast.message('Use the .pen file menu in the header to export.')}
+            onImportPen={() => toast.message('Use the .pen file menu in the header to import.')}
+            onOpenShortcuts={() => setShortcutsOpen(true)}
+          />
+        )}
         {/* ───────────────────────── Top bar ───────────────────────── */}
         <header className="flex items-center justify-between px-3 h-11 border-b ac-border-default ac-surface-0 flex-shrink-0 gap-3">
           {/* Left: brand + doc name */}
@@ -534,6 +633,7 @@ export default function Home() {
 
       {/* Settings dialog — agent behavior, LLM provider, sessions, appearance, data, shortcuts */}
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </TooltipProvider>
   );
 }

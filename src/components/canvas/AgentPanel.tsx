@@ -29,6 +29,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import { toast } from 'sonner';
+import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers, Square,
 } from 'lucide-react';
@@ -306,48 +314,107 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
   const forkActiveSession = useCanvasStore((s) => s.forkActiveSession);
   if (turn.role === 'user') {
     return (
-      <div className="group flex gap-2">
-        <div className="w-6 h-6 rounded-full ac-surface-2 flex items-center justify-center flex-shrink-0">
-          <User className="h-3 w-3 ac-text-3" />
-        </div>
-        <div className="flex-1 text-xs ac-text-1 ac-surface-1 rounded-lg rounded-tl-sm p-2">
-          {turn.text}
-        </div>
-        {turn.messageId && (
-          <button
-            onClick={() => forkActiveSession(turn.messageId)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
-            title="Fork chat from this message"
-          >
-            <GitBranch className="h-3 w-3" />
-          </button>
-        )}
-      </div>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div className="group flex gap-2">
+            <div className="w-6 h-6 rounded-full ac-surface-2 flex items-center justify-center flex-shrink-0">
+              <User className="h-3 w-3 ac-text-3" />
+            </div>
+            <div className="flex-1 text-xs ac-text-1 ac-surface-1 rounded-lg rounded-tl-sm p-2">
+              {turn.text}
+            </div>
+            {turn.messageId && (
+              <button
+                onClick={() => forkActiveSession(turn.messageId)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
+                title="Fork chat from this message"
+              >
+                <GitBranch className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </ContextMenuTrigger>
+        {/* P1-27: User message right-click — Copy prompt, Edit & resend,
+            Fork from here, Pin to top, Delete. */}
+        <ContextMenuContent>
+          <ContextMenuItem onClick={() => {
+            if (typeof navigator !== 'undefined' && navigator.clipboard) {
+              navigator.clipboard.writeText(turn.text ?? '').then(() => toast.message('Prompt copied to clipboard'));
+            }
+          }}>
+            Copy prompt
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => toast.message('Edit & resend — use the chat input below; the prompt was: ' + (turn.text ?? '').slice(0, 80))}>
+            Edit & resend
+          </ContextMenuItem>
+          {turn.messageId && (
+            <ContextMenuItem onClick={() => forkActiveSession(turn.messageId)}>
+              Fork from here
+            </ContextMenuItem>
+          )}
+          <ContextMenuSeparator />
+          <ContextMenuItem onClick={() => toast.message('Pin to top — not yet implemented (P2-35)')}>
+            Pin to top
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => toast.message('Delete message — not yet implemented (P2-35)')} className="text-rose-600">
+            Delete
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
     );
   }
 
   return (
-    <div className="flex gap-2">
-      <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-        <Bot className="h-3 w-3 text-white" />
-      </div>
-      <div className="flex-1 space-y-2">
-        {/* Tool calls */}
-        {turn.toolCalls.map((tc) => (
-          <ToolCallEntry key={tc.id} tc={tc} />
-        ))}
-        {/* Text */}
-        {turn.text && (
-          <div className="text-xs ac-text-1 whitespace-pre-wrap leading-relaxed">{turn.text}</div>
-        )}
-        {turn.streaming && !turn.text && turn.toolCalls.length === 0 && (
-          <div className="flex items-center gap-1.5 text-xs ac-text-4">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            thinking…
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div className="flex gap-2">
+          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <Bot className="h-3 w-3 text-white" />
           </div>
-        )}
-      </div>
-    </div>
+          <div className="flex-1 space-y-2">
+            {/* Tool calls */}
+            {turn.toolCalls.map((tc) => (
+              <ToolCallEntry key={tc.id} tc={tc} />
+            ))}
+            {/* Text */}
+            {turn.text && (
+              <div className="text-xs ac-text-1 whitespace-pre-wrap leading-relaxed">{turn.text}</div>
+            )}
+            {turn.streaming && !turn.text && turn.toolCalls.length === 0 && (
+              <div className="flex items-center gap-1.5 text-xs ac-text-4">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                thinking…
+              </div>
+            )}
+          </div>
+        </div>
+      </ContextMenuTrigger>
+      {/* P1-28: Assistant message right-click — Copy message, Regenerate,
+          Branch from here, Stop, Replay tool calls, Pin to top. */}
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => {
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(turn.text ?? '').then(() => toast.message('Message copied to clipboard'));
+          }
+        }}>
+          Copy message
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => toast.message('Regenerate — not yet implemented (P2-34)')}>
+          Regenerate
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => toast.message('Branch from here — not yet implemented (P2-34)')}>
+          Branch from here
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => toast.message('Replay tool calls — not yet implemented (P2-33)')}>
+          Replay tool calls
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => toast.message('Pin to top — not yet implemented (P2-35)')}>
+          Pin to top
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -357,28 +424,60 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
   // Color-code by tool category for quick visual scanning.
   const category = toolCategory(tc.name);
   return (
-    <div className="rounded-md border ac-border-subtle ac-surface-1 px-2 py-1.5">
-      <div className="flex items-center gap-1.5 text-[11px] font-medium ac-text-1">
-        <Wrench className="h-3 w-3 ac-text-4" />
-        <code className="text-[10px] ac-surface-2 ac-text-2 px-1 py-0.5 rounded font-mono">{tc.name}</code>
-        {category && (
-          <Badge variant="outline" className={`text-[9px] h-3.5 px-1 py-0 font-normal ${category.cls}`}>
-            {category.label}
-          </Badge>
-        )}
-        {pending && <Loader2 className="h-3 w-3 animate-spin ac-text-4 ml-auto" />}
-        {success === true && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-auto" />}
-        {success === false && <XCircle className="h-3 w-3 text-rose-500 ml-auto" />}
-      </div>
-      {tc.argsPreview && (
-        <pre className="mt-1 text-[10px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all">
-          {tc.argsPreview}
-        </pre>
-      )}
-      {tc.summary && (
-        <div className="mt-1 text-[10px] ac-text-3">{tc.summary}</div>
-      )}
-    </div>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div className="rounded-md border ac-border-subtle ac-surface-1 px-2 py-1.5">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium ac-text-1">
+            <Wrench className="h-3 w-3 ac-text-4" />
+            <code className="text-[10px] ac-surface-2 ac-text-2 px-1 py-0.5 rounded font-mono">{tc.name}</code>
+            {category && (
+              <Badge variant="outline" className={`text-[9px] h-3.5 px-1 py-0 font-normal ${category.cls}`}>
+                {category.label}
+              </Badge>
+            )}
+            {pending && <Loader2 className="h-3 w-3 animate-spin ac-text-4 ml-auto" />}
+            {success === true && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-auto" />}
+            {success === false && <XCircle className="h-3 w-3 text-rose-500 ml-auto" />}
+          </div>
+          {tc.argsPreview && (
+            <pre className="mt-1 text-[10px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all">
+              {tc.argsPreview}
+            </pre>
+          )}
+          {tc.summary && (
+            <div className="mt-1 text-[10px] ac-text-3">{tc.summary}</div>
+          )}
+        </div>
+      </ContextMenuTrigger>
+      {/* P1-29: Tool-call card right-click — Copy args, Replay tool call,
+          Pin to top, View raw output, Convert to user prompt. */}
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => {
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(tc.argsPreview ?? '{}').then(() => toast.message('Args copied to clipboard'));
+          }
+        }}>
+          Copy args (as JSON)
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => toast.message('Replay tool call — not yet implemented (P2-33)')}>
+          Replay tool call
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => toast.message('Pin to top — not yet implemented (P2-35)')}>
+          Pin to top
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => toast.message('View raw output — not yet implemented')}>
+          View raw output
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => toast.message('Convert to user prompt — not yet implemented')}>
+          Convert to user prompt
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => toast.message('Inspect tool spec — not yet implemented')}>
+          Inspect tool spec
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 

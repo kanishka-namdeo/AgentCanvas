@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   Plus, Search, MoreHorizontal, Pin, PinOff, GitFork, Archive, Trash2, Pencil, MessageSquare, Wrench, Star,
+  Copy, FileJson, FileText,
 } from 'lucide-react';
 import { StatusDot } from './StatusBadge';
 import {
@@ -221,6 +222,39 @@ export function SessionSidebar() {
                           }
                         }}>
                           <GitFork className="h-3 w-3 mr-2" /> Fork this chat
+                        </DropdownMenuItem>
+                        {/* P1-20: 5 new session-row items */}
+                        <DropdownMenuItem className="py-1.5" onClick={() => {
+                          // Duplicate: fork but don't switch — creates a sibling at the same tree level.
+                          const dup = useSessionStore.getState().forkSession(session.id, null);
+                          if (dup) toast.success(`Duplicated "${session.title}" → "${dup.title}"`);
+                        }}>
+                          <Copy className="h-3 w-3 mr-2" /> Duplicate session
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="py-1.5" onClick={() => {
+                          const data = JSON.stringify(useSessionStore.getState().sessions[session.id] ?? null, null, 2);
+                          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                            navigator.clipboard.writeText(data).then(() => toast.success('Session JSON copied to clipboard'));
+                          }
+                        }}>
+                          <FileJson className="h-3 w-3 mr-2" /> Export as JSON
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="py-1.5" onClick={() => toast.message('Export as Markdown — not yet implemented (P2-37)')}>
+                          <FileText className="h-3 w-3 mr-2" /> Export as Markdown
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="py-1.5" onClick={() => {
+                          const sess = useSessionStore.getState().sessions[session.id];
+                          const prompts = (sess?.messages ?? []).filter((m) => m.role === 'user').map((m) => m.content).join('\n\n---\n\n');
+                          if (typeof navigator !== 'undefined' && navigator.clipboard && prompts) {
+                            navigator.clipboard.writeText(prompts).then(() => toast.success('Prompt summary copied to clipboard'));
+                          } else {
+                            toast.message('No user prompts in this session.');
+                          }
+                        }}>
+                          <Copy className="h-3 w-3 mr-2" /> Copy prompt summary
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="py-1.5" onClick={() => toast.message('Mark as template — not yet implemented (P2-41)')}>
+                          <Star className="h-3 w-3 mr-2" /> Mark as template
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="py-1.5" onClick={() => {

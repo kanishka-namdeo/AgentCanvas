@@ -269,6 +269,27 @@ export function Canvas() {
           y = orig.y + (orig.height - newHeight);
           height = newHeight;
         }
+        // P1-18: Shift-constrain on resize — lock aspect ratio to the
+        // original shape's width / height ratio. Apply the larger delta
+        // (width or height) and compute the other dimension from the ratio.
+        if (e.shiftKey && orig.width > 0 && orig.height > 0) {
+          const ratio = orig.width / orig.height;
+          // Determine the dominant axis based on the handle.
+          if (h === 'e' || h === 'w' || h === 'ne' || h === 'nw' || h === 'se' || h === 'sw') {
+            // Horizontal-resizing handle: compute height from width.
+            const newHeightFromWidth = width / ratio;
+            // If the handle includes 'n' or 's', adjust y accordingly.
+            if (h.includes('n')) {
+              y = orig.y + (orig.height - newHeightFromWidth);
+            }
+            height = newHeightFromWidth;
+          } else if (h === 'n' || h === 's') {
+            // Vertical-resizing handle: compute width from height.
+            const newWidthFromHeight = height * ratio;
+            x = orig.x + (orig.width - newWidthFromHeight) / 2;
+            width = newWidthFromHeight;
+          }
+        }
         // Figma-hierarchy: like the move handler, if the resized shape is
         // nested, convert the new absolute x/y to relative coords by
         // subtracting the parent's absolute position. Width/height stay the
