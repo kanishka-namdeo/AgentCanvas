@@ -15,7 +15,9 @@ import { AgentPanel } from '@/components/canvas/AgentPanel';
 import { CommandPalette } from '@/components/canvas/CommandPalette';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useSettings } from '@/lib/settings/store';
-import { useCanvasStore } from '@/lib/canvas/store';
+import { useCanvasStore, findShape } from '@/lib/canvas/store';
+import { useClipboard } from '@/hooks/use-clipboard';
+import type { CanvasPatch, Shape } from '@/lib/canvas/types';
 import { SessionSidebar } from '@/components/sessions/SessionSidebar';
 import { SessionHeader } from '@/components/sessions/SessionHeader';
 import { RunHistoryPanel } from '@/components/sessions/RunHistoryPanel';
@@ -160,39 +162,182 @@ export default function Home() {
     }
   }, [isZenMode, leftCollapsed, rightCollapsed]);
 
-  // Keyboard shortcuts: ⌘1 left column, ⌘2 right column, ⌘K command palette,
-  // ⌘, settings, ⌘\ zen mode, ⌘Z undo, ⌘⇧Z redo, V select tool, H pan tool.
-  // Undo/redo and tool shortcuts don't require meta.
+  // Keyboard shortcuts — full matrix (P0 tier):
+  //   ⌘1 left column, ⌘2 right column, ⌘K palette, ⌘, settings, ⌘\ zen,
+  //   ⌘Z undo, ⌘⇧Z redo, V select, H pan (existing).
+  //   NEW (P0-03): ⌘C copy, ⌘V paste (+24 offset), ⌘⇧V paste in place,
+  //                ⌘X cut, ⌘A select all.
+  //   NEW (P0-05): ⌘G group, ⌘⇧G ungroup.
+  //   NEW (P0-06): ⌘D duplicate.
+  //   NEW (P0-07): ⌘] bring forward, ⌘[ send backward, ⌘⇧] bring to front,
+  //                ⌘⇧[ send to back.
+  //   NEW (P0-08): R rectangle, O ellipse, T text, L line, F frame.
+  //                Drops the shape at viewport center + selects it.
+  const clipboard = useClipboard();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
-      // Meta-required shortcuts:
+      const state = useCanvasStore.getState();
+      const target = e.target as HTMLElement;
+      const isEditable = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      // --- Meta-required shortcuts ---
       if (meta) {
-        if (e.key === '1') { e.preventDefault(); toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); }
-        else if (e.key === '2') { e.preventDefault(); toggle(rightPanelRef, rightCollapsed, setRightCollapsed); }
-        else if (e.key === 'k' || e.key === 'K') { e.preventDefault(); setPaletteOpen((v) => !v); }
-        else if (e.key === ',') { e.preventDefault(); setSettingsOpen((v) => !v); }
-        else if (e.key === '\\') { e.preventDefault(); toggleZen(); }
-        else if (e.key === 'z' || e.key === 'Z') {
+        // Existing panel-toggle + palette + settings + zen + undo/redo.
+        if (e.key === '1') { e.preventDefault(); toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); return; }
+        if (e.key === '2') { e.preventDefault(); toggle(rightPanelRef, rightCollapsed, setRightCollapsed); return; }
+        if (e.key === 'k' || e.key === 'K') { e.preventDefault(); setPaletteOpen((v) => !v); return; }
+        if (e.key === ',') { e.preventDefault(); setSettingsOpen((v) => !v); return; }
+        if (e.key === '\\') { e.preventDefault(); toggleZen(); return; }
+        if (e.key === 'z' || e.key === 'Z') {
+          e.preventDefault();
+          if (e.shiftKey) { state.redo(); } else { state.undo(); }
+          return;
+        }
+
+        // P0-03: Clipboard.
+        if (e.key === 'c' || e.key === 'C') {
+          if (isEditable) return; // don't hijack copy-in-input
+          e.preventDefault();
+          const sel = state.selectedIds.map((id) => findShape(state.document, id)).filter((s): s is Shape => !!s);
+          clipboard.copy(sel);
+          return;
+        }
+        if (e.key === 'v' || e.key === 'V') {
+          if (isEditable) return;
           e.preventDefault();
           if (e.shiftKey) {
-            useCanvasStore.getState().redo();
+            // ⌘⇧V = paste in place (0 offset)
+            clipboard.paste({ offset: { dx: 0, dy: 0 } });
           } else {
-            useCanvasStore.getState().undo();
+            clipboard.paste(); // default +24 offset
           }
+          return;
+        }
+        if (e.key === 'x' || e.key === 'X') {
+          if (isEditable) return;
+          e.preventDefault();
+          const sel = state.selectedIds.map((id) => findShape(state.document, id)).filter((s): s is Shape => !!s);
+          clipboard.cut(sel);
+          return;
+        }
+        if (e.key === 'a' || e.key === 'A') {
+          if (isEditable) return; // let Cmd+A in input select-all-text
+          e.preventDefault();
+          clipboard.selectAll();
+          return;
+        }
+
+        // P0-05: Group / Ungroup.
+        if (e.key === 'g' || e.key === 'G') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            // ⌘⇧G = ungroup
+            const groups = state.document.shapes.filter((s) => s.type === 'group' && state.selectedIds.includes(s.id));
+            if (groups.length > 0) {
+              state.sendPatch({
+                op: 'ungroup',
+                shapeIds: groups.map((g) => g.id),
+                summary: `Ungrouped ${groups.length} group(s)`,
+              });
+            }
+          } else {
+            // ⌘G = group
+            if (state.selectedIds.length >= 2) {
+              state.sendPatch({
+                op: 'group',
+                shapeIds: state.selectedIds,
+                summary: `Grouped ${state.selectedIds.length} shape(s)`,
+              });
+            }
+          }
+          return;
+        }
+
+        // P0-06: Duplicate.
+        if (e.key === 'd' || e.key === 'D') {
+          e.preventDefault();
+          if (state.selectedIds.length > 0) {
+            state.sendPatch({
+              op: 'duplicate',
+              shapeIds: state.selectedIds,
+              summary: `Duplicated ${state.selectedIds.length} shape(s)`,
+            });
+          }
+          return;
+        }
+
+        // P0-07: Z-order (⌘] / [ / ⌘⇧] / [).
+        if (e.key === ']' || e.key === '[') {
+          e.preventDefault();
+          if (state.selectedIds.length === 0) return;
+          const zorderKind = e.shiftKey
+            ? (e.key === ']' ? 'front' : 'back')
+            : (e.key === ']' ? 'forward' : 'backward');
+          state.sendPatch({
+            op: 'zorder',
+            shapeIds: state.selectedIds,
+            zorderKind,
+            summary: `Z-order: ${zorderKind}`,
+          });
+          return;
         }
         return;
       }
-      // Non-meta shortcuts — only fire when not typing in an input/textarea.
-      const target = e.target as HTMLElement;
-      const isEditable = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      // --- Non-meta shortcuts — only fire when not typing in an input ---
       if (isEditable) return;
-      if (e.key === 'v' || e.key === 'V') { useCanvasStore.getState().setToolMode('select'); }
-      else if (e.key === 'h' || e.key === 'H') { useCanvasStore.getState().setToolMode('pan'); }
+
+      // Existing tool shortcuts.
+      if (e.key === 'v' || e.key === 'V') { state.setToolMode('select'); return; }
+      if (e.key === 'h' || e.key === 'H') { state.setToolMode('pan'); return; }
+
+      // P0-08: Shape-tool shortcuts — drop at viewport center + select.
+      // R rectangle, O ellipse, T text, L line, F frame.
+      const shapeKey = e.key.toLowerCase();
+      const shapeDefs: Record<string, { type: Shape['type']; w: number; h: number; fill?: string }> = {
+        r: { type: 'rectangle', w: 100, h: 100 },
+        o: { type: 'ellipse', w: 100, h: 100 },
+        t: { type: 'text', w: 200, h: 24 },
+        l: { type: 'line', w: 100, h: 0 },
+        f: { type: 'frame', w: 200, h: 200 },
+      };
+      const def = shapeDefs[shapeKey];
+      if (def) {
+        e.preventDefault();
+        const vp = state.document.viewport;
+        // Compute the canvas-space center of the current viewport.
+        const cx = (-vp.panX + (typeof window !== 'undefined' ? window.innerWidth / 2 : 600)) / vp.zoom;
+        const cy = (-vp.panY + (typeof window !== 'undefined' ? window.innerHeight / 2 : 400)) / vp.zoom;
+        const newId = `shape-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const patch: CanvasPatch = {
+          op: 'add',
+          shape: {
+            id: newId,
+            type: def.type,
+            name: def.type.charAt(0).toUpperCase() + def.type.slice(1),
+            x: cx - def.w / 2,
+            y: cy - def.h / 2,
+            width: def.w,
+            height: def.h,
+            fill: def.type === 'line' ? '#0f172a' : '#e2e8f0',
+            stroke: '#0f172a',
+            strokeWidth: def.type === 'line' ? 2 : 0,
+            text: def.type === 'text' ? 'Text' : undefined,
+            fontSize: 16,
+            textColor: '#0f172a',
+            radius: 0,
+          },
+          summary: `Added ${def.type}`,
+        };
+        state.sendPatch(patch);
+        state.select([newId]);
+        return;
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [leftCollapsed, rightCollapsed, toggleZen]);
+  }, [leftCollapsed, rightCollapsed, toggleZen, clipboard]);
 
   return (
     <TooltipProvider delayDuration={300}>

@@ -9,6 +9,7 @@
 //   - drag to move selected shapes
 //   - resize handles on the active selection
 //   - agent-highlight glow (briefly shown when the agent uses canvas_select_shape)
+//   - P0-01/02: right-click context menu (empty canvas + shape variants)
 //
 // Local edits emit CanvasPatches via the store so other viewers (and the
 // agent) see them. Agent-originated patches arrive via the same store and
@@ -17,8 +18,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
+import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape } from '@/lib/canvas/types';
-import { PenLine, MousePointerClick } from 'lucide-react';
+import { PenLine, MousePointerClick, Scissors, Copy, ClipboardPaste, Trash2, ArrowUp, ArrowDown, BringToFront, SendToBack, Group as GroupIcon, SquareStack, Lock, Eye } from 'lucide-react';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 
 interface DragState {
   kind: 'pan' | 'move' | 'resize';
@@ -43,6 +52,12 @@ export function Canvas() {
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const select = useCanvasStore((s) => s.select);
   const toolMode = useCanvasStore((s) => s.toolMode);
+  const clipboard = useClipboard();
+  // P0-01/02: Track the last right-click position + the shape under the cursor
+  // at right-click time. The context-menu items use these to choose between
+  // the empty-canvas and shape variants.
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [contextShape, setContextShape] = useState<Shape | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ zoom: 1, panX: 120, panY: 80 });
@@ -206,11 +221,29 @@ export function Canvas() {
         // Move every selected shape by the delta. We update the store directly
         // (no patch roundtrip — the human's drag is local state). When the
         // drag ends we emit a single patch.
+        //
+        // Figma-hierarchy note: a shape's stored x/y is RELATIVE to its
+        // parent's content origin for nested nodes (parentId !== null), and
+        // ABSOLUTE for top-level nodes. `orig.x/y` from `findShape` is the
+        // resolved ABSOLUTE position. So before emitting the patch, if the
+        // shape is nested, subtract the parent's absolute position to convert
+        // the new absolute position back to a relative one. (Without this,
+        // moving a nested shape would double-offset it visually.)
         for (const orig of dragState.originals) {
+          const current = findShape(document, orig.id);
+          let newX = orig.x + dxCanvas;
+          let newY = orig.y + dyCanvas;
+          if (current?.parentId) {
+            const parent = findShape(document, current.parentId);
+            if (parent) {
+              newX -= parent.x;
+              newY -= parent.y;
+            }
+          }
           const patch: CanvasPatch = {
             op: 'update',
             shapeId: orig.id,
-            shape: { x: orig.x + dxCanvas, y: orig.y + dyCanvas },
+            shape: { x: newX, y: newY },
             summary: '',
           };
           // Send without summary to avoid log spam during drag — we'll send
@@ -236,16 +269,30 @@ export function Canvas() {
           y = orig.y + (orig.height - newHeight);
           height = newHeight;
         }
+        // Figma-hierarchy: like the move handler, if the resized shape is
+        // nested, convert the new absolute x/y to relative coords by
+        // subtracting the parent's absolute position. Width/height stay the
+        // same — they're not parent-relative.
+        const current = findShape(document, orig.id);
+        let relX = x;
+        let relY = y;
+        if (current?.parentId) {
+          const parent = findShape(document, current.parentId);
+          if (parent) {
+            relX -= parent.x;
+            relY -= parent.y;
+          }
+        }
         const patch: CanvasPatch = {
           op: 'update',
           shapeId: orig.id,
-          shape: { x, y, width, height },
+          shape: { x: relX, y: relY, width, height },
           summary: '',
         };
         sendPatch(patch);
       }
     },
-    [dragState, viewport.zoom, sendPatch],
+    [dragState, viewport.zoom, sendPatch, document],
   );
 
   const onMouseUp = useCallback(() => {
@@ -316,16 +363,50 @@ export function Canvas() {
   const selectedSet = new Set(selectedIds);
   const highlightSet = new Set(agentHighlightIds);
 
+  // P0-01/02: onContextMenu — track the right-click position + the shape
+  // under the cursor so the menu items can choose between variants.
+  const onContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      // Convert screen-space click to canvas-space.
+      const cx = (sx - viewport.panX) / viewport.zoom;
+      const cy = (sy - viewport.panY) / viewport.zoom;
+      setContextMenuPos({ x: cx, y: cy });
+      // Find the topmost shape under the cursor (highest zIndex first).
+      const shapes = document.shapes ?? [];
+      const hit = shapes
+        .slice()
+        .sort((a, b) => b.zIndex - a.zIndex)
+        .find((s) => cx >= s.x && cx <= s.x + s.width && cy >= s.y && cy <= s.y + s.height);
+      setContextShape(hit ?? null);
+      // If the right-clicked shape is NOT already in the selection, select it
+      // (so the menu items that operate on selectedIds operate on the right
+      // shape). If the user right-clicked empty canvas, leave the selection
+      // alone so multi-selection ops still work.
+      if (hit && !selectedIds.includes(hit.id)) {
+        select([hit.id]);
+      }
+      // Don't preventDefault — let the ContextMenu wrapper handle that.
+    },
+    [document.shapes, viewport.panX, viewport.panY, viewport.zoom, selectedIds, select],
+  );
+
   return (
-    <div
-      ref={containerRef}
-      className={`relative w-full h-full overflow-hidden select-none ${(spaceDown || toolMode === 'pan') ? 'cursor-grab' : 'cursor-default'}`}
-      style={{ background: document.background }}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
-    >
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          ref={containerRef}
+          className={`relative w-full h-full overflow-hidden select-none ${(spaceDown || toolMode === 'pan') ? 'cursor-grab' : 'cursor-default'}`}
+          style={{ background: document.background }}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
+          onContextMenu={onContextMenu}
+        >
       {/* Infinite-canvas backdrop grid */}
       <div
         data-empty-bg="true"
@@ -447,7 +528,99 @@ export function Canvas() {
           Reset
         </button>
       </div>
-    </div>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-56">
+        {/* P0-01 vs P0-02: choose variant based on whether a shape was hit. */}
+        {contextShape ? (
+          <>
+            {/* === Shape right-click (P0-02) === */}
+            <ContextMenuItem onClick={() => clipboard.cut([contextShape])}>
+              <Scissors className="h-3.5 w-3.5 mr-2" /> Cut <span className="ml-auto text-[10px] ac-text-4">⌘X</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => clipboard.copy([contextShape])}>
+              <Copy className="h-3.5 w-3.5 mr-2" /> Copy <span className="ml-auto text-[10px] ac-text-4">⌘C</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => clipboard.paste()}>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste <span className="ml-auto text-[10px] ac-text-4">⌘V</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => clipboard.paste({ offset: { dx: 0, dy: 0 } })}>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste in place <span className="ml-auto text-[10px] ac-text-4">⌘⇧V</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => sendPatch({ op: 'duplicate', shapeIds: [contextShape.id], summary: `Duplicated ${contextShape.name}` })}>
+              <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate here <span className="ml-auto text-[10px] ac-text-4">⌘D</span>
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [contextShape.id], zorderKind: 'forward', summary: `Bring forward` })}>
+              <ArrowUp className="h-3.5 w-3.5 mr-2" /> Bring forward <span className="ml-auto text-[10px] ac-text-4">⌘]</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [contextShape.id], zorderKind: 'front', summary: `Bring to front` })}>
+              <BringToFront className="h-3.5 w-3.5 mr-2" /> Bring to front <span className="ml-auto text-[10px] ac-text-4">⌘⇧]</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [contextShape.id], zorderKind: 'backward', summary: `Send backward` })}>
+              <ArrowDown className="h-3.5 w-3.5 mr-2" /> Send backward <span className="ml-auto text-[10px] ac-text-4">⌘[</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [contextShape.id], zorderKind: 'back', summary: `Send to back` })}>
+              <SendToBack className="h-3.5 w-3.5 mr-2" /> Send to back <span className="ml-auto text-[10px] ac-text-4">⌘⇧[</span>
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            {selectedIds.length >= 2 && (
+              <ContextMenuItem onClick={() => sendPatch({ op: 'group', shapeIds: selectedIds, summary: `Grouped ${selectedIds.length} shape(s)` })}>
+                <GroupIcon className="h-3.5 w-3.5 mr-2" /> Group <span className="ml-auto text-[10px] ac-text-4">⌘G</span>
+              </ContextMenuItem>
+            )}
+            {contextShape.type === 'group' && (
+              <ContextMenuItem onClick={() => sendPatch({ op: 'ungroup', shapeIds: [contextShape.id], summary: `Ungrouped ${contextShape.name}` })}>
+                <SquareStack className="h-3.5 w-3.5 mr-2" /> Ungroup <span className="ml-auto text-[10px] ac-text-4">⌘⇧G</span>
+              </ContextMenuItem>
+            )}
+            <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: contextShape.id, shape: { locked: !contextShape.locked }, summary: `${contextShape.locked ? 'Unlocked' : 'Locked'} ${contextShape.name}` })}>
+              <Lock className="h-3.5 w-3.5 mr-2" /> {contextShape.locked ? 'Unlock' : 'Lock'}
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: contextShape.id, shape: { visible: !contextShape.visible }, summary: `${contextShape.visible ? 'Hid' : 'Showed'} ${contextShape.name}` })}>
+              <Eye className="h-3.5 w-3.5 mr-2" /> {contextShape.visible ? 'Hide' : 'Show'}
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onClick={() => {
+                sendPatch({ op: 'remove', shapeIds: [contextShape.id], summary: `Deleted ${contextShape.name}` });
+                if (selectedIds.includes(contextShape.id)) select(selectedIds.filter((id) => id !== contextShape.id));
+              }}
+              className="text-rose-600"
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete <span className="ml-auto text-[10px] ac-text-4">⌫</span>
+            </ContextMenuItem>
+          </>
+        ) : (
+          <>
+            {/* === Empty canvas right-click (P0-01) === */}
+            <ContextMenuItem onClick={() => clipboard.paste()}>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste <span className="ml-auto text-[10px] ac-text-4">⌘V</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => clipboard.paste({ offset: { dx: 0, dy: 0 } })}>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste in place <span className="ml-auto text-[10px] ac-text-4">⌘⇧V</span>
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem onClick={() => clipboard.selectAll()}>
+              <SquareStack className="h-3.5 w-3.5 mr-2" /> Select all <span className="ml-auto text-[10px] ac-text-4">⌘A</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => select([])}>
+              <SquareStack className="h-3.5 w-3.5 mr-2" /> Clear selection <span className="ml-auto text-[10px] ac-text-4">⎋</span>
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem onClick={() => setViewport((v) => ({ ...v, zoom: Math.min(4, v.zoom * 1.2) }))}>
+              <ArrowUp className="h-3.5 w-3.5 mr-2" /> Zoom in
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => setViewport((v) => ({ ...v, zoom: Math.max(0.1, v.zoom * 0.8) }))}>
+              <ArrowDown className="h-3.5 w-3.5 mr-2" /> Zoom out
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => setViewport({ zoom: 1, panX: 120, panY: 80 })}>
+              <BringToFront className="h-3.5 w-3.5 mr-2" /> Reset zoom
+            </ContextMenuItem>
+          </>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 

@@ -30,7 +30,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
-  Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers,
+  Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers, Square,
 } from 'lucide-react';
 
 // Note: the document variables + token counts previously shown in a status
@@ -113,6 +113,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const connected = useCanvasStore((s) => s.connected);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
+  const stopAgent = useCanvasStore((s) => s.stopAgent);
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -237,9 +238,25 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             <TurnBubble key={turn.id} turn={turn} />
           ))}
           {agentBusy && (
-            <div className="flex items-center gap-2 text-xs ac-text-4 px-1">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              agent is working…
+            <div className="flex items-center justify-between gap-2 text-xs ac-text-4 px-1 py-1">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                agent is working…
+              </div>
+              {/* P0-09: Inline Stop button — lets the user stop without moving
+                  the cursor to the top header. Mirrors the header's
+                  RunStopButton but appears next to the streaming response. */}
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => stopAgent()}
+                title="Stop the agent (Esc also works)"
+                aria-label="Stop agent"
+                className="h-6 text-[10px] px-2 py-0 gap-1"
+              >
+                <Square className="h-2.5 w-2.5 fill-current" />
+                Stop
+              </Button>
             </div>
           )}
         </div>

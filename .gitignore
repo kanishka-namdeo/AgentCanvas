@@ -67,3 +67,9 @@ download/AgentCanvas/
 
 # Worklog (session-specific)
 worklog.md
+# Dev server artifacts (P0 menu implementation)
+.dev.pid
+.dev-watchdog.pid
+dev.out
+dev.log
+server.log
