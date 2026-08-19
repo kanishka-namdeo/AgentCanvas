@@ -339,8 +339,8 @@ export function createFigmaTools(ctx: CanvasToolContext) {
         description: 'Property name (kebab-case). E.g. "show-icon", "label-text", "state".',
       }),
       propertyType: Type.Union(
-        [Type.Literal('boolean'), Type.Literal('text'), Type.Literal('instance_swap'), Type.Literal('variant')],
-        { description: 'Property type.' },
+        [Type.Literal('boolean'), Type.Literal('text'), Type.Literal('instance_swap'), Type.Literal('variant'), Type.Literal('slot')],
+        { description: 'Property type. slot = Figma SLOT (placeholder for instance swap).' },
       ),
       defaultValue: Type.Union([Type.Boolean(), Type.String()], {
         description: 'Default value. boolean=true/false, text="Submit", variant="default".',

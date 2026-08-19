@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://docs.litellm.ai/docs/providers/hyperbolic",
+    "name": "Hyperbolic",
+    "snippet": "Hyperbolic provides access to the latest models . OpenAI-compatible APIs for LLMs, image generation, and more. Documentation ↗ Base URL https://api.hyperbolic. ...",
+    "host_name": "docs.litellm.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/api-evangelist/hyperbolic-ai",
+    "name": "api-evangelist/hyperbolic-ai",
+    "snippet": "Drop-in OpenAI replacement — change api_key and base_url to https:// api . hyperbolic . xyz /v1. Human URL: https://docs.hyperbolic.ai/inference/overview. Tags. AI ... Read more",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.helicone.ai/getting-started/integration-method/hyperbolic",
+    "name": "Hyperbolic Integration - Helicone OSS LLM Observability",
+    "snippet": "You can seamlessly integrate Helicone with the OpenAI compatible models that are deployed on Hyperbolic . The integration process closely mirrors the proxy ... Read more",
+    "host_name": "docs.helicone.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.promptfoo.dev/docs/providers/hyperbolic",
+    "name": "Hyperbolic",
+    "snippet": "Hyperbolic's API , which provides access to various LLM, image generation, audio generation, and vision-language models through an OpenAI-compatible API format.",
+    "host_name": "www.promptfoo.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.hyperbolic.ai/docs/inference/text-apis",
+    "name": "Text Generation APIs - Hyperbolic Labs",
+    "snippet": "OpenAI SDK Compatibility. The API is fully compatible with OpenAI's SDK. Just change the base URL and API key : Python. Read more",
+    "host_name": "www.hyperbolic.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/api-evangelist/hyperbolic",
+    "name": "api-evangelist/hyperbolic: Open-access GPU and LLM",
+    "snippet": "May 8, 2026 — OpenAI - compatible inference API for 25+ open-source models. Surfaces ... Base URL : https:// api . hyperbolic . xyz /v1. Tags. AI; LLM; Chat ... Read more",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "May 8, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.cline.bot/provider-config/openai-compatible",
+    "name": "OpenAI Compatible",
+    "snippet": "Base URL : This is the API endpoint specific to the provider. It will not be https:// api . openai .com/v1 (that URL is for the official OpenAI API ). Enter the base ...",
+    "host_name": "docs.cline.bot",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.openai.com/api/reference/overview",
+    "name": "API Overview | OpenAI API Reference",
+    "snippet": "Use this reference to look up OpenAI API endpoints, request and response schemas, streaming events, client library methods, and shared behavior",
+    "host_name": "developers.openai.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

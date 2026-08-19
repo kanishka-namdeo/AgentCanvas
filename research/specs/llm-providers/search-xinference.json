@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://github.com/xorbitsai/inference",
+    "name": "xorbitsai/inference: Swap GPT for any LLM by changing a",
+    "snippet": "Swap GPT for any LLM by changing a single line of code. Xinference lets you run open-source, speech, and multimodal models on cloud, on-prem, or your laptop ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://inference.readthedocs.io/en/v0.14.2/getting_started/using_xinference.html",
+    "name": "Using Xinference - Read the Docs",
+    "snippet": "Xinference provides OpenAI-compatible APIs for its supported models, so you can use Xinference as a local drop-in replacement for OpenAI APIs.",
+    "host_name": "inference.readthedocs.io",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://xinference.co/blog/deploy-first-model-10-minutes.html",
+    "name": "Deploy Your First Model on Xinference in 10 Minutes",
+    "snippet": "Jun 10, 2026 — Xinference gives your application one OpenAI-compatible endpoint in front of 300 or more open models, running on your own infrastructure. Read more",
+    "host_name": "xinference.co",
+    "rank": 2,
+    "date": "Jun 10, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.towardsai.net/deploying-models-with-xinference-07b4df582a45",
+    "name": "Deploying Models with Xinference",
+    "snippet": "Feb 18, 2024 — We can use the deployed audio model by calling its API endpoint, compatible with OpenAI's Audio API , allowing us to use OpenAI's Python ... Read more",
+    "host_name": "pub.towardsai.net",
+    "rank": 3,
+    "date": "Feb 18, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://biochatter.org/0.9.2/features/open-llm",
+    "name": "Open-source and Local LLMs",
+    "snippet": "Briefly, this module allows to connect to any open-source model supported by Xinference via the state-of-the-art and easy-to-use OpenAI API .",
+    "host_name": "biochatter.org",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.openwebui.com/getting-started/quick-start/connect-a-provider/starting-with-openai-compatible",
+    "name": "OpenAI-Compatible / Open WebUI",
+    "snippet": "stdapi.ai is an OpenAI-compatible API gateway you deploy in your AWS account, or run locally using Docker. Open WebUI connects to it as if it were OpenAI ... Read more",
+    "host_name": "docs.openwebui.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/realtime-endpoints-openai-compatible.html",
+    "name": "Invoke endpoints with OpenAI-compatible APIs",
+    "snippet": "Learn how to invoke Amazon SageMaker AI real-time endpoints using OpenAI-compatible clients such as the OpenAI Python SDK, LangChain, or Strands Agents.",
+    "host_name": "docs.aws.amazon.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://kilo.ai/docs/ai-providers/openai-compatible",
+    "name": "Using OpenAI-Compatible Providers with Kilo Code",
+    "snippet": "Kilo Code supports a wide range of AI model providers that offer APIs compatible with the OpenAI API standard. Local models running through tools like Ollama ...",
+    "host_name": "kilo.ai",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

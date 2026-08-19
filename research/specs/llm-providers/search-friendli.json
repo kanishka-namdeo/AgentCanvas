@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://friendli.ai/docs/guides/openai-compatibility",
+    "name": "OpenAI Compatibility - FriendliAI Docs",
+    "snippet": "Migrate existing OpenAI applications by changing the base URL and API key. Initialize the OpenAI client using FriendliAI's base URL and your Personal API key.",
+    "host_name": "friendli.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://friendli.ai/docs/openapi/introduction",
+    "name": "API Reference - FriendliAI Docs",
+    "snippet": "Jun 30, 2026 · Complete API reference for Friendli Suite. Explore endpoints for Model APIs, Dedicated Endpoints, Container, File, and Dataset APIs with ...",
+    "host_name": "friendli.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/api-evangelist/friendliai/blob/main/apis.yml",
+    "name": "friendliai/apis.yml at main - GitHub",
+    "snippet": "The API is OpenAI-compatible, so existing OpenAI applications migrate by changing the base URL and API key, with support for chat completions, tool calling,",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://friendli.ai/docs/examples/sdks/overview",
+    "name": "Use Your SDK with FriendliAI - FriendliAI Docs",
+    "snippet": "Aug 2, 2026 · FriendliAI gives you flexible, powerful tools to integrate AI models into your projects. an OpenAI-compatible API for developers familiar with  ...",
+    "host_name": "friendli.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://friendli.ai/product/model-apis",
+    "name": "Friendli Model APIs | Scalable AI Inference API",
+    "snippet": "Access frontier open-source models instantly with Friendli Model APIs. Use ready-to-use, OpenAI-compatible APIs powered by Friendli Engine for fast, cost- ...",
+    "host_name": "friendli.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ai-sdk.dev/providers/community-providers/friendliai",
+    "name": "Community Providers: FriendliAI - AI SDK",
+    "snippet": "Check the FriendliAI documentation for more information. You can also use @ai-sdk/openai as the APIs are OpenAI-compatible. AI({ 4 baseURL: 'https://api. ...",
+    "host_name": "ai-sdk.dev",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

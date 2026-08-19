@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://inference-docs.cerebras.ai",
+    "name": "Build at the Speed of Cerebras - Cerebras Inference",
+    "snippet": "Experience real-time AI responses across coding, reasoning, voice, and agentic workloads with the world's fastest AI inference . Get an API key Quickstart →.",
+    "host_name": "inference-docs.cerebras.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://inference-docs.cerebras.ai/resources/openai",
+    "name": "OpenAI Compatibility - Cerebras Inference",
+    "snippet": "We designed the Cerebras API to be mostly compatible with OpenAI's client libraries , making it simple to configure your existing applications to run on ...",
+    "host_name": "inference-docs.cerebras.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.pipecat.ai/api-reference/server/services/llm/cerebras",
+    "name": "Cerebras LLM - Pipecat",
+    "snippet": "brasLLMService provides access to Cerebras's language models through an OpenAI-compatible interface. ultra-fast inference speeds . Base URL for Cerebras API ...",
+    "host_name": "docs.pipecat.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.cerebras.ai/inference",
+    "name": "Inference",
+    "snippet": "Cerebras inference - the fastest inference API for generative AI. up to 15x faster than NVIDIA GPUs. API compatibility lets developers build on Cerebras with ...",
+    "host_name": "www.cerebras.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://apis.io/providers/cerebras",
+    "name": "Cerebras — API Provider, Schemas",
+    "snippet": "Cerebras Inference is positioned as one of the fastest token-generation services in the market , with OpenAI-compatible REST endpoints, first-party Python and ...",
+    "host_name": "apis.io",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://inference-docs.cerebras.ai/llms.txt",
+    "name": "llms.txt",
+    "snippet": "Retrieve operational metrics for your organization's inference endpoints in Prometheus format. Monitor your dedicated inference endpoints with Prometheus- ...",
+    "host_name": "inference-docs.cerebras.ai",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.openai.com/t/faster-api-throughput-using-cerebras/1357998",
+    "name": "Faster Api throughput using Cerebras",
+    "snippet": "Sep 14, 2025 — Cerebras tends to be faster under the same scenarios (I tested 30 prompts 5 times with GPT OSS 120B and 20B). Cerebras's and Groq's chips are ...",
+    "host_name": "community.openai.com",
+    "rank": 6,
+    "date": "Sep 14, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://lobehub.com/skills/neversight-skills_feed-cerebras-api",
+    "name": "cerebras-api | Skills Marketplace",
+    "snippet": "Jul 29, 2026 — Cerebras API provides ultra-fast, OpenAI-compatible LLM inference (2,000+ tokens/sec) with Python and TypeScript SDKs for rapid integration.",
+    "host_name": "lobehub.com",
+    "rank": 7,
+    "date": "Jul 29, 2026",
+    "favicon": ""
+  }
+]

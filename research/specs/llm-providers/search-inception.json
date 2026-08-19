@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.inceptionlabs.ai/models",
+    "name": "Our Models - Inception Labs",
+    "snippet": "We are OpenAI API compatible and are supported through libraries including AISuite, LiteLLM, and LangChain.",
+    "host_name": "www.inceptionlabs.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.inceptionlabs.ai/blog/introducing-inception-api",
+    "name": "Introducing the Inception API",
+    "snippet": "Inception API operates on an OpenAI-compatible API interface. This means you can use existing OpenAI client libraries or direct REST calls to access our ...",
+    "host_name": "www.inceptionlabs.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.inceptionlabs.ai",
+    "name": "Inception Labs",
+    "snippet": "Our models are OpenAI API compatible and a drop-in replacement for traditional LLMs. Get 99.5%+ uptime and priority support with custom SLAs.",
+    "host_name": "www.inceptionlabs.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.inceptionlabs.ai/get-started/get-started",
+    "name": "Welcome to the Inception Platform - Inception Platform",
+    "snippet": "Create an Inception account, generate an API key, and send your first request to Mercury 2 using the OpenAI-compatible REST API or client libraries.",
+    "host_name": "docs.inceptionlabs.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.inceptionlabs.ai/blog/introducing-mercury-2",
+    "name": "Introducing Mercury 2 - Inception Labs",
+    "snippet": "Mercury 2 is OpenAI API compatible. Drop into your existing stack - no rewrites required. Welcome to diffusion.",
+    "host_name": "www.inceptionlabs.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.litellm.ai/docs/providers/inception",
+    "name": "Inception - LiteLLM",
+    "snippet": "Inception serves the Mercury family of diffusion LLMs (dLLMs). The API is OpenAI-compatible. Provider Route on LiteLLM, inception/ (chat), text-completion- ...",
+    "host_name": "docs.litellm.ai",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/openclaw/openclaw/issues/26952",
+    "name": "Support provider-specific request parameters (e.g. Inception",
+    "snippet": "Feb 25, 2026 · Inception's Mercury-2 diffusion LLM supports a diffusing parameter that controls whether the model uses its diffusion-based generation ( ...",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.developersdigest.tech/tags/inception-labs",
+    "name": "Developers Digest on Inception Labs",
+    "snippet": "OpenAI-compatible API, reasoning levels, tool use, structured outputs, and when a diffusion LLM beats an autoregressive one in real apps.",
+    "host_name": "www.developersdigest.tech",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

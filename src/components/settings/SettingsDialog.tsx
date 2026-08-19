@@ -313,10 +313,12 @@ function LLMSection() {
     <>
       <h2 className="text-[14px] font-semibold ac-text-1 mb-1.5">LLM provider</h2>
       <p className="text-[12px] ac-text-4 mb-5 leading-relaxed">
-        Choose which LLM backend powers the agent. Supports 18 popular providers —
+        Choose which LLM backend powers the agent. Supports 28 popular providers —
         OpenAI, Anthropic, Google Gemini, Mistral, Groq, Together, DeepSeek,
         OpenRouter, Fireworks, xAI, Perplexity, Hugging Face, plus local Ollama /
-        LM Studio / vLLM, and a generic Custom escape hatch.
+        LM Studio / vLLM, recently popular inference platforms (Novita, Hyperbolic,
+        Chutes, SambaNova, Cerebras, Deep Infra, SiliconFlow, AI/ML API, Atoma,
+        Inception), and a generic Custom escape hatch.
       </p>
 
       <div className="space-y-5">

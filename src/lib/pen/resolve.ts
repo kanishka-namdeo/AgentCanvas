@@ -154,7 +154,7 @@ function resolveStroke(node: any, variables: any, theme: PenTheme): { color: str
   return { color, width };
 }
 
-/** Resolve effects: first shadow + first blur. */
+/** Resolve effects: first shadow (drop or inner) + first blur (layer or background). */
 function resolveEffects(node: any, variables: any, theme: PenTheme): { shadow: ShadowEffect | null; blur: number } {
   const effects = node.effect;
   if (!effects) return { shadow: null, blur: 0 };
@@ -172,7 +172,13 @@ function resolveEffects(node: any, variables: any, theme: PenTheme): { shadow: S
         spread: typeof e.spread === 'number' ? e.spread : 0,
         inset: e.shadowType === 'inner',
       };
-    } else if (e.type === 'blur' && blur === 0) {
+    } else if ((e.type === 'blur' || e.type === 'background_blur') && blur === 0) {
+      // Per the .pen spec, both 'blur' (layer blur) and 'background_blur'
+      // (background-only blur) carry a `radius` field. We collapse both into
+      // the single `blur` number on the resolved Layer; the renderer applies
+      // it via feGaussianBlur. (Surfacing them as distinct fields on the
+      // Layer type is a future enhancement — for now, blurring is the same
+      // visual effect either way.)
       blur = typeof e.radius === 'number' ? e.radius : 0;
     }
   }

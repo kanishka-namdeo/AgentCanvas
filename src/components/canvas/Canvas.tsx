@@ -931,6 +931,266 @@ export function ShapeRenderer({
       );
       break;
     }
+    // ---- Figma-canonical node types (Phase 2 renderer support) ----
+    case 'section': {
+      // SECTION — Figma's large grouping container with a header label.
+      // Render as a transparent dashed outline + a small label chip at the
+      // top-left so the section is visually distinct from a regular frame.
+      const label = shape.label ?? shape.name ?? 'Section';
+      element = (
+        <g {...commonProps}>
+          <rect
+            x={shape.x}
+            y={shape.y}
+            width={shape.width}
+            height={shape.height}
+            fill="transparent"
+            stroke={shape.stroke || '#94a3b8'}
+            strokeWidth={1}
+            strokeDasharray="6 4"
+            rx={8}
+          />
+          <rect
+            x={shape.x + 8}
+            y={shape.y - 10}
+            width={Math.max(40, label.length * 6.5 + 16)}
+            height={20}
+            fill={shape.fill === 'transparent' ? '#f8fafc' : shape.fill}
+            stroke={shape.stroke || '#94a3b8'}
+            strokeWidth={1}
+            rx={4}
+          />
+          <text
+            x={shape.x + 16}
+            y={shape.y + 4}
+            fontSize={11}
+            fontWeight={600}
+            fill={shape.stroke || '#475569'}
+            fontFamily="Inter, system-ui, sans-serif"
+          >
+            {label}
+          </text>
+        </g>
+      );
+      break;
+    }
+    case 'component':
+    case 'component_set': {
+      // COMPONENT + COMPONENT_SET — render as a labeled frame (like a Frame,
+      // but with a distinct accent border + an "M" badge so the user can
+      // visually identify reusable components / variant sets).
+      element = (
+        <g {...commonProps}>
+          {filterDef}
+          {gradientDef}
+          <rect
+            x={shape.x}
+            y={shape.y}
+            width={shape.width}
+            height={shape.height}
+            rx={rx}
+            ry={ry}
+            fill={fillValue}
+            stroke={stroke === 'none' ? '#0ea5e9' : stroke}
+            strokeWidth={Math.max(strokeWidth, 1.5)}
+            strokeDasharray={shape.type === 'component_set' ? '4 2' : undefined}
+          />
+          {/* Component badge — small "M" or "◇" in the top-left */}
+          <rect
+            x={shape.x + 4}
+            y={shape.y + 4}
+            width={16}
+            height={16}
+            fill="#0ea5e9"
+            rx={2}
+          />
+          <text
+            x={shape.x + 12}
+            y={shape.y + 16}
+            fontSize={11}
+            fontWeight={700}
+            fill="#ffffff"
+            textAnchor="middle"
+            fontFamily="Inter, system-ui, sans-serif"
+          >
+            {shape.type === 'component_set' ? '◇' : 'M'}
+          </text>
+        </g>
+      );
+      break;
+    }
+    case 'instance': {
+      // INSTANCE — a placed component copy. Render as a labeled frame
+      // with a "◆" badge so it's visually distinct from a master component.
+      element = (
+        <g {...commonProps}>
+          {filterDef}
+          {gradientDef}
+          <rect
+            x={shape.x}
+            y={shape.y}
+            width={shape.width}
+            height={shape.height}
+            rx={rx}
+            ry={ry}
+            fill={fillValue}
+            stroke={stroke === 'none' ? '#a855f7' : stroke}
+            strokeWidth={Math.max(strokeWidth, 1.5)}
+          />
+          <rect
+            x={shape.x + 4}
+            y={shape.y + 4}
+            width={16}
+            height={16}
+            fill="#a855f7"
+            rx={2}
+          />
+          <text
+            x={shape.x + 12}
+            y={shape.y + 16}
+            fontSize={11}
+            fontWeight={700}
+            fill="#ffffff"
+            textAnchor="middle"
+            fontFamily="Inter, system-ui, sans-serif"
+          >
+            ◆
+          </text>
+        </g>
+      );
+      break;
+    }
+    case 'boolean_operation': {
+      // BOOLEAN_OPERATION — non-destructive union/subtract/intersect/exclude.
+      // We don't compute the actual boolean geometry (would require a
+      // polygon-clipping library); for now render the bounding box with a
+      // dashed outline + a small "∪/∩/−/⊕" badge indicating the op type.
+      const opSymbol =
+        shape.booleanOperationType === 'union' ? '∪' :
+        shape.booleanOperationType === 'subtract' ? '−' :
+        shape.booleanOperationType === 'intersect' ? '∩' :
+        shape.booleanOperationType === 'exclude' ? '⊕' : '?';
+      element = (
+        <g {...commonProps}>
+          {filterDef}
+          {gradientDef}
+          <rect
+            x={shape.x}
+            y={shape.y}
+            width={shape.width}
+            height={shape.height}
+            rx={rx}
+            ry={ry}
+            fill={fillValue}
+            stroke={stroke === 'none' ? '#f59e0b' : stroke}
+            strokeWidth={Math.max(strokeWidth, 1.5)}
+            strokeDasharray="6 3"
+          />
+          <text
+            x={shape.x + shape.width / 2}
+            y={shape.y + shape.height / 2 + 6}
+            fontSize={32}
+            fontWeight={700}
+            fill={stroke === 'none' ? '#f59e0b' : stroke}
+            textAnchor="middle"
+            fontFamily="Inter, system-ui, sans-serif"
+            opacity={0.5}
+          >
+            {opSymbol}
+          </text>
+        </g>
+      );
+      break;
+    }
+    case 'slice': {
+      // SLICE — export region. Not rendered as a visible shape; only marks
+      // an area for PNG/SVG/PDF export. Render as a translucent green overlay
+      // with a dashed border so the user can see/select it.
+      element = (
+        <g {...commonProps}>
+          <rect
+            x={shape.x}
+            y={shape.y}
+            width={shape.width}
+            height={shape.height}
+            fill="#10b981"
+            fillOpacity={0.08}
+            stroke="#10b981"
+            strokeWidth={1.5}
+            strokeDasharray="4 2"
+          />
+          <text
+            x={shape.x + 4}
+            y={shape.y + 14}
+            fontSize={10}
+            fontWeight={600}
+            fill="#10b981"
+            fontFamily="Inter, system-ui, sans-serif"
+          >
+            ⌖ slice
+          </text>
+        </g>
+      );
+      break;
+    }
+    case 'star': {
+      // STAR — render as an SVG <polygon> with `points` computed from
+      // pointCount + innerRadiusRatio. If pointCount is missing, default
+      // to a 5-point star (pentagram).
+      const points = shape.pointCount ?? 5;
+      const innerRatio = shape.innerRadiusRatio ?? 0.5;
+      const cx = shape.x + shape.width / 2;
+      const cy = shape.y + shape.height / 2;
+      const rOuter = Math.min(shape.width, shape.height) / 2;
+      const rInner = rOuter * innerRatio;
+      const starPoints: string[] = [];
+      for (let i = 0; i < points * 2; i++) {
+        const r = i % 2 === 0 ? rOuter : rInner;
+        const angle = (Math.PI / points) * i - Math.PI / 2;
+        starPoints.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+      }
+      element = (
+        <>
+          {filterDef}
+          {gradientDef}
+          <polygon
+            points={starPoints.join(' ')}
+            fill={fillValue}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            {...commonProps}
+          />
+        </>
+      );
+      break;
+    }
+    case 'polygon': {
+      // POLYGON — regular polygon with N sides. Compute points around a circle.
+      // Default to 6 sides (hexagon) if polygonCount is missing.
+      const sides = shape.polygonCount ?? 6;
+      const cx = shape.x + shape.width / 2;
+      const cy = shape.y + shape.height / 2;
+      const r = Math.min(shape.width, shape.height) / 2;
+      const polyPoints: string[] = [];
+      for (let i = 0; i < sides; i++) {
+        const angle = (2 * Math.PI / sides) * i - Math.PI / 2;
+        polyPoints.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+      }
+      element = (
+        <>
+          {filterDef}
+          {gradientDef}
+          <polygon
+            points={polyPoints.join(' ')}
+            fill={fillValue}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            {...commonProps}
+          />
+        </>
+      );
+      break;
+    }
     default: {
       element = null;
     }

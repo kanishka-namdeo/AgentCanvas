@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.braintrust.dev/docs/integrations/ai-providers/lepton",
+    "name": "Lepton - Braintrust",
+    "snippet": "Lepton AI provides efficient inference for open-source language models with optimized deployment and scaling. Braintrust integrates seamlessly with Lepton ... Read more",
+    "host_name": "www.braintrust.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.portkey.ai/docs/integrations/llms/lepton",
+    "name": "Lepton AI - Portkey Docs",
+    "snippet": "Before making requests, add Lepton AI to your Model Catalog: Go to Model Catalog → Add Provider; Select Lepton AI ; Enter your Lepton API key; Name your ... Read more",
+    "host_name": "docs.portkey.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/diegosouzapw/OmniRoute/issues/6190",
+    "name": "add Lepton AI + local providers (LM Studio, vLLM, llama.",
+    "snippet": "Jul 4, 2026 — Lepton AI's standalone OpenAI-compatible model API is no longer available after the NVIDIA acquisition: there is no stable public base URL to ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "Jul 4, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://apis.io/providers/lepton-ai",
+    "name": "Lepton AI — API Provider, Schemas",
+    "snippet": "Lepton AI's developer surface includes documentation and 8 more developer resources. API exposing model endpoints (HTTP server with OpenAI-compatible chat ...",
+    "host_name": "apis.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://inspect.aisi.org.uk/providers.html",
+    "name": "Model Providers - Inspect AI",
+    "snippet": "It provides an OpenAI compatible API endpoint. Check the Open AI models documentation for details on which models are supported by the respective APIs.",
+    "host_name": "inspect.aisi.org.uk",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.openai.com/t/understanding-which-models-are-available-to-call-with-the-apis/1141192",
+    "name": "Understanding which models are available to call with the",
+    "snippet": "Mar 12, 2025 — Hi all. I'm using the openai . models endpoint to fetch available models and allow the user to make a selection. I see about 38 models , ...",
+    "host_name": "community.openai.com",
+    "rank": 5,
+    "date": "Mar 12, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.cline.bot/provider-config/openai-compatible",
+    "name": "OpenAI Compatible",
+    "snippet": "Learn how to configure Cline with various AI model providers that offer OpenAI - compatible APIs. Base URL : This is the API endpoint specific to the provider. ...",
+    "host_name": "docs.cline.bot",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=rgjkmmSg6I8",
+    "name": "Python-centric AI Application Building in Minutes with Lepton",
+    "snippet": "Aiming to provide lunch ready AI modules for you guys to build applications as easy as possible with AI capabilities.",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

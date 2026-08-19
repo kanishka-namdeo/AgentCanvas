@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://lmdeploy.readthedocs.io/en/latest/llm/api_server.html",
+    "name": "OpenAI Compatible Server - lmdeploy - Read the Docs",
+    "snippet": "This article primarily discusses the deployment of a single LLM model across multiple GPUs on a single node, providing a service that is compatible with the ... Read more",
+    "host_name": "lmdeploy.readthedocs.io",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/InternLM/lmdeploy/blob/main/lmdeploy/serve/openai/api_server.py",
+    "name": "lmdeploy/lmdeploy/serve/openai/api_server.py at main",
+    "snippet": "LMDeploy is a toolkit for compressing, deploying, and serving LLMs. InternLM/lmdeploy. OpenAI's API. Available from /v1/models. in OpenAI format.",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lmdeploy.readthedocs.io/en/v0.4.1/serving/api_server.html",
+    "name": "Serving LLM with OpenAI Compatible Server - lmdeploy",
+    "snippet": "This article primarily discusses the deployment of a single LLM model across multiple GPUs providing a service that is compatible with the OpenAI interface,",
+    "host_name": "lmdeploy.readthedocs.io",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/InternLM/lmdeploy/issues/4353",
+    "name": "Does lmdeploy compatible with langchain and openAI？",
+    "snippet": "Feb 11, 2026 — LMDeploy doesn't . LMDeploy has provided an OpenAI-compatible endpoint, and this should make integration into Langchain possible. LMDeploy is ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "Feb 11, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://vast.ai/article/serving-online-inference-with-lmdeploy-on-vastai?srsltid=AfmBOop6uHx3eKQ-SNWEQphhwvVTim8KUBzSNjPRDZOVets_aSZUUn-y",
+    "name": "Serving Online Inference with LMDeploy on Vast.ai",
+    "snippet": "Aug 8, 2024 — LMDeploy provides an OpenAI-compatible server , which means that it can be integrated into applications that use the OpenAI API.",
+    "host_name": "vast.ai",
+    "rank": 4,
+    "date": "Aug 8, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/InternLM/lmdeploy/blob/main/docs/en/multi_modal/api_server_vl.md",
+    "name": "lmdeploy/docs/en/multi_modal/api_server_vl.md at main",
+    "snippet": "LMDeploy is a toolkit for compressing, deploying, and serving LLMs. is compatible with the OpenAI interface , as well as the usage of the service API.",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.aidoczh.com/lmdeploy/_modules/lmdeploy/api.html",
+    "name": "lmdeploy.api",
+    "snippet": "APIClient : A client chatbot for LLaMA series models. Chatbot for LLaMA series models with turbomind as inference engine.",
+    "host_name": "www.aidoczh.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zenn.dev/kun432/scraps/6f91c75bfb2a09",
+    "name": "「LMDeploy」を試す ①Get Started",
+    "snippet": "Dec 24, 2025 — OpenAI互換APIサーバの起動は lmdeploy serve api_server で行う。Usage は以下を参照。 lmdeploy serve api_server の Usage。 uv run lmdeploy ... Read more",
+    "host_name": "zenn.dev",
+    "rank": 7,
+    "date": "Dec 24, 2025",
+    "favicon": ""
+  }
+]

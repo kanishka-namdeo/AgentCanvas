@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://docs.deepinfra.com/chat/overview",
+    "name": "Chat Completions",
+    "snippet": "DeepInfra offers an OpenAI-compatible chat completions API for all LLM models at the best prices for open-source model inference. https://api.deepinfra.com/v1/ ...",
+    "host_name": "docs.deepinfra.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.deepinfra.com/apis/deepinfra-native",
+    "name": "DeepInfra Native API",
+    "snippet": "The DeepInfra Native API gives you access to every model we provide, including model types not covered by the OpenAI - compatible API : image generation, speech ...",
+    "host_name": "docs.deepinfra.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.deepinfra.com",
+    "name": "What is DeepInfra - DeepInfra",
+    "snippet": "OpenAI - compatible API for 100+ LLMs. Swap your base URL , keep your code. Vision & OCR. Multimodal models for visual understanding and document text extraction. Read more",
+    "host_name": "docs.deepinfra.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.deepinfra.com/api-reference/introduction",
+    "name": "DeepInfra API reference",
+    "snippet": "It offers two sets of endpoints: OpenAI - compatible endpoints at /v1/ openai — drop-in replacement for OpenAI chat completions, embeddings, and image generation. ...",
+    "host_name": "docs.deepinfra.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.weaviate.io/t/use-deepinfra-as-provider-for-embedding-model/22008",
+    "name": "Use DeepInfra as provider for Embedding Model - Support",
+    "snippet": "Sep 30, 2025 — How to use a OpenAI API Compatible embeddings. The base url is DeepInfra https://api.deepinfra.com/v1/openai/embeddings . Weaviate is an open- ...",
+    "host_name": "forum.weaviate.io",
+    "rank": 4,
+    "date": "Sep 30, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.deepinfra.com/quickstart",
+    "name": "Quickstart",
+    "snippet": "DeepInfra gives you access to 100+ open-source models . Base URL: https://api.deepinfra.com/v1/openai API key: your DeepInfra token Model: any model from our ...",
+    "host_name": "docs.deepinfra.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

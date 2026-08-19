@@ -182,7 +182,10 @@ export function LayersPanel() {
 
   // Containers (frame / group) can be expanded/collapsed and are valid drop
   // targets for reparent.
-  const isContainer = (s: Shape) => s.type === 'frame' || s.type === 'group';
+  const isContainer = (s: Shape) =>
+    s.type === 'frame' || s.type === 'group' ||
+    s.type === 'section' || s.type === 'component' ||
+    s.type === 'component_set' || s.type === 'boolean_operation';
 
   const toggleExpand = (id: string) => {
     const next = new Set(collapsed);

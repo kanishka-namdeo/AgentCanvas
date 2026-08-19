@@ -42,7 +42,13 @@ export interface PenThemedValue<T> {
   theme?: PenTheme;
 }
 
-/** Definition of a document variable. Type-tagged union. */
+/** Definition of a document variable. Type-tagged union.
+ *
+ *  Mirrors Figma REST API's variable types: BOOLEAN, FLOAT, STRING, COLOR.
+ *  We use 'number' as the canonical name for FLOAT (matches .pen format
+ *  convention); the API export layer translates 'number' → 'FLOAT' for
+ *  Figma REST round-trip.
+ */
 export type PenVariableDef =
   | { type: 'boolean'; value: PenBooleanOrVariable | PenThemedValue<PenBooleanOrVariable>[] }
   | { type: 'color'; value: PenColorOrVariable | PenThemedValue<PenColorOrVariable>[] }
@@ -233,7 +239,10 @@ export type PenComponentPropertyType =
   | 'boolean'   // On/Off toggle — usually controls layer visibility
   | 'text'      // String content override
   | 'instance_swap'  // Swap to another component (preferredValues = whitelist)
-  | 'variant';  // Picks a variant from a component_set (variantOptions)
+  | 'variant'   // Picks a variant from a component_set (variantOptions)
+  | 'slot';     // Figma's SLOT property type (added 2024) — marks a placeholder
+                // for instance swap locations. Default value is a component ID
+                // or empty string.
 
 export interface PenComponentPropertyDefinition {
   type: PenComponentPropertyType;

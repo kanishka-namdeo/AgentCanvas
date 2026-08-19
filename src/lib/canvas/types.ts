@@ -344,7 +344,7 @@ export interface CanvasPatch {
   variantPropertyValues?: Record<string, string>;
   componentProperty?: {
     name: string;
-    type: 'boolean' | 'text' | 'instance_swap' | 'variant';
+    type: 'boolean' | 'text' | 'instance_swap' | 'variant' | 'slot';
     defaultValue: boolean | string;
     preferredValues?: string[];
     variantOptions?: string[];

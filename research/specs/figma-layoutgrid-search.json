@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/31289469907863-Use-the-grid-auto-layout-flow",
+    "name": "Use the grid auto layout flow",
+    "snippet": "The grid auto layout flow brings two-dimensional layout control— rows and columns —into your designs. · Gap between sets the distance between columns and rows . Read more",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040450513-Create-layout-guides",
+    "name": "Create layout guides",
+    "snippet": "There are three types of layout guides: Uniform grid, column, and row. Uniform grid, column, and row layout guides in Figma for precise and consistent design ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1i483gl/why_use_grids_columns_and_rows_when_i_have",
+    "name": "Why use grids, columns and rows - when I have auto-layout?",
+    "snippet": "Grids let your work be sized consistently . introduce auto-resizing ability to your design. Lower end frameworks too should use grid layout … ...",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/best-practices/everything-you-need-to-know-about-layout-grids",
+    "name": "Everything you need to know about layout grids in Figma",
+    "snippet": "Within column and row grids you can also control their position and scaling behavior. You can create grids to help with that by styling a column and a row grid ...",
+    "host_name": "www.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://nearform.com/digital-community/figmas-new-grid-auto-layout-what-it-does-and-doesnt-yet-do",
+    "name": "Figma's new Grid auto-layout: What it does (and doesn't yet",
+    "snippet": "Jun 27, 2025 — Figma outputs functional CSS row and column assignments for all Grid children, and CSS row and column templates for the Grid's parent frame. Read more",
+    "host_name": "nearform.com",
+    "rank": 4,
+    "date": "Jun 27, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/view-layout-grid-w-view-only-access-30373",
+    "name": "View Layout Grid w/ View Only Access",
+    "snippet": "Apr 7, 2021 — Use cmd/ctrl+G on view-only mode and u will view grids. REST APIs doesn't work 6 Replies",
+    "host_name": "forum.figma.com",
+    "rank": 5,
+    "date": "Apr 7, 2021",
+    "favicon": ""
+  }
+]

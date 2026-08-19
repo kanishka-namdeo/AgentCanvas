@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://docs.sambanova.ai/docs/en/features/openai-compatibility",
+    "name": "OpenAI Client Libraries Compatibility Guide",
+    "snippet": "Configure your OpenAI client libraries to use SambaNova inference APIs by setting two values: the base_url and your api_key . Don't have a SambaNova API key? Read more",
+    "host_name": "docs.sambanova.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.sambanova.ai/docs/en/get-started/quickstart",
+    "name": "SambaNova Quickstart",
+    "snippet": "To generate an API key, go to the API keys and URLs page. When generating API keys, be sure to save them securely, as they can't be viewed again. Read more",
+    "host_name": "docs.sambanova.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.pipecat.ai/api-reference/server/services/llm/sambanova",
+    "name": "SambaNova - Pipecat",
+    "snippet": "SambaNovaLLMService provides access to SambaNova's language models through an OpenAI - compatible interface. Choose from available high-performance models . Base ...",
+    "host_name": "docs.pipecat.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://sambanova.ai/blog/build-faster-coding-agents-with-sambanovas-responses-api",
+    "name": "Build Faster Coding Agents with SambaNova's Responses",
+    "snippet": "May 11, 2026 — Codex CLI: Responses API Native. Configure SambaNova as a provider, point it at the SambaNova base URL , and set the wire API to responses. Read more",
+    "host_name": "sambanova.ai",
+    "rank": 3,
+    "date": "May 11, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=ANvbjLCTqls",
+    "name": "Building Generative AI Applications Using SambaNova Cloud",
+    "snippet": "These models are powered by our state-of-the-art AI chip, the SN40L. Get building in minutes with our models on SambaNova Cloud.",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cloud.sambanova.ai/dashboard",
+    "name": "Dashboard - SambaNova",
+    "snippet": "Start building AI powered applications in minutes with our OpenAI compatible API . Learn more about each of them in our documentation .",
+    "host_name": "cloud.sambanova.ai",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/microsoft/data-formulator/issues/63",
+    "name": "Allow custom OpenAI ENDPOINT & Model Names",
+    "snippet": "Feb 10, 2025 — I am trying to use Sambanova API which is compatible with OpenAI SDK . Would love to see how fast inference can benefit here and also use ...",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "Feb 10, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://elevenlabs.io/docs/eleven-agents/customization/llm/custom-llm/samba-nova-cloud",
+    "name": "SambaNova Cloud | ElevenLabs Documentation",
+    "snippet": "Through an OpenAI - compatible API endpoint, you can set up your ElevenLabs agent on ElevenLabs in a just few minutes. Watch this video for a walkthrough and demo",
+    "host_name": "elevenlabs.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

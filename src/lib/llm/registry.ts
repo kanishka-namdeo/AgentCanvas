@@ -1,14 +1,14 @@
 // LLM provider registry.
 //
 // The registry is a static Map<providerId, LLMProviderEntry> pre-populated
-// with 18 of the most popular LLM providers (17 named + 1 generic 'custom'
+// with 28 of the most popular LLM providers (27 named + 1 generic 'custom'
 // escape hatch). Each entry has:
 //
 //   metadata  — display name, docs URL, default base URL, popular models,
 //               capability flags, etc. (consumed by the Settings UI)
 //   factory   — async (config) => LLMClient (called by runner.ts)
 //
-// 13 of the 18 providers are OpenAI-API-compatible and share one factory
+// 23 of the 28 providers are OpenAI-API-compatible and share one factory
 // (`openAICompatibleFactory`). 3 providers (Anthropic, Google Gemini, z.ai)
 // have native adapters. The 17th entry is `custom` — a user-supplied
 // OpenAI-compatible endpoint with no preset defaults (escape hatch for
@@ -477,6 +477,296 @@ export const PROVIDERS: Record<string, LLMProviderEntry> = {
       apiKeyEnvVars: ['HF_TOKEN', 'HUGGINGFACE_API_KEY'],
       defaultBaseURL: 'https://api-inference.huggingface.co/models',
       defaultModel: 'meta-llama/Llama-3.3-70B-Instruct',
+      popularModels: [],
+      openAICompatible: true,
+      capabilities: CAPS_NO_TOOLS,
+      apiKeyRequired: true,
+    }),
+  },
+
+  // ── Tier 2.5: Recently popular inference platforms (added 2025) ────────
+  novita: {
+    metadata: {
+      id: 'novita', label: 'Novita AI',
+      description: 'Cheap Llama / Qwen / DeepSeek inference. OpenAI-compatible.',
+      docsUrl: 'https://novita.ai/get-key',
+      apiKeyEnvVars: ['NOVITA_API_KEY'],
+      defaultBaseURL: 'https://api.novita.ai/v3/openai',
+      defaultModel: 'meta-llama/llama-3.1-70b-instruct',
+      popularModels: [
+        'meta-llama/llama-3.1-70b-instruct',
+        'meta-llama/llama-3.1-8b-instruct',
+        'deepseek/deepseek-v3-0324',
+        'deepseek/deepseek-r1',
+        'qwen/qwen2.5-72b-instruct',
+      ],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'novita', label: 'Novita AI', description: '', docsUrl: '',
+      apiKeyEnvVars: ['NOVITA_API_KEY'],
+      defaultBaseURL: 'https://api.novita.ai/v3/openai',
+      defaultModel: 'meta-llama/llama-3.1-70b-instruct',
+      popularModels: [],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    }),
+  },
+
+  hyperbolic: {
+    metadata: {
+      id: 'hyperbolic', label: 'Hyperbolic',
+      description: 'Cheap GPU inference for Llama, Qwen, DeepSeek. OpenAI-compatible.',
+      docsUrl: 'https://app.hyperbolic.xyz/settings',
+      apiKeyEnvVars: ['HYPERBOLIC_API_KEY'],
+      defaultBaseURL: 'https://api.hyperbolic.xyz/v1',
+      defaultModel: 'meta-llama/Meta-Llama-3.1-70B-Instruct',
+      popularModels: [
+        'meta-llama/Meta-Llama-3.1-70B-Instruct',
+        'meta-llama/Meta-Llama-3.1-405B-Instruct',
+        'deepseek-ai/DeepSeek-V3',
+        'Qwen/Qwen2.5-72B-Instruct',
+      ],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'hyperbolic', label: 'Hyperbolic', description: '', docsUrl: '',
+      apiKeyEnvVars: ['HYPERBOLIC_API_KEY'],
+      defaultBaseURL: 'https://api.hyperbolic.xyz/v1',
+      defaultModel: 'meta-llama/Meta-Llama-3.1-70B-Instruct',
+      popularModels: [],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    }),
+  },
+
+  chutes: {
+    metadata: {
+      id: 'chutes', label: 'Chutes AI',
+      description: 'Router-style access to 100+ open models. OpenAI-compatible.',
+      docsUrl: 'https://chutes.ai/app/settings',
+      apiKeyEnvVars: ['CHUTES_API_KEY'],
+      defaultBaseURL: 'https://api.chutes.ai/v1',
+      defaultModel: 'chutes/Llama-3.1-70B',
+      popularModels: [
+        'chutes/Llama-3.1-70B',
+        'chutes/Llama-3.1-8B',
+        'deepseek-ai/DeepSeek-V3',
+        'Qwen/Qwen2.5-72B-Instruct',
+      ],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'chutes', label: 'Chutes AI', description: '', docsUrl: '',
+      apiKeyEnvVars: ['CHUTES_API_KEY'],
+      defaultBaseURL: 'https://api.chutes.ai/v1',
+      defaultModel: 'chutes/Llama-3.1-70B',
+      popularModels: [],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    }),
+  },
+
+  sambanova: {
+    metadata: {
+      id: 'sambanova', label: 'SambaNova',
+      description: 'Fast inference for Llama / Qwen / DeepSeek. Free tier available.',
+      docsUrl: 'https://cloud.sambanova.ai/apis',
+      apiKeyEnvVars: ['SAMBANOVA_API_KEY'],
+      defaultBaseURL: 'https://api.sambanova.ai/v1',
+      defaultModel: 'Meta-Llama-3.1-70B-Instruct',
+      popularModels: [
+        'Meta-Llama-3.1-70B-Instruct',
+        'Meta-Llama-3.1-405B-Instruct',
+        'Meta-Llama-3.1-8B-Instruct',
+        'DeepSeek-R1',
+        'Qwen2.5-72B-Instruct',
+      ],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'sambanova', label: 'SambaNova', description: '', docsUrl: '',
+      apiKeyEnvVars: ['SAMBANOVA_API_KEY'],
+      defaultBaseURL: 'https://api.sambanova.ai/v1',
+      defaultModel: 'Meta-Llama-3.1-70B-Instruct',
+      popularModels: [],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    }),
+  },
+
+  cerebras: {
+    metadata: {
+      id: 'cerebras', label: 'Cerebras',
+      description: 'Fastest inference — Llama 3.1 70B at 450 tok/s. OpenAI-compatible.',
+      docsUrl: 'https://cloud.cerebras.ai',
+      apiKeyEnvVars: ['CEREBRAS_API_KEY'],
+      defaultBaseURL: 'https://api.cerebras.ai/v1',
+      defaultModel: 'llama3.1-70b',
+      popularModels: ['llama3.1-70b', 'llama3.1-8b', 'llama-3.3-70b', 'qwen2.5-72b'],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'cerebras', label: 'Cerebras', description: '', docsUrl: '',
+      apiKeyEnvVars: ['CEREBRAS_API_KEY'],
+      defaultBaseURL: 'https://api.cerebras.ai/v1',
+      defaultModel: 'llama3.1-70b',
+      popularModels: [],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    }),
+  },
+
+  deepinfra: {
+    metadata: {
+      id: 'deepinfra', label: 'Deep Infra',
+      description: 'Serverless inference for 100+ open models. OpenAI-compatible.',
+      docsUrl: 'https://deepinfra.com/dash/api_keys',
+      apiKeyEnvVars: ['DEEPINFRA_API_KEY'],
+      defaultBaseURL: 'https://api.deepinfra.com/v1/openai',
+      defaultModel: 'meta-llama/Meta-Llama-3-70B-Instruct',
+      popularModels: [
+        'meta-llama/Meta-Llama-3-70B-Instruct',
+        'meta-llama/Meta-Llama-3.1-70B-Instruct',
+        'deepseek-ai/DeepSeek-V3',
+        'Qwen/Qwen2.5-72B-Instruct',
+      ],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'deepinfra', label: 'Deep Infra', description: '', docsUrl: '',
+      apiKeyEnvVars: ['DEEPINFRA_API_KEY'],
+      defaultBaseURL: 'https://api.deepinfra.com/v1/openai',
+      defaultModel: 'meta-llama/Meta-Llama-3-70B-Instruct',
+      popularModels: [],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    }),
+  },
+
+  siliconflow: {
+    metadata: {
+      id: 'siliconflow', label: 'SiliconFlow',
+      description: 'Cheap serverless inference for 200+ models. OpenAI-compatible.',
+      docsUrl: 'https://siliconflow.cn/ustudio',
+      apiKeyEnvVars: ['SILICONFLOW_API_KEY'],
+      defaultBaseURL: 'https://api.siliconflow.cn/v1',
+      defaultModel: 'deepseek-ai/DeepSeek-V3',
+      popularModels: [
+        'deepseek-ai/DeepSeek-V3',
+        'deepseek-ai/DeepSeek-R1',
+        'Qwen/Qwen2.5-72B-Instruct',
+        'meta-llama/Meta-Llama-3.1-70B-Instruct',
+      ],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'siliconflow', label: 'SiliconFlow', description: '', docsUrl: '',
+      apiKeyEnvVars: ['SILICONFLOW_API_KEY'],
+      defaultBaseURL: 'https://api.siliconflow.cn/v1',
+      defaultModel: 'deepseek-ai/DeepSeek-V3',
+      popularModels: [],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    }),
+  },
+
+  aimlapi: {
+    metadata: {
+      id: 'aimlapi', label: 'AI/ML API',
+      description: 'Single API for 100+ models including GPT-4, Claude, Llama. OpenAI-compatible.',
+      docsUrl: 'https://aimlapi.com/app/keys',
+      apiKeyEnvVars: ['AIML_API_KEY', 'AIMLAPI_API_KEY'],
+      defaultBaseURL: 'https://api.aimlapi.com/v1',
+      defaultModel: 'gpt-4o-mini',
+      popularModels: [
+        'gpt-4o-mini', 'gpt-4o', 'claude-3-5-sonnet-20241022',
+        'meta-llama/Meta-Llama-3.1-70B-Instruct', 'deepseek-ai/DeepSeek-V3',
+      ],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'aimlapi', label: 'AI/ML API', description: '', docsUrl: '',
+      apiKeyEnvVars: ['AIML_API_KEY', 'AIMLAPI_API_KEY'],
+      defaultBaseURL: 'https://api.aimlapi.com/v1',
+      defaultModel: 'gpt-4o-mini',
+      popularModels: [],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    }),
+  },
+
+  atoma: {
+    metadata: {
+      id: 'atoma', label: 'Atoma',
+      description: 'Decentralized inference — pay per token. OpenAI-compatible.',
+      docsUrl: 'https://atoma.network/dashboard',
+      apiKeyEnvVars: ['ATOMA_API_KEY'],
+      defaultBaseURL: 'https://api.atoma.network/v1',
+      defaultModel: 'meta-llama/Llama-3.3-70B-Instruct',
+      popularModels: [
+        'meta-llama/Llama-3.3-70B-Instruct',
+        'meta-llama/Llama-3.1-70B-Instruct',
+        'deepseek-ai/DeepSeek-V3',
+      ],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'atoma', label: 'Atoma', description: '', docsUrl: '',
+      apiKeyEnvVars: ['ATOMA_API_KEY'],
+      defaultBaseURL: 'https://api.atoma.network/v1',
+      defaultModel: 'meta-llama/Llama-3.3-70B-Instruct',
+      popularModels: [],
+      openAICompatible: true,
+      capabilities: CAPS_TOOLS_OK,
+      apiKeyRequired: true,
+    }),
+  },
+
+  inception: {
+    metadata: {
+      id: 'inception', label: 'Inception',
+      description: 'Diffusion-based LLM inference. OpenAI-compatible.',
+      docsUrl: 'https://inceptionlabs.ai',
+      apiKeyEnvVars: ['INCEPTION_API_KEY'],
+      defaultBaseURL: 'https://api.inceptionlabs.ai/v1',
+      defaultModel: 'mercury-coder-small',
+      popularModels: ['mercury-coder-small', 'mercury-coder'],
+      openAICompatible: true,
+      capabilities: CAPS_NO_TOOLS,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'inception', label: 'Inception', description: '', docsUrl: '',
+      apiKeyEnvVars: ['INCEPTION_API_KEY'],
+      defaultBaseURL: 'https://api.inceptionlabs.ai/v1',
+      defaultModel: 'mercury-coder-small',
       popularModels: [],
       openAICompatible: true,
       capabilities: CAPS_NO_TOOLS,

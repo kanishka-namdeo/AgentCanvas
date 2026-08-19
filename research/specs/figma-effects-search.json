@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/Effect",
+    "name": "Effect | Developer Docs",
+    "snippet": "' DROP_SHADOW ' Common properties type : ' LAYER_BLUR ' | ' BACKGROUND_BLUR ' A lower radius creates a sharper blur.",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041488473-Apply-effects-to-layers",
+    "name": "Apply effects to layers",
+    "snippet": "There are seven types of effects : Glass; Drop shadow ; Inner shadow; Layer blur ; Background blur ; Noise; Texture. Each layer can have up to eight drop shadows ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=5oHV8fEWwUA",
+    "name": "Blur effect in Figma",
+    "snippet": "In this tutorial, I will show you how to create layers and background blur in Figma . You will learn tips and tricks for selecting the right ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/widgets/api/type-Effect",
+    "name": "Effect | Developer Docs",
+    "snippet": "Figma has four types of effects : type : ' drop-shadow ' blur: number The blur radius of the shadow. A lower radius creates a sharper shadow. A lower radius ...",
+    "host_name": "developers.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://grida.co/docs/@designto-code/figma-blur-effects",
+    "name": "Figma blur effects",
+    "snippet": "blur effect is supported for text as well as various shapes. A background blur is applied to the layer box. ( text -shadow)",
+    "host_name": "grida.co",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://designcode.io/figma-handbook-shadow-and-blur-effects",
+    "name": "Shadow and Blur Effects - Figma Handbook",
+    "snippet": "Drop shadow helps in creating contrast for particular elements of your design that is being. Effects Drop Shadow: forms a shadow for the selected layers Inner ...",
+    "host_name": "designcode.io",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

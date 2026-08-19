@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://chutes.ai/agents",
+    "name": "Agent Hub",
+    "snippet": "Start with the same three facts every OpenAI-compatible agent needs: the Chutes base URL , Bearer auth, and a current model ID from GET /v1/models. 01. Get a key. Read more",
+    "host_name": "chutes.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.litellm.ai/docs/providers/chutes",
+    "name": "Chutes",
+    "snippet": "Chutes is a cloud-native AI deployment platform that allows you to deploy, run, and scale LLM applications with OpenAI-compatible APIs. Base URL https://llm. ...",
+    "host_name": "docs.litellm.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.n8n.io/t/how-to-use-https-chutes-ai-provider-model-in-ai-agent/182766?tl=en",
+    "name": "How to use https://chutes.ai provider model in ai agent?",
+    "snippet": "Sep 5, 2025 — If Chutes is an OpenAI-compatible API, then all you need to do is add OpenAI connection and update the “Base URL” to https://api.chutes.ai/v1",
+    "host_name": "community.n8n.io",
+    "rank": 2,
+    "date": "Sep 5, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://chutes.ai/llms.txt",
+    "name": "llms.txt",
+    "snippet": "For OpenAI SDK / agent framework ` base_url `, always use `https://llm. chutes . ai /v1`. - **`/v1/ models ` is public.** It serves the list without a Bearer token — ... Read more",
+    "host_name": "chutes.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.openclaw.ai/providers/chutes",
+    "name": "Chutes - OpenClaw",
+    "snippet": "Chutes exposes open-source model catalogs through an OpenAI-compatible API. OpenClaw supports both browser OAuth and API-key auth. API OpenAI-compatible Base ...",
+    "host_name": "docs.openclaw.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aiinsightsnews.net/chutes-api",
+    "name": "Chutes API Guide 2026: Pricing, API Keys & Best Models",
+    "snippet": "May 9, 2026 — Yes — Chutes API is largely OpenAI-compatible . Most OpenAI-based applications work by replacing the base URL and inserting a Chutes API key. Read more",
+    "host_name": "aiinsightsnews.net",
+    "rank": 5,
+    "date": "May 9, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://chutes.ai",
+    "name": "Chutes | Serverless AI Compute",
+    "snippet": "Deploy, run and scale any AI model in seconds . Try directly through our platform, or use our easy-to-use API in seconds.",
+    "host_name": "chutes.ai",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/Veightor/chutes-agent-toolkit/blob/main/other-agents/openai-compatible/README.md",
+    "name": "README.md - Veightor/chutes-agent-toolkit",
+    "snippet": "OpenAI - Compatible Client Chutes is a drop-in replacement for the OpenAI API . Change the base URL to https://llm. chutes . ai /v1 and use a cpk_ API key. That's it.",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

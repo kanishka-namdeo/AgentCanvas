@@ -20,14 +20,17 @@ import {
 } from '@/lib/settings/types';
 
 describe('LLM provider registry', () => {
-  it('registers all 18 expected provider ids', () => {
+  it('registers all 28 expected provider ids', () => {
     const ids = listProviderIds();
-    expect(ids.length).toBe(18);
+    expect(ids.length).toBe(28);
     const expected = [
       'zai', 'openai', 'anthropic', 'google',
       'mistral', 'cohere',
       'groq', 'together', 'deepseek', 'openrouter',
       'fireworks', 'xai', 'perplexity', 'huggingface',
+      // Recently popular inference platforms providers (added 2025):
+      'novita', 'hyperbolic', 'chutes', 'sambanova', 'cerebras',
+      'deepinfra', 'siliconflow', 'aimlapi', 'atoma', 'inception',
       'ollama', 'lmstudio', 'vllm',
       'custom',
     ];
@@ -55,7 +58,7 @@ describe('LLM provider registry', () => {
 
   it('listProviders returns id + metadata for every entry', () => {
     const list = listProviders();
-    expect(list.length).toBe(18);
+    expect(list.length).toBe(28);
     for (const item of list) {
       expect(item.id).toBeTruthy();
       expect(item.metadata.label).toBeTruthy();

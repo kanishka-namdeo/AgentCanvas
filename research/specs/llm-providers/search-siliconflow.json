@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://docs.siliconflow.com/en/userguide/quickstart",
+    "name": "Quick Start - SiliconFlow",
+    "snippet": "You can directly use your API key for online calls on the platform's “ Documentation ” page, models currently support being called via the OpenAI library.",
+    "host_name": "docs.siliconflow.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.siliconflow.cn/en/usercases/use-siliconcloud-in-cline",
+    "name": "Cline - SiliconFlow",
+    "snippet": "Nov 17, 2025 — API Provider： Select “ OpenAI Compatible “; Base Url ：https:// api . siliconflow . cn /v1; API Key：Obtain from https://cloud. siliconflow . cn /account/ak ... Read more",
+    "host_name": "docs.siliconflow.cn",
+    "rank": 1,
+    "date": "Nov 17, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.siliconflow.cn/cn/api-reference/chat-completions/chat-completions",
+    "name": "创建对话请求（OpenAI） - SiliconFlow",
+    "snippet": "Creates a model response for the given chat conversation . Creates a model response for the given chat conversation. See Models(https://cloud.siliconflow.cn/ ...",
+    "host_name": "docs.siliconflow.cn",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.siliconflow.com",
+    "name": "SiliconFlow – AI Infrastructure for LLMs & Multimodal Models",
+    "snippet": "Deploy, fine-tune, and run 200+ optimized LLMs and multimodal models with simple APIs - SiliconFlow . Simplicity One API for all models , fully OpenAI - compatible ...",
+    "host_name": "www.siliconflow.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/n8n-io/n8n/issues/21651",
+    "name": "OpenAI Node v2 with custom Base URL (SiliconFlow",
+    "snippet": "Nov 8, 2025 — With a successful credential test, OpenAI Node v2 should call SiliconFlow's OpenAI - compatible API and return a normal response (parity with AI ... Read more",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "Nov 8, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.siliconflow.cn/en/userguide/quickstart",
+    "name": "Quickstart - SiliconFlow",
+    "snippet": "You can directly use your API key in the API Documentation on the platform for online calls, language models support calling via the openai library.",
+    "host_name": "docs.siliconflow.cn",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://novita.ai/docs/guides/llm-api",
+    "name": "Enhanced OpenAI-Compatible Language Models for",
+    "snippet": "Novita AI provides fast, reliable APIs for open-source models, If you're already using OpenAI's simply set your base URL to: api.novita.ai/openai , get and set ...",
+    "host_name": "novita.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.pipecat.ai/api-reference/server/services/llm/novita",
+    "name": "Novita AI LLM - Pipecat",
+    "snippet": "Novita AI provides an OpenAI-compatible API , so all OpenAI features and patterns work with this service · The service supports streaming responses, function ... Read more",
+    "host_name": "docs.pipecat.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://novita.ai/docs/api-reference/api-reference-overview",
+    "name": "API Reference Overview - Documentation",
+    "snippet": "This documentation provides comprehensive reference for all Novita AI APIs . authentication, billing, and account management. OpenAI compatibility.",
+    "host_name": "novita.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/n8n-io/n8n/issues/14431",
+    "name": "Allow setting custom base URL in OpenAI node (e.g.",
+    "snippet": "Apr 7, 2025 — Currently, the OpenAI node in n8n does not allow modifying the base URL . This limits the ability to connect to third-party OpenAI - compatible ... Read more",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "Apr 7, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://blogs.novita.ai/best-llm-api-platforms-switching-models-across-providers",
+    "name": "Best LLM API Platforms for Switching Models Across",
+    "snippet": "Jun 22, 2026 — Novita AI documents an OpenAI-compatible base URL at https://api.novita.ai/openai and lists LLM APIs for chat completions, completions ... Read more",
+    "host_name": "blogs.novita.ai",
+    "rank": 4,
+    "date": "Jun 22, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://novita.ai/docs/api-reference/model-apis-llm-list-models",
+    "name": "List models - Documentation",
+    "snippet": "Jul 3, 2026 — Lists the currently available models for the LLM API , and provides basic information about each one. This endpoint is compatible with OpenAI API ... Read more",
+    "host_name": "novita.ai",
+    "rank": 5,
+    "date": "Jul 3, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.portkey.ai/docs/integrations/llms/novita-ai",
+    "name": "Novita AI",
+    "snippet": "Aug 3, 2026 — Any OpenAI-Compatible Project ... Novita AI provides access to diverse models : Check Novita AI's documentation for the complete model list. Read more",
+    "host_name": "docs.portkey.ai",
+    "rank": 6,
+    "date": "Aug 3, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://thinktank.ottomator.ai/t/how-can-we-integrate-this-with-apis-or-server-endpoint-from-novita-ai/758",
+    "name": "How can we integrate this with API's or server endpoint from",
+    "snippet": "Nov 18, 2024 — Novita's LLM API is actually OpenAI compatible : We provide compatibility with the OpenAI API standard, allowing for easier integration into ...",
+    "host_name": "thinktank.ottomator.ai",
+    "rank": 7,
+    "date": "Nov 18, 2024",
+    "favicon": ""
+  }
+]

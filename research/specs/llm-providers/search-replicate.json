@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://replicate.com/docs/reference/http",
+    "name": "HTTP API",
+    "snippet": "The API documentation for the API. Search for public models , collections, and docs using a text query. Request a URL to receive streaming output using server- ...",
+    "host_name": "replicate.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://replicate.com/docs",
+    "name": "Documentation",
+    "snippet": "Documentation. Replicate lets you run AI models with a cloud API , without having to understand machine learning or manage your own infrastructure. Read more",
+    "host_name": "replicate.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://replicate.com/blog/new-search-api",
+    "name": "Introducing our new search API",
+    "snippet": "Sep 16, 2025 — More metadata. The new search API returns results for models , collections, and documentation pages that match your query. Read more",
+    "host_name": "replicate.com",
+    "rank": 2,
+    "date": "Sep 16, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://ai-sdk.dev/providers/openai-compatible-providers",
+    "name": "OpenAI Compatible Providers",
+    "snippet": "You can use the OpenAI Compatible Provider package to use language model providers that implement the OpenAI API . We provide detailed documentation for the ...",
+    "host_name": "ai-sdk.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.openai.com/t/whats-the-difference-between-using-replicates-official-models-like-openai-image-vs-calling-openai-apis-directly/1284209",
+    "name": "What's the difference between using Replicate's official",
+    "snippet": "Jun 10, 2025 — Replicate now includes official models like OpenAI's image generation. Replicate handles some of the infra side and gives you nice webhooks and ...",
+    "host_name": "community.openai.com",
+    "rank": 4,
+    "date": "Jun 10, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://replicate.com/home",
+    "name": "Replicate - Run AI with an API",
+    "snippet": "Run open-source machine learning models with a cloud API . All the latest models are on Replicate. They're they all actually work and have production-ready APIs ...",
+    "host_name": "replicate.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://docs.atoma.ai/cloud-api-reference/get-started",
+    "name": "Get Started - Atoma",
+    "snippet": "Base URL . All API endpoints are accessible through the base URL : https:// api . atoma . network . ​. Available Endpoints. Atoma provides the following endpoints: ... Read more",
+    "host_name": "docs.atoma.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.openai.com/api/reference/overview",
+    "name": "API Overview | OpenAI API Reference",
+    "snippet": "Use this reference to look up OpenAI API endpoints, request and response schemas, streaming events, client library methods, and shared behavior",
+    "host_name": "developers.openai.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://creator.poe.com/docs/external-applications/openai-compatible-api",
+    "name": "OpenAI Compatible API",
+    "snippet": "The Poe API provides access to hundreds of AI models and bots through a single OpenAI - compatible endpoint. Swap base URL - https:// api . openai .com/v1",
+    "host_name": "creator.poe.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility",
+    "name": "OpenAI compatible API endpoints · Cloudflare Workers AI",
+    "snippet": "Apr 21, 2026 — This allows you to use Workers AI by simply changing the base URL and the model name. baseURL : `https:// api .cloudflare.com/client/v4",
+    "host_name": "developers.cloudflare.com",
+    "rank": 3,
+    "date": "Apr 21, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.together.ai/docs/inference/openai-compatibility",
+    "name": "OpenAI compatibility",
+    "snippet": "The following OpenAI SDK methods route to Together-native endpoints when the base URL is set to https:// api .together.ai/v1 . OpenAI SDK call, Together endpoint ... Read more",
+    "host_name": "docs.together.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.deepinfra.com/chat/overview",
+    "name": "Chat Completions",
+    "snippet": "The only changes you need to make from your existing OpenAI code: Set base_url to https://api.deepinfra.com/v1/openai ; Set api_key to your DeepInfra token ... Read more",
+    "host_name": "docs.deepinfra.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.cline.bot/provider-config/openai-compatible",
+    "name": "OpenAI Compatible",
+    "snippet": "Base URL: This is the API endpoint specific to the provider . It will not be https://api.openai.com/v1 (that URL is for the official OpenAI API). API Key ... Read more",
+    "host_name": "docs.cline.bot",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://kilo.ai/docs/ai-providers/openai-compatible",
+    "name": "Using OpenAI-Compatible Providers with Kilo Code",
+    "snippet": "Base URL — The provider's API endpoint (e.g., https:// api .your-provider.com/v1 ). Kilo auto-fetches available models when a valid URL exposes an OpenAI ... Read more",
+    "host_name": "kilo.ai",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]
