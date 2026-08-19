@@ -1,0 +1,354 @@
+# Mistral AI Documentation
+# URL: https://docs.mistral.ai/
+
+Documentation - Mistral AI 
+ 
+ Docs & API 
+
+ Search docs 
+ ⌘K 
+ 
+ 
+ Vibe Studio Inference & Models Admin Resources API Reference Search docs 
+ ⌘K 
+ 
+ 
+ 
+ Toggle theme Reach out Try Studio 
+
+ 
+ Home 
+
+ Getting started 
+ Platform overview 
+
+ 
+ Quickstarts 
+
+ Vibe Work 
+
+ Run your first task 
+
+ 
+ Analyze a dataset 
+
+ 
+ Create your first Skill 
+
+ 
+ 
+
+ Vibe Code 
+
+ Install the Vibe CLI 
+
+ 
+ Scaffold a project 
+
+ 
+ 
+
+ Studio 
+
+ 
+
+ Developer 
+
+ Send your first API request 
+
+ 
+ Build an agent with tools 
+
+ 
+ RAG with document search 
+
+ 
+ Build a workflow 
+
+ 
+ 
+
+ Admin 
+
+ Create your organization 
+
+ 
+ Configure SSO 
+
+ 
+ Manage workspaces 
+
+ 
+ 
+
+ 
+
+ Glossary ↗ 
+
+ 
+ SDK Clients ↗ 
+
+ 
+ API Reference ↗ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ Getting started 
+ 
+ 
+ Mistral AI Documentation
+
+ All our documentation in your hands: build, customize, and deploy AI, your way.
+
+ Vibe
+ Studio
+ Models
+ Admin
+ 
+
+ Discover our platform
+
+ Copy section link Discover our platform
+
+ Three products, one platform. Pick where you want to start.
+ 
+ 
+ 
+
+ Vibe
+ The unified agent for productivity and coding. Chat with it on the web or mobile, or run it in your terminal and editor.
+
+ 
+ 
+ 
+
+ Studio
+ The developer console and the Mistral API. Keys, the Playground, evaluations, agents, and SDKs to ship applications.
+
+ 
+ 
+ 
+
+ Admin
+ The control plane for organization setup, billing, SSO, Workspaces, and access policies.
+
+ 
+ Compare our products 
+ Latest models
+
+ Copy section link Latest models
+
+ 
+ 
+ Z.ai GLM 5.2
+ Open 
+ A third-party open source text model from Z.ai with a 1M-token context window.
+ v5.2
+
+ 
+ 
+ Mistral Medium 3.5
+ Modified MIT 
+ Our frontier-class multimodal model optimized for agentic and coding use cases.
+ v26.04
+
+ 
+ 
+ Mistral Small 4
+ Apache 2.0 
+ Hybrid model unifying instruct, reasoning, and coding in a single efficient model.
+ v26.03
+
+ 
+ 
+ Voxtral Mini Transcribe Realtime
+ Apache 2.0 
+ An efficient audio input model, pre-trained and optimized for live transcription purposes.
+ v26.02
+
+ 
+ 
+ OCR 4.1
+ Premier 
+ Our latest OCR service with paragraph-level bounding boxes, structural block labels, and block-level confidence scores.
+ v4.1
+
+ 
+ 
+ Voxtral Mini Transcribe 2
+ Premier 
+ An efficient audio input model, pre-trained and optimized for transcription purposes.
+ v26.02
+
+ 
+ View all models 
+ Quickstarts
+
+ Copy section link Quickstarts
+
+ Self-contained walkthroughs grouped by product and role. Most take 15 minutes or less.
+ All Vibe Work Vibe Code Studio API Admin 
+ 
+ 
+ 
+
+ Run your first Vibe Work task
+ Open Vibe Work, run a multi-step task end-to-end, and review the result.
+ 5 min to complete 
+
+ 
+ 
+ 
+
+ Analyze a dataset
+ Upload a spreadsheet and ask questions in plain language. Work writes and runs code.
+ 10 min to complete 
+
+ 
+ 
+ 
+
+ Create your first Skill
+ Package a repeatable method into a Skill so Work applies the same procedure every time.
+ 10 min to complete 
+
+ 
+ 
+ 
+
+ Install the Vibe CLI
+ Install the CLI, configure your API key, and send your first prompt from the terminal.
+ 5 min to complete 
+
+ 
+ 
+ 
+
+ Scaffold a project with Vibe Code
+ Describe a project in natural language and let Vibe Code generate the files and structure.
+ 10 min to complete 
+
+ 
+ 
+ 
+
+ Activate Studio and generate an API key
+ Activate Studio in Free mode and generate your first API key.
+ 5 min to complete 
+
+ 
+ 
+ 
+
+ Test a model in the API playground
+ Send prompts, adjust parameters, and compare model outputs in the Studio playground.
+ 5 min to complete 
+
+ 
+ 
+ 
+
+ Create a reusable Prompt
+ Save a prompt template with versions and a clear usage description.
+ 5 min to complete 
+
+ 
+ 
+ 
+
+ Create a Skill in Studio
+ Package reusable instructions and files into a Skill for repeated tasks.
+ 10 min to complete 
+
+ 
+ 
+ 
+
+ Send your first API request
+ Install the SDK, set your API key, and get a model response.
+ 5 min to complete 
+
+ 
+ 
+ 
+
+ Build an agent with tools
+ Define tools, let the model call functions, and return real-world data.
+ 10 min to complete 
+
+ 
+ 
+ 
+
+ Set up RAG with document search
+ Upload documents and query them with retrieval-augmented generation.
+ 15 min to complete 
+
+ 
+ 
+ 
+
+ Build a workflow
+ Scaffold a durable AI pipeline, run a worker, and trigger your first execution.
+ 15 min to complete 
+
+ 
+ 
+ 
+
+ Create your organization
+ Set up billing, workspaces, and invite your first team members.
+ 15 min to complete 
+
+ 
+ 
+ 
+
+ Configure SSO
+ Set up SAML Single Sign-On for enterprise authentication.
+ 15 min to complete 
+
+ 
+ 
+ 
+
+ Manage workspaces & API keys
+ Create isolated workspaces, generate keys, and set usage limits.
+ 10 min to complete 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ WHY MISTRAL
+ About us Our customers Careers Contact us 
+
+ EXPLORE
+ AI Solutions Partners Research 
+
+ DOCUMENTATION
+ Documentation Ambassadors Cookbooks 
+
+ BUILD
+ Studio Vibe Mistral Code Mistral Compute Try the API 
+
+ LEGAL
+ Terms of service Privacy policy Legal notice Privacy Choices Brand 
+
+ COMMUNITY
+ Discord ↗ X ↗ Github ↗ LinkedIn ↗ Ambassadors 
+
+ Mistral AI © 2026
+ 
+ 
+ Toggle theme

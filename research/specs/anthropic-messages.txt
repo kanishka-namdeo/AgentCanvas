@@ -1,0 +1,259 @@
+# Messages - Claude API Reference
+# URL: https://platform.claude.com/docs/en/api/messages
+
+Messages - Claude API Reference 
+ 
+ Claude Platform Docs 
+
+ Messages 
+ Managed Agents 
+ Admin 
+ Resources  Best practices 
+ Models & pricing 
+ CLI, SDKs, and libraries 
+ Claude API skill 
+ Release notes 
+ 
+
+  API reference 
+  English  
+  Console Log in 
+  
+
+  Search Ctrl K 
+  Include beta APIs Using the API
+ Features overview Beta headers Errors 
+ Messages
+ 
+ Create a Message 
+ 
+ Count tokens in a Message 
+ Batches  
+
+ Managed Agents  
+ Agents  
+ Environments  
+ Sessions  
+ Deployments  
+ Deployment Runs  
+ Vaults  
+ Memory Stores  
+ Dreams  
+
+ Models
+ 
+ List Models 
+ 
+ Get a Model 
+ 
+ Files  
+ 
+ Upload File 
+ 
+ List Files 
+ 
+ Download File 
+ 
+ Get File Metadata 
+ 
+ Delete File 
+ 
+ Skills  
+ 
+ Create Skill 
+ 
+ List Skills 
+ 
+ Get Skill 
+ 
+ Delete Skill 
+ Versions  
+
+ Tunnels  
+ 
+ Create Tunnel 
+ 
+ Get Tunnel 
+ 
+ List Tunnels 
+ 
+ Archive Tunnel 
+ 
+ Reveal Tunnel Token 
+ 
+ Rotate Tunnel Token 
+ Certificates  
+
+ User Profiles  
+ 
+ Create User Profile 
+ 
+ List User Profiles 
+ 
+ Get User Profile 
+ 
+ Update User Profile 
+ 
+ Create Enrollment URL 
+ 
+ Webhooks  
+ 
+ Admin
+ Organizations  
+ Invites  
+ Users  
+ RBAC Groups   
+ RBAC Roles   
+ Workspaces  
+ API Keys  
+ External Keys  
+ Usage Report  
+ Cost Report  
+ Analytics  
+ Spend Limits  
+ Rate Limits  
+ Service Accounts  
+ Federation Issuers  
+ Federation Rules  
+ MCP Tunnels   
+
+ Compliance API
+ Activities  
+ Organizations  
+ Groups  
+ Apps  
+ Code  
+
+ Completions
+ 
+ Create a Text Completion 
+ 
+
+ Claude Code
+ Trigger a routine 
+ Support & configuration
+ Rate limits Service tiers IAM actions (Claude Platform on AWS) Versions IP addresses Supported regions 
+
+  Console
+ 
+
+ 
+ Loading 
+ Loading 
+
+ Loading 
+
+ Loading 
+
+ Loading 
+ Loading 
+
+ Loading 
+
+ Loading 
+ Loading 
+
+ Loading 
+
+ Loading 
+ Loading 
+
+ Loading 
+
+ Loading 
+
+ Loading 
+ Loading 
+
+ Loading 
+
+ Loading 
+ Loading 
+
+ Loading 
+
+ Loading 
+ Loading 
+
+ Loading 
+
+ Loading 
+ Loading 
+
+ Loading 
+
+ Loading 
+ Loading 
+
+ Loading 
+
+ Claude Platform Docs 
+
+ 
+ 
+ 
+   
+
+ Solutions
+ AI agents 
+ Code modernization 
+ Coding 
+ Customer support 
+ Financial services 
+ Government 
+ Higher education 
+ K-12 teachers 
+ Life sciences 
+ 
+ Partners
+ Claude on AWS 
+ Claude on Google Cloud 
+ 
+
+ Learn
+ Blog 
+ Courses 
+ Use cases 
+ Connectors 
+ Customer stories 
+ Engineering at Anthropic 
+ Events 
+ Powered by Claude 
+ Service partners 
+ Startups program 
+ 
+ Company
+ Anthropic 
+ Careers 
+ Economic Futures 
+ Research 
+ News 
+ Responsible Scaling Policy 
+ Security and compliance 
+ Transparency 
+ 
+
+ Learn
+ Blog 
+ Courses 
+ Use cases 
+ Connectors 
+ Customer stories 
+ Engineering at Anthropic 
+ Events 
+ Powered by Claude 
+ Service partners 
+ Startups program 
+ 
+ Help and security
+ Availability 
+ Status 
+ Support 
+ Discord 
+ 
+ Terms and policies
+ Privacy policy 
+ Responsible disclosure policy 
+ Terms of service: Commercial 
+ Terms of service: Consumer 
+ Usage policy

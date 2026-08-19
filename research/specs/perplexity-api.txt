@@ -1,0 +1,228 @@
+# Overview - Perplexity
+# URL: https://docs.perplexity.ai/
+
+Overview - Perplexity 
+ Documentation Index
+ Fetch the complete documentation index at: /llms.txt 
+ Use this file to discover all available pages before exploring further.
+ Skip to main content 
+ 
+ For AI agents: see the complete llms.txt documentation index.
+
+ 
+ 
+ Perplexity home page 
+
+ Docs 
+ Cookbook 
+ API Reference 
+ 
+
+ Get Started 
+ Get Started 
+ 
+ 
+ Search... 
+
+ Navigation 
+ Getting Started 
+ Overview
+
+ 
+
+ Search
+
+ ⌘K 
+ 
+ Community 
+ Blog 
+ Changelog 
+ Getting Started 
+
+ Overview 
+
+ 
+ Quickstart 
+
+ 
+ Pricing 
+
+ 
+ Perplexity API MCP 
+
+ 
+ Perplexity Computer MCP 
+
+ 
+ Perplexity CLI 
+
+ 
+ 
+ Router API 
+
+ Quickstart 
+
+ 
+ Models 
+
+ 
+ Routing & Reliability 
+
+ 
+ 
+ Agent API 
+
+ Quickstart 
+
+ 
+ Building agents 
+ 
+ 
+ Models & Configuration 
+ 
+ 
+ Tools 
+ 
+ 
+ Features 
+ 
+ 
+ OpenAI Compatibility 
+
+ 
+ Migrate from Sonar 
+ 
+ 
+ Prompt Guide 
+
+ 
+ 
+ Search API 
+
+ Quickstart 
+
+ 
+ Best Practices 
+
+ 
+ Agent SDKs 
+ 
+ 
+ Filters 
+ 
+ 
+ 
+ Search SDK 
+
+ Overview 
+
+ 
+ 
+ Embeddings API 
+
+ Quickstart 
+
+ 
+ Best Practices 
+
+ 
+ Standard Embeddings 
+
+ 
+ Contextualized Embeddings 
+
+ 
+ 
+ Perplexity SDK 
+
+ Quickstart 
+
+ 
+ Guides 
+ 
+ 
+ 
+ Admin & Management 
+
+ Signing In 
+
+ 
+ API Groups & Billing 
+
+ 
+ API Key Management 
+
+ 
+ Computer Analytics API 
+
+ 
+ Rate Limits & Usage Tiers 
+
+ 
+ AWS Marketplace 
+
+ 
+ 
+ Resources 
+
+ Integrations 
+ 
+ 
+ API Roadmap 
+
+ 
+ Privacy & Security 
+
+ 
+ Frequently Asked Questions 
+
+ 
+ System Status 
+
+ 
+ Changelog 
+
+ 
+ Get in Touch 
+
+ 
+ Perplexity Crawlers 
+
+ 
+ 
+ Legacy API 
+
+ Sonar API 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ Power your products with unparalleled real-time, web-wide research and Q&A capabilities. 
+
+ Available APIs
+
+ Router API Unified access to open-weight models hosted by Perplexity through one OpenAI-compatible endpoint.
+
+ Agent API Get web-grounded answers with built-in citations in one call, or access third-party models from OpenAI, Anthropic, Google, and xAI with web search tools and presets.
+
+ Search API Get raw, ranked web search results with advanced filtering and real-time data.
+
+ Embeddings API Generate high-quality embeddings for semantic search and RAG pipelines.
+
+ ⌘I 
+
+ 
+
+ 
+ Assistant 
+ 
+
+ 
+ Responses are generated using AI and may contain mistakes.
+
+ Suggestions
+ What is the Agent API? Which Agent API model should I use? How do I create an API key?

@@ -28,8 +28,33 @@ import type {
   PenThemedValue,
   PenRef,
 } from './types';
-import type { Shape, CanvasDocument, AutoLayout, GradientFill, ShadowEffect, CornerRadii } from '../canvas/types';
+import type { Shape, Layer, CanvasDocument, AutoLayout, GradientFill, ShadowEffect, CornerRadii } from '../canvas/types';
 import { collectComponents, expandRef, walkTree } from './document';
+
+// ---- Container node predicate (Figma-canonical) --------------------------
+//
+// Returns true for any .pen node type that can contain children. Includes the
+// legacy types (frame, group) plus the new Figma-canonical container types:
+// section, component, component_set, boolean_operation.
+//
+// Acts as a TypeScript type guard so the compiler knows `node.children` is
+// accessible after this check.
+function isContainerNode(node: PenChild): node is
+  | import('./types').PenFrame
+  | import('./types').PenGroup
+  | import('./types').PenSection
+  | import('./types').PenComponent
+  | import('./types').PenComponentSet
+  | import('./types').PenBooleanOperation {
+  return (
+    node.type === 'frame' ||
+    node.type === 'group' ||
+    node.type === 'section' ||
+    node.type === 'component' ||
+    node.type === 'component_set' ||
+    node.type === 'boolean_operation'
+  );
+}
 
 // ---- Theme + variable resolution -----------------------------------------
 
@@ -372,7 +397,7 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
         const expanded = expandRef(child as PenRef, components);
         return expanded ? [expanded] : [];
       }
-      if ((child.type === 'frame' || child.type === 'group') && child.children) {
+      if (isContainerNode(child) && child.children) {
         return [{ ...child, children: expandTree(child.children, inheritedTheme) }];
       }
       return [child];
@@ -407,7 +432,7 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
       const parentContentW = parent ? parent.width - resolvePadding((parent.node as PenLayout).padding).left - resolvePadding((parent.node as PenLayout).padding).right : 0;
       const parentContentH = parent ? parent.height - resolvePadding((parent.node as PenLayout).padding).top - resolvePadding((parent.node as PenLayout).padding).bottom : 0;
 
-      if ((n.type === 'frame' || n.type === 'group') && (n.children?.length ?? 0) > 0) {
+      if (isContainerNode(n) && (n.children?.length ?? 0) > 0) {
         const kids = resolve(n.children!, rn, rn.theme);
         const { width, height } = computeIntrinsicSize(n, kids, parentContentW, parentContentH);
         rn.width = width;
@@ -519,6 +544,17 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
         theme: rn.theme,
         // Figma-style layout constraints (passed through from the .pen node).
         constraints: (n as any).constraints ?? null,
+        // ---- Figma ontology extension fields (passed through from .pen node) ----
+        componentPropertyDefinitions: (n as any).componentPropertyDefinitions ?? null,
+        componentProperties: (n as any).componentProperties ?? null,
+        variantPropertyAxes: (n as any).variantPropertyAxes ?? null,
+        variantPropertyValues: (n as any).variantPropertyValues ?? null,
+        label: (n as any).label ?? (n.type === 'section' ? ((n as any).name ?? null) : null),
+        booleanOperationType: (n as any).booleanOperationType ?? null,
+        pointCount: (n as any).pointCount ?? null,
+        innerRadiusRatio: (n as any).innerRadius ?? null,
+        polygonCount: (n as any).polygonCount ?? null,
+        exportSettings: (n as any).exportSettings ?? null,
       };
 
       // Apply legacy token bindings: if the node has a tokenBinding, override
@@ -554,11 +590,10 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
   return out;
 }
 
-/** Map a .pen node type to our renderer's Shape type. */
-function mapNodeType(node: PenChild): Shape['type'] {
-  // Legacy Shape types (image, line) are preserved as-is so they round-trip.
+/** Map a .pen node type to our renderer's Layer type. */
+function mapNodeType(node: PenChild): Layer['type'] {
   const t = (node as { type: string }).type;
-  if (t === 'image' || t === 'line') return t as Shape['type'];
+  if (t === 'image' || t === 'line') return t as Layer['type'];
   switch (node.type) {
     case 'rectangle': return 'rectangle';
     case 'frame': return 'frame';
@@ -569,10 +604,17 @@ function mapNodeType(node: PenChild): Shape['type'] {
     case 'context':
     case 'prompt': return 'text';
     case 'path': return 'path';
-    case 'icon': return 'text'; // best-effort: render icon as text glyph
-    case 'polygon': return 'ellipse'; // best-effort
-    case 'script': return 'frame'; // best-effort
-    case 'ref': return 'rectangle'; // shouldn't happen (refs are expanded)
+    case 'icon': return 'text';
+    case 'polygon': return 'polygon';
+    case 'star': return 'star';
+    case 'line': return 'line';
+    case 'script': return 'frame';
+    case 'section': return 'section';
+    case 'component': return 'component';
+    case 'component_set': return 'component_set';
+    case 'boolean_operation': return 'boolean_operation';
+    case 'slice': return 'slice';
+    case 'ref': return 'rectangle';
     default: return 'rectangle';
   }
 }

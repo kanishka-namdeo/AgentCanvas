@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://platform.claude.com/docs/en/api/overview",
+    "name": "API overview - Claude Platform Docs",
+    "snippet": "anthropic-version API version (for example, 2023-06-01 ) Anthropic provides official SDKs that simplify API integration by handling authentication, request ...",
+    "host_name": "platform.claude.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.apideck.com/blog/how-to-get-your-claude-anthropic-api-key",
+    "name": "How to Get Your Claude (Anthropic) API Key - Apideck",
+    "snippet": "Aug 29, 2025 · This step-by-step guide shows you exactly how to create your Anthropic account, generate and secure your API key, set up billing, and test your ...",
+    "host_name": "www.apideck.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/Piebald-AI/claude-code-system-prompts/blob/main/system-prompts/data-claude-api-reference-curl.md",
+    "name": "data-claude-api-reference-curl.md - GitHub",
+    "snippet": "All parts of Claude Code&#39;s 27 builtin tool descriptions, Basic Message Request curl \"anthropic-version: 2023-06-01\" extract fields from the JSON response. ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=vgncj7MJbVU",
+    "name": "How To Get Your Anthropic / Claude API Key (2026) - YouTube",
+    "snippet": "Mar 24, 2025 · Create your Anthropic Developer Account https://console.anthropic.com/ We train teams to actually use AI. Book a free 20-minute call: ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1mvxia7/does_anyone_know_how_to_configure_claude_code",
+    "name": "Does anyone know how to configure claude code with just an API key?",
+    "snippet": "Aug 21, 2025 · if you are using an API key for claude then you are logging into ・ anthropic-version: 2023-06-01 ・ can add generate apikey. api keys here.",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/14506821864087-Overview-of-variables-collections-and-modes",
+    "name": "Overview of variables, collections, and modes",
+    "snippet": "Variables are raw values—like color , numbers , and strings —that can change in value depending on the context of a design, such as light and dark modes , ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api/variables-endpoints",
+    "name": "Endpoints | Developer Docs",
+    "snippet": "There are three methods provided by the Variables REST API . create, update, and delete local variables and variable collections . ' BOOLEAN ' | ' STRING ' | ' COLOR ' ...",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=1ONxxlJnvdM",
+    "name": "Figma tutorial: Intro to variables",
+    "snippet": "Variables in Figma store reusable values, like color values and numbers , that can be applied to all kinds of design properties and even ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15343816063383-Modes-for-variables",
+    "name": "Modes for variables",
+    "snippet": "Create a string, number, or boolean variable with multiple values (or modes). Set the variable's values to match the values of the nested instance component ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15339657135383-Guide-to-variables-in-Figma",
+    "name": "Guide to variables in Figma",
+    "snippet": "This video tutorial covers the foundations of variables, how to use them to represent design tokens, and how to use color and number variables to account for ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

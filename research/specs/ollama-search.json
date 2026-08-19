@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://docs.ollama.com/api/openai-compatibility",
+    "name": "OpenAI compatibility",
+    "snippet": "Ollama supports the OpenAI Responses API . Only the non-stateful flavor is supported (i.e., there is no previous_response_id or conversation support).",
+    "host_name": "docs.ollama.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ollama.com/blog/openai-compatibility",
+    "name": "OpenAI compatibility · Ollama Blog",
+    "snippet": "Feb 8, 2024 — Ollama now has built-in compatibility with the OpenAI Chat Completions API , making it possible to use more tooling and applications with Ollama ...",
+    "host_name": "ollama.com",
+    "rank": 1,
+    "date": "Feb 8, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/ollama/ollama/issues/5830",
+    "name": "OpenAI endpoint gives 404 · Issue #5830 · ollama",
+    "snippet": "Jul 21, 2024 — OpenAI-compatible endpoint ( /v1/chat/completions ) doesn't respond at all - it just hangs without returning any HTTP status code.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "Jul 21, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/LocalLLaMA/comments/1du4ddy/ollama_adds_v1models_and_v1completions_openai",
+    "name": "Ollama adds /v1/models and /v1/completions OpenAI",
+    "snippet": "The models endpoint is nice as you query your models via the OpenAI compatible API and libraries, http:// localhost : 11434 / v1 /models|",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ollama.readthedocs.io/en/openai",
+    "name": "OpenAI Compatibility - Ollama English Documentation",
+    "snippet": "Ollama provides experimental compatibility with parts of the OpenAI API to help connect existing applications to Ollama. ://localhost:11434/v1/', http:// ...",
+    "host_name": "ollama.readthedocs.io",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

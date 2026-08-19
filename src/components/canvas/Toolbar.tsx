@@ -17,7 +17,7 @@
 // canvas, not the whole window.
 
 import { useCanvasStore } from '@/lib/canvas/store';
-import type { CanvasPatch, ShapeType } from '@/lib/canvas/types';
+import type { CanvasPatch, LayerType } from '@/lib/canvas/types';
 import { Button } from '@/components/ui/button';
 import {
   Square,
@@ -30,7 +30,7 @@ import {
   Hand,
 } from 'lucide-react';
 
-const SHAPE_DEFAULTS: Record<ShapeType, Partial<{ width: number; height: number; fill: string; text: string; fontSize: number; stroke: string }>> = {
+const SHAPE_DEFAULTS: Record<LayerType, Partial<{ width: number; height: number; fill: string; text: string; fontSize: number; stroke: string }>> = {
   rectangle: { width: 160, height: 100, fill: '#e2e8f0' },
   ellipse:   { width: 120, height: 120, fill: '#fde68a' },
   text:      { width: 200, height: 32,  fill: '#0f172a', text: 'Text', fontSize: 20 },
@@ -39,6 +39,16 @@ const SHAPE_DEFAULTS: Record<ShapeType, Partial<{ width: number; height: number;
   group:     { width: 240, height: 160, fill: 'transparent', stroke: '#94a3b8' },
   path:      { width: 120, height: 120, fill: '#e2e8f0' },
   image:     { width: 160, height: 100, fill: '#e2e8f0' },
+  // Figma ontology types (not in the default toolbar, but supported by the
+  // agent tools and by the `add` patch op).
+  section:           { width: 480, height: 320, fill: 'transparent', stroke: '#94a3b8' },
+  component:         { width: 200, height: 48,  fill: '#e2e8f0' },
+  component_set:     { width: 400, height: 200, fill: 'transparent', stroke: '#94a3b8' },
+  instance:          { width: 200, height: 48,  fill: '#e2e8f0' },
+  boolean_operation: { width: 120, height: 120, fill: '#e2e8f0' },
+  slice:             { width: 200, height: 120, fill: 'transparent', stroke: '#0ea5e9' },
+  star:              { width: 120, height: 120, fill: '#fde68a' },
+  polygon:           { width: 120, height: 120, fill: '#fde68a' },
 };
 
 export function Toolbar() {
@@ -48,7 +58,7 @@ export function Toolbar() {
   const setToolMode = useCanvasStore((s) => s.setToolMode);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
 
-  const createShape = (type: ShapeType) => {
+  const createShape = (type: LayerType) => {
     const defaults = SHAPE_DEFAULTS[type];
     // Place at the center of the visible viewport. We don't know the exact
     // viewport here without reaching into the Canvas component — use a

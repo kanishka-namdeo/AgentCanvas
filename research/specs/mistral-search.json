@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://docs.mistral.ai/studio-api/conversations/chat-completion",
+    "name": "Chat completions | Mistral Docs",
+    "snippet": "The Chat Completion API accepts a list of chat messages as input and generates a response . Visit our API spec for more details.",
+    "host_name": "docs.mistral.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.mistral.ai/api/endpoint/chat",
+    "name": "Chat Endpoints - Mistral AI Documentation",
+    "snippet": "Welcome to Mistral AI&#39;s. Chat Completion API . Chat Completion POST /v1/chat/completions# the chat completion endpoint. curl https://api.mistral.ai/v1/chat/ ...",
+    "host_name": "docs.mistral.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.mistral.ai/resources/migration-guides",
+    "name": "Migration guides | Mistral Docs",
+    "snippet": "The Mistral Chat Completions API follows the same request structure as OpenAI, so most migrations involve changing the client import, base URL , and model name. Read more",
+    "host_name": "docs.mistral.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.openai.com/t/you-can-access-mistral-api-via-custom-gpt-action/560421",
+    "name": "You can access Mistral API via Custom GPT action",
+    "snippet": "Dec 15, 2023 — You can easily access all 3 models with a custom gpt schema. I actually didn't expect that, but it makes sense. At the end of the day it's an ... Read more",
+    "host_name": "community.openai.com",
+    "rank": 3,
+    "date": "Dec 15, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://tray.ai/documentation/connectors/artificial-intelligence/mistral-ai",
+    "name": "Mistral AI - Tray.ai Documentation",
+    "snippet": "The Base URL used for the Mistral AI connector is https://api.mistral.ai /. More information can be found in the Mistral AI API documentation. Chat completions ...",
+    "host_name": "tray.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/rest-api/file-node-types",
+    "name": "Node types | Developer Docs",
+    "snippet": "Node type indicates what kind of node you are working with: for example, a FRAME node versus a RECTANGLE node. A node can have additional properties associated ... Read more",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/gettting-component-s-containing-frame-value-from-rest-api-33519",
+    "name": "Gettting Component's containing_frame value from REST API",
+    "snippet": "Jul 14, 2023 — Gettting Component's containing_frame value from REST API ... I have a script that performs a spell check against all of the text nodes in a file. Read more",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "Jul 14, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api/component-types",
+    "name": "Components and styles | Developer Docs",
+    "snippet": "Figma provides a way to fetch metadata on published components and styles in a team library.",
+    "host_name": "developers.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/nodes",
+    "name": "Node Types | Developer Docs",
+    "snippet": "NodeType ​. type NodeType = \" BOOLEAN_OPERATION \" | \"CODE_BLOCK\" | \" COMPONENT \" | \" COMPONENT_SET \" | \"CONNECTOR\" | \"DOCUMENT\" | \"ELLIPSE\" | \"EMBED\" | \" FRAME \" | Read more",
+    "host_name": "developers.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.dev/documentation/figma/latest/figma",
+    "name": "figma library - Dart API",
+    "snippet": "ComponentNode A component is a reusable piece of design that can be applied to different frames . Components can contain other components .",
+    "host_name": "pub.dev",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

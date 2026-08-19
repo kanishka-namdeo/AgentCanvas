@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://docs.perplexity.ai/docs/sonar/quickstart",
+    "name": "Sonar API",
+    "snippet": "The Sonar API provides web-grounded chat completions using Perplexity's Sonar models through an OpenAI-compatible interface. to our endpoint.",
+    "host_name": "docs.perplexity.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.perplexity.ai/api-platform",
+    "name": "Perplexity API Platform — AI Search & Grounded LLM",
+    "snippet": "Build with the best AI answer engine API, created by Perplexity. built-in web search, URL fetching, and reasoning controls.",
+    "host_name": "www.perplexity.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.perplexity.ai/api-reference/sonar-post",
+    "name": "Create Chat Completion",
+    "snippet": "Generate a chat completion response for the given conversation. Sonar Chat Completions is now Agent API. Sonar will be supported until September 27, 2026. ...",
+    "host_name": "docs.perplexity.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.perplexity.ai/docs/getting-started/overview",
+    "name": "Perplexity API",
+    "snippet": "Perplexity API Platform - build with the Router, Agent, Search, and Embeddings APIs. Real-time, web-wide research and Q&A capabilities for your products.",
+    "host_name": "docs.perplexity.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.perplexity.ai/docs/sonar/openai-compatibility",
+    "name": "OpenAI SDK Compatibility",
+    "snippet": "Perplexity's Sonar API is fully compatible with OpenAI's Chat Completions format. Perplexity's canonical Sonar API endpoint is POST /v1/sonar .",
+    "host_name": "docs.perplexity.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

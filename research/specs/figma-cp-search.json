@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/properties/ComponentPropertiesMixin-componentpropertydefinitions",
+    "name": "componentPropertyDefinitions | Developer Docs",
+    "snippet": "' VARIANT' properties will also have a list of all variant options . ' BOOLEAN ', ' TEXT ', and ' INSTANCE_SWAP ' properties will have their names suffixed by a ...",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5579474826519-Explore-component-properties",
+    "name": "Explore component properties",
+    "snippet": "You can create component properties for any main component or variants of a component set, and apply them to nested layers of the component or variant . Read more",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/ComponentSetNode",
+    "name": "ComponentSetNode | Developer Docs",
+    "snippet": "This function supports properties with type ' BOOLEAN ' , ' TEXT ' , ' INSTANCE_SWAP ' , ' VARIANT ' , or 'SLOT' with the following restrictions: name is supported ... Read more",
+    "host_name": "developers.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.logrocket.com/ux-design/using-component-properties-figma",
+    "name": "Using Figma's instance swap and other component",
+    "snippet": "Mar 28, 2025 — Component properties in Figma allow you to define customizable attributes — such as variants , Boolean toggles, instance swaps, and text — that ... Read more",
+    "host_name": "blog.logrocket.com",
+    "rank": 3,
+    "date": "Mar 28, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@joeyabanks/component-properties-in-figma-1883da7c16e6",
+    "name": "Component Properties in Figma - by Joey Banks",
+    "snippet": "Variants provided the ability to turn several separate but related components, into a single asset, with properties and values that can adjust ... Read more",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

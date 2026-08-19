@@ -1,0 +1,625 @@
+# OpenAI compatibility - Together AI docs
+# URL: https://docs.together.ai/docs/inference/openai-compatibility
+
+OpenAI compatibility - Together AI docs 
+ Documentation Index
+ Fetch the complete documentation index at: /llms.txt 
+ Use this file to discover all available pages before exploring further.
+ Skip to main content 
+ 
+ Together AI docs home page v2 
+
+ Documentation 
+ Guides 
+ Learn 
+ Demos 
+ API reference 
+ CLI 
+ Changelog 
+ 
+
+ Sign in 
+ 
+ Search... 
+
+ Navigation 
+ INFERENCE APIS 
+ OpenAI compatibility
+
+ 
+
+ Search...
+
+ Ctrl K 
+ 
+ GET STARTED 
+
+ Overview 
+
+ 
+ Quickstart 
+
+ 
+ Coding agent setup 
+
+ 
+ Recommended models 
+
+ 
+ 
+ SERVERLESS 
+
+ Overview 
+
+ 
+ Available models 
+
+ 
+ Rate limits 
+
+ 
+ Provisioned throughput NEW 
+
+ 
+ 
+ INFERENCE APIS 
+
+ Overview 
+
+ 
+ OpenAI compatibility 
+
+ 
+ SDK integrations 
+
+ 
+ Chat & text 
+ 
+ 
+ Function calling 
+ 
+ 
+ Image generation 
+ 
+ 
+ Video generation 
+ 
+ 
+ Vision 
+ 
+ 
+ Speech-to-text 
+ 
+ 
+ Text-to-speech 
+ 
+ 
+ Embeddings & rerank 
+ 
+ 
+ LLM evaluations 
+ 
+ 
+ Batch processing 
+ 
+ 
+ 
+ DEDICATED MODEL INFERENCE 
+
+ Overview NEW 
+
+ 
+ Quickstart 
+
+ 
+ Concepts 
+
+ 
+ Pricing 
+
+ 
+ Choose a model 
+ 
+ 
+ Deploy a model 
+ 
+ 
+ Route traffic 
+ 
+ 
+ Send requests 
+
+ 
+ Monitoring 
+
+ 
+ 
+ DEDICATED CONTAINER INFERENCE 
+
+ Overview 
+
+ 
+ Quickstart 
+
+ 
+ Reference 
+ 
+ 
+ 
+ GPU CLUSTERS 
+
+ Overview 
+
+ 
+ Quickstart 
+
+ 
+ Cluster management 
+
+ 
+ Health checks 
+
+ 
+ Node repair 
+
+ 
+ Cluster storage 
+
+ 
+ Billing & pricing 
+
+ 
+ Set up OIDC authentication 
+
+ 
+ Slurm 
+ 
+ 
+ Cookbooks 
+ 
+ 
+ API & integrations 
+
+ 
+ 
+ FINE-TUNING 
+
+ Overview 
+
+ 
+ Quickstart 
+
+ 
+ Pricing 
+
+ 
+ Data preparation 
+
+ 
+ Choose a base model 
+ 
+ 
+ Training methods 
+ 
+ 
+ Manage jobs 
+ 
+ 
+ Deploy a fine-tuned model 
+
+ 
+ 
+ CODE EXECUTION 
+
+ Code interpreter 
+
+ 
+ Code sandbox 
+
+ 
+ 
+ ADMINISTRATION 
+
+ Manage your account 
+
+ 
+ Authentication 
+
+ 
+ IAM model 
+
+ 
+ Organizations 
+
+ 
+ Projects 
+
+ 
+ Roles & permissions (RBAC) 
+
+ 
+ Single sign-on (SSO) 
+
+ 
+ Privacy and security 
+
+ 
+ Billing 
+ 
+ 
+ Support 
+
+ 
+ 
+
+ 
+
+ 
+ 
+
+ On this page 
+ Drop-in client setup 
+ Endpoint compatibility matrix 
+ Drop-in compatibility 
+ Known incompatibilities Model identifiers 
+ Endpoints not implemented 
+ Parameter quirks 
+ Response shape differences 
+ Errors 
+ 
+ Community libraries 
+ 
+ 
+
+ INFERENCE APIS
+ OpenAI compatibility
+ Copy page Copy page 
+ 
+
+ Point your OpenAI Python or TypeScript client at Together AI to call open-source models without rewriting your app.
+
+ Copy page Copy page 
+ 
+ 
+ You can access our full OpenAPI spec here: https://docs.together.ai/openapi.yaml . 
+
+ Together’s API is compatible with the OpenAI REST API and SDKs across chat, completions, vision, image generation, text-to-speech, and embeddings. If you have an application that uses the OpenAI Python or TypeScript client (or cURL against api.openai.com
+), you can point it at models hosted on Together with two changes: the API key and base URL. 
+ This page is a configuration reference for the Together AI OpenAI compatibility layer. For end-to-end examples of each capability, follow the links to the dedicated capability pages. 
+ ​ 
+ 
+ Drop-in client setup 
+
+ Set api_key
+ to your Together API key (or pull it from an environment variable) and base_url
+ to https://api.together.ai/v1
+: 
+ Python
+ 
+ TypeScript
+ cURL
+ 
+
+ 
+ 
+
+ import os 
+ import openai 
+ 
+ client = openai.OpenAI( 
+ api_key = os.environ.get( "TOGETHER_API_KEY" ), 
+ base_url = "https://api.together.ai/v1" , 
+ ) 
+ 
+ response = client.chat.completions.create( 
+ model = "MiniMaxAI/MiniMax-M3" , 
+ messages = [{ "role" : "user" , "content" : "Hello!" }], 
+ ) 
+ 
+ print (response.choices[ 0 ].message.content) 
+
+ 
+
+ 
+
+ import OpenAI from "openai" ; 
+ 
+ const client = new OpenAI ({ 
+ apiKey: process . env . TOGETHER_API_KEY , 
+ baseURL: "https://api.together.ai/v1" , 
+ }); 
+ 
+ const response = await client . chat . completions . create ({ 
+ model: "MiniMaxAI/MiniMax-M3" , 
+ messages: [{ role: "user" , content: "Hello!" }], 
+ }); 
+ 
+ console . log ( response . choices [ 0 ]. message . content ); 
+
+ 
+
+ curl https://api.together.ai/v1/chat/completions \ 
+ -H "Authorization: Bearer $TOGETHER_API_KEY " \ 
+ -H "Content-Type: application/json" \ 
+ -d '{ 
+ "model": "MiniMaxAI/MiniMax-M3", 
+ "messages": [{"role": "user", "content": "Hello!"}] 
+ }' 
+
+ 
+
+ You can find your API key in your settings page . If you don’t have an account, you can register for free . 
+ 
+ Substitute the model
+ field with any Together model ID . Model names follow the <provider>/<model_name>
+ convention rather than OpenAI’s flat namespace. 
+
+ ​ 
+ 
+ Endpoint compatibility matrix 
+
+ The following OpenAI SDK methods route to Together-native endpoints when the base URL is set to https://api.together.ai/v1
+. 
+ OpenAI SDK call Together endpoint Status Capability page 
+ chat.completions.create
+ POST /v1/chat/completions
+ Supported Chat overview , Streaming , Parameters 
+ chat.completions.create
+ (vision input) POST /v1/chat/completions
+ Supported Vision 
+ chat.completions.create
+ (tools) POST /v1/chat/completions
+ Supported Function calling 
+ chat.completions.create
+ ( response_format
+) POST /v1/chat/completions
+ Supported Structured outputs 
+ completions.create
+ POST /v1/completions
+ Supported Legacy text completions, see Parameters 
+ embeddings.create
+ POST /v1/embeddings
+ Supported Embeddings 
+ images.generate
+ POST /v1/images/generations
+ Supported Image generation 
+ audio.speech.create
+ POST /v1/audio/speech
+ Supported Text-to-speech 
+ audio.transcriptions.create
+ POST /v1/audio/transcriptions
+ Supported Speech-to-text 
+ audio.translations.create
+ POST /v1/audio/translations
+ Supported Speech-to-text 
+ models.list
+, models.retrieve
+ GET /v1/models
+ Supported Model list 
+ assistants.*
+, threads.*
+, runs.*
+ n/a Not supported Build agent loops on top of chat completions and function calling 
+ fine_tuning.jobs.*
+ (OpenAI shape) n/a Not supported Use the Together-native fine-tuning API 
+ files.*
+ (OpenAI shape) n/a Partial Together has its own Files API for fine-tuning datasets and batch jobs 
+ batches.*
+ (OpenAI shape) n/a Not supported Use the Together-native Batch API 
+ moderations.create
+ n/a Not supported See moderation models using Llama Guard via chat completions 
+ 
+
+ 
+
+ Together-native endpoints not exposed by the OpenAI SDKs (call them with requests
+, fetch
+, or the Together SDK): 
+ 
+ Video generation, see Video generation .
+
+ Image edits and inpainting beyond images.generate
+, see Image generation .
+
+ Reasoning controls and reasoning_content
+, see Reasoning .
+
+ Logprobs surface, see Logprobs .
+
+ 
+ ​ 
+ 
+ Drop-in compatibility 
+
+ These capabilities work without code changes beyond the API key and base URL. Each row maps a Together capability to the OpenAI SDK method that drives it. 
+ Capability OpenAI SDK method Capability page 
+ Chat completions (with streaming) chat.completions.create
+ Chat overview 
+ Vision (image inputs) chat.completions.create
+ with image content parts Vision 
+ Function calling chat.completions.create
+ with tools
+ and tool_choice
+ Function calling 
+ Structured outputs chat.completions.create
+ with response_format
+ Structured outputs 
+ Embeddings embeddings.create
+ Embeddings 
+ Image generation images.generate
+ Image generation 
+ Text-to-speech audio.speech.create
+ Text-to-speech 
+ Speech-to-text and translation audio.transcriptions.create
+, audio.translations.create
+ Speech-to-text 
+ 
+
+ Video generation is Together-native and isn’t exposed through the OpenAI SDK. 
+ ​ 
+ 
+ Known incompatibilities 
+
+ ​ 
+ 
+ Model identifiers 
+
+ Together model IDs are namespaced ( openai/gpt-oss-20b
+, meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+, black-forest-labs/FLUX.2-dev
+). OpenAI model strings like gpt-4o
+ or text-embedding-3-large
+ return a 404. Browse the full list at Available models . 
+ ​ 
+ 
+ Endpoints not implemented 
+
+ 
+ Assistants, Threads, and Runs are not implemented. Build the agent loop yourself with function calling .
+
+ The OpenAI-shaped Batch API and Files API are not exposed through /v1
+. Together has separate equivalents, see Batch processing and Files .
+
+ moderations.create
+ is not implemented. Use Llama Guard via chat completions, see Moderation models .
+
+ 
+ ​ 
+ 
+ Parameter quirks 
+
+ 
+ logprobs
+ returns Together’s own shape, which is richer than OpenAI’s. See Logprobs .
+
+ seed
+ is best-effort. Determinism is not guaranteed across replicas, model versions, or load conditions.
+
+ n
+ (multiple completions per request) is supported on most chat models but not on every model. Loop client-side if a model rejects it.
+
+ logit_bias
+ is not supported on most models.
+
+ service_tier
+, store
+, metadata
+, and prediction
+ are accepted but ignored.
+
+ reasoning_effort
+ works on GPT-OSS models ( "low"
+, "medium"
+, "high"
+). Other reasoning controls (Together’s reasoning={"enabled": ...}
+ toggle, chat_template_kwargs
+) are not part of OpenAI’s API surface. See Reasoning .
+
+ Vision models accept image_url
+ with both remote URLs and base64 data URIs. The detail
+ field is accepted but ignored.
+
+ 
+ ​ 
+ 
+ Response shape differences 
+
+ 
+ 
+ usage
+ always includes prompt_tokens
+, completion_tokens
+, and total_tokens
+. Extra token counts vary in location by model, so read both shapes defensively: 
+ 
+ Reasoning models (for example zai-org/GLM-5.2
+, deepseek-ai/DeepSeek-V4-Pro
+, Qwen/Qwen3.6-Plus
+) nest them OpenAI-style: cached prompt tokens under usage.prompt_tokens_details.cached_tokens
+ and reasoning tokens under usage.completion_tokens_details.reasoning_tokens
+.
+
+ Some non-reasoning models (for example meta-llama/Llama-3.3-70B-Instruct-Turbo
+) return cached_tokens
+ flat at the top level of usage
+, with no *_details
+ objects.
+
+ 
+ A client configured for only one shape will return 0
+ for all others (with no error message). Fall back across both locations, for example (usage.prompt_tokens_details or {}).get("cached_tokens") or usage.get("cached_tokens", 0)
+. 
+
+ 
+ Reasoning models return the chain of thought in a reasoning
+ field on the assistant message (not OpenAI’s nested reasoning
+ object). Pass it back under the same reasoning
+ key when you send a prior turn to the API for preserved thinking or multi-turn tool calling; the older reasoning_content
+ key is still accepted on input for backward compatibility. See Reasoning for details. 
+
+ 
+ id
+ and system_fingerprint
+ are present but use Together’s formats. Don’t parse them as OpenAI IDs. 
+
+ 
+ images.generate
+ returns url
+ or b64_json
+ per the response_format
+ param, matching OpenAI. Some image models also return Together-specific metadata fields (for example seed
+). 
+
+ 
+ ​ 
+ 
+ Errors 
+
+ Together returns OpenAI-shaped error objects ( { "error": { "message", "type", "code" } }
+), but type
+ and code
+ values are Together’s. Match on HTTP status (400, 401, 404, 429, 500, 503) for portable handling. 
+ ​ 
+ 
+ Community libraries 
+
+ The Together API is also supported by most OpenAI libraries built by the community . 
+ If you come across unexpected behavior, reach out to support . 
+ Was this page helpful?
+ Yes No 
+ 
+
+ Overview
+ Previous 
+
+ Third-party integrations
+ Next 
+
+ Ctrl +I 
+
+ Together AI docs home page 
+ Company
+ About us Careers 
+
+ Examples
+ Cookbooks Demo apps 
+
+ Resources
+ Pricing Support 
+
+ Legal
+ Cookie policy Consent preferences 
+
+ 
+ Powered by This documentation is built and hosted on Mintlify, a developer documentation platform 
+ 
+
+ 
+
+ 
+ 
+ Assistant 
+ 
+
+ 
+ Responses are generated using AI and may contain mistakes.

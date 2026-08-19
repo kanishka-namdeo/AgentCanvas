@@ -222,6 +222,42 @@ export interface PenRectangleish extends PenEntity, PenSize, PenCanHaveGraphics 
     | [PenNumberOrVariable, PenNumberOrVariable, PenNumberOrVariable, PenNumberOrVariable];
 }
 
+// ---- Component Properties (Figma-aligned) --------------------------------
+//
+// Figma's 4 component property types: Boolean, Text, Instance swap, Variant.
+// Property names use Figma's kebab-case convention (REST API).
+// Variant property names use lowercase-with-dashes (e.g. "size", "state").
+// Variant values use lowercase-with-spaces (e.g. "large", "hover").
+
+export type PenComponentPropertyType =
+  | 'boolean'   // On/Off toggle — usually controls layer visibility
+  | 'text'      // String content override
+  | 'instance_swap'  // Swap to another component (preferredValues = whitelist)
+  | 'variant';  // Picks a variant from a component_set (variantOptions)
+
+export interface PenComponentPropertyDefinition {
+  type: PenComponentPropertyType;
+  /// Human-readable name shown in the Properties panel.
+  name?: string;
+  /// Default value for new instances.
+  defaultValue: boolean | string;
+  /// For instance_swap: a curated list of preferred component IDs.
+  preferredValues?: string[];
+  /// For variant: the list of valid variant option values.
+  variantOptions?: string[];
+}
+
+/// Per-instance component property values, keyed by property name.
+/// On a PenRef (component instance), these override the component's defaults.
+export type PenComponentPropertyValues = {
+  [propertyName: string]: boolean | string;
+};
+
+/// Component property definitions, stored on the COMPONENT node itself.
+export type PenComponentPropertyDefinitions = {
+  [propertyName: string]: PenComponentPropertyDefinition;
+};
+
 // ---- Concrete node types --------------------------------------------------
 
 /** Position is the top-left corner. */
@@ -302,6 +338,96 @@ export interface PenFrame extends PenRectangleish, PenCanHaveChildren, PenLayout
   slot?: false | string[];
 }
 
+/**
+ * SECTION — Figma's large grouping container (introduced 2023).
+ * Visually distinct from Frame: has a header label, no fill by default.
+ */
+export interface PenSection extends PenRectangleish, PenCanHaveChildren, PenLayout {
+  type: 'section';
+  /** Section header label (shown at top of the section in the canvas). */
+  label?: PenStringOrVariable;
+  /** When true, the section is rendered collapsed (children hidden). */
+  collapsed?: PenBooleanOrVariable;
+}
+
+/**
+ * COMPONENT — a reusable design element. Figma's first-class Component node.
+ * Component property definitions live here; instances override values via
+ * `componentProperties` on the PenRef.
+ */
+export interface PenComponent extends PenRectangleish, PenCanHaveChildren, PenLayout {
+  type: 'component';
+  /** Clip overflow. Default false. */
+  clip?: PenBooleanOrVariable;
+  /** Component property definitions (Boolean / Text / Instance swap / Variant). */
+  componentPropertyDefinitions?: PenComponentPropertyDefinitions;
+  /** Marks a slot for preferred child components. */
+  slot?: false | string[];
+}
+
+/**
+ * COMPONENT_SET — a container for Variants. Each child is a COMPONENT
+ * with `variantPropertyValues` describing which variant it represents.
+ * Naming convention (Figma-aligned): child components are named
+ * `Property1=Value, Property2=Value`.
+ */
+export interface PenComponentSet extends PenRectangleish, PenCanHaveChildren, PenLayout {
+  type: 'component_set';
+  /** Axes that vary across children (e.g. ['size', 'state']). */
+  variantPropertyAxes?: string[];
+  /** Direction the variants are arranged in the grid: 'horizontal' | 'vertical' | 'grid'. */
+  variantLayout?: 'horizontal' | 'vertical' | 'grid';
+}
+
+/// Per-variant property values, stored on a COMPONENT inside a COMPONENT_SET.
+export type PenVariantPropertyValues = { [propertyName: string]: string };
+
+/**
+ * BOOLEAN_OPERATION — non-destructive union/subtract/intersect/exclude of
+ * child vectors. Figma's boolean ops retain their inputs so they can be
+ * edited later.
+ */
+export interface PenBooleanOperation extends PenEntity, PenSize, PenCanHaveChildren, PenCanHaveGraphics {
+  type: 'boolean_operation';
+  /** Boolean op type. */
+  booleanOperationType?: 'union' | 'subtract' | 'intersect' | 'exclude';
+  /** Resolved SVG path data (computed when the boolean is flattened). */
+  geometry?: string;
+}
+
+/**
+ * SLICE — an export region. Not rendered as a visible shape; only marks an
+ * area for PNG/SVG/PDF export. Mirrors Figma's Slice tool (S).
+ */
+export interface PenSlice extends PenEntity, PenSize {
+  type: 'slice';
+  /** Export settings: format + scale. */
+  exportSettings?: Array<{ format: 'png' | 'svg' | 'pdf' | 'jpg'; suffix?: string; scale?: number }>;
+}
+
+/**
+ * STAR — a regular star polygon. Defined by point count + inner/outer radius ratio.
+ * Mirrors Figma's STAR node type.
+ */
+export interface PenStar extends PenEntity, PenSize, PenCanHaveGraphics {
+  type: 'star';
+  /** Number of outer points (5 = pentagram, 6 = hexagram, etc.). */
+  pointCount?: PenNumberOrVariable;
+  /** Ratio of inner radius to outer radius. 0.5 = regular 5-point star. */
+  innerRadius?: PenNumberOrVariable;
+}
+
+/**
+ * LINE — a 1D line between two points. Distinct from a rectangle with 0 height
+ * because it has its own Figma node type and stroke semantics.
+ */
+export interface PenLine extends PenEntity, PenCanHaveGraphics {
+  type: 'line';
+  /** End point relative to the node's origin. */
+  x2?: PenNumberOrVariable;
+  y2?: PenNumberOrVariable;
+}
+
 export interface PenGroup extends PenEntity, PenCanHaveChildren, PenCanHaveEffects {
   type: 'group';
 }
@@ -356,16 +482,29 @@ export interface PenRef extends PenEntity {
    * Key = slash-separated ID path (e.g. "ok-button/label").
    */
   descendants?: { [idPath: string]: Partial<PenChild> };
+  /**
+   * Per-instance component property overrides. Keyed by property name
+   * (kebab-case). Values must match the type defined in the component's
+   * `componentPropertyDefinitions`.
+   */
+  componentProperties?: PenComponentPropertyValues;
   [key: string]: unknown;
 }
 
 export type PenChild =
   | PenFrame
+  | PenSection
+  | PenComponent
+  | PenComponentSet
+  | PenBooleanOperation
+  | PenSlice
   | PenGroup
   | PenRectangle
   | PenEllipse
+  | PenStar
   | PenPath
   | PenPolygon
+  | PenLine
   | PenText
   | PenNote
   | PenPrompt
@@ -375,8 +514,27 @@ export type PenChild =
   | PenRef;
 
 // ---- Document -------------------------------------------------------------
+//
+// AgentCanvas extends the pen.dev .pen Document with a Pages abstraction
+// (mirrors Figma's multi-page Files).
 
 export type PenIdPath = string;
+
+/**
+ * PAGE — a single page within a File/Document. Mirrors Figma's Page concept.
+ */
+export interface PenPage {
+  /** Unique within the document. */
+  id: string;
+  /** Display name (e.g. "Home", "Dashboard", "Mobile flows"). */
+  name: string;
+  /** The page's layer tree (PenChild[]). */
+  children: PenChild[];
+  /** Page-level viewport (zoom + pan) — only used by the canvas runtime. */
+  viewport?: { zoom: number; panX: number; panY: number };
+  /** Page background color (overrides document default). */
+  background?: PenColor;
+}
 
 export interface PenDocument {
   version: typeof PEN_FORMAT_VERSION;
@@ -384,7 +542,18 @@ export interface PenDocument {
   /** Imported .pen / .lib.pen files: { alias: relativeURI }. */
   imports?: { [alias: string]: string };
   variables?: { [key: string]: PenVariableDef };
+  /**
+   * Top-level children — used for backward compat with single-page .pen files.
+   * When `pages` is set, this field is ignored (kept empty).
+   */
   children: PenChild[];
+  /**
+   * Pages — the modern multi-page structure. When present, the canvas uses
+   * pages[activePageIndex].children as the layer tree root.
+   */
+  pages?: PenPage[];
+  /** Index into `pages[]` for the currently active page. -1 = use `children`. */
+  activePageIndex?: number;
 }
 
 // ---- Helpers --------------------------------------------------------------
@@ -392,11 +561,18 @@ export interface PenDocument {
 /** All valid `type` values for a .pen node. */
 export const PEN_NODE_TYPES = [
   'frame',
+  'section',
+  'component',
+  'component_set',
+  'boolean_operation',
+  'slice',
   'group',
   'rectangle',
   'ellipse',
+  'star',
   'polygon',
   'path',
+  'line',
   'text',
   'note',
   'context',

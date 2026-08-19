@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://api-docs.deepseek.com",
+    "name": "DeepSeek API Docs: Your First API Call",
+    "snippet": "api_key=os.environ.get('DEEPSEEK_API_KEY'), base_url =\"https:// api . deepseek .com\") response = client. chat.completions .create( model=\" deepseek -v4-pro\", messages=[ Read more",
+    "host_name": "api-docs.deepseek.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://api-docs.deepseek.com/api/create-chat-completion",
+    "name": "Chat Completions API",
+    "snippet": "Chat Completions API. POST. https://api.deepseek.com/chat/completions ... You must set base_url=\"https://api.deepseek.com/beta \" to use this feature ... Read more",
+    "host_name": "api-docs.deepseek.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.baseten.co/reference/inference-api/chat-completions",
+    "name": "Chat Completions - Inference API",
+    "snippet": "OpenAI-compatible models you deploy yourself also support the chat completions format at their own base URL : https://model-{model_id}. api .baseten.co/ v1/chat/ ... Read more",
+    "host_name": "docs.baseten.co",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.deepinfra.com/chat/overview",
+    "name": "Chat Completions",
+    "snippet": "DeepInfra offers an OpenAI-compatible chat completions API for all LLM models. The endpoint is: https:// api .deepinfra.com/v1/openai",
+    "host_name": "docs.deepinfra.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://meghashyamthiruveedula.medium.com/getting-started-with-the-deepseek-api-a-quick-guide-6acab9919f3f",
+    "name": "Getting Started with the DeepSeek API: A Quick Guide",
+    "snippet": "Explanation: curl https://api.deepseek.com/chat/completions : This initiates a POST request to the chat completions endpoint. Read more",
+    "host_name": "meghashyamthiruveedula.medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

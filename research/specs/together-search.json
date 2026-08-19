@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://docs.together.ai/docs/inference/openai-compatibility",
+    "name": "OpenAI compatibility",
+    "snippet": "Together's API is compatible with the OpenAI REST API and SDKs across chat, completions, vision, and embeddings. with two changes: the API key and base URL.",
+    "host_name": "docs.together.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://api.together.xyz",
+    "name": "Together API - Together AI",
+    "snippet": "No information is available for this page. Learn why",
+    "host_name": "api.together.xyz",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://argilla-io.github.io/distilabel/1.3.2/api/llm/together",
+    "name": "Together AI - Distilabel Docs",
+    "snippet": "the base URL to use for the Together API can be set with TOGETHER_BASE_URL . Defaults to None which means that the value set for the environment variable ... Read more",
+    "host_name": "argilla-io.github.io",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.together.ai/docs/quickstart",
+    "name": "Quickstart - Together AI docs",
+    "snippet": "Together AI publishes official SDKs for Python and TypeScript. You can also use the OpenAI SDK pointed at our base URL , or call the REST API directly from any ... Read more",
+    "host_name": "docs.together.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.librechat.ai/docs/configuration/librechat_yaml/ai_endpoints/togetherai",
+    "name": "together.ai",
+    "snippet": "Aug 1, 2024 — Open together . ai serves a large catalog of open models through an OpenAI -compatible API , which you can add to LibreChat as a custom endpoint .",
+    "host_name": "www.librechat.ai",
+    "rank": 4,
+    "date": "Aug 1, 2024",
+    "favicon": ""
+  }
+]

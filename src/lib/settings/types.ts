@@ -10,8 +10,30 @@
 // only) and is never written to disk on the server. This matches the existing
 // session-persistence pattern. For production multi-user deployments, swap
 // the storage adapter to a server-side secrets manager.
+//
+// PROVIDER SUPPORT: the `llmProvider` field accepts any of the provider ids
+// registered in `src/lib/llm/registry.ts` (zai, openai, anthropic, google,
+// mistral, cohere, groq, together, deepseek, openrouter, fireworks, xai,
+// perplexity, huggingface, ollama, lmstudio, vllm, custom). For backward
+// compatibility with settings saved before this refactor, the legacy values
+// 'zai-auto' / 'zai-key' / 'openai-compatible' are still accepted — they're
+// migrated to the new ids by `normalizeLLMProvider()` below.
 
-export type LLMProvider = 'zai-auto' | 'zai-key' | 'openai-compatible';
+import { listProviderIds, getProviderMetadata } from '@/lib/llm';
+
+/// All supported LLM provider ids. This is the source of truth — anything
+/// registered in `src/lib/llm/registry.ts` is valid here. We compute it from
+/// the registry at module load so we can never drift.
+export type LLMProviderId = ReturnType<typeof listProviderIds>[number];
+
+/// Legacy provider values from v0.2.1 (pre-multi-provider). Kept as a union
+/// so TypeScript narrows correctly in `normalizeLLMProvider`.
+export type LegacyLLMProvider = 'zai-auto' | 'zai-key' | 'openai-compatible';
+
+/// The full LLMProvider type — any registered id PLUS the legacy values.
+/// The legacy values get migrated by `normalizeLLMProvider` before reaching
+/// the registry.
+export type LLMProvider = LLMProviderId | LegacyLLMProvider | string;
 export type SnapshotCadence = 'every-turn' | 'every-3-turns' | 'every-5-turns' | 'manual';
 export type SkillSelectionMode = 'auto' | 'manual';
 export type AutoArchiveIdleAfter = 'never' | '7d' | '30d';
@@ -80,7 +102,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   themePreference: 'system',
 
-  llmProvider: 'zai-auto',
+  llmProvider: 'zai',
   apiKey: '',
   modelName: '',
   apiBaseUrl: '',
@@ -134,3 +156,39 @@ export const PALETTES: Record<DefaultPalette, { name: string; bg: string; fills:
   forest: { name: 'Forest', bg: '#f0fdf4', fills: ['#dcfce7', '#bbf7d0', '#86efac'], accent: '#16a34a', text: '#052e16' },
   mono:   { name: 'Mono',   bg: '#fafaf9', fills: ['#e7e5e4', '#d6d3d1', '#a8a29e'], accent: '#18181b', text: '#18181b' },
 };
+
+/// Migrate legacy provider values to their new ids.
+/// - 'zai-auto'         → 'zai'        (auto-credentials preserved)
+/// - 'zai-key'           → 'zai'        (explicit key — apiKey field is preserved)
+/// - 'openai-compatible' → 'custom'     (the generic escape hatch)
+///
+/// Returns 'zai' (the safe default) if the provider id is unknown — e.g.
+/// a settings blob from a future version that referenced a provider no
+/// longer in the registry.
+export function normalizeLLMProvider(id: string | undefined | null): string {
+  if (!id) return 'zai';
+  if (id === 'zai-auto' || id === 'zai-key') return 'zai';
+  if (id === 'openai-compatible') return 'custom';
+  if (getProviderMetadata(id)) return id;
+  return 'zai';
+}
+
+/// True if the given provider id (after normalization) requires an API key
+/// in the request.
+export function providerRequiresApiKey(id: string | undefined | null): boolean {
+  const normalized = normalizeLLMProvider(id);
+  const meta = getProviderMetadata(normalized);
+  return meta?.apiKeyRequired ?? false;
+}
+
+/// Get the default model name for a provider.
+export function providerDefaultModel(id: string | undefined | null): string {
+  const normalized = normalizeLLMProvider(id);
+  return getProviderMetadata(normalized)?.defaultModel ?? '';
+}
+
+/// Get the default base URL for a provider.
+export function providerDefaultBaseURL(id: string | undefined | null): string {
+  const normalized = normalizeLLMProvider(id);
+  return getProviderMetadata(normalized)?.defaultBaseURL ?? '';
+}

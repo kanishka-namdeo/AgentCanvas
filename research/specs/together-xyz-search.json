@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://docs.together.ai/docs/deprecations",
+    "name": "Deprecations - Together AI docs",
+    "snippet": "Each deprecated model has a specified removal date. migration options are described below. Update your API calls to use the new model or dedicated endpoint. ...",
+    "host_name": "docs.together.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://api.together.xyz",
+    "name": "Together API - Together AI",
+    "snippet": "No information is available for this page. Learn why",
+    "host_name": "api.together.xyz",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ai-sdk.dev/providers/ai-sdk-providers/togetherai",
+    "name": "Together.ai Provider",
+    "snippet": "The Together . ai provider contains support for 200+ open-source models through the Together . ai API . :// api . together . xyz /v1",
+    "host_name": "ai-sdk.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.spheron.network/blog/together-ai-alternatives",
+    "name": "Together AI Alternatives 2026: 10 GPU Cloud Options for",
+    "snippet": "Apr 30, 2026 — The migration is a URL change and an API key swap. zero code changes to migrate . This guide covers the steps to move from Together AI's API to ...",
+    "host_name": "www.spheron.network",
+    "rank": 3,
+    "date": "Apr 30, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/zed-industries/zed/discussions/7213",
+    "name": "Together.ai implementation #7213 - zed-industries zed",
+    "snippet": "Implementing a together . ai provider would be a straight-forward way to access over 100 open source models for the Assistant. Together . ai provides an OpenAI ... Read more",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

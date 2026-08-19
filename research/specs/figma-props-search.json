@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5579474826519-Explore-component-properties",
+    "name": "Explore component properties",
+    "snippet": "The instance swap property allows you to indicate which instances nested in a main component or variant can be swapped. When creating an instance swap property, ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/39636407507735-Components-collection-Component-property-fundamentals",
+    "name": "Component property fundamentals",
+    "snippet": "Instance swap properties let you indicate which nested instances can be replaced and curate a list of suitable alternatives. For example, when designing a list ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039150413-Swap-components-and-instances",
+    "name": "Swap components and instances",
+    "snippet": "The Instance menu lets you quickly search, preview, and swap one component for another. There are a few ways you replace or swap instances in Figma . Want to ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/8883757553943-Edit-instances-with-component-properties",
+    "name": "Edit instances with component properties",
+    "snippet": "Boolean property: Allows you to set true/false values to turn a specific property on or off. · Instance swap property: Indicates which instances can be swapped. Read more",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038662654-Guide-to-components-in-Figma",
+    "name": "Guide to components in Figma",
+    "snippet": "A main component defines the properties of the component . An instance is a copy of the component you can reuse in your designs. Instances are linked to the main ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

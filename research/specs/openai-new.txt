@@ -1,0 +1,624 @@
+# Chat Completions Overview
+# URL: https://developers.openai.com/api/reference/chat-completions/overview
+
+Chat Completions Overview | OpenAI API Reference 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ Skip to content 
+For the complete documentation index, see llms.txt . Markdown versions of documentation pages are available by appending
+ .md
+ to the page URL.
+
+ ChatGPT Home 
+ API 
+ Codex Docs
+ Guides, concepts, and product docs for Codex 
+ 
+ Use cases
+ Example workflows and tasks teams can take on with ChatGPT or Codex 
+ 
+ 
+ 
+ 
+ 
+ Docs 
+ Use cases 
+ Resources 
+ ChatGPT Plugins
+ Extend ChatGPT and Codex 
+ 
+ Workspace Agents
+ Trigger published ChatGPT workspace agents 
+ 
+ Commerce
+ Build commerce flows in ChatGPT 
+ 
+ Ads
+ Publish and measure ads in ChatGPT 
+ 
+ 
+ 
+ 
+ 
+ Resources Showcase
+ Demo apps to get inspired 
+ 
+ Blog
+ Learnings and experiences from developers 
+ 
+ Cookbook
+ Notebook examples for building with OpenAI models 
+ 
+ Learn
+ Docs, videos, and demo apps for building with OpenAI 
+ 
+ Community
+ Programs, meetups, and support for builders 
+ 
+ 
+ 
+ 
+ 
+ Start searching API Dashboard 
+ 
+ Try ChatGPT 
+ 
+ 
+ 
+ 
+ Overview Models Agents Tools Voice & Audio Production API reference 
+ 
+ Search the API docs 
+ Search docs 
+ Suggested
+ responses create reasoning_effort realtime prompt caching 
+ 
+
+ 
+ 
+ 
+ 
+ Primary navigation API Codex ChatGPT Docs Use cases Resources Resources 
+ 
+ Search docs 
+ Suggested
+ responses create reasoning_effort realtime prompt caching 
+ 
+
+ 
+ Overview Models Agents Tools Voice & Audio Production API reference 
+ Overview Models Agents Tools Voice & Audio Production API reference Docs section API reference 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Docs Use cases 
+ Docs Use cases Docs section Docs 
+ 
+
+ 
+ 
+ 
+ 
+ Plugins Workspace Agents Commerce Ads 
+ Plugins Workspace Agents Commerce Ads Docs section Select... 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Showcase Blog Cookbook Learn Community 
+ Showcase Blog Cookbook Learn Community Docs section Select... 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ API Dashboard 
+ 
+ Try ChatGPT 
+ 
+ 
+ 
+ 
+ 
+ 
+ API Codex ChatGPT Docs Use cases Resources Resources 
+ Overview Models Agents Tools Voice & Audio Production API reference 
+ 
+ 
+ API Reference 
+ API Reference 
+ Introduction 
+ Authentication 
+ Workload identity tokens 
+ Debugging requests 
+ Backwards compatibility 
+ 
+
+ Responses API 
+ Overview 
+ Responses Create a response 
+ Retrieve a response 
+ Delete a response 
+ List input items 
+ Count input tokens 
+ Cancel a response 
+ Compact a response 
+ 
+ Conversations Create a conversation 
+ Retrieve a conversation 
+ Update a conversation 
+ Delete a conversation 
+ Items Create an item 
+ Retrieve an item 
+ Delete an item 
+ List items 
+ 
+ 
+ Streaming events 
+ WebSocket events 
+ 
+
+ Beta APIs 
+ Responses (Multi-agent) Create a responses (multi-agent) 
+ Retrieve a responses (multi-agent) 
+ Delete a responses (multi-agent) 
+ Cancel a responses (multi-agent) 
+ Compact a responses (multi-agent) 
+ Input Items List input items 
+ 
+ Input Tokens Count input tokens 
+ 
+ 
+ Streaming events 
+ WebSocket events 
+ 
+
+ Webhooks 
+ Events 
+ 
+
+ Platform APIs 
+ Audio Create a speech 
+ Create a transcription 
+ Create a translation 
+ Voice Consents Create a voice consent 
+ Retrieve a voice consent 
+ Update a voice consent 
+ Delete a voice consent 
+ List voice consents 
+ 
+ Create a voice 
+ 
+ Videos Create a video 
+ Create Character 
+ Get Character 
+ Retrieve a video 
+ Delete a video 
+ List videos 
+ Download Content 
+ Edit 
+ Extend 
+ Remix 
+ 
+ Images Generate an Image 
+ Edit an Image 
+ Create Variation 
+ Image generation streaming events 
+ Image edit streaming events 
+ 
+ Embeddings Create an embedding 
+ 
+ Evals Create an eval 
+ Retrieve an eval 
+ Update an eval 
+ Delete an eval 
+ List evals 
+ Runs Create a run 
+ Retrieve a run 
+ Delete a run 
+ List runs 
+ Cancel a run 
+ Output Items Retrieve an output item 
+ List output items 
+ 
+ 
+ 
+ Fine Tuning Alpha Graders Run 
+ Validate 
+ 
+ 
+ Checkpoints Permissions Create a permission 
+ Retrieve a permission 
+ Delete a permission 
+ List permissions 
+ 
+ 
+ Jobs Create a job 
+ Retrieve a job 
+ List jobs 
+ List Events 
+ Cancel a job 
+ Pause 
+ Resume 
+ Checkpoints List checkpoints 
+ 
+ 
+ 
+ Batches Create a batch 
+ Retrieve a batch 
+ List batches 
+ Cancel a batch 
+ 
+ Files List files 
+ Create a file 
+ Retrieve a file 
+ Delete a file 
+ Retrieve file content 
+ 
+ Uploads Create an upload 
+ Cancel an upload 
+ Complete 
+ Parts Create a part 
+ 
+ 
+ Models Retrieve a model 
+ Delete a model 
+ List models 
+ 
+ Moderations Create a moderation 
+ 
+ Content Provenance Checks Create a content provenance check 
+ 
+ 
+
+ Vector Stores 
+ Vector Stores Create a vector store 
+ Retrieve a vector store 
+ Update a vector store 
+ Delete a vector store 
+ List vector stores 
+ Search 
+ 
+ File Batches Create a file batch 
+ Retrieve a file batch 
+ List Files 
+ Cancel a file batch 
+ 
+ Files List files 
+ Create a file 
+ Retrieve a file 
+ Update a file 
+ Delete a file 
+ Retrieve file content 
+ 
+ 
+
+ ChatKit 
+ Sessions Create a session 
+ Cancel a session 
+ 
+ Threads Retrieve a thread 
+ Delete a thread 
+ List threads 
+ List Items 
+ 
+ 
+
+ Containers 
+ Containers Create a container 
+ Retrieve a container 
+ Delete a container 
+ List containers 
+ 
+ Files List files 
+ Create a file 
+ Retrieve a file 
+ Delete a file 
+ Content Retrieve a content 
+ 
+ 
+ 
+
+ Skills 
+ Skills Create a skill 
+ Retrieve a skill 
+ Retrieve skill content 
+ Update a skill 
+ Delete a skill 
+ List skills 
+ Versions Create skill version 
+ Retrieve skill version 
+ Retrieve Skill Version Content 
+ Delete skill version 
+ List skill versions 
+ 
+ 
+ 
+
+ Realtime 
+ Translations Client Secrets Create a client secret 
+ 
+ Translation client events 
+ Translation server events 
+ 
+ Client Secrets Create a client secret 
+ 
+ Calls Accept 
+ Hangup 
+ Refer 
+ Reject 
+ 
+ Client events 
+ Server events 
+ 
+
+ Administration 
+ Overview 
+ Admin API Keys Create an admin API key 
+ Retrieve an admin API key 
+ Delete an admin API key 
+ List admin API keys 
+ 
+ Audit Logs List audit logs 
+ 
+ Certificates Create a certificate 
+ Retrieve a certificate 
+ Update a certificate 
+ Delete a certificate 
+ List certificates 
+ Activate 
+ Deactivate 
+ 
+ Data Retention Retrieve a data retention 
+ Update a data retention 
+ 
+ Groups Create a group 
+ Retrieve a group 
+ Update a group 
+ Delete a group 
+ List groups 
+ Roles Create a role 
+ Retrieve a role 
+ Delete a role 
+ List roles 
+ 
+ Users Create an user 
+ Retrieve an user 
+ Delete an user 
+ List users 
+ 
+ 
+ Invites Create an invite 
+ Retrieve an invite 
+ Delete an invite 
+ List invites 
+ 
+ Projects Create a project 
+ Retrieve a project 
+ Update a project 
+ List projects 
+ Archive 
+ API Keys Retrieve an API key 
+ Delete an API key 
+ List API keys 
+ 
+ Certificates List certificates 
+ Activate 
+ Deactivate 
+ 
+ Data Retention Retrieve a data retention 
+ Update a data retention 
+ 
+ Groups Create a group 
+ Retrieve a group 
+ Delete a group 
+ List groups 
+ Roles Create a role 
+ Retrieve a role 
+ Delete a role 
+ List roles 
+ 
+ 
+ Hosted Tool Permissions Retrieve a hosted tool permission 
+ Update a hosted tool permission 
+ 
+ Model Permissions Retrieve a model permission 
+ Update a model permission 
+ Delete a model permission 
+ 
+ Rate Limits Update Rate Limit 
+ List Rate Limits 
+ 
+ Roles Create a role 
+ Retrieve a role 
+ Update a role 
+ Delete a role 
+ List roles 
+ 
+ Service Accounts Create a service account 
+ Retrieve a service account 
+ Update a service account 
+ Delete a service account 
+ List service accounts 
+ API Keys Create an API key 
+ 
+ 
+ Spend Alerts Create a spend alert 
+ Retrieve a spend alert 
+ Update a spend alert 
+ Delete a spend alert 
+ List spend alerts 
+ 
+ Spend Limit Retrieve a spend limit 
+ Update a spend limit 
+ Delete a spend limit 
+ 
+ Users Create an user 
+ Retrieve an user 
+ Update an user 
+ Delete an user 
+ List users 
+ Roles Create a role 
+ Retrieve a role 
+ Delete a role 
+ List roles 
+ 
+ 
+ 
+ Roles Create a role 
+ Retrieve a role 
+ Update a role 
+ Delete a role 
+ List roles 
+ 
+ Spend Alerts Create a spend alert 
+ Retrieve a spend alert 
+ Update a spend alert 
+ Delete a spend alert 
+ List spend alerts 
+ 
+ Spend Limit Retrieve a spend limit 
+ Update a spend limit 
+ Delete a spend limit 
+ 
+ Usage Audio Speeches 
+ Audio Transcriptions 
+ Code Interpreter Sessions 
+ Completions 
+ Costs 
+ Embeddings 
+ File Search Calls 
+ Images 
+ Moderations 
+ Vector Stores 
+ Web Search Calls 
+ 
+ Users Retrieve an user 
+ Update an user 
+ Delete an user 
+ List users 
+ Roles Create a role 
+ Retrieve a role 
+ Delete a role 
+ List roles 
+ 
+ 
+ 
+
+ Chat Completions 
+ Chat Completions Overview 
+ Create a chat completion 
+ Retrieve a chat completion 
+ Update a chat completion 
+ Delete a chat completion 
+ List chat completions 
+ List chat completions 
+ Streaming events 
+ 
+ 
+
+ Legacy 
+ Realtime Beta Overview 
+ Sessions Create a session 
+ 
+ Transcription Sessions Create a transcription session 
+ 
+ 
+ Assistants Create an assistant 
+ Retrieve an assistant 
+ Update an assistant 
+ Delete an assistant 
+ List assistants 
+ Threads Create a thread 
+ Create And Run 
+ Retrieve a thread 
+ Update a thread 
+ Delete a thread 
+ Messages Create a message 
+ Retrieve a message 
+ Update a message 
+ Delete a message 
+ List messages 
+ 
+ Runs Create a run 
+ Retrieve a run 
+ Update a run 
+ List runs 
+ Cancel a run 
+ Submit Tool Outputs 
+ Steps Retrieve a step 
+ List steps 
+ 
+ 
+ 
+ Assistants streaming events 
+ 
+ Completions Create a completion 
+ 
+ 
+
+ 
+ 
+ Chat Completions 
+ Chat Completions 
+ Overview 
+
+ Chat Completions Overview
+ 
+ The Chat Completions API endpoint will generate a model response from a
+list of messages comprising a conversation.
+
+ Related guides:
+
+ 
+ Quickstart 
+
+ Text inputs and outputs 
+
+ Image inputs 
+
+ Audio inputs and outputs 
+
+ Structured Outputs 
+
+ Function calling 
+
+ Conversation state 
+
+ 
+ Starting a new project? We recommend trying Responses 
+to take advantage of the latest OpenAI platform features. Compare
+ Chat Completions with Responses .
+ 
+ 
+ 
+ 
+ stainless and content this is manually accounting for-->

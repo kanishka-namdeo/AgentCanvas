@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15339657135383-Guide-to-variables-in-Figma",
+    "name": "Guide to variables in Figma",
+    "snippet": "This video tutorial covers the foundations of variables , how to use them to represent design tokens, and how to use color and number variables to account",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/14506821864087-Overview-of-variables-collections-and-modes",
+    "name": "Overview of variables, collections, and modes",
+    "snippet": "Variables are raw values —like color, numbers, and strings—that can change in value depending on the context of a design, such as light and dark modes, ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/7938814091287-Add-descriptions-to-styles-components-and-variables",
+    "name": "Add descriptions to styles, components, and variables",
+    "snippet": "Add descriptions to styles, components, and variables Documentation. It can help guide proper application, variant and state usage, and accessibility and ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15145852043927-Create-and-manage-variables-and-collections",
+    "name": "Create and manage variables and collections",
+    "snippet": "Looking for more resources on variables? Check out our guide to variables. Access your variables . The variables view allows you to create and manage:. Read more",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/18490793776023-Update-1-Tokens-variables-and-styles",
+    "name": "Update 1: Tokens, variables, and styles",
+    "snippet": "For many, implementing design tokens means using a combination of styles and variables . Check out our guide on the differences between styles and variables . Read more",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

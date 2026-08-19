@@ -24,13 +24,21 @@
 import { useState, useMemo, type ReactNode, type ComponentType } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
-import type { CanvasPatch, Shape, ShapeType } from '@/lib/canvas/types';
+import type { CanvasPatch, Shape, LayerType } from '@/lib/canvas/types';
 import {
   Eye, EyeOff, Lock, Unlock, Trash2, Layers, Copy, Scissors, ClipboardPaste, Search,
   Frame, Group, Square, Circle, Type, Slash, Spline, Image as ImageIcon, Braces,
   ChevronRight, ChevronDown, ChevronsUpDown, ChevronsDownUp,
   BringToFront, SendToBack, ArrowUp, ArrowDown, SquareStack, Component as ComponentIcon,
   FileCode, FileDown, Edit2,
+  // Figma ontology icons:
+  Section as SectionIcon,
+  Boxes,                   // component_set (stack of variants)
+  GitBranch,               // boolean_operation
+  Crop,                    // slice (export region)
+  Star as StarIcon,        // star
+  Hexagon,                 // polygon
+  CornerDownRight,         // instance (component instance)
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -47,17 +55,26 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 
-// Per-type icon. Frame and group (the .pen containers) use container-style
-// icons. All 8 resolved ShapeType values are covered, so the lookup never
-// falls back to the placeholder.
-const TYPE_ICON: Record<ShapeType, ComponentType<{ className?: string }>> = {
+// Per-type icon. Covers every resolved LayerType value (the Figma-canonical
+// node type union).
+const TYPE_ICON: Record<LayerType, ComponentType<{ className?: string }>> = {
+  // Containers:
+  frame: Frame,
+  group: Group,
+  section: SectionIcon,
+  component: ComponentIcon,
+  component_set: Boxes,
+  instance: CornerDownRight,
+  boolean_operation: GitBranch,
+  // Leaves:
   rectangle: Square,
   ellipse: Circle,
   text: Type,
   line: Slash,
-  frame: Frame,
-  group: Group,
   path: Spline,
+  star: StarIcon,
+  polygon: Hexagon,
+  slice: Crop,
   image: ImageIcon,
 };
 

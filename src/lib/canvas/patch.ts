@@ -513,9 +513,173 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       // Handled by the store (needs undo/redo stacks). No-op here.
       break;
     }
+    // ---- Figma ontology ops (Phase 1) ----
+    case 'add_page': {
+      const pageName = patch.pageName ?? `Page ${(next.pages?.length ?? 1) + 1}`;
+      const pageId = crypto.randomUUID();
+      const newPage = {
+        id: pageId,
+        name: pageName,
+        children: [] as PenChild[],
+        viewport: { zoom: 1, panX: 120, panY: 80 },
+      };
+      next.pages = [...(next.pages ?? []), newPage];
+      next.activePageIndex = next.pages.length - 1;
+      next.children = [];
+      break;
+    }
+    case 'delete_page': {
+      if (!next.pages || next.pages.length <= 1) break;
+      const idx = findPageIndex(next.pages, patch);
+      if (idx < 0) break;
+      next.pages = next.pages.filter((_, i) => i !== idx);
+      if ((next.activePageIndex ?? 0) >= next.pages.length) {
+        next.activePageIndex = next.pages.length - 1;
+      }
+      const active = next.pages[next.activePageIndex ?? 0];
+      next.children = active?.children ?? [];
+      break;
+    }
+    case 'rename_page': {
+      if (!next.pages) break;
+      const idx = findPageIndex(next.pages, patch);
+      if (idx < 0) break;
+      next.pages = next.pages.map((p, i) =>
+        i === idx ? { ...p, name: patch.pageName ?? p.name } : p,
+      );
+      break;
+    }
+    case 'set_active_page': {
+      if (!next.pages) break;
+      const idx = findPageIndex(next.pages, patch);
+      if (idx < 0) break;
+      next.activePageIndex = idx;
+      const active = next.pages[idx];
+      next.children = active.children;
+      if (active.viewport) next.viewport = active.viewport;
+      break;
+    }
+    case 'add_section': {
+      if (patch.shape && patch.shape.label && !patch.shape.name) {
+        patch.shape.name = patch.shape.label;
+      }
+      next.children = insertNodeFromPatch(next.children, patch);
+      break;
+    }
+    case 'create_component': {
+      next.children = insertNodeFromPatch(next.children, patch);
+      break;
+    }
+    case 'create_component_set': {
+      if (!patch.shape) break;
+      (patch.shape as Record<string, unknown>).variantPropertyAxes = patch.variantPropertyAxes;
+      next.children = insertNodeFromPatch(next.children, patch);
+      break;
+    }
+    case 'add_variant': {
+      if (!patch.shape) break;
+      (patch.shape as Record<string, unknown>).variantPropertyValues = patch.variantPropertyValues;
+      next.children = insertNodeFromPatch(next.children, patch);
+      break;
+    }
+    case 'set_component_property': {
+      if (!patch.shapeId || !patch.componentProperty) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node || node.type !== 'component') break;
+      const existingDefs = (node as { componentPropertyDefinitions?: Record<string, unknown> }).componentPropertyDefinitions ?? {};
+      const updatedDefs = {
+        ...existingDefs,
+        [patch.componentProperty.name]: {
+          type: patch.componentProperty.type,
+          defaultValue: patch.componentProperty.defaultValue,
+          preferredValues: patch.componentProperty.preferredValues,
+          variantOptions: patch.componentProperty.variantOptions,
+        },
+      };
+      next.children = updateNode(next.children, patch.shapeId, {
+        componentPropertyDefinitions: updatedDefs,
+      } as Partial<PenChild>);
+      break;
+    }
+    case 'set_instance_property': {
+      if (!patch.shapeId || !patch.instancePropertyName) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node || node.type !== 'ref') break;
+      const ref = node as unknown as {
+        componentProperties?: Record<string, boolean | string>;
+      };
+      const updated = {
+        ...(ref.componentProperties ?? {}),
+        [patch.instancePropertyName]: patch.instancePropertyValue ?? '',
+      };
+      next.children = updateNode(next.children, patch.shapeId, {
+        componentProperties: updated,
+      } as Partial<PenChild>);
+      break;
+    }
+    case 'flatten_boolean': {
+      if (!patch.shapeId) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node || node.type !== 'boolean_operation') break;
+      next.children = updateNode(next.children, patch.shapeId, {
+        geometry: '<flattened>',
+      } as Partial<PenChild>);
+      break;
+    }
   }
 
   return recomputeDerived(next);
+}
+
+/// Find a page's index by id or name (case-insensitive partial match).
+function findPageIndex(
+  pages: NonNullable<CanvasDocument['pages']>,
+  patch: CanvasPatch,
+): number {
+  if (patch.pageId) {
+    const idx = pages.findIndex((p) => p.id === patch.pageId);
+    if (idx >= 0) return idx;
+  }
+  if (patch.pageName) {
+    const lower = patch.pageName.toLowerCase();
+    const idx = pages.findIndex((p) => p.name.toLowerCase().includes(lower));
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+/// Insert a node from a patch into the tree. Used by the new Figma ontology
+/// ops (add_section, create_component, create_component_set, add_variant).
+function insertNodeFromPatch(children: PenChild[], patch: CanvasPatch): PenChild[] {
+  if (!patch.shape) return children;
+  const id = patch.shapeId ?? (patch.shape.id as string) ?? crypto.randomUUID();
+  const node = normalizeToNode(patch.shape as Partial<PenChild>, id);
+  const parentId = (patch.shape as { parentId?: string | null }).parentId;
+  if (parentId) {
+    return insertUnderParent(children, node, parentId);
+  }
+  return [...children, node];
+}
+
+/// Recursively walk the tree, inserting `node` under the parent with `parentId`.
+function insertUnderParent(children: PenChild[], node: PenChild, parentId: string): PenChild[] {
+  return children.map((c) => {
+    if (c.id === parentId) {
+      if ('children' in c && Array.isArray(c.children)) {
+        return { ...c, children: [...c.children, node] };
+      }
+      return c;
+    }
+    const isContainer =
+      c.type === 'frame' || c.type === 'group' ||
+      c.type === 'component' || c.type === 'component_set' ||
+      c.type === 'section' || c.type === 'boolean_operation';
+    if (isContainer && 'children' in c && Array.isArray(c.children)) {
+      const next = insertUnderParent(c.children as PenChild[], node, parentId);
+      if (next !== c.children) return { ...c, children: next };
+    }
+    return c;
+  });
 }
 
 // ---- Helpers for tree sibling replacement --------------------------------
@@ -524,9 +688,13 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
 function replaceSiblings(children: PenChild[], oldArr: PenChild[], newArr: PenChild[]): PenChild[] {
   if (children === oldArr) return newArr;
   return children.map((c) => {
-    if ((c.type === 'frame' || c.type === 'group') && c.children) {
+    const isContainer =
+      c.type === 'frame' || c.type === 'group' ||
+      c.type === 'component' || c.type === 'component_set' ||
+      c.type === 'section' || c.type === 'boolean_operation';
+    if (isContainer && 'children' in c && c.children) {
       if (c.children === oldArr) return { ...c, children: newArr };
-      const next = replaceSiblings(c.children, oldArr, newArr);
+      const next = replaceSiblings(c.children as PenChild[], oldArr, newArr);
       if (next !== c.children) return { ...c, children: next };
     }
     return c;
@@ -551,8 +719,10 @@ function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, i
   // Ensure id + type win over any spread values.
   base.id = id;
   base.type = type as PenChild['type'];
-  // Ensure containers have a children array.
-  if (type === 'frame' || type === 'group') {
+  // Ensure containers have a children array. Include the new Figma-canonical
+  // container types: section, component, component_set, boolean_operation.
+  if (type === 'frame' || type === 'group' || type === 'component' ||
+      type === 'component_set' || type === 'section' || type === 'boolean_operation') {
     if (!Array.isArray(base.children)) base.children = [];
   }
   return base as PenChild;

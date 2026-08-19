@@ -42,7 +42,12 @@ import {
   type LLMProvider, type SnapshotCadence, type SkillSelectionMode,
   type AutoArchiveIdleAfter, type Density, type ThemePreference,
   type DefaultPalette,
+  normalizeLLMProvider,
+  providerRequiresApiKey,
+  providerDefaultModel,
+  providerDefaultBaseURL,
 } from '@/lib/settings/types';
+import { listProviders, getProviderMetadata } from '@/lib/llm';
 import { useSessionStore, estimateLocalStorageUsage, sweepIdleSessions } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { toast } from 'sonner';
@@ -69,13 +74,13 @@ export function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden gap-0" showCloseButton>
+      <DialogContent className="max-w-5xl p-0 overflow-visible gap-0" showCloseButton>
         <DialogTitle className="sr-only">Settings</DialogTitle>
         <DialogDescription className="sr-only">
           Configure the agent, LLM provider, sessions, appearance, and data.
           Changes apply immediately.
         </DialogDescription>
-        <div className="flex h-[560px]">
+        <div className="flex h-[80vh] max-h-[640px] min-h-[480px]">
           {/* Left nav */}
           <nav className="w-48 flex-shrink-0 border-r ac-border-subtle ac-surface-1 p-2 space-y-0.5">
             {SECTIONS.map((s) => {
@@ -116,7 +121,7 @@ export function SettingsDialog({
 
           {/* Right content */}
           <ScrollArea className="flex-1 min-w-0 ac-hide-scrollbar">
-            <div className="p-5 space-y-5">
+            <div className="p-6 space-y-5">
               {section === 'agent' && <AgentSection />}
               {section === 'llm' && <LLMSection />}
               {section === 'sessions' && <SessionsSection />}
@@ -132,17 +137,33 @@ export function SettingsDialog({
 }
 
 // ── Reusable row primitive ────────────────────────────────────────────────
-function Row({ label, description, children }: {
+// Stacked layout (default): label + description on top, control below at
+// full width. Eliminates text cropping on long descriptions/values.
+// Pass `stacked={false}` to preserve the side-by-side layout for short rows
+// (Switch toggles, small selects with short descriptions).
+function Row({ label, description, children, stacked = true }: {
   label: string;
   description?: string;
   children: React.ReactNode;
+  stacked?: boolean;
 }) {
+  if (stacked) {
+    return (
+      <div className="space-y-1.5">
+        <Label className="text-[13px] font-medium ac-text-1">{label}</Label>
+        {description && (
+          <p className="text-[12px] ac-text-4 leading-relaxed">{description}</p>
+        )}
+        <div className="pt-1">{children}</div>
+      </div>
+    );
+  }
   return (
     <div className="flex items-start justify-between gap-4 py-1">
       <div className="flex-1 min-w-0">
-        <Label className="text-[12px] font-medium ac-text-1">{label}</Label>
+        <Label className="text-[13px] font-medium ac-text-1">{label}</Label>
         {description && (
-          <p className="text-[11px] ac-text-4 mt-0.5 leading-snug">{description}</p>
+          <p className="text-[12px] ac-text-4 mt-0.5 leading-relaxed">{description}</p>
         )}
       </div>
       <div className="flex-shrink-0">{children}</div>
@@ -265,84 +286,196 @@ function LLMSection() {
   const apiBaseUrl = useSettings((s) => s.apiBaseUrl);
   const set = useSettings((s) => s.set);
 
+  // Normalize the stored provider (handles legacy 'zai-auto' etc.).
+  const normalizedProvider = normalizeLLMProvider(llmProvider as string);
+  const meta = getProviderMetadata(normalizedProvider);
+  const providers = listProviders();
+
+  // When the user switches providers, pre-fill the model + baseURL with the
+  // new provider's defaults if the existing values don't match.
+  const handleProviderChange = (newId: string) => {
+    const newMeta = getProviderMetadata(newId);
+    set('llmProvider', newId as LLMProvider);
+    const prevMeta = getProviderMetadata(normalizedProvider);
+    if (prevMeta && (modelName === '' || modelName === prevMeta.defaultModel)) {
+      set('modelName', newMeta?.defaultModel ?? '');
+    }
+    if (prevMeta && (apiBaseUrl === '' || apiBaseUrl === prevMeta.defaultBaseURL)) {
+      set('apiBaseUrl', newMeta?.defaultBaseURL ?? '');
+    }
+  };
+
+  const requiresKey = providerRequiresApiKey(normalizedProvider);
+  const isLocalProvider = !requiresKey && (normalizedProvider === 'ollama' || normalizedProvider === 'lmstudio' || normalizedProvider === 'vllm');
+  const isCustom = normalizedProvider === 'custom';
+
   return (
     <>
-      <h2 className="text-[13px] font-semibold ac-text-1 mb-1">LLM provider</h2>
-      <p className="text-[11px] ac-text-4 mb-4 leading-relaxed">
-        Choose which LLM backend powers the agent. Inside the z.ai sandbox, the
-        default auto-resolves credentials — no key needed. Outside the sandbox,
-        use OpenAI-compatible to point at OpenAI, Together, Groq, or local Ollama.
+      <h2 className="text-[14px] font-semibold ac-text-1 mb-1.5">LLM provider</h2>
+      <p className="text-[12px] ac-text-4 mb-5 leading-relaxed">
+        Choose which LLM backend powers the agent. Supports 18 popular providers —
+        OpenAI, Anthropic, Google Gemini, Mistral, Groq, Together, DeepSeek,
+        OpenRouter, Fireworks, xAI, Perplexity, Hugging Face, plus local Ollama /
+        LM Studio / vLLM, and a generic Custom escape hatch.
       </p>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         <Row
           label="Provider"
-          description="Which LLM client to construct on the server."
+          description={meta?.description || 'Which LLM client to construct on the server.'}
         >
           <Select
-            value={llmProvider}
-            onValueChange={(v) => set('llmProvider', v as LLMProvider)}
+            value={normalizedProvider}
+            onValueChange={handleProviderChange}
           >
-            <SelectTrigger size="sm" className="h-7 w-44 text-[11px]">
+            <SelectTrigger size="sm" className="h-7 w-full sm:max-w-md text-[11px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="zai-auto" className="text-[11px]">z.ai (auto-credentials)</SelectItem>
-              <SelectItem value="zai-key" className="text-[11px]">z.ai (explicit API key)</SelectItem>
-              <SelectItem value="openai-compatible" className="text-[11px]">OpenAI-compatible</SelectItem>
+            <SelectContent className="max-h-80">
+              {providers.map((p) => (
+                <SelectItem
+                  key={p.id}
+                  value={p.id}
+                  className="text-[11px] flex flex-col items-start"
+                >
+                  <span>{p.metadata.label}</span>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </Row>
 
-        {llmProvider === 'openai-compatible' && (
-          <>
-            <Row
-              label="API base URL"
-              description="e.g. https://api.openai.com/v1, https://api.together.xyz/v1, http://localhost:11434/v1 (Ollama)"
-            >
-              <Input
-                value={apiBaseUrl}
-                onChange={(e) => set('apiBaseUrl', e.target.value)}
-                placeholder="https://api.openai.com/v1"
-                className="h-7 w-64 text-[11px]"
-              />
-            </Row>
-            <Row
-              label="Model name"
-              description="e.g. gpt-4o, gpt-4o-mini, glm-4.5, qwen-max, llama3.1:70b"
-            >
-              <Input
-                value={modelName}
-                onChange={(e) => set('modelName', e.target.value)}
-                placeholder="gpt-4o"
-                className="h-7 w-48 text-[11px]"
-              />
-            </Row>
-          </>
-        )}
-
-        {(llmProvider === 'zai-key' || llmProvider === 'openai-compatible') && (
+        {/* API key — shown for every provider that requires one. */}
+        {(requiresKey || isCustom) && (
           <Row
             label="API key"
-            description="Stored in your browser's localStorage only — never sent to anyone except the provider you choose."
+            description={
+              isCustom
+                ? 'Paste your provider\'s API key here. Stored in your browser\'s localStorage only.'
+                : `Set ${meta?.apiKeyEnvVars.join(' or ')} in your .env, or paste the key here (localStorage only).`
+            }
           >
             <Input
               type="password"
               value={apiKey}
               onChange={(e) => set('apiKey', e.target.value)}
-              placeholder={llmProvider === 'zai-key' ? 'ZAI_API_KEY' : 'sk-…'}
-              className="h-7 w-64 text-[11px] font-mono"
+              placeholder={meta?.apiKeyEnvVars[0] ? `${meta.apiKeyEnvVars[0]}=…` : 'sk-…'}
+              className="h-7 w-full sm:max-w-md text-[11px] font-mono"
             />
           </Row>
         )}
 
-        {llmProvider === 'zai-auto' && (
-          <div className="rounded-md border ac-border-subtle ac-surface-1 p-3 text-[11px] ac-text-3 leading-relaxed">
-            <strong className="ac-text-2">No configuration needed.</strong> The
-            z.ai sandbox auto-resolves credentials at runtime. If you're running
-            outside the sandbox, set <code className="font-mono ac-text-1">ZAI_API_KEY</code> in
-            your <code className="font-mono ac-text-1">.env</code> file, or switch
-            to <em>z.ai (explicit API key)</em> above.
+        {/* Model — always shown (every provider needs a model). */}
+        <Row
+          label="Model"
+          description={
+            meta && meta.popularModels.length > 0
+              ? `Popular: ${meta.popularModels.slice(0, 3).join(', ')}…  — or type your own.`
+              : 'Type the model name your provider expects.'
+          }
+        >
+          {(meta && meta.popularModels.length > 0) ? (
+            <Select
+              value={modelName || meta.defaultModel}
+              onValueChange={(v) => set('modelName', v)}
+            >
+              <SelectTrigger size="sm" className="h-7 w-full sm:max-w-md text-[11px]">
+                <SelectValue placeholder={meta.defaultModel || 'Select a model'} />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                {meta.popularModels.map((m) => (
+                  <SelectItem key={m} value={m} className="text-[11px] font-mono">
+                    {m}
+                  </SelectItem>
+                ))}
+                {/* Allow custom models — show current custom value if not in list */}
+                {modelName && !meta.popularModels.includes(modelName) && (
+                  <SelectItem value={modelName} className="text-[11px] font-mono">
+                    {modelName} (custom)
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              value={modelName}
+              onChange={(e) => set('modelName', e.target.value)}
+              placeholder={meta?.defaultModel || 'model-name'}
+              className="h-7 w-full sm:max-w-md text-[11px] font-mono"
+            />
+          )}
+        </Row>
+
+        {/* API base URL — shown for OpenAI-compatible providers + custom. */}
+        {meta?.openAICompatible && (
+          <Row
+            label="API base URL"
+            description={
+              isCustom
+                ? 'e.g. https://api.openai.com/v1, https://api.together.xyz/v1, http://localhost:11434/v1'
+                : `Default: ${meta.defaultBaseURL || '(none)'} — override only if you need a different endpoint.`
+            }
+          >
+            <Input
+              value={apiBaseUrl}
+              onChange={(e) => set('apiBaseUrl', e.target.value)}
+              placeholder={meta.defaultBaseURL || 'https://api.example.com/v1'}
+              className="h-7 w-full sm:max-w-md text-[11px] font-mono"
+            />
+          </Row>
+        )}
+
+        {/* Info box for sandbox / local providers */}
+        {normalizedProvider === 'zai' && !apiKey && (
+          <div className="rounded-md border ac-border-subtle ac-surface-1 p-3 text-[12px] ac-text-3 leading-relaxed">
+            <strong className="ac-text-2">No configuration needed inside the z.ai sandbox.</strong>{' '}
+            Credentials auto-resolve at runtime. Outside the sandbox, set{' '}
+            <code className="font-mono ac-text-1">ZAI_API_KEY</code> in your{' '}
+            <code className="font-mono ac-text-1">.env</code> file or paste it above.
+          </div>
+        )}
+
+        {isLocalProvider && (
+          <div className="rounded-md border ac-border-subtle ac-surface-1 p-3 text-[12px] ac-text-3 leading-relaxed">
+            <strong className="ac-text-2">Local provider.</strong>{' '}
+            Make sure your {meta?.label} server is running at{' '}
+            <code className="font-mono ac-text-1">{meta?.defaultBaseURL}</code> before sending a prompt.
+            No API key needed.
+          </div>
+        )}
+
+        {/* Capability flags (informational) */}
+        {meta && (
+          <div className="rounded-md border ac-border-subtle ac-surface-1 p-3 text-[12px] ac-text-4 leading-relaxed">
+            <div className="flex flex-col gap-1.5">
+              <span>
+                Tool calling: {' '}
+                <span className={meta.capabilities.supportsToolCalling ? 'ac-text-2 font-medium' : 'ac-text-4'}>
+                  {meta.capabilities.supportsToolCalling ? '✓ supported' : '✗ not supported'}
+                </span>
+              </span>
+              <span>
+                Vision: {' '}
+                <span className={meta.capabilities.supportsVision ? 'ac-text-2 font-medium' : 'ac-text-4'}>
+                  {meta.capabilities.supportsVision ? '✓ supported' : '✗ not supported'}
+                </span>
+              </span>
+              <span>
+                API: {' '}
+                <span className="ac-text-2 font-medium">
+                  {meta.openAICompatible ? 'OpenAI-compatible' : 'native SDK'}
+                </span>
+              </span>
+            </div>
+            {meta.docsUrl && (
+              <div className="mt-2">
+                <Button asChild variant="outline" size="sm">
+                  <a href={meta.docsUrl} target="_blank" rel="noopener noreferrer">
+                    Get an API key →
+                  </a>
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

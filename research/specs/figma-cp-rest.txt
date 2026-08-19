@@ -1,0 +1,508 @@
+# componentPropertyDefinitions | Developer Docs
+# URL: https://developers.figma.com/docs/plugins/api/properties/ComponentPropertiesMixin-componentpropertydefinitions
+
+componentPropertyDefinitions | Developer Docs 
+
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Skip to main content 
+ Developers Dev Mode 
+ 
+
+ Code in Figma 
+ 
+
+ Extensions 
+ 
+
+ Integrations 
+ 
+
+ Compare APIs 
+ My Apps Search K 
+
+ 
+ Plugins 
+ Overview 
+
+ Global Objects 
+
+ Node Types 
+
+ Shared Node Properties 
+ absoluteBoundingBox 
+ absoluteRenderBounds 
+ absoluteTransform 
+ addComponentProperty 
+ addDevResourceAsync 
+ addMeasurement 
+ animationStyles 
+ animations 
+ annotations 
+ appendChild 
+ appendChildAt 
+ applyAnimationStyle 
+ applyManualKeyframeTrack 
+ attachedConnectors 
+ backgroundStyleId 
+ backgrounds 
+ blendMode 
+ bottomLeftRadius 
+ bottomRightRadius 
+ boundVariables 
+ characters 
+ children 
+ clearExplicitVariableModeForCollection 
+ clipsContent 
+ complexStrokeProperties 
+ componentPropertyDefinitions 
+ componentPropertyReferences 
+ constrainProportions 
+ constraints 
+ cornerRadius 
+ cornerSmoothing 
+ counterAxisAlignContent 
+ counterAxisAlignItems 
+ counterAxisSizingMode 
+ counterAxisSpacing 
+ dashPattern 
+ deleteCharacters 
+ deleteComponentProperty 
+ deleteDevResourceAsync 
+ deleteMeasurement 
+ description 
+ descriptionMarkdown 
+ detachedInfo 
+ devStatus 
+ documentationLinks 
+ editComponentProperty 
+ editDevResourceAsync 
+ editMeasurement 
+ effectStyleId 
+ effects 
+ expanded 
+ explicitVariableModes 
+ exportAsync 
+ exportSettings 
+ fillGeometry 
+ fillStyleId 
+ fills 
+ findAll 
+ findAllWithCriteria 
+ findChild 
+ findChildren 
+ findOne 
+ findWidgetNodesByWidgetId 
+ fontName 
+ fontSize 
+ fontWeight 
+ getDevResourcesAsync 
+ getMeasurements 
+ getMeasurementsForNode 
+ getPluginData 
+ getPluginDataKeys 
+ getPublishStatusAsync 
+ getRangeAllFontNames 
+ getRangeBoundVariable 
+ getRangeFillStyleId 
+ getRangeFills 
+ getRangeFontName 
+ getRangeFontSize 
+ getRangeFontWeight 
+ getRangeHyperlink 
+ getRangeIndentation 
+ getRangeLetterSpacing 
+ getRangeLineHeight 
+ getRangeListOptions 
+ getRangeListSpacing 
+ getRangeOpenTypeFeatures 
+ getRangeParagraphIndent 
+ getRangeParagraphSpacing 
+ getRangeTextCase 
+ getRangeTextDecoration 
+ getRangeTextDecorationColor 
+ getRangeTextDecorationOffset 
+ getRangeTextDecorationSkipInk 
+ getRangeTextDecorationStyle 
+ getRangeTextDecorationThickness 
+ getRangeTextStyleId 
+ getRangeTextWrapStyle 
+ getRelaunchData 
+ getSharedPluginData 
+ getSharedPluginDataKeys 
+ getStyledTextSegments 
+ getTopLevelFrame 
+ gridAutoTracks 
+ gridChildHorizontalAlign 
+ gridChildVerticalAlign 
+ gridColumnAnchorIndex 
+ gridColumnCount 
+ gridColumnGap 
+ gridColumnSizes 
+ gridColumnSpan 
+ gridItemsPositioning 
+ gridRowAnchorIndex 
+ gridRowCount 
+ gridRowGap 
+ gridRowSizes 
+ gridRowSpan 
+ gridStyleId 
+ guides 
+ handleMirroring 
+ hangingList 
+ hangingPunctuation 
+ hasMissingFont 
+ height 
+ horizontalPadding 
+ hyperlink 
+ id 
+ inferredAutoLayout 
+ inferredVariables 
+ insertCharacters 
+ insertChild 
+ isAsset 
+ isMask 
+ itemReverseZIndex 
+ itemSpacing 
+ key 
+ layoutAlign 
+ layoutGrids 
+ layoutGrow 
+ layoutMode 
+ layoutPositioning 
+ layoutSizingHorizontal 
+ layoutSizingVertical 
+ layoutWrap 
+ leadingTrim 
+ letterSpacing 
+ lineHeight 
+ listSpacing 
+ lockAspectRatio 
+ locked 
+ manualKeyframeTracks 
+ maskType 
+ maxHeight 
+ maxWidth 
+ minHeight 
+ minWidth 
+ name 
+ numberOfFixedChildren 
+ opacity 
+ openTypeFeatures 
+ outlineStroke 
+ overflowDirection 
+ overlayBackground 
+ overlayBackgroundInteraction 
+ overlayPositionType 
+ paddingBottom 
+ paddingLeft 
+ paddingRight 
+ paddingTop 
+ paragraphIndent 
+ paragraphSpacing 
+ parent 
+ primaryAxisAlignItems 
+ primaryAxisSizingMode 
+ reactions 
+ relativeTransform 
+ remote 
+ remove 
+ removeAnimationStyle 
+ removeManualKeyframeTrack 
+ removed 
+ reorderColumns 
+ reorderRows 
+ rescale 
+ resize 
+ resizeWithoutConstraints 
+ resolvedVariableModes 
+ rotation 
+ setBoundVariable 
+ setDevResourcePreviewAsync 
+ setEffectStyleIdAsync 
+ setExplicitVariableModeForCollection 
+ setFillStyleIdAsync 
+ setFillsAsync 
+ setGridChildPosition 
+ setGridStyleIdAsync 
+ setPluginData 
+ setRangeBoundVariable 
+ setRangeFillStyleId 
+ setRangeFillStyleIdAsync 
+ setRangeFills 
+ setRangeFontName 
+ setRangeFontSize 
+ setRangeHyperlink 
+ setRangeIndentation 
+ setRangeLetterSpacing 
+ setRangeLineHeight 
+ setRangeListOptions 
+ setRangeListSpacing 
+ setRangeParagraphIndent 
+ setRangeParagraphSpacing 
+ setRangeTextCase 
+ setRangeTextDecoration 
+ setRangeTextDecorationColor 
+ setRangeTextDecorationOffset 
+ setRangeTextDecorationSkipInk 
+ setRangeTextDecorationStyle 
+ setRangeTextDecorationThickness 
+ setRangeTextStyleId 
+ setRangeTextStyleIdAsync 
+ setRangeTextWrapStyle 
+ setReactionsAsync 
+ setRelaunchData 
+ setSharedPluginData 
+ setStrokeStyleIdAsync 
+ setStrokesAsync 
+ setTimelineDuration 
+ setVectorNetworkAsync 
+ strokeAlign 
+ strokeBottomWeight 
+ strokeCap 
+ strokeGeometry 
+ strokeJoin 
+ strokeLeftWeight 
+ strokeMiterLimit 
+ strokeRightWeight 
+ strokeStyleId 
+ strokeTopWeight 
+ strokeWeight 
+ strokes 
+ strokesIncludedInLayout 
+ stuckNodes 
+ stuckTo 
+ targetAspectRatio 
+ textCase 
+ textDecoration 
+ textDecorationColor 
+ textDecorationOffset 
+ textDecorationSkipInk 
+ textDecorationStyle 
+ textDecorationThickness 
+ textWrapStyle 
+ timelines 
+ toString 
+ topLeftRadius 
+ topRightRadius 
+ unlockAspectRatio 
+ variableWidthStrokeProperties 
+ variantProperties 
+ vectorNetwork 
+ vectorPaths 
+ verticalPadding 
+ visible 
+ width 
+ x 
+ y 
+ 
+ Data Types 
+
+ 
+ 
+
+ 
+ Plugins 
+ Shared Node Properties 
+ componentPropertyDefinitions 
+ On this page 
+ componentPropertyDefinitions
+ All component properties and their default values that exist on this component set. 'VARIANT'
+ properties will also have a list of all variant options. 'BOOLEAN'
+, 'TEXT'
+, and 'INSTANCE_SWAP'
+ properties will have their names suffixed by a unique identifier starting with '#'
+, which is helpful for quickly distinguishing multiple component properties that have the same name in the Figma UI. The entire property name should be used for all Component property-related API methods and properties.
+
+ Supported on:
+ ComponentNode 
+ ComponentSetNode 
+ 
+
+ Signature ​ 
+
+ componentPropertyDefinitions : ComponentPropertyDefinitions [readonly] 
+
+ Remarks ​ 
+
+ Component properties-related properties define parts of the component people can change by tying them to specific design properties. You can create component properties for any main component or component set, and apply them to nested layers of the component or variant.
+
+ Component properties-related properties and methods for component sets, components, and instances
+ componentSet . componentPropertyDefinitions 
+ 
+ // Output 
+ { 
+ Size : { 
+ type : 'VARIANT' , 
+ defaultValue : 'Small' , 
+ variantOptions : [ 'Small' , 'Medium' , 'Large' ] , 
+ } , 
+ IconVisible# 0 : 0 : { 
+ type : 'BOOLEAN' , 
+ defaultValue : false , 
+ } , 
+ ButtonText# 0 : 1 : { 
+ type : 'TEXT' , 
+ defaultValue : 'submit' , 
+ } , 
+ IconInstance# 0 : 2 : { 
+ type : 'INSTANCE_SWAP' , 
+ defaultValue : '1:1' , 
+ preferredValues : [ 
+ { type : 'COMPONENT' , key : 'ckey1' } , 
+ { type : 'COMPONENT_SET' , key : 'sgkey1' } 
+ ] , 
+ } , 
+ } 
+ 
+ // componentProperties on an instance 
+ instance . componentProperties 
+ 
+ // Output 
+ { 
+ Size : { 
+ type : 'VARIANT' , 
+ value : 'Medium' , 
+ } , 
+ IconVisible# 0 : 0 : { 
+ type : 'BOOLEAN' , 
+ value : false , 
+ } , 
+ ButtonText# 0 : 1 : { 
+ type : 'TEXT' , 
+ value : 'cancel' , 
+ } , 
+ IconInstance# 0 : 2 : { 
+ type : 'INSTANCE_SWAP' , 
+ defaultValue : '1:1' , 
+ preferredValues : [ 
+ { type : 'COMPONENT' , key : 'ckey1' } , 
+ { type : 'COMPONENT_SET' , key : 'sgkey1' } 
+ ] , 
+ } , 
+ } 
+ 
+ // component property definitions can be created, edited, and deleted 
+ component . addComponentProperty ( "ButtonIcon" , "INSTANCE_SWAP" , "2:22" ) 
+ // returns "ButtonIcon#4:3" 
+ 
+ component . editComponentProperty ( 
+ "ButtonIcon#4:3" , 
+ { name : "PrimaryButtonIcon" , defaultValue : "1:100" } 
+ ) 
+ // returns "PrimaryButtonIcon#5:5" 
+ 
+ component . deleteComponentProperty ( "PrimaryButtonIcon#5:5" ) 
+ 
+ // componentPropertyDefinitions and componentProperties work similarly for 
+ // main components and their instances but will never have 'VARIANT' 
+ // properties. 
+ component . componentPropertyDefinitions 
+ 
+ // Output 
+ { 
+ ImageVisible# 0 : 0 : { 
+ type : 'BOOLEAN' , 
+ defaultValue : true , 
+ } , 
+ Icon# 0 : 1 : { 
+ type : 'INSTANCE_SWAP' , 
+ defaultValue : '7:23' , 
+ } , 
+ } 
+ 
+ instance . componentProperties 
+ 
+ // Output 
+ { 
+ ImageVisible# 0 : 0 : { 
+ type : 'BOOLEAN' , 
+ value : true , 
+ } , 
+ Icon# 0 : 1 : { 
+ type : 'INSTANCE_SWAP' , 
+ value : '1:24' , 
+ } , 
+ } 
+ 
+ // component properties can be applied to node properties of nested layers 
+ component . children [ 0 ] . children [ 0 ] . componentPropertyReferences = { 
+ 'visible' : 'IconVisible#0:0' 
+ } 
+ component . children [ 0 ] . children [ 0 ] . visible 
+ 
+ // Output 
+ false // gets value from component property definition 
+ 
+ // Use setProperties on an instance to configure it 
+ instance . setProperties ( { Size : 'Large' , 'ButtonText#0:1' : 'login' } ) 
+ instance . componentProperties 
+ 
+ // Output 
+ { 
+ Size : { 
+ type : 'VARIANT' , 
+ value : 'Large' , 
+ } , 
+ IconVisible# 0 : 0 : { 
+ type : 'BOOLEAN' , 
+ value : false , 
+ } , 
+ ButtonText# 0 : 1 : { 
+ type : 'TEXT' , 
+ value : 'login' , 
+ } , 
+ } 
+ 
+ instance . setProperties ( { 'IconVisible#0:0' : true } ) 
+ instance . componentProperties 
+ 
+ // Output 
+ { 
+ Size : { 
+ type : 'VARIANT' , 
+ value : 'Large' , 
+ } , 
+ IconVisible# 0 : 0 : { 
+ type : 'BOOLEAN' , 
+ value : true , 
+ } , 
+ ButtonText# 0 : 1 : { 
+ type : 'TEXT' , 
+ value : 'login' , 
+ } , 
+ } 
+ 
+
+ 
+
+ Previous
+ complexStrokeProperties
+ Next
+ constraints
+ 
+
+ Signature 
+ Remarks 
+ 
+
+ 
+
+ Was this page helpful? Leave us feedback 
+
+ Community Forum 
+ Discord Server 
+ GitHub Samples 
+ 
+ FigJam · Enterprise · Learn · Education · Careers · Pricing · Developers · Blog · Downloads · Releases · Security · Legal · Contact

@@ -31,9 +31,12 @@
 import ZAI from 'z-ai-web-dev-sdk';
 import { createCanvasTools, executeTool, toolsToOpenAISpec, type CanvasToolContext } from './tools';
 import { createPenTools, PEN_TOOL_NAMES } from './pen-tools';
+import { createFigmaTools, FIGMA_TOOL_NAMES } from './figma-tools';
 import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types';
 import type { AgentRunSettings, DefaultPalette } from '../settings/types';
-import { PALETTES } from '../settings/types';
+import { PALETTES, normalizeLLMProvider, providerDefaultModel } from '../settings/types';
+import { createLLMClient, getProviderMetadata } from '../llm';
+import type { LLMClient as RegistryLLMClient, LLMProviderConfig } from '../llm';
 import { createEmptyCanvasDocument } from '../canvas/types';
 import { applyPatchToCanvas } from '../canvas/patch';
 import { resolvePenTree } from '../pen/resolve';
@@ -155,9 +158,9 @@ export type AgentStreamEvent =
 // This is a template — the runner fills in ${SKILL_METADATA}, ${SKILL_BODY},
 // and ${CANVAS_SNAPSHOT} at runtime.
 
-const SYSTEM_PROMPT_TEMPLATE = `You are an AI design agent operating a Figma-like canvas powered by the Pi Agent SDK.
+const SYSTEM_PROMPT_TEMPLATE = `You are an AI design agent operating a Figma-aligned canvas. You think and act like a senior product designer at a top studio: you reason in terms of FRAMES, LAYERS, COMPONENTS, VARIANTS, VARIABLES, STYLES, AUTO LAYOUT, and PAGES — never in terms of generic "shapes" or "tokens".
 
-You can see the current canvas state and manipulate it through tools. Your job is to take the user's natural-language request and produce a visually pleasing, production-ready design on the canvas.
+Your job: take the user's natural-language request and produce a visually polished, production-ready design on the canvas. You can see the current canvas state and manipulate it through ~60 typed tools.
 
 ${'${PLAN_FIRST_SECTION}'}
 
@@ -174,21 +177,84 @@ ${'${SKILL_BODY}'}
 
 ${'${PLAN_SECTION}'}
 
+=== FIGMA ONTOLOGY (CRITICAL — reason in these terms) ======================
+
+The canvas is a Figma-like design surface. Use this vocabulary throughout:
+
+FILE → PAGES → LAYERS (the tree)
+  - FILE: the design document (one .pen file). Contains pages, variables, themes, component definitions.
+  - PAGE: a top-level canvas surface within the file. Multi-screen designs belong on separate pages (e.g. "Home", "Dashboard", "Mobile flows"). Each page has its own layer tree + pan/zoom.
+  - LAYER: any node in the page's layer tree. ALL nodes are "layers" — frames, rectangles, text, components, etc. Avoid the word "shape"; say "layer".
+
+LAYER TYPES (the Figma-canonical node union):
+  Containers (can have children):
+    - FRAME       — the primary container. Hosts AUTO LAYOUT. Default for any UI grouping.
+    - SECTION     — a large grouping container with a header label. Use to organize areas of the canvas ("Onboarding flow", "Dashboard sections").
+    - COMPONENT   — a reusable design element. Define once, place many instances.
+    - COMPONENT_SET — a container for VARIANTS of a component (e.g. Button with Size × State axes).
+    - GROUP       — a loose grouping without its own properties. Use sparingly; prefer FRAME.
+    - BOOLEAN_OPERATION — non-destructive union/subtract/intersect/exclude of child vectors.
+  Leaves (no children):
+    - RECTANGLE, ELLIPSE, LINE, STAR, POLYGON, PATH (SVG geometry), TEXT, SLICE (export region), INSTANCE (a placed component copy).
+
+COMPONENTS & VARIANTS:
+  - A COMPONENT is defined once (via figma_create_component). It can have COMPONENT PROPERTIES:
+      • Boolean   — toggle (e.g. "showIcon": true/false)
+      • Text      — string content (e.g. "label": "Submit")
+      • Instance swap — swap to another component (e.g. "icon": <icon component id>)
+      • Variant   — picks a variant from the component_set (e.g. "state": "default" | "hover" | "disabled")
+  - A COMPONENT_SET holds multiple COMPONENT variants. Variant axes are defined on the set
+    (e.g. ["size", "state"]). Each variant child is named "Size=Large, State=Hover"
+    (Figma's naming convention — the agent MUST follow this).
+  - An INSTANCE (PenRef) is a placed copy of a component. Override component properties
+    via componentProperties (NOT via descendants — descendants are for deep tree overrides only).
+
+VARIABLES & STYLES (the design-system layer):
+  - VARIABLES: single reusable values, keyed by dotted names ("color.primary", "spacing.md",
+    "text.body.size"). 4 types: color, number, string, boolean. Reference via "$name".
+    Can be theme-conditional (one value for mode=light, another for mode=dark).
+  - THEMES: axis → value (e.g. mode=light/dark, spacing=regular/condensed, device=phone/tablet).
+    Apply to a frame via pen_apply_theme; descendants inherit.
+  - The legacy "tokens" concept is collapsed into Variables here. When you see "tokens" in
+    the canvas snapshot, treat them as Variables.
+
+AUTO LAYOUT (Figma's flexbox):
+  - Frames (and Components, Component Sets, Sections) support AUTO LAYOUT:
+    direction (horizontal/vertical), gap, padding, alignX, alignY.
+  - Prefer AUTO LAYOUT over manual x/y positioning for any contained UI (cards, lists, buttons,
+    nav bars, form fields). Only use absolute x/y for top-level placement on the page canvas.
+
+HIERARCHY & POSITIONING:
+  - Children's stored x/y are RELATIVE to their parent's content origin. The resolver flattens
+    to absolute coordinates for rendering.
+  - Use pen_reparent_shape to move a layer to a new parent (default preserves absolute position).
+  - Use pen_ungroup_shapes to dissolve a group — children promote to the grandparent.
+
 === DESIGN PRINCIPLES ======================================================
 
-- Be deliberate about layout: use a grid, align shapes, leave breathing room.
+- Be deliberate about layout: use a grid, align layers, leave breathing room.
 - Pick harmonious colors. Default to a modern, minimal palette unless told otherwise.
   Suggested palettes (the first one is your default — prefer it unless the user asks otherwise):
 ${'${PALETTES_LIST}'}
-- When creating multiple shapes, give each a sensible name (e.g. "Header", "Card", "Avatar").
+- When creating multiple layers, give each a sensible Figma-style name (e.g. "Header", "Card",
+  "Avatar", "Primary Button", "Submit Button / Hover").
 - Coordinates are canvas-space pixels. The viewport at zoom 1 shows roughly 0..1200 x 0..800.
-  Center of visible area is around (600, 400). Place groups of shapes around a focal point.
-- Always call pen_list_shapes before updating/deleting existing shapes so you know the ids.
-- After creating shapes, briefly summarize what you did in 1-2 sentences. Do not narrate every step.
+  Center of visible area is around (600, 400). Place groups of layers around a focal point.
+- ALWAYS call pen_list_shapes before updating/deleting existing layers so you know the ids.
+  (pen_list_shapes returns the resolved layer tree — same as Figma's layers panel.)
+- After creating layers, briefly summarize what you did in 1-2 sentences. Do not narrate every step.
 - If the user asks for something you cannot do with the available tools, say so clearly.
 - Prefer HIGH-LEVEL generator tools (generate_wireframe, generate_user_flow, generate_diagram)
-  over hand-placing many shapes — they produce well-structured output and conserve tool-call budget.
-- Use pen_bulk_update_by_filter to update many shapes at once, NOT individual update_shape calls.
+  over hand-placing many layers — they produce well-structured output and conserve tool-call budget.
+- Use pen_bulk_update_by_filter to update many layers at once, NOT individual update_shape calls.
+- For reusable UI (buttons, cards, inputs): define a COMPONENT once, then create INSTANCES.
+  Don't duplicate the same rectangle-stack 5 times — make it a component.
+- For multi-state components (default / hover / disabled / sizes): use a COMPONENT_SET with
+  variant axes. Name variants "Size=Large, State=Hover" per Figma convention.
+- For multi-screen flows: create separate PAGES (Home, Dashboard, Settings) rather than cramming
+  everything onto one canvas. Use figma_create_page.
+- Bind fills/strokes/text to $variables (color.primary, text.body.size) so the design system
+  stays editable. Avoid hardcoded hex values when a variable exists.
 
 === ARGUMENT TYPE RULES (CRITICAL — read before calling tools) ==============
 
@@ -200,10 +266,12 @@ ${'${PALETTES_LIST}'}
   RIGHT: "palette": ["#fff", "#000"]             (real JSON array)
 - For web_search: query is a plain string, recency is "day"|"week"|"month"|"year" (omit for no filter).
 - For web_fetch: url is a plain string (https://example.com/page or bare example.com).
+- Variant names follow Figma's convention: "Property=Value, Property=Value" (comma-separated,
+  Property is capitalized, Value is capitalized). E.g. "Size=Large, State=Hover".
 
 === TURN FLOW ===============================================================
 
-Build the full design in this turn — create every shape the user asked for, then stop.
+Build the full design in this turn — create every layer the user asked for, then stop.
 You may call multiple tools in one turn if it helps. Stop calling tools when the design is done.
 
 IMPORTANT: The skill names above (wireframe, layout, styling, etc.) are NOT tools — do not
@@ -215,50 +283,40 @@ again. Proceed straight to designing based on the research findings.
 
 === .pen FORMAT ALIGNMENT (pen.dev) =========================================
 This canvas serializes to the pen.dev .pen file format (JSON, version 2.17).
-When you build designs, prefer pen.dev terminology so the output is faithful
-to the .pen ontology on export:
+The .pen format is the runtime source of truth — doc.children: PenChild[] is the layer tree.
+A derived flat list (doc.shapes with absolute coords + depth-first zIndex) is recomputed by
+resolvePenTree on every mutation. (Note: "shapes" is the legacy field name; conceptually
+these ARE "layers" in Figma vocabulary — the field is kept for backward compat.)
 
-  - VARIABLES: use pen_set_variable to define design tokens keyed by dotted
-    names ("color.primary", "spacing.md", "text.body.size"). Reference them
-    via "$name". For theme-aware tokens pass 'themedValues' (e.g. one value
-    for mode=light, another for mode=dark). Prefer variables over hardcoded
-    colors so the design system stays editable.
-  - THEMES: use pen_apply_theme to set a theme axis value (e.g. mode=dark)
-    on a frame; descendants inherit it. Common axes: mode (light/dark),
-    spacing (regular/condensed), device (phone/tablet/desktop).
-  - COMPONENTS & INSTANCES: mark a reusable component with reusable=true
-    (via pen_create_component), then create instances with pen_create_ref.
-    Customize instances via 'descendants' (keyed by slash-separated ID path,
-    e.g. "ok-button/label"). Include a 'type' in an override to fully
-    replace a descendant node.
-  - SLOTS: use pen_mark_slot on a frame inside a component to mark where
-    recommended child components can be inserted (e.g. a content slot in a
-    card that accepts round-button instances).
-  - FLEXBOX LAYOUT: frames support flexbox via autoLayout (direction, gap,
-    padding, alignX, alignY) which maps to .pen's layout/gap/padding/
-    justifyContent/alignItems. Prefer flex layouts over manual x/y for
-    contained UI.
-  - NODE TYPES: the .pen format supports rectangle, ellipse, polygon, path
-    (SVG geometry), text, frame, group, note, context, prompt, icon, script,
-    ref. The runtime tree is the source of truth (doc.children: PenChild[]);
-    a derived flat list (doc.shapes with absolute coords + depth-first
-    zIndex) is recomputed by resolvePenTree on every mutation.
-  - HIERARCHY: the canvas is a tree of containers (frames / groups / components
-    / instances / boolean-ops) and leaves (rectangles / ellipses / text /
-    lines / paths / images). Children's stored x/y are RELATIVE to their
-    parent's content origin; resolvePenTree flattens them to absolute. Use
-    pen_reparent_shape to move a node to a new parent (default preserves the
-    node's absolute position via coord remap). Use pen_ungroup_shapes to
-    dissolve a group — children are promoted to the grandparent and their
-    stored x/y is remapped to preserve absolute position.
-  - CONSTRAINTS: Figma-style layout constraints (left/right/center/scale/
-    left_right horizontal, top/bottom/center/scale/top_bottom vertical) can
-    be set on any child via pen_set_constraints. The renderer does not yet
-    enforce these but they are visible in the Properties panel and inform
-    responsive resize intent.
-  - EXPORT: when the user asks to "export as .pen" or "save for pen.dev",
-    call pen_export_pen. The UI also has a ".pen" menu in the header for
-    manual export/import.
+When you build designs, prefer .pen terminology so the output is faithful to the .pen ontology
+on export. The .pen node types are: frame, section, component, component_set, group,
+boolean_operation, slice, rectangle, ellipse, star, polygon, path, line, text, note, context,
+prompt, icon, script, ref (instance).
+
+VARIABLES: use pen_set_variable to define design tokens keyed by dotted names
+("color.primary", "spacing.md", "text.body.size"). Reference them via "$name".
+
+THEMES: use pen_apply_theme to set a theme axis value (e.g. mode=dark) on a frame;
+descendants inherit it.
+
+COMPONENTS & INSTANCES: use figma_create_component to define a reusable component.
+Create instances with pen_create_ref. Override component properties via componentProperties
+on the ref (NOT descendants). Use descendants only for deep tree overrides.
+
+COMPONENT SETS & VARIANTS: use figma_create_component_set to create a container for
+variants. Add variants via figma_add_variant (each becomes a COMPONENT child). Define
+variant axes on the set; each variant's name follows "Property=Value, Property=Value".
+
+SLOTS: use pen_mark_slot on a frame inside a component to mark where recommended
+child components can be inserted. Maps to Figma's "preferred instances" concept.
+
+PAGES: use figma_create_page to add a new page to the file. Use figma_set_active_page
+to switch the active page. Use pages for multi-screen designs — one page per screen.
+
+FLEXBOX LAYOUT: frames/components/component_sets/sections support flexbox via autoLayout
+(direction, gap, padding, alignX, alignY). Prefer flex layouts over manual x/y for contained UI.
+
+EXPORT: when the user asks to "export as .pen" or "save for pen.dev", call pen_export_pen.
 
 When you need real-world information that is NOT already provided, call web_search / web_fetch
 (only available if the web_research skill is active).`;
@@ -298,7 +356,26 @@ function canvasSnapshot(canvas: CanvasDocument): string {
     const textLabel = s.text ? ` text="${s.text}"` : '';
     const componentLabel = s.componentId ? ` component=${s.componentId}` : '';
     const autoLayoutLabel = s.autoLayout ? ` autoLayout=${s.autoLayout.direction}` : '';
-    return `${indent}${bullet} ${s.id} | ${s.type} "${s.name}" | pos=(${round(s.x)},${round(s.y)}) size=${round(s.width)}×${round(s.height)} fill=${s.fill}${textLabel}${parentLabel}${componentLabel}${autoLayoutLabel}${constraintsLabel}`;
+    // Figma ontology extension fields:
+    const sectionLabel = s.type === 'section' && s.label ? ` label="${s.label}"` : '';
+    const variantAxesLabel = s.type === 'component_set' && s.variantPropertyAxes
+      ? ` variantAxes=[${s.variantPropertyAxes.join(',')}]`
+      : '';
+    const variantValuesLabel = s.variantPropertyValues
+      ? ` variant=${Object.entries(s.variantPropertyValues).map(([k, v]) => `${k}=${v}`).join(',')}`
+      : '';
+    const componentPropsLabel = s.componentPropertyDefinitions
+      ? ` componentProps=[${Object.keys(s.componentPropertyDefinitions).join(',')}]`
+      : '';
+    const instancePropsLabel = s.componentProperties
+      ? ` instanceProps=${JSON.stringify(s.componentProperties)}`
+      : '';
+    const booleanTypeLabel = s.booleanOperationType
+      ? ` boolean=${s.booleanOperationType}`
+      : '';
+    const starLabel = s.type === 'star' && s.pointCount ? ` points=${s.pointCount}` : '';
+    const polygonLabel = s.type === 'polygon' && s.polygonCount ? ` sides=${s.polygonCount}` : '';
+    return `${indent}${bullet} ${s.id} | ${s.type} "${s.name}" | pos=(${round(s.x)},${round(s.y)}) size=${round(s.width)}×${round(s.height)} fill=${s.fill}${textLabel}${parentLabel}${componentLabel}${autoLayoutLabel}${constraintsLabel}${sectionLabel}${variantAxesLabel}${variantValuesLabel}${componentPropsLabel}${instancePropsLabel}${booleanTypeLabel}${starLabel}${polygonLabel}`;
   };
 
   const renderTree = (parentId: string | null, depth: number): string => {
@@ -320,7 +397,7 @@ function canvasSnapshot(canvas: CanvasDocument): string {
   const themeLines = !canvas.themes || Object.keys(canvas.themes).length === 0
     ? '  (no theme axes)'
     : Object.entries(canvas.themes).map(([axis, vals]) => `  • ${axis}: [${vals.join(', ')}]`).join('\n');
-  return `Current canvas state (.pen v${canvas.version}):
+  return `Current canvas state (.pen v${canvas.version}) — File: "${canvas.name}"${canvas.pages && canvas.pages.length > 0 ? `, Pages: ${canvas.pages.length} (active: "${canvas.pages[canvas.activePageIndex ?? 0]?.name ?? 'Page 1'}")` : ''}:
 - Background: ${canvas.background}
 - Variables (${canvas.variables ? Object.keys(canvas.variables).length : 0}):
 ${varLines}
@@ -328,7 +405,7 @@ ${varLines}
 ${themeLines}
 - Tokens (derived: ${tokens.colors.length} colors, ${tokens.textStyles.length} text styles):
 ${tokenLines}
-- Node tree (${shapes.length} node(s), indented = nesting):
+- Layer tree (${shapes.length} layer(s), indented = nesting):
 ${treeLines}`;
 }
 
@@ -389,68 +466,46 @@ function filterToolSpecs(
   category: SkillCategory,
 ): ReturnType<typeof toolsToOpenAISpec> {
   const allowedNames = new Set(getToolNamesForCategory(category));
-  const penNameSet = new Set<string>(PEN_TOOL_NAMES);
+  const penNameSet = new Set<string>([...PEN_TOOL_NAMES, ...FIGMA_TOOL_NAMES]);
   return allSpecs.filter(
     (s) => allowedNames.has(s.function.name) || penNameSet.has(s.function.name),
   );
 }
 
-// ---- OpenAI-compatible LLM client ------------------------------------------
+// ---- LLM client construction --------------------------------------------------
 //
-// A minimal fetch-based client that satisfies the LLMClient interface.
-// Used when the user configures a custom OpenAI-compatible endpoint
-// (Together AI, Groq, Anyscale, local Ollama, etc.).
+// The runner now delegates to the provider registry in `src/lib/llm/`.
+// Every supported provider (OpenAI, Anthropic, Google, Mistral, Groq,
+// Together, DeepSeek, OpenRouter, Fireworks, xAI, Perplexity, Hugging Face,
+// Ollama, LM Studio, vLLM, z.ai, and a generic "custom" escape hatch) is
+// registered there with its metadata + factory. The runner just resolves
+// the provider id (migrating legacy values like 'zai-auto' / 'openai-compatible'),
+// fills in defaults if the user didn't specify them, and calls
+// `createLLMClient(config)`.
 //
-// Only the chat.completions.create shape is implemented — that's all the
-// runner needs. Streaming is NOT supported here (the runner calls without
-// `stream: true` and reads `choices[0].message`); if the user's endpoint
-// defaults to streaming, we explicitly pass `stream: false`.
+// The legacy `createOpenAICompatibleClient` helper below is preserved as
+// a thin wrapper for backward compatibility — tests and any external
+// consumers that imported it directly still work. New code should use
+// `createLLMClient` from `@/lib/llm` instead.
 
 function createOpenAICompatibleClient(opts: {
   apiKey: string;
   baseURL: string;
   model: string;
 }): LLMClient {
-  const { apiKey, baseURL, model } = opts;
-  const url = baseURL.replace(/\/+$/, '') + '/chat/completions';
-
-  return {
-    chat: {
-      completions: {
-        create: async (params: any) => {
-          const body: Record<string, unknown> = {
-            model,
-            messages: params.messages,
-            temperature: params.temperature ?? 0.4,
-            stream: false,
-          };
-          if (params.tools && params.tools.length > 0) {
-            body.tools = params.tools;
-            body.tool_choice = params.tool_choice ?? 'auto';
-          }
-
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
-            },
-            body: JSON.stringify(body),
-          });
-
-          if (!res.ok) {
-            const text = await res.text().catch(() => '');
-            throw new Error(`OpenAI-compatible LLM error ${res.status}: ${text.slice(0, 300)}`);
-          }
-
-          const json = await res.json();
-          // The OpenAI response shape is what the runner expects.
-          return json;
-        },
-      },
-    },
-  };
+  // Delegate to the shared factory in src/lib/llm/openai-compatible.ts.
+  // For safety, we use createOpenAICompatible directly to preserve the
+  // exact sync behavior of the legacy function.
+  return createOpenAICompatibleSync({
+    apiKey: opts.apiKey,
+    baseURL: opts.baseURL,
+    model: opts.model,
+  });
 }
+
+/// Synchronous wrapper around the OpenAI-compatible client factory.
+/// Imported lazily to avoid a circular dep.
+import { createOpenAICompatible as createOpenAICompatibleSync } from '../llm/openai-compatible';
 
 // ---- Run the agent loop ---------------------------------------------------
 
@@ -485,33 +540,62 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   // The .pen-aligned tools (pen_set_variable, pen_create_ref, …) are always
   // available — they expose pen.dev concepts (variables, themes, refs,
   // slots) that complement the granular pen_* tool surface.
+  // The Figma-aligned tools (figma_create_page, figma_create_component, …)
+  // are also always available — they expose Figma-canonical concepts
+  // (Pages, Sections, Components, Component Sets, Variants, Component
+  // Properties) that the agent needs to reason like a Figma designer.
   const canvasTools = createCanvasTools(ctx);
   const penTools = createPenTools(ctx);
-  const tools = [...canvasTools, ...penTools] as ReturnType<typeof createCanvasTools>;
+  const figmaTools = createFigmaTools(ctx);
+  const tools = [...canvasTools, ...penTools, ...figmaTools] as ReturnType<typeof createCanvasTools>;
   const allToolSpecs = toolsToOpenAISpec(tools);
 
   // Initialize the LLM client.
   // - If a mock is injected (tests), use it.
-  // - If settings specify a custom OpenAI-compatible endpoint, build a fetch-based client.
-  // - Otherwise (default), use ZAI.create() — which auto-resolves credentials in
-  //   the z.ai sandbox, or uses ZAI_API_KEY / OPENAI_API_KEY env vars outside it.
+  // - Otherwise, resolve the provider from settings (with legacy migration),
+  //   fill in defaults, and call the registry's factory.
   let llm: LLMClient;
   if (injectedLlm) {
     llm = injectedLlm;
-  } else if (settings?.llmProvider === 'openai-compatible' && settings.apiBaseUrl) {
-    llm = createOpenAICompatibleClient({
-      apiKey: settings.apiKey,
-      baseURL: settings.apiBaseUrl,
-      model: settings.modelName || 'gpt-4o',
-    });
   } else {
-    // zai-auto OR zai-key (both go through ZAI.create; the env var or
-    // sandbox auto-resolution handles credentialing. If the user explicitly
-    // set ZAI_API_KEY via the settings UI, we'd ideally pass it to ZAI.create,
-    // but the current SDK shape doesn't expose that — so we rely on the env
-    // var being set. The settings field is still useful as documentation +
-    // for the openai-compatible path.)
-    llm = (await ZAI.create()) as unknown as LLMClient;
+    const rawProvider = settings?.llmProvider ?? 'zai';
+    const providerId = normalizeLLMProvider(rawProvider);
+    const meta = getProviderMetadata(providerId);
+
+    // For z.ai inside the sandbox, we still prefer ZAI.create() because it
+    // auto-resolves credentials in a way the fetch-based client can't
+    // (sandbox-only headers, etc.). Outside the sandbox, we fall through
+    // to the registry's openai-compatible factory for z.ai too.
+    const isZaiSandbox = providerId === 'zai' && !settings?.apiKey;
+    if (isZaiSandbox) {
+      llm = (await ZAI.create()) as unknown as LLMClient;
+    } else {
+      // Build the config: user overrides > provider defaults.
+      const config: LLMProviderConfig = {
+        providerId,
+        apiKey: settings?.apiKey ?? '',
+        baseURL: settings?.apiBaseUrl || meta?.defaultBaseURL || '',
+        model:
+          settings?.modelName ||
+          meta?.defaultModel ||
+          providerDefaultModel(providerId),
+      };
+      // Use the registry. This handles OpenAI-compat + native Anthropic/Google
+      // uniformly. We also fall back to ZAI.create() if the registry call
+      // fails (e.g. when running in the z.ai sandbox without an explicit key).
+      try {
+        const registryClient: RegistryLLMClient = await createLLMClient(config);
+        llm = registryClient as unknown as LLMClient;
+      } catch (err) {
+        // Last-resort fallback: if the registry fails and we're on z.ai,
+        // try ZAI.create() which auto-resolves sandbox credentials.
+        if (providerId === 'zai') {
+          llm = (await ZAI.create()) as unknown as LLMClient;
+        } else {
+          throw err;
+        }
+      }
+    }
   }
 
   yield { kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } };

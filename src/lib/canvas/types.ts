@@ -17,9 +17,17 @@ import type { PenChild, PenDocument, PenVariableDef, PenTheme } from '../pen/typ
 import { PEN_FORMAT_VERSION } from '../pen/types';
 import type { AgentRunSettings } from '../settings/types';
 
-// ---- Resolved render node (what the renderer sees) -----------------------
+// ---- Resolved render layer (what the renderer sees) -----------------------
+//
+// TERMINOLOGY NOTE: this used to be called `Shape`. We renamed it to `Layer`
+// to match Figma's canonical vocabulary ("layers" are the nodes in the layer
+// tree; "shapes" was an AgentCanvas-isms that obscured the Figma alignment).
+//
+// `Shape` is kept as a deprecated type alias for `Layer` so existing code
+// (Canvas.tsx, PropertiesPanel.tsx, tests) continues to compile. New code
+// should use `Layer` directly.
 
-export type ShapeType =
+export type LayerType =
   | 'rectangle'
   | 'ellipse'
   | 'text'
@@ -27,7 +35,19 @@ export type ShapeType =
   | 'frame'
   | 'group'
   | 'path'
-  | 'image';
+  | 'image'
+  // Figma-canonical node types (added in the ontology alignment):
+  | 'section'
+  | 'component'
+  | 'component_set'
+  | 'instance'
+  | 'boolean_operation'
+  | 'slice'
+  | 'star'
+  | 'polygon';
+
+/// DEPRECATED alias — use `LayerType` in new code.
+export type ShapeType = LayerType;
 
 /// Auto-layout configuration for container shapes (frames/groups).
 /// Maps to .pen's flexbox `Layout` (layout/gap/padding/justifyContent/alignItems).
@@ -76,11 +96,14 @@ export interface Constraints {
   vertical: 'top' | 'bottom' | 'center' | 'scale' | 'top_bottom';
 }
 
-/// A resolved render node — the flattened, absolutely-positioned view of a
+/// A resolved render layer — the flattened, absolutely-positioned view of a
 /// .pen tree node, ready for SVG rendering. Produced by `resolvePenTree()`.
-export interface Shape {
+///
+/// Renamed from `Shape` to `Layer` to match Figma's canonical vocabulary.
+/// `Shape` is kept as a deprecated alias.
+export interface Layer {
   id: string;
-  type: ShapeType;
+  type: LayerType;
   name: string;
   x: number;
   y: number;
@@ -111,13 +134,25 @@ export interface Shape {
   blur?: number;
   maskId?: string | null;
   /// .pen theme effective on this node (inherited from ancestors + own).
-  /// Enables the properties panel to show/edit the node's theme.
   theme?: PenTheme;
   /// Figma-style layout constraints (left/right/center/scale per axis). Stored
-  /// on the .pen node; surfaced here so the Properties panel can edit them and
-  /// the agent can reason about responsive behavior.
+  /// on the .pen node; surfaced here so the Properties panel can edit them.
   constraints?: Constraints | null;
+  // ---- Figma ontology extension fields (Phase 1) ----
+  componentPropertyDefinitions?: import('../pen/types').PenComponentPropertyDefinitions | null;
+  componentProperties?: import('../pen/types').PenComponentPropertyValues | null;
+  variantPropertyAxes?: string[] | null;
+  variantPropertyValues?: import('../pen/types').PenVariantPropertyValues | null;
+  booleanOperationType?: 'union' | 'subtract' | 'intersect' | 'exclude' | null;
+  label?: string | null;
+  pointCount?: number | null;
+  innerRadiusRatio?: number | null;
+  polygonCount?: number | null;
+  exportSettings?: Array<{ format: 'png' | 'svg' | 'pdf' | 'jpg'; suffix?: string; scale?: number }> | null;
 }
+
+/// DEPRECATED alias — use `Layer` in new code. The resolved render node type.
+export type Shape = Layer;
 
 export interface Viewport {
   zoom: number;
@@ -152,29 +187,35 @@ export interface DesignTokens {
 }
 
 // ---- The document: a .pen tree + runtime fields + derived caches ---------
+//
+// Figma alignment: a File contains multiple Pages; each Page has its own
+// layer tree + viewport. For backward compat, when `pages` is absent the
+// document falls back to a single page using `children` directly.
 
 export interface CanvasDocument extends Omit<PenDocument, 'children'> {
   /// Runtime: session document id.
   id: string;
   /// Runtime: display name (also used as the .pen filename).
   name: string;
-  /// The .pen object tree — SOURCE OF TRUTH.
+  /// The .pen object tree for the ACTIVE page — SOURCE OF TRUTH for the
+  /// currently displayed canvas. When `pages` is set, this mirrors
+  /// `pages[activePageIndex].children`.
   children: PenChild[];
-  /// Runtime: pan/zoom (not a .pen concept).
+  /// Runtime: pan/zoom for the active page (not a .pen concept).
   viewport: Viewport;
-  /// Derived: canvas background color (from `variables['canvas.background']`
-  /// or '#f8fafc' default). Recomputed on mutation.
+  /// Derived: canvas background color.
   background: string;
 
-  // ---- Derived render caches (recomputed by resolvePenTree + tokensFromVariables) ----
-  /// Resolved flat render list (absolute positions, expanded refs, resolved
-  /// variables/themes). Recomputed on every mutation.
+  // ---- Pages (Figma-aligned multi-page support) ----
+  pages?: import('../pen/types').PenPage[];
+  activePageIndex?: number;
+
+  // ---- Derived render caches ----
   shapes: Shape[];
-  /// Derived tokens view (from `variables`). Recomputed on every mutation.
   tokens: DesignTokens;
 }
 
-/// Factory: create a fresh empty CanvasDocument (a valid .pen tree).
+/// Factory: create a fresh empty CanvasDocument with a single default page.
 export function createEmptyCanvasDocument(id: string, name = 'Untitled'): CanvasDocument {
   return {
     id,
@@ -183,6 +224,25 @@ export function createEmptyCanvasDocument(id: string, name = 'Untitled'): Canvas
     themes: undefined,
     variables: undefined,
     children: [],
+    viewport: { zoom: 1, panX: 120, panY: 80 },
+    background: '#f8fafc',
+    shapes: [],
+    tokens: { colors: [], textStyles: [] },
+  };
+}
+
+/// Factory: create a fresh empty CanvasDocument with multi-page support.
+export function createMultiPageCanvasDocument(id: string, name = 'Untitled'): CanvasDocument {
+  const pageId = `${id}-page-1`;
+  return {
+    id,
+    name,
+    version: PEN_FORMAT_VERSION,
+    themes: undefined,
+    variables: undefined,
+    children: [],
+    pages: [{ id: pageId, name: 'Page 1', children: [] }],
+    activePageIndex: 0,
     viewport: { zoom: 1, panX: 120, panY: 80 },
     background: '#f8fafc',
     shapes: [],
@@ -223,13 +283,25 @@ export interface CanvasPatch {
     | 'undo'
     | 'redo'
     // New .pen-aligned ops:
-    | 'set_theme_axis'        // define a theme axis (e.g. mode: [light, dark])
-    | 'set_node_theme'        // set a node's theme (e.g. { mode: dark })
-    | 'set_variable'          // set a single $variable (alias for tokens w/ one color)
-    | 'mark_slot'             // mark a frame as a slot for recommended components
+    | 'set_theme_axis'
+    | 'set_node_theme'
+    | 'set_variable'
+    | 'mark_slot'
     // Figma-hierarchy ops:
-    | 'reparent'              // move a node to a new parent (preserves abs position by default)
-    | 'set_constraints';     // set Figma-style constraints on a child
+    | 'reparent'
+    | 'set_constraints'
+    // Figma ontology ops (Phase 1 — Pages, Components, Variants):
+    | 'add_page'
+    | 'delete_page'
+    | 'rename_page'
+    | 'set_active_page'
+    | 'add_section'
+    | 'create_component'
+    | 'create_component_set'
+    | 'add_variant'
+    | 'set_component_property'
+    | 'set_instance_property'
+    | 'flatten_boolean';
   shapeId?: string;
   /// Full or partial .pen node payload for 'add' / 'update' (also accepts
   /// legacy Shape fields like `radius`, `text`, `autoLayout` — the applier
@@ -265,6 +337,20 @@ export interface CanvasPatch {
   keepAbsolutePosition?: boolean;
   /// Constraints to set on the node (for `set_constraints` op).
   constraints?: Constraints | null;
+  // ---- Figma ontology patch fields (Phase 1) ----
+  pageId?: string;
+  pageName?: string;
+  variantPropertyAxes?: string[];
+  variantPropertyValues?: Record<string, string>;
+  componentProperty?: {
+    name: string;
+    type: 'boolean' | 'text' | 'instance_swap' | 'variant';
+    defaultValue: boolean | string;
+    preferredValues?: string[];
+    variantOptions?: string[];
+  };
+  instancePropertyName?: string;
+  instancePropertyValue?: boolean | string;
   summary: string;
 }
 

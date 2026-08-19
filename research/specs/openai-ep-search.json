@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://developers.openai.com/api/reference/chat-completions/overview",
+    "name": "Chat Completions Overview | OpenAI API Reference",
+    "snippet": "The Chat Completions API endpoint will generate a model response from a list of messages comprising a conversation .",
+    "host_name": "developers.openai.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.openai.com/api/reference/overview",
+    "name": "API Overview | OpenAI API Reference",
+    "snippet": "Use this reference to look up OpenAI API endpoints, request and response schemas, streaming events, client library methods, and shared behavior , including  ...",
+    "host_name": "developers.openai.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.openai.com/api/docs/guides/completions",
+    "name": "Completions API",
+    "snippet": "completions API can be used to simulate a chat between a user and an assistant . The Chat Completions API supports current GPT models like gpt-5.6 and lower- ...",
+    "host_name": "developers.openai.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.openai.com/t/tip-chat-completions-api-reference-as-a-single-request-for-ai-understanding/1355654",
+    "name": "TIP: Chat Completions API reference - as a single request",
+    "snippet": "Sep 1, 2025 — A complete parameter reference and usage info, Newest AI models generally know how to parse chat completions streaming and non-stream and trust ...",
+    "host_name": "community.openai.com",
+    "rank": 3,
+    "date": "Sep 1, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create",
+    "name": "Create chat completion | OpenAI API Reference",
+    "snippet": "Create chat completion POST/chat/completions . Creates a model response for the given chat conversation. Learn more in the text generation, vision, and audio ...",
+    "host_name": "developers.openai.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

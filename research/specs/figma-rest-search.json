@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/rest-api/file-node-types",
+    "name": "Node types | Developer Docs",
+    "snippet": "Node type indicates what kind of node you are working with: for example, a FRAME node versus a RECTANGLE node . A node can have additional properties associated ... Read more",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/nodes",
+    "name": "Node Types | Developer Docs",
+    "snippet": "In Figma, the Node is the basis for representing layers. NodeType type NodeType = \"BOOLEAN_OPERATION\" frames and groups can all have children, so they all have ...",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/BooleanOperationNode",
+    "name": "BooleanOperationNode | Developer Docs",
+    "snippet": "Boolean operations combine any set of shape layers through one of four formulas: Union, Subtract, Intersect, and Exclude. The layers to be combined are stored ... Read more",
+    "host_name": "developers.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/how-is-stored-a-dash-stroke-30402",
+    "name": "How is stored a \"dash\" stroke?",
+    "snippet": "Mar 8, 2023 — Hi everyone,\nI am trying to re-use some parts of a component designed in Figma. I do this with the REST api.\nI generally find what I am looking for ...",
+    "host_name": "forum.figma.com",
+    "rank": 3,
+    "date": "Mar 8, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api",
+    "name": "Introduction | Developer Docs",
+    "snippet": "The Figma API is based on the REST structure. We support authentication via access tokens and OAuth2. Requests are made via HTTP endpoints with clear functions ... Read more",
+    "host_name": "developers.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

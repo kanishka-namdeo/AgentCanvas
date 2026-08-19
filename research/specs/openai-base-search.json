@@ -1,0 +1,29 @@
+[
+  {
+    "url": "https://developers.openai.com/api/reference/overview",
+    "name": "API Overview | OpenAI API Reference",
+    "snippet": "Use this reference to look up OpenAI API endpoints, request and response schemas, streaming events, client library methods, and shared behavior such as ...",
+    "host_name": "developers.openai.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.openai.com/t/url-https-api-openai-com-v1-completions-does-not-exist/288073",
+    "name": "Url `'https://api.openai.com/v1/completions' does not exist - API",
+    "snippet": "Jul 5, 2023 · Getting this error when utilizing a library for completions, this URL is correct according to the docs so what is going on?",
+    "host_name": "community.openai.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.openai.com/api/reference/chat-completions/overview",
+    "name": "Chat Completions Overview | OpenAI API Reference",
+    "snippet": "The Chat Completions API endpoint will generate a model response from a list of messages comprising a conversation.",
+    "host_name": "developers.openai.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  }
+]
