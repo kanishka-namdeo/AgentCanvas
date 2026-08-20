@@ -28,6 +28,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { useCanvasGestures } from '@/lib/canvas/use-canvas-gestures';
 
 interface DragState {
   kind: 'pan' | 'move' | 'resize';
@@ -126,52 +127,30 @@ export function Canvas() {
     [viewport],
   );
 
-  // ---- Wheel zoom ------------------------------------------------------------
-  const onWheel = useCallback(
-    (e: React.WheelEvent) => {
-      e.preventDefault();
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      const delta = -e.deltaY * 0.0015;
-      const newZoom = Math.max(0.1, Math.min(4, viewport.zoom * (1 + delta)));
-      // Keep the point under the cursor stable.
-      const canvasX = (mouseX - viewport.panX) / viewport.zoom;
-      const canvasY = (mouseY - viewport.panY) / viewport.zoom;
-      const newPanX = mouseX - canvasX * newZoom;
-      const newPanY = mouseY - canvasY * newZoom;
-      setViewport({ zoom: newZoom, panX: newPanX, panY: newPanY });
-    },
-    [viewport],
-  );
+  // ---- Wheel + touch gesture handling ---------------------------------------
+  // The gesture hook handles: trackpad pinch-zoom, trackpad two-finger pan,
+  // touch pinch-zoom, touch two-finger pan, touch double-tap-to-zoom, and
+  // touch momentum/inertia. It registers native event listeners on the
+  // container with passive=false so we can preventDefault.
+  // Mouse-wheel zoom is also handled here (the hook distinguishes it from
+  // trackpad scroll by deltaMode + magnitude).
+  useCanvasGestures({
+    containerRef,
+    viewport,
+    setViewport,
+    spaceDown,
+    panMode: toolMode === 'pan',
+    // Single-pointer touch/mouse drags are handled by the React onMouseDown/
+    // onMouseMove/onMouseUp props below (they need access to the event target
+    // for shape hit-testing + stopPropagation). The gesture hook's
+    // onSinglePointer* callbacks are not used here — the hook only handles
+    // wheel, pinch, and touch gestures.
+  });
 
-  // Disable passive wheel listener so we can preventDefault.
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const handler = (e: WheelEvent) => {
-      e.preventDefault();
-      const rect = el.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      const delta = -e.deltaY * 0.0015;
-      setViewport((vp) => {
-        const newZoom = Math.max(0.1, Math.min(4, vp.zoom * (1 + delta)));
-        const canvasX = (mouseX - vp.panX) / vp.zoom;
-        const canvasY = (mouseY - vp.panY) / vp.zoom;
-        return {
-          zoom: newZoom,
-          panX: mouseX - canvasX * newZoom,
-          panY: mouseY - canvasY * newZoom,
-        };
-      });
-    };
-    el.addEventListener('wheel', handler, { passive: false });
-    return () => el.removeEventListener('wheel', handler);
-  }, []);
-
-  // ---- Mouse interactions ----------------------------------------------------
+  // ---- Mouse interactions (shape drag + pan) --------------------------------
+  // These handle single-pointer mouse drags. Touch drags with one finger also
+  // route through here because React maps touch → mouse events synthetically
+  // (and the gesture hook doesn't interfere with single-pointer events).
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
@@ -223,17 +202,6 @@ export function Canvas() {
       const dyCanvas = (sy - dragState.startY) / viewport.zoom;
 
       if (dragState.kind === 'move' && dragState.originals) {
-        // Move every selected shape by the delta. We update the store directly
-        // (no patch roundtrip — the human's drag is local state). When the
-        // drag ends we emit a single patch.
-        //
-        // Figma-hierarchy note: a shape's stored x/y is RELATIVE to its
-        // parent's content origin for nested nodes (parentId !== null), and
-        // ABSOLUTE for top-level nodes. `orig.x/y` from `findShape` is the
-        // resolved ABSOLUTE position. So before emitting the patch, if the
-        // shape is nested, subtract the parent's absolute position to convert
-        // the new absolute position back to a relative one. (Without this,
-        // moving a nested shape would double-offset it visually.)
         for (const orig of dragState.originals) {
           const current = findShape(document, orig.id);
           let newX = orig.x + dxCanvas;
@@ -448,7 +416,7 @@ export function Canvas() {
         <div
           ref={containerRef}
           className={`relative w-full h-full overflow-hidden select-none ${(spaceDown || toolMode === 'pan') ? 'cursor-grab' : 'cursor-default'}`}
-          style={{ background: document.background }}
+          style={{ background: document.background, touchAction: 'none' }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
