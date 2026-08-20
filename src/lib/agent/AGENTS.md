@@ -67,6 +67,7 @@ All canvas tools are prefixed with `pen_` (e.g., `pen_create_shape`, `pen_update
 - **Web (2)**: web_search, web_fetch
 - **Components (2 legacy)**: pen_create_component, pen_instantiate_component
 - **Component System (7 — Phase 2, Figma-aligned)**: pen_convert_to_component, pen_place_component_instance, pen_override_instance, pen_reset_instance, pen_detach_instance, pen_combine_as_variants, pen_swap_variant
+- **Agentic Workflows (6 — Phase 3, emerging patterns)**: pen_self_critique (reflection sub-agent), pen_recommend_components (canvas audit), pen_search_design_patterns (RAG retrieval), pen_save_design_pattern (RAG store), pen_clear_pattern_memory, pen_pattern_stats
 - **Pen-aligned (8)**: pen_set_variable, pen_apply_theme, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_theme_axis, pen_list_themes
 - **Figma-canonical (10)**: figma_create_page, figma_set_active_page, figma_rename_page, figma_delete_page, figma_create_section, figma_create_component, figma_create_component_set, figma_add_variant, figma_set_component_property, figma_set_instance_property
 

@@ -3000,6 +3000,294 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     },
   });
 
+  // =====================================================================
+  // AGENTIC WORKFLOWS (Phase 3 — emerging-pattern agentic capabilities)
+  //
+  // These tools implement patterns benchmarked against 2025-2026 competitor
+  // capabilities (v0's plan/build modes, Galileo AI's iterative refinement,
+  // Figma AI's design-direction suggestions, the Reflection pattern, the
+  // Memory/RAG pattern).
+  //
+  //   1. pen_self_critique     — dispatches the design-critic sub-agent
+  //                              (reflection pattern: generate → critique → refine)
+  //   2. pen_recommend_components — scans canvas for repeated shape patterns
+  //                                 and recommends converting them to Components
+  //   3. pen_search_design_patterns — RAG retrieval over the design-pattern
+  //                                    memory (past successful designs)
+  //   4. pen_save_design_pattern  — store the current design as a pattern
+  //                                   for future retrieval
+  //   5. pen_clear_pattern_memory  — wipe the pattern store
+  //   6. pen_pattern_stats         — inspect the pattern store
+  // =====================================================================
+
+  const selfCritique = defineTool({
+    name: 'pen_self_critique',
+    label: 'Self-Critique Design (Reflection)',
+    description:
+      'Dispatch the design-critic sub-agent to review the current canvas from a senior-designer perspective. ' +
+      'Returns a structured critique with severity-tagged findings ([BLOCKER] / [MAJOR] / [MINOR] / [PRAISE]) and a 1-10 score. ' +
+      'Implements the Reflection agentic pattern (generate → critique → refine). ' +
+      'After receiving the critique, act on each [BLOCKER] and [MAJOR] finding to refine the design.',
+    promptSnippet: 'Run a senior-designer critique on the current canvas.',
+    promptGuidelines: [
+      'Call this AFTER generating a design, not before — it reviews the result, not the prompt.',
+      'The critic runs in a separate LLM context (isolated from the generation prompt) to reduce confirmation bias.',
+      'Act on every [BLOCKER] finding; address [MAJOR] findings when time/budget allows; [MINOR] findings are optional polish.',
+      'Do NOT call this in a tight loop — call once, refine, optionally call again to verify the refinements fixed the issues.',
+    ],
+    parameters: Type.Object({
+      originalPrompt: Type.Optional(Type.String({ description: 'The original user prompt (for context — the critic should NOT let it bias its evaluation, but it helps judge intent satisfaction)' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      // Lazy-import the sub-agent to keep the tools.ts module graph lean.
+      const { dispatchDesignCriticSubAgent } = await import('./subagents/design-critic');
+      // ctx.getDocument is optional — fall back to a minimal doc if missing.
+      const canvas = ctx.getDocument?.() ?? ({
+        id: 'critic-no-doc',
+        name: 'Untitled',
+        children: [],
+        shapes: ctx.getShapes(),
+        tokens: ctx.getTokens(),
+        background: '#ffffff',
+        viewport: { zoom: 1, panX: 0, panY: 0 },
+        version: '2.17' as const,
+      } as unknown as import('../canvas/types').CanvasDocument);
+      const result = await dispatchDesignCriticSubAgent({
+        task: 'Critique the current canvas design.',
+        canvas,
+        originalPrompt: params.originalPrompt ?? '(no original prompt provided)',
+      });
+      return {
+        content: [{ type: 'text', text: result.summary }],
+        details: {
+          subAgent: 'design_critic',
+          toolCalls: result.toolCalls,
+          success: result.success,
+          error: result.error,
+        },
+      };
+    },
+  });
+
+  const recommendComponents = defineTool({
+    name: 'pen_recommend_components',
+    label: 'Recommend Components',
+    description:
+      'Scan the canvas for repeated shape patterns (similar type + size + fill) and recommend which shapes should be converted into reusable Components. ' +
+      'Returns a list of candidate groups, each with a suggested component name + the shape ids involved. ' +
+      'Closes a key gap vs Figma AI: proactively suggests componentization opportunities instead of waiting for the user to ask. ' +
+      'Does NOT mutate the canvas — pure analysis. The agent should follow up with `pen_convert_to_component` + `pen_place_component_instance` to act on the recommendations.',
+    promptSnippet: 'Find repeated shapes that should become Components.',
+    promptGuidelines: [
+      'Useful after generating a multi-screen design with repeated UI elements (cards, buttons, list rows).',
+      'After getting recommendations, call `pen_convert_to_component` on one of the suggested shapes, then replace its siblings with `pen_place_component_instance`.',
+      'Groups with 3+ shapes are the highest-value candidates (componentization pays off when reused).',
+    ],
+    parameters: Type.Object({
+      minGroupSize: Type.Optional(Type.Number({ description: 'Minimum number of similar shapes to recommend as a component (default 2, recommend 3+)', minimum: 2, maximum: 10 })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const shapes = ctx.getShapes();
+      const minSize = params.minGroupSize ?? 2;
+
+      // Group shapes by similarity: same type + similar size (±10%) + same fill.
+      const groups: Array<{
+        key: string;
+        shapes: Shape[];
+        suggestedName: string;
+      }> = [];
+
+      const visited = new Set<string>();
+      for (const s of shapes) {
+        if (visited.has(s.id)) continue;
+        if (s.componentId) continue; // Already a component/instance — skip.
+
+        // Find similar shapes.
+        const similar = shapes.filter((other) => {
+          if (visited.has(other.id)) return false;
+          if (other.id === s.id) return true;
+          if (other.type !== s.type) return false;
+          // Size similarity: ±10% on both width and height.
+          const wDiff = Math.abs(other.width - s.width) / Math.max(s.width, 1);
+          const hDiff = Math.abs(other.height - s.height) / Math.max(s.height, 1);
+          if (wDiff > 0.1 || hDiff > 0.1) return false;
+          // Fill similarity (case-insensitive).
+          if ((other.fill ?? '').toLowerCase() !== (s.fill ?? '').toLowerCase()) return false;
+          return true;
+        });
+
+        if (similar.length >= minSize) {
+          for (const sm of similar) visited.add(sm.id);
+          const key = `${s.type}-${Math.round(s.width)}x${Math.round(s.height)}-${s.fill}`;
+          const suggestedName = `${s.type.charAt(0).toUpperCase() + s.type.slice(1)} ${Math.round(s.width)}×${Math.round(s.height)}`;
+          groups.push({ key, shapes: similar, suggestedName });
+        }
+      }
+
+      // Sort by group size (largest first — highest-value candidates).
+      groups.sort((a, b) => b.shapes.length - a.shapes.length);
+
+      if (groups.length === 0) {
+        return {
+          content: [{ type: 'text', text: 'No repeated shape patterns found. The canvas either has all-unique shapes or already uses components.' }],
+          details: { groupsFound: 0, shapesAnalyzed: shapes.length },
+        };
+      }
+
+      const lines: string[] = [];
+      lines.push(`Found ${groups.length} candidate group(s) for componentization (${shapes.length} shapes analyzed):`);
+      lines.push('');
+      for (let i = 0; i < groups.length; i++) {
+        const g = groups[i];
+        lines.push(`${i + 1}. ${g.suggestedName} (${g.shapes.length} similar shapes, fill ${g.shapes[0].fill})`);
+        lines.push(`   Shape ids: ${g.shapes.map((s) => s.id).join(', ')}`);
+        lines.push(`   Suggested action: pen_convert_to_component(shapeId: "${g.shapes[0].id}"), then replace the other ${g.shapes.length - 1} with pen_place_component_instance.`);
+        lines.push('');
+      }
+
+      return {
+        content: [{ type: 'text', text: lines.join('\n') }],
+        details: {
+          groupsFound: groups.length,
+          shapesAnalyzed: shapes.length,
+          groups: groups.map((g) => ({
+            suggestedName: g.suggestedName,
+            shapeIds: g.shapes.map((s) => s.id),
+            count: g.shapes.length,
+          })),
+        },
+      };
+    },
+  });
+
+  const searchDesignPatterns = defineTool({
+    name: 'pen_search_design_patterns',
+    label: 'Search Design Pattern Memory',
+    description:
+      'Retrieve similar past design patterns from the pattern memory (RAG). ' +
+      'Returns the top-k most similar patterns, each with the original prompt, a summary, key parameters, and a similarity score. ' +
+      'Implements the Memory agentic pattern — the agent learns from past successes. ' +
+      'Use this BEFORE generating a new design to inform style choices, layout direction, and palette selection.',
+    promptSnippet: 'Find similar past designs in the pattern memory.',
+    promptGuidelines: [
+      'Call this BEFORE generating when the user asks for something similar to past work (e.g. "another dashboard like last time").',
+      'Inject the retrieved patterns into your reasoning — they suggest palettes, layouts, and patterns the user has approved before.',
+      'If no patterns are returned (empty memory), proceed with your default strategy.',
+      'After a successful design + user approval, call `pen_save_design_pattern` to add the new design to the memory.',
+    ],
+    parameters: Type.Object({
+      queryPrompt: Type.Optional(Type.String({ description: 'The query to search for (defaults to the current user prompt). Use natural language describing what you want to find.' })),
+      topK: Type.Optional(Type.Number({ description: 'Max patterns to return (default 3, max 10)', minimum: 1, maximum: 10 })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const { retrieveSimilarPatterns, formatPatternsForPrompt } = await import('./pattern-memory');
+      const query = params.queryPrompt ?? '(current prompt)';
+      const k = params.topK ?? 3;
+      const patterns = await retrieveSimilarPatterns(query, k);
+      const formatted = formatPatternsForPrompt(patterns);
+      const header = patterns.length > 0
+        ? `Retrieved ${patterns.length} similar design pattern(s) from memory (query: "${query.slice(0, 80)}${query.length > 80 ? '…' : ''}"):`
+        : `No similar patterns found in memory for query: "${query}". The memory may be empty — use pen_save_design_pattern after a successful design to populate it.`;
+      return {
+        content: [{ type: 'text', text: `${header}\n\n${formatted}` }],
+        details: {
+          query,
+          topK: k,
+          patternsFound: patterns.length,
+          patterns: patterns.map((p) => ({
+            id: p.id,
+            category: p.category,
+            summary: p.summary,
+            score: p.score,
+            createdAt: p.createdAt,
+          })),
+        },
+      };
+    },
+  });
+
+  const saveDesignPattern = defineTool({
+    name: 'pen_save_design_pattern',
+    label: 'Save Design to Pattern Memory',
+    description:
+      'Store the current design as a pattern in the pattern memory for future retrieval. ' +
+      'Call this AFTER a successful design generation (especially when the user expresses approval). ' +
+      'The stored pattern includes the original prompt, a summary of what was built, the category, and key parameters. ' +
+      'Future calls to `pen_search_design_patterns` will retrieve this pattern when a similar prompt is given.',
+    promptSnippet: 'Save the current design to the pattern memory.',
+    promptGuidelines: [
+      'Call this when the user says "good", "perfect", "save this", or otherwise approves a design.',
+      'The `summary` field should be 1-3 sentences capturing the key design choices (palette, layout, typography).',
+      'The `parameters` field should list the key design tokens / dimensions chosen (e.g. ["palette=violet", "spacing=8px", "radius=6px"]).',
+    ],
+    parameters: Type.Object({
+      summary: Type.String({ description: 'A 1-3 sentence summary of what was built (e.g. "Mobile login screen with social sign-in buttons, violet accent, 24px spacing")' }),
+      category: Type.String({ description: 'The design category (e.g. "wireframe", "dashboard", "landing-page", "mobile-app", "component-set")' }),
+      parameters: Type.Optional(Type.Array(Type.String(), { description: 'Key design parameters as key=value strings (e.g. ["palette=violet", "spacing=8px"])' })),
+      userApproved: Type.Optional(Type.Boolean({ description: 'Whether the user explicitly approved (true) or this is an auto-save (false, default)' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const { storeDesignPattern } = await import('./pattern-memory');
+      // Pull the current prompt from the context if available (best-effort).
+      const prompt = (ctx as { lastPrompt?: string }).lastPrompt ?? '(unknown prompt)';
+      const pattern = await storeDesignPattern({
+        prompt,
+        summary: params.summary,
+        category: params.category,
+        parameters: params.parameters ?? [],
+        userApproved: params.userApproved ?? false,
+      });
+      return {
+        content: [{ type: 'text', text: `Saved design pattern (id: ${pattern.id}, category: ${pattern.category}). It will be retrieved by future pen_search_design_patterns calls when a similar prompt is given.` }],
+        details: { patternId: pattern.id, createdAt: pattern.createdAt },
+      };
+    },
+  });
+
+  const clearPatternMemory = defineTool({
+    name: 'pen_clear_pattern_memory',
+    label: 'Clear Pattern Memory',
+    description:
+      'Wipe ALL stored design patterns from the pattern memory. ' +
+      'Use this when the user wants to "forget" past designs and start fresh (e.g. they pivoted to a different design style). ' +
+      'Returns the count of deleted patterns. This action is irreversible.',
+    promptSnippet: 'Wipe the design-pattern memory.',
+    parameters: Type.Object({}),
+    async execute(_toolCallId, _params, _signal, _onUpdate, _ctx) {
+      const { clearAllPatterns } = await import('./pattern-memory');
+      const count = await clearAllPatterns();
+      return {
+        content: [{ type: 'text', text: `Cleared ${count} pattern(s) from the design-pattern memory.` }],
+        details: { deletedCount: count },
+      };
+    },
+  });
+
+  const patternStats = defineTool({
+    name: 'pen_pattern_stats',
+    label: 'Pattern Memory Stats',
+    description:
+      'Inspect the design-pattern memory store: how many patterns are stored, oldest/newest timestamps. ' +
+      'Useful for debugging or for the user to see how much the agent has "learned".',
+    promptSnippet: 'Get stats about the design-pattern memory.',
+    parameters: Type.Object({}),
+    async execute(_toolCallId, _params, _signal, _onUpdate, _ctx) {
+      const { getPatternStats } = await import('./pattern-memory');
+      const stats = await getPatternStats();
+      const lines: string[] = [`Pattern memory stats:`];
+      lines.push(`  Total patterns: ${stats.count}`);
+      if (stats.oldest) lines.push(`  Oldest: ${new Date(stats.oldest).toISOString()}`);
+      if (stats.newest) lines.push(`  Newest: ${new Date(stats.newest).toISOString()}`);
+      if (stats.count === 0) {
+        lines.push('  (Memory is empty. Use pen_save_design_pattern after a successful design to populate it.)');
+      }
+      return {
+        content: [{ type: 'text', text: lines.join('\n') }],
+        details: stats,
+      };
+    },
+  });
+
   return [
     // Core
     createShape,
@@ -3084,6 +3372,13 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     // Web research (zero-config, no API key)
     webSearchTool,
     webFetchTool,
+    // Agentic workflows (Phase 3 — emerging patterns: reflection, memory, RAG)
+    selfCritique,
+    recommendComponents,
+    searchDesignPatterns,
+    saveDesignPattern,
+    clearPatternMemory,
+    patternStats,
   ];
 }
 

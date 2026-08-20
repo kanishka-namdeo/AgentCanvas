@@ -73,3 +73,5 @@ worklog.md
 dev.out
 dev.log
 server.log
+# Design-pattern memory (user-specific RAG store)
+data/
