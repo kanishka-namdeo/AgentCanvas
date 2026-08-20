@@ -55,14 +55,14 @@ interface PromptGroup {
 
 const PROMPT_GROUPS: PromptGroup[] = [
   {
-    id: 'wireframes',
-    label: 'Wireframes',
+    id: 'designs',
+    label: 'Designs',
     icon: Smartphone,
     prompts: [
-      'Design a mobile login screen with logo, email/password fields, and sign-in button.',
-      'Build a mobile dashboard with stat cards, a chart placeholder, and a tab bar.',
-      'Make a web landing page hero with headline, subheadline, and two CTAs.',
-      'Design a web pricing page with three tiers, the middle one featured.',
+      'Design a high-fidelity mobile login screen with logo, email/password fields, and a sign-in button.',
+      'Build a modern mobile dashboard with stat cards, a chart, shadows, and a tab bar.',
+      'Make a polished web landing page with a gradient hero, features section, and CTA.',
+      'Design a web pricing page with three tiers, the middle one featured, with shadows and real content.',
     ],
   },
   {

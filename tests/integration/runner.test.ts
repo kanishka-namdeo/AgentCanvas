@@ -742,7 +742,7 @@ describe('runner: tool catalog + spec passthrough', () => {
     // The exact count depends on the classifier's pick for "hi", so we
     // assert it's a non-empty subset of the full spec, with unique names.
     expect(tools.length).toBeGreaterThan(0);
-    expect(tools.length).toBeLessThanOrEqual(63); // 55 canvas_* + 8 pen_*
+    expect(tools.length).toBeLessThanOrEqual(78); // 55 canvas_* + 8 pen_* + 8 figma_* + 8 .pen-aligned tools + core tools
     const names = tools.map((t: any) => t.function.name);
     expect(new Set(names).size).toBe(names.length);
     // tool_choice is 'auto'.

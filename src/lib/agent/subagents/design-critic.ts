@@ -38,15 +38,36 @@ You will receive:
 2. A textual snapshot of the current canvas (shapes + their properties)
 3. Design tokens + variables (if any)
 
+=== FIDELITY BAR (CRITICAL) ================================================
+
+This agent produces HIGH-FIDELITY designs by default. A high-fidelity design must have:
+  - Full color palette applied (NOT grayscale). If every shape is slate/gray, that's a wireframe.
+  - Drop shadows on every elevated surface (cards, buttons, modals, FABs). If zero shapes have
+    shadows, that's a wireframe — score it 4/10 or below regardless of layout quality.
+  - At least one gradient on the hero/CTA/logo (unless the design has no hero).
+  - Realistic domain content — NEVER "Lorem ipsum", "Item 1", "Label", "Heading", "Placeholder".
+  - A consistent type scale (12/14/16/20/24/30/38) and 8px spacing grid.
+  - Corner radii from a scale (6/8/12/16/20), not all 0.
+
+Wireframe detection: if the snapshot shows predominantly gray fills (#e2e8f0, #f1f5f9, #475569,
+#94a3b8) AND zero shadows AND zero gradients, the design is a WIREFRAME. Score it 3-4/10 with a
+[BLOCKER] finding: "Design is low-fidelity (grayscale, no shadows, no gradients) — add a color
+palette via pen_apply_palette, add shadows to cards/buttons via pen_set_shadow, and add a gradient
+to the hero/CTA via pen_set_gradient_fill." EXCEPTION: if the user explicitly asked for a
+"wireframe" / "low-fi" / "sketch", do not penalize the fidelity — judge only structure/alignment.
+
 Your review MUST cover these dimensions (skip any that don't apply):
+- **Fidelity (gate)**: Is this high-fidelity? (color palette, shadows, gradients, real content). If not, BLOCKER.
 - **Visual hierarchy**: Is the most important element the most prominent? Are there competing focal points?
 - **Alignment & spacing**: Are elements aligned to a grid? Are spacing values consistent (4/8/12/16/24px scale)? Any near-misses?
-- **Color usage**: Palette coherence, contrast (WCAG AA = 4.5:1 for body text, 3:1 for large), token binding
-- **Typography**: Type scale consistency (ideally 4-5 steps), line-height, line-length, font weight hierarchy
-- **Component reuse**: Are repeated patterns (e.g. 3 similar cards) candidates for a Component? (the canvas has a component system — recommend it where relevant)
+- **Color usage**: Palette coherence, contrast (WCAG AA = 4.5:1 for body text, 3:1 for large), token binding, 60-30-10 distribution.
+- **Typography**: Type scale consistency (ideally 4-5 steps), line-height, line-length, font weight hierarchy.
+- **Elevation consistency**: Do similar components have similar shadows? Are cards elevated but list rows flat?
+- **Component reuse**: Are repeated patterns (e.g. 3 similar cards) candidates for a Component? Recommend it where relevant.
 - **Density**: Is the layout too cramped or too sparse for its purpose?
-- **Accessibility**: Missing labels, low contrast, icon-only buttons without tooltips
-- **Edge cases**: Empty states, long text overflow, narrow viewport breakpoints
+- **Accessibility**: Missing labels, low contrast, icon-only buttons without tooltips, touch targets < 44px.
+- **Content realism**: Is the text real domain content or placeholder? "Lorem ipsum" = BLOCKER.
+- **Edge cases**: Empty states, long text overflow, narrow viewport breakpoints.
 
 === OUTPUT FORMAT (strict) ===
 End your response with a "CRITIQUE:" section, structured as a bulleted list. Each finding MUST be tagged with a severity prefix:
@@ -57,13 +78,21 @@ End your response with a "CRITIQUE:" section, structured as a bulleted list. Eac
 - [PRAISE] <what works well>  (rare — only for genuinely excellent choices)
 
 Examples:
+- [BLOCKER] Design is low-fidelity — all shapes are grayscale (#e2e8f0/#475569), zero shadows, zero gradients. Apply pen_apply_palette with a color palette, add pen_set_shadow (0,4,6,#0000001a) to all cards, and pen_set_gradient_fill to the hero.
 - [BLOCKER] Submit button text "btn" is truncated and has 2.1:1 contrast on its fill — change label to "Submit" and use #ffffff text on the #0ea5e9 fill.
-- [MAJOR] 3 card shapes have inconsistent border-radius (4/6/8px) — pick one value (recommend 6px) and apply uniformly.
+- [MAJOR] 3 card shapes have inconsistent border-radius (4/6/8px) — pick one value (recommend 12px) and apply uniformly.
+- [MAJOR] 5 text shapes contain "Lorem ipsum" — replace with realistic domain copy via pen_generate_copy.
 - [MINOR] The header logo is 2px off the grid baseline — nudge to x=120.
 
 Be specific. Quote shape names, hex codes, exact pixel values. Do not give generic advice like "improve hierarchy" — say exactly what to change and how.
 
-After "CRITIQUE:", add a "SCORE:" line with a 1-10 rating (10 = production-ready) and a one-sentence justification.`;
+After "CRITIQUE:", add a "SCORE:" line with a 1-10 rating (10 = production-ready) and a one-sentence justification.
+Scoring guide:
+  1-3: Wireframe-quality (grayscale, flat, placeholder text). Must add color + shadows + content.
+  4-5: Basic structure but missing polish (some color but no shadows or no gradients).
+  6-7: Good hifi — has color, shadows, content, but minor issues (spacing, contrast, consistency).
+  8-9: Production-ready — consistent design system, good contrast, real content, proper elevation.
+  10: Flawless — would ship to customers as-is.`;
 
 // ---- Public API ------------------------------------------------------------
 
@@ -189,6 +218,9 @@ function serializeCanvasForCritic(canvas: CanvasDocument): string {
       if (s.fill && s.fill !== '#e2e8f0') parts.push(`fill:${s.fill}`);
       if (s.stroke && s.stroke !== '#0f172a' && s.strokeWidth > 0) parts.push(`stroke:${s.stroke}@${s.strokeWidth}px`);
       if (s.radius > 0) parts.push(`r:${s.radius}`);
+      if (s.shadow) parts.push(`shadow:(${s.shadow.x},${s.shadow.y},${s.shadow.blur},${s.shadow.color})`);
+      if (s.gradient) parts.push(`gradient:${s.gradient.type}@${s.gradient.angle}deg`);
+      if (s.opacity < 1) parts.push(`opacity:${s.opacity}`);
       if (s.type === 'text') {
         parts.push(`text:"${(s.text ?? '').slice(0, 40)}"`);
         parts.push(`size:${s.fontSize}`);
@@ -201,6 +233,24 @@ function serializeCanvasForCritic(canvas: CanvasDocument): string {
     if (group.length > 20) lines.push(`  ... (${group.length - 20} more)`);
     lines.push('');
   }
+
+  // Fidelity summary — counts of shadows/gradients so the critic can detect wireframe output.
+  const shapesWithShadow = shapes.filter((s) => s.shadow).length;
+  const shapesWithGradient = shapes.filter((s) => s.gradient).length;
+  const grayFills = shapes.filter((s) => {
+    const f = (s.fill ?? '').toLowerCase();
+    return ['#e2e8f0', '#f1f5f9', '#475569', '#94a3b8', '#cbd5e1', '#64748b'].includes(f);
+  }).length;
+  const placeholderTexts = shapes.filter((s) => s.type === 'text' && /lorem|item \d|placeholder|label|heading|untitled/i.test(s.text ?? '')).length;
+  lines.push(`--- FIDELITY SUMMARY ---`);
+  lines.push(`  shapes with shadow: ${shapesWithShadow}/${shapes.length}`);
+  lines.push(`  shapes with gradient: ${shapesWithGradient}/${shapes.length}`);
+  lines.push(`  shapes with gray fill: ${grayFills}/${shapes.length}`);
+  lines.push(`  text shapes with placeholder content: ${placeholderTexts}`);
+  if (shapesWithShadow === 0 && shapesWithGradient === 0 && grayFills > shapes.length * 0.5) {
+    lines.push(`  ⚠ WIREFRAME DETECTED — no shadows, no gradients, majority gray fills.`);
+  }
+  lines.push('');
 
   // Token usage summary.
   const tokens = canvas.tokens;

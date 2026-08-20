@@ -122,6 +122,37 @@ const ShapeInputSchema = Type.Object({
   src: Type.Optional(Type.String({ description: 'Image source URL (data URL or remote) — type=image only' })),
   closed: Type.Optional(Type.Boolean({ description: 'For path shapes: close the path (fill it). Default false.' })),
   blur: Type.Optional(Type.Number({ description: 'Gaussian blur radius in px' })),
+  // ---- High-fidelity extended fields (so the LLM can create polished shapes in one call) ----
+  gradient: Type.Optional(Type.Object({
+    type: Type.Union([Type.Literal('linear'), Type.Literal('radial')], { description: 'Gradient type' }),
+    angle: Type.Optional(Type.Number({ description: 'Angle in degrees (linear). Default 90.' })),
+    stops: Type.Array(Type.Object({
+      offset: Type.Number({ description: '0..1' }),
+      color: Type.String({ description: 'Hex color' }),
+    }), { description: 'Color stops (min 2)' }),
+  }, { description: 'Gradient fill (overrides solid fill). Use for hero areas, CTAs, logos.' })),
+  shadow: Type.Optional(Type.Object({
+    x: Type.Number({ description: 'X offset in px' }),
+    y: Type.Number({ description: 'Y offset in px' }),
+    blur: Type.Number({ description: 'Blur radius in px' }),
+    color: Type.String({ description: 'Shadow color hex with alpha, e.g. #0000001a for 10% black' }),
+    spread: Type.Optional(Type.Number({ description: 'Spread in px (default 0)' })),
+    inset: Type.Optional(Type.Boolean({ description: 'Inset shadow (default false)' })),
+  }, { description: 'Drop shadow. Use 0,4,6,#0000001a for cards; 0,2,4,#0000001a for buttons; 0,8,12,#00000033 for FABs.' })),
+  radii: Type.Optional(Type.Object({
+    topLeft: Type.Number({ description: 'Top-left radius in px' }),
+    topRight: Type.Number({ description: 'Top-right radius in px' }),
+    bottomRight: Type.Number({ description: 'Bottom-right radius in px' }),
+    bottomLeft: Type.Number({ description: 'Bottom-left radius in px' }),
+  }, { description: 'Per-corner border radii (overrides uniform radius). Use for toast cards, sheets.' })),
+  autoLayout: Type.Optional(Type.Object({
+    direction: Type.Union([Type.Literal('horizontal'), Type.Literal('vertical')], { description: 'Layout direction' }),
+    gap: Type.Optional(Type.Number({ description: 'Gap between children in px (default 8)' })),
+    padding: Type.Optional(Type.Number({ description: 'Padding inside frame in px (default 16)' })),
+    alignX: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Horizontal alignment (default center)' })),
+    alignY: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Vertical alignment (default center)' })),
+  }, { description: 'Auto Layout (flexbox) for frames. Prefer over manual x/y for contained UI.' })),
+  parentId: Type.Optional(Type.String({ description: 'Parent frame/group ID. If omitted, the shape is a top-level layer. (Note: to MOVE an existing shape into a frame, use pen_reparent_shape instead.)' })),
 });
 
 // ---- Helpers ----------------------------------------------------------------
@@ -184,6 +215,18 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
   if ((params as any).maskId !== undefined) out.maskId = (params as any).maskId ? String((params as any).maskId) : null;
   if ((params as any).locked !== undefined) out.locked = !!(params as any).locked;
   if ((params as any).visible !== undefined) out.visible = (params as any).visible !== false;
+  // High-fidelity extended fields:
+  if ((params as any).autoLayout) {
+    const al = (params as any).autoLayout;
+    out.autoLayout = {
+      direction: al.direction === 'horizontal' ? 'horizontal' : 'vertical',
+      gap: al.gap !== undefined ? Number(al.gap) : 8,
+      padding: al.padding !== undefined ? Number(al.padding) : 16,
+      alignX: ['min', 'center', 'max'].includes(al.alignX) ? al.alignX : 'center',
+      alignY: ['min', 'center', 'max'].includes(al.alignY) ? al.alignY : 'center',
+    };
+  }
+  if ((params as any).parentId !== undefined) out.parentId = (params as any).parentId ? String((params as any).parentId) : null;
   return out;
 }
 
@@ -1614,16 +1657,19 @@ export function createCanvasTools(ctx: CanvasToolContext) {
 
   const generateWireframe = defineTool({
     name: 'pen_generate_wireframe',
-    label: 'Generate Wireframe',
+    label: 'Generate Screen',
     description:
-      'Generate a wireframe layout from a template. Places a frame plus placeholder shapes (low-fidelity, grayscale). ' +
+      'Generate a HIGH-FIDELITY screen layout from a template. Places a frame plus fully-styled shapes ' +
+      'with shadows, gradients, radii, real content, and a color palette applied. ' +
       'Templates: mobile_login, mobile_signup, mobile_dashboard, mobile_welcome, mobile_permissions, mobile_done, ' +
       'mobile_browse, mobile_product_detail, mobile_cart, mobile_checkout, web_landing, web_dashboard, web_blog, web_pricing. ' +
-      'The frame is placed at (x, y) with the template\'s default size.',
-    promptSnippet: 'Generate a wireframe screen from a template (mobile/web).',
+      'The frame is placed at (x, y) with the template\'s default size. ' +
+      'This is a scaffold — follow it with pen_apply_palette, pen_set_shadow on cards/buttons, and pen_set_gradient_fill on the hero/CTA for full polish.',
+    promptSnippet: 'Generate a high-fidelity screen from a template (mobile/web).',
     promptGuidelines: [
-      'Use this for "make a login screen", "design a dashboard", "wireframe a landing page", etc.',
-      'After generating, you can recolor with pen_apply_palette and refine with pen_update_shape.',
+      'Use this for "make a login screen", "design a dashboard", "create a landing page", etc.',
+      'After generating, ALWAYS follow with: pen_apply_palette (bindToTokens=true), pen_set_shadow on cards/buttons, pen_set_gradient_fill on the hero/CTA, and pen_generate_copy for real content.',
+      'A bare generate_wireframe call with no styling pass is a wireframe, not a finished design.',
     ],
     parameters: Type.Object({
       template: Type.Union(
@@ -3560,6 +3606,110 @@ interface WireframeResult {
   shapes: Array<Partial<Shape> & { id: string }>;
 }
 
+/// High-fidelity styling palette used by the post-processing pass.
+interface HifiPalette {
+  PRIMARY: string;
+  ACCENT: string;
+  SURFACE: string;
+  GRAY: string;
+}
+
+/// Upgrade a list of wireframe-template shapes to high-fidelity output.
+///
+/// This runs after every `buildWireframe` template. It scans each shape's
+/// NAME (Figma-style names like "Card / Revenue", "Primary Button", "Hero",
+/// "CTA", "FAB", "Avatar", "Input / Email") and applies:
+///   - Drop shadows on elevated surfaces (cards, buttons, FABs, popovers).
+///   - A gradient fill on hero/CTA/logo shapes (primary → accent).
+///   - Pill radii (9999) on avatars/toggles/chips.
+///   - Larger radii on cards (12) and modals (16) if they were 0.
+///   - Primary-color fill on shapes named "Primary Button" / "CTA".
+///
+/// This guarantees that even a bare `pen_generate_wireframe` call produces
+/// a visually polished starting point — not a flat grayscale wireframe.
+/// The LLM is still expected to follow up with pen_apply_palette, more
+/// shadows, real copy, etc., but the scaffold is no longer an embarrassment.
+function applyHighFidelityStyling(
+  shapes: Array<Partial<Shape> & { id: string }>,
+  palette: HifiPalette,
+): void {
+  const { PRIMARY, ACCENT } = palette;
+  // Soft card shadow (Material 2dp-ish): 0 4 6 -1 rgba(0,0,0,0.10)
+  const SHADOW_CARD = { x: 0, y: 4, blur: 6, color: '#0000001a', spread: -1, inset: false };
+  // Soft button shadow (Material 1dp-ish): 0 2 4 -1 rgba(0,0,0,0.10)
+  const SHADOW_BUTTON = { x: 0, y: 2, blur: 4, color: '#0000001a', spread: -1, inset: false };
+  // FAB / modal shadow (Material 8dp-ish): 0 8 12 -4 rgba(0,0,0,0.20)
+  const SHADOW_FAB = { x: 0, y: 8, blur: 12, color: '#00000033', spread: -4, inset: false };
+
+  for (const s of shapes) {
+    const name = (s.name ?? '').toLowerCase();
+
+    // Skip the frame itself — it already got a shadow in addFrame.
+    if (s.type === 'frame' && s.id === shapes[0]?.id) continue;
+
+    // --- Cards: add shadow + ensure radius >= 12 ---
+    if (/\bcard\b|\bstat\b|\bchart\b|\bpanel\b|\btile\b|\bitem\b|\bproduct\b/.test(name) && s.type === 'rectangle') {
+      if (!s.shadow) s.shadow = SHADOW_CARD;
+      if (!s.radius || s.radius < 12) s.radius = 12;
+    }
+
+    // --- Buttons: add shadow, primary fill, white text, pill-ish radius ---
+    if (/\bbutton\b|\bcta\b|\baction\b|\bsubmit\b|\bsign\s*in\b|\bcontinue\b|\bbuy\b|\badd\b|\bprimary\b/.test(name) && s.type === 'rectangle') {
+      if (!s.shadow) s.shadow = SHADOW_BUTTON;
+      // Only recolor if it looks like a placeholder (gray/light fill or no fill).
+      const fill = s.fill ?? '';
+      if (!fill || fill === '#e2e8f0' || fill === '#f1f5f9' || fill === '#ffffff' || fill === 'transparent') {
+        s.fill = PRIMARY;
+        s.textColor = '#ffffff';
+        s.fontSize = s.fontSize || 16;
+        if (!s.radius || s.radius < 8) s.radius = 10;
+      }
+    }
+
+    // --- FAB: floating action button — bigger shadow, primary fill, pill ---
+    if (/\bfab\b|\bfloating\b/.test(name)) {
+      if (!s.shadow) s.shadow = SHADOW_FAB;
+      s.fill = PRIMARY;
+      s.radius = 9999;
+    }
+
+    // --- Avatars / profile circles: pill radius ---
+    if (/\bavatar\b|\bprofile\s*pic\b|\buser\s*photo\b/.test(name)) {
+      s.radius = 9999;
+    }
+
+    // --- Hero / CTA / Logo: gradient fill (primary → accent) ---
+    if (/\bhero\b|\bcta\b|\blogo\b|\bbrand\b|\bbanner\b|\bheader\s*bg\b|\bapp\s*bar\b/.test(name) && s.type === 'rectangle') {
+      // Only add gradient if not already set; don't overwrite a real image.
+      if (!s.gradient && !s.src) {
+        s.gradient = {
+          type: 'linear',
+          angle: 135,
+          stops: [
+            { offset: 0, color: PRIMARY },
+            { offset: 1, color: ACCENT },
+          ],
+        };
+        s.fill = PRIMARY; // fallback solid color (renderer uses gradient if present)
+      }
+    }
+
+    // --- Bottom tab bar: shadow + surface fill ---
+    if (/\btab\s*bar\b|\bbottom\s*nav\b|\bnavbar\b/.test(name) && s.type === 'rectangle') {
+      if (!s.shadow) s.shadow = { x: 0, y: -2, blur: 8, color: '#0000001a', spread: 0, inset: false };
+      s.fill = '#ffffff';
+      if (!s.radius || s.radius < 16) s.radius = 0; // tab bars are usually flat-bottomed
+    }
+
+    // --- Input fields: ensure they have a visible border + 8px radius ---
+    if (/\binput\b|\bfield\b|\bemail\b|\bpassword\b|\bsearch\s*bar\b/.test(name) && s.type === 'rectangle') {
+      if (!s.stroke || s.stroke === 'transparent') s.stroke = palette.GRAY;
+      if (!s.strokeWidth) s.strokeWidth = 1;
+      if (!s.radius || s.radius < 8) s.radius = 8;
+    }
+  }
+}
+
 function buildWireframe(template: string, oxIn: number, oyIn: number): WireframeResult {
   // Defensive: coerce to numbers in case the caller passed strings.
   // (Even with the tool-level coercion above, buildWireframe is also called
@@ -3568,20 +3718,32 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
   const oy = typeof oyIn === 'number' ? oyIn : Number(oyIn) || 0;
   const frameId = crypto.randomUUID();
   const shapes: Array<Partial<Shape> & { id: string }> = [];
-  const GRAY = '#e2e8f0';
-  const DARK = '#475569';
-  const LIGHT = '#f1f5f9';
+  // High-fidelity palette (replaces the old grayscale GRAY/DARK/LIGHT constants).
+  // These map to the semantic tokens in the system prompt's design system.
+  const GRAY = '#e2e8f0';   // $color.border — kept for legacy template refs
+  const DARK = '#0f172a';   // $color.text — primary text (was slate-600, now slate-900 for contrast)
+  const LIGHT = '#f1f5f9';  // $color.surface-2 — input/nested surfaces
+  // New hifi constants used by the post-processing pass + new templates.
+  const SURFACE = '#ffffff';     // $color.surface — cards
+  const PRIMARY = '#0ea5e9';     // $color.primary — CTAs, active states
+  const ACCENT = '#6366f1';      // $color.accent — secondary accent
+  const TEXT_MUTED = '#475569';  // $color.text-muted
+  const TEXT_SUBTLE = '#94a3b8'; // $color.text-subtle
+  const SUCCESS = '#10b981';     // $color.success
+  const DANGER = '#ef4444';      // $color.danger
   const add = (s: Partial<Shape> & { id: string }) => shapes.push(s);
 
-  // Helper for a basic frame.
+  // Helper for a basic frame. High-fidelity: white fill, no harsh stroke,
+  // rounded corners (16px for app-like feel), subtle shadow.
   const addFrame = (w: number, h: number, name: string) => {
     add({
       id: frameId,
       type: 'frame',
       name,
       x: ox, y: oy, width: w, height: h,
-      fill: '#ffffff', stroke: DARK, strokeWidth: 1, radius: 0,
+      fill: SURFACE, stroke: GRAY, strokeWidth: 1, radius: 16,
       fontSize: 16, textColor: DARK,
+      shadow: { x: 0, y: 8, blur: 24, color: '#0000001a', spread: -4, inset: false },
     });
   };
 
@@ -4000,6 +4162,17 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
       break;
     }
   }
+
+  // ---- High-fidelity post-processing pass --------------------------------
+  // After the template builds its shapes, we scan the list and upgrade the
+  // visual quality: add shadows to elevated surfaces, gradients to hero/CTA
+  // shapes, and ensure consistent radii. This is what separates a "wireframe"
+  // (flat grayscale boxes) from a "high-fidelity" design (elevated, colored,
+  // with depth and polish). The LLM can further refine via pen_set_shadow /
+  // pen_set_gradient_fill / pen_apply_palette, but this pass guarantees that
+  // even a bare pen_generate_wireframe call produces a polished starting point.
+  applyHighFidelityStyling(shapes, { PRIMARY, ACCENT, SURFACE, GRAY });
+
   return { frameId, shapes };
 }
 

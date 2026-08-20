@@ -103,10 +103,10 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  temperature: 0.4,
-  maxIterations: 20,
+  temperature: 0.6,
+  maxIterations: 30,
   planFirst: true,
-  thinkingLevel: 'medium',
+  thinkingLevel: 'high',
   defaultPalette: 'slate',
 
   themePreference: 'system',

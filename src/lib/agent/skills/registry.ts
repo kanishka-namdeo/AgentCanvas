@@ -48,63 +48,83 @@ export const CORE_TOOL_NAMES = [
 
 export const SKILLS: Record<SkillCategory, Skill | null> = {
 
-  // 1. WIREFRAME — generate complete screens from descriptions
+  // 1. WIREFRAME / DESIGN — generate complete, HIGH-FIDELITY screens from descriptions
   wireframe: {
     id: 'wireframe',
-    name: 'Wireframe Generation',
+    name: 'Design Generation',
     description:
-      'Generate complete UI screens and wireframes from natural-language descriptions. ' +
+      'Generate complete, HIGH-FIDELITY UI screens from natural-language descriptions. ' +
       'Use when the user asks to "design", "build", "create", or "make" a screen, page, ' +
       'dashboard, login form, landing page, or any multi-element layout. ' +
-      'Produces well-structured shapes via template generators + manual placement.',
-    body: `You are in WIREFRAME GENERATION mode. Your job is to produce a complete, visually
-pleasing screen on the canvas from the user's description.
+      'Produces production-ready designs with full color, shadows, gradients, real content, ' +
+      'and design tokens — NOT bare wireframes (wireframes only on explicit request).',
+    body: `You are in DESIGN GENERATION mode. Your job is to produce a complete, HIGH-FIDELITY,
+production-ready screen on the canvas from the user's description. A high-fidelity design has full
+color, drop shadows on elevated surfaces, gradients on hero/CTA, realistic content, a consistent
+type scale, 8px spacing, and bound design tokens. A grayscale flat layout with no shadows is a
+WIREFRAME — only produce that if the user explicitly says "wireframe", "low-fi", "sketch", etc.
 
-=== STRATEGY (follow this order) ==========================================
+=== STRATEGY (follow this order — every step matters) =====================
 
-1. If the request matches a built-in template, call pen_generate_wireframe FIRST.
-   Templates: mobile_login, mobile_signup, mobile_dashboard, web_landing, web_dashboard,
-   web_blog, web_pricing. This produces a well-structured starting point in one call.
-   The mobile_dashboard template now includes 4 stat cards (2x2 grid) with trend
-   indicators, a status bar, a chart with sketched axes + line, 3 list items, a
-   tab bar with 4 icons + labels, a FAB, and a home indicator — best practices.
+1. SCAFFOLD: If the request matches a built-in template, call pen_generate_wireframe FIRST.
+   Templates: mobile_login, mobile_signup, mobile_dashboard, mobile_welcome, mobile_permissions,
+   mobile_done, mobile_browse, mobile_product_detail, mobile_cart, mobile_checkout, web_landing,
+   web_dashboard, web_blog, web_pricing. This produces a structured starting point in one call.
+   The generator now emits high-fidelity styling (shadows, gradients, radii, real content) by default.
+   If the request is a multi-screen flow (onboarding, ecommerce, auth, signup_funnel), call
+   pen_generate_user_flow instead. If it's a diagram (flowchart, mindmap), call pen_generate_diagram.
 
-2. If the request is a multi-screen flow (onboarding, ecommerce, auth, signup_funnel),
-   call pen_generate_user_flow instead.
+2. LIST: After generating, call pen_list_shapes to see what was created + their IDs.
+   IMPORTANT: copy shape IDs verbatim from the pen_list_shapes output — do NOT wrap them in
+   arrays or quotes-within-quotes. The shapeId parameter is a plain STRING, e.g. "abc-123",
+   NOT ["abc-123"].
 
-3. If the request is a diagram (flowchart, mindmap), call pen_generate_diagram.
+3. TOKENIZE: Define the semantic color tokens via pen_set_variable (or pen_update_tokens).
+   Required tokens: $color.bg, $color.surface, $color.surface-2, $color.border, $color.text,
+   $color.text-muted, $color.primary, $color.primary-fg, $color.accent, $color.success, $color.danger.
+   Use the values from the HIGH-FIDELITY DESIGN SYSTEM in your system prompt.
 
-4. After generating, use pen_list_shapes to see what was created + their IDs.
-   IMPORTANT: copy shape IDs verbatim from the pen_list_shapes output — do NOT
-   wrap them in arrays or quotes-within-quotes. The shapeId parameter is a
-   plain STRING, e.g. "abc-123", NOT ["abc-123"].
+4. PALETTE: Call pen_apply_palette with bindToTokens=true to bind shapes to the tokens and apply a
+   harmonious 60-30-10 palette. Default palette: bg #f8fafc, surface #ffffff, surface-2 #f1f5f9,
+   border #e2e8f0, text #0f172a, text-muted #475569, primary #0ea5e9, accent #6366f1,
+   success #10b981, danger #ef4444. Adjust the accent to fit the domain (fintech → emerald, health →
+   teal, creative → violet) unless the user specified colors.
 
-5. Use pen_apply_palette to apply a harmonious color scheme (or pen_generate_palette
-   first to create one from a base color). Default palette for mobile dashboards:
-   accent #0ea5e9 (sky), success #10b981 (emerald), danger #ef4444 (red),
-   text-dark #475569 (slate), text-mid #64748b, text-light #94a3b8,
-   border #e2e8f0, surface #f1f5f9.
+5. ELEVATE (CRITICAL — this is what separates hifi from wireframe): Add drop shadows to every
+   elevated surface via pen_set_shadow. Cards get shadow "0 4 6 -1 #0000001a". Buttons get
+   "0 2 4 -1 #0000001a". Modals/dialogs get "0 20 25 -5 #00000033". FABs get "0 8 12 -4 #00000033".
+   Use pen_bulk_update_by_filter to find all shapes named "Card*" or "Button*" and batch-style them
+   if you don't want to call pen_set_shadow one at a time. A design with ZERO shadows is incomplete.
 
-6. Use pen_generate_copy to fill text shapes with realistic placeholder copy.
-   Pass shapeId as a PLAIN STRING (e.g. "abc-123"), not an array.
+6. GRADIENTS: Add a gradient via pen_set_gradient_fill to the hero area, primary CTA, or logo mark.
+   Example: linear, angle 135, stops [{offset:0, color:"#0ea5e9"}, {offset:1, color:"#6366f1"}].
+   Do NOT gradient body text or the full page background.
 
-7. COMPONENTIZE: After generating, if you see 3+ similar shapes (e.g. 4 stat cards,
-   3 list items), call pen_recommend_components to find repeated patterns, then
-   pen_convert_to_component on one of them, and pen_place_component_instance +
-   pen_override_instance to replace the others with linked instances. This
-   closes the gap vs Figma AI: proactively suggest componentization.
+7. CONTENT: Replace placeholder text ("Lorem ipsum", "Item 1", "Label", "Heading") with realistic
+   domain copy via pen_generate_copy or pen_update_shape (text field). Use real names ("Sarah Chen"),
+   real numbers ("$12,480", "+18.2%"), real labels ("Monthly revenue"). NEVER leave "Lorem ipsum" on
+   a high-fidelity design.
 
-8. HIERARCHY: when the prompt asks to "move X into a (new) frame" or "reparent X",
-   FIRST create the target frame with pen_create_shape, THEN call pen_reparent_shape
-   to move the existing shape into it. pen_reparent_shape preserves the shape's
-   absolute canvas position by default — pass keepAbsolutePosition=false if you
-   want the stored relative x/y reinterpreted verbatim against the new parent.
-   Do NOT pass a "parent" field to pen_update_shape — that field is silently
-   ignored; always use pen_reparent_shape for reparenting.
+8. ICONS: Add lucide icons (pen_search_icons) for nav items, buttons, stat indicators. Stroke width 2,
+   size 20-24. Do NOT use emoji as icons.
 
-9. SELF-CRITIQUE (optional but recommended): After the design is complete, call
-   pen_self_critique to get a senior-designer review. Address every [BLOCKER]
-   finding before finalizing. Skip this if the user asked for a quick wireframe.
+9. COMPONENTIZE: After generating, if you see 3+ similar shapes (e.g. 4 stat cards, 3 list items),
+   call pen_recommend_components to find repeated patterns, then pen_convert_to_component on one of
+   them, and pen_place_component_instance + pen_override_instance to replace the others with linked
+   instances. This closes the gap vs Figma AI: proactively suggest componentization.
+
+10. HIERARCHY: when the prompt asks to "move X into a (new) frame" or "reparent X", FIRST create the
+    target frame with pen_create_shape, THEN call pen_reparent_shape to move the existing shape into it.
+    pen_reparent_shape preserves the shape's absolute canvas position by default — pass
+    keepAbsolutePosition=false if you want the stored relative x/y reinterpreted verbatim against the
+    new parent. Do NOT pass a "parent" field to pen_update_shape — that field is silently ignored;
+    always use pen_reparent_shape for reparenting.
+
+11. SELF-CRITIQUE (MANDATORY for high-fidelity work): After the design is complete, call
+    pen_self_critique to get a senior-designer review. The critic will score wireframe-only output
+    (no shadows, no gradients, grayscale) at 4/10 or below — so if your first pass scored low, add
+    the missing shadows/gradients/content and re-critique. Address every [BLOCKER] and [MAJOR]
+    finding before finalizing. Skip this ONLY if the user explicitly asked for a quick wireframe.
 
 === ARGUMENT RULES (CRITICAL — read before calling tools) =================
 
@@ -121,32 +141,45 @@ pleasing screen on the canvas from the user's description.
   RIGHT: "shapeId": "abc-123"
   (shapeIds plural — used by group/align/etc. — is an array.)
 
-• If a tool call returns "Error: no shape with id X", call pen_list_shapes to see
-  the actual IDs. Do NOT retry the same call with the same ID — that loops forever.
+• Shadow color uses 8-digit hex with alpha: #0000001a = black at 10% opacity.
+  Pass x, y, blur as numbers; spread defaults to 0; inset defaults to false.
 
-=== LAYOUT TIPS ===========================================================
+• Gradient stops: [{offset: 0, color: "#0ea5e9"}, {offset: 1, color: "#6366f1"}].
+  offset is 0..1. At least 2 stops required.
+
+• If a tool call returns "Error: no shape with id X", call pen_list_shapes to see the actual IDs.
+  Do NOT retry the same call with the same ID — that loops forever.
+
+=== LAYOUT & AESTHETIC TIPS ===============================================
 
 • Mobile screens are 375×812 px (iPhone X+ aspect). Web screens are 1280×800 px.
 • Place the first screen at (100, 100). Additional screens go at +475px (mobile) or +1380px (web).
-• Use 16-24px padding inside frames. 8-12px gaps between elements.
+• Use 16-24px padding inside frames. 8-12px gaps between elements. Section gaps 24-32px.
 • Mobile dashboard best practices (2025):
-  - 4 stat cards (2×2 grid) with trend indicators (↑↓ +X%)
+  - 4 stat cards (2×2 grid) with trend indicators (↑↓ +X%), each with a shadow + 12px radius
   - Status bar (44px) at top + header with menu/avatar (56px)
-  - Chart card with sketched axes + line/bars hint (not just empty placeholder)
-  - 3+ list items showing the repeating pattern (for component reuse)
-  - Bottom tab bar with 4 tabs (icon + label each), active state highlighted
-  - Floating Action Button (FAB) for quick actions
+  - Chart card with sketched axes + line/bars hint + shadow
+  - 3+ list items showing the repeating pattern (component reuse)
+  - Bottom tab bar with 4 tabs (lucide icon + label each), active state highlighted in primary color
+  - Floating Action Button (FAB) for quick actions, with elevation shadow
   - Home indicator (iOS bottom safe area)
-• Accent color: #0ea5e9 (sky blue) for CTAs, links, active tab.
-• Success trend: #10b981 (emerald). Danger trend: #ef4444 (red).
+• Accent color: #0ea5e9 (sky) by default. Vary by domain: fintech #10b981, health #14b8a6,
+  creative #8b5cf6, enterprise #6366f1. NEVER use plain blue/indigo unless the user asks.
+• Success trend: #10b981 (emerald). Danger trend: #ef4444 (red). Warning: #f59e0b (amber).
 
 === COMPLETION CRITERIA ===================================================
 
-The task is complete when the canvas shows a recognizable, well-structured screen that
-matches the user's description. Do NOT spend more than 8-10 tool calls — the generator
-tools are designed to produce most of the layout in one call. Refine selectively.
-If a tool fails 2x in a row, switch to a different approach (do NOT loop on the
-same failing call).`,
+The task is complete ONLY when ALL of these are true:
+  ✓ The canvas shows a recognizable, well-structured screen matching the user's description.
+  ✓ Every card/button/modal has a drop shadow (no flat surfaces except page bg).
+  ✓ A color palette is applied (not grayscale) and bound to tokens.
+  ✓ At least one gradient is present on the hero/CTA/logo.
+  ✓ All text is realistic domain copy (no "Lorem ipsum", no "Item 1").
+  ✓ The self-critique returned no outstanding [BLOCKER] findings.
+
+A bare generate_wireframe output with no styling pass is NOT complete — do not stop there.
+Budget ~15-25 tool calls for a proper high-fidelity screen. If a tool fails 2x in a row, switch
+to a different approach (do NOT loop on the same failing call).`,
     allowedTools: [
       'pen_generate_wireframe',
       'pen_generate_user_flow',
@@ -157,20 +190,40 @@ same failing call).`,
       'pen_upload_image',
       'pen_search_icons',
       'pen_generate_image',
+      // ---- Styling tools (REQUIRED for high-fidelity output) ----
+      // Without these in the wireframe skill, the LLM cannot add shadows,
+      // gradients, blur, or per-corner radii — producing flat wireframes.
+      'pen_set_gradient_fill',
+      'pen_set_shadow',
+      'pen_set_blur',
+      'pen_set_corner_radius_per_corner',
+      // ---- Token / palette tools ----
       'pen_update_tokens',
       'pen_apply_palette',
       'pen_generate_palette',
+      'pen_apply_token',
+      'pen_bind_shape_to_token',
+      'pen_unbind_shape',
+      'pen_list_tokens',
+      'pen_set_variable',
+      // ---- Layout tools (needed for auto-layout + reparenting post-generation) ----
+      'pen_apply_auto_layout',
+      'pen_align_shapes',
+      'pen_reparent_shape',
+      'pen_duplicate_shape',
+      'pen_group_shapes',
+      'pen_ungroup_shapes',
+      'pen_bring_to_front',
+      'pen_send_to_back',
+      'pen_move_forward',
+      'pen_move_backward',
+      'pen_bulk_update_by_filter',
+      'pen_find_replace_text',
+      'pen_find_shapes',
       // Figma-hierarchy: post-generation refinement often involves moving
       // shapes between frames (e.g. "design X then move Y into a new frame").
-      // Without pen_reparent_shape in the wireframe skill, the LLM has no
-      // way to reparent and falls back to pen_update_shape with a `parent`
-      // arg, which is silently ignored.
-      'pen_reparent_shape',
-      // Phase 3 agentic workflows — recommended post-generation:
-      // - recommend_components: find repeated patterns, suggest componentization
-      // - convert_to_component + place_component_instance + override_instance:
-      //   act on the recommendations (close the Figma-AI gap)
-      // - self_critique: get a senior-designer review (reflection pattern)
+      'pen_set_constraints',
+      // Phase 3 agentic workflows — MANDATORY post-generation:
       'pen_recommend_components',
       'pen_convert_to_component',
       'pen_place_component_instance',
@@ -184,6 +237,8 @@ same failing call).`,
       'ui', 'interface', 'prototype', 'mock', 'template', 'flow', 'onboarding',
       'pricing', 'blog', 'ecommerce', 'app', 'mobile', 'web',
       'diagram', 'flowchart', 'mindmap', 'mind map',
+      'high fidelity', 'hifi', 'high-fi', 'polished', 'production-ready',
+      'beautiful', 'modern', 'redesign', 'skin', 'theme',
     ],
   },
 
@@ -635,6 +690,9 @@ export const ALL_TOOL_NAMES = [
   'pen_generate_copy', 'pen_audit_design',
   // Token binding
   'pen_bind_shape_to_token', 'pen_unbind_shape', 'pen_list_tokens', 'pen_apply_token',
+  // .pen-aligned tools (variables, themes, refs, slots, export)
+  'pen_set_variable', 'pen_apply_theme', 'pen_create_ref', 'pen_override_descendant',
+  'pen_mark_slot', 'pen_export_pen', 'pen_set_theme_axis', 'pen_list_themes',
   // Lock & visibility
   'pen_set_locked', 'pen_set_visible',
   // Z-order
