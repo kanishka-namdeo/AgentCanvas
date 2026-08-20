@@ -43,11 +43,21 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - Patches are append-only in the session store; the patch layer itself is stateless.
 - **.pen tree model**: `doc.children` (a .pen `PenChild[]` object tree) is the SOURCE OF TRUTH. `doc.shapes` is a DERIVED render cache recomputed via `resolvePenTree()` after every mutation. Patch ops mutate the tree; the applier then calls `recomputeDerived()`.
 - `toPenNodePartial()` maps legacy Shape fields (`radius`→`cornerRadius`, `text`→`content`, `autoLayout`→`layout`/`gap`/...) to .pen fields so existing tools keep working.
+- `normalizeOverride()` (Phase 2) does the same field-name mapping for instance-override payloads — the agent tools accept Figma-style names (`text`, `textColor`, `strokeWidth`, `radius`) and the normalizer converts them to .pen names (`content`, `fill`, `strokeWeight`, `cornerRadius`) before storing on `ref.descendants[path]`.
 - The full set of patch ops:
   - **Core ops**: `add`, `update`, `remove`, `clear`, `background`, `select`.
   - **Extended ops**: `bulk_add`, `update_many`, `duplicate`, `group`, `ungroup`, `align`, `tokens`.
   - **Phase 1+2+5 ops**: `zorder`, `reorder`, `viewport`, `undo`, `redo`.
   - **.pen-aligned ops**: `set_theme_axis`, `set_node_theme`, `set_variable`, `mark_slot`.
+  - **Figma ontology ops (Phase 1)**: `add_page`, `delete_page`, `rename_page`, `set_active_page`, `add_section`, `create_component`, `create_component_set`, `add_variant`, `set_component_property`, `set_instance_property`, `flatten_boolean`.
+  - **Component-system ops (Phase 2 — Figma-aligned components & design systems)**:
+    - `convert_to_component` — promote a frame/group/shape to a reusable `Component` node (sets `reusable=true`).
+    - `place_instance` — create a `PenRef` (proper linked instance) pointing at a reusable Component.
+    - `set_instance_override` — override a descendant property on a PenRef (text/fill/stroke/visibility); auto-normalizes legacy Shape field names to .pen field names.
+    - `reset_instance` — clear ALL overrides on a PenRef, re-sync from main component.
+    - `detach_instance` — convert a PenRef into a standalone `Component`/frame node (break the link, bake overrides in).
+    - `combine_as_variants` — wrap multiple Component nodes into a ComponentSet (variants); axes auto-derived from "Property=Value" naming convention if not explicitly provided.
+    - `swap_variant` — switch which variant of a ComponentSet an instance points to (changes `ref.ref`).
   - **REMOVED**: `heatmap` (dropped for .pen format purity — pen.dev has no analysis-overlay concept).
 - `undo` and `redo` are client-side only — they pop the undo/redo stacks and do not produce server-side mutations.
 

@@ -1295,9 +1295,9 @@ describe('tools: pen_set_constraints', () => {
 // ---- Tool registration sanity ------------------------------------------------
 
 describe('tools: registration sanity', () => {
-  it('returns 57 tools total', () => {
+  it('returns 64 tools total (57 base + 7 Phase 2 component-system tools)', () => {
     const tools = createCanvasTools(h.ctx);
-    expect(tools).toHaveLength(57);
+    expect(tools).toHaveLength(64);
   });
 
   it('every tool has a unique name', () => {

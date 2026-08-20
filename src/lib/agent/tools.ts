@@ -1108,6 +1108,289 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   });
 
   // =====================================================================
+  // COMPONENT SYSTEM (Phase 2 — Figma-aligned components & design systems)
+  //
+  // These tools wrap the new patch ops in `src/lib/canvas/patch.ts` and expose
+  // the full Figma component lifecycle to the agent:
+  //
+  //   1. pen_convert_to_component    — promote a frame to a reusable Component
+  //   2. pen_place_component_instance — create a proper PenRef (linked instance)
+  //   3. pen_override_instance        — set a descendant override on an instance
+  //   4. pen_reset_instance           — clear all overrides on an instance
+  //   5. pen_detach_instance          — break the link, bake into a plain frame
+  //   6. pen_combine_as_variants      — wrap components into a ComponentSet
+  //   7. pen_swap_variant             — switch which variant the instance shows
+  //
+  // The legacy `pen_create_component` + `pen_instantiate_component` tools above
+  // are kept for backward compat — they set `componentId` on a shape / shallow
+  // copy without producing a proper PenRef. New agent code should prefer the
+  // Phase 2 tools below.
+  // =====================================================================
+
+  const convertToComponent = defineTool({
+    name: 'pen_convert_to_component',
+    label: 'Convert to Component',
+    description:
+      'Promote an existing frame, group, or shape into a reusable Component (Figma: ⌘⇧O). ' +
+      'The selected node becomes the "main component" — its type changes from "frame" to "component", ' +
+      'and `reusable=true` is set so future instances can reference it via `pen_place_component_instance`. ' +
+      'Use this AFTER designing a UI element you want to reuse (button, card, header, etc.).',
+    promptSnippet: 'Turn a frame into a reusable component.',
+    promptGuidelines: [
+      'The selected shape should be a frame or group containing the component\'s visual elements.',
+      'After converting, place instances via `pen_place_component_instance` — do NOT duplicate the main component.',
+      'To create variants (e.g. Primary, Secondary, Disabled states), convert each variant into its own component first, then call `pen_combine_as_variants`.',
+    ],
+    parameters: Type.Object({
+      shapeId: Type.String({ description: 'ID of the frame/group/shape to promote to a Component' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      if (!shape) {
+        return {
+          content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }],
+          details: { error: 'not_found' },
+          isError: true as any,
+        };
+      }
+      const patch: CanvasPatch = {
+        op: 'convert_to_component',
+        shapeId: params.shapeId,
+        summary: `Promoted "${shape.name}" to a reusable Component`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Shape "${shape.name}" is now a reusable Component (id=${params.shapeId}). Place instances via pen_place_component_instance.` }],
+        details: { patch, componentId: params.shapeId },
+      };
+    },
+  });
+
+  const placeComponentInstance = defineTool({
+    name: 'pen_place_component_instance',
+    label: 'Place Component Instance',
+    description:
+      'Place a linked instance of a reusable Component at (x, y). Creates a proper PenRef node that ' +
+      'references the main component. The instance inherits the main\'s full subtree and can be ' +
+      'overridden locally (text, fill, stroke, child visibility) without affecting the main. ' +
+      'When the main component changes, all instances update automatically.',
+    promptSnippet: 'Place a linked instance of a reusable component.',
+    promptGuidelines: [
+      'Requires the source to be a reusable Component (convert first via `pen_convert_to_component`).',
+      'The instance will inherit the main\'s width/height/fill/stroke — don\'t pass those here.',
+      'To customize an instance (e.g. different label text), follow with `pen_override_instance`.',
+    ],
+    parameters: Type.Object({
+      componentId: Type.String({ description: 'ID of the source (reusable) Component' }),
+      x: Type.Number({ description: 'X position for the new instance (canvas-space)' }),
+      y: Type.Number({ description: 'Y position for the new instance (canvas-space)' }),
+      parentId: Type.Optional(Type.String({ description: 'Optional parent frame/group to insert into' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const id = crypto.randomUUID();
+      const patch: CanvasPatch = {
+        op: 'place_instance',
+        shapeId: id,
+        componentId: params.componentId,
+        shape: {
+          id,
+          x: params.x,
+          y: params.y,
+          ...(params.parentId ? { parentId: params.parentId } : {}),
+        },
+        summary: `Placed instance of component ${params.componentId} at (${params.x}, ${params.y})`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Created instance ${id} of component ${params.componentId}.` }],
+        details: { patch, instanceId: id },
+      };
+    },
+  });
+
+  const overrideInstance = defineTool({
+    name: 'pen_override_instance',
+    label: 'Override Instance Property',
+    description:
+      'Override a descendant property on a component instance (PenRef). Lets you customize one instance ' +
+      'without affecting the main component or other instances. Supported overrides: text content, fill, ' +
+      'stroke, opacity, visibility, fontSize, textColor, radius. The descendant path is slash-separated ' +
+      'source-ids (e.g. "button-frame/label-text").',
+    promptSnippet: 'Customize an instance (override text, fill, etc.).',
+    promptGuidelines: [
+      'Use the source-id path of the descendant inside the MAIN component (not the instance clone).',
+      'Multiple overrides on the same instance accumulate — you don\'t need to re-send prior overrides.',
+      'To revert: call `pen_reset_instance` to clear all overrides on an instance.',
+    ],
+    parameters: Type.Object({
+      instanceId: Type.String({ description: 'ID of the PenRef instance to override' }),
+      descendantPath: Type.String({ description: 'Slash-separated source-id path inside the main component (e.g. "button/label")' }),
+      text: Type.Optional(Type.String({ description: 'Override text content (for text descendants)' })),
+      fill: Type.Optional(Type.String({ description: 'Override fill color (hex, e.g. "#ef4444")' })),
+      stroke: Type.Optional(Type.String({ description: 'Override stroke color (hex)' })),
+      strokeWidth: Type.Optional(Type.Number({ description: 'Override stroke width in px' })),
+      opacity: Type.Optional(Type.Number({ description: 'Override opacity (0..1)' })),
+      visible: Type.Optional(Type.Boolean({ description: 'Override visibility (true=show, false=hide)' })),
+      fontSize: Type.Optional(Type.Number({ description: 'Override font size in px' })),
+      textColor: Type.Optional(Type.String({ description: 'Override text color (hex)' })),
+      radius: Type.Optional(Type.Number({ description: 'Override corner radius in px' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const override: Record<string, unknown> = {};
+      if (params.text !== undefined) override.text = params.text;
+      if (params.fill !== undefined) override.fill = params.fill;
+      if (params.stroke !== undefined) override.stroke = params.stroke;
+      if (params.strokeWidth !== undefined) override.strokeWidth = params.strokeWidth;
+      if (params.opacity !== undefined) override.opacity = params.opacity;
+      if (params.visible !== undefined) override.visible = params.visible;
+      if (params.fontSize !== undefined) override.fontSize = params.fontSize;
+      if (params.textColor !== undefined) override.textColor = params.textColor;
+      if (params.radius !== undefined) override.radius = params.radius;
+      if (Object.keys(override).length === 0) {
+        return {
+          content: [{ type: 'text', text: 'Error: at least one override property must be provided.' }],
+          details: { error: 'no_overrides' },
+          isError: true as any,
+        };
+      }
+      const patch: CanvasPatch = {
+        op: 'set_instance_override',
+        shapeId: params.instanceId,
+        descendantPath: params.descendantPath,
+        override,
+        summary: `Overrode ${params.descendantPath} on instance ${params.instanceId}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Overrode ${Object.keys(override).join(', ')} on ${params.descendantPath} of instance ${params.instanceId}.` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const resetInstance = defineTool({
+    name: 'pen_reset_instance',
+    label: 'Reset Instance Overrides',
+    description:
+      'Clear ALL overrides on a component instance — re-sync from the main component. ' +
+      'Equivalent to Figma\'s right-click → "Reset Instance" / "Reset Overrides".',
+    promptSnippet: 'Reset all overrides on an instance.',
+    parameters: Type.Object({
+      instanceId: Type.String({ description: 'ID of the PenRef instance to reset' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'reset_instance',
+        shapeId: params.instanceId,
+        summary: `Reset all overrides on instance ${params.instanceId}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Reset all overrides on instance ${params.instanceId}.` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const detachInstance = defineTool({
+    name: 'pen_detach_instance',
+    label: 'Detach Instance',
+    description:
+      'Detach a component instance from its main component (Figma: right-click → "Detach Instance"). ' +
+      'The instance becomes a standalone frame containing the resolved tree (with overrides baked in). ' +
+      'Future changes to the main component will NOT propagate to the detached frame. Use this when you ' +
+      'need to heavily customize a single instance beyond what overrides allow.',
+    promptSnippet: 'Detach an instance (break the link to the main component).',
+    parameters: Type.Object({
+      instanceId: Type.String({ description: 'ID of the PenRef instance to detach' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'detach_instance',
+        shapeId: params.instanceId,
+        summary: `Detached instance ${params.instanceId} from its main component`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Instance ${params.instanceId} is now a standalone frame (link broken).` }],
+        details: { patch },
+      };
+    },
+  });
+
+  const combineAsVariants = defineTool({
+    name: 'pen_combine_as_variants',
+    label: 'Combine as Variants',
+    description:
+      'Wrap multiple Component nodes into a ComponentSet (Figma: select multiple components → "Combine as Variants"). ' +
+      'The resulting set exposes the variant axes (e.g. Size, State) as a property picker on instances. ' +
+      'Component naming convention MUST be "Property=Value, Property=Value" (e.g. "Size=Large, State=Default") ' +
+      'for the axes to be auto-derived. You can also pass `axes` explicitly. After combining, instances of ' +
+      'the SET can switch between variants via `pen_swap_variant`.',
+    promptSnippet: 'Combine components into a variant set.',
+    promptGuidelines: [
+      'Components should be named "Property=Value, ..." — e.g. "Size=Large, State=Default".',
+      'All components in a set should share the SAME property axes (same Property names).',
+      'Axes are auto-derived from the first component\'s name if `axes` is omitted.',
+    ],
+    parameters: Type.Object({
+      componentIds: Type.Array(Type.String(), { description: 'IDs of the components to combine (2+ required)' }),
+      axes: Type.Optional(Type.Array(Type.String(), { description: 'Variant axes (e.g. ["Size", "State"]). Auto-derived if omitted.' })),
+      name: Type.Optional(Type.String({ description: 'Display name for the component set (defaults to "Component Set")' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      if (params.componentIds.length < 2) {
+        return {
+          content: [{ type: 'text', text: 'Error: combine_as_variants requires at least 2 components.' }],
+          details: { error: 'too_few_components' },
+          isError: true as any,
+        };
+      }
+      const setId = crypto.randomUUID();
+      const patch: CanvasPatch = {
+        op: 'combine_as_variants',
+        shapeId: setId,
+        componentIds: params.componentIds,
+        axes: params.axes,
+        shape: { name: params.name ?? 'Component Set' },
+        summary: `Combined ${params.componentIds.length} components into a ComponentSet`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Created ComponentSet ${setId} with ${params.componentIds.length} variants.` }],
+        details: { patch, componentSetId: setId },
+      };
+    },
+  });
+
+  const swapVariant = defineTool({
+    name: 'pen_swap_variant',
+    label: 'Swap Variant',
+    description:
+      'Switch which variant of a ComponentSet the instance points to. The instance keeps its existing ' +
+      'overrides (text, fill, etc.) where the new variant has matching descendants. Equivalent to Figma\'s ' +
+      'Properties panel variant dropdown.',
+    promptSnippet: 'Switch an instance to a different variant.',
+    parameters: Type.Object({
+      instanceId: Type.String({ description: 'ID of the PenRef instance to update' }),
+      variantComponentId: Type.String({ description: 'ID of the target variant (a Component inside the ComponentSet)' }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const patch: CanvasPatch = {
+        op: 'swap_variant',
+        shapeId: params.instanceId,
+        componentId: params.variantComponentId,
+        summary: `Swapped instance ${params.instanceId} to variant ${params.variantComponentId}`,
+      };
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Instance ${params.instanceId} now points to variant ${params.variantComponentId}.` }],
+        details: { patch },
+      };
+    },
+  });
+
+  // =====================================================================
   // DESIGN TOKENS / VARIABLES (research: Figma Variables + AI design systems)
   // =====================================================================
 
@@ -2738,6 +3021,14 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     // Components
     createComponent,
     instantiateComponent,
+    // Component System (Phase 2 — Figma-aligned components & design systems)
+    convertToComponent,
+    placeComponentInstance,
+    overrideInstance,
+    resetInstance,
+    detachInstance,
+    combineAsVariants,
+    swapVariant,
     // Tokens / palette
     updateTokens,
     applyPalette,

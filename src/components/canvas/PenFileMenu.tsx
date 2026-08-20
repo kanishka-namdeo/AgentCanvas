@@ -127,21 +127,21 @@ export function PenFileMenu() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuLabel className="text-[11px] ac-text-4 font-normal">
+          <DropdownMenuLabel className="text-[11px] ac-text-3 font-normal">
             pen.dev file format (.pen)
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleExport} className="gap-2 cursor-pointer">
             <Download className="h-3.5 w-3.5" />
             <span>Export as .pen</span>
-            <span className="ml-auto text-[10px] ac-text-5">{canvasDoc.shapes.length} nodes</span>
+            <span className="ml-auto text-[10px] ac-text-4">{canvasDoc.shapes.length} nodes</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleImportClick} className="gap-2 cursor-pointer">
             <Upload className="h-3.5 w-3.5" />
             <span>Import .pen file…</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <div className="px-2 py-1.5 text-[10px] ac-text-5 leading-relaxed">
+          <div className="px-2 py-1.5 text-[10px] ac-text-4 leading-relaxed">
             Open format compatible with pen.dev / pencil.dev.
             <a
               href="https://docs.pen.dev/for-developers/the-pen-format"

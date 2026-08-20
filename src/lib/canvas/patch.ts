@@ -12,9 +12,9 @@
 // fields to their .pen equivalents before inserting into the tree.
 
 import type { CanvasDocument, CanvasPatch, Shape, DesignTokens, ColorToken, TextStyleToken, Constraints } from './types';
-import type { PenChild, PenVariableDef, PenTheme } from '../pen/types';
+import type { PenChild, PenVariableDef, PenTheme, PenRef, PenComponent, PenComponentSet, PenFrame } from '../pen/types';
 import { resolvePenTree } from '../pen/resolve';
-import { findNode, findNodeArray, insertNode, removeNode, updateNode, moveNode, deepCloneNode, newId, collectComponents, walkTree, getAncestorOffset, getAbsolutePosition, isDescendant } from '../pen/document';
+import { findNode, findNodeArray, insertNode, removeNode, updateNode, moveNode, deepCloneNode, newId, collectComponents, walkTree, getAncestorOffset, getAbsolutePosition, isDescendant, expandRef } from '../pen/document';
 
 // ---- Helpers --------------------------------------------------------------
 
@@ -617,6 +617,186 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       } as Partial<PenChild>);
       break;
     }
+
+    // ===== Figma component-system ops (Phase 2 — Components & Design Systems) =====
+
+    case 'convert_to_component': {
+      // Promote an existing frame/group/shape into a reusable Component node.
+      // Figma behavior: select a frame → "Create Component" (⌘⇧O / Ctrl+Shift+O).
+      // The frame's type changes from 'frame' to 'component', and `reusable=true`
+      // is set so it can be referenced by PenRef instances.
+      if (!patch.shapeId) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node) break;
+      // Only frames, groups, and shape nodes can be promoted (not refs/instances).
+      const promotableTypes = ['frame', 'group', 'rectangle', 'ellipse', 'text', 'line', 'path'];
+      if (!promotableTypes.includes(node.type)) break;
+      const newComp: Partial<PenComponent> = {
+        type: 'component',
+        reusable: true,
+        // Preserve the existing name (or default to "Component").
+        name: (node as { name?: string }).name ?? 'Component',
+      };
+      // Carry over any component property definitions if provided.
+      if (patch.componentProperty) {
+        const existingDefs = (node as { componentPropertyDefinitions?: Record<string, unknown> }).componentPropertyDefinitions ?? {};
+        newComp.componentPropertyDefinitions = {
+          ...existingDefs,
+          [patch.componentProperty.name]: {
+            type: patch.componentProperty.type,
+            defaultValue: patch.componentProperty.defaultValue,
+            preferredValues: patch.componentProperty.preferredValues,
+            variantOptions: patch.componentProperty.variantOptions,
+          },
+        } as PenComponent['componentPropertyDefinitions'];
+      }
+      next.children = updateNode(next.children, patch.shapeId, newComp as Partial<PenChild>);
+      break;
+    }
+
+    case 'place_instance': {
+      // Create a proper PenRef (linked instance) pointing at a reusable component.
+      // This replaces the legacy pen_instantiate_component tool which only copied.
+      // Figma behavior: drag a component from the Assets panel → drops an instance.
+      if (!patch.componentId) break;
+      const components = collectComponents(next.children);
+      const src = components.get(patch.componentId);
+      if (!src) break;
+      const id = patch.shapeId ?? newId();
+      const x = num(patch.shape?.x, 0);
+      const y = num(patch.shape?.y, 0);
+      const refNode: PenRef = {
+        id,
+        type: 'ref',
+        ref: patch.componentId,
+        name: (patch.shape?.name as string) ?? `${(src as { name?: string }).name ?? 'Component'} instance`,
+        x,
+        y,
+        // Initial component property values come from the patch's instancePropertyValue
+        // (rarely used here — usually set via a subsequent set_instance_property call).
+        ...(patch.shape as Record<string, unknown>),
+      };
+      // Strip fields that shouldn't be on a ref.
+      delete (refNode as Record<string, unknown>).width;
+      delete (refNode as Record<string, unknown>).height;
+      delete (refNode as Record<string, unknown>).fill;
+      delete (refNode as Record<string, unknown>).stroke;
+      // If parentId specified, insert under that parent; else at root.
+      const parentId = (patch.shape as { parentId?: string | null })?.parentId;
+      if (parentId) {
+        next.children = insertUnderParent(next.children, refNode as PenChild, parentId);
+      } else {
+        next.children = [...next.children, refNode as PenChild];
+      }
+      break;
+    }
+
+    case 'set_instance_override': {
+      // Override a descendant property on a PenRef.
+      // Figma behavior: select an instance → edit text/fill/stroke in the right panel.
+      // Stored on ref.descendants[path] = { ...partialNode }.
+      if (!patch.shapeId || !patch.descendantPath || !patch.override) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node || node.type !== 'ref') break;
+      const ref = node as unknown as PenRef;
+      const descendants = { ...(ref.descendants ?? {}) };
+      const path = patch.descendantPath;
+      // Normalize the override: map legacy Shape fields to .pen field names
+      // (e.g. `text` → `content`, `textColor` → `fill` for text nodes).
+      // This lets agent tools + the UI use Figma-style field names while the
+      // .pen tree stays spec-compliant.
+      const normalizedOverride = normalizeOverride(patch.override);
+      // Merge with any existing override at the same path.
+      const existing = descendants[path];
+      descendants[path] = { ...(existing ?? {}), ...normalizedOverride } as Partial<PenChild>;
+      next.children = updateNode(next.children, patch.shapeId, {
+        descendants,
+      } as Partial<PenChild>);
+      break;
+    }
+
+    case 'reset_instance': {
+      // Clear ALL overrides on a PenRef — re-sync from the main component.
+      // Figma behavior: right-click instance → "Reset Instance" or "Reset Overrides".
+      if (!patch.shapeId) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node || node.type !== 'ref') break;
+      next.children = updateNode(next.children, patch.shapeId, {
+        descendants: undefined,
+        componentProperties: undefined,
+      } as Partial<PenChild>);
+      break;
+    }
+
+    case 'detach_instance': {
+      // Convert a PenRef into a standalone frame (break the link to the main component).
+      // Figma behavior: right-click instance → "Detach Instance".
+      // The resolved tree (with overrides applied) becomes a regular frame subtree.
+      if (!patch.shapeId) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node || node.type !== 'ref') break;
+      const ref = node as unknown as PenRef;
+      const components = collectComponents(next.children);
+      const expanded = expandRef(ref, components);
+      if (!expanded) break;
+      // The expanded clone has a fresh id; preserve the original instance id so
+      // the layers panel / selections keep their selection.
+      (expanded as { id: string }).id = patch.shapeId;
+      // Replace the ref with the expanded subtree in its parent array.
+      next.children = replaceNodeInTree(next.children, patch.shapeId, expanded);
+      break;
+    }
+
+    case 'combine_as_variants': {
+      // Wrap multiple Component nodes into a ComponentSet (variants).
+      // Figma behavior: select multiple components → "Combine as Variants".
+      // The variant axes are auto-derived from the component names
+      // (Figma naming: "Property1=Value, Property2=Value") if not specified.
+      if (!patch.componentIds?.length) break;
+      const ids = patch.componentIds;
+      // Collect the components and remove them from their current location.
+      const collected: PenChild[] = [];
+      let workingChildren = next.children;
+      for (const id of ids) {
+        const node = findNode(workingChildren, id);
+        if (!node || node.type !== 'component') break;
+        collected.push(node);
+        // Remove from tree.
+        workingChildren = removeFromTree(workingChildren, id);
+      }
+      if (collected.length !== ids.length) break;
+      // Derive variant axes from the patch or the first component's name.
+      const axes = patch.axes ?? deriveVariantAxes(collected[0] as { name?: string });
+      const setId = patch.shapeId ?? newId();
+      const componentSet: PenComponentSet = {
+        id: setId,
+        type: 'component_set',
+        name: (patch.shape?.name as string) ?? 'Component Set',
+        x: num(patch.shape?.x, 100),
+        y: num(patch.shape?.y, 100),
+        width: num(patch.shape?.width, 400),
+        height: num(patch.shape?.height, 200),
+        variantPropertyAxes: axes,
+        variantLayout: 'grid',
+        children: collected,
+      };
+      next.children = [...workingChildren, componentSet as PenChild];
+      break;
+    }
+
+    case 'swap_variant': {
+      // Switch which variant of a ComponentSet the instance points to.
+      // Figma behavior: select instance → in Properties panel, pick a different
+      // variant from the variant property dropdown.
+      // Implementation: change ref.ref to point at a different component inside the set.
+      if (!patch.shapeId || !patch.componentId) break;
+      const node = findNode(next.children, patch.shapeId);
+      if (!node || node.type !== 'ref') break;
+      next.children = updateNode(next.children, patch.shapeId, {
+        ref: patch.componentId,
+      } as Partial<PenChild>);
+      break;
+    }
     case 'flatten_boolean': {
       if (!patch.shapeId) break;
       const node = findNode(next.children, patch.shapeId);
@@ -726,4 +906,119 @@ function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, i
     if (!Array.isArray(base.children)) base.children = [];
   }
   return base as PenChild;
+}
+
+// ---- Phase 2 component-system helpers -------------------------------------
+
+/**
+ * Replace a node by id anywhere in the tree with a new node.
+ * Used by `detach_instance` to swap a PenRef for its expanded frame subtree.
+ * Returns a new tree (immutable).
+ */
+function replaceNodeInTree(children: PenChild[], id: string, newNode: PenChild): PenChild[] {
+  let replaced = false;
+  const mapped = children.map((c) => {
+    if (c.id === id) {
+      replaced = true;
+      return newNode;
+    }
+    const isContainer =
+      c.type === 'frame' || c.type === 'group' ||
+      c.type === 'component' || c.type === 'component_set' ||
+      c.type === 'section' || c.type === 'boolean_operation';
+    if (isContainer && 'children' in c && Array.isArray(c.children)) {
+      const next = replaceNodeInTree(c.children as PenChild[], id, newNode);
+      if (next !== c.children) return { ...c, children: next };
+    }
+    return c;
+  });
+  return replaced ? mapped : children;
+}
+
+/**
+ * Remove a node by id from anywhere in the tree.
+ * Used by `combine_as_variants` to lift components out before re-wrapping them.
+ * Returns a new tree (immutable).
+ */
+function removeFromTree(children: PenChild[], id: string): PenChild[] {
+  const filtered = children.filter((c) => c.id !== id);
+  if (filtered.length !== children.length) return filtered;
+  // Not found at this level — recurse into containers.
+  return children.map((c) => {
+    const isContainer =
+      c.type === 'frame' || c.type === 'group' ||
+      c.type === 'component' || c.type === 'component_set' ||
+      c.type === 'section' || c.type === 'boolean_operation';
+    if (isContainer && 'children' in c && Array.isArray(c.children)) {
+      const next = removeFromTree(c.children as PenChild[], id);
+      if (next !== c.children) return { ...c, children: next };
+    }
+    return c;
+  });
+}
+
+/**
+ * Parse Figma's variant naming convention "Property1=Value1, Property2=Value2"
+ * and return the property names (axes). Used by `combine_as_variants` when the
+ * caller doesn't explicitly specify axes.
+ *
+ * Example: "Size=Large, State=Default" → ['Size', 'State']
+ * Falls back to ['Variant'] if the name doesn't match the convention.
+ */
+function deriveVariantAxes(node: { name?: string }): string[] {
+  const name = node?.name ?? '';
+  // Match "Prop=Value" pairs separated by commas.
+  const pairs = name.split(',').map((s) => s.trim());
+  const axes: string[] = [];
+  for (const p of pairs) {
+    const eq = p.indexOf('=');
+    if (eq > 0) {
+      const k = p.slice(0, eq).trim();
+      if (k) axes.push(k);
+    }
+  }
+  return axes.length > 0 ? axes : ['Variant'];
+}
+
+/**
+ * Normalize an instance-override payload: map legacy `Shape` field names to
+ * their .pen equivalents so the override actually takes effect when applied
+ * to the cloned subtree.
+ *
+ * The .pen spec uses different field names than the legacy AgentCanvas `Shape`
+ * type for backwards-compat reasons. The agent tools + UI expose Figma-style
+ * names (`text`, `textColor`, `strokeWidth`, `radius`) which we map here:
+ *
+ *   - `text`       → `content`   (pen text node field)
+ *   - `textColor`  → `fill`      (pen text nodes use `fill` for text color)
+ *   - `strokeWidth`→ `strokeWeight` (pen stroke weight field name)
+ *   - `radius`     → `cornerRadius` (pen corner radius field name)
+ *
+ * Other fields (fill, stroke, opacity, visible, fontSize) pass through unchanged.
+ */
+function normalizeOverride(override: Partial<Shape> & Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...override };
+  // Map legacy Shape field names → .pen field names.
+  if ('text' in out && out.text !== undefined) {
+    out.content = out.text;
+    delete out.text;
+  }
+  if ('textColor' in out && out.textColor !== undefined) {
+    // Text color on a pen text node is `fill` (same field as shape fill — the
+    // node type disambiguates). Caller can still pass `fill` for shape nodes.
+    // If both are present, `fill` wins (more specific).
+    if (!('fill' in out) || out.fill === undefined) {
+      out.fill = out.textColor;
+    }
+    delete out.textColor;
+  }
+  if ('strokeWidth' in out && out.strokeWidth !== undefined) {
+    out.strokeWeight = out.strokeWidth;
+    delete out.strokeWidth;
+  }
+  if ('radius' in out && out.radius !== undefined) {
+    out.cornerRadius = out.radius;
+    delete out.radius;
+  }
+  return out;
 }

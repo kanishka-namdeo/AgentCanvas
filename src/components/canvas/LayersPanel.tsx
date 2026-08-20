@@ -39,6 +39,9 @@ import {
   Star as StarIcon,        // star
   Hexagon,                 // polygon
   CornerDownRight,         // instance (component instance)
+  // Phase 2 component-system icons (instance actions):
+  Unlink,                  // detach instance
+  RotateCcw,               // reset overrides
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -444,9 +447,31 @@ export function LayersPanel() {
           </ContextMenuItem>
           <ContextMenuSeparator />
           {/* ── Group 5: Components ──────────────────────────────────── */}
-          <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: shape.id, shape: { componentId: shape.id } as Partial<Shape>, summary: `Marked ${shape.name} as component master` })}>
-            <ComponentIcon className="h-3.5 w-3.5 mr-2" /> Create component <span className="ml-auto text-[10px] ac-text-4">⌘⇧C</span>
-          </ContextMenuItem>
+          {/* Phase 2 component-system: use the new convert_to_component op
+              (proper PenComponent node, reusable=true) for frames/groups.
+              Legacy "mark as component master" was a stub that just set
+              componentId — keep it only for non-frame/group shapes. */}
+          {(shape.type === 'frame' || shape.type === 'group') && (
+            <ContextMenuItem onClick={() => sendPatch({ op: 'convert_to_component', shapeId: shape.id, summary: `Promoted ${shape.name} to reusable Component` })}>
+              <ComponentIcon className="h-3.5 w-3.5 mr-2" /> Create component <span className="ml-auto text-[10px] ac-text-4">⌘⇧C</span>
+            </ContextMenuItem>
+          )}
+          {shape.type !== 'frame' && shape.type !== 'group' && (
+            <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: shape.id, shape: { componentId: shape.id } as Partial<Shape>, summary: `Marked ${shape.name} as component master` })}>
+              <ComponentIcon className="h-3.5 w-3.5 mr-2" /> Mark as component master
+            </ContextMenuItem>
+          )}
+          {/* Instance-specific actions (only when shape is a component instance) */}
+          {isComponentInstance && (
+            <>
+              <ContextMenuItem onClick={() => sendPatch({ op: 'detach_instance', shapeId: shape.id, summary: `Detached instance ${shape.name}` })}>
+                <Unlink className="h-3.5 w-3.5 mr-2" /> Detach instance
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => sendPatch({ op: 'reset_instance', shapeId: shape.id, summary: `Reset overrides on ${shape.name}` })}>
+                <RotateCcw className="h-3.5 w-3.5 mr-2" /> Reset overrides
+              </ContextMenuItem>
+            </>
+          )}
           {shape.type === 'frame' && (
             <ContextMenuItem onClick={() => sendPatch({ op: 'mark_slot', shapeId: shape.id, slotComponents: [], summary: `Marked ${shape.name} as slot` })}>
               <SquareStack className="h-3.5 w-3.5 mr-2" /> Mark as slot

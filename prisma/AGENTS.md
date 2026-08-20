@@ -17,6 +17,31 @@ The Prisma schema + SQLite datasource. Defines the `Document`, `Shape`, and `Age
 - URL: from `DATABASE_URL` env var (typically `file:db/custom.db`).
 - The DB file lives at `db/custom.db` (relative to repo root). Do not move it without updating `DATABASE_URL`.
 
+### Prisma 7 driver-adapter pattern
+
+This project was migrated to **Prisma 7**, which removed the `url` property from the `datasource` block in `schema.prisma`. The connection URL now lives in **`prisma.config.ts`** (at the repo root), and the Prisma client is constructed with a driver adapter (`@prisma/adapter-libsql`) in `src/lib/db.ts`:
+
+```ts
+// prisma.config.ts
+import path from "node:path";
+import { defineConfig } from "prisma/config";
+export default defineConfig({
+  schema: path.join(__dirname, "prisma", "schema.prisma"),
+  migrations: { path: path.join(__dirname, "prisma", "migrations") },
+  datasource: { url: process.env.DATABASE_URL ?? "file:./db/custom.db" },
+});
+```
+
+```ts
+// src/lib/db.ts
+import { PrismaClient } from "@prisma/client";
+import { PrismaLibSql } from "@prisma/adapter-libsql"; // ← note the lowercase `Sql`
+const adapter = new PrismaLibSql({ url: databaseUrl }); // ← pass Config, not a Client
+export const db = new PrismaClient({ log: ["query"], adapter });
+```
+
+The generated client is now output to `node_modules/.prisma/client/` (set in `schema.prisma` `generator.client.output`), and `@prisma/client` re-exports from there. Imports in app code stay the same (`import { PrismaClient } from "@prisma/client"`).
+
 ### Models
 
 #### `Document`
@@ -79,3 +104,5 @@ All of these fields are optional in the TypeScript type, so the Prisma model sti
 ## Child DOX Index
 
 No child `AGENTS.md` files. This folder is flat: `schema.prisma`. (No `migrations/` folder yet.)
+
+Note: `prisma.config.ts` lives at the **repo root** (not in `prisma/`) because that's where the Prisma 7 CLI looks for it. It's owned by this folder conceptually but physically co-located with `package.json`.

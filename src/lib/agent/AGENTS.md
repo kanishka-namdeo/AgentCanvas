@@ -65,7 +65,8 @@ All canvas tools are prefixed with `pen_` (e.g., `pen_create_shape`, `pen_update
 - **Export (4)**: pen_export_json, pen_export_svg, pen_export_png, pen_copy_as_code
 - **Vector (5)**: pen_create_path, pen_boolean_op, pen_mask_with, pen_create_shape, pen_update_shape
 - **Web (2)**: web_search, web_fetch
-- **Components (2)**: pen_create_component, pen_instantiate_component
+- **Components (2 legacy)**: pen_create_component, pen_instantiate_component
+- **Component System (7 — Phase 2, Figma-aligned)**: pen_convert_to_component, pen_place_component_instance, pen_override_instance, pen_reset_instance, pen_detach_instance, pen_combine_as_variants, pen_swap_variant
 - **Pen-aligned (8)**: pen_set_variable, pen_apply_theme, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_theme_axis, pen_list_themes
 - **Figma-canonical (10)**: figma_create_page, figma_set_active_page, figma_rename_page, figma_delete_page, figma_create_section, figma_create_component, figma_create_component_set, figma_add_variant, figma_set_component_property, figma_set_instance_property
 

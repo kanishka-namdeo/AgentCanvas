@@ -412,13 +412,50 @@ export function PropertiesPanel() {
         {!isMulti && (isComponentMaster || isComponentInstance) && (
           <div className="flex items-start gap-2 px-2 py-1.5 rounded border ac-border-subtle ac-surface-1">
             <Component className="h-3 w-3 mt-0.5 ac-text-4 flex-shrink-0" />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="text-[11px] ac-text-2">
                 {isComponentMaster ? 'Component master (reusable)' : 'Component instance (ref)'}
               </div>
               {isComponentInstance && (
                 <div className="text-[10px] ac-text-4 font-mono truncate" title={shape.componentId ?? ''}>
                   ref: {shape.componentId}
+                </div>
+              )}
+              {/* Instance action buttons — Figma-aligned: Detach / Reset / Push to main. */}
+              {isComponentInstance && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-5 px-2 text-[10px]"
+                    onClick={() => sendPatch({
+                      op: 'detach_instance',
+                      shapeId: shape.id,
+                      summary: `Detached instance ${shape.name}`,
+                    })}
+                    title="Break the link to the main component (Figma: right-click → Detach Instance)"
+                  >
+                    Detach
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-5 px-2 text-[10px]"
+                    onClick={() => sendPatch({
+                      op: 'reset_instance',
+                      shapeId: shape.id,
+                      summary: `Reset all overrides on ${shape.name}`,
+                    })}
+                    title="Clear all local overrides (Figma: right-click → Reset Instance)"
+                  >
+                    Reset overrides
+                  </Button>
+                </div>
+              )}
+              {/* Master action: convert a frame/group into a reusable component. */}
+              {isComponentMaster && (
+                <div className="text-[10px] ac-text-4 mt-1">
+                  Reusable: drag onto canvas or call <code className="font-mono">pen_place_component_instance</code> to instantiate.
                 </div>
               )}
             </div>

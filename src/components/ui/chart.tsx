@@ -104,6 +104,13 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
+// `TooltipPayload` is intentionally loose — recharts v3 types tooltip payload
+// entries as `Payload<ValueType, NameType>` which has many internal fields we
+// don't use (graphicalItemId, etc.). We only need a few well-known keys
+// (name, value, dataKey, color, fill, payload) for the chart tooltip UI.
+// Re-export the strict recharts type via `Props['payload']` for callers.
+type TooltipPayload = Array<Record<string, any>>
+
 function ChartTooltipContent({
   active,
   payload,
@@ -118,13 +125,16 @@ function ChartTooltipContent({
   color,
   nameKey,
   labelKey,
-}: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
+}: Omit<React.ComponentProps<typeof RechartsPrimitive.Tooltip>, "payload" | "label"> &
   React.ComponentProps<"div"> & {
     hideLabel?: boolean
     hideIndicator?: boolean
     indicator?: "line" | "dot" | "dashed"
     nameKey?: string
     labelKey?: string
+    payload?: TooltipPayload
+    label?: React.ReactNode
+    formatter?: (value: any, name: any, item: any, index: number, payload: any) => React.ReactNode
   }) {
   const { config } = useChart()
 
@@ -144,7 +154,10 @@ function ChartTooltipContent({
     if (labelFormatter) {
       return (
         <div className={cn("font-medium", labelClassName)}>
-          {labelFormatter(value, payload)}
+          {/* recharts v3 types payload as ReadonlyArray<Payload<...>>;
+              our local TooltipPayload is intentionally loose (Record<string, any>)
+              to avoid leaking recharts internals into the public API. Cast. */}
+          {labelFormatter(value, payload as any)}
         </div>
       )
     }
@@ -182,7 +195,7 @@ function ChartTooltipContent({
         {payload.map((item, index) => {
           const key = `${nameKey || item.name || item.dataKey || "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
-          const indicatorColor = color || item.payload.fill || item.color
+          const indicatorColor = color || item.payload?.fill || item.color
 
           return (
             <div
@@ -250,6 +263,10 @@ function ChartTooltipContent({
 
 const ChartLegend = RechartsPrimitive.Legend
 
+// `LegendPayload` is intentionally loose — recharts v3 types legend payload
+// entries with many internal fields. We only need value/dataKey/color/type/payload.
+type LegendPayload = Array<Record<string, any>>
+
 function ChartLegendContent({
   className,
   hideIcon = false,
@@ -257,9 +274,10 @@ function ChartLegendContent({
   verticalAlign = "bottom",
   nameKey,
 }: React.ComponentProps<"div"> &
-  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+  Pick<RechartsPrimitive.LegendProps, "verticalAlign"> & {
     hideIcon?: boolean
     nameKey?: string
+    payload?: LegendPayload
   }) {
   const { config } = useChart()
 

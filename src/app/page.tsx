@@ -6,7 +6,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
+import { useDefaultLayout, type PanelImperativeHandle, type LayoutStorage } from 'react-resizable-panels';
 import { Canvas } from '@/components/canvas/Canvas';
 import { Toolbar } from '@/components/canvas/Toolbar';
 import { TopMenuBar } from '@/components/canvas/TopMenuBar';
@@ -57,8 +57,29 @@ export default function Home() {
   }, [init, documentId]);
 
   // Imperative panel refs — for collapse/expand + Zen mode.
-  const leftPanelRef = useRef<ImperativePanelHandle>(null);
-  const rightPanelRef = useRef<ImperativePanelHandle>(null);
+  const leftPanelRef = useRef<PanelImperativeHandle>(null);
+  const rightPanelRef = useRef<PanelImperativeHandle>(null);
+
+  // react-resizable-panels v4 persistence hook — replaces the v3 `autoSaveId`
+  // prop on the panel group. Persists layout to localStorage keyed by group id.
+  // Note: `useDefaultLayout` defaults to `localStorage` on the server (where
+  // it doesn't exist), so we pass a no-op storage during SSR and swap to
+  // localStorage after mount.
+  const noopStorage = useRef<LayoutStorage>({
+    getItem: () => null,
+    setItem: () => {},
+  }).current;
+  const [layoutStorage, setLayoutStorage] = useState<LayoutStorage>(noopStorage);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setLayoutStorage(window.localStorage);
+    }
+  }, []);
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: 'co-canvas-layout-h',
+    storage: layoutStorage,
+    onlySaveAfterUserInteractions: true,
+  });
 
   // Track collapsed state for Zen-mode detection + icon flips.
   const [leftCollapsed, setLeftCollapsed] = useState(false);
@@ -79,12 +100,11 @@ export default function Home() {
   // Also enforce the max-sessions-retained cap. Runs once after hydration.
   const density = useSettings((s) => s.density);
 
-  // Sync collapsed state from the ResizablePanel autoSaveId layout.
-  // The `autoSaveId="co-canvas-layout-h"` on the panel group restores the
-  // previous panel sizes from localStorage on mount — but if a panel was
-  // collapsed when the user closed the tab, the restore happens silently
-  // WITHOUT firing `onCollapse`. Our `leftCollapsed`/`rightCollapsed` React
-  // state defaults to `false`, so it desyncs from the actual DOM state:
+  // Sync collapsed state from the persisted layout on mount.
+  // `useDefaultLayout` restores the previous panel sizes from localStorage —
+  // but if a panel was collapsed when the user closed the tab, the restore
+  // happens silently WITHOUT firing `onResize`. Our `leftCollapsed`/`rightCollapsed`
+  // React state defaults to `false`, so it desyncs from the actual DOM state:
   // both the "Toggle left panel" chevron AND the "Show left panel" edge
   // button would render at the same time. This effect queries the imperative
   // `isCollapsed()` API after a tick (post-restore) and corrects the state.
@@ -137,8 +157,8 @@ export default function Home() {
       zenSnapshot.current = {
         leftCollapsed,
         rightCollapsed,
-        leftSize: leftPanelRef.current?.getSize() ?? 18,
-        rightSize: rightPanelRef.current?.getSize() ?? 28,
+        leftSize: leftPanelRef.current?.getSize()?.asPercentage ?? 18,
+        rightSize: rightPanelRef.current?.getSize()?.asPercentage ?? 28,
       };
       leftPanelRef.current?.collapse();
       rightPanelRef.current?.collapse();
@@ -154,8 +174,9 @@ export default function Home() {
         setLeftCollapsed(snap.leftCollapsed);
         setRightCollapsed(snap.rightCollapsed);
         requestAnimationFrame(() => {
-          if (!snap.leftCollapsed) leftPanelRef.current?.resize(snap.leftSize);
-          if (!snap.rightCollapsed) rightPanelRef.current?.resize(snap.rightSize);
+          // v4: numeric sizes are pixels; we want percentages, so append "%".
+          if (!snap.leftCollapsed) leftPanelRef.current?.resize(`${snap.leftSize}%`);
+          if (!snap.rightCollapsed) rightPanelRef.current?.resize(`${snap.rightSize}%`);
         });
       } else {
         leftPanelRef.current?.expand();
@@ -542,17 +563,24 @@ export default function Home() {
         {/* ───────────────────────── Main split ───────────────────────── */}
         {/* Wrapper is relative so the collapsed-panel edge buttons can float. */}
         <div className="relative flex-1 min-h-0">
-        <ResizablePanelGroup direction="horizontal" autoSaveId="co-canvas-layout-h" className="h-full">
+        <ResizablePanelGroup
+          orientation="horizontal"
+          id="co-canvas-layout-h"
+          defaultLayout={defaultLayout}
+          onLayoutChanged={onLayoutChanged}
+          className="h-full"
+        >
           {/* Col 1 — Left: single tabbed panel (Chats / Layers) */}
+          {/* v4 API note: numeric sizes are PIXELS in v4 (was % in v3).
+              We want percentages, so use strings like "20%". */}
           <ResizablePanel
-            ref={leftPanelRef}
-            defaultSize={20}
-            minSize={14}
-            maxSize={32}
+            panelRef={leftPanelRef}
+            defaultSize="20%"
+            minSize="14%"
+            maxSize="32%"
             collapsible
-            collapsedSize={0}
-            onCollapse={() => setLeftCollapsed(true)}
-            onExpand={() => setLeftCollapsed(false)}
+            collapsedSize="0%"
+            onResize={(size) => setLeftCollapsed(size.inPixels === 0)}
           >
             <LeftTabbedPanel
               tab={leftTab}
@@ -565,7 +593,7 @@ export default function Home() {
           <ResizableHandle />
 
           {/* Col 2 — Center: canvas (toolbar floats over it, bottom-center) */}
-          <ResizablePanel defaultSize={52} minSize={36}>
+          <ResizablePanel defaultSize="52%" minSize="36%">
             <div className="relative h-full">
               <Canvas />
               <Toolbar />
@@ -576,14 +604,13 @@ export default function Home() {
 
           {/* Col 3 — Right: single tabbed panel (Chat / Design / History) */}
           <ResizablePanel
-            ref={rightPanelRef}
-            defaultSize={28}
-            minSize={20}
-            maxSize={42}
+            panelRef={rightPanelRef}
+            defaultSize="28%"
+            minSize="20%"
+            maxSize="42%"
             collapsible
-            collapsedSize={0}
-            onCollapse={() => setRightCollapsed(true)}
-            onExpand={() => setRightCollapsed(false)}
+            collapsedSize="0%"
+            onResize={(size) => setRightCollapsed(size.inPixels === 0)}
           >
             <RightTabbedPanel
               tab={rightTab}
@@ -770,7 +797,7 @@ function RightTabbedPanel({
 
 // Toggle a panel's collapsed state via its imperative handle.
 function toggle(
-  ref: React.RefObject<ImperativePanelHandle | null>,
+  ref: React.RefObject<PanelImperativeHandle | null>,
   collapsed: boolean,
   setCollapsed: (v: boolean) => void,
 ) {

@@ -301,7 +301,15 @@ export interface CanvasPatch {
     | 'add_variant'
     | 'set_component_property'
     | 'set_instance_property'
-    | 'flatten_boolean';
+    | 'flatten_boolean'
+    // Figma component-system ops (Phase 2 — Components & Design Systems):
+    | 'convert_to_component'   // Promote an existing frame/group to a reusable Component node.
+    | 'place_instance'         // Create a PenRef (proper linked instance) pointing at a component.
+    | 'set_instance_override'  // Override a descendant property on a PenRef (text/fill/stroke/visibility).
+    | 'reset_instance'         // Clear all overrides on a PenRef, re-sync from main component.
+    | 'detach_instance'        // Convert a PenRef into a standalone frame (break the link).
+    | 'combine_as_variants'    // Wrap multiple Components into a ComponentSet (variants).
+    | 'swap_variant';           // Switch which variant of a ComponentSet the instance points to.
   shapeId?: string;
   /// Full or partial .pen node payload for 'add' / 'update' (also accepts
   /// legacy Shape fields like `radius`, `text`, `autoLayout` — the applier
@@ -351,6 +359,22 @@ export interface CanvasPatch {
   };
   instancePropertyName?: string;
   instancePropertyValue?: boolean | string;
+  // ---- Figma component-system patch fields (Phase 2) ----
+  /// For `place_instance`: id of the source component (must be reusable=true).
+  /// For `swap_variant`: id of the variant (component inside a component_set) to switch to.
+  componentId?: string;
+  /// For `set_instance_override`: slash-separated descendant id path (e.g. "ok-button/label").
+  descendantPath?: string;
+  /// For `set_instance_override`: partial node payload to merge onto the descendant.
+  /// Can include text, fill, stroke, opacity, visible, etc.
+  override?: Partial<Shape> & Record<string, unknown>;
+  /// For `combine_as_variants`: ids of the components to combine into a component_set.
+  /// For `convert_to_component` / `place_instance` etc. — sometimes used as
+  /// the list of shapeIds to wrap.
+  componentIds?: string[];
+  /// For `combine_as_variants`: axes that vary (e.g. ['size', 'state']).
+  /// Auto-derived from the first component's name if omitted.
+  axes?: string[];
   summary: string;
 }
 

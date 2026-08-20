@@ -3,11 +3,14 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
+// NOTE: In Prisma 7+, the `url` property was removed from `datasource`.
+// The connection URL now lives in `prisma.config.ts`, and the PrismaClient
+// constructor receives a driver adapter (`@prisma/adapter-libsql` for SQLite).
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
 /// A design document — analogous to a Figma file. Holds many shapes

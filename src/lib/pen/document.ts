@@ -8,6 +8,25 @@ import type { PenChild, PenDocument, PenRef } from './types';
 
 // ---- Walk / find ----------------------------------------------------------
 
+/**
+ * Type guard for any node that can contain children. Includes the Figma
+ * ontology container types added in Phase 1 (section, component,
+ * component_set, boolean_operation) — earlier versions of walkTree / findNode
+ * only descended into frames and groups, which caused components nested inside
+ * component_sets to be invisible to the agent (e.g. swap_variant couldn't
+ * locate a variant inside its set).
+ */
+function isContainer(node: PenChild): boolean {
+  return (
+    node.type === 'frame' ||
+    node.type === 'group' ||
+    node.type === 'section' ||
+    node.type === 'component' ||
+    node.type === 'component_set' ||
+    node.type === 'boolean_operation'
+  );
+}
+
 /** Depth-first walk; callback receives (node, parent, depth). */
 export function walkTree(
   children: PenChild[],
@@ -17,7 +36,7 @@ export function walkTree(
 ): void {
   for (const child of children) {
     cb(child, parent, depth);
-    if ((child.type === 'frame' || child.type === 'group') && child.children) {
+    if (isContainer(child) && 'children' in child && Array.isArray(child.children)) {
       walkTree(child.children, cb, child, depth + 1);
     }
   }
@@ -27,7 +46,7 @@ export function walkTree(
 export function findNode(children: PenChild[], id: string): PenChild | undefined {
   for (const child of children) {
     if (child.id === id) return child;
-    if ((child.type === 'frame' || child.type === 'group') && child.children) {
+    if (isContainer(child) && 'children' in child && Array.isArray(child.children)) {
       const found = findNode(child.children, id);
       if (found) return found;
     }
@@ -46,7 +65,7 @@ export function findNodeArray(
     }
   }
   for (const child of children) {
-    if ((child.type === 'frame' || child.type === 'group') && child.children) {
+    if (isContainer(child) && 'children' in child && Array.isArray(child.children)) {
       const found = findNodeArray(child.children, id);
       if (found) {
         return { ...found, parent: child };
@@ -71,17 +90,17 @@ export function collectComponents(children: PenChild[]): Map<string, PenChild> {
 export function deepCloneNode(node: PenChild, newIds = true): PenChild {
   const clone: any = { ...node };
   if (newIds) clone.id = randomId();
-  if ((node.type === 'frame' || node.type === 'group') && node.children) {
-    clone.children = node.children.map((c) => deepCloneNode(c, newIds));
+  // Recurse into ANY container type's children (component, component_set,
+  // section, boolean_operation — not just frame/group). Earlier versions
+  // only descended into frame/group, which dropped children when cloning
+  // a Component (so descendant overrides on instance had no target).
+  if (isContainer(node) && 'children' in node && Array.isArray((node as { children?: unknown[] }).children)) {
+    clone.children = ((node as { children: PenChild[] }).children).map((c) => deepCloneNode(c, newIds));
   }
   // Preserve original id mapping for descendant overrides: we tag each
   // cloned node with its source id so overrides (which reference source ids)
   // can still find the right descendant after cloning.
-  if (newIds) {
-    (clone as any)._sourceId = node.id;
-  } else {
-    (clone as any)._sourceId = node.id;
-  }
+  (clone as { _sourceId?: string })._sourceId = node.id;
   return clone as PenChild;
 }
 
@@ -99,13 +118,13 @@ export function insertNode(
     return next;
   }
   return children.map((c) => {
-    if (c.id === parentId && (c.type === 'frame' || c.type === 'group')) {
-      const kids = [...(c.children ?? [])];
+    if (c.id === parentId && isContainer(c)) {
+      const kids = [...((c as { children?: PenChild[] }).children ?? [])];
       if (index === undefined || index < 0 || index > kids.length) kids.push(node);
       else kids.splice(index, 0, node);
       return { ...c, children: kids };
     }
-    if ((c.type === 'frame' || c.type === 'group') && c.children) {
+    if (isContainer(c) && 'children' in c && Array.isArray(c.children)) {
       return { ...c, children: insertNode(c.children, node, parentId, index) };
     }
     return c;
@@ -117,7 +136,7 @@ export function removeNode(children: PenChild[], id: string): PenChild[] {
   const filtered = children.filter((c) => c.id !== id);
   if (filtered.length !== children.length) return filtered;
   return children.map((c) => {
-    if ((c.type === 'frame' || c.type === 'group') && c.children) {
+    if (isContainer(c) && 'children' in c && Array.isArray(c.children)) {
       const next = removeNode(c.children, id);
       if (next !== c.children) return { ...c, children: next };
     }
@@ -144,8 +163,8 @@ export function moveNode(
 /** Is `descendantId` a descendant of `ancestorId`? */
 export function isDescendant(children: PenChild[], descendantId: string, ancestorId: string): boolean {
   const ancestor = findNode(children, ancestorId);
-  if (!ancestor || !(ancestor.type === 'frame' || ancestor.type === 'group')) return false;
-  return findNode(ancestor.children ?? [], descendantId) !== undefined;
+  if (!ancestor || !isContainer(ancestor)) return false;
+  return findNode((ancestor as { children?: PenChild[] }).children ?? [], descendantId) !== undefined;
 }
 
 /**
@@ -256,7 +275,12 @@ export function expandRef(
   delete rootOverride.type;
   delete rootOverride.ref;
   delete rootOverride.descendants;
-  delete rootOverride.id; // keep the clone's new id
+  // IMPORTANT: preserve the ref's id on the clone root so the resolved tree's
+  // root matches what the user placed. This is needed for selection, layers
+  // panel highlighting, and instance-override patch ops (which target the
+  // ref's id). The DESCENDANTS of the clone keep their fresh ids (which are
+  // tagged with `_sourceId` so overrides can still locate them).
+  // delete rootOverride.id;  ← removed; we want to keep the ref's id on the root.
   // Merge non-undefined root overrides onto the clone root.
   for (const [k, v] of Object.entries(rootOverride)) {
     if (v !== undefined) (clone as any)[k] = v;
@@ -289,24 +313,39 @@ function applyDescendants(
   }
 }
 
-/** Find a node in a cloned subtree by following source-id segments. */
+/**
+ * Find a node in a cloned subtree by following source-id segments.
+ *
+ * Used by `applyDescendants` to locate the descendant that an override
+ * targets. The path is slash-separated source-ids (e.g. "ok-button/label"),
+ * where each segment matches a cloned node's `_sourceId` (the original id
+ * before deepCloneNode assigned a fresh one).
+ *
+ * This is a private helper for `expandRef` — not exported.
+ */
 function findBySourcePath(root: PenChild, segments: string[]): PenChild | null {
   if (segments.length === 0) return root;
   const [head, ...rest] = segments;
-  if ((root as any)._sourceId === head && rest.length === 0) return root;
-  if (root.type === 'frame' || root.type === 'group') {
-    for (const child of root.children ?? []) {
-      const found = findBySourcePath(child, segments);
-      if (found) return found;
-    }
-  }
-  // Also handle the case where the head matches root and we descend.
-  if ((root as any)._sourceId === head) {
-    if (root.type === 'frame' || root.type === 'group') {
-      for (const child of root.children ?? []) {
+  // Match: current node's source id matches the head segment.
+  if ((root as { _sourceId?: string })._sourceId === head) {
+    if (rest.length === 0) return root;
+    // Descend into children looking for the next segment.
+    // Note: must descend into ALL container types (component, component_set,
+    // section, boolean_operation) — not just frame/group. Earlier versions
+    // only checked frame/group, which broke overrides on components.
+    if (isContainer(root) && 'children' in root && Array.isArray(root.children)) {
+      for (const child of root.children) {
         const found = findBySourcePath(child, rest);
         if (found) return found;
       }
+    }
+    return null;
+  }
+  // No match at this level — recurse into children to find the head.
+  if (isContainer(root) && 'children' in root && Array.isArray(root.children)) {
+    for (const child of root.children) {
+      const found = findBySourcePath(child, segments);
+      if (found) return found;
     }
   }
   return null;

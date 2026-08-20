@@ -8,10 +8,10 @@ Chat in plain English → the agent reasons, calls tools, and draws the design f
 
 [![CI](https://github.com/kanishka-namdeo/co-canvas/actions/workflows/ci.yml/badge.svg)](https://github.com/kanishka-namdeo/co-canvas/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)](https://www.typescriptlang.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-6-2d3748.svg)](https://www.prisma.io/)
+[![Prisma](https://img.shields.io/badge/Prisma-7-2d3748.svg)](https://www.prisma.io/)
 
 </div>
 
@@ -81,7 +81,7 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 | UI | [React 19](https://react.dev/), [TypeScript 5](https://www.typescriptlang.org/), [Tailwind 4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), [Radix UI](https://www.radix-ui.com/) |
 | State | [Zustand 5](https://zustand.docs.pmnd.rs/) (canvas store + session store, persisted to `localStorage`) |
 | Realtime | [Socket.IO 4](https://socket.io/) (in-process or standalone mini-service on port 3003) |
-| Database | [Prisma 6](https://www.prisma.io/) + SQLite (Documents, Shapes, AgentActions) |
+| Database | [Prisma 7](https://www.prisma.io/) + SQLite (Documents, Shapes, AgentActions) — via `@prisma/adapter-libsql` driver adapter |
 | AI agent | [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) + [`z-ai-web-dev-sdk`](https://www.npmjs.com/package/z-ai-web-dev-sdk) (OpenAI-compatible LLM shim) |
 | Validation | [Zod 4](https://zod.dev/), [@sinclair/typebox](https://github.com/sinclairzx/typebox) (tool schemas) |
 | Testing | [Vitest 4](https://vitest.dev/) + [@testing-library/react](https://testing-library.com/) |
@@ -131,7 +131,8 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
           │
           ▼
 ┌─────────────────────────────┐
-│  Prisma + SQLite            │
+│  Prisma 7 + SQLite          │
+│  (via @prisma/adapter-libsql)│
 │  ├─ Document                │
 │  ├─ Shape                    │
 │  └─ AgentAction (audit log) │
@@ -146,7 +147,7 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) 20+ (or [Bun](https://bun.sh/) 1.1+ — recommended, this repo uses Bun)
-- A Prisma-compatible database (SQLite is the default — no extra setup needed)
+- A Prisma-compatible database (SQLite is the default — no extra setup needed; Prisma 7 uses the `@prisma/adapter-libsql` driver adapter, configured in `prisma.config.ts` + `src/lib/db.ts`)
 
 ### Install & run
 
@@ -163,7 +164,7 @@ bun install
 cp .env.example .env
 # Edit .env if you want to use Postgres instead of SQLite
 
-# 4. Initialize the database
+# 4. Initialize the database (Prisma 7 reads prisma.config.ts for the URL)
 bun run db:generate
 bun run db:push
 
@@ -216,10 +217,11 @@ co-canvas/
 │       ├── agent/
 │       │   ├── runner.ts         # The agent loop (LLM driver + tool execution)
 │       │   └── tools.ts          # 50+ typed tool definitions
-│       ├── db.ts                 # Prisma client singleton
+│       ├── db.ts                 # Prisma 7 client singleton (uses @prisma/adapter-libsql driver adapter)
 │       └── utils.ts              # cn() helper
 ├── prisma/
-│   └── schema.prisma             # Document, Shape, AgentAction
+│   └── schema.prisma             # Document, Shape, AgentAction (Prisma 7 — `datasource.url` removed; URL now in prisma.config.ts)
+├── prisma.config.ts              # Prisma 7 config — datasource URL, schema path, migrations path
 ├── mini-services/
 │   └── canvas-sync/              # Standalone Socket.IO broadcast service (port 3003)
 ├── tests/

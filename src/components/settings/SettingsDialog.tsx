@@ -243,7 +243,7 @@ function AgentSection() {
             value={defaultPalette}
             onValueChange={(v) => set('defaultPalette', v as DefaultPalette)}
           >
-            <SelectTrigger size="sm" className="h-7 w-32 text-[11px]">
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -264,7 +264,7 @@ function AgentSection() {
             value={skillSelectionMode}
             onValueChange={(v) => set('skillSelectionMode', v as SkillSelectionMode)}
           >
-            <SelectTrigger size="sm" className="h-7 w-32 text-[11px]">
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -558,7 +558,7 @@ function SessionsSection() {
             value={autoArchiveIdleAfter}
             onValueChange={(v) => set('autoArchiveIdleAfter', v as AutoArchiveIdleAfter)}
           >
-            <SelectTrigger size="sm" className="h-7 w-32 text-[11px]">
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -624,7 +624,7 @@ function AppearanceSection() {
               }
             }}
           >
-            <SelectTrigger size="sm" className="h-7 w-32 text-[11px]">
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -643,7 +643,7 @@ function AppearanceSection() {
             value={density}
             onValueChange={(v) => set('density', v as Density)}
           >
-            <SelectTrigger size="sm" className="h-7 w-32 text-[11px]">
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
