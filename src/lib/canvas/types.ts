@@ -403,4 +403,5 @@ export type ClientEvent =
   | { type: 'subscribe'; documentId: string }
   | { type: 'canvas:patch'; patch: CanvasPatch }
   | { type: 'canvas:request_full'; documentId: string }
-  | { type: 'agent:prompt'; documentId: string; prompt: string; settings?: AgentRunSettings };
+  | { type: 'agent:prompt'; documentId: string; prompt: string; settings?: AgentRunSettings }
+  | { type: 'agent:steer'; documentId: string; text: string };

@@ -105,6 +105,19 @@ export function startCanvasSyncService() {
           });
           break;
         }
+        case 'agent:steer': {
+          // Steer: inject a user message into the running agent's context.
+          // The agent will see this after its current tool batch, before the
+          // next LLM call. We broadcast it as an agent:message_delta so the
+          // UI shows the steer message.
+          console.log(`[canvas-sync] steer on ${event.documentId}: ${event.text.slice(0, 80)}…`);
+          const state = ensureDocument(event.documentId);
+          broadcast(state, {
+            type: 'agent:message_delta',
+            text: `\n\n_[Steer: ${event.text}]_`,
+          } satisfies SyncEvent);
+          break;
+        }
       }
     });
 

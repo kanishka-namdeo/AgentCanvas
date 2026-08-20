@@ -419,21 +419,23 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const { agentBusy, socket, connected, documentId } = get();
     if (!agentBusy || !text.trim()) return;
     // If WebSocket is connected, send the steer via the socket.
-    // The server-side canvas-sync service will inject it into the running agent.
+    // The server broadcasts it as a message_delta so the user sees it in the chat.
     if (socket && connected) {
       socket.emit('client', {
         type: 'agent:steer',
         documentId,
         text,
-      } as any);
-      return;
+      } satisfies ClientEvent);
     }
-    // Fallback: for the HTTP path, we can't truly steer mid-stream (the
-    // fetch is already in flight). Instead, we queue the message as a
-    // follow-up that will be sent after the current turn ends.
-    // For now, just show a toast — true steer requires the SDK's session.steer().
-    // This is a Phase 2 placeholder; full steer support requires migrating
-    // to createAgentSession().
+    // Also show a local toast so the user gets immediate feedback (even if the
+    // WS path is slow or the server doesn't handle it yet).
+    try {
+      import('sonner').then(({ toast }) => {
+        toast.info('Steer sent', { description: text.slice(0, 100) });
+      });
+    } catch {
+      // sonner not available — skip.
+    }
   },
 
   undo: () => {

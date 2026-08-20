@@ -789,7 +789,24 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   const skillMetadata = formatSkillMetadataForPrompt();
   const skillBody = formatSkillBodyForPrompt(activeCategory);
   const planSection = plan ? `=== EXECUTION PLAN =========================================================\nFollow this plan. Complete each step before moving to the next.\n\n${formatPlanForPrompt(plan)}\n` : '';
-  const systemContent = buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst);
+
+  // Load file-based skills (.pi/skills/*.md) and append their guidelines
+  // to the system prompt. This supplements the hardcoded skills.
+  let fileSkillsSection = '';
+  try {
+    const { getFileSkills } = await import('./file-skills');
+    const fileSkills = getFileSkills();
+    if (fileSkills.length > 0) {
+      fileSkillsSection = '\n\n=== FILE-BASED SKILL GUIDELINES ============================================\n' +
+        fileSkills.map((s) =>
+          `--- ${s.name} ---\n${s.guidelines.map((g, i) => `${i + 1}. ${g}`).join('\n')}`
+        ).join('\n\n');
+    }
+  } catch {
+    // File skills are optional — ignore errors.
+  }
+
+  const systemContent = buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst) + fileSkillsSection;
 
   // Build the initial message history.
   const messages: Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_calls?: any[]; tool_call_id?: string }> = [

@@ -975,6 +975,35 @@ export function hydrateSessionStore() {
   if (persistApi?.rehydrate) {
     persistApi.rehydrate();
   }
+  // Also fetch sessions from the server (Phase 3: server-side persistence).
+  // This merges server-side sessions with the localStorage cache so sessions
+  // survive browser clears and can sync across devices.
+  // Fire-and-forget — the localStorage cache is used for instant UI, the
+  // server fetch updates the list in the background.
+  import('./server-sync').then(({ fetchServerSessions }) => {
+    // Fetch for all known documents.
+    const store = useSessionStore.getState();
+    const docIds = new Set(Object.values(store.sessions).map((s) => s.documentId));
+    for (const docId of docIds) {
+      fetchServerSessions(docId).then((serverSessions) => {
+        if (serverSessions.length === 0) return;
+        // Merge: add server sessions that don't exist in localStorage.
+        const localSessions = useSessionStore.getState().sessions;
+        for (const ss of serverSessions) {
+          if (!localSessions[ss.id]) {
+            // Create a local session from the server data.
+            useSessionStore.getState().createSession(ss.documentId, {
+              title: ss.title,
+              status: ss.status as 'active' | 'archived',
+              pinned: ss.pinned,
+            });
+          }
+        }
+      });
+    }
+  }).catch(() => {
+    // Server unreachable — localStorage cache is still valid.
+  });
 }
 
 /// Sweep idle sessions: archive any active session whose `lastOpenedAt` is
