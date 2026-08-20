@@ -26,6 +26,7 @@ Settings UI: the `SettingsDialog` component — a modal dialog with a left verti
 ### Component contracts
 - `SettingsDialog` accepts `{ open, onOpenChange }` props. Controlled by the parent (`page.tsx`).
 - Each section is a separate function component (`AgentSection`, `LLMSection`, etc.) to keep the main component readable.
+- Left nav includes a "Reset to defaults" button (uses `confirm()`, calls `useSettings.getState().reset()`).
 - The `Row` primitive (label + description + control) is shared across sections.
 - The `UsageBar` primitive shows a labeled progress bar for storage usage.
 - Appearance section's `useEffect` applies the theme immediately (toggles `.dark` class) AND subscribes to OS `prefers-color-scheme` changes when in `system` mode.

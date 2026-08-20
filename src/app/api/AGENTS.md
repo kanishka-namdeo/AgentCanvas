@@ -2,12 +2,14 @@
 
 ## Purpose
 
-Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop server-side and streams events back to the browser, and the `/api` health-check endpoint.
+Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop server-side and streams events back to the browser, the `/api` health-check endpoint, and the `/api/pen/import` and `/api/pen/export` endpoints for .pen file format conversion.
 
 ## Ownership
 
 - `agent/route.ts` — the agent run endpoint. Owns the request/response contract with the frontend canvas store.
 - `route.ts` — root API health check. Returns a static JSON payload.
+- `pen/import/route.ts` — .pen file import endpoint. Converts .pen JSON to CanvasDocument + CanvasPatch ops.
+- `pen/export/route.ts` — .pen file export endpoint. Converts CanvasDocument to .pen JSON for download.
 
 ## Local Contracts
 
@@ -16,22 +18,25 @@ Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop serve
 **Request**: `POST /api/agent` with JSON body:
 ```ts
 {
-  documentId: string;
-  prompt: string;
-  canvas: CanvasDocument;  // snapshot of the canvas at request time
+  documentId: string;          // defaults to 'default' if omitted
+  prompt: string;              // required — returns 400 if empty
+  canvasState: CanvasDocument; // snapshot of the canvas at request time (field name: canvasState)
+  settings?: AgentRunSettings; // optional — temperature, maxIterations, planFirst, defaultPalette,
+                               //   skillSelectionMode, llmProvider, apiKey, modelName, apiBaseUrl.
+                               //   Falls back to DEFAULT_SETTINGS when omitted.
 }
 ```
 
-**Response**: a chunked `application/x-ndjson`-style response (NOT a single JSON blob). Each chunk is a serialized `AgentStreamEvent`:
-- `{ kind: 'patch', patch: CanvasPatch, toolCallId?: string }`
-- `{ kind: 'agent_event', event: SyncEvent }`
+**Response**: a chunked `application/x-ndjson`-style response (NOT a single JSON blob). Each line is a JSON object with a `type` field:
+- `{ type: 'patch', patch: CanvasPatch, toolCallId?: string }`
+- `{ type: 'agent_event', event: SyncEvent }`
 
 **Contract**:
-- The route MUST start the agent runner via `runAgent(options)` from `src/lib/agent/runner.ts`.
+- The route MUST start the agent runner via `runAgent({ documentId, prompt, canvas, settings })` from `src/lib/agent/runner.ts`.
 - The route MUST stream events as they arrive — do not buffer the entire run before responding.
-- The route MUST set `Content-Type: application/x-ndjson; charset=utf-8` and disable buffering (`Cache-Control: no-cache, no-transform`, `Connection: keep-alive`).
-- The route MUST handle the case where the canvas store sent a stale `documentId` — load the document via `getCanvasDocument(documentId)` from `src/lib/canvas/server.ts`, fall back to the `canvas` field in the request body if the DB has no such document.
-- The route MUST emit a final `turn_end` event and close the stream. If the runner throws, emit an `error` event with the message and a 200 status (do not return 500 mid-stream — the client is already reading).
+- The route MUST set `Content-Type: application/x-ndjson; charset=utf-8` and disable buffering (`Cache-Control: no-cache, no-transform`, `X-Accel-Buffering: no`).
+- The route uses the `canvasState` field from the request body directly — no DB lookup. If `canvasState` is omitted, a blank default CanvasDocument is used.
+- The route MUST close the stream after the runner completes. If the runner throws, emit an `agent_event` with `{ type: 'agent:error', message }` and close the stream (do not return 500 mid-stream — the client is already reading).
 - The route is the ONLY server-side consumer of the runner. Do not call the runner from elsewhere.
 
 **HTTP fallback**:
@@ -42,6 +47,54 @@ Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop serve
 - `GET /api` returns `{ message: "Hello, world!" }`.
 - Used by uptime checks and the frontend's initial connectivity probe.
 - Do not add side effects (no DB writes, no auth).
+
+### `/api/pen/import` (`pen/import/route.ts`)
+
+**Request**: `POST /api/pen/import` with JSON body:
+```ts
+{
+  pen: PenDocument;           // the .pen file contents
+  documentId?: string;        // optional, defaults to 'default'
+  mode?: "replace" | "merge"; // optional, defaults to 'replace'
+}
+```
+
+**Response**: JSON with the converted document and patches:
+```ts
+{
+  document: CanvasDocument;   // the converted canvas document
+  patches: CanvasPatch[];     // the patches to apply (clear + bulk_add + tokens + set_theme_axis)
+}
+```
+
+**Contract**:
+- The route MUST validate the .pen document structure using `isPenDocument()`.
+- The route MUST convert the .pen document to CanvasDocument using `penToCanvas()`.
+- The route MUST resolve the .pen tree to populate `canvas.shapes` using `resolvePenTree()`.
+- The route MUST extract variables as tokens using `variablesToTokens()`.
+- In `replace` mode, the route MUST emit a `clear` patch before the `bulk_add`.
+- The route MUST emit a `bulk_add` patch with the converted children tree.
+- The route MUST emit `tokens` and `set_theme_axis` patches if the .pen file contains variables/themes.
+- The route MUST catch conversion errors and return a 500 with a structured error message.
+
+### `/api/pen/export` (`pen/export/route.ts`)
+
+**Request**: `POST /api/pen/export` with JSON body:
+```ts
+{
+  document: CanvasDocument;  // the canvas document to export (must have a `shapes` array)
+  filename?: string;         // optional, defaults to document.name ?? 'canvas' + '.pen'
+}
+```
+
+**Response**: JSON file download with `Content-Disposition: attachment` header.
+
+**Contract**:
+- The route MUST validate that the request contains a valid CanvasDocument with a `shapes` array. Returns 400 if missing.
+- The route MUST convert the CanvasDocument to PenDocument using `canvasToPen()`.
+- The route MUST serialize the PenDocument using `serializePenDocument()`.
+- The route MUST set `Content-Type: application/json; charset=utf-8` and `Content-Disposition: attachment; filename="..."` headers.
+- The route MUST catch conversion errors and return a 500 with a structured error message.
 
 ### General API rules
 - All routes are server-side — no `'use client'`.
@@ -64,4 +117,4 @@ Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop serve
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder is flat: `agent/route.ts`, `route.ts`.
+No child `AGENTS.md` files. This folder contains: `agent/route.ts`, `route.ts`, `pen/import/route.ts`, `pen/export/route.ts`.

@@ -20,24 +20,26 @@ Session (1) ──< Run (N) ──< Message (N)
                        ──< ToolCallRecord (N)
                        ──< Snapshot (N)
 ```
-- `Session` — a conversation. Has `id`, `title`, `createdAt`, `updatedAt`, `pinned`, `archived`, `starred`, `parentId` (for forks), `forkedFromSnapshotId`.
-- `Run` — one agent invocation within a session. Has `id`, `sessionId`, `status` (state machine below), `prompt`, `startedAt`, `endedAt`, `error?`.
-- `Message` — one chat turn. Has `id`, `runId`, `role` (`'user' | 'assistant' | 'system'`), `text`, `toolCallIds[]`, `createdAt`.
-- `ToolCallRecord` — one tool invocation. Has `id`, `runId`, `name`, `argsPreview`, `result?`, `success?`, `durationMs?`, `startedAt`, `endedAt?`.
-- `Snapshot` — a canvas state captured at a point in time. Has `id`, `runId`, `document` (serialized `CanvasDocument`), `createdAt`, `bookmarked`, `label?`.
+- `Session` — a conversation. Has `id`, `documentId`, `title`, `status` (`'active' | 'archived'`), `pinned`, `starred`, `parentId`, `forkedFromMessageId`, `forkedFromSnapshotId`, `isRoot`, `currentSnapshotId`, `currentRunId`, `lastRunId`, `model`, `messageCount`, `runCount`, `toolCallCount`, `messageIds[]`, `runIds[]`, `snapshotIds[]`, `createdAt`, `updatedAt`, `lastOpenedAt`, `archivedAt`.
+- `Run` — one agent invocation within a session. Has `id`, `sessionId`, `status` (state machine below), `trigger` (`'user_message' | 'resume' | 'retry' | 'fork' | 'restore'`), `prompt`, `model`, `toolCallIds[]`, `stepCount`, `errorMessage`, `resultMessageId`, `createdAt`, `startedAt`, `completedAt`, `cancelledAt`, `durationMs`.
+- `Message` — one chat turn. Has `id`, `sessionId`, `runId`, `role` (`'user' | 'assistant' | 'system' | 'tool'`), `text`, `toolCalls[]` (embedded `ToolCallRecord` objects), `status` (`'streaming' | 'complete' | 'error' | 'cancelled'`), `error?`, `snapshotId`, `createdAt`, `completedAt`.
+- `ToolCallRecord` — one tool invocation. Has `id`, `runId`, `sessionId`, `messageId`, `stepIndex`, `name`, `argsPreview`, `status` (`'pending' | 'running' | 'success' | 'error' | 'cancelled'`), `summary`, `patchSummary`, `startedAt`, `endedAt`, `durationMs`.
+- `Snapshot` — a canvas state captured at a point in time. Has `id`, `sessionId`, `parentSnapshotId`, `source` (`'turn_end' | 'fork' | 'restore' | 'manual'`), `sourceRunId`, `sourceMessageId`, `document` (serialized `CanvasDocument`), `nodeCount`, `label`, `bookmarked`, `createdAt`, `createdBy` (`'agent' | 'user' | 'system'`).
 
 ### Run status state machine
 ```
-queued → in_progress → awaiting_tool → completed
-                     ↘                ↘ failed
-                                       ↘ cancelled
+queued → in_progress → awaiting_tool → in_progress (loop per tool)
+           ↘                            ↘
+        cancelling → cancelled        completed | failed | incomplete
 ```
 - `queued` — run created, agent not yet started.
 - `in_progress` — agent is streaming.
-- `awaiting_tool` — agent emitted a tool call, waiting for result (transient in the current shim; the LLM resolves tools inline).
+- `awaiting_tool` — agent emitted a tool call, waiting for result.
+- `cancelling` — cancel requested while in progress or awaiting tool.
+- `cancelled` — cancel finalized.
 - `completed` — agent emitted `turn_end` cleanly.
 - `failed` — agent emitted an error event or threw.
-- `cancelled` — user clicked stop (not yet implemented in the UI).
+- `incomplete` — run ended without a clean completion (partial result).
 
 State transitions are append-only: a `completed` run cannot go back to `in_progress`. The store guards against this.
 
@@ -54,10 +56,9 @@ State transitions are append-only: a `completed` run cannot go back to `in_progr
 - The parent session is untouched.
 
 ### Restore model (mirrors Lovable)
-- `restoreSnapshot(snapshotId)` does NOT overwrite history. It:
-  1. Loads the snapshot's canvas document.
-  2. Pushes it into the canvas store.
-  3. Creates a NEW Snapshot record (append-only) so the restore itself is auditable.
+- `restoreSnapshot(sessionId, snapshotId)` does NOT overwrite history. It:
+  1. Creates a NEW Snapshot record (append-only) with `source: 'restore'` and `parentSnapshotId` pointing at the restored snapshot, so the restore itself is auditable.
+  2. Sets the session's `currentSnapshotId` to the new snapshot.
 - This means the snapshot list grows monotonically; restores are visible in the timeline.
 
 ### Snapshot management
@@ -68,10 +69,10 @@ State transitions are append-only: a `completed` run cannot go back to `in_progr
 ### Session lifecycle helpers (standalone functions)
 - `sweepIdleSessions(threshold)` — archives any active session whose `lastOpenedAt` is older than the given threshold ('never' / '7d' / '30d'). Called on app mount in `page.tsx`. Returns the count archived.
 - `enforceSessionCap(maxRetained)` — archives the oldest non-pinned, non-starred active sessions when the total count exceeds `maxRetained`. Pinned + starred sessions are protected. Called on app mount in `page.tsx`. Returns the count archived.
-- `estimateLocalStorageUsage()` — returns byte sizes for `agentcanvas.sessions.v1`, `agentcanvas.settings.v1`, and `agentcanvas-theme` localStorage keys. Used by the Settings dialog's "Storage usage" display.
+- `estimateLocalStorageUsage()` — returns byte sizes for `agentcanvas.sessions.v1`, `agentcanvas.settings.v1`, and `agentcanvas-theme` localStorage keys, plus `total` and `percentageOfQuota` (currently always `null`). Used by the Settings dialog's "Storage usage" display.
 
 ### Stats / derived data
-- `getStats(sessionId)` returns counts (messages, runs, tool calls, snapshots). It MUST be memoized at the call site — calling it inside a Zustand selector returns a new object every render and triggers an infinite loop. (Prior bug; fixed by switching to `useMemo` over `sessionsMap`.)
+- `getStats(documentId?)` returns a `SessionStats` object (totalSessions, activeSessions, archivedSessions, totalRuns, totalMessages, totalToolCalls, totalSnapshots). Optionally filtered by `documentId`. It MUST be memoized at the call site — calling it inside a Zustand selector returns a new object every render and triggers an infinite loop. (Prior bug; fixed by switching to `useMemo`.)
 
 ## Work Guidance
 

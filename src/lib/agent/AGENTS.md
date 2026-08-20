@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The agent layer: defines the 56 tools the AI agent can call against the canvas, and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
+The agent layer: defines the 64 tools the AI agent can call against the canvas, and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
 
 This is the contract layer between the LLM and the canvas. Tool names, parameter schemas, skill definitions, and the system prompt's tool catalog are the public surface — changing them is a breaking change for prior session replays.
 
@@ -43,7 +43,9 @@ User prompt
 
 ## Ownership
 
-- `tools.ts` — 56 `defineTool()` definitions + `executeTool` dispatcher (with response caps + argument repair). Owned by this folder.
+- `tools.ts` — 57 `defineTool()` definitions (55 canvas tools + web_search + web_fetch) + `executeTool` dispatcher (with response caps + argument repair). Owned by this folder.
+- `pen-tools.ts` — 8 additional .pen-aligned tools (pen_set_variable, pen_apply_theme, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_theme_axis, pen_list_themes). These expose pen.dev concepts (variables, themes, refs, slots) that complement the granular pen_* tool surface.
+- `figma-tools.ts` — Figma-canonical tools (10 tools): figma_create_page, figma_set_active_page, figma_rename_page, figma_delete_page, figma_create_section, figma_create_component, figma_create_component_set, figma_add_variant, figma_set_component_property, figma_set_instance_property. Exposes Figma's Pages, Sections, Components, Component Sets, Variants, and Component Properties ontology. Exports `createFigmaTools(ctx)` + `FIGMA_TOOL_NAMES` array. Always loaded (not skill-gated) — the agent needs Figma-level reasoning for every design task.
 - `runner.ts` — the agent loop. Owns the system prompt template, LLM driver, event stream shape, skill integration, plan/sub-agent dispatch.
 - `classifier.ts` — intent classifier (keyword pass + LLM fallback). Routes prompts to skill categories.
 - `planner.ts` — plan module. Generates step lists for multi-step tasks.
@@ -52,31 +54,37 @@ User prompt
 
 ## Local Contracts
 
-### Tool surface (56 tools — do not rename/remove without parent-level decision)
-- **Core (9)**: create_shape, update_shape, delete_shape, list_shapes, clear, set_background, select_shape, undo, redo
-- **Wireframe (12)**: generate_wireframe, generate_user_flow, generate_diagram, generate_copy, create_shape, update_shape, upload_image, search_icons, generate_image, update_tokens, apply_palette, generate_palette
-- **Layout (13)**: align_shapes, group_shapes, ungroup_shapes, duplicate_shape, organize_layers, apply_auto_layout, bring_to_front, send_to_back, move_forward, move_backward, reorder_shape, set_locked, set_visible
-- **Styling (13)**: apply_palette, generate_palette, update_tokens, apply_token, bind_shape_to_token, unbind_shape, list_tokens, set_gradient_fill, set_shadow, set_blur, set_corner_radius_per_corner, find_replace_text, bulk_update_by_filter
-- **Inspect (4)**: list_shapes, find_shapes, audit_design, list_tokens (predict_heatmap REMOVED for .pen purity)
-- **Export (4)**: export_json, export_svg, export_png, copy_as_code
-- **Vector (5)**: create_path, boolean_op, mask_with, create_shape, update_shape
+### Tool surface (76 tools — do not rename/remove without parent-level decision)
+All canvas tools are prefixed with `pen_` (e.g., `pen_create_shape`, `pen_update_shape`). The web tools (`web_search`, `web_fetch`) have no prefix. Figma tools use `figma_` prefix.
+
+- **Core (9)**: pen_create_shape, pen_update_shape, pen_delete_shape, pen_list_shapes, pen_clear, pen_set_background, pen_select_shape, pen_undo, pen_redo
+- **Wireframe (13)**: pen_generate_wireframe, pen_generate_user_flow, pen_generate_diagram, pen_generate_copy, pen_create_shape, pen_update_shape, pen_upload_image, pen_search_icons, pen_generate_image, pen_update_tokens, pen_apply_palette, pen_generate_palette, pen_reparent_shape
+- **Layout (15)**: pen_align_shapes, pen_group_shapes, pen_ungroup_shapes, pen_duplicate_shape, pen_organize_layers, pen_apply_auto_layout, pen_bring_to_front, pen_send_to_back, pen_move_forward, pen_move_backward, pen_reorder_shape, pen_set_locked, pen_set_visible, pen_reparent_shape, pen_set_constraints
+- **Styling (13)**: pen_apply_palette, pen_generate_palette, pen_update_tokens, pen_apply_token, pen_bind_shape_to_token, pen_unbind_shape, pen_list_tokens, pen_set_gradient_fill, pen_set_shadow, pen_set_blur, pen_set_corner_radius_per_corner, pen_find_replace_text, pen_bulk_update_by_filter
+- **Inspect (4)**: pen_list_shapes, pen_find_shapes, pen_audit_design, pen_list_tokens
+- **Export (4)**: pen_export_json, pen_export_svg, pen_export_png, pen_copy_as_code
+- **Vector (5)**: pen_create_path, pen_boolean_op, pen_mask_with, pen_create_shape, pen_update_shape
 - **Web (2)**: web_search, web_fetch
-- **Other (6)**: create_component, instantiate_component, find_shapes, bulk_update_by_filter, find_replace_text, generate_copy
+- **Components (2)**: pen_create_component, pen_instantiate_component
+- **Pen-aligned (8)**: pen_set_variable, pen_apply_theme, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_theme_axis, pen_list_themes
+- **Figma-canonical (10)**: figma_create_page, figma_set_active_page, figma_rename_page, figma_delete_page, figma_create_section, figma_create_component, figma_create_component_set, figma_add_variant, figma_set_component_property, figma_set_instance_property
 
 ### Skill categories (7 + multi)
 wireframe, layout, styling, inspect, export, web_research, vector, multi
 
 ### executeTool enhancements (Tier 1)
 - **Response token cap**: `MAX_TOOL_RESULT_CHARS = 25_000` — tool results are truncated to prevent context bloat
-- **Argument repair (poka-yoke)**: `repairArrayArgs()` detects and fixes array params passed as stringified JSON strings (e.g. `palette="[\"#fff\"]"` → `palette=["#fff"]`). Known-affected params: palette, shapeIds, nodes, updates, stops, points, shapeId
+- **Argument repair (poka-yoke)**: `repairArrayArgs()` detects and fixes array params passed as stringified JSON strings (e.g. `palette="[\"#fff\"]"` → `palette=["#fff"]`). Known-affected params: palette, shapeIds, nodes, updates, stops, points, shapeId, descendants
 
 ### System prompt (Tier 0)
 - Defined as `SYSTEM_PROMPT_TEMPLATE` in `runner.ts`
-- Uses `${SKILL_METADATA}`, `${SKILL_BODY}`, `${PLAN_SECTION}` placeholders filled at runtime
+- Uses `${PLAN_FIRST_SECTION}`, `${SKILL_METADATA}`, `${SKILL_BODY}`, `${PLAN_SECTION}`, `${PALETTES_LIST}` placeholders filled at runtime
 - XML-tagged zones: `<available_skills>`, `<active_skill>`, `<plan>`
-- Includes "PLAN FIRST" instruction before tool calls
+- Includes "PLAN FIRST" instruction before tool calls (controlled by `settings.planFirst`)
 - Includes "ARGUMENT TYPE RULES" with explicit examples of correct vs incorrect formatting
 - Explicitly states skill names are NOT tools
+- Includes ".pen FORMAT ALIGNMENT" section documenting pen.dev concepts (variables, themes, components, slots, flexbox, node types, hierarchy, constraints, export)
+- Canvas snapshot is rendered as a tree (indented by depth) showing the hierarchy, not a flat list
 
 ### LLM shim policy (root contract, restated for locality)
 - The runner drives the loop with `z-ai-web-dev-sdk` (ZAI) because the sandbox has no Anthropic/OpenAI key.
@@ -145,6 +153,8 @@ Extended SyncEvent types (in `src/lib/canvas/types.ts`):
 - When changing a tool's schema: every prior session replay that called the old shape will fail. Consider adding a new tool instead.
 - When debugging the agent loop: check `dev.log`, reproduce via `/api/agent`, use Agent Browser for end-to-end verification.
 - The runner has a `maxIterations` guard (default 20, user-configurable via Settings → Agent → Max tool calls per turn). Exceeding it emits `turn_end` — do not raise.
+- The .pen-aligned tools (pen_set_variable, pen_apply_theme, pen_create_ref, etc.) are ALWAYS available regardless of skill, because they expose pen.dev concepts that are relevant to every design task.
+- When adding a .pen-aligned tool: define it in `pen-tools.ts`, add it to `PEN_TOOL_NAMES`, add it to the runner's `filterToolSpecs` logic if needed.
 
 ## Verification
 

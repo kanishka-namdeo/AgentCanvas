@@ -8,17 +8,20 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 
 ## Ownership
 
-- `types.ts` — `CanvasDocument`, `Shape`, `CanvasPatch`, `SyncEvent`, `ClientEvent`, `CanvasToolContext`. Owned by this folder; consumed by `agent/`, `sessions/`, `components/canvas/`, `app/api/`.
+- `types.ts` — `CanvasDocument`, `Shape`, `CanvasPatch`, `SyncEvent`, `ClientEvent`, `Constraints`, design-token types. Owned by this folder; consumed by `agent/`, `sessions/`, `components/canvas/`, `app/api/`.
 - `store.ts` — the Zustand store. Single source of truth for the React UI. Bridges every prompt + event into the persistent session store.
-- `patch.ts` — `applyPatchToCanvas(document, patch)`. Pure function. Null-safe.
+- `patch.ts` — `applyPatchToCanvas(document, patch)`. Pure function. Null-safe. Tree-aware (.pen aligned).
 - `server.ts` — Socket.IO WebSocket service for live canvas broadcast. NOT a Prisma loader. (Note: the server-side canvas loading is currently handled inline in the API route, not via a dedicated loader module.)
+- `clipboard.ts` — Pure clipboard helpers: `serializeShapes`, `deserializeShapes`, `offsetShapes`, `ClipboardPayload` type, `detectPayloadKind`. Browser-safe, unit-testable. Wrapped by `useClipboard` hook.
 
 ## Local Contracts
 
 ### Store contract (`store.ts`)
-- The store holds: `document` (CanvasDocument), `connected` (WebSocket status), `turns` (live streaming chat buffer), `selectedIds`, `agentBusy`, `toolMode` ('select' | 'pan'), `undoStack`, `redoStack`, plus actions.
+- The store holds: `document` (CanvasDocument), `connected` (WebSocket status), `turns` (live streaming chat buffer), `selectedIds`, `agentHighlightIds` (transient agent-selected shape highlights), `viewerCount`, `activeSessionId`, `agentBusy`, `toolMode` ('select' | 'pan'), `undoStack`, `redoStack`, plus actions.
 - **toolMode**: controls canvas interaction mode. `'select'` (default) = click-to-select shapes. `'pan'` = click-drag pans the canvas. Toggled by the Toolbar's Select/Pan buttons + V/H keyboard shortcuts. Space-held temporarily overrides to pan.
 - **Undo/redo**: `undo()` and `redo()` pop/push the stacks (capped at 50). Wired to `⌘Z` / `⌘⇧Z` keyboard shortcuts in `page.tsx`. `sendPatch` pushes to `undoStack` for mutating ops (was previously only pushed when patches arrived over WS — now works for offline edits too).
+- **Session management**: `switchSession(sessionId)` loads a session's snapshot and rebuilds `turns`. `newSession()` creates a fresh session. `forkActiveSession(fromMessageId?)` forks from a specific message's snapshot (if found) or from latest state.
+- **Agent control**: `stopAgent()` aborts the in-flight HTTP fetch (if any) and finalizes the turn as cancelled, triggering snapshot capture and run closeout.
 - The store exposes a `window.__canvasStore` global in dev for debugging. Do not remove.
 - **Settings injection**: `promptAgent` calls `agentRunSettings(useSettings.getState())` and injects the result into both the WebSocket emit path (`socket.emit('client', { type: 'agent:prompt', ..., settings })`) and the HTTP fallback path (`fetch('/api/agent', { body: { ..., settings } })`). This ensures the server-side runner respects user-configured temperature, maxIterations, planFirst, defaultPalette, skillSelectionMode, and LLM provider config.
 - The store has an HTTP fallback: if the WebSocket connection fails, `promptAgent` falls back to `fetch('/api/agent')` and parses the chunked NDJSON response. Do not remove the fallback — it is the primary path in the sandbox.

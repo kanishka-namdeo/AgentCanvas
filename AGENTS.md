@@ -117,17 +117,22 @@ When the user requests a durable behavior change, record it here or in the relev
 | Path | Scope |
 |------|-------|
 | `src/app/AGENTS.md` | Next.js App Router: root layout, main page (tabbed 3-column layout), global styles with `--ac-*` design tokens + `[data-density="compact"]` rules |
-| `src/components/canvas/AGENTS.md` | Canvas UI components: drawing surface, floating toolbar (toolMode), layers, properties, agent chat, command palette |
+| `src/app/api/AGENTS.md` | API routes: `/api/agent` (SSE agent run endpoint), `/api` (health check), `/api/pen/import` (.pen file import), `/api/pen/export` (.pen file export) |
+| `src/components/canvas/AGENTS.md` | Canvas UI components: drawing surface, floating toolbar (toolMode), layers, properties, agent chat, command palette, top menu bar, .pen file menu, keyboard shortcuts dialog |
 | `src/components/sessions/AGENTS.md` | Session management UI: sidebar, header, run history, status badges |
 | `src/components/settings/AGENTS.md` | Settings dialog: 6-section modal (agent, LLM, sessions, appearance, data, shortcuts) |
 | `src/components/ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers, ~50 component inventory |
-| `src/lib/agent/AGENTS.md` | Agent layer: 56 tools, agent loop runner with settings integration, LLM provider swap, system prompt |
-| `src/lib/canvas/AGENTS.md` | Canvas state: Zustand store (toolMode, undo/redo, settings injection), types, patches, Socket.IO service |
-| `src/lib/sessions/AGENTS.md` | Session persistence: Zustand store with localStorage, fork/restore, forkSessionFromSnapshot, sweep/enforce helpers |
+| `src/lib/agent/AGENTS.md` | Agent layer: 66 tools (58 canvas + 8 pen-aligned), agent loop runner with settings integration, LLM provider swap, system prompt |
+| `src/lib/agent/skills/AGENTS.md` | Skill system: types, registry (7 skills), progressive disclosure levels, eval harness |
+| `src/lib/canvas/AGENTS.md` | Canvas state: Zustand store (toolMode, undo/redo, settings injection), types, patches, clipboard helpers, Socket.IO service |
+| `src/lib/llm/AGENTS.md` | LLM provider abstraction: 18 providers (13 OpenAI-compatible + 3 native + custom), unified `LLMClient` interface, registry + factories |
+| `src/lib/pen/AGENTS.md` | .pen format layer: canonical schema (v2.17), tree resolver (flexbox layout, variable/theme resolution, ref expansion), document helpers, converters |
 | `src/lib/settings/AGENTS.md` | Settings store: AppSettings + AgentRunSettings types, Zustand persist, PALETTES |
+| `src/lib/sessions/AGENTS.md` | Session persistence: Zustand store with localStorage, fork/restore, forkSessionFromSnapshot, sweep/enforce helpers |
+| `src/lib/web/AGENTS.md` | Web search + fetch: 4-provider search chain (z.ai → DDG → Startpage → Jina), 3-backend fetch pipeline (readability → z.ai page_reader → Jina), quality gates |
 | `mini-services/canvas-sync/AGENTS.md` | Socket.IO service for live multi-viewer canvas sync |
 | `prisma/AGENTS.md` | Prisma schema: Document, Shape, AgentAction models |
-| `scripts/AGENTS.md` | Dev scripts: server launchers, screenshot automation |
+| `scripts/AGENTS.md` | Dev scripts: server launchers, screenshot automation, intent classifier eval, token cost measurement |
 | `tests/AGENTS.md` | Test suite: Vitest unit/integration tests, shell smoke tests |
 | `research/AGENTS.md` | Read-only research notes: JSON reference material |
 

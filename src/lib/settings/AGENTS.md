@@ -9,7 +9,7 @@ This is the single source of truth for every setting the user can change in the 
 ## Ownership
 
 - `types.ts` — `AppSettings`, `AgentRunSettings`, `DEFAULT_SETTINGS`, `PALETTES`, plus all union types (`LLMProvider`, `SnapshotCadence`, `SkillSelectionMode`, `AutoArchiveIdleAfter`, `Density`, `ThemePreference`, `DefaultPalette`). Owned by this folder.
-- `store.ts` — Zustand store with `persist` (localStorage key `agentcanvas.settings.v1`). Exposes `useSettings()` hook + `set()` / `patch()` / `reset()` / `replaceAll()` mutators.
+- `store.ts` — Zustand store with `persist` (localStorage key `agentcanvas.settings.v1`). Exposes `useSettings()` hook, `useAgentRunSettings()` convenience selector (returns all data fields + setters, scoped to avoid re-renders from unrelated store changes), and `set()` / `patch()` / `reset()` / `replaceAll()` mutators.
 
 ## Local Contracts
 
@@ -56,7 +56,7 @@ The canvas store's `promptAgent()` calls `agentRunSettings(useSettings.getState(
 
 - When adding a new setting: add the field to `AppSettings` in `types.ts`, add it to `DEFAULT_SETTINGS`, add it to `AgentRunSettings` if the runner needs it, add a UI control in `SettingsDialog.tsx`, wire the runner to read it.
 - When changing the localStorage schema: bump the persist version, write a `migrate` function.
-- The settings store is read-heavy from the UI — prefer narrow selectors (`useSettings((s) => s.temperature)`) over selecting the whole store.
+- The settings store is read-heavy from the UI — prefer narrow selectors (`useSettings((s) => s.temperature)`) over selecting the whole store. For components that need most settings fields, use `useAgentRunSettings()` which returns all data fields + setters without subscribing to the entire store.
 
 ## Verification
 

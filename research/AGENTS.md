@@ -17,12 +17,12 @@ Read-only research notes (JSON) gathered during the project's design phase. Thes
 - If the research is outdated, add a new file with a note explaining what superseded it — do not modify the original.
 
 ### File inventory
-- `figma_features.json` — catalog of Figma features (canvas, layers, properties, etc.) that informed the tool surface.
-- `figma_ai_plugins.json` — survey of AI plugins for Figma (Anima, Builder.io, Galileo, etc.) that informed the agent design.
-- `figma_api.json` — Figma REST API reference (used to model the canvas document shape).
-- `ai_design_tools.json` — survey of AI design tools (v0, Lovable, Bolt, etc.) that informed the UX.
-- `ai_design_scenarios.json` — usage scenarios (login form, dashboard, heatmap, etc.) that informed the system prompt.
-- `agent_function_calling.json` — survey of function-calling patterns across LLM providers that informed the runner's tool-calling protocol.
+- `figma_features.json` — Figma feature research focused on Auto Layout, layers panel, and canvas properties that informed the tool surface.
+- `figma_ai_plugins.json` — survey of AI plugins and AI features for Figma that informed the agent design.
+- `figma_api.json` — Figma REST API, design tokens, and variables reference (used to model the canvas document shape).
+- `ai_design_tools.json` — survey of AI design tools (Uizard, Galileo AI, etc.) that informed the UX.
+- `ai_design_scenarios.json` — articles on AI + design systems integration and MCP servers that informed the agent–design-system workflow.
+- `agent_function_calling.json` — survey of OpenAI Agents SDK and function-calling patterns that informed the runner's tool-calling protocol.
 - `pi_agent_sdk.json` — survey of the Pi Agent SDK surface that informed `src/lib/agent/`.
 
 ### Format

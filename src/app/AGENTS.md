@@ -2,12 +2,12 @@
 
 ## Purpose
 
-The Next.js App Router entry point: the root layout, the main page (the 4-pane AgentCanvas layout), and the global stylesheet that defines the `--ac-*` design token system.
+The Next.js App Router entry point: the root layout, the main page (the 3-column tabbed AgentCanvas layout), and the global stylesheet that defines the `--ac-*` design token system.
 
 ## Ownership
 
 - `layout.tsx` — root layout. Sets up `<html>`, `<body>`, font loading, theme provider, toaster. Owned by this folder.
-- `page.tsx` — the main page. Renders the 4-pane layout: `SessionSidebar | (LayersPanel + PropertiesPanel) | Canvas | (SessionHeader + AgentPanel + RunHistoryPanel)`. Also renders the top status bar.
+- `page.tsx` — the main page. Renders the 3-column tabbed layout: `LeftTabbedPanel (Chats/Layers) | Canvas | RightTabbedPanel (Chat/Design/History)`. Also renders the top header bar with brand, document name, session title, command palette, run/stop button, connection status, zen mode, .pen file menu, settings, and theme toggle.
 - `globals.css` — global styles + the `--ac-*` design token system. Owned by this folder; consumed by every component.
 
 ## Local Contracts
@@ -24,7 +24,21 @@ The Next.js App Router entry point: the root layout, the main page (the 4-pane A
 - **Collapsed-panel edge buttons**: when a panel is collapsed (width=0), a floating edge tab appears on the screen edge (left or right). Click to expand. This solves the "can't unhide the agent panel" dead-end. A `useEffect` on mount calls `imperativePanelHandle.isCollapsed()` to sync React state with the persisted layout (the library's autoSaveId restore doesn't fire `onCollapse`).
 - **Tab strip also serves as panel header**: each tabbed panel's tab strip includes a collapse chevron on the right. The panel content is `hidden` (display:none) when collapsed to prevent overflow.
 - Top header shows: brand, document name (inline-editable), session title (compact), ⌘K "Ask anything" button, "Ask" RunStopButton (opens Command Palette), connection status (single Bot icon with tooltip), Zen mode, .pen file menu, Settings (gear), ThemeToggle.
-- Keyboard shortcuts: `⌘1` left panel, `⌘2` right panel, `⌘K` command palette, `⌘,` settings, `⌘\` zen mode, `⌘Z` undo, `⌘⇧Z` redo, `V` select tool, `H` pan tool. Non-meta shortcuts (`V`/`H`) are suppressed when typing in inputs/textareas.
+- Keyboard shortcuts (non-meta shortcuts suppressed when typing in inputs/textareas):
+  - **Panel toggles**: `⌘1`/`⌘⇧1` left panel, `⌘2`/`⌘⇧2` right panel
+  - **Navigation**: `⌘K` command palette, `⌘,` settings, `⌘\` zen mode, `⌘/` shortcuts dialog
+  - **Undo/redo**: `⌘Z` undo, `⌘⇧Z` redo
+  - **Clipboard**: `⌘C` copy, `⌘V` paste (+24 offset), `⌘⇧V` paste in place, `⌘X` cut, `⌘A` select all
+  - **Grouping**: `⌘G` group, `⌘⇧G` ungroup
+  - **Duplicate**: `⌘D` duplicate
+  - **Z-order**: `⌘]` bring forward, `⌘[` send backward, `⌘⇧]` bring to front, `⌘⇧[` send to back
+  - **Tools**: `V` select, `H` pan
+  - **Shape tools** (drop at viewport center): `R` rectangle, `O` ellipse, `T` text, `L` line, `F` frame
+  - **Auto-layout**: `A` apply auto-layout to selected frame/group
+  - **Pen tool**: `P` shows toast (not yet implemented)
+  - **Nudge**: Arrow keys move selection 1px, `⇧`+arrows 10px
+  - **Navigate shapes**: `Tab` focus next shape in z-order, `⇧+Tab` previous
+  - **Chat scroll**: `⌘↑`/`⌘↓` scroll chat messages
 - The page sets `data-density` attribute on the root div (reactively subscribed to `useSettings((s) => s.density)`).
 - On mount, an effect calls `sweepIdleSessions()` + `enforceSessionCap()` from the session store, using the user's settings (`autoArchiveIdleAfter`, `maxSessionsRetained`). Shows a toast if any sessions were archived.
 - The page is a client component (`'use client'`) because it composes client-only panels.
@@ -57,7 +71,7 @@ The Next.js App Router entry point: the root layout, the main page (the 4-pane A
 ### Tailwind
 - Tailwind 4 via `@tailwindcss/postcss` (no `tailwind.config.ts` content globs — Tailwind 4 auto-detects).
 - `tailwind.config.ts` exists for legacy compat but is minimal.
-- The `@theme` directive in `globals.css` maps the `--ac-*` tokens to Tailwind utilities where needed.
+- The `@theme` directive in `globals.css` maps **shadcn/ui tokens** (`--background`, `--foreground`, `--primary`, `--radius`, `--sidebar-*`, `--chart-*`, etc.) to Tailwind utilities. The `--ac-*` AgentCanvas design tokens are defined as raw CSS custom properties (lines 131-164, 172-205) with utility classes (`.ac-text-1`... `.ac-border-default`...) — they are NOT mapped through `@theme`.
 
 ## Work Guidance
 
@@ -71,13 +85,13 @@ The Next.js App Router entry point: the root layout, the main page (the 4-pane A
 - `bunx tsc --noEmit` — typecheck.
 - `bun run lint` — ESLint.
 - `bun run build` — production build (note: `ignoreBuildErrors: true` in `next.config.ts` means build will NOT fail on type errors — run `tsc` separately).
-- Manual: open `http://127.0.0.1:3000/`, verify the 4-pane layout renders, no console errors, no layout shift.
+- Manual: open `http://127.0.0.1:3000/`, verify the 3-column tabbed layout renders, no console errors, no layout shift.
 - `bunx tsx scripts/screenshot-ui-after.ts` — captures the initial state.
 
 ## Child DOX Index
 
 | Path | Scope |
 |------|-------|
-| `api/AGENTS.md` | API routes: `/api/agent` (SSE agent run endpoint) and `/api` (health check) |
+| `api/AGENTS.md` | API routes: `/api/agent` (SSE agent run endpoint), `/api` (health check), `/api/pen/import` (.pen file import), `/api/pen/export` (.pen file export) |
 
 *Note: `src/components/` and `src/lib/` do not have their own AGENTS.md files; only their subfolders do.*

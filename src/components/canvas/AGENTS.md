@@ -2,16 +2,19 @@
 
 ## Purpose
 
-Canvas UI components: the drawing surface, the toolbar, the layers panel, the properties inspector, and the agent chat panel. These are the primary interactive surfaces the user sees and touches.
+Canvas UI components: the drawing surface, the floating toolbar, the command palette, the layers panel, the properties inspector, the agent chat panel, the top menu bar, the .pen file menu, and the keyboard shortcuts dialog. These are the primary interactive surfaces the user sees and touches.
 
 ## Ownership
 
-- `Canvas.tsx` — the SVG/HTML drawing surface. Renders shapes from `useCanvasStore`. Handles pan/zoom, selection, drag, resize. Reads `toolMode` from the store to decide pan vs select on click-drag. Cursor changes to `grab` when `toolMode === 'pan'` or Space is held.
+- `Canvas.tsx` — the SVG/HTML infinite canvas renderer. Renders shapes from `useCanvasStore`. Handles pan (middle-mouse / space-drag / pan-tool), zoom (wheel, pointer-stable), click-to-select, drag-to-move, 8-handle resize, Alt+drag duplicate (Figma pattern), Shift-constrain resize (aspect ratio lock), agent-highlight glow, and right-click context menus (empty-canvas + shape variants with cut/copy/paste/z-order/group/ungroup/lock/hide/delete).
 - `Toolbar.tsx` — **floating pill** at the bottom-center of the canvas (tldraw/Excalidraw pattern). Tool buttons: Select (V), Pan (H), Rectangle, Ellipse, Text, Line, Frame, Clear. Shape buttons are `disabled` when `agentBusy`. Clear is `disabled` when canvas is empty. Select/Pan buttons toggle `toolMode` in the store with `aria-pressed`.
-- `CommandPalette.tsx` — ⌘K command palette (Dialog + cmdk). Fuzzy-searchable list of all 19 preset prompts grouped by category. Supports custom free-form prompts as a fallback. Opens via the "Ask anything" header button or `⌘K`. Disabled when `agentBusy`.
-- `LayersPanel.tsx` — left panel tab: shape list with rename / reorder / lock / hide / delete. Badges capped at 1 visible per row (priority: Master > Instance > AL > theme > token); rest go into hover tooltip.
-- `PropertiesPanel.tsx` — right panel tab (Design): form for the selected shape. Fill/Stroke/Radius/Opacity wrapped in a single "Style" Collapsible. Sections are type-conditional (Auto Layout only for frame/group; Text only for text shapes; Slot only for frames). Empty state shows canvas background + design tokens + variables/themes summary.
-- `AgentPanel.tsx` — right panel tab (Chat): chat input + streaming message list + tool-call cards + "Fork from this message" button on each user message. Status strip (variables/tokens) removed — moved to PropertiesPanel empty state. Send button only renders when there's input.
+- `CommandPalette.tsx` — ⌘K command palette (Dialog + cmdk). Fuzzy-searchable list of all 19 preset prompts grouped by category (Wireframes, User Flows, Diagrams, Design Systems, Analysis, Layers & Layout). Supports custom free-form prompts as a fallback. Opens via `⌘K`. Prompt items disabled when `agentBusy`.
+- `LayersPanel.tsx` — left panel: tree-ordered shape list with per-type icons, expand/collapse containers (state persisted in localStorage), drag-to-reparent (HTML5 DnD, emits `reparent` patch), search/filter by name, rename (double-click or context menu), lock/hide toggles, badge cluster (Master > Instance > AL > theme > token > constraints; at most 1 visible per row, rest in hover tooltip). Rich context menu: clipboard (cut/copy/paste/paste-in-place/duplicate), z-order (4 items), group/ungroup, lock/hide, create component, mark as slot, copy-as submenu (HTML/React/Tailwind/SVG/JSON), export submenu (PNG/SVG/.pen), select all children, expand/collapse subtree, apply theme axis, bind to token, reparent-to picker, rename, duplicate, delete. Footer shows document variable + theme-axis counts.
+- `PropertiesPanel.tsx` — right panel tab (Design): form for selected shape(s). Multi-selection shows quick actions (duplicate, group, ungroup, 6 align, 2 distribute). Single-selection shows: Name, Parent picker (reparent dropdown), Component master/instance info, Position (X/Y), Size (Width/Height), Constraints (Figma-style horizontal/vertical), Style Collapsible (Fill + Stroke + Radius + Opacity, defaultOpen), Auto Layout (frame/group only; direction/gap/padding/justify/align), Theme (per-axis selector + clear), Slot (frames only; mark-as-slot flow), Text (text shapes only; content/font-size/color). All numeric inputs + color swatches support right-click Copy/Paste value. Empty state shows Canvas Background + Design Tokens + variables/themes summary.
+- `AgentPanel.tsx` — right panel tab (Chat): chat input + streaming message list + tool-call cards (color-coded by category) + inline Stop button (when agent busy) + "Fork from this message" button on each user message. Accepts `hideHeader` prop (SessionHeader replaces inline header in 4-pane layout). Right-click context menus on user messages (copy prompt, edit & resend, fork, pin, delete), assistant messages (copy, regenerate, branch, replay, pin), and tool-call cards (copy args, replay, pin, view raw, convert, inspect spec). Status strip removed — moved to PropertiesPanel empty state. Send button only renders when there's input. Placeholder includes `(⌘K for prompts)` hint.
+- `TopMenuBar.tsx` — application menu bar (28px height, below the header). Six menus: File (new chat, open/import/export .pen, export PNG/SVG/JSON, settings), Edit (undo/redo, cut/copy/paste, duplicate, select/deselect all, delete), View (toggle panels, zen, dark mode, grid/snap), Insert (drop shapes at viewport center: rectangle/ellipse/text/line/frame/path/image), Object (group/ungroup, z-order, align/distribute submenus, lock/hide, reparent), Help (keyboard shortcuts, .pen spec, GitHub, about). Shortcut hints shown via `<MenubarShortcut>`. All items dispatch to canvas store actions, `useClipboard`, or panel state setters.
+- `PenFileMenu.tsx` — dropdown for .pen file operations. Export: POST `/api/pen/export` with live CanvasDocument, downloads as `.pen` blob. Import: file picker → JSON.parse → POST `/api/pen/import` → applies returned patches through the store (undoable + broadcast). Shows busy indicator during operations.
+- `KeyboardShortcutsDialog.tsx` — searchable modal listing all wired keyboard shortcuts, grouped by category (Panels, Navigation, Edit, Tools, Clipboard, Structure, Z-order, Canvas, Properties, Chat, File). Tier badges (P0/P1/P2/Existing) with color coding. Opens via ⌘/ (mirrors Figma's Ctrl+Shift+? cheat sheet). Filters by action, keys, category, or tier.
 
 ## Local Contracts
 
@@ -28,8 +31,12 @@ Canvas UI components: the drawing surface, the toolbar, the layers panel, the pr
   - Zoom controls (bottom-left) have `aria-label` + `title` (Zoom out / Zoom in / Reset zoom to 100%).
   - All shape property access MUST be null-safe (`shape?.x ?? 0`) — the LLM can emit patches referencing deleted shapes.
   - Numeric fields used in `toFixed` / `Math.round` MUST be coerced via `Number()` first.
-  - **Empty-canvas drop zone**: when `document.shapes.length === 0`, renders a subtle centered placeholder.
+  - **Empty-canvas drop zone**: when `document.shapes.length === 0`, renders a subtle centered placeholder (dashed border, blurred bg, violet icon tile, "Empty canvas" heading + subtitle + tip). `pointer-events: none`. Fades in via `ac-fade-in`. Disappears when first shape is added.
   - **Backdrop grid**: uses `color-mix(in oklch, var(--ac-text-primary) 12%, transparent)` for dark-mode-correct dots.
+  - **Right-click context menu**: empty-canvas variant (paste, paste-in-place, select all, clear selection, zoom in/out/reset) and shape variant (cut/copy/paste/paste-in-place/duplicate, z-order 4-way, group/ungroup, lock/hide, delete). Selects shape under cursor if not already selected.
+  - **Alt+drag duplicate**: on mouse-up, if Alt was held at drag-start, emits `duplicate` patch + reverts originals to start position.
+  - **Shift-constrain resize**: locks aspect ratio to original shape's ratio during resize.
+  - **Nested shape move/resize**: subtracts parent's absolute position to convert to relative coords before emitting patches.
 - `Toolbar.tsx`:
   - Floating pill: `absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none` wrapper; inner pill re-enables pointer events.
   - Select/Pan buttons use `aria-pressed={toolMode === 'select'/'pan'}` + `aria-label`.
@@ -38,27 +45,55 @@ Canvas UI components: the drawing surface, the toolbar, the layers panel, the pr
   - All buttons are `rounded-full` (pill style).
 - `CommandPalette.tsx`:
   - Built on `cmdk` (wrapped by `@/components/ui/command`).
-  - Opens via `⌘K` / `⌘K` or the "Ask anything" header button.
-  - `PROMPT_GROUPS` is a verbatim copy of `AgentPanel.tsx`'s `PROMPT_GROUPS` (intentional duplication — see X5 in the UI audit; extraction to a shared module is a P3 cleanup).
+  - Opens via `⌘K` or the "Ask anything" trigger.
+  - `PROMPT_GROUPS` is a verbatim copy of `AgentPanel.tsx`'s `PROMPT_GROUPS` (intentional duplication — extraction to a shared module is a P3 cleanup).
   - Custom prompt fallback: if query doesn't exactly match a preset, shows a "Send '...' as a custom prompt" item.
   - `runPrompt()` calls `promptAgent(text)` + closes the palette.
 - `PropertiesPanel.tsx`:
-  - Reads `selectedIds`, looks up the shape, renders a form.
+  - Reads `selectedIds`, looks up shape(s), renders form.
   - Fill + Stroke + Radius + Opacity are wrapped in a single "Style" Collapsible (defaultOpen).
   - Auto Layout, Theme, Slot, Text sections are type-conditional + collapsed by default.
   - Empty state shows Canvas Background + Design Tokens + variables/themes summary (moved here from AgentPanel's status strip).
   - Token access MUST be null-safe: `document.tokens?.colors ?? []`.
+  - Multi-selection: shows quick actions grid (duplicate, group, ungroup, 6 align, 2 distribute).
+  - Single-selection: Name, Parent picker, Component info, Position, Size, Constraints, Style, Auto Layout, Theme, Slot, Text.
+  - Color swatches + numeric inputs support right-click Copy/Paste value via ContextMenu.
 - `LayersPanel.tsx`:
-  - Renders a flat list of shapes (groups expand inline).
-  - Badge cluster: at most 1 visible badge per row by priority (Master > Instance > AL > theme > token). Rest go into the row's `title` attribute.
+  - Renders a tree of shapes (containers expand/collapse inline). Expand state persisted per-document in localStorage.
+  - Per-type lucide icons covering all 8 ShapeType values.
+  - Badge cluster: at most 1 visible badge per row by priority (Master > Instance > AL > theme > token > constraints). Rest go into the row's `title` attribute.
   - Visibility/lock toggle buttons have `aria-label` + `aria-pressed` + `title`.
-  - Context menu: Delete, Duplicate, Rename.
+  - Drag-to-reparent: HTML5 DnD, drops onto container rows or empty area (→ root). Emits `reparent` patch with `keepAbsolutePosition=true`.
+  - Search filter: matches by name (case-insensitive), shows matching shapes + their ancestors.
+  - Expand-all / Collapse-all buttons in header.
+  - Context menu: clipboard, z-order, group/ungroup, lock/hide, create component, mark as slot, copy-as submenu, export submenu, select all children, expand/collapse subtree, apply theme axis, bind to token, reparent-to, rename, duplicate, delete.
+  - Footer: document variable + theme-axis counts.
 - `AgentPanel.tsx`:
   - Input field is decoupled from the `connected` dependency — works over both WebSocket and HTTP fallback.
   - Send button only renders when `input.trim()` is non-empty (cleaner empty state).
   - Placeholder text includes `(⌘K for prompts)` hint.
-  - Empty state shows ⌘K hint + prompt group chips + preset prompt buttons.
+  - Empty state shows "How does this work?" card + ⌘K hint + prompt group chips + preset prompt buttons.
   - Each user message has a "Fork from this message" button with `aria-label`.
+  - Accepts `hideHeader` prop (the `SessionHeader` component replaces the inline header when in the 4-pane layout).
+  - Inline Stop button appears next to streaming response when `agentBusy`.
+  - Right-click context menus on user messages, assistant messages, and tool-call cards.
+- `TopMenuBar.tsx`:
+  - Accepts callback props for all menu actions (`onOpenSettings`, `onOpenCommandPalette`, `onToggleZen`, `onToggleTheme`, `onToggleLeftPanel`, `onToggleRightPanel`, `onNewChat`, `onExportPen`, `onImportPen`, `onOpenShortcuts`).
+  - Uses `useClipboard` hook for cut/copy/paste operations.
+  - `dropShape` helper places new shapes at viewport center.
+  - `zorder` helper emits z-order patches against current selection.
+  - All shortcut hints shown via `<MenubarShortcut>` are wired in `src/app/page.tsx`'s keydown handler.
+- `PenFileMenu.tsx`:
+  - Reads `document` + `sendPatch` from canvas store.
+  - Export: POST to `/api/pen/export`, downloads response as blob.
+  - Import: file picker → JSON.parse → POST to `/api/pen/import` → applies returned patches via `sendPatch`.
+  - Shows busy indicator (fixed bottom-right) during operations.
+- `KeyboardShortcutsDialog.tsx`:
+  - Accepts `open` + `onOpenChange` props.
+  - `SHORTCUTS` array: ~40 entries across P0/P1/P2/Existing tiers.
+  - Filters by action, keys, category, or tier (case-insensitive).
+  - Groups by category for display.
+  - Tier badges color-coded: P0=rose, P1=amber, P2=blue, Existing=slate.
 
 ### React subscription safety (root contract, restated)
 - Zustand selectors MUST return stable references.
@@ -67,16 +102,17 @@ Canvas UI components: the drawing surface, the toolbar, the layers panel, the pr
 
 ## Work Guidance
 
-- When adding a new shape type: update `Canvas.tsx` (rendering), `LayersPanel.tsx` (icon), `PropertiesPanel.tsx` (form fields), `tools.ts` (tool schema + `executeTool` case), `prisma/schema.prisma` (comment in the `type` field).
+- When adding a new shape type: update `Canvas.tsx` (rendering), `LayersPanel.tsx` (icon in `TYPE_ICON`), `PropertiesPanel.tsx` (form fields), `tools.ts` (tool schema + `executeTool` case), `prisma/schema.prisma` (comment in the `type` field).
 - When changing the design system: edit `src/app/globals.css` first, then sweep components for hardcoded colors.
 - When adding a new panel: follow the 4-pane layout in `src/app/page.tsx` — do not introduce a 5th column without restructuring.
+- When adding a new keyboard shortcut: add it to `KeyboardShortcutsDialog.tsx`'s `SHORTCUTS` array + wire it in `src/app/page.tsx`'s keydown handler + show it as a hint in `TopMenuBar.tsx` if applicable.
 - Capture before/after screenshots to `download/<feature-name>/` for any visual change.
 
 ## Verification
 
 - `bunx tsc --noEmit` — typecheck.
 - `bun run lint` — ESLint.
-- Manual: open the app, verify all 5 panels render, shapes are selectable, properties form edits dispatch updates, agent chat streams.
+- Manual: open the app, verify all panels render, shapes are selectable, properties form edits dispatch updates, agent chat streams, menu bar items work, ⌘K palette opens, ⌘/ shortcuts dialog opens, .pen export/import works.
 - `bunx tsx scripts/screenshot-ui-after.ts` — captures 5 states to `download/ui-polish-after/`.
 
 ## Child DOX Index

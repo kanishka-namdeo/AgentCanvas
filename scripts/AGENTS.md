@@ -2,15 +2,17 @@
 
 ## Purpose
 
-Utility scripts for development, screenshots, and watchdogs. Mix of shell (`.sh`) and TypeScript (`.ts`, run via `bunx tsx`).
+Utility scripts for development, screenshots, watchdogs, eval, and measurement. Mix of shell (`.sh`) and TypeScript (`.ts`, run via `bunx tsx`).
 
 ## Ownership
 
 - `start-dev.sh` — detached Next.js dev server launcher. Kills any existing `next-server` / `next dev` / `bun run dev` process, truncates `dev.log`, starts fresh via `setsid + nohup + disown`, waits up to 20s for `http://127.0.0.1:3000/` to respond.
 - `start-canvas-sync.sh` — launcher for the `mini-services/canvas-sync/` Socket.IO service on port 3003.
 - `canvas-sync-watchdog.sh` — monitors the canvas-sync service and restarts it if it dies.
-- `screenshot-ui-after.ts` — Playwright script. Captures 5 UI states (initial, hover-session, input-focused, snapshots-tab, runs-expanded) to `download/ui-polish-after/`. Run via `bunx tsx scripts/screenshot-ui-after.ts`.
+- `screenshot-ui-after.ts` — Playwright script. Captures 5 UI states (initial, hover-session, input-focused, snapshots-tab, runs-expanded) to `download/ui-polish-after/`. Viewport 1600×1000. Run via `bunx tsx scripts/screenshot-ui-after.ts`.
 - `screenshot-polish-pass2.ts` — Playwright script. Captures 8 states covering the three pass-2 deliverables: empty-canvas drop zone, "New chat" hover, session row hover, dropdown menu open, rename dialog, dark-mode empty, dark-mode dropdown, dark-mode rename dialog. Output to `download/polish-pass2/`. Run via `bunx tsx scripts/screenshot-polish-pass2.ts`.
+- `eval-agent.ts` — Evaluation harness for the agent's intent classifier. Runs the keyword classifier against 20 hand-labeled prompts across 7 skill categories + multi-step prompts. Exit 0 if accuracy >= 80%, exit 1 otherwise. Run via `bun run scripts/eval-agent.ts`.
+- `measure-tool-cost.ts` — Measures the token cost of the agent's tool registry + system prompt. Estimates tokens as chars/4, prints per-tool breakdown sorted by size. Run via `bun run scripts/measure-tool-cost.ts`.
 
 ## Local Contracts
 

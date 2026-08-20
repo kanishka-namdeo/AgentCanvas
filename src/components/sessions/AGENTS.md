@@ -2,23 +2,24 @@
 
 ## Purpose
 
-Session management UI: the sidebar (session list + new/search/fork/archive), the header (title + status + fork button), the run history panel (runs + snapshots tabs), and the status badge component.
+Session management UI: the sidebar (session list + new/search/fork/archive), the header (title + status + fork button), the run history panel (runs + snapshots tabs), the run/stop button, and the status badge component.
 
 These components read from `useSessionStore` (the persisted Zustand store in `src/lib/sessions/`) and dispatch actions to either the session store (CRUD) or the canvas store (fork/restore).
 
 ## Ownership
 
-- `SessionSidebar.tsx` — left panel tab (Chats): search, New button, pinned-first sorting, archived section, context menu (Rename / Pin / Star / Fork this chat / Archive / Delete). "Fork this chat" calls `forkSession(session.id, null)` directly (NOT `forkActiveSession` — which used the wrong active session). Toasts on Pin/Star/Archive/Delete/Fork.
-- `SessionHeader.tsx` — top of the right panel (compact mode in header): inline-editable title, status badge, fork indicator, Fork button, branded bot avatar.
-- `RunHistoryPanel.tsx` — right panel tab (History): tabbed (Runs / Snapshots). Expandable run cards with tool-call timeline. Snapshot cards with Restore / Fork / Bookmark. "Capture current state" button. Accepts `hideHeader` prop (compact tab strip when inside the right tabbed panel). Toasts on Restore/Fork/Capture/Bookmark.
-- `RunStopButton.tsx` — header button. When idle: shows "Ask" button that opens the Command Palette via `onAsk` prop (replaces the old "Run" button that was a silent no-op when not on Chat tab). When busy: shows "Stop" button with pulsing white dot.
-- `StatusBadge.tsx` — color-coded status pill for runs / tool-calls / sessions. Includes a `StatusDot` variant.
+- `SessionSidebar.tsx` — left panel tab (Chats): search, New button, pinned-first sorting, archived section, footer stats (runs/tools/snapshots counts), rich context menu. "Fork this chat" calls `forkSession(session.id, null)` directly (NOT `forkActiveSession`). Toasts on Archive/Delete/Fork/Duplicate/Export/Copy-prompt.
+- `SessionHeader.tsx` — top of the right panel. Two variants: `compact` (single-row for the 44px header — small avatar + inline-editable title + StatusBadge + Fork button) and default/full (avatar + title + meta row with status, fork indicator, relative time, model + Fork button). Inline-editable title, branded bot avatar.
+- `RunHistoryPanel.tsx` — right panel tab (History): tabbed (Runs / Snapshots). Expandable run cards with tool-call timeline. Snapshot cards with Restore / Fork / Bookmark. "Capture current state" button. Accepts `hideHeader` prop (compact tab strip when inside the right tabbed panel). Context menus on both run cards and snapshot cards. Toasts on Restore/Fork/Capture (Bookmark does not toast).
+- `RunStopButton.tsx` — header button. When idle: shows "Ask" button that opens the Command Palette via `onAsk` prop. When busy: shows "Stop" button with pulsing white dot.
+- `StatusBadge.tsx` — color-coded status pill for runs / tool-calls / sessions. Three status maps (Run, ToolCall, Session). Includes a `StatusDot` variant.
 
 ## Local Contracts
 
 ### Design token usage (root contract, restated)
-- All components consume the `--ac-*` design tokens via utility classes. No hardcoded `slate-{n}` colors.
-- Status colors come from `--ac-status-*` OKLCH variables. The `StatusBadge` color map is the single source of truth for status → color.
+- All components consume the `--ac-*` design tokens via utility classes for surfaces, borders, text hierarchy, and accents.
+- **Exception**: `StatusBadge.tsx` uses hardcoded Tailwind colors (`text-slate-700`, `bg-emerald-100`, etc.) for status-specific coloring. This is intentional — status colors are domain-specific and don't map to the generic `--ac-*` surface/text tokens.
+- The `StatusBadge` color maps (`RUN_STATUS_CONFIG`, `TOOL_STATUS_CONFIG`, `SESSION_STATUS_CONFIG`) are the single source of truth for status → color.
 
 ### Component contracts
 
@@ -26,46 +27,50 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
 - "New chat" button is a solid violet primary CTA (the brand accent), visually distinct from secondary actions.
 - Active session row uses `.ac-active-row` (2px left accent bar + soft violet bg).
 - Pinned sessions sort first; archived sessions collapse into a disclosure section at the bottom.
-- Context menu actions: Rename (opens Dialog), Pin/Unpin, Star/Unstar, "Fork this chat" (calls `forkSession(session.id, null)` — NOT `forkActiveSession`), Archive/Unarchive, Delete (with confirm). All actions show a `sonner` toast on success.
+- Footer stats bar: shows total runs + tools count (left) and snapshots count (right).
 - Context menu (`DropdownMenuContent`):
   - `min-w-[180px]` for consistent width.
-  - Opens with a `DropdownMenuLabel` showing the session title (uppercase, `ac-text-4`, truncated) — provides context for which session the menu applies to.
-  - Items use `py-1.5` (slightly taller than the primitive's default `py-1.5` — kept consistent).
-  - Destructive item (Delete) uses the primitive's `variant="destructive"` (NOT a hand-rolled `text-rose-600` class) so it swaps correctly in dark mode.
+  - Opens with a `DropdownMenuLabel` showing the session title (uppercase, `ac-text-4`, truncated).
+  - Items use `py-1.5`.
+  - Destructive item (Delete) uses `variant="destructive"`.
+  - Full action list: Rename, Pin/Unpin, Star/Unstar, Fork this chat (`forkSession(session.id, null)`), Duplicate session (fork without switching), Export as JSON (copies session JSON), Export as Markdown (stub — P2-37), Copy prompt summary (copies user messages), Mark as template (stub — P2-41), Archive, Delete (with confirm).
+  - Toasts on: Archive, Delete, Fork, Duplicate, Export as JSON, Copy prompt summary. Pin/Star do NOT toast.
 - Rename Dialog (`DialogContent`):
-  - Has `DialogDescription` ("This name appears in the sidebar…") for context — not just a bare title + input.
-  - Input is wrapped in a labeled group: `<label>` "TITLE" (uppercase, `ac-text-4`) + `Input` with `ac-border-default` → `focus-visible:ac-border-strong`.
+  - Has `DialogDescription` ("This name appears in the sidebar…") for context.
+  - Input wrapped in labeled group: `<label>` "TITLE" (uppercase, `ac-text-4`) + `Input` with `ac-border-default` → `focus-visible:ac-border-strong`.
   - Input handles `Enter` (save) and `Escape` (cancel) via `onKeyDown`.
-  - Footer: ghost Cancel button (`ac-text-2` → `ac-text-1` on hover) + brand-colored Save button (`backgroundColor: var(--ac-accent)`, white text). Save is `disabled` when the input is empty.
+  - Footer: ghost Cancel button + brand-colored Save button (`backgroundColor: var(--ac-accent)`). Save is `disabled` when input is empty.
 - Empty state: friendly message + CTA pointing at the New button.
 - Search filters by title (case-insensitive substring).
 - Subtle scrollbars via `.ac-hide-scrollbar`.
 
 #### `SessionHeader.tsx`
+- Two variants via `compact` prop:
+  - **compact** (for the 44px top header): single row — small avatar (5×5) with optional status dot, inline-editable title (12px), StatusBadge, Fork button. Drops model + relative-time meta.
+  - **default/full**: avatar (6×6) with gradient + ring, inline-editable title (13px semibold), meta row (StatusBadge + fork indicator + relative time + model), Fork button.
 - Title is inline-editable (click to edit, Enter to save, Esc to cancel).
-- Title font size is 13px (was 12px — too small).
-- Branded bot avatar: gradient fill + ring.
-- Metadata row uses consistent dot separators (no mixed `·`/`•`/`|`).
+- Branded bot avatar: violet-to-fuchsia gradient + Bot icon.
+- Metadata row uses consistent `·` dot separators.
 - Fork button is outline style (secondary action).
-- Status badge sits next to the title.
 
 #### `RunHistoryPanel.tsx`
 - Two tabs: **Runs** and **Snapshots**.
-- Tab styling is unified: filled white bg on active tab, light gray bg on inactive (was previously alternating dark/light inversion between screenshots — fixed).
-- Run cards are expandable: collapsed shows prompt + status + duration; expanded shows the full tool-call timeline with status badges and per-call duration.
-- Snapshot cards: thumbnail (canvas preview), label, timestamp, Restore / Fork / Bookmark buttons.
-- Action buttons use consistent outline styling — no mixing of solid/outline within the same card.
+- Tab styling is unified: selected = `ac-surface-0 ac-text-1 shadow-sm`, unselected = `ac-text-3` (token-based, not hardcoded white/gray).
+- Run cards are expandable (Collapsible): collapsed shows prompt + status + duration + tool-call count; expanded shows the full tool-call timeline with status badges and per-call duration.
+- Run card context menu (right-click): Expand/Collapse, Restore run (stub), Fork from here (stub), Copy prompt, Copy all tool calls as JSON, Export run as Markdown (stub — P2-37), Delete run (stub).
+- Snapshot cards: Camera icon, label, source badge (color-coded by source: turn_end/fork/restore/manual), node count, timestamp, Restore / Fork / Bookmark buttons. Active snapshot highlighted with emerald border.
+- Snapshot card context menu (right-click): Restore, Fork from here, Bookmark toggle, Rename snapshot (stub — P2-38), Delete snapshot (stub), Copy as JSON, Export as .pen (stub), Set as current (stub — P2-45).
+- "Capture current state" button at bottom of Snapshots tab.
+- Action buttons use consistent outline styling.
 - Empty states for both tabs.
 
 #### `StatusBadge.tsx`
-- Color map (single source of truth):
-  - `queued` — neutral gray
-  - `in_progress` — blue (animated pulse on the dot variant)
-  - `awaiting_tool` — amber
-  - `completed` — emerald-800 on emerald-100 with emerald-300 border (was 700/50/200 — too low contrast)
-  - `failed` — red
-  - `cancelled` — muted gray
-- `StatusDot` variant: just the colored dot, no label. Used in dense layouts.
+- Three status maps (single source of truth for each domain):
+  - **Run statuses**: `queued` (gray), `in_progress` → "running" (blue, pulse), `awaiting_tool` → "tool" (amber, pulse), `cancelling` (orange, pulse), `cancelled` (muted gray), `completed` (emerald-800 on emerald-100 with emerald-300 border), `failed` (red), `incomplete` (amber)
+  - **ToolCall statuses**: `pending` (gray), `running` (blue, pulse), `success` (emerald), `error` (red), `cancelled` (muted gray)
+  - **Session statuses**: `active` (emerald), `archived` (muted gray)
+- Display labels may differ from status keys (e.g., `in_progress` → "running", `awaiting_tool` → "tool").
+- `StatusDot` variant: just the colored dot, no label. Used in dense layouts (sidebar rows).
 
 ### React subscription safety (root contract, restated)
 - Never call `useSessionStore((s) => s.getStats(id))` in a selector — it returns a new object every render. Use `useMemo` over `sessionsMap` instead.

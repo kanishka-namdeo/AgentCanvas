@@ -43,4 +43,4 @@ shadcn/ui primitives: Radix UI wrappers styled with `class-variance-authority` a
 
 No child AGENTS.md files in this folder.
 
-*Siblings: `../canvas/AGENTS.md` (Canvas UI components), `../sessions/AGENTS.md` (Session management UI).*
+*Siblings: `../canvas/AGENTS.md` (Canvas UI components), `../sessions/AGENTS.md` (Session management UI), `../settings/AGENTS.md` (Settings dialog).*

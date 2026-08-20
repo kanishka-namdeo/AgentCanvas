@@ -18,15 +18,25 @@ A standalone Socket.IO service that maintains per-document canvas state in memor
 - **Heartbeat**: `pingTimeout: 60000`, `pingInterval: 25000`.
 
 ### Event protocol
-The service speaks the same `ClientEvent` / `SyncEvent` unions defined in `src/lib/canvas/types.ts`. It is a pure relay — it does not invent event kinds.
+The service speaks the same `ClientEvent` / `SyncEvent` unions defined in `src/lib/canvas/types.ts`. It is a pure relay — it does not invent event kinds. All events are sent/received on the `client` / `sync` socket channels.
 
 **Client → server (`ClientEvent`)**:
-- `subscribe` `{ documentId }` — join a document's room.
-- `prompt` `{ documentId, prompt }` — start an agent run (the service calls `/api/agent` via HTTP fetch and relays the streamed events to subscribers).
-- `unsubscribe` `{ documentId }` — leave a room.
+- `subscribe` `{ documentId }` — join a document's room. The service sends back a `canvas:full` with current state and broadcasts a `presence` update.
+- `canvas:patch` `{ patch }` — apply a canvas patch. The service finds the sender's subscribed document, applies it via `applyPatchToCanvas`, and broadcasts to other subscribers.
+- `canvas:request_full` `{ documentId }` — request a full document snapshot. The service responds with `canvas:full`.
+- `agent:prompt` `{ documentId, prompt, settings? }` — start an agent run. The service calls `/api/agent` via HTTP fetch (NDJSON stream) and fans out every event to all subscribers.
 
 **Server → client (`SyncEvent`)**:
-- `chat_delta`, `tool_call_start`, `tool_call_end`, `error`, `turn_end`, `patch_applied` — all defined in `src/lib/canvas/types.ts`.
+- `canvas:patch` `{ patch, toolCallId? }` — a canvas mutation was applied.
+- `canvas:full` `{ document }` — full document snapshot (sent on subscribe / request).
+- `agent:message_start`, `agent:message_delta`, `agent:message_end` — assistant chat stream.
+- `agent:thinking_delta` — model thinking tokens.
+- `agent:tool_call_start`, `agent:tool_call_end` — tool invocation lifecycle.
+- `agent:turn_end` — agent finished processing.
+- `agent:error` — agent error.
+- `agent:skill_selected`, `agent:plan`, `agent:plan_step_update` — planning/skill events.
+- `agent:subagent_dispatch`, `agent:subagent_result` — sub-agent delegation events.
+- `presence` `{ viewerCount }` — subscriber count changed.
 
 ### In-memory state
 - `documents: Map<string, DocState>` where `DocState = { document: CanvasDocument, subscribers: Set<string> }`.
