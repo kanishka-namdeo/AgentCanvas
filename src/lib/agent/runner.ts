@@ -508,8 +508,19 @@ function createOpenAICompatibleClient(opts: {
 /// Synchronous wrapper around the OpenAI-compatible client factory.
 /// Imported lazily to avoid a circular dep.
 import { createOpenAICompatible as createOpenAICompatibleSync } from '../llm/openai-compatible';
+import { callLLMWithRetry as sharedCallLLMWithRetry } from './llm-retry';
 
 // ---- Run the agent loop ---------------------------------------------------
+
+/// Wrapper preserved for backward compat — see llm-retry.ts for the shared impl.
+async function callLLMWithRetry(llm: LLMClient, params: {
+  messages: Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_calls?: any[]; tool_call_id?: string }>;
+  tools?: any[];
+  tool_choice?: string | any;
+  temperature?: number;
+}): Promise<any> {
+  return sharedCallLLMWithRetry(llm, params);
+}
 
 export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStreamEvent> {
   const { documentId, prompt, canvas: initialCanvas, llm: injectedLlm, signal, settings } = opts;
@@ -815,7 +826,7 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   for (let iter = 0; iter < maxIterations; iter++) {
     let completion: any;
     try {
-      completion = await llm.chat.completions.create({
+      completion = await callLLMWithRetry(llm, {
         messages: messages as any,
         tools: filteredSpecs,
         tool_choice: 'auto',

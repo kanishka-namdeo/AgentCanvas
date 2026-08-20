@@ -20,6 +20,7 @@
 import type { Plan, PlanStep, SkillCategory, ClassificationResult } from './skills/types';
 import { getSkillMetadata } from './skills/registry';
 import type { LLMClient } from './runner';
+import { callLLMWithRetry } from './llm-retry';
 
 // ---- Public API ------------------------------------------------------------
 
@@ -58,13 +59,18 @@ Respond with ONLY a JSON array (no markdown, no explanation):
 [{"step": 1, "description": "...", "skill": "<skill_id>"}]`;
 
   try {
-    const completion = await opts.llm.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: opts.prompt },
-      ],
-      temperature: 0,
-    });
+    const completion = await callLLMWithRetry(
+      opts.llm as any,
+      {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: opts.prompt },
+        ],
+        temperature: 0,
+      },
+      // Planner is a cheap call — fewer retries, shorter backoff.
+      { maxRetries: 3, baseDelayMs: 3000 },
+    );
     const text = completion?.choices?.[0]?.message?.content?.trim() ?? '';
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return null;

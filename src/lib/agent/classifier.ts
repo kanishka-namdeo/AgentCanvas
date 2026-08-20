@@ -20,6 +20,7 @@
 import type { ClassificationResult, SkillCategory } from './skills/types';
 import { SKILLS, getSkillMetadata } from './skills/registry';
 import type { LLMClient } from './runner';
+import { callLLMWithRetry } from './llm-retry';
 
 // ---- Public API ------------------------------------------------------------
 
@@ -254,13 +255,18 @@ Respond with ONLY a JSON object (no markdown, no explanation):
 Set recommendPlan=true if the prompt describes a multi-step task (e.g. "research X then design Y").`;
 
   try {
-    const completion = await llm.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0,
-    });
+    const completion = await callLLMWithRetry(
+      llm as any,
+      {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0,
+      },
+      // The classifier is a cheap call — fewer retries, shorter backoff.
+      { maxRetries: 3, baseDelayMs: 3000 },
+    );
     const text = completion?.choices?.[0]?.message?.content?.trim() ?? '';
     // Extract JSON from the response (in case the model wraps it in markdown).
     const jsonMatch = text.match(/\{[\s\S]*\}/);

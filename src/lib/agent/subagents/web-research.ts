@@ -25,6 +25,7 @@ import { webSearch, formatSearchForLLM } from '../../web/search';
 import { webFetch, formatFetchForLLM } from '../../web/fetch';
 import type { SubAgentResult, SubAgentParams } from '../skills/types';
 import type { LLMClient } from '../runner';
+import { callLLMWithRetry } from '../llm-retry';
 
 // ---- Sub-agent system prompt ----------------------------------------------
 //
@@ -123,12 +124,16 @@ export async function dispatchWebResearchSubAgent(
     const MAX_SUBAGENT_ITERATIONS = 6; // Cap: 1-2 searches + 1-3 fetches + 1 summary
 
     for (let iter = 0; iter < MAX_SUBAGENT_ITERATIONS; iter++) {
-      const completion = await zai.chat.completions.create({
-        messages: messages as any,
-        tools: subAgentTools,
-        tool_choice: 'auto',
-        temperature: 0.3,
-      });
+      const completion = await callLLMWithRetry(
+        zai as any,
+        {
+          messages: messages as any,
+          tools: subAgentTools,
+          tool_choice: 'auto',
+          temperature: 0.3,
+        },
+        { maxRetries: 3, baseDelayMs: 3000 },
+      );
 
       const msg = completion?.choices?.[0]?.message;
       if (!msg) break;

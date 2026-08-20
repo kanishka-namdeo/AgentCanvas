@@ -23,6 +23,7 @@ import ZAI from 'z-ai-web-dev-sdk';
 import type { CanvasDocument, Shape } from '../../canvas/types';
 import type { SubAgentResult, SubAgentParams } from '../skills/types';
 import type { LLMClient } from '../runner';
+import { callLLMWithRetry } from '../llm-retry';
 
 // ---- Sub-agent system prompt ----------------------------------------------
 //
@@ -108,11 +109,15 @@ Review this design critically. End your response with "CRITIQUE:" and "SCORE:" a
     const MAX_ITERATIONS = 2; // Critic should be 1-2 calls — no tool loops
 
     for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
-      const completion = await zai.chat.completions.create({
-        messages: messages as any,
-        // No tools — the critic is pure analysis.
-        temperature: 0.4, // Lower temperature = more analytical, less agreeable.
-      });
+      const completion = await callLLMWithRetry(
+        zai as any,
+        {
+          messages: messages as any,
+          // No tools — the critic is pure analysis.
+          temperature: 0.4, // Lower temperature = more analytical, less agreeable.
+        },
+        { maxRetries: 3, baseDelayMs: 3000 },
+      );
       toolCallCount++;
 
       const msg = completion?.choices?.[0]?.message;

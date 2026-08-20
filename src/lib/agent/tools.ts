@@ -1460,18 +1460,26 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     description:
       'Recolor a set of shapes using a new palette. Each shape\'s fill is mapped to the closest color in the palette ' +
       'by perceptual distance (HSL). Useful for "re-skinning" an existing layout without rebuilding it. ' +
-      'Optionally binds the shapes to design tokens (so future palette changes propagate automatically).',
-    promptSnippet: 'Recolor shapes by mapping to a new palette (nearest match).',
+      'Optionally binds the shapes to design tokens (so future palette changes propagate automatically). ' +
+      'If shapeIds is omitted, applies to ALL shapes on the canvas — use this for "recolor everything" requests.',
+    promptSnippet: 'Recolor shapes by mapping to a new palette (nearest match). Omit shapeIds to recolor all.',
     parameters: Type.Object({
-      shapeIds: Type.Array(Type.String(), { description: 'Ids of shapes to recolor' }),
-      palette: Type.Array(Type.String(), { description: 'Array of hex colors to map to (e.g. ["#0f172a","#0ea5e9","#f8fafc"])' }),
+      shapeIds: Type.Optional(Type.Array(Type.String(), { description: 'Ids of shapes to recolor. Omit to recolor ALL shapes on the canvas.' })),
+      palette: Type.Array(Type.String(), { description: 'Array of hex colors to map to (e.g. ["#0f172a","#0ea5e9","#f8fafc"]). MUST be a real JSON array, not a stringified string.' }),
       bindToTokens: Type.Optional(Type.Boolean({ description: 'If true, create/update design tokens and bind shapes to them (default false)' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const shapes = ctx.getShapes().filter((s) => params.shapeIds.includes(s.id));
+      // If shapeIds is omitted, apply to ALL shapes — this matches the common
+      // "recolor everything" intent and avoids the crash when the LLM forgets
+      // to pass shapeIds (which was happening ~50% of the time, causing the
+      // "Cannot read properties of undefined (reading 'includes')" error).
+      const allShapes = ctx.getShapes();
+      const shapes = params.shapeIds && params.shapeIds.length > 0
+        ? allShapes.filter((s) => params.shapeIds!.includes(s.id))
+        : allShapes;
       if (shapes.length === 0) {
         return {
-          content: [{ type: 'text', text: 'No matching shapes found.' }],
+          content: [{ type: 'text', text: 'No matching shapes found. Pass shapeIds, or omit shapeIds to recolor all shapes.' }],
           details: { error: 'not_found' },
           isError: true as any,
         };
@@ -1609,7 +1617,8 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     label: 'Generate Wireframe',
     description:
       'Generate a wireframe layout from a template. Places a frame plus placeholder shapes (low-fidelity, grayscale). ' +
-      'Templates: mobile_login, mobile_signup, mobile_dashboard, web_landing, web_dashboard, web_blog, web_pricing. ' +
+      'Templates: mobile_login, mobile_signup, mobile_dashboard, mobile_welcome, mobile_permissions, mobile_done, ' +
+      'mobile_browse, mobile_product_detail, mobile_cart, mobile_checkout, web_landing, web_dashboard, web_blog, web_pricing. ' +
       'The frame is placed at (x, y) with the template\'s default size.',
     promptSnippet: 'Generate a wireframe screen from a template (mobile/web).',
     promptGuidelines: [
@@ -1622,6 +1631,13 @@ export function createCanvasTools(ctx: CanvasToolContext) {
           Type.Literal('mobile_login'),
           Type.Literal('mobile_signup'),
           Type.Literal('mobile_dashboard'),
+          Type.Literal('mobile_welcome'),
+          Type.Literal('mobile_permissions'),
+          Type.Literal('mobile_done'),
+          Type.Literal('mobile_browse'),
+          Type.Literal('mobile_product_detail'),
+          Type.Literal('mobile_cart'),
+          Type.Literal('mobile_checkout'),
           Type.Literal('web_landing'),
           Type.Literal('web_dashboard'),
           Type.Literal('web_blog'),
@@ -1666,10 +1682,10 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     name: 'pen_generate_user_flow',
     label: 'Generate Multi-Screen User Flow',
     description:
-      'Generate a connected series of screens representing a user flow. Places 3-5 frames side by side with arrows between them. ' +
-      'Flows: onboarding (3 steps: welcome → permissions → done), ecommerce (browse → product → cart → checkout), ' +
-      'auth (login → mfa → home), signup_funnel (landing → signup → verify → dashboard). ' +
-      'Each screen is a wireframe; arrows connect them left-to-right.',
+      'Generate a connected series of screens representing a user flow. Places 3-4 frames side by side with arrows between them. ' +
+      'Flows: onboarding (3 steps: welcome → permissions → done), ecommerce (4 steps: browse → product → cart → checkout), ' +
+      'auth (3 steps: login → mfa → home), signup_funnel (4 steps: landing → signup → verify → dashboard). ' +
+      'Each screen is a purpose-built wireframe for that flow step; arrows connect them left-to-right.',
     promptSnippet: 'Generate a multi-screen user flow (onboarding, ecommerce, auth, signup).',
     parameters: Type.Object({
       flow: Type.Union(
@@ -3596,6 +3612,191 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
       add({ id: crypto.randomUUID(), type: 'text', name: 'Sign in link', x: ox + 90, y: oy + 450, width: 200, height: 16, fill: 'transparent', text: 'Already have an account? Sign in', fontSize: 13, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
       break;
     }
+    case 'mobile_welcome': {
+      // Onboarding step 1: welcome screen with hero illustration + value prop + CTA.
+      addFrame(375, 812, 'Mobile / Onboarding · Welcome');
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Hero image', x: ox + 48, y: oy + 120, width: 279, height: 220, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 16, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Hero icon', x: ox + 165, y: oy + 200, width: 50, height: 50, fill: 'transparent', text: '✨', fontSize: 48, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Headline', x: ox + 32, y: oy + 380, width: 311, height: 36, fill: 'transparent', text: 'Welcome to Acme', fontSize: 28, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Subhead', x: ox + 32, y: oy + 424, width: 311, height: 48, fill: 'transparent', text: 'The fastest way to ship your product. Get started in under 2 minutes.', fontSize: 15, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Primary CTA', x: ox + 32, y: oy + 540, width: 311, height: 52, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 12, fontSize: 16, textColor: '#ffffff' });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Primary CTA label', x: ox + 130, y: oy + 558, width: 150, height: 20, fill: 'transparent', text: 'Get started', fontSize: 16, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Secondary CTA', x: ox + 100, y: oy + 612, width: 175, height: 20, fill: 'transparent', text: 'I already have an account', fontSize: 14, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Page dots (1 of 3 active)
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Dot 1 (active)', x: ox + 168, y: oy + 720, width: 8, height: 8, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Dot 2', x: ox + 184, y: oy + 720, width: 8, height: 8, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Dot 3', x: ox + 200, y: oy + 720, width: 8, height: 8, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      // Skip link
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Skip', x: ox + 310, y: oy + 48, width: 40, height: 20, fill: 'transparent', text: 'Skip', fontSize: 14, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      break;
+    }
+    case 'mobile_permissions': {
+      // Onboarding step 2: permissions screen with toggle list + Allow button.
+      addFrame(375, 812, 'Mobile / Onboarding · Permissions');
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Headline', x: ox + 32, y: oy + 80, width: 311, height: 32, fill: 'transparent', text: 'Enable features', fontSize: 24, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Subhead', x: ox + 32, y: oy + 120, width: 311, height: 36, fill: 'transparent', text: 'Allow these permissions so we can personalize your experience.', fontSize: 14, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Permission rows
+      const perms = [
+        { icon: '🔔', title: 'Notifications', sub: 'Get alerts for new activity' },
+        { icon: '📍', title: 'Location', sub: 'Personalize content by region' },
+        { icon: '📷', title: 'Camera', sub: 'Scan documents and take photos' },
+      ];
+      for (let i = 0; i < perms.length; i++) {
+        const py = oy + 200 + i * 88;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Perm card ${i + 1}`, x: ox + 24, y: py, width: 327, height: 72, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 12, fontSize: 14, textColor: DARK });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Perm ${i + 1} icon`, x: ox + 40, y: py + 22, width: 32, height: 32, fill: 'transparent', text: perms[i].icon, fontSize: 24, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Perm ${i + 1} title`, x: ox + 84, y: py + 18, width: 180, height: 18, fill: 'transparent', text: perms[i].title, fontSize: 15, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Perm ${i + 1} sub`, x: ox + 84, y: py + 40, width: 200, height: 16, fill: 'transparent', text: perms[i].sub, fontSize: 12, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        // Toggle (on for first, off for others — visual variety)
+        const toggleOn = i === 0;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Toggle ${i + 1}`, x: ox + 305, y: py + 26, width: 40, height: 22, fill: toggleOn ? '#10b981' : GRAY, stroke: 'transparent', strokeWidth: 0, radius: 11, fontSize: 14, textColor: DARK });
+        add({ id: crypto.randomUUID(), type: 'ellipse', name: `Toggle knob ${i + 1}`, x: toggleOn ? ox + 323 : ox + 309, y: py + 28, width: 18, height: 18, fill: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      }
+      // Primary CTA
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Primary CTA', x: ox + 32, y: oy + 560, width: 311, height: 52, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 12, fontSize: 16, textColor: '#ffffff' });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Primary CTA label', x: ox + 100, y: oy + 578, width: 200, height: 20, fill: 'transparent', text: 'Continue', fontSize: 16, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Page dots (2 of 3 active)
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Dot 1', x: ox + 168, y: oy + 720, width: 8, height: 8, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Dot 2 (active)', x: ox + 184, y: oy + 720, width: 8, height: 8, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Dot 3', x: ox + 200, y: oy + 720, width: 8, height: 8, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      break;
+    }
+    case 'mobile_done': {
+      // Onboarding step 3: success screen with checkmark + "you're all set" + go-to-app.
+      addFrame(375, 812, 'Mobile / Onboarding · Done');
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Success circle', x: ox + 137, y: oy + 180, width: 100, height: 100, fill: '#10b981', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: '#ffffff' });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Checkmark', x: ox + 170, y: oy + 200, width: 40, height: 60, fill: 'transparent', text: '✓', fontSize: 60, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Headline', x: ox + 32, y: oy + 340, width: 311, height: 36, fill: 'transparent', text: "You're all set!", fontSize: 28, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Subhead', x: ox + 32, y: oy + 384, width: 311, height: 48, fill: 'transparent', text: 'Your account is ready. Let\'s start building something great.', fontSize: 15, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Primary CTA', x: ox + 32, y: oy + 500, width: 311, height: 52, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 12, fontSize: 16, textColor: '#ffffff' });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Primary CTA label', x: ox + 110, y: oy + 518, width: 180, height: 20, fill: 'transparent', text: 'Go to dashboard', fontSize: 16, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Page dots (3 of 3 active)
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Dot 1', x: ox + 168, y: oy + 720, width: 8, height: 8, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Dot 2', x: ox + 184, y: oy + 720, width: 8, height: 8, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Dot 3 (active)', x: ox + 200, y: oy + 720, width: 8, height: 8, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      break;
+    }
+    case 'mobile_browse': {
+      // Ecommerce step 1: product browse / search + grid of products.
+      addFrame(375, 812, 'Mobile / Shop · Browse');
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Headline', x: ox + 32, y: oy + 56, width: 200, height: 28, fill: 'transparent', text: 'Shop', fontSize: 24, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Search bar', x: ox + 32, y: oy + 100, width: 311, height: 40, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 20, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Search placeholder', x: ox + 56, y: oy + 112, width: 200, height: 16, fill: 'transparent', text: 'Search products…', fontSize: 14, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Category chips
+      const cats = ['All', 'New', 'Sale', 'Brands'];
+      for (let i = 0; i < cats.length; i++) {
+        const cx = ox + 32 + i * 78;
+        const active = i === 0;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Chip ${i + 1}`, x: cx, y: oy + 160, width: 66, height: 30, fill: active ? '#0ea5e9' : '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 15, fontSize: 13, textColor: active ? '#ffffff' : DARK });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Chip ${i + 1} label`, x: cx + 18, y: oy + 168, width: 40, height: 16, fill: 'transparent', text: cats[i], fontSize: 13, textColor: active ? '#ffffff' : DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      }
+      // 2x2 product grid
+      const products = [
+        { name: 'T-Shirt', price: '$24', color: '#fbbf24' },
+        { name: 'Sneakers', price: '$89', color: '#60a5fa' },
+        { name: 'Backpack', price: '$59', color: '#34d399' },
+        { name: 'Watch', price: '$129', color: '#f87171' },
+      ];
+      for (let i = 0; i < 4; i++) {
+        const px = ox + 24 + (i % 2) * 168;
+        const py = oy + 220 + Math.floor(i / 2) * 220;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Product card ${i + 1}`, x: px, y: py, width: 156, height: 200, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 12, fontSize: 14, textColor: DARK });
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Product image ${i + 1}`, x: px + 12, y: py + 12, width: 132, height: 120, fill: products[i].color, stroke: 'transparent', strokeWidth: 0, radius: 8, fontSize: 14, textColor: DARK });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Product name ${i + 1}`, x: px + 12, y: py + 144, width: 130, height: 18, fill: 'transparent', text: products[i].name, fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Product price ${i + 1}`, x: px + 12, y: py + 164, width: 80, height: 18, fill: 'transparent', text: products[i].price, fontSize: 14, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      }
+      // Bottom tab bar
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Tab bar', x: ox, y: oy + 720, width: 375, height: 68, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Tab home', x: ox + 40, y: oy + 736, width: 40, height: 24, fill: 'transparent', text: '⌂', fontSize: 22, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Tab cart', x: ox + 180, y: oy + 736, width: 40, height: 24, fill: 'transparent', text: '🛒', fontSize: 22, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Tab profile', x: ox + 320, y: oy + 736, width: 40, height: 24, fill: 'transparent', text: '☻', fontSize: 22, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      break;
+    }
+    case 'mobile_product_detail': {
+      // Ecommerce step 2: product detail with image, price, description, add-to-cart.
+      addFrame(375, 812, 'Mobile / Shop · Product');
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Product image', x: ox, y: oy, width: 375, height: 360, fill: '#fbbf24', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Back button', x: ox + 16, y: oy + 48, width: 40, height: 32, fill: 'transparent', text: '←', fontSize: 28, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Heart icon', x: ox + 320, y: oy + 48, width: 32, height: 32, fill: 'transparent', text: '♡', fontSize: 28, textColor: '#ef4444', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Product title', x: ox + 24, y: oy + 384, width: 280, height: 28, fill: 'transparent', text: 'Premium T-Shirt', fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Price', x: ox + 24, y: oy + 420, width: 100, height: 24, fill: 'transparent', text: '$24.00', fontSize: 20, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Rating', x: ox + 250, y: oy + 424, width: 100, height: 18, fill: 'transparent', text: '★ 4.8 (132)', fontSize: 13, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Section label', x: ox + 24, y: oy + 464, width: 100, height: 18, fill: 'transparent', text: 'Description', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Description', x: ox + 24, y: oy + 488, width: 327, height: 60, fill: 'transparent', text: 'Soft cotton blend with a modern fit. Available in multiple colors.', fontSize: 14, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Size selector
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Size label', x: ox + 24, y: oy + 568, width: 80, height: 18, fill: 'transparent', text: 'Size:', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      const sizes = ['S', 'M', 'L', 'XL'];
+      for (let i = 0; i < sizes.length; i++) {
+        const sx = ox + 80 + i * 50;
+        const active = i === 1;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Size ${sizes[i]}`, x: sx, y: oy + 560, width: 40, height: 36, fill: active ? '#0ea5e9' : '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: active ? '#ffffff' : DARK });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Size ${sizes[i]} label`, x: sx + 14, y: oy + 570, width: 20, height: 18, fill: 'transparent', text: sizes[i], fontSize: 14, textColor: active ? '#ffffff' : DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      }
+      // Add to cart button (sticky bottom)
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Add to cart button', x: ox + 24, y: oy + 700, width: 327, height: 52, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 12, fontSize: 16, textColor: '#ffffff' });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Add to cart label', x: ox + 110, y: oy + 718, width: 200, height: 20, fill: 'transparent', text: 'Add to cart', fontSize: 16, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      break;
+    }
+    case 'mobile_cart': {
+      // Ecommerce step 3: cart with line items + subtotal + checkout button.
+      addFrame(375, 812, 'Mobile / Shop · Cart');
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Headline', x: ox + 32, y: oy + 56, width: 200, height: 28, fill: 'transparent', text: 'Your cart', fontSize: 24, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // 2 cart items
+      const items = [
+        { name: 'T-Shirt', color: 'Yellow', size: 'M', price: '$24' },
+        { name: 'Sneakers', color: 'Blue', size: '10', price: '$89' },
+      ];
+      for (let i = 0; i < 2; i++) {
+        const iy = oy + 120 + i * 96;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Cart item ${i + 1}`, x: ox + 24, y: iy, width: 327, height: 80, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 12, fontSize: 14, textColor: DARK });
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Item ${i + 1} image`, x: ox + 36, y: iy + 12, width: 56, height: 56, fill: i === 0 ? '#fbbf24' : '#60a5fa', stroke: 'transparent', strokeWidth: 0, radius: 8, fontSize: 14, textColor: DARK });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Item ${i + 1} name`, x: ox + 104, y: iy + 16, width: 150, height: 18, fill: 'transparent', text: items[i].name, fontSize: 15, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Item ${i + 1} variant`, x: ox + 104, y: iy + 36, width: 150, height: 14, fill: 'transparent', text: `${items[i].color} · Size ${items[i].size}`, fontSize: 12, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Item ${i + 1} price`, x: ox + 290, y: iy + 16, width: 60, height: 18, fill: 'transparent', text: items[i].price, fontSize: 15, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        // Qty stepper
+        add({ id: crypto.randomUUID(), type: 'text', name: `Item ${i + 1} qty`, x: ox + 290, y: iy + 44, width: 50, height: 18, fill: 'transparent', text: '− 1 +', fontSize: 13, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      }
+      // Summary
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Summary divider', x: ox + 24, y: oy + 320, width: 327, height: 1, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Subtotal label', x: ox + 24, y: oy + 340, width: 120, height: 18, fill: 'transparent', text: 'Subtotal', fontSize: 14, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Subtotal value', x: ox + 290, y: oy + 340, width: 60, height: 18, fill: 'transparent', text: '$113.00', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Shipping label', x: ox + 24, y: oy + 364, width: 120, height: 18, fill: 'transparent', text: 'Shipping', fontSize: 14, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Shipping value', x: ox + 290, y: oy + 364, width: 60, height: 18, fill: 'transparent', text: 'Free', fontSize: 14, textColor: '#10b981', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Total label', x: ox + 24, y: oy + 396, width: 100, height: 22, fill: 'transparent', text: 'Total', fontSize: 16, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Total value', x: ox + 280, y: oy + 396, width: 70, height: 22, fill: 'transparent', text: '$113.00', fontSize: 18, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Checkout button
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Checkout button', x: ox + 24, y: oy + 700, width: 327, height: 52, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 12, fontSize: 16, textColor: '#ffffff' });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Checkout label', x: ox + 110, y: oy + 718, width: 200, height: 20, fill: 'transparent', text: 'Checkout', fontSize: 16, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      break;
+    }
+    case 'mobile_checkout': {
+      // Ecommerce step 4: checkout with payment form + place-order button.
+      addFrame(375, 812, 'Mobile / Shop · Checkout');
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Headline', x: ox + 32, y: oy + 56, width: 200, height: 28, fill: 'transparent', text: 'Checkout', fontSize: 24, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Order summary card
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Summary card', x: ox + 24, y: oy + 112, width: 327, height: 72, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 12, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Summary label', x: ox + 40, y: oy + 124, width: 200, height: 16, fill: 'transparent', text: '2 items · Total', fontSize: 13, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Summary total', x: ox + 40, y: oy + 144, width: 200, height: 24, fill: 'transparent', text: '$113.00', fontSize: 20, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Payment method section
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Section label', x: ox + 24, y: oy + 216, width: 200, height: 18, fill: 'transparent', text: 'Payment method', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Card option', x: ox + 24, y: oy + 244, width: 327, height: 56, fill: '#ffffff', stroke: '#0ea5e9', strokeWidth: 2, radius: 12, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Card icon', x: ox + 40, y: oy + 260, width: 32, height: 24, fill: 'transparent', text: '💳', fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Card label', x: ox + 84, y: oy + 256, width: 200, height: 18, fill: 'transparent', text: '•••• 4242', fontSize: 15, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Card sub', x: ox + 84, y: oy + 276, width: 200, height: 14, fill: 'transparent', text: 'Visa · Expires 12/27', fontSize: 12, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Email field
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Email label', x: ox + 24, y: oy + 320, width: 200, height: 14, fill: 'transparent', text: 'Email', fontSize: 12, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Email field', x: ox + 24, y: oy + 340, width: 327, height: 44, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Email placeholder', x: ox + 40, y: oy + 352, width: 200, height: 18, fill: 'transparent', text: 'you@example.com', fontSize: 14, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Shipping address
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Address label', x: ox + 24, y: oy + 404, width: 200, height: 14, fill: 'transparent', text: 'Shipping address', fontSize: 12, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Address field', x: ox + 24, y: oy + 424, width: 327, height: 80, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Address placeholder', x: ox + 40, y: oy + 436, width: 280, height: 18, fill: 'transparent', text: '123 Main St', fontSize: 14, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Address placeholder 2', x: ox + 40, y: oy + 460, width: 280, height: 18, fill: 'transparent', text: 'San Francisco, CA 94103', fontSize: 14, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Place order button
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Place order button', x: ox + 24, y: oy + 700, width: 327, height: 52, fill: '#10b981', stroke: 'transparent', strokeWidth: 0, radius: 12, fontSize: 16, textColor: '#ffffff' });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Place order label', x: ox + 100, y: oy + 718, width: 200, height: 20, fill: 'transparent', text: 'Place order', fontSize: 16, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      break;
+    }
     case 'mobile_dashboard': {
       // Mobile dashboard — best practices (2025) applied:
       //  - 4 stat cards (2x2 grid) with trend indicators (▲▼ +X%)
@@ -3807,16 +4008,29 @@ interface UserFlowResult {
   shapes: Array<Partial<Shape> & { id: string }>;
 }
 
-function buildUserFlow(flow: string, ox: number, oy: number): UserFlowResult {
+function buildUserFlow(flow: string, oxIn: number, oyIn: number): UserFlowResult {
+  // Defensive: coerce to numbers — the LLM occasionally passes x/y as strings
+  // (e.g. "100"), and string + number = string concatenation would place screens
+  // at insane coordinates like (100455, 100). buildWireframe already does this,
+  // but buildUserFlow was missing the coercion (bug: frames at x=1000, 100455, 100910).
+  const ox = typeof oxIn === 'number' ? oxIn : Number(oxIn) || 80;
+  const oy = typeof oyIn === 'number' ? oyIn : Number(oyIn) || 80;
   // Each step is a mobile screen (375 wide) with a 64px gap.
   const SCREEN_W = 375;
   const GAP = 80;
   const ARROW_COLOR = '#94a3b8';
 
   const flows: Record<string, string[]> = {
-    onboarding: ['mobile_login', 'mobile_signup', 'mobile_dashboard'],
-    ecommerce: ['web_landing', 'mobile_dashboard', 'mobile_dashboard', 'mobile_login'],
+    // Onboarding: welcome → permissions → done (3 screens).
+    // Each template is purpose-built for the onboarding step (not a generic login/signup).
+    onboarding: ['mobile_welcome', 'mobile_permissions', 'mobile_done'],
+    // Ecommerce: browse → product detail → cart → checkout (4 screens).
+    ecommerce: ['mobile_browse', 'mobile_product_detail', 'mobile_cart', 'mobile_checkout'],
+    // Auth: login → MFA → home (3 screens). Reuses mobile_dashboard for "home" since
+    // a post-auth screen is typically the app's main dashboard.
     auth: ['mobile_login', 'mobile_dashboard', 'mobile_dashboard'],
+    // Signup funnel: landing → signup → verify → dashboard (4 screens).
+    // Verify reuses mobile_login visually (the verify-code screen is a form like login).
     signup_funnel: ['web_landing', 'mobile_signup', 'mobile_login', 'mobile_dashboard'],
   };
   const screens = flows[flow] ?? flows.onboarding;
@@ -3861,7 +4075,10 @@ interface DiagramResult {
   shapes: Array<Partial<Shape> & { id: string }>;
 }
 
-function buildDiagram(template: string, labels: string[], ox: number, oy: number): DiagramResult {
+function buildDiagram(template: string, labels: string[], oxIn: number, oyIn: number): DiagramResult {
+  // Defensive: coerce to numbers — same reason as buildWireframe/buildUserFlow.
+  const ox = typeof oxIn === 'number' ? oxIn : Number(oxIn) || 200;
+  const oy = typeof oyIn === 'number' ? oyIn : Number(oyIn) || 100;
   const shapes: Array<Partial<Shape> & { id: string }> = [];
   const NODE_W = 160;
   const NODE_H = 56;
