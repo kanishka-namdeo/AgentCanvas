@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,12 @@ export default function RootLayout({
       >
         {children}
         <Toaster />
+        {/* Sonner Toaster — the shadcn <Toaster /> above only renders useToast() hook
+            toasts. Many components across the app call `toast()` from the `sonner`
+            package directly (TopMenuBar, AgentPanel, LayersPanel, SettingsDialog, etc.).
+            Without this <SonnerToaster /> mounted, all those toast() calls were
+            silently dropped — users saw no feedback for export, copy, errors, etc. */}
+        <SonnerToaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   );

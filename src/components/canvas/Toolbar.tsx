@@ -28,6 +28,8 @@ import {
   Trash2,
   MousePointer2,
   Hand,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 
 const SHAPE_DEFAULTS: Record<LayerType, Partial<{ width: number; height: number; fill: string; text: string; fontSize: number; stroke: string }>> = {
@@ -57,6 +59,12 @@ export function Toolbar() {
   const toolMode = useCanvasStore((s) => s.toolMode);
   const setToolMode = useCanvasStore((s) => s.setToolMode);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
+  const undo = useCanvasStore((s) => s.undo);
+  const redo = useCanvasStore((s) => s.redo);
+  const undoStack = useCanvasStore((s) => s.undoStack);
+  const redoStack = useCanvasStore((s) => s.redoStack);
+  const canUndo = undoStack.length > 0;
+  const canRedo = redoStack.length > 0;
 
   const createShape = (type: LayerType) => {
     const defaults = SHAPE_DEFAULTS[type];
@@ -187,6 +195,32 @@ export function Toolbar() {
           onClick={() => createShape('frame')}
         >
           <Frame className="h-4 w-4" />
+        </Button>
+
+        <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
+
+        {/* Undo / Redo — discoverable buttons (keyboard: ⌘Z / ⌘⇧Z). */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
+          title="Undo (⌘Z)"
+          aria-label="Undo"
+          disabled={!canUndo || agentBusy}
+          onClick={() => undo()}
+        >
+          <Undo2 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
+          title="Redo (⌘⇧Z)"
+          aria-label="Redo"
+          disabled={!canRedo || agentBusy}
+          onClick={() => redo()}
+        >
+          <Redo2 className="h-4 w-4" />
         </Button>
 
         <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />

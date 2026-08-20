@@ -312,6 +312,8 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
 
 function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>['turns'][number] }) {
   const forkActiveSession = useCanvasStore((s) => s.forkActiveSession);
+  const promptAgent = useCanvasStore((s) => s.promptAgent);
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
   if (turn.role === 'user') {
     return (
       <ContextMenu>
@@ -344,21 +346,25 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
           }}>
             Copy prompt
           </ContextMenuItem>
-          <ContextMenuItem onClick={() => toast.message('Edit & resend — use the chat input below; the prompt was: ' + (turn.text ?? '').slice(0, 80))}>
+          <ContextMenuItem
+            disabled={agentBusy || !turn.text}
+            onClick={() => {
+              if (!turn.text || agentBusy) return;
+              // Re-send the same prompt — the agent will generate a fresh response.
+              promptAgent(turn.text);
+              toast.message('Regenerating…');
+            }}
+          >
             Edit & resend
           </ContextMenuItem>
           {turn.messageId && (
-            <ContextMenuItem onClick={() => forkActiveSession(turn.messageId)}>
+            <ContextMenuItem onClick={() => {
+              forkActiveSession(turn.messageId);
+              toast.message('Branched from this message');
+            }}>
               Fork from here
             </ContextMenuItem>
           )}
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={() => toast.message('Pin to top — not yet implemented (P2-35)')}>
-            Pin to top
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => toast.message('Delete message — not yet implemented (P2-35)')} className="text-rose-600">
-            Delete
-          </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
     );
@@ -399,19 +405,36 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
         }}>
           Copy message
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => toast.message('Regenerate — not yet implemented (P2-34)')}>
+        <ContextMenuItem
+          disabled={agentBusy}
+          onClick={() => {
+            // Find the preceding user turn to re-send its prompt.
+            const turns = useCanvasStore.getState().turns;
+            const idx = turns.findIndex((t) => t.id === turn.id);
+            const userTurn = idx > 0 ? turns[idx - 1] : null;
+            if (userTurn?.role === 'user' && userTurn.text) {
+              promptAgent(userTurn.text);
+              toast.message('Regenerating…');
+            } else {
+              toast.message('No preceding prompt to regenerate from');
+            }
+          }}
+        >
           Regenerate
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => toast.message('Branch from here — not yet implemented (P2-34)')}>
+        <ContextMenuItem
+          disabled={!turn.messageId}
+          onClick={() => {
+            if (!turn.messageId) return;
+            forkActiveSession(turn.messageId);
+            toast.message('Branched from this message');
+          }}
+        >
           Branch from here
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={() => toast.message('Replay tool calls — not yet implemented (P2-33)')}>
           Replay tool calls
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => toast.message('Pin to top — not yet implemented (P2-35)')}>
-          Pin to top
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
@@ -463,9 +486,6 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
           Replay tool call
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => toast.message('Pin to top — not yet implemented (P2-35)')}>
-          Pin to top
-        </ContextMenuItem>
         <ContextMenuItem onClick={() => toast.message('View raw output — not yet implemented')}>
           View raw output
         </ContextMenuItem>

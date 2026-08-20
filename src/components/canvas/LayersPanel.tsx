@@ -25,6 +25,7 @@ import { useState, useMemo, type ReactNode, type ComponentType } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape, LayerType } from '@/lib/canvas/types';
+import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, copyToClipboard } from '@/lib/canvas/export';
 import {
   Eye, EyeOff, Lock, Unlock, Trash2, Layers, Copy, Scissors, ClipboardPaste, Search,
   Frame, Group, Square, Circle, Type, Slash, Spline, Image as ImageIcon, Braces,
@@ -484,11 +485,41 @@ export function LayersPanel() {
               <FileCode className="h-3.5 w-3.5 mr-2" /> Copy as
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
-              <ContextMenuItem onClick={() => toast.message('Copy as HTML — not yet implemented in the UI layer.')}>HTML</ContextMenuItem>
-              <ContextMenuItem onClick={() => toast.message('Copy as React — not yet implemented in the UI layer.')}>React</ContextMenuItem>
-              <ContextMenuItem onClick={() => toast.message('Copy as Tailwind — not yet implemented in the UI layer.')}>Tailwind</ContextMenuItem>
-              <ContextMenuItem onClick={() => toast.message('Copy as SVG — not yet implemented in the UI layer.')}>SVG</ContextMenuItem>
-              <ContextMenuItem onClick={() => toast.message('Copy as JSON — not yet implemented in the UI layer.')}>JSON</ContextMenuItem>
+              <ContextMenuItem onClick={async () => {
+                const code = exportCode(shapes, 'html', { frameId: isContainerNode ? shape.id : undefined });
+                if (!code) { toast.error('Nothing to copy'); return; }
+                const ok = await copyToClipboard(code);
+                if (ok) toast.success('Copied HTML', { description: `${shape.name}` });
+                else toast.error('Copy failed');
+              }}>HTML</ContextMenuItem>
+              <ContextMenuItem onClick={async () => {
+                const code = exportCode(shapes, 'react', { frameId: isContainerNode ? shape.id : undefined });
+                if (!code) { toast.error('Nothing to copy'); return; }
+                const ok = await copyToClipboard(code);
+                if (ok) toast.success('Copied React', { description: `${shape.name}` });
+                else toast.error('Copy failed');
+              }}>React</ContextMenuItem>
+              <ContextMenuItem onClick={async () => {
+                const code = exportCode(shapes, 'tailwind', { frameId: isContainerNode ? shape.id : undefined });
+                if (!code) { toast.error('Nothing to copy'); return; }
+                const ok = await copyToClipboard(code);
+                if (ok) toast.success('Copied Tailwind', { description: `${shape.name}` });
+                else toast.error('Copy failed');
+              }}>Tailwind</ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={async () => {
+                const svg = exportSvg(shapes, { frameId: isContainerNode ? shape.id : undefined });
+                if (!svg) { toast.error('Nothing to copy'); return; }
+                const ok = await copyToClipboard(svg);
+                if (ok) toast.success('Copied SVG', { description: `${shape.name}` });
+                else toast.error('Copy failed');
+              }}>SVG</ContextMenuItem>
+              <ContextMenuItem onClick={async () => {
+                const json = exportJson(shape);
+                const ok = await copyToClipboard(json);
+                if (ok) toast.success('Copied JSON', { description: `${shape.name}` });
+                else toast.error('Copy failed');
+              }}>JSON (this layer)</ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
           <ContextMenuSub>
@@ -496,9 +527,29 @@ export function LayersPanel() {
               <FileDown className="h-3.5 w-3.5 mr-2" /> Export
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
-              <ContextMenuItem onClick={() => toast.message('Export PNG — not yet implemented in the UI layer.')}>PNG</ContextMenuItem>
-              <ContextMenuItem onClick={() => toast.message('Export SVG — not yet implemented in the UI layer.')}>SVG</ContextMenuItem>
-              <ContextMenuItem onClick={() => toast.message('Export .pen — not yet implemented in the UI layer.')}>.pen</ContextMenuItem>
+              <ContextMenuItem onClick={() => {
+                const dataUrl = exportPngDataUrl(shapes, { frameId: isContainerNode ? shape.id : undefined });
+                if (!dataUrl) { toast.error('Nothing to export'); return; }
+                const w = window.open();
+                if (w) {
+                  w.document.write(`<title>${shape.name} — PNG export</title><img src="${dataUrl}" style="max-width:100%;height:auto"/>`);
+                  w.document.close();
+                  toast.success('Exported PNG', { description: `${shape.name} — right-click to save.` });
+                } else { toast.error('Popup blocked'); }
+              }}>PNG</ContextMenuItem>
+              <ContextMenuItem onClick={() => {
+                const svg = exportSvg(shapes, { frameId: isContainerNode ? shape.id : undefined });
+                if (!svg) { toast.error('Nothing to export'); return; }
+                const name = shape.name.replace(/[^a-z0-9-_]+/gi, '-');
+                downloadFile(svg, `${name}.svg`, 'image/svg+xml');
+                toast.success('Exported SVG', { description: `${shape.name}` });
+              }}>SVG</ContextMenuItem>
+              <ContextMenuItem onClick={() => {
+                const json = exportJson(document);
+                const name = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
+                downloadFile(json, `${name}.pen`, 'application/json');
+                toast.success('Exported .pen', { description: `${shapes.length} nodes` });
+              }}>.pen (full canvas)</ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
           <ContextMenuSeparator />

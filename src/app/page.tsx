@@ -116,6 +116,14 @@ export default function Home() {
     return () => clearTimeout(t);
   }, []);
 
+  // Expose a global hook so the Canvas empty-state (or any other component
+  // without prop access) can open the command palette. Mirrors the
+  // `__focusAgentInput` pattern in AgentPanel.tsx.
+  useEffect(() => {
+    (window as any).__openCommandPalette = () => setPaletteOpen(true);
+    return () => { delete (window as any).__openCommandPalette; };
+  }, []);
+
   useEffect(() => {
     import('@/lib/sessions').then(({ sweepIdleSessions, enforceSessionCap }) => {
       const settings = useSettings.getState();

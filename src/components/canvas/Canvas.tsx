@@ -502,6 +502,19 @@ export function Canvas() {
                 or pick a shape from the toolbar to drop one in.
               </div>
             </div>
+            <button
+              onClick={() => {
+                // Open the command palette so the user can pick a preset prompt.
+                const open = (window as any).__openCommandPalette as (() => void) | undefined;
+                if (open) open();
+              }}
+              className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium text-white ac-transition shadow-sm hover:opacity-90"
+              style={{ backgroundColor: 'var(--ac-accent)' }}
+            >
+              <PenLine className="h-3.5 w-3.5" />
+              Try a preset prompt
+              <kbd className="text-[9px] px-1 py-0 rounded bg-white/20 font-mono ml-1">⌘K</kbd>
+            </button>
             <div className="flex items-center gap-1.5 mt-1 text-[10px] ac-text-4">
               <MousePointerClick className="h-3 w-3" />
               <span>Tip: try “Design a login form” in the chat</span>
@@ -523,8 +536,16 @@ export function Canvas() {
           </pattern>
         </defs>
         <g transform={`translate(${panX}, ${panY}) scale(${zoom})`}>
-          {/* Shapes — pointer events re-enabled per shape */}
-          {(document.shapes ?? [])
+          {/* Shapes — pointer events re-enabled per shape.
+              Deduplicate by shape.id before rendering to prevent React
+              "duplicate key" warnings when the canvas store transiently
+              contains the same shape ID twice (e.g. during a bulk_add patch
+              that hasn't fully resolved, or when the WebSocket + local-patch
+              paths race). Last-writer-wins: the later shape in the array
+              overrides earlier duplicates. */}
+          {Array.from(
+            new Map((document.shapes ?? []).map((s) => [s.id, s] as const)).values(),
+          )
             .slice()
             .sort((a, b) => a.zIndex - b.zIndex)
             .map((shape) => (

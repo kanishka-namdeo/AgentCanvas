@@ -21,6 +21,7 @@ import { useState, type ReactNode } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape } from '@/lib/canvas/types';
+import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, copyToClipboard } from '@/lib/canvas/export';
 import {
   Menubar, MenubarMenu, MenubarTrigger, MenubarContent, MenubarItem,
   MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubTrigger,
@@ -49,6 +50,8 @@ export function TopMenuBar(props: TopMenuBarProps) {
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
   const setToolMode = useCanvasStore((s) => s.setToolMode);
+  const connected = useCanvasStore((s) => s.connected);
+  const viewerCount = useCanvasStore((s) => s.viewerCount);
   const clipboard = useClipboard();
 
   // Helper to drop a shape at viewport center (mirrors page.tsx logic).
@@ -117,15 +120,65 @@ export function TopMenuBar(props: TopMenuBarProps) {
             <MenubarItem onClick={props.onExportPen}>
               Export as .pen <MenubarShortcut>⌘E</MenubarShortcut>
             </MenubarItem>
-            <MenubarItem onClick={() => toast.message('Export PNG — not yet wired to a UI handler')}>
-              Export as PNG
-            </MenubarItem>
-            <MenubarItem onClick={() => toast.message('Export SVG — not yet wired to a UI handler')}>
+            <MenubarItem onClick={() => {
+              const svg = exportSvg(document.shapes);
+              if (!svg) { toast.error('Nothing to export', { description: 'Draw something first.' }); return; }
+              const name = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
+              downloadFile(svg, `${name}.svg`, 'image/svg+xml');
+              toast.success('Exported SVG', { description: `${document.shapes.length} shapes` });
+            }}>
               Export as SVG
             </MenubarItem>
-            <MenubarItem onClick={() => toast.message('Export JSON — not yet wired to a UI handler')}>
+            <MenubarItem onClick={() => {
+              const dataUrl = exportPngDataUrl(document.shapes);
+              if (!dataUrl) { toast.error('Nothing to export', { description: 'Draw something first.' }); return; }
+              // Open the data URL in a new tab so the user can save it as PNG.
+              const w = window.open();
+              if (w) {
+                w.document.write(`<title>Canvas PNG export</title><img src="${dataUrl}" style="max-width:100%;height:auto"/>`);
+                w.document.close();
+                toast.success('Exported PNG', { description: 'Opened in a new tab — right-click to save.' });
+              } else {
+                toast.error('Popup blocked', { description: 'Allow popups to export PNG.' });
+              }
+            }}>
+              Export as PNG
+            </MenubarItem>
+            <MenubarItem onClick={() => {
+              const json = exportJson(document);
+              const name = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
+              downloadFile(json, `${name}.json`, 'application/json');
+              toast.success('Exported JSON', { description: `${document.shapes.length} shapes` });
+            }}>
               Export as JSON
             </MenubarItem>
+            <MenubarSeparator />
+            <MenubarSub>
+              <MenubarSubTrigger>Copy as code</MenubarSubTrigger>
+              <MenubarSubContent>
+                <MenubarItem onClick={async () => {
+                  const code = exportCode(document.shapes, 'html');
+                  if (!code) { toast.error('Nothing to copy'); return; }
+                  const ok = await copyToClipboard(code);
+                  if (ok) toast.success('Copied HTML', { description: `${document.shapes.length} shapes → clipboard` });
+                  else toast.error('Copy failed');
+                }}>HTML</MenubarItem>
+                <MenubarItem onClick={async () => {
+                  const code = exportCode(document.shapes, 'react');
+                  if (!code) { toast.error('Nothing to copy'); return; }
+                  const ok = await copyToClipboard(code);
+                  if (ok) toast.success('Copied React', { description: `${document.shapes.length} shapes → clipboard` });
+                  else toast.error('Copy failed');
+                }}>React (JSX)</MenubarItem>
+                <MenubarItem onClick={async () => {
+                  const code = exportCode(document.shapes, 'tailwind');
+                  if (!code) { toast.error('Nothing to copy'); return; }
+                  const ok = await copyToClipboard(code);
+                  if (ok) toast.success('Copied Tailwind', { description: `${document.shapes.length} shapes → clipboard` });
+                  else toast.error('Copy failed');
+                }}>Tailwind</MenubarItem>
+              </MenubarSubContent>
+            </MenubarSub>
             <MenubarSeparator />
             <MenubarItem onClick={props.onOpenSettings}>
               Settings… <MenubarShortcut>⌘,</MenubarShortcut>
@@ -345,6 +398,31 @@ export function TopMenuBar(props: TopMenuBarProps) {
           </MenubarContent>
         </MenubarMenu>
       </Menubar>
+
+      {/* Connection + viewer indicators — always visible (right-aligned). */}
+      <div className="ml-auto flex items-center gap-2 pr-1">
+        {viewerCount > 1 && (
+          <span
+            className="flex items-center gap-1 text-[10px] ac-text-3"
+            title={`${viewerCount} viewers on this canvas`}
+          >
+            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            {viewerCount}
+          </span>
+        )}
+        <span
+          className={`flex items-center gap-1 text-[10px] ${connected ? 'ac-text-3' : 'text-rose-500'}`}
+          title={connected ? 'Connected — changes sync live to all viewers' : 'Offline — changes are local only'}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-rose-400'}`} />
+          {connected ? 'connected' : 'offline'}
+        </span>
+      </div>
     </div>
   );
 }

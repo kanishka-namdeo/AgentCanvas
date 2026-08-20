@@ -13,6 +13,7 @@
 
 import { create } from 'zustand';
 import { io, type Socket } from 'socket.io-client';
+import { toast } from 'sonner';
 import type { CanvasDocument, CanvasPatch, ClientEvent, Shape, SyncEvent } from '@/lib/canvas/types';
 import { createEmptyCanvasDocument } from '@/lib/canvas/types';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
@@ -756,6 +757,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         if (last?.runId) {
           useSessionStore.getState().endRun(last.runId, 'failed', event.message);
         }
+        // Surface a toast so users who aren't watching the chat panel notice the failure.
+        toast.error('Agent error', {
+          description: event.message?.slice(0, 200) ?? 'Unknown error',
+        });
         break;
       }
       case 'presence': {
