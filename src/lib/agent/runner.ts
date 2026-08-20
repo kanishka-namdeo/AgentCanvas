@@ -826,12 +826,24 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   for (let iter = 0; iter < maxIterations; iter++) {
     let completion: any;
     try {
-      completion = await callLLMWithRetry(llm, {
-        messages: messages as any,
-        tools: filteredSpecs,
-        tool_choice: 'auto',
-        temperature,
-      });
+      // When a mock LLM is injected (tests), skip retry — test errors are
+      // deterministic and should propagate immediately. In production, the
+      // retry wrapper handles 429/5xx/transient errors with exponential backoff.
+      if (injectedLlm) {
+        completion = await llm.chat.completions.create({
+          messages: messages as any,
+          tools: filteredSpecs,
+          tool_choice: 'auto',
+          temperature,
+        });
+      } else {
+        completion = await callLLMWithRetry(llm, {
+          messages: messages as any,
+          tools: filteredSpecs,
+          tool_choice: 'auto',
+          temperature,
+        });
+      }
     } catch (err: any) {
       yield { kind: 'agent_event', event: { type: 'agent:error', message: `LLM request failed: ${err.message}` } };
       return;
