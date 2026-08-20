@@ -24,6 +24,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useCanvasStore, type AgentToolCallEntry } from '@/lib/canvas/store';
+import { useSettings } from '@/lib/settings/store';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -125,6 +126,8 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const contextTokens = useCanvasStore((s) => s.contextTokens);
   const contextWindow = useCanvasStore((s) => s.contextWindow);
   const lastCompacted = useCanvasStore((s) => s.lastCompacted);
+  const thinkingLevel = useSettings((s) => s.thinkingLevel);
+  const setSetting = useSettings((s) => s.set);
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -173,18 +176,50 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             .pen · 60+ tools
           </Badge>
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] ac-text-3">
+        <div className="flex items-center gap-2 text-[10px] ac-text-3">
+          {/* Context token usage with progress bar */}
           {contextTokens > 0 && (
             <span
-              className={`flex items-center gap-0.5 ${contextTokens > contextWindow * 0.8 ? 'text-amber-500' : ''}`}
+              className="flex items-center gap-1"
               title={`Context: ${contextTokens.toLocaleString()} / ${contextWindow.toLocaleString()} tokens${lastCompacted ? ' (compacted)' : ''}`}
             >
-              {lastCompacted && <span className="text-emerald-500">✓</span>}
-              {(contextTokens / 1000).toFixed(1)}K/{(contextWindow / 1000).toFixed(0)}K
+              {/* Mini progress bar */}
+              <svg width="32" height="8" className="flex-shrink-0">
+                <rect x="0" y="0" width="32" height="8" rx="4" fill="currentColor" opacity="0.15" />
+                <rect
+                  x="0" y="0"
+                  width={Math.min(32, Math.max(2, (contextTokens / contextWindow) * 32))}
+                  height="8" rx="4"
+                  fill={contextTokens > contextWindow * 0.8 ? '#f59e0b' : '#10b981'}
+                />
+              </svg>
+              {lastCompacted && <span className="text-emerald-500" title="Context was compacted">✓</span>}
+              <span className={contextTokens > contextWindow * 0.8 ? 'text-amber-500' : ''}>
+                {(contextTokens / 1000).toFixed(1)}K
+              </span>
             </span>
           )}
-          <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-rose-400'}`} />
-          {connected ? 'connected' : 'offline'}
+          {/* Thinking level quick-cycle button */}
+          <button
+            onClick={() => {
+              const levels = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+              const idx = levels.indexOf(thinkingLevel);
+              const next = levels[(idx + 1) % levels.length];
+              setSetting('thinkingLevel', next);
+            }}
+            title={`Thinking: ${thinkingLevel} (click to cycle)\nHigher = better reasoning on complex tasks, but slower. Off = fastest.`}
+            className={`flex items-center gap-0.5 px-1 py-0.5 rounded ac-transition hover:ac-surface-1 ${thinkingLevel !== 'off' ? 'text-violet-500' : 'ac-text-4'}`}
+          >
+            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <span className="text-[9px]">{thinkingLevel}</span>
+          </button>
+          {/* Connection status */}
+          <span className={`flex items-center gap-0.5 ${connected ? '' : 'text-rose-400'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-rose-400'}`} />
+            {connected ? 'live' : 'offline'}
+          </span>
         </div>
       </div>
       )}
@@ -554,7 +589,6 @@ function toolCategory(name: string): { label: string; cls: string } | null {
 function SteerInput() {
   const steerAgent = useCanvasStore((s) => s.steerAgent);
   const [steerText, setSteerText] = useState('');
-  const steerRef = useRef<HTMLTextAreaElement>(null);
 
   const submit = () => {
     const text = steerText.trim();
@@ -564,9 +598,12 @@ function SteerInput() {
   };
 
   return (
-    <div className="flex items-center gap-2 px-1 py-1 border-t ac-border-subtle mt-1">
+    <div className="flex items-center gap-1.5 px-2 py-1.5 mt-1 rounded-md border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30">
+      <svg className="h-3.5 w-3.5 text-violet-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 12c0-4.97 4.03-9 9-9s9 4.03 9 9-4.03 9-9 9c-1.42 0-2.76-.33-3.95-.92L3 21l1.12-3.71A8.96 8.96 0 013 12z" />
+        <path d="M8 12h8M8 8h5" strokeLinecap="round" />
+      </svg>
       <input
-        ref={steerRef as any}
         type="text"
         value={steerText}
         onChange={(e) => setSteerText(e.target.value)}
@@ -576,18 +613,16 @@ function SteerInput() {
             submit();
           }
         }}
-        placeholder="Steer the agent mid-turn… (e.g. 'use blue instead')"
-        className="flex-1 text-[11px] px-2 py-1 rounded ac-surface-1 ac-text-2 ac-border-subtle border outline-none focus:ac-border-strong ac-transition"
+        placeholder="Steer mid-turn (e.g. 'use blue', 'add more detail')…"
+        className="flex-1 text-[11px] bg-transparent text-violet-900 dark:text-violet-100 placeholder:text-violet-400 outline-none"
       />
-      <Button
-        size="sm"
+      <button
         onClick={submit}
         disabled={!steerText.trim()}
-        className="h-6 text-[10px] px-2 py-0"
-        variant="outline"
+        className="text-[10px] px-2 py-0.5 rounded bg-violet-500 text-white disabled:opacity-30 hover:bg-violet-600 ac-transition flex-shrink-0"
       >
         Steer
-      </Button>
+      </button>
     </div>
   );
 }

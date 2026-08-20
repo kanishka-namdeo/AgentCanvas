@@ -795,7 +795,7 @@ function RightTabbedPanel({
 
       {/* Active panel body — full vertical space */}
       <div className="flex-1 min-h-0">
-        {tab === 'chat' && <AgentPanel hideHeader />}
+        {tab === 'chat' && <AgentPanel />}
         {tab === 'design' && <PropertiesPanel />}
         {tab === 'history' && <RunHistoryPanel hideHeader />}
       </div>

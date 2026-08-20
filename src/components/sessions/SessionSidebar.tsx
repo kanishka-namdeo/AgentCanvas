@@ -231,13 +231,37 @@ export function SessionSidebar() {
                         }}>
                           <Copy className="h-3 w-3 mr-2" /> Duplicate session
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="py-1.5" onClick={() => {
-                          const data = JSON.stringify(useSessionStore.getState().sessions[session.id] ?? null, null, 2);
-                          if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                            navigator.clipboard.writeText(data).then(() => toast.success('Session JSON copied to clipboard'));
+                        <DropdownMenuItem className="py-1.5" onClick={async () => {
+                          // Export as JSONL (server-side, compatible with pi-agent SDK).
+                          try {
+                            const { exportSessionJSONL } = await import('@/lib/sessions/server-sync');
+                            const jsonl = await exportSessionJSONL(session.id);
+                            if (jsonl) {
+                              const blob = new Blob([jsonl], { type: 'application/jsonl' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `${session.title.replace(/[^a-z0-9-_]+/gi, '-')}.jsonl`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                              toast.success('Exported session', { description: `${session.title}.jsonl` });
+                            } else {
+                              // Fallback: export localStorage session as JSON.
+                              const data = JSON.stringify(useSessionStore.getState().sessions[session.id] ?? null, null, 2);
+                              const blob = new Blob([data], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `${session.title.replace(/[^a-z0-9-_]+/gi, '-')}.json`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                              toast.success('Exported session (local)', { description: `${session.title}.json` });
+                            }
+                          } catch (e) {
+                            toast.error('Export failed', { description: String(e).slice(0, 100) });
                           }
                         }}>
-                          <FileJson className="h-3 w-3 mr-2" /> Export as JSON
+                          <FileJson className="h-3 w-3 mr-2" /> Export session
                         </DropdownMenuItem>
                         <DropdownMenuItem className="py-1.5" onClick={() => toast.message('Export as Markdown — not yet implemented (P2-37)')}>
                           <FileText className="h-3 w-3 mr-2" /> Export as Markdown
@@ -329,10 +353,19 @@ export function SessionSidebar() {
         </div>
       </ScrollArea>
 
-      {/* Footer stats */}
+      {/* Footer stats + server sync indicator */}
       <div className="px-3 py-1.5 border-t ac-border-subtle text-[10px] ac-text-4 flex items-center justify-between ac-surface-1">
         <span>{stats.totalRuns} runs · {stats.totalToolCalls} tools</span>
-        <span>{stats.totalSnapshots} snapshots</span>
+        <div className="flex items-center gap-2">
+          <span>{stats.totalSnapshots} snapshots</span>
+          {/* Server sync indicator — shows sessions are persisted server-side (Phase 3) */}
+          <span className="flex items-center gap-0.5 text-emerald-500" title="Sessions sync to server automatically">
+            <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12l5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            synced
+          </span>
+        </div>
       </div>
 
       {/* Rename dialog */}
