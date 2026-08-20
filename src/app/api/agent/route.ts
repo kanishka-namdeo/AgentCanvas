@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
         temperature: typeof body.settings.temperature === 'number' ? body.settings.temperature : DEFAULT_SETTINGS.temperature,
         maxIterations: typeof body.settings.maxIterations === 'number' ? body.settings.maxIterations : DEFAULT_SETTINGS.maxIterations,
         planFirst: typeof body.settings.planFirst === 'boolean' ? body.settings.planFirst : DEFAULT_SETTINGS.planFirst,
+        thinkingLevel: body.settings.thinkingLevel ?? DEFAULT_SETTINGS.thinkingLevel,
         defaultPalette: body.settings.defaultPalette ?? DEFAULT_SETTINGS.defaultPalette,
         skillSelectionMode: body.settings.skillSelectionMode ?? DEFAULT_SETTINGS.skillSelectionMode,
         llmProvider: body.settings.llmProvider ?? DEFAULT_SETTINGS.llmProvider,

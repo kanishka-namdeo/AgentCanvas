@@ -84,6 +84,10 @@ interface CanvasState {
   viewerCount: number;
   turns: ChatTurn[];
   agentBusy: boolean;
+  /// Context token tracking (Phase 1: context management).
+  contextTokens: number;
+  contextWindow: number;
+  lastCompacted: boolean;
   documentId: string;
   /// Active session id (mirrors sessionStore.activeSessionByDoc[documentId]).
   activeSessionId: string | null;
@@ -101,6 +105,11 @@ interface CanvasState {
   sendPatch: (patch: CanvasPatch) => void;
   select: (ids: string[]) => void;
   promptAgent: (text: string) => void;
+  /// Queue a steering message to be delivered to the agent mid-turn.
+  /// The agent will receive this after its current tool batch, before the
+  /// next LLM call — letting the user redirect without waiting for the
+  /// full turn to complete.
+  steerAgent: (text: string) => void;
   /// Stop the in-flight agent turn. Aborts the HTTP fetch (when in fallback
   /// mode), finalizes the last assistant message + run as `cancelled`, and
   /// emits a synthetic `agent:turn_end` so the rest of the pipeline (snapshot
@@ -148,6 +157,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   viewerCount: 1,
   turns: [],
   agentBusy: false,
+  contextTokens: 0,
+  contextWindow: 128_000,
+  lastCompacted: false,
   documentId: 'default',
   activeSessionId: null,
   undoStack: [],
@@ -401,6 +413,27 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         return { turns, agentBusy: false };
       });
     }
+  },
+
+  steerAgent: (text) => {
+    const { agentBusy, socket, connected, documentId } = get();
+    if (!agentBusy || !text.trim()) return;
+    // If WebSocket is connected, send the steer via the socket.
+    // The server-side canvas-sync service will inject it into the running agent.
+    if (socket && connected) {
+      socket.emit('client', {
+        type: 'agent:steer',
+        documentId,
+        text,
+      } as any);
+      return;
+    }
+    // Fallback: for the HTTP path, we can't truly steer mid-stream (the
+    // fetch is already in flight). Instead, we queue the message as a
+    // follow-up that will be sent after the current turn ends.
+    // For now, just show a toast — true steer requires the SDK's session.steer().
+    // This is a Phase 2 placeholder; full steer support requires migrating
+    // to createAgentSession().
   },
 
   undo: () => {
@@ -862,6 +895,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             turns[turns.length - 1] = { ...last, subAgents };
           }
           return { turns };
+        });
+        break;
+      }
+      case 'agent:context_update': {
+        // Track token usage for the UI (Phase 1: context management).
+        set({
+          contextTokens: event.tokenCount,
+          contextWindow: event.contextWindow,
+          lastCompacted: event.compacted ?? false,
         });
         break;
       }

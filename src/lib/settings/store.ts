@@ -46,6 +46,7 @@ export function useAgentRunSettings(): AppSettings {
     temperature: s.temperature,
     maxIterations: s.maxIterations,
     planFirst: s.planFirst,
+    thinkingLevel: s.thinkingLevel,
     defaultPalette: s.defaultPalette,
     skillSelectionMode: s.skillSelectionMode,
     llmProvider: s.llmProvider,

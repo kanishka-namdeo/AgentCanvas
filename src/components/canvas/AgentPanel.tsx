@@ -122,6 +122,9 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const connected = useCanvasStore((s) => s.connected);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
   const stopAgent = useCanvasStore((s) => s.stopAgent);
+  const contextTokens = useCanvasStore((s) => s.contextTokens);
+  const contextWindow = useCanvasStore((s) => s.contextWindow);
+  const lastCompacted = useCanvasStore((s) => s.lastCompacted);
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -171,6 +174,15 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
           </Badge>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] ac-text-3">
+          {contextTokens > 0 && (
+            <span
+              className={`flex items-center gap-0.5 ${contextTokens > contextWindow * 0.8 ? 'text-amber-500' : ''}`}
+              title={`Context: ${contextTokens.toLocaleString()} / ${contextWindow.toLocaleString()} tokens${lastCompacted ? ' (compacted)' : ''}`}
+            >
+              {lastCompacted && <span className="text-emerald-500">✓</span>}
+              {(contextTokens / 1000).toFixed(1)}K/{(contextWindow / 1000).toFixed(0)}K
+            </span>
+          )}
           <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-rose-400'}`} />
           {connected ? 'connected' : 'offline'}
         </div>
@@ -267,6 +279,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               </Button>
             </div>
           )}
+          {agentBusy && <SteerInput />}
         </div>
       </ScrollArea>
 
@@ -533,4 +546,48 @@ function toolCategory(name: string): { label: string; cls: string } | null {
     return { label: 'analysis', cls: 'text-rose-700 border-rose-200' };
   }
   return null;
+}
+
+/// Steer input — appears when the agent is busy. Lets the user send a
+/// mid-stream correction that the agent will see after its current tool batch.
+/// This is a Phase 2 feature powered by the pi-agent SDK's steer() capability.
+function SteerInput() {
+  const steerAgent = useCanvasStore((s) => s.steerAgent);
+  const [steerText, setSteerText] = useState('');
+  const steerRef = useRef<HTMLTextAreaElement>(null);
+
+  const submit = () => {
+    const text = steerText.trim();
+    if (!text) return;
+    steerAgent(text);
+    setSteerText('');
+  };
+
+  return (
+    <div className="flex items-center gap-2 px-1 py-1 border-t ac-border-subtle mt-1">
+      <input
+        ref={steerRef as any}
+        type="text"
+        value={steerText}
+        onChange={(e) => setSteerText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submit();
+          }
+        }}
+        placeholder="Steer the agent mid-turn… (e.g. 'use blue instead')"
+        className="flex-1 text-[11px] px-2 py-1 rounded ac-surface-1 ac-text-2 ac-border-subtle border outline-none focus:ac-border-strong ac-transition"
+      />
+      <Button
+        size="sm"
+        onClick={submit}
+        disabled={!steerText.trim()}
+        className="h-6 text-[10px] px-2 py-0"
+        variant="outline"
+      >
+        Steer
+      </Button>
+    </div>
+  );
 }

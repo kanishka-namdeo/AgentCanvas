@@ -396,6 +396,7 @@ export type SyncEvent =
   | { type: 'agent:plan_step_update'; step: number; status: string }
   | { type: 'agent:subagent_dispatch'; subAgentType: string; task: string }
   | { type: 'agent:subagent_result'; subAgentType: string; success: boolean; summary: string; toolCalls: number }
+  | { type: 'agent:context_update'; tokenCount: number; contextWindow: number; compacted?: boolean }
   | { type: 'presence'; viewerCount: number };
 
 export type ClientEvent =

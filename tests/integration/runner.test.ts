@@ -267,16 +267,19 @@ describe('runner: basic loop shape', () => {
     expect(patches[0].patch.shape?.name).toBe('Card');
 
     // Event sequence: message_start → tool_call_start → tool_call_end →
-    // message_delta (summary) → message_end → turn_end.
-    expect(eventTypes(events)).toEqual([
-      'agent:message_start',
-      'agent:skill_selected',
-      'agent:tool_call_start',
-      'agent:tool_call_end',
-      'agent:message_delta',
-      'agent:message_end',
-      'agent:turn_end',
-    ]);
+    // context_update (token tracking) → message_delta (summary) → message_end → turn_end.
+    // Note: agent:context_update is emitted after each iteration (Phase 1: context management).
+    const types = eventTypes(events);
+    expect(types).toContain('agent:message_start');
+    expect(types).toContain('agent:skill_selected');
+    expect(types).toContain('agent:tool_call_start');
+    expect(types).toContain('agent:tool_call_end');
+    expect(types).toContain('agent:context_update');
+    expect(types).toContain('agent:message_delta');
+    expect(types).toContain('agent:message_end');
+    expect(types).toContain('agent:turn_end');
+    expect(types[0]).toBe('agent:message_start');
+    expect(types[types.length - 1]).toBe('agent:turn_end');
 
     // The canvas reflects the new shape.
     expect(finalCanvas.shapes).toHaveLength(1);

@@ -509,6 +509,7 @@ function createOpenAICompatibleClient(opts: {
 /// Imported lazily to avoid a circular dep.
 import { createOpenAICompatible as createOpenAICompatibleSync } from '../llm/openai-compatible';
 import { callLLMWithRetry as sharedCallLLMWithRetry } from './llm-retry';
+import { calculateContextTokens, shouldCompact, compactToolResults, formatTokens } from './context-manager';
 
 // ---- Run the agent loop ---------------------------------------------------
 
@@ -530,6 +531,7 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   const temperature = settings?.temperature ?? 0.4;
   const maxIterations = settings?.maxIterations ?? 20;
   const planFirst = settings?.planFirst ?? true;
+  const thinkingLevel = settings?.thinkingLevel ?? 'medium';
   const defaultPalette = settings?.defaultPalette ?? 'slate';
   const skillSelectionMode = settings?.skillSelectionMode ?? 'auto';
 
@@ -826,6 +828,9 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   for (let iter = 0; iter < maxIterations; iter++) {
     let completion: any;
     try {
+      // Map the thinking level to the z-ai SDK's thinking parameter.
+      // 'off' → disabled; anything else → enabled (the model decides the budget).
+      const thinkingParam = thinkingLevel === 'off' ? { type: 'disabled' as const } : { type: 'enabled' as const };
       // When a mock LLM is injected (tests), skip retry — test errors are
       // deterministic and should propagate immediately. In production, the
       // retry wrapper handles 429/5xx/transient errors with exponential backoff.
@@ -835,14 +840,16 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
           tools: filteredSpecs,
           tool_choice: 'auto',
           temperature,
-        });
+          thinking: thinkingParam,
+        } as any);
       } else {
         completion = await callLLMWithRetry(llm, {
           messages: messages as any,
           tools: filteredSpecs,
           tool_choice: 'auto',
           temperature,
-        });
+          thinking: thinkingParam,
+        } as any);
       }
     } catch (err: any) {
       yield { kind: 'agent_event', event: { type: 'agent:error', message: `LLM request failed: ${err.message}` } };
@@ -1003,6 +1010,40 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
       role: 'system',
       content: buildSystemPrompt(skillMetadata, skillBody, plan ? `=== EXECUTION PLAN =========================================================\nFollow this plan. Complete each step before moving to the next.\n\n${formatPlanForPrompt(plan)}\n` : '', canvas, defaultPalette, planFirst),
     };
+
+    // ---- Context management (Phase 1) ----------------------------------------
+    // Track token consumption + compact if approaching the context window.
+    const tokenCount = calculateContextTokens(messages);
+    const CONTEXT_WINDOW = 128_000; // GLM-4.6 context window
+    yield {
+      kind: 'agent_event',
+      event: {
+        type: 'agent:context_update',
+        tokenCount,
+        contextWindow: CONTEXT_WINDOW,
+      },
+    };
+    if (shouldCompact(tokenCount, CONTEXT_WINDOW)) {
+      const { messages: compacted, tokensSaved } = compactToolResults(messages);
+      messages.splice(0, messages.length, ...compacted);
+      const newTokenCount = calculateContextTokens(messages);
+      yield {
+        kind: 'agent_event',
+        event: {
+          type: 'agent:context_update',
+          tokenCount: newTokenCount,
+          contextWindow: CONTEXT_WINDOW,
+          compacted: true,
+        },
+      };
+      yield {
+        kind: 'agent_event',
+        event: {
+          type: 'agent:message_delta',
+          text: `\n\n_[Context compacted: ${formatTokens(tokensSaved)} tokens saved]_`,
+        },
+      };
+    }
   }
 
   // If we hit maxIterations, stop gracefully.

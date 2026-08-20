@@ -41,7 +41,7 @@ import {
   DEFAULT_SETTINGS, PALETTES,
   type LLMProvider, type SnapshotCadence, type SkillSelectionMode,
   type AutoArchiveIdleAfter, type Density, type ThemePreference,
-  type DefaultPalette,
+  type DefaultPalette, type ThinkingLevel,
   normalizeLLMProvider,
   providerRequiresApiKey,
   providerDefaultModel,
@@ -176,6 +176,7 @@ function AgentSection() {
   const temperature = useSettings((s) => s.temperature);
   const maxIterations = useSettings((s) => s.maxIterations);
   const planFirst = useSettings((s) => s.planFirst);
+  const thinkingLevel = useSettings((s) => s.thinkingLevel);
   const defaultPalette = useSettings((s) => s.defaultPalette);
   const skillSelectionMode = useSettings((s) => s.skillSelectionMode);
   const set = useSettings((s) => s.set);
@@ -233,6 +234,27 @@ function AgentSection() {
             checked={planFirst}
             onCheckedChange={(v) => set('planFirst', v)}
           />
+        </Row>
+
+        <Row
+          label="Thinking level"
+          description="Extended thinking lets the model reason before acting. Higher = better quality on complex tasks, but slower + more tokens. 'off' = fastest."
+        >
+          <Select
+            value={thinkingLevel}
+            onValueChange={(v) => set('thinkingLevel', v as ThinkingLevel)}
+          >
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const).map((level) => (
+                <SelectItem key={level} value={level} className="text-[11px]">
+                  {level}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Row>
 
         <Row

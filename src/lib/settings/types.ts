@@ -21,6 +21,10 @@
 
 import { listProviderIds, getProviderMetadata } from '@/lib/llm';
 
+/// Thinking level for models that support extended thinking.
+/// Mirrors the pi-agent SDK's ThinkingLevel type.
+export type ThinkingLevel = 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
 /// All supported LLM provider ids. This is the source of truth — anything
 /// registered in `src/lib/llm/registry.ts` is valid here. We compute it from
 /// the registry at module load so we can never drift.
@@ -52,6 +56,10 @@ export interface AppSettings {
   /// Whether the agent should emit a "plan first" preamble before tool calls.
   /// Default true matches the previous system-prompt behavior.
   planFirst: boolean;
+  /// Thinking level for models that support extended thinking.
+  /// 'off' = no thinking, 'max' = maximum thinking budget.
+  /// Default 'medium' balances quality vs. speed.
+  thinkingLevel: ThinkingLevel;
   /// Default color palette the agent suggests for new designs.
   /// Default 'slate' matches the previous first-listed palette in the system prompt.
   defaultPalette: DefaultPalette;
@@ -98,6 +106,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   temperature: 0.4,
   maxIterations: 20,
   planFirst: true,
+  thinkingLevel: 'medium',
   defaultPalette: 'slate',
 
   themePreference: 'system',
@@ -123,6 +132,7 @@ export interface AgentRunSettings {
   temperature: number;
   maxIterations: number;
   planFirst: boolean;
+  thinkingLevel: ThinkingLevel;
   defaultPalette: DefaultPalette;
   skillSelectionMode: SkillSelectionMode;
   llmProvider: LLMProvider;
@@ -138,6 +148,7 @@ export function agentRunSettings(s: AppSettings): AgentRunSettings {
     temperature: s.temperature,
     maxIterations: s.maxIterations,
     planFirst: s.planFirst,
+    thinkingLevel: s.thinkingLevel,
     defaultPalette: s.defaultPalette,
     skillSelectionMode: s.skillSelectionMode,
     llmProvider: s.llmProvider,
