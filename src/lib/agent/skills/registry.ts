@@ -65,21 +65,34 @@ pleasing screen on the canvas from the user's description.
 1. If the request matches a built-in template, call pen_generate_wireframe FIRST.
    Templates: mobile_login, mobile_signup, mobile_dashboard, web_landing, web_dashboard,
    web_blog, web_pricing. This produces a well-structured starting point in one call.
+   The mobile_dashboard template now includes 4 stat cards (2x2 grid) with trend
+   indicators, a status bar, a chart with sketched axes + line, 3 list items, a
+   tab bar with 4 icons + labels, a FAB, and a home indicator — best practices.
 
 2. If the request is a multi-screen flow (onboarding, ecommerce, auth, signup_funnel),
    call pen_generate_user_flow instead.
 
 3. If the request is a diagram (flowchart, mindmap), call pen_generate_diagram.
 
-4. After generating, use pen_list_shapes to see what was created, then refine with
-   pen_update_shape (move/resize/recolor individual shapes).
+4. After generating, use pen_list_shapes to see what was created + their IDs.
+   IMPORTANT: copy shape IDs verbatim from the pen_list_shapes output — do NOT
+   wrap them in arrays or quotes-within-quotes. The shapeId parameter is a
+   plain STRING, e.g. "abc-123", NOT ["abc-123"].
 
-5. Use pen_generate_copy to fill text shapes with realistic placeholder copy.
+5. Use pen_apply_palette to apply a harmonious color scheme (or pen_generate_palette
+   first to create one from a base color). Default palette for mobile dashboards:
+   accent #0ea5e9 (sky), success #10b981 (emerald), danger #ef4444 (red),
+   text-dark #475569 (slate), text-mid #64748b, text-light #94a3b8,
+   border #e2e8f0, surface #f1f5f9.
 
-6. Use pen_apply_palette to apply a harmonious color scheme (or pen_generate_palette
-   first to create one from a base color).
+6. Use pen_generate_copy to fill text shapes with realistic placeholder copy.
+   Pass shapeId as a PLAIN STRING (e.g. "abc-123"), not an array.
 
-7. Use pen_search_icons to add Lucide icons (check, x, search, settings, user, etc.).
+7. COMPONENTIZE: After generating, if you see 3+ similar shapes (e.g. 4 stat cards,
+   3 list items), call pen_recommend_components to find repeated patterns, then
+   pen_convert_to_component on one of them, and pen_place_component_instance +
+   pen_override_instance to replace the others with linked instances. This
+   closes the gap vs Figma AI: proactively suggest componentization.
 
 8. HIERARCHY: when the prompt asks to "move X into a (new) frame" or "reparent X",
    FIRST create the target frame with pen_create_shape, THEN call pen_reparent_shape
@@ -88,6 +101,10 @@ pleasing screen on the canvas from the user's description.
    want the stored relative x/y reinterpreted verbatim against the new parent.
    Do NOT pass a "parent" field to pen_update_shape — that field is silently
    ignored; always use pen_reparent_shape for reparenting.
+
+9. SELF-CRITIQUE (optional but recommended): After the design is complete, call
+   pen_self_critique to get a senior-designer review. Address every [BLOCKER]
+   finding before finalizing. Skip this if the user asked for a quick wireframe.
 
 === ARGUMENT RULES (CRITICAL — read before calling tools) =================
 
@@ -99,21 +116,37 @@ pleasing screen on the canvas from the user's description.
 • All numeric args (x, y, width, height, fontSize) MUST be JSON numbers, not strings.
   WRONG: "x": "400"     RIGHT: "x": 400
 
-• shapeIds / nodes / palette MUST be arrays, even for a single item.
+• shapeId MUST be a single string, NOT an array.
+  WRONG: "shapeId": ["abc-123"]   or   "shapeId": "[\\"abc-123\\"]"
+  RIGHT: "shapeId": "abc-123"
+  (shapeIds plural — used by group/align/etc. — is an array.)
+
+• If a tool call returns "Error: no shape with id X", call pen_list_shapes to see
+  the actual IDs. Do NOT retry the same call with the same ID — that loops forever.
 
 === LAYOUT TIPS ===========================================================
 
-• Mobile screens are 375×667 px. Web screens are 1280×800 px.
-• Place the first screen at (0, 0). Additional screens go at +475px (mobile) or +1380px (web).
+• Mobile screens are 375×812 px (iPhone X+ aspect). Web screens are 1280×800 px.
+• Place the first screen at (100, 100). Additional screens go at +475px (mobile) or +1380px (web).
 • Use 16-24px padding inside frames. 8-12px gaps between elements.
-• Headers: dark fill (#475569), white text. Cards: white fill, light gray stroke (#e2e8f0).
-• Accent color: #0ea5e9 (sky blue) for CTAs and links.
+• Mobile dashboard best practices (2025):
+  - 4 stat cards (2×2 grid) with trend indicators (↑↓ +X%)
+  - Status bar (44px) at top + header with menu/avatar (56px)
+  - Chart card with sketched axes + line/bars hint (not just empty placeholder)
+  - 3+ list items showing the repeating pattern (for component reuse)
+  - Bottom tab bar with 4 tabs (icon + label each), active state highlighted
+  - Floating Action Button (FAB) for quick actions
+  - Home indicator (iOS bottom safe area)
+• Accent color: #0ea5e9 (sky blue) for CTAs, links, active tab.
+• Success trend: #10b981 (emerald). Danger trend: #ef4444 (red).
 
 === COMPLETION CRITERIA ===================================================
 
 The task is complete when the canvas shows a recognizable, well-structured screen that
 matches the user's description. Do NOT spend more than 8-10 tool calls — the generator
-tools are designed to produce most of the layout in one call. Refine selectively.`,
+tools are designed to produce most of the layout in one call. Refine selectively.
+If a tool fails 2x in a row, switch to a different approach (do NOT loop on the
+same failing call).`,
     allowedTools: [
       'pen_generate_wireframe',
       'pen_generate_user_flow',
@@ -133,6 +166,17 @@ tools are designed to produce most of the layout in one call. Refine selectively
       // way to reparent and falls back to pen_update_shape with a `parent`
       // arg, which is silently ignored.
       'pen_reparent_shape',
+      // Phase 3 agentic workflows — recommended post-generation:
+      // - recommend_components: find repeated patterns, suggest componentization
+      // - convert_to_component + place_component_instance + override_instance:
+      //   act on the recommendations (close the Figma-AI gap)
+      // - self_critique: get a senior-designer review (reflection pattern)
+      'pen_recommend_components',
+      'pen_convert_to_component',
+      'pen_place_component_instance',
+      'pen_override_instance',
+      'pen_self_critique',
+      'pen_list_shapes',
     ],
     keywords: [
       'design', 'build', 'create', 'make', 'wireframe', 'mockup', 'screen',
@@ -573,8 +617,16 @@ export const ALL_TOOL_NAMES = [
   'pen_align_shapes', 'pen_organize_layers', 'pen_apply_auto_layout',
   // Figma hierarchy
   'pen_reparent_shape', 'pen_set_constraints',
-  // Components
+  // Components (legacy)
   'pen_create_component', 'pen_instantiate_component',
+  // Component System (Phase 2 — Figma-aligned)
+  'pen_convert_to_component', 'pen_place_component_instance',
+  'pen_override_instance', 'pen_reset_instance',
+  'pen_detach_instance', 'pen_combine_as_variants', 'pen_swap_variant',
+  // Agentic Workflows (Phase 3 — emerging patterns: reflection, memory, RAG)
+  'pen_self_critique', 'pen_recommend_components',
+  'pen_search_design_patterns', 'pen_save_design_pattern',
+  'pen_clear_pattern_memory', 'pen_pattern_stats',
   // Tokens / palette
   'pen_update_tokens', 'pen_apply_palette', 'pen_generate_palette',
   // Generators

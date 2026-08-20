@@ -1633,8 +1633,12 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       y: Type.Optional(Type.Number({ description: 'Frame Y position (default 100)' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const x = params.x ?? 100;
-      const y = params.y ?? 100;
+      // Coerce x/y to numbers — the LLM occasionally passes them as strings
+      // (e.g. "100"), and string + number = string concatenation inside
+      // buildWireframe (e.g. "100" + 24 = "10024"). This caused the entire
+      // wireframe to render at insane coordinates like (10024, 10016).
+      const x = typeof params.x === 'number' ? params.x : Number(params.x) || 100;
+      const y = typeof params.y === 'number' ? params.y : Number(params.y) || 100;
       const wf = buildWireframe(params.template, x, y);
       const patch: CanvasPatch = {
         op: 'bulk_add',
@@ -3488,8 +3492,10 @@ function repairArrayArgs(args: any): any {
   if (!args || typeof args !== 'object') return args;
   const repaired = { ...args };
 
-  const arrayParams = ['palette', 'shapeIds', 'nodes', 'updates', 'stops', 'points', 'shapeId'];
-
+  // True array params — accept either a real array OR a stringified JSON array.
+  // The LLM occasionally passes `palette="[\"#fff\",\"#000\"]"` instead of
+  // `palette=["#fff","#000"]`. Detect + parse.
+  const arrayParams = ['palette', 'shapeIds', 'nodes', 'updates', 'stops', 'points', 'axes', 'componentIds', 'parameters'];
   for (const param of arrayParams) {
     const val = (repaired as any)[param];
     if (typeof val === 'string' && val.trim().startsWith('[')) {
@@ -3500,6 +3506,26 @@ function repairArrayArgs(args: any): any {
         }
       } catch {
         // Not valid JSON — leave as-is and let the tool handle the error.
+      }
+    }
+  }
+
+  // String params that the LLM sometimes wraps in a stringified JSON array.
+  // Example: shapeId="[\"abc-123\"]" (the LLM got confused because some
+  // tools take `shapeIds` plural). Unwrap to the first element.
+  // This was the root cause of the "no shape with id [\"abc\"]" loop where
+  // the agent retried the same failing call 16+ times.
+  const stringParams = ['shapeId', 'instanceId', 'variantComponentId', 'parentId', 'groupId', 'newParentId', 'maskId'];
+  for (const param of stringParams) {
+    const val = (repaired as any)[param];
+    if (typeof val === 'string' && val.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+          (repaired as any)[param] = parsed[0];
+        }
+      } catch {
+        // Not valid JSON — leave as-is.
       }
     }
   }
@@ -3518,7 +3544,12 @@ interface WireframeResult {
   shapes: Array<Partial<Shape> & { id: string }>;
 }
 
-function buildWireframe(template: string, ox: number, oy: number): WireframeResult {
+function buildWireframe(template: string, oxIn: number, oyIn: number): WireframeResult {
+  // Defensive: coerce to numbers in case the caller passed strings.
+  // (Even with the tool-level coercion above, buildWireframe is also called
+  // by pen_generate_user_flow which may pass strings.)
+  const ox = typeof oxIn === 'number' ? oxIn : Number(oxIn) || 0;
+  const oy = typeof oyIn === 'number' ? oyIn : Number(oyIn) || 0;
   const frameId = crypto.randomUUID();
   const shapes: Array<Partial<Shape> & { id: string }> = [];
   const GRAY = '#e2e8f0';
@@ -3566,27 +3597,109 @@ function buildWireframe(template: string, ox: number, oy: number): WireframeResu
       break;
     }
     case 'mobile_dashboard': {
-      addFrame(375, 667, 'Mobile / Dashboard');
-      // Header
-      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Header', x: ox, y: oy, width: 375, height: 64, fill: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 16, textColor: '#ffffff' });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Header title', x: ox + 16, y: oy + 22, width: 200, height: 20, fill: 'transparent', text: 'Dashboard', fontSize: 18, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      // Stats cards
-      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Stat 1', x: ox + 16, y: oy + 88, width: 165, height: 80, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Stat 1 value', x: ox + 28, y: oy + 108, width: 100, height: 24, fill: 'transparent', text: '$12,430', fontSize: 20, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Stat 1 label', x: ox + 28, y: oy + 138, width: 100, height: 16, fill: 'transparent', text: 'Revenue', fontSize: 12, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Stat 2', x: ox + 193, y: oy + 88, width: 165, height: 80, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Stat 2 value', x: ox + 205, y: oy + 108, width: 100, height: 24, fill: 'transparent', text: '1,284', fontSize: 20, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Stat 2 label', x: ox + 205, y: oy + 138, width: 100, height: 16, fill: 'transparent', text: 'Users', fontSize: 12, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      // Chart placeholder
-      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Chart', x: ox + 16, y: oy + 184, width: 343, height: 180, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Chart label', x: ox + 32, y: oy + 200, width: 200, height: 16, fill: 'transparent', text: 'Revenue (last 30 days)', fontSize: 13, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      // List
-      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'List item 1', x: ox + 16, y: oy + 380, width: 343, height: 56, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
-      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Avatar 1', x: ox + 28, y: oy + 392, width: 32, height: 32, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Item 1 title', x: ox + 72, y: oy + 396, width: 200, height: 16, fill: 'transparent', text: 'Sarah Chen', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Item 1 sub', x: ox + 72, y: oy + 414, width: 200, height: 14, fill: 'transparent', text: 'Pro · 2 min ago', fontSize: 12, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      // Tab bar
-      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Tab bar', x: ox, y: oy + 615, width: 375, height: 52, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
+      // Mobile dashboard — best practices (2025) applied:
+      //  - 4 stat cards (2x2 grid) with trend indicators (▲▼ +X%)
+      //  - Status bar (iOS-style time + battery) at top
+      //  - Header with hamburger menu + title + avatar
+      //  - Chart placeholder with sketched axes + a line hint
+      //  - 3 list items (not 1) showing the repeating pattern
+      //  - Bottom tab bar with 4 icons + labels (Home/Search/Activity/Profile)
+      //  - Floating Action Button (FAB) for "+ Add" quick action
+      //  - Bottom safe-area / home-indicator strip (iOS)
+      // All elements fit inside the 375x812 frame (iPhone X+ aspect).
+      addFrame(375, 812, 'Mobile / Dashboard');
+
+      // Status bar (iOS-style)
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Status bar', x: ox, y: oy, width: 375, height: 44, fill: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Status time', x: ox + 24, y: oy + 16, width: 50, height: 16, fill: 'transparent', text: '9:41', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Status battery', x: ox + 320, y: oy + 16, width: 40, height: 16, fill: 'transparent', text: '100%', fontSize: 13, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+
+      // Header (hamburger + title + avatar)
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Header', x: ox, y: oy + 44, width: 375, height: 56, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Menu icon', x: ox + 16, y: oy + 62, width: 24, height: 24, fill: 'transparent', text: '☰', fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Header title', x: ox + 140, y: oy + 60, width: 100, height: 24, fill: 'transparent', text: 'Dashboard', fontSize: 18, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Header avatar', x: ox + 335, y: oy + 56, width: 32, height: 32, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+
+      // 4 stat cards (2x2 grid) with values + labels + trend indicators
+      // Row 1 (y = 120): Revenue, Users
+      // Row 2 (y = 220): Orders, Conversion
+      const statData = [
+        { label: 'Revenue', value: '$12,430', trend: '↑ 12%', trendColor: '#10b981', x: 16 },
+        { label: 'Users', value: '1,284', trend: '↑ 8%', trendColor: '#10b981', x: 194 },
+        { label: 'Orders', value: '342', trend: '↓ 3%', trendColor: '#ef4444', x: 16 },
+        { label: 'Conv. rate', value: '4.2%', trend: '↑ 1.2%', trendColor: '#10b981', x: 194 },
+      ];
+      for (let i = 0; i < 4; i++) {
+        const s = statData[i];
+        const sy = oy + 120 + (i >= 2 ? 100 : 0);
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Stat card ${i + 1}`, x: ox + s.x, y: sy, width: 165, height: 88, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 12, fontSize: 14, textColor: DARK });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} label`, x: ox + s.x + 14, y: sy + 12, width: 120, height: 14, fill: 'transparent', text: s.label, fontSize: 11, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} value`, x: ox + s.x + 14, y: sy + 30, width: 130, height: 28, fill: 'transparent', text: s.value, fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} trend`, x: ox + s.x + 14, y: sy + 62, width: 80, height: 16, fill: 'transparent', text: s.trend, fontSize: 12, textColor: s.trendColor, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      }
+
+      // Chart placeholder with sketched axes + line hint
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Chart card', x: ox + 16, y: oy + 320, width: 343, height: 180, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 12, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Chart title', x: ox + 32, y: oy + 336, width: 200, height: 16, fill: 'transparent', text: 'Revenue (last 30 days)', fontSize: 13, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Y-axis labels
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Y-axis top', x: ox + 24, y: oy + 376, width: 24, height: 12, fill: 'transparent', text: '$15k', fontSize: 9, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Y-axis mid', x: ox + 24, y: oy + 424, width: 24, height: 12, fill: 'transparent', text: '$7k', fontSize: 9, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Y-axis bot', x: ox + 24, y: oy + 472, width: 24, height: 12, fill: 'transparent', text: '$0', fontSize: 9, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Sketched line chart (polyline hint) — 7 data points
+      const linePts = [60, 45, 55, 30, 40, 25, 15];
+      for (let i = 0; i < linePts.length - 1; i++) {
+        const x1 = ox + 60 + i * 40;
+        const y1 = oy + 480 - linePts[i];
+        const x2 = ox + 60 + (i + 1) * 40;
+        const y2 = oy + 480 - linePts[i + 1];
+        add({ id: crypto.randomUUID(), type: 'line', name: `Chart line ${i + 1}`, x: x1, y: y1, width: Math.abs(x2 - x1) + 2, height: Math.abs(y2 - y1) + 2, fill: 'transparent', stroke: '#0ea5e9', strokeWidth: 2, radius: 0, fontSize: 14, textColor: DARK });
+      }
+      // X-axis labels (days)
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      for (let i = 0; i < days.length; i++) {
+        add({ id: crypto.randomUUID(), type: 'text', name: `X-axis ${i + 1}`, x: ox + 52 + i * 40, y: oy + 488, width: 30, height: 10, fill: 'transparent', text: days[i], fontSize: 9, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      }
+
+      // Section header for activity list
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Activity label', x: ox + 16, y: oy + 520, width: 200, height: 18, fill: 'transparent', text: 'Recent activity', fontSize: 15, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'See all link', x: ox + 300, y: oy + 520, width: 60, height: 18, fill: 'transparent', text: 'See all', fontSize: 13, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+
+      // 3 list items (was 1 — repeating pattern is critical for component reuse)
+      const listItems = [
+        { name: 'Sarah Chen', sub: 'Pro · 2 min ago', amount: '+$240' },
+        { name: 'Alex Park', sub: 'Team · 18 min ago', amount: '+$1.2k' },
+        { name: 'Maya Lee', sub: 'Free · 1 hr ago', amount: '+$89' },
+      ];
+      for (let i = 0; i < 3; i++) {
+        const ly = oy + 552 + i * 64;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `List item ${i + 1}`, x: ox + 16, y: ly, width: 343, height: 56, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 12, fontSize: 14, textColor: DARK });
+        add({ id: crypto.randomUUID(), type: 'ellipse', name: `Avatar ${i + 1}`, x: ox + 28, y: ly + 12, width: 32, height: 32, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Item ${i + 1} title`, x: ox + 72, y: ly + 14, width: 180, height: 16, fill: 'transparent', text: listItems[i].name, fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Item ${i + 1} sub`, x: ox + 72, y: ly + 32, width: 180, height: 14, fill: 'transparent', text: listItems[i].sub, fontSize: 12, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Item ${i + 1} amount`, x: ox + 290, y: ly + 18, width: 60, height: 16, fill: 'transparent', text: listItems[i].amount, fontSize: 13, textColor: '#10b981', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      }
+
+      // Bottom tab bar with 4 tabs (icon + label each)
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Tab bar', x: ox, y: oy + 720, width: 375, height: 68, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
+      const tabs = [
+        { icon: '⌂', label: 'Home', active: true },
+        { icon: '⌕', label: 'Search', active: false },
+        { icon: '◔', label: 'Activity', active: false },
+        { icon: '☻', label: 'Profile', active: false },
+      ];
+      for (let i = 0; i < tabs.length; i++) {
+        const tx = ox + 24 + i * 90;
+        const tColor = tabs[i].active ? '#0ea5e9' : '#94a3b8';
+        add({ id: crypto.randomUUID(), type: 'text', name: `Tab ${i + 1} icon`, x: tx, y: oy + 736, width: 40, height: 24, fill: 'transparent', text: tabs[i].icon, fontSize: 22, textColor: tColor, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Tab ${i + 1} label`, x: tx, y: oy + 762, width: 60, height: 14, fill: 'transparent', text: tabs[i].label, fontSize: 10, textColor: tColor, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      }
+
+      // Floating Action Button (FAB) — best practice for mobile dashboards
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'FAB', x: ox + 304, y: oy + 670, width: 56, height: 56, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: '#ffffff' });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'FAB icon', x: ox + 320, y: oy + 684, width: 24, height: 28, fill: 'transparent', text: '+', fontSize: 28, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+
+      // Home indicator (iOS bottom safe area)
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Home indicator', x: ox + 134, y: oy + 784, width: 107, height: 4, fill: DARK, stroke: 'transparent', strokeWidth: 0, radius: 2, fontSize: 14, textColor: DARK });
       break;
     }
     case 'web_landing': {

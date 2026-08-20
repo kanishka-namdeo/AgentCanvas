@@ -800,6 +800,18 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
   // LLM produces a message with no tool_calls (= final answer).
   let currentPlanStep = 0;
 
+  // Escape valve: track consecutive failures of the SAME tool with the SAME
+  // args. If a tool fails 3x in a row identically, abort the turn to prevent
+  // infinite retry loops (the LLM gets stuck calling the same failing tool
+  // over and over, e.g. "no shape with id [\"abc\"]" was retried 16+ times
+  // before the LLM hit a rate-limit 429 and the turn died).
+  // The escape valve surfaces a clear error message to the LLM so it can
+  // either try a different approach or finalize the turn gracefully.
+  let consecutiveSameToolFailures = 0;
+  let lastFailedToolName: string | null = null;
+  let lastFailedArgsJson: string | null = null;
+  const MAX_SAME_TOOL_FAILURES = 3;
+
   for (let iter = 0; iter < maxIterations; iter++) {
     let completion: any;
     try {
@@ -906,6 +918,38 @@ export async function* runAgent(opts: AgentRunOptions): AsyncGenerator<AgentStre
           summary: emittedPatches.at(-1)?.summary ?? result.content.slice(0, 160),
         },
       };
+
+      // ---- Escape valve: track consecutive failures of the same tool+args.
+      // If a tool fails 3x in a row with identical args, inject a system
+      // message telling the LLM to stop retrying and try a different approach
+      // (or finalize). This prevents the infinite-retry loop the LLM falls
+      // into when a tool keeps failing (e.g. shapeId mismatch).
+      const argsJson = JSON.stringify(args);
+      if (result.isError) {
+        if (toolName === lastFailedToolName && argsJson === lastFailedArgsJson) {
+          consecutiveSameToolFailures++;
+        } else {
+          consecutiveSameToolFailures = 1;
+          lastFailedToolName = toolName;
+          lastFailedArgsJson = argsJson;
+        }
+        if (consecutiveSameToolFailures >= MAX_SAME_TOOL_FAILURES) {
+          // Inject a clear "stop retrying" message + finalize the turn.
+          messages.push({
+            role: 'user',
+            content: `The tool "${toolName}" has failed ${consecutiveSameToolFailures} times in a row with the same arguments. Stop retrying the same call. Either try a DIFFERENT tool, fix the arguments (the shape ID may not exist — call pen_list_shapes to see valid IDs), or finalize your response with what you have so far. Do NOT call "${toolName}" again with the same arguments.`,
+          });
+          // Reset so the next iteration gets a fresh chance (different tool / args).
+          consecutiveSameToolFailures = 0;
+          lastFailedToolName = null;
+          lastFailedArgsJson = null;
+        }
+      } else {
+        // Tool succeeded — reset the failure tracker.
+        consecutiveSameToolFailures = 0;
+        lastFailedToolName = null;
+        lastFailedArgsJson = null;
+      }
 
       // Append tool result to message history so the next LLM iteration sees it.
       messages.push({

@@ -884,17 +884,21 @@ function replaceSiblings(children: PenChild[], oldArr: PenChild[], newArr: PenCh
 /** Turn a partial .pen node into a complete, valid node with defaults. */
 function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, id: string): PenChild {
   const type = (partial.type as string) ?? 'rectangle';
+  // Start with the raw spread, THEN override with normalized numeric values.
+  // The previous order (num() first, then ...partial) caused a bug where string
+  // values from the LLM (e.g. "10024" = "100" + "24" concatenated somewhere)
+  // would overwrite the num()'d value. Spread first, then normalize on top.
   const base: any = {
+    ...partial,
     id,
     name: partial.name ?? 'Shape',
     x: num(partial.x, 0),
     y: num(partial.y, 0),
-    width: partial.width ?? 100,
-    height: partial.height ?? 100,
+    width: num(partial.width, 100),
+    height: num(partial.height, 100),
     rotation: num(partial.rotation, 0),
     opacity: num(partial.opacity, 1),
     enabled: partial.enabled ?? true,
-    ...partial,
   };
   // Ensure id + type win over any spread values.
   base.id = id;
