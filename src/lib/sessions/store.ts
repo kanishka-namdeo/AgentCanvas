@@ -261,6 +261,13 @@ export const useSessionStore = create<SessionStoreState>()(
           sessions: { ...s.sessions, [session.id]: session },
           activeSessionByDoc: { ...s.activeSessionByDoc, [documentId]: session.id },
         }));
+        // Sync to server (Phase 3: server-side persistence).
+        // Fire-and-forget — localStorage is the fast cache, server is the source of truth.
+        if (typeof window !== 'undefined') {
+          import('./server-sync').then(({ createServerSession }) => {
+            createServerSession(documentId, session.title, session.parentId ?? undefined);
+          });
+        }
         return session;
       },
 
@@ -289,6 +296,12 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           };
         });
+        // Sync to server.
+        if (typeof window !== 'undefined') {
+          import('./server-sync').then(({ updateServerSession }) => {
+            updateServerSession(id, { title: trimmed });
+          });
+        }
       },
 
       autoTitleFromPrompt: (sessionId, prompt) => {
@@ -532,6 +545,12 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           },
         }));
+        // Sync run to server.
+        if (typeof window !== 'undefined') {
+          import('./server-sync').then(({ syncServerRun }) => {
+            syncServerRun(sessionId, { prompt, status: 'in_progress' });
+          });
+        }
         return run;
       },
 
@@ -565,9 +584,13 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           };
         });
+        // Sync run status to server.
+        if (typeof window !== 'undefined') {
+          import('./server-sync').then(({ syncServerRun }) => {
+            syncServerRun(run.sessionId, { prompt: run.prompt, status, runId, errorMessage, toolCallCount: run.toolCallIds.length });
+          });
+        }
       },
-
-      // ---- Messages ----
       appendUserMessage: (sessionId, runId, text) => {
         const session = get().sessions[sessionId];
         if (!session) throw new Error(`session ${sessionId} not found`);
@@ -595,6 +618,12 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           },
         }));
+        // Sync user message to server.
+        if (typeof window !== 'undefined') {
+          import('./server-sync').then(({ appendServerMessage }) => {
+            appendServerMessage(sessionId, { role: 'user', content: text, status: 'complete', runId });
+          });
+        }
         return msg;
       },
 
@@ -660,6 +689,21 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           };
         });
+        // Sync assistant message to server.
+        if (typeof window !== 'undefined') {
+          const msg = get().messages[messageId];
+          if (msg) {
+            import('./server-sync').then(({ appendServerMessage }) => {
+              appendServerMessage(msg.sessionId, {
+                role: 'assistant',
+                content: msg.text,
+                status,
+                error,
+                runId: msg.runId ?? undefined,
+              });
+            });
+          }
+        }
       },
 
       // ---- Tool calls ----
@@ -769,6 +813,12 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           },
         }));
+        // Sync snapshot to server.
+        if (typeof window !== 'undefined') {
+          import('./server-sync').then(({ captureServerSnapshot }) => {
+            captureServerSnapshot(sessionId, document, opts.source ?? 'turn_end', opts.sourceRunId);
+          });
+        }
         return snap;
       },
 

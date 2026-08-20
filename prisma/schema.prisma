@@ -102,3 +102,105 @@ model AgentAction {
 
   @@index([documentId])
 }
+
+// ---- Phase 3: Server-side session persistence -------------------------------
+//
+// These models store chat sessions, messages, runs, and snapshots server-side
+// (in SQLite via Prisma) so they survive browser clears and can sync across
+// devices. The client's localStorage remains as a fast cache; the server is
+// the source of truth.
+//
+// The session format is compatible with the pi-agent SDK's serializeConversation()
+// output — sessions can be exported/imported in the standard JSONL format.
+
+/// A chat session — a conversation about a specific document.
+/// Analogous to a Figma "branch" or a ChatGPT "conversation".
+model Session {
+  id         String   @id @default(cuid())
+  /// The document this session belongs to. Multiple sessions can exist per document.
+  documentId String
+  /// Display title (auto-generated from the first prompt or user-set).
+  title      String   @default("Untitled")
+  /// 'active' | 'archived'
+  status     String   @default("active")
+  /// Whether the session is pinned to the top of the list.
+  pinned     Boolean  @default(false)
+  /// Run count (denormalized for quick display).
+  runCount   Int      @default(0)
+  /// Total tool calls across all runs (denormalized).
+  toolCallCount Int   @default(0)
+  /// Snapshot count (denormalized).
+  snapshotCount Int    @default(0)
+  /// ISO timestamp of last activity.
+  lastOpenedAt String @default("")
+  /// For fork tracking — the parent session ID if this session was forked.
+  parentSessionId String?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  messages   SessionMessage[]
+  runs       SessionRun[]
+  snapshots  SessionSnapshot[]
+
+  @@index([documentId])
+  @@index([status])
+}
+
+/// A message in a session — either user prompt or agent response.
+model SessionMessage {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// 'user' | 'assistant'
+  role       String
+  /// The text content of the message.
+  content    String   @default("")
+  /// 'streaming' | 'complete' | 'error' | 'cancelled'
+  status     String   @default("complete")
+  /// Error message (if status = 'error').
+  error      String?
+  /// Run this message belongs to.
+  runId      String?
+  /// Creation order.
+  createdAt  DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+/// A run — one execution of the agent (one prompt → tool calls → response).
+model SessionRun {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// The user prompt that triggered this run.
+  prompt     String
+  /// 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
+  status     String   @default("queued")
+  /// Error message (if status = 'failed').
+  errorMessage String?
+  /// Number of tool calls in this run.
+  toolCallCount Int    @default(0)
+  /// Tool call records (JSON array of { name, args, result, success, durationMs }).
+  toolCalls  String   @default("[]")
+  createdAt  DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+/// A canvas snapshot — a point-in-time capture of the canvas state.
+/// Used for restore/fork: the user can jump back to any snapshot.
+model SessionSnapshot {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// The canvas document JSON at snapshot time.
+  document   String
+  /// 'turn_end' | 'manual' | 'fork'
+  source     String   @default("turn_end")
+  /// Run ID that produced this snapshot (if any).
+  runId      String?
+  createdAt  DateTime @default(now())
+
+  @@index([sessionId])
+}
