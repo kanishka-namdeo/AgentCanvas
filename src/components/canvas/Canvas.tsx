@@ -502,6 +502,16 @@ export function Canvas() {
           <pattern id="component-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(14, 165, 233, 0.35)" strokeWidth="2" />
           </pattern>
+          {/* Fix 3: clipPath definitions for frames with clip=true. */}
+          {(() => {
+            const clipShapes = (document.shapes ?? []).filter((s) => s.clip);
+            const clipIdMap = new Map(clipShapes.map((s) => [s.id, s]));
+            return clipShapes.map((s) => (
+              <clipPath key={`clip-${s.id}`} id={`clip-${s.id}`}>
+                <rect x={s.x} y={s.y} width={s.width} height={s.height} />
+              </clipPath>
+            ));
+          })()}
         </defs>
         <g transform={`translate(${panX}, ${panY}) scale(${zoom})`}>
           {/* Shapes — pointer events re-enabled per shape.
@@ -511,22 +521,48 @@ export function Canvas() {
               that hasn't fully resolved, or when the WebSocket + local-patch
               paths race). Last-writer-wins: the later shape in the array
               overrides earlier duplicates. */}
-          {Array.from(
-            new Map((document.shapes ?? []).map((s) => [s.id, s] as const)).values(),
-          )
-            .slice()
-            .sort((a, b) => a.zIndex - b.zIndex)
-            .map((shape) => (
-              <ShapeRenderer
-                key={shape.id}
-                shape={shape}
-                selected={selectedSet.has(shape.id)}
-                highlighted={highlightSet.has(shape.id)}
-                zoom={zoom}
-                onShapeMouseDown={onShapeMouseDown}
-                onResizeHandleMouseDown={onResizeHandleMouseDown}
-              />
-            ))}
+          {/* Fix 3: Build a set of shape IDs that have a clipping ancestor.
+              For each such shape, we find the nearest clipping ancestor and
+              apply its clipPath. This is computed once per render. */}
+          {(() => {
+            const shapes = Array.from(
+              new Map((document.shapes ?? []).map((s) => [s.id, s] as const)).values(),
+            );
+            // Map: shapeId -> nearest clipping ancestor id (or undefined).
+            const clipAncestor = new Map<string, string>();
+            const shapeMap = new Map(shapes.map((s) => [s.id, s]));
+            for (const s of shapes) {
+              let current: string | null | undefined = s.parentId;
+              while (current) {
+                const parent = shapeMap.get(current);
+                if (!parent) break;
+                if (parent.clip) {
+                  clipAncestor.set(s.id, parent.id);
+                  break;
+                }
+                current = parent.parentId;
+              }
+            }
+            return shapes
+              .slice()
+              .sort((a, b) => a.zIndex - b.zIndex)
+              .map((shape) => {
+                const clipId = clipAncestor.get(shape.id);
+                const clipAttr = clipId ? `url(#clip-${clipId})` as string | undefined : undefined;
+                return (
+                  <g key={shape.id} clipPath={clipAttr}>
+                    <ShapeRenderer
+                      shape={shape}
+                      selected={selectedSet.has(shape.id)}
+                      highlighted={highlightSet.has(shape.id)}
+                      zoom={zoom}
+                      onShapeMouseDown={onShapeMouseDown}
+                      onResizeHandleMouseDown={onResizeHandleMouseDown}
+                    />
+                  </g>
+                );
+              });
+          })()}
 
         </g>
       </svg>

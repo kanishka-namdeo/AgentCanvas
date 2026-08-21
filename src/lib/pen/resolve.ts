@@ -239,7 +239,10 @@ function nodeHeight(node: PenChild): unknown {
   return (node as { height?: unknown }).height;
 }
 
-/** Compute the intrinsic size of a node, given its (already-sized) children. */
+/** Compute the intrinsic size of a node, given its (already-sized) children.
+ *  Uses a two-phase approach for fill_container children: first sizes
+ *  non-fill children to determine the parent's fit_content size, then
+ *  resolves fill_container children against the now-known parent size. */
 function computeIntrinsicSize(
   node: PenChild,
   children: ResolvedNode[],
@@ -252,12 +255,19 @@ function computeIntrinsicSize(
   const w = nodeWidth(node);
   const h = nodeHeight(node);
 
+  // Groups and sections without explicit dimensions auto-size (fit_content).
+  // Frames/components without dimensions default to 100×100 (visible container).
+  const hasExplicitW = w !== undefined && w !== null;
+  const hasExplicitH = h !== undefined && h !== null;
+  const implicitFitW = !hasExplicitW && (node.type === 'group' || node.type === 'section');
+  const implicitFitH = !hasExplicitH && (node.type === 'group' || node.type === 'section');
+
   if (isFillContainer(w)) width = parentContentW;
-  else if (isFitContent(w)) width = 0; // computed from children below
+  else if (isFitContent(w) || implicitFitW) width = 0; // computed from children below
   else width = num(w, 100);
 
   if (isFillContainer(h)) height = parentContentH;
-  else if (isFitContent(h)) height = 0;
+  else if (isFitContent(h) || implicitFitH) height = 0;
   else height = num(h, 100);
 
   // fit_content: derive from children.
@@ -265,33 +275,66 @@ function computeIntrinsicSize(
   const gap = num((node as PenLayout).gap, 0);
   const pad = resolvePadding((node as PenLayout).padding);
 
-  if (isFitContent(w) || isFitContent(h)) {
+  if (isFitContent(w) || isFitContent(h) || implicitFitW || implicitFitH) {
+    // ---- Fix 5: two-phase sizing for fill_container children ----
+    // Phase A: compute the parent's fit_content size from non-fill children
+    // only (and children whose fill axis isn't the one we're computing).
+    const nonFillKids = children.filter((c) => {
+      const cw = nodeWidth(c.node);
+      const ch = nodeHeight(c.node);
+      if (isFitContent(w) && isFillContainer(cw)) return false;
+      if (isFitContent(h) && isFillContainer(ch)) return false;
+      return true;
+    });
+
     if (layout === 'horizontal') {
-      const main = children.reduce((acc, c, i) => acc + c.width + (i > 0 ? gap : 0), 0);
-      const cross = children.reduce((acc, c) => Math.max(acc, c.height), 0);
+      const main = nonFillKids.reduce((acc, c, i) => acc + c.width + (i > 0 ? gap : 0), 0);
+      const cross = nonFillKids.reduce((acc, c) => Math.max(acc, c.height), 0);
       if (isFitContent(w)) width = main + pad.left + pad.right;
       if (isFitContent(h)) height = cross + pad.top + pad.bottom;
     } else if (layout === 'vertical') {
-      const main = children.reduce((acc, c, i) => acc + c.height + (i > 0 ? gap : 0), 0);
-      const cross = children.reduce((acc, c) => Math.max(acc, c.width), 0);
+      const main = nonFillKids.reduce((acc, c, i) => acc + c.height + (i > 0 ? gap : 0), 0);
+      const cross = nonFillKids.reduce((acc, c) => Math.max(acc, c.width), 0);
       if (isFitContent(w)) width = cross + pad.left + pad.right;
       if (isFitContent(h)) height = main + pad.top + pad.bottom;
     } else {
       // No layout — fit to bounding box of absolutely-positioned children.
-      if (children.length > 0) {
-        const maxX = Math.max(...children.map((c) => c.absX + c.width));
-        const maxY = Math.max(...children.map((c) => c.absY + c.height));
-        const minX = Math.min(...children.map((c) => c.absX));
-        const minY = Math.min(...children.map((c) => c.absY));
-        if (isFitContent(w)) width = (maxX - minX) + pad.left + pad.right;
-        if (isFitContent(h)) height = (maxY - minY) + pad.top + pad.bottom;
+      // Use stored x/y (not absX/absY, which aren't set yet in bottom-up pass).
+      if (nonFillKids.length > 0) {
+        const positions = nonFillKids.map((c) => ({ x: num(c.node.x, 0), y: num(c.node.y, 0) }));
+        const maxX = Math.max(...positions.map((p, i) => p.x + nonFillKids[i].width));
+        const maxY = Math.max(...positions.map((p, i) => p.y + nonFillKids[i].height));
+        const minX = Math.min(...positions.map((p) => p.x));
+        const minY = Math.min(...positions.map((p) => p.y));
+        if (isFitContent(w) || implicitFitW) width = (maxX - minX) + pad.left + pad.right;
+        if (isFitContent(h) || implicitFitH) height = (maxY - minY) + pad.top + pad.bottom;
       }
     }
-    // Fallback if no children.
-    if (isFitContent(w) && width === 0) width = 100;
-    if (isFitContent(h) && height === 0) height = 100;
+
+
+    // Fallback if still 0 after sizing: 0×0 for groups/sections (invisible containers),
+    // 100×100 for other types (frames, components) which need a minimum visible size.
+    if ((isFitContent(w) || implicitFitW) && width === 0) {
+      width = (node.type === 'group' || node.type === 'section') ? 0 : 100;
+    }
+    if ((isFitContent(h) || implicitFitH) && height === 0) {
+      height = (node.type === 'group' || node.type === 'section') ? 0 : 100;
+    }
   }
 
+
+  // Fix 5: Phase B — always resolve fill_container children against the
+  // computed parent size (even for parents with explicit dimensions).
+  const finalContentW = Math.max(0, width - pad.left - pad.right);
+  const finalContentH = Math.max(0, height - pad.top - pad.bottom);
+  for (const c of children) {
+    if (isFillContainer(nodeWidth(c.node))) {
+      c.width = finalContentW;
+    }
+    if (isFillContainer(nodeHeight(c.node))) {
+      c.height = finalContentH;
+    }
+  }
   return { width: Math.max(0, width), height: Math.max(0, height) };
 }
 
@@ -312,7 +355,41 @@ function resolvePadding(pad: PenLayout['padding']): Padding {
   return { top: 0, right: 0, bottom: 0, left: 0 };
 }
 
-/** Position children inside a parent's content box per flexbox rules. */
+// ---- Constraint helpers ---------------------------------------------------
+//
+// Figma constraints define how a child is pinned relative to its parent.
+// The child's stored x/y is interpreted differently per constraint mode:
+//   left    — x is distance from parent's left edge
+//   right   — x is distance from parent's right edge (inverted)
+//   center  — child is centered; stored x is ignored
+//   scale   — x is a ratio (0..1) of parent content width
+//   left_right — child stretches to fill (x = 0, width = contentW)
+
+function applyConstraintH(mode: string, storedX: number, childW: number, contentW: number): number {
+  switch (mode) {
+    case 'right': return contentW - childW - storedX;
+    case 'center': return (contentW - childW) / 2;
+    case 'scale': return storedX * contentW;
+    case 'left_right': return 0; // width override handled separately
+    case 'left':
+    default: return storedX;
+  }
+}
+
+function applyConstraintV(mode: string, storedY: number, childH: number, contentH: number): number {
+  switch (mode) {
+    case 'bottom': return contentH - childH - storedY;
+    case 'center': return (contentH - childH) / 2;
+    case 'scale': return storedY * contentH;
+    case 'top_bottom': return 0; // height override handled separately
+    case 'top':
+    default: return storedY;
+  }
+}
+
+/** Position children inside a parent's content box per flexbox rules.
+ *  Fix 1: handles layoutPosition:'absolute' by skipping flex entirely.
+ *  Fix 2: applies Figma-style constraints in 'none' layout mode. */
 function layoutChildren(
   parent: ResolvedNode,
   children: ResolvedNode[],
@@ -326,60 +403,88 @@ function layoutChildren(
   const contentW = parent.width - pad.left - pad.right;
   const contentH = parent.height - pad.top - pad.bottom;
 
-  if (layout === 'horizontal') {
-    const totalChildMain = children.reduce((acc, c) => acc + c.width, 0);
-    const totalGap = children.length > 1 ? gap * (children.length - 1) : 0;
-    const used = totalChildMain + totalGap;
-    let cursor = pad.left;
-    let betweenGap = gap;
-    if (justify === 'center') cursor = pad.left + (contentW - used) / 2;
-    else if (justify === 'end') cursor = pad.left + (contentW - used);
-    else if (justify === 'space_between' && children.length > 1) {
-      betweenGap = (contentW - totalChildMain) / (children.length - 1);
-      cursor = pad.left;
-    } else if (justify === 'space_around' && children.length > 1) {
-      betweenGap = (contentW - totalChildMain) / children.length;
-      cursor = pad.left + betweenGap / 2;
+  // Fix 1: separate absolutely-positioned children from flow children.
+  // layoutPosition:'absolute' opts the child out of flex entirely (Figma behavior).
+  const flowChildren: ResolvedNode[] = [];
+  const absChildren: ResolvedNode[] = [];
+  for (const c of children) {
+    if ((c.node as any).layoutPosition === 'absolute') {
+      absChildren.push(c);
+    } else {
+      flowChildren.push(c);
     }
-    for (let i = 0; i < children.length; i++) {
-      const c = children[i];
-      c.absX = parent.absX + cursor;
-      let cross = pad.top;
-      if (align === 'center') cross = pad.top + (contentH - c.height) / 2;
-      else if (align === 'end') cross = pad.top + (contentH - c.height);
-      c.absY = parent.absY + cross;
-      cursor += c.width + (i < children.length - 1 ? betweenGap : 0);
+  }
+
+  const layoutFlow = (kids: ResolvedNode[]) => {
+    if (layout === 'horizontal') {
+      const totalChildMain = kids.reduce((acc, c) => acc + c.width, 0);
+      const totalGap = kids.length > 1 ? gap * (kids.length - 1) : 0;
+      const used = totalChildMain + totalGap;
+      let cursor = pad.left;
+      let betweenGap = gap;
+      if (justify === 'center') cursor = pad.left + (contentW - used) / 2;
+      else if (justify === 'end') cursor = pad.left + (contentW - used);
+      else if (justify === 'space_between' && kids.length > 1) {
+        betweenGap = (contentW - totalChildMain) / (kids.length - 1);
+        cursor = pad.left;
+      } else if (justify === 'space_around' && kids.length > 1) {
+        betweenGap = (contentW - totalChildMain) / kids.length;
+        cursor = pad.left + betweenGap / 2;
+      }
+      for (let i = 0; i < kids.length; i++) {
+        const c = kids[i];
+        c.absX = parent.absX + cursor;
+        let cross = pad.top;
+        if (align === 'center') cross = pad.top + (contentH - c.height) / 2;
+        else if (align === 'end') cross = pad.top + (contentH - c.height);
+        c.absY = parent.absY + cross;
+        cursor += c.width + (i < kids.length - 1 ? betweenGap : 0);
+      }
+    } else if (layout === 'vertical') {
+      const totalChildMain = kids.reduce((acc, c) => acc + c.height, 0);
+      const totalGap = kids.length > 1 ? gap * (kids.length - 1) : 0;
+      const used = totalChildMain + totalGap;
+      let cursor = pad.top;
+      let betweenGap = gap;
+      if (justify === 'center') cursor = pad.top + (contentH - used) / 2;
+      else if (justify === 'end') cursor = pad.top + (contentH - used);
+      else if (justify === 'space_between' && kids.length > 1) {
+        betweenGap = (contentH - totalChildMain) / (kids.length - 1);
+        cursor = pad.top;
+      } else if (justify === 'space_around' && kids.length > 1) {
+        betweenGap = (contentH - totalChildMain) / kids.length;
+        cursor = pad.top + betweenGap / 2;
+      }
+      for (let i = 0; i < kids.length; i++) {
+        const c = kids[i];
+        c.absY = parent.absY + cursor;
+        let cross = pad.left;
+        if (align === 'center') cross = pad.left + (contentW - c.width) / 2;
+        else if (align === 'end') cross = pad.left + (contentW - c.width);
+        c.absX = parent.absX + cross;
+        cursor += c.height + (i < kids.length - 1 ? betweenGap : 0);
+      }
+    } else {
+      // Fix 2: layout === 'none' — apply Figma-style constraints when present.
+      for (const c of kids) {
+        const constraints = (c.node as any).constraints as import('../canvas/types').Constraints | undefined;
+        if (constraints) {
+          c.absX = parent.absX + applyConstraintH(constraints.horizontal, num(c.node.x, 0), c.width, contentW);
+          c.absY = parent.absY + applyConstraintV(constraints.vertical, num(c.node.y, 0), c.height, contentH);
+        } else {
+          c.absX = parent.absX + num(c.node.x, 0);
+          c.absY = parent.absY + num(c.node.y, 0);
+        }
+      }
     }
-  } else if (layout === 'vertical') {
-    const totalChildMain = children.reduce((acc, c) => acc + c.height, 0);
-    const totalGap = children.length > 1 ? gap * (children.length - 1) : 0;
-    const used = totalChildMain + totalGap;
-    let cursor = pad.top;
-    let betweenGap = gap;
-    if (justify === 'center') cursor = pad.top + (contentH - used) / 2;
-    else if (justify === 'end') cursor = pad.top + (contentH - used);
-    else if (justify === 'space_between' && children.length > 1) {
-      betweenGap = (contentH - totalChildMain) / (children.length - 1);
-      cursor = pad.top;
-    } else if (justify === 'space_around' && children.length > 1) {
-      betweenGap = (contentH - totalChildMain) / children.length;
-      cursor = pad.top + betweenGap / 2;
-    }
-    for (let i = 0; i < children.length; i++) {
-      const c = children[i];
-      c.absY = parent.absY + cursor;
-      let cross = pad.left;
-      if (align === 'center') cross = pad.left + (contentW - c.width) / 2;
-      else if (align === 'end') cross = pad.left + (contentW - c.width);
-      c.absX = parent.absX + cross;
-      cursor += c.height + (i < children.length - 1 ? betweenGap : 0);
-    }
-  } else {
-    // layout === 'none' or undefined: children keep their own x/y (relative to parent).
-    for (const c of children) {
-      c.absX = parent.absX + num(c.node.x, 0);
-      c.absY = parent.absY + num(c.node.y, 0);
-    }
+  };
+
+  layoutFlow(flowChildren);
+
+  // Fix 1: position absolute children using their own x/y relative to parent.
+  for (const c of absChildren) {
+    c.absX = parent.absX + num(c.node.x, 0);
+    c.absY = parent.absY + num(c.node.y, 0);
   }
 }
 
@@ -465,15 +570,9 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
     for (const rn of nodes) {
       if (rn._kids && rn._kids.length > 0) {
         const layout = (rn.node as PenLayout).layout;
-        if (layout && layout !== 'none') {
-          layoutChildren(rn, rn._kids, layout);
-        } else {
-          // Absolute positioning: children use their x/y relative to parent.
-          for (const k of rn._kids) {
-            k.absX = rn.absX + num(k.node.x, 0);
-            k.absY = rn.absY + num(k.node.y, 0);
-          }
-        }
+        // Both flex and absolute-positioning paths now go through layoutChildren
+        // (which handles constraints in the 'none' branch).
+        layoutChildren(rn, rn._kids, layout ?? 'none');
       }
     }
 
@@ -550,6 +649,8 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
         theme: rn.theme,
         // Figma-style layout constraints (passed through from the .pen node).
         constraints: (n as any).constraints ?? null,
+        // Fix 3: clip — only set when explicitly true (undefined otherwise).
+        clip: (n as any).clip === true ? true : undefined,
         // ---- Figma ontology extension fields (passed through from .pen node) ----
         componentPropertyDefinitions: (n as any).componentPropertyDefinitions ?? null,
         componentProperties: (n as any).componentProperties ?? null,

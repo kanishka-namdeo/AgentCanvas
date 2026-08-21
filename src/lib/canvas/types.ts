@@ -138,6 +138,9 @@ export interface Layer {
   /// Figma-style layout constraints (left/right/center/scale per axis). Stored
   /// on the .pen node; surfaced here so the Properties panel can edit them.
   constraints?: Constraints | null;
+  /// Whether this node's children should be clipped to its bounds.
+  /// Surfaces the .pen `clip` property for frames/components.
+  clip?: boolean;
   // ---- Figma ontology extension fields (Phase 1) ----
   componentPropertyDefinitions?: import('../pen/types').PenComponentPropertyDefinitions | null;
   componentProperties?: import('../pen/types').PenComponentPropertyValues | null;
