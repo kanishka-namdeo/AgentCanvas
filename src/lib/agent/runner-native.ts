@@ -82,6 +82,17 @@ import {
   buildSystemPrompt,
   buildSubAgentLLMClient,
 } from './runner-legacy';
+// Plugin integration.
+import {
+  getEnabledPluginTools,
+  getEnabledPluginToolNames,
+} from './plugins';
+import { setEventSink } from './plugins/event-bus';
+import { setActiveSession as setTodoActiveSession } from './plugins/todo';
+import { setActiveSession as setGoalActiveSession } from './plugins/goal-list-loop-audit';
+import { setActiveSession as setBackgroundTaskActiveSession } from './plugins/background-tasks';
+import { setActiveLLM as setSubagentActiveLLM, setActiveCanvas as setSubagentActiveCanvas } from './plugins/subagents';
+import { getMemoryContextForPrompt } from './plugins/memory';
 
 // ---- Build the in-memory resource loader ----------------------------------
 //
@@ -157,7 +168,18 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const canvasTools = createCanvasTools(ctx);
   const penTools = createPenTools(ctx);
   const figmaTools = createFigmaTools(ctx);
-  const allTools: ToolDefinition[] = [...canvasTools, ...penTools, ...figmaTools] as unknown as ToolDefinition[];
+  // Plugin tools (ask_user_question, todo, memory, mega-compact,
+  // goal-list-loop-audit, mcp-adapter, background-tasks, subagents).
+  // These are added to the customTools array alongside the canvas tools
+  // and always-available (not subject to skill filtering).
+  const pluginTools = getEnabledPluginTools(settings);
+  const allTools: ToolDefinition[] = [
+    ...canvasTools,
+    ...penTools,
+    ...figmaTools,
+    ...pluginTools,
+  ] as unknown as ToolDefinition[];
+  const pluginToolNames = getEnabledPluginToolNames(settings);
 
   // 3. Build a provider-aware LLM client for the sub-agents (web-research,
   //    design-critic). The main agent uses pi-ai's Model below — but the
@@ -211,13 +233,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
 
   const activeCategory: SkillCategory = classification.category;
 
-  // 5. Filter the tool set to the active skill (plus always-on pen_* + figma_*).
-  //    We use the same filter as the legacy runner, but applied to ToolDefinition[]
-  //    instead of OpenAI tool specs.
+  // 5. Filter the tool set to the active skill (plus always-on pen_* + figma_*
+  //    + all plugin tools). Plugin tools are always available regardless of
+  //    the active skill — they're cross-cutting (ask_user_question, todo,
+  //    memory, etc.) and the agent should be able to use them in any context.
   const allowedToolNames = new Set<string>([
     ...getToolNamesForCategory(activeCategory),
     ...PEN_TOOL_NAMES,
     ...FIGMA_TOOL_NAMES,
+    ...pluginToolNames,
   ]);
   const filteredTools = allTools.filter((t) => allowedToolNames.has(t.name));
 
@@ -319,7 +343,8 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   }
 
   // 8. Build the system prompt (identical to legacy runner — uses the same
-  //    template, skill metadata, plan section, and canvas snapshot).
+  //    template, skill metadata, plan section, and canvas snapshot). Plus
+  //    memory context (long-term MEMORY.md + scratchpad + today's log).
   const skillMetadata = formatSkillMetadataForPrompt();
   const skillBody = formatSkillBodyForPrompt(activeCategory);
   const planSection = plan
@@ -342,9 +367,23 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // File skills are optional.
   }
 
+  // Long-term memory context (from the memory plugin — MEMORY.md + scratchpad
+  // + today's + yesterday's daily logs). This gives the agent persistent
+  // recall of user preferences and past design decisions.
+  let memorySection = '';
+  try {
+    const memCtx = getMemoryContextForPrompt();
+    if (memCtx) {
+      memorySection = '\n\n=== LONG-TERM MEMORY (from memory plugin) ==================================\n' + memCtx;
+    }
+  } catch {
+    // Memory plugin failed to load — non-fatal.
+  }
+
   const systemContent =
     buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst) +
-    fileSkillsSection;
+    fileSkillsSection +
+    memorySection;
 
   // 9. Resolve the pi-ai Model + ModelRuntime from settings.
   //    Throws if no auth is configured (e.g. user picked OpenAI but didn't
@@ -412,6 +451,24 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const { queue, unsubscribe } = subscribeAndTranslate((listener) =>
     session!.subscribe(listener),
   );
+
+  // 12b. Set per-turn plugin state.
+  //      - Event sink: lets plugin tools emit SyncEvents through the same
+  //        stream the runner uses (so ask_user_question, todo, mcp, etc.
+  //        can fire UI events mid-turn).
+  //      - Active session: lets the todo + goal-list + background-tasks
+  //        plugins track per-session state.
+  //      - Active LLM + canvas: lets the subagents plugin pass these to
+  //        its dispatched sub-agents.
+  const restoreEventSink = setEventSink((event) => {
+    queue.push([{ kind: 'agent_event', event }]);
+  });
+  const sessionId = opts.documentId ?? `session-${Date.now()}`;
+  setTodoActiveSession(sessionId);
+  setGoalActiveSession(sessionId);
+  setBackgroundTaskActiveSession(sessionId);
+  setSubagentActiveLLM(subAgentLLM ?? null);
+  setSubagentActiveCanvas(canvas);
 
   // 13. Build the user message. If we have a web-research summary, inject
   //     it as context (identical to legacy runner).
@@ -489,6 +546,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   } finally {
     unsubscribe();
     queue.close();
+    restoreEventSink();
     try {
       session.dispose();
     } catch {

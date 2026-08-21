@@ -100,6 +100,13 @@ export interface AppSettings {
   autoArchiveIdleAfter: AutoArchiveIdleAfter;
   /// UI density. 'comfortable' = current spacing; 'compact' = tighter spacing.
   density: Density;
+
+  // ── Phase 5: Plugins ─────────────────────────────────────────────────────
+  /// List of enabled plugin IDs (from Settings → Plugins). When omitted,
+  /// each plugin's `defaultEnabled` flag is used.
+  enabledPlugins?: string[];
+  /// MCP server configurations (from Settings → MCP Servers).
+  mcpServers?: McpServerConfig[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -139,6 +146,34 @@ export interface AgentRunSettings {
   apiKey: string;
   modelName: string;
   apiBaseUrl: string;
+  /// List of enabled plugin IDs. When omitted, each plugin's `defaultEnabled`
+  /// flag is used. Sourced from the Settings → Plugins panel.
+  enabledPlugins?: string[];
+  /// MCP server configurations (for the mcp-adapter plugin). Each entry is
+  /// a server the user has added via Settings → MCP Servers.
+  mcpServers?: McpServerConfig[];
+}
+
+/// Configuration for an MCP server connection (used by the mcp-adapter plugin).
+export interface McpServerConfig {
+  id: string;
+  name: string;
+  transport: 'stdio' | 'sse' | 'http';
+  /// For stdio: the command to run (e.g. "npx"). For sse/http: the URL.
+  command?: string;
+  args?: string[];
+  url?: string;
+  /// Optional env vars to pass to the server process.
+  env?: Record<string, string>;
+  /// Whether the server should auto-connect on startup.
+  autoConnect?: boolean;
+  // ---- Runtime state (set by the mcp-adapter, not by the user) -------------
+  /// Current connection status. Undefined = never connected.
+  status?: 'connected' | 'disconnected' | 'error';
+  /// Status message (e.g. error description or tool count).
+  message?: string;
+  /// Number of tools the server exposes (when connected).
+  toolCount?: number;
 }
 
 /// Extract the agent-run-relevant subset from the full settings object.
@@ -155,6 +190,8 @@ export function agentRunSettings(s: AppSettings): AgentRunSettings {
     apiKey: s.apiKey,
     modelName: s.modelName,
     apiBaseUrl: s.apiBaseUrl,
+    enabledPlugins: s.enabledPlugins,
+    mcpServers: s.mcpServers,
   };
 }
 

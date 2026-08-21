@@ -100,6 +100,44 @@ interface CanvasState {
   /// shortcut in Canvas.tsx overrides this temporarily.
   toolMode: 'select' | 'pan';
 
+  // ---- Plugin state (Phase 5) ---------------------------------------------
+  /// Pending ask_user_question — set when the agent emits
+  /// `agent:ask_user_question`. The AgentPanel renders a dialog from this.
+  /// Cleared when the user submits answers (POST /api/agent/answers).
+  pendingQuestion: {
+    toolCallId: string;
+    questions: Array<{
+      question: string;
+      header?: string;
+      multiSelect?: boolean;
+      options: Array<{ label: string; description?: string }>;
+    }>;
+  } | null;
+  /// Live todo list — updated by `agent:todo_update` events from the
+  /// todo plugin. Rendered as an overlay in the AgentPanel.
+  todos: Array<{
+    id: string;
+    text: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'blocked';
+    note?: string;
+  }>;
+  /// Background tasks — tracked here for the AgentPanel's task list.
+  backgroundTasks: Array<{
+    taskId: string;
+    taskType: string;
+    description: string;
+    status: 'started' | 'complete';
+    success?: boolean;
+    summary?: string;
+  }>;
+  /// MCP server statuses — tracked here for the Settings → MCP Servers panel.
+  mcpServers: Array<{
+    serverId: string;
+    status: 'connected' | 'disconnected' | 'error';
+    message?: string;
+    toolCount?: number;
+  }>;
+
   // Actions ---------------------------------------------------------------
   init: (documentId: string) => () => void;
   sendPatch: (patch: CanvasPatch) => void;
@@ -135,6 +173,13 @@ interface CanvasState {
   _onSync: (event: SyncEvent) => void;
   /// Internal — rebuild `turns` from session store messages.
   _syncTurnsFromSession: () => void;
+
+  // ---- Plugin actions (Phase 5) -------------------------------------------
+  /// Submit answers (or cancel) a pending ask_user_question. POSTs to
+  /// /api/agent/answers, which resolves the pending tool call on the server.
+  submitQuestionAnswers: (toolCallId: string, answers: string[][], cancelled: boolean) => Promise<void>;
+  /// Clear the todo list (client-side — does NOT affect the server's todo state).
+  clearTodos: () => void;
 }
 
 let highlightTimeout: any;
@@ -165,6 +210,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   undoStack: [],
   redoStack: [],
   toolMode: 'select',
+
+  // Plugin state (Phase 5)
+  pendingQuestion: null,
+  todos: [],
+  backgroundTasks: [],
+  mcpServers: [],
 
   init: (documentId) => {
     // Hydrate the persisted session store from localStorage (client-only).
@@ -909,11 +960,79 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         });
         break;
       }
+      // ---- Plugin events (Phase 5) ------------------------------------------
+      case 'agent:ask_user_question': {
+        // The agent is asking the user a structured question. Store it;
+        // the AgentPanel renders a dialog. Cleared when the user submits
+        // answers via submitQuestionAnswers().
+        set({ pendingQuestion: { toolCallId: event.toolCallId, questions: event.questions } });
+        break;
+      }
+      case 'agent:ask_user_answered': {
+        // The user submitted answers (or cancelled). Clear the pending question.
+        set({ pendingQuestion: null });
+        break;
+      }
+      case 'agent:todo_update': {
+        set({ todos: event.todos });
+        break;
+      }
+      case 'agent:background_task_started': {
+        set((s) => ({
+          backgroundTasks: [
+            ...s.backgroundTasks.filter((t) => t.taskId !== event.taskId),
+            { taskId: event.taskId, taskType: event.taskType, description: event.description, status: 'started' as const },
+          ],
+        }));
+        break;
+      }
+      case 'agent:background_task_complete': {
+        set((s) => ({
+          backgroundTasks: [
+            ...s.backgroundTasks.filter((t) => t.taskId !== event.taskId),
+            {
+              taskId: event.taskId,
+              taskType: s.backgroundTasks.find((t) => t.taskId === event.taskId)?.taskType ?? 'unknown',
+              description: s.backgroundTasks.find((t) => t.taskId === event.taskId)?.description ?? '',
+              status: 'complete' as const,
+              success: event.success,
+              summary: event.summary,
+            },
+          ],
+        }));
+        break;
+      }
+      case 'agent:mcp_server_status': {
+        set((s) => ({
+          mcpServers: [
+            ...s.mcpServers.filter((m) => m.serverId !== event.serverId),
+            { serverId: event.serverId, status: event.status, message: event.message, toolCount: event.toolCount },
+          ],
+        }));
+        break;
+      }
       default: {
         // Ignore unknown event types.
       }
     }
   },
+
+  // ---- Plugin actions (Phase 5) -------------------------------------------
+  submitQuestionAnswers: async (toolCallId, answers, cancelled) => {
+    set({ pendingQuestion: null });
+    try {
+      await fetch('/api/agent/answers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toolCallId, answers, cancelled }),
+      });
+    } catch (err) {
+      // Network error — the server's pending question will time out after 5 min.
+      console.error('Failed to submit question answers:', err);
+    }
+  },
+
+  clearTodos: () => set({ todos: [] }),
 }));
 
 /// Helper — find a shape by id.

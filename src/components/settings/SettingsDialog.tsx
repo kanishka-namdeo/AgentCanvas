@@ -35,13 +35,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Bot, KeyRound, Sliders, History, Palette, ShieldCheck,
   Keyboard, RotateCcw, Download, Trash2, AlertTriangle,
+  Plug, Server, Plus, X, CheckCircle2, XCircle, Loader2,
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings/store';
 import {
   DEFAULT_SETTINGS, PALETTES,
   type LLMProvider, type SnapshotCadence, type SkillSelectionMode,
   type AutoArchiveIdleAfter, type Density, type ThemePreference,
-  type DefaultPalette, type ThinkingLevel,
+  type DefaultPalette, type ThinkingLevel, type McpServerConfig,
   normalizeLLMProvider,
   providerRequiresApiKey,
   providerDefaultModel,
@@ -53,7 +54,7 @@ import { useCanvasStore } from '@/lib/canvas/store';
 import { toast } from 'sonner';
 
 type Section =
-  | 'agent' | 'llm' | 'sessions' | 'appearance' | 'data' | 'shortcuts';
+  | 'agent' | 'llm' | 'sessions' | 'appearance' | 'data' | 'shortcuts' | 'plugins' | 'mcp';
 
 const SECTIONS: { id: Section; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'agent',       label: 'Agent',        icon: Bot },
@@ -61,6 +62,8 @@ const SECTIONS: { id: Section; label: string; icon: React.ComponentType<{ classN
   { id: 'sessions',    label: 'Sessions',     icon: History },
   { id: 'appearance',  label: 'Appearance',   icon: Palette },
   { id: 'data',        label: 'Data',         icon: ShieldCheck },
+  { id: 'plugins',     label: 'Plugins',      icon: Plug },
+  { id: 'mcp',         label: 'MCP Servers',  icon: Server },
   { id: 'shortcuts',   label: 'Shortcuts',    icon: Keyboard },
 ];
 
@@ -127,6 +130,8 @@ export function SettingsDialog({
               {section === 'sessions' && <SessionsSection />}
               {section === 'appearance' && <AppearanceSection />}
               {section === 'data' && <DataSection />}
+              {section === 'plugins' && <PluginsSection />}
+              {section === 'mcp' && <McpSection />}
               {section === 'shortcuts' && <ShortcutsSection />}
             </div>
           </ScrollArea>
@@ -898,6 +903,328 @@ function ShortcutsSection() {
           </div>
         ))}
       </div>
+    </>
+  );
+}
+
+// ── Section 7: Plugins ────────────────────────────────────────────────────
+//
+// Toggle which plugins are enabled. Each plugin contributes tools to the
+// agent's customTools array. Disabled plugins are removed from the agent's
+// tool surface entirely.
+
+interface PluginInfo {
+  pluginId: string;
+  pluginName: string;
+  description: string;
+  category: 'interaction' | 'memory' | 'context' | 'orchestration' | 'external';
+  defaultEnabled: boolean;
+  toolCount: number;
+  toolNames: string[];
+}
+
+const CATEGORY_LABELS: Record<PluginInfo['category'], string> = {
+  interaction: 'Interaction',
+  memory: 'Memory',
+  context: 'Context',
+  orchestration: 'Orchestration',
+  external: 'External',
+};
+
+function PluginsSection() {
+  const settings = useSettings();
+  const [plugins, setPlugins] = useState<PluginInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/plugins')
+      .then((r) => r.json())
+      .then((data) => {
+        setPlugins(data.plugins ?? []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const enabledSet = new Set(settings.enabledPlugins ?? plugins.filter((p) => p.defaultEnabled).map((p) => p.pluginId));
+
+  const togglePlugin = (pluginId: string, enabled: boolean) => {
+    const current = new Set(settings.enabledPlugins ?? plugins.filter((p) => p.defaultEnabled).map((p) => p.pluginId));
+    if (enabled) current.add(pluginId);
+    else current.delete(pluginId);
+    useSettings.getState().set('enabledPlugins', Array.from(current));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-[12px] ac-text-3">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        Loading plugins...
+      </div>
+    );
+  }
+
+  // Group plugins by category.
+  const byCategory = new Map<PluginInfo['category'], PluginInfo[]>();
+  for (const p of plugins) {
+    const arr = byCategory.get(p.category) ?? [];
+    arr.push(p);
+    byCategory.set(p.category, arr);
+  }
+
+  return (
+    <>
+      <h2 className="text-[13px] font-semibold ac-text-1 mb-1">Plugins</h2>
+      <p className="text-[11px] ac-text-4 mb-4 leading-relaxed">
+        Toggle which capabilities the agent has access to. Disabled plugins are
+        removed from the agent&apos;s tool surface entirely.
+      </p>
+      <div className="space-y-5">
+        {Array.from(byCategory.entries()).map(([category, plist]) => (
+          <div key={category}>
+            <h3 className="text-[11px] font-medium ac-text-3 mb-2 uppercase tracking-wide">
+              {CATEGORY_LABELS[category]}
+            </h3>
+            <div className="space-y-2">
+              {plist.map((p) => {
+                const enabled = enabledSet.has(p.pluginId);
+                return (
+                  <div
+                    key={p.pluginId}
+                    className="flex items-start justify-between gap-3 p-3 rounded-md border ac-border-subtle ac-surface-1"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] font-medium ac-text-1">{p.pluginName}</span>
+                        <span className="text-[10px] ac-text-4 px-1.5 py-0.5 rounded ac-surface-2">
+                          {p.toolCount} tool{p.toolCount === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] ac-text-3 mt-1 leading-relaxed">{p.description}</p>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {p.toolNames.slice(0, 6).map((t) => (
+                          <code key={t} className="text-[10px] ac-text-4 ac-surface-2 px-1.5 py-0.5 rounded font-mono">
+                            {t}
+                          </code>
+                        ))}
+                        {p.toolNames.length > 6 && (
+                          <span className="text-[10px] ac-text-4">+{p.toolNames.length - 6} more</span>
+                        )}
+                      </div>
+                    </div>
+                    <Switch checked={enabled} onCheckedChange={(v) => togglePlugin(p.pluginId, v)} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ── Section 8: MCP Servers ────────────────────────────────────────────────
+//
+// Configure Model Context Protocol server connections. The agent uses
+// these via the mcp-adapter plugin to access external systems like Figma,
+// GitHub, Notion, Style Dictionary, or the local filesystem.
+
+interface McpServerEntry extends McpServerConfig {}
+
+function McpSection() {
+  const settings = useSettings();
+  const servers = settings.mcpServers ?? [];
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newServer, setNewServer] = useState<McpServerEntry>({
+    id: '',
+    name: '',
+    transport: 'stdio',
+    command: '',
+    autoConnect: false,
+  });
+
+  const addServer = () => {
+    if (!newServer.id || !newServer.name) {
+      toast.error('Server id and name are required');
+      return;
+    }
+    const updated = [...servers, newServer];
+    useSettings.getState().set('mcpServers', updated);
+    setNewServer({ id: '', name: '', transport: 'stdio', command: '', autoConnect: false });
+    setShowAddForm(false);
+    toast.success(`Added MCP server "${newServer.name}"`);
+  };
+
+  const removeServer = (id: string) => {
+    const updated = servers.filter((s) => s.id !== id);
+    useSettings.getState().set('mcpServers', updated);
+    toast.success('Removed MCP server');
+  };
+
+  const connectServer = async (server: McpServerEntry) => {
+    try {
+      const r = await fetch(`/api/mcp/${encodeURIComponent(server.id)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'connect', name: server.name, transport: server.transport }),
+      });
+      if (!r.ok) throw new Error('Failed to connect');
+      toast.success(`Connected to "${server.name}"`);
+    } catch (err: any) {
+      toast.error(`Failed to connect: ${err.message}`);
+    }
+  };
+
+  const disconnectServer = async (id: string) => {
+    try {
+      await fetch(`/api/mcp/${encodeURIComponent(id)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'disconnect' }),
+      });
+      toast.success('Disconnected');
+    } catch (err: any) {
+      toast.error(`Failed to disconnect: ${err.message}`);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-[13px] font-semibold ac-text-1">MCP Servers</h2>
+        <Button size="sm" variant="outline" onClick={() => setShowAddForm(!showAddForm)} className="h-7 gap-1">
+          <Plus className="h-3 w-3" />
+          Add server
+        </Button>
+      </div>
+      <p className="text-[11px] ac-text-4 mb-4 leading-relaxed">
+        Connect to Model Context Protocol servers. The agent can then read/write
+        real Figma files, GitHub issues, Notion pages, or the local filesystem
+        via the <code className="font-mono">mcp_*</code> tools.
+      </p>
+
+      {showAddForm && (
+        <div className="mb-4 p-3 rounded-md border ac-border-default ac-surface-1 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[11px] ac-text-3">Server ID</Label>
+              <Input
+                value={newServer.id}
+                onChange={(e) => setNewServer({ ...newServer, id: e.target.value })}
+                placeholder="figma"
+                className="h-7 text-[12px]"
+              />
+            </div>
+            <div>
+              <Label className="text-[11px] ac-text-3">Name</Label>
+              <Input
+                value={newServer.name}
+                onChange={(e) => setNewServer({ ...newServer, name: e.target.value })}
+                placeholder="Figma MCP"
+                className="h-7 text-[12px]"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-[11px] ac-text-3">Transport</Label>
+            <Select
+              value={newServer.transport}
+              onValueChange={(v) => setNewServer({ ...newServer, transport: v as McpServerEntry['transport'] })}
+            >
+              <SelectTrigger className="h-7 text-[12px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stdio">stdio (local process)</SelectItem>
+                <SelectItem value="sse">SSE (HTTP stream)</SelectItem>
+                <SelectItem value="http">HTTP</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {newServer.transport === 'stdio' ? (
+            <div>
+              <Label className="text-[11px] ac-text-3">Command</Label>
+              <Input
+                value={newServer.command ?? ''}
+                onChange={(e) => setNewServer({ ...newServer, command: e.target.value })}
+                placeholder="npx -y @modelcontextprotocol/server-figma"
+                className="h-7 text-[12px] font-mono"
+              />
+            </div>
+          ) : (
+            <div>
+              <Label className="text-[11px] ac-text-3">URL</Label>
+              <Input
+                value={newServer.url ?? ''}
+                onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
+                placeholder="https://mcp.example.com/sse"
+                className="h-7 text-[12px] font-mono"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={newServer.autoConnect ?? false}
+              onCheckedChange={(v) => setNewServer({ ...newServer, autoConnect: v })}
+            />
+            <Label className="text-[11px] ac-text-3">Auto-connect on startup</Label>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={addServer} className="h-7">Add</Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowAddForm(false)} className="h-7">Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {servers.length === 0 ? (
+        <div className="text-[12px] ac-text-4 p-4 text-center border border-dashed ac-border-subtle rounded-md">
+          No MCP servers configured. Click &quot;Add server&quot; to connect to Figma, GitHub, Notion, etc.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {servers.map((s) => (
+            <div key={s.id} className="p-3 rounded-md border ac-border-subtle ac-surface-1">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-medium ac-text-1">{s.name}</span>
+                    <span className="text-[10px] ac-text-4 px-1.5 py-0.5 rounded ac-surface-2">{s.transport}</span>
+                    {s.status === 'connected' && (
+                      <span className="flex items-center gap-0.5 text-[10px] text-emerald-600">
+                        <CheckCircle2 className="h-3 w-3" /> connected{s.toolCount ? ` · ${s.toolCount} tools` : ''}
+                      </span>
+                    )}
+                    {s.status === 'error' && (
+                      <span className="flex items-center gap-0.5 text-[10px] text-red-600">
+                        <XCircle className="h-3 w-3" /> error
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] ac-text-3 mt-0.5 font-mono">
+                    {s.transport === 'stdio' ? s.command : s.url}
+                  </p>
+                  {s.message && (
+                    <p className="text-[10px] ac-text-4 mt-1">{s.message}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  {s.status === 'connected' ? (
+                    <Button size="sm" variant="ghost" onClick={() => disconnectServer(s.id)} className="h-7 text-[11px]">
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="ghost" onClick={() => connectServer(s)} className="h-7 text-[11px]">
+                      Connect
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => removeServer(s.id)} className="h-7 text-[11px] text-red-600">
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }

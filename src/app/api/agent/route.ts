@@ -58,6 +58,9 @@ export async function POST(req: NextRequest) {
         apiKey: typeof body.settings.apiKey === 'string' ? body.settings.apiKey : '',
         modelName: typeof body.settings.modelName === 'string' ? body.settings.modelName : '',
         apiBaseUrl: typeof body.settings.apiBaseUrl === 'string' ? body.settings.apiBaseUrl : '',
+        // Plugin configuration (Phase 5).
+        enabledPlugins: Array.isArray(body.settings.enabledPlugins) ? body.settings.enabledPlugins : undefined,
+        mcpServers: Array.isArray(body.settings.mcpServers) ? body.settings.mcpServers : undefined,
       }
     : undefined;
 

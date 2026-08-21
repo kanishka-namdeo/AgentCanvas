@@ -37,6 +37,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { toast } from 'sonner';
+import { PluginUI } from './PluginUI';
 import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers, Square,
@@ -223,6 +224,9 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
         </div>
       </div>
       )}
+
+      {/* Plugin UI (todo overlay, background tasks, ask-user-question dialog) */}
+      <PluginUI />
 
       {/* Conversation */}
       <ScrollArea ref={scrollRef} className="flex-1 min-h-0 ac-hide-scrollbar">

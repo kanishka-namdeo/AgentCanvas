@@ -400,6 +400,31 @@ export type SyncEvent =
   | { type: 'agent:subagent_dispatch'; subAgentType: string; task: string }
   | { type: 'agent:subagent_result'; subAgentType: string; success: boolean; summary: string; toolCalls: number }
   | { type: 'agent:context_update'; tokenCount: number; contextWindow: number; compacted?: boolean }
+  // ---- Plugin events (Phase 5) ------------------------------------------
+  // Emitted by the ask_user_question tool: blocks the agent mid-turn while
+  // the user picks from typed options. The frontend renders a dialog; the
+  // user's answers are returned to the agent via the question-answers API.
+  | { type: 'agent:ask_user_question'; toolCallId: string; questions: Array<{
+      question: string; header?: string; multiSelect?: boolean;
+      options: Array<{ label: string; description?: string }>;
+    }> }
+  // Emitted when the user submits answers (or cancels) to a pending
+  // ask_user_question. The frontend POSTs to /api/agent/answers; the runner
+  // resolves the pending tool call and continues the agent loop.
+  | { type: 'agent:ask_user_answered'; toolCallId: string; answers: string[][]; cancelled: boolean }
+  // Emitted by the todo tool: a structured task list overlay that survives
+  // compaction. The frontend renders the live list in the AgentPanel.
+  | { type: 'agent:todo_update'; todos: Array<{
+      id: string; text: string; status: 'pending' | 'in_progress' | 'completed' | 'blocked';
+      note?: string;
+    }> }
+  // Emitted by background_tasks tool: a task was launched in the background.
+  // The frontend can poll /api/agent/background/<id> for status.
+  | { type: 'agent:background_task_started'; taskId: string; taskType: string; description: string }
+  | { type: 'agent:background_task_complete'; taskId: string; success: boolean; summary: string; result?: unknown }
+  // Emitted by MCP adapter integration: a server connection was established
+  // (or failed). The frontend's MCP settings panel subscribes to these.
+  | { type: 'agent:mcp_server_status'; serverId: string; status: 'connected' | 'disconnected' | 'error'; message?: string; toolCount?: number }
   | { type: 'presence'; viewerCount: number };
 
 export type ClientEvent =
