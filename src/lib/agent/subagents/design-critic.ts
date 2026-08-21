@@ -22,7 +22,7 @@
 import ZAI from 'z-ai-web-dev-sdk';
 import type { CanvasDocument, Shape } from '../../canvas/types';
 import type { SubAgentResult, SubAgentParams } from '../skills/types';
-import type { LLMClient } from '../runner';
+import type { LLMClientLike as LLMClient } from '../llm-retry';
 import { callLLMWithRetry } from '../llm-retry';
 
 // ---- Sub-agent system prompt ----------------------------------------------
@@ -112,7 +112,10 @@ export async function dispatchDesignCriticSubAgent(
   const startTime = Date.now();
 
   try {
-    const zai = (await ZAI.create()) as unknown as LLMClient;
+    // Provider-aware LLM client construction (mirrors web-research.ts).
+    // Use the caller-supplied client if provided; otherwise fall back to
+    // ZAI.create() for the sandbox auto-credential path.
+    const llm: LLMClient = params.llm ?? ((await ZAI.create()) as unknown as LLMClient);
 
     // Serialize the canvas snapshot for the critic.
     const snapshot = serializeCanvasForCritic(params.canvas);
@@ -139,7 +142,7 @@ Review this design critically. End your response with "CRITIQUE:" and "SCORE:" a
 
     for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
       const completion = await callLLMWithRetry(
-        zai as any,
+        llm as any,
         {
           messages: messages as any,
           // No tools — the critic is pure analysis.

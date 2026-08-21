@@ -75,3 +75,5 @@ dev.log
 server.log
 # Design-pattern memory (user-specific RAG store)
 data/
+dev.pid
+dev.log

@@ -18,6 +18,7 @@
 // our scale (we have 7 skills, each self-contained).
 
 import type { CanvasDocument } from '../../canvas/types';
+import type { LLMClientLike } from '../llm-retry';
 
 // ---- Skill category --------------------------------------------------------
 //
@@ -135,4 +136,13 @@ export interface SubAgentParams {
   canvas: CanvasDocument;
   /// Optional abort signal.
   signal?: AbortSignal;
+  /// Optional LLM client to use for this sub-agent's own LLM calls.
+  /// When omitted, the sub-agent falls back to `ZAI.create()` (the
+  /// z-ai-web-dev-sdk sandbox auto-credential path).
+  ///
+  /// This is what makes the sub-agent "provider-aware": the main runner
+  /// constructs the LLM client according to user settings (OpenAI, Anthropic,
+  /// etc.) and passes it here so the sub-agent uses the same provider
+  /// instead of silently always hitting z.ai.
+  llm?: LLMClientLike;
 }

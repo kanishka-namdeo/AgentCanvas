@@ -24,7 +24,7 @@ import ZAI from 'z-ai-web-dev-sdk';
 import { webSearch, formatSearchForLLM } from '../../web/search';
 import { webFetch, formatFetchForLLM } from '../../web/fetch';
 import type { SubAgentResult, SubAgentParams } from '../skills/types';
-import type { LLMClient } from '../runner';
+import type { LLMClientLike as LLMClient } from '../llm-retry';
 import { callLLMWithRetry } from '../llm-retry';
 
 // ---- Sub-agent system prompt ----------------------------------------------
@@ -71,8 +71,17 @@ export async function dispatchWebResearchSubAgent(
   let toolCallCount = 0;
 
   try {
-    // Create a fresh ZAI client for the sub-agent (separate context).
-    const zai = (await ZAI.create()) as unknown as LLMClient;
+    // Provider-aware LLM client construction.
+    //
+    // The main runner passes its own LLM client via `params.llm` when the
+    // user has configured a specific provider (OpenAI, Anthropic, etc.).
+    // When no client is passed (e.g. legacy callers, or the z.ai sandbox
+    // auto-credential path), fall back to `ZAI.create()` which auto-resolves
+    // credentials from `~/.z-ai-config` / `/etc/.z-ai-config` / sandbox env.
+    //
+    // This preserves the original sandbox behavior while letting production
+    // deployments route the sub-agent through the user's chosen provider.
+    const llm: LLMClient = params.llm ?? ((await ZAI.create()) as unknown as LLMClient);
 
     // The sub-agent's tool specs (only web tools).
     const subAgentTools = [
@@ -125,7 +134,7 @@ export async function dispatchWebResearchSubAgent(
 
     for (let iter = 0; iter < MAX_SUBAGENT_ITERATIONS; iter++) {
       const completion = await callLLMWithRetry(
-        zai as any,
+        llm as any,
         {
           messages: messages as any,
           tools: subAgentTools,

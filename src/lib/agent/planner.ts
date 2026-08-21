@@ -27,18 +27,29 @@ import { callLLMWithRetry } from './llm-retry';
 export interface PlanOptions {
   prompt: string;
   classification: ClassificationResult;
-  llm: LLMClient;
+  /// Optional LLM client. The planner makes a single LLM call to break
+  /// multi-step prompts into ordered steps. If no LLM is provided (e.g.
+  /// the native runner uses pi-ai's Model and doesn't have an OpenAI-shaped
+  /// client readily available), the planner returns null and the runner
+  /// proceeds without a plan — the agent will still execute the task, just
+  /// without an explicit step list to follow.
+  llm?: LLMClient;
   signal?: AbortSignal;
 }
 
 /**
  * Generate a plan for a multi-step task.
  *
- * Returns null if planning is not recommended (single-skill task).
- * Otherwise returns a Plan with ordered steps.
+ * Returns null if planning is not recommended (single-skill task) or if
+ * no LLM is available to generate the plan.
  */
 export async function generatePlan(opts: PlanOptions): Promise<Plan | null> {
   if (!opts.classification.recommendPlan) {
+    return null;
+  }
+  if (!opts.llm) {
+    // No LLM → can't generate a plan. The classifier's recommendPlan flag
+    // is still respected by the runner (it just won't have a step list).
     return null;
   }
 
