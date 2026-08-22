@@ -67,8 +67,11 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
   // both naming schemes — the rest of the app keeps using the legacy IDs
   // in settings, and they get translated here.
   const legacyToPiAiModel: Record<string, string> = {
-    // Our registry says zai's default is glm-4.6, but pi-ai's zai catalog
-    // ships glm-4.7 (the successor). Same model family, slightly newer.
+    // Our registry previously said zai's default is glm-4.6, but pi-ai's zai
+    // catalog ships glm-4.7 (the successor). Existing user settings may still
+    // hold glm-4.6 — map it so their config keeps resolving. The current
+    // default (DEFAULT_SETTINGS.modelName) is glm-5.3, which exists in the
+    // pi-ai catalog directly — no mapping needed.
     'glm-4.6': 'glm-4.7',
   };
   const requestedModelId =
@@ -178,6 +181,16 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
       `Model "${modelId}" not found in provider "${providerId}". ` +
         `Check the model name spelling, or call modelRuntime.getModels("${providerId}") to list available models.`,
     );
+  }
+
+  // ---- Custom endpoint override --------------------------------------------
+  // An explicit apiBaseUrl from settings points the model at the user's own
+  // endpoint (Ollama / LM Studio / vLLM / a corporate proxy). Applied BEFORE
+  // the z.ai sandbox override so the auto-detected sandbox endpoint still
+  // wins when running key-less inside the sandbox (where apiBaseUrl is empty
+  // and ZAI.create() resolves the internal endpoint).
+  if (settings?.apiBaseUrl && !sandboxOverride) {
+    model = { ...model, baseUrl: settings.apiBaseUrl };
   }
 
   // Apply sandbox override: spread a new Model object with the sandbox

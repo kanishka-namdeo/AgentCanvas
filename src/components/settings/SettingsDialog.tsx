@@ -1031,7 +1031,7 @@ function PluginsSection() {
 // these via the mcp-adapter plugin to access external systems like Figma,
 // GitHub, Notion, Style Dictionary, or the local filesystem.
 
-interface McpServerEntry extends McpServerConfig {}
+type McpServerEntry = McpServerConfig;
 
 function McpSection() {
   const settings = useSettings();

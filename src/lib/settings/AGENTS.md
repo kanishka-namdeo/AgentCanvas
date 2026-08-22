@@ -27,7 +27,7 @@ This is the single source of truth for every setting the user can change in the 
 | `themePreference` | `'system' \| 'light' \| 'dark'` | `'system'` | 1 — Appearance |
 | `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'zai'` | 2 — LLM provider |
 | `apiKey` | `string` | `''` | 2 |
-| `modelName` | `string` | `''` | 2 |
+| `modelName` | `string` | `'glm-5.3'` | 2 |
 | `apiBaseUrl` | `string` | `''` | 2 |
 | `snapshotCadence` | `'every-turn' \| 'every-3-turns' \| 'every-5-turns' \| 'manual'` | `'every-turn'` | 2 — Sessions |
 | `maxSessionsRetained` | `number` | `100` | 2 |
@@ -37,6 +37,8 @@ This is the single source of truth for every setting the user can change in the 
 | `density` | `'comfortable' \| 'compact'` | `'comfortable'` | 3 |
 
 `normalizeLLMProvider()` migrates legacy `zai-auto` / `zai-key` / `openai-compatible` values to current registry ids.
+
+**Default LLM (testing)**: `llmProvider='zai'` + `modelName='glm-5.3'` — the flagship in pi-ai's zai catalog, served by the z.ai sandbox auto-credential endpoint (`https://internal-api.z.ai/v1`, resolved at runtime by `pi-ai-model-resolver.ts`). An empty `modelName` also falls back to the registry default (`glm-5.3`). Legacy `glm-4.6` settings map to `glm-4.7`.
 
 ### Agent-run subset (`AgentRunSettings`)
 

@@ -120,7 +120,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   llmProvider: 'zai',
   apiKey: '',
-  modelName: '',
+  // Default model for testing in the z.ai sandbox: glm-5.3 (the flagship in
+  // pi-ai's zai catalog; served by the sandbox auto-credential endpoint —
+  // see pi-ai-model-resolver.ts). Empty string would fall back to the
+  // registry default; we pin it explicitly so Settings shows the real model.
+  modelName: 'glm-5.3',
   apiBaseUrl: '',
 
   snapshotCadence: 'every-turn',

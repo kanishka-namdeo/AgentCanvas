@@ -13,6 +13,9 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 - `screenshot-ui-after.ts` — Playwright script. Captures 5 UI states (initial, hover-session, input-focused, snapshots-tab, runs-expanded) to `download/ui-polish-after/`. Viewport 1600×1000. Run via `bunx tsx scripts/screenshot-ui-after.ts`.
 - `screenshot-polish-pass2.ts` — Playwright script. Captures 8 states covering the three pass-2 deliverables: empty-canvas drop zone, "New chat" hover, session row hover, dropdown menu open, rename dialog, dark-mode empty, dark-mode dropdown, dark-mode rename dialog. Output to `download/polish-pass2/`. Run via `bunx tsx scripts/screenshot-polish-pass2.ts`.
 - `eval-agent.ts` — Evaluation harness for the agent's intent classifier. Runs the keyword classifier against 20 hand-labeled prompts across 7 skill categories + multi-step prompts. Exit 0 if accuracy >= 80%, exit 1 otherwise. Run via `bun run scripts/eval-agent.ts`.
+- `probe-zai-endpoint.ts` — Discovers what the z.ai sandbox LLM endpoint serves: ZAI.create() config shape, direct chat completions with candidate models, and pi-ai's zai model catalog. Run via `bun run scripts/probe-zai-endpoint.ts` (mind 429s — space the calls).
+- `probe-zai-models-2.ts` — Second-pass probe: glm-5.x availability + function-calling capability through the sandbox endpoint (spaced to dodge rate limits).
+- `verify-default-llm.ts` — Verifies the default LLM config end-to-end: resolves DEFAULT_SETTINGS → must be `zai/glm-5.3` via the sandbox endpoint, runs a real completion through `createAgentSession` (production path), and checks the `apiBaseUrl` custom-endpoint override. Exit 0 on success. Run via `bun run scripts/verify-default-llm.ts`.
 - `measure-tool-cost.ts` — Measures the token cost of the agent's tool registry + system prompt. Estimates tokens as chars/4, prints per-tool breakdown sorted by size. Run via `bun run scripts/measure-tool-cost.ts`.
 
 ## Local Contracts
@@ -43,7 +46,8 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 ## Verification
 
 - `bash scripts/start-dev.sh` — should print "Dev server ready after Ns" and exit 0, and the server must still respond in a later tool call (survival is the point of the script).
-- `bash scripts/setup-zai-sandbox.sh --verify` — should print 5 PASS lines and exit 0 (page, `/api/sessions`, `:3003` handshake, gateway `:81`, clean `dev.log`).
+- `bun run scripts/setup-zai-sandbox.sh --verify` — should print 5 PASS lines and exit 0 (page, `/api/sessions`, `:3003` handshake, gateway `:81`, clean `dev.log`).
+- `bun run scripts/verify-default-llm.ts` — should print the resolver label `zai/glm-5.3`, a completion via `createAgentSession`, the custom-endpoint check, and `ALL CHECKS PASSED`.
 - `bash scripts/start-canvas-sync.sh` — should leave the canvas-sync service running on port 3003.
 - `bunx tsx scripts/screenshot-ui-after.ts` — should produce 5 PNGs in `download/ui-polish-after/`.
 

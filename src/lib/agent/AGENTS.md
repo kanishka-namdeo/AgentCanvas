@@ -107,6 +107,7 @@ wireframe, layout, styling, inspect, export, web_research, vector, multi
 
 ### LLM runner policy
 - **Production (`runner-native.ts`)**: `createAgentSession` from `@earendil-works/pi-coding-agent` with the pi-ai `Model` resolved by `pi-ai-model-resolver.ts` (explicit API key / z.ai sandbox auto-credentials / clear error). This was the "LLM shim swap point" — it has been executed; do not re-add a second driver.
+- **Default LLM**: `zai` / `glm-5.3` (see `src/lib/settings/AGENTS.md`). The resolver auto-detects the z.ai sandbox endpoint (`https://internal-api.z.ai/v1` + OAuth headers) from `ZAI.create()` when no API key is set; an explicit `settings.apiBaseUrl` overrides the endpoint for custom deployments (Ollama / vLLM / proxies); legacy `glm-4.6` settings map to `glm-4.7`. Verify with `bun run scripts/verify-default-llm.ts`.
 - **Tests (`runner-legacy.ts`)**: hand-rolled loop driven by an injected `LLMClient` (MockLLM). The `LLMClient` interface is the minimal contract: `chat.completions.create({ messages, tools, tool_choice, temperature })`.
 - The provider registry (`src/lib/llm`) supplies `createLLMClient` + `normalizeLLMProvider` for the legacy path and sub-agent clients; legacy `zai-auto`/`zai-key`/`openai-compatible` values are migrated by `normalizeLLMProvider` (see `src/lib/settings/types.ts`).
 - **Settings integration**: `AgentRunOptions` accepts `settings?: AgentRunSettings`:
