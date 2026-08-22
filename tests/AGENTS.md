@@ -10,7 +10,7 @@ Two kinds of tests live here:
 ## Ownership
 
 ### Shell-based smoke tests (root-level `.sh` files)
-- `python-runtime-build.sh` — tests that the Python runtime build script (located at `../.zscripts/python-runtime-build.sh`, NOT in this repo) correctly bundles Python scripts and excludes `.venv/` from the output.
+- `python-runtime-build.sh` — tests that the Python runtime build script (`../.zscripts/python-runtime-build.sh`) correctly bundles Python scripts and excludes `.venv/` from the output.
 - `python-runtime-container.sh` — tests the containerized Python runtime build.
 - `database-runtime-build.sh` — tests that the database runtime build correctly bundles schema + seed data.
 
@@ -19,13 +19,17 @@ Two kinds of tests live here:
 | File | What it covers |
 |------|----------------|
 | `patch.test.ts` | `applyPatchToCanvas` — all patch ops, with focus on the new Phase 1+2+5 ops: `zorder` (front / back / forward / backward), `reorder`, `undo`/`redo` (no-op at patch layer), `viewport`, and `normalizeShape` handling of new Shape fields (`points`, `closed`, `src`, `radii`, `gradient`, `shadow`, `blur`, `maskId`). Also regression-tests the tokens-patch binding re-application. |
-| `tools.test.ts` | All agent tools via `executeTool`. Uses an in-memory `CanvasToolContext` that records patches and applies them through `applyPatchToCanvas`. Covers happy paths, error paths (missing shape / token / wrong type), and a registration sanity check (57 tools, unique names, non-empty descriptions). |
+| `tools.test.ts` | All agent tools via `executeTool`. Uses an in-memory `CanvasToolContext` that records patches and applies them through `applyPatchToCanvas`. Covers happy paths, error paths (missing shape / token / wrong type), and a registration sanity check (70 tools, unique names, non-empty descriptions). |
+| `agentic-workflows.test.ts` | Phase 3 agentic-workflow tools: `pen_recommend_components` (repeated-shape detection) and the pattern-memory RAG lifecycle (`pen_pattern_stats`, `pen_save_design_pattern`, `pen_search_design_patterns`, `pen_clear_pattern_memory` via `src/lib/agent/pattern-memory.ts`). |
+| `component-system.test.ts` | Phase 2 component-system patch ops: `convert_to_component`, `place_instance`, `set_instance_override`, `reset_instance`, `detach_instance`, `combine_as_variants`, `swap_variant` (PenRef/PenComponent/PenComponentSet handling in `applyPatchToCanvas`). |
+| `hierarchy-fixes.test.ts` | The 5 hierarchy gap fixes in `resolvePenTree` (`src/lib/pen/resolve.ts`): absolute `layoutPosition`, layout-constraints enforcement, frame clip surfacing, group auto-size fallback (0×0), nested fill_container/fit_content sizing cycle. |
+| `gap-fixes.test.ts` | Spec-compliance regressions from `research/gap-analysis-2.md`: 7 new node types in the Canvas SVG switch, pages/`activePageIndex` round-trip through converters, `background_blur` resolve effect. |
 | `store.test.ts` | `useCanvasStore` undo/redo behavior — `undo()` / `redo()` actions, `_onSync` undo/redo interception, undo-stack push before mutating patches, redo-stack clearing on mutation, 50-entry cap, full undo/redo cycle, and select-patch non-mutation. Bypasses `init()` (which opens a WebSocket) by directly setting state. |
 | `ShapeRenderer.test.tsx` | The `ShapeRenderer` component — new shape types (`path` → polygon/polyline, `image`), new effects (gradient fill, drop shadow, blur, per-corner radii), visibility, selected/highlighted states, and regression coverage for existing shape types. Calls `ShapeRenderer` directly inside an `<svg>` wrapper. |
 | `registry.test.ts` | Skill registry registration — verifies Figma-hierarchy tools (`pen_reparent_shape`, `pen_set_constraints`) are in the correct skill `allowedTools` lists and in `ALL_TOOL_NAMES`. Guards against tools being defined but not exposed to the LLM. Also tests layout skill keywords include hierarchy triggers. |
 | `clipboard.test.ts` | Pure clipboard helpers — `serializeShapes`, `deserializeShapes`, `offsetShapes`, `detectPayloadKind`. Tests round-trip serialization, field preservation, ID rewriting for parent references, and payload kind detection (shape/color/value/constraints). |
 | `figma-ontology.test.ts` | Figma ontology alignment — tests for Pages, Sections, Components, Component Sets, Variants, Component Properties. Verifies `add_page`, `set_active_page`, `rename_page`, `delete_page`, `add_section`, `create_component`, `create_component_set`, `add_variant`, `set_component_property`, `set_instance_property` patch ops + resolver mapping. |
-| `llm-providers.test.ts` | LLM provider registry — tests `getProvider()`, `listProviders()`, `createLLMClient()` for all 18 providers. Verifies factory creation, capability flags, metadata completeness, and OpenAI-compatible factory behavior. |
+| `llm-providers.test.ts` | LLM provider registry — tests `getProvider()`, `listProviders()`, `createLLMClient()` for the provider registry. Verifies factory creation, capability flags, metadata completeness, and OpenAI-compatible factory behavior. |
 
 ### Vitest integration tests (`tests/integration/`)
 
@@ -35,7 +39,7 @@ Two kinds of tests live here:
 | `scenarios.test.ts` | Realistic multi-tool design workflows: "Design a card" (create→text→group→shadow→per-corner radii→undo all→redo all), "Design system with tokens + binding" (update_tokens→create buttons→apply_token bind→re-theme→unbind→re-theme), "Find & replace text", "Lock + hide + find" with undo, "Z-order across multiple operations", "Export SVG reflects latest fills", "Generate wireframe emits one atomic bulk_add". |
 | `session-bridge.test.ts` | Session store mirroring: message stream → assistant message + live turn, tool call start/end recorded on the run, snapshot captured at turn_end (with createdBy='agent'), duplicate turn_end guard, stopAgent finalizes as cancelled + user-created snapshot, error path finalizes run as failed, session switching restores canvas + rebuilds turns, newSession clears canvas, forkActiveSession creates child session. |
 | `renderer.test.tsx` | Canvas component subscription to store mutations: empty canvas, add/update/remove/clear, all shape types (rectangle, ellipse, text, path, image), shadow/gradient/per-corner radii rendering, undo/redo reflected in DOM, hidden shapes, bulk_add, background op. (heatmap op test REMOVED — feature dropped for .pen purity.) |
-| `runner.test.ts` | **End-to-end runner tests** — drives `runAgent` with a scriptable `MockLLM` that returns deterministic completions per iteration. Covers: text-only response, single-tool turn, multi-tool single-iteration turn, combined content+tool_calls, multi-iteration tool-result feedback (LLM sees prior tool results), system snapshot refresh between iterations, 5-iteration design flow, LLM throw → agent:error, tool error recovery (LLM sees error in tool result), malformed tool arguments (JSON.parse fallback to {}), MAX_ITERATIONS cap (graceful exit), empty message (no content + no tool_calls), input isolation (runner deep-clones canvas, doesn't mutate caller's object), 57-tool spec passthrough. |
+| `runner.test.ts` | **End-to-end runner tests** — drives `runAgent` with a scriptable `MockLLM` that returns deterministic completions per iteration. Covers: text-only response, single-tool turn, multi-tool single-iteration turn, combined content+tool_calls, multi-iteration tool-result feedback (LLM sees prior tool results), system snapshot refresh between iterations, 5-iteration design flow, LLM throw → agent:error, tool error recovery (LLM sees error in tool result), malformed tool arguments (JSON.parse fallback to {}), MAX_ITERATIONS cap (graceful exit), empty message (no content + no tool_calls), input isolation (runner deep-clones canvas, doesn't mutate caller's object), skill-filtered tool-spec passthrough. |
 | `conversation.test.ts` | **Multi-run conversation flows** — sequences of `runAgent` calls wired through `useCanvasStore._onSync`, verifying the full chain: runner → store → session mirroring + undo/redo. Covers: run 2 sees run 1's output in system snapshot, undo/redo via tools (op=undo intercepted by store), token binding across runs (bind in run 1, re-theme in run 2), error recovery across runs (run 1 fails, run 2 succeeds, both recorded correctly), snapshot accumulation (3 runs → 3 snapshots, newest-first ordering), full chat history across 3 runs (6 messages, alternating user/assistant, tool calls recorded). |
 
 ### Setup file (`tests/setup.ts`)
@@ -70,7 +74,7 @@ Two kinds of tests live here:
 ### What these tests are NOT
 - The shell tests are NOT run by `bun run lint` or `bun run build`. They must be invoked manually.
 - The Vitest tests ARE run by `bun run test` (or `bun run test:watch` / `bun run test:coverage`).
-- The shell tests depend on `../.zscripts/` which is OUTSIDE this repo — these tests will fail if run in a context where `.zscripts/` is not present (e.g. a fresh clone). This is a known limitation.
+- The shell tests depend on `../.zscripts/` (git-tracked in this repo) — they run in any fresh clone of this repo.
 
 ## Running
 
@@ -101,10 +105,10 @@ Each prints a "passed" message on success and exits non-zero on failure.
 
 ## Verification
 
-- `bun run test` — should print "Test Files 12 passed (12)" and "Tests 231 passed (231)" (or higher as tests are added).
+- `bun run test` — should print "Test Files 18 passed (18)" and "Tests 417 passed (417)" (or higher as tests are added).
 - `bash tests/python-runtime-build.sh` — should print "python runtime build tests passed".
 - `bash tests/database-runtime-build.sh` — should print the corresponding pass message.
-- These tests are NOT part of CI (no CI is configured).
+- CI (`.github/workflows/ci.yml`) is INTENDED to run `bun run lint` + `bun run test` on pushes/PRs to `main` (typecheck is intentionally disabled — see the workflow file's rationale). **Known bug**: both triggers contain a typo (`branches: ain]` instead of `branches: [main]`), so CI never actually fires. The fix must be made directly on GitHub (the sandbox blocks workflow-trigger edits).
 
 ## Child DOX Index
 

@@ -6,9 +6,9 @@ The .pen format layer: canonical TypeScript schema for the pen.dev .pen file for
 
 ## Ownership
 
-- `types.ts` — The canonical .pen format TypeScript schema (transcribed from https://docs.pen.dev/for-developers/the-pen-format). Defines `PenDocument`, `PenChild` (discriminated union of 22 node types), `PenTheme`, `PenVariableDef`, `PenLayout`, and all graphics/fill/effect/component property types. Versioned via `PEN_FORMAT_VERSION = '2.17'`.
+- `types.ts` — The canonical .pen format TypeScript schema (transcribed from https://docs.pen.dev/for-developers/the-pen-format). Defines `PenDocument`, `PenChild` (discriminated union of 20 node types), `PenPage` + multi-page support (`pages`, `activePageIndex`), `PenTheme`, `PenVariableDef`, `PenLayout`, and all graphics/fill/effect/component property types. Versioned via `PEN_FORMAT_VERSION = '2.17'`.
 - `resolve.ts` — The resolve engine: expands `ref` instances, computes absolute positions via a two-pass flexbox layout engine (bottom-up intrinsic sizing + top-down positioning), resolves `$variable` references honoring inherited themes, maps each .pen node to a `Shape` (the renderer's flat render type). Exports `resolvePenTree(doc: CanvasDocument): Shape[]`.
-- `document.ts` — Pure tree helpers: `walkTree`, `findNode`, `findNodeArray`, `collectComponents`, `deepCloneNode`, `insertNode`, `removeNode`, `moveNode`, `isDescendant`, `getAncestorOffset`, `getAbsolutePosition`, `updateNode`, `expandRef`, `applyDescendants`, `findBySourcePath`, `newId()`. Browser-safe, no React/Node dependencies.
+- `document.ts` — Pure tree helpers: `walkTree`, `findNode`, `findNodeArray`, `collectComponents`, `deepCloneNode`, `insertNode`, `removeNode`, `moveNode`, `isDescendant`, `getAncestorOffset`, `getAbsolutePosition`, `updateNode`, `expandRef`, `newId()` (plus module-private `applyDescendants` / `findBySourcePath` used internally). Browser-safe, no React/Node dependencies.
 - `converters.ts` — Near-identity converters: `canvasToPen` (strips runtime/derived caches), `penToCanvas` (wraps with runtime defaults + empty derived caches), `serializePenDocument` (pretty JSON for download).
 
 ## Local Contracts
@@ -16,8 +16,11 @@ The .pen format layer: canonical TypeScript schema for the pen.dev .pen file for
 ### .pen Format Version
 - `PEN_FORMAT_VERSION = '2.17'` (constant in `types.ts`). Update when pen.dev releases a breaking schema change. All import/export/converters must reference this constant.
 
-### Node Type Coverage (22 types)
-`PenChild` discriminated union covers: `frame`, `section`, `component`, `component_set`, `boolean_operation`, `slice`, `group`, `rectangle`, `ellipse`, `star`, `polygon`, `path`, `line`, `text`, `note`, `context`, `prompt`, `icon`, `script`, `ref`. The resolver's `mapNodeType()` maps these to the renderer's `Layer['type']` (8 base types: rectangle, ellipse, text, line, frame, group, path, image + 4 extended: section, component, component_set, boolean_operation, slice, star, polygon).
+### Node Type Coverage (20 types)
+`PenChild` discriminated union covers: `frame`, `section`, `component`, `component_set`, `boolean_operation`, `slice`, `group`, `rectangle`, `ellipse`, `star`, `polygon`, `path`, `line`, `text`, `note`, `context`, `prompt`, `icon`, `script`, `ref`. The resolver's `mapNodeType()` maps these to the renderer's `Layer['type']` (8 base types: rectangle, ellipse, text, line, frame, group, path, image + extended: section, component, component_set, boolean_operation, slice, star, polygon).
+
+### Pages abstraction
+`PenPage` (`types.ts`) extends the canonical Document with Figma-style multi-page support: `CanvasDocument.pages?: PenPage[]` + `activePageIndex`. The `figma_*` page tools and the `add_page` / `delete_page` / `rename_page` / `set_active_page` patch ops operate on it; the converters round-trip pages between canvas and .pen form.
 
 ### Resolve Engine Contract (`resolve.ts`)
 - **Input**: `CanvasDocument` (which extends `PenDocument` + adds `shapes`, `tokens`, `background` derived caches).

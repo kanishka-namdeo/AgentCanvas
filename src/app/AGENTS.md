@@ -109,7 +109,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 
 - `bunx tsc --noEmit` — typecheck.
 - `bun run lint` — ESLint.
-- `bun run build` — production build (note: `ignoreBuildErrors: true` in `next.config.ts` means build will NOT fail on type errors — run `tsc` separately).
+- `bun run build` — production build (note: `ignoreBuildErrors: true` in `next.config.ts` means build will NOT fail on type errors — run `tsc` separately). Not for the z.ai sandbox — see the root AGENTS.md "z.ai Sandbox Operations" section (dev server only).
 - Manual: open `http://127.0.0.1:3000/`, verify the 3-column tabbed layout renders, no console errors, no layout shift.
 - `bunx tsx scripts/screenshot-ui-after.ts` — captures the initial state.
 
@@ -117,6 +117,6 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 
 | Path | Scope |
 |------|-------|
-| `api/AGENTS.md` | API routes: `/api/agent` (SSE agent run endpoint), `/api` (health check), `/api/pen/import` (.pen file import), `/api/pen/export` (.pen file export) |
+| `api/AGENTS.md` | API routes: `/api/agent` (NDJSON agent run endpoint) + `answers`/`pending`/`background/[id]` plugin-support subroutes, `/api/sessions*` server-side session persistence (Prisma), `/api/plugins` + `/api/mcp/[id]` settings support, `/api` (health check), `/api/pen/import` + `/api/pen/export` (.pen file conversion) |
 
-*Note: `src/components/` and `src/lib/` do not have their own AGENTS.md files; only their subfolders do.*
+*Note: `src/lib/` has its own `AGENTS.md` (owns `db.ts` + `utils.ts` and indexes the lib subfolders); `src/components/` has its own `AGENTS.md` (owns `ThemeToggle.tsx` and indexes the component subfolders).*

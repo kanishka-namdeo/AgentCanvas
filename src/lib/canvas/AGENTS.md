@@ -13,6 +13,8 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - `patch.ts` — `applyPatchToCanvas(document, patch)`. Pure function. Null-safe. Tree-aware (.pen aligned).
 - `server.ts` — Socket.IO WebSocket service for live canvas broadcast. NOT a Prisma loader. (Note: the server-side canvas loading is currently handled inline in the API route, not via a dedicated loader module.)
 - `clipboard.ts` — Pure clipboard helpers: `serializeShapes`, `deserializeShapes`, `offsetShapes`, `ClipboardPayload` type, `detectPayloadKind`. Browser-safe, unit-testable. Wrapped by `useClipboard` hook.
+- `export.ts` — client-side export utilities (`exportSvg`, `exportPngDataUrl`, `exportJson`, `exportCode`, `downloadFile`) mirroring the export tools without an LLM round-trip.
+- `use-canvas-gestures.ts` — React hook unifying mouse/trackpad/touch input: cursor-anchored wheel zoom, pinch-zoom, 2-finger pan, space+drag pan, touch momentum.
 
 ## Local Contracts
 
@@ -21,7 +23,7 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - **toolMode**: controls canvas interaction mode. `'select'` (default) = click-to-select shapes. `'pan'` = click-drag pans the canvas. Toggled by the Toolbar's Select/Pan buttons + V/H keyboard shortcuts. Space-held temporarily overrides to pan.
 - **Undo/redo**: `undo()` and `redo()` pop/push the stacks (capped at 50). Wired to `⌘Z` / `⌘⇧Z` keyboard shortcuts in `page.tsx`. `sendPatch` pushes to `undoStack` for mutating ops (was previously only pushed when patches arrived over WS — now works for offline edits too).
 - **Session management**: `switchSession(sessionId)` loads a session's snapshot and rebuilds `turns`. `newSession()` creates a fresh session. `forkActiveSession(fromMessageId?)` forks from a specific message's snapshot (if found) or from latest state.
-- **Agent control**: `stopAgent()` aborts the in-flight HTTP fetch (if any) and finalizes the turn as cancelled, triggering snapshot capture and run closeout.
+- **Agent control**: `stopAgent()` aborts the in-flight HTTP fetch (if any) and finalizes the turn as cancelled, triggering snapshot capture and run closeout. `steer(text)` sends an `agent:steer` event mid-run to redirect the agent without aborting.
 - The store exposes a `window.__canvasStore` global in dev for debugging. Do not remove.
 - **Settings injection**: `promptAgent` calls `agentRunSettings(useSettings.getState())` and injects the result into both the WebSocket emit path (`socket.emit('client', { type: 'agent:prompt', ..., settings })`) and the HTTP fallback path (`fetch('/api/agent', { body: { ..., settings } })`). This ensures the server-side runner respects user-configured temperature, maxIterations, planFirst, defaultPalette, skillSelectionMode, and LLM provider config.
 - The store has an HTTP fallback: if the WebSocket connection fails, `promptAgent` falls back to `fetch('/api/agent')` and parses the chunked NDJSON response. Do not remove the fallback — it is the primary path in the sandbox.
@@ -48,6 +50,7 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
   - **Core ops**: `add`, `update`, `remove`, `clear`, `background`, `select`.
   - **Extended ops**: `bulk_add`, `update_many`, `duplicate`, `group`, `ungroup`, `align`, `tokens`.
   - **Phase 1+2+5 ops**: `zorder`, `reorder`, `viewport`, `undo`, `redo`.
+  - **Structure ops**: `reparent` (move a node under a new parent, `keepAbsolutePosition` option), `set_constraints` (Figma-style horizontal/vertical constraints).
   - **.pen-aligned ops**: `set_theme_axis`, `set_node_theme`, `set_variable`, `mark_slot`.
   - **Figma ontology ops (Phase 1)**: `add_page`, `delete_page`, `rename_page`, `set_active_page`, `add_section`, `create_component`, `create_component_set`, `add_variant`, `set_component_property`, `set_instance_property`, `flatten_boolean`.
   - **Component-system ops (Phase 2 — Figma-aligned components & design systems)**:
@@ -89,6 +92,8 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - `CanvasPatch` is the delta format the agent emits. It is NOT the same as the Prisma model — it carries `{ op, shapeId, updates }` style operations.
 - `SyncEvent` is the Pi-compatible event union: `chat_delta`, `tool_call_start`, `tool_call_end`, `error`, `turn_end`, etc. Adding a new event kind requires updating the canvas store's `_onSync` handler.
 - `CanvasToolContext` is the bag passed to `executeTool` — it carries the document, the patch sink, and the event emitter.
+- **Pages abstraction**: `CanvasDocument.pages?: PenPage[]` + `activePageIndex` (Figma-style multi-page documents; see `../pen/AGENTS.md`). Patches `add_page` / `delete_page` / `rename_page` / `set_active_page` operate on it.
+- `SyncEvent` includes the extended agent events (skill/plan/subagent/thinking/ask-user/todo/background-task/mcp) — see `../agent/AGENTS.md` for the full list.
 
 ### WebSocket service (`server.ts`)
 - `server.ts` is a standalone Socket.IO service (NOT a Prisma document loader). It runs on port 3003 and broadcasts canvas patches + agent events to connected viewers.

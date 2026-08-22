@@ -48,7 +48,7 @@ The service speaks the same `ClientEvent` / `SyncEvent` unions defined in `src/l
 ### Coupling
 - This service imports from `../../src/lib/canvas/types.ts` and `../../src/lib/canvas/patch.ts`. Changes to those files affect this service.
 - This service calls `/api/agent` (owned by `src/app/api/agent/route.ts`) to run the agent. Changes to the runner or the route contract affect this service.
-- The TypeScript import path uses `.ts` extensions (Bun resolves them; Node would not without `--experimental-specifier-resolution=node` or a build step).
+- The TypeScript import path uses extensionless specifiers (`'../../src/lib/canvas/types'`) — Bun resolves them directly (Node would need a build step).
 
 ### When to use this vs HTTP
 - The frontend canvas store prefers this service when available (lower latency, bidirectional).

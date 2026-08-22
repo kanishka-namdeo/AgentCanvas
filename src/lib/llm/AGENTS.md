@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The LLM provider abstraction layer: a unified interface (`LLMClient`) that normalizes 18 providers (17 named + 1 generic `custom`) into a single OpenAI-shaped `chat.completions.create` contract. The agent runner (`src/lib/agent/runner.ts`) consumes this interface exclusively — it has zero provider-specific code. The registry (`registry.ts`) is the single source of truth for provider metadata (UI labels, docs URLs, default models, capability flags) and factories.
+The LLM provider abstraction layer: a unified interface (`LLMClient`) that normalizes 28 providers (27 named + 1 generic `custom`) into a single OpenAI-shaped `chat.completions.create` contract. The agent runner consumes this interface exclusively — it has zero provider-specific code. The registry (`registry.ts`) is the single source of truth for provider metadata (UI labels, docs URLs, default models, capability flags) and factories.
 
 ## Ownership
 
@@ -18,9 +18,9 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
   - `LLMProviderConfig` — user config: `providerId`, `apiKey`, `model`, `baseURL`.
   - `LLMProviderEntry` — `{ metadata, factory }`.
 
-- `registry.ts` — The `PROVIDERS` Map (18 entries). Exports: `getProvider(id)`, `getProviderMetadata(id)`, `listProviderIds()`, `listProviders()`, `createLLMClient(config)`, `registerProvider(id, entry)`.
-  - **13 OpenAI-compatible providers** share `openAICompatibleFactory` (delegates to `createOpenAICompatible`): zai, openai, mistral, cohere, groq, together, deepseek, openrouter, fireworks, xai, perplexity, huggingface, ollama, lmstudio, vllm, custom.
-  - **3 native adapters**: Anthropic (`createAnthropicClient`), Google Gemini (`createGeminiClient`), z.ai (uses OpenAI-compatible factory but auto-resolves credentials in sandbox).
+- `registry.ts` — The `PROVIDERS` Map (28 entries). Exports: `getProvider(id)`, `getProviderMetadata(id)`, `listProviderIds()`, `listProviders()`, `createLLMClient(config)`, `registerProvider(id, entry)`.
+  - **26 OpenAI-compatible providers** share `openAICompatibleFactory` (delegates to `createOpenAICompatible`): zai, openai, mistral, cohere, groq, together, deepseek, openrouter, fireworks, xai, perplexity, huggingface, novita, hyperbolic, chutes, sambanova, cerebras, deepinfra, siliconflow, aimlapi, atoma, inception, ollama, lmstudio, vllm, custom.
+  - **2 native adapters**: Anthropic (`createAnthropicClient`), Google Gemini (`createGeminiClient`). (z.ai uses the OpenAI-compatible factory; sandbox auto-credentials are resolved upstream in `pi-ai-model-resolver.ts` / the legacy runner's `ZAI.create()`, not in the registry.)
   - Capability presets: `CAPS_FULL` (tools+streaming+vision), `CAPS_TOOLS_OK` (tools+streaming), `CAPS_NO_VISION`, `CAPS_NO_TOOLS` (streaming only).
   - `wrapNoTools(inner)` — strips `tools`/`tool_choice` from requests for providers lacking function calling.
 
@@ -59,7 +59,7 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
 - `src/lib/settings/types.ts` `AppSettings` has: `llmProvider`, `apiKey`, `modelName`, `apiBaseUrl`.
 - `agentRunSettings()` in `src/lib/settings/store.ts` extracts the runner-relevant subset.
 - The canvas store's `promptAgent` injects settings into both WebSocket + HTTP paths.
-- The runner's `LLMClient` is created via `createLLMClient({ providerId: settings.llmProvider, apiKey: settings.apiKey, model: settings.modelName, baseURL: settings.apiBaseUrl })` — see `runner.ts`.
+- The runner's `LLMClient` is created via `createLLMClient({ providerId: settings.llmProvider, apiKey: settings.apiKey, model: settings.modelName, baseURL: settings.apiBaseUrl })` — see `runner-legacy.ts` (production uses `pi-ai-model-resolver.ts` on top of the same settings).
 
 ### Error Handling
 - All factories surface HTTP status + first 500 chars of error body.

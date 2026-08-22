@@ -153,8 +153,8 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ```bash
 # 1. Clone
-git clone https://github.com/kanishka-namdeo/co-canvas.git
-cd co-canvas
+git clone https://github.com/kanishka-namdeo/AgentCanvas.git
+cd AgentCanvas
 
 # 2. Install dependencies (Bun recommended)
 bun install
@@ -199,7 +199,7 @@ Open [http://localhost:3000](http://localhost:3000) and start chatting with the 
 ## 📁 Project structure
 
 ```
-co-canvas/
+AgentCanvas/
 ├── src/
 │   ├── app/                      # Next.js App Router
 │   │   ├── page.tsx              # The 4-panel workspace (single-page app)
@@ -277,9 +277,9 @@ bun run test:ui
 
 ## 🛠️ Development notes
 
-### The LLM shim (one swap point)
+### The agent runner (native Pi SDK + legacy test loop)
 
-The agent is driven by `z-ai-web-dev-sdk`, which speaks the OpenAI-compatible API. The event stream in `runner.ts` deliberately mirrors the Pi Agent SDK's `AgentSessionEvent` shape — so to switch back to native Pi (`createAgentSession`), you only need to edit one call site. **Don't add a second driver.** See `AGENTS.md` → "LLM shim policy" for the contract.
+Production runs on the Pi Agent SDK (`createAgentSession` in `src/lib/agent/runner-native.ts`, with the LLM resolved via `pi-ai-model-resolver.ts`); the original hand-rolled loop lives on as `runner-legacy.ts`, driven by an injected mock LLM in tests. See `src/lib/agent/AGENTS.md` → "LLM runner policy" for the contract.
 
 ### Hard rules (from `AGENTS.md`)
 
