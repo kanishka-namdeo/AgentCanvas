@@ -174,6 +174,8 @@ bun run dev
 
 Open [http://localhost:3000](http://localhost:3000) and start chatting with the agent.
 
+> **Running in the z.ai sandbox?** Skip the generic steps above and use the one-shot runbook in [`docs/zai-sandbox-setup.md`](./docs/zai-sandbox-setup.md): clone into `/home/z/my-project` (replacing the scaffold project), then run `bash scripts/setup-zai-sandbox.sh`. It handles the sandbox's process lifecycle (only orphan-to-init processes survive tool calls), the absolute `DATABASE_URL`, gateway port routing, verification, and restart persistence via `/home/sync/repo.tar`.
+
 > **Note on LLM credentials:** inside the z.ai sandbox, `z-ai-web-dev-sdk` auto-resolves credentials — no API key needed. Outside the sandbox, set `ZAI_API_KEY` (or `OPENAI_API_KEY`) in your `.env`. See `.env.example` for details.
 
 ### Useful scripts
@@ -181,6 +183,7 @@ Open [http://localhost:3000](http://localhost:3000) and start chatting with the 
 | Script | What it does |
 | --- | --- |
 | `bun run dev` | Start the Next.js dev server on port 3000 |
+| `bash scripts/setup-zai-sandbox.sh` | One-shot z.ai sandbox bring-up (env + install + DB + start + verify + persist) |
 | `bun run build` | Production build (standalone output) |
 | `bun run start` | Run the production build |
 | `bun run lint` | ESLint |

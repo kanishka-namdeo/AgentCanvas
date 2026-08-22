@@ -16,6 +16,7 @@ A standalone Socket.IO service that maintains per-document canvas state in memor
 - **Path**: `/` (must NOT change — Caddy uses it for routing).
 - **CORS**: `origin: '*'` (dev only — tighten for production).
 - **Heartbeat**: `pingTimeout: 60000`, `pingInterval: 25000`.
+- **EADDRINUSE exits 0**: in the z.ai sandbox, `next dev` boots an in-process copy of this service via `instrumentation.ts` while `.zscripts/dev.sh` also starts this standalone one — whoever binds `:3003` second exits cleanly. A stopped standalone instance with the port still serving is healthy, not a failure. See `docs/zai-sandbox-setup.md`.
 
 ### Event protocol
 The service speaks the same `ClientEvent` / `SyncEvent` unions defined in `src/lib/canvas/types.ts`. It is a pure relay — it does not invent event kinds. All events are sent/received on the `client` / `sync` socket channels.
@@ -52,7 +53,7 @@ The service speaks the same `ClientEvent` / `SyncEvent` unions defined in `src/l
 ### When to use this vs HTTP
 - The frontend canvas store prefers this service when available (lower latency, bidirectional).
 - If the WebSocket connection fails, the canvas store falls back to `POST /api/agent` (SSE-style chunked response). Both paths produce identical event shapes.
-- The sandbox often has this service NOT running — the HTTP fallback is the primary path in dev. Do not assume the service is up.
+- In the z.ai sandbox the in-process twin (started by `instrumentation.ts` alongside `next dev`) usually owns port 3003; the HTTP fallback covers every other case. Do not assume this standalone process is the one serving.
 
 ## Work Guidance
 
