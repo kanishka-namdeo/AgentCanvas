@@ -25,3 +25,25 @@ Stage Summary:
 - Git remote set with PAT (valid for session); working tree has only setup artifacts modified (.gitignore, bun.lock) — uncommitted by design
 - Durability: /home/sync/repo.tar + .zscripts/dev.sh ensure auto-restart of dev server if container restarts (user clicks restart button)
 - If server ever dies: ask user to restart session, boot script self-heals; or re-run scripts/verify-setup.sh trick (orphan mid-call)
+
+---
+Task ID: 2
+Agent: main (Super Z)
+Task: Codify the z.ai sandbox one-shot setup knowledge into the project's agent instructions (DOX hierarchy)
+
+Work Log:
+- Studied the DOX hierarchy (root AGENTS.md + child docs) to pick correct placement
+- Proved the process-survival rule live: double-fork ( setsid CMD & ) orphans to PID 1 mid-call and survives; bare nohup/setsid/disown do NOT. Server restarted via updated scripts/start-dev.sh and survived across tool calls (PIDs 3085/3098)
+- Created docs/zai-sandbox-setup.md — full runbook: 8 sandbox facts, one-shot sequence, process-survival table, verification checklist, troubleshooting, anti-patterns
+- Created scripts/setup-zai-sandbox.sh — one-shot bring-up (env + install + db + start + verify + archive); live-tested: 7/7 PASS
+- Hardened scripts/start-dev.sh (double-fork pattern + 45s wait); live-tested
+- Fixed mini-services/canvas-sync EADDRINUSE → graceful exit 0; live-tested against the running in-process instance
+- DOX pass: root AGENTS.md (new "z.ai Sandbox Operations" section), scripts/AGENTS.md, mini-services/canvas-sync/AGENTS.md, README.md quick-start callout + scripts table, .env.example sandbox note; removed superseded scripts/verify-setup.sh
+- Committed a39c43a on branch docs/zai-sandbox-one-shot-setup, pushed with PAT (PR: https://github.com/kanishka-namdeo/AgentCanvas/pull/new/docs/zai-sandbox-one-shot-setup)
+- NOTE: platform host resets local git to its own main auto-commit; recovered by fast-forwarding local main to a39c43a (origin/main untouched — review via PR)
+- Refreshed /home/sync/repo.tar (49M, now includes docs + scripts); final verify 5/5 PASS
+
+Stage Summary:
+- One-shot setup is now: clone+replace-scaffold (2 commands in the runbook) → bash scripts/setup-zai-sandbox.sh → done
+- All trial-and-error knowledge encoded in docs/zai-sandbox-setup.md + AGENTS.md chain; agent-facing contract lives in root AGENTS.md "z.ai Sandbox Operations"
+- Branch pushed, PR-ready; local main fast-forwarded; persistence archive updated
