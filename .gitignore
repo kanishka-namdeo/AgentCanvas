@@ -77,3 +77,9 @@ server.log
 data/
 dev.pid
 dev.log
+
+# Sandbox-only directories
+/upload/
+/tool-results/
+/test-results-*.json
+server.log
