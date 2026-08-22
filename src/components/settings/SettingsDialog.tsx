@@ -7,13 +7,14 @@
 // Settings, Linear's Settings, and macOS System Preferences.
 //
 // Sections:
-//   1. Agent behavior   — temperature, maxIterations, planFirst, defaultPalette, skillSelectionMode
-//   2. LLM provider     — provider, apiKey, modelName, apiBaseUrl
-//   3. Canvas defaults  — (reserved; canvas bg is per-document, not global)
-//   4. Sessions         — snapshotCadence, maxSessionsRetained, maxSnapshotsPerSession, autoArchiveIdleAfter
-//   5. Appearance       — theme, density
-//   6. Data & privacy   — storage usage, export all, clear all
-//   7. Shortcuts        — read-only reference list
+//   1. Agent behavior   — temperature, maxIterations, thinkingLevel, planFirst, defaultPalette, skillSelectionMode
+//   2. LLM provider     — provider (registry list), apiKey, modelName, apiBaseUrl
+//   3. Sessions         — snapshotCadence, maxSessionsRetained, maxSnapshotsPerSession, autoArchiveIdleAfter
+//   4. Appearance       — theme, density
+//   5. Data & privacy   — storage usage, export all, clear all
+//   6. Shortcuts        — read-only reference list
+//   7. Plugins          — agent plugin toggles (fetched from /api/plugins)
+//   8. MCP Servers      — add/remove/connect/disconnect MCP servers
 //
 // All settings are read from / written to the Zustand settings store, which
 // persists to localStorage automatically. Changes apply immediately — no

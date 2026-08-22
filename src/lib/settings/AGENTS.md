@@ -8,7 +8,7 @@ This is the single source of truth for every setting the user can change in the 
 
 ## Ownership
 
-- `types.ts` — `AppSettings`, `AgentRunSettings`, `DEFAULT_SETTINGS`, `PALETTES`, plus all union types (`LLMProvider`, `SnapshotCadence`, `SkillSelectionMode`, `AutoArchiveIdleAfter`, `Density`, `ThemePreference`, `DefaultPalette`). Owned by this folder.
+- `types.ts` — `AppSettings`, `AgentRunSettings`, `DEFAULT_SETTINGS`, `PALETTES`, `McpServerConfig`, `ThinkingLevel`, all union types (`LLMProvider`, `SnapshotCadence`, `SkillSelectionMode`, `AutoArchiveIdleAfter`, `Density`, `ThemePreference`, `DefaultPalette`), plus provider helpers (`normalizeLLMProvider`, `providerRequiresApiKey`, `providerDefaultModel`, `providerDefaultBaseURL`). Owned by this folder.
 - `store.ts` — Zustand store with `persist` (localStorage key `agentcanvas.settings.v1`). Exposes `useSettings()` hook, `useAgentRunSettings()` convenience selector (returns all data fields + setters, scoped to avoid re-renders from unrelated store changes), and `set()` / `patch()` / `reset()` / `replaceAll()` mutators.
 
 ## Local Contracts
@@ -17,12 +17,15 @@ This is the single source of truth for every setting the user can change in the 
 
 | Field | Type | Default | Phase |
 |-------|------|---------|-------|
-| `temperature` | `number` | `0.4` | 1 — Agent behavior |
-| `maxIterations` | `number` | `20` | 1 |
+| `temperature` | `number` | `0.6` | 1 — Agent behavior |
+| `maxIterations` | `number` | `30` | 1 |
+| `thinkingLevel` | `'low' \| 'medium' \| 'high'` | `'high'` | 5 — Agent behavior |
 | `planFirst` | `boolean` | `true` | 1 |
 | `defaultPalette` | `'slate' \| 'warm' \| 'forest' \| 'mono'` | `'slate'` | 1 |
+| `enabledPlugins` | `string[]` (plugin ids) | (14 default-enabled tools' plugins) | 5 — Plugins |
+| `mcpServers` | `McpServerConfig[]` | `[]` | 5 — MCP |
 | `themePreference` | `'system' \| 'light' \| 'dark'` | `'system'` | 1 — Appearance |
-| `llmProvider` | `'zai-auto' \| 'zai-key' \| 'openai-compatible'` | `'zai-auto'` | 2 — LLM provider |
+| `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'zai'` | 2 — LLM provider |
 | `apiKey` | `string` | `''` | 2 |
 | `modelName` | `string` | `''` | 2 |
 | `apiBaseUrl` | `string` | `''` | 2 |
@@ -33,11 +36,14 @@ This is the single source of truth for every setting the user can change in the 
 | `autoArchiveIdleAfter` | `'never' \| '7d' \| '30d'` | `'never'` | 3 |
 | `density` | `'comfortable' \| 'compact'` | `'comfortable'` | 3 |
 
+`normalizeLLMProvider()` migrates legacy `zai-auto` / `zai-key` / `openai-compatible` values to current registry ids.
+
 ### Agent-run subset (`AgentRunSettings`)
 
-The `/api/agent` route consumes ONLY these fields (extracted via `agentRunSettings()`):
-- `temperature`, `maxIterations`, `planFirst`, `defaultPalette`, `skillSelectionMode`
+The `/api/agent` route consumes ONLY these fields (extracted via `agentRunSettings()`) — 12 fields:
+- `temperature`, `maxIterations`, `thinkingLevel`, `planFirst`, `defaultPalette`, `skillSelectionMode`
 - `llmProvider`, `apiKey`, `modelName`, `apiBaseUrl`
+- `enabledPlugins`, `mcpServers`
 
 The canvas store's `promptAgent()` calls `agentRunSettings(useSettings.getState())` and injects the result into both the WebSocket emit path and the HTTP fallback path.
 

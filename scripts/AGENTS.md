@@ -23,7 +23,7 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 - On failure: edit the saved script in place via the `Edit` tool, re-run — do not regenerate from scratch.
 
 ### Shell script rules
-- `set -e` (or `set -euo pipefail` for stricter) at the top.
+- `set -e` (or `set -euo pipefail` for stricter) at the top — EXCEPT watchdog-style respawn loops (e.g. `canvas-sync-watchdog.sh`) that must survive non-zero child exits.
 - `cd "$(dirname "$0")/.."` explicitly — do not rely on the caller's CWD.
 - Quote all paths with spaces (none currently, but be defensive).
 - Kill commands use `pkill -9 -f "..." 2>/dev/null || true` — never fail the script if the process isn't running.
@@ -43,7 +43,7 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 ## Verification
 
 - `bash scripts/start-dev.sh` — should print "Dev server ready after Ns" and exit 0, and the server must still respond in a later tool call (survival is the point of the script).
-- `bash scripts/setup-zai-sandbox.sh --verify` — should print 7 PASS lines and exit 0 (page, `/api/sessions`, `:3003` handshake, gateway `:81`, clean `dev.log`).
+- `bash scripts/setup-zai-sandbox.sh --verify` — should print 5 PASS lines and exit 0 (page, `/api/sessions`, `:3003` handshake, gateway `:81`, clean `dev.log`).
 - `bash scripts/start-canvas-sync.sh` — should leave the canvas-sync service running on port 3003.
 - `bunx tsx scripts/screenshot-ui-after.ts` — should produce 5 PNGs in `download/ui-polish-after/`.
 

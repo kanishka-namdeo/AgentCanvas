@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The session persistence layer: typed models for Session / Run / Message / ToolCallRecord / Snapshot, plus a Zustand store with `persist` middleware (localStorage) that survives reloads and supports fork / restore.
+The session persistence layer: typed models for Session / Run / Message / ToolCallRecord / Snapshot, a Zustand store with `persist` middleware (localStorage) that survives reloads and supports fork / restore, and a server-sync bridge (`server-sync.ts`) to the Prisma-backed `/api/sessions*` REST API — the server DB is the source of truth; localStorage is the fast cache.
 
 This is the durable record of every conversation the user has had with the agent. The canvas store bridges into this store on every prompt and every event — the session store is the source of truth for "what happened", while the canvas store is the source of truth for "what's on screen right now".
 
@@ -11,6 +11,7 @@ This is the durable record of every conversation the user has had with the agent
 - `types.ts` — `Session`, `Run`, `Message`, `ToolCallRecord`, `Snapshot`, `RunStatus` state machine. Owned by this folder.
 - `store.ts` — Zustand store with `persist` (localStorage). Full CRUD for sessions/runs/messages/tool-calls/snapshots. Fork via `parentId` + `forkedFromSnapshotId`. Restore via append-only new snapshot (Lovable model). Includes `forkSessionFromSnapshot`, `deleteSnapshot`, `sweepIdleSessions`, `enforceSessionCap`, `estimateLocalStorageUsage` helpers.
 - `index.ts` — re-exports `useSessionStore`, `hydrateSessionStore`, `sweepIdleSessions`, `enforceSessionCap`, `estimateLocalStorageUsage`, and the types.
+- `server-sync.ts` — client-side bridge from the localStorage session store to the server Prisma API (`/api/sessions*`): `fetchServerSessions`, `createServerSession`, `updateServerSession`, `deleteServerSession`, `appendServerMessage`, `syncServerRun`, `captureServerSnapshot`, `exportSessionJSONL`. Silently fails when the server is unreachable — localStorage stays the fast cache. The SessionSidebar's export action uses `exportSessionJSONL` (server-backed, `.jsonl`) with a local `.json` fallback.
 
 ## Local Contracts
 

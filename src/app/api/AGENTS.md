@@ -2,11 +2,21 @@
 
 ## Purpose
 
-Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop server-side and streams events back to the browser, the `/api` health-check endpoint, and the `/api/pen/import` and `/api/pen/export` endpoints for .pen file format conversion.
+Next.js Route Handlers. Four route families: the `/api/agent` endpoints that run the agent loop server-side (plus question-answers, background-task status, and pending-question polling), the `/api/sessions*` CRUD family for server-side session persistence (Prisma), the `/api/plugins` + `/api/mcp` settings-support endpoints, the `/api` health check, and the `/api/pen/import` + `/api/pen/export` .pen file conversion endpoints.
 
 ## Ownership
 
 - `agent/route.ts` — the agent run endpoint. Owns the request/response contract with the frontend canvas store.
+- `agent/answers/route.ts` — POST: resolves a pending `ask_user_question` tool call (`{toolCallId, answers: string[][], cancelled}`); calls `resolveAskUserQuestion()` from `src/lib/agent/plugins/ask-user-question`. 400 if `toolCallId` missing.
+- `agent/background/[id]/route.ts` — GET: background-task status by id (404 if unknown); backed by `getBackgroundTaskStatus()` from `src/lib/agent/plugins/background-tasks`. Polled by the BackgroundTaskList UI.
+- `agent/pending/route.ts` — GET: `{ pending: [...] }` list of unanswered `ask_user_question` toolCallIds (frontend polls on reconnect); backed by `getPendingQuestions()`.
+- `plugins/route.ts` — GET: all agent-plugin manifests (`pluginId, pluginName, description, category, defaultEnabled, toolCount, toolNames`) for Settings → Plugins; backed by `getAllPlugins()`. User toggles live client-side (`enabledPlugins` setting) — not persisted server-side.
+- `sessions/route.ts` — GET/POST: server-side session persistence (DB is source of truth, localStorage is cache). GET filters by `documentId` + `status` (default `active`), ordered `lastOpenedAt desc`, with message/run/snapshot counts; POST creates a session (`documentId` required, else 400).
+- `sessions/[id]/route.ts` — GET/PATCH/DELETE: fetch session with messages (asc) + runs (asc) + snapshots (desc), 404 if missing; update title/status/pinned/counters/lastOpenedAt; cascade delete.
+- `sessions/[id]/messages/route.ts` — GET/POST: list (asc) or append messages; POST with `messageId` updates an existing message (streaming → complete).
+- `sessions/[id]/snapshots/route.ts` — GET/POST: list snapshot metadata (document JSON excluded — too large); create snapshot from `{document, source (default 'turn_end'), runId}` and increment `snapshotCount`.
+- `sessions/[id]/runs/route.ts` — POST only: create a run, or update an existing one when `runId` is passed (status/errorMessage/toolCallCount/toolCalls); increments `runCount` + bumps `lastOpenedAt`.
+- `mcp/[id]/route.ts` — GET/POST: status + `{action: 'connect' | 'disconnect'}` control for one MCP server (placeholder registry via `src/lib/agent/plugins/mcp-adapter`; real MCP SDK wiring is a TODO in code). Used by Settings → MCP Servers.
 - `route.ts` — root API health check. Returns a static JSON payload.
 - `pen/import/route.ts` — .pen file import endpoint. Converts .pen JSON to CanvasDocument + CanvasPatch ops.
 - `pen/export/route.ts` — .pen file export endpoint. Converts CanvasDocument to .pen JSON for download.
@@ -22,7 +32,8 @@ Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop serve
   prompt: string;              // required — returns 400 if empty
   canvasState: CanvasDocument; // snapshot of the canvas at request time (field name: canvasState)
   settings?: AgentRunSettings; // optional — temperature, maxIterations, planFirst, defaultPalette,
-                               //   skillSelectionMode, llmProvider, apiKey, modelName, apiBaseUrl.
+                               //   skillSelectionMode, llmProvider, apiKey, modelName, apiBaseUrl,
+                               //   thinkingLevel, enabledPlugins, mcpServers.
                                //   Falls back to DEFAULT_SETTINGS when omitted.
 }
 ```
@@ -42,6 +53,23 @@ Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop serve
 **HTTP fallback**:
 - The frontend canvas store calls this endpoint when the WebSocket connection to `mini-services/canvas-sync/` is unavailable. Both paths MUST produce identical event shapes — the canvas store does not branch on transport.
 - When the WebSocket IS available, the canvas store prefers it (lower latency, bidirectional). The HTTP path is the fallback.
+
+### `/api/agent/answers`, `/api/agent/pending`, `/api/agent/background/[id]`
+- Backed by in-memory plugin state in `src/lib/agent/plugins/` — no DB. All three exist so the browser can interact with blocking/background plugin tools while a run is in flight.
+- `/api/agent/answers` resolves the blocked `ask_user_question` tool call (the PluginUI dialog submits here via the canvas store's `submitQuestionAnswers`).
+- `/api/agent/pending` is polled on reconnect so a reload doesn't orphan an unanswered question.
+- `/api/agent/background/[id]` is polled by the BackgroundTaskList UI while background tasks run.
+
+### `/api/sessions*` family
+- Server-side persistence via Prisma (`db.session`, `db.sessionMessage`, `db.sessionRun`, `db.sessionSnapshot` from `src/lib/db`). The DB is the source of truth; the localStorage store (see `src/lib/sessions/AGENTS.md`) is a cache.
+- All writes go through `src/lib/sessions/server-sync.ts` on the client — do not call these routes ad hoc from components.
+- Run upsert: POST `/api/sessions/[id]/runs` with `runId` updates the existing run instead of creating one (used for the streaming → complete lifecycle).
+- Snapshot GET excludes the `document` JSON (too large for list payloads); fetch metadata only.
+- Deleting a session cascades to messages, runs, and snapshots (schema-level `onDelete: Cascade`).
+
+### `/api/plugins` + `/api/mcp/[id]`
+- Read-only plugin manifests (GET) and MCP server connect/disconnect control (POST). Both exist to serve SettingsDialog sections 7 (Plugins) and 8 (MCP Servers).
+- MCP connect/disconnect currently registers/unregisters a placeholder server — real MCP SDK transport is a tracked TODO.
 
 ### `/api` (`route.ts`)
 - `GET /api` returns `{ message: "Hello, world!" }`.
@@ -100,21 +128,24 @@ Next.js Route Handlers: the `/api/agent` endpoint that runs the agent loop serve
 - All routes are server-side — no `'use client'`.
 - All routes MUST validate the request body shape before dispatching. Return 400 on malformed input.
 - All routes MUST catch top-level errors and return a structured error response — never let an exception propagate as a 500 with a stack trace in production.
-- Do not add new API routes without a parent-level decision. The current surface is intentionally minimal.
+- Do not add new API routes without a parent-level decision; when adding one, document it here in the same commit.
 
 ## Work Guidance
 
 - When changing the event stream shape: update `agent/route.ts`, `src/lib/agent/runner.ts` (`AgentStreamEvent`), `src/lib/canvas/store.ts` (`_onSync` handler), and `mini-services/canvas-sync/index.ts` (broadcast). All four are coupled.
+- When changing the session persistence shape: update the routes here, `src/lib/sessions/server-sync.ts` (client bridge), and `prisma/schema.prisma` together.
 - When adding auth: add it as a middleware in `src/middleware.ts` (does not exist yet), not per-route. The current app has no auth.
 - When debugging a stream that hangs: check that the runner is actually yielding events (add `console.error` in the runner), check that the response headers are set before the first write, check that no proxy between the client and the route is buffering (the dev server does not buffer; production behind Caddy might).
 
 ## Verification
 
 - `bunx tsc --noEmit` — typecheck.
-- Manual: `curl -N -X POST http://127.0.0.1:3000/api/agent -H 'Content-Type: application/json' -d '{"documentId":"test","prompt":"create a red rectangle","canvas":{"id":"test","name":"test","viewport":{},"background":"#fff","shapes":[],"tokens":{"colors":[],"textStyles":[]}}}'` — should stream events until `turn_end`.
+- Manual: `curl -N -X POST http://127.0.0.1:3000/api/agent -H 'Content-Type: application/json' -d '{"documentId":"test","prompt":"create a red rectangle","canvasState":{"id":"test","name":"test","viewport":{},"background":"#fff","shapes":[],"tokens":{"colors":[],"textStyles":[]}}}'` — should stream events until `turn_end` (note the field is `canvasState`, not `canvas`).
 - Manual: `curl http://127.0.0.1:3000/api` — should return the health JSON.
-- In the browser: open the app, type a prompt, verify the agent panel streams tokens + tool calls.
+- Manual: `curl http://127.0.0.1:3000/api/sessions` — should return `{"sessions":[...]}`.
+- Manual: `curl http://127.0.0.1:3000/api/plugins` — should return plugin manifests.
+- In the browser: open the app, type a prompt, verify the agent panel streams tokens + tool calls; open Settings → Plugins, verify the plugin list loads.
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder contains: `agent/route.ts`, `route.ts`, `pen/import/route.ts`, `pen/export/route.ts`.
+No child `AGENTS.md` files. This folder contains: `agent/route.ts`, `agent/answers/route.ts`, `agent/background/[id]/route.ts`, `agent/pending/route.ts`, `plugins/route.ts`, `sessions/route.ts`, `sessions/[id]/route.ts`, `sessions/[id]/messages/route.ts`, `sessions/[id]/snapshots/route.ts`, `sessions/[id]/runs/route.ts`, `mcp/[id]/route.ts`, `route.ts`, `pen/import/route.ts`, `pen/export/route.ts`.

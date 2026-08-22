@@ -83,3 +83,6 @@ dev.log
 /tool-results/
 /test-results-*.json
 server.log
+
+# Session artifacts (transient)
+/TEST_RESULTS_WORKLOG.md

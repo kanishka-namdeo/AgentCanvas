@@ -11,9 +11,9 @@ Implements the Anthropic Agent Skills standard (also adopted by Manus):
 
 ## Ownership
 
-- `types.ts` — Skill, SkillCategory, ClassificationResult, Plan, SubAgentResult interfaces.
+- `types.ts` — Skill, SkillCategory, ClassificationResult, Plan, PlanStep, SubAgentParams, SubAgentResult interfaces.
 - `registry.ts` — The 7 skill definitions (Level 1 metadata + Level 2 body + allowedTools + keywords).
-  Also exports CORE_TOOL_NAMES, ALL_TOOL_NAMES, getToolNamesForCategory, formatSkillMetadataForPrompt, formatSkillBodyForPrompt.
+  Also exports SKILLS, getSkill, getSkillMetadata, CORE_TOOL_NAMES, ALL_TOOL_NAMES, getToolNamesForCategory, formatSkillMetadataForPrompt, formatSkillBodyForPrompt.
 - `index.ts` — Barrel export (also re-exports classifier, planner, sub-agent).
 
 ## Local Contracts
@@ -24,7 +24,7 @@ Every skill MUST have:
 - `name` — human-readable
 - `description` — Level 1 metadata (~100 tokens, always loaded). Must say WHAT + WHEN.
 - `body` — Level 2 instructions (loaded on activation, <5k tokens). Tool selection guide, argument rules, completion criteria.
-- `allowedTools` — which of the 56 canvas tools this skill exposes
+- `allowedTools` — which of the 78 canvas tools this skill exposes
 - `keywords` — for the intent classifier (case-insensitive match)
 
 ### Progressive disclosure levels
@@ -38,7 +38,7 @@ list_shapes, clear, set_background, select_shape, undo, redo.
 
 ### Tool subset loading
 `getToolNamesForCategory(category)` returns core tools + skill-specific tools.
-For 'multi', returns ALL_TOOL_NAMES (the full 56-tool flat list — fallback).
+For 'multi', returns ALL_TOOL_NAMES (the full 78-tool flat list — fallback; excludes the 10 always-loaded figma tools).
 
 ### Adding a new skill
 1. Add the category to `SkillCategory` in `types.ts`
@@ -49,7 +49,7 @@ For 'multi', returns ALL_TOOL_NAMES (the full 56-tool flat list — fallback).
 
 ## Verification
 
-- `bun run scripts/eval-agent.ts` — 20-prompt intent classifier eval (currently 100% accuracy)
+- `bun run scripts/eval-agent.ts` — 20-prompt intent classifier eval (currently 95% accuracy; gate is ≥80%)
 - Manual: test via Agent Browser with prompts from each skill category
 
 ## Child DOX Index

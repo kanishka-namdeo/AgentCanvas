@@ -125,24 +125,30 @@ When the user requests a durable behavior change, record it here or in the relev
 | Path | Scope |
 |------|-------|
 | `src/app/AGENTS.md` | Next.js App Router: root layout, main page (tabbed 3-column layout), global styles with `--ac-*` design tokens + `[data-density="compact"]` rules |
-| `src/app/api/AGENTS.md` | API routes: `/api/agent` (SSE agent run endpoint), `/api` (health check), `/api/pen/import` (.pen file import), `/api/pen/export` (.pen file export) |
-| `src/components/canvas/AGENTS.md` | Canvas UI components: drawing surface, floating toolbar (toolMode), layers, properties, agent chat, command palette, top menu bar, .pen file menu, keyboard shortcuts dialog |
+| `src/app/api/AGENTS.md` | API routes (14): `/api/agent` (NDJSON agent run) + answers/pending/background subroutes, `/api/sessions*` server-side session persistence, `/api/plugins` + `/api/mcp/[id]`, `/api` health, `/api/pen/import` + `/api/pen/export` |
+| `src/components/AGENTS.md` | Component tree root: ThemeToggle; indexes canvas/sessions/settings/ui child docs |
+| `src/components/canvas/AGENTS.md` | Canvas UI components: drawing surface, floating toolbar (toolMode + undo/redo), layers, properties, agent chat + PluginUI bundle, command palette, top menu bar, .pen file menu, keyboard shortcuts dialog |
 | `src/components/sessions/AGENTS.md` | Session management UI: sidebar, header, run history, status badges |
-| `src/components/settings/AGENTS.md` | Settings dialog: 6-section modal (agent, LLM, sessions, appearance, data, shortcuts) |
-| `src/components/ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers, ~50 component inventory |
-| `src/lib/agent/AGENTS.md` | Agent layer: 66 tools (58 canvas + 8 pen-aligned), agent loop runner with settings integration, LLM provider swap, system prompt |
+| `src/components/settings/AGENTS.md` | Settings dialog: 8-section modal (agent, LLM provider, sessions, appearance, data, shortcuts, plugins, MCP servers) |
+| `src/components/ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers, 48-component inventory |
+| `src/lib/AGENTS.md` | Lib tree root: Prisma client singleton (`db.ts`), `cn()` utility; indexes the seven lib child docs |
+| `src/lib/agent/AGENTS.md` | Agent layer: 88-tool surface (70 tools.ts + 8 pen + 10 figma) + 32 plugin tools, native Pi-SDK runner + legacy test runner, classifier/planner, sub-agents |
 | `src/lib/agent/skills/AGENTS.md` | Skill system: types, registry (7 skills), progressive disclosure levels, eval harness |
-| `src/lib/canvas/AGENTS.md` | Canvas state: Zustand store (toolMode, undo/redo, settings injection), types, patches, clipboard helpers, Socket.IO service |
-| `src/lib/llm/AGENTS.md` | LLM provider abstraction: 18 providers (13 OpenAI-compatible + 3 native + custom), unified `LLMClient` interface, registry + factories |
-| `src/lib/pen/AGENTS.md` | .pen format layer: canonical schema (v2.17), tree resolver (flexbox layout, variable/theme resolution, ref expansion), document helpers, converters |
-| `src/lib/settings/AGENTS.md` | Settings store: AppSettings + AgentRunSettings types, Zustand persist, PALETTES |
-| `src/lib/sessions/AGENTS.md` | Session persistence: Zustand store with localStorage, fork/restore, forkSessionFromSnapshot, sweep/enforce helpers |
+| `src/lib/agent/plugins/AGENTS.md` | Plugin registry + 8 ported plugins (32 tools, gated by `settings.enabledPlugins`): ask-user-question, todo, memory, mega-compact, goal-list, background-tasks, mcp-adapter, subagents |
+| `src/lib/canvas/AGENTS.md` | Canvas state: Zustand store (toolMode, undo/redo, settings injection), types, patches, clipboard + export helpers, gestures hook, Socket.IO service |
+| `src/lib/llm/AGENTS.md` | LLM provider abstraction: 28 providers (26 OpenAI-compatible + 2 native), unified `LLMClient` interface, registry + factories |
+| `src/lib/pen/AGENTS.md` | .pen format layer: canonical schema (v2.17, 20 node types, Pages abstraction), tree resolver (flexbox layout, variable/theme resolution, ref expansion), document helpers, converters |
+| `src/lib/settings/AGENTS.md` | Settings store: AppSettings + AgentRunSettings types (incl. thinkingLevel, enabledPlugins, mcpServers), Zustand persist, PALETTES |
+| `src/lib/sessions/AGENTS.md` | Session persistence: Zustand localStorage store + server-sync bridge (`/api/sessions*`), fork/restore, sweep/enforce helpers |
 | `src/lib/web/AGENTS.md` | Web search + fetch: 4-provider search chain (z.ai → DDG → Startpage → Jina), 3-backend fetch pipeline (readability → z.ai page_reader → Jina), quality gates |
-| `mini-services/canvas-sync/AGENTS.md` | Socket.IO service for live multi-viewer canvas sync |
-| `prisma/AGENTS.md` | Prisma schema: Document, Shape, AgentAction models |
-| `scripts/AGENTS.md` | Dev scripts: server launchers, screenshot automation, intent classifier eval, token cost measurement |
-| `tests/AGENTS.md` | Test suite: Vitest unit/integration tests, shell smoke tests |
-| `research/AGENTS.md` | Read-only research notes: JSON reference material |
+| `.zscripts/AGENTS.md` | Sandbox boot/build runtime: `dev.sh` boot flow (auto-run at container start), deploy artifact pipeline, `start.sh` production entrypoint |
+| `docs/AGENTS.md` | Durable docs: z.ai sandbox runbook, phase design docs, menu-specs P0–P2 trackers |
+| `examples/websocket/AGENTS.md` | Reference Socket.IO demo (gateway routing pattern; port-collision warning) |
+| `mini-services/canvas-sync/AGENTS.md` | Socket.IO service for live multi-viewer canvas sync (EADDRINUSE-exit-0 twin contract) |
+| `prisma/AGENTS.md` | Prisma schema: Document, Shape, AgentAction + session models (Session, SessionMessage, SessionRun, SessionSnapshot) |
+| `scripts/AGENTS.md` | Dev scripts: dev-server + sandbox one-shot bring-up launchers, screenshot automation, intent classifier eval, token cost measurement |
+| `tests/AGENTS.md` | Test suite: Vitest unit/integration tests (18 files), shell smoke tests, CI notes |
+| `research/AGENTS.md` | Read-only research: 7 web-research JSON surveys, gap-analysis + spec-compliance reports, `specs/` API snapshot cache (~74 refs) + `specs/llm-providers/` (28 provider snapshots) |
 
-- Root-owned files: `README.md`, `LICENSE`, `banner.jpg`, `video-thumbnail.jpg`, and root-level project documentation.
+- Root-owned files: `README.md`, `LICENSE`, root tool/config files (`package.json`, `bun.lock`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `vitest.config.ts`, `prisma.config.ts`, `components.json`, `instrumentation.ts`, `Caddyfile`, `.env.example`, `.gitignore`), `public/` static assets (logo.svg, robots.txt), and root-level project documentation. Session artifacts (`worklog.md`, `TEST_RESULTS_WORKLOG.md`, `test-results-*.json`, `tool-results/`) are transient and gitignored — do not commit them.
 

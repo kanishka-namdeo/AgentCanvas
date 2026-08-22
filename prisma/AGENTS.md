@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Prisma schema + SQLite datasource. Defines the `Document`, `Shape`, and `AgentAction` models used for server-side persistence of canvas state and the agent action audit log.
+The Prisma schema + SQLite datasource. Defines the `Document`, `Shape`, and `AgentAction` models (canvas persistence + agent audit log) and the `Session`, `SessionMessage`, `SessionRun`, `SessionSnapshot` models (server-side session persistence, consumed by the `/api/sessions*` routes and `src/lib/sessions/server-sync.ts`).
 
 ## Ownership
 
@@ -49,7 +49,7 @@ The generated client is now output to `node_modules/.prisma/client/` (set in `sc
 - Has many `Shape` and `AgentAction` (cascade delete).
 
 #### `Shape`
-- `id` (cuid, PK), `documentId` (FK), `type` (string enum: "rectangle" | "ellipse" | "text" | "line" | "frame" | "group" | "path" | "image"), `name`, position (`x`, `y`), size (`width`, `height`), `rotation` (deg), `opacity` (0..1), `fill` (hex), `stroke` (hex), `strokeWidth`, `radius`, `text` (nullable, text-only), `fontSize`, `textColor` (hex), `parentId` (nullable, for groups), `zIndex`, `locked`, `visible`, `createdAt`, `updatedAt`.
+- `id` (cuid, PK), `documentId` (FK), `type` (free string column — the TS `LayerType` union in `src/lib/canvas/types.ts` has 16 values, so treat it as an open set), `name`, position (`x`, `y`), size (`width`, `height`), `rotation` (deg), `opacity` (0..1), `fill` (hex), `stroke` (hex), `strokeWidth`, `radius`, `text` (nullable, text-only), `fontSize`, `textColor` (hex), `parentId` (nullable, for groups), `zIndex`, `locked`, `visible`, `createdAt`, `updatedAt`.
 - Indexes: `@@index([documentId])`, `@@index([parentId])`.
 - This model MUST stay in sync with `CanvasShape` in `src/lib/canvas/types.ts`. Field names + types must match exactly. Defaults must match.
 
@@ -74,7 +74,14 @@ All of these fields are optional in the TypeScript type, so the Prisma model sti
 #### `AgentAction`
 - `id` (cuid, PK), `documentId` (FK), `tool` (Pi tool name), `arguments` (JSON string), `result` (JSON string), `success` (bool), `durationMs` (int), `createdAt`.
 - Index: `@@index([documentId])`.
-- Audit log of every tool call. Currently written by... nobody (the runner emits events but does not persist them to this table; the session store handles persistence client-side via localStorage). This table is reserved for future server-side replay.
+- Audit log of every tool call. Currently written by... nobody (the runner emits events but does not persist them to this table; the session store handles persistence via localStorage + the Session* tables). This table is reserved for future server-side replay.
+
+#### Session models (server-side session persistence — live)
+- `Session` — the server-side mirror of the client session: `id`, `documentId`, `title`, `status` (`active` | `archived`), `pinned`, `model`, counter fields (`messageCount`, `runCount`, `toolCallCount`, `snapshotCount`), `lastOpenedAt`, timestamps. Written by `/api/sessions*` routes via `src/lib/sessions/server-sync.ts` — the DB is the source of truth, localStorage the cache.
+- `SessionMessage` — one chat turn: `id`, `sessionId` (FK, cascade), `role`, `content`, `status`, `error`, `runId`, `createdAt`.
+- `SessionRun` — one agent invocation: `id`, `sessionId` (FK, cascade), `status`, `errorMessage`, `toolCallCount`, `toolCalls` (JSON), `prompt`, timestamps.
+- `SessionSnapshot` — canvas snapshot: `id`, `sessionId` (FK, cascade), `source`, `runId`, `document` (serialized CanvasDocument JSON), `createdAt`.
+- All four cascade-delete with their `Session`.
 
 ### Migration rules
 - Dev: `bun run db:push --accept-data-loss` applies schema changes directly to SQLite (drops+recreates tables as needed — dev only).
@@ -84,7 +91,7 @@ All of these fields are optional in the TypeScript type, so the Prisma model sti
 
 ### Sync with TypeScript types
 - `prisma/schema.prisma` `Shape` ⟷ `src/lib/canvas/types.ts` `Shape`.
-- `prisma/schema.prisma` `Document` ⟷ `src/lib/canvas/types.ts` `CanvasDocument` (note: `CanvasDocument` is now a **.pen tree model** — it carries `children: PenChild[]`, `variables`, `themes` as the source of truth, plus derived `shapes`/`tokens`/`background` caches. The Prisma model is a **flat Shape[]** and is **stale** — it doesn't model the tree, variables, or themes. Persistence currently stays client-side in localStorage; migrating to Prisma would require a tree table with adjacency list). The `heatmap` field was REMOVED for .pen format purity.
+- `prisma/schema.prisma` `Document` ⟷ `src/lib/canvas/types.ts` `CanvasDocument` (note: `CanvasDocument` is now a **.pen tree model** — it carries `children: PenChild[]`, `variables`, `themes` as the source of truth, plus derived `shapes`/`tokens`/`background` caches. The Prisma model is a **flat Shape[]** and is **stale** — it doesn't model the tree, variables, or themes. Migrating canvas persistence to Prisma would require a tree table with adjacency list). The `heatmap` field was REMOVED for .pen format purity.
 - Changing one without the other will cause type errors in `src/lib/canvas/server.ts`.
 - **Current state**: the sync is **incomplete** — the Prisma `Shape` model is missing the extended fields listed in "Known schema drift" above. When updating the Prisma schema to match, all of these fields would need to be added as optional JSON or nullable columns.
 

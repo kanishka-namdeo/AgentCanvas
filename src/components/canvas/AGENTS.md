@@ -2,16 +2,17 @@
 
 ## Purpose
 
-Canvas UI components: the drawing surface, the floating toolbar, the command palette, the layers panel, the properties inspector, the agent chat panel, the top menu bar, the .pen file menu, and the keyboard shortcuts dialog. These are the primary interactive surfaces the user sees and touches.
+Canvas UI components: the drawing surface, the floating toolbar, the command palette, the layers panel, the properties inspector, the agent chat panel (with the interactive plugin-UI bundle), the top menu bar, the .pen file menu, and the keyboard shortcuts dialog. These are the primary interactive surfaces the user sees and touches.
 
 ## Ownership
 
 - `Canvas.tsx` — the SVG/HTML infinite canvas renderer. Renders shapes from `useCanvasStore`. Handles pan (middle-mouse / space-drag / pan-tool), zoom (wheel, pointer-stable), click-to-select, drag-to-move, 8-handle resize, Alt+drag duplicate (Figma pattern), Shift-constrain resize (aspect ratio lock), agent-highlight glow, and right-click context menus (empty-canvas + shape variants with cut/copy/paste/z-order/group/ungroup/lock/hide/delete).
-- `Toolbar.tsx` — **floating pill** at the bottom-center of the canvas (tldraw/Excalidraw pattern). Tool buttons: Select (V), Pan (H), Rectangle, Ellipse, Text, Line, Frame, Clear. Shape buttons are `disabled` when `agentBusy`. Clear is `disabled` when canvas is empty. Select/Pan buttons toggle `toolMode` in the store with `aria-pressed`.
-- `CommandPalette.tsx` — ⌘K command palette (Dialog + cmdk). Fuzzy-searchable list of all 19 preset prompts grouped by category (Wireframes, User Flows, Diagrams, Design Systems, Analysis, Layers & Layout). Supports custom free-form prompts as a fallback. Opens via `⌘K`. Prompt items disabled when `agentBusy`.
+- `Toolbar.tsx` — **floating pill** at the bottom-center of the canvas (tldraw/Excalidraw pattern). Tool buttons: Select (V), Pan (H), Rectangle, Ellipse, Text, Line, Frame, Clear, plus Undo and Redo buttons (disabled when `!canUndo`/`!canRedo` or `agentBusy`). Shape buttons are `disabled` when `agentBusy`. Clear is `disabled` when canvas is empty. Select/Pan buttons toggle `toolMode` in the store with `aria-pressed`.
+- `CommandPalette.tsx` — ⌘K command palette (Dialog + cmdk). Fuzzy-searchable list of all 19 preset prompts grouped by category (Designs, User Flows, Diagrams, Design Systems, Analysis, Layers & Layout). Supports custom free-form prompts as a fallback. Opens via `⌘K`. Prompt items disabled when `agentBusy`.
 - `LayersPanel.tsx` — left panel: tree-ordered shape list with per-type icons, expand/collapse containers (state persisted in localStorage), drag-to-reparent (HTML5 DnD, emits `reparent` patch), search/filter by name, rename (double-click or context menu), lock/hide toggles, badge cluster (Master > Instance > AL > theme > token > constraints; at most 1 visible per row, rest in hover tooltip). Rich context menu: clipboard (cut/copy/paste/paste-in-place/duplicate), z-order (4 items), group/ungroup, lock/hide, create component, mark as slot, copy-as submenu (HTML/React/Tailwind/SVG/JSON), export submenu (PNG/SVG/.pen), select all children, expand/collapse subtree, apply theme axis, bind to token, reparent-to picker, rename, duplicate, delete. Footer shows document variable + theme-axis counts.
 - `PropertiesPanel.tsx` — right panel tab (Design): form for selected shape(s). Multi-selection shows quick actions (duplicate, group, ungroup, 6 align, 2 distribute). Single-selection shows: Name, Parent picker (reparent dropdown), Component master/instance info (with **Detach** + **Reset overrides** action buttons when an instance is selected — Phase 2 component-system), Position (X/Y), Size (Width/Height), Constraints (Figma-style horizontal/vertical), Style Collapsible (Fill + Stroke + Radius + Opacity, defaultOpen), Auto Layout (frame/group only; direction/gap/padding/justify/align), Theme (per-axis selector + clear), Slot (frames only; mark-as-slot flow), Text (text shapes only; content/font-size/color). All numeric inputs + color swatches support right-click Copy/Paste value. Empty state shows Canvas Background + Design Tokens + variables/themes summary.
-- `AgentPanel.tsx` — right panel tab (Chat): chat input + streaming message list + tool-call cards (color-coded by category) + inline Stop button (when agent busy) + "Fork from this message" button on each user message. Accepts `hideHeader` prop (SessionHeader replaces inline header in 4-pane layout). Right-click context menus on user messages (copy prompt, edit & resend, fork, pin, delete), assistant messages (copy, regenerate, branch, replay, pin), and tool-call cards (copy args, replay, pin, view raw, convert, inspect spec). Status strip removed — moved to PropertiesPanel empty state. Send button only renders when there's input. Placeholder includes `(⌘K for prompts)` hint.
+- `AgentPanel.tsx` — right panel tab (Chat): chat input + streaming message list + tool-call cards (color-coded by category) + inline Stop button (when agent busy) + "Fork from this message" button on each user message. Accepts `hideHeader` prop (SessionHeader `compact` variant sits in the top header of the 3-column tabbed layout). Right-click context menus on user messages (copy prompt, edit & resend, fork, pin, delete), assistant messages (copy, regenerate, branch, replay, pin), and tool-call cards (copy args, replay, pin, view raw, convert, inspect spec). Status strip removed — moved to PropertiesPanel empty state. Send button only renders when there's input. Placeholder includes `(⌘K for prompts)` hint.
+- `PluginUI.tsx` — interactive plugin-UI bundle mounted inside AgentPanel: `AskUserQuestionDialog` (modal that resolves the agent's `ask_user_question` tool call via canvas-store `submitQuestionAnswers` → POST `/api/agent/answers`), `TodoOverlay` (live agent task list with status icons/colors), `BackgroundTaskList` (polled background-task statuses). All driven by canvas-store plugin state (`pendingQuestion`, `todos`, `backgroundTasks`).
 - `TopMenuBar.tsx` — application menu bar (28px height, below the header). Six menus: File (new chat, open/import/export .pen, export PNG/SVG/JSON, settings), Edit (undo/redo, cut/copy/paste, duplicate, select/deselect all, delete), View (toggle panels, zen, dark mode, grid/snap), Insert (drop shapes at viewport center: rectangle/ellipse/text/line/frame/path/image), Object (group/ungroup, z-order, align/distribute submenus, lock/hide, reparent), Help (keyboard shortcuts, .pen spec, GitHub, about). Shortcut hints shown via `<MenubarShortcut>`. All items dispatch to canvas store actions, `useClipboard`, or panel state setters.
 - `PenFileMenu.tsx` — dropdown for .pen file operations. Export: POST `/api/pen/export` with live CanvasDocument, downloads as `.pen` blob. Import: file picker → JSON.parse → POST `/api/pen/import` → applies returned patches through the store (undoable + broadcast). Shows busy indicator during operations.
 - `KeyboardShortcutsDialog.tsx` — searchable modal listing all wired keyboard shortcuts, grouped by category (Panels, Navigation, Edit, Tools, Clipboard, Structure, Z-order, Canvas, Properties, Chat, File). Tier badges (P0/P1/P2/Existing) with color coding. Opens via ⌘/ (mirrors Figma's Ctrl+Shift+? cheat sheet). Filters by action, keys, category, or tier.
@@ -93,7 +94,7 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
   - Placeholder text includes `(⌘K for prompts)` hint.
   - Empty state shows "How does this work?" card + ⌘K hint + prompt group chips + preset prompt buttons.
   - Each user message has a "Fork from this message" button with `aria-label`.
-  - Accepts `hideHeader` prop (the `SessionHeader` component replaces the inline header when in the 4-pane layout).
+  - Accepts `hideHeader` prop (the compact `SessionHeader` component sits in the top header of the 3-column tabbed layout).
   - Inline Stop button appears next to streaming response when `agentBusy`.
   - Right-click context menus on user messages, assistant messages, and tool-call cards.
 - `TopMenuBar.tsx`:
@@ -109,7 +110,7 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
   - Shows busy indicator (fixed bottom-right) during operations.
 - `KeyboardShortcutsDialog.tsx`:
   - Accepts `open` + `onOpenChange` props.
-  - `SHORTCUTS` array: ~40 entries across P0/P1/P2/Existing tiers.
+  - `SHORTCUTS` array: 46 entries across P0/P1/P2/Existing tiers.
   - Filters by action, keys, category, or tier (case-insensitive).
   - Groups by category for display.
   - Tier badges color-coded: P0=rose, P1=amber, P2=blue, Existing=slate.
@@ -123,7 +124,7 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
 
 - When adding a new shape type: update `Canvas.tsx` (rendering), `LayersPanel.tsx` (icon in `TYPE_ICON`), `PropertiesPanel.tsx` (form fields), `tools.ts` (tool schema + `executeTool` case), `prisma/schema.prisma` (comment in the `type` field).
 - When changing the design system: edit `src/app/globals.css` first, then sweep components for hardcoded colors.
-- When adding a new panel: follow the 4-pane layout in `src/app/page.tsx` — do not introduce a 5th column without restructuring.
+- When adding a new panel: follow the 3-column tabbed layout in `src/app/page.tsx` — do not introduce a new column without restructuring.
 - When adding a new keyboard shortcut: add it to `KeyboardShortcutsDialog.tsx`'s `SHORTCUTS` array + wire it in `src/app/page.tsx`'s keydown handler + show it as a hint in `TopMenuBar.tsx` if applicable.
 - Capture before/after screenshots to `download/<feature-name>/` for any visual change.
 

@@ -33,8 +33,8 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
   - Opens with a `DropdownMenuLabel` showing the session title (uppercase, `ac-text-4`, truncated).
   - Items use `py-1.5`.
   - Destructive item (Delete) uses `variant="destructive"`.
-  - Full action list: Rename, Pin/Unpin, Star/Unstar, Fork this chat (`forkSession(session.id, null)`), Duplicate session (fork without switching), Export as JSON (copies session JSON), Export as Markdown (stub — P2-37), Copy prompt summary (copies user messages), Mark as template (stub — P2-41), Archive, Delete (with confirm).
-  - Toasts on: Archive, Delete, Fork, Duplicate, Export as JSON, Copy prompt summary. Pin/Star do NOT toast.
+  - Full action list: Rename, Pin/Unpin, Star/Unstar, Fork this chat (`forkSession(session.id, null)`), Duplicate session (fork without switching), Export as JSONL (server-backed `exportSessionJSONL` from `src/lib/sessions/server-sync`, with local `.json` fallback), Export as Markdown (stub — P2-37), Copy prompt summary (copies user messages), Mark as template (stub — P2-41), Archive, Delete (with confirm).
+  - Toasts on: Archive, Delete, Fork, Duplicate, Export, Copy prompt summary. Pin/Star do NOT toast.
 - Rename Dialog (`DialogContent`):
   - Has `DialogDescription` ("This name appears in the sidebar…") for context.
   - Input wrapped in labeled group: `<label>` "TITLE" (uppercase, `ac-text-4`) + `Input` with `ac-border-default` → `focus-visible:ac-border-strong`.

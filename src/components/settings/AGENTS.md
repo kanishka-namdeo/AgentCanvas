@@ -6,18 +6,20 @@ Settings UI: the `SettingsDialog` component — a modal dialog with a left verti
 
 ## Ownership
 
-- `SettingsDialog.tsx` — the full settings workflow (6 sections). Reads from / writes to the Zustand settings store (`useSettings`). Changes apply immediately — no "Save" button required.
+- `SettingsDialog.tsx` — the full settings workflow (8 sections). Reads from / writes to the Zustand settings store (`useSettings`). Changes apply immediately — no "Save" button required.
 
 ## Local Contracts
 
-### Sections (6)
+### Sections (8)
 
-1. **Agent** — temperature slider, maxIterations slider, planFirst toggle, defaultPalette select, skillSelectionMode select.
-2. **LLM provider** — provider select (zai-auto / zai-key / openai-compatible), API key, model name, base URL. Contextual: shows fields only relevant to the selected provider.
+1. **Agent** — temperature slider, maxIterations slider, thinkingLevel select, planFirst toggle, defaultPalette select, skillSelectionMode select.
+2. **LLM provider** — provider select (dynamic list from `listProviders()` in `src/lib/llm` — 28 providers; legacy `zai-auto` values normalized via `normalizeLLMProvider`), API key, model name, base URL. Contextual: shows fields only relevant to the selected provider.
 3. **Sessions** — snapshotCadence select, maxSnapshotsPerSession input, maxSessionsRetained input, autoArchiveIdleAfter select.
 4. **Appearance** — theme select (system / light / dark), density select (comfortable / compact). Applies theme immediately via `.dark` class toggle.
 5. **Data** — storage usage display (sessions/settings/theme bytes), Export all data (JSON download), Delete non-bookmarked snapshots, Clear ALL chats (danger zone).
 6. **Shortcuts** — read-only reference list of all keyboard shortcuts.
+7. **Plugins** — toggle list of agent plugins fetched from `GET /api/plugins`, merged with the user's `enabledPlugins` setting (Phase 5).
+8. **MCP Servers** — add/remove/connect/disconnect MCP servers; persists the `mcpServers` setting and calls `POST /api/mcp/[id]`.
 
 ### Design token usage (root contract, restated)
 - All components consume the `--ac-*` design tokens via utility classes. No hardcoded `slate-{n}` colors.
@@ -41,12 +43,13 @@ Settings UI: the `SettingsDialog` component — a modal dialog with a left verti
 
 - When adding a new section: add it to the `SECTIONS` array, create a `<SectionName>Section` function component, add it to the conditional render block.
 - When adding a new setting field: add it to `AppSettings` in `src/lib/settings/types.ts` first, then add the UI control here.
-- The settings dialog is 560px tall — keep section content scrollable via `ScrollArea`.
+- The settings dialog is `h-[80vh] max-h-[640px] min-h-[480px]` inside a `max-w-5xl` dialog — keep section content scrollable via `ScrollArea`.
 
 ## Verification
 
 - `bunx tsc --noEmit` — typecheck.
-- Manual: open settings via gear icon or `⌘,`, verify all 6 sections render, change a setting, verify it persists after reload.
+- Manual: open settings via gear icon or `⌘,`, verify all 8 sections render, change a setting, verify it persists after reload.
+- Manual: Settings → Plugins loads the plugin manifest list from `GET /api/plugins`; Settings → MCP Servers can add a server (placeholder connect).
 - Manual: change theme to "dark" via Settings → verify ThemeToggle icon updates (no desync).
 - Manual: change density to "compact" → verify `data-density="compact"` on root div + smaller fonts.
 
