@@ -13,16 +13,23 @@ sleep 1
 # Truncate old log
 rm -f dev.log
 
-# Start dev server with setsid to create a new session, detached from this shell.
-# nohup + setsid + disown = maximum detachment.
-setsid bash -c '
-  cd /home/z/my-project
-  exec bun run dev > /home/z/my-project/dev.log 2>&1
-' &
-disown
+# Start the dev server detached so it survives the end of the agent tool call.
+#
+# z.ai sandbox process rule: the host kills every descendant of a tool call's
+# shell when the call ends. A process survives ONLY if it is reparented to
+# PID 1 (tini) BEFORE the call ends. The wrapping subshell `( ... & )` exits
+# immediately mid-call, orphaning the setsid'd process to init at once.
+# (A bare `setsid CMD &` / `nohup CMD &` as a direct child does NOT survive.)
+# Full runbook: docs/zai-sandbox-setup.md
+(
+  setsid bash -c '
+    cd /home/z/my-project
+    exec bun run dev > /home/z/my-project/dev.log 2>&1
+  ' >/dev/null 2>&1 &
+)
 
-# Wait for the server to be ready
-for i in {1..20}; do
+# Wait for the server to be ready (Turbopack cold compile can take ~10-30s)
+for i in {1..45}; do
   sleep 1
   if curl -sf http://127.0.0.1:3000/ > /dev/null 2>&1; then
     echo "Dev server ready after ${i}s"

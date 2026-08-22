@@ -199,6 +199,22 @@ async function driveAgent(documentId: string, prompt: string, originatorSocketId
 }
 
 const PORT = 3003;
+
+// In the z.ai sandbox this service is started by .zscripts/dev.sh *and* the
+// Next.js dev server boots an in-process copy via instrumentation.ts. Whoever
+// binds :3003 second hits EADDRINUSE — exit cleanly so the boot log stays
+// green; the surviving instance serves the port. See docs/zai-sandbox-setup.md.
+httpServer.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(
+      `[canvas-sync] port ${PORT} already in use — the in-process canvas-sync owns it. Exiting cleanly; WebSocket sync stays served in-process.`,
+    );
+    process.exit(0);
+  }
+  console.error('[canvas-sync] HTTP server error:', err);
+  process.exit(1);
+});
+
 httpServer.listen(PORT, () => {
   console.log(`[canvas-sync] WebSocket server listening on port ${PORT}`);
 });

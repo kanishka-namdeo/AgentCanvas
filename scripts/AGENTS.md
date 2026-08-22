@@ -6,7 +6,8 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 
 ## Ownership
 
-- `start-dev.sh` — detached Next.js dev server launcher. Kills any existing `next-server` / `next dev` / `bun run dev` process, truncates `dev.log`, starts fresh via `setsid + nohup + disown`, waits up to 20s for `http://127.0.0.1:3000/` to respond.
+- `start-dev.sh` — detached Next.js dev server launcher, sandbox-safe. Kills any existing `next-server` / `next dev` / `bun run dev` process, truncates `dev.log`, starts fresh via a double-fork `( setsid … & )` so the server is reparented to PID 1 and survives the end of the agent tool call (the sandbox host kills all other descendants), waits up to 45s for `http://127.0.0.1:3000/` to respond.
+- `setup-zai-sandbox.sh` — one-shot z.ai sandbox bring-up: forces the absolute `DATABASE_URL`, `bun install`, `bun run db:generate` + `db:push`, starts the dev server via `start-dev.sh` (skipped if `:3000` already serves), runs the health-check suite, and refreshes the persistence archive `/home/sync/repo.tar`. Subcommands: `--verify`, `--archive`, `--no-start`. The full runbook is `docs/zai-sandbox-setup.md`.
 - `start-canvas-sync.sh` — launcher for the `mini-services/canvas-sync/` Socket.IO service on port 3003.
 - `canvas-sync-watchdog.sh` — monitors the canvas-sync service and restarts it if it dies.
 - `screenshot-ui-after.ts` — Playwright script. Captures 5 UI states (initial, hover-session, input-focused, snapshots-tab, runs-expanded) to `download/ui-polish-after/`. Viewport 1600×1000. Run via `bunx tsx scripts/screenshot-ui-after.ts`.
@@ -41,7 +42,8 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 
 ## Verification
 
-- `bash scripts/start-dev.sh` — should print "Dev server ready after Ns" and exit 0.
+- `bash scripts/start-dev.sh` — should print "Dev server ready after Ns" and exit 0, and the server must still respond in a later tool call (survival is the point of the script).
+- `bash scripts/setup-zai-sandbox.sh --verify` — should print 7 PASS lines and exit 0 (page, `/api/sessions`, `:3003` handshake, gateway `:81`, clean `dev.log`).
 - `bash scripts/start-canvas-sync.sh` — should leave the canvas-sync service running on port 3003.
 - `bunx tsx scripts/screenshot-ui-after.ts` — should produce 5 PNGs in `download/ui-polish-after/`.
 

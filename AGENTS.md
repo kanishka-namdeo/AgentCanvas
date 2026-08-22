@@ -112,6 +112,14 @@ Default section order:
 
 When the user requests a durable behavior change, record it here or in the relevant child [AGENTS.md](http://AGENTS.md)
 
+## z.ai Sandbox Operations
+
+- This repo targets the z.ai sandbox, where the project root is `/home/z/my-project` — never a subdirectory. The one-shot bring-up runbook (scaffold replacement, `DATABASE_URL` override, process-survival rules, gateway ports, restart persistence, verification) is in `docs/zai-sandbox-setup.md`. Read it before any sandbox bring-up or restart debugging.
+- The sandbox host kills every descendant of an agent tool call when it ends. Launch the dev server only via `scripts/start-dev.sh` (orphan-to-init pattern) — bare `nohup`/`setsid`/`disown` background jobs do not survive. `scripts/setup-zai-sandbox.sh` is the one-shot wrapper (env + install + DB + start + verify + persist).
+- Only port `:81` (Caddy gateway) is externally exposed: default → `:3000`, other ports via `?XTransformPort=<port>`. Browser code uses relative URLs only. The only user-visible route is `/`; users preview via the Preview Panel, never localhost links.
+- The project directory is ephemeral across container restarts; `/home/sync/repo.tar` is the persistence layer and boot auto-runs `.zscripts/dev.sh`. After durable changes, refresh the archive: `bash scripts/setup-zai-sandbox.sh --archive`.
+- Never `bun run build` / `next start` in the sandbox — the boot flow supports the dev server on port 3000 only.
+
 ## Child DOX Index
 
 | Path | Scope |
