@@ -276,8 +276,8 @@ export function LayersPanel() {
             onDragLeave={() => onRowDragLeave(shape)}
             onDrop={(e) => onRowDrop(e, shape)}
             className={`group flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer ac-transition ${
-              selected ? 'bg-sky-50 text-sky-900' : 'hover:ac-surface-1 ac-text-2'
-            }${dragOverId === shape.id ? ' ring-2 ring-sky-300' : ''}`}
+              selected ? 'bg-[var(--ac-accent-soft)] ac-text-1' : 'hover:ac-surface-1 ac-text-2'
+            }${dragOverId === shape.id ? ' ring-2 ring-[var(--ac-accent)]' : ''}`}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
             onClick={(e) => {
               if (e.shiftKey) {
@@ -337,17 +337,17 @@ export function LayersPanel() {
               // Build the list of all applicable badges for this row.
               type Badge = { label: string; node: ReactNode };
               const all: Badge[] = [];
-              if (isComponentMaster) all.push({ label: 'Master', node: <span className="text-[9px] px-1 py-0 rounded bg-sky-100 text-sky-700 font-medium">M</span> });
-              if (isComponentInstance) all.push({ label: 'Instance (ref)', node: <span className="text-[9px] px-1 py-0 rounded bg-violet-100 text-violet-700 font-medium">◆</span> });
-              if (hasAutoLayout) all.push({ label: 'Auto Layout', node: <span className="text-[9px] px-1 py-0 rounded bg-emerald-100 text-emerald-700 font-medium">AL</span> });
+              if (isComponentMaster) all.push({ label: 'Master', node: <span className="text-[9px] px-1 py-0 rounded ac-status-info font-medium">M</span> });
+              if (isComponentInstance) all.push({ label: 'Instance (ref)', node: <span className="text-[9px] px-1 py-0 rounded ac-status-warning font-medium">◆</span> });
+              if (hasAutoLayout) all.push({ label: 'Auto Layout', node: <span className="text-[9px] px-1 py-0 rounded ac-status-success font-medium">AL</span> });
               if (themeStr) all.push({ label: `theme: ${themeStr}`, node: <span className="text-[9px] px-1 py-0 rounded ac-surface-2 ac-text-3 font-medium">{themeStr}</span> });
-              if (hasTokenBinding) all.push({ label: 'Bound to design token', node: <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-500" /> });
+              if (hasTokenBinding) all.push({ label: 'Bound to design token', node: <span className="w-1.5 h-1.5 rounded-full ac-dot-info" /> });
               // Constraints badge (small "C" pill) — surfaces that the node has
               // Figma-style layout constraints set.
               if (shape.constraints) {
                 all.push({
                   label: `constraints: ${shape.constraints.horizontal}/${shape.constraints.vertical}`,
-                  node: <span className="text-[9px] px-1 py-0 rounded bg-amber-100 text-amber-700 font-medium">C</span>,
+                  node: <span className="text-[9px] px-1 py-0 rounded ac-status-warning font-medium">C</span>,
                 });
               }
 
@@ -639,7 +639,7 @@ export function LayersPanel() {
               sendPatch({ op: 'remove', shapeIds: [shape.id], summary: `Deleted ${shape.name}` });
               if (selectedIds.includes(shape.id)) select(selectedIds.filter((id) => id !== shape.id));
             }}
-            className="text-rose-600"
+            className="ac-text-danger"
           >
             <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete <span className="ml-auto text-[10px] ac-text-4">⌫</span>
           </ContextMenuItem>

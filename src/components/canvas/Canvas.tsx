@@ -659,7 +659,7 @@ export function Canvas() {
                 sendPatch({ op: 'remove', shapeIds: [contextShape.id], summary: `Deleted ${contextShape.name}` });
                 if (selectedIds.includes(contextShape.id)) select(selectedIds.filter((id) => id !== contextShape.id));
               }}
-              className="text-rose-600"
+              className="ac-text-danger"
             >
               <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete <span className="ml-auto text-[10px] ac-text-4">⌫</span>
             </ContextMenuItem>
@@ -970,7 +970,7 @@ export function ShapeRenderer({
             width={shape.width}
             height={shape.height}
             fill="transparent"
-            stroke={shape.stroke || '#94a3b8'}
+            stroke={shape.stroke || 'var(--ac-canvas-default-stroke)'}
             strokeWidth={1}
             strokeDasharray="6 4"
             rx={8}
@@ -980,8 +980,8 @@ export function ShapeRenderer({
             y={shape.y - 10}
             width={Math.max(40, label.length * 6.5 + 16)}
             height={20}
-            fill={shape.fill === 'transparent' ? '#f8fafc' : shape.fill}
-            stroke={shape.stroke || '#94a3b8'}
+            fill={shape.fill === 'transparent' ? 'var(--ac-canvas-bg)' : shape.fill}
+            stroke={shape.stroke || 'var(--ac-canvas-default-stroke)'}
             strokeWidth={1}
             rx={4}
           />
@@ -990,7 +990,7 @@ export function ShapeRenderer({
             y={shape.y + 4}
             fontSize={11}
             fontWeight={600}
-            fill={shape.stroke || '#475569'}
+            fill={shape.stroke || 'var(--ac-canvas-default-text)'}
             fontFamily="Inter, system-ui, sans-serif"
           >
             {label}
@@ -1016,7 +1016,7 @@ export function ShapeRenderer({
             rx={rx}
             ry={ry}
             fill={fillValue}
-            stroke={stroke === 'none' ? '#0ea5e9' : stroke}
+            stroke={stroke === 'none' ? 'var(--ac-canvas-component)' : stroke}
             strokeWidth={Math.max(strokeWidth, 1.5)}
             strokeDasharray={shape.type === 'component_set' ? '4 2' : undefined}
           />
@@ -1026,7 +1026,7 @@ export function ShapeRenderer({
             y={shape.y + 4}
             width={16}
             height={16}
-            fill="#0ea5e9"
+            fill="var(--ac-canvas-component)"
             rx={2}
           />
           <text
@@ -1034,7 +1034,7 @@ export function ShapeRenderer({
             y={shape.y + 16}
             fontSize={11}
             fontWeight={700}
-            fill="#ffffff"
+            fill="var(--ac-canvas-handle-fill)"
             textAnchor="middle"
             fontFamily="Inter, system-ui, sans-serif"
           >
@@ -1059,7 +1059,7 @@ export function ShapeRenderer({
             rx={rx}
             ry={ry}
             fill={fillValue}
-            stroke={stroke === 'none' ? '#a855f7' : stroke}
+            stroke={stroke === 'none' ? 'var(--ac-canvas-instance)' : stroke}
             strokeWidth={Math.max(strokeWidth, 1.5)}
           />
           <rect
@@ -1067,7 +1067,7 @@ export function ShapeRenderer({
             y={shape.y + 4}
             width={16}
             height={16}
-            fill="#a855f7"
+            fill="var(--ac-canvas-instance)"
             rx={2}
           />
           <text
@@ -1075,7 +1075,7 @@ export function ShapeRenderer({
             y={shape.y + 16}
             fontSize={11}
             fontWeight={700}
-            fill="#ffffff"
+            fill="var(--ac-canvas-handle-fill)"
             textAnchor="middle"
             fontFamily="Inter, system-ui, sans-serif"
           >
@@ -1107,7 +1107,7 @@ export function ShapeRenderer({
             rx={rx}
             ry={ry}
             fill={fillValue}
-            stroke={stroke === 'none' ? '#f59e0b' : stroke}
+            stroke={stroke === 'none' ? 'var(--ac-canvas-highlight)' : stroke}
             strokeWidth={Math.max(strokeWidth, 1.5)}
             strokeDasharray="6 3"
           />
@@ -1116,7 +1116,7 @@ export function ShapeRenderer({
             y={shape.y + shape.height / 2 + 6}
             fontSize={32}
             fontWeight={700}
-            fill={stroke === 'none' ? '#f59e0b' : stroke}
+            fill={stroke === 'none' ? 'var(--ac-canvas-highlight)' : stroke}
             textAnchor="middle"
             fontFamily="Inter, system-ui, sans-serif"
             opacity={0.5}
@@ -1138,9 +1138,9 @@ export function ShapeRenderer({
             y={shape.y}
             width={shape.width}
             height={shape.height}
-            fill="#10b981"
+            fill="var(--ac-canvas-autolayout)"
             fillOpacity={0.08}
-            stroke="#10b981"
+            stroke="var(--ac-canvas-autolayout)"
             strokeWidth={1.5}
             strokeDasharray="4 2"
           />
@@ -1149,7 +1149,7 @@ export function ShapeRenderer({
             y={shape.y + 14}
             fontSize={10}
             fontWeight={600}
-            fill="#10b981"
+            fill="var(--ac-canvas-autolayout)"
             fontFamily="Inter, system-ui, sans-serif"
           >
             ⌖ slice
@@ -1254,7 +1254,7 @@ export function ShapeRenderer({
           width={shape.width + 8 / zoom}
           height={shape.height + 8 / zoom}
           fill="none"
-          stroke="#f59e0b"
+          stroke="var(--ac-canvas-highlight)"
           strokeWidth={2 / zoom}
           style={{ pointerEvents: 'none' }}
         >
@@ -1277,14 +1277,14 @@ export function ShapeRenderer({
             width={shape.width - 4 / zoom}
             height={shape.height - 4 / zoom}
             fill="none"
-            stroke="#22c55e"
+            stroke="var(--ac-canvas-autolayout)"
             strokeWidth={1 / zoom}
             strokeDasharray={`${4 / zoom} ${3 / zoom}`}
             style={{ pointerEvents: 'none' }}
           />
           <g style={{ pointerEvents: 'none' }} transform={`translate(${shape.x + 4 / zoom}, ${shape.y - 14 / zoom})`}>
-            <rect width={36 / zoom} height={12 / zoom} rx={2 / zoom} fill="#22c55e" />
-            <text x={18 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">AL</text>
+            <rect width={36 / zoom} height={12 / zoom} rx={2 / zoom} fill="var(--ac-canvas-autolayout)" />
+            <text x={18 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="var(--ac-canvas-handle-fill)" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">AL</text>
           </g>
         </>
       )}
@@ -1292,14 +1292,14 @@ export function ShapeRenderer({
       {/* Component master / instance indicators. */}
       {isComponentMaster && (
         <g style={{ pointerEvents: 'none' }} transform={`translate(${shape.x + shape.width - 16 / zoom}, ${shape.y + 4 / zoom})`}>
-          <rect width={12 / zoom} height={12 / zoom} rx={2 / zoom} fill="#0ea5e9" />
-          <text x={6 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">M</text>
+          <rect width={12 / zoom} height={12 / zoom} rx={2 / zoom} fill="var(--ac-canvas-component)" />
+          <text x={6 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="var(--ac-canvas-handle-fill)" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">M</text>
         </g>
       )}
       {isComponentInstance && (
         <g style={{ pointerEvents: 'none' }} transform={`translate(${shape.x + shape.width - 16 / zoom}, ${shape.y + 4 / zoom})`}>
-          <rect width={12 / zoom} height={12 / zoom} rx={2 / zoom} fill="#a78bfa" />
-          <text x={6 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="white" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">I</text>
+          <rect width={12 / zoom} height={12 / zoom} rx={2 / zoom} fill="var(--ac-canvas-instance)" />
+          <text x={6 / zoom} y={9 / zoom} fontSize={9 / zoom} fill="var(--ac-canvas-handle-fill)" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif">I</text>
         </g>
       )}
 
@@ -1311,7 +1311,7 @@ export function ShapeRenderer({
             width={shape.width + 2 / zoom}
             height={shape.height + 2 / zoom}
             fill="none"
-            stroke="#0ea5e9"
+            stroke="var(--ac-canvas-selection)"
             strokeWidth={1.5 / zoom}
             style={{ pointerEvents: 'none' }}
           />
@@ -1324,8 +1324,8 @@ export function ShapeRenderer({
                 y={pos.y - handleSize / 2}
                 width={handleSize}
                 height={handleSize}
-                fill="white"
-                stroke="#0ea5e9"
+                fill="var(--ac-canvas-handle-fill)"
+                stroke="var(--ac-canvas-selection)"
                 strokeWidth={1 / zoom}
                 style={{ pointerEvents: 'auto', cursor: cursorForHandle(h) }}
                 onMouseDown={(e) => onResizeHandleMouseDown(e, shape, h)}

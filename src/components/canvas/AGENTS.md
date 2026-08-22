@@ -21,7 +21,26 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
 ### Design token usage (root contract, restated)
 - All components MUST consume the `--ac-*` design tokens from `src/app/globals.css` via the utility classes (`.ac-text-1` ... `.ac-text-5`, `.ac-border-subtle` / `.ac-border-default` / `.ac-border-strong`, `.ac-surface-0` ... `.ac-surface-3`, `.ac-active-row`, `.ac-focus-ring`, `.ac-transition`, `.ac-hide-scrollbar`).
 - Do NOT hardcode `slate-{n}` / `zinc-{n}` / `gray-{n}` Tailwind color literals. Use the tokens or the `--ac-*` CSS variables directly.
-- Status colors (success/warning/error/info) use the `--ac-status-*` OKLCH variables.
+- Status colors (success/warning/danger/info/neutral) MUST use the semantic utility classes:
+  - `.ac-status-{info|success|warning|danger|neutral}` — bg + fg + border (use on badges, pills, chips).
+  - `.ac-text-{info|success|warning|danger|neutral}` — text color only (use on inline icons, captions).
+  - `.ac-dot-{info|success|warning|danger|neutral}` — solid fill color (use on indicator dots).
+  - `.ac-hover-{info|success|warning|danger|neutral}:hover` — soft background on hover.
+  - These resolve to `--ac-{tone}{,-fg,-soft,-border}` tokens and adapt to light/dark mode automatically.
+- **Canvas SVG colors** MUST use the `--ac-canvas-*` tokens defined in `src/app/globals.css`:
+  - `--ac-canvas-bg` — default canvas background (slate-50 light / dark slate dark).
+  - `--ac-canvas-grid` — dot grid color.
+  - `--ac-canvas-default-fill` — default shape fill (rectangle/path/image/component/instance/boolean).
+  - `--ac-canvas-default-stroke` — default shape stroke (group/section/component_set).
+  - `--ac-canvas-default-text` — default text/line fill.
+  - `--ac-canvas-accent-fill` — warm accent fill (ellipse/star/polygon).
+  - `--ac-canvas-selection` — selection outline + handle stroke.
+  - `--ac-canvas-component` — component master badge + slice stroke.
+  - `--ac-canvas-instance` — instance badge.
+  - `--ac-canvas-highlight` — hover/agent-highlight outline + boolean_operation stroke.
+  - `--ac-canvas-autolayout` — auto-layout indicator (dashed border + "AL" badge) + slice overlay.
+  - `--ac-canvas-handle-fill` — selection handle interior fill.
+  - **No hardcoded hex colors** (`#0ea5e9`, `#a855f7`, `#f59e0b`, etc.) are allowed in `Canvas.tsx` or `Toolbar.tsx` — use the tokens above so the canvas adapts to dark mode like the rest of the UI.
 
 ### Component contracts
 - `Canvas.tsx`:

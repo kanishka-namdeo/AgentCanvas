@@ -169,7 +169,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
           <div className="relative">
             <Bot className="h-4 w-4 ac-text-2" />
             {agentBusy && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full ac-dot-success animate-pulse" />
             )}
           </div>
           <span className="text-xs font-medium ac-text-2">Agent</span>
@@ -191,11 +191,11 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                   x="0" y="0"
                   width={Math.min(32, Math.max(2, (contextTokens / contextWindow) * 32))}
                   height="8" rx="4"
-                  fill={contextTokens > contextWindow * 0.8 ? '#f59e0b' : '#10b981'}
+                  fill={contextTokens > contextWindow * 0.8 ? 'var(--ac-warning)' : 'var(--ac-success)'}
                 />
               </svg>
-              {lastCompacted && <span className="text-emerald-500" title="Context was compacted">✓</span>}
-              <span className={contextTokens > contextWindow * 0.8 ? 'text-amber-500' : ''}>
+              {lastCompacted && <span className="ac-text-success" title="Context was compacted">✓</span>}
+              <span className={contextTokens > contextWindow * 0.8 ? 'ac-text-warning' : 'ac-text-3'}>
                 {(contextTokens / 1000).toFixed(1)}K
               </span>
             </span>
@@ -209,7 +209,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               setSetting('thinkingLevel', next);
             }}
             title={`Thinking: ${thinkingLevel} (click to cycle)\nHigher = better reasoning on complex tasks, but slower. Off = fastest.`}
-            className={`flex items-center gap-0.5 px-1 py-0.5 rounded ac-transition hover:ac-surface-1 ${thinkingLevel !== 'off' ? 'text-violet-500' : 'ac-text-4'}`}
+            className={`flex items-center gap-0.5 px-1 py-0.5 rounded ac-transition hover:ac-surface-1 ${thinkingLevel !== 'off' ? 'ac-text-info' : 'ac-text-4'}`}
           >
             <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -217,8 +217,8 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             <span className="text-[9px]">{thinkingLevel}</span>
           </button>
           {/* Connection status */}
-          <span className={`flex items-center gap-0.5 ${connected ? '' : 'text-rose-400'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-rose-400'}`} />
+          <span className={`flex items-center gap-0.5 ${connected ? '' : 'ac-text-danger'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'ac-dot-success' : 'ac-dot-danger'}`} />
             {connected ? 'live' : 'offline'}
           </span>
         </div>
@@ -511,8 +511,8 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
               </Badge>
             )}
             {pending && <Loader2 className="h-3 w-3 animate-spin ac-text-4 ml-auto" />}
-            {success === true && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-auto" />}
-            {success === false && <XCircle className="h-3 w-3 text-rose-500 ml-auto" />}
+            {success === true && <CheckCircle2 className="h-3 w-3 ac-text-success ml-auto" />}
+            {success === false && <XCircle className="h-3 w-3 ac-text-danger ml-auto" />}
           </div>
           {tc.argsPreview && (
             <pre className="mt-1 text-[10px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all">
@@ -554,35 +554,39 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
 }
 
 function toolCategory(name: string): { label: string; cls: string } | null {
+  // All category badges use the --ac-status-* token system so they adapt to
+  // dark mode automatically. These are conceptual groupings (no domain-specific
+  // meaning to the hue) — info for core, warning for layers, success for
+  // auto-layout, danger for analysis, etc.
   // Core canvas ops
   if (name.startsWith('pen_create') || name.startsWith('pen_update') || name.startsWith('pen_delete') || name === 'pen_list_shapes' || name === 'pen_clear' || name === 'pen_set_background' || name === 'pen_select_shape') {
-    return { label: 'core', cls: 'text-slate-500 border-slate-300' };
+    return { label: 'core', cls: 'ac-status-neutral' };
   }
   // .pen design-system tools: variables, themes
   if (name.startsWith('pen_set_variable') || name.startsWith('pen_apply_theme') || name.startsWith('pen_set_theme') || name.startsWith('pen_list_themes')) {
-    return { label: 'design-system', cls: 'text-fuchsia-700 border-fuchsia-200' };
+    return { label: 'design-system', cls: 'ac-status-info' };
   }
   // .pen component-instance tools: refs + descendants + slots
   if (name.startsWith('pen_create_ref') || name.startsWith('pen_override_descendant') || name.startsWith('pen_mark_slot') || name.startsWith('pen_export_pen')) {
-    return { label: 'component', cls: 'text-sky-700 border-sky-200' };
+    return { label: 'component', cls: 'ac-status-success' };
   }
   if (name.includes('duplicate') || name.includes('group') || name.includes('align') || name.includes('organize')) {
-    return { label: 'layers', cls: 'text-amber-700 border-amber-200' };
+    return { label: 'layers', cls: 'ac-status-warning' };
   }
   if (name.includes('auto_layout')) {
-    return { label: 'auto-layout', cls: 'text-emerald-700 border-emerald-200' };
+    return { label: 'auto-layout', cls: 'ac-status-success' };
   }
   if (name.includes('component')) {
-    return { label: 'component', cls: 'text-sky-700 border-sky-200' };
+    return { label: 'component', cls: 'ac-status-success' };
   }
   if (name.includes('palette') || name.includes('tokens')) {
-    return { label: 'design-system', cls: 'text-fuchsia-700 border-fuchsia-200' };
+    return { label: 'design-system', cls: 'ac-status-info' };
   }
   if (name.startsWith('pen_generate_wireframe') || name.startsWith('pen_generate_user_flow') || name.startsWith('pen_generate_diagram')) {
-    return { label: 'generator', cls: 'text-violet-700 border-violet-200' };
+    return { label: 'generator', cls: 'ac-status-info' };
   }
   if (name.includes('audit') || name.includes('copy')) {
-    return { label: 'analysis', cls: 'text-rose-700 border-rose-200' };
+    return { label: 'analysis', cls: 'ac-status-danger' };
   }
   return null;
 }
@@ -602,8 +606,8 @@ function SteerInput() {
   };
 
   return (
-    <div className="flex items-center gap-1.5 px-2 py-1.5 mt-1 rounded-md border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30">
-      <svg className="h-3.5 w-3.5 text-violet-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <div className="flex items-center gap-1.5 px-2 py-1.5 mt-1 rounded-md border border-[var(--ac-accent-border)] bg-[var(--ac-accent-soft)]">
+      <svg className="h-3.5 w-3.5 ac-text-info flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M3 12c0-4.97 4.03-9 9-9s9 4.03 9 9-4.03 9-9 9c-1.42 0-2.76-.33-3.95-.92L3 21l1.12-3.71A8.96 8.96 0 013 12z" />
         <path d="M8 12h8M8 8h5" strokeLinecap="round" />
       </svg>
@@ -618,12 +622,13 @@ function SteerInput() {
           }
         }}
         placeholder="Steer mid-turn (e.g. 'use blue', 'add more detail')…"
-        className="flex-1 text-[11px] bg-transparent text-violet-900 dark:text-violet-100 placeholder:text-violet-400 outline-none"
+        className="flex-1 text-[11px] bg-transparent ac-text-1 placeholder:ac-text-4 outline-none"
       />
       <button
         onClick={submit}
         disabled={!steerText.trim()}
-        className="text-[10px] px-2 py-0.5 rounded bg-violet-500 text-white disabled:opacity-30 hover:bg-violet-600 ac-transition flex-shrink-0"
+        className="text-[10px] px-2 py-0.5 rounded text-white disabled:opacity-30 ac-transition flex-shrink-0"
+        style={{ backgroundColor: 'var(--ac-accent)' }}
       >
         Steer
       </button>

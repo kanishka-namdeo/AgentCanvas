@@ -812,14 +812,14 @@ function DataSection() {
 
         <div className="border-t ac-border-subtle pt-4 space-y-2">
           <h3 className="text-[12px] font-medium ac-text-2 flex items-center gap-1.5">
-            <AlertTriangle className="h-3 w-3 text-amber-500" />
+            <AlertTriangle className="h-3 w-3 ac-text-warning" />
             Danger zone
           </h3>
           <Button
             variant="outline"
             size="sm"
             onClick={handleClearSnapshots}
-            className="h-8 w-full text-[11px] ac-border-default text-amber-700 hover:bg-amber-50"
+            className="h-8 w-full text-[11px] ac-border-default ac-text-warning ac-hover-warning hover:ac-text-warning"
           >
             <Trash2 className="h-3 w-3 mr-1.5" />
             Delete all non-bookmarked snapshots
@@ -828,7 +828,7 @@ function DataSection() {
             variant="outline"
             size="sm"
             onClick={handleClearChats}
-            className="h-8 w-full text-[11px] ac-border-default text-rose-700 hover:bg-rose-50"
+            className="h-8 w-full text-[11px] ac-border-default ac-text-danger ac-hover-danger hover:ac-text-danger"
           >
             <Trash2 className="h-3 w-3 mr-1.5" />
             Clear ALL chats (cannot be undone)
@@ -1189,12 +1189,12 @@ function McpSection() {
                     <span className="text-[12px] font-medium ac-text-1">{s.name}</span>
                     <span className="text-[10px] ac-text-4 px-1.5 py-0.5 rounded ac-surface-2">{s.transport}</span>
                     {s.status === 'connected' && (
-                      <span className="flex items-center gap-0.5 text-[10px] text-emerald-600">
+                      <span className="flex items-center gap-0.5 text-[10px] ac-text-success">
                         <CheckCircle2 className="h-3 w-3" /> connected{s.toolCount ? ` · ${s.toolCount} tools` : ''}
                       </span>
                     )}
                     {s.status === 'error' && (
-                      <span className="flex items-center gap-0.5 text-[10px] text-red-600">
+                      <span className="flex items-center gap-0.5 text-[10px] ac-text-danger">
                         <XCircle className="h-3 w-3" /> error
                       </span>
                     )}
@@ -1216,7 +1216,7 @@ function McpSection() {
                       Connect
                     </Button>
                   )}
-                  <Button size="sm" variant="ghost" onClick={() => removeServer(s.id)} className="h-7 text-[11px] text-red-600">
+                  <Button size="sm" variant="ghost" onClick={() => removeServer(s.id)} className="h-7 text-[11px] ac-text-danger">
                     <X className="h-3 w-3" />
                   </Button>
                 </div>

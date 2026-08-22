@@ -322,7 +322,7 @@ function RunCard({ run }: { run: Run }) {
           Export run as Markdown
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => toast.message('Delete run — not yet implemented')} className="text-rose-600">
+        <ContextMenuItem onClick={() => toast.message('Delete run — not yet implemented')} className="ac-text-danger">
           Delete run
         </ContextMenuItem>
       </ContextMenuContent>
@@ -370,15 +370,15 @@ function SnapshotCard({
 }) {
   const sourceColor: Record<Snapshot['source'], string> = {
     turn_end: 'ac-text-3 ac-surface-2',
-    fork: 'text-violet-700 bg-violet-50',
-    restore: 'text-amber-700 bg-amber-50',
-    manual: 'text-blue-700 bg-blue-50',
+    fork: 'ac-status-info',
+    restore: 'ac-status-warning',
+    manual: 'ac-status-neutral',
   };
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div className={`rounded-md border px-2.5 py-1.5 ac-transition ${
-          isActive ? 'border-emerald-300 bg-emerald-50/40' : 'ac-border-subtle ac-surface-0 hover:ac-border-default hover:ac-surface-1'
+          isActive ? 'border-[var(--ac-success-border)] bg-[var(--ac-success-soft)]' : 'ac-border-subtle ac-surface-0 hover:ac-border-default hover:ac-surface-1'
         }`}>
           <div className="flex items-center gap-1.5">
             <Camera className="h-3 w-3 ac-text-4" />
@@ -386,7 +386,7 @@ function SnapshotCard({
               {snapshot.label ?? snapshot.id.slice(0, 12)}
             </span>
             {isActive && (
-              <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1 py-0 rounded font-medium">
+              <span className="text-[9px] ac-status-success px-1 py-0 rounded font-medium">
                 current
               </span>
             )}
@@ -429,7 +429,7 @@ function SnapshotCard({
               title={snapshot.bookmarked ? 'Remove bookmark' : 'Bookmark'}
             >
               {snapshot.bookmarked
-                ? <BookmarkCheck className="h-3 w-3 text-amber-500" />
+                ? <BookmarkCheck className="h-3 w-3 ac-text-warning" />
                 : <Bookmark className="h-3 w-3" />}
             </Button>
           </div>
@@ -445,7 +445,7 @@ function SnapshotCard({
         <ContextMenuItem onClick={() => toast.message('Rename snapshot — not yet implemented (P2-38)')}>
           Rename snapshot
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => toast.message('Delete snapshot — not yet implemented')} className="text-rose-600">
+        <ContextMenuItem onClick={() => toast.message('Delete snapshot — not yet implemented')} className="ac-text-danger">
           Delete snapshot
         </ContextMenuItem>
         <ContextMenuSeparator />

@@ -294,15 +294,15 @@ export function PropertiesPanel() {
     <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
       <div className="px-3 py-2 border-b ac-border-subtle text-[11px] font-semibold uppercase tracking-wide ac-text-2 flex items-center gap-1.5">
         Properties{isMulti ? ` (${selected.length} selected)` : ''}
-        {!isMulti && isComponentMaster && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal text-sky-700 border-sky-200">Master</Badge>}
-        {!isMulti && isComponentInstance && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal text-violet-700 border-violet-200">Instance</Badge>}
+        {!isMulti && isComponentMaster && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal ac-status-info border-[var(--ac-info-border)]">Master</Badge>}
+        {!isMulti && isComponentInstance && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal ac-status-warning border-[var(--ac-warning-border)]">Instance</Badge>}
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-3 ac-hide-scrollbar">
         {/* Multi-selection quick actions */}
         {isMulti && (
           <>
             <div>
-              <Label className="text-[11px] text-slate-500">Quick Actions</Label>
+              <Label className="text-[11px] ac-text-3">Quick Actions</Label>
               <div className="grid grid-cols-2 gap-1 mt-1">
                 <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={duplicateSelection}>
                   <Copy className="h-3 w-3 mr-1" /> Duplicate
@@ -363,7 +363,7 @@ export function PropertiesPanel() {
         {/* Name */}
         {!isMulti && (
           <div>
-            <Label className="text-[11px] text-slate-500">Name</Label>
+            <Label className="text-[11px] ac-text-3">Name</Label>
             <Input
               value={shape.name}
               onChange={(e) => update({ name: e.target.value })}
@@ -377,7 +377,7 @@ export function PropertiesPanel() {
             Mirrors Figma's "Parent" picker in the properties panel. */}
         {!isMulti && (
           <div>
-            <Label className="text-[11px] text-slate-500">Parent</Label>
+            <Label className="text-[11px] ac-text-3">Parent</Label>
             <Select
               value={shape.parentId ?? '__root__'}
               onValueChange={(v) => {
@@ -469,7 +469,7 @@ export function PropertiesPanel() {
           <ContextMenu>
             <ContextMenuTrigger asChild>
               <div>
-                <Label className="text-[11px] text-slate-500">X</Label>
+                <Label className="text-[11px] ac-text-3">X</Label>
                 <Input
                   type="number"
                   value={Math.round(shape.x)}
@@ -488,7 +488,7 @@ export function PropertiesPanel() {
           <ContextMenu>
             <ContextMenuTrigger asChild>
               <div>
-                <Label className="text-[11px] text-slate-500">Y</Label>
+                <Label className="text-[11px] ac-text-3">Y</Label>
                 <Input
                   type="number"
                   value={Math.round(shape.y)}
@@ -511,7 +511,7 @@ export function PropertiesPanel() {
           <ContextMenu>
             <ContextMenuTrigger asChild>
               <div>
-                <Label className="text-[11px] text-slate-500">Width</Label>
+                <Label className="text-[11px] ac-text-3">Width</Label>
                 <Input
                   type="number"
                   value={Math.round(shape.width)}
@@ -530,7 +530,7 @@ export function PropertiesPanel() {
           <ContextMenu>
             <ContextMenuTrigger asChild>
               <div>
-                <Label className="text-[11px] text-slate-500">Height</Label>
+                <Label className="text-[11px] ac-text-3">Height</Label>
                 <Input
                   type="number"
                   value={Math.round(shape.height)}
@@ -557,9 +557,9 @@ export function PropertiesPanel() {
             <CollapsibleTrigger asChild>
               <button type="button" className="group flex items-center gap-1.5 w-full text-left">
                 <ChevronDown className="h-3 w-3 ac-text-4 transition-transform group-data-[state=closed]:-rotate-90" />
-                <Label className="text-[11px] text-slate-500">Constraints</Label>
+                <Label className="text-[11px] ac-text-3">Constraints</Label>
                 {shape.constraints && (
-                  <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal text-amber-700 border-amber-200">
+                  <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal ac-status-warning border-[var(--ac-warning-border)]">
                     {shape.constraints.horizontal}/{shape.constraints.vertical}
                   </Badge>
                 )}
@@ -568,7 +568,7 @@ export function PropertiesPanel() {
             <CollapsibleContent className="space-y-2 pt-2">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[11px] text-slate-500">Horizontal</Label>
+                  <Label className="text-[11px] ac-text-3">Horizontal</Label>
                   <Select
                     value={shape.constraints?.horizontal ?? 'left'}
                     onValueChange={(v) => {
@@ -596,7 +596,7 @@ export function PropertiesPanel() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-[11px] text-slate-500">Vertical</Label>
+                  <Label className="text-[11px] ac-text-3">Vertical</Label>
                   <Select
                     value={shape.constraints?.vertical ?? 'top'}
                     onValueChange={(v) => {
@@ -652,13 +652,13 @@ export function PropertiesPanel() {
           <CollapsibleTrigger asChild>
             <button type="button" className="group flex items-center gap-1.5 w-full text-left">
               <ChevronDown className="h-3 w-3 ac-text-4 transition-transform group-data-[state=closed]:-rotate-90" />
-              <Label className="text-[11px] text-slate-500">Style</Label>
+              <Label className="text-[11px] ac-text-3">Style</Label>
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 pt-2">
             {/* Fill — P1-15: wrapped in ContextMenu for Copy/Paste color */}
             <div>
-              <Label className="text-[11px] text-slate-500">Fill</Label>
+              <Label className="text-[11px] ac-text-3">Fill</Label>
               <ContextMenu>
                 <ContextMenuTrigger asChild>
                   <div className="flex items-center gap-2 mt-1 cursor-context-menu">
@@ -666,7 +666,7 @@ export function PropertiesPanel() {
                       type="color"
                       value={shape.fill}
                       onChange={(e) => update({ fill: e.target.value })}
-                      className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
+                      className="h-7 w-7 rounded border ac-border-default cursor-pointer"
                     />
                     <Input
                       value={shape.fill}
@@ -690,7 +690,7 @@ export function PropertiesPanel() {
 
             {/* Stroke — P1-15: same ContextMenu pattern, applies to both stroke color + width */}
             <div>
-              <Label className="text-[11px] text-slate-500">Stroke</Label>
+              <Label className="text-[11px] ac-text-3">Stroke</Label>
               <ContextMenu>
                 <ContextMenuTrigger asChild>
                   <div className="flex items-center gap-2 mt-1 cursor-context-menu">
@@ -698,7 +698,7 @@ export function PropertiesPanel() {
                       type="color"
                       value={shape.stroke}
                       onChange={(e) => update({ stroke: e.target.value })}
-                      className="h-7 w-7 rounded border border-slate-200 cursor-pointer"
+                      className="h-7 w-7 rounded border ac-border-default cursor-pointer"
                     />
                     <Input
                       type="number"
@@ -722,7 +722,7 @@ export function PropertiesPanel() {
             {/* Radius (for rectangle/frame only) */}
             {(shape.type === 'rectangle' || shape.type === 'frame') && (
               <div>
-                <Label className="text-[11px] text-slate-500">Corner Radius: {Math.round(shape.radius)}px</Label>
+                <Label className="text-[11px] ac-text-3">Corner Radius: {Math.round(shape.radius)}px</Label>
                 <Slider
                   value={[shape.radius]}
                   onValueChange={(v) => update({ radius: v[0] })}
@@ -736,7 +736,7 @@ export function PropertiesPanel() {
 
             {/* Opacity */}
             <div>
-              <Label className="text-[11px] text-slate-500">Opacity: {Math.round(shape.opacity * 100)}%</Label>
+              <Label className="text-[11px] ac-text-3">Opacity: {Math.round(shape.opacity * 100)}%</Label>
               <Slider
                 value={[shape.opacity * 100]}
                 onValueChange={(v) => update({ opacity: v[0] / 100 })}
@@ -757,8 +757,8 @@ export function PropertiesPanel() {
               <CollapsibleTrigger asChild>
                 <button type="button" className="group flex items-center gap-1.5 w-full text-left">
                   <ChevronDown className="h-3 w-3 ac-text-4 transition-transform group-data-[state=closed]:-rotate-90" />
-                  <Label className="text-[11px] text-slate-500">Auto Layout</Label>
-                  {hasAutoLayout && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal text-emerald-700 border-emerald-200">on</Badge>}
+                  <Label className="text-[11px] ac-text-3">Auto Layout</Label>
+                  {hasAutoLayout && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal ac-status-success border-[var(--ac-success-border)]">on</Badge>}
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-2 pt-2">
@@ -784,7 +784,7 @@ export function PropertiesPanel() {
                   <>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <div>
-                        <Label className="text-[10px] text-slate-500">Gap: {shape.autoLayout!.gap}px</Label>
+                        <Label className="text-[10px] ac-text-3">Gap: {shape.autoLayout!.gap}px</Label>
                         <Slider
                           value={[shape.autoLayout!.gap]}
                           onValueChange={(v) => setAutoLayout({ gap: v[0] })}
@@ -794,7 +794,7 @@ export function PropertiesPanel() {
                         />
                       </div>
                       <div>
-                        <Label className="text-[10px] text-slate-500">Padding: {shape.autoLayout!.padding}px</Label>
+                        <Label className="text-[10px] ac-text-3">Padding: {shape.autoLayout!.padding}px</Label>
                         <Slider
                           value={[shape.autoLayout!.padding]}
                           onValueChange={(v) => setAutoLayout({ padding: v[0] })}
@@ -806,7 +806,7 @@ export function PropertiesPanel() {
                     </div>
                     {/* Justify (alignX → justifyContent): start/center/end */}
                     <div className="mt-1">
-                      <Label className="text-[10px] text-slate-500">Justify</Label>
+                      <Label className="text-[10px] ac-text-3">Justify</Label>
                       <div className="grid grid-cols-3 gap-1 mt-1">
                         {(['min', 'center', 'max'] as const).map((v) => (
                           <Button
@@ -823,7 +823,7 @@ export function PropertiesPanel() {
                     </div>
                     {/* Align (alignY → alignItems): start/center/end */}
                     <div className="mt-1">
-                      <Label className="text-[10px] text-slate-500">Align</Label>
+                      <Label className="text-[10px] ac-text-3">Align</Label>
                       <div className="grid grid-cols-3 gap-1 mt-1">
                         {(['min', 'center', 'max'] as const).map((v) => (
                           <Button
@@ -840,7 +840,7 @@ export function PropertiesPanel() {
                     </div>
                   </>
                 )}
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-[10px] ac-text-4 mt-1">
                   Maps to .pen flexbox (justifyContent / alignItems). Ask the
                   agent to <em>&quot;apply auto layout to this frame&quot;</em> to also reposition children.
                 </p>
@@ -857,7 +857,7 @@ export function PropertiesPanel() {
               <CollapsibleTrigger asChild>
                 <button type="button" className="group flex items-center gap-1.5 w-full text-left">
                   <ChevronDown className="h-3 w-3 ac-text-4 transition-transform group-data-[state=closed]:-rotate-90" />
-                  <Label className="text-[11px] text-slate-500">Theme</Label>
+                  <Label className="text-[11px] ac-text-3">Theme</Label>
                   {Object.keys(effectiveTheme).length > 0 && (
                     <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal ac-text-3 ac-border-subtle">
                       {Object.entries(effectiveTheme).map(([k, v]) => `${k}:${v}`).join(' · ')}
@@ -877,7 +877,7 @@ export function PropertiesPanel() {
                       const current = effectiveTheme[axis] ?? '';
                       return (
                         <div key={axis} className="flex items-center gap-2">
-                          <Label className="text-[10px] text-slate-500 w-20 truncate" title={axis}>{axis}</Label>
+                          <Label className="text-[10px] ac-text-3 w-20 truncate" title={axis}>{axis}</Label>
                           <Select
                             value={current}
                             onValueChange={(v) => setNodeThemeAxis(axis, v)}
@@ -922,7 +922,7 @@ export function PropertiesPanel() {
                 <button type="button" className="group flex items-center gap-1.5 w-full text-left">
                   <ChevronDown className="h-3 w-3 ac-text-4 transition-transform group-data-[state=closed]:-rotate-90" />
                   <SquareDashedBottom className="h-3 w-3 ac-text-4" />
-                  <Label className="text-[11px] text-slate-500">Slot</Label>
+                  <Label className="text-[11px] ac-text-3">Slot</Label>
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-2 pt-2">
@@ -976,16 +976,16 @@ export function PropertiesPanel() {
           <>
             <Separator />
             <div>
-              <Label className="text-[11px] text-slate-500">Text Content</Label>
+              <Label className="text-[11px] ac-text-3">Text Content</Label>
               <textarea
                 value={shape.text ?? ''}
                 onChange={(e) => update({ text: e.target.value })}
-                className="w-full mt-1 text-xs border border-slate-200 rounded p-2 resize-none h-16"
+                className="w-full mt-1 text-xs border ac-border-default rounded p-2 resize-none h-16"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-[11px] text-slate-500">Font Size</Label>
+                <Label className="text-[11px] ac-text-3">Font Size</Label>
                 <Input
                   type="number"
                   value={shape.fontSize}
@@ -994,12 +994,12 @@ export function PropertiesPanel() {
                 />
               </div>
               <div>
-                <Label className="text-[11px] text-slate-500">Text Color</Label>
+                <Label className="text-[11px] ac-text-3">Text Color</Label>
                 <input
                   type="color"
                   value={shape.textColor}
                   onChange={(e) => update({ textColor: e.target.value })}
-                  className="h-7 w-full mt-1 rounded border border-slate-200 cursor-pointer"
+                  className="h-7 w-full mt-1 rounded border ac-border-default cursor-pointer"
                 />
               </div>
             </div>

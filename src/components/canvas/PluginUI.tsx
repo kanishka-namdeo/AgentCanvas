@@ -95,15 +95,15 @@ function AskUserQuestionDialog() {
                         onClick={() => toggleOption(qIdx, opt.label, q.multiSelect ?? false)}
                         className={`w-full text-left p-2.5 rounded-md border ac-transition ac-focus-ring ${
                           selected
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                            ? 'border-[var(--ac-accent)] bg-[var(--ac-accent-soft)]'
                             : 'ac-border-subtle ac-surface-1 hover:ac-surface-2'
                         }`}
                       >
                         <div className="flex items-start gap-2">
                           <div className={`mt-0.5 flex-shrink-0 h-4 w-4 rounded-full border ${
-                            selected ? 'border-blue-500 bg-blue-500' : 'ac-border-default'
+                            selected ? 'border-[var(--ac-accent)] bg-[var(--ac-accent)]' : 'ac-border-default'
                           }`}>
-                            {selected && <div className="h-2 w-2 rounded-full bg-white m-auto mt-1/4" style={{ marginTop: 2, marginLeft: 2 }} />}
+                            {selected && <div className="h-2 w-2 rounded-full bg-white m-auto" style={{ marginTop: 2, marginLeft: 2 }} />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-[12px] font-medium ac-text-1">{opt.label}</div>
@@ -143,10 +143,10 @@ const STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> =
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  pending: 'text-slate-400',
-  in_progress: 'text-blue-500',
-  completed: 'text-emerald-600',
-  blocked: 'text-red-500',
+  pending: 'ac-text-neutral',
+  in_progress: 'ac-text-info',
+  completed: 'ac-text-success',
+  blocked: 'ac-text-danger',
 };
 
 function TodoOverlay() {
@@ -168,7 +168,7 @@ function TodoOverlay() {
       <div className="space-y-1">
         {todos.map((t) => {
           const Icon = STATUS_ICON[t.status] ?? Circle;
-          const color = STATUS_COLOR[t.status] ?? 'text-slate-400';
+          const color = STATUS_COLOR[t.status] ?? 'ac-text-neutral';
           const spin = t.status === 'in_progress';
           return (
             <div key={t.id} className="flex items-start gap-2">
@@ -202,11 +202,11 @@ function BackgroundTaskList() {
         {tasks.map((t) => (
           <div key={t.taskId} className="flex items-start gap-2">
             {t.status === 'started' ? (
-              <Loader2 className="h-3 w-3 mt-0.5 flex-shrink-0 text-blue-500 animate-spin" />
+              <Loader2 className="h-3 w-3 mt-0.5 flex-shrink-0 ac-text-info animate-spin" />
             ) : t.success ? (
-              <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0 text-emerald-600" />
+              <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0 ac-text-success" />
             ) : (
-              <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0 text-red-500" />
+              <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0 ac-text-danger" />
             )}
             <div className="flex-1 min-w-0">
               <div className="text-[11px] ac-text-2 truncate">{t.description}</div>

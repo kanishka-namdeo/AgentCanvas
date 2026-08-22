@@ -47,14 +47,36 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 - The page is a client component (`'use client'`) because it composes client-only panels.
 
 ### Design token system (`globals.css`)
-- The `--ac-*` custom properties are the project's semantic design system. They are the SINGLE source of truth for colors, borders, surfaces, and focus rings.
+- The `--ac-*` custom properties are the project's semantic design system. They are the SINGLE source of truth for colors, borders, surfaces, status tones, focus rings, and canvas system colors.
 - Token groups:
   - `--ac-text-primary` ... `--ac-text-faint` — text hierarchy (primary → faint). Consumed via `.ac-text-1` ... `.ac-text-5` utility classes.
   - `--ac-border-subtle` / `--ac-border-default` / `--ac-border-strong` — border weight scale.
   - `--ac-surface-0` ... `--ac-surface-3` — surface elevation (page → card → popover → modal).
   - `--ac-accent` / `--ac-accent-soft` / `--ac-accent-border` — the violet brand accent + soft bg + border tint.
-  - `--ac-success` / `--ac-warning` / `--ac-danger` / `--ac-info` (+ `-soft` variants) — OKLCH status colors.
+  - **Status tones** (each has 4 variants: `main`, `-fg`, `-soft`, `-border`):
+    - `--ac-info` / `-fg` / `-soft` / `-border` — informational / running.
+    - `--ac-success` / `-fg` / `-soft` / `-border` — success / completed.
+    - `--ac-warning` / `-fg` / `-soft` / `-border` — warning / awaiting / incomplete.
+    - `--ac-danger` / `-fg` / `-soft` / `-border` — error / failed / destructive.
+    - `--ac-neutral` / `-fg` / `-soft` / `-border` — queued / cancelled / archived.
+  - **Canvas surface tokens** (for SVG elements in `Canvas.tsx` and shape defaults in `Toolbar.tsx`):
+    - `--ac-canvas-bg` — default canvas background.
+    - `--ac-canvas-grid` — dot grid color.
+    - `--ac-canvas-default-fill` — default shape fill.
+    - `--ac-canvas-default-stroke` — default shape stroke.
+    - `--ac-canvas-default-text` — default text/line fill.
+    - `--ac-canvas-accent-fill` — warm accent fill (ellipse/star/polygon).
+    - `--ac-canvas-selection` — selection outline + handle stroke.
+    - `--ac-canvas-component` — component master badge.
+    - `--ac-canvas-instance` — instance badge.
+    - `--ac-canvas-highlight` — hover highlight + boolean_operation stroke.
+    - `--ac-canvas-autolayout` — auto-layout indicator + slice overlay.
+    - `--ac-canvas-handle-fill` — selection handle interior.
 - Utility classes (also in `globals.css`):
+  - `.ac-status-{info|success|warning|danger|neutral}` — semantic status badge (bg + fg + border). Use on badges, pills, chips.
+  - `.ac-text-{info|success|warning|danger|neutral}` — text color only.
+  - `.ac-dot-{info|success|warning|danger|neutral}` — solid fill color (for indicator dots).
+  - `.ac-hover-{info|success|warning|danger|neutral}:hover` — soft-background hover.
   - `.ac-active-row` — 2px left accent bar + soft violet bg (for active list items).
   - `.ac-focus-ring` — accessible focus outline (2px brand ring, offset).
   - `.ac-transition` — standard transition (150ms ease).
@@ -69,12 +91,12 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 - The toggle is `src/components/ThemeToggle.tsx` — cycles through **3 states**: `system → light → dark → system`. Subscribes to `useSettings((s) => s.themePreference)` so it stays in sync with Settings → Appearance changes. On `system`, follows OS `prefers-color-scheme` and re-applies on OS change.
 - Legacy compat: the toggle also writes to `localStorage['agentcanvas-theme']` (the pre-settings key) so `getInitialTheme()` can hydrate before the settings store loads.
 - **Density**: `[data-density="compact"]` rules in `globals.css` scale down fonts (text-[11px]→10px, text-[12px]→11px, text-[13px]→12px) + tighten padding on `.p-2`/`.p-3`/`.px-3`/`.py-2` + tighten `space-y-2`/`space-y-3` gaps. Controlled by the `density` setting; the root div's `data-density` attribute is reactively subscribed in `page.tsx`.
-- **The canvas workspace itself does NOT swap to dark** — `document.background` is a user-controlled document property (like Figma's canvas fill), not a UI surface. Only the chrome (panels, dialogs, dropdowns, toolbar) swaps. This is intentional.
+- **The canvas surface tracks the UI theme** — `document.background` defaults to `var(--ac-canvas-bg)` (slate-50 in light, dark slate in dark mode). All SVG colors in `Canvas.tsx` (selection outline, component badges, hover highlights, auto-layout indicator, handle fills) use `--ac-canvas-*` tokens so the canvas adapts to dark mode alongside the rest of the chrome. Users can still override the canvas background via the Properties panel if they want a custom color.
 
 ### Tailwind
 - Tailwind 4 via `@tailwindcss/postcss` (no `tailwind.config.ts` content globs — Tailwind 4 auto-detects).
-- `tailwind.config.ts` exists for legacy compat but is minimal.
-- The `@theme` directive in `globals.css` maps **shadcn/ui tokens** (`--background`, `--foreground`, `--primary`, `--radius`, `--sidebar-*`, `--chart-*`, etc.) to Tailwind utilities. The `--ac-*` AgentCanvas design tokens are defined as raw CSS custom properties (lines 131-164, 172-205) with utility classes (`.ac-text-1`... `.ac-border-default`...) — they are NOT mapped through `@theme`.
+- `tailwind.config.ts` exists for legacy compat but is minimal — color tokens are NOT defined there (the old `hsl(var(--background))` entries were removed because Tailwind 4 reads tokens from the `@theme inline` directive in `globals.css`, where they are defined as raw OKLCH values).
+- The `@theme inline` directive in `globals.css` maps **shadcn/ui tokens** (`--background`, `--foreground`, `--primary`, `--radius`, `--sidebar-*`, `--chart-*`, etc.) to Tailwind utilities. The `--ac-*` AgentCanvas design tokens are defined as raw CSS custom properties with their own utility classes (`.ac-text-1`... `.ac-border-default`... `.ac-status-info`...) — they are NOT mapped through `@theme`.
 
 ## Work Guidance
 

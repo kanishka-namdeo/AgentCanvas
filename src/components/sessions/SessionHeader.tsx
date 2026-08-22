@@ -85,7 +85,7 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
             <Bot className="h-3 w-3 text-white" />
           </div>
           {currentRun && (
-            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse ring-1 ring-white" />
+            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ac-dot-info animate-pulse ring-1 ring-[var(--ac-surface-0)]" />
           )}
         </div>
         {editing ? (
@@ -135,7 +135,7 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
             <Bot className="h-3.5 w-3.5 text-white" />
           </div>
           {currentRun && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 animate-pulse ring-2 ring-white" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ac-dot-info animate-pulse ring-2 ring-[var(--ac-surface-0)]" />
           )}
         </div>
         <div className="flex-1 min-w-0">

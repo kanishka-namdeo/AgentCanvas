@@ -18,8 +18,8 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
 
 ### Design token usage (root contract, restated)
 - All components consume the `--ac-*` design tokens via utility classes for surfaces, borders, text hierarchy, and accents.
-- **Exception**: `StatusBadge.tsx` uses hardcoded Tailwind colors (`text-slate-700`, `bg-emerald-100`, etc.) for status-specific coloring. This is intentional — status colors are domain-specific and don't map to the generic `--ac-*` surface/text tokens.
-- The `StatusBadge` color maps (`RUN_STATUS_CONFIG`, `TOOL_STATUS_CONFIG`, `SESSION_STATUS_CONFIG`) are the single source of truth for status → color.
+- `StatusBadge.tsx` uses the **semantic status utility classes** (`.ac-status-info`, `.ac-status-success`, `.ac-status-warning`, `.ac-status-danger`, `.ac-status-neutral`) and `.ac-dot-*` for the dot variant. These classes resolve to `--ac-{info|success|warning|danger|neutral}{,-fg,-soft,-border}` tokens defined in `src/app/globals.css`, and they automatically adapt to light/dark mode via the `.dark` overrides.
+- The `StatusBadge` color maps (`RUN_STATUS_CONFIG`, `TOOL_STATUS_CONFIG`, `SESSION_STATUS_CONFIG`) are the single source of truth for status → status-class mapping. To add a new status, append it to the relevant map; do not invent ad-hoc Tailwind colors.
 
 ### Component contracts
 
@@ -66,11 +66,11 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
 
 #### `StatusBadge.tsx`
 - Three status maps (single source of truth for each domain):
-  - **Run statuses**: `queued` (gray), `in_progress` → "running" (blue, pulse), `awaiting_tool` → "tool" (amber, pulse), `cancelling` (orange, pulse), `cancelled` (muted gray), `completed` (emerald-800 on emerald-100 with emerald-300 border), `failed` (red), `incomplete` (amber)
-  - **ToolCall statuses**: `pending` (gray), `running` (blue, pulse), `success` (emerald), `error` (red), `cancelled` (muted gray)
-  - **Session statuses**: `active` (emerald), `archived` (muted gray)
+  - **Run statuses**: `queued` (neutral), `in_progress` → "running" (info, pulse), `awaiting_tool` → "tool" (warning, pulse), `cancelling` (warning, pulse), `cancelled` (neutral), `completed` (success), `failed` (danger), `incomplete` (warning)
+  - **ToolCall statuses**: `pending` (neutral), `running` (info, pulse), `success` (success), `error` (danger), `cancelled` (neutral)
+  - **Session statuses**: `active` (success), `archived` (neutral)
 - Display labels may differ from status keys (e.g., `in_progress` → "running", `awaiting_tool` → "tool").
-- `StatusDot` variant: just the colored dot, no label. Used in dense layouts (sidebar rows).
+- `StatusDot` variant: just the colored dot, no label. Uses `.ac-dot-{info|success|warning|danger|neutral}` utility classes — theme-aware. Used in dense layouts (sidebar rows).
 
 ### React subscription safety (root contract, restated)
 - Never call `useSessionStore((s) => s.getStats(id))` in a selector — it returns a new object every render. Use `useMemo` over `sessionsMap` instead.

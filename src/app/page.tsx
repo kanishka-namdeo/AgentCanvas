@@ -526,7 +526,7 @@ export default function Home() {
                   <Bot className="h-3 w-3" />
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      connected ? 'bg-emerald-500' : 'bg-amber-400'
+                      connected ? 'ac-dot-success' : 'ac-dot-warning'
                     }`}
                   />
                 </div>

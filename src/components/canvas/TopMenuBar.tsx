@@ -416,10 +416,10 @@ export function TopMenuBar(props: TopMenuBarProps) {
           </span>
         )}
         <span
-          className={`flex items-center gap-1 text-[10px] ${connected ? 'ac-text-3' : 'text-rose-500'}`}
+          className={`flex items-center gap-1 text-[10px] ${connected ? 'ac-text-3' : 'ac-text-danger'}`}
           title={connected ? 'Connected — changes sync live to all viewers' : 'Offline — changes are local only'}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-rose-400'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'ac-dot-success' : 'ac-dot-danger'}`} />
           {connected ? 'connected' : 'offline'}
         </span>
       </div>

@@ -21,7 +21,7 @@ Settings UI: the `SettingsDialog` component — a modal dialog with a left verti
 
 ### Design token usage (root contract, restated)
 - All components consume the `--ac-*` design tokens via utility classes. No hardcoded `slate-{n}` colors.
-- The danger-zone buttons use `text-amber-700` / `text-rose-700` with `hover:bg-amber-50` / `hover:bg-rose-50` — these are status colors, not design tokens.
+- The danger-zone buttons use `.ac-text-warning` / `.ac-text-danger` with `.ac-hover-warning` / `.ac-hover-danger` for the soft-background hover. These resolve to `--ac-{warning|danger}{,-soft,-fg}` tokens defined in `src/app/globals.css`, and they adapt to light/dark mode automatically.
 
 ### Component contracts
 - `SettingsDialog` accepts `{ open, onOpenChange }` props. Controlled by the parent (`page.tsx`).

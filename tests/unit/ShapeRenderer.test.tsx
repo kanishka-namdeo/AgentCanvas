@@ -490,8 +490,8 @@ describe('ShapeRenderer: selected state', () => {
     // Total: 10 rects.
     const rects = container.querySelectorAll('rect');
     expect(rects.length).toBe(10);
-    // The 8 handle rects have a white fill.
-    const handleRects = Array.from(rects).filter((r) => r.getAttribute('fill') === 'white');
+    // The 8 handle rects have a fill of var(--ac-canvas-handle-fill).
+    const handleRects = Array.from(rects).filter((r) => r.getAttribute('fill') === 'var(--ac-canvas-handle-fill)');
     expect(handleRects.length).toBe(8);
   });
 });
@@ -512,9 +512,9 @@ describe('ShapeRenderer: highlighted state', () => {
         />
       </svg>,
     );
-    // The highlight rect has stroke #f59e0b.
+    // The highlight rect has stroke var(--ac-canvas-highlight) (was #f59e0b).
     const highlight = Array.from(container.querySelectorAll('rect')).find(
-      (r) => r.getAttribute('stroke') === '#f59e0b',
+      (r) => r.getAttribute('stroke') === 'var(--ac-canvas-highlight)',
     );
     expect(highlight).toBeDefined();
     // It should contain an <animate> element.

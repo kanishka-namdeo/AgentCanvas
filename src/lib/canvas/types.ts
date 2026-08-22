@@ -228,7 +228,11 @@ export function createEmptyCanvasDocument(id: string, name = 'Untitled'): Canvas
     variables: undefined,
     children: [],
     viewport: { zoom: 1, panX: 120, panY: 80 },
-    background: '#f8fafc',
+    // Default canvas background = theme-aware surface token. Renders as
+    // slate-50 in light mode, dark slate in dark mode (see --ac-canvas-bg
+    // in globals.css). Kept as a CSS var string so the canvas surface
+    // automatically tracks the UI theme.
+    background: 'var(--ac-canvas-bg)',
     shapes: [],
     tokens: { colors: [], textStyles: [] },
   };
@@ -247,7 +251,7 @@ export function createMultiPageCanvasDocument(id: string, name = 'Untitled'): Ca
     pages: [{ id: pageId, name: 'Page 1', children: [] }],
     activePageIndex: 0,
     viewport: { zoom: 1, panX: 120, panY: 80 },
-    background: '#f8fafc',
+    background: 'var(--ac-canvas-bg)',
     shapes: [],
     tokens: { colors: [], textStyles: [] },
   };

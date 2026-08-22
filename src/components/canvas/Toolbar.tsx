@@ -33,24 +33,24 @@ import {
 } from 'lucide-react';
 
 const SHAPE_DEFAULTS: Record<LayerType, Partial<{ width: number; height: number; fill: string; text: string; fontSize: number; stroke: string }>> = {
-  rectangle: { width: 160, height: 100, fill: '#e2e8f0' },
-  ellipse:   { width: 120, height: 120, fill: '#fde68a' },
-  text:      { width: 200, height: 32,  fill: '#0f172a', text: 'Text', fontSize: 20 },
-  line:      { width: 120, height: 0,   fill: '#0f172a' },
-  frame:     { width: 320, height: 240, fill: '#ffffff' },
-  group:     { width: 240, height: 160, fill: 'transparent', stroke: '#94a3b8' },
-  path:      { width: 120, height: 120, fill: '#e2e8f0' },
-  image:     { width: 160, height: 100, fill: '#e2e8f0' },
+  rectangle: { width: 160, height: 100, fill: 'var(--ac-canvas-default-fill)' },
+  ellipse:   { width: 120, height: 120, fill: 'var(--ac-canvas-accent-fill)' },
+  text:      { width: 200, height: 32,  fill: 'var(--ac-canvas-default-text)', text: 'Text', fontSize: 20 },
+  line:      { width: 120, height: 0,   fill: 'var(--ac-canvas-default-text)' },
+  frame:     { width: 320, height: 240, fill: 'var(--ac-canvas-bg)' },
+  group:     { width: 240, height: 160, fill: 'transparent', stroke: 'var(--ac-canvas-default-stroke)' },
+  path:      { width: 120, height: 120, fill: 'var(--ac-canvas-default-fill)' },
+  image:     { width: 160, height: 100, fill: 'var(--ac-canvas-default-fill)' },
   // Figma ontology types (not in the default toolbar, but supported by the
   // agent tools and by the `add` patch op).
-  section:           { width: 480, height: 320, fill: 'transparent', stroke: '#94a3b8' },
-  component:         { width: 200, height: 48,  fill: '#e2e8f0' },
-  component_set:     { width: 400, height: 200, fill: 'transparent', stroke: '#94a3b8' },
-  instance:          { width: 200, height: 48,  fill: '#e2e8f0' },
-  boolean_operation: { width: 120, height: 120, fill: '#e2e8f0' },
-  slice:             { width: 200, height: 120, fill: 'transparent', stroke: '#0ea5e9' },
-  star:              { width: 120, height: 120, fill: '#fde68a' },
-  polygon:           { width: 120, height: 120, fill: '#fde68a' },
+  section:           { width: 480, height: 320, fill: 'transparent', stroke: 'var(--ac-canvas-default-stroke)' },
+  component:         { width: 200, height: 48,  fill: 'var(--ac-canvas-default-fill)' },
+  component_set:     { width: 400, height: 200, fill: 'transparent', stroke: 'var(--ac-canvas-default-stroke)' },
+  instance:          { width: 200, height: 48,  fill: 'var(--ac-canvas-default-fill)' },
+  boolean_operation: { width: 120, height: 120, fill: 'var(--ac-canvas-default-fill)' },
+  slice:             { width: 200, height: 120, fill: 'transparent', stroke: 'var(--ac-canvas-component)' },
+  star:              { width: 120, height: 120, fill: 'var(--ac-canvas-accent-fill)' },
+  polygon:           { width: 120, height: 120, fill: 'var(--ac-canvas-accent-fill)' },
 };
 
 export function Toolbar() {
@@ -81,10 +81,10 @@ export function Toolbar() {
         y: 160 + offset,
         width: defaults.width ?? 100,
         height: defaults.height ?? 100,
-        fill: defaults.fill ?? '#e2e8f0',
+        fill: defaults.fill ?? 'var(--ac-canvas-default-fill)',
         text: defaults.text,
         fontSize: defaults.fontSize ?? 16,
-        stroke: type === 'group' ? '#94a3b8' : '#0f172a',
+        stroke: type === 'group' ? 'var(--ac-canvas-default-stroke)' : 'var(--ac-canvas-default-text)',
         strokeWidth: type === 'group' ? 1 : 0,
       },
       summary: `Created ${type}`,
@@ -228,7 +228,7 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600 ac-transition ac-focus-ring rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
+          className="h-8 w-8 ac-text-danger ac-hover-danger hover:ac-text-danger ac-transition ac-focus-ring rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
           title="Clear canvas"
           aria-label="Clear canvas"
           disabled={canvasEmpty || agentBusy}

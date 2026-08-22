@@ -169,7 +169,7 @@ export function SessionSidebar() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1 min-w-0">
                       {session.pinned && <Pin className="h-2.5 w-2.5 flex-shrink-0" style={{ color: 'var(--ac-accent)' }} />}
-                      {session.starred && <Star className="h-2.5 w-2.5 text-amber-400 flex-shrink-0 fill-amber-400" />}
+                      {session.starred && <Star className="h-2.5 w-2.5 ac-text-warning flex-shrink-0" style={{ fill: 'var(--ac-warning)' }} />}
                       {!session.isRoot && <GitFork className="h-2.5 w-2.5 ac-text-4 flex-shrink-0" />}
                       <span className={`text-[12px] font-medium truncate ${isActive ? 'ac-text-1' : 'ac-text-2'}`}>
                         {session.title}
@@ -339,7 +339,7 @@ export function SessionSidebar() {
                           toast.success(`Permanently deleted "${session.title}"`);
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:ac-surface-2 text-rose-500 ac-transition"
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:ac-surface-2 ac-text-danger ac-transition"
                       aria-label={`Permanently delete ${session.title}`}
                       title="Permanently delete"
                     >
@@ -359,7 +359,7 @@ export function SessionSidebar() {
         <div className="flex items-center gap-2">
           <span>{stats.totalSnapshots} snapshots</span>
           {/* Server sync indicator — shows sessions are persisted server-side (Phase 3) */}
-          <span className="flex items-center gap-0.5 text-emerald-500" title="Sessions sync to server automatically">
+          <span className="flex items-center gap-0.5 ac-text-success" title="Sessions sync to server automatically">
             <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M5 12l5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

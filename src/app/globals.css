@@ -45,71 +45,78 @@
 
 :root {
   --radius: 0.625rem;
+  /* Surfaces — neutral with a faint cool cast to align with the --ac-* palette. */
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.18 0.01 264);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.18 0.01 264);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.18 0.01 264);
+  /* Primary = brand violet (matches the gradient logo in the header). */
+  --primary: oklch(0.55 0.22 295);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.97 0.005 264);
+  --secondary-foreground: oklch(0.25 0.02 264);
+  --muted: oklch(0.97 0.005 264);
+  /* Darkened from 0.556 → 0.48 for WCAG AA on white (≥4.5:1). */
+  --muted-foreground: oklch(0.48 0.015 264);
+  --accent: oklch(0.96 0.02 295);
+  --accent-foreground: oklch(0.30 0.10 295);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.92 0.005 264);
+  --input: oklch(0.92 0.005 264);
+  /* Focus ring = brand accent so keyboard nav is visible. */
+  --ring: oklch(0.55 0.22 295);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar: oklch(0.985 0.003 264);
+  --sidebar-foreground: oklch(0.18 0.01 264);
+  --sidebar-primary: oklch(0.55 0.22 295);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.96 0.02 295);
+  --sidebar-accent-foreground: oklch(0.30 0.10 295);
+  --sidebar-border: oklch(0.92 0.005 264);
+  --sidebar-ring: oklch(0.55 0.22 295);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Surfaces — darkest at the page, slightly lifted for cards. */
+  --background: oklch(0.16 0.008 264);
+  --foreground: oklch(0.97 0.005 264);
+  --card: oklch(0.20 0.009 264);
+  --card-foreground: oklch(0.97 0.005 264);
+  --popover: oklch(0.22 0.010 264);
+  --popover-foreground: oklch(0.97 0.005 264);
+  /* Primary = brighter brand violet so it stays visible on dark. */
+  --primary: oklch(0.68 0.20 295);
+  --primary-foreground: oklch(0.16 0.008 264);
+  --secondary: oklch(0.27 0.010 264);
+  --secondary-foreground: oklch(0.97 0.005 264);
+  --muted: oklch(0.27 0.010 264);
+  --muted-foreground: oklch(0.72 0.010 264);
+  --accent: oklch(0.32 0.08 295);
+  --accent-foreground: oklch(0.92 0.04 295);
   --destructive: oklch(0.704 0.191 22.216);
+  /* Borders — visible but not stark. */
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.68 0.20 295);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar: oklch(0.18 0.009 264);
+  --sidebar-foreground: oklch(0.97 0.005 264);
+  --sidebar-primary: oklch(0.68 0.20 295);
+  --sidebar-primary-foreground: oklch(0.16 0.008 264);
+  --sidebar-accent: oklch(0.32 0.08 295);
+  --sidebar-accent-foreground: oklch(0.92 0.04 295);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.68 0.20 295);
 }
 
 @layer base {
@@ -131,9 +138,9 @@
 :root {
   /* Text hierarchy — replaces ad-hoc text-slate-{300..900} */
   --ac-text-primary:   oklch(0.21 0.02 264);   /* slate-900 ish */
-  --ac-text-secondary: oklch(0.45 0.02 264);   /* slate-600 */
-  --ac-text-tertiary:  oklch(0.58 0.02 264);   /* slate-500 */
-  --ac-text-quaternary:oklch(0.70 0.02 264);   /* slate-400 */
+  --ac-text-secondary: oklch(0.43 0.02 264);   /* slate-600 — darkened from 0.45 for AA */
+  --ac-text-tertiary:  oklch(0.55 0.02 264);   /* slate-500 */
+  --ac-text-quaternary:oklch(0.68 0.015 264);  /* slate-400 */
   --ac-text-faint:     oklch(0.82 0.015 264);  /* slate-300 */
 
   /* Border scale — stronger than default slate-200 */
@@ -152,15 +159,56 @@
   --ac-accent-soft: oklch(0.96 0.04 295);
   --ac-accent-border: oklch(0.85 0.07 295);
 
-  /* Status */
-  --ac-success: oklch(0.55 0.16 150);
-  --ac-success-soft: oklch(0.95 0.04 150);
-  --ac-warning: oklch(0.62 0.16 70);
-  --ac-warning-soft: oklch(0.95 0.05 70);
-  --ac-danger:  oklch(0.55 0.22 25);
-  --ac-danger-soft: oklch(0.95 0.05 25);
-  --ac-info:    oklch(0.55 0.18 240);
-  --ac-info-soft: oklch(0.95 0.04 240);
+  /* Status — semantic colors with three tones each:
+     - main: vivid color for icons / dots / accents on neutral surfaces
+     - fg:   readable text color (AA on the soft bg)
+     - soft: low-contrast background fill
+     - border: matching hairline border
+  */
+  --ac-info:           oklch(0.55 0.20 240);
+  --ac-info-fg:        oklch(0.40 0.15 240);
+  --ac-info-soft:      oklch(0.96 0.04 240);
+  --ac-info-border:    oklch(0.85 0.06 240);
+
+  --ac-success:        oklch(0.55 0.16 150);
+  --ac-success-fg:     oklch(0.38 0.13 150);
+  --ac-success-soft:   oklch(0.95 0.04 150);
+  --ac-success-border: oklch(0.85 0.07 150);
+
+  --ac-warning:        oklch(0.62 0.16 70);
+  --ac-warning-fg:     oklch(0.42 0.14 70);
+  --ac-warning-soft:   oklch(0.95 0.05 70);
+  --ac-warning-border: oklch(0.85 0.07 70);
+
+  --ac-danger:         oklch(0.55 0.22 25);
+  --ac-danger-fg:     oklch(0.42 0.18 25);
+  --ac-danger-soft:   oklch(0.95 0.05 25);
+  --ac-danger-border: oklch(0.85 0.07 25);
+
+  --ac-neutral:        oklch(0.55 0.02 264);
+  --ac-neutral-fg:     oklch(0.40 0.02 264);
+  --ac-neutral-soft:   oklch(0.96 0.005 264);
+  --ac-neutral-border: oklch(0.88 0.01 264);
+
+  /* ─── Canvas surface tokens ───────────────────────────────────────────
+     Used by the SVG canvas (Canvas.tsx) and shape defaults (Toolbar.tsx).
+     All hardcoded hex colors in those files map to these tokens so the
+     canvas adapts to light/dark mode like the rest of the UI.
+     ──────────────────────────────────────────────────────────────────── */
+  --ac-canvas-bg:           oklch(0.985 0.003 264);  /* page surface (slate-50) */
+  --ac-canvas-grid:         oklch(0.78 0.015 264 / 35%);  /* dot grid */
+  --ac-canvas-default-fill: oklch(0.92 0.005 264);   /* default shape fill */
+  --ac-canvas-default-stroke: oklch(0.62 0.015 264); /* default shape stroke */
+  --ac-canvas-default-text: oklch(0.25 0.02 264);    /* default shape text */
+  --ac-canvas-accent-fill:  oklch(0.96 0.04 70);     /* warm default ellipse/star (amber-200-ish) */
+
+  /* Canvas system colors — selection, hover, indicators. */
+  --ac-canvas-selection:    oklch(0.62 0.20 250);  /* selection outline (sky-500) */
+  --ac-canvas-component:   oklch(0.62 0.20 250);  /* component master badge */
+  --ac-canvas-instance:    oklch(0.65 0.20 295);  /* instance badge (violet-500) */
+  --ac-canvas-highlight:   oklch(0.75 0.16 70);   /* hover highlight (amber) */
+  --ac-canvas-autolayout:  oklch(0.65 0.16 150);  /* auto-layout indicator (emerald) */
+  --ac-canvas-handle-fill: oklch(1 0 0);          /* selection handle interior */
 }
 
 /* ---------------------------------------------------------------------------
@@ -172,7 +220,7 @@
 .dark {
   /* Text hierarchy — inverted L axis, slightly desaturated for comfort */
   --ac-text-primary:    oklch(0.97 0.005 264);
-  --ac-text-secondary:  oklch(0.82 0.01 264);
+  --ac-text-secondary:  oklch(0.80 0.012 264);
   --ac-text-tertiary:   oklch(0.68 0.012 264);
   --ac-text-quaternary: oklch(0.55 0.012 264);
   --ac-text-faint:      oklch(0.42 0.01 264);
@@ -194,14 +242,45 @@
   --ac-accent-border: oklch(0.48 0.12 295);
 
   /* Status — soft variants are darker (not glaring) on dark */
-  --ac-success:      oklch(0.70 0.16 150);
-  --ac-success-soft: oklch(0.30 0.05 150);
-  --ac-warning:      oklch(0.75 0.16 70);
-  --ac-warning-soft: oklch(0.32 0.06 70);
-  --ac-danger:       oklch(0.68 0.22 25);
-  --ac-danger-soft:  oklch(0.32 0.06 25);
-  --ac-info:         oklch(0.70 0.18 240);
-  --ac-info-soft:    oklch(0.30 0.05 240);
+  --ac-info:           oklch(0.70 0.18 240);
+  --ac-info-fg:        oklch(0.85 0.10 240);
+  --ac-info-soft:      oklch(0.30 0.06 240);
+  --ac-info-border:    oklch(0.48 0.10 240);
+
+  --ac-success:        oklch(0.70 0.16 150);
+  --ac-success-fg:     oklch(0.85 0.10 150);
+  --ac-success-soft:   oklch(0.30 0.05 150);
+  --ac-success-border: oklch(0.48 0.10 150);
+
+  --ac-warning:        oklch(0.75 0.16 70);
+  --ac-warning-fg:     oklch(0.88 0.10 70);
+  --ac-warning-soft:   oklch(0.32 0.06 70);
+  --ac-warning-border: oklch(0.50 0.10 70);
+
+  --ac-danger:         oklch(0.68 0.22 25);
+  --ac-danger-fg:      oklch(0.85 0.13 25);
+  --ac-danger-soft:    oklch(0.32 0.06 25);
+  --ac-danger-border:  oklch(0.50 0.10 25);
+
+  --ac-neutral:        oklch(0.72 0.012 264);
+  --ac-neutral-fg:     oklch(0.85 0.008 264);
+  --ac-neutral-soft:   oklch(0.28 0.008 264);
+  --ac-neutral-border: oklch(0.40 0.010 264);
+
+  /* Canvas surface — dark adaptation */
+  --ac-canvas-bg:           oklch(0.19 0.009 264);
+  --ac-canvas-grid:         oklch(0.65 0.012 264 / 30%);
+  --ac-canvas-default-fill: oklch(0.32 0.010 264);
+  --ac-canvas-default-stroke: oklch(0.62 0.015 264);
+  --ac-canvas-default-text: oklch(0.92 0.005 264);
+  --ac-canvas-accent-fill:  oklch(0.45 0.08 70);
+
+  --ac-canvas-selection:    oklch(0.70 0.18 250);
+  --ac-canvas-component:    oklch(0.70 0.18 250);
+  --ac-canvas-instance:     oklch(0.72 0.18 295);
+  --ac-canvas-highlight:   oklch(0.78 0.16 70);
+  --ac-canvas-autolayout:  oklch(0.72 0.16 150);
+  --ac-canvas-handle-fill: oklch(0.97 0.005 264);
 }
 
 /* Utility classes — semantic, used everywhere in the app */
@@ -253,6 +332,38 @@
   .ac-hide-scrollbar:hover::-webkit-scrollbar-thumb {
     background-color: var(--ac-border-strong);
   }
+
+  /* ─── Status badge utilities ────────────────────────────────────────────
+     One class per status tone. Picks up light/dark tokens automatically.
+     Renders as: bg = soft, text = fg, border = border.
+     Use as: <Badge className="ac-status-success">Done</Badge>
+     ─────────────────────────────────────────────────────────────────────── */
+  .ac-status-info      { background-color: var(--ac-info-soft);     color: var(--ac-info-fg);     border-color: var(--ac-info-border); }
+  .ac-status-success   { background-color: var(--ac-success-soft);   color: var(--ac-success-fg);   border-color: var(--ac-success-border); }
+  .ac-status-warning   { background-color: var(--ac-warning-soft);   color: var(--ac-warning-fg);   border-color: var(--ac-warning-border); }
+  .ac-status-danger    { background-color: var(--ac-danger-soft);    color: var(--ac-danger-fg);    border-color: var(--ac-danger-border); }
+  .ac-status-neutral   { background-color: var(--ac-neutral-soft);   color: var(--ac-neutral-fg);   border-color: var(--ac-neutral-border); }
+
+  /* Text-only status colors (for inline icons, captions, etc.). */
+  .ac-text-info        { color: var(--ac-info); }
+  .ac-text-success     { color: var(--ac-success); }
+  .ac-text-warning     { color: var(--ac-warning); }
+  .ac-text-danger      { color: var(--ac-danger); }
+  .ac-text-neutral     { color: var(--ac-neutral); }
+
+  /* Soft-background hover states (for inline action buttons). */
+  .ac-hover-info:hover    { background-color: var(--ac-info-soft); }
+  .ac-hover-success:hover { background-color: var(--ac-success-soft); }
+  .ac-hover-warning:hover { background-color: var(--ac-warning-soft); }
+  .ac-hover-danger:hover  { background-color: var(--ac-danger-soft); }
+  .ac-hover-neutral:hover { background-color: var(--ac-neutral-soft); }
+
+  /* Status dots — 1.5px circles used in dense rows. */
+  .ac-dot-info     { background-color: var(--ac-info); }
+  .ac-dot-success  { background-color: var(--ac-success); }
+  .ac-dot-warning  { background-color: var(--ac-warning); }
+  .ac-dot-danger   { background-color: var(--ac-danger); }
+  .ac-dot-neutral  { background-color: var(--ac-neutral); }
 }
 
 /* Keyframes — used by the empty-canvas drop zone and other subtle entrances */

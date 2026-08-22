@@ -77,10 +77,10 @@ const SHORTCUTS: ShortcutEntry[] = [
 ];
 
 const TIER_COLORS: Record<ShortcutEntry['tier'], string> = {
-  P0: 'bg-rose-100 text-rose-700 border-rose-200',
-  P1: 'bg-amber-100 text-amber-700 border-amber-200',
-  P2: 'bg-blue-100 text-blue-700 border-blue-200',
-  Existing: 'bg-slate-100 text-slate-700 border-slate-200',
+  P0: 'ac-status-danger',
+  P1: 'ac-status-warning',
+  P2: 'ac-status-info',
+  Existing: 'ac-status-neutral',
 };
 
 export function KeyboardShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
