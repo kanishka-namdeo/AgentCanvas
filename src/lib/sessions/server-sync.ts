@@ -27,6 +27,9 @@ interface ServerSession {
   parentSessionId: string | null;
   createdAt: string;
   updatedAt: string;
+  /// Relation counts returned by GET /api/sessions (Prisma `_count` include).
+  /// Used by the client merge to skip empty session shells.
+  _count?: { messages: number; runs: number; snapshots: number };
 }
 
 /// Fetch sessions from the server for a given document.
@@ -42,16 +45,26 @@ export async function fetchServerSessions(documentId: string): Promise<ServerSes
 }
 
 /// Create a session on the server.
-export async function createServerSession(
-  documentId: string,
-  title: string,
-  parentSessionId?: string,
-): Promise<ServerSession | null> {
+/// `id` is the client's localStorage session id — the server row is created
+/// with the SAME id so subsequent child writes (runs/messages/snapshots)
+/// never hit foreign-key violations. Idempotent: if the id already exists
+/// server-side, the existing session is returned.
+export async function createServerSession(session: {
+  id: string;
+  documentId: string;
+  title: string;
+  parentId?: string | null;
+}): Promise<ServerSession | null> {
   try {
     const res = await fetch('/api/sessions', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ documentId, title, parentSessionId }),
+      body: JSON.stringify({
+        id: session.id,
+        documentId: session.documentId,
+        title: session.title,
+        parentSessionId: session.parentId ?? undefined,
+      }),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -87,15 +100,18 @@ export async function deleteServerSession(id: string): Promise<void> {
 }
 
 /// Append a message to a session on the server.
+/// `documentId` lets the route auto-create a missing session shell
+/// (pre-fix localStorage sessions) instead of failing with an FK error.
 export async function appendServerMessage(
   sessionId: string,
-  message: { role: 'user' | 'assistant'; content: string; status?: string; error?: string; runId?: string },
+  message: { role: 'user' | 'assistant'; content: string; status?: string; error?: string; runId?: string; messageId?: string },
+  documentId?: string,
 ): Promise<string | null> {
   try {
     const res = await fetch(`/api/sessions/${sessionId}/messages`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(message),
+      body: JSON.stringify({ ...message, documentId }),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -106,9 +122,10 @@ export async function appendServerMessage(
 }
 
 /// Create/update a run on the server.
+/// `documentId` lets the route auto-create a missing session shell.
 export async function syncServerRun(
   sessionId: string,
-  run: { prompt: string; status?: string; runId?: string; errorMessage?: string; toolCallCount?: number; toolCalls?: any[] },
+  run: { prompt: string; status?: string; runId?: string; errorMessage?: string; toolCallCount?: number; toolCalls?: any[]; documentId?: string },
 ): Promise<string | null> {
   try {
     const res = await fetch(`/api/sessions/${sessionId}/runs`, {
@@ -125,17 +142,19 @@ export async function syncServerRun(
 }
 
 /// Capture a snapshot on the server.
+/// `documentId` lets the route auto-create a missing session shell.
 export async function captureServerSnapshot(
   sessionId: string,
   document: unknown,
   source: string = 'turn_end',
   runId?: string,
+  documentId?: string,
 ): Promise<string | null> {
   try {
     const res = await fetch(`/api/sessions/${sessionId}/snapshots`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ document, source, runId }),
+      body: JSON.stringify({ document, source, runId, documentId }),
     });
     if (!res.ok) return null;
     const data = await res.json();

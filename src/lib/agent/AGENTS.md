@@ -143,7 +143,7 @@ type AgentStreamEvent =
   | { kind: 'agent_event'; event: SyncEvent };
 ```
 - Defined in `runner-types.ts`. `patch` events carry a `CanvasPatch`; `agent_event` events carry a `SyncEvent` (defined in `src/lib/canvas/types.ts`).
-- The runner can emit `turn_end` from two code paths (normal exit + MAX_ITERATIONS). There is currently NO guard against double-emission — this is a known gap.
+- The native runner tracks whether the translator already emitted `agent:message_end` / `agent:turn_end` and only emits the defensive tail events for the ones actually missing — closing events are never doubled (fixed; previously every turn ended with a duplicated turn_end that fanned out to all viewers).
 
 Extended SyncEvent types (in `src/lib/canvas/types.ts`):
 - `agent:skill_selected` — intent classifier picked a skill

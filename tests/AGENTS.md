@@ -108,7 +108,8 @@ Each prints a "passed" message on success and exits non-zero on failure.
 - `bun run test` — should print "Test Files 18 passed (18)" and "Tests 417 passed (417)" (or higher as tests are added).
 - `bash tests/python-runtime-build.sh` — should print "python runtime build tests passed".
 - `bash tests/database-runtime-build.sh` — should print the corresponding pass message.
-- CI (`.github/workflows/ci.yml`) is INTENDED to run `bun run lint` + `bun run test` on pushes/PRs to `main` (typecheck is intentionally disabled — see the workflow file's rationale). **Known bug**: both triggers contain a typo (`branches: ain]` instead of `branches: [main]`), so CI never actually fires. The fix must be made directly on GitHub (the sandbox blocks workflow-trigger edits).
+- `bunx tsc --noEmit` — typecheck (currently clean; `skills/` is excluded in tsconfig because the z.ai sandbox extracts sandbox-owned skill sources there).
+- CI (`.github/workflows/ci.yml`) is INTENDED to run `bun run lint` + `bun run test` on pushes/PRs to `main` (typecheck is currently disabled — the workflow comment cites ~30 legacy tsc errors that have since been fixed, so it can be re-enabled). **Known bug**: both triggers contain a typo (`branches: ain]` instead of `branches: [main]`), so CI never actually fires. The fix must be made directly on GitHub (the sandbox blocks workflow-trigger edits).
 
 ## Child DOX Index
 

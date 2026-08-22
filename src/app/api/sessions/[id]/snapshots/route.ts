@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { ensureSession } from '../../ensure-session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,18 +13,23 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const snapshots = await db.sessionSnapshot.findMany({
-    where: { sessionId: id },
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      source: true,
-      runId: true,
-      createdAt: true,
-      // Don't select the full document JSON for list view — too large.
-    },
-  });
-  return NextResponse.json({ snapshots });
+  try {
+    const snapshots = await db.sessionSnapshot.findMany({
+      where: { sessionId: id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        source: true,
+        runId: true,
+        createdAt: true,
+        // Don't select the full document JSON for list view — too large.
+      },
+    });
+    return NextResponse.json({ snapshots });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown database error';
+    return NextResponse.json({ error: `Failed to list snapshots: ${message}` }, { status: 500 });
+  }
 }
 
 export async function POST(
@@ -32,22 +38,33 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  const { document, source, runId } = body;
+  const { document, source, runId, documentId } = body;
 
-  const snapshot = await db.sessionSnapshot.create({
-    data: {
-      sessionId: id,
-      document: JSON.stringify(document),
-      source: source || 'turn_end',
-      runId: runId || null,
-    },
-  });
+  try {
+    // Auto-heal: pre-fix localStorage sessions have no server row.
+    const ensured = await ensureSession(id, documentId, body.title);
+    if (!ensured) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
 
-  // Increment the session's snapshot count.
-  await db.session.update({
-    where: { id },
-    data: { snapshotCount: { increment: 1 } },
-  });
+    const snapshot = await db.sessionSnapshot.create({
+      data: {
+        sessionId: id,
+        document: JSON.stringify(document ?? {}),
+        source: source || 'turn_end',
+        runId: runId || null,
+      },
+    });
 
-  return NextResponse.json({ snapshot });
+    // Increment the session's snapshot count.
+    await db.session.update({
+      where: { id },
+      data: { snapshotCount: { increment: 1 } },
+    });
+
+    return NextResponse.json({ snapshot });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown database error';
+    return NextResponse.json({ error: `Failed to sync snapshot: ${message}` }, { status: 500 });
+  }
 }

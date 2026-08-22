@@ -481,6 +481,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   //     completes) and the queue's async iterator (which yields events as
   //     they arrive). When prompt() resolves, we close the queue and drain
   //     any remaining buffered events.
+  //
+  //     Track which closing events the translator emitted so the defensive
+  //     tail emission after the finally block doesn't duplicate them
+  //     (previously BOTH were emitted unconditionally — every successful
+  //     turn ended with a doubled agent:message_end + agent:turn_end, which
+  //     fanned out to all viewers via canvas-sync and double-triggered run
+  //     finalization).
+  let sawMessageEnd = false;
+  let sawTurnEnd = false;
   try {
     // Kick off the prompt — don't await yet.
     const promptPromise = session.prompt(userMessage, {
@@ -517,7 +526,14 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       setTimeout(() => queue.close(), 0);
     });
 
+    // Track which closing events the translator already emitted (flags
+    // declared above the try block — the defensive tail reads them after
+    // the finally block).
     for await (const ev of queue.drain()) {
+      if (ev.kind === 'agent_event') {
+        if (ev.event.type === 'agent:message_end') sawMessageEnd = true;
+        if (ev.event.type === 'agent:turn_end') sawTurnEnd = true;
+      }
       yield ev;
       if (promptError) {
         // prompt() threw — surface the error and stop.
@@ -555,9 +571,14 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     }
   }
 
-  // Defensive: if the translator never emitted an agent:turn_end (e.g. the
-  // SDK returned without firing agent_end), emit one so the UI doesn't hang.
-  // The legacy runner has the same defensive emission.
-  yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
-  yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
+  // Defensive: if the translator never emitted closing events (e.g. the SDK
+  // returned without firing agent_end), emit them so the UI doesn't hang —
+  // but ONLY the ones actually missing (guards against double emission; the
+  // legacy runner has the same defensive tail).
+  if (!sawMessageEnd) {
+    yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
+  }
+  if (!sawTurnEnd) {
+    yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
+  }
 }

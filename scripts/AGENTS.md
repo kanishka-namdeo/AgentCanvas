@@ -16,6 +16,7 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 - `probe-zai-endpoint.ts` — Discovers what the z.ai sandbox LLM endpoint serves: ZAI.create() config shape, direct chat completions with candidate models, and pi-ai's zai model catalog. Run via `bun run scripts/probe-zai-endpoint.ts` (mind 429s — space the calls).
 - `probe-zai-models-2.ts` — Second-pass probe: glm-5.x availability + function-calling capability through the sandbox endpoint (spaced to dodge rate limits).
 - `verify-default-llm.ts` — Verifies the default LLM config end-to-end: resolves DEFAULT_SETTINGS → must be `zai/glm-5.3` via the sandbox endpoint, runs a real completion through `createAgentSession` (production path), and checks the `apiBaseUrl` custom-endpoint override. Exit 0 on success. Run via `bun run scripts/verify-default-llm.ts`.
+- `cleanup-orphan-sessions.ts` — one-time data repair: deletes Session rows with no messages/runs/snapshots (empty shells from the pre-fix session-id bug; 2,733 at discovery). `--dry-run` lists without deleting. Run via `bun run scripts/cleanup-orphan-sessions.ts`.
 - `measure-tool-cost.ts` — Measures the token cost of the agent's tool registry + system prompt. Estimates tokens as chars/4, prints per-tool breakdown sorted by size. Run via `bun run scripts/measure-tool-cost.ts`.
 
 ## Local Contracts

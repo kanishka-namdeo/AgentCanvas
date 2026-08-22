@@ -263,9 +263,17 @@ export const useSessionStore = create<SessionStoreState>()(
         }));
         // Sync to server (Phase 3: server-side persistence).
         // Fire-and-forget — localStorage is the fast cache, server is the source of truth.
+        // The client session id is passed so the server row shares the SAME id
+        // (previously the server generated its own cuid, so every subsequent
+        // run/message/snapshot sync failed with a foreign-key violation).
         if (typeof window !== 'undefined') {
           import('./server-sync').then(({ createServerSession }) => {
-            createServerSession(documentId, session.title, session.parentId ?? undefined);
+            createServerSession({
+              id: session.id,
+              documentId: session.documentId,
+              title: session.title,
+              parentId: session.parentId,
+            });
           });
         }
         return session;
@@ -545,10 +553,12 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           },
         }));
-        // Sync run to server.
+        // Sync run to server (documentId enables server-side auto-heal of a
+        // missing session shell — see api/sessions/ensure-session.ts).
         if (typeof window !== 'undefined') {
           import('./server-sync').then(({ syncServerRun }) => {
-            syncServerRun(sessionId, { prompt, status: 'in_progress' });
+            const s = get().sessions[sessionId];
+            syncServerRun(sessionId, { prompt, status: 'in_progress', documentId: s?.documentId });
           });
         }
         return run;
@@ -584,10 +594,19 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           };
         });
-        // Sync run status to server.
+        // Sync run status to server (upsert — runId creates the row if the
+        // initial create call was lost).
         if (typeof window !== 'undefined') {
           import('./server-sync').then(({ syncServerRun }) => {
-            syncServerRun(run.sessionId, { prompt: run.prompt, status, runId, errorMessage, toolCallCount: run.toolCallIds.length });
+            const s = get().sessions[run.sessionId];
+            syncServerRun(run.sessionId, {
+              prompt: run.prompt,
+              status,
+              runId,
+              errorMessage,
+              toolCallCount: run.toolCallIds.length,
+              documentId: s?.documentId,
+            });
           });
         }
       },
@@ -620,8 +639,13 @@ export const useSessionStore = create<SessionStoreState>()(
         }));
         // Sync user message to server.
         if (typeof window !== 'undefined') {
+          const s = get().sessions[sessionId];
           import('./server-sync').then(({ appendServerMessage }) => {
-            appendServerMessage(sessionId, { role: 'user', content: text, status: 'complete', runId });
+            appendServerMessage(
+              sessionId,
+              { role: 'user', content: text, status: 'complete', runId },
+              s?.documentId,
+            );
           });
         }
         return msg;
@@ -693,14 +717,19 @@ export const useSessionStore = create<SessionStoreState>()(
         if (typeof window !== 'undefined') {
           const msg = get().messages[messageId];
           if (msg) {
+            const s = get().sessions[msg.sessionId];
             import('./server-sync').then(({ appendServerMessage }) => {
-              appendServerMessage(msg.sessionId, {
-                role: 'assistant',
-                content: msg.text,
-                status,
-                error,
-                runId: msg.runId ?? undefined,
-              });
+              appendServerMessage(
+                msg.sessionId,
+                {
+                  role: 'assistant',
+                  content: msg.text,
+                  status,
+                  error,
+                  runId: msg.runId ?? undefined,
+                },
+                s?.documentId,
+              );
             });
           }
         }
@@ -815,8 +844,15 @@ export const useSessionStore = create<SessionStoreState>()(
         }));
         // Sync snapshot to server.
         if (typeof window !== 'undefined') {
+          const s = get().sessions[sessionId];
           import('./server-sync').then(({ captureServerSnapshot }) => {
-            captureServerSnapshot(sessionId, document, opts.source ?? 'turn_end', opts.sourceRunId);
+            captureServerSnapshot(
+              sessionId,
+              document,
+              opts.source ?? 'turn_end',
+              opts.sourceRunId,
+              s?.documentId,
+            );
           });
         }
         return snap;
@@ -988,16 +1024,43 @@ export function hydrateSessionStore() {
       fetchServerSessions(docId).then((serverSessions) => {
         if (serverSessions.length === 0) return;
         // Merge: add server sessions that don't exist in localStorage.
+        //
+        // IMPORTANT (bug fix): we insert the server session DIRECTLY into the
+        // store using the SERVER's id — we must NOT call createSession() here.
+        // createSession() generates a new local id AND fire-and-forgets another
+        // server-side create, so every reload multiplied the session rows
+        // (this was the source of thousands of empty "Canvas · demo" rows).
+        //
+        // We also skip empty server shells (no messages/runs/snapshots) —
+        // they carry nothing worth adopting; the client creates a fresh
+        // session on demand when it needs one.
+        const incoming: Session[] = [];
         const localSessions = useSessionStore.getState().sessions;
         for (const ss of serverSessions) {
-          if (!localSessions[ss.id]) {
-            // Create a local session from the server data.
-            useSessionStore.getState().createSession(ss.documentId, {
+          if (localSessions[ss.id]) continue;
+          const counts = ss._count as { messages?: number; runs?: number; snapshots?: number } | undefined;
+          const hasContent =
+            (counts?.messages ?? 0) > 0 || (counts?.runs ?? 0) > 0 || (counts?.snapshots ?? 0) > 0;
+          if (!hasContent) continue;
+          const ts = nowISO();
+          incoming.push({
+            ...makeSession(ss.documentId, {
               title: ss.title,
               status: ss.status as 'active' | 'archived',
               pinned: ss.pinned,
-            });
-          }
+            }),
+            // Adopt the SERVER id so future child syncs reference a row that
+            // exists — no FK violations, no duplicate adoption on next reload.
+            id: ss.id,
+            lastOpenedAt: ss.lastOpenedAt || ts,
+          });
+        }
+        if (incoming.length > 0) {
+          useSessionStore.setState((s) => {
+            const sessions = { ...s.sessions };
+            for (const sess of incoming) sessions[sess.id] = sess;
+            return { sessions };
+          });
         }
       });
     }

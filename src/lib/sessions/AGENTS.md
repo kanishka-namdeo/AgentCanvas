@@ -13,6 +13,8 @@ This is the durable record of every conversation the user has had with the agent
 - `index.ts` — re-exports `useSessionStore`, `hydrateSessionStore`, `sweepIdleSessions`, `enforceSessionCap`, `estimateLocalStorageUsage`, and the types.
 - `server-sync.ts` — client-side bridge from the localStorage session store to the server Prisma API (`/api/sessions*`): `fetchServerSessions`, `createServerSession`, `updateServerSession`, `deleteServerSession`, `appendServerMessage`, `syncServerRun`, `captureServerSnapshot`, `exportSessionJSONL`. Silently fails when the server is unreachable — localStorage stays the fast cache. The SessionSidebar's export action uses `exportSessionJSONL` (server-backed, `.jsonl`) with a local `.json` fallback.
 
+**Session-id contract (bug fix)**: `createServerSession` passes the client's localStorage session id — the server row is created with the SAME id, so run/message/snapshot syncs never FK-fail. Previously the server generated its own cuid, every child write failed with ForeignKeyConstraintViolation, and the hydrate merge loop re-created a new shell per reload (2,733 orphans at discovery — cleaned by `scripts/cleanup-orphan-sessions.ts`). The merge in `hydrateSessionStore` inserts server sessions DIRECTLY (server id, no `createSession` re-trigger) and skips empty shells (no messages/runs/snapshots).
+
 ## Local Contracts
 
 ### Data model

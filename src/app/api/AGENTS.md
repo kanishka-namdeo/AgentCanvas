@@ -62,8 +62,12 @@ Next.js Route Handlers. Four route families: the `/api/agent` endpoints that run
 
 ### `/api/sessions*` family
 - Server-side persistence via Prisma (`db.session`, `db.sessionMessage`, `db.sessionRun`, `db.sessionSnapshot` from `src/lib/db`). The DB is the source of truth; the localStorage store (see `src/lib/sessions/AGENTS.md`) is a cache.
+- **Client-supplied session id**: POST `/api/sessions` accepts an optional `id` (the client's localStorage session id) and creates the row with THAT id — this keeps client and server rows aligned so child writes never FK-fail. The POST is idempotent: an existing id returns the existing row.
+- **Auto-heal**: the runs/messages/snapshots POST routes accept an optional `documentId` and create the missing parent session shell when absent (see `ensure-session.ts`) — pre-fix localStorage sessions heal on their next write instead of erroring.
+- **Upserts**: POST with `runId` (runs) or `messageId` (messages) upserts — creates the row when the server never saw the initial create (previously an unhandled P2025 500).
+- **List cap**: GET `/api/sessions` returns at most 50 sessions (most recent first) so a legacy DB of empty shells cannot flood the client merge.
+- **Error contract**: all handlers catch errors and return structured JSON (`{ error }`) with 400/404/500 — P2025 on PATCH → 404, on DELETE → idempotent success. No raw Prisma errors in the log.
 - All writes go through `src/lib/sessions/server-sync.ts` on the client — do not call these routes ad hoc from components.
-- Run upsert: POST `/api/sessions/[id]/runs` with `runId` updates the existing run instead of creating one (used for the streaming → complete lifecycle).
 - Snapshot GET excludes the `document` JSON (too large for list payloads); fetch metadata only.
 - Deleting a session cascades to messages, runs, and snapshots (schema-level `onDelete: Cascade`).
 
