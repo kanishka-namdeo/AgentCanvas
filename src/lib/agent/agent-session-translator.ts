@@ -77,13 +77,41 @@ function extractPatchesFromToolResult(result: unknown): { patches: CanvasPatch[]
 // (e.g. `session_info_changed` — we don't surface session names in the UI);
 // others translate to multiple events (e.g. `tool_execution_end` yields both
 // `patch` events for each patch AND an `agent:tool_call_end` event).
+//
+// ---- Duplicate-event suppression -------------------------------------------
+//
+// The SDK can emit closing events redundantly: a normal turn fires BOTH
+// `message_end` AND `agent_end` (which used to re-emit `message_end` +
+// `turn_end` unconditionally), and retry loops fire multiple
+// message_start/message_end pairs. The UI / session store treats each
+// `agent:message_end` / `agent:turn_end` as a state transition, so duplicates
+// double-finalize runs. Pass a TranslatorState (see subscribeAndTranslate)
+// to suppress duplicates: message_end is emitted only when a message is open,
+// and turn_end exactly once per prompt cycle.
 
-export function translateAgentSessionEvent(event: AgentSessionEvent): TranslatedEvents {
+export interface TranslatorState {
+  /// True between message_start and message_end (a message is streaming).
+  messageOpen: boolean;
+  /// True once agent_end has been translated for this prompt cycle.
+  turnEnded: boolean;
+}
+
+export function createTranslatorState(): TranslatorState {
+  return { messageOpen: false, turnEnded: false };
+}
+
+export function translateAgentSessionEvent(event: AgentSessionEvent, state?: TranslatorState): TranslatedEvents {
   const out: TranslatedEvents = [];
 
   switch (event.type) {
     // ---- Message streaming ----
     case 'message_start': {
+      // Defensive: if a previous message never closed (e.g. mid-stream error),
+      // close it first so the UI's message state machine stays balanced.
+      if (state?.messageOpen) {
+        out.push({ kind: 'agent_event', event: { type: 'agent:message_end' } });
+      }
+      state && (state.messageOpen = true);
       out.push({ kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } });
       break;
     }
@@ -104,7 +132,11 @@ export function translateAgentSessionEvent(event: AgentSessionEvent): Translated
     }
 
     case 'message_end': {
-      out.push({ kind: 'agent_event', event: { type: 'agent:message_end' } });
+      // Suppress duplicate closes: only emit when a message is actually open.
+      if (!state || state.messageOpen) {
+        out.push({ kind: 'agent_event', event: { type: 'agent:message_end' } });
+        state && (state.messageOpen = false);
+      }
       break;
     }
 
@@ -171,10 +203,18 @@ export function translateAgentSessionEvent(event: AgentSessionEvent): Translated
     }
 
     case 'agent_end': {
-      // The SDK emits message_end separately; if it didn't (e.g. error
-      // mid-stream), emit it here defensively. Then emit turn_end.
-      out.push({ kind: 'agent_event', event: { type: 'agent:message_end' } });
-      out.push({ kind: 'agent_event', event: { type: 'agent:turn_end' } });
+      // The SDK emits message_end separately; only emit it here if the message
+      // is still open (error mid-stream closed it without a message_end).
+      // turn_end must fire exactly ONCE per prompt cycle — suppress if the
+      // state already recorded one (retry loops can re-fire agent_end).
+      if (!state || state.messageOpen) {
+        out.push({ kind: 'agent_event', event: { type: 'agent:message_end' } });
+        state && (state.messageOpen = false);
+      }
+      if (!state || !state.turnEnded) {
+        out.push({ kind: 'agent_event', event: { type: 'agent:turn_end' } });
+        state && (state.turnEnded = true);
+      }
       break;
     }
 
@@ -335,8 +375,10 @@ export function subscribeAndTranslate(
   subscribe: (listener: (event: AgentSessionEvent) => void) => () => void,
 ): { queue: EventQueue; unsubscribe: () => void } {
   const queue = createEventQueue();
+  // One state per prompt cycle → duplicate closing events are suppressed.
+  const state = createTranslatorState();
   const listener = (event: AgentSessionEvent) => {
-    const translated = translateAgentSessionEvent(event);
+    const translated = translateAgentSessionEvent(event, state);
     queue.push(translated);
   };
   const unsubscribe = subscribe(listener);

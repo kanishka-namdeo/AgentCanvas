@@ -155,6 +155,31 @@ const ShapeInputSchema = Type.Object({
   parentId: Type.Optional(Type.String({ description: 'Parent frame/group ID. If omitted, the shape is a top-level layer. (Note: to MOVE an existing shape into a frame, use pen_reparent_shape instead.)' })),
 });
 
+/// LLMs occasionally pass a nested object param as a JSON STRING (observed
+/// with GLM: `changes: "{\"fill\":\"#0ea5e9\"}"`). pi-ai's TypeBox
+/// validation rejects that BEFORE the tool's execute() runs — the call fails,
+/// the model retries identically (wasted round trips), then works around it.
+/// Accept both forms at the schema level and normalize strings to objects
+/// before use, so the tolerant fallbacks inside execute() actually get a
+/// chance to run.
+const LooseShapeInputSchema = Type.Union([ShapeInputSchema, Type.String()], {
+  description: 'The fields to change, as an object (a JSON-encoded string is also accepted and parsed).',
+});
+
+function parseLooseShapeInput(
+  value: Static<typeof LooseShapeInputSchema> | undefined,
+): Static<typeof ShapeInputSchema> {
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return (parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}) as Static<typeof ShapeInputSchema>;
+    } catch {
+      return {} as Static<typeof ShapeInputSchema>;
+    }
+  }
+  return (value ?? {}) as Static<typeof ShapeInputSchema>;
+}
+
 // ---- Helpers ----------------------------------------------------------------
 
 /// Coerce LLM-provided arguments into the types the schema expects.
@@ -323,12 +348,56 @@ const LUCIDE_ICONS: Record<string, Array<{ x: number; y: number }>> = {
 
 // ---- Tool factory -----------------------------------------------------------
 
+/// Fidelity parameter shared by the generator tools. 'hifi' (default) keeps
+/// the template's full styling; 'lofi' post-processes the generated shapes to
+/// a grayscale wireframe (no shadows, no gradients, neutral-ramp fills) for
+/// explicit "wireframe / low-fi / sketch" requests. Before this existed the
+/// generator ALWAYS emitted colorful styled output, so a "draw a low-fi
+/// wireframe" prompt produced a hi-fi screen (caught by agent-eval
+/// `wireframe-lofi`).
+const FidelitySchema = Type.Union([Type.Literal('hifi'), Type.Literal('lofi')], {
+  description:
+    "Output fidelity. Use 'lofi' when the user explicitly asks for a wireframe / low-fi / sketch / graybox " +
+    '(grayscale, flat, no shadows). Default hifi.',
+});
+
+/// Convert a hex color to its grayscale equivalent (luminance-preserving).
+function toGrayscaleHex(hex: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec((hex ?? '').trim());
+  if (!m) return hex; // transparent / var() / non-hex — leave untouched
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const lum = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+  // Snap to the neutral ramp used by WIREFRAME MODE for a cohesive look.
+  const ramp = [0x11, 0x37, 0x6b, 0x9c, 0xd1, 0xe5, 0xf8];
+  const snapped = ramp.reduce((best, c) => (Math.abs(c - lum) < Math.abs(best - lum) ? c : best), ramp[0]);
+  const v = (snapped << 16) | (snapped << 8) | snapped;
+  return '#' + v.toString(16).padStart(6, '0');
+}
+
+/// Downgrade generated shapes to lo-fi wireframe styling in place.
+/// Exported for unit tests (tests/unit/agent-eval-fixes.test.ts).
+export function applyLofiFidelity(shapes: Array<Partial<Shape> & Record<string, unknown>>): void {
+  for (const s of shapes) {
+    if (typeof s.fill === 'string' && s.fill !== 'transparent') s.fill = toGrayscaleHex(s.fill);
+    if (typeof s.textColor === 'string') {
+      const gray = toGrayscaleHex(s.textColor);
+      // Very light text on (formerly) dark fills would become unreadable on
+      // light gray fills — force near-black instead.
+      s.textColor = gray === '#f8f8f8' ? '#111827' : gray;
+    }
+    if (s.stroke && s.stroke !== 'transparent') s.stroke = '#d1d5db';
+    delete s.shadow;
+    delete s.gradient;
+  }
+}
+
 export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
   // CORE CANVAS OPS (existing)
   // =====================================================================
 
-  const createShape = defineTool({
+const createShape = defineTool({
     name: 'pen_create_shape',
     label: 'Create Shape',
     description:
@@ -380,7 +449,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     parameters: Type.Object({
       shapeId: Type.Optional(Type.String({ description: 'ID of the shape to update (alias: id)' })),
       id: Type.Optional(Type.String({ description: 'Alias for shapeId' })),
-      changes: ShapeInputSchema,
+      changes: Type.Optional(LooseShapeInputSchema),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       // Tolerate LLMs that pass `id` instead of `shapeId`.
@@ -396,8 +465,8 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       // Tolerate LLMs that pass changes as top-level fields instead of
       // nesting them under `changes`. If `changes` is missing/empty but
       // the LLM passed x/y/fill/etc at the top level, treat those as the
-      // changes.
-      let rawChanges = params.changes;
+      // changes. (parseLooseShapeInput already handled JSON-string changes.)
+      let rawChanges = parseLooseShapeInput(params.changes);
       if (!rawChanges || Object.keys(rawChanges).length === 0) {
         // Strip metadata fields, keep shape fields.
         const { shapeId: _s, id: _i, changes: _c, ...rest } = params as any;
@@ -1659,17 +1728,19 @@ export function createCanvasTools(ctx: CanvasToolContext) {
     name: 'pen_generate_wireframe',
     label: 'Generate Screen',
     description:
-      'Generate a HIGH-FIDELITY screen layout from a template. Places a frame plus fully-styled shapes ' +
-      'with shadows, gradients, radii, real content, and a color palette applied. ' +
+      'Generate a screen layout from a template. Places a frame plus fully-styled shapes ' +
+      'with shadows, gradients, radii, real content, and a color palette applied (fidelity=hifi, default). ' +
+      'Pass fidelity=lofi for an explicit wireframe / low-fi / sketch request — grayscale, flat, no shadows. ' +
       'Templates: mobile_login, mobile_signup, mobile_dashboard, mobile_welcome, mobile_permissions, mobile_done, ' +
       'mobile_browse, mobile_product_detail, mobile_cart, mobile_checkout, web_landing, web_dashboard, web_blog, web_pricing. ' +
       'The frame is placed at (x, y) with the template\'s default size. ' +
       'This is a scaffold — follow it with pen_apply_palette, pen_set_shadow on cards/buttons, and pen_set_gradient_fill on the hero/CTA for full polish.',
-    promptSnippet: 'Generate a high-fidelity screen from a template (mobile/web).',
+    promptSnippet: 'Generate a screen from a template (mobile/web); fidelity=lofi for wireframes.',
     promptGuidelines: [
       'Use this for "make a login screen", "design a dashboard", "create a landing page", etc.',
-      'After generating, ALWAYS follow with: pen_apply_palette (bindToTokens=true), pen_set_shadow on cards/buttons, pen_set_gradient_fill on the hero/CTA, and pen_generate_copy for real content.',
-      'A bare generate_wireframe call with no styling pass is a wireframe, not a finished design.',
+      'When the user says wireframe / low-fi / sketch / graybox, pass fidelity=lofi and do NOT style afterwards.',
+      'After a hifi generate, ALWAYS follow with: pen_apply_palette (bindToTokens=true), pen_set_shadow on cards/buttons, pen_set_gradient_fill on the hero/CTA, and pen_generate_copy for real content.',
+      'A bare hifi generate_wireframe call with no styling pass is a wireframe, not a finished design.',
     ],
     parameters: Type.Object({
       template: Type.Union(
@@ -1693,6 +1764,7 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       ),
       x: Type.Optional(Type.Number({ description: 'Frame X position (default 100)' })),
       y: Type.Optional(Type.Number({ description: 'Frame Y position (default 100)' })),
+      fidelity: Type.Optional(FidelitySchema),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       // Coerce x/y to numbers — the LLM occasionally passes them as strings
@@ -1702,10 +1774,13 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       const x = typeof params.x === 'number' ? params.x : Number(params.x) || 100;
       const y = typeof params.y === 'number' ? params.y : Number(params.y) || 100;
       const wf = buildWireframe(params.template, x, y);
+      if (params.fidelity === 'lofi') {
+        applyLofiFidelity(wf.shapes);
+      }
       const patch: CanvasPatch = {
         op: 'bulk_add',
         shapes: wf.shapes,
-        summary: `Generated ${params.template} wireframe (${wf.shapes.length} shapes)`,
+        summary: `Generated ${params.template} ${params.fidelity === 'lofi' ? 'low-fi wireframe' : 'screen'} (${wf.shapes.length} shapes)`,
       };
       ctx.applyPatch(patch);
       return {
@@ -1745,11 +1820,15 @@ export function createCanvasTools(ctx: CanvasToolContext) {
       ),
       x: Type.Optional(Type.Number({ description: 'Start X (default 80)' })),
       y: Type.Optional(Type.Number({ description: 'Start Y (default 80)' })),
+      fidelity: Type.Optional(FidelitySchema),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const x = params.x ?? 80;
       const y = params.y ?? 80;
       const flow = buildUserFlow(params.flow, x, y);
+      if (params.fidelity === 'lofi') {
+        applyLofiFidelity(flow.shapes);
+      }
       const patch: CanvasPatch = {
         op: 'bulk_add',
         shapes: flow.shapes,

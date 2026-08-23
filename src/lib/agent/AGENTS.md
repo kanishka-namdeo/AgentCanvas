@@ -58,7 +58,7 @@ User prompt
 - `context-manager.ts` — token estimation + lightweight in-place compaction of old tool results (on top of pi SDK `estimateTokens`/`shouldCompact`).
 - `pattern-memory.ts` — filesystem JSONL RAG store (`data/design-patterns.jsonl`) behind the pen_* design-pattern tools.
 - `llm-retry.ts` — shared LLM call helper with exponential backoff (5s→40s, 5 attempts) on 429/transient errors.
-- `agent-session-translator.ts` — translates SDK `AgentSessionEvent`s into `AgentStreamEvent`s; extracts patches from tool-result `details`.
+- `agent-session-translator.ts` — translates SDK `AgentSessionEvent`s into `AgentStreamEvent`s; extracts patches from tool-result `details`. Carries a `TranslatorState` per prompt cycle that suppresses duplicate closing events (`message_end` fires only when a message is open; `turn_end` fires exactly once even when the SDK re-fires `agent_end` or runs retry loops).
 - `pi-ai-model-resolver.ts` — resolves provider settings into pi-ai `Model` + `ModelRuntime` (explicit key / z.ai sandbox auto-credentials / clear error).
 - `file-skills.ts` — loads Agent-Skills-standard + legacy `.md` skills from `.pi/skills/` and merges them into the system prompt.
 - `skills/` — skill system (types, registry, metadata formatters). See `skills/AGENTS.md`.
@@ -93,6 +93,7 @@ wireframe, layout, styling, inspect, export, web_research, vector, multi
 ### executeTool enhancements (Tier 1)
 - **Response token cap**: `MAX_TOOL_RESULT_CHARS = 25_000` — tool results are truncated to prevent context bloat
 - **Argument repair (poka-yoke)**: `repairArrayArgs()` detects and fixes array params passed as stringified JSON strings (e.g. `palette="[\"#fff\"]"` → `palette=["#fff"]`). Known-affected params: palette, shapeIds, nodes, updates, stops, points, shapeId, descendants
+- **Loose nested-object params**: `pen_update_shape.changes` accepts an object OR a JSON-encoded string (`LooseShapeInputSchema` + `parseLooseShapeInput()`). pi-ai validates args against the TypeBox schema BEFORE `execute()` runs, so a stringified `changes` used to fail with `Validation failed for tool "pen_update_shape"` and trigger an identical retry. Observed with GLM in the agent-eval `login-hifi` scenario.
 
 ### System prompt (Tier 0)
 - Template (`SYSTEM_PROMPT_TEMPLATE`) lives in `runner-legacy.ts`; the native path builds its equivalent via the pi SDK session
@@ -100,6 +101,7 @@ wireframe, layout, styling, inspect, export, web_research, vector, multi
 - XML-tagged zones: `<available_skills>`, `<active_skill>`, `<plan>`
 - Includes "PLAN FIRST" instruction before tool calls (controlled by `settings.planFirst`)
 - Includes "ARGUMENT TYPE RULES" with explicit examples of correct vs incorrect formatting
+- **BRAND FIDELITY rule** (DESIGN PRINCIPLES): when the user names a product/brand/app, that exact name MUST appear as real text (wordmark or screen title); concrete copy strings the user provides are used verbatim. Added after the agent-eval `login-hifi` scenario caught the agent omitting the brand name.
 - Explicitly states skill names are NOT tools
 - Includes ".pen FORMAT ALIGNMENT" section documenting pen.dev concepts (variables, themes, components, slots, flexbox, node types, hierarchy, constraints, export)
 - Canvas snapshot is rendered as a tree (indented by depth) showing the hierarchy, not a flat list
@@ -144,6 +146,7 @@ type AgentStreamEvent =
 ```
 - Defined in `runner-types.ts`. `patch` events carry a `CanvasPatch`; `agent_event` events carry a `SyncEvent` (defined in `src/lib/canvas/types.ts`).
 - The native runner tracks whether the translator already emitted `agent:message_end` / `agent:turn_end` and only emits the defensive tail events for the ones actually missing — closing events are never doubled (fixed; previously every turn ended with a duplicated turn_end that fanned out to all viewers).
+- **Silent-failure guard**: after a turn drains, if the runner saw NO text deltas, NO thinking deltas, NO tool calls, and NO `agent:error` (and `prompt()` didn't throw), it emits an explicit `agent:error` explaining the model returned an empty response (usually provider rate-limiting — HTTP 429 — or a transient outage). Without this guard the SDK resolves `prompt()` silently and the user sees an empty bubble. Caught by `scripts/agent-eval/` scenario `wireframe-lofi` during a real 429 lockout.
 
 Extended SyncEvent types (in `src/lib/canvas/types.ts`):
 - `agent:skill_selected` — intent classifier picked a skill
@@ -178,7 +181,9 @@ Extended SyncEvent types (in `src/lib/canvas/types.ts`):
 
 - `bunx tsc --noEmit` — typecheck
 - `bun run lint` — ESLint
-- `bun run test` — the suite includes runner (MockLLM), tools registration (70), agentic-workflow, and component-system coverage
+- `bun run test` — the suite includes runner (MockLLM), tools registration (70), agentic-workflow, component-system, and translator dedup coverage (`tests/unit/agent-eval-fixes.test.ts`)
+- `bun scripts/agent-eval/run-eval.ts` — prompt-vs-output scenario suite (8 scenarios; see `scripts/agent-eval/`) — determinism + trajectory + fidelity assertions against the live `/api/agent` route
+- `bash scripts/agent-eval/visual-test.sh` — browser-driven visual verification with screenshots to `download/agent-eval/`
 - `bun run scripts/eval-agent.ts` — intent classifier eval (20 prompts, ≥ 80% accuracy gate)
 - `bun run scripts/measure-tool-cost.ts` — token cost measurement
 - Manual: Agent Browser end-to-end test with prompts from each skill category

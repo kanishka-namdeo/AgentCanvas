@@ -1,0 +1,61 @@
+[
+  {
+    "id": "simple-shape",
+    "prompt": "Draw a red rounded rectangle, 240x120, in the top-left area of the canvas.",
+    "startedAt": "2026-08-23T08:53:34.459Z",
+    "durationMs": 5693,
+    "toolCallCount": 1,
+    "toolNames": [
+      [
+        "pen_create_shape",
+        1
+      ]
+    ],
+    "assertions": [
+      {
+        "name": "rectangle near 240x120 exists",
+        "pass": false,
+        "detail": "no rectangle in the 180..320 x 80..180 size range"
+      },
+      {
+        "name": "fill is red",
+        "pass": false,
+        "detail": "no rectangle with a red-hue fill"
+      },
+      {
+        "name": "corners rounded",
+        "pass": false,
+        "detail": "no rectangle with radius >= 4"
+      },
+      {
+        "name": "placed top-left (x<600, y<400)",
+        "pass": false,
+        "detail": "no layer in the top-left quadrant"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 1 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": true,
+        "detail": "1 tool calls"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 4,
+    "failed": 4,
+    "status": "fail",
+    "finalLayerCount": 0
+  }
+]

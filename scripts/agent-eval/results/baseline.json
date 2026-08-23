@@ -1,0 +1,501 @@
+[
+  {
+    "id": "simple-shape",
+    "prompt": "Draw a red rounded rectangle, 240x120, in the top-left area of the canvas.",
+    "startedAt": "2026-08-23T08:54:53.396Z",
+    "durationMs": 7315,
+    "toolCallCount": 2,
+    "toolNames": [
+      [
+        "pen_list_shapes",
+        1
+      ],
+      [
+        "pen_create_shape",
+        1
+      ]
+    ],
+    "assertions": [
+      {
+        "name": "rectangle near 240x120 exists",
+        "pass": true,
+        "detail": "1 match(es)"
+      },
+      {
+        "name": "fill is red",
+        "pass": true,
+        "detail": "found #ef4444"
+      },
+      {
+        "name": "corners rounded",
+        "pass": true,
+        "detail": "radius=8"
+      },
+      {
+        "name": "placed top-left (x<600, y<400)",
+        "pass": true,
+        "detail": "position ok"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 2 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": true,
+        "detail": "2 tool calls"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 8,
+    "failed": 0,
+    "status": "pass",
+    "finalLayerCount": 1
+  },
+  {
+    "id": "text-heading",
+    "prompt": "Add a bold heading that says 'Quarterly Report' at 32px, centered near the top of the canvas.",
+    "startedAt": "2026-08-23T08:55:00.712Z",
+    "durationMs": 7551,
+    "toolCallCount": 3,
+    "toolNames": [
+      [
+        "pen_list_shapes",
+        1
+      ],
+      [
+        "pen_create_shape",
+        1
+      ],
+      [
+        "pen_select_shape",
+        1
+      ]
+    ],
+    "assertions": [
+      {
+        "name": "heading text present",
+        "pass": true,
+        "detail": "Quarterly Report"
+      },
+      {
+        "name": "fontSize ~32",
+        "pass": true,
+        "detail": "32px"
+      },
+      {
+        "name": "near top (y < 300)",
+        "pass": true,
+        "detail": "y ok"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 3 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": true,
+        "detail": "3 tool calls"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 7,
+    "failed": 0,
+    "status": "pass",
+    "finalLayerCount": 1
+  },
+  {
+    "id": "login-hifi",
+    "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+    "startedAt": "2026-08-23T08:55:08.264Z",
+    "durationMs": 24560,
+    "toolCallCount": 19,
+    "toolNames": [
+      [
+        "pen_set_variable",
+        11
+      ],
+      [
+        "pen_set_shadow",
+        4
+      ],
+      [
+        "pen_generate_wireframe",
+        1
+      ],
+      [
+        "pen_list_shapes",
+        1
+      ],
+      [
+        "pen_apply_palette",
+        1
+      ],
+      [
+        "pen_set_gradient_fill",
+        1
+      ]
+    ],
+    "assertions": [
+      {
+        "name": "canvas has layers",
+        "pass": true,
+        "detail": "11 layers"
+      },
+      {
+        "name": "uses a container/frame",
+        "pass": true,
+        "detail": "1 container(s)"
+      },
+      {
+        "name": "email + password copy present",
+        "pass": true,
+        "detail": "email=true password=true"
+      },
+      {
+        "name": "brand \"Vaultly\" present",
+        "pass": false,
+        "detail": "no \"Vaultly\" text anywhere"
+      },
+      {
+        "name": "colorful design (hi-fi)",
+        "pass": true,
+        "detail": "3+ saturated layers"
+      },
+      {
+        "name": "shadows on elevated surfaces",
+        "pass": true,
+        "detail": "shadow present"
+      },
+      {
+        "name": "realistic copy (no placeholders)",
+        "pass": true,
+        "detail": "no placeholder text"
+      },
+      {
+        "name": "Sign In action present",
+        "pass": true,
+        "detail": "CTA copy ok"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 19 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": true,
+        "detail": "19 tool calls"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 11,
+    "failed": 1,
+    "status": "fail",
+    "finalLayerCount": 11
+  },
+  {
+    "id": "wireframe-lofi",
+    "prompt": "Draw a low-fidelity wireframe of a blog homepage: header with nav, one hero article block, and a 3-card article grid.",
+    "startedAt": "2026-08-23T08:55:32.831Z",
+    "durationMs": 33,
+    "toolCallCount": 0,
+    "toolNames": [],
+    "assertions": [
+      {
+        "name": "canvas has layers",
+        "pass": false,
+        "detail": "only 0 layers"
+      },
+      {
+        "name": "3-card grid present",
+        "pass": false,
+        "detail": "no 3+ boxes sharing a similar height band"
+      },
+      {
+        "name": "stays grayscale (lo-fi)",
+        "pass": true,
+        "detail": "0 saturated layer(s) (tolerance 1)"
+      },
+      {
+        "name": "no shadows (lo-fi)",
+        "pass": true,
+        "detail": "flat as expected"
+      },
+      {
+        "name": "no gradients (lo-fi)",
+        "pass": true,
+        "detail": "no gradients as expected"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 0 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": false,
+        "detail": "0 tool calls (expected 4..90)"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 6,
+    "failed": 3,
+    "status": "fail",
+    "finalLayerCount": 0
+  },
+  {
+    "id": "modify-precision",
+    "prompt": "Change the Banner rectangle fill to green. Leave everything else exactly as it is.",
+    "startedAt": "2026-08-23T08:55:32.865Z",
+    "durationMs": 37,
+    "toolCallCount": 0,
+    "toolNames": [],
+    "assertions": [
+      {
+        "name": "banner recolored green",
+        "pass": false,
+        "detail": "fill=#3b82f6 is not green-hued"
+      },
+      {
+        "name": "status dot untouched",
+        "pass": true,
+        "detail": "fill=#ef4444"
+      },
+      {
+        "name": "note text untouched",
+        "pass": true,
+        "detail": "unchanged"
+      },
+      {
+        "name": "no extra layers added",
+        "pass": true,
+        "detail": "still 3 layers"
+      },
+      {
+        "name": "assertion crashed",
+        "pass": false,
+        "detail": "t is not defined"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 0 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": false,
+        "detail": "0 tool calls (expected 1..90)"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 6,
+    "failed": 3,
+    "status": "fail",
+    "finalLayerCount": 3
+  },
+  {
+    "id": "flowchart",
+    "prompt": "Create a flowchart for a document approval process with 4 nodes: Start, Review, Approve, End — connected with arrows.",
+    "startedAt": "2026-08-23T08:55:32.903Z",
+    "durationMs": 36,
+    "toolCallCount": 0,
+    "toolNames": [],
+    "assertions": [
+      {
+        "name": "4+ node shapes",
+        "pass": false,
+        "detail": "only 0 node shapes"
+      },
+      {
+        "name": "all 4 node labels present",
+        "pass": false,
+        "detail": "missing labels: start, review, approve, end"
+      },
+      {
+        "name": "connector lines present",
+        "pass": false,
+        "detail": "only 0 line/path layers — no arrows"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 0 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": false,
+        "detail": "0 tool calls (expected 4..90)"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 3,
+    "failed": 4,
+    "status": "fail",
+    "finalLayerCount": 0
+  },
+  {
+    "id": "dashboard-hifi",
+    "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+    "startedAt": "2026-08-23T08:55:32.940Z",
+    "durationMs": 37,
+    "toolCallCount": 0,
+    "toolNames": [],
+    "assertions": [
+      {
+        "name": "all 4 KPI values present",
+        "pass": false,
+        "detail": "missing values: 128.4, 8,421, 2.1, 62"
+      },
+      {
+        "name": "4 card-like containers in a row",
+        "pass": false,
+        "detail": "no 4 similar-height containers — cards not built"
+      },
+      {
+        "name": "colorful (hi-fi)",
+        "pass": false,
+        "detail": "too grayscale for a hi-fi dashboard"
+      },
+      {
+        "name": "shadows on cards",
+        "pass": false,
+        "detail": "no shadows — flat look"
+      },
+      {
+        "name": "realistic copy (no placeholders)",
+        "pass": true,
+        "detail": "no placeholder text"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 0 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": false,
+        "detail": "0 tool calls (expected 4..90)"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 4,
+    "failed": 5,
+    "status": "fail",
+    "finalLayerCount": 0
+  },
+  {
+    "id": "palette-sunset",
+    "prompt": "Generate a row of 5 color palette swatches for a 'Sunset' theme, each swatch labeled with its hex code.",
+    "startedAt": "2026-08-23T08:55:32.978Z",
+    "durationMs": 35,
+    "toolCallCount": 0,
+    "toolNames": [],
+    "assertions": [
+      {
+        "name": "5 saturated swatches",
+        "pass": false,
+        "detail": "only 0 saturated swatch layers"
+      },
+      {
+        "name": "hex code labels present",
+        "pass": false,
+        "detail": "only 0 text layers contain hex codes"
+      },
+      {
+        "name": "warm sunset hues",
+        "pass": true,
+        "detail": "0/0 warm"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 0 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": false,
+        "detail": "0 tool calls (expected 3..90)"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 4,
+    "failed": 3,
+    "status": "fail",
+    "finalLayerCount": 0
+  }
+]

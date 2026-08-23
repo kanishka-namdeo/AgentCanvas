@@ -490,6 +490,17 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   //     finalization).
   let sawMessageEnd = false;
   let sawTurnEnd = false;
+  // Track whether the turn produced ANY observable output. A turn that ends
+  // with zero text deltas, zero thinking deltas, and zero tool calls means
+  // every LLM attempt failed (most commonly provider rate-limiting — HTTP 429
+  // — or a transient outage). The SDK resolves prompt() without throwing in
+  // this case, so without this check the user sees an empty response and no
+  // error (silent failure). We surface it explicitly below.
+  let sawActivity = false;
+  let sawErrorEvent = false;
+  // Hoisted so the post-finally silent-failure guard can read it (a rejected
+  // prompt() is assigned by the .catch handler inside the try block).
+  let promptError: any = undefined;
   try {
     // Kick off the prompt — don't await yet.
     const promptPromise = session.prompt(userMessage, {
@@ -502,7 +513,6 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // yields events until close() is called AND the buffer is empty.
     // We race it against promptPromise so that when prompt() resolves,
     // we close the queue and drain any remaining events.
-    let promptError: any = undefined;
     promptPromise.catch((err) => {
       promptError = err;
       queue.close();
@@ -533,6 +543,17 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       if (ev.kind === 'agent_event') {
         if (ev.event.type === 'agent:message_end') sawMessageEnd = true;
         if (ev.event.type === 'agent:turn_end') sawTurnEnd = true;
+        if (ev.event.type === 'agent:error') sawErrorEvent = true;
+        // "Activity" = USER-VISIBLE output only (text or tool calls). Thinking
+        // deltas deliberately do NOT count: a 429'd attempt can emit partial
+        // thinking before failing, and a turn with only thinking, no text, and
+        // no tool calls is still a broken turn from the user's perspective.
+        if (
+          ev.event.type === 'agent:message_delta' ||
+          ev.event.type === 'agent:tool_call_start'
+        ) {
+          sawActivity = true;
+        }
       }
       yield ev;
       if (promptError) {
@@ -575,6 +596,24 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // returned without firing agent_end), emit them so the UI doesn't hang —
   // but ONLY the ones actually missing (guards against double emission; the
   // legacy runner has the same defensive tail).
+  // Silent-failure guard: a turn with NO observable output (no text, no
+  // thinking, no tool calls, no error already surfaced) means every LLM
+  // attempt failed upstream — almost always provider rate-limiting (HTTP 429)
+  // or a transient outage. The SDK resolves prompt() without throwing, so we
+  // must emit the error here or the user sees an empty bubble with no clue.
+  // Emitted BEFORE the closing events so the UI records it on the run.
+  if (!promptError && !sawErrorEvent && !sawActivity) {
+    yield {
+      kind: 'agent_event',
+      event: {
+        type: 'agent:error',
+        message:
+          'The model returned an empty response (no text and no tool calls). ' +
+          'This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. ' +
+          'Wait about a minute and resend your prompt; if it keeps happening, try a different model in Settings.',
+      },
+    };
+  }
   if (!sawMessageEnd) {
     yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
   }
