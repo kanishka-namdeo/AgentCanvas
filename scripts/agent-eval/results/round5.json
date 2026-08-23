@@ -1,0 +1,62 @@
+[
+  {
+    "id": "wireframe-lofi",
+    "prompt": "Draw a low-fidelity wireframe of a blog homepage: header with nav, one hero article block, and a 3-card article grid.",
+    "startedAt": "2026-08-23T10:23:19.744Z",
+    "durationMs": 2401,
+    "toolCallCount": 0,
+    "toolNames": [],
+    "assertions": [
+      {
+        "name": "canvas has layers",
+        "pass": false,
+        "detail": "only 0 layers"
+      },
+      {
+        "name": "3-card grid present",
+        "pass": false,
+        "detail": "no 3+ boxes sharing a similar height band"
+      },
+      {
+        "name": "stays grayscale (lo-fi)",
+        "pass": true,
+        "detail": "0 saturated layer(s) (tolerance 1)"
+      },
+      {
+        "name": "no shadows (lo-fi)",
+        "pass": true,
+        "detail": "flat as expected"
+      },
+      {
+        "name": "no gradients (lo-fi)",
+        "pass": true,
+        "detail": "no gradients as expected"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 0 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": false,
+        "detail": "0 tool calls (expected 1..90)"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 6,
+    "failed": 3,
+    "status": "fail",
+    "finalLayerCount": 0,
+    "emptyTurn": true
+  }
+]

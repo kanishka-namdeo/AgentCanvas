@@ -11,7 +11,6 @@ import {
   createTranslatorState,
 } from '../../src/lib/agent/agent-session-translator';
 import { applyLofiFidelity } from '../../src/lib/agent/tools';
-
 const typesOf = (events: ReturnType<typeof translateAgentSessionEvent>) =>
   events.filter((e) => e.kind === 'agent_event').map((e) => (e as any).event.type as string);
 
