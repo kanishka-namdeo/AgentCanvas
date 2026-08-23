@@ -44,6 +44,21 @@ export async function fetchServerSessions(documentId: string): Promise<ServerSes
   }
 }
 
+/// Strict variant: returns `null` when the server is unreachable or errors,
+/// and the (possibly empty) session array on success. Callers use this to
+/// distinguish "server says this document has no sessions" (safe to reconcile
+/// deletions) from "could not ask the server" (must keep the local cache).
+export async function fetchServerSessionsStrict(documentId: string): Promise<ServerSession[] | null> {
+  try {
+    const res = await fetch(`/api/sessions?documentId=${encodeURIComponent(documentId)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.sessions ?? [];
+  } catch {
+    return null;
+  }
+}
+
 /// Create a session on the server.
 /// `id` is the client's localStorage session id — the server row is created
 /// with the SAME id so subsequent child writes (runs/messages/snapshots)

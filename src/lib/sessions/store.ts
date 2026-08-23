@@ -1016,13 +1016,15 @@ export function hydrateSessionStore() {
   // survive browser clears and can sync across devices.
   // Fire-and-forget — the localStorage cache is used for instant UI, the
   // server fetch updates the list in the background.
-  import('./server-sync').then(({ fetchServerSessions }) => {
+  import('./server-sync').then(({ fetchServerSessionsStrict }) => {
     // Fetch for all known documents.
     const store = useSessionStore.getState();
     const docIds = new Set(Object.values(store.sessions).map((s) => s.documentId));
     for (const docId of docIds) {
-      fetchServerSessions(docId).then((serverSessions) => {
-        if (serverSessions.length === 0) return;
+      // STRICT fetch: null = server unreachable (keep cache as-is), array =
+      // authoritative server state for this document (safe to reconcile).
+      fetchServerSessionsStrict(docId).then((serverSessions) => {
+        if (serverSessions === null) return;
         // Merge: add server sessions that don't exist in localStorage.
         //
         // IMPORTANT (bug fix): we insert the server session DIRECTLY into the
@@ -1055,10 +1057,36 @@ export function hydrateSessionStore() {
             lastOpenedAt: ss.lastOpenedAt || ts,
           });
         }
-        if (incoming.length > 0) {
+        // Reconcile (bug fix): remove local GHOST SHELLS of this document —
+        // sessions that are missing from the server's authoritative list AND
+        // have no content locally (no messages/runs). These come from rows
+        // deleted server-side (another device, or the orphan cleanup script);
+        // before this sweep they lingered in the sidebar forever, and clicking
+        // one could re-create an orphan server row (the exact "orphan flood"
+        // regression this store guards against). Sessions with local content
+        // are NEVER swept here — they may be unsynced offline work. The
+        // ACTIVE session is also kept (ensure-session re-creates its server
+        // row on next activity — idempotent).
+        const serverIds = new Set(serverSessions.map((ss) => ss.id));
+        const activeId = useSessionStore.getState().activeSessionByDoc[docId];
+        const ghostIds: string[] = [];
+        for (const [id, sess] of Object.entries(useSessionStore.getState().sessions)) {
+          if (sess.documentId !== docId) continue;
+          if (serverIds.has(id)) continue;
+          if (id === activeId) continue;
+          const empty =
+            (sess.messageIds?.length ?? 0) === 0 &&
+            (sess.runIds?.length ?? 0) === 0 &&
+            (sess.snapshotIds?.length ?? 0) === 0;
+          if (empty) ghostIds.push(id);
+        }
+        if (incoming.length > 0 || ghostIds.length > 0) {
           useSessionStore.setState((s) => {
             const sessions = { ...s.sessions };
             for (const sess of incoming) sessions[sess.id] = sess;
+            for (const gid of ghostIds) delete sessions[gid];
+            // No child cascade needed: the sweep only removes EMPTY sessions
+            // (messageIds/runIds/snapshotIds all empty by construction).
             return { sessions };
           });
         }

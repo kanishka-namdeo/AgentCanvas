@@ -111,7 +111,7 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
       if (state?.messageOpen) {
         out.push({ kind: 'agent_event', event: { type: 'agent:message_end' } });
       }
-      state && (state.messageOpen = true);
+      if (state) state.messageOpen = true;
       out.push({ kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } });
       break;
     }
@@ -135,7 +135,7 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
       // Suppress duplicate closes: only emit when a message is actually open.
       if (!state || state.messageOpen) {
         out.push({ kind: 'agent_event', event: { type: 'agent:message_end' } });
-        state && (state.messageOpen = false);
+        if (state) state.messageOpen = false;
       }
       break;
     }
@@ -209,11 +209,11 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
       // state already recorded one (retry loops can re-fire agent_end).
       if (!state || state.messageOpen) {
         out.push({ kind: 'agent_event', event: { type: 'agent:message_end' } });
-        state && (state.messageOpen = false);
+        if (state) state.messageOpen = false;
       }
       if (!state || !state.turnEnded) {
         out.push({ kind: 'agent_event', event: { type: 'agent:turn_end' } });
-        state && (state.turnEnded = true);
+        if (state) state.turnEnded = true;
       }
       break;
     }
