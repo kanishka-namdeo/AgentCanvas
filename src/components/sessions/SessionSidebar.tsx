@@ -53,6 +53,9 @@ export function SessionSidebar() {
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
   const switchSession = useCanvasStore((s) => s.switchSession);
   const newSession = useCanvasStore((s) => s.newSession);
+  // Session switching mid-turn corrupts the streaming agent's target document
+  // (store guard exists too — this disables the affordance and hints why).
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
   const [search, setSearch] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -155,8 +158,11 @@ export function SessionSidebar() {
             return (
               <div
                 key={session.id}
-                onClick={() => switchSession(session.id)}
-                className={`group relative cursor-pointer rounded-md px-2.5 py-1.5 ac-transition ac-focus-ring ${
+                onClick={() => { if (!agentBusy) switchSession(session.id); }}
+                title={agentBusy && !isActive ? 'Stop the agent before switching chats' : undefined}
+                className={`group relative rounded-md px-2.5 py-1.5 ac-transition ac-focus-ring ${
+                  agentBusy && !isActive ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                } ${
                   isActive
                     ? 'ac-active-row'
                     : 'hover:ac-surface-1'

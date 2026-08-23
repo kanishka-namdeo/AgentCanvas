@@ -474,20 +474,30 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   steerAgent: (text) => {
     const { agentBusy, socket, connected, documentId } = get();
     if (!agentBusy || !text.trim()) return;
-    // If WebSocket is connected, send the steer via the socket.
-    // The server broadcasts it as a message_delta so the user sees it in the chat.
+    // Steer ONLY works over the live WebSocket path — the HTTP fallback
+    // request is already in flight and can't be amended. Previously this
+    // toasted "Steer sent" even when the socket was down (silent drop + a
+    // lying toast). Now the fallback mode says so.
     if (socket && connected) {
       socket.emit('client', {
         type: 'agent:steer',
         documentId,
         text,
       } satisfies ClientEvent);
+      try {
+        import('sonner').then(({ toast }) => {
+          toast.info('Steer sent', { description: text.slice(0, 100) });
+        });
+      } catch {
+        // sonner not available — skip.
+      }
+      return;
     }
-    // Also show a local toast so the user gets immediate feedback (even if the
-    // WS path is slow or the server doesn't handle it yet).
     try {
       import('sonner').then(({ toast }) => {
-        toast.info('Steer sent', { description: text.slice(0, 100) });
+        toast.warning('Steering needs a live connection', {
+          description: 'The agent is running over the direct-HTTP fallback, which cannot be steered mid-turn. Use Stop and resend instead.',
+        });
       });
     } catch {
       // sonner not available — skip.
@@ -522,7 +532,21 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((s) => ({ document: { ...s.document, name } })),
 
   switchSession: (sessionId) => {
-    const { documentId } = get();
+    const { documentId, agentBusy } = get();
+    // Guard: switching sessions mid-turn would replace `document` while the
+    // streaming agent keeps patching the old one (incoming patches would land
+    // on the NEW session's canvas, and `_onSync` would append to `turns`
+    // rebuilt for the new session — corrupting both). The user must stop the
+    // agent first. (The SessionSidebar buttons should also be disabled —
+    // this is the store-level backstop.)
+    if (agentBusy) {
+      try {
+        import('sonner').then(({ toast }) => {
+          toast.warning('Agent is running', { description: 'Stop the agent before switching chats.' });
+        });
+      } catch { /* sonner unavailable */ }
+      return;
+    }
     const ss = useSessionStore.getState();
     const session = ss.getSession(sessionId);
     if (!session || session.documentId !== documentId) return;

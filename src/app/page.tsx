@@ -238,7 +238,16 @@ export default function Home() {
           }
           return;
         }
+        // Undo/redo — canvas history, NOT text undo:
+        //   - never hijack ⌘Z from text inputs (the user means "undo my
+        //     typing", native textarea behavior — clipboard shortcuts below
+        //     guard the same way; this one was missing).
+        //   - never run while the agent is streaming (undoing under the agent
+        //     corrupts its working document — the Toolbar buttons are already
+        //     disabled in that state; this keyboard path must match).
         if (e.key === 'z' || e.key === 'Z') {
+          if (isEditable) return;
+          if (state.agentBusy) return;
           e.preventDefault();
           if (e.shiftKey) { state.redo(); } else { state.undo(); }
           return;
@@ -277,8 +286,10 @@ export default function Home() {
           return;
         }
 
-        // P0-05: Group / Ungroup.
+        // P0-05: Group / Ungroup. Canvas mutation — no-op while typing in an
+        // input (⌘G from a textarea should never regroup the canvas).
         if (e.key === 'g' || e.key === 'G') {
+          if (isEditable) return;
           e.preventDefault();
           if (e.shiftKey) {
             // ⌘⇧G = ungroup
@@ -303,8 +314,9 @@ export default function Home() {
           return;
         }
 
-        // P0-06: Duplicate.
+        // P0-06: Duplicate. Same input guard.
         if (e.key === 'd' || e.key === 'D') {
+          if (isEditable) return;
           e.preventDefault();
           if (state.selectedIds.length > 0) {
             state.sendPatch({
@@ -316,8 +328,9 @@ export default function Home() {
           return;
         }
 
-        // P0-07: Z-order (⌘] / [ / ⌘⇧] / [).
+        // P0-07: Z-order (⌘] / [ / ⌘⇧] / [). Same input guard.
         if (e.key === ']' || e.key === '[') {
+          if (isEditable) return;
           e.preventDefault();
           if (state.selectedIds.length === 0) return;
           const zorderKind = e.shiftKey
@@ -362,7 +375,7 @@ export default function Home() {
           return { id, changes: { x: newX, y: newY } };
         }).filter((u): u is { id: string; changes: { x: number; y: number } } => u !== null);
         if (updates.length > 0) {
-          state.sendPatch({ op: 'update_many', updates, summary: `Nuded ${updates.length} shape(s) by (${dx}, ${dy})` });
+          state.sendPatch({ op: 'update_many', updates, summary: `Nudged ${updates.length} shape(s) by (${dx}, ${dy})` });
         }
         return;
       }

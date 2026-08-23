@@ -242,11 +242,48 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     };
   }, []);
 
-  // Auto-scroll to bottom on new content.
+  // Auto-scroll to bottom on new content — ONLY when the user is already near
+  // the bottom. (Bug fix: this previously forced scrollTop = scrollHeight on
+  // every `turns` change — i.e. every streaming delta — making it impossible
+  // to scroll up and read earlier messages while the agent streamed. The
+  // standard chat-app rule: follow output only if the user is following it.)
+  const stickToBottomRef = useRef(true);
   useEffect(() => {
-    const el = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    if (el) el.scrollTop = el.scrollHeight;
+    const el = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    if (!el) return;
+    if (stickToBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [turns]);
+
+  // Track whether the user is "following" the bottom of the chat. The Radix
+  // ScrollArea renders its viewport after mount, so attach the scroll
+  // listener once it exists (short retry interval covers the race).
+  useEffect(() => {
+    let disposed = false;
+    let cleanup: (() => void) | undefined;
+    const attach = (tries = 0) => {
+      if (disposed) return;
+      const el = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+      if (!el) {
+        if (tries < 20) setTimeout(() => attach(tries + 1), 100);
+        return;
+      }
+      const onScroll = () => {
+        // Near-bottom threshold: 48px (a couple of lines) — anything more and
+        // we consider the user scrolled away and stop following.
+        const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+        stickToBottomRef.current = distance < 48;
+      };
+      el.addEventListener('scroll', onScroll, { passive: true });
+      cleanup = () => el.removeEventListener('scroll', onScroll);
+    };
+    attach();
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
+  }, []);
 
   const submit = () => {
     const text = input.trim();
@@ -293,6 +330,8 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
       }
     }
     pushPromptHistory(text);
+    // Submitting re-engages follow-the-bottom (the user acted at the bottom).
+    stickToBottomRef.current = true;
     promptAgent(text);
     setInput('');
     setHistoryCursor(-1);
