@@ -22,7 +22,7 @@
 //   - Analysis (copy, audit, organize)
 // Each prompt is a one-click example that exercises a specific tool.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCanvasStore, type AgentToolCallEntry } from '@/lib/canvas/store';
 import { useSettings } from '@/lib/settings/store';
 import { Button } from '@/components/ui/button';
@@ -38,9 +38,15 @@ import {
 } from '@/components/ui/context-menu';
 import { toast } from 'sonner';
 import { PluginUI } from './PluginUI';
+import { MarkdownMessage } from './Markdown';
+import { suggestFollowUps } from '@/lib/agent/followups';
+import { matchCommands, resolveCommand, type ChatCommand } from '@/lib/agent/chat-commands';
+import { pushPromptHistory, navigateHistory } from '@/lib/agent/prompt-history';
+import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl } from '@/lib/canvas/export';
 import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers, Square,
+  ChevronRight, Clock, CornerDownLeft,
 } from 'lucide-react';
 
 // Note: the document variables + token counts previously shown in a status
@@ -131,8 +137,87 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const setSetting = useSettings((s) => s.set);
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
+  // Prompt-history navigation cursor (-1 = live input, not navigating).
+  const [historyCursor, setHistoryCursor] = useState(-1);
+  // Slash-command autocomplete: selected index + dismissed flag (Escape).
+  const [cmdIndex, setCmdIndex] = useState(0);
+  const [cmdDismissed, setCmdDismissed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const document = useCanvasStore((s) => s.document);
+  const sendPatch = useCanvasStore((s) => s.sendPatch);
+  const undo = useCanvasStore((s) => s.undo);
+  const redo = useCanvasStore((s) => s.redo);
+  const newSession = useCanvasStore((s) => s.newSession);
+  const select = useCanvasStore((s) => s.select);
+
+  const matchingCommands = useMemo(
+    () => (cmdDismissed ? [] : matchCommands(input)),
+    [input, cmdDismissed],
+  );
+  const cmdMenuOpen = matchingCommands.length > 0;
+  // NOTE: cmdIndex is range-clamped at every read site (Math.min against the
+  // filtered length) instead of via an effect — avoids cascading renders.
+
+  /// Execute a resolved slash command.
+  const executeCommand = (cmd: ChatCommand, args: string) => {
+    if (cmd.kind === 'prompt') {
+      const prompt = args ? `${cmd.run} ${args}` : cmd.run;
+      pushPromptHistory(prompt);
+      promptAgent(prompt);
+      return;
+    }
+    const docName = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
+    switch (cmd.run) {
+      case 'clear':
+        sendPatch({ op: 'clear', summary: 'Cleared canvas' });
+        toast.success('Canvas cleared', { description: 'Undoable — /undo restores it.' });
+        break;
+      case 'undo':
+        undo();
+        break;
+      case 'redo':
+        redo();
+        break;
+      case 'new-chat': {
+        const id = newSession();
+        if (id) toast.success('Started a new chat');
+        break;
+      }
+      case 'select-all':
+        select(document.shapes.map((s) => s.id));
+        toast.message(`Selected ${document.shapes.length} layers`);
+        break;
+      case 'export-svg': {
+        const svg = exportSvg(document.shapes);
+        if (!svg) { toast.error('Nothing to export'); break; }
+        downloadFile(svg, `${docName}.svg`, 'image/svg+xml');
+        toast.success('Exported SVG');
+        break;
+      }
+      case 'export-png':
+        void exportPngDataUrl(document.shapes).then((dataUrl) => {
+          if (!dataUrl) { toast.error('Nothing to export'); return; }
+          if (dataUrl.startsWith('data:image/png')) {
+            downloadDataUrl(dataUrl, `${docName}.png`);
+            toast.success('Exported PNG @2x');
+          } else {
+            downloadFile(dataUrl, `${docName}.svg`, 'image/svg+xml');
+            toast.success('Exported SVG instead', { description: 'PNG rasterization was blocked.' });
+          }
+        });
+        break;
+      case 'export-json': {
+        const json = exportJson(document);
+        downloadFile(json, `${docName}.pen.json`, 'application/json');
+        toast.success('Exported .pen JSON');
+        break;
+      }
+      default:
+        toast.error(`Unknown command: ${cmd.cmd}`);
+    }
+  };
 
   // Register a global focus hook so the top-header Run button can focus
   // the chat input without prop-drilling. Cleared on unmount.
@@ -154,8 +239,29 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const submit = () => {
     const text = input.trim();
     if (!text || agentBusy) return;
+    // Slash command? Execute the selected match instead of prompting.
+    if (text.startsWith('/')) {
+      const cmds = matchCommands(text);
+      const selected = cmds[Math.min(cmdIndex, Math.max(0, cmds.length - 1))];
+      if (selected) {
+        const resolved = resolveCommand(text, selected);
+        if (resolved) {
+          executeCommand(resolved.command, resolved.args);
+          setInput('');
+          setHistoryCursor(-1);
+          setCmdIndex(0);
+          setCmdDismissed(false);
+          return;
+        }
+      } else {
+        toast.error(`Unknown command: ${text.split(' ')[0]}`, { description: 'Type / to browse commands.' });
+        return;
+      }
+    }
+    pushPromptHistory(text);
     promptAgent(text);
     setInput('');
+    setHistoryCursor(-1);
   };
 
   const activePrompts = PROMPT_GROUPS.find((g) => g.id === activeGroup)?.prompts ?? [];
@@ -293,9 +399,15 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               </div>
             </div>
           )}
-          {turns.map((turn) => (
-            <TurnBubble key={turn.id} turn={turn} />
+          {turns.map((turn, i) => (
+            <TurnBubble key={turn.id} turn={turn} isLast={i === turns.length - 1} />
           ))}
+          {/* Follow-up suggestions — shown after the LAST completed assistant
+              turn while idle (v0 / Lovable “what next?” pattern). Contextual:
+              derived from the turn's tool trajectory + current canvas. */}
+          {!agentBusy && turns.length >= 2 && turns[turns.length - 1].role === 'assistant' && !turns[turns.length - 1].streaming && (
+            <FollowUps turn={turns[turns.length - 1]} />
+          )}
           {agentBusy && (
             <div className="flex items-center justify-between gap-2 text-xs ac-text-4 px-1 py-1">
               <div className="flex items-center gap-2">
@@ -324,15 +436,95 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
 
       {/* Input — minimal chrome. Send button only appears when there's input. */}
       <div className="border-t ac-border-subtle p-2 ac-surface-0">
+        {/* Slash-command autocomplete — floats above the textarea. */}
+        {cmdMenuOpen && (
+          <div className="mb-1.5 rounded-lg border ac-border-default ac-surface-0 shadow-lg overflow-hidden" role="listbox" aria-label="Slash commands">
+            {matchingCommands.slice(0, 8).map((c, i) => {
+              const isSel = i === Math.min(cmdIndex, matchingCommands.length - 1);
+              return (
+                <button
+                  key={c.cmd}
+                  role="option"
+                  aria-selected={isSel}
+                  onClick={() => {
+                    setInput(c.cmd + ' ');
+                    inputRef.current?.focus();
+                  }}
+                  onMouseEnter={() => setCmdIndex(i)}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left ac-transition border-l-2 ${
+                    isSel ? 'ac-surface-1 ac-border-l-[color:var(--ac-accent)]' : 'ac-border-transparent'
+                  }`}
+                >
+                  <code className={`text-[11px] font-mono px-1 py-0.5 rounded ac-surface-2 ${isSel ? 'ac-text-1' : 'ac-text-2'}`}>{c.cmd}</code>
+                  <span className="flex-1 text-[10px] ac-text-3 truncate">{c.hint}</span>
+                  {isSel && <CornerDownLeft className="h-2.5 w-2.5 ac-text-4 flex-shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="rounded-lg border ac-border-default ac-surface-0 focus-within:ac-border-strong ac-transition shadow-sm">
           <Textarea
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              // Reopen the command menu if the user edits back to a command.
+              if (cmdDismissed && !e.target.value.trim().startsWith('/')) setCmdDismissed(false);
+              // Editing text manually exits history-navigation mode.
+              if (historyCursor !== -1) setHistoryCursor(-1);
+            }}
             placeholder="Ask the agent to design something…  (⌘K for prompts)"
             className="text-xs resize-none min-h-[44px] max-h-[120px] border-0 shadow-none focus-visible:ring-0 ac-text-2 placeholder:ac-text-4 bg-transparent"
             disabled={agentBusy}
             onKeyDown={(e) => {
+              // --- Slash-command autocomplete keys (menu open) ---
+              if (cmdMenuOpen) {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setCmdIndex((i) => (i + 1) % matchingCommands.length);
+                  return;
+                }
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setCmdIndex((i) => (i - 1 + matchingCommands.length) % matchingCommands.length);
+                  return;
+                }
+                if (e.key === 'Tab') {
+                  e.preventDefault();
+                  setInput(matchingCommands[Math.min(cmdIndex, matchingCommands.length - 1)].cmd + ' ');
+                  return;
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setCmdDismissed(true);
+                  return;
+                }
+                // Enter falls through to submit → executes the selected command.
+              } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                // --- Prompt history recall (terminal pattern) ---
+                // Active when the input is empty, or while already navigating
+                // history. ArrowDown past the newest entry returns to live input.
+                const navigating = historyCursor !== -1;
+                if (e.key === 'ArrowUp' && (input === '' || navigating)) {
+                  const next = navigateHistory(historyCursor, 'up');
+                  if (next) {
+                    e.preventDefault();
+                    setHistoryCursor(next.cursor);
+                    setInput(next.text);
+                  }
+                  return;
+                }
+                if (e.key === 'ArrowDown' && navigating) {
+                  e.preventDefault();
+                  const next = navigateHistory(historyCursor, 'down');
+                  if (next) {
+                    setHistoryCursor(next.cursor);
+                    setInput(next.text);
+                  }
+                  return;
+                }
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 submit();
@@ -362,7 +554,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   );
 }
 
-function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>['turns'][number] }) {
+function TurnBubble({ turn, isLast = false }: { turn: ReturnType<typeof useCanvasStore.getState>['turns'][number]; isLast?: boolean }) {
   const forkActiveSession = useCanvasStore((s) => s.forkActiveSession);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
@@ -434,14 +626,33 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
             {turn.toolCalls.map((tc) => (
               <ToolCallEntry key={tc.id} tc={tc} />
             ))}
-            {/* Text */}
+            {/* Text — rendered as markdown (bold, lists, code blocks) the way
+                Claude / ChatGPT / v0 render assistant messages. */}
             {turn.text && (
-              <div className="text-xs ac-text-1 whitespace-pre-wrap leading-relaxed">{turn.text}</div>
+              <MarkdownMessage text={turn.text} />
             )}
             {turn.streaming && !turn.text && turn.toolCalls.length === 0 && (
               <div className="flex items-center gap-1.5 text-xs ac-text-4">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 thinking…
+              </div>
+            )}
+            {/* Turn meta footer — tool count + duration + relative time.
+                Shown on completed turns (not while streaming). */}
+            {!turn.streaming && (turn.toolCalls.length > 0 || turn.startedAt) && (
+              <div className="flex items-center gap-2 text-[9px] ac-text-4">
+                {turn.toolCalls.length > 0 && (
+                  <span className="flex items-center gap-0.5" title={`${turn.toolCalls.length} tool calls`}>
+                    <Wrench className="h-2.5 w-2.5" />
+                    {turn.toolCalls.length} tools
+                  </span>
+                )}
+                {turn.startedAt && (
+                  <span className="flex items-center gap-0.5" title="Turn duration">
+                    <Clock className="h-2.5 w-2.5" />
+                    {formatDuration(turn.endedAt ?? Date.now(), turn.startedAt)}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -634,4 +845,65 @@ function SteerInput() {
       </button>
     </div>
   );
+}
+
+/// FollowUps — contextual "what next?" chips after the last completed turn.
+/// Suggestions come from the pure engine in src/lib/agent/followups.ts,
+/// derived from the turn's tool trajectory + the current canvas state.
+function FollowUps({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>['turns'][number] }) {
+  const promptAgent = useCanvasStore((s) => s.promptAgent);
+  const document = useCanvasStore((s) => s.document);
+  const turns = useCanvasStore((s) => s.turns);
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
+
+  const suggestions = useMemo(() => {
+    // Find the user prompt that triggered this assistant turn.
+    const idx = turns.findIndex((t) => t.id === turn.id);
+    const userTurn = idx > 0 ? turns[idx - 1] : null;
+    return suggestFollowUps({
+      tools: turn.toolCalls.map((tc) => ({ name: tc.name, success: tc.success !== false })),
+      assistantText: turn.text ?? '',
+      userPrompt: userTurn?.text ?? '',
+      shapes: document.shapes ?? [],
+      hasColorVariables: Object.values(document.variables ?? {}).some(
+        (v) => (v as { type?: string })?.type === 'color',
+      ),
+    });
+  }, [turn, turns, document]);
+
+  if (agentBusy) return null;
+
+  return (
+    <div className="pt-1 space-y-1">
+      <div className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wide ac-text-4 px-0.5">
+        <ChevronRight className="h-2.5 w-2.5" />
+        What next?
+      </div>
+      <div className="flex flex-col gap-1">
+        {suggestions.map((s) => (
+          <button
+            key={s}
+            onClick={() => {
+              pushPromptHistory(s);
+              promptAgent(s);
+            }}
+            disabled={agentBusy}
+            className="group/fu flex items-center gap-1.5 w-full text-left text-[11px] px-2 py-1.5 rounded-md border ac-border-subtle ac-surface-1 hover:ac-surface-0 hover:ac-border-default ac-text-2 disabled:opacity-50 ac-transition ac-focus-ring"
+          >
+            <Sparkles className="h-2.5 w-2.5 ac-text-4 group-hover/fu:text-[color:var(--ac-accent)] transition-colors flex-shrink-0" />
+            <span className="flex-1 truncate">{s}</span>
+            <Send className="h-2.5 w-2.5 opacity-0 group-hover/fu:opacity-100 ac-text-4 transition-opacity flex-shrink-0" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/// Duration formatter for the turn meta footer.
+function formatDuration(endMs: number, startMs: number): string {
+  const s = Math.max(0, Math.round((endMs - startMs) / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  return `${m}m ${s % 60}s`;
 }

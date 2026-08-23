@@ -63,6 +63,10 @@ export interface ChatTurn {
     summary?: string;
     toolCalls?: number;
   }>;
+  /// Turn timing (epoch ms). Set when the assistant turn is created and
+  /// finalized — powers the "N tools · Xs" footer on each turn.
+  startedAt?: number;
+  endedAt?: number;
 }
 
 export interface AgentToolCallEntry {
@@ -345,6 +349,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       sessionId,
       runId: run.id,
       messageId: assistantMsg.id,
+      startedAt: Date.now(),
     };
     set((s) => ({
       turns: [...s.turns, userTurn, assistantTurn],
@@ -459,7 +464,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         const turns = [...s.turns];
         const li = turns[turns.length - 1];
         if (li && li.role === 'assistant') {
-          turns[turns.length - 1] = { ...li, streaming: false };
+          turns[turns.length - 1] = { ...li, streaming: false, endedAt: Date.now() };
         }
         return { turns, agentBusy: false };
       });
@@ -756,7 +761,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
           if (last && last.role === 'assistant') {
-            turns[turns.length - 1] = { ...last, streaming: false };
+            turns[turns.length - 1] = { ...last, streaming: false, endedAt: Date.now() };
           }
           return { turns, agentBusy: false };
         });
