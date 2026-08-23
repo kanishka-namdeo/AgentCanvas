@@ -31,13 +31,30 @@
 // the static built-in model catalog) and shared between the main agent and
 // any sub-agent spawning (sub-agents don't currently use pi-ai, but the
 // runtime is reusable if we ever wire them in).
+//
+// ---- Custom OpenAI-compatible endpoints ----------------------------------
+//
+// 4. **Explicit `apiBaseUrl` in settings** (the DEFAULT since the endpoint
+//    migration: provider 'custom', kimi-k2-5 on an OpenAI-compatible proxy)
+//    → pi-ai's static catalog has no 'custom' provider and no knowledge of
+//    user-supplied endpoints, so we register a minimal dispatch provider on
+//    the runtime and build a SYNTHETIC `Model` (api 'openai-completions',
+//    neutral compat profile) instead of spreading a catalog model — the
+//    latter would carry the wrong model id plus provider-specific body
+//    params (e.g. z.ai `thinking`/`tool_stream` fields).
 
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
+import { createProvider, envApiKeyAuth } from '@earendil-works/pi-ai';
+import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy';
 import type { Model, Api } from '@earendil-works/pi-ai';
 import ZAI from 'z-ai-web-dev-sdk';
-import { normalizeLLMProvider, providerDefaultModel } from '../settings/types';
+import { normalizeLLMProvider, providerDefaultModel, DEFAULT_SETTINGS } from '../settings/types';
 import { getProviderMetadata } from '../llm';
 import type { AgentRunSettings } from '../settings/types';
+
+/// Provider id used for the synthetic dispatch model on custom endpoints.
+/// Registered on the per-turn ModelRuntime so `prepareRequest()` can find it.
+const CUSTOM_PROVIDER_ID = 'custom';
 
 // ---- Public types ----------------------------------------------------------
 
@@ -53,13 +70,51 @@ export interface ResolvedModel {
 
 // ---- Resolver --------------------------------------------------------------
 
+/// Build a synthetic pi-ai Model for a custom OpenAI-compatible endpoint.
+///
+/// Mirrors the shape pi-coding-agent's llama.cpp extension uses for custom
+/// OpenAI-compatible servers:
+///   - `api: 'openai-completions'` → POST {baseUrl}/chat/completions
+///   - neutral compat profile: no provider-specific thinking format, no
+///     `store`/`developer`/`reasoning_effort` params, classic `max_tokens`
+///     field, no strict tool mode — unknown servers get a plain OpenAI body
+///   - `reasoning: false` → no thinking/reasoning params are ever sent
+///   - tool calling is inherently enabled: the openai-completions API always
+///     converts + sends `context.tools`, which the agent loop depends on
+///   - cost 0 (unknown pricing), conservative context/output windows
+function buildCustomEndpointModel(baseUrl: string, modelId: string): Model<Api> {
+  return {
+    id: modelId,
+    name: modelId,
+    api: 'openai-completions',
+    provider: CUSTOM_PROVIDER_ID,
+    baseUrl,
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 131072,
+    maxTokens: 32768,
+    compat: {
+      supportsStore: false,
+      supportsDeveloperRole: false,
+      supportsReasoningEffort: false,
+      supportsUsageInStreaming: true,
+      supportsStrictMode: false,
+      maxTokensField: 'max_tokens',
+    },
+  };
+}
+
 /// Resolve user-facing provider settings into a pi-ai Model + ModelRuntime.
 ///
 /// Throws if no auth is configured for a non-zai provider.
 export async function resolveModel(settings: AgentRunSettings | undefined): Promise<ResolvedModel> {
-  const providerId = normalizeLLMProvider(settings?.llmProvider ?? 'zai');
-  const userApiKey = settings?.apiKey ?? '';
-  const userModelId = settings?.modelName ?? '';
+  // Settings-less callers (e.g. POST /api/agent with no `settings` field)
+  // get the app defaults — which since the endpoint migration point at the
+  // custom OpenAI-compatible server (kimi-k2-5), NOT the z.ai sandbox.
+  const providerId = normalizeLLMProvider(settings?.llmProvider ?? DEFAULT_SETTINGS.llmProvider);
+  const userApiKey = settings?.apiKey ?? DEFAULT_SETTINGS.apiKey;
+  const userModelId = settings?.modelName ?? DEFAULT_SETTINGS.modelName;
   const meta = getProviderMetadata(providerId);
   // pi-ai's static built-in catalog uses different model IDs than our
   // legacy OpenAI-shaped registry. Map the legacy defaults to their
@@ -70,8 +125,9 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
     // Our registry previously said zai's default is glm-4.6, but pi-ai's zai
     // catalog ships glm-4.7 (the successor). Existing user settings may still
     // hold glm-4.6 — map it so their config keeps resolving. The current
-    // default (DEFAULT_SETTINGS.modelName) is glm-5.3, which exists in the
-    // pi-ai catalog directly — no mapping needed.
+    // default (DEFAULT_SETTINGS.modelName) is kimi-k2-5 on a custom endpoint,
+    // which never touches the pi-ai catalog (see the synthetic model path
+    // below); a stored 'glm-5.3' still resolves via the zai catalog.
     'glm-4.6': 'glm-4.7',
   };
   const requestedModelId =
@@ -148,6 +204,70 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
     );
   }
 
+  // ---- Custom OpenAI-compatible endpoint path ------------------------------
+  // An explicit apiBaseUrl from settings points the runner at a user-supplied
+  // endpoint (the DEFAULT since the endpoint migration: provider 'custom' →
+  // kimi-k2-5 behind an OpenAI-compatible proxy; also Ollama / LM Studio /
+  // vLLM / corporate proxies for any OpenAI-compatible provider). Checked
+  // BEFORE the z.ai sandbox override so the auto-detected sandbox endpoint
+  // still wins when running key-less inside the sandbox (where apiBaseUrl is
+  // empty and ZAI.create() resolves the internal endpoint). Non-OpenAI-
+  // compatible providers (anthropic / google) keep the legacy spread override
+  // below — their native APIs don't route through a synthetic
+  // openai-completions model.
+  const customBaseUrl = settings?.apiBaseUrl?.trim() ?? DEFAULT_SETTINGS.apiBaseUrl.trim();
+  const useCustomEndpoint =
+    customBaseUrl !== '' && !sandboxOverride && (meta?.openAICompatible ?? true);
+
+  if (useCustomEndpoint) {
+    if (!modelId) {
+      throw new Error(
+        `Provider "${providerId}" with a custom endpoint needs a model name. ` +
+          'Set it in Settings → LLM provider → Model.',
+      );
+    }
+
+    const customModel = buildCustomEndpointModel(customBaseUrl, modelId);
+
+    // Register a minimal dispatch provider on THIS runtime instance (the
+    // runtime is created per turn, so there is no cross-turn state). Without
+    // it, `modelRuntime.stream()` would fail with "Unknown provider: custom".
+    // Pattern per pi-ai's createProvider() docs (custom OpenAI-compatible
+    // endpoints) — the synthetic model is also exposed via getModel().
+    const customProvider = createProvider({
+      id: CUSTOM_PROVIDER_ID,
+      name: 'Custom (OpenAI-compatible)',
+      baseUrl: customBaseUrl,
+      // The runtime API key (set right below) always wins over env vars, so
+      // the env list is just a documented fallback for headless callers.
+      auth: { apiKey: envApiKeyAuth('Custom endpoint API key', ['CUSTOM_API_KEY']) },
+      models: [customModel],
+      api: openAICompletionsApi(),
+    });
+    modelRuntime.registerNativeProvider(customProvider);
+
+    // Push the API key into the runtime for the synthetic model's provider —
+    // `prepareRequest()` resolves it via `getAuth()` and the request goes out
+    // with `Authorization: Bearer <key>` to the custom baseUrl.
+    await modelRuntime.setRuntimeApiKey(CUSTOM_PROVIDER_ID, effectiveApiKey);
+
+    return {
+      model: customModel,
+      modelRuntime,
+      label: `${CUSTOM_PROVIDER_ID}/${customModel.id}`,
+    };
+  }
+
+  if (providerId === CUSTOM_PROVIDER_ID) {
+    // 'custom' with no apiBaseUrl can't work (the registry has no default
+    // base URL for it) — fail with a actionable message instead of the
+    // generic "model not found" below.
+    throw new Error(
+      'Provider "custom" requires an API base URL. ' +
+        'Set it in Settings → LLM provider → API base URL (e.g. https://your-endpoint.example.com/v1).',
+    );
+  }
+
   // Push the API key into the runtime. This makes it available to all
   // subsequent `getModel` / `stream` calls for this provider. We always
   // set this — even when using a sandbox OAuth token override, because
@@ -183,14 +303,11 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
     );
   }
 
-  // ---- Custom endpoint override --------------------------------------------
-  // An explicit apiBaseUrl from settings points the model at the user's own
-  // endpoint (Ollama / LM Studio / vLLM / a corporate proxy). Applied BEFORE
-  // the z.ai sandbox override so the auto-detected sandbox endpoint still
-  // wins when running key-less inside the sandbox (where apiBaseUrl is empty
-  // and ZAI.create() resolves the internal endpoint).
-  if (settings?.apiBaseUrl && !sandboxOverride) {
-    model = { ...model, baseUrl: settings.apiBaseUrl };
+  // Non-OpenAI-compatible providers (anthropic / google) with an explicit
+  // apiBaseUrl: keep the legacy baseUrl spread — their native APIs (anthropic-
+  // messages / google-generative-ai) are dispatched from the catalog model.
+  if (customBaseUrl && !sandboxOverride) {
+    model = { ...model, baseUrl: customBaseUrl };
   }
 
   // Apply sandbox override: spread a new Model object with the sandbox
@@ -219,7 +336,7 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
 /// Build a label for logging without resolving the full model (lighter-weight
 /// helper for non-runner call sites that just want a display string).
 export function describeProvider(settings: AgentRunSettings | undefined): string {
-  const providerId = normalizeLLMProvider(settings?.llmProvider ?? 'zai');
+  const providerId = normalizeLLMProvider(settings?.llmProvider ?? 'custom');
   const modelId = settings?.modelName || getProviderMetadata(providerId)?.defaultModel || providerDefaultModel(providerId);
   return `${providerId}/${modelId}`;
 }

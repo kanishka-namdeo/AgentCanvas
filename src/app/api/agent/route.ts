@@ -55,9 +55,9 @@ export async function POST(req: NextRequest) {
         defaultPalette: body.settings.defaultPalette ?? DEFAULT_SETTINGS.defaultPalette,
         skillSelectionMode: body.settings.skillSelectionMode ?? DEFAULT_SETTINGS.skillSelectionMode,
         llmProvider: body.settings.llmProvider ?? DEFAULT_SETTINGS.llmProvider,
-        apiKey: typeof body.settings.apiKey === 'string' ? body.settings.apiKey : '',
-        modelName: typeof body.settings.modelName === 'string' ? body.settings.modelName : '',
-        apiBaseUrl: typeof body.settings.apiBaseUrl === 'string' ? body.settings.apiBaseUrl : '',
+        apiKey: typeof body.settings.apiKey === 'string' ? body.settings.apiKey : DEFAULT_SETTINGS.apiKey,
+        modelName: typeof body.settings.modelName === 'string' ? body.settings.modelName : DEFAULT_SETTINGS.modelName,
+        apiBaseUrl: typeof body.settings.apiBaseUrl === 'string' ? body.settings.apiBaseUrl : DEFAULT_SETTINGS.apiBaseUrl,
         // Plugin configuration (Phase 5).
         enabledPlugins: Array.isArray(body.settings.enabledPlugins) ? body.settings.enabledPlugins : undefined,
         mcpServers: Array.isArray(body.settings.mcpServers) ? body.settings.mcpServers : undefined,

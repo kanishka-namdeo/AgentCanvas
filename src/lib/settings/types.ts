@@ -118,14 +118,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   themePreference: 'system',
 
-  llmProvider: 'zai',
-  apiKey: '',
-  // Default model for testing in the z.ai sandbox: glm-5.3 (the flagship in
-  // pi-ai's zai catalog; served by the sandbox auto-credential endpoint —
-  // see pi-ai-model-resolver.ts). Empty string would fall back to the
-  // registry default; we pin it explicitly so Settings shows the real model.
-  modelName: 'glm-5.3',
-  apiBaseUrl: '',
+  llmProvider: 'custom',
+  apiKey: '123456',
+  // Default inference endpoint: a custom OpenAI-compatible endpoint serving
+  // kimi-k2-5 (see pi-ai-model-resolver.ts — the resolver builds a synthetic
+  // openai-completions Model for custom endpoints because pi-ai's static
+  // catalog doesn't know them). The four fields are pinned explicitly so
+  // Settings shows the real endpoint/model on first run.
+  modelName: 'kimi-k2-5',
+  apiBaseUrl: 'https://irhnglwoxe.a.pinggy.link/v1',
 
   snapshotCadence: 'every-turn',
   maxSessionsRetained: 100,

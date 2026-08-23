@@ -68,8 +68,12 @@ Companion scripts:
    the in-process instance serves the port. A crash in
    `.zscripts/mini-service-canvas-sync.log` is expected and benign.
 
-Bonus: `z-ai-web-dev-sdk` auto-resolves credentials inside the sandbox — no
-`ZAI_API_KEY` / `OPENAI_API_KEY` needed.
+Bonus: the app's default LLM is now a custom OpenAI-compatible endpoint
+(`custom` / `kimi-k2-5` / `https://irhnglwoxe.a.pinggy.link/v1`, key `123456`
+— see `DEFAULT_SETTINGS` in `src/lib/settings/types.ts`), so no credentials
+are needed out of the box. `z-ai-web-dev-sdk` auto-resolves credentials inside
+the sandbox as a fallback for the `zai` provider — still no
+`ZAI_API_KEY` / `OPENAI_API_KEY` needed for that path.
 
 ---
 

@@ -25,10 +25,10 @@ This is the single source of truth for every setting the user can change in the 
 | `enabledPlugins` | `string[]` (plugin ids) | (14 default-enabled tools' plugins) | 5 — Plugins |
 | `mcpServers` | `McpServerConfig[]` | `[]` | 5 — MCP |
 | `themePreference` | `'system' \| 'light' \| 'dark'` | `'system'` | 1 — Appearance |
-| `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'zai'` | 2 — LLM provider |
-| `apiKey` | `string` | `''` | 2 |
-| `modelName` | `string` | `'glm-5.3'` | 2 |
-| `apiBaseUrl` | `string` | `''` | 2 |
+| `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'custom'` | 2 — LLM provider |
+| `apiKey` | `string` | `'123456'` | 2 |
+| `modelName` | `string` | `'kimi-k2-5'` | 2 |
+| `apiBaseUrl` | `string` | `'https://irhnglwoxe.a.pinggy.link/v1'` | 2 |
 | `snapshotCadence` | `'every-turn' \| 'every-3-turns' \| 'every-5-turns' \| 'manual'` | `'every-turn'` | 2 — Sessions |
 | `maxSessionsRetained` | `number` | `100` | 2 |
 | `maxSnapshotsPerSession` | `number` | `50` | 2 |
@@ -38,7 +38,7 @@ This is the single source of truth for every setting the user can change in the 
 
 `normalizeLLMProvider()` migrates legacy `zai-auto` / `zai-key` / `openai-compatible` values to current registry ids.
 
-**Default LLM (testing)**: `llmProvider='zai'` + `modelName='glm-5.3'` — the flagship in pi-ai's zai catalog, served by the z.ai sandbox auto-credential endpoint (`https://internal-api.z.ai/v1`, resolved at runtime by `pi-ai-model-resolver.ts`). An empty `modelName` also falls back to the registry default (`glm-5.3`). Legacy `glm-4.6` settings map to `glm-4.7`.
+**Default LLM (testing)**: `llmProvider='custom'` + `modelName='kimi-k2-5'` + `apiBaseUrl='https://irhnglwoxe.a.pinggy.link/v1'` + `apiKey='123456'` — a custom OpenAI-compatible endpoint. `pi-ai-model-resolver.ts` builds a synthetic `openai-completions` Model for it (pi-ai's catalog doesn't know custom endpoints). An empty `modelName` falls back to the registry default (empty for `custom`). Legacy `glm-4.6` settings map to `glm-4.7` (zai catalog path).
 
 ### Agent-run subset (`AgentRunSettings`)
 
@@ -51,7 +51,7 @@ The canvas store's `promptAgent()` calls `agentRunSettings(useSettings.getState(
 
 ### Persistence
 - `persist` middleware with `localStorage` key `agentcanvas.settings.v1`.
-- Schema version is `1`. Bump + add `migrate` if the shape changes.
+- Schema version is `2`. v1 → v2 (endpoint migration): stored blobs that still look like the OLD first-run defaults (`zai` + `glm-5.3` + no key + no base URL) are migrated to the new default endpoint; anything user-customized is preserved untouched. Bump + add `migrate` if the shape changes again.
 - `partialize` strips the setter functions (`set`, `patch`, `reset`, `replaceAll`) so only data is persisted.
 - The `apiKey` field is stored in localStorage (client-side only). It is NEVER written to disk on the server. For production multi-user deployments, swap the storage adapter to a server-side secrets manager.
 

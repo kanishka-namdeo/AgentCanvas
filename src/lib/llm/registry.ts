@@ -857,7 +857,8 @@ export const PROVIDERS: Record<string, LLMProviderEntry> = {
       apiKeyEnvVars: [],
       defaultBaseURL: '',
       defaultModel: '',
-      popularModels: [],
+      // Suggested in the Settings UI; kimi-k2-5 is the app's default endpoint model.
+      popularModels: ['kimi-k2-5'],
       openAICompatible: true,
       capabilities: CAPS_TOOLS_OK,
       apiKeyRequired: false,

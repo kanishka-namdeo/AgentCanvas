@@ -117,9 +117,10 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 │  └─ LLM tool loop   │
 │       │             │
 │       ▼             │
-│  z-ai-web-dev-sdk   │  ← LLM shim (swap to native Pi SDK
-│  (OpenAI-compat)    │     by editing one call site)
-│                     │
+│  LLM (pi-ai)        │  ← defaults to a custom OpenAI-compatible
+│  custom OpenAI-     │     endpoint (Settings → LLM provider;
+│  compat endpoint    │     z.ai sandbox auto-credentials remain
+│                     │     available for the 'zai' provider)
 │  executeTool()      │
 │  ├─ pen_create_shape
 │  ├─ pen_generate_wireframe
@@ -139,7 +140,7 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 └─────────────────────────────┘
 ```
 
-**The flow in one paragraph:** you submit a prompt → the request goes to `POST /api/agent` (either via the Socket.IO service or as a direct fetch) → `runAgent()` in `src/lib/agent/runner.ts` builds a system prompt containing a textual snapshot of the canvas + a catalog of ~50 tools → the LLM (via `z-ai-web-dev-sdk`) returns tool calls → `executeTool()` in `src/lib/agent/tools.ts` runs each one, mutating the Zustand canvas store → patches + chat deltas stream back to the browser as newline-delimited JSON → the Socket.IO service fans every event out to all subscribers → everyone's canvas updates live. The LLM shim is one file, one swap point — to go back to native Pi Agent SDK, edit one call site.
+**The flow in one paragraph:** you submit a prompt → the request goes to `POST /api/agent` (either via the Socket.IO service or as a direct fetch) → `runAgent()` in `src/lib/agent/runner.ts` builds a system prompt containing a textual snapshot of the canvas + a catalog of ~50 tools → the LLM (via pi-ai — by default the custom OpenAI-compatible endpoint, configurable in Settings → LLM provider) returns tool calls → `executeTool()` in `src/lib/agent/tools.ts` runs each one, mutating the Zustand canvas store → patches + chat deltas stream back to the browser as newline-delimited JSON → the Socket.IO service fans every event out to all subscribers → everyone's canvas updates live.
 
 ---
 
@@ -176,7 +177,7 @@ Open [http://localhost:3000](http://localhost:3000) and start chatting with the 
 
 > **Running in the z.ai sandbox?** Skip the generic steps above and use the one-shot runbook in [`docs/zai-sandbox-setup.md`](./docs/zai-sandbox-setup.md): clone into `/home/z/my-project` (replacing the scaffold project), then run `bash scripts/setup-zai-sandbox.sh`. It handles the sandbox's process lifecycle (only orphan-to-init processes survive tool calls), the absolute `DATABASE_URL`, gateway port routing, verification, and restart persistence via `/home/sync/repo.tar`.
 
-> **Note on LLM credentials:** inside the z.ai sandbox, `z-ai-web-dev-sdk` auto-resolves credentials — no API key needed. Outside the sandbox, set `ZAI_API_KEY` (or `OPENAI_API_KEY`) in your `.env`. See `.env.example` for details.
+> **Note on LLM credentials:** the app defaults to a custom OpenAI-compatible endpoint (provider `custom`, model `kimi-k2-5`, base URL `https://irhnglwoxe.a.pinggy.link/v1` with key `123456` — see `DEFAULT_SETTINGS` in `src/lib/settings/types.ts`; change it any time in Settings → LLM provider). For non-default providers, `ZAI_API_KEY` / `OPENAI_API_KEY` (and per-provider equivalents) remain supported in `.env` — inside the z.ai sandbox, `z-ai-web-dev-sdk` also auto-resolves credentials for the `zai` provider. See `.env.example` for details.
 
 ### Useful scripts
 

@@ -598,7 +598,7 @@ import { calculateContextTokens, shouldCompact, compactToolResults, formatTokens
 // runner can pass the same client to the sub-agent as the legacy runner did.
 
 export async function buildSubAgentLLMClient(settings?: AgentRunSettings): Promise<LLMClient> {
-  const rawProvider = settings?.llmProvider ?? 'zai';
+  const rawProvider = settings?.llmProvider ?? 'custom';
   const providerId = normalizeLLMProvider(rawProvider);
   const meta = getProviderMetadata(providerId);
 
