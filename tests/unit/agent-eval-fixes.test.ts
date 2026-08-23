@@ -10,7 +10,7 @@ import {
   translateAgentSessionEvent,
   createTranslatorState,
 } from '../../src/lib/agent/agent-session-translator';
-import { applyLofiFidelity } from '../../src/lib/agent/tools';
+import { applyLofiFidelity, applyTextOverrides } from '../../src/lib/agent/tools';
 const typesOf = (events: ReturnType<typeof translateAgentSessionEvent>) =>
   events.filter((e) => e.kind === 'agent_event').map((e) => (e as any).event.type as string);
 
@@ -104,5 +104,35 @@ describe('applyLofiFidelity (generator lo-fi downgrade)', () => {
     applyLofiFidelity(shapes as any);
     // snapped to the near-black ramp value (#111111) — dark, readable
     expect(shapes[0].textColor).toBe('#111111');
+  });
+});
+
+describe('applyTextOverrides (generator copy fidelity)', () => {
+  it('replaces placeholder text on name-matched layers (case/whitespace insensitive)', () => {
+    const shapes: Array<Record<string, unknown>> = [
+      { type: 'text', name: 'Stat 1 value', text: '$12.4k' },
+      { type: 'text', name: 'Page title', text: 'Overview' },
+      { type: 'rectangle', name: 'Stat card 1', fill: '#fff' },
+    ];
+    const applied = applyTextOverrides(shapes as any, {
+      'stat  1 VALUE': '$128.4K', // different case + double space
+      'Page Title': 'Acme Analytics',
+    });
+    expect(applied).toBe(2);
+    expect(shapes[0].text).toBe('$128.4K');
+    expect(shapes[1].text).toBe('Acme Analytics');
+    expect(shapes[2].fill).toBe('#fff'); // non-text untouched
+  });
+
+  it('returns 0 and reports nothing applied for non-matching keys', () => {
+    const shapes: Array<Record<string, unknown>> = [{ type: 'text', name: 'Stat 1 value', text: '$12.4k' }];
+    const applied = applyTextOverrides(shapes as any, { 'Nope': 'x' });
+    expect(applied).toBe(0);
+    expect(shapes[0].text).toBe('$12.4k'); // unchanged
+  });
+
+  it('handles undefined / empty / non-string garbage safely', () => {
+    expect(applyTextOverrides([], undefined)).toBe(0);
+    expect(applyTextOverrides([{ type: 'text', name: 'A', text: 'x' }] as any, {})).toBe(0);
   });
 });

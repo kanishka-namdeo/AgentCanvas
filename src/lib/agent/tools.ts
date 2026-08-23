@@ -392,6 +392,36 @@ export function applyLofiFidelity(shapes: Array<Partial<Shape> & Record<string, 
   }
 }
 
+/// Apply caller-supplied text overrides to generated shapes. Keys are matched
+/// against text-layer names case-insensitively (exact match first, then
+/// normalized whitespace). Returns how many overrides were applied.
+/// Exported for unit tests.
+export function applyTextOverrides(
+  shapes: Array<Partial<Shape> & Record<string, unknown>>,
+  texts: Record<string, string> | undefined,
+): number {
+  if (!texts || typeof texts !== 'object') return 0;
+  const norm = (v: string) => v.trim().toLowerCase().replace(/\s+/g, ' ');
+  const entries = Object.entries(texts).filter(([k, v]) => typeof k === 'string' && typeof v === 'string' && v.length > 0);
+  if (entries.length === 0) return 0;
+  let applied = 0;
+  const used = new Set<string>();
+  for (const s of shapes) {
+    if (s.type !== 'text') continue;
+    const name = norm(String(s.name ?? ''));
+    for (const [key, value] of entries) {
+      if (used.has(key)) continue;
+      if (norm(key) === name) {
+        s.text = value;
+        used.add(key);
+        applied++;
+        break;
+      }
+    }
+  }
+  return applied;
+}
+
 export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
   // CORE CANVAS OPS (existing)
@@ -1731,14 +1761,19 @@ const createShape = defineTool({
       'Generate a screen layout from a template. Places a frame plus fully-styled shapes ' +
       'with shadows, gradients, radii, real content, and a color palette applied (fidelity=hifi, default). ' +
       'Pass fidelity=lofi for an explicit wireframe / low-fi / sketch request — grayscale, flat, no shadows. ' +
+      'IMPORTANT: templates ship with PLACEHOLDER text (e.g. Stat values "$12.4k", "1,284"). When the user ' +
+      'specifies exact copy — product names, headings, stat values, labels — pass them via `texts` ' +
+      '(keyed by the template text layer name, e.g. {"Stat 1 value": "$128.4K", "Page title": "Acme Analytics"}) ' +
+      'so the generated screen carries the user\'s real content in this same call. ' +
       'Templates: mobile_login, mobile_signup, mobile_dashboard, mobile_welcome, mobile_permissions, mobile_done, ' +
       'mobile_browse, mobile_product_detail, mobile_cart, mobile_checkout, web_landing, web_dashboard, web_blog, web_pricing. ' +
       'The frame is placed at (x, y) with the template\'s default size. ' +
       'This is a scaffold — follow it with pen_apply_palette, pen_set_shadow on cards/buttons, and pen_set_gradient_fill on the hero/CTA for full polish.',
-    promptSnippet: 'Generate a screen from a template (mobile/web); fidelity=lofi for wireframes.',
+    promptSnippet: 'Generate a screen from a template (mobile/web); fidelity=lofi for wireframes; texts for exact copy.',
     promptGuidelines: [
       'Use this for "make a login screen", "design a dashboard", "create a landing page", etc.',
       'When the user says wireframe / low-fi / sketch / graybox, pass fidelity=lofi and do NOT style afterwards.',
+      'When the user gives exact copy (brand names, KPI values, headings), pass `texts` overrides in THIS call — never leave template placeholder values in the design.',
       'After a hifi generate, ALWAYS follow with: pen_apply_palette (bindToTokens=true), pen_set_shadow on cards/buttons, pen_set_gradient_fill on the hero/CTA, and pen_generate_copy for real content.',
       'A bare hifi generate_wireframe call with no styling pass is a wireframe, not a finished design.',
     ],
@@ -1765,6 +1800,12 @@ const createShape = defineTool({
       x: Type.Optional(Type.Number({ description: 'Frame X position (default 100)' })),
       y: Type.Optional(Type.Number({ description: 'Frame Y position (default 100)' })),
       fidelity: Type.Optional(FidelitySchema),
+      texts: Type.Optional(Type.Record(Type.String(), Type.String(), {
+        description:
+          'Override the template\'s placeholder text IN THIS CALL. Keys match generated text-layer names ' +
+          '(case-insensitive, e.g. "Stat 1 value", "Page title", "Brand"); values replace the placeholder text. ' +
+          'Use whenever the user specified exact copy (names, numbers, labels).',
+      })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       // Coerce x/y to numbers — the LLM occasionally passes them as strings
@@ -1777,20 +1818,31 @@ const createShape = defineTool({
       if (params.fidelity === 'lofi') {
         applyLofiFidelity(wf.shapes);
       }
+      // Apply the caller's text overrides (poka-yoke for copy fidelity: the
+      // templates ship placeholder values like "$12.4k" — when the user gave
+      // exact copy, the agent passes `texts` and the generated screen carries
+      // the real content in the SAME call, no follow-up updates needed).
+      const appliedTexts = applyTextOverrides(wf.shapes, params.texts);
       const patch: CanvasPatch = {
         op: 'bulk_add',
         shapes: wf.shapes,
-        summary: `Generated ${params.template} ${params.fidelity === 'lofi' ? 'low-fi wireframe' : 'screen'} (${wf.shapes.length} shapes)`,
+        summary: `Generated ${params.template} ${params.fidelity === 'lofi' ? 'low-fi wireframe' : 'screen'} (${wf.shapes.length} shapes${appliedTexts > 0 ? `, ${appliedTexts} text override(s)` : ''})`,
       };
       ctx.applyPatch(patch);
       return {
         content: [
           {
             type: 'text',
-            text: `Generated ${params.template} wireframe at (${x}, ${y}). ${wf.shapes.length} shapes added. Frame id: ${wf.frameId}.`,
+            text:
+              `Generated ${params.template} wireframe at (${x}, ${y}). ${wf.shapes.length} shapes added. Frame id: ${wf.frameId}.` +
+              (appliedTexts > 0
+                ? ` Applied ${appliedTexts} text override(s).`
+                : params.texts && Object.keys(params.texts).length > 0
+                  ? ' NOTE: no text overrides matched any generated layer names — check the key spelling against the layer names above.'
+                  : ''),
           },
         ],
-        details: { patch, frameId: wf.frameId, count: wf.shapes.length },
+        details: { patch, frameId: wf.frameId, count: wf.shapes.length, textsApplied: appliedTexts },
       };
     },
   });

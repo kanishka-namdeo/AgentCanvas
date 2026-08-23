@@ -318,6 +318,11 @@ Build the full HIGH-FIDELITY design in this turn. The mandatory sequence is:
   1. SCAFFOLD (optional) — if a template matches, call pen_generate_wireframe to lay out the structure.
      If no template fits, place frames + shapes manually with pen_create_shape using coordinates from
      the 8px grid. Set type/size/fill/radius on every shape you create — never leave them default.
+     COPY RULE: templates ship PLACEHOLDER text. When the user gave exact copy (names, numbers, labels),
+     pass it via the generator's 'texts' param in the SAME call (keyed by layer name, e.g.
+     {"Stat 1 value": "$128.4K"}) — or update the text layers with pen_find_replace_text / pen_update_shape
+     immediately after. A design showing template placeholder values ($12.4k, 1,284) instead of the
+     user's numbers is a FAILURE, even if the layout is perfect.
   2. TOKENIZE — define $color.* variables (bg, surface, surface-2, border, text, text-muted, primary,
      primary-fg, accent, success, danger) via pen_set_variable / pen_update_tokens.
   3. PALETTE — call pen_apply_palette with bindToTokens=true so shapes bind to the tokens.

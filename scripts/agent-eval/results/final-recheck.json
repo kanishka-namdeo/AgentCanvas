@@ -1,0 +1,194 @@
+[
+  {
+    "id": "wireframe-lofi",
+    "prompt": "Draw a low-fidelity wireframe of a blog homepage: header with nav, one hero article block, and a 3-card article grid.",
+    "startedAt": "2026-08-23T18:14:32.585Z",
+    "durationMs": 15920,
+    "toolCallCount": 2,
+    "toolNames": [
+      [
+        "pen_generate_wireframe",
+        1
+      ],
+      [
+        "pen_list_shapes",
+        1
+      ]
+    ],
+    "assertions": [
+      {
+        "name": "canvas has layers",
+        "pass": true,
+        "detail": "14 layers"
+      },
+      {
+        "name": "3-card grid present",
+        "pass": true,
+        "detail": "6 boxes, size-bands=[[800,1],[80,1],[360,1],[180,3]]"
+      },
+      {
+        "name": "stays grayscale (lo-fi)",
+        "pass": true,
+        "detail": "0 saturated layer(s) (tolerance 1)"
+      },
+      {
+        "name": "no shadows (lo-fi)",
+        "pass": true,
+        "detail": "flat as expected"
+      },
+      {
+        "name": "no gradients (lo-fi)",
+        "pass": true,
+        "detail": "no gradients as expected"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 2 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": true,
+        "detail": "2 tool calls"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 9,
+    "failed": 0,
+    "status": "pass",
+    "finalLayerCount": 14,
+    "emptyTurn": false
+  },
+  {
+    "id": "dashboard-hifi",
+    "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+    "startedAt": "2026-08-23T18:15:33.513Z",
+    "durationMs": 27883,
+    "toolCallCount": 10,
+    "toolNames": [
+      [
+        "pen_set_variable",
+        8
+      ],
+      [
+        "pen_generate_wireframe",
+        1
+      ],
+      [
+        "pen_list_shapes",
+        1
+      ]
+    ],
+    "assertions": [
+      {
+        "name": "all 4 KPI values present",
+        "pass": false,
+        "detail": "missing values: 128.4, 8,421, 62"
+      },
+      {
+        "name": "4 card-like containers in a row",
+        "pass": true,
+        "detail": "4 candidates, bands=[[96,4]]"
+      },
+      {
+        "name": "colorful (hi-fi)",
+        "pass": false,
+        "detail": "too grayscale for a hi-fi dashboard"
+      },
+      {
+        "name": "shadows on cards",
+        "pass": true,
+        "detail": "shadow present"
+      },
+      {
+        "name": "realistic copy (no placeholders)",
+        "pass": true,
+        "detail": "no placeholder text"
+      },
+      {
+        "name": "no failed tool calls",
+        "pass": true,
+        "detail": "all 10 tool calls succeeded"
+      },
+      {
+        "name": "no duplicate consecutive calls",
+        "pass": true,
+        "detail": "no repeated identical calls"
+      },
+      {
+        "name": "reasonable tool-call count",
+        "pass": true,
+        "detail": "10 tool calls"
+      },
+      {
+        "name": "no agent errors",
+        "pass": true,
+        "detail": "clean turn"
+      }
+    ],
+    "passed": 7,
+    "failed": 2,
+    "status": "fail",
+    "finalLayerCount": 39,
+    "emptyTurn": false,
+    "textLayers": [
+      {
+        "name": "Sidebar logo",
+        "text": "Dashboard"
+      },
+      {
+        "name": "Page title",
+        "text": "Overview"
+      },
+      {
+        "name": "Stat 1 label",
+        "text": "Revenue"
+      },
+      {
+        "name": "Stat 1 value",
+        "text": "$12.4k"
+      },
+      {
+        "name": "Stat 2 label",
+        "text": "Users"
+      },
+      {
+        "name": "Stat 2 value",
+        "text": "1,284"
+      },
+      {
+        "name": "Stat 3 label",
+        "text": "Orders"
+      },
+      {
+        "name": "Stat 3 value",
+        "text": "342"
+      },
+      {
+        "name": "Stat 4 label",
+        "text": "Churn"
+      },
+      {
+        "name": "Stat 4 value",
+        "text": "2.1%"
+      },
+      {
+        "name": "Chart title",
+        "text": "Revenue over time"
+      },
+      {
+        "name": "Panel title",
+        "text": "Recent activity"
+      }
+    ]
+  }
+]

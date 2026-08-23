@@ -52,6 +52,10 @@ interface ScenarioResult {
   status: 'pass' | 'fail' | 'error';
   errorMessage?: string;
   finalLayerCount: number;
+  /// Diagnostic dump: every text layer's content (only recorded when the
+  /// scenario FAILS, to keep reports small). Makes copy-fidelity failures
+  /// debuggable without re-running.
+  textLayers?: Array<{ name: string; text: string }>;
 }
 
 async function runScenario(sc: Scenario): Promise<ScenarioResult> {
@@ -205,6 +209,12 @@ async function runScenario(sc: Scenario): Promise<ScenarioResult> {
     finalLayerCount: finalCanvas.shapes.length,
   };
   (result as ScenarioResult & { emptyTurn?: boolean }).emptyTurn = emptyTurn;
+  // Diagnostic: dump text layers for failed scenarios (copy-fidelity debugging).
+  if (result.status !== 'pass') {
+    result.textLayers = finalCanvas.shapes
+      .filter((s) => s.type === 'text')
+      .map((s) => ({ name: s.name, text: (s.text ?? '').slice(0, 80) }));
+  }
   return result;
 }
 

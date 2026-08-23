@@ -55,9 +55,13 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 }
 
 /// 0 = fully saturated, 1 = gray. max(r,g,b)==0 → gray.
+/// Non-hex values ('transparent', 'var(--x)', gradients refs) count as
+/// NOT saturated — they carry no chroma. (Harness bug fix: this previously
+/// returned 1 for unparsable colors, so 'transparent' fills were counted as
+/// "saturated layers" and failed the lo-fi grayscale check.)
 function saturation(hex: string): number {
   const c = hexToRgb(hex);
-  if (!c) return 1;
+  if (!c) return 0;
   const mx = Math.max(c.r, c.g, c.b);
   const mn = Math.min(c.r, c.g, c.b);
   if (mx === 0) return 1;
