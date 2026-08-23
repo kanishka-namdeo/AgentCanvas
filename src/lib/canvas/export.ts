@@ -21,16 +21,24 @@ function escapeHtml(s: string): string {
 export interface ExportOptions {
   /// If provided, export only shapes inside this frame (by shape ID).
   frameId?: string;
+  /// Rasterization scale for PNG export (default 2 = 2x resolution).
+  scale?: number;
 }
 
 /// Compute the bounding box of the given shapes and return the normalized shapes
 /// (shifted so minX/minY = 0) plus the bounding-box dimensions.
 function normalizeBounds(shapes: Shape[]): { shapes: Shape[]; w: number; h: number } | null {
   if (shapes.length === 0) return null;
-  const minX = Math.min(...shapes.map((s) => s.x));
-  const minY = Math.min(...shapes.map((s) => s.y));
-  const maxX = Math.max(...shapes.map((s) => s.x + s.width));
-  const maxY = Math.max(...shapes.map((s) => s.y + s.height));
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const s of shapes) {
+    xs.push(s.x, s.x + s.width);
+    ys.push(s.y, s.y + s.height);
+  }
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
   return {
     shapes: shapes.map((s) => ({ ...s, x: s.x - minX, y: s.y - minY })),
     w: maxX - minX,
@@ -38,10 +46,21 @@ function normalizeBounds(shapes: Shape[]): { shapes: Shape[]; w: number; h: numb
   };
 }
 
-/// Filter shapes to those inside a frame (by bounding box).
+/// Filter shapes to those inside a frame.
+///
+/// Tree-based first (Figma semantics: a frame exports its descendants), with a
+/// bounding-box fallback for frames that have no tree children. Previously this
+/// was bbox-ONLY, which silently dropped any child that crossed the frame's
+/// edge — a card peeking out of its container vanished from the export.
 function filterByFrame(shapes: Shape[], frameId: string): Shape[] {
   const frame = shapes.find((s) => s.id === frameId);
   if (!frame) return shapes;
+  const descendants = collectDescendants(shapes, frameId);
+  if (descendants.length > 0) {
+    return [frame, ...descendants];
+  }
+  // Fallback: bbox containment (no tree children — e.g. a loose rectangle used
+  // as an export region).
   return shapes.filter(
     (s) =>
       s.id !== frameId &&
@@ -52,47 +71,204 @@ function filterByFrame(shapes: Shape[], frameId: string): Shape[] {
   );
 }
 
-/// Render a single shape as an SVG element string.
-function shapeToSvg(s: Shape): string {
+/// All strictly-descendant shapes of `rootId` per the resolved parentId links.
+function collectDescendants(shapes: Shape[], rootId: string): Shape[] {
+  const byParent = new Map<string, Shape[]>();
+  for (const s of shapes) {
+    const p = s.parentId ?? null;
+    if (p) {
+      const list = byParent.get(p) ?? [];
+      list.push(s);
+      byParent.set(p, list);
+    }
+  }
+  const out: Shape[] = [];
+  const queue = [rootId];
+  const seen = new Set<string>([rootId]);
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    for (const child of byParent.get(id) ?? []) {
+      if (seen.has(child.id)) continue; // defensive: cycle guard
+      seen.add(child.id);
+      out.push(child);
+      queue.push(child.id);
+    }
+  }
+  return out;
+}
+
+/// SVG defs + paint attributes for a shape's gradient / shadow / opacity.
+/// Returns { defs, attrs } to splice into the element string.
+function paintAttrs(s: Shape, uid: string): { defs: string[]; attrs: string } {
+  const defs: string[] = [];
+  let attrs = '';
+  if (s.opacity !== undefined && s.opacity < 1) {
+    attrs += ` opacity="${s.opacity}"`;
+  }
+  if (s.gradient && s.gradient.stops?.length >= 2) {
+    const gid = `grad-${uid}`;
+    const stops = s.gradient.stops
+      .map((st) => `<stop offset="${st.offset}" stop-color="${st.color}"/>`)
+      .join('');
+    if (s.gradient.type === 'radial') {
+      defs.push(`<radialGradient id="${gid}">${stops}</radialGradient>`);
+    } else {
+      defs.push(`<linearGradient id="${gid}" gradientTransform="rotate(${s.gradient.angle ?? 90} .5 .5)">${stops}</linearGradient>`);
+    }
+    attrs += ` fill="url(#${gid})"`;
+  }
+  if (s.shadow && (s.shadow.y !== 0 || s.shadow.blur > 0 || s.shadow.x !== 0)) {
+    const fid = `shadow-${uid}`;
+    const sc = s.shadow.color ?? '#0000001a';
+    // 8-digit hex (#RRGGBBAA) needs splitting for SVG's rgba() syntax.
+    let rgba = sc;
+    const m = /^#?([0-9a-f]{6})([0-9a-f]{2})$/i.exec(sc);
+    if (m) {
+      const a = parseInt(m[2], 16) / 255;
+      const r = parseInt(m[1].slice(0, 2), 16);
+      const g = parseInt(m[1].slice(2, 4), 16);
+      const b = parseInt(m[1].slice(4, 6), 16);
+      rgba = `rgba(${r},${g},${b},${Number(a.toFixed(3))})`;
+    }
+    defs.push(
+      `<filter id="${fid}" x="-50%" y="-50%" width="200%" height="200%">` +
+      `<feDropShadow dx="${s.shadow.x ?? 0}" dy="${s.shadow.y ?? 0}" stdDeviation="${(s.shadow.blur ?? 0) / 2}" flood-color="${rgba}"/>` +
+      `</filter>`,
+    );
+    attrs += ` filter="url(#${fid})"`;
+  }
+  if (s.rotation) {
+    const cx = s.x + s.width / 2;
+    const cy = s.y + s.height / 2;
+    attrs += ` transform="rotate(${s.rotation} ${cx} ${cy})"`;
+  }
+  return { defs, attrs };
+}
+
+function starPoints(s: Shape): string {
+  const cx = s.x + s.width / 2;
+  const cy = s.y + s.height / 2;
+  const outer = Math.min(s.width, s.height) / 2;
+  const inner = outer * (s.innerRadiusRatio ?? 0.5);
+  const n = Math.max(3, s.pointCount ?? 5);
+  const pts: string[] = [];
+  for (let i = 0; i < n * 2; i++) {
+    const r = i % 2 === 0 ? outer : inner;
+    const a = (Math.PI * i) / n - Math.PI / 2;
+    pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+  }
+  return pts.join(' ');
+}
+
+function polygonPoints(s: Shape): string {
+  const cx = s.x + s.width / 2;
+  const cy = s.y + s.height / 2;
+  const r = Math.min(s.width, s.height) / 2;
+  const n = Math.max(3, s.polygonCount ?? 6);
+  const pts: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = (2 * Math.PI * i) / n - Math.PI / 2;
+    pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+  }
+  return pts.join(' ');
+}
+
+/// Render a single shape as an SVG element string (+ any defs it needs).
+function shapeToSvg(s: Shape, uid: string): { el: string; defs: string[] } {
   const stroke = s.strokeWidth > 0 ? ` stroke="${s.stroke}" stroke-width="${s.strokeWidth}"` : '';
+  const { defs, attrs } = paintAttrs(s, uid);
+  // When a gradient/shadow is present the paint attrs already carry
+  // fill/filter; otherwise use the solid fill.
+  const fill = attrs.includes('fill=') ? '' : ` fill="${s.fill}"`;
+  const base = `${fill}${stroke}${attrs}`;
   switch (s.type) {
     case 'rectangle':
     case 'frame':
-      return `  <rect x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" rx="${s.radius}" fill="${s.fill}"${stroke}/>`;
+    case 'section':
+    case 'component':
+    case 'component_set':
+      return { el: `  <rect x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" rx="${s.radius}"${base}/>`, defs };
     case 'ellipse':
-      return `  <ellipse cx="${s.x + s.width / 2}" cy="${s.y + s.height / 2}" rx="${s.width / 2}" ry="${s.height / 2}" fill="${s.fill}"${stroke}/>`;
+      return { el: `  <ellipse cx="${s.x + s.width / 2}" cy="${s.y + s.height / 2}" rx="${s.width / 2}" ry="${s.height / 2}"${base}/>`, defs };
     case 'line':
-      return `  <line x1="${s.x}" y1="${s.y}" x2="${s.x + s.width}" y2="${s.y + s.height}" stroke="${s.fill}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round"/>`;
+      return { el: `  <line x1="${s.x}" y1="${s.y}" x2="${s.x + s.width}" y2="${s.y + s.height}" stroke="${s.fill}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round"${attrs}/>`, defs };
     case 'text':
-      return `  <text x="${s.x}" y="${s.y + s.fontSize}" font-size="${s.fontSize}" fill="${s.textColor}" font-family="Inter, sans-serif">${escapeXml(s.text ?? '')}</text>`;
+      return { el: `  <text x="${s.x}" y="${s.y + s.fontSize}" font-size="${s.fontSize}" fill="${s.textColor}" font-family="Inter, sans-serif"${attrs}>${escapeXml(s.text ?? '')}</text>`, defs };
     case 'path':
-      if (!s.points || s.points.length === 0) return '';
+      if (!s.points || s.points.length === 0) return { el: '', defs };
       const pts = s.points.map((p) => `${p.x},${p.y}`).join(' ');
       return s.closed
-        ? `  <polygon points="${pts}" fill="${s.fill}"${stroke}/>`
-        : `  <polyline points="${pts}" fill="none" stroke="${s.stroke}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+        ? { el: `  <polygon points="${pts}"${base}/>`, defs }
+        : { el: `  <polyline points="${pts}" fill="none" stroke="${s.stroke}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"${attrs}/>`, defs };
+    case 'star':
+      return { el: `  <polygon points="${starPoints(s)}"${base}/>`, defs };
+    case 'polygon':
+      return { el: `  <polygon points="${polygonPoints(s)}"${base}/>`, defs };
     case 'image':
-      return `  <image x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" href="${s.src ?? ''}"/>`;
+      return { el: `  <image x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" href="${s.src ?? ''}"${attrs}/>`, defs };
     default:
-      return '';
+      return { el: '', defs };
   }
 }
 
 /// Export the canvas as an SVG string.
 export function exportSvg(allShapes: Shape[], opts: ExportOptions = {}): string | null {
+  const withSize = exportSvgWithSize(allShapes, opts);
+  return withSize ? withSize.svg : null;
+}
+
+/// Same as exportSvg but also returns the pixel dimensions (used by the PNG
+/// rasterizer to size the offscreen canvas).
+export function exportSvgWithSize(allShapes: Shape[], opts: ExportOptions = {}): { svg: string; w: number; h: number; count: number } | null {
   let shapes = opts.frameId ? filterByFrame(allShapes, opts.frameId) : allShapes;
   const norm = normalizeBounds(shapes);
   if (!norm) return null;
-  const els = norm.shapes.map(shapeToSvg).filter(Boolean).join('\n');
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${norm.w}" height="${norm.h}" viewBox="0 0 ${norm.w} ${norm.h}">\n${els}\n</svg>`;
+  const allDefs: string[] = [];
+  const els: string[] = [];
+  norm.shapes.forEach((s, i) => {
+    const { el, defs } = shapeToSvg(s, `${i}-${s.id}`);
+    if (el) els.push(el);
+    allDefs.push(...defs);
+  });
+  const defsBlock = allDefs.length > 0 ? `  <defs>\n${allDefs.map((d) => `  ${d}`).join('\n')}\n  </defs>\n` : '';
+  return {
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${norm.w}" height="${norm.h}" viewBox="0 0 ${norm.w} ${norm.h}">\n${defsBlock}${els.join('\n')}\n</svg>`,
+    w: norm.w,
+    h: norm.h,
+    count: shapes.length,
+  };
 }
 
-/// Export the canvas as an SVG data URL (can be used in <img> tags or downloaded as PNG).
-export function exportPngDataUrl(allShapes: Shape[], opts: ExportOptions = {}): string | null {
-  const svg = exportSvg(allShapes, opts);
-  if (!svg) return null;
-  // Use encodeURIComponent for broader compatibility than base64 (avoids btoa issues with Unicode).
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+/// Export the canvas as a REAL PNG data URL (rasterized at `opts.scale`, default 2x).
+///
+/// Previously this returned the SVG data URL unchanged — the UI said "Exported
+/// PNG" but the user never received an actual PNG. Now the SVG is drawn into an
+/// offscreen canvas and rasterized. Must run in a browser (Image + canvas).
+export async function exportPngDataUrl(allShapes: Shape[], opts: ExportOptions = {}): Promise<string | null> {
+  const withSize = exportSvgWithSize(allShapes, opts);
+  if (!withSize) return null;
+  const scale = opts.scale ?? 2;
+  try {
+    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(withSize.svg)}`;
+    const img = new Image();
+    img.decoding = 'async';
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('SVG rasterization failed'));
+      img.src = url;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(withSize.w * scale));
+    canvas.height = Math.max(1, Math.round(withSize.h * scale));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/png');
+  } catch {
+    // Rasterization can fail on tainted/foreign images (remote src URLs) —
+    // fall back to the SVG data URL so the user still gets SOMETHING.
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(withSize.svg)}`;
+  }
 }
 
 /// Export the canvas as a JSON string (the full canvas document).
@@ -151,6 +327,16 @@ export function downloadFile(content: string, filename: string, mimeType: string
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+/// Download a data URL (e.g. a rasterized PNG) as a file.
+export function downloadDataUrl(dataUrl: string, filename: string): void {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 /// Copy text to the clipboard. Falls back to a textarea + execCommand for

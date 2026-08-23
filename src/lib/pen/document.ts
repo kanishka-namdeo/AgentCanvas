@@ -233,7 +233,12 @@ export function updateNode(
 ): PenChild[] {
   return children.map((c) => {
     if (c.id === id) return { ...c, ...changes, id: c.id } as PenChild;
-    if ((c.type === 'frame' || c.type === 'group') && c.children) {
+    // Descend into ALL container types (section, component, component_set,
+    // boolean_operation — matching walkTree/findNode/insertNode/removeNode).
+    // Previously only frame/group descended, so update patches (fills,
+    // constraints, theme, reparent coord remaps) silently no-opped on nodes
+    // inside sections/components — caught by tests/unit/patch-edge-bugs.test.ts.
+    if (isContainer(c) && 'children' in c && Array.isArray(c.children)) {
       const next = updateNode(c.children, id, changes);
       if (next !== c.children) return { ...c, children: next };
     }

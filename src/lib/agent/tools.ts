@@ -2364,59 +2364,18 @@ const createShape = defineTool({
       frameId: Type.Optional(Type.String({ description: 'If provided, export only shapes inside this frame' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const allShapes = ctx.getShapes();
-      let shapes = allShapes;
-      if (params.frameId) {
-        const frame = allShapes.find((s) => s.id === params.frameId);
-        if (frame) {
-          // Export shapes whose bounding box is inside the frame.
-          shapes = allShapes.filter((s) =>
-            s.id !== params.frameId &&
-            s.x >= frame.x && s.y >= frame.y &&
-            s.x + s.width <= frame.x + frame.width &&
-            s.y + s.height <= frame.y + frame.height,
-          );
-        }
-      }
-      // Compute bounding box.
-      if (shapes.length === 0) {
+      // Delegate to the shared client export module (pure functions — safe on
+      // the server). This keeps the agent export identical to the UI export,
+      // including gradient/shadow/opacity fidelity, star/polygon nodes, and
+      // tree-based frame filtering (bbox-only filtering dropped children that
+      // crossed the frame edge).
+      const { exportSvgWithSize } = await import('../canvas/export');
+      const withSize = exportSvgWithSize(ctx.getShapes(), { frameId: params.frameId });
+      if (!withSize) {
         return { content: [{ type: 'text', text: 'No shapes to export.' }], details: { error: 'empty' } };
       }
-      const minX = Math.min(...shapes.map((s) => s.x));
-      const minY = Math.min(...shapes.map((s) => s.y));
-      const maxX = Math.max(...shapes.map((s) => s.x + s.width));
-      const maxY = Math.max(...shapes.map((s) => s.y + s.height));
-      const w = maxX - minX;
-      const h = maxY - minY;
-      // Build SVG elements.
-      const els = shapes.map((s) => {
-        const rx = s.x - minX;
-        const ry = s.y - minY;
-        const stroke = s.strokeWidth > 0 ? ` stroke="${s.stroke}" stroke-width="${s.strokeWidth}"` : '';
-        switch (s.type) {
-          case 'rectangle':
-          case 'frame':
-            return `  <rect x="${rx}" y="${ry}" width="${s.width}" height="${s.height}" rx="${s.radius}" fill="${s.fill}"${stroke}/>`;
-          case 'ellipse':
-            return `  <ellipse cx="${rx + s.width / 2}" cy="${ry + s.height / 2}" rx="${s.width / 2}" ry="${s.height / 2}" fill="${s.fill}"${stroke}/>`;
-          case 'line':
-            return `  <line x1="${rx}" y1="${ry}" x2="${rx + s.width}" y2="${ry + s.height}" stroke="${s.fill}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round"/>`;
-          case 'text':
-            return `  <text x="${rx}" y="${ry + s.fontSize}" font-size="${s.fontSize}" fill="${s.textColor}" font-family="Inter, sans-serif">${escapeXml(s.text ?? '')}</text>`;
-          case 'path':
-            if (!s.points || s.points.length === 0) return '';
-            const pts = s.points.map((p) => `${p.x - minX},${p.y - minY}`).join(' ');
-            return s.closed
-              ? `  <polygon points="${pts}" fill="${s.fill}"${stroke}/>`
-              : `  <polyline points="${pts}" fill="none" stroke="${s.stroke}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"/>`;
-          case 'image':
-            return `  <image x="${rx}" y="${ry}" width="${s.width}" height="${s.height}" href="${s.src ?? ''}"/>`;
-          default:
-            return '';
-        }
-      }).filter(Boolean).join('\n');
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n${els}\n</svg>`;
-      return { content: [{ type: 'text', text: `SVG exported (${w}×${h}, ${shapes.length} shapes). Length: ${svg.length} chars.\n\`\`\`svg\n${svg.slice(0, 4000)}${svg.length > 4000 ? '\n... (truncated)' : ''}\n\`\`\`` }], details: { svg, width: w, height: h, shapeCount: shapes.length } };
+      const { svg, w, h, count } = withSize;
+      return { content: [{ type: 'text', text: `SVG exported (${w}×${h}, ${count} shapes). Length: ${svg.length} chars.\n\`\`\`svg\n${svg.slice(0, 4000)}${svg.length > 4000 ? '\n... (truncated)' : ''}\n\`\`\`` }], details: { svg, width: w, height: h, shapeCount: count } };
     },
   });
 

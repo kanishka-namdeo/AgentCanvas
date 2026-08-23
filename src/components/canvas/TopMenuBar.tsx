@@ -21,7 +21,7 @@ import { useState, type ReactNode } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape } from '@/lib/canvas/types';
-import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, copyToClipboard } from '@/lib/canvas/export';
+import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, downloadDataUrl, copyToClipboard } from '@/lib/canvas/export';
 import {
   Menubar, MenubarMenu, MenubarTrigger, MenubarContent, MenubarItem,
   MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubTrigger,
@@ -129,17 +129,21 @@ export function TopMenuBar(props: TopMenuBarProps) {
             }}>
               Export as SVG
             </MenubarItem>
-            <MenubarItem onClick={() => {
-              const dataUrl = exportPngDataUrl(document.shapes);
+            <MenubarItem onClick={async () => {
+              // Rasterizes via offscreen canvas (2x) — produces a REAL .png
+              // download. Previously this opened an SVG data URL in a tab and
+              // claimed it was a PNG export.
+              const dataUrl = await exportPngDataUrl(document.shapes);
               if (!dataUrl) { toast.error('Nothing to export', { description: 'Draw something first.' }); return; }
-              // Open the data URL in a new tab so the user can save it as PNG.
-              const w = window.open();
-              if (w) {
-                w.document.write(`<title>Canvas PNG export</title><img src="${dataUrl}" style="max-width:100%;height:auto"/>`);
-                w.document.close();
-                toast.success('Exported PNG', { description: 'Opened in a new tab — right-click to save.' });
+              const name = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
+              if (dataUrl.startsWith('data:image/png')) {
+                downloadDataUrl(dataUrl, `${name}.png`);
+                toast.success('Exported PNG', { description: `${document.shapes.length} shapes @2x` });
               } else {
-                toast.error('Popup blocked', { description: 'Allow popups to export PNG.' });
+                // Rasterization fallback (e.g. remote image tainted the canvas)
+                // — deliver the SVG instead, honestly labeled.
+                downloadFile(dataUrl, `${name}.svg`, 'image/svg+xml');
+                toast.success('Exported SVG instead', { description: 'PNG rasterization was blocked by a remote image; exported SVG.' });
               }
             }}>
               Export as PNG

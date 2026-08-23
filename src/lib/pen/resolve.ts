@@ -557,7 +557,12 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
     }
 
     // Position: top-level nodes use their own x/y; nested nodes are positioned
-    // by the parent's layout (done when processing the parent).
+    // by the parent's layout — which now runs as a separate TOP-DOWN pass
+    // after the whole tree is sized (see layoutTree below). Previously each
+    // recursion level laid out its own children immediately, but a container
+    // nested inside another container had absX/absY still 0 at that moment,
+    // so grandchildren rendered missing all ancestor offsets above depth 1
+    // (frames-in-frames, components-in-sections, grouped nested layers).
     if (!parent) {
       for (const rn of nodes) {
         rn.absX = num(rn.node.x, 0);
@@ -565,22 +570,31 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
       }
     }
 
-    // For each container, layout its children now that the container's own
-    // size + position are known.
+    return nodes;
+  }
+
+  /// Top-down layout pass: lay out each container's children only AFTER the
+  /// container's own absolute position is final, then recurse. Guarantees
+  /// layoutChildren never sees a stale parent.absX/absY.
+  function layoutTree(nodes: (ResolvedNode & { _kids?: ResolvedNode[] })[]): void {
     for (const rn of nodes) {
-      if (rn._kids && rn._kids.length > 0) {
+      const kids = rn._kids;
+      if (kids && kids.length > 0) {
         const layout = (rn.node as PenLayout).layout;
-        // Both flex and absolute-positioning paths now go through layoutChildren
+        // Both flex and absolute-positioning paths go through layoutChildren
         // (which handles constraints in the 'none' branch).
-        layoutChildren(rn, rn._kids, layout ?? 'none');
+        layoutChildren(rn, kids, layout ?? 'none');
+        layoutTree(kids as (ResolvedNode & { _kids?: ResolvedNode[] })[]);
       }
     }
-
-    return nodes;
   }
 
   // Augment ResolvedNode with an optional _kids slot (TS hack via any).
   const resolved = resolve(expanded, null, {}) as (ResolvedNode & { _kids?: ResolvedNode[] })[];
+  // Sizing is done (bottom-up inside resolve); now position the whole tree
+  // top-down so every level's parent offset is final before its children
+  // are laid out.
+  layoutTree(resolved);
 
   // Flatten depth-first, emitting Shape for each node.
   function emit(nodes: (ResolvedNode & { _kids?: ResolvedNode[] })[], parentId: string | null) {

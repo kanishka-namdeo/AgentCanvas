@@ -25,7 +25,7 @@ import { useState, useMemo, type ReactNode, type ComponentType } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape, LayerType } from '@/lib/canvas/types';
-import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, copyToClipboard } from '@/lib/canvas/export';
+import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, downloadDataUrl, copyToClipboard } from '@/lib/canvas/export';
 import {
   Eye, EyeOff, Lock, Unlock, Trash2, Layers, Copy, Scissors, ClipboardPaste, Search,
   Frame, Group, Square, Circle, Type, Slash, Spline, Image as ImageIcon, Braces,
@@ -527,15 +527,17 @@ export function LayersPanel() {
               <FileDown className="h-3.5 w-3.5 mr-2" /> Export
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
-              <ContextMenuItem onClick={() => {
-                const dataUrl = exportPngDataUrl(shapes, { frameId: isContainerNode ? shape.id : undefined });
+              <ContextMenuItem onClick={async () => {
+                const dataUrl = await exportPngDataUrl(shapes, { frameId: isContainerNode ? shape.id : undefined });
                 if (!dataUrl) { toast.error('Nothing to export'); return; }
-                const w = window.open();
-                if (w) {
-                  w.document.write(`<title>${shape.name} — PNG export</title><img src="${dataUrl}" style="max-width:100%;height:auto"/>`);
-                  w.document.close();
-                  toast.success('Exported PNG', { description: `${shape.name} — right-click to save.` });
-                } else { toast.error('Popup blocked'); }
+                const safeName = shape.name.replace(/[^a-z0-9-_]+/gi, '-');
+                if (dataUrl.startsWith('data:image/png')) {
+                  downloadDataUrl(dataUrl, `${safeName}.png`);
+                  toast.success('Exported PNG', { description: `${shape.name} @2x` });
+                } else {
+                  downloadFile(dataUrl, `${safeName}.svg`, 'image/svg+xml');
+                  toast.success('Exported SVG instead', { description: 'PNG rasterization was blocked; exported SVG.' });
+                }
               }}>PNG</ContextMenuItem>
               <ContextMenuItem onClick={() => {
                 const svg = exportSvg(shapes, { frameId: isContainerNode ? shape.id : undefined });

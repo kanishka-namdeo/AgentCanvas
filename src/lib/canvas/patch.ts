@@ -193,15 +193,25 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
     case 'duplicate': {
       const ids = new Set(patch.shapeIds ?? []);
       for (const id of ids) {
-        const node = findNode(next.children, id);
-        if (node) {
-          const clone = deepCloneNode(node, true);
-          // Offset the clone so it doesn't overlap.
-          (clone as any).x = num((clone as any).x, 0) + 24;
-          (clone as any).y = num((clone as any).y, 0) + 24;
-          (clone as any).name = `${(clone as any).name ?? 'Shape'} copy`;
-          next.children = insertNode(next.children, clone, (node as any).parentId ?? null);
-        }
+        const found = findNodeArray(next.children, id);
+        if (!found) continue;
+        const node = found.array[found.index];
+        const clone = deepCloneNode(node, true);
+        // The clone stays in the ORIGINAL's parent (findNodeArray gives the
+        // real tree parent — .pen nodes don't store parentId, the old
+        // `(node as any).parentId` read was always undefined and teleported
+        // nested duplicates to root, where their RELATIVE coords were
+        // reinterpreted as absolute).
+        const parentId = found.parent?.id ?? null;
+        // Offset the clone by 24px in ABSOLUTE space, expressed back in the
+        // parent's coordinate system so the clone renders next to the
+        // original regardless of nesting depth.
+        const abs = getAbsolutePosition(next.children, id);
+        const parentAbs = parentId ? getAbsolutePosition(next.children, parentId) : { x: 0, y: 0 };
+        (clone as any).x = abs.x + 24 - parentAbs.x;
+        (clone as any).y = abs.y + 24 - parentAbs.y;
+        (clone as any).name = `${(node as any).name ?? 'Shape'} copy`;
+        next.children = insertNode(next.children, clone, parentId);
       }
       break;
     }
@@ -226,21 +236,38 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       const minY = Math.min(...targets.map((s) => s.y));
       const maxX = Math.max(...targets.map((s) => s.x + s.width));
       const maxY = Math.max(...targets.map((s) => s.y + s.height));
+      // Figma semantics: the group is created inside the targets' COMMON
+      // parent when they share one (grouping two layers inside a frame keeps
+      // the group inside that frame), otherwise at root.
+      const parentIds = new Set(targets.map((s) => s.parentId ?? null));
+      const groupParentId = parentIds.size === 1 ? [...parentIds][0] : null;
+      const parentAbs = groupParentId ? getAbsolutePosition(next.children, groupParentId) : { x: 0, y: 0 };
       const groupId = patch.groupId ?? newId();
       const groupNode: PenChild = {
         id: groupId,
         type: 'group',
         name: 'Group',
-        x: minX,
-        y: minY,
+        // Stored RELATIVE to the group's parent.
+        x: minX - parentAbs.x,
+        y: minY - parentAbs.y,
         width: maxX - minX,
         height: maxY - minY,
         children: [],
       } as PenChild;
-      // Insert the group at root FIRST, then move each target under it.
+      // Insert the group FIRST, then move each target under it.
       // (moveNode needs the group to exist in the tree to find it as a parent.)
-      next.children = insertNode(next.children, groupNode, null);
+      next.children = insertNode(next.children, groupNode, groupParentId);
       for (const id of ids) {
+        // COORDINATE REMAP: the child's stored x/y is relative to its OLD
+        // parent; re-express it relative to the GROUP (whose absolute origin
+        // is minX/minY) so the child does not visually jump by the group's
+        // position. Without this, grouped children rendered displaced by
+        // (minX, minY) — see tests/unit/patch-edge-bugs.test.ts.
+        const abs = getAbsolutePosition(next.children, id);
+        next.children = updateNode(next.children, id, {
+          x: abs.x - minX,
+          y: abs.y - minY,
+        } as Partial<PenChild>);
         next.children = moveNode(next.children, id, groupId);
       }
       break;
@@ -328,8 +355,13 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       for (const u of updates) {
         const node = findNode(next.children, u.id);
         if (node) {
-          if (u.newX !== undefined) (node as any).x = u.newX;
-          if (u.newY !== undefined) (node as any).y = u.newY;
+          // The computed newX/newY are ABSOLUTE (resolvePenTree returns
+          // absolute positions), but stored node.x/y are RELATIVE to the
+          // parent. Convert before writing, or nested targets jump by their
+          // parent's offset — see tests/unit/patch-edge-bugs.test.ts.
+          const off = getAncestorOffset(next.children, u.id);
+          if (u.newX !== undefined) (node as any).x = u.newX - off.x;
+          if (u.newY !== undefined) (node as any).y = u.newY - off.y;
         }
       }
       break;
