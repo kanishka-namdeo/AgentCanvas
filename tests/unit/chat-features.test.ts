@@ -6,7 +6,12 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { suggestFollowUps, type FollowUpContext } from '../../src/lib/agent/followups';
-import { matchCommands, resolveCommand, CHAT_COMMANDS } from '../../src/lib/agent/chat-commands';
+import {
+  matchCommands,
+  resolveCommand,
+  parseCommandInput,
+  CHAT_COMMANDS,
+} from '../../src/lib/agent/chat-commands';
 import {
   pushPromptHistory,
   getPromptHistory,
@@ -127,6 +132,53 @@ describe('resolveCommand', () => {
     const r = resolveCommand('/ex', cmd);
     expect(r!.command.cmd).toBe('/export-svg');
     expect(r!.args).toBe('');
+  });
+});
+
+describe('parseCommandInput (submit-time resolution)', () => {
+  it('plain text is not a command', () => {
+    expect(parseCommandInput('design a login screen')).toEqual({ kind: 'none' });
+    expect(parseCommandInput('')).toEqual({ kind: 'none' });
+  });
+
+  it('bare "/" is its own kind (menu open, nothing runnable)', () => {
+    expect(parseCommandInput('/')).toEqual({ kind: 'bare' });
+    expect(parseCommandInput('  /  ')).toEqual({ kind: 'bare' });
+  });
+
+  it('fully-typed command with NO args resolves exactly', () => {
+    const r = parseCommandInput('/clear');
+    expect(r).toEqual({ kind: 'exact', command: CHAT_COMMANDS.find((c) => c.cmd === '/clear'), args: '' });
+  });
+
+  it('BUGFIX: fully-typed command WITH args resolves exactly (was rejected as unknown)', () => {
+    const r = parseCommandInput('/audit focus on contrast');
+    expect(r.kind).toBe('exact');
+    if (r.kind === 'exact') {
+      expect(r.command.cmd).toBe('/audit');
+      expect(r.command.kind).toBe('prompt');
+      expect(r.args).toBe('focus on contrast');
+    }
+  });
+
+  it('an exact command wins over prefix candidates', () => {
+    // '/copy' is exact even though '/clear' would… not match, but proves ordering.
+    const r = parseCommandInput('/copy');
+    expect(r.kind).toBe('exact');
+  });
+
+  it('untyped prefix yields candidates for the highlighted menu item', () => {
+    const r = parseCommandInput('/ex');
+    expect(r.kind).toBe('candidates');
+    if (r.kind === 'candidates') {
+      expect(r.commands.map((c) => c.cmd)).toEqual(['/export-svg', '/export-png', '/export-json']);
+    }
+  });
+
+  it('unknown slash input is flagged (not silently a prompt)', () => {
+    expect(parseCommandInput('/definitely-not-a-command')).toEqual({ kind: 'unknown' });
+    // with args too
+    expect(parseCommandInput('/nope some args')).toEqual({ kind: 'unknown' });
   });
 });
 

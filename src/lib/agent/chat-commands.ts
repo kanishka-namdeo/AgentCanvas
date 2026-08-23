@@ -58,6 +58,9 @@ export function matchCommands(input: string): ChatCommand[] {
   return [...starts, ...contains];
 }
 
+/// Max commands rendered in the autocomplete menu at once.
+export const COMMAND_MENU_LIMIT = 8;
+
 /// Resolve input + selected command into an execution plan.
 /// Returns null when input isn't a command.
 export function resolveCommand(input: string, selected: ChatCommand): { command: ChatCommand; args: string } | null {
@@ -68,4 +71,38 @@ export function resolveCommand(input: string, selected: ChatCommand): { command:
   const rest = trimmed.startsWith(selected.cmd) ? trimmed.slice(selected.cmd.length) : '';
   const args = rest.replace(/^\s+/, '');
   return { command: selected, args };
+}
+
+/// Parse raw input into a command execution decision. This is the single
+/// source of truth for submit-time command resolution — the UI must NOT
+/// re-derive it (previous inline logic rejected fully-typed commands with
+/// arguments, e.g. `/audit focus on contrast`, because matchCommands hides
+/// once a space is present).
+///
+///   'hello'                       → { kind: 'none' }     (plain prompt)
+///   '/'                           → { kind: 'bare' }     (menu open, nothing to run)
+///   '/clear'                      → { kind: 'exact', args: '' }
+///   '/audit fix contrast'         → { kind: 'exact', args: 'fix contrast' }
+///   '/cl'                         → { kind: 'candidates', commands: [/clear] }
+///   '/nope'                       → { kind: 'unknown' }
+export type ParsedCommandInput =
+  | { kind: 'none' }
+  | { kind: 'bare' }
+  | { kind: 'unknown' }
+  | { kind: 'exact'; command: ChatCommand; args: string }
+  | { kind: 'candidates'; commands: ChatCommand[] };
+
+export function parseCommandInput(input: string): ParsedCommandInput {
+  const trimmed = input.trim();
+  if (!trimmed.startsWith('/')) return { kind: 'none' };
+  if (trimmed === '/') return { kind: 'bare' };
+  const firstToken = trimmed.split(/\s+/)[0];
+  // Fully-typed command (with or without arguments) wins over autocomplete.
+  const exact = CHAT_COMMANDS.find((c) => c.cmd === firstToken);
+  if (exact) {
+    return { kind: 'exact', command: exact, args: trimmed.slice(firstToken.length).trim() };
+  }
+  const candidates = matchCommands(trimmed);
+  if (candidates.length > 0) return { kind: 'candidates', commands: candidates };
+  return { kind: 'unknown' };
 }

@@ -40,7 +40,10 @@ import { toast } from 'sonner';
 import { PluginUI } from './PluginUI';
 import { MarkdownMessage } from './Markdown';
 import { suggestFollowUps } from '@/lib/agent/followups';
-import { matchCommands, resolveCommand, type ChatCommand } from '@/lib/agent/chat-commands';
+import {
+  matchCommands, resolveCommand, parseCommandInput, COMMAND_MENU_LIMIT,
+  type ChatCommand,
+} from '@/lib/agent/chat-commands';
 import { pushPromptHistory, navigateHistory } from '@/lib/agent/prompt-history';
 import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl } from '@/lib/canvas/export';
 import {
@@ -153,15 +156,24 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const select = useCanvasStore((s) => s.select);
 
   const matchingCommands = useMemo(
-    () => (cmdDismissed ? [] : matchCommands(input)),
+    // Cap = rendered window, so navigation can never outrun the highlight.
+    // (Bug fix: previously all 13 matches were navigable but only 8 rendered —
+    // ArrowDown past index 7 selected invisible items.)
+    () => (cmdDismissed ? [] : matchCommands(input).slice(0, COMMAND_MENU_LIMIT)),
     [input, cmdDismissed],
   );
   const cmdMenuOpen = matchingCommands.length > 0;
   // NOTE: cmdIndex is range-clamped at every read site (Math.min against the
-  // filtered length) instead of via an effect — avoids cascading renders.
+  // visible-list length) instead of via an effect — avoids cascading renders.
 
   /// Execute a resolved slash command.
   const executeCommand = (cmd: ChatCommand, args: string) => {
+    // Guard: the textarea is disabled while the agent runs, but a menu click
+    // can still land mid-turn — refuse instead of mutating under the agent.
+    if (agentBusy) {
+      toast.error('Agent is busy', { description: 'Wait for the current turn to finish.' });
+      return;
+    }
     if (cmd.kind === 'prompt') {
       const prompt = args ? `${cmd.run} ${args}` : cmd.run;
       pushPromptHistory(prompt);
@@ -239,29 +251,53 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const submit = () => {
     const text = input.trim();
     if (!text || agentBusy) return;
-    // Slash command? Execute the selected match instead of prompting.
     if (text.startsWith('/')) {
-      const cmds = matchCommands(text);
-      const selected = cmds[Math.min(cmdIndex, Math.max(0, cmds.length - 1))];
-      if (selected) {
-        const resolved = resolveCommand(text, selected);
-        if (resolved) {
-          executeCommand(resolved.command, resolved.args);
-          setInput('');
-          setHistoryCursor(-1);
-          setCmdIndex(0);
-          setCmdDismissed(false);
+      // Single source of truth for command resolution (chat-commands.ts).
+      // (Bug fix: the previous inline logic re-called matchCommands, which
+      // returns [] once a space is present — fully-typed commands with
+      // arguments like `/audit focus on contrast` were rejected as
+      // "Unknown command".)
+      const parsed = parseCommandInput(text);
+      const resetInput = () => {
+        setInput('');
+        setHistoryCursor(-1);
+        setCmdIndex(0);
+        setCmdDismissed(false);
+      };
+      switch (parsed.kind) {
+        case 'none':
+          break; // unreachable (starts with '/'), handled below
+        case 'bare':
+          // Bare '/' + Enter: menu is open but nothing is confirmed — a
+          // no-op. (Bug fix: this used to execute the first menu item and
+          // CLEARED THE CANVAS on a stray Enter.)
           return;
+        case 'exact':
+          executeCommand(parsed.command, parsed.args);
+          resetInput();
+          return;
+        case 'candidates': {
+          // Autocomplete prefix (e.g. '/cl') — run the highlighted candidate.
+          const selected = parsed.commands[Math.min(cmdIndex, parsed.commands.length - 1)];
+          const resolved = resolveCommand(text, selected);
+          if (resolved) {
+            executeCommand(resolved.command, resolved.args);
+            resetInput();
+            return;
+          }
+          break;
         }
-      } else {
-        toast.error(`Unknown command: ${text.split(' ')[0]}`, { description: 'Type / to browse commands.' });
-        return;
+        case 'unknown':
+          toast.error(`Unknown command: ${text.split(' ')[0]}`, { description: 'Type / to browse commands.' });
+          return;
       }
     }
     pushPromptHistory(text);
     promptAgent(text);
     setInput('');
     setHistoryCursor(-1);
+    setCmdIndex(0);
+    setCmdDismissed(false);
   };
 
   const activePrompts = PROMPT_GROUPS.find((g) => g.id === activeGroup)?.prompts ?? [];
@@ -399,13 +435,18 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               </div>
             </div>
           )}
-          {turns.map((turn, i) => (
-            <TurnBubble key={turn.id} turn={turn} isLast={i === turns.length - 1} />
+          {turns.map((turn) => (
+            <TurnBubble key={turn.id} turn={turn} />
           ))}
           {/* Follow-up suggestions — shown after the LAST completed assistant
               turn while idle (v0 / Lovable “what next?” pattern). Contextual:
-              derived from the turn's tool trajectory + current canvas. */}
-          {!agentBusy && turns.length >= 2 && turns[turns.length - 1].role === 'assistant' && !turns[turns.length - 1].streaming && (
+              derived from the turn's tool trajectory + current canvas. Hidden
+              on errored turns — suggesting next steps after a failure is noise. */}
+          {!agentBusy &&
+            turns.length >= 2 &&
+            turns[turns.length - 1].role === 'assistant' &&
+            !turns[turns.length - 1].streaming &&
+            !turns[turns.length - 1].error && (
             <FollowUps turn={turns[turns.length - 1]} />
           )}
           {agentBusy && (
@@ -439,19 +480,33 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
         {/* Slash-command autocomplete — floats above the textarea. */}
         {cmdMenuOpen && (
           <div className="mb-1.5 rounded-lg border ac-border-default ac-surface-0 shadow-lg overflow-hidden" role="listbox" aria-label="Slash commands">
-            {matchingCommands.slice(0, 8).map((c, i) => {
+            {matchingCommands.map((c, i) => {
               const isSel = i === Math.min(cmdIndex, matchingCommands.length - 1);
               return (
                 <button
                   key={c.cmd}
                   role="option"
                   aria-selected={isSel}
+                  disabled={agentBusy}
                   onClick={() => {
-                    setInput(c.cmd + ' ');
-                    inputRef.current?.focus();
+                    // Action commands run immediately on click. Prompt commands
+                    // fill the input with `/cmd ` so the user can add arguments
+                    // (or press Enter to send as-is). (Bug fix: previously a
+                    // click only filled the input for BOTH kinds — action
+                    // commands needed a second Enter.)
+                    if (c.kind === 'action' && !c.args) {
+                      executeCommand(c, '');
+                      setInput('');
+                      setCmdIndex(0);
+                      setCmdDismissed(false);
+                    } else {
+                      setInput(c.cmd + ' ');
+                      setCmdIndex(i);
+                      inputRef.current?.focus();
+                    }
                   }}
                   onMouseEnter={() => setCmdIndex(i)}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left ac-transition border-l-2 ${
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left ac-transition border-l-2 disabled:opacity-50 ${
                     isSel ? 'ac-surface-1 ac-border-l-[color:var(--ac-accent)]' : 'ac-border-transparent'
                   }`}
                 >
@@ -554,7 +609,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   );
 }
 
-function TurnBubble({ turn, isLast = false }: { turn: ReturnType<typeof useCanvasStore.getState>['turns'][number]; isLast?: boolean }) {
+function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>['turns'][number] }) {
   const forkActiveSession = useCanvasStore((s) => s.forkActiveSession);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
