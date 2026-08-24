@@ -644,6 +644,18 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
         text: mapTextContent(n),
         fontSize: num((n as any).fontSize, 16),
         textColor: resolveSolidColor(fills, vars, theme),
+        // Typography fields (from PenTextStyle on text/note/context/prompt
+        // nodes). Previously dropped here, so the SVG renderer couldn't apply
+        // weight / spacing / alignment even when the AI specified them via
+        // pen_create_shape. Pass them through verbatim (with safe coercion)
+        // so ShapeRenderer can apply them.
+        fontWeight: (n as any).fontWeight !== undefined ? num((n as any).fontWeight, 400) : undefined,
+        fontFamily: (n as any).fontFamily !== undefined ? String((n as any).fontFamily) : undefined,
+        letterSpacing: (n as any).letterSpacing !== undefined ? num((n as any).letterSpacing, 0) : undefined,
+        lineHeight: (n as any).lineHeight !== undefined ? num((n as any).lineHeight, 1.4) : undefined,
+        textAlign: (n as any).textAlign,
+        underline: (n as any).underline === true ? true : undefined,
+        strikethrough: (n as any).strikethrough === true ? true : undefined,
         parentId,
         zIndex: zIndex++,
         locked: (n as any).locked ?? false,

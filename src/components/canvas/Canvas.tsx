@@ -868,16 +868,56 @@ export function ShapeRenderer({
       break;
     }
     case 'text': {
+      // Apply the typography fields the AI specified (or that were resolved
+      // from .pen PenTextStyle). Previously the renderer hard-coded
+      // fontFamily="Inter, system-ui, sans-serif" and applied NO weight,
+      // letter-spacing, line-height, or text-anchor — so every text layer
+      // rendered at default 400 weight, left-aligned, with no spacing,
+      // regardless of what the system prompt told the AI to specify.
+      // Now: fontWeight, letterSpacing, lineHeight, textAlign are honored.
+      // Font family resolves to the shape's own fontFamily, else the
+      // --font-inter CSS var (loaded in layout.tsx), else the OS fallback
+      // chain. textAnchor + x offset pick up textAlign so centered titles
+      // actually center inside their bounding box.
+      const ta = shape.textAlign ?? 'left';
+      const anchor = ta === 'center' ? 'middle' : ta === 'right' ? 'end' : 'start';
+      // x for centered text = horizontal midpoint of the layer; for left
+      // text = layer's left edge; for right text = layer's right edge.
+      const tx = ta === 'center' ? shape.x + shape.width / 2
+                : ta === 'right'  ? shape.x + shape.width
+                : shape.x;
+      const fontFamily = shape.fontFamily
+        ? `${shape.fontFamily}, var(--font-inter), system-ui, sans-serif`
+        : 'var(--font-inter), Inter, system-ui, sans-serif';
+      const decoration = shape.underline && shape.strikethrough
+        ? 'underline line-through'
+        : shape.underline ? 'underline'
+        : shape.strikethrough ? 'line-through'
+        : undefined;
+      // lineHeight is a CSS property (not an SVG attribute), so pass via style.
+      // Merge with commonProps.style (pointerEvents/cursor) — commonProps is
+      // spread last below, so we have to fold our text style into it.
+      const textStyle: React.CSSProperties = shape.lineHeight !== undefined
+        ? { lineHeight: String(shape.lineHeight) }
+        : {};
+      const mergedCommonProps = {
+        ...commonProps,
+        style: { pointerEvents: 'auto' as const, cursor: 'move' as const, ...textStyle },
+      };
       element = (
         <>
           {filterDef}
           <text
-            x={shape.x}
+            x={tx}
             y={shape.y + shape.fontSize}
             fontSize={shape.fontSize}
+            fontWeight={shape.fontWeight ?? 400}
+            letterSpacing={shape.letterSpacing ?? undefined}
+            textAnchor={anchor}
+            textDecoration={decoration}
             fill={shape.textColor}
-            fontFamily="Inter, system-ui, sans-serif"
-            {...commonProps}
+            fontFamily={fontFamily}
+            {...mergedCommonProps}
           >
             {shape.text}
           </text>

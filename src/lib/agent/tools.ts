@@ -117,6 +117,13 @@ const ShapeInputSchema = Type.Object({
   radius: Type.Optional(Type.Number({ description: 'Border radius in px (rectangle/frame)' })),
   text: Type.Optional(Type.String({ description: 'Text content (type=text only)' })),
   fontSize: Type.Optional(Type.Number({ description: 'Font size for text shapes' })),
+  fontWeight: Type.Optional(Type.Number({ description: 'Font weight 100..900 (default 400). The system prompt asks for 400/500/600/700 — body 400, labels 500, section heads 600, page titles 700.' })),
+  fontFamily: Type.Optional(Type.String({ description: 'Font family CSS string. Default "Inter, system-ui, sans-serif" (Inter is loaded via next/font). Pass e.g. "Inter" or "Geist" to override.' })),
+  letterSpacing: Type.Optional(Type.Number({ description: 'Letter spacing in px (can be negative for tightening, e.g. -0.4 for headings).' })),
+  lineHeight: Type.Optional(Type.Number({ description: 'Line height as a unitless ratio (e.g. 1.6 for body, 1.25 for headings).' })),
+  textAlign: Type.Optional(Type.Union([Type.Literal('left'), Type.Literal('center'), Type.Literal('right'), Type.Literal('justify')], { description: 'Horizontal text alignment within the layer bounds. center for titles/buttons, right for numbers/dates, left for body.' })),
+  underline: Type.Optional(Type.Boolean({ description: 'Underline decoration (links).' })),
+  strikethrough: Type.Optional(Type.Boolean({ description: 'Strikethrough decoration.' })),
   textColor: Type.Optional(Type.String({ description: 'Text color hex' })),
   // Phase 5 extended fields:
   src: Type.Optional(Type.String({ description: 'Image source URL (data URL or remote) — type=image only' })),
@@ -202,6 +209,17 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
   if (params.text !== undefined) out.text = String(params.text);
   if (params.fontSize !== undefined) out.fontSize = Number(params.fontSize) || 16;
   if (params.textColor !== undefined) out.textColor = String(params.textColor);
+  // Typography fields (passed through to the .pen node via patch.ts and
+  // applied by the SVG renderer). Without these, the system prompt's
+  // weight/alignment instructions were silently dropped — the AI could
+  // not actually specify a heading weight or a centered title.
+  if ((params as any).fontWeight !== undefined) out.fontWeight = Number((params as any).fontWeight) || 400;
+  if ((params as any).fontFamily !== undefined) out.fontFamily = String((params as any).fontFamily);
+  if ((params as any).letterSpacing !== undefined) out.letterSpacing = Number((params as any).letterSpacing) || 0;
+  if ((params as any).lineHeight !== undefined) out.lineHeight = Number((params as any).lineHeight) || 1.4;
+  if ((params as any).textAlign !== undefined) out.textAlign = (params as any).textAlign;
+  if ((params as any).underline !== undefined) out.underline = !!(params as any).underline;
+  if ((params as any).strikethrough !== undefined) out.strikethrough = !!(params as any).strikethrough;
   // Phase 5 extended fields:
   if ((params as any).src !== undefined) out.src = String((params as any).src);
   if ((params as any).closed !== undefined) out.closed = !!(params as any).closed;

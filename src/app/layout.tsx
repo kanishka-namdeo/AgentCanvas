@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -12,6 +12,19 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Inter is the typeface the AI agent's system prompt instructs it to use for
+// all canvas text layers ("Font: Inter / system-ui sans-serif" in
+// SYSTEM_PROMPT_TEMPLATE). Without it loaded, every <text> element in the SVG
+// canvas falls back to the OS default sans-serif (San Francisco on macOS,
+// Segoe UI on Windows) — inconsistent with the app chrome (Geist) and never
+// the designer-grade font the prompt promised. Exposing it as --font-inter
+// lets the SVG ShapeRenderer pick it up via fontFamily="var(--font-inter)".
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -33,7 +46,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased bg-background text-foreground`}
       >
         {children}
         <Toaster />
