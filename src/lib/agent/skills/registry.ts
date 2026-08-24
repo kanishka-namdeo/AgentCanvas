@@ -457,6 +457,11 @@ After calling the tool(s), summarize the findings clearly for the user:
 The task is complete when you've reported the information the user asked for. Typically 1-2
 tool calls. Do NOT make changes — if the user wants fixes, they'll ask in a follow-up.`,
     allowedTools: [
+      // Task 7-g Fix 3 — read-only analysis skill still receives gated tools via
+      // CORE_TOOL_NAMES (pen_create_shape) + PEN_TOOL_NAMES (pen_set_variable) in
+      // the runner's allowedToolNames union, so pen_generate_design_brief must be
+      // present for the brief-first recovery path (Task 7-f regression).
+      'pen_generate_design_brief',
       'pen_list_shapes',
       'pen_find_shapes',
       'pen_audit_design',
@@ -503,6 +508,11 @@ After calling the tool, present the result to the user:
 The task is complete when the exported content has been generated and presented. Typically
 1 tool call. Do NOT modify the canvas — export is read-only.`,
     allowedTools: [
+      // Task 7-g Fix 3 — export skill still receives gated tools via
+      // CORE_TOOL_NAMES (pen_create_shape) + PEN_TOOL_NAMES (pen_set_variable) in
+      // the runner's allowedToolNames union, so pen_generate_design_brief must be
+      // present for the brief-first recovery path (Task 7-f regression).
+      'pen_generate_design_brief',
       'pen_export_json',
       'pen_export_svg',
       'pen_export_png',
@@ -558,6 +568,11 @@ The task is complete when you've found and reported the information the user ask
 Typically 2-4 tool calls (1-2 searches + 1-2 fetches). Do NOT fetch more than 3-4 pages —
 synthesize from what you have.`,
     allowedTools: [
+      // Task 7-g Fix 3 — research skill still receives gated tools via
+      // CORE_TOOL_NAMES (pen_create_shape) + PEN_TOOL_NAMES (pen_set_variable) in
+      // the runner's allowedToolNames union, so pen_generate_design_brief must be
+      // present for the brief-first recovery path (Task 7-f regression).
+      'pen_generate_design_brief',
       'web_search',
       'web_fetch',
     ],
