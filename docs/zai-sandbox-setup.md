@@ -75,6 +75,34 @@ are needed out of the box. `z-ai-web-dev-sdk` auto-resolves credentials inside
 the sandbox as a fallback for the `zai` provider — still no
 `ZAI_API_KEY` / `OPENAI_API_KEY` needed for that path.
 
+**Automatic z.ai sandbox fallback (resilience):** when the configured endpoint
+is unreachable (network error, HTTP 5xx/429, 401/403, OR a 200 response with
+empty content + no tool calls), the runner automatically retries the SAME turn
+ONCE using `ZAI.create()` with model `glm-5.3`. This means agent turns SUCCEED
+even when the pinggy tunnel is down — the user gets resilient LLM access via
+the z.ai sandbox as the default fallback. Bounded to ONE retry per turn;
+skipped when the configured provider is already `zai`; skipped with a warn
+when `ZAI.create()` reports no sandbox creds (i.e. running outside the z.ai
+sandbox). Two layers cooperate:
+
+1. **Preflight** (`src/lib/agent/pi-ai-model-resolver.ts`): a 4s GET against
+   `${baseUrl}/models` BEFORE the session is created. Cached 60s per
+   (baseUrl, apiKeyPrefix). On network error or non-2xx, the resolver returns
+   a z.ai-sandbox-resolved `glm-5.3` Model with `usedFallback=true` instead of
+   the synthetic custom Model.
+2. **Reactive fallback** (`src/lib/agent/runner-native.ts`): if the preflight
+   passed but the turn still produced zero `message_delta` AND zero
+   `tool_call_start` events (e.g. the endpoint returned an empty 200 body),
+   the runner re-creates the AgentSession with a fresh z.ai-sandbox Model and
+   re-runs the turn. Bounded by `ResolvedModel.usedFallback` — if the
+   preflight already swapped, the runner does NOT retry again.
+
+Both layers emit `console.warn('[llm-fallback] …')` server-side when they
+trigger. Verify the fallback fires via `scripts/endpoint-switch-verify.sh`
+(the API-SMOKE step counts `message_delta` + `tool_call_start` events — with
+the fallback in place, the smoke test passes even when the pinggy tunnel is
+dead).
+
 ---
 
 ## One-shot setup (fresh sandbox)

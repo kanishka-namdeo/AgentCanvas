@@ -29,6 +29,23 @@ log "=================================================="
 log "=== START $(stamp) ==="
 log "=================================================="
 
+# ---- (a) DB setup: generate Prisma client --------------------------------
+# The /api/sessions route imports src/lib/db.ts, which imports
+# @prisma/client, which requires the generated client at
+# node_modules/.prisma/client/default. If that's missing (e.g. after a
+# fresh `bun install` that didn't run `prisma generate`), every GET
+# /api/sessions returns HTTP 500 with
+# "Cannot find module '.prisma/client/default'". Regenerating the client
+# here ensures the dev server's turbopack picks up the files on the next
+# request — fixing the 500 without needing to restart the dev server.
+log ""
+log "--- DB-SETUP: bun run db:generate (prisma generate) ---"
+if timeout 120 bun run db:generate >> "$LOG" 2>&1; then
+  log "DB-SETUP: PASS"
+else
+  log "DB-SETUP: FAIL (exit $? — see output above)"
+fi
+
 # ---- (b) Health: dev server up? -------------------------------------------
 HC=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' http://localhost:3000 || true)
 log "HEALTH: GET / -> ${HC:-000}"

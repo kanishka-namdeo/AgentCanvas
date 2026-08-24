@@ -62,6 +62,7 @@ import { createPenTools, PEN_TOOL_NAMES } from './pen-tools';
 import { createFigmaTools, FIGMA_TOOL_NAMES } from './figma-tools';
 import type { CanvasDocument, CanvasPatch } from '../canvas/types';
 import type { AgentRunSettings } from '../settings/types';
+import { normalizeLLMProvider, DEFAULT_SETTINGS } from '../settings/types';
 import { applyPatchToCanvas } from '../canvas/patch';
 import { classifyIntent } from './classifier';
 import { generatePlan, formatPlanForPrompt } from './planner';
@@ -74,7 +75,7 @@ import {
   type ClassificationResult,
   type Plan,
 } from './skills';
-import { resolveModel } from './pi-ai-model-resolver';
+import { resolveModel, resolveZaiSandboxFallback } from './pi-ai-model-resolver';
 import { subscribeAndTranslate } from './agent-session-translator';
 import type { AgentStreamEvent, AgentRunOptions } from './runner-types';
 import {
@@ -403,206 +404,285 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // 10. Build the stub resource loader with our pre-built system prompt.
   const resourceLoader = buildResourceLoader(systemContent);
 
-  // 11. Construct the AgentSession.
-  //     - noTools: 'all' → disable all built-in coding tools (bash, read, edit, write).
-  //     - customTools: our 88 canvas tools.
-  //     - tools: allowlist of the active skill's tool names → only those
-  //              are visible to the LLM (mirrors the legacy runner's filterToolSpecs).
-  //     - sessionManager: in-memory (we don't want file-based session journaling;
-  //                       AgentCanvas has its own Zustand+localStorage session store).
-  //     - settingsManager: in-memory with auto-compaction disabled (we have
-  //                       our own context-manager; we don't want the SDK
-  //                       compacting mid-turn without our translator knowing).
-  //                       Re-enable later if we want native auto-compaction.
-  let session: AgentSession | undefined;
-  try {
-    const result = await createAgentSession({
-      cwd: process.cwd(),
-      model: model.model,
-      modelRuntime: model.modelRuntime,
-      thinkingLevel: mapThinkingLevel(thinkingLevel),
-      noTools: 'all',
-      customTools: filteredTools,
-      tools: filteredTools.map((t) => t.name),
-      resourceLoader,
-      sessionManager: SessionManager.inMemory(process.cwd()),
-      settingsManager: SettingsManager.inMemory({
-        // Disable auto-compaction for now — our context-manager.ts already
-        // handles truncation, and enabling SDK compaction would emit
-        // compaction_start/end events that the UI doesn't yet render
-        // meaningfully. Re-enable when we're ready to surface "Compacting…"
-        // as a proper UI state.
-        compaction: { enabled: false },
-        retry: { enabled: true, maxRetries: 2 },
-      } as any),
-    });
-    session = result.session;
-  } catch (err: any) {
-    yield {
-      kind: 'agent_event',
-      event: { type: 'agent:error', message: `Failed to create agent session: ${err.message}` },
-    };
-    yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
-    return;
-  }
-
-  // 12. Subscribe to AgentSessionEvents via the translator. The translator
-  //     pushes AgentStreamEvents onto an async queue; we drain it below.
-  const { queue, unsubscribe } = subscribeAndTranslate((listener) =>
-    session!.subscribe(listener),
+  // ---- Reactive z.ai sandbox fallback --------------------------------------
+  //
+  // The resolver's preflight (in `pi-ai-model-resolver.ts`) catches the
+  // dead-endpoint case BEFORE the session is created — it swaps the model
+  // to a z.ai-sandbox-resolved `glm-5.3` and marks `model.usedFallback=true`.
+  //
+  // But the preflight can't catch a turn that completes with HTTP 200 + an
+  // EMPTY body (no text, no tool calls). For that case, the runner re-runs
+  // the turn ONCE against a freshly-resolved z.ai-sandbox model. Bounded:
+  //   - `attempt < 2` (at most one retry per turn).
+  //   - `!currentModel.usedFallback` (skip if the resolver already swapped).
+  //   - `providerId !== 'zai'` (no point falling back to the same provider).
+  //   - `!sawActivity` (only retry if the previous attempt produced zero
+  //     user-visible output — no `message_delta`, no `tool_call_start`).
+  //
+  // The cumulative `everSaw*` flags track closing events across ALL attempts
+  // so the defensive tail after the loop doesn't double-emit. The `last*`
+  // flags reflect the FINAL attempt and drive the silent-failure guard.
+  const providerId = normalizeLLMProvider(
+    settings?.llmProvider ?? DEFAULT_SETTINGS.llmProvider,
   );
 
-  // 12b. Set per-turn plugin state.
-  //      - Event sink: lets plugin tools emit SyncEvents through the same
-  //        stream the runner uses (so ask_user_question, todo, mcp, etc.
-  //        can fire UI events mid-turn).
-  //      - Active session: lets the todo + goal-list + background-tasks
-  //        plugins track per-session state.
-  //      - Active LLM + canvas: lets the subagents plugin pass these to
-  //        its dispatched sub-agents.
-  const restoreEventSink = setEventSink((event) => {
-    queue.push([{ kind: 'agent_event', event }]);
-  });
-  const sessionId = opts.documentId ?? `session-${Date.now()}`;
-  setTodoActiveSession(sessionId);
-  setGoalActiveSession(sessionId);
-  setBackgroundTaskActiveSession(sessionId);
-  setSubagentActiveLLM(subAgentLLM ?? null);
-  setSubagentActiveCanvas(canvas);
-
-  // 13. Build the user message. If we have a web-research summary, inject
-  //     it as context (identical to legacy runner).
+  // 11. Build the user message. If we have a web-research summary, inject
+  //     it as context (identical to legacy runner). Done once per turn
+  //     (outside the attempt loop) — the user prompt doesn't change between
+  //     attempts.
   const userMessage = webResearchSummary
     ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${prompt}`
     : prompt;
 
-  // 14. Drain events from the queue while the prompt is running. We use
-  //     a race between `session.prompt()` (which resolves when the turn
-  //     completes) and the queue's async iterator (which yields events as
-  //     they arrive). When prompt() resolves, we close the queue and drain
-  //     any remaining buffered events.
-  //
-  //     Track which closing events the translator emitted so the defensive
-  //     tail emission after the finally block doesn't duplicate them
-  //     (previously BOTH were emitted unconditionally — every successful
-  //     turn ended with a doubled agent:message_end + agent:turn_end, which
-  //     fanned out to all viewers via canvas-sync and double-triggered run
-  //     finalization).
-  let sawMessageEnd = false;
-  let sawTurnEnd = false;
-  // Track whether the turn produced ANY observable output. A turn that ends
-  // with zero text deltas, zero thinking deltas, and zero tool calls means
-  // every LLM attempt failed (most commonly provider rate-limiting — HTTP 429
-  // — or a transient outage). The SDK resolves prompt() without throwing in
-  // this case, so without this check the user sees an empty response and no
-  // error (silent failure). We surface it explicitly below.
-  let sawActivity = false;
-  let sawErrorEvent = false;
-  // Hoisted so the post-finally silent-failure guard can read it (a rejected
-  // prompt() is assigned by the .catch handler inside the try block).
-  let promptError: any = undefined;
-  try {
-    // Kick off the prompt — don't await yet.
-    const promptPromise = session.prompt(userMessage, {
-      // Disable prompt-template expansion — we built the system prompt
-      // ourselves and don't want pi to expand `/skill:foo` commands.
-      expandPromptTemplates: false,
-    });
+  const sessionId = opts.documentId ?? `session-${Date.now()}`;
 
-    // Drain events as they arrive. The queue's drain() async iterator
-    // yields events until close() is called AND the buffer is empty.
-    // We race it against promptPromise so that when prompt() resolves,
-    // we close the queue and drain any remaining events.
-    promptPromise.catch((err) => {
-      promptError = err;
-      queue.close();
-    });
+  let didFallback = false;
+  let everSawMessageEnd = false;
+  let everSawTurnEnd = false;
+  let lastSawActivity = false;
+  let lastSawErrorEvent = false;
+  let lastPromptError: any = undefined;
+  let currentModel = model;
 
-    // Iterate the queue. If prompt() resolves before the queue is drained,
-    // we wait for the queue to finish. If prompt() throws, we close the
-    // queue and surface the error.
-    // We use a settled-flag pattern: when promptPromise resolves, we mark
-    // settled=true and let the queue drain naturally (the SDK emits
-    // `agent_end` as the last event, which the translator turns into
-    // `agent:turn_end` — so the queue will close itself when the SDK is
-    // done).
-    let settled = false;
-    void promptPromise.then(() => {
-      settled = true;
-      // Don't close the queue yet — the SDK might still be emitting final
-      // events (agent_end, message_end). Give it a microtask to flush.
-      // The translator will have processed everything by the time
-      // prompt() resolves, but defensively wait one tick.
-      setTimeout(() => queue.close(), 0);
-    });
+  // Up to 2 attempts: primary, then (conditionally) one z.ai sandbox retry.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    // Per-attempt translator state — re-create per attempt so a fresh
+    // `agent_end` from the second attempt's SDK emits its own `turn_end`
+    // without being suppressed by the first attempt's state.
+    let sawMessageEnd = false;
+    let sawTurnEnd = false;
+    let sawActivity = false;
+    let sawErrorEvent = false;
+    let promptError: any = undefined;
 
-    // Track which closing events the translator already emitted (flags
-    // declared above the try block — the defensive tail reads them after
-    // the finally block).
-    for await (const ev of queue.drain()) {
-      if (ev.kind === 'agent_event') {
-        if (ev.event.type === 'agent:message_end') sawMessageEnd = true;
-        if (ev.event.type === 'agent:turn_end') sawTurnEnd = true;
-        if (ev.event.type === 'agent:error') sawErrorEvent = true;
-        // "Activity" = USER-VISIBLE output only (text or tool calls). Thinking
-        // deltas deliberately do NOT count: a 429'd attempt can emit partial
-        // thinking before failing, and a turn with only thinking, no text, and
-        // no tool calls is still a broken turn from the user's perspective.
-        if (
-          ev.event.type === 'agent:message_delta' ||
-          ev.event.type === 'agent:tool_call_start'
-        ) {
-          sawActivity = true;
+    // 12. Construct the AgentSession.
+    //     - noTools: 'all' → disable all built-in coding tools (bash, read, edit, write).
+    //     - customTools: our 88 canvas tools.
+    //     - tools: allowlist of the active skill's tool names → only those
+    //              are visible to the LLM (mirrors the legacy runner's filterToolSpecs).
+    //     - sessionManager: in-memory (we don't want file-based session journaling;
+    //                       AgentCanvas has its own Zustand+localStorage session store).
+    //     - settingsManager: in-memory with auto-compaction disabled (we have
+    //                       our own context-manager; we don't want the SDK
+    //                       compacting mid-turn without our translator knowing).
+    //                       Re-enable later if we want native auto-compaction.
+    let session: AgentSession | undefined;
+    try {
+      const result = await createAgentSession({
+        cwd: process.cwd(),
+        model: currentModel.model,
+        modelRuntime: currentModel.modelRuntime,
+        thinkingLevel: mapThinkingLevel(thinkingLevel),
+        noTools: 'all',
+        customTools: filteredTools,
+        tools: filteredTools.map((t) => t.name),
+        resourceLoader,
+        sessionManager: SessionManager.inMemory(process.cwd()),
+        settingsManager: SettingsManager.inMemory({
+          // Disable auto-compaction for now — our context-manager.ts already
+          // handles truncation, and enabling SDK compaction would emit
+          // compaction_start/end events that the UI doesn't yet render
+          // meaningfully. Re-enable when we're ready to surface "Compacting…"
+          // as a proper UI state.
+          compaction: { enabled: false },
+          retry: { enabled: true, maxRetries: 2 },
+        } as any),
+      });
+      session = result.session;
+    } catch (err: any) {
+      yield {
+        kind: 'agent_event',
+        event: { type: 'agent:error', message: `Failed to create agent session: ${err.message}` },
+      };
+      lastSawErrorEvent = true;
+      // Session-creation failures are usually model-resolution issues (already
+      // handled by the resolver try/catch above) or runtime config issues —
+      // not endpoint-down cases. Don't retry; surface the error and exit.
+      break;
+    }
+
+    // 13. Subscribe to AgentSessionEvents via the translator. The translator
+    //     pushes AgentStreamEvents onto an async queue; we drain it below.
+    const { queue, unsubscribe } = subscribeAndTranslate((listener) =>
+      session!.subscribe(listener),
+    );
+
+    // 13b. Set per-turn plugin state.
+    //      - Event sink: lets plugin tools emit SyncEvents through the same
+    //        stream the runner uses (so ask_user_question, todo, mcp, etc.
+    //        can fire UI events mid-turn).
+    //      - Active session: lets the todo + goal-list + background-tasks
+    //        plugins track per-session state.
+    //      - Active LLM + canvas: lets the subagents plugin pass these to
+    //        its dispatched sub-agents.
+    //      Re-set per attempt so the event sink points at THIS attempt's
+    //      queue (the previous attempt's `restoreEventSink` already restored
+    //      the original sink in its finally block).
+    const restoreEventSink = setEventSink((event) => {
+      queue.push([{ kind: 'agent_event', event }]);
+    });
+    setTodoActiveSession(sessionId);
+    setGoalActiveSession(sessionId);
+    setBackgroundTaskActiveSession(sessionId);
+    setSubagentActiveLLM(subAgentLLM ?? null);
+    setSubagentActiveCanvas(canvas);
+
+    // 14. Drain events from the queue while the prompt is running. We use
+    //     a race between `session.prompt()` (which resolves when the turn
+    //     completes) and the queue's async iterator (which yields events as
+    //     they arrive). When prompt() resolves, we close the queue and drain
+    //     any remaining buffered events.
+    //
+    //     Track which closing events the translator emitted so the defensive
+    //     tail emission after the finally block doesn't duplicate them
+    //     (previously BOTH were emitted unconditionally — every successful
+    //     turn ended with a doubled agent:message_end + agent:turn_end, which
+    //     fanned out to all viewers via canvas-sync and double-triggered run
+    //     finalization).
+    try {
+      // Kick off the prompt — don't await yet.
+      const promptPromise = session.prompt(userMessage, {
+        // Disable prompt-template expansion — we built the system prompt
+        // ourselves and don't want pi to expand `/skill:foo` commands.
+        expandPromptTemplates: false,
+      });
+
+      // Drain events as they arrive. The queue's drain() async iterator
+      // yields events until close() is called AND the buffer is empty.
+      // We race it against promptPromise so that when prompt() resolves,
+      // we close the queue and drain any remaining events.
+      promptPromise.catch((err) => {
+        promptError = err;
+        queue.close();
+      });
+
+      // Iterate the queue. If prompt() resolves before the queue is drained,
+      // we wait for the queue to finish. If prompt() throws, we close the
+      // queue and surface the error.
+      // We use a settled-flag pattern: when promptPromise resolves, we mark
+      // settled=true and let the queue drain naturally (the SDK emits
+      // `agent_end` as the last event, which the translator turns into
+      // `agent:turn_end` — so the queue will close itself when the SDK is
+      // done).
+      let settled = false;
+      void promptPromise.then(() => {
+        settled = true;
+        // Don't close the queue yet — the SDK might still be emitting final
+        // events (agent_end, message_end). Give it a microtask to flush.
+        // The translator will have processed everything by the time
+        // prompt() resolves, but defensively wait one tick.
+        setTimeout(() => queue.close(), 0);
+      });
+
+      // Track which closing events the translator already emitted (flags
+      // declared above the try block — the defensive tail reads them after
+      // the finally block).
+      for await (const ev of queue.drain()) {
+        if (ev.kind === 'agent_event') {
+          if (ev.event.type === 'agent:message_end') sawMessageEnd = true;
+          if (ev.event.type === 'agent:turn_end') sawTurnEnd = true;
+          if (ev.event.type === 'agent:error') sawErrorEvent = true;
+          // "Activity" = USER-VISIBLE output only (text or tool calls). Thinking
+          // deltas deliberately do NOT count: a 429'd attempt can emit partial
+          // thinking before failing, and a turn with only thinking, no text, and
+          // no tool calls is still a broken turn from the user's perspective.
+          if (
+            ev.event.type === 'agent:message_delta' ||
+            ev.event.type === 'agent:tool_call_start'
+          ) {
+            sawActivity = true;
+          }
+        }
+        yield ev;
+        if (promptError) {
+          // prompt() threw — surface the error and stop.
+          yield {
+            kind: 'agent_event',
+            event: { type: 'agent:error', message: `Agent prompt failed: ${promptError.message ?? String(promptError)}` },
+          };
+          sawErrorEvent = true;
+          break;
         }
       }
-      yield ev;
-      if (promptError) {
-        // prompt() threw — surface the error and stop.
-        yield {
-          kind: 'agent_event',
-          event: { type: 'agent:error', message: `Agent prompt failed: ${promptError.message ?? String(promptError)}` },
-        };
-        break;
+
+      // If prompt() resolved without error but we never saw an agent:turn_end
+      // event (e.g. the SDK short-circuited), emit one defensively.
+      if (!promptError && !settled) {
+        // prompt() is still pending but the queue drained — unusual. Wait
+        // for prompt() to settle so we surface any error.
+        try {
+          await promptPromise;
+        } catch (err: any) {
+          yield {
+            kind: 'agent_event',
+            event: { type: 'agent:error', message: `Agent prompt failed: ${err.message ?? String(err)}` },
+          };
+          sawErrorEvent = true;
+          promptError = err;
+        }
+      }
+    } finally {
+      unsubscribe();
+      queue.close();
+      restoreEventSink();
+      try {
+        session.dispose();
+      } catch {
+        // dispose() can throw if the session was already disposed (e.g.
+        // aborted). Ignore.
       }
     }
 
-    // If prompt() resolved without error but we never saw an agent:turn_end
-    // event (e.g. the SDK short-circuited), emit one defensively.
-    if (!promptError && !settled) {
-      // prompt() is still pending but the queue drained — unusual. Wait
-      // for prompt() to settle so we surface any error.
-      try {
-        await promptPromise;
-      } catch (err: any) {
-        yield {
-          kind: 'agent_event',
-          event: { type: 'agent:error', message: `Agent prompt failed: ${err.message ?? String(err)}` },
-        };
-      }
-    }
-  } finally {
-    unsubscribe();
-    queue.close();
-    restoreEventSink();
-    try {
-      session.dispose();
-    } catch {
-      // dispose() can throw if the session was already disposed (e.g.
-      // aborted). Ignore.
-    }
+    // Update cumulative state across attempts.
+    if (sawMessageEnd) everSawMessageEnd = true;
+    if (sawTurnEnd) everSawTurnEnd = true;
+    lastSawActivity = sawActivity;
+    lastSawErrorEvent = sawErrorEvent;
+    lastPromptError = promptError;
+
+    // Decide whether to fall back to the z.ai sandbox for a second attempt.
+    // Bounded: at most ONE retry per turn (attempt === 0 only), and only if
+    // the previous attempt produced ZERO user-visible output (no text deltas,
+    // no tool calls). Skipped when the resolver already swapped to the
+    // z.ai sandbox preflight (currentModel.usedFallback) — that would be a
+    // second fallback for the same turn, violating the one-retry bound.
+    // Also skipped when the configured provider is already 'zai' (no point
+    // falling back to the same provider).
+    const shouldFallback =
+      attempt === 0 &&
+      !didFallback &&
+      !currentModel.usedFallback &&
+      providerId !== 'zai' &&
+      !sawActivity;
+
+    if (!shouldFallback) break;
+
+    // Try to resolve a z.ai-sandbox fallback model. If ZAI.create() throws
+    // (not in the z.ai sandbox / no creds), log and skip — the silent-failure
+    // guard below will surface an error to the user.
+    const fallbackModel = await resolveZaiSandboxFallback();
+    if (!fallbackModel) break;
+
+    console.warn(
+      `[llm-fallback] primary endpoint ${currentModel.label} produced no output (zero message_delta + zero tool_call events); retrying turn with z.ai sandbox / glm-5.3`,
+    );
+    currentModel = fallbackModel;
+    didFallback = true;
+    // Loop continues to attempt 1 with the fallback model.
   }
 
   // Defensive: if the translator never emitted closing events (e.g. the SDK
   // returned without firing agent_end), emit them so the UI doesn't hang —
-  // but ONLY the ones actually missing (guards against double emission; the
-  // legacy runner has the same defensive tail).
+  // but ONLY the ones actually missing across ALL attempts (guards against
+  // double emission; the legacy runner has the same defensive tail).
   // Silent-failure guard: a turn with NO observable output (no text, no
-  // thinking, no tool calls, no error already surfaced) means every LLM
-  // attempt failed upstream — almost always provider rate-limiting (HTTP 429)
-  // or a transient outage. The SDK resolves prompt() without throwing, so we
-  // must emit the error here or the user sees an empty bubble with no clue.
+  // thinking, no tool calls, no error already surfaced) from the LAST attempt
+  // means every LLM attempt failed upstream — almost always provider
+  // rate-limiting (HTTP 429) or a transient outage. The SDK resolves
+  // prompt() without throwing, so we must emit the error here or the user
+  // sees an empty bubble with no clue.
   // Emitted BEFORE the closing events so the UI records it on the run.
-  if (!promptError && !sawErrorEvent && !sawActivity) {
+  if (!lastPromptError && !lastSawErrorEvent && !lastSawActivity) {
     yield {
       kind: 'agent_event',
       event: {
@@ -614,10 +694,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       },
     };
   }
-  if (!sawMessageEnd) {
+  if (!everSawMessageEnd) {
     yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
   }
-  if (!sawTurnEnd) {
+  if (!everSawTurnEnd) {
     yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
   }
 }

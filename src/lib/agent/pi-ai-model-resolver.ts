@@ -66,6 +66,174 @@ export interface ResolvedModel {
   modelRuntime: ModelRuntime;
   /// Best-effort human-readable label for logging.
   label: string;
+  /// True when this resolution already invoked the z.ai sandbox fallback
+  /// (preflight detected the configured endpoint as unreachable). The
+  /// reactive fallback in `runner-native.ts` reads this flag to honor the
+  /// "at most ONE fallback retry per turn" bound — if the resolver already
+  /// swapped to the z.ai sandbox, the runner does NOT retry again.
+  usedFallback?: boolean;
+}
+
+// ---- z.ai sandbox fallback ------------------------------------------------
+//
+// When the configured endpoint is unreachable (network error, HTTP 5xx/429,
+// or 401/403 from the endpoint), the resolver transparently swaps in a
+// z.ai-sandbox-resolved Model (provider 'zai', model 'glm-5.3') using
+// credentials auto-resolved by `z-ai-web-dev-sdk`. This keeps agent turns
+// working even when a custom proxy is down.
+//
+// Two layers cooperate:
+//   1. **Preflight** (here, in `resolveModel`): a 4s GET against
+//      `${baseUrl}/models` BEFORE the session is created. Catches dead
+//      tunnels, DNS failures, TLS resets, 5xx, 429, 401/403. Cached for
+//      60s so we don't pay the latency on every turn.
+//   2. **Reactive fallback** (in `runner-native.ts`): if the preflight
+//      passed but the turn still produced zero `message_delta` AND zero
+//      `tool_call_start` events (e.g. the endpoint returned an empty 200
+//      body), the runner re-runs the turn ONCE with the z.ai sandbox model.
+//      Bounded by `ResolvedModel.usedFallback` — if the preflight already
+//      swapped, the runner does NOT retry.
+//
+// Both layers skip when the configured provider is already 'zai' (no point
+// falling back to the same provider). If `ZAI.create()` throws (not in the
+// z.ai sandbox / no creds), the fallback is skipped with a warn.
+
+/// Module-level preflight cache. Keyed by `${baseUrl}::${apiKeyPrefix}`.
+/// TTL: 60 seconds — a dead tunnel doesn't come back in 60s, and a healthy
+/// one doesn't go down in 60s, so we don't need to re-probe every turn.
+const PREFLIGHT_CACHE_TTL_MS = 60_000;
+const preflightCache = new Map<string, { result: 'ok' | 'down'; expiresAt: number }>();
+
+/// Probe the configured OpenAI-compatible endpoint with a 4s GET against
+/// `${baseUrl}/models`. Returns 'ok' on HTTP 2xx, 'down' on network error
+/// or any non-2xx status (5xx, 429, 401, 403, etc.). Cached per
+/// (baseUrl, apiKeyPrefix) for 60s.
+async function preflightEndpoint(baseUrl: string, apiKey: string): Promise<'ok' | 'down'> {
+  const cacheKey = `${baseUrl}::${apiKey.slice(0, 12)}`;
+  const cached = preflightCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.result;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  let result: 'ok' | 'down' = 'down';
+  try {
+    const url = `${baseUrl.replace(/\/+$/, '')}/models`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: controller.signal,
+    });
+    result = res.ok ? 'ok' : 'down';
+  } catch {
+    // Network error, TLS reset, DNS failure, abort timeout — all map to 'down'.
+    result = 'down';
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  preflightCache.set(cacheKey, {
+    result,
+    expiresAt: Date.now() + PREFLIGHT_CACHE_TTL_MS,
+  });
+  return result;
+}
+
+/// Build a z.ai-sandbox-resolved Model + ModelRuntime using credentials
+/// auto-resolved by `z-ai-web-dev-sdk` (reads `~/.z-ai-config` /
+/// `/etc/.z-ai-config` / sandbox env). Returns `null` if `ZAI.create()`
+/// throws or reports no credentials (i.e. not in the z.ai sandbox).
+///
+/// The resolved model is `glm-5.3` (the previous default, known to work
+/// inside the sandbox). The runtime applies the sandbox OAuth header
+/// bundle when ZAI reports an OAuth token + non-default baseUrl (mirrors
+/// the same logic in `resolveModel` for the `zai` provider path).
+export async function resolveZaiSandboxFallback(): Promise<ResolvedModel | null> {
+  let zaiConfig: {
+    apiKey?: string;
+    baseUrl?: string;
+    token?: string;
+    userId?: string;
+    chatId?: string;
+  };
+  try {
+    const zai = await ZAI.create();
+    // `config` is private on ZAI; cast to access at runtime.
+    zaiConfig = (zai as unknown as {
+      config: {
+        apiKey?: string;
+        baseUrl?: string;
+        token?: string;
+        userId?: string;
+        chatId?: string;
+      };
+    }).config;
+  } catch (err) {
+    console.warn(
+      `[llm-fallback] z.ai sandbox unavailable: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return null;
+  }
+
+  if (!zaiConfig?.apiKey) {
+    console.warn('[llm-fallback] z.ai sandbox reported no API key — skipping fallback');
+    return null;
+  }
+
+  const modelRuntime = await ModelRuntime.create({
+    allowModelNetwork: false,
+    refreshOnCreate: false,
+  });
+  await modelRuntime.setRuntimeApiKey('zai', zaiConfig.apiKey);
+
+  // If ZAI gave us an OAuth token + a non-default baseUrl, we're in the
+  // sandbox — use those credentials directly via header override on the
+  // Model object. The z-ai-web-dev-sdk sends 5 headers; we mirror that.
+  let sandboxOverride: { baseUrl: string; headers: Record<string, string> } | undefined;
+  if (zaiConfig.token && zaiConfig.baseUrl && zaiConfig.userId && zaiConfig.chatId) {
+    sandboxOverride = {
+      baseUrl: zaiConfig.baseUrl,
+      headers: {
+        Authorization: `Bearer ${zaiConfig.apiKey ?? 'Z.ai'}`,
+        'X-Token': zaiConfig.token,
+        'X-User-Id': zaiConfig.userId,
+        'X-Chat-Id': zaiConfig.chatId,
+        'X-Z-AI-From': 'Z',
+      },
+    };
+  }
+
+  // glm-5.3 is the previous default, known to work inside the z.ai sandbox.
+  let model = modelRuntime.getModel('zai', 'glm-5.3');
+  if (!model) {
+    // Fall back to the first available z.ai model if glm-5.3 disappears
+    // from a future pi-ai catalog revision. Resilience > exact-match.
+    const all = modelRuntime.getModels('zai');
+    if (all.length === 0) {
+      console.warn('[llm-fallback] no z.ai models in pi-ai catalog — skipping fallback');
+      return null;
+    }
+    model = all[0];
+  }
+
+  if (sandboxOverride) {
+    model = {
+      ...model,
+      baseUrl: sandboxOverride.baseUrl,
+      headers: { ...model.headers, ...sandboxOverride.headers },
+      // The z.ai sandbox endpoint caps max_tokens at 98304; pi-ai's default
+      // catalog says maxTokens=131072 which the sandbox rejects. Cap it.
+      maxTokens: Math.min(model.maxTokens, 81920),
+    };
+  }
+
+  return {
+    model,
+    modelRuntime,
+    label: `zai/${model.id} (sandbox fallback)`,
+    usedFallback: true,
+  };
 }
 
 // ---- Resolver --------------------------------------------------------------
@@ -225,6 +393,38 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
         `Provider "${providerId}" with a custom endpoint needs a model name. ` +
           'Set it in Settings → LLM provider → Model.',
       );
+    }
+
+    // ---- Preflight the configured endpoint --------------------------------
+    //
+    // If the configured endpoint is dead (TLS reset / DNS failure / 5xx / 429 /
+    // 401 / 403), swap to the z.ai sandbox fallback BEFORE building the
+    // synthetic custom Model. The runner then creates the AgentSession against
+    // the z.ai sandbox model directly — no double turn_end / streaming
+    // weirdness, no half-finished attempt to clean up. Skipped when the
+    // configured provider is already 'zai' (no point falling back to itself)
+    // or when ZAI.create() reports no sandbox creds.
+    //
+    // The probe is cached for 60s per (baseUrl, apiKeyPrefix) so we don't pay
+    // the 4s latency on every turn. A dead tunnel doesn't come back in 60s,
+    // and a healthy endpoint doesn't go down in 60s — the cache TTL is safe.
+    if (providerId !== 'zai') {
+      const probe = await preflightEndpoint(customBaseUrl, effectiveApiKey);
+      if (probe === 'down') {
+        console.warn(
+          `[llm-fallback] primary endpoint ${customBaseUrl} unreachable (network error or non-2xx on /models); retrying turn with z.ai sandbox / glm-5.3`,
+        );
+        const fallback = await resolveZaiSandboxFallback();
+        if (fallback) {
+          return fallback;
+        }
+        // No z.ai sandbox creds available — proceed against the configured
+        // (dead) endpoint. The runner's silent-failure guard will surface
+        // the empty response as an agent:error after the turn.
+        console.warn(
+          '[llm-fallback] z.ai sandbox fallback unavailable — proceeding against the configured endpoint',
+        );
+      }
     }
 
     const customModel = buildCustomEndpointModel(customBaseUrl, modelId);

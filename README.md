@@ -179,6 +179,8 @@ Open [http://localhost:3000](http://localhost:3000) and start chatting with the 
 
 > **Note on LLM credentials:** the app defaults to a custom OpenAI-compatible endpoint (provider `custom`, model `kimi-k2-5`, base URL `https://irhnglwoxe.a.pinggy.link/v1` with key `123456` — see `DEFAULT_SETTINGS` in `src/lib/settings/types.ts`; change it any time in Settings → LLM provider). For non-default providers, `ZAI_API_KEY` / `OPENAI_API_KEY` (and per-provider equivalents) remain supported in `.env` — inside the z.ai sandbox, `z-ai-web-dev-sdk` also auto-resolves credentials for the `zai` provider. See `.env.example` for details.
 
+> **Automatic z.ai sandbox fallback:** when the configured endpoint is unreachable (network error, HTTP 5xx/429, 401/403, OR a 200 response with empty content + no tool_calls), the runner retries the SAME turn ONCE using the z.ai sandbox client (`ZAI.create()` from `z-ai-web-dev-sdk`) with model `glm-5.3`. This keeps agent turns working even when the custom tunnel is down. The fallback is bounded to ONE retry per turn, skipped when the configured provider is already `zai`, and skipped (with a warn) when `ZAI.create()` reports no sandbox credentials (i.e. running outside the z.ai sandbox). Two layers cooperate: a 4s preflight in `pi-ai-model-resolver.ts` (cached 60s) catches dead endpoints BEFORE the session is created, and a reactive fallback in `runner-native.ts` catches 200 + empty-body responses AFTER a turn produces zero `message_delta` + zero `tool_call` events. Server-side fallbacks are logged via `console.warn('[llm-fallback] …')`.
+
 ### Useful scripts
 
 | Script | What it does |
