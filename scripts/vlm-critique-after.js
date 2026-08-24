@@ -18,9 +18,9 @@ try {
   ZAI = require('z-ai-web-dev-sdk');
 }
 
-const IMG_PATH = '/home/z/my-project/download/vaultly-after3.png';
+const IMG_PATH = '/home/z/my-project/download/vaultly-final.png';
 const PROMPT_PATH = '/home/z/my-project/scripts/vlm-critique-prompt.txt';
-const OUT_PATH = '/home/z/my-project/download/vaultly-after3-critique.json';
+const OUT_PATH = '/home/z/my-project/download/vaultly-final-critique.json';
 
 const promptText = readFileSync(PROMPT_PATH, 'utf-8');
 const imgBuf = readFileSync(IMG_PATH);
