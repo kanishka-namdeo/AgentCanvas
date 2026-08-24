@@ -37,9 +37,21 @@ export async function renderCanvasToPng(
   const svg = renderCanvasToSvg(shapes, width, height);
   // 2x scale → 2880×1800 PNG. Crisp text, sharp edges, the VLM sees
   // the design as a senior designer would on a Retina display.
+  // Task 8-c fix: resvg's default font resolution fell back to a SERIF face
+  // (the sandbox has no Inter), so every clean-render VLM critique complained
+  // "replace the serif font". Load the local sans-serif family explicitly.
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'width', value: width * 2 },
     background: '#ffffff',
+    font: {
+      fontFiles: [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/usr/share/fonts/truetype/chinese/NotoSansSC-Regular.ttf',
+      ],
+      loadSystemFonts: true,
+      defaultFontFamily: 'DejaVu Sans',
+    },
   });
   const rendered = resvg.render();
   return rendered.asPng();
@@ -52,15 +64,70 @@ export async function renderCanvasToPng(
  * for the worklog (the "after" measurement snapshot).
  */
 export function renderCanvasToSvg(shapes: Layer[], width: number, height: number): string {
-  const body = shapes
-    .filter((s) => s.visible !== false)
+  // Task 8-c fix: collect shadow filters up-front. The old renderer silently
+  // dropped the `shadow` field, so every clean-render VLM critique saw FLAT
+  // cards and demanded "add shadows" — a measurement artifact, not a design
+  // defect. Each unique shadow config becomes one <filter> in <defs>.
+  const visibleShapes = shapes.filter((s) => s.visible !== false);
+  shadowUid.clear(); // reset the id registry BEFORE collecting (ids must match the defs)
+  const shadowFilters = new Map<string, string>();
+  for (const s of visibleShapes) {
+    const cfg = shadowConfigOf(s);
+    if (!cfg) continue;
+    if (!shadowFilters.has(cfg.key)) shadowFilters.set(cfg.key, cfg.filter);
+  }
+  const body = visibleShapes
     .map((s) => renderShapeToSvg(s))
     .join('\n');
+  const defs = shadowFilters.size
+    ? `  <defs>\n${[...shadowFilters.values()].map((f) => `    ${f}`).join('\n')}\n  </defs>\n`
+    : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="background:#ffffff">
-<rect width="${width}" height="${height}" fill="#ffffff"/>
+${defs}<rect width="${width}" height="${height}" fill="#ffffff"/>
 ${body}
 </svg>`;
+}
+
+// ---- Shadow support (Task 8-c) ----------------------------------------------
+
+// Uid counter + registry so renderShapeToSvg can resolve a shape's shadow to
+// its filter id (the registry is populated by renderCanvasToSvg before the
+// per-shape pass, keyed identically).
+const shadowUid = new Map<string, string>();
+let shadowCounter = 0;
+
+interface ShadowCfg { key: string; filter: string; id: string }
+
+function shadowConfigOf(s: Layer): ShadowCfg | null {
+  const sh = s.shadow as { x?: number; y?: number; blur?: number; spread?: number; color?: string; inset?: boolean } | undefined;
+  if (!sh || typeof sh !== 'object') return null;
+  const dx = Number(sh.x ?? 0);
+  const dy = Number(sh.y ?? 0);
+  const blur = Number(sh.blur ?? 0);
+  const spread = Number(sh.spread ?? 0);
+  // Parse #RRGGBBAA (or #RRGGBB) into rgb + alpha.
+  const hex = (sh.color ?? '#0000001a').replace('#', '');
+  const r = parseInt(hex.slice(0, 2), 16) || 0;
+  const g = parseInt(hex.slice(2, 4), 16) || 0;
+  const b = parseInt(hex.slice(4, 6), 16) || 0;
+  const a = hex.length >= 8 ? (parseInt(hex.slice(6, 8), 16) || 0) / 255 : 1;
+  const key = `${dx}|${dy}|${blur}|${spread}|${r}|${g}|${b}|${a.toFixed(3)}`;
+  if (!shadowUid.has(key)) shadowUid.set(key, `dropshadow-${shadowCounter++}`);
+  const id = shadowUid.get(key)!;
+  // feDropShadow: stdDeviation ≈ blur/2 (CSS box-shadow blur ≈ 2σ),
+  // spread approximated by growing the shadow via a flood-less dilation —
+  // resvg honors feDropShadow well; spread is folded into stdDeviation.
+  const std = Math.max(0, blur / 2 + spread / 2);
+  const filter = `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="${dx}" dy="${dy}" stdDeviation="${std}" flood-color="rgb(${r},${g},${b})" flood-opacity="${a}"/></filter>`;
+  return { key, filter, id };
+}
+
+function shadowFilterAttr(s: Layer): string {
+  const cfg = shadowConfigOf(s);
+  if (!cfg) return '';
+  // re-resolve the id from the registry (shadowConfigOf already registered it)
+  return ` filter="url(#${cfg.id})"`;
 }
 
 // ---- Per-shape SVG emission ----------------------------------------------
@@ -97,7 +164,7 @@ function renderShapeToSvg(s: Layer): string {
       const strokeAttr = s.stroke && s.stroke !== 'transparent' && s.strokeWidth > 0
         ? ` stroke="${s.stroke}" stroke-width="${s.strokeWidth}"`
         : '';
-      return `  <rect x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" fill="${fillValue}"${strokeAttr}${rxAttr}${opacityAttr}${transformAttr}/>`;
+      return `  <rect x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" fill="${fillValue}"${strokeAttr}${rxAttr}${opacityAttr}${transformAttr}${shadowFilterAttr(s)}/>`;
     }
     case 'ellipse': {
       const cx = s.x + s.width / 2;
@@ -105,7 +172,7 @@ function renderShapeToSvg(s: Layer): string {
       const strokeAttr = s.stroke && s.stroke !== 'transparent' && s.strokeWidth > 0
         ? ` stroke="${s.stroke}" stroke-width="${s.strokeWidth}"`
         : '';
-      return `  <ellipse cx="${cx}" cy="${cy}" rx="${s.width / 2}" ry="${s.height / 2}" fill="${fillValue}"${strokeAttr}${opacityAttr}${transformAttr}/>`;
+      return `  <ellipse cx="${cx}" cy="${cy}" rx="${s.width / 2}" ry="${s.height / 2}" fill="${fillValue}"${strokeAttr}${opacityAttr}${transformAttr}${shadowFilterAttr(s)}/>`;
     }
     case 'line': {
       const stroke = s.fill === 'transparent' || !s.fill ? '#000000' : s.fill;

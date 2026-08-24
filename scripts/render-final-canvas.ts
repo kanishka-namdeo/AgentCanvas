@@ -5,9 +5,9 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { renderCanvasToPng, renderCanvasToSvg } from '../src/lib/canvas/render-to-png';
 
-const SHAPES_PATH = '/home/z/my-project/download/vaultly-final-shapes.json';
-const PNG_OUT = '/home/z/my-project/download/vaultly-final-render.png';
-const SVG_OUT = '/home/z/my-project/download/vaultly-final-render.svg';
+const SHAPES_PATH = '/home/z/my-project/download/vaultly-final3-shapes.json';
+const PNG_OUT = '/home/z/my-project/download/vaultly-final3-render.png';
+const SVG_OUT = '/home/z/my-project/download/vaultly-final3-render.svg';
 
 interface AnyShape {
   id?: string;
@@ -22,9 +22,22 @@ interface AnyShape {
 async function main() {
   const raw = JSON.parse(readFileSync(SHAPES_PATH, 'utf-8')) as AnyShape[];
 
-  // The canvas store returns each shape twice — dedupe by id.
+  // Task 8-c final render: the extracted store can contain TWO stacked
+  // generations of the wireframe (pre-clear snapshot + the fresh run). The
+  // newer generation lives in the upper zIndex half (>= 256). Split by
+  // zIndex, then dedupe by id within the winning half.
+  const zis = raw.map((s) => Number(s.zIndex ?? 0));
+  const zMax = zis.length ? Math.max(...zis) : 0;
+  const splitAt = zMax / 2;
+  const upperHalf = raw.filter((s) => Number(s.zIndex ?? 0) >= splitAt);
+  const lowerHalf = raw.filter((s) => Number(s.zIndex ?? 0) < splitAt);
+  // Prefer the upper (newer) half when both halves are non-trivially sized.
+  const candidates = upperHalf.length >= 32 ? upperHalf : raw;
+  if (upperHalf.length >= 32 && lowerHalf.length >= 32) {
+    console.log(`[render] generation split: lower=${lowerHalf.length} entries, upper=${upperHalf.length} entries — using UPPER (newer)`);
+  }
   const byId = new Map<string, AnyShape>();
-  for (const s of raw) {
+  for (const s of candidates) {
     const key = typeof s.id === 'string' ? s.id : JSON.stringify(s);
     if (!byId.has(key)) byId.set(key, s);
   }

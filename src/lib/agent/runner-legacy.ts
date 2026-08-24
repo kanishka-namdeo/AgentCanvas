@@ -273,9 +273,14 @@ never setting fontWeight/letterSpacing/textAlign on the 24 text shapes — VLM s
     Each card stacks (24px→16px padding): label / value / delta badge / sparkline.
       label:   text "TOTAL REVENUE" — UPPERCASE content, 12px, fontWeight:500,
                letterSpacing:0.6, textColor:$color.text-muted
-      value:   text "$128.4K" — 32-36px, fontWeight:700, letterSpacing:-0.5 (tabular feel)
+      value:   text "$128.4K" — HERO CARD #1: 40px; secondary cards #2-4: 26px
+               (1.5-2x size contrast establishes the revenue metric as THE focal
+               point — do NOT flatten all four values to the same size),
+               fontWeight:700, letterSpacing:-0.5 (tabular feel)
       delta:   pill {radius:9999, fill:$color.success-50 (or $color.danger-50), 92×22}
                + text "▲ +12.5%", 11px, fontWeight:600, textColor:$color.success (or danger)
+               EXPENSES card uses the amber warning tint ($color.warning-50),
+               NOT danger rose — rising expenses are a warning, not an error
       sparkline: pen_create_path — 6 points along the card bottom,
                stroke:$color.success, strokeWidth:2, fill:"transparent"
   DATA TABLE (Recent Transactions — fills the lower viewport like a real product):
