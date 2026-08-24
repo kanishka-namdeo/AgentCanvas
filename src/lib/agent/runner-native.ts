@@ -671,6 +671,272 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // Loop continues to attempt 1 with the fallback model.
   }
 
+  // Task 7-c P1.3 / T2 + P1.4 / T10 — MANDATORY self-critique loop with
+  // pre-complete validation gate.
+  //
+  // The existing attempt loop above ran the agent's main turn (initial
+  // design + tool calls). After it completes, we run a bounded outer loop:
+  //   for (critiqueIteration = 0; critiqueIteration < maxCritiqueIterations; critiqueIteration++):
+  //     1. Call dispatchDesignCriticSubAgent (text-critic) — reads canvas snapshot.
+  //     2. Call dispatchDesignCriticVlmSubAgent (VLM critic, T3) — renders PNG,
+  //        feeds to vision LLM with the SAME structured-critique prompt used for
+  //        the Task 7-a baseline (so the "after" score is directly comparable).
+  //     3. Call validateCanvasBeforeComplete (T10) — checks the canvas for
+  //        the wireframe-only failure mode (too few shapes, no typography
+  //        hierarchy, no shadows, no autoLayout).
+  //     4. If validation passes AND critique severities are both "low", break —
+  //        the design is good.
+  //     5. Otherwise emit agent:critique event with the merged defects, then
+  //        re-prompt the agent with a synthesized user message:
+  //          "The design critic found these defects: [...]. Fix them by calling
+  //           pen_update_shape or pen_create_shape. Do not declare done until
+  //           each defect is addressed."
+  //        And run another agent turn (a new pi SDK session — the previous one
+  //        was disposed in the finally block above).
+  //
+  // Bounded by maxCritiqueIterations (default 2 — agent gets 1 chance to
+  // self-correct after the critic). The loop is OPT-IN only via
+  // settings.maxDesignCritiqueIterations === 0 (reverts to pre-7-c behavior).
+  //
+  // This is CRITICAL because the existing pen_self_critique tool is OPT-IN —
+  // the agent never called it in the baseline. Making it MANDATORY is the
+  // architectural enforcement the 7-b research report identified as the
+  // single highest-leverage change.
+  const maxCritiqueIterations = settings?.maxDesignCritiqueIterations ?? 2;
+  if (maxCritiqueIterations > 0) {
+    for (let critiqueIteration = 0; critiqueIteration < maxCritiqueIterations; critiqueIteration++) {
+      // Sync the local canvas with whatever patches the agent emitted.
+      // (canvas is updated by ctx.applyPatch above as patches flow through.)
+      const shapesForCritique = canvas.shapes ?? [];
+
+      // Skip critique if the canvas is empty (agent never produced anything —
+      // the silent-failure guard above already surfaced the error).
+      if (shapesForCritique.length === 0) break;
+
+      // Skip critique during an explicit wireframe / low-fi request — the
+      // validation gate's typography/shadow rules don't apply to lofi output.
+      const lowerPrompt = prompt.toLowerCase();
+      const isWireframeRequest =
+        /\bwireframe\b|\blow-fi\b|\blow-fidelity\b|\bsketch\b|\bskeleton\b|\bmockup\b|\bgraybox\b/.test(lowerPrompt);
+      if (isWireframeRequest) break;
+
+      // ---- 1. Text critic ----------------------------------------------------
+      let textCritiqueSummary = '';
+      let textCritiqueSeverity: 'low' | 'medium' | 'high' = 'medium';
+      try {
+        const { dispatchDesignCriticSubAgent } = await import('./subagents/design-critic');
+        const textResult = await dispatchDesignCriticSubAgent({
+          task: 'Critique the current canvas design.',
+          canvas,
+          originalPrompt: prompt,
+          llm: subAgentLLM,
+        });
+        textCritiqueSummary = textResult.summary;
+        // The text critic's summary includes a SCORE: line — parse the number.
+        const scoreMatch = textCritiqueSummary.match(/SCORE:\s*(\d+)/i);
+        if (scoreMatch) {
+          const score = parseInt(scoreMatch[1], 10);
+          textCritiqueSeverity = score >= 7 ? 'low' : score >= 4 ? 'medium' : 'high';
+        }
+      } catch (err: any) {
+        textCritiqueSummary = `(text critic failed: ${err.message ?? String(err)})`;
+      }
+
+      // ---- 2. VLM critic (T3) ------------------------------------------------
+      let vlmCritique: any = null;
+      let vlmSeverity: 'low' | 'medium' | 'high' = 'medium';
+      try {
+        const { dispatchDesignCriticVlmSubAgent } = await import('./subagents/design-critic-vlm');
+        const vlmResult = await dispatchDesignCriticVlmSubAgent({
+          task: 'Critique the rendered canvas.',
+          canvas,
+          originalPrompt: prompt,
+          llm: subAgentLLM,
+        });
+        vlmCritique = vlmResult.critique;
+        if (vlmCritique) vlmSeverity = vlmCritique.severity;
+      } catch (err: any) {
+        // VLM critic failure is non-fatal — the text critic + validation
+        // gate still drive the loop. Common failure: @resvg/resvg-js
+        // install missing, or the provider doesn't support image_url.
+        console.warn('[vlm-critic] failed (non-fatal):', err instanceof Error ? err.message : String(err));
+      }
+
+      // ---- 3. Pre-complete validation gate (T10) -----------------------------
+      const { validateCanvasBeforeComplete } = await import('./validators');
+      const validation = validateCanvasBeforeComplete(shapesForCritique);
+
+      // ---- 4. Exit decision --------------------------------------------------
+      const defects = [
+        ...validation.reasons,
+        ...(textCritiqueSeverity !== 'low' ? [`Text critic (severity=${textCritiqueSeverity}): ${textCritiqueSummary.slice(0, 800)}`] : []),
+        ...(vlmCritique && vlmSeverity !== 'low' ? [
+          `VLM critic (score=${vlmCritique.overallScore}/10, severity=${vlmSeverity}):`,
+          ...(vlmCritique.topFixes ?? []).slice(0, 5).map((f: any) => `  - [${f.impact}] ${f.fix}`),
+        ] : []),
+      ];
+
+      // Emit the critique event so the UI can render the critic's findings.
+      yield {
+        kind: 'agent_event',
+        event: {
+          type: 'agent:critique' as any,
+          iteration: critiqueIteration,
+          defects,
+          validation: validation.stats,
+          textSeverity: textCritiqueSeverity,
+          vlmSeverity,
+          vlmScore: vlmCritique?.overallScore,
+        } as any,
+      };
+
+      // If both critiques say "low" AND validation passes, we're done.
+      const allClear =
+        validation.ok &&
+        textCritiqueSeverity === 'low' &&
+        (vlmCritique ? vlmSeverity === 'low' : true);
+      if (allClear) {
+        // The design passes — let the existing defensive tail fire + exit.
+        break;
+      }
+
+      // On the last iteration, we've exhausted the budget — break and let
+      // the existing tail fire. The agent's last attempt is what the user sees.
+      if (critiqueIteration === maxCritiqueIterations - 1) break;
+
+      // ---- 5. Re-prompt the agent with the defect list ----------------------
+      // Emit a new sub-message so the UI shows the critique feedback to the user.
+      yield {
+        kind: 'agent_event',
+        event: { type: 'agent:message_start', role: 'assistant' } as any,
+      };
+      const fixIntro = `\n\n_[Design critic iteration ${critiqueIteration + 1}/${maxCritiqueIterations}: ${defects.length} defect(s) found. Re-prompting the agent to fix them.]_`;
+      yield {
+        kind: 'agent_event',
+        event: { type: 'agent:message_delta', text: fixIntro } as any,
+      };
+      yield { kind: 'agent_event', event: { type: 'agent:message_end' } as any };
+
+      // Synthesize the fix-message: tells the agent to address each defect
+      // via pen_update_shape / pen_create_shape before declaring done.
+      const fixMessage = `The design critic found these defects in your current design:
+
+${defects.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}
+
+Fix them by calling pen_update_shape or pen_create_shape. Do not declare done until each defect is addressed.
+
+Specifically:
+- If a text shape uses default weight 400, set fontWeight to 700 (H1) / 600 (H2) / 500 (label) per its semantic role.
+- If a card lacks shadow, call pen_set_shadow with {x:0, y:4, blur:6, color:"#0000001a"}.
+- If a card/sidebar/topbar has no autoLayout, call pen_update_shape with autoLayout={direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min"}.
+- If the canvas has fewer than 5 shapes, add the missing components (KPI cards, chart, table, etc.) per the design brief's informationArchitecture.
+
+Apply ALL fixes, then end your turn with a 1-sentence summary.`;
+
+      // Re-run the pi SDK session with the fix-message. This is the same
+      // createAgentSession + prompt + drain cycle as the main turn — we
+      // replicate a minimal version inline (the canvas snapshot in the
+      // system prompt gets refreshed automatically because we re-call
+      // buildSystemPrompt below).
+      const fixSystemContent =
+        buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst) +
+        fileSkillsSection +
+        memorySection;
+      const fixResourceLoader = buildResourceLoader(fixSystemContent);
+
+      let fixSession: AgentSession | undefined;
+      try {
+        const fixResult = await createAgentSession({
+          cwd: process.cwd(),
+          model: currentModel.model,
+          modelRuntime: currentModel.modelRuntime,
+          thinkingLevel: mapThinkingLevel(thinkingLevel),
+          noTools: 'all',
+          customTools: filteredTools,
+          tools: filteredTools.map((t) => t.name),
+          resourceLoader: fixResourceLoader,
+          sessionManager: SessionManager.inMemory(process.cwd()),
+          settingsManager: SettingsManager.inMemory({
+            compaction: { enabled: false },
+            retry: { enabled: true, maxRetries: 2 },
+          } as any),
+        });
+        fixSession = fixResult.session;
+      } catch (err: any) {
+        yield {
+          kind: 'agent_event',
+          event: { type: 'agent:error', message: `Failed to create critique-fix session: ${err.message}` },
+        };
+        break;
+      }
+
+      // Subscribe + drain events exactly like the main turn.
+      yield { kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } as any };
+      const { queue: fixQueue, unsubscribe: fixUnsubscribe } = subscribeAndTranslate((listener) => fixSession!.subscribe(listener));
+      const fixRestoreSink = setEventSink((event: any) => {
+        fixQueue.push([{ kind: 'agent_event', event }]);
+      });
+      setTodoActiveSession(sessionId);
+      setGoalActiveSession(sessionId);
+      setBackgroundTaskActiveSession(sessionId);
+      setSubagentActiveLLM(subAgentLLM ?? null);
+      setSubagentActiveCanvas(canvas);
+
+      let fixError: any;
+      let fixSawActivity = false;
+      try {
+        const fixPromptPromise = fixSession.prompt(fixMessage, { expandPromptTemplates: false });
+        fixPromptPromise.catch((err: any) => { fixError = err; fixQueue.close(); });
+        let fixSettled = false;
+        void fixPromptPromise.then(() => {
+          fixSettled = true;
+          setTimeout(() => fixQueue.close(), 0);
+        });
+        for await (const ev of fixQueue.drain()) {
+          if (ev.kind === 'agent_event') {
+            if (ev.event.type === 'agent:message_delta' || ev.event.type === 'agent:tool_call_start') {
+              fixSawActivity = true;
+            }
+          }
+          yield ev;
+          if (fixError) {
+            yield {
+              kind: 'agent_event',
+              event: { type: 'agent:error', message: `Critique-fix prompt failed: ${fixError.message ?? String(fixError)}` },
+            };
+            break;
+          }
+        }
+        if (!fixSettled) {
+          try { await fixPromptPromise; } catch (err: any) { fixError = err; }
+        }
+      } finally {
+        fixQueue.close();
+        fixUnsubscribe();
+        fixRestoreSink();
+        try { fixSession.dispose(); } catch {}
+      }
+
+      // If the fix turn produced no activity at all, surface an error so the
+      // user sees something happened. Otherwise the loop continues to the
+      // next critique iteration.
+      if (!fixSawActivity && !fixError) {
+        yield {
+          kind: 'agent_event',
+          event: {
+            type: 'agent:error',
+            message: 'Critique-fix turn produced no output (rate-limit / transient outage). Skipping remaining critique iterations.',
+          },
+        };
+        break;
+      }
+
+      // The canvas has been updated via ctx.applyPatch as the fix-turn's
+      // patches flowed through. Continue to the next critique iteration
+      // (which will re-dispatch the critics against the updated canvas).
+    }
+  }
+
   // Defensive: if the translator never emitted closing events (e.g. the SDK
   // returned without firing agent_end), emit them so the UI doesn't hang —
   // but ONLY the ones actually missing across ALL attempts (guards against

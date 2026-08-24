@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://medium.com/@tamar-dd/enforcing-structured-output-in-language-models-dedee56ee729",
+    "name": "Enforcing Structured Output in Language Models | by TamarDD",
+    "snippet": "Aug 21, 2024 · This blog post explores effective strategies for ensuring structured output from language models, so they deliver responses in the desired ... Why Structured Output Matter · Strategies for Enforcing...",
+    "host_name": "medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2606.09395v1",
+    "name": "Empirical Study for Structured Output Control in LLMs for Software  - arXiv",
+    "snippet": "TTMG enforces strict compliance with a given template through token matching and dynamic mode-switching: alternating between fixed-token emission and free-form",
+    "host_name": "arxiv.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://humanloop.com/blog/structured-outputs",
+    "name": "Structured Outputs: Everything You Should Know - Humanloop",
+    "snippet": "Feb 13, 2025 · Typically, LLMs generate text token by token based on probabilistic predictions. Structured outputs guide the process with predefined rules or ...",
+    "host_name": "humanloop.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.hpe.com/blog/using-structured-outputs-in-vllm",
+    "name": "Using structured outputs in vLLM | HPE Developer Portal",
+    "snippet": "Mar 16, 2025 · Structured outputs solve this problem by enforcing specific formats, such as JSON, regex patterns, or even formal grammars.",
+    "host_name": "developer.hpe.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://builder.aws.com/content/2wzRXcEcE7u3LfukKwiYIf75Rpw/how-to-get-structured-output-from-llms-a-practical-guide",
+    "name": "How to get structured output from LLM's - A practical guide",
+    "snippet": "May 13, 2025 · In this post, you'll learn three practical approaches to enforce it: Prompt Engineering, Function Calling, and Output Validation.",
+    "host_name": "builder.aws.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://news.ycombinator.com/item?id=46635309",
+    "name": "LLM Structured Outputs Handbook | Hacker News",
+    "snippet": "structured outputs are one of the most underrated features in LLM engines. The grammar constraints what tokens the sampler is allowed to consider, The grammar ...",
+    "host_name": "news.ycombinator.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.openlegion.ai/en/learn/llm-structured-output",
+    "name": "LLM Structured Output: JSON Schema, Pydantic, and Schema Enforcement",
+    "snippet": "Jul 9, 2026 · LLM structured output is the practice of constraining a language model's response to conform to a specified schema — JSON Schema, Pydantic model ...",
+    "host_name": "www.openlegion.ai",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tianpan.co/blog/2026-04-09-structured-output-failures-production-llm",
+    "name": "JSON Mode Won't Save You: Structured Output Failures in",
+    "snippet": "Apr 9, 2026 · The fundamental tension in structured LLM output is that language models are not structured data generators — they are next-token predictors ...",
+    "host_name": "tianpan.co",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.truefoundry.com/blog/llm-structured-outputs-json-schema",
+    "name": "LLM Structured Outputs with JSON Schema | TrueFoundry",
+    "snippet": "4 days ago · Learn how structured outputs, JSON Schema, validation, retries, and tool schemas turn LLM responses into reliable contracts for production ...",
+    "host_name": "www.truefoundry.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://loraexchange.ai/guides/structured_output",
+    "name": "Structured Output (JSON) - LoRAX Docs",
+    "snippet": "Structured Output (JSON). LoRAX can enforce that responses consist only of valid JSON and adhere to a provided JSON schema.",
+    "host_name": "loraexchange.ai",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

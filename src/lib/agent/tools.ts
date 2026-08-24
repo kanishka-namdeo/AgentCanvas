@@ -189,9 +189,101 @@ function parseLooseShapeInput(
 
 // ---- Helpers ----------------------------------------------------------------
 
+/// Task 7-c P3.1 / T4 — design-token enforcement hint.
+///
+/// The system prompt's COMPONENT RECIPES now use $color.* token syntax
+/// (e.g. fill:"$color.primary" instead of fill:"#0ea5e9"). When the AI
+/// still passes a raw hex string to a color field, we accept it (don't
+/// break tests + don't break the agent's tool call) but emit a one-shot
+/// console hint so the developer sees that the AI is bypassing the token
+/// system. The hint is throttled (only fires once per color per process)
+/// so it doesn't spam the log.
+///
+/// We DON'T rewrite the value because:
+///   1. The renderer resolves $color.* via the canvas's `variables` map
+///      — if the AI passes raw hex, it renders fine.
+///   2. Force-rewriting would break existing tests that pass raw hex.
+///   3. The system prompt's RECIPES already use tokens; well-behaved turns
+///      won't trip the hint.
+const _hexTokenHintFired = new Set<string>();
+function hintTokenSyntaxIfRawHex(field: string, value: unknown): void {
+  if (typeof value !== 'string') return;
+  // Strip leading # + alpha to get the 6-hex core, then look up in our map.
+  const m = value.match(/^#([0-9a-fA-F]{6})([0-9a-fA-F]{2})?$/);
+  if (!m) return;
+  const hex = m[1].toLowerCase();
+  const token = COMMON_HEX_TO_TOKEN[hex];
+  if (!token) return; // unknown hex — likely a one-off; don't hint
+  const key = `${field}:${hex}`;
+  if (_hexTokenHintFired.has(key)) return;
+  _hexTokenHintFired.add(key);
+  console.warn(
+    `[design-tokens] AI passed raw hex ${value} to ${field}. ` +
+    `Consider using $${token} instead — define it via pen_set_variable and ` +
+    `bind shapes to it for consistent, editable colors. ` +
+    `(Component RECIPES in the system prompt now use $color.* syntax.)`,
+  );
+}
+
+/// Map of common Tailwind/shadcn hex codes → $color.* token names.
+/// Used by hintTokenSyntaxIfRawHex to suggest the token form.
+/// These mirror the SEMANTIC COLOR TOKENS section in the system prompt.
+///
+/// NOTE: object keys MUST be quoted — bare hex-looking strings like `f0f9ff:`
+/// parse as numeric literals (`0xf0f9ff`) + a label, which is a syntax error.
+const COMMON_HEX_TO_TOKEN: Record<string, string> = {
+  // Neutrals (slate ramp)
+  'f8fafc': 'color.bg',
+  'f1f5f9': 'color.surface-2',
+  'e2e8f0': 'color.border',
+  'cbd5e1': 'color.border-strong',
+  '94a3b8': 'color.text-subtle',
+  '64748b': 'color.text-muted',
+  '475569': 'color.text-muted',
+  '0f172a': 'color.text',
+  // Sky ramp (default brand)
+  'f0f9ff': 'color.primary-50',
+  'e0f2fe': 'color.primary-100',
+  'bae6fd': 'color.primary-200',
+  '7dd3fc': 'color.primary-300',
+  '38bdf8': 'color.primary-400',
+  '0ea5e9': 'color.primary',
+  '0284c7': 'color.primary-600',
+  '0369a1': 'color.primary-700',
+  '075985': 'color.primary-800',
+  '0c4a6e': 'color.primary-900',
+  // Indigo ramp (accent)
+  'eef2ff': 'color.accent-50',
+  'e0e7ff': 'color.accent-100',
+  'c7d2fe': 'color.accent-200',
+  'a5b4fc': 'color.accent-300',
+  '818cf8': 'color.accent-400',
+  '6366f1': 'color.accent',
+  '4f46e5': 'color.accent-600',
+  '4338ca': 'color.accent-700',
+  '3730a3': 'color.accent-800',
+  '312e81': 'color.accent-900',
+  // Emerald (success)
+  '10b981': 'color.success',
+  '059669': 'color.success-600',
+  // Rose (danger)
+  'ef4444': 'color.danger',
+  // Amber (warning)
+  'f59e0b': 'color.warning',
+  // White
+  'ffffff': 'color.surface',
+};
+
 /// Coerce LLM-provided arguments into the types the schema expects.
 /// LLMs sometimes pass numbers as strings (e.g. `x: "400"` instead of `400`).
 /// This helper normalizes those before they reach the patch layer.
+///
+/// Task 7-c P3.1 / T4 — design-token enforcement:
+/// When the AI passes a raw hex color (e.g. "#3b82f6") to `fill` / `stroke` /
+/// `textColor`, we accept it (don't break tests) but emit a one-shot console
+/// hint nudging the AI toward $color.* token syntax. The system prompt's
+/// COMPONENT RECIPES now use $color.* exclusively, so well-behaved turns
+/// won't trip the hint. Raw hex from the AI is a fallback, not the default.
 function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shape> {
   const out: Partial<Shape> = {};
   if (params.type !== undefined) out.type = params.type as Shape['type'];
@@ -202,13 +294,22 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
   if (params.height !== undefined) out.height = Number(params.height) || 0;
   if (params.rotation !== undefined) out.rotation = Number(params.rotation) || 0;
   if (params.opacity !== undefined) out.opacity = Math.max(0, Math.min(1, Number(params.opacity) || 1));
-  if (params.fill !== undefined) out.fill = String(params.fill);
-  if (params.stroke !== undefined) out.stroke = String(params.stroke);
+  if (params.fill !== undefined) {
+    out.fill = String(params.fill);
+    hintTokenSyntaxIfRawHex('fill', params.fill);
+  }
+  if (params.stroke !== undefined) {
+    out.stroke = String(params.stroke);
+    hintTokenSyntaxIfRawHex('stroke', params.stroke);
+  }
   if (params.strokeWidth !== undefined) out.strokeWidth = Number(params.strokeWidth) || 0;
   if (params.radius !== undefined) out.radius = Number(params.radius) || 0;
   if (params.text !== undefined) out.text = String(params.text);
   if (params.fontSize !== undefined) out.fontSize = Number(params.fontSize) || 16;
-  if (params.textColor !== undefined) out.textColor = String(params.textColor);
+  if (params.textColor !== undefined) {
+    out.textColor = String(params.textColor);
+    hintTokenSyntaxIfRawHex('textColor', params.textColor);
+  }
   // Typography fields (passed through to the .pen node via patch.ts and
   // applied by the SVG renderer). Without these, the system prompt's
   // weight/alignment instructions were silently dropped — the AI could
@@ -3243,6 +3344,124 @@ const createShape = defineTool({
     },
   });
 
+  // Task 7-c P1.2 / T1 — pen_generate_design_brief
+  //
+  // Pre-generation design brief sub-agent. Implements v0's
+  // `GenerateDesignInspiration` pattern: BEFORE the main agent starts
+  // creating shapes, this tool takes the user prompt and returns a JSON
+  // design brief (primary color, accent, neutral ramp, typography,
+  // layout grid, information architecture). The agent then uses the brief
+  // as the canonical palette/typography reference for ALL subsequent
+  // shape creation — closing the "agent improvises colors" failure mode.
+  const generateDesignBrief = defineTool({
+    name: 'pen_generate_design_brief',
+    label: 'Generate Design Brief (Pre-Generation)',
+    description:
+      'Dispatch the design-brief sub-agent to produce a JSON design brief from the user prompt BEFORE any pen_create_shape / pen_generate_wireframe call. ' +
+      'Returns: primaryColor, accentColor, neutralPalette, typography (fontFamily, headingScale, bodySize), componentCount, layoutGrid (cols, rows), informationArchitecture (ordered section list). ' +
+      'Implements v0\'s GenerateDesignInspiration pattern (think-before-draw). ' +
+      'MANDATORY FIRST STEP for any high-fidelity design request — the brief drives all subsequent palette / typography / layout decisions.',
+    promptSnippet: 'Produce a JSON design brief from the prompt before drawing anything.',
+    promptGuidelines: [
+      'Call this FIRST — before pen_create_shape / pen_generate_wireframe / pen_apply_palette.',
+      'Use the returned primaryColor + accentColor as the $color.primary + $color.accent tokens in pen_set_variable / pen_apply_palette.',
+      'Use the neutralPalette (5-7 hex codes) as $color.bg / surface / surface-2 / border / text / text-muted / text-subtle.',
+      'Use informationArchitecture as the ordered checklist of components to scaffold (every entry → at least one shape).',
+      'Use componentCount as the floor — a design with fewer shapes than this fails the pre-complete validation gate.',
+      'Do NOT improvise colors outside the brief — the brief is the source of truth for the whole turn.',
+    ],
+    parameters: Type.Object({
+      prompt: Type.Optional(Type.String({ description: 'The user prompt (defaults to the current task). The sub-agent uses this verbatim to generate the brief.' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const { dispatchDesignBriefSubAgent } = await import('./subagents/design-brief');
+      const canvas = ctx.getDocument?.() ?? ({
+        id: 'brief-no-doc',
+        name: 'Untitled',
+        children: [],
+        shapes: ctx.getShapes(),
+        tokens: ctx.getTokens(),
+        background: '#ffffff',
+        viewport: { zoom: 1, panX: 0, panY: 0 },
+        version: '2.17' as const,
+      } as unknown as import('../canvas/types').CanvasDocument);
+      const result = await dispatchDesignBriefSubAgent({
+        task: params.prompt ?? 'Generate a design brief.',
+        canvas,
+        originalPrompt: params.prompt,
+      });
+      // Return the JSON brief as the tool-result content. If the brief
+      // failed to parse, fall back to the raw summary so the agent can
+      // still read what the sub-agent said.
+      const briefJson = result.brief ? JSON.stringify(result.brief, null, 2) : result.summary;
+      return {
+        content: [{ type: 'text', text: briefJson }],
+        details: {
+          subAgent: 'design_brief',
+          toolCalls: result.toolCalls,
+          success: result.success,
+          error: result.error,
+          brief: result.brief,
+        },
+      };
+    },
+  });
+
+  // Task 7-c P2.1 / T3 — pen_visual_critique
+  //
+  // VLM (vision) screenshot critique sub-agent. Mirrors pen_self_critique
+  // but feeds the RENDERED canvas (rasterized PNG via renderCanvasToPng)
+  // to a vision LLM with the same structured-critique prompt used for the
+  // Task 7-a baseline measurement. The VLM catches what the text-critic
+  // can't see: alignment, whitespace distribution, "generic AI look".
+  const visualCritique = defineTool({
+    name: 'pen_visual_critique',
+    label: 'VLM Visual Critique (Screenshot)',
+    description:
+      'Dispatch the VLM (vision) design critic sub-agent. Renders the current canvas to a PNG screenshot, base64-encodes it, and calls a vision LLM with the 8-dimension structured-critique prompt (visual_hierarchy / spacing / color / typography / component_polish / alignment / information_density / overall_professionalism). ' +
+      'Returns overall_score 1-10 + per-dimension defects with fixes + top-5 prioritized fixes. ' +
+      'Catches what pen_self_critique (text-only) cannot see — alignment, whitespace, "generic AI look".',
+    promptSnippet: 'Render canvas → PNG → vision LLM critique (8 dimensions, 1-10 score).',
+    promptGuidelines: [
+      'Use this after pen_self_critique for an alignment/whitespace pass the text-critic cannot do.',
+      'Render is at 1440x900 @ 2x DPI — text renders crisp enough for the VLM to judge typography.',
+      'Address every defect whose impact is "high" before declaring done.',
+      'If the overall_score is ≤ 4, the design is still wireframe-quality — apply the top-5 fixes and call again.',
+    ],
+    parameters: Type.Object({
+      originalPrompt: Type.Optional(Type.String({ description: 'The original user prompt (for context — the critic should not let it bias the evaluation).' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const { dispatchDesignCriticVlmSubAgent } = await import('./subagents/design-critic-vlm');
+      const canvas = ctx.getDocument?.() ?? ({
+        id: 'vlm-critic-no-doc',
+        name: 'Untitled',
+        children: [],
+        shapes: ctx.getShapes(),
+        tokens: ctx.getTokens(),
+        background: '#ffffff',
+        viewport: { zoom: 1, panX: 0, panY: 0 },
+        version: '2.17' as const,
+      } as unknown as import('../canvas/types').CanvasDocument);
+      const result = await dispatchDesignCriticVlmSubAgent({
+        task: 'Critique the rendered canvas.',
+        canvas,
+        originalPrompt: params.originalPrompt ?? '(no original prompt provided)',
+      });
+      const critiqueJson = result.critique ? JSON.stringify(result.critique, null, 2) : result.summary;
+      return {
+        content: [{ type: 'text', text: critiqueJson }],
+        details: {
+          subAgent: 'design_critic_vlm',
+          toolCalls: result.toolCalls,
+          success: result.success,
+          error: result.error,
+          critique: result.critique,
+        },
+      };
+    },
+  });
+
   const recommendComponents = defineTool({
     name: 'pen_recommend_components',
     label: 'Recommend Components',
@@ -3553,6 +3772,9 @@ const createShape = defineTool({
     saveDesignPattern,
     clearPatternMemory,
     patternStats,
+    // Task 7-c — UI QUALITY ENFORCEMENT tools
+    generateDesignBrief,    // T1: pre-generation design brief
+    visualCritique,         // T3: VLM screenshot critique
   ];
 }
 
@@ -3732,6 +3954,19 @@ interface HifiPalette {
 ///   - Pill radii (9999) on avatars/toggles/chips.
 ///   - Larger radii on cards (12) and modals (16) if they were 0.
 ///   - Primary-color fill on shapes named "Primary Button" / "CTA".
+///   - **Typography fields (Task 7-c P1.1):** fontWeight, letterSpacing,
+///     lineHeight, textAlign, fontFamily on every text shape based on its
+///     semantic role. This is the SINGLE HIGHEST-LEVERAGE FIX because the
+///     Task 7-a VLM baseline proved 0% typography usage across 24 text
+///     shapes — the wireframe generator emits bare text shapes, the agent
+///     follows up with `pen_set_shadow` / `pen_set_gradient_fill` but never
+///     sets fontWeight/letterSpacing/textAlign. By emitting them here, even
+///     a bare `pen_generate_wireframe` call produces typographically-rich
+///     output. The post-processor pattern-matches on shape NAMES, which
+///     every template already uses semantically ("Hero heading", "Page
+///     title", "Stat 1 value", "Stat 1 label", "Chart title", etc.).
+///   - **autoLayout (Task 7-c P1.1):** added to layout containers (cards,
+///     sidebars, topbars, tab bars) so child shapes align automatically.
 ///
 /// This guarantees that even a bare `pen_generate_wireframe` call produces
 /// a visually polished starting point — not a flat grayscale wireframe.
@@ -3755,10 +3990,45 @@ function applyHighFidelityStyling(
     // Skip the frame itself — it already got a shadow in addFrame.
     if (s.type === 'frame' && s.id === shapes[0]?.id) continue;
 
-    // --- Cards: add shadow + ensure radius >= 12 ---
+    // --- Typography fields (Task 7-c P1.1 — highest-impact fix) ------------
+    // Apply per-role typography to text shapes based on their semantic name.
+    // The system prompt's LETTER SPACING RULES table is honored here:
+    //   - DISPLAY / hero (≥38px):    weight 700, letterSpacing -0.8
+    //   - H1 / page title:           weight 700, letterSpacing -0.6, size 28-32
+    //   - H2 / section heading:      weight 600, letterSpacing -0.4, size 18-22
+    //   - Metric value (big number):  weight 700, letterSpacing -0.5, left align
+    //   - Metric / stat label:        weight 500, letterSpacing +0.6, left align
+    //   - Body / paragraph:           weight 400, letterSpacing 0, lineHeight 1.5
+    //   - Table header:               weight 600, letterSpacing +0.5, uppercase
+    //   - Button label:               weight 500-600, letterSpacing +0.3, center
+    //   - Input placeholder/label:    weight 400, letterSpacing 0, left
+    //   - Sidebar nav item:           weight 500, letterSpacing 0, left
+    //   - Caption / overline:         weight 500, letterSpacing +0.4-0.8
+    // The renderer (Canvas.tsx ShapeRenderer case 'text') honors fontWeight,
+    // letterSpacing, lineHeight, textAlign, fontFamily — so these fields flow
+    // through .pen PenTextStyle → resolvePenTree → Layer → SVG <text>.
+    if (s.type === 'text') {
+      applyTypographyByName(s, name);
+    }
+
+    // --- Cards: add shadow + ensure radius >= 12 + autoLayout -----------
     if (/\bcard\b|\bstat\b|\bchart\b|\bpanel\b|\btile\b|\bitem\b|\bproduct\b/.test(name) && s.type === 'rectangle') {
       if (!s.shadow) s.shadow = SHADOW_CARD;
       if (!s.radius || s.radius < 12) s.radius = 12;
+      // Cards/panels with content children benefit from vertical autoLayout.
+      // Note: the wireframe templates lay out text via absolute coordinates,
+      // so we set autoLayout only as a marker — the renderer doesn't yet
+      // reflow children, but the layer is "auto-layout aware" for the agent's
+      // follow-up calls.
+      if (!s.autoLayout) {
+        s.autoLayout = {
+          direction: 'vertical',
+          gap: 8,
+          padding: 16,
+          alignX: 'min',
+          alignY: 'min',
+        };
+      }
     }
 
     // --- Buttons: add shadow, primary fill, white text, pill-ish radius ---
@@ -3807,6 +4077,42 @@ function applyHighFidelityStyling(
       if (!s.shadow) s.shadow = { x: 0, y: -2, blur: 8, color: '#0000001a', spread: 0, inset: false };
       s.fill = '#ffffff';
       if (!s.radius || s.radius < 16) s.radius = 0; // tab bars are usually flat-bottomed
+      // Tab bars are horizontal layout containers for icon+label groups.
+      if (!s.autoLayout) {
+        s.autoLayout = {
+          direction: 'horizontal',
+          gap: 0,
+          padding: 8,
+          alignX: 'center',
+          alignY: 'center',
+        };
+      }
+    }
+
+    // --- Sidebar: vertical autoLayout (nav items stack) ---
+    if (/\bsidebar\b|\bnav\s*drawer\b|\bside\s*nav\b/.test(name) && s.type === 'rectangle') {
+      if (!s.autoLayout) {
+        s.autoLayout = {
+          direction: 'vertical',
+          gap: 4,
+          padding: 16,
+          alignX: 'min',
+          alignY: 'min',
+        };
+      }
+    }
+
+    // --- Topbar / nav / header: horizontal autoLayout (logo + nav + actions) ---
+    if (/\btopbar\b|\btop\s*bar\b|\bheader\b|\bnav\s*bar\b|\bapp\s*bar\b/.test(name) && s.type === 'rectangle') {
+      if (!s.autoLayout) {
+        s.autoLayout = {
+          direction: 'horizontal',
+          gap: 16,
+          padding: 16,
+          alignX: 'min',
+          alignY: 'center',
+        };
+      }
     }
 
     // --- Input fields: ensure they have a visible border + 8px radius ---
@@ -3816,6 +4122,158 @@ function applyHighFidelityStyling(
       if (!s.radius || s.radius < 8) s.radius = 8;
     }
   }
+}
+
+/// Apply per-role typography fields to a text shape based on its semantic name.
+///
+/// Honors the system prompt's LETTER SPACING RULES table. The shape is mutated
+/// in place — only fields not already set by the template are filled, so the
+/// agent's follow-up `pen_update_shape` calls (e.g. to change the brand name's
+/// text) won't be overwritten.
+///
+/// Naming patterns cover every text shape the wireframe templates emit:
+///   - Page title / Hero heading / Headline → H1 (28px / 700 / -0.6)
+///   - Section heading / Subhead / Subheading → H2 (18px / 600 / -0.4)
+///   - Stat value / Metric value (large number) → 32px / 700 / -0.5 / left
+///   - Stat label / Metric label / Overline → 12px / 500 / +0.6 / left
+///   - Body text / Excerpt / Paragraph → 14-16px / 400 / 0 / 1.5
+///   - Table header / Column header → 11px / 600 / +0.5 / left (UPPERCASE intent)
+///   - Button label / CTA label / Sign in label → 14px / 600 / +0.3 / center
+///   - Input label / placeholder → 13-14px / 400 / 0 / left
+///   - Nav item / Sidebar item / Tab label → 13px / 500 / 0 / left
+///   - Caption / helper / footer / fine print → 12px / 400 / +0.2
+function applyTypographyByName(
+  s: Partial<Shape> & { id: string },
+  name: string,
+): void {
+  // Page title / hero heading / wordmark — H1 (28-32px / 700 / -0.6 / left)
+  if (
+    /\bpage\s*title\b|\bhero\s*heading\b|\bhero\s*title\b|\bheadline\b|\bwordmark\b|\bbrand\s*name\b|\bpage\s*heading\b|\bapp\s*name\b/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 700;
+    if (s.letterSpacing === undefined) s.letterSpacing = -0.6;
+    if (s.textAlign === undefined) s.textAlign = 'left';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.2;
+    return;
+  }
+  // Section heading / subhead / subheading / panel title / chart title → H2 (18px / 600 / -0.4)
+  if (
+    /\bsection\s*head|\bsubhead|\bsubheading|\bpanel\s*title|\bchart\s*title|\bcard\s*title|\bmodule\s*title|\bwidget\s*title|\bgroup\s*title/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 600;
+    if (s.letterSpacing === undefined) s.letterSpacing = -0.4;
+    if (s.textAlign === undefined) s.textAlign = 'left';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.25;
+    return;
+  }
+  // Stat / metric value — large number (700 / -0.5 / left for tabular scanning)
+  // Matches: "Stat 1 value", "Metric value", "KPI value", "Revenue value".
+  if (
+    /\bstat\s*\d*\s*value|\bmetric\s*value|\bkpi\s*value|\bstat\s*value|\bvalue\s*\d|\bbig\s*number|\bmetric\s*num|\bstat.*amount/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 700;
+    if (s.letterSpacing === undefined) s.letterSpacing = -0.5;
+    if (s.textAlign === undefined) s.textAlign = 'left';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.1;
+    return;
+  }
+  // Stat / metric label / overline — small caps label (12px / 500 / +0.6 / left)
+  // Matches: "Stat 1 label", "Metric label", "KPI label", "Overline".
+  if (
+    /\bstat\s*\d*\s*label|\bmetric\s*label|\bkpi\s*label|\bstat\s*label|\boverline|\blabel\b/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 500;
+    if (s.letterSpacing === undefined) s.letterSpacing = 0.6;
+    if (s.textAlign === undefined) s.textAlign = 'left';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.4;
+    return;
+  }
+  // Button / CTA label — center-aligned, medium-bold (14px / 600 / +0.3 / center)
+  if (
+    /\bbutton\s*label|\bcta\s*label|\baction\s*label|\bsign\s*in\s*label|\bcontinue\s*label|\bsubmit\s*label|\bbuy\s*label|\badd\s*label|\bbtn\s*label|\bprimary\s*cta\s*label/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 600;
+    if (s.letterSpacing === undefined) s.letterSpacing = 0.3;
+    if (s.textAlign === undefined) s.textAlign = 'center';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.2;
+    return;
+  }
+  // Table / column header — uppercase small caps (11px / 600 / +0.5 / left)
+  if (
+    /\btable\s*header|\bcolumn\s*header|\bcol\s*header|\bheader\s*cell/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 600;
+    if (s.letterSpacing === undefined) s.letterSpacing = 0.5;
+    if (s.textAlign === undefined) s.textAlign = 'left';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.3;
+    return;
+  }
+  // Nav / sidebar / tab labels — medium weight, left (13px / 500 / 0)
+  if (
+    /\bnav\s*item|\bsidebar\s*logo|\bsidebar\s*item|\btab\s*\d*\s*label|\btab\s*label|\bnav\s*label|\bmenu\s*item|\bmenu\s*label/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 500;
+    if (s.letterSpacing === undefined) s.letterSpacing = 0;
+    if (s.textAlign === undefined) s.textAlign = 'left';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.4;
+    return;
+  }
+  // Input / field label / placeholder — light (13-14px / 400 / 0 / left)
+  if (
+    /\binput\s*label|\bfield\s*label|\bemail\s*label|\bpassword\s*label|\bplaceholder|\binput\s*text|\bsearch\s*placeholder/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 400;
+    if (s.letterSpacing === undefined) s.letterSpacing = 0;
+    if (s.textAlign === undefined) s.textAlign = 'left';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.4;
+    return;
+  }
+  // Caption / footer / fine print / helper — small (12px / 400 / +0.2)
+  if (
+    /\bcaption|\bfooter|\bfine\s*print|\bhelper|\bdisclaimer|\bhint|\bsub\s*note/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 400;
+    if (s.letterSpacing === undefined) s.letterSpacing = 0.2;
+    if (s.textAlign === undefined) s.textAlign = 'left';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.4;
+    return;
+  }
+  // Link / forgot password / sign in link — primary-colored link text (13-14px / 500 / 0)
+  if (
+    /\blink|\bforgot\s*password|\bsign\s*up\s*link|\bsign\s*in\s*link|\balready\s*have\s*an\s*account/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 500;
+    if (s.letterSpacing === undefined) s.letterSpacing = 0;
+    if (s.textAlign === undefined) s.textAlign = 'left';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.4;
+    return;
+  }
+  // Body / excerpt / paragraph / description / hero subheading — default body
+  // (14-16px / 400 / 0 / 1.5)
+  if (
+    /\bbody|\bexcerpt|\bparagraph|\bdescription|\bsubhead|\bsubheading|\bhero\s*subheading|\bhero\s*sub|\bsubtitle|\bcontent\b|\btext\b/.test(name)
+  ) {
+    if (s.fontWeight === undefined) s.fontWeight = 400;
+    if (s.letterSpacing === undefined) s.letterSpacing = 0;
+    if (s.textAlign === undefined) s.textAlign = 'left';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.5;
+    return;
+  }
+  // Catch-all for any other text shape: at least set the font family + a
+  // sensible default weight so it doesn't render as bare default 400.
+  if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+  if (s.lineHeight === undefined) s.lineHeight = 1.4;
 }
 
 function buildWireframe(template: string, oxIn: number, oyIn: number): WireframeResult {

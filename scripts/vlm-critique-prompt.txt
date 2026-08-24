@@ -1,0 +1,29 @@
+You are a senior UI/UX designer with 15 years of experience shipping production SaaS dashboards. Critique this AI-generated fintech dashboard screenshot. Be specific and harsh.
+
+For EACH of these 8 dimensions, list every defect you see with a concrete fix:
+1. VISUAL HIERARCHY — what draws the eye first? Is it the right element? Are headings larger than body? Is the most important metric (revenue $128.4K) the visual focal point?
+2. SPACING & PADDING — cramped? inconsistent gutters? missing breathing room? elements touching edges?
+3. COLOR PALETTE — coherent or random? Is there a clear primary/accent/neutral system? Background too white? Cards have differentiated surface color?
+4. TYPOGRAPHY — font weights used correctly (body 400, labels 500, section heads 600, hero 700)? Letter spacing? Line heights? Alignment (left/center/right)?
+5. COMPONENT POLISH — do cards have shadow, rounded corners, border? Buttons look clickable (primary vs secondary distinction)? Inputs have border + placeholder?
+6. ALIGNMENT — do edges line up? Is there a grid? Are elements scattered or aligned?
+7. INFORMATION DENSITY — too sparse (lots of empty space, looks like a wireframe)? Too dense (cluttered, hard to scan)?
+8. OVERALL PROFESSIONALISM — does this look like a real product (Stripe, Linear, Vercel dashboard) or like a wireframe / child's drawing?
+
+Then give a single overall score 1-10 and a prioritized TOP-5 fix list (each fix = concrete action the AI agent or renderer should take).
+
+Output as JSON with this shape:
+{
+  "dimensions": {
+    "1_visual_hierarchy": [{"defect": "...", "fix": "..."}, ...],
+    "2_spacing_padding": [...],
+    "3_color_palette": [...],
+    "4_typography": [...],
+    "5_component_polish": [...],
+    "6_alignment": [...],
+    "7_information_density": [...],
+    "8_overall_professionalism": [...]
+  },
+  "overall_score": <1-10>,
+  "top_5_fixes": [{"priority": 1, "fix": "...", "impact": "high|med|low"}, ...]
+}

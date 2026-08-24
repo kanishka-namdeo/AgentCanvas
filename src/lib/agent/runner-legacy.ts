@@ -220,60 +220,85 @@ ICONOGRAPHY: call pen_search_icons (name) to get a lucide stroked polyline. Stro
  When binding tokens, prefer $color.primary-50 / $color.primary-100 / $color.primary-500 / $color.primary-700 —
  the ramp makes secondary fills (tinted backgrounds, hover states, focus rings) consistent.
 
+=== DESIGN BRIEF (MANDATORY FIRST STEP — Task 7-c T1) =====================
+BEFORE any pen_create_shape / pen_generate_wireframe / pen_apply_palette call, you MUST call
+pen_generate_design_brief with the user's prompt. The sub-agent returns a JSON brief:
+  {
+    "primaryColor":   "#0ea5e9",       // use as $color.primary
+    "accentColor":    "#6366f1",       // use as $color.accent
+    "neutralPalette": ["#f8fafc", ...], // use for $color.bg / surface / border / text
+    "typography":     {"fontFamily": "Inter, system-ui, sans-serif", "headingScale": "1.25 Major Third", "bodySize": 14},
+    "componentCount": 12,              // floor — fewer shapes fails validation gate
+    "layoutGrid":     {"cols": 12, "rows": 6},
+    "informationArchitecture": ["Topbar", "Sidebar", "KPI cards", "Main chart", "Recent transactions table"]
+  }
+
+Use the brief's palette + typography + IA list for ALL subsequent shape creation. Do NOT improvise
+colors — bind the brief's primaryColor + accentColor + neutralPalette to $color.* tokens via
+pen_set_variable, then bind shapes to the tokens. The informationArchitecture list IS your
+scaffold checklist — every entry MUST become at least one shape.
+
+This closes the "agent bypasses the design system" failure mode the Task 7-a VLM baseline
+exposed (the agent went straight to pen_generate_wireframe + 11 ad-hoc pen_set_variable calls,
+never setting fontWeight/letterSpacing/textAlign on the 24 text shapes — VLM scored it 2/10).
+
 === COMPONENT RECIPES (concrete pen_create_shape field values) =============
  Use these as the STARTING POINT for each component type — adjust per-brand-per-state.
  Coordinates assume 8px grid alignment. All recipes use INLINE shadow/gradient/radii fields
- (one-shot rich shape; no follow-up pen_set_shadow needed).
+ (one-shot rich shape; no follow-up pen_set_shadow needed). Colors use $color.* TOKEN SYNTAX
+ (NOT raw hex) — the wireframe-generator's post-processor and the renderer bind $color.* to
+ the variables you define via pen_set_variable, so the design stays consistent + editable.
 
   BUTTON (primary, default state):
     { type:"rectangle", name:"Primary Button", width:144, height:40, radius:8,
-      fill:"#0ea5e9",  // or "$color.primary"
+      fill:"$color.primary",
       shadow:{x:0, y:1, blur:2, color:"#0000000d"},  // sm
       // label text layer (separate call):
-      text:"Get Started", fontSize:14, fontWeight:600, letterSpacing:0.2,
-      textAlign:"center", textColor:"#ffffff", fontFamily:"Inter" }
+      text:"Get Started", fontSize:14, fontWeight:600, letterSpacing:0.3,
+      textAlign:"center", textColor:"$color.primary-fg", fontFamily:"$font.sans" }
   BUTTON (CTA, gradient + stronger shadow):
     { ... width:176, height:44, radius:8,
-      gradient:{type:"linear", angle:135, stops:[{offset:0,color:"#0ea5e9"},{offset:1,color:"#6366f1"}]},
+      gradient:{type:"linear", angle:135, stops:[{offset:0,color:"$color.primary"},{offset:1,color:"$color.accent"}]},
       shadow:{x:0, y:4, blur:6, color:"#0000001a"} }  // md
-  CARD (resting, shadow sm):
+  CARD (resting, shadow sm, vertical autoLayout):
     { type:"rectangle", name:"Card", width:320, height:200, radius:12,
-      fill:"#ffffff",  // or "$color.surface"
-      shadow:{x:0, y:1, blur:2, color:"#0000000d"} }
+      fill:"$color.surface",
+      shadow:{x:0, y:1, blur:2, color:"#0000000d"},
+      autoLayout:{direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min"} }
   CARD (raised, shadow md — sticky header, hovered state):
     { ... shadow:{x:0, y:4, blur:6, color:"#0000001a"} }
   INPUT FIELD:
     { type:"rectangle", name:"Email Input", width:320, height:44, radius:6,
-      fill:"#f1f5f9",  // "$color.surface-2"
-      stroke:"#e2e8f0", strokeWidth:1,
+      fill:"$color.surface-2",
+      stroke:"$color.border", strokeWidth:1,
       shadow:{x:0, y:1, blur:0, color:"#00000000"} }  // flat (inputs don't elevate until focus)
-  NAVBAR (sticky, full-width frame):
+  NAVBAR (sticky, full-width frame, horizontal autoLayout):
     { type:"frame", name:"Navbar", width:1280, height:64, radius:0,
-      fill:"#ffffff", stroke:"#e2e8f0", strokeWidth:1,
+      fill:"$color.surface", stroke:"$color.border", strokeWidth:1,
       shadow:{x:0, y:1, blur:2, color:"#0000000d"},
       autoLayout:{direction:"horizontal", gap:24, padding:16, alignX:"min", alignY:"center"} }
   HERO (gradient background, large radius, big shadow):
     { type:"rectangle", name:"Hero", width:1280, height:400, radius:16,
-      gradient:{type:"linear", angle:165, stops:[{offset:0,color:"#0ea5e9"},{offset:1,color:"#6366f1"}]},
+      gradient:{type:"linear", angle:165, stops:[{offset:0,color:"$color.primary"},{offset:1,color:"$color.accent"}]},
       shadow:{x:0, y:10, blur:15, color:"#00000026"} }  // lg
   MODAL (overlay, shadow xl, per-corner radii):
     { type:"rectangle", name:"Modal", width:480, height:320,
       radii:{topLeft:16, topRight:16, bottomRight:16, bottomLeft:16},
-      fill:"#ffffff",
+      fill:"$color.surface",
       shadow:{x:0, y:20, blur:25, color:"#00000033"} }  // xl
-  AVATAR (circle, ring shadow):
+  AVATAR (circle, ring shadow, primary tint):
     { type:"ellipse", name:"Avatar", width:40, height:40,
-      fill:"#0ea5e9",  // or $color.primary tint
+      fill:"$color.primary-100",  // 50-900 ramp tint
       shadow:{x:0, y:1, blur:2, color:"#0000000d"} }
-  BADGE / PILL (capsule):
+  BADGE / PILL (capsule, primary-tinted):
     { type:"rectangle", name:"Badge", width:64, height:24, radius:9999,
-      fill:"#f0f9ff",  // primary-50 tint
-      stroke:"#bae6fd", strokeWidth:1,
+      fill:"$color.primary-50",  // 50-900 ramp lightest tint
+      stroke:"$color.primary-200", strokeWidth:1,
       // label text: fontSize:11, fontWeight:600, letterSpacing:0.4, textAlign:"center"
     }
-  FAB (floating action button):
+  FAB (floating action button, primary→accent gradient):
     { type:"ellipse", name:"FAB", width:56, height:56,
-      gradient:{type:"linear", angle:135, stops:[{offset:0,color:"#0ea5e9"},{offset:1,color:"#6366f1"}]},
+      gradient:{type:"linear", angle:135, stops:[{offset:0,color:"$color.primary"},{offset:1,color:"$color.accent"}]},
       shadow:{x:0, y:8, blur:12, color:"#00000033"} }  // xl
 
 === THE 5 LAWS OF BEAUTIFUL UI (distilled from ClawHub ui-ux-design skill) =
@@ -1100,6 +1125,116 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
     const toolCalls = msg.tool_calls ?? [];
     if (toolCalls.length === 0) {
       // No tool calls → final answer. End the turn.
+
+      // ---- Task 7-c P1.3 / T2 — MANDATORY self-critique loop (legacy mirror)
+      //
+      // The production runner (runner-native.ts) wraps the main turn in a
+      // bounded critique loop: dispatch text-critic + VLM critic + validation
+      // gate, then re-prompt the agent with the defect list. We mirror a
+      // SIMPLER version here for the legacy (test) path so the behavior
+      // parity is documented — BUT we gate it on `!injectedLlm` because:
+      //   1. Tests pass MockLLM via injectedLlm; MockLLM doesn't have
+      //      the design-critic's persona/system-prompt scripted, so dispatching
+      //      the critic would consume scripted completions the test didn't
+      //      account for → test failures.
+      //   2. The VLM critic needs @resvg + a vision-capable LLM — tests
+      //      don't have either.
+      //   3. The legacy runner is the test/fallback path; production runs
+      //      through runner-native which has the full critique loop.
+      //
+      // When injectedLlm IS set (tests), we skip the critique loop entirely.
+      // When injectedLlm is NOT set (production-fallback through legacy),
+      // we run the loop — same default as runner-native.
+      const maxCritiqueIterations = (!injectedLlm && (settings?.maxDesignCritiqueIterations ?? 2)) || 0;
+
+      if (maxCritiqueIterations > 0) {
+        // Sync canvas from the patches emitted above.
+        const shapesForCritique = canvas.shapes ?? [];
+        const lowerPrompt = prompt.toLowerCase();
+        const isWireframeRequest =
+          /\bwireframe\b|\blow-fi\b|\blow-fidelity\b|\bsketch\b|\bskeleton\b|\bmockup\b|\bgraybox\b/.test(lowerPrompt);
+
+        if (shapesForCritique.length > 0 && !isWireframeRequest) {
+          // Dispatch text critic.
+          let textCritiqueSummary = '';
+          let textCritiqueSeverity: 'low' | 'medium' | 'high' = 'medium';
+          try {
+            const { dispatchDesignCriticSubAgent } = await import('./subagents/design-critic');
+            const textResult = await dispatchDesignCriticSubAgent({
+              task: 'Critique the current canvas design.',
+              canvas,
+              originalPrompt: prompt,
+              llm: llm,
+            });
+            textCritiqueSummary = textResult.summary;
+            const scoreMatch = textCritiqueSummary.match(/SCORE:\s*(\d+)/i);
+            if (scoreMatch) {
+              const score = parseInt(scoreMatch[1], 10);
+              textCritiqueSeverity = score >= 7 ? 'low' : score >= 4 ? 'medium' : 'high';
+            }
+          } catch (err: any) {
+            textCritiqueSummary = `(text critic failed: ${err.message ?? String(err)})`;
+          }
+
+          // Validation gate.
+          const { validateCanvasBeforeComplete } = await import('./validators');
+          const validation = validateCanvasBeforeComplete(shapesForCritique);
+
+          const defects = [
+            ...validation.reasons,
+            ...(textCritiqueSeverity !== 'low' ? [`Text critic (severity=${textCritiqueSeverity}): ${textCritiqueSummary.slice(0, 800)}`] : []),
+          ];
+
+          // Emit critique event so the UI shows it.
+          yield {
+            kind: 'agent_event',
+            event: {
+              type: 'agent:critique',
+              iteration: 0,
+              defects,
+              validation: validation.stats,
+              textSeverity: textCritiqueSeverity,
+              vlmSeverity: 'low' as const, // legacy path skips VLM
+            },
+          };
+
+          // If defects found and we have iterations left, inject fix-message
+          // and continue the main loop instead of ending the turn.
+          if (defects.length > 0 && iter < maxIterations - 1) {
+            yield {
+              kind: 'agent_event',
+              event: { type: 'agent:message_end' },
+            };
+            yield {
+              kind: 'agent_event',
+              event: {
+                type: 'agent:message_delta',
+                text: `\n\n_[Design critic: ${defects.length} defect(s) found. Re-prompting to fix them.]_`,
+              },
+            };
+            yield {
+              kind: 'agent_event',
+              event: { type: 'agent:message_end' },
+            };
+            // Inject the fix-message as a user message and continue the loop.
+            messages.push({
+              role: 'user',
+              content: `The design critic found these defects in your current design:
+
+${defects.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}
+
+Fix them by calling pen_update_shape or pen_create_shape. Do not declare done until each defect is addressed.`,
+            });
+            // Refresh the system snapshot for the next iteration.
+            messages[0] = {
+              role: 'system',
+              content: buildSystemPrompt(skillMetadata, skillBody, plan ? `=== EXECUTION PLAN =========================================================\nFollow this plan. Complete each step before moving to the next.\n\n${formatPlanForPrompt(plan)}\n` : '', canvas, defaultPalette, planFirst),
+            };
+            continue; // skip the turn_end emission below; let the next iteration handle the fix.
+          }
+        }
+      }
+
       yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
 
       // Mark the current plan step as completed.

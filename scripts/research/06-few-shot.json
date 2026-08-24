@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://www.promptingguide.ai/techniques/fewshot",
+    "name": "Few-Shot Prompting",
+    "snippet": "Feb 1, 2026 — Few-shot prompting can be used as a technique to enable in-context learning where we provide demonstrations in the prompt to steer. In the  ...",
+    "host_name": "www.promptingguide.ai",
+    "rank": 0,
+    "date": "Feb 1, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.ibm.com/think/topics/few-shot-prompting",
+    "name": "What is few shot prompting?",
+    "snippet": "Few-shot prompting refers to the process of providing an AI model with a few examples of a task to guide its performance.",
+    "host_name": "www.ibm.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cleanlab.ai/blog/learn/reliable-fewshot-prompts",
+    "name": "Ensuring Reliable Few-Shot Prompt Selection for LLMs",
+    "snippet": "Following typical practice, we source the few - shot examples to include in the prompt template from an available dataset of human-labeled request examples . Read more",
+    "host_name": "cleanlab.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.prompthub.us/blog/the-few-shot-prompting-guide",
+    "name": "The Few Shot Prompting Guide",
+    "snippet": "Oct 23, 2025 — Few shot prompting is a prompt engineering technique where you insert examples in your prompt, training the model on what you want the output ...",
+    "host_name": "www.prompthub.us",
+    "rank": 3,
+    "date": "Oct 23, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://guides.library.tamucc.edu/prompt-engineering/shots",
+    "name": "Zero-, One-, & Few-shots Prompting - Prompt Engineering",
+    "snippet": "Jul 20, 2026 — Few-shot prompts are prompt with multiple examples instead of just one, essentially creating a mini dataset with the prompt to help the Gen AI ...",
+    "host_name": "guides.library.tamucc.edu",
+    "rank": 4,
+    "date": "Jul 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://quillbot.com/blog/ai-prompt-writing/few-shot-prompting",
+    "name": "Few Shot Prompting | Use Cases & Examples",
+    "snippet": "Dec 19, 2025 — Few-shot prompting is a technique where you provide an AI model with examples (usually 2–5) before asking it to perform a similar task.",
+    "host_name": "quillbot.com",
+    "rank": 5,
+    "date": "Dec 19, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.matillion.com/blog/gen-ai-prompt-strategy-zero-shot-few-shot-prompt",
+    "name": "Zero Shot vs. Few Shot Prompts",
+    "snippet": "Few-shot prompting also involves just sending a single prompt to an LLM . But the crucial difference is that a few examples are added to the prompt to help the ... Read more",
+    "host_name": "www.matillion.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

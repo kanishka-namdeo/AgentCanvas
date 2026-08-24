@@ -1,0 +1,83 @@
+[
+  {
+    "url": "https://vercel.com/blog/ai-sdk-3-generative-ui",
+    "name": "Introducing AI SDK 3.0 with Generative UI support",
+    "snippet": "v0.dev, a generative UI design tool that converts text and image prompts to React UIs and streamlines the design engineering process.",
+    "host_name": "vercel.com",
+    "rank": 0,
+    "date": "Mar 1, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/LocalLLaMA/comments/1gwwyia/leaked_system_prompts_from_v0_vercels_ai",
+    "name": "Leaked System prompts from v0 - Vercels AI component",
+    "snippet": "- Users can ATTACH (or drag and drop) IMAGES and TEXT FILES via the prompt form that will be embedded and read by v0. - Users can PREVIEW/RENDER ...",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://v0.app",
+    "name": "v0 by Vercel - Build Full-Stack Web Apps with AI",
+    "snippet": "Your collaborative AI assistant to design, iterate, and scale full-stack applications for the web. Generate working applications in minutes with AI. Create ...",
+    "host_name": "v0.app",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/blog/maximizing-outputs-with-v0-from-ui-generation-to-code-creation",
+    "name": "Maximizing outputs with v0: From UI generation to code",
+    "snippet": "In this post, we'll look at how you can get the most out of v0's core features, UI generation abilities, code generation, and developer support.",
+    "host_name": "vercel.com",
+    "rank": 3,
+    "date": "Oct 23, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=Gb3tF3jp4XU",
+    "name": "v0 Tutorial: Beginner to Pro in 15 Minutes (Build ANY UI with AI)",
+    "snippet": "Learn how to master v0 (Vercel's AI UI generator) in just 15 minutes! Go from complete beginner to building stunning, eye-catching ...",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/x1xhlol/system-prompts-and-models-of-ai-tools/blob/main/v0%20Prompts%20and%20Tools/Prompt.txt",
+    "name": "system-prompts-and-models-of-ai-tools/v0",
+    "snippet": "Here are some capabilities of the v0 UI: - Users can add attachments by clicking the paperclip or drag and dropping in the prompt form.",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.baytechconsulting.com/blog/ai-ui-generator-how-businesses-can-leverage-vercels-v0-dev",
+    "name": "AI UI Generator How Businesses Can Leverage Vercel's v0",
+    "snippet": "v0.dev is a Generative UI tool built by Vercel, It allows users to generate code for user interfaces through natural-language prompts.",
+    "host_name": "www.baytechconsulting.com",
+    "rank": 6,
+    "date": "Apr 23, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/blog/announcing-v0-generative-ui",
+    "name": "Announcing v0: Generative UI",
+    "snippet": "v0: a product that makes website creation as simple as describing your ideas. We call it Generative UI—combining the best practices of frontend ...",
+    "host_name": "vercel.com",
+    "rank": 7,
+    "date": "Oct 11, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mindstudio.ai/blog/what-is-vercel-v0",
+    "name": "What Is Vercel v0? AI-Powered UI Generation Explained",
+    "snippet": "Vercel v0 generates React components and UI layouts from text prompts. Here's what it is, what it's good at, and where it fits in a dev workflow ...",
+    "host_name": "www.mindstudio.ai",
+    "rank": 8,
+    "date": "Apr 14, 2026",
+    "favicon": ""
+  }
+]

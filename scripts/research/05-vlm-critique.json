@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://voxel51.com/blog/visual-agents-at-cvpr-2025",
+    "name": "Visual Agents at CVPR 2025",
+    "snippet": "May 28, 2025 — Explore cutting-edge CVPR 2025 research on agentic AI and visual agents that see, understand, and act across interfaces.",
+    "host_name": "voxel51.com",
+    "rank": 0,
+    "date": "May 28, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net/forum?id=5wmAfwDBoi",
+    "name": "UI-Pro: A Hidden Recipe for Building Vision-Language",
+    "snippet": "by H Li — This paper presents a UI -Pro, a vision - language model (VLM) designed to enhance autonomous interaction with user interfaces. It addresses the core challenge of ... Read more",
+    "host_name": "openreview.net",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.ibm.com/think/topics/vision-language-models",
+    "name": "What Are Vision Language Models (VLMs)?",
+    "snippet": "Vision language models (VLMs) are artificial intelligence (AI) models that blend computer vision and natural language processing (NLP) capabilities.",
+    "host_name": "www.ibm.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/MachineLearning/comments/1rrzwp9/p_visual_verification_as_a_feedback_loop_for_llm",
+    "name": "[P] Visual verification as a feedback loop for LLM code",
+    "snippet": "The coding agent is biased toward its own output. A separate vision agent with no access to the code — only the rendered result — provides ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net/publication/382789674_ScreenAgent_A_Vision_Language_Model-driven_Computer_Control_Agent",
+    "name": "A Vision Language Model-driven Computer Control Agent",
+    "snippet": "The agent detects UI elements from screenshots, plans the layout, and synthesises corresponding HTML code.",
+    "host_name": "www.researchgate.net",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.emergentmind.com/topics/vision-language-model-vlm-agent",
+    "name": "Vision-Language Model Agent",
+    "snippet": "Jan 25, 2026 — A Vision-Language Model Agent is an autonomous, modular system that leverages integrated vision, language, and tool-based reasoning for ...",
+    "host_name": "www.emergentmind.com",
+    "rank": 5,
+    "date": "Jan 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://huggingface.co/blog/vlms-2025",
+    "name": "Vision Language Models (Better, faster, stronger)",
+    "snippet": "May 12, 2025 — Multimodal Agents Vision language models unlock many agentic workflows from chatting with documents to computer use. Here we will cover",
+    "host_name": "huggingface.co",
+    "rank": 6,
+    "date": "May 12, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://liner.com/review/screenagent-vision-language-modeldriven-computer-control-agent",
+    "name": "A Vision Language Model-driven Computer Control Agent",
+    "snippet": "Feb 9, 2024 — Regarding this IJCAI 2024 paper, this review summarizes ScreenAgent, a VLM for continuous computer control and precise UI element localization.",
+    "host_name": "liner.com",
+    "rank": 7,
+    "date": "Feb 9, 2024",
+    "favicon": ""
+  }
+]

@@ -184,6 +184,76 @@ Extended SyncEvent types (in `src/lib/canvas/types.ts`):
 - The .pen-aligned tools (pen_set_variable, pen_apply_theme, pen_create_ref, etc.) are ALWAYS available regardless of skill, because they expose pen.dev concepts that are relevant to every design task.
 - When adding a .pen-aligned tool: define it in `pen-tools.ts`, add it to `PEN_TOOL_NAMES`, add it to the runner's `filterToolSpecs` logic if needed.
 
+## UI QUALITY ENFORCEMENT (Task 7-c — 3-phase architectural enforcement)
+
+The Task 7-a VLM baseline scored AgentCanvas 2/10. The Task 7-b research report (T1/T2/T3/T4/T10) identified that production tools (v0/Lovable/bolt) couple their prompts with architectural enforcement — AgentCanvas's prompt-only Task 6-a enhancement was bypassed by the agent delegating to `pen_generate_wireframe`. Task 7-c implements the architectural layer:
+
+### P1.1 — Wireframe-generator typography-rich output (`tools.ts` `applyHighFidelityStyling`)
+The `applyHighFidelityStyling` post-processor runs after every `buildWireframe` template. It now applies typography fields (fontWeight / letterSpacing / lineHeight / textAlign / fontFamily) to every text shape based on the shape's NAME — using the same per-role table the system prompt's LETTER SPACING RULES section documents:
+- Page title / Hero heading / Headline / Wordmark → H1 (700 / -0.6 / left)
+- Section heading / Subhead / Panel title / Chart title → H2 (600 / -0.4 / left)
+- Stat / Metric value (large number) → 700 / -0.5 / left (tabular scanning)
+- Stat / Metric label / Overline → 500 / +0.6 / left
+- Body / Excerpt / Paragraph / Description → 400 / 0 / 1.5
+- Table / Column header → 600 / +0.5 / left (UPPERCASE intent)
+- Button / CTA label → 600 / +0.3 / center
+- Input / Field label / Placeholder → 400 / 0 / left
+- Nav / Sidebar item / Tab label → 500 / 0 / left
+- Caption / Footer / Fine print → 400 / +0.2
+- Link / Forgot password / Sign in link → 500 / 0 / left
+
+It also adds `autoLayout` to layout containers (cards = vertical, sidebars = vertical, topbars = horizontal, tab bars = horizontal). The renderer (`Canvas.tsx` ShapeRenderer case 'text') honors all these fields, so the wireframe generator's output is now typographically-rich end-to-end — closing the "0% typography usage" root cause the VLM baseline exposed.
+
+### P1.2 / T1 — Pre-generation design brief (`pen_generate_design_brief` tool + `subagents/design-brief.ts`)
+The new `pen_generate_design_brief` tool dispatches the design-brief sub-agent, which calls the LLM in an isolated context with the user prompt + a strict JSON-output system prompt. The sub-agent returns a `DesignBrief`:
+```ts
+{ primaryColor, accentColor, neutralPalette: string[], typography: {fontFamily, headingScale, bodySize},
+  componentCount, layoutGrid: {cols, rows}, informationArchitecture: string[] }
+```
+The brief is bound to 50-900 brand ramps (Sky/Violet/Emerald/Amber/Rose/Indigo) so it matches the system prompt's PRIMARY COLOR 50-900 RAMPS section. The system prompt's new "DESIGN BRIEF (MANDATORY FIRST STEP)" section tells the agent to call `pen_generate_design_brief` BEFORE any `pen_create_shape` / `pen_generate_wireframe` / `pen_apply_palette` call and use the brief's palette/typography/IA list for ALL subsequent shape creation. This is the v0 `GenerateDesignInspiration` pattern — think-before-draw.
+
+### P1.3 / T2 — Mandatory self-critique loop with MAX_ITERATIONS=2 (`runner-native.ts` + `runner-legacy.ts` + `AgentRunSettings.maxDesignCritiqueIterations`)
+After the agent emits its final message, the runner wraps a bounded outer loop:
+```ts
+for (let critiqueIteration = 0; critiqueIteration < maxCritiqueIterations; critiqueIteration++) {
+  // 1. Dispatch text critic (existing dispatchDesignCriticSubAgent).
+  // 2. Dispatch VLM critic (T3) — renderCanvasToPng + vision LLM.
+  // 3. Run validateCanvasBeforeComplete (T10).
+  // 4. If validation passes AND both severities are "low", break.
+  // 5. Otherwise emit agent:critique event + re-prompt the agent
+  //    with the defect list via a new pi SDK session.
+}
+```
+Default `maxDesignCritiqueIterations = 2` — agent gets 1 chance to self-correct after the critic. The legacy runner mirrors a simplified version (text critic only, no VLM — gated on `!injectedLlm` so tests using MockLLM don't trip the loop). The existing `pen_self_critique` tool remains OPT-IN but the architectural enforcement makes the loop MANDATORY regardless.
+
+### P1.4 / T10 — Pre-complete validation gate (`validators.ts` `validateCanvasBeforeComplete`)
+`validateCanvasBeforeComplete(shapes)` runs BEFORE the agent's final message is committed. Rules (each produces a specific failure reason):
+1. `< 5 shapes` → "Too few shapes — looks like a wireframe"
+2. `< 50% of text shapes have non-default fontWeight` → "no typographic hierarchy"
+3. `< 30% of card-shaped rectangles have shadow` → "most cards lack shadow"
+4. `zero shapes with autoLayout set` → "no autoLayout detected"
+
+If validation fails, the runner re-prompts the agent with the failure reasons + "Fix these before declaring done." This catches the exact wireframe-only failure mode the VLM baseline exposed (39 bare scaffolds + 11 pen_set_variable + 7 pen_set_shadow + 1 gradient, ZERO typography fields across 24 text shapes).
+
+### P2.1 / T3 — VLM screenshot critique (`subagents/design-critic-vlm.ts` + `canvas/render-to-png.ts` + `pen_visual_critique` tool)
+The `renderCanvasToPng(shapes, 1440, 900)` function builds an SVG string from the resolved layers (mirroring the ShapeRenderer JSX but emitting raw SVG markup, with full support for typography fields + gradients + shadows + radii + opacity), then rasterizes via `@resvg/resvg-js` at 2x scale for crisp text. The VLM critic sub-agent base64-encodes the PNG and calls the vision LLM with the SAME structured-critique prompt used for the Task 7-a baseline (8 dimensions, 1-10 score, top-5 fixes). The "after" score is directly comparable to the 2/10 baseline.
+
+The VLM catches what text-critic cannot see: alignment, whitespace distribution, "generic AI look" (the v0/Midjourney pattern — flat colored divs with no real content density). The mandatory critique loop dispatches BOTH critics on each iteration and merges their defects before re-prompting the agent.
+
+### P3.1 / T4 — Design-token enforcement (`coerceShapeInput` + system-prompt COMPONENT RECIPES rewrite)
+The 9 COMPONENT RECIPES in `SYSTEM_PROMPT_TEMPLATE` now use `$color.*` token syntax exclusively (e.g. `fill:"$color.primary"` instead of `fill:"#0ea5e9"`). The `coerceShapeInput` helper in `tools.ts` accepts raw hex (doesn't break tests) but emits a throttled console hint when the AI passes a known hex (e.g. `#0ea5e9`) suggesting the matching `$color.*` token. The hint map covers the entire Sky/Indigo/Emerald/Rose/Amber ramps + the neutral Slate ramp. This closes the "5 different blues" failure mode the recipes (raw hex) used to encourage.
+
+### P3.2 — Documentation (this section)
+This `AGENTS.md` "UI QUALITY ENFORCEMENT" section is the spec for the architectural enforcement layer. Verify it stays in sync with the actual code paths above.
+
+### New dependencies
+- `@resvg/resvg-js@2.6.2` — pure-JS SVG → PNG rasterizer, used by `renderCanvasToPng`. No native deps; works in the Next.js runtime.
+
+### Verification
+- `bunx tsc --noEmit` — must pass (added the new SyncEvent variant `agent:critique` + the `AgentRunSettings.maxDesignCritiqueIterations` field + the new sub-agent / validator modules).
+- `bun run test` — the existing tests use MockLLM via `runner-legacy` (the critique loop is gated on `!injectedLlm`, so tests get the OLD behavior). Tests should remain green.
+- Task 7-a's VLM critique loop (`scripts/vlm-critique-prompt.txt` + `z-ai vision -i .../vaultly-baseline.png`) is the ready-made test harness for measuring VLM score delta from the 2/10 baseline. The verify+ship subagent re-runs the Vaultly prompt + VLM critique to measure the delta.
+
 ## Verification
 
 - `bunx tsc --noEmit` — typecheck

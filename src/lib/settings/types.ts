@@ -157,6 +157,22 @@ export interface AgentRunSettings {
   /// MCP server configurations (for the mcp-adapter plugin). Each entry is
   /// a server the user has added via Settings → MCP Servers.
   mcpServers?: McpServerConfig[];
+  /// Task 7-c P1.3 (T2): max iterations of the MANDATORY self-critique loop
+  /// that runs after the agent emits its final message. Each iteration:
+  ///   1. Dispatches BOTH the text-based design critic
+  ///      (`dispatchDesignCriticSubAgent`) AND the vision-based VLM critic
+  ///      (`dispatchDesignCriticVlmSubAgent` — when T3 is wired in).
+  ///   2. Merges their defects and feeds them back to the agent as a
+  ///      re-prompt: "Fix these defects via pen_update_shape / pen_create_shape."
+  ///   3. Runs another agent turn to apply the fixes.
+  /// Loop exits when (a) the critique's severity is "low", (b) the
+  /// pre-complete validation gate passes (`validateCanvasBeforeComplete`),
+  /// or (c) the iteration cap is hit.
+  /// Default 2 — agent gets 1 chance to self-correct after the critic
+  /// (1st critique → 1 fix turn → 2nd critique to verify → exit).
+  /// Set to 0 to disable the mandatory loop (reverts to the pre-7-c
+  /// behavior where pen_self_critique was opt-in).
+  maxDesignCritiqueIterations?: number;
 }
 
 /// Configuration for an MCP server connection (used by the mcp-adapter plugin).
@@ -197,6 +213,11 @@ export function agentRunSettings(s: AppSettings): AgentRunSettings {
     apiBaseUrl: s.apiBaseUrl,
     enabledPlugins: s.enabledPlugins,
     mcpServers: s.mcpServers,
+    // Task 7-c P1.3 — default to 2 mandatory critique iterations.
+    // AppSettings doesn't expose this knob in the UI yet (deferred); the
+    // server-side default keeps the loop on for every turn so production
+    // behavior improves immediately.
+    maxDesignCritiqueIterations: 2,
   };
 }
 

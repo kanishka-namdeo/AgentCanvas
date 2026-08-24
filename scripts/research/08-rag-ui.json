@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://arxiv.org/html/2502.09411v1",
+    "name": "ImageRAG: Dynamic Image Retrieval for Reference-Guided Image  - arXiv",
+    "snippet": "Feb 13, 2025 · ImageRAG, a method that dynamically retrieves relevant images based on a given text prompt, and uses them as context to guide the generation ...",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://rotem-shalev.github.io/ImageRAG/?utm_source=futuretools.io&utm_medium=newspage",
+    "name": "ImageRAG: Dynamic Image Retrieval for Reference  - GitHub Pages",
+    "snippet": "We propose ImageRAG, a method that dynamically retrieves relevant images based on a given text prompt, and uses them as context to guide the generation process.",
+    "host_name": "rotem-shalev.github.io",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aws.amazon.com/what-is/retrieval-augmented-generation",
+    "name": "What is RAG? - Retrieval-Augmented Generation AI Explained - AWS",
+    "snippet": "Retrieval-Augmented Generation (RAG) is the process of optimizing the output of a large language model, so it references an authoritative knowledge base",
+    "host_name": "aws.amazon.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alphaxiv.org/abs/2502.09411",
+    "name": "ImageRAG: Dynamic Image Retrieval for Reference-Guided  - alphaXiv",
+    "snippet": "ImageRAG introduces a training-free framework that dynamically retrieves visual references for text-to-image generation, enabling models to more accurately ...",
+    "host_name": "www.alphaxiv.org",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net/forum?id=VT3tTfXrDi",
+    "name": "ImageRAG: Dynamic Image Retrieval for Reference-Guided Image",
+    "snippet": "ImageRAG identifies generation gaps between an input prompt and a generated image dynamically, retrieves relevant images, and uses them as context to guide the ...",
+    "host_name": "openreview.net",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@ashwindevelops/rag-with-images-and-tables-enhancing-retrieval-augmented-generation-for-multimodal-content-a18da39571d5",
+    "name": "RAG with Images and Tables: Enhancing Retrieval-Augmented",
+    "snippet": "May 24, 2025 · RAG enhances large language models by retrieving relevant information from external knowledge sources to ground responses in factual data. Brief Recap of RAG... · Semantic Chunking with...",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.openai.com/cookbook/examples/multimodal/image_understanding_with_rag",
+    "name": "Image Understanding with RAG - OpenAI Developers",
+    "snippet": "May 16, 2025 · Welcome! This notebook demonstrates how to build a Retrieval-Augmented Generation (RAG) system using OpenAI's Vision and Responses APIs.",
+    "host_name": "developers.openai.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/Rag/comments/1u057js/how_we_index_images_for_rag",
+    "name": "How we index images for RAG - Reddit",
+    "snippet": "Jun 8, 2026 · RAG combines retrieval systems with generative models to create more accurate responses, enhancing applications like customer support and ...",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/NVIDIA-AI-Blueprints/rag",
+    "name": "This NVIDIA RAG blueprint serves as a reference solution for a  - GitHub",
+    "snippet": "The NVIDIA RAG Blueprint is a reference solution and foundational starting point for building Retrieval-Augmented Generation (RAG) pipelines with NVIDIA NIM ...",
+    "host_name": "github.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cloud.google.com/use-cases/retrieval-augmented-generation",
+    "name": "What is Retrieval-Augmented Generation (RAG)? - Google Cloud",
+    "snippet": "Retrieval-augmented generation (RAG) combines LLMs with external knowledge bases to improve their outputs. Learn more with Google Cloud.",
+    "host_name": "cloud.google.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -27,3 +27,5 @@
 
 export { dispatchWebResearchSubAgent } from './web-research';
 export { dispatchDesignCriticSubAgent } from './design-critic';
+export { dispatchDesignBriefSubAgent, type DesignBrief, parseBriefJson } from './design-brief';
+export type { VlmCritique, dispatchDesignCriticVlmSubAgent } from './design-critic-vlm';

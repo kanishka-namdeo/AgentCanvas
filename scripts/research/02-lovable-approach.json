@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://lovable.dev/blog",
+    "name": "Blog - Lovable",
+    "snippet": "4 days ago · Lovable is the first AI coding agent platform to achieve AIUC-1, the industry's first security, Lovable streamlines app development with AI- ...",
+    "host_name": "lovable.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lovable.dev/guides/best-ai-app-builders",
+    "name": "Best AI App Builders in 2026: Top 6 Tools Compared | Lovable",
+    "snippet": "Jul 17, 2026 · Lovable's templates give you a production-ready foundation you can customize with Visual Edits—then extend with Agent Mode as your requirements ...",
+    "host_name": "lovable.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.lovable.dev/features/ai",
+    "name": "AI features for your app - Lovable Documentation",
+    "snippet": "Add AI features like chatbots, summaries, and image generation to your Lovable app with the built-in AI connector. No API keys or provider setup required.",
+    "host_name": "docs.lovable.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/n8n/comments/1mo99r0/i_built_an_ai_voice_agent_that_can_fully_plan",
+    "name": "I built an AI Voice Agent that can fully plan, design, and build websites",
+    "snippet": "Aug 12, 2025 · I built a voice agent using ElevenLabs, Lovable, and Airtop then that lets me collaborate on designing and building websites.",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.techaheadcorp.com/blog/inside-lovable-backend-design-system-architecture-ai-agent-orchestration-explained",
+    "name": "Inside Lovable: Backend Design & AI Agent Architecture - TechAhead",
+    "snippet": "Jun 1, 2026 · The AI agent runs a five-step loop: spec, context, plan, build, feedback. Secrets never cross the client boundary; the architecture enforces ...",
+    "host_name": "www.techaheadcorp.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.likeagirl.io/when-ai-agents-meet-user-experience-c21ee795b87d",
+    "name": "When AI Agents meet User Experience - Code Like A Girl",
+    "snippet": "Nov 3, 2025 · Lovable's agentic mode works differently. It acts as the intelligent collaborator that understands intent rather than just instructions. ...",
+    "host_name": "code.likeagirl.io",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/lovable/comments/1ly39zy/i_replaced_myself_with_6_ai_agents_heres_how",
+    "name": "I Replaced Myself with 6 AI Agents. Here's How. : r/lovable - Reddit",
+    "snippet": "Jul 12, 2025 · Learn how you can use six agents (Lovable being a critical piece of the puzzle), simultaneously, in a unified system that builds, audits, and ...",
+    "host_name": "www.reddit.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=-GiBI0leMHU",
+    "name": "Enhancing UI Design in Lovable.dev Projects: Full Tutorial - YouTube",
+    "snippet": "Mar 11, 2025 · How to use Lovable to generate a website structure · Enhancing UI with 21st.dev components · Implementing a dynamic navbar and hero section ...",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lovable.dev/solutions/use-case/front-end-app-ui-frameworks",
+    "name": "Build UI Frameworks with AI - Lovable",
+    "snippet": "Create modern UI frameworks with AI. Build reusable components and design systems for consistent, beautiful interfaces.",
+    "host_name": "lovable.dev",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/pulse/lovables-ai-agent-upgrade-game-changer-non-technical-builders-zhang-wmv2e",
+    "name": "Lovable's AI Agent Upgrade: A Game-Changer for Non-Technical",
+    "snippet": "Jul 28, 2025 · This week, I'm testing Lovable's new AI agent coding features on both their Pro and Business plans. The promise?",
+    "host_name": "www.linkedin.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

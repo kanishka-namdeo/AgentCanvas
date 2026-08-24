@@ -444,6 +444,13 @@ export type SyncEvent =
   // Emitted by MCP adapter integration: a server connection was established
   // (or failed). The frontend's MCP settings panel subscribes to these.
   | { type: 'agent:mcp_server_status'; serverId: string; status: 'connected' | 'disconnected' | 'error'; message?: string; toolCount?: number }
+  // Task 7-c P1.3 / T2 — MANDATORY self-critique loop event. Emitted on
+  // each iteration of the post-completion critique loop in runner-native.ts.
+  // Carries the merged defects from the text critic + VLM critic + the
+  // pre-complete validation gate (T10), plus the per-iteration severities
+  // and the VLM overall_score. The frontend can render a "Critic iteration
+  // N/M" badge + the defect list as a collapsible panel.
+  | { type: 'agent:critique'; iteration: number; defects: string[]; validation: { totalShapes: number; textShapes: number; cardShapes: number; textShapesWithWeight: number; cardShapesWithShadow: number; autoLayoutContainers: number }; textSeverity: 'low' | 'medium' | 'high'; vlmSeverity: 'low' | 'medium' | 'high'; vlmScore?: number }
   | { type: 'presence'; viewerCount: number };
 
 export type ClientEvent =

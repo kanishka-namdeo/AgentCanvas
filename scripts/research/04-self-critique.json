@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.tungstenautomation.com/blog/the-agentic-ai-reflection-pattern",
+    "name": "Agentic AI Reflection Pattern Explained - Tungsten Automation",
+    "snippet": "Feb 19, 2026 · This post focuses on the Reflection Pattern and explains how self-review loops improve accuracy and trust in enterprise AI systems. More in ...",
+    "host_name": "www.tungstenautomation.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.langchain.com/blog/reflection-agents",
+    "name": "Reflection Agents - LangChain",
+    "snippet": "Feb 21, 2024 · It involves prompting an LLM to reflect on and critique its past actions, sometimes incorporating additional external information such as tool ...",
+    "host_name": "www.langchain.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.taskade.com/blog/self-improving-ai-agents-reflection",
+    "name": "Self-Improving AI Agents: The Reflection Loop (2026) - Taskade",
+    "snippet": "Rating 4.8 (146) Jun 29, 2026 · Reflection is a closed feedback loop where an AI agent evaluates its own output against quality criteria and revises until the output passes or ...",
+    "host_name": "www.taskade.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zylos.ai/research/2026-03-06-ai-agent-reflection-self-evaluation-patterns",
+    "name": "AI Agent Reflection and Self-Evaluation Patterns",
+    "snippet": "Mar 6, 2026 · A deep dive into reflection, self-critique, and verification patterns that enable AI agents to assess and improve their own outputs.",
+    "host_name": "zylos.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=eIogOz-kumI",
+    "name": "Reflection Design Pattern for AI Agents (Generator–Critic Explained)",
+    "snippet": "Jan 13, 2026 · Instead of trusting the first response, reflection introduces a self-critique loop. The agent ... Reflection Design Pattern for AI Agents ...",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mayursurani.medium.com/the-reflection-pattern-how-ai-agents-learn-from-themselves-239ce164aa14",
+    "name": "The Reflection Pattern: How AI Agents Learn from Themselves | Medium",
+    "snippet": "Apr 20, 2026 · The Reflection Pattern is a design principle where AI agents evaluate their own work and use that evaluation to improve future outputs.",
+    "host_name": "mayursurani.medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.towardsai.net/reflection-agent-architecture-eliminating-llm-hallucinations-via-tool-grounded-iterative-9a61767cc979",
+    "name": "Reflection Agent Architecture: Eliminating LLM Hallucinations via",
+    "snippet": "Jul 3, 2026 · This paper presents the design and rationale of a Reflection Agent architecture that separates response generation into three distinct phases: ...",
+    "host_name": "pub.towardsai.net",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.scaler.com/topics/reflection-pattern-in-agentic-ai",
+    "name": "The Reflection Pattern In Agentic AI(Self-Critique & Correction) - Scaler",
+    "snippet": "Aug 10, 2026 · Learn how the Reflection Pattern in Agentic AI enables agents to self-critique, identify errors, refine outputs, and improve decisions ...",
+    "host_name": "www.scaler.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/pulse/agentic-design-pattern-reflection-rupreet-gujral-ebi2c",
+    "name": "Agentic Design Pattern: Reflection - LinkedIn",
+    "snippet": "Dec 16, 2025 · Reflection pattern is like doing your work, then acting as your own critic before delivering it. Use the reflection pattern when: Accuracy ...",
+    "host_name": "www.linkedin.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://agent-patterns.readthedocs.io/en/stable/patterns/reflection.html",
+    "name": "Reflection Agent Pattern — Agent Patterns 0.2.0 documentation",
+    "snippet": "The Reflection pattern implements a generate-critique-refine cycle where an agent creates an initial response, reflects on its quality, and iteratively improves ...",
+    "host_name": "agent-patterns.readthedocs.io",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

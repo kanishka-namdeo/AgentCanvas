@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://community.openai.com/t/difference-between-structured-outputs-and-function-calling-required/937697",
+    "name": "Difference between Structured Outputs and function calling required",
+    "snippet": "Sep 12, 2024 · Hello, When using a function calling, I can specify which parameters will come in the function that will work with “required” parameter, ...",
+    "host_name": "community.openai.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://agenta.ai/blog/the-guide-to-structured-outputs-and-function-calling-with-llms",
+    "name": "The guide to structured outputs and function calling with LLMs - Agenta-AI",
+    "snippet": "Sep 10, 2025 · The model can call predefined functions with structured parameters, enabling interaction with external tools and APIs. YAML, or CSV.",
+    "host_name": "agenta.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@virtualik/structured-output-as-a-full-replacement-for-function-calling-430bf98be686",
+    "name": "Structured Output as a Full Replacement for Function Calling",
+    "snippet": "Jun 30, 2025 · Structured Output is a mechanism that forces the model to generate responses that match a provided JSON schema exactly.",
+    "host_name": "medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=4rFVLMBwjGY",
+    "name": "Python + AI: Function calling & structured outputs - YouTube",
+    "snippet": "Mar 25, 2025 · In our fifth stream of the Python + AI series, we're going to explore the two main ways to get LLMs to output structured responses that ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.vellum.ai/blog/when-should-i-use-function-calling-structured-outputs-or-json-mode",
+    "name": "When should I use function calling, structured outputs or JSON mode?",
+    "snippet": "Sep 6, 2024 · Structured Outputs is the way to go. Use Function Calling with Structured Outputs when: You want to make requests to an external API",
+    "host_name": "www.vellum.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://substack.com/home/post/p-167344254",
+    "name": "Tool Calling Is Not a Solved Problem - by Jae Li - Substack",
+    "snippet": "Jul 2, 2025 · Tool calling refers to LLMs' ability to invoke functions by generating structured output. This allows LLMs to extend their abilities beyond ...",
+    "host_name": "substack.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/LangChain/comments/1j38fca/structured_output_with_langgraph_sucks",
+    "name": "Structured output with langgraph sucks : r/LangChain - Reddit",
+    "snippet": "Mar 4, 2025 · Its good at using the tool but it sucks at responding with the correct structured output. My tool already responds with the structured output ...",
+    "host_name": "www.reddit.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dylancastillo.co/posts/function-calling-structured-outputs.html",
+    "name": "Function calling and structured outputs in LLMs with LangChain",
+    "snippet": "Jul 1, 2025 · Generating a structured output from a model. Function calling with a single tool. First you start by defining the model and the tool: model ...",
+    "host_name": "dylancastillo.co",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.langchain.com/t/make-a-llm-with-structured-output-call-a-tool/622",
+    "name": "Make a llm.with_structured_output call a tool - LangGraph",
+    "snippet": "Jul 22, 2025 · This creates a clean ReAct-style loop where the LLM can call tools as needed, then produce the final structured output when it has enough ...",
+    "host_name": "forum.langchain.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://machinelearningmastery.com/structured-outputs-vs-function-calling-which-should-your-agent-use",
+    "name": "Structured Outputs vs. Function Calling: Which Should Your Agent",
+    "snippet": "Apr 13, 2026 · In this article, you will learn the architectural differences between structured outputs and function calling in modern language model ...",
+    "host_name": "machinelearningmastery.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
