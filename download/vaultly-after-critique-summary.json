@@ -1,0 +1,43 @@
+{
+  "overall_score": 2,
+  "per_dimension_defect_counts": {
+    "1_visual_hierarchy": 3,
+    "2_spacing_padding": 3,
+    "3_color_palette": 3,
+    "4_typography": 3,
+    "5_component_polish": 3,
+    "6_alignment": 3,
+    "7_information_density": 3,
+    "8_overall_professionalism": 3
+  },
+  "top_5_fixes": [
+    {
+      "priority": 1,
+      "fix": "Populate all empty rectangles with realistic fintech data: Revenue ($128.4K), Expenses, Active Users, Growth % (with green/red indicators), a Recent Transactions table (5 rows), and convert the blue blob into a labeled Area Chart with axes and gridlines.",
+      "impact": "high"
+    },
+    {
+      "priority": 2,
+      "fix": "Replace the heavy black sidebar with a light gray (#F8FAFC) navigation rail using icons + labels, and apply consistent card styling to all white rectangles: border-gray-200, rounded-xl, shadow-sm, 24px internal padding.",
+      "impact": "high"
+    },
+    {
+      "priority": 3,
+      "fix": "Implement a 12-column CSS Grid layout with 24px gutters. Align all elements to an 8px spatial grid. Ensure the chart and KPI cards share aligned edges and consistent heights within rows.",
+      "impact": "high"
+    },
+    {
+      "priority": 4,
+      "fix": "Define and apply a complete type scale using Inter/Geist: Metric values at 28-32px/700 (tabular nums), Labels at 12px/500 uppercase (tracking-wide), Body at 14px/400. Left-align all financial data.",
+      "impact": "medium"
+    },
+    {
+      "priority": 5,
+      "fix": "Add interactive component vocabulary: Primary CTA button (indigo-600), secondary buttons (white with border), status badges (green/amber/red dots), date picker input field, and user avatar with dropdown indicator.",
+      "impact": "medium"
+    }
+  ],
+  "raw_content_length": 11800,
+  "model": "glm-5v-turbo",
+  "id": "20260824212526a869cd3465444302"
+}

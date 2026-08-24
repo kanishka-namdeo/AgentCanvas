@@ -807,6 +807,29 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
   const defaultPalette = settings?.defaultPalette ?? 'slate';
   const skillSelectionMode = settings?.skillSelectionMode ?? 'auto';
 
+  // ---- Task 7-e Fix 2 (legacy mirror) — Architectural enforcement of
+  //      pen_generate_design_brief as the FIRST tool call for design
+  //      requests. Mirrors runner-native.ts's wrapper-based enforcement
+  //      here in the legacy hand-rolled loop. Gated on `!injectedLlm` so
+  //      MockLLM-driven tests (which don't have the brief scripted) skip
+  //      the gate. The native runner is the production path; this is the
+  //      fallback / test path.
+  const isDesignRequestLegacy = (text: string): boolean => {
+    const t = text.toLowerCase();
+    return /\b(design|dashboard|landing\s*page|app|ui|build|create|make|draw|scaffold|layout|interface|website|page|screen)\b/.test(t);
+  };
+  const shouldEnforceBriefLegacy = !injectedLlm && isDesignRequestLegacy(prompt);
+  let hasGeneratedBriefLegacy = false;
+  // Set to true when the critique loop injects a fix-message so the
+  // brief-first enforcement doesn't reject the agent's fix-turn tool calls.
+  let inCritiqueReprromptLegacy = false;
+  const GATED_TOOL_NAMES_LEGACY = new Set<string>([
+    'pen_generate_wireframe',
+    'pen_create_shape',
+    'pen_apply_palette',
+    'pen_set_variable',
+  ]);
+
   // Per-session mutable state. The tools close over this via `ctx`.
   // Normalize the incoming canvas: ensure it has a .pen tree (`children`)
   // and derived caches (`shapes`, `tokens`). Older callers may send a
@@ -1217,13 +1240,28 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
               event: { type: 'agent:message_end' },
             };
             // Inject the fix-message as a user message and continue the loop.
+            // Task 7-e Fix 3 #5: strengthened fix-message (mirror of native
+            // runner). Task 7-e Fix 2: set inCritiqueReprromptLegacy=true so
+            // the brief-first enforcement doesn't reject the agent's fix-turn
+            // tool calls.
+            inCritiqueReprromptLegacy = true;
             messages.push({
               role: 'user',
               content: `The design critic found these defects in your current design:
 
 ${defects.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}
 
-Fix them by calling pen_update_shape or pen_create_shape. Do not declare done until each defect is addressed.`,
+You MUST call at least one of: pen_update_shape, pen_create_shape, pen_bulk_update_by_filter, pen_set_shadow, pen_set_gradient_fill, pen_apply_palette — to address these defects.
+
+Do NOT respond with text only. Do NOT declare done until you have made at least one tool call to fix each defect.
+
+Specifically:
+- If a text shape uses default weight 400, call pen_update_shape with { shapeId, fontWeight: 700 for H1 / 600 for H2 / 500 for labels }.
+- If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:4, blur:6, color:"#0000001a" }.
+- If a card/sidebar/topbar has no autoLayout, call pen_update_shape with { shapeId, autoLayout: { direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min" } }.
+- If the canvas has fewer than 5 shapes, call pen_create_shape to add the missing components (KPI cards, chart, table, etc.).
+
+Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`,
             });
             // Refresh the system snapshot for the next iteration.
             messages[0] = {
@@ -1286,7 +1324,33 @@ Fix them by calling pen_update_shape or pen_create_shape. Do not declare done un
         },
       };
 
-      const result = await executeTool(tools, toolName, args);
+      // ---- Task 7-e Fix 2 (legacy mirror) — Brief-first enforcement.
+      //      If the agent tries to call a gated shape-creation tool before
+      //      pen_generate_design_brief, intercept and return a tool-result
+      //      error instead of executing. The error goes back to the LLM as
+      //      a tool result, which should cause it to call
+      //      pen_generate_design_brief on the next iteration. Skipped during
+      //      critique-iteration re-prompts (inCritiqueReprromptLegacy=true).
+      let result: any;
+      if (
+        shouldEnforceBriefLegacy &&
+        !inCritiqueReprromptLegacy &&
+        GATED_TOOL_NAMES_LEGACY.has(toolName) &&
+        !hasGeneratedBriefLegacy
+      ) {
+        result = {
+          content: 'ERROR: You must call pen_generate_design_brief FIRST to establish the design brief (color palette, typography scale, information architecture) before any shape-creation tool. Call pen_generate_design_brief now with the user\'s prompt, then proceed.',
+          isError: true as any,
+          patch: undefined,
+          patches: [],
+        };
+      } else {
+        result = await executeTool(tools, toolName, args);
+        // If the brief tool ran successfully, mark the gate as satisfied.
+        if (toolName === 'pen_generate_design_brief' && !result.isError) {
+          hasGeneratedBriefLegacy = true;
+        }
+      }
 
       // Emit ALL patches the tool produced. Most tools emit exactly one patch
       // (returned as `result.patch`). A few tools emit multiple — e.g.

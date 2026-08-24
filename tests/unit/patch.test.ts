@@ -608,6 +608,47 @@ describe('patch: tokens re-applies bindings (regression)', () => {
     expect(out.shapes[0].stroke).toBe('#111111');
     expect(out.shapes[0].textColor).toBe('#222222');
   });
+
+  // ---- Task 7-e Fix 1 regression tests ---------------------------------------
+  //   patch.ts::toPenNodePartial previously had a bug where setting both
+  //   `fill` and `textColor` in the same update patch silently dropped the
+  //   textColor (because of an `if (out.fill === undefined)` guard). This
+  //   made all text shapes render with textColor='transparent' (invisible)
+  //   when pen_apply_palette ran (it sets both fill and textColor for text
+  //   shapes). The fix: for TEXT shapes, textColor takes precedence over
+  //   fill; for non-text shapes, the old behavior is preserved.
+
+  it('Task 7-e Fix 1: text shape textColor takes precedence over fill when both are set in the same update patch', () => {
+    // Simulate what pen_apply_palette does for a text shape: passes
+    // { type: 'text', textColor: <darkest palette color> } in the changes.
+    const textShape = makeShape({ id: 't1', type: 'text', text: 'Revenue', fill: 'transparent', textColor: '#0f172a' });
+    const doc = makeDoc([textShape]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'update_many',
+      updates: [{ id: 't1', changes: { type: 'text', textColor: '#0ea5e9' } }],
+    }));
+    // textColor should have been applied to the .pen node's fill (which is
+    // what the SVG renderer reads for text). The previous bug would have
+    // left fill='transparent' (invisible text).
+    expect(out.shapes[0].fill).toBe('#0ea5e9');
+    expect(out.shapes[0].textColor).toBe('#0ea5e9');
+  });
+
+  it('Task 7-e Fix 1: non-text shape keeps fill when both fill and textColor are set (legacy behavior preserved)', () => {
+    // For non-text shapes, fill takes precedence; textColor only applies
+    // if fill is undefined. This preserves the existing behavior for
+    // rectangles, ellipses, etc. that don't have a textColor concept.
+    const rect = makeShape({ id: 'r1', type: 'rectangle', fill: '#ff0000' });
+    const doc = makeDoc([rect]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'update',
+      shapeId: 'r1',
+      shape: { fill: '#00ff00', textColor: '#0000ff' },
+    }));
+    // Fill from the patch wins; textColor is ignored (rectangles don't
+    // have a textColor concept).
+    expect(out.shapes[0].fill).toBe('#00ff00');
+  });
 });
 
 // ---- reparent (Figma hierarchy) ----------------------------------------------

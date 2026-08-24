@@ -246,6 +246,85 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   ]);
   const filteredTools = allTools.filter((t) => allowedToolNames.has(t.name));
 
+  // ---- Task 7-e Fix 2 — Architectural enforcement: pen_generate_design_brief
+  //      MUST be the first tool call for design requests.
+  //
+  // The Task 7-d evaluation proved the system-prompt directive "DESIGN BRIEF
+  // MANDATORY FIRST STEP" was bypassed by glm-5.3 (z.ai sandbox fallback
+  // model). Prompt-only directives decay; this wrapper enforces the order
+  // at the tool-execution layer so the agent CANNOT call pen_generate_wireframe
+  // / pen_create_shape / pen_apply_palette / pen_set_variable until
+  // pen_generate_design_brief has been called.
+  //
+  // Skipped for non-design prompts ("what is 2+2", "tell me a joke") via a
+  // simple keyword heuristic. Skipped during critique-iteration re-prompts
+  // (the agent has already produced a brief; we don't want to force another).
+  // Skipped for tests (MockLLM doesn't have the brief scripted) — but the
+  // native runner is only invoked when there's no injectedLlm, so this gate
+  // is automatic.
+  const isDesignRequest = (text: string): boolean => {
+    const t = text.toLowerCase();
+    return /\b(design|dashboard|landing\s*page|app|ui|build|create|make|draw|scaffold|layout|interface|website|page|screen)\b/.test(t);
+  };
+  const shouldEnforceBrief = isDesignRequest(prompt);
+
+  // Per-run state (persists across attempt loop + critique loop).
+  let hasGeneratedBrief = false;
+  let inCritiqueReprrompt = false;
+
+  const BRIEF_TOOL_NAME = 'pen_generate_design_brief';
+  const GATED_TOOL_NAMES = new Set<string>([
+    'pen_generate_wireframe',
+    'pen_create_shape',
+    'pen_apply_palette',
+    'pen_set_variable',
+  ]);
+
+  const enforcementWrappedTools: ToolDefinition[] = shouldEnforceBrief
+    ? filteredTools.map((t) => {
+        const toolAny = t as any;
+        const origExecute = toolAny.execute;
+        if (typeof origExecute !== 'function') return t;
+
+        // Wrap pen_generate_design_brief to set hasGeneratedBrief=true after
+        // a successful call (so subsequent gated tool calls are allowed).
+        if (t.name === BRIEF_TOOL_NAME) {
+          const wrapped = {
+            ...t,
+            execute: async (toolCallId: string, params: any, signal: any, onUpdate: any, ctx: any) => {
+              const result = await origExecute(toolCallId, params, signal, onUpdate, ctx);
+              hasGeneratedBrief = true;
+              return result;
+            },
+          };
+          return wrapped as unknown as ToolDefinition;
+        }
+
+        // Wrap gated tools to reject if brief hasn't been generated.
+        if (GATED_TOOL_NAMES.has(t.name)) {
+          const wrapped = {
+            ...t,
+            execute: async (toolCallId: string, params: any, signal: any, onUpdate: any, ctx: any) => {
+              if (!hasGeneratedBrief && !inCritiqueReprrompt) {
+                return {
+                  content: [{
+                    type: 'text' as const,
+                    text: 'ERROR: You must call pen_generate_design_brief FIRST to establish the design brief (color palette, typography scale, information architecture) before any shape-creation tool. Call pen_generate_design_brief now with the user\'s prompt, then proceed.',
+                  }],
+                  details: { error: 'brief_required_first', toolName: t.name },
+                  isError: true as any,
+                };
+              }
+              return origExecute(toolCallId, params, signal, onUpdate, ctx);
+            },
+          };
+          return wrapped as unknown as ToolDefinition;
+        }
+
+        return t;
+      })
+    : filteredTools;
+
   // Emit skill selection event (UI parity with legacy runner).
   yield {
     kind: 'agent_event',
@@ -254,7 +333,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       category: activeCategory,
       confidence: classification.confidence,
       method: classification.method,
-      toolCount: filteredTools.length,
+      toolCount: enforcementWrappedTools.length,
     },
   };
 
@@ -444,6 +523,12 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   let lastPromptError: any = undefined;
   let currentModel = model;
 
+  // Task 7-e Fix 3: Lift `session` to the outer scope so the critique loop
+  // can REUSE it for the fix-message re-prompt. Declared here, assigned in
+  // the attempt loop, disposed in the outer finally at the end of the
+  // function (or at the top of the next attempt on the fallback path).
+  let session: AgentSession | undefined;
+
   // Up to 2 attempts: primary, then (conditionally) one z.ai sandbox retry.
   for (let attempt = 0; attempt < 2; attempt++) {
     // Per-attempt translator state — re-create per attempt so a fresh
@@ -466,7 +551,33 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     //                       our own context-manager; we don't want the SDK
     //                       compacting mid-turn without our translator knowing).
     //                       Re-enable later if we want native auto-compaction.
-    let session: AgentSession | undefined;
+    //
+    //     Task 7-e Fix 3: `session` is declared in the OUTER scope (before
+    //     the attempt loop) so the critique loop can REUSE it for the
+    //     fix-message re-prompt. Previously the critique loop created a NEW
+    //     pi SDK session per iteration, which meant the LLM lost all
+    //     conversation context from the main turn — by the time the
+    //     fix-message reached the model, it had no memory of what it just
+    //     designed, so it often responded with text-only "I've addressed
+    //     the issues" without actually calling any tools. Reusing the main
+    //     session preserves the full conversation history (system prompt +
+    //     user message + assistant tool calls + tool results) so the LLM
+    //     can continue from where it left off.
+    //
+    //     On the fallback path (attempt 1 = z.ai sandbox retry), we dispose
+    //     the previous attempt's session at the top of the loop before
+    //     creating the new one — fallback MUST use a fresh session because
+    //     the model object is different.
+    //
+    //     The session is finally disposed in the outer try/finally after
+    //     the critique loop completes.
+    if (session) {
+      // Disposing the previous attempt's session before creating a new one
+      // (only happens on the fallback path — attempt 0 leaves session
+      // undefined, so this is a no-op the first time through).
+      try { session.dispose(); } catch {}
+      session = undefined;
+    }
     try {
       const result = await createAgentSession({
         cwd: process.cwd(),
@@ -474,8 +585,8 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         modelRuntime: currentModel.modelRuntime,
         thinkingLevel: mapThinkingLevel(thinkingLevel),
         noTools: 'all',
-        customTools: filteredTools,
-        tools: filteredTools.map((t) => t.name),
+        customTools: enforcementWrappedTools,
+        tools: enforcementWrappedTools.map((t) => t.name),
         resourceLoader,
         sessionManager: SessionManager.inMemory(process.cwd()),
         settingsManager: SettingsManager.inMemory({
@@ -625,12 +736,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       unsubscribe();
       queue.close();
       restoreEventSink();
-      try {
-        session.dispose();
-      } catch {
-        // dispose() can throw if the session was already disposed (e.g.
-        // aborted). Ignore.
-      }
+      // Task 7-e Fix 3: DO NOT dispose `session` here. The critique loop
+      // below reuses it for the fix-message re-prompt (preserves the
+      // conversation context the LLM needs to actually act on the
+      // critique). The session is disposed in the outer finally at the
+      // end of the function. On the fallback path, the top of the next
+      // attempt's loop body disposes the previous session before creating
+      // the new one.
     }
 
     // Update cumulative state across attempts.
@@ -702,8 +814,24 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // the agent never called it in the baseline. Making it MANDATORY is the
   // architectural enforcement the 7-b research report identified as the
   // single highest-leverage change.
+  //
+  // Task 7-e Fix 3 — REUSE the main session for the fix-message re-prompt
+  // (previously a NEW session was created per iteration, losing all
+  // conversation context — the LLM responded with text-only "I've addressed
+  // the issues" without calling any tools, so the defects stayed). The fix
+  // also adds:
+  //   - noOpFixAttempts counter: after 2 consecutive re-prompts with ZERO
+  //     tool calls, give up (don't waste iterations on a non-responsive LLM).
+  //   - Strengthened fix-message: explicitly enumerates which tools the
+  //     agent MUST call + which shapes to update, with a "Do NOT respond
+  //     with text only" directive.
+  //   - inCritiqueReprrompt flag: disables the brief-first enforcement
+  //     during fix-turns (the agent already called pen_generate_design_brief
+  //     in the main turn; we don't want to force another).
   const maxCritiqueIterations = settings?.maxDesignCritiqueIterations ?? 2;
-  if (maxCritiqueIterations > 0) {
+  let noOpFixAttempts = 0;
+  try {
+  if (maxCritiqueIterations > 0 && session) {
     for (let critiqueIteration = 0; critiqueIteration < maxCritiqueIterations; critiqueIteration++) {
       // Sync the local canvas with whatever patches the agent emitted.
       // (canvas is updated by ctx.applyPatch above as patches flow through.)
@@ -817,62 +945,64 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       };
       yield { kind: 'agent_event', event: { type: 'agent:message_end' } as any };
 
-      // Synthesize the fix-message: tells the agent to address each defect
-      // via pen_update_shape / pen_create_shape before declaring done.
+      // Build a summary of the current canvas shapes so the agent has full
+      // context (in case the conversation context isn't enough on its own).
+      // Include id, type, name, fill, textColor, fontWeight, letterSpacing,
+      // textAlign, shadow presence — the fields the defects usually target.
+      const shapeSummaries = shapesForCritique.slice(0, 30).map((s, i) => {
+        const parts = [`${i + 1}. id=${s.id} type=${s.type} name="${s.name ?? ''}"`];
+        if (s.fill) parts.push(`fill=${s.fill}`);
+        if (s.type === 'text') {
+          parts.push(`textColor=${(s as any).textColor}`);
+          parts.push(`fontWeight=${(s as any).fontWeight ?? 'default(400)'}`);
+          parts.push(`letterSpacing=${(s as any).letterSpacing ?? 'default(0)'}`);
+          parts.push(`textAlign=${(s as any).textAlign ?? 'default(left)'}`);
+          parts.push(`fontSize=${(s as any).fontSize ?? 16}`);
+        }
+        if ((s as any).shadow) parts.push('hasShadow');
+        if ((s as any).autoLayout) parts.push('hasAutoLayout'); else parts.push('NO_autoLayout');
+        return parts.join(' ');
+      }).join('\n');
+
+      // Task 7-e Fix 3 #5: Strengthened fix-message — explicitly enumerate
+      // which tools the agent MUST call + a "Do NOT respond with text only"
+      // directive. The previous vague "Fix them by calling pen_update_shape
+      // or pen_create_shape" let glm-5.3 respond with text-only "I've
+      // addressed the issues" without actually calling any tools.
       const fixMessage = `The design critic found these defects in your current design:
 
 ${defects.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}
 
-Fix them by calling pen_update_shape or pen_create_shape. Do not declare done until each defect is addressed.
+Current canvas state (${shapesForCritique.length} shapes):
+${shapeSummaries}
+
+You MUST call at least one of: pen_update_shape, pen_create_shape, pen_bulk_update_by_filter, pen_set_shadow, pen_set_gradient_fill, pen_apply_palette — to address these defects.
+
+Do NOT respond with text only. Do NOT declare done until you have made at least one tool call to fix each defect.
 
 Specifically:
-- If a text shape uses default weight 400, set fontWeight to 700 (H1) / 600 (H2) / 500 (label) per its semantic role.
-- If a card lacks shadow, call pen_set_shadow with {x:0, y:4, blur:6, color:"#0000001a"}.
-- If a card/sidebar/topbar has no autoLayout, call pen_update_shape with autoLayout={direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min"}.
-- If the canvas has fewer than 5 shapes, add the missing components (KPI cards, chart, table, etc.) per the design brief's informationArchitecture.
+- If a text shape uses default weight 400, call pen_update_shape with { shapeId, fontWeight: 700 for H1 / 600 for H2 / 500 for labels }.
+- If a text shape has letterSpacing=0, call pen_update_shape with { shapeId, letterSpacing: -0.02 for headings / 0.01 for labels / 0 for body }.
+- If a text shape has no textAlign, call pen_update_shape with { shapeId, textAlign: 'left' for body / 'center' for hero / 'right' for numeric }.
+- If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:4, blur:6, color:"#0000001a" }.
+- If a card/sidebar/topbar has no autoLayout, call pen_update_shape with { shapeId, autoLayout: { direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min" } }.
+- If the canvas has fewer than 5 shapes, call pen_create_shape to add the missing components (KPI cards, chart, table, etc.) per the design brief's informationArchitecture.
 
-Apply ALL fixes, then end your turn with a 1-sentence summary.`;
+Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
 
-      // Re-run the pi SDK session with the fix-message. This is the same
-      // createAgentSession + prompt + drain cycle as the main turn — we
-      // replicate a minimal version inline (the canvas snapshot in the
-      // system prompt gets refreshed automatically because we re-call
-      // buildSystemPrompt below).
-      const fixSystemContent =
-        buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst) +
-        fileSkillsSection +
-        memorySection;
-      const fixResourceLoader = buildResourceLoader(fixSystemContent);
-
-      let fixSession: AgentSession | undefined;
-      try {
-        const fixResult = await createAgentSession({
-          cwd: process.cwd(),
-          model: currentModel.model,
-          modelRuntime: currentModel.modelRuntime,
-          thinkingLevel: mapThinkingLevel(thinkingLevel),
-          noTools: 'all',
-          customTools: filteredTools,
-          tools: filteredTools.map((t) => t.name),
-          resourceLoader: fixResourceLoader,
-          sessionManager: SessionManager.inMemory(process.cwd()),
-          settingsManager: SettingsManager.inMemory({
-            compaction: { enabled: false },
-            retry: { enabled: true, maxRetries: 2 },
-          } as any),
-        });
-        fixSession = fixResult.session;
-      } catch (err: any) {
-        yield {
-          kind: 'agent_event',
-          event: { type: 'agent:error', message: `Failed to create critique-fix session: ${err.message}` },
-        };
-        break;
-      }
-
-      // Subscribe + drain events exactly like the main turn.
+      // Task 7-e Fix 3 #7: REUSE the existing pi SDK session instead of
+      // creating a new one. This preserves the full conversation context
+      // (system prompt + user message + assistant tool calls + tool results)
+      // so the LLM can continue from where it left off and actually act on
+      // the critique. The previous fixSession approach lost all context and
+      // the LLM responded with text-only "I've addressed the issues"
+      // without calling any tools.
+      //
+      // Also: set inCritiqueReprrompt=true so the brief-first enforcement
+      // (Fix 2) doesn't reject the gated tool calls during the fix turn.
+      inCritiqueReprrompt = true;
       yield { kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } as any };
-      const { queue: fixQueue, unsubscribe: fixUnsubscribe } = subscribeAndTranslate((listener) => fixSession!.subscribe(listener));
+      const { queue: fixQueue, unsubscribe: fixUnsubscribe } = subscribeAndTranslate((listener) => session!.subscribe(listener));
       const fixRestoreSink = setEventSink((event: any) => {
         fixQueue.push([{ kind: 'agent_event', event }]);
       });
@@ -884,8 +1014,9 @@ Apply ALL fixes, then end your turn with a 1-sentence summary.`;
 
       let fixError: any;
       let fixSawActivity = false;
+      let fixSawToolCall = false;
       try {
-        const fixPromptPromise = fixSession.prompt(fixMessage, { expandPromptTemplates: false });
+        const fixPromptPromise = session!.prompt(fixMessage, { expandPromptTemplates: false });
         fixPromptPromise.catch((err: any) => { fixError = err; fixQueue.close(); });
         let fixSettled = false;
         void fixPromptPromise.then(() => {
@@ -894,8 +1025,10 @@ Apply ALL fixes, then end your turn with a 1-sentence summary.`;
         });
         for await (const ev of fixQueue.drain()) {
           if (ev.kind === 'agent_event') {
-            if (ev.event.type === 'agent:message_delta' || ev.event.type === 'agent:tool_call_start') {
+            if (ev.event.type === 'agent:message_delta') fixSawActivity = true;
+            if (ev.event.type === 'agent:tool_call_start') {
               fixSawActivity = true;
+              fixSawToolCall = true;
             }
           }
           yield ev;
@@ -914,12 +1047,14 @@ Apply ALL fixes, then end your turn with a 1-sentence summary.`;
         fixQueue.close();
         fixUnsubscribe();
         fixRestoreSink();
-        try { fixSession.dispose(); } catch {}
+        inCritiqueReprrompt = false;
       }
 
-      // If the fix turn produced no activity at all, surface an error so the
-      // user sees something happened. Otherwise the loop continues to the
-      // next critique iteration.
+      // Task 7-e Fix 3 #4: No-op fix detection. If the fix turn produced
+      // ZERO tool calls (text-only "I've addressed the issues" without
+      // actually doing anything), increment a counter. After 2 consecutive
+      // no-ops, give up — don't waste the remaining critique iterations on
+      // an LLM that won't act on the re-prompt.
       if (!fixSawActivity && !fixError) {
         yield {
           kind: 'agent_event',
@@ -930,10 +1065,47 @@ Apply ALL fixes, then end your turn with a 1-sentence summary.`;
         };
         break;
       }
+      if (!fixSawToolCall && !fixError) {
+        noOpFixAttempts++;
+        yield {
+          kind: 'agent_event',
+          event: {
+            type: 'agent:error' as any,
+            message: `Critique-fix turn ${critiqueIteration + 1}/${maxCritiqueIterations} produced text but no tool calls (no-op). noOpFixAttempts=${noOpFixAttempts}.`,
+          } as any,
+        };
+        if (noOpFixAttempts >= 2) {
+          yield {
+            kind: 'agent_event',
+            event: {
+              type: 'agent:error' as any,
+              message: 'Critique-fix: agent made no tool calls in 2 consecutive re-prompts. Stopping critique loop — accepting current canvas state.',
+            } as any,
+          };
+          break;
+        }
+        // Continue to next iteration — the canvas hasn't changed, but the
+        // critics will re-run and the defects will be the same. The next
+        // fix-message will be even more directive (it includes the no-op
+        // count in the intro).
+      } else {
+        // Successful fix — reset the no-op counter.
+        noOpFixAttempts = 0;
+      }
 
       // The canvas has been updated via ctx.applyPatch as the fix-turn's
       // patches flowed through. Continue to the next critique iteration
       // (which will re-dispatch the critics against the updated canvas).
+    }
+  }
+  } finally {
+    // Task 7-e Fix 3: dispose the main session here (after the critique loop
+    // has had a chance to reuse it). This is the single disposition point —
+    // the attempt loop's inner finally does NOT dispose (so the critique
+    // loop can reuse the session).
+    if (session) {
+      try { session.dispose(); } catch {}
+      session = undefined;
     }
   }
 

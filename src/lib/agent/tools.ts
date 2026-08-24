@@ -1761,10 +1761,17 @@ const createShape = defineTool({
         }
         const changes: Partial<Shape> = { fill: best.hex };
         if (s.type === 'text') {
-          // For text, prefer a darker palette color.
+          // For text shapes, set textColor to the darkest palette swatch.
+          // Don't touch `fill` (previously, `changes.fill = s.fill` left the
+          // text node with fill='transparent' AND patch.ts dropped the
+          // textColor because fill was already set → all text invisible).
+          // Include `type: 'text'` so patch.ts::toPenNodePartial knows
+          // this is a text shape and lets textColor take precedence over
+          // any pre-existing fill on the node.
           const darkest = [...paletteHsl].sort((a, b) => a.hsl.l - b.hsl.l)[0];
           changes.textColor = darkest.hex;
-          changes.fill = s.fill; // keep text shape's "fill" semantics
+          changes.type = 'text';
+          delete changes.fill;
         }
         updates.push({ id: s.id, changes });
       }

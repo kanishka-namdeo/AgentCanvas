@@ -61,8 +61,21 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
     out.content = String(input.text);
   }
   if (input.textColor !== undefined) {
-    // textColor maps to fill on text nodes. We only set it if fill isn't already set.
-    if (out.fill === undefined) out.fill = str(input.textColor, '#0f172a');
+    // textColor maps to fill on text nodes (.pen text nodes store their
+    // color in `fill`; resolvePenTree derives both `shape.fill` and
+    // `shape.textColor` from the node's fill). For TEXT shapes, textColor
+    // takes PRECEDENCE over any `fill` also present in the patch — this is
+    // exactly the case `pen_apply_palette` produces (it tries to set the
+    // text color to the darkest palette swatch while leaving the original
+    // `fill='transparent'`). Previously the `out.fill === undefined` guard
+    // silently dropped the textColor, leaving all text shapes with
+    // textColor='transparent' (invisible). For non-text shapes, only apply
+    // textColor → fill if fill isn't already set (defensive — rectangles
+    // don't have a textColor concept).
+    const isTextShape = input.type === 'text' || out.type === 'text';
+    if (isTextShape || out.fill === undefined) {
+      out.fill = str(input.textColor, '#0f172a');
+    }
   }
   if (input.autoLayout !== undefined && input.layout === undefined) {
     const al = input.autoLayout as any;
