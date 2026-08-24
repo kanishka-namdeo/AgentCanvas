@@ -1,0 +1,22 @@
+{
+  "overall_score": 2,
+  "model": "glm-5v-turbo",
+  "per_dimension_defect_counts": {
+    "1_visual_hierarchy": 3,
+    "2_spacing_padding": 3,
+    "3_color_palette": 3,
+    "4_typography": 3,
+    "5_component_polish": 4,
+    "6_alignment": 3,
+    "7_information_density": 3,
+    "8_overall_professionalism": 4
+  },
+  "total_defects": 26,
+  "top_5_fixes": [
+    {"priority": 1, "impact": "high", "fix": "RENDER ACTUAL DASHBOARD CONTENT: Replace the 'Empty canvas' placeholder with a fully populated fintech dashboard containing 4 KPI metric cards (with $128.4K as the hero number), a revenue trend line chart, recent transactions table, and navigation sidebar."},
+    {"priority": 2, "impact": "high", "fix": "ESTABLISH VISUAL HIERARCHY & TYPOGRAPHY: Implement a strict type scale (Inter font: Hero 32px Bold, Headers 18px Semibold, Body 14px Regular, Labels 12px Uppercase Medium)."},
+    {"priority": 3, "impact": "high", "fix": "ADD COMPONENT DEPTH & POLISH: Apply 8px border-radius to all cards/buttons, add subtle box-shadows to elevated surfaces, style inputs with visible borders."},
+    {"priority": 4, "impact": "medium", "fix": "IMPLEMENT SPACING SYSTEM: Enforce 8px grid everywhere—24px padding inside cards, 16px gaps between cards."},
+    {"priority": 5, "impact": "medium", "fix": "CLEAN THE CHAT PANEL: Hide raw API errors and JSON payloads behind collapsible accordions."}
+  ]
+}

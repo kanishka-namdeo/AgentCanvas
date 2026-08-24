@@ -97,8 +97,16 @@ log "API-SMOKE counts: message_delta=${NDELTA:-0} tool_call_start=${NTOOL:-0} pa
 if grep -q 'agent:error' "$SMOKE_OUT" 2>/dev/null; then
   log "API-SMOKE: FAIL (agent:error in stream)"
   grep -o '"type":"agent:error"[^}]*' "$SMOKE_OUT" 2>/dev/null | head -5 >> "$LOG"
-elif [ "${NDELTA:-0}" -gt 0 ] || [ "${NTOOL:-0}" -gt 0 ] || [ "${NPATCH:-0}" -gt 0 ]; then
-  log "API-SMOKE: PASS (agent ran end-to-end through the default endpoint)"
+elif [ "${NPATCH:-0}" -le 0 ]; then
+  # Task 7-g Fix 4 — TIGHTENED PASS criteria. The old logic was
+  # `NDELTA>0 || NTOOL>0 || NPATCH>0` (OR-disjunction), which caused a FALSE
+  # POSITIVE in Task 7-f: the agent text-responded (NDELTA=135) but produced
+  # ZERO patches (NPATCH=0) — empty canvas. The new criteria requires
+  # NPATCH > 0 as a MANDATORY check (real shape creation) so a text-only
+  # response with no shapes fails.
+  log "API-SMOKE: FAIL (agent produced no shapes — canvas empty, patch count = 0; NDELTA=${NDELTA:-0} NTOOL=${NTOOL:-0})"
+elif [ "${NDELTA:-0}" -gt 0 ] || [ "${NTOOL:-0}" -gt 0 ]; then
+  log "API-SMOKE: PASS (agent ran end-to-end through the default endpoint + produced ${NPATCH:-0} shape patch(es))"
 else
   log "API-SMOKE: FAIL (no agent activity evidence in stream)"
 fi

@@ -181,6 +181,13 @@ A bare generate_wireframe output with no styling pass is NOT complete — do not
 Budget ~15-25 tool calls for a proper high-fidelity screen. If a tool fails 2x in a row, switch
 to a different approach (do NOT loop on the same failing call).`,
     allowedTools: [
+      // Task 7-g Fix 2 — pen_generate_design_brief MUST be first per the
+      // brief-first enforcement in runner-native.ts. Without this entry the
+      // runner's `filteredTools = allTools.filter(t => allowedToolNames.has(t.name))`
+      // filters pen_generate_design_brief OUT, so when Fix 2 (Task 7-e) rejects
+      // the first pen_generate_wireframe call, the agent's recovery attempt to
+      // call pen_generate_design_brief fails with "Tool not found" → empty canvas.
+      'pen_generate_design_brief',
       'pen_generate_wireframe',
       'pen_generate_user_flow',
       'pen_generate_diagram',
@@ -299,6 +306,10 @@ HIERARCHY (Figma-style nesting):
 The task is complete when the shapes are arranged as the user requested. Typically 2-4
 tool calls: list_shapes → align/group/organize → confirm.`,
     allowedTools: [
+      // Task 7-g Fix 3 — design prompts can route through layout (e.g. 'redesign the layout'),
+      // and pen_set_variable (gated by brief-first) is always loaded via PEN_TOOL_NAMES —
+      // so layout must include pen_generate_design_brief so the agent can recover from the rejection.
+      'pen_generate_design_brief',
       'pen_align_shapes',
       'pen_group_shapes',
       'pen_ungroup_shapes',
@@ -387,6 +398,10 @@ BULK:
 
 The task is complete when the shapes have the requested visual style. Typically 2-5 tool calls.`,
     allowedTools: [
+      // Task 7-g Fix 3 — pen_apply_palette is gated by brief-first enforcement; without
+      // pen_generate_design_brief in this skill's allowedTools, the agent would hit the rejection
+      // with no recovery path (Task 7-f regression).
+      'pen_generate_design_brief',
       'pen_apply_palette',
       'pen_generate_palette',
       'pen_update_tokens',
@@ -598,6 +613,9 @@ polygons, and boolean combinations — that go beyond the basic rectangle/ellips
 
 The task is complete when the custom vector shape has been created. Typically 1-3 tool calls.`,
     allowedTools: [
+      // Task 7-g Fix 3 — vector skill includes pen_create_shape (gated by brief-first enforcement),
+      // so pen_generate_design_brief must be available for the recovery path.
+      'pen_generate_design_brief',
       'pen_create_path',
       'pen_boolean_op',
       'pen_mask_with',
@@ -685,7 +703,7 @@ export const ALL_TOOL_NAMES = [
   // Tokens / palette
   'pen_update_tokens', 'pen_apply_palette', 'pen_generate_palette',
   // Generators
-  'pen_generate_wireframe', 'pen_generate_user_flow', 'pen_generate_diagram',
+  'pen_generate_design_brief', 'pen_generate_wireframe', 'pen_generate_user_flow', 'pen_generate_diagram',
   // Analysis
   'pen_generate_copy', 'pen_audit_design',
   // Token binding
