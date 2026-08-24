@@ -1,3 +1,7 @@
+// Prisma client (regenerated via `bun run db:generate` / postinstall).
+// If you see "Cannot find module '.prisma/client/default'" in dev.log,
+// run `bun run db:generate` and restart the dev server — the runtime
+// module cache holds the failed import until a rebuild is triggered.
 import { PrismaClient } from "@prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
