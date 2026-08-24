@@ -4786,7 +4786,10 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
       ];
       const KPI_W = (CW - GUTTER * 3) / 4;   // 222
       const KPI_Y = 64 + PAD;                // 104 — topbar + page padding
-      const KPI_H = 128;
+      const KPI_H = 132;                     // Task 8-c: +4px for 24px card padding (VLM 8px-grid fix)
+      // Task 8-c — page background (#F9FAFB) so white cards read as elevated
+      // surfaces instead of blending into the page (VLM fix: "cards blend into bg").
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Page background', x: ox + 240, y: oy + 64, width: 1040, height: 736, fill: '#F9FAFB', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
       // Sparkline wiggle patterns (varied per card so they don't look cloned).
       const SPARKS = [
         [0.5, 0.3, 0.6, 0.35, 0.7, 0.8],
@@ -4797,22 +4800,31 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
       for (let i = 0; i < KPIS.length; i++) {
         const kx = ox + CX + i * (KPI_W + GUTTER);
         const ky = oy + KPI_Y;
+        // Task 8-c — hero emphasis (VLM fix #1: "revenue should be 1.5-2x larger
+        // than the other metrics"): card 1 value 40px, cards 2-4 values 26px.
+        const heroVal = i === 0;
+        const valSize = heroVal ? 40 : 26;
+        const valH = heroVal ? 44 : 30;
+        // Task 8-c — semantic badge tint: amber for the EXPENSES card (VLM fix:
+        // "change expense badge to amber"), emerald for good, rose only for bad.
+        const badgeTint = i === 1 ? '#fffbeb' : KPIS[i].good ? SUCCESS_TINT : DANGER_TINT;
+        const badgeText = i === 1 ? WARNING_TEXT : KPIS[i].good ? SUCCESS_TEXT : DANGER_TEXT;
         add({ id: crypto.randomUUID(), type: 'rectangle', name: `Stat card ${i + 1}`, x: kx, y: ky, width: KPI_W, height: KPI_H, fill: SURFACE, stroke: GRAY, strokeWidth: 1, radius: CARD_R, fontSize: 14, textColor: DARK });
-        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} label`, x: kx + 16, y: ky + 16, width: KPI_W - 32, height: 14, fill: 'transparent', text: KPIS[i].label, fontSize: 12, textColor: TEXT_MUTED, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} value`, x: kx + 16, y: ky + 34, width: KPI_W - 32, height: 38, fill: 'transparent', text: KPIS[i].value, fontSize: 36, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Stat ${i + 1} delta badge`, x: kx + 16, y: ky + 82, width: 92, height: 22, fill: KPIS[i].good ? SUCCESS_TINT : DANGER_TINT, stroke: 'transparent', strokeWidth: 0, radius: 9999, fontSize: 11, textColor: KPIS[i].good ? SUCCESS_TEXT : DANGER_TEXT });
-        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} delta label`, x: kx + 24, y: ky + 87, width: 80, height: 13, fill: 'transparent', text: KPIS[i].delta, fontSize: 11, textColor: KPIS[i].good ? SUCCESS_TEXT : DANGER_TEXT, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} label`, x: kx + 20, y: ky + 20, width: KPI_W - 40, height: 14, fill: 'transparent', text: KPIS[i].label, fontSize: 12, textColor: TEXT_MUTED, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} value`, x: kx + 20, y: ky + 42, width: KPI_W - 40, height: valH, fill: 'transparent', text: KPIS[i].value, fontSize: valSize, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Stat ${i + 1} delta badge`, x: kx + 20, y: ky + 88, width: 96, height: 22, fill: badgeTint, stroke: 'transparent', strokeWidth: 0, radius: 9999, fontSize: 11, textColor: badgeText });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} delta label`, x: kx + 28, y: ky + 93, width: 84, height: 13, fill: 'transparent', text: KPIS[i].delta, fontSize: 11, textColor: badgeText, stroke: 'transparent', strokeWidth: 0, radius: 0 });
         // Sparkline — 6-point polyline along the card bottom.
         const sparkPts = SPARKS[i].map((p, j) => ({
-          x: kx + 16 + j * ((KPI_W - 32) / (SPARKS[i].length - 1)),
-          y: ky + 122 - p * 16,
+          x: kx + 20 + j * ((KPI_W - 40) / (SPARKS[i].length - 1)),
+          y: ky + 128 - p * 14,
         }));
-        add({ id: crypto.randomUUID(), type: 'path', name: `Stat ${i + 1} sparkline`, x: kx + 16, y: ky + 106, width: KPI_W - 32, height: 16, fill: 'transparent', stroke: KPIS[i].good ? SUCCESS : DANGER, strokeWidth: 2, radius: 0, fontSize: 14, textColor: DARK, points: sparkPts, closed: false });
+        add({ id: crypto.randomUUID(), type: 'path', name: `Stat ${i + 1} sparkline`, x: kx + 20, y: ky + 112, width: KPI_W - 40, height: 14, fill: 'transparent', stroke: i === 1 ? WARNING_TEXT : KPIS[i].good ? SUCCESS : DANGER, strokeWidth: 2, radius: 0, fontSize: 14, textColor: DARK, points: sparkPts, closed: false });
       }
 
       // ---- Revenue-over-time area chart panel -------------------------------
-      const CH_Y = KPI_Y + KPI_H + GUTTER;  // 256
-      const CH_H = 264;                     // ends 520
+      const CH_Y = KPI_Y + KPI_H + GUTTER;  // 260 (Task 8-c: KPI_H 128→132)
+      const CH_H = 240;                     // ends 500 (Task 8-c: trimmed to fit the taller KPI row)
       add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Revenue chart card', x: ox + CX, y: oy + CH_Y, width: CW, height: CH_H, fill: SURFACE, stroke: GRAY, strokeWidth: 1, radius: CARD_R, fontSize: 14, textColor: DARK });
       add({ id: crypto.randomUUID(), type: 'text', name: 'Chart title', x: ox + CX + 24, y: oy + CH_Y + 20, width: 320, height: 20, fill: 'transparent', text: 'Revenue over time', fontSize: 16, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
       add({ id: crypto.randomUUID(), type: 'text', name: 'Chart subtitle', x: ox + CX + 24, y: oy + CH_Y + 42, width: 320, height: 14, fill: 'transparent', text: 'Monthly recurring revenue · last 8 months', fontSize: 12, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
@@ -4853,15 +4865,20 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
         ...REV.map((f, i) => ({ x: ox + mx(i), y: oy + PY1 - f * PH })),
         { x: ox + PX1, y: oy + PY1 },
       ];
-      add({ id: crypto.randomUUID(), type: 'path', name: 'Chart area', x: ox + PX0, y: oy + PY0, width: PW, height: PH, fill: SUCCESS, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK, opacity: 0.14, points: areaPts, closed: true });
+      add({ id: crypto.randomUUID(), type: 'path', name: 'Chart area', x: ox + PX0, y: oy + PY0, width: PW, height: PH, fill: SUCCESS, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK, opacity: 0.1, points: areaPts, closed: true });
       // Revenue trend line.
       add({ id: crypto.randomUUID(), type: 'path', name: 'Chart trend line', x: ox + PX0, y: oy + PY0, width: PW, height: PH, fill: 'transparent', stroke: SUCCESS, strokeWidth: 2.5, radius: 0, fontSize: 14, textColor: DARK, points: REV.map((f, i) => ({ x: ox + mx(i), y: oy + PY1 - f * PH })), closed: false });
+      // Task 8-c — data point dots on the trend line (VLM fix #4: "add data
+      // point dots") — 6px circles, white stroke so they pop off the line.
+      for (let i = 0; i < REV.length; i++) {
+        add({ id: crypto.randomUUID(), type: 'ellipse', name: `Chart data point ${i + 1}`, x: ox + mx(i) - 3, y: oy + PY1 - REV[i] * PH - 3, width: 6, height: 6, fill: SUCCESS, stroke: '#ffffff', strokeWidth: 1.5, radius: 0, fontSize: 14, textColor: DARK });
+      }
       // Previous-year comparison line (subtle gray).
       add({ id: crypto.randomUUID(), type: 'path', name: 'Chart comparison line', x: ox + PX0, y: oy + PY0, width: PW, height: PH, fill: 'transparent', stroke: TEXT_SUBTLE, strokeWidth: 2, radius: 0, fontSize: 14, textColor: DARK, opacity: 0.7, points: PREV.map((f, i) => ({ x: ox + mx(i), y: oy + PY1 - f * PH })), closed: false });
 
       // ---- Recent Transactions table (VLM fix #1 — 5 rows) ------------------
-      const TB_Y = CH_Y + CH_H + GUTTER;   // 544
-      const TB_H = 800 - PAD - TB_Y;       // 216 — 40px bottom page padding
+      const TB_Y = CH_Y + CH_H + GUTTER;   // 524 (Task 8-c vertical re-budget)
+      const TB_H = 800 - PAD - TB_Y;       // 236 — 40px bottom page padding
       add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Transactions card', x: ox + CX, y: oy + TB_Y, width: CW, height: TB_H, fill: SURFACE, stroke: GRAY, strokeWidth: 1, radius: CARD_R, fontSize: 14, textColor: DARK });
       add({ id: crypto.randomUUID(), type: 'text', name: 'Panel title', x: ox + CX + 24, y: oy + TB_Y + 18, width: 320, height: 20, fill: 'transparent', text: 'Recent Transactions', fontSize: 16, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
       add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Export button', x: ox + CX + CW - 24 - 110, y: oy + TB_Y + 14, width: 110, height: 28, fill: SURFACE, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 12, textColor: TEXT_MUTED });

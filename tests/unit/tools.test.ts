@@ -1409,4 +1409,37 @@ describe('tools: pen_generate_wireframe web_dashboard density (Task 8-a)', () =>
     expect(amount).toBeTruthy();
     expect(amount!.textAlign).toBe('right');
   });
+
+  it('Task 8-c: hero metric emphasis, page background, amber expense badge, data point dots', async () => {
+    await run(h, 'pen_generate_wireframe', { template: 'web_dashboard', x: 100, y: 100 });
+
+    // Hero emphasis: Stat 1 value 40px, secondary stats 26px (VLM fix #1).
+    const hero = h.doc.shapes.find((s) => s.name === 'Stat 1 value');
+    expect(hero).toBeTruthy();
+    expect(hero!.fontSize).toBe(40);
+    for (let i = 2; i <= 4; i++) {
+      const secondary = h.doc.shapes.find((s) => s.name === `Stat ${i} value`);
+      expect(secondary).toBeTruthy();
+      expect(secondary!.fontSize).toBe(26);
+    }
+
+    // Page background: #F9FAFB behind the cards so white surfaces read as elevated.
+    const pageBg = h.doc.shapes.find((s) => s.name === 'Page background');
+    expect(pageBg).toBeTruthy();
+    expect((pageBg!.fill ?? '').toLowerCase()).toBe('#f9fafb');
+
+    // Amber expense badge (VLM fix #3: "change expense badge to amber").
+    const expenseBadge = h.doc.shapes.find((s) => s.name === 'Stat 2 delta badge');
+    expect(expenseBadge).toBeTruthy();
+    expect((expenseBadge!.fill ?? '').toLowerCase()).toBe('#fffbeb');
+
+    // Data point dots on the trend line (VLM fix #4: "add data point dots").
+    const dots = h.doc.shapes.filter((s) => /^Chart data point \d$/.test(s.name ?? ''));
+    expect(dots.length).toBeGreaterThanOrEqual(8);
+
+    // Chart area fill opacity dialed down to 0.1 (VLM fix #3).
+    const area = h.doc.shapes.find((s) => s.name === 'Chart area');
+    expect(area).toBeTruthy();
+    expect(area!.opacity).toBeLessThanOrEqual(0.1);
+  });
 });
