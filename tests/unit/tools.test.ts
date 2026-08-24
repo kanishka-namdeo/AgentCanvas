@@ -1314,3 +1314,99 @@ describe('tools: registration sanity', () => {
     }
   });
 });
+
+// ---- Task 8-a: dense web_dashboard template ---------------------------------
+//
+// The VLM critique of the 7-i run (3.5/10) flagged the dashboard scaffold as
+// "critically sparse" (2 cards). Task 8-a rewrote the web_dashboard template
+// to emit a full fintech information architecture: light sidebar with
+// icon+label nav, 4-KPI row (label / big value / delta badge / sparkline),
+// a revenue area chart, and a 5-row Recent Transactions table — all on a
+// 40px-padding / 24px-gutter grid. These tests pin that density + the card
+// polish + the typography wiring so it can't silently regress.
+
+describe('tools: pen_generate_wireframe web_dashboard density (Task 8-a)', () => {
+  beforeEach(() => h.reset());
+
+  it('emits a dense template (≥55 shapes): 4 KPI cards, area chart, 5-row transactions table', async () => {
+    const r = await run(h, 'pen_generate_wireframe', { template: 'web_dashboard', x: 100, y: 100 });
+    expect(r.isError).toBeFalsy();
+    expect(h.doc.shapes.length).toBeGreaterThanOrEqual(55);
+
+    // 4 KPI cards, each with label + value + delta badge + sparkline.
+    for (let i = 1; i <= 4; i++) {
+      expect(h.doc.shapes.find((s) => s.name === `Stat card ${i}`)).toBeTruthy();
+      expect(h.doc.shapes.find((s) => s.name === `Stat ${i} label`)).toBeTruthy();
+      expect(h.doc.shapes.find((s) => s.name === `Stat ${i} value`)).toBeTruthy();
+      expect(h.doc.shapes.find((s) => s.name === `Stat ${i} delta badge`)).toBeTruthy();
+      const spark = h.doc.shapes.find((s) => s.name === `Stat ${i} sparkline`);
+      expect(spark).toBeTruthy();
+      expect(spark!.type).toBe('path');
+      expect((spark!.points ?? []).length).toBeGreaterThanOrEqual(6);
+    }
+
+    // Revenue area chart with axis labels + comparison line.
+    expect(h.doc.shapes.find((s) => s.name === 'Revenue chart card')).toBeTruthy();
+    expect(h.doc.shapes.find((s) => s.name === 'Chart area')).toBeTruthy();
+    expect(h.doc.shapes.find((s) => s.name === 'Chart trend line')).toBeTruthy();
+    expect(h.doc.shapes.find((s) => s.name === 'Chart comparison line')).toBeTruthy();
+    expect(h.doc.shapes.filter((s) => /^Chart month label \d$/.test(s.name ?? '')).length).toBeGreaterThanOrEqual(8);
+
+    // Recent Transactions table: 5 rows × (description, date, status, amount).
+    expect(h.doc.shapes.find((s) => s.name === 'Transactions card')).toBeTruthy();
+    expect(h.doc.shapes.filter((s) => /^Transaction \d description$/.test(s.name ?? ''))).toHaveLength(5);
+    expect(h.doc.shapes.filter((s) => /^Transaction \d amount$/.test(s.name ?? ''))).toHaveLength(5);
+
+    // Light sidebar (VLM fix #5) with icon+label nav items.
+    const sidebar = h.doc.shapes.find((s) => s.name === 'Sidebar');
+    expect(sidebar).toBeTruthy();
+    expect((sidebar!.fill ?? '').toLowerCase()).toBe('#f8fafc');
+    expect(h.doc.shapes.filter((s) => /^Nav item \d label$/.test(s.name ?? '')).length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('applies card polish to KPI cards: radius 12, 1px border, subtle 0/1/2 shadow (VLM fix #2)', async () => {
+    await run(h, 'pen_generate_wireframe', { template: 'web_dashboard', x: 100, y: 100 });
+    for (let i = 1; i <= 4; i++) {
+      const card = h.doc.shapes.find((s) => s.name === `Stat card ${i}`);
+      expect(card).toBeTruthy();
+      expect(card!.radius).toBe(12);
+      expect((card!.stroke ?? '').toLowerCase()).toBe('#e2e8f0');
+      expect(card!.strokeWidth).toBe(1);
+      expect(card!.shadow).toBeTruthy();
+      // Subtle resting shadow: 0 1px 2px rgba(0,0,0,0.05) — NOT the old 4px Material drop.
+      expect(card!.shadow!.y).toBe(1);
+      expect(card!.shadow!.blur).toBe(2);
+      expect(card!.shadow!.color.toLowerCase()).toBe('#0000000d');
+    }
+  });
+
+  it('applies per-role typography: table headers tracked, metric values 700/-0.5, amounts right-aligned (VLM fix #4)', async () => {
+    await run(h, 'pen_generate_wireframe', { template: 'web_dashboard', x: 100, y: 100 });
+
+    // Table header: 12px/600 uppercase with +0.5 letter-spacing.
+    const header = h.doc.shapes.find((s) => s.name === 'Table header 1');
+    expect(header).toBeTruthy();
+    expect(header!.fontWeight).toBe(600);
+    expect(header!.letterSpacing).toBeGreaterThan(0);
+    expect((header!.text ?? '')).toBe((header!.text ?? '').toUpperCase());
+
+    // Metric value: 700 weight, tight -0.5 tracking, 32-36px.
+    const value = h.doc.shapes.find((s) => s.name === 'Stat 1 value');
+    expect(value).toBeTruthy();
+    expect(value!.fontWeight).toBe(700);
+    expect(value!.letterSpacing).toBe(-0.5);
+    expect(value!.fontSize).toBeGreaterThanOrEqual(32);
+
+    // Metric label: 500 weight, wide +0.6 tracking, uppercase content.
+    const label = h.doc.shapes.find((s) => s.name === 'Stat 1 label');
+    expect(label).toBeTruthy();
+    expect(label!.fontWeight).toBe(500);
+    expect(label!.letterSpacing).toBeGreaterThan(0.5);
+    expect((label!.text ?? '')).toBe((label!.text ?? '').toUpperCase());
+
+    // Amount column: right-aligned for tabular scanning.
+    const amount = h.doc.shapes.find((s) => s.name === 'Transaction 1 amount');
+    expect(amount).toBeTruthy();
+    expect(amount!.textAlign).toBe('right');
+  });
+});

@@ -260,13 +260,33 @@ never setting fontWeight/letterSpacing/textAlign on the 24 text shapes — VLM s
     { ... width:176, height:44, radius:8,
       gradient:{type:"linear", angle:135, stops:[{offset:0,color:"$color.primary"},{offset:1,color:"$color.accent"}]},
       shadow:{x:0, y:4, blur:6, color:"#0000001a"} }  // md
-  CARD (resting, shadow sm, vertical autoLayout):
+  CARD (resting, 1px border + subtle shadow, vertical autoLayout, 24px padding):
     { type:"rectangle", name:"Card", width:320, height:200, radius:12,
       fill:"$color.surface",
-      shadow:{x:0, y:1, blur:2, color:"#0000000d"},
-      autoLayout:{direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min"} }
+      stroke:"$color.border", strokeWidth:1,   // 1px border — never ship naked card edges
+      shadow:{x:0, y:1, blur:2, color:"#0000000d"},  // sm — subtle, NOT a heavy drop shadow
+      autoLayout:{direction:"vertical", gap:8, padding:24, alignX:"min", alignY:"min"} }
   CARD (raised, shadow md — sticky header, hovered state):
     { ... shadow:{x:0, y:4, blur:6, color:"#0000001a"} }
+  KPI ROW (4 stat cards on a 24px-gutter grid — the dashboard bread & butter):
+    Page padding 40, content width W: card width = (W - 3×24) / 4, height 128.
+    Each card stacks (24px→16px padding): label / value / delta badge / sparkline.
+      label:   text "TOTAL REVENUE" — UPPERCASE content, 12px, fontWeight:500,
+               letterSpacing:0.6, textColor:$color.text-muted
+      value:   text "$128.4K" — 32-36px, fontWeight:700, letterSpacing:-0.5 (tabular feel)
+      delta:   pill {radius:9999, fill:$color.success-50 (or $color.danger-50), 92×22}
+               + text "▲ +12.5%", 11px, fontWeight:600, textColor:$color.success (or danger)
+      sparkline: pen_create_path — 6 points along the card bottom,
+               stroke:$color.success, strokeWidth:2, fill:"transparent"
+  DATA TABLE (Recent Transactions — fills the lower viewport like a real product):
+    CARD container (radius:12, stroke:$color.border 1px, subtle shadow), 24px padding,
+    panel title 16px/600 + a small "Export CSV" ghost button (110×28, radius:8) top-right.
+      header row: UPPERCASE labels — 11-12px / fontWeight:600 / letterSpacing:0.5 /
+        textColor:#94a3b8 — columns DESCRIPTION | DATE | STATUS | AMOUNT
+      data rows (5): description 14px/400 $color.text; date 13px $color.text-muted;
+        status color-coded ($color.success / $color.warning); AMOUNT textAlign:"right",
+        signed (+ green / - red) so the digits column-align
+      dividers: 1px-high rectangles fill:"$color.border" between every row
   INPUT FIELD:
     { type:"rectangle", name:"Email Input", width:320, height:44, radius:6,
       fill:"$color.surface-2",
@@ -1257,8 +1277,8 @@ Do NOT respond with text only. Do NOT declare done until you have made at least 
 
 Specifically:
 - If a text shape uses default weight 400, call pen_update_shape with { shapeId, fontWeight: 700 for H1 / 600 for H2 / 500 for labels }.
-- If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:4, blur:6, color:"#0000001a" }.
-- If a card/sidebar/topbar has no autoLayout, call pen_update_shape with { shapeId, autoLayout: { direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min" } }.
+- If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:1, blur:2, color:"#0000000d" } (subtle sm shadow; use y:4/blur:6 only for raised states).
+- If a card/sidebar/topbar has no autoLayout, call pen_update_shape with { shapeId, autoLayout: { direction:"vertical", gap:8, padding:24, alignX:"min", alignY:"min" } }.
 - If the canvas has fewer than 5 shapes, call pen_create_shape to add the missing components (KPI cards, chart, table, etc.).
 
 Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`,

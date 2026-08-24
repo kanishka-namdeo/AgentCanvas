@@ -1887,7 +1887,7 @@ const createShape = defineTool({
       'Generate a screen layout from a template. Places a frame plus fully-styled shapes ' +
       'with shadows, gradients, radii, real content, and a color palette applied (fidelity=hifi, default). ' +
       'Pass fidelity=lofi for an explicit wireframe / low-fi / sketch request — grayscale, flat, no shadows. ' +
-      'IMPORTANT: templates ship with PLACEHOLDER text (e.g. Stat values "$12.4k", "1,284"). When the user ' +
+      'IMPORTANT: templates ship with PLACEHOLDER text (e.g. Stat values "$128.4K", "8,249"). When the user ' +
       'specifies exact copy — product names, headings, stat values, labels — pass them via `texts` ' +
       '(keyed by the template text layer name, e.g. {"Stat 1 value": "$128.4K", "Page title": "Acme Analytics"}) ' +
       'so the generated screen carries the user\'s real content in this same call. ' +
@@ -3984,8 +3984,10 @@ function applyHighFidelityStyling(
   palette: HifiPalette,
 ): void {
   const { PRIMARY, ACCENT } = palette;
-  // Soft card shadow (Material 2dp-ish): 0 4 6 -1 rgba(0,0,0,0.10)
-  const SHADOW_CARD = { x: 0, y: 4, blur: 6, color: '#0000001a', spread: -1, inset: false };
+  // Card shadow — Task 8-a (VLM fix #2): subtle resting elevation,
+  // 0 1px 2px rgba(0,0,0,0.05). The old 4px-y Material shadow read as
+  // "heavy wireframe drop-shadow"; this is the modern fintech card look.
+  const SHADOW_CARD = { x: 0, y: 1, blur: 2, color: '#0000000d', spread: 0, inset: false };
   // Soft button shadow (Material 1dp-ish): 0 2 4 -1 rgba(0,0,0,0.10)
   const SHADOW_BUTTON = { x: 0, y: 2, blur: 4, color: '#0000001a', spread: -1, inset: false };
   // FAB / modal shadow (Material 8dp-ish): 0 8 12 -4 rgba(0,0,0,0.20)
@@ -4018,10 +4020,14 @@ function applyHighFidelityStyling(
       applyTypographyByName(s, name);
     }
 
-    // --- Cards: add shadow + ensure radius >= 12 + autoLayout -----------
+    // --- Cards: subtle shadow + 1px border + radius >= 12 + autoLayout ---
+    // Task 8-a (VLM fix #2): every card-shaped rect gets the full modern
+    // treatment — radius 12, 1px #e2e8f0 border, 0 1px 2px 5% shadow.
     if (/\bcard\b|\bstat\b|\bchart\b|\bpanel\b|\btile\b|\bitem\b|\bproduct\b/.test(name) && s.type === 'rectangle') {
       if (!s.shadow) s.shadow = SHADOW_CARD;
       if (!s.radius || s.radius < 12) s.radius = 12;
+      if (!s.stroke || s.stroke === 'transparent') s.stroke = palette.GRAY;
+      if (!s.strokeWidth) s.strokeWidth = 1;
       // Cards/panels with content children benefit from vertical autoLayout.
       // Note: the wireframe templates lay out text via absolute coordinates,
       // so we set autoLayout only as a marker — the renderer doesn't yet
@@ -4128,6 +4134,18 @@ function applyHighFidelityStyling(
       if (!s.strokeWidth) s.strokeWidth = 1;
       if (!s.radius || s.radius < 8) s.radius = 8;
     }
+
+    // --- Chart bars: rounded tops (Task 8-a / VLM fix #2) -----------------
+    // Modern chart bars round ONLY their top corners. The renderer
+    // approximates per-corner radii with a uniform rx, so we emit radii
+    // {top:4, bottom:0} — rendered as a gentle 4px rounding that reads as
+    // "rounded top" without the harsh square wireframe look.
+    // NOTE: deliberately does NOT match "tab bar" / "navbar" / "search bar"
+    // / "app bar" — those are flat navigation chrome, not data bars.
+    if (/\bchart\s*bar\b|\bbar\s*chart\b|\bbar\s*\d\b|\bvalue\s*bar\b|\bdata\s*bar\b/.test(name) && s.type === 'rectangle' && !s.radii) {
+      s.radii = { topLeft: 4, topRight: 4, bottomRight: 0, bottomLeft: 0 };
+      if (!s.radius) s.radius = 4;
+    }
   }
 }
 
@@ -4177,6 +4195,8 @@ function applyTypographyByName(
   }
   // Stat / metric value — large number (700 / -0.5 / left for tabular scanning)
   // Matches: "Stat 1 value", "Metric value", "KPI value", "Revenue value".
+  // Task 8-a (VLM fix #4): default 32px so agent-created metric values land
+  // in the 32-36px / 700 / -0.5 tabular-numbers range.
   if (
     /\bstat\s*\d*\s*value|\bmetric\s*value|\bkpi\s*value|\bstat\s*value|\bvalue\s*\d|\bbig\s*number|\bmetric\s*num|\bstat.*amount/.test(name)
   ) {
@@ -4185,10 +4205,12 @@ function applyTypographyByName(
     if (s.textAlign === undefined) s.textAlign = 'left';
     if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
     if (s.lineHeight === undefined) s.lineHeight = 1.1;
+    if (s.fontSize === undefined) s.fontSize = 32;
     return;
   }
   // Stat / metric label / overline — small caps label (12px / 500 / +0.6 / left)
   // Matches: "Stat 1 label", "Metric label", "KPI label", "Overline".
+  // Task 8-a (VLM fix #4): default 12px; write the label CONTENT in UPPERCASE.
   if (
     /\bstat\s*\d*\s*label|\bmetric\s*label|\bkpi\s*label|\bstat\s*label|\boverline|\blabel\b/.test(name)
   ) {
@@ -4197,6 +4219,7 @@ function applyTypographyByName(
     if (s.textAlign === undefined) s.textAlign = 'left';
     if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
     if (s.lineHeight === undefined) s.lineHeight = 1.4;
+    if (s.fontSize === undefined) s.fontSize = 12;
     return;
   }
   // Button / CTA label — center-aligned, medium-bold (14px / 600 / +0.3 / center)
@@ -4219,6 +4242,7 @@ function applyTypographyByName(
     if (s.textAlign === undefined) s.textAlign = 'left';
     if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
     if (s.lineHeight === undefined) s.lineHeight = 1.3;
+    if (s.fontSize === undefined) s.fontSize = 11;
     return;
   }
   // Nav / sidebar / tab labels — medium weight, left (13px / 500 / 0)
@@ -4263,6 +4287,17 @@ function applyTypographyByName(
     if (s.textAlign === undefined) s.textAlign = 'left';
     if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
     if (s.lineHeight === undefined) s.lineHeight = 1.4;
+    return;
+  }
+  // Amount cells — right-aligned tabular numerals (14px / 500 / 0 / right).
+  // Task 8-a (DATA TABLE recipe): the amount column is right-aligned so the
+  // digits line up in a scannable column. Matches "Transaction 1 amount".
+  if (/\bamount\b/.test(name)) {
+    if (s.fontWeight === undefined) s.fontWeight = 500;
+    if (s.letterSpacing === undefined) s.letterSpacing = 0;
+    if (s.textAlign === undefined) s.textAlign = 'right';
+    if (s.fontFamily === undefined) s.fontFamily = 'Inter, system-ui, sans-serif';
+    if (s.lineHeight === undefined) s.lineHeight = 1.3;
     return;
   }
   // Body / excerpt / paragraph / description / hero subheading — default body
@@ -4663,33 +4698,202 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
       break;
     }
     case 'web_dashboard': {
+      // Task 8-a — dense, fintech-grade dashboard (VLM 3.5/10 critique, fix #1:
+      // "critically sparse"). The old 39-shape scaffold showed 2 cards; this one
+      // emits a full information architecture on a strict spacing grid:
+      //   - 40px page padding + 24px gutters; every card shares the same left
+      //     edge and full content width (fix #3: alignment / spacing grid).
+      //   - LIGHT sidebar with icon+label nav items, section groups, and a
+      //     user block (fix #5: sidebar usability — was a heavy dark slab).
+      //   - 4-KPI row: label + big value + delta badge + sparkline per card.
+      //   - Revenue-over-time AREA chart: gridlines, y/x axis labels, a
+      //     previous-year comparison line, and a date-range chip.
+      //   - Recent Transactions table: 4 columns × 5 rows + row dividers,
+      //     amounts right-aligned, status color-coded.
+      // Card polish (radius 12 + 1px border + subtle shadow) comes from
+      // applyHighFidelityStyling; typography from applyTypographyByName — the
+      // shape names below deliberately match those buckets ("Stat 1 value",
+      // "Table header 1", "Transaction 1 description", …) so styling auto-applies.
       addFrame(1280, 800, 'Web / Dashboard');
-      // Sidebar
-      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Sidebar', x: ox, y: oy, width: 240, height: 800, fill: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: '#ffffff' });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Sidebar logo', x: ox + 24, y: oy + 24, width: 120, height: 20, fill: 'transparent', text: 'Dashboard', fontSize: 18, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      for (let i = 0; i < 5; i++) {
-        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Nav item ${i + 1}`, x: ox + 16, y: oy + 80 + i * 48, width: 208, height: 36, fill: i === 0 ? '#334155' : 'transparent', stroke: 'transparent', strokeWidth: 0, radius: 6, fontSize: 14, textColor: '#ffffff' });
+      // Spacing grid (VLM fix #3 — bake the grid into the math, don't eyeball it).
+      const PAD = 40;                    // page padding
+      const GUTTER = 24;                 // gutters between cards
+      const CARD_R = 12;                 // card corner radius (VLM fix #2)
+      const CX = 240 + PAD;              // content left edge (280) — every card starts here
+      const CW = 1280 - 240 - PAD * 2;   // content width (960) — every card spans this
+      // Semantic accent ramps for delta badges / status text.
+      const SUCCESS_TINT = '#ecfdf5';    // emerald-50
+      const SUCCESS_TEXT = '#059669';    // emerald-600
+      const DANGER_TINT = '#fef2f2';     // rose-50
+      const DANGER_TEXT = '#e11d48';     // rose-600
+      const WARNING_TEXT = '#b45309';    // amber-700
+      const SIDEBAR_BG = '#f8fafc';      // slate-50 — LIGHT sidebar (VLM fix #5)
+      const ACTIVE_TINT = '#e0f2fe';     // sky-100 active nav pill
+      const ACTIVE_TEXT = '#0369a1';     // sky-700 active nav text
+
+      // ---- Sidebar (light, grouped icon+label nav, user block) --------------
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Sidebar', x: ox, y: oy, width: 240, height: 800, fill: SIDEBAR_BG, stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Logo mark', x: ox + 24, y: oy + 20, width: 28, height: 28, fill: PRIMARY, stroke: 'transparent', strokeWidth: 0, radius: 8, fontSize: 14, textColor: '#ffffff' });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Sidebar logo', x: ox + 62, y: oy + 25, width: 130, height: 20, fill: 'transparent', text: 'Acme', fontSize: 17, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Sidebar section label 1', x: ox + 24, y: oy + 76, width: 120, height: 14, fill: 'transparent', text: 'MENU', fontSize: 11, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Group 1 — primary navigation (icon glyph + label, active pill on item 1).
+      const NAV = [
+        { icon: '◆', label: 'Dashboard', active: true },
+        { icon: '●', label: 'Transactions', active: false },
+        { icon: '▲', label: 'Payments', active: false },
+        { icon: '■', label: 'Accounts', active: false },
+        { icon: '○', label: 'Reports', active: false },
+        { icon: '◇', label: 'Settings', active: false },
+      ];
+      for (let i = 0; i < NAV.length; i++) {
+        const ny = oy + 98 + i * 44;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Nav item ${i + 1}`, x: ox + 16, y: ny, width: 208, height: 36, fill: NAV[i].active ? ACTIVE_TINT : 'transparent', stroke: 'transparent', strokeWidth: 0, radius: 8, fontSize: 13, textColor: NAV[i].active ? ACTIVE_TEXT : TEXT_MUTED });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Nav item ${i + 1} icon`, x: ox + 30, y: ny + 10, width: 20, height: 18, fill: 'transparent', text: NAV[i].icon, fontSize: 13, textColor: NAV[i].active ? ACTIVE_TEXT : TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Nav item ${i + 1} label`, x: ox + 58, y: ny + 10, width: 150, height: 16, fill: 'transparent', text: NAV[i].label, fontSize: 13, textColor: NAV[i].active ? ACTIVE_TEXT : TEXT_MUTED, stroke: 'transparent', strokeWidth: 0, radius: 0 });
       }
-      // Topbar
+      // Group 2 — secondary section (VLM fix #5: "section groups").
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Sidebar section label 2', x: ox + 24, y: oy + 372, width: 120, height: 14, fill: 'transparent', text: 'GENERAL', fontSize: 11, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      const NAV2 = [
+        { icon: '?', label: 'Help center' },
+        { icon: '→', label: 'Log out' },
+      ];
+      for (let i = 0; i < NAV2.length; i++) {
+        const ny = oy + 396 + i * 44;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Nav item ${NAV.length + i + 1}`, x: ox + 16, y: ny, width: 208, height: 36, fill: 'transparent', stroke: 'transparent', strokeWidth: 0, radius: 8, fontSize: 13, textColor: TEXT_MUTED });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Nav item ${NAV.length + i + 1} icon`, x: ox + 30, y: ny + 10, width: 20, height: 18, fill: 'transparent', text: NAV2[i].icon, fontSize: 13, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Nav item ${NAV.length + i + 1} label`, x: ox + 58, y: ny + 10, width: 150, height: 16, fill: 'transparent', text: NAV2[i].label, fontSize: 13, textColor: TEXT_MUTED, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      }
+      // User block pinned to the sidebar bottom.
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Sidebar user avatar', x: ox + 24, y: oy + 724, width: 32, height: 32, fill: '#c7d2fe', stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Sidebar user name', x: ox + 66, y: oy + 726, width: 150, height: 16, fill: 'transparent', text: 'Sarah Chen', fontSize: 13, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Sidebar user email', x: ox + 66, y: oy + 744, width: 150, height: 14, fill: 'transparent', text: 'sarah@acme.com', fontSize: 11, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+
+      // ---- Topbar (title + search + notification + avatar) -----------------
       add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Topbar', x: ox + 240, y: oy, width: 1040, height: 64, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 0, fontSize: 14, textColor: DARK });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Page title', x: ox + 264, y: oy + 22, width: 200, height: 20, fill: 'transparent', text: 'Overview', fontSize: 18, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'User avatar', x: ox + 1192, y: oy + 16, width: 32, height: 32, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
-      // Stats cards
-      for (let i = 0; i < 4; i++) {
-        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Stat card ${i + 1}`, x: ox + 264 + i * 248, y: oy + 96, width: 232, height: 96, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
-        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} label`, x: ox + 280 + i * 248, y: oy + 112, width: 100, height: 14, fill: 'transparent', text: ['Revenue', 'Users', 'Orders', 'Churn'][i], fontSize: 12, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
-        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} value`, x: ox + 280 + i * 248, y: oy + 132, width: 150, height: 28, fill: 'transparent', text: ['$12.4k', '1,284', '342', '2.1%'][i], fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Page title', x: ox + CX, y: oy + 19, width: 300, height: 26, fill: 'transparent', text: 'Overview', fontSize: 20, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Search field', x: ox + 920, y: oy + 14, width: 200, height: 36, fill: '#f8fafc', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 13, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Search placeholder', x: ox + 936, y: oy + 23, width: 170, height: 16, fill: 'transparent', text: 'Search transactions…', fontSize: 13, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Topbar avatar', x: ox + 1200, y: oy + 14, width: 36, height: 36, fill: '#c7d2fe', stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'ellipse', name: 'Notification dot', x: ox + 1227, y: oy + 15, width: 8, height: 8, fill: DANGER, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+
+      // ---- KPI row (VLM fix #1 — 4 stat cards, 24px gutters) ----------------
+      // Each card: UPPERCASE label / 36px value / delta pill / sparkline path.
+      const KPIS = [
+        { label: 'TOTAL REVENUE', value: '$128.4K', delta: '▲ +12.5%', good: true },
+        { label: 'TOTAL EXPENSES', value: '$42.1K', delta: '▲ +4.2%', good: false },
+        { label: 'ACTIVE USERS', value: '8,249', delta: '▲ +8.1%', good: true },
+        { label: 'GROWTH RATE', value: '+18.9%', delta: '▲ +2.4 pts', good: true },
+      ];
+      const KPI_W = (CW - GUTTER * 3) / 4;   // 222
+      const KPI_Y = 64 + PAD;                // 104 — topbar + page padding
+      const KPI_H = 128;
+      // Sparkline wiggle patterns (varied per card so they don't look cloned).
+      const SPARKS = [
+        [0.5, 0.3, 0.6, 0.35, 0.7, 0.8],
+        [0.6, 0.65, 0.4, 0.55, 0.3, 0.5],
+        [0.3, 0.5, 0.4, 0.65, 0.5, 0.75],
+        [0.45, 0.3, 0.55, 0.5, 0.65, 0.55],
+      ];
+      for (let i = 0; i < KPIS.length; i++) {
+        const kx = ox + CX + i * (KPI_W + GUTTER);
+        const ky = oy + KPI_Y;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Stat card ${i + 1}`, x: kx, y: ky, width: KPI_W, height: KPI_H, fill: SURFACE, stroke: GRAY, strokeWidth: 1, radius: CARD_R, fontSize: 14, textColor: DARK });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} label`, x: kx + 16, y: ky + 16, width: KPI_W - 32, height: 14, fill: 'transparent', text: KPIS[i].label, fontSize: 12, textColor: TEXT_MUTED, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} value`, x: kx + 16, y: ky + 34, width: KPI_W - 32, height: 38, fill: 'transparent', text: KPIS[i].value, fontSize: 36, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Stat ${i + 1} delta badge`, x: kx + 16, y: ky + 82, width: 92, height: 22, fill: KPIS[i].good ? SUCCESS_TINT : DANGER_TINT, stroke: 'transparent', strokeWidth: 0, radius: 9999, fontSize: 11, textColor: KPIS[i].good ? SUCCESS_TEXT : DANGER_TEXT });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Stat ${i + 1} delta label`, x: kx + 24, y: ky + 87, width: 80, height: 13, fill: 'transparent', text: KPIS[i].delta, fontSize: 11, textColor: KPIS[i].good ? SUCCESS_TEXT : DANGER_TEXT, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        // Sparkline — 6-point polyline along the card bottom.
+        const sparkPts = SPARKS[i].map((p, j) => ({
+          x: kx + 16 + j * ((KPI_W - 32) / (SPARKS[i].length - 1)),
+          y: ky + 122 - p * 16,
+        }));
+        add({ id: crypto.randomUUID(), type: 'path', name: `Stat ${i + 1} sparkline`, x: kx + 16, y: ky + 106, width: KPI_W - 32, height: 16, fill: 'transparent', stroke: KPIS[i].good ? SUCCESS : DANGER, strokeWidth: 2, radius: 0, fontSize: 14, textColor: DARK, points: sparkPts, closed: false });
       }
-      // Chart
-      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Main chart', x: ox + 264, y: oy + 224, width: 720, height: 320, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Chart title', x: ox + 280, y: oy + 240, width: 200, height: 16, fill: 'transparent', text: 'Revenue over time', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      // Right panel
-      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Right panel', x: ox + 1000, y: oy + 224, width: 256, height: 320, fill: '#ffffff', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Panel title', x: ox + 1016, y: oy + 240, width: 200, height: 16, fill: 'transparent', text: 'Recent activity', fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      for (let i = 0; i < 4; i++) {
-        add({ id: crypto.randomUUID(), type: 'ellipse', name: `Activity avatar ${i + 1}`, x: ox + 1016, y: oy + 280 + i * 56, width: 24, height: 24, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
-        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Activity line ${i + 1}a`, x: ox + 1056, y: oy + 282 + i * 56, width: 160, height: 8, fill: LIGHT, stroke: 'transparent', strokeWidth: 0, radius: 4, fontSize: 14, textColor: DARK });
-        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Activity line ${i + 1}b`, x: ox + 1056, y: oy + 296 + i * 56, width: 100, height: 8, fill: LIGHT, stroke: 'transparent', strokeWidth: 0, radius: 4, fontSize: 14, textColor: DARK });
+
+      // ---- Revenue-over-time area chart panel -------------------------------
+      const CH_Y = KPI_Y + KPI_H + GUTTER;  // 256
+      const CH_H = 264;                     // ends 520
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Revenue chart card', x: ox + CX, y: oy + CH_Y, width: CW, height: CH_H, fill: SURFACE, stroke: GRAY, strokeWidth: 1, radius: CARD_R, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Chart title', x: ox + CX + 24, y: oy + CH_Y + 20, width: 320, height: 20, fill: 'transparent', text: 'Revenue over time', fontSize: 16, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Chart subtitle', x: ox + CX + 24, y: oy + CH_Y + 42, width: 320, height: 14, fill: 'transparent', text: 'Monthly recurring revenue · last 8 months', fontSize: 12, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Date-range chip (top-right of the panel).
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Chart range chip', x: ox + CX + CW - 24 - 140, y: oy + CH_Y + 18, width: 140, height: 28, fill: '#f8fafc', stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 12, textColor: TEXT_MUTED });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Chart range label', x: ox + CX + CW - 24 - 124, y: oy + CH_Y + 26, width: 110, height: 14, fill: 'transparent', text: 'Last 8 months', fontSize: 12, textColor: TEXT_MUTED, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      // Plot area geometry.
+      const PX0 = CX + 64;                     // y-axis labels live in the 64px gutter
+      const PX1 = CX + CW - 24;
+      const PW = PX1 - PX0;                    // 872
+      const PY0 = CH_Y + 84;
+      const PY1 = CH_Y + CH_H - 48;            // 216 — x-axis labels below
+      const PH = PY1 - PY0;                    // 132
+      // Gridlines + baseline.
+      for (let g = 0; g < 3; g++) {
+        const gy = PY0 + (PH / 2) * g;
+        add({ id: crypto.randomUUID(), type: 'rectangle', name: `Chart gridline ${g + 1}`, x: ox + PX0, y: oy + gy, width: PW, height: 1, fill: LIGHT, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      }
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Chart baseline', x: ox + PX0, y: oy + PY1, width: PW, height: 1, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      // Y-axis labels.
+      const Y_LABELS = ['$150K', '$75K', '$0'];
+      for (let g = 0; g < 3; g++) {
+        const gy = PY0 + (PH / 2) * g;
+        add({ id: crypto.randomUUID(), type: 'text', name: `Chart y-axis label ${g + 1}`, x: ox + CX + 24, y: oy + gy - 6, width: 36, height: 14, fill: 'transparent', text: Y_LABELS[g], fontSize: 11, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      }
+      // X-axis labels (8 months) + data with a story: dip in Feb, spike in Mar.
+      const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+      const REV = [0.42, 0.30, 0.74, 0.58, 0.66, 0.54, 0.82, 0.92];
+      const PREV = [0.34, 0.31, 0.42, 0.47, 0.52, 0.50, 0.58, 0.64];
+      const slotW = PW / MONTHS.length;
+      const mx = (i: number) => PX0 + slotW * i + slotW / 2;
+      for (let i = 0; i < MONTHS.length; i++) {
+        add({ id: crypto.randomUUID(), type: 'text', name: `Chart month label ${i + 1}`, x: ox + mx(i) - 20, y: oy + PY1 + 10, width: 40, height: 14, fill: 'transparent', text: MONTHS[i], fontSize: 11, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0, textAlign: 'center' });
+      }
+      // Area fill (closed polygon under the revenue line, translucent emerald).
+      const areaPts = [
+        { x: ox + PX0, y: oy + PY1 },
+        ...REV.map((f, i) => ({ x: ox + mx(i), y: oy + PY1 - f * PH })),
+        { x: ox + PX1, y: oy + PY1 },
+      ];
+      add({ id: crypto.randomUUID(), type: 'path', name: 'Chart area', x: ox + PX0, y: oy + PY0, width: PW, height: PH, fill: SUCCESS, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK, opacity: 0.14, points: areaPts, closed: true });
+      // Revenue trend line.
+      add({ id: crypto.randomUUID(), type: 'path', name: 'Chart trend line', x: ox + PX0, y: oy + PY0, width: PW, height: PH, fill: 'transparent', stroke: SUCCESS, strokeWidth: 2.5, radius: 0, fontSize: 14, textColor: DARK, points: REV.map((f, i) => ({ x: ox + mx(i), y: oy + PY1 - f * PH })), closed: false });
+      // Previous-year comparison line (subtle gray).
+      add({ id: crypto.randomUUID(), type: 'path', name: 'Chart comparison line', x: ox + PX0, y: oy + PY0, width: PW, height: PH, fill: 'transparent', stroke: TEXT_SUBTLE, strokeWidth: 2, radius: 0, fontSize: 14, textColor: DARK, opacity: 0.7, points: PREV.map((f, i) => ({ x: ox + mx(i), y: oy + PY1 - f * PH })), closed: false });
+
+      // ---- Recent Transactions table (VLM fix #1 — 5 rows) ------------------
+      const TB_Y = CH_Y + CH_H + GUTTER;   // 544
+      const TB_H = 800 - PAD - TB_Y;       // 216 — 40px bottom page padding
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Transactions card', x: ox + CX, y: oy + TB_Y, width: CW, height: TB_H, fill: SURFACE, stroke: GRAY, strokeWidth: 1, radius: CARD_R, fontSize: 14, textColor: DARK });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Panel title', x: ox + CX + 24, y: oy + TB_Y + 18, width: 320, height: 20, fill: 'transparent', text: 'Recent Transactions', fontSize: 16, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Export button', x: ox + CX + CW - 24 - 110, y: oy + TB_Y + 14, width: 110, height: 28, fill: SURFACE, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 12, textColor: TEXT_MUTED });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Export button label', x: ox + CX + CW - 24 - 110, y: oy + TB_Y + 21, width: 110, height: 14, fill: 'transparent', text: 'Export CSV', fontSize: 12, textColor: TEXT_MUTED, stroke: 'transparent', strokeWidth: 0, radius: 0, textAlign: 'center' });
+      // Column headers — UPPERCASE, 11px/600/+0.5 via the typography bucket.
+      const COL_DESC = CX + 24;
+      const COL_DATE = CX + 520;
+      const COL_STATUS = CX + 660;
+      const COL_AMT = CX + CW - 24 - 100;
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Table header 1', x: ox + COL_DESC, y: oy + TB_Y + 58, width: 300, height: 14, fill: 'transparent', text: 'DESCRIPTION', fontSize: 11, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Table header 2', x: ox + COL_DATE, y: oy + TB_Y + 58, width: 120, height: 14, fill: 'transparent', text: 'DATE', fontSize: 11, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Table header 3', x: ox + COL_STATUS, y: oy + TB_Y + 58, width: 100, height: 14, fill: 'transparent', text: 'STATUS', fontSize: 11, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Table header 4', x: ox + COL_AMT, y: oy + TB_Y + 58, width: 100, height: 14, fill: 'transparent', text: 'AMOUNT', fontSize: 11, textColor: TEXT_SUBTLE, stroke: 'transparent', strokeWidth: 0, radius: 0, textAlign: 'right' });
+      add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Table header divider', x: ox + CX + 24, y: oy + TB_Y + 78, width: CW - 48, height: 1, fill: GRAY, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+      // 5 data rows — real fintech copy, amounts right-aligned + signed,
+      // status color-coded (Completed = emerald, Pending = amber).
+      const TXNS = [
+        { desc: 'Stripe payout · INV-2841', date: 'Aug 24, 2026', status: 'Completed', amount: '+$4,200.00', good: true },
+        { desc: 'Payroll · Gusto', date: 'Aug 23, 2026', status: 'Completed', amount: '-$18,750.00', good: false },
+        { desc: 'Wire · Acme Corp contract', date: 'Aug 21, 2026', status: 'Pending', amount: '+$12,940.00', good: true },
+        { desc: 'AWS infrastructure', date: 'Aug 20, 2026', status: 'Completed', amount: '-$2,104.50', good: false },
+        { desc: 'AdSense revenue', date: 'Aug 18, 2026', status: 'Completed', amount: '+$860.25', good: true },
+      ];
+      for (let r = 0; r < TXNS.length; r++) {
+        const ry = oy + TB_Y + 92 + r * 26;
+        add({ id: crypto.randomUUID(), type: 'text', name: `Transaction ${r + 1} description`, x: ox + COL_DESC, y: ry, width: 420, height: 18, fill: 'transparent', text: TXNS[r].desc, fontSize: 14, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Transaction ${r + 1} date`, x: ox + COL_DATE, y: ry + 1, width: 120, height: 16, fill: 'transparent', text: TXNS[r].date, fontSize: 13, textColor: TEXT_MUTED, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Transaction ${r + 1} status`, x: ox + COL_STATUS, y: ry + 1, width: 100, height: 16, fill: 'transparent', text: TXNS[r].status, fontSize: 13, textColor: TXNS[r].status === 'Pending' ? WARNING_TEXT : SUCCESS_TEXT, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Transaction ${r + 1} amount`, x: ox + COL_AMT, y: ry, width: 100, height: 18, fill: 'transparent', text: TXNS[r].amount, fontSize: 14, textColor: TXNS[r].good ? SUCCESS_TEXT : DANGER_TEXT, stroke: 'transparent', strokeWidth: 0, radius: 0, textAlign: 'right' });
+        if (r < TXNS.length - 1) {
+          add({ id: crypto.randomUUID(), type: 'rectangle', name: `Table row divider ${r + 1}`, x: ox + CX + 24, y: ry + 21, width: CW - 48, height: 1, fill: LIGHT, stroke: 'transparent', strokeWidth: 0, radius: 0, fontSize: 14, textColor: DARK });
+        }
       }
       break;
     }

@@ -984,8 +984,8 @@ Specifically:
 - If a text shape uses default weight 400, call pen_update_shape with { shapeId, fontWeight: 700 for H1 / 600 for H2 / 500 for labels }.
 - If a text shape has letterSpacing=0, call pen_update_shape with { shapeId, letterSpacing: -0.02 for headings / 0.01 for labels / 0 for body }.
 - If a text shape has no textAlign, call pen_update_shape with { shapeId, textAlign: 'left' for body / 'center' for hero / 'right' for numeric }.
-- If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:4, blur:6, color:"#0000001a" }.
-- If a card/sidebar/topbar has no autoLayout, call pen_update_shape with { shapeId, autoLayout: { direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min" } }.
+- If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:1, blur:2, color:"#0000000d" } (subtle sm shadow; use y:4/blur:6 only for raised states).
+- If a card/sidebar/topbar has no autoLayout, call pen_update_shape with { shapeId, autoLayout: { direction:"vertical", gap:8, padding:24, alignX:"min", alignY:"min" } }.
 - If the canvas has fewer than 5 shapes, call pen_create_shape to add the missing components (KPI cards, chart, table, etc.) per the design brief's informationArchitecture.
 
 Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
