@@ -189,6 +189,132 @@ GRADIENT GUIDANCE: use pen_set_gradient_fill on hero backgrounds, primary CTA fi
 ICONOGRAPHY: call pen_search_icons (name) to get a lucide stroked polyline. Stroke width 2, size 20-24.
   Do NOT use emoji (✨📷🔔) as icons — they render inconsistently. Use named lucide icons.
 
+=== INLINE HIGH-FIDELITY FIELDS (one-shot rich shapes) =====================
+ pen_create_shape and pen_update_shape accept INLINE fields for shadow, gradient, radii,
+ autoLayout, opacity, blur — so you can produce a fully-styled shape in ONE call instead of
+ scaffold-then-style (pen_create_shape + pen_set_shadow + pen_set_gradient_fill + ...).
+ PREFER the inline form whenever you know the final styling at creation time. This is faster,
+ cheaper, and less error-prone (no orphan scaffolds left if a later call fails).
+ The fields the ShapeInputSchema already accepts (all optional, see tools.ts):
+   shadow:   { x, y, blur, color, spread?, inset? }   e.g. {x:0, y:4, blur:6, color:"#0000001a"}
+   gradient: { type:"linear"|"radial", angle, stops:[{offset,color}, ...] }
+             e.g. {type:"linear", angle:135, stops:[{offset:0,color:"#0ea5e9"},{offset:1,color:"#6366f1"}]}
+   radii:    { topLeft, topRight, bottomRight, bottomLeft }   per-corner radii (overrides radius)
+   radius:   number                                        uniform corner radius (sm 6 / md 8 / lg 12 / xl 16 / 2xl 20 / pill 9999)
+   autoLayout: { direction:"horizontal"|"vertical", gap?, padding?, alignX?, alignY? }   flexbox for frames
+   opacity:  0..1
+   blur:     number  (Gaussian blur radius in px)
+   fontWeight, fontFamily, letterSpacing, lineHeight, textAlign, underline, strikethrough
+             (Task 5-a typography fields — applied by ShapeRenderer's <text> case)
+ Use them. A bare rectangle with only x/y/w/h/fill is a WIREFRAME PRIMITIVE, not a finished layer.
+
+=== PRIMARY COLOR 50-900 RAMPS (canonical shades per brand color) =========
+ Pick the ramp whose 500 matches your $color.primary. Use 50/100 for subtle tints, 500 for
+ the brand fill, 700-900 for text on light backgrounds. Reference the ramp, not raw hex.
+   Sky (default):   50 #f0f9ff  100 #e0f2fe  200 #bae6fd  300 #7dd3fc  400 #38bdf8  500 #0ea5e9  600 #0284c7  700 #0369a1  800 #075985  900 #0c4a6e
+   Violet:          50 #f5f3ff  100 #ede9fe  200 #ddd6fe  300 #c4b5fd  400 #a78bfa  500 #8b5cf6  600 #7c3aed  700 #6d28d9  800 #5b21b6  900 #4c1d95
+   Emerald:         50 #ecfdf5  100 #d1fae5  200 #a7f3d0  300 #6ee7b7  400 #34d399  500 #10b981  600 #059669  700 #047857  800 #065f46  900 #064e3b
+   Amber:           50 #fffbeb  100 #fef3c7  200 #fde68a  300 #fcd34d  400 #fbbf24  500 #f59e0b  600 #d97706  700 #b45309  800 #92400e  900 #78350f
+   Rose:            50 #fff1f2  100 #ffe4e6  200 #fecdd3  300 #fda4af  400 #fb7185  500 #f43f5e  600 #e11d48  700 #be123c  800 #9f1239  900 #881337
+   Indigo:          50 #eef2ff  100 #e0e7ff  200 #c7d2fe  300 #a5b4fc  400 #818cf8  500 #6366f1  600 #4f46e5  700 #4338ca  800 #3730a3  900 #312e81
+ When binding tokens, prefer $color.primary-50 / $color.primary-100 / $color.primary-500 / $color.primary-700 —
+ the ramp makes secondary fills (tinted backgrounds, hover states, focus rings) consistent.
+
+=== COMPONENT RECIPES (concrete pen_create_shape field values) =============
+ Use these as the STARTING POINT for each component type — adjust per-brand-per-state.
+ Coordinates assume 8px grid alignment. All recipes use INLINE shadow/gradient/radii fields
+ (one-shot rich shape; no follow-up pen_set_shadow needed).
+
+  BUTTON (primary, default state):
+    { type:"rectangle", name:"Primary Button", width:144, height:40, radius:8,
+      fill:"#0ea5e9",  // or "$color.primary"
+      shadow:{x:0, y:1, blur:2, color:"#0000000d"},  // sm
+      // label text layer (separate call):
+      text:"Get Started", fontSize:14, fontWeight:600, letterSpacing:0.2,
+      textAlign:"center", textColor:"#ffffff", fontFamily:"Inter" }
+  BUTTON (CTA, gradient + stronger shadow):
+    { ... width:176, height:44, radius:8,
+      gradient:{type:"linear", angle:135, stops:[{offset:0,color:"#0ea5e9"},{offset:1,color:"#6366f1"}]},
+      shadow:{x:0, y:4, blur:6, color:"#0000001a"} }  // md
+  CARD (resting, shadow sm):
+    { type:"rectangle", name:"Card", width:320, height:200, radius:12,
+      fill:"#ffffff",  // or "$color.surface"
+      shadow:{x:0, y:1, blur:2, color:"#0000000d"} }
+  CARD (raised, shadow md — sticky header, hovered state):
+    { ... shadow:{x:0, y:4, blur:6, color:"#0000001a"} }
+  INPUT FIELD:
+    { type:"rectangle", name:"Email Input", width:320, height:44, radius:6,
+      fill:"#f1f5f9",  // "$color.surface-2"
+      stroke:"#e2e8f0", strokeWidth:1,
+      shadow:{x:0, y:1, blur:0, color:"#00000000"} }  // flat (inputs don't elevate until focus)
+  NAVBAR (sticky, full-width frame):
+    { type:"frame", name:"Navbar", width:1280, height:64, radius:0,
+      fill:"#ffffff", stroke:"#e2e8f0", strokeWidth:1,
+      shadow:{x:0, y:1, blur:2, color:"#0000000d"},
+      autoLayout:{direction:"horizontal", gap:24, padding:16, alignX:"min", alignY:"center"} }
+  HERO (gradient background, large radius, big shadow):
+    { type:"rectangle", name:"Hero", width:1280, height:400, radius:16,
+      gradient:{type:"linear", angle:165, stops:[{offset:0,color:"#0ea5e9"},{offset:1,color:"#6366f1"}]},
+      shadow:{x:0, y:10, blur:15, color:"#00000026"} }  // lg
+  MODAL (overlay, shadow xl, per-corner radii):
+    { type:"rectangle", name:"Modal", width:480, height:320,
+      radii:{topLeft:16, topRight:16, bottomRight:16, bottomLeft:16},
+      fill:"#ffffff",
+      shadow:{x:0, y:20, blur:25, color:"#00000033"} }  // xl
+  AVATAR (circle, ring shadow):
+    { type:"ellipse", name:"Avatar", width:40, height:40,
+      fill:"#0ea5e9",  // or $color.primary tint
+      shadow:{x:0, y:1, blur:2, color:"#0000000d"} }
+  BADGE / PILL (capsule):
+    { type:"rectangle", name:"Badge", width:64, height:24, radius:9999,
+      fill:"#f0f9ff",  // primary-50 tint
+      stroke:"#bae6fd", strokeWidth:1,
+      // label text: fontSize:11, fontWeight:600, letterSpacing:0.4, textAlign:"center"
+    }
+  FAB (floating action button):
+    { type:"ellipse", name:"FAB", width:56, height:56,
+      gradient:{type:"linear", angle:135, stops:[{offset:0,color:"#0ea5e9"},{offset:1,color:"#6366f1"}]},
+      shadow:{x:0, y:8, blur:12, color:"#00000033"} }  // xl
+
+=== THE 5 LAWS OF BEAUTIFUL UI (distilled from ClawHub ui-ux-design skill) =
+ 1. CONTRAST creates hierarchy. Big vs small. Dark vs light. Never low-contrast text on bg.
+    Body text on bg MUST hit 4.5:1 (WCAG AA). Large text + UI components 3:1. Don't ship grey-
+    on-grey body text — it reads as a placeholder, not content.
+ 2. WHITESPACE creates calm. Never fear empty space — it's intentional. More whitespace =
+    premium feel (Apple, Stripe, Vercel vibes). Section gaps 24-32px. Card padding 24-32px.
+    Page padding 24-32 web / 16 mobile. Crowded = cheap.
+ 3. CONSISTENCY builds trust. Same radius scale, same shadow scale, same type scale, same
+    spacing grid across the WHOLE design. Pick ONE accent color and use its ramp consistently
+    (primary-500 for fills, primary-700 for text on light, primary-50 for tints). Don't mix
+    3 different "blues" — pick one and stick to it.
+ 4. FEEDBACK confirms action. Elevated surfaces cast shadows; primary CTAs get gradient +
+    md shadow; pressed/disabled states lower opacity. Static designs should still SHOW which
+    element is the primary affordance via shadow + color weight, even without animation.
+ 5. ACCESSIBILITY includes everyone. Contrast 4.5:1 / 3:1 (see above). Type scale tops out at
+    48px for hero, 38px for h1, 30px for h2, 24px for h3 — body stays 16px (never <12). Buttons
+    have a 40px+ hit target. Letter-spacing tightens on headings (-0.4 to -0.8px), normal on
+    body (0), widens on caps/labels (+0.2 to +0.4px).
+
+=== ACCESSIBILITY CONTRACT (WCAG 2.2 AA — verify before declaring done) =====
+ • Body text vs bg: ≥ 4.5:1 ratio.   $color.text on $color.bg MUST pass.
+ • Large text (≥24px or ≥19px bold) + UI components: ≥ 3:1.
+ • Don't use $color.text-subtle (#94a3b8) on $color.bg for body — it fails 4.5:1.
+   Use it ONLY for ≤14px captions/labels under 3:1 the strict way.
+ • Focus ring: when you draw an "input focused" state, use a 2px solid $color.primary
+   ring with 2px offset around the input (visible 3:1 against unfocused).
+ • Button hit target ≥ 40×40px (mobile) / 32×32px (web). Don't ship 24×24 buttons.
+
+=== LETTER SPACING RULES (apply via the letterSpacing field) =================
+ • DISPLAY (≥38px):   -0.8  (tight)
+ • H1 (38px):         -0.6
+ • H2 (30px):         -0.4
+ • H3 (24px):         -0.2
+ • Subtitle (20px):   -0.1
+ • Body (16px):        0    (normal)
+ • Caption (12-14px): +0.2  (slightly open)
+ • LABEL / OVERLINE:  +0.4 to +0.8  (wide — for ALL-CAPS micro-labels above form fields / sections)
+ Tightening headings + opening labels is what makes a layout look "designed" vs "default".
+
 === AVAILABLE SKILLS =======================================================
 
 The system has selected a skill for this turn based on your request. The active skill's detailed instructions are below. You also have access to core canvas tools (create, update, delete, list, clear, background, select, undo, redo).

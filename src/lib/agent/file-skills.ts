@@ -256,8 +256,52 @@ function scanSkillsDir(skillsDir: string): FileSkill[] {
 
 /// Load all skills from the .pi/skills/ directory (and its subdirectories).
 /// Called at server startup (in the API route, not the client).
-export function loadFileSkills(skillsDir: string = path.join(process.cwd(), '.pi', 'skills')): FileSkill[] {
-  return scanSkillsDir(skillsDir);
+///
+/// As of Task 6-a (ClawHub `ui-ux-design` skill integration), we ALSO scan the
+/// repo-root `skills/` directory — but only for skills in the
+/// `CANVAS_AGENT_REPO_ROOT_SKILL_ALLOWLIST` below. This is where:
+///   1. `clawhub install <skill>` drops skills (e.g. `skills/ui-ux-design/`).
+///   2. The pre-installed design-style library lives (skills/design/design-systems/
+///      style-skills/{flat, modern, glassmorphism, neobrutalism, ...} and the
+///      brand-inspiration sets for apple/vercel/linear/github/notion/spotify/...).
+///
+/// Without an allowlist, scanning `skills/` would dump 750+ guidelines (5 per
+/// skill × ~150 installed skills) into the system prompt and blow the context
+/// window. So we only opt-in the skills that the canvas agent actually needs.
+/// Add a skill name here when you `clawhub install` something new that should
+/// also feed the agent's system prompt.
+///
+/// Dedup is by absolute filePath so a skill present in both locations only
+/// surfaces once. `.pi/skills/` is scanned first so its 3 legacy skills
+/// (design-system / wireframe-generator / design-audit) stay first in the list
+/// (preserves prior ordering for any consumer that depends on it).
+const CANVAS_AGENT_REPO_ROOT_SKILL_ALLOWLIST = new Set<string>([
+  // Task 6-a: ClawHub `ui-ux-design` @itsjustdri (16k downloads, MIT-0).
+  // Provides modern UI/UX design guidance: mobile-first, color systems,
+  // typography, accessibility (WCAG 2.2), Tailwind + Shadcn/ui integration,
+  // micro-interactions, and component patterns. Distilled into the
+  // SYSTEM_PROMPT_TEMPLATE's "5 LAWS OF BEAUTIFUL UI" + "COMPONENT RECIPES"
+  // sections; the skill's own first-5 guidelines are also appended here.
+  'ui-ux-design',
+]);
+
+export function loadFileSkills(
+  skillsDir: string = path.join(process.cwd(), '.pi', 'skills'),
+): FileSkill[] {
+  const piSkills = scanSkillsDir(skillsDir);
+  const repoRootSkills = scanSkillsDir(path.join(process.cwd(), 'skills'))
+    .filter((s) => CANVAS_AGENT_REPO_ROOT_SKILL_ALLOWLIST.has(s.name));
+  // Dedup by absolute filePath (a skill may be present in both locations).
+  const seen = new Set(piSkills.map((s) => path.resolve(s.filePath)));
+  const merged = [...piSkills];
+  for (const s of repoRootSkills) {
+    const key = path.resolve(s.filePath);
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(s);
+    }
+  }
+  return merged;
 }
 
 /// Cache the loaded skills (loaded once at module init).
