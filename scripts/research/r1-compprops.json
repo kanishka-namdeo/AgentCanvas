@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5579474826519-Explore-component-properties",
+    "name": "Explore component properties – Figma Learn - Help Center",
+    "snippet": "The instance swap property allows you to indicate which instances nested in a main component or variant can be swapped. When creating an instance swap property, ... Types of component properties · Instance swap property",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@joeyabanks/component-properties-in-figma-1883da7c16e6",
+    "name": "Component Properties in Figma - by Joey Banks - Medium",
+    "snippet": "Jun 12, 2022 · Instance swap properties, which are part of the new component properties feature, allow the creator of a component to easily indicate which ...",
+    "host_name": "medium.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=6hLyWxeTGLU",
+    "name": "Figma Boolean Property, Text Property & Instance Swap Property",
+    "snippet": "Jun 19, 2022 · Figma Boolean Property, Text Property & Instance Swap Property - What's New in Components In this video, you will learn the latest update of ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360056440594-Create-and-use-variants",
+    "name": "Create and use variants – Figma Learn - Help Center",
+    "snippet": "Variant properties are a type of component property specific to variants and component sets. You can add as many properties and values as you need, and ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.logrocket.com/ux-design/using-component-properties-figma",
+    "name": "Using Figma's instance swap and other component properties",
+    "snippet": "Mar 28, 2025 · With the instance swap property, you can quickly swap the button with another one in the library without having to manually delete and replace ...",
+    "host_name": "blog.logrocket.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/using-a-boolean-variable-to-change-a-component-variant-across-pages-30672",
+    "name": "Using a boolean variable to change a component variant across pages",
+    "snippet": "Jul 6, 2023 · Drag an instance of both variants onto your canvas and create a new auto layout component. Go into your variables window and toggle the switch ...",
+    "host_name": "forum.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/39636407507735-Components-collection-Component-property-fundamentals",
+    "name": "Component property fundamentals – Figma Learn - Help Center",
+    "snippet": "Instance swap properties let you indicate which nested instances can be replaced and curate a list of suitable alternatives. For example, when designing a list ...",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1j7gega/assign_different_boolean_property_value_to",
+    "name": "Assign different Boolean property value to different elements  - Reddit",
+    "snippet": "Mar 9, 2025 · I DON'T want to create additional component variants, or turn Modern and Classic elements to components and use Instance swap property. It ...",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

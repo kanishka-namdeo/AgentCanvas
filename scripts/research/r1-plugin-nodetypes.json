@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/nodes",
+    "name": "Node Types | Developer Docs",
+    "snippet": "The list of node types is declared in NodeType. You will typically use node.type when examining a node. frames and groups can all have children,",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api/file-node-types",
+    "name": "Node types | Developer Docs",
+    "snippet": "Node type indicates what kind of node you are working with: for example, a FRAME node. List types are represented as string enums",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/ComponentSetNode",
+    "name": "ComponentSetNode | Developer Docs",
+    "snippet": "A component set contains the variants of a component. It behaves much like a normal frame would, but all of its children are ComponentNodes.",
+    "host_name": "developers.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/api-how-best-to-determine-whether-a-node-can-have-children-32040",
+    "name": "API: how best to determine whether a node can have children",
+    "snippet": "Feb 4, 2023 · Hi! A lot of my code (usually typed into the Scripter plugin) walks though what's selected on a page, and if a selected node has children, I ...",
+    "host_name": "forum.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/StickyNode",
+    "name": "StickyNode | Developer Docs",
+    "snippet": "StickyNode. A sticky note object. When created, a sticky's author will be set to the current user's name. Stickies can be created using figma.createSticky .",
+    "host_name": "developers.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=cH7071Q1yAw",
+    "name": "Figma plugin development - Understanding APIs (Part - 2/2)",
+    "snippet": "Jun 16, 2021 · This video is the sixth part of the mini-course 'Figma plugin development'. This is a continuation of the previous video, where we discussed ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/figma/plugin-typings/blob/master/plugin-api.d.ts",
+    "name": "plugin-typings/plugin-api.d.ts at master · figma/plugin-typings · GitHub",
+    "snippet": "Typings for the Figma Plugin API. causes all node properties and methods to skip over invisible nodes. Accessing and modifying invisible nodes … with the ...",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.dev/documentation/figma/latest/figma",
+    "name": "figma library - Dart API - Pub.dev",
+    "snippet": "A Canvas node represents a Page in a Figma File. A Canvas node can then have any number of nodes as its children. Each subtree stemming from a Canvas node will ...",
+    "host_name": "pub.dev",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

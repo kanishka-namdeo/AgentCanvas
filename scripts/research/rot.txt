@@ -1,0 +1,53 @@
+
+
+rotation | Developer Docs
+
+Skip to main content
+
+On this page
+
+rotation
+The rotation of the node in degrees. Returns values from -180 to 180. Identical to Math.atan2(-m10, m00) in the relativeTransform matrix. When setting rotation, it will also set m00, m01, m10, m11.
+
+Supported on:
+BooleanOperationNode
+ComponentNode
+ComponentSetNode
+EllipseNode
+FrameNode
+GroupNode
+HighlightNode
+InstanceNode
+LineNode
+PolygonNode
+RectangleNode
+SliceNode
+SlideNode
+SlotNode
+StampNode
+StarNode
+TextNode
+TextPathNode
+TransformGroupNode
+VectorNode
+WashiTapeNode
+
+Signature​
+
+rotation: number
+
+Remarks​
+
+The rotation is with respect to the top-left of the object. Therefore, it is independent from the position of the object. If you want to rotate with respect to the center (or any arbitrary point), you can do so via matrix transformations and relativeTransform.
+
+Signature
+Remarks
+
+Was this page helpful?
+Leave us feedback
+Community Forum
+Discord Server
+GitHub Samples
+
+FigJam·Enterprise·Learn·Education·Careers·Pricing·Developers·Blog·Downloads·Releases·Security·Legal·Contact
+

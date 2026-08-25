@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039957534-Boolean-operations",
+    "name": "Boolean operations – Figma Learn - Help Center",
+    "snippet": "There are four boolean operations: union, subtract, intersect, and exclude. The exclude selection operation creates a new object by removing the overlapping ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/where-in-ui3-are-the-boolean-operations-i-e-union-subtract-intersect-exclude-29050",
+    "name": "Where in UI3 are the Boolean operations? i.e. Union, Subtract",
+    "snippet": "Aug 12, 2024 · Where in UI3 are the Boolean operations? i.e. Union, Subtract, Intersect, Exclude These used to be on the main toolbar. Best answer by tank666 ...",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=8ZaX6qEcUCU",
+    "name": "Figma Tutorial: Boolean Operations - YouTube",
+    "snippet": "Feb 27, 2018 · the four Boolean Operations: Union, Subtract, Intersect, and Exclude. If you have questions along the way head over to our user forum (https ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/31130266267287-FD4B-Combine-shapes-using-boolean-operations",
+    "name": "FD4B: Combine shapes using boolean operations - Figma Learn",
+    "snippet": "There are four different boolean operations and it can be helpful to organize them into two groups of opposites: Union and subtract, and intersect and exclude.",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://d-libro.com/topic/masking-and-boolean-operations-in-figma",
+    "name": "Figma Masking & Boolean Operations Guide - Topic - D-Libro",
+    "snippet": "Figma How To Access Boolean Operations. Choose an Operation: Select from Union, Subtract, Intersect, or Exclude to apply the desired effect. Flatten Boolean ...",
+    "host_name": "d-libro.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=wQdUIwRYuA4",
+    "name": "Figma Course 10: Boolean Operations - YouTube",
+    "snippet": "Feb 15, 2021 · ... Exclude: Exclude is the opposite of Intersect. Exclude shows only the areas of its sublayers that do not overlap.",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/keyboard-shortcuts-for-union-subtract-intersect-exclude-selection-14341",
+    "name": "Keyboard shortcuts for union, subtract, intersect, exclude selection",
+    "snippet": "Dec 19, 2023 · union, subtract, intersect, and exclude selection buttons. The video tutorial is helpful to understand how to use it. Figma Tutorial: Boolean ...",
+    "host_name": "forum.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.geeksforgeeks.org/web-templates/boolean-operations-in-figma",
+    "name": "Boolean Operations in Figma - GeeksforGeeks",
+    "snippet": "Jun 18, 2024 · Learn Boolean operations in Figma with our simple guide. Combine, subtract, intersect, and exclude shapes to create stunning designs.",
+    "host_name": "www.geeksforgeeks.org",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://forum.figma.com/product-updates-3/meet-multi-edit-35320",
+    "name": "Meet multi-edit! | Figma Forum",
+    "snippet": "Mar 6, 2024 · Introducing a simpler way to edit multiple objects! Accurately resize and align objects to their frames Batch edit text boxes across frames ...",
+    "host_name": "forum.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@joeyabanks/everything-to-know-about-multi-editing-in-figma-edd58369fd20",
+    "name": "Everything to Know About Multi-editing in Figma | by Joey Banks",
+    "snippet": "Mar 6, 2024 · Multi-edit is a feature now available within Figma and allows for, as the name suggests, multiple things to be edited simultaneously.",
+    "host_name": "medium.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=YUBuYU2zv4Q",
+    "name": "Multi-edit in Figma - YouTube",
+    "snippet": "Mar 6, 2024 · Share your videos with friends, family, and the world.",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/21635177948567-Edit-objects-on-the-canvas-in-bulk",
+    "name": "Edit objects on the canvas in bulk - Figma Learn",
+    "snippet": "Select multiple layers across frames, groups, and sections and apply the same edits to them in bulk. For example: Update the string on a text layer, ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1bjp77f/i_just_cant_wrap_my_head_around_the_new_multiedit",
+    "name": "I just can't wrap my head around the new multi-edit feature: Here i have",
+    "snippet": "Mar 20, 2024 · I've been using \"page components\" (with \"page\" referring to a Figma canvas page, not a mockup screen) to quickly edit groupings of objects that ...",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/blog/behind-the-feature-the-multiple-lives-of-multi-edit",
+    "name": "Behind the Feature: The Multiple Lives of Multi-Edit | Figma Blog",
+    "snippet": "Mar 6, 2024 · Our users often want to make changes to only some of the frames. So, we added an additional option: holding shift highlights any matching layers ...",
+    "host_name": "www.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=wwQxCc5lFMQ",
+    "name": "Figma Multi-Edit (Awesome New Feature!) | Tutorial - YouTube",
+    "snippet": "Mar 19, 2024 · In Figma, you can now select and edit objects, in bulk, across multiple frames. You can change multiple text elements at the same time, ...",
+    "host_name": "www.youtube.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/community/file/1343991048099728924/multi-edit-playground",
+    "name": "Multi-edit playground - Figma",
+    "snippet": "Multi-edit simplifies editing across multiple frames in Figma. Learn how you can find and select matching layers, resize and align them to their frames, batch ...",
+    "host_name": "www.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

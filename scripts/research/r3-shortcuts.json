@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard – Figma Learn - Help Center",
+    "snippet": "Enable the desired tool using its keyboard shortcut, the actions menu, or press F6 (Mac) or Ctrl F6 (Windows) until the toolbar is focused, then use the arrow ... Add objects to the canvas · Select objects on the canvas",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5665442977431-Select-keyboard-layout",
+    "name": "Select keyboard layout – Figma Learn - Help Center",
+    "snippet": "Select the tab for your keyboard layout to view the updated shortcuts. ⇧Shift ⌘Command . Shift Ctrl . Use cursor chat $ $ Open quick. Zoom in + or Remove ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/4409078832791-Copy-and-paste-objects",
+    "name": "Copy and paste objects – Figma Learn - Help Center",
+    "snippet": "Select and copy an object using the keyboard shortcut: Mac: ⌘ Command C Windows: Control C · Select the objects you'd like to replace with the copied object.",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041068574-Add-comments-to-files",
+    "name": "Add comments to files – Figma Learn - Help Center",
+    "snippet": "Keyboard shortcut, Markdown syntax. Bold. Mac: Command B. Windows: Control B. **bold**. Italics. Mac: Command I. Windows: Control I. *italicized*. Strikethrough.",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041065034-Adjust-your-zoom-and-view-options",
+    "name": "Adjust your zoom and view options - Figma Learn",
+    "snippet": "You can also use the keyboard shortcuts to toggle layout guides: Mac: Control G; Windows: Ctrl Shift 4. Multiplayer cursors. If ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041539473-Frames-in-Figma-Design",
+    "name": "Frames in Figma Design – Figma Learn - Help Center",
+    "snippet": "Use the keyboard shortcut: Mac: ⌥ Option Shift ⌘ Command R Windows: Alt Shift Control R · Click in the Layout section of the right sidebar Image showing the ...",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039831974-Explore-the-navigation-bar-and-left-sidebar",
+    "name": "Explore the navigation bar and left sidebar – Figma Learn - Help Center",
+    "snippet": "You can quickly access the Assets tab by using the keyboard shortcut: Mac: ⌥ Option 2; Windows: Alt 2. Once you've opened the assets view ...",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039820134-Manage-and-share-styles",
+    "name": "Manage and share styles – Figma Learn - Help Center",
+    "snippet": "Hold ⌘ Command / Control and click to select multiple non-adjacent styles. Use the keyboard shortcut to cut the styles: Mac: ⌘ Command X; Windows: Control X.",
+    "host_name": "help.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

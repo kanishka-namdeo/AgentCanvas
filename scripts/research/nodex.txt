@@ -1,0 +1,66 @@
+
+
+x | Developer Docs
+
+Skip to main content
+
+On this page
+
+x
+The position of the node. Identical to relativeTransform[0][2].
+
+Supported on:
+BooleanOperationNode
+CodeBlockNode
+ComponentNode
+ComponentSetNode
+ConnectorNode
+EllipseNode
+EmbedNode
+FrameNode
+GroupNode
+HighlightNode
+InstanceNode
+InteractiveSlideElementNode
+LineNode
+LinkUnfurlNode
+MediaNode
+PolygonNode
+RectangleNode
+SectionNode
+ShapeWithTextNode
+SliceNode
+SlideGridNode
+SlideNode
+SlideRowNode
+SlotNode
+StampNode
+StarNode
+StickyNode
+TableNode
+TextNode
+TextPathNode
+TransformGroupNode
+VectorNode
+WashiTapeNode
+WidgetNode
+
+Signature​
+
+x: number
+
+Remarks​
+
+This value is automatically computed in children of auto-layout frames. Setting this property for these auto-layout children will no-op.
+
+Signature
+Remarks
+
+Was this page helpful?
+Leave us feedback
+Community Forum
+Discord Server
+GitHub Samples
+
+FigJam·Enterprise·Learn·Education·Careers·Pricing·Developers·Blog·Downloads·Releases·Security·Legal·Contact
+

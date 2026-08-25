@@ -1,0 +1,133 @@
+
+
+Types | Developer Docs
+
+Skip to main content
+
+On this page
+
+Types
+Variables in Figma have preset types (string, boolean, float, etc…), belong to a variable collection, and hold a different value for each mode in the collection. Certain node properties can bind to variables, enabling these properties to change dynamically when variables are updated or when the node is associated with a different mode.
+
+Extended collections allow you to create variants of existing variable collections with custom override values. When you extend a collection, the new extended collection inherits all variables and modes from its parent collection, but can specify different values for any inherited variables. This is useful for creating themed variants, regional customizations, or brand variations while maintaining a single source of truth.
+
+Key characteristics of extended collections:
+
+Inheritance: Extended collections automatically include all variables from their parent collection.
+
+Overrides: You can override any inherited variable's value for any mode in the extended collection.
+
+Extended Mode IDs: Extended collections use an encoded mode ID format that includes both the collection ID and the mode ID (e.g., VariableCollectionId:1:2/3:4). This format distinguishes between updating values in the root collection vs. overriding values in an extended collection.
+
+Local Only: At this time, only local variable collections can be extended via the REST API. However, you can still modify local extensions of subscribed collections.
+
+Terminology note: A parent collection refers to the collection being directly extended. A root collection refers to the original collection where a variable was created, which may be different if the collection chain is longer than two.
+
+The below types are returned by the GET local variables and GET published variables endpoints, with the published variables endpoint returning a subset of these properties. Please refer to the return values for each endpoint for more details.
+
+NameProperties
+ | 
+VariableCollection​
+A grouping of related Variable objects each with the same modes. | 
+idStringThe unique identifier of this variable collection.
+nameStringThe name of this variable collection.
+keyStringThe key of the variable collection.
+modesMap<String, String>
+A map of modeId to mode name for this variable collection. Extended modes will also include a parentModeId property referencing the corresponding mode in the parent collection.
+defaultModeIdStringThe id of the default mode.
+remoteBooleanWhether the variable collection is remote.
+hiddenFromPublishingBooleanWhether this variable collection is hidden when publishing the current file as a library.
+variableIdsString[]The ids of the variables in the collection. For extended collections, this includes both inherited and locally created variables. Note that the order of these variables is roughly the same as what is shown in Figma Design, however it does not account for groups. As a result, the order of these variables may not exactly reflect the exact ordering and grouping shown in the authoring UI. This will include inherited variable ids for extended collections
+isExtensionBooleanWhether this variable collection is an extended collection. Extended collections inherit variables and modes from a parent collection.
+parentVariableCollectionIdStringThe id of the parent variable collection. Only populated when isExtension is true.
+rootVariableCollectionIdStringThe ID of the root variable collection in the extension chain. This is the ID of the original (non-extended) collection at the top of the parent chain. For example, if Collection C extends B which extends A (root), then rootVariableCollectionId is A's ID. This field helps identify the original collection when dealing with deeply nested extension chains. Only populated when isExtension is true.
+inheritedVariableIdsString[]The ids of variables inherited from the parent collection. Only populated when isExtension is true.
+localVariableIdsString[]The ids of variables created directly in this extended collection (not inherited). Only populated when isExtension is true.
+variableOverridesMap<String, Map<String, Boolean | Number | String | Color>>
+A map of variable overrides in this extended collection. The outer map is keyed by variableId, and the inner map is keyed by modeId, with values being the override value for that variable in that mode. Only populated when isExtension is true.
+ | 
+Variable​
+A Variable is a single design token that defines values for each of the modes in its VariableCollection. These values can be applied to various kinds of design properties. | 
+idStringThe unique identifier of this variable.
+nameStringThe name of this variable.
+keyStringThe key of the variable.
+variableCollectionIdStringThe id of the variable collection that contains this variable.
+resolvedTypeString
+The resolved type of the variable, as a string enum.
+BOOLEAN
+FLOAT
+STRING
+COLOR
+valuesByModeMap<String, Boolean | Number | String | Color | VariableAlias >The values for each mode of this variable.
+remoteBooleanWhether the variable is remote.
+descriptionStringDescription of this variable.
+hiddenFromPublishingBoolean
+Whether this variable is hidden when publishing the current file as a library.
+If the parent VariableCollection is marked as hiddenFromPublishing, then this variable will also be hidden from publishing via the UI. hiddenFromPublishing is independently toggled for a variable and collection. However, both must be true for a given variable to be publishable.
+scopesVariableScope[]
+An array of scopes in the UI where this variable is shown. Setting this property will show/hide this variable in the variable picker UI for different fields.
+Setting scopes for a variable does not prevent that variable from being bound in other scopes (for example, via the Plugin API). This only limits the variables that are shown in pickers within the Figma UI.
+codeSyntaxVariableCodeSyntaxCode syntax definitions for this variable. Code syntax allows you to represent variables in code using platform-specific names, and will appear in Dev Mode's code snippets when inspecting elements using the variable.
+deletedButReferencedBooleanIndicates that the variable was deleted in the editor, but the document may still contain references to the variable. References to the variable may exist through bound values or variable aliases.
+ | 
+VariableAlias​
+An object that serves as an alias for a variable. All properties are required. | 
+typeStringVARIABLE_ALIAS
+idStringThe id of the variable that this alias points to. In the POST variables endpoint, you can use the temporary id of a variable.
+ | 
+VariableScope​
+Scopes allow a variable to be shown/hidden in the variable picker UI for various fields. This declutters the Figma UI if you have a large number of variables. Currently only supported on FLOAT and COLOR variables.
+ALL_SCOPES is a special scope that means that the variable will be shown in the picker UI for all current and any future fields. If ALL_SCOPES is set, no additional scopes can be set.
+Likewise, ALL_FILLS is a special scope that means that the variable will be shown in the picker UI for all current and any future color fill fields. If ALL_FILLS is set, no additional fill scopes can be set. | 
+Valid scopes for FLOAT variables:
+ALL_SCOPES
+CORNER_RADIUS
+TEXT_CONTENT
+WIDTH_HEIGHT
+GAP
+STROKE_FLOAT
+OPACITY
+EFFECT_FLOAT
+FONT_WEIGHT
+FONT_SIZE
+LINE_HEIGHT
+LETTER_SPACING
+PARAGRAPH_SPACING
+PARAGRAPH_INDENT
+Valid scopes for STRING variables:
+ALL_SCOPES
+TEXT_CONTENT
+FONT_FAMILY
+FONT_STYLE
+FONT_VARIATIONS
+Valid scopes for COLOR variables:
+ALL_SCOPES
+ALL_FILLS
+FRAME_FILL
+SHAPE_FILL
+TEXT_FILL
+STROKE_COLOR
+EFFECT_COLOR
+ | 
+VariableCodeSyntax​
+An object containing platform-specific code syntax definitions for a variable. All platforms are optional. | 
+Map<String, String>
+A map of platform to code syntax definitions for this variable. Platform may be one of:
+WEB
+ANDROID
+iOS
+
+VariableCollection
+Variable
+VariableAlias
+VariableScope
+VariableCodeSyntax
+
+Was this page helpful?
+Leave us feedback
+Community Forum
+Discord Server
+GitHub Samples
+
+FigJam·Enterprise·Learn·Education·Careers·Pricing·Developers·Blog·Downloads·Releases·Security·Legal·Contact
+

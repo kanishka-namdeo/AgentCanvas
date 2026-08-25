@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5724448965527-View-layer-outlines-in-Figma-Design",
+    "name": "View layer outlines in Figma Design",
+    "snippet": "This setting will also change the keyboard shortcut for outline stroke to ⌘ Command / Control ⇧ Shift O . Learn how to toggle layer visibility →. Was this ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360047239073-Convert-text-to-vector-paths",
+    "name": "Convert text to vector paths – Figma Learn - Help Center",
+    "snippet": "Select the layer in the canvas. · Right-click on the layer and select Outline stroke or use the keyboard shortcut: Mac: Command Option O Windows: Control Alt O.",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041112614-Toggle-visibility-to-hide-layers",
+    "name": "Toggle visibility to hide layers – Figma Learn - Help Center",
+    "snippet": "Press ⌘ Command / Control ⇧ Shift O to view and select hidden layer outlines →. Hide and show layers. There are a few ways to toggle a layer's visibility.",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard – Figma Learn - Help Center",
+    "snippet": "Use the arrow keys to position the cursor over and object and press Return / Enter to select it. If the selected object is a parent layer, use Tab and Shift Tab ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040449873-Select-layers-and-objects",
+    "name": "Select layers and objects – Figma Learn - Help Center",
+    "snippet": "Use the keyboard shortcut ⌘ Command / Ctrl A . When you make your selection on the canvas, Figma will: Outline your selection using a solid purple box. Outline ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/33052305733015-Convert-strokes-to-vector-paths",
+    "name": "Convert strokes to vector paths – Figma Learn - Help Center",
+    "snippet": "Shift O to toggle outline stroke, open the main menu in the top left-corner and go to Preferences > Use old shortcuts for outlines.",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

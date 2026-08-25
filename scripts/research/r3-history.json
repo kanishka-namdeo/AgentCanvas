@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038006754-View-a-file-s-version-history",
+    "name": "View a file's version history – Figma Learn - Help Center",
+    "snippet": "In the right sidebar, click next to the version and select Restore This Version. Figma will add two autosave checkpoints to the file's version history. Access version history · Restore a previous version",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360047512294-Delete-and-restore-files",
+    "name": "Delete and restore files – Figma Learn - Help Center",
+    "snippet": "You can review the file's version history to view previous versions of the file. You can then restore an earlier version of the file or copy content from that ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5665728006423-Get-updates-from-main-files",
+    "name": "Get updates from main files – Figma Learn - Help Center",
+    "snippet": "Right-click the version or click the and select Restore this version. Figma will add two autosave checkpoints to the file's version history. A checkpoint that ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328553-What-can-I-do-offline-in-Figma",
+    "name": "What can I do offline in Figma?",
+    "snippet": "Version history. As part of the autosave process, Figma will add two checkpoints to the file's version history. One before applying your offline changes, and ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5691750511383-Incomplete-merges-or-updates",
+    "name": "Incomplete merges or updates – Figma Learn - Help Center",
+    "snippet": "You can restore from the Before update checkpoint in the branch's version history. Select Show version history. In the right sidebar, Click next to the version ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

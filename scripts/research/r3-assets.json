@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5579474826519-Explore-component-properties",
+    "name": "Explore component properties – Figma Learn - Help Center",
+    "snippet": "Change the default value of a text, boolean, or instance swap property. Select component set or main component. Click next to the variant property to open the ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=TF7rDxhrIio",
+    "name": "Figma Component Properties 2025 - YouTube",
+    "snippet": "Oct 4, 2024 · The new Figma UI3 has changed the position of some actions. In this video let's cover that changes to create component properties. From text ...",
+    "host_name": "www.youtube.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.logrocket.com/ux-design/using-component-properties-figma",
+    "name": "Using Figma's instance swap and other component properties",
+    "snippet": "Mar 28, 2025 · By using the Boolean property in Figma, designers can show or hide certain elements within a component, and the option is conveniently displayed ...",
+    "host_name": "blog.logrocket.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@joeyabanks/component-properties-in-figma-1883da7c16e6",
+    "name": "Component Properties in Figma - by Joey Banks - Medium",
+    "snippet": "Jun 12, 2022 · Instance swap properties, which are part of the new component properties feature, allow the creator of a component to easily indicate which ...",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1j7gega/assign_different_boolean_property_value_to",
+    "name": "Assign different Boolean property value to different elements  - Reddit",
+    "snippet": "Mar 9, 2025 · My idea is that when I switch this boolean property to True value, the Classic element will become visible, but Modern will become hidden. And ...",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/jessewei/a-hands-on-guide-to-figmas-component-properties-2fik",
+    "name": "A Hands-On Guide to Figma's Component Properties",
+    "snippet": "May 5, 2023 · There are 4 types of component properties: Boolean, Instance Swap, Text and Variant properties. Each of the first 3 properties provides a ...",
+    "host_name": "dev.to",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stevekinney.com/courses/figma/component-properties",
+    "name": "Components Properties | Figma for Developers - Steve Kinney",
+    "snippet": "Mar 17, 2026 · The instance swap property allows you to swap out a given component with another one. When you define this property, you set select a default ...",
+    "host_name": "stevekinney.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=RYgz9qrRZRs",
+    "name": "Figma Components 101 in UI3 | Learn about Variants and  - YouTube",
+    "snippet": "Jan 28, 2025 · ... Component 03:34 Variants 07:19 Component properties 08:50 Text Property 10:32 Boolean Property 12:15 Instance Swap Property 14:30 Combining ...",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

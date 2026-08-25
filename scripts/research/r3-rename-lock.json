@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5665442977431-Select-keyboard-layout",
+    "name": "Select keyboard layout – Figma Learn - Help Center",
+    "snippet": "Open the menu and go to Preferences > Keyboard layout. ⌘Command / Ctrl / Paste to replace ⇧Shift ⌘Command R Shift Ctrl R",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard – Figma Learn - Help Center",
+    "snippet": "To select multiple layers at once, draw a selection box by holding Command (Mac) or Ctrl (Windows) and use the arrow keys to resize the box. You can hold Shift ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/9141292269847-Find-and-replace-in-Figma",
+    "name": "Find and replace in Figma – Figma Learn - Help Center",
+    "snippet": "To select several layers, hold Command (Mac) or Ctrl (Windows) and click each layer. To select all layers within a range, hold Shift and click layers. Click ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039956914-Adjust-alignment-rotation-position-and-dimensions",
+    "name": "Adjust alignment, rotation, position, and dimensions - Figma Learn",
+    "snippet": "When resizing a layer from the canvas with aspect ratio unlocked, you can temporarily enable the setting by holding ⇧ Shift . Once you release the key, the ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039957734-Apply-constraints-to-define-how-layers-resize",
+    "name": "Apply constraints to define how layers resize – Figma Learn - Help Center",
+    "snippet": "Constraints tell Figma how layers should respond when you resize their frames. This helps you to control how designs look across different screen sizes and ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/1500004291281-Create-text-and-links-in-FigJam",
+    "name": "Create text and links in FigJam – Figma Learn - Help Center",
+    "snippet": "In this article, we'll take you through how to create and modify text and link objects in FigJam. use the keyboard shortcut: Command L Windows: Alt Control. ...",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/13543867954711-Create-an-illustration-in-Figma-Design",
+    "name": "Create an illustration in Figma Design",
+    "snippet": "Naming layers is another great way of staying organized in Figma. Double-click on the layer and rename it to “Bottle”. Locking layers helps prevent objects ...",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039957534-Boolean-operations",
+    "name": "Boolean operations – Figma Learn - Help Center",
+    "snippet": "Boolean operations let you combine multiple layers into a single object with shared properties called a boolean group.",
+    "host_name": "help.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

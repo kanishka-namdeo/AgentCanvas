@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038665754-Detach-an-instance-from-the-component",
+    "name": "Detach an instance from the component - Figma Learn",
+    "snippet": "You can quickly detach instances using the keyboard shortcut: Mac: ⌥ Option ⌘ Command B Windows: Control Alt B Tip: Accidentally created a component?",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039150413-Swap-components-and-instances",
+    "name": "Swap components and instances – Figma Learn - Help Center",
+    "snippet": "⌘ Command Windows: Alt + Control Drag the component above the instance you want to swap in the canvas. Release the mouse, then release the modifier key. Use ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039150733-Apply-changes-to-instances",
+    "name": "Apply changes to instances – Figma Learn - Help Center",
+    "snippet": "For changes like reordering layers, you must detach the instance, or make the changes directly to the main component Change preservation Figma attempts",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard – Figma Learn - Help Center",
+    "snippet": "Enable the desired tool using its keyboard shortcut, the actions menu, or press F6 (Mac) or Ctrl F6 (Windows) until the toolbar is focused, then use the arrow ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038662654-Guide-to-components-in-Figma",
+    "name": "Guide to components in Figma",
+    "snippet": "An instance is a copy of the component you can reuse in your designs. Reset instances to remove overrides Detach instances from components Make changes to ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5579474826519-Explore-component-properties",
+    "name": "Explore component properties – Figma Learn - Help Center",
+    "snippet": "Detach text, instance swap, or boolean properties from a layer. Select a nested layer with a component property applied. Click in right sidebar panel next to ...",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/23570416033943-Use-the-actions-menu-in-Figma-Design",
+    "name": "Use the actions menu in Figma Design",
+    "snippet": "Detach instance: Detach the selected instance from the main component View and navigation",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038663154-Create-components-to-reuse-in-designs",
+    "name": "Create components to reuse in designs - Figma Learn",
+    "snippet": "Use the keyboard shortcut: Mac: Option Command K Windows: Ctrl Alt K. Deleting a main component does not remove instances of that component from your files.",
+    "host_name": "help.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

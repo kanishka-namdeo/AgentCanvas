@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/showing-distance-to-objects-while-dragging-21963",
+    "name": "Showing distance to objects while dragging",
+    "snippet": "May 6, 2021 — You can hold alt and hover over an object to see the distance and then use your keyboard to move your selected object and it will update the  ...",
+    "host_name": "forum.figma.com",
+    "rank": 0,
+    "date": "May 6, 2021",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039956974-Measure-distances-between-layers",
+    "name": "Measure distances between layers",
+    "snippet": "To calculate the distance between two guides, select the first guide and hover over the second guide . Alt Hover over the second object. Figma will display a ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/4409078832791-Copy-and-paste-objects",
+    "name": "Copy and paste objects",
+    "snippet": "Select and copy an object using the keyboard shortcut: Mac: ⌘ Command C Windows: Control C · Select the objects you'd like to replace with the copied object. Read more",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/11ozus4/how_can_i_make_the_distance_between_elements",
+    "name": "How can I make the distance between elements",
+    "snippet": "How can I make the distance between elements automatically show up when I hover my mouse over them (without even clicking the alt key)? Like ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/report-a-problem-6/the-alt-key-for-measuring-distances-doesn-t-work-45947",
+    "name": "The Alt key for measuring distances doesn't work",
+    "snippet": "Oct 1, 2025 — The problem occurs in both the desktop app and the web versionMy friend has the exact same issueI have already disabled all GPU overlaysWindows 11 pro",
+    "host_name": "forum.figma.com",
+    "rank": 4,
+    "date": "Oct 1, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.instagram.com/reel/DQ9Ioq_CHql",
+    "name": "Stop duplicating your UI content in Figma A lotta designers",
+    "snippet": "Stop duplicating your UI content in Figma . AI duplicate and content shortcut to save time. Option/ Alt + drag = duplicate instantly",
+    "host_name": "www.instagram.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://designcode.io/figma-handbook-measure-distance",
+    "name": "Measure Distance - Figma Handbook",
+    "snippet": "The measure distance tool allows users to measure the distance between two objects in their design. Alt Then, hover over the second object you want to measure .",
+    "host_name": "designcode.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

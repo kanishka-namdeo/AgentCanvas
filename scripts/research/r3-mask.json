@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040450253-Masks",
+    "name": "Masks – Figma Learn - Help Center",
+    "snippet": "Right-click the mask and select Remove mask; Select the mask and use the keyboard shortcut: Mac: ⌃ Control ⌘ Command M; Windows: Ctrl Alt M. Any portions ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360047239073-Convert-text-to-vector-paths",
+    "name": "Convert text to vector paths – Figma Learn - Help Center",
+    "snippet": "Select the text layer you want to flatten. Right-click on the selection and select Flatten or use the keyboard shortcut: Mac: Option Shift F; Windows: Alt Shift ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039957534-Boolean-operations",
+    "name": "Boolean operations – Figma Learn - Help Center",
+    "snippet": "Subtract selection keyboard shortcut: Mac: Option Shift S; Windows: Alt Shift ... Option Shift E; Windows: Alt Shift E. An animation showing two ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/4409078832791-Copy-and-paste-objects",
+    "name": "Copy and paste objects – Figma Learn - Help Center",
+    "snippet": "Select and copy an object using the keyboard shortcut: Mac: ⌘ Command C Windows: Control C · Select the objects you'd like to replace with the copied object.",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039956974-Measure-distances-between-layers",
+    "name": "Measure distances between layers – Figma Learn - Help Center",
+    "snippet": "To snap the bounding box to the shape's true boundary, you can flatten the shape. Right-click > Flatten. This includes masks, locked layers, and layers with ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/33459372082839-Create-a-noodle-bowl-illustration-using-the-arc-tool-stroke-width-profiles-and-effects",
+    "name": "Create a noodle bowl illustration using the arc tool, stroke width profiles",
+    "snippet": "Select Flatten from the secondary toolbar or use the keyboard shortcut: Mac: Option Shift F; Windows: Alt Shift F. The ellipses are ...",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/38231200344599-Use-slots-to-build-flexible-components-in-Figma",
+    "name": "Use slots to build flexible components in Figma",
+    "snippet": "Use the keyboard shortcut ⌘ Command ⇧ Shift S (Mac) or ⌃ Control ⇧ Shift S (Windows). From the right sidebar, click Convert to slot. Select an existing ...",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040675194-Crop-an-image",
+    "name": "Crop an image – Figma Learn - Help Center",
+    "snippet": "To quickly crop images, hold ⌘Command (Mac) or Ctrl (Windows) while clicking and dragging the corners of an image. can hold Shift to rotate in 15o increments.",
+    "host_name": "help.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

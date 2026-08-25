@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/rest-api/file-node-types",
+    "name": "Node types | Developer Docs",
+    "snippet": "Node type indicates what kind of node you are working with: for example, a FRAME node versus a RECTANGLE node. A node can have additional properties associated ...",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api/component-types",
+    "name": "Components and styles | Developer Docs",
+    "snippet": "Figma provides a way to fetch metadata on published components and styles in a team library. These endpoints are specifically for assets published in a team ...",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api/file-endpoints",
+    "name": "Endpoints | Developer Docs",
+    "snippet": "The document attribute contains a Node of type DOCUMENT. The components key contains a mapping from node IDs to component metadata. top-level canvas nodes are ...",
+    "host_name": "developers.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/gettting-component-s-containing-frame-value-from-rest-api-33519",
+    "name": "Gettting Component's containing_frame value from REST",
+    "snippet": "Jul 14, 2023 · This works fine, however I'd like to locate the closest component to the text node and get the name of the component's containing frame to help ...",
+    "host_name": "forum.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=bnoPAezI6cw",
+    "name": "Master Figma Components and Variants in 20 Minutes  - YouTube",
+    "snippet": "Apr 29, 2025 · Figma Tutorial: Use Figma Variables Like a Pro (+ Practice File). DesignWithArash•554K views · 23:45 · Go to channel DesignWithArash · Figma ...",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://npmjs.com/package/figma-api",
+    "name": "figma-api - NPM",
+    "snippet": "Jun 29, 2026 · Supports both browser & Node.js implementations. The library is fully typed using the official Figma REST API specifications. You can see those ...",
+    "host_name": "npmjs.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/group-being-declared-by-api-as-frame-12134",
+    "name": "Group being declared by API as FRAME - Figma Forum",
+    "snippet": "Oct 2, 2024 · the api returns the wrong type (FRAME or NODE) only when the type is changed (manually in the Figma UI) and the plugin isn't restarted. It's ...",
+    "host_name": "forum.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.dev/documentation/figma/latest/figma/Frame-class.html",
+    "name": "Frame class - figma library - Dart API - Pub.dev",
+    "snippet": "The type of the node. This is usually the same as the Node subtype classes (e.g. Frame, Component etc.), but can be different in the case of foreign nodes.",
+    "host_name": "pub.dev",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

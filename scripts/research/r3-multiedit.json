@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.figma.com/blog/behind-the-feature-the-multiple-lives-of-multi-edit",
+    "name": "Behind the Feature: The Multiple Lives of Multi-Edit | Figma Blog",
+    "snippet": "Mar 6, 2024 · Shift drag to select specific matching objects Select multiple text objects and hit enter to multi-edit text. Select a component set and hit Q ...",
+    "host_name": "www.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=C21P3068Qb0",
+    "name": "Multi-edit: Drag to select matching layers - YouTube",
+    "snippet": "Mar 6, 2024 · To edit specific objects across frames in Figma, hold the shift key and click and drag to select matching objects across a series of frames.",
+    "host_name": "www.youtube.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@joeyabanks/everything-to-know-about-multi-editing-in-figma-edd58369fd20",
+    "name": "Everything to Know About Multi-editing in Figma | by Joey Banks",
+    "snippet": "Mar 6, 2024 · With the improvements made from multi-edit, objects can now be aligned to their respective frames — not just one another.",
+    "host_name": "medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/21635177948567-Edit-objects-on-the-canvas-in-bulk",
+    "name": "Edit objects on the canvas in bulk - Figma Learn",
+    "snippet": "Select multiple layers across frames, groups, and sections and apply the same edits to them in bulk. For example: Update the string on a text layer, ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1bjp77f/i_just_cant_wrap_my_head_around_the_new_multiedit",
+    "name": "I just can't wrap my head around the new multi-edit feature: Here i have",
+    "snippet": "Mar 20, 2024 · ... frame would be a hell of a lot more useful then selecting objects in different frames. I'm using components to stay consistent across frames ...",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/product-updates-3/meet-multi-edit-35320",
+    "name": "Meet multi-edit! | Figma Forum",
+    "snippet": "Mar 6, 2024 · Introducing a simpler way to edit multiple objects! Accurately resize and align objects to their frames. Easily make changes across all ...",
+    "host_name": "forum.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=s3sbKJ1hKs0",
+    "name": "Master Multi-Edit in 20 minutes | 2024 Multi-Edit Figma Tutorial - YouTube",
+    "snippet": "Mar 18, 2024 · ... editing multiple objects across frames and component sets simultaneously. Learn how to identify and select matching objects for resizing ...",
+    "host_name": "www.youtube.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/multi-edit-breaks-workflows-to-select-a-subset-of-nested-objects-in-a-component-20910",
+    "name": "Multi-edit breaks workflows to select a subset of nested objects in a",
+    "snippet": "Mar 11, 2024 · Multi-edit breaks workflows to select a subset of nested objects in a component … press the “+” under the selected object to select all similar ...",
+    "host_name": "forum.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

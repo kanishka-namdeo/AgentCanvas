@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038665754-Detach-an-instance-from-the-component",
+    "name": "Detach an instance from the component - Figma Learn",
+    "snippet": "Right-click on the instance on the canvas or in the Layers Panel. Select Detach instance from the options: Keyboard shortcuts. You can quickly detach instances ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360056440594-Create-and-use-variants",
+    "name": "Create and use variants – Figma Learn - Help Center",
+    "snippet": "Click Create component in the right sidebar, or use the keyboard shortcut to turn your selection into a component: Duplicate existing variant using the ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039150733-Apply-changes-to-instances",
+    "name": "Apply changes to instances – Figma Learn - Help Center",
+    "snippet": "For changes like reordering layers, you must detach the instance, or make the changes directly to the main component Change preservation Figma attempts",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360061175334-Create-interactive-components-with-variants",
+    "name": "Create interactive components with variants – Figma Learn - Help Center",
+    "snippet": "Interactive components allow you to create prototype interactions between variants in a component set. You can override a variant interaction for an instance ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5579474826519-Explore-component-properties",
+    "name": "Explore component properties – Figma Learn - Help Center",
+    "snippet": "You can create component properties for any main component or variants of a component set, and apply them to nested layers of the component or variant.",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039150413-Swap-components-and-instances",
+    "name": "Swap components and instances – Figma Learn - Help Center",
+    "snippet": "Figma will try to preserve any overrides when you select a different variant, or swap between instances in the Instance menu. preserves text overrides. Use the ...",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038662654-Guide-to-components-in-Figma",
+    "name": "Guide to components in Figma",
+    "snippet": "Override properties of an instance Reset instances to remove overrides Detach instances from components Make changes to components and instances",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039150173-Create-and-insert-component-instances",
+    "name": "Create and insert component instances - Figma Learn",
+    "snippet": "Click and drag the component onto the canvas to create an instance of that component. use the shortcut: Use the shortcut Shift I to open quick insert.",
+    "host_name": "help.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

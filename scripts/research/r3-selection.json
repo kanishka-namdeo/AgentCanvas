@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040449873-Select-layers-and-objects",
+    "name": "Select layers and objects – Figma Learn - Help Center",
+    "snippet": "While pressing ⇧ Shift , click matching objects to add them to the selection. You won't need to double-click objects nested deep inside other groups or frames.",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/27330413404567-Select-layers-in-a-slide-deck",
+    "name": "Select layers in a slide deck – Figma Learn - Help Center",
+    "snippet": "Double-click on the layer, or press Enter , to select one level of nesting down. Repeat this process until you select the correct child elements. Deep select",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/1500004292221-Select-move-and-order-objects-in-FigJam",
+    "name": "Select, move, and order objects in FigJam – Figma Learn - Help Center",
+    "snippet": "Group Groups allow you to combine objects together so they can be treated like a single object. To select a group, click on one of the grouped objects.",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040450233-Arrange-layers-with-Smart-selection",
+    "name": "Arrange layers with Smart selection – Figma Learn - Help Center",
+    "snippet": "To mark all layers on the same axis in a 2D selection, hold Shift and double-click on any layer. Double-click again to select all layers in the selection.",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039831974-Explore-the-navigation-bar-and-left-sidebar",
+    "name": "Explore the navigation bar and left sidebar – Figma Learn - Help Center",
+    "snippet": "Go to Menu > Preferences > Highlight layers on hover. Minimize the UI. If you want more space to view the contents of your canvas, you can click Minimize next ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/39989625366423-Create-a-reusable-list-component",
+    "name": "Create a reusable list component – Figma Learn - Help Center",
+    "snippet": "Select both the avatar instance and text layer, Double-click on the new frame name and rename it to contents . Double-click on the layer name and rename it to ...",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039956434-Guide-to-text-in-Figma-Design",
+    "name": "Guide to text in Figma Design",
+    "snippet": "Edit text content Double-click on a text layer, or press Enter with a text layer selected to edit its contents. Type directly in the field, or paste in your ...",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039956914-Adjust-alignment-rotation-position-and-dimensions",
+    "name": "Adjust alignment, rotation, position, and dimensions - Figma Learn",
+    "snippet": "Select multiple layers: Hold Shift and click the alignment controls to align multiple objects as a group to their parent frame.",
+    "host_name": "help.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

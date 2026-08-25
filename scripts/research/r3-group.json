@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041539473-Frames-in-Figma-Design",
+    "name": "Frames in Figma Design – Figma Learn - Help Center",
+    "snippet": "Select one or more layers, then use the frame selection keyboard shortcut: Mac: ⌥ Option ⌘ Command G; Windows: Ctrl Alt G. Use a frame preset. When the Frame ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/frame-selection-shortcut-not-working-on-macos-11827",
+    "name": "Frame selection shortcut not working on MacOS - Figma Forum",
+    "snippet": "Feb 7, 2024 · When you press Opt + Cmd + G on any objects in the Selection tab, what would you see? If you don't see anything, there could be something wrong.",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=GBVfs1SX9Xg",
+    "name": "Frame shortkeys in Figma Design - YouTube",
+    "snippet": "May 24, 2021 · Convert selections to a frame, break apart frames, and show frame outlines in Figma Design.",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard – Figma Learn - Help Center",
+    "snippet": "You can create new objects like frames, shapes, or text layers using keyboard controls. Enable the desired tool using its keyboard shortcut, Use the tabs to ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/i-can-t-use-quick-shortcut-to-frame-selection-otp-cmd-g-19556",
+    "name": "I can't use quick shortcut to frame selection [otp + cmd + G]",
+    "snippet": "Oct 14, 2024 · I am trying to use the command opt+command+G as a shortcut for framing selection, but it opens a modal to access Google Drive files instead.",
+    "host_name": "forum.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://verpex.com/blog/essential-figma-shortcuts-you-need-to-know",
+    "name": "Essential Figma Shortcuts You Need to Know",
+    "snippet": "Aug 30, 2025 · Grouping and Ungrouping. Cmd + G (Mac) / Ctrl + G (Windows) – Combines selected layers or objects into one group for easier movement or styling.",
+    "host_name": "verpex.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=2sClalphkYE",
+    "name": "Supercharge Your Design Workflow: 10 Figma Shortcuts for Speedy Pros",
+    "snippet": "Oct 5, 2023 · In this quick video, we're going to show you 10 Figma shortcuts that will help you design faster. Whether you're a beginner or a pro, ...",
+    "host_name": "www.youtube.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.topcoder.com/thrive/articles/top-shortcuts-for-figma",
+    "name": "Top Shortcuts for Figma - Topcoder",
+    "snippet": "Aug 8, 2022 · To group the objects, click the COMMAND + G on MacOS and CTRL + G for the Windows operating system. CTRL + G Frame selection",
+    "host_name": "www.topcoder.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

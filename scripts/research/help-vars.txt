@@ -1,0 +1,1072 @@
+
+
+ 
+ 
+
+ Overview of variables, collections, and modes – Figma Learn - Help Center
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ Figma Learn
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+
+ enterto select
+ ↑↓to navigate
+ escto close
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+Figma Design
+ 
+Design and prototype in one place
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Make
+ 
+ 
+Prompt to code anything you can imagine
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Dev Mode
+ 
+Translate designs into code
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Weave
+ New
+ 
+ 
+AI workflows for imagery, video, and audio
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Motion
+ New
+ 
+ 
+Create precise, production-ready animations
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+FigJam
+ 
+Collaborate with a digital whiteboard
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Draw
+ 
+ 
+Illustrate with advanced vector tools
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Figma Slides
+ 
+Co-create presentations
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Sites
+ Beta
+ 
+ 
+Publish fully responsive websites
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Buzz
+ Beta
+ 
+ 
+Produce on-brand assets at scale
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+AI
+ 
+Explore all Figma AI features
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Developer docs
+ 
+Work with APIs, embeds, and more
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+For everyone
+ 
+
+ 
+
+ Account
+ 
+ 
+Manage settings
+ 
+Change preferences
+ 
+ 
+ 
+
+ Files and projects
+ 
+ 
+Use the file browser
+ 
+Manage files and projects
+ 
+ 
+ 
+ 
+ 
+
+ 
+For administration
+ 
+
+ 
+
+ Billing
+ 
+ 
+Overview
+ 
+Manage seats
+ 
+Manage your plan
+ 
+Pay for Figma
+ 
+ 
+ 
+ 
+
+ Teams
+ 
+ 
+Manage a team
+ 
+ 
+ 
+
+ Organizations
+ 
+ 
+Overview
+ 
+Login and authentication
+ 
+Deploy Figma
+ 
+Members and guests
+ 
+Teams
+ 
+Libraries and resources
+ 
+ 
+ 
+
+ Enterprise
+ 
+ 
+Billing groups
+ 
+Workspaces
+ 
+Security features
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Find out more
+ 
+
+ 
+ 
+
+ 
+ 
+
+ 
+Courses and collections
+ New
+ 
+ 
+ 
+Level up your Figma skills with these comprehensive skill-based courses.
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+Projects
+ 
+ 
+ 
+Get hands-on experience in Figma with these practical bite-sized projects.
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+Tutorials
+ 
+ 
+ 
+Explore tools and features by watching and following along with these expert-led video tutorials.
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Get solutions
+ 
+
+ 
+ 
+
+ 
+
+ 
+Troubleshoot
+ 
+ 
+ 
+Get help with common issues and troubleshoot unexpected behavior.
+ 
+ 
+ 
+
+ 
+
+ 
+Work with support
+ 
+ 
+ 
+Submit a bug report, get help collecting log files, and find your system information.
+ 
+ 
+ 
+
+ 
+
+ 
+Common questions
+ 
+ 
+ 
+Get answers to frequently asked questions.
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+Figma Community Forum
+ 
+ 
+Ask the community, share ideas, and connect with other Figma users.
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ Overview of variables, collections, and modes
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+
+ 
+
+Before you Start
+
+Who can use this feature
+
+ 
+ 
+ 
+
+Available on any plan
+
+The number of modes you can create per collection depends on your plan
+
+Looking for more resources on variables? Check out our guide to variables.
+
+Variables are raw values—like color, numbers, and strings—that can change in value depending on the context of a design, such as light and dark modes, or mobile and desktop modes.
+Like styles and components, variables can also be published to team libraries. When you update the value of a variable, you can update designs across files accordingly. This helps to create consistent designs across projects and makes updating design systems more efficient.
+Types of variables
+There are six types of variables. Each one can be applied to specific properties and elements.
+
+ 
+ 
+
+ | 
+ Variable type
+ 
+ | 
+ Defined by
+ 
+ 
+ 
+
+ | 
+ 
+ Color
+ 
+ | Solid fills
+ 
+ 
+
+ | 
+ 
+ Number
+ 
+ | Number values
+ 
+ 
+
+ | 
+ 
+ String
+ 
+ | Text strings
+ 
+ 
+
+ | 
+ 
+ Boolean
+ 
+ | True, false values
+ 
+ 
+
+ | 
+ 
+ Timing
+ 
+ | Duration in milliseconds
+ 
+ 
+
+ | 
+ 
+ Easing
+ 
+ | Easing curve or spring animation
+ 
+ 
+ 
+Color variable
+Color variables use solid color values, such as #000000 or #FFCD29.
+They are great for handling theming, such as Dark and Light modes. They can also help you organize your brand's color palette. If you have a complex design system and wish to implement design tokens, you can alias color variables to do so.
+
+Color variables can be applied to:
+
+Color styles
+
+Fill colors
+
+Gradient stops
+
+Shadow effects
+
+Stroke colors
+
+Other color variables
+
+Number variable
+Number variables use number values such as 24 or -8. You can use whole numbers or any decimal number up to the hundredth place, such as 12.75. 
+They are great at handling responsive designs and varying text properties between different languages. You can also number variables inside text styles so that you have reusable pre-defined styles so you don’t have to memorize which property combinations go together.
+Certain properties have a smaller range of numbers they support. Check the toggle below for details.
+
+Number variables can be applied to:
+
+Corner radius and individual corner radius
+
+Dimensions, including minimum and maximum width/height
+
+Font properties
+
+Font size
+
+Font weight (numbers only, e.g. 400, 700)
+
+Line height
+
+Letter spacing (interpreted as Px, not %)
+
+Paragraph indent 
+
+Paragraph spacing
+
+Layer opacity (numbers >100 will default to 100)
+
+Layout guides
+
+Uniform grid size
+
+Row and column count (whole numbers only)
+
+Width, height, margin, offset, and gutter
+
+Padding and gap
+
+Shadow and blur effects: X, Y, blur and spread values
+
+Stroke weight: all, top, bottom, left, and right
+
+Text content
+
+Text styles
+
+Preset animations in Figma Motion:
+
+Position distance
+
+Scale amount
+
+Rotation amount
+
+Size amount
+
+Opacity amount
+
+Other number variables
+
+String variable
+String variables use a sequence of characters such as Inter, Hello world!, or 94102. They're great for switching languages between different localized designs, combining with other variables to create text styles, and switching component variants in prototyping.
+
+String variables can be applied to:
+
+Font properties
+
+Font family
+
+Font style and weight (name only, e.g. regular, bold, black italic)
+
+Layer visibility, if the string has a value of “true” or “false”
+
+Text content
+
+Text styles
+
+Variant instances in prototyping
+
+Other string variables
+
+Tip: Be sure to use exact spelling when creating string variables for font family and font style or weight. However, Figma will recognize the value if it includes hyphens (-), underscores (_), different casings (DM Sans, dm sans), and with or without spaces.
+
+Boolean variable
+Boolean variables use true and false values. They are great for hiding and showing layers for specific contexts of your designs.
+
+Boolean variables can be applied to:
+
+Instances with variant property with true and false values
+
+Layer visibility
+
+Timing variable
+Timing variables use time-based values in milliseconds to define how long an animation takes to complete, such as 500ms. You can use timing variables to ensure every animation across your product uses a consistent, approved delay or duration. Timing variables can be applied to a preset animation’s delay and duration in Figma Motion.
+Easing variable
+Easing variables use easing curves or spring animations, either pre-built or custom, to control how an animated property progresses toward its end value over time. They’re what give motion its character, creating effects like acceleration, deceleration, and bounce that reflect your brand’s personality. Easing variables can be applied to animation presets and keyframes in Figma Motion. Learn more about easing.
+Tokens and aliasing
+A variable can reference another variable. That is, you can apply a variable to another variable. Also called, "aliasing," this gives you the ability to implement design tokens.
+Any variable can reference another variable of the same type. For example, color variables can reference other color variables. Text variables can reference other text variables. Learn how to alias variables.
+Collections and groups
+Both collections and groups are used to organize variables and make them easier to find.
+A collection is a set of variables and modes. Collections can be used to organize related variables together. For example, use one collection to localize text in different languages, and another collection for spatial values.
+You can further organize variables by adding them to groups within a collection. For example, use one group for colors used for text, and another for colors used on strokes.
+
+Note: You can create up to 5,000 variables per collection.
+Variable modes
+A mode is a list of values for a variable in a collection, storing one value per variable. Modes also represent the different contexts of our designs.
+If a variable has multiple definitions, each definition is associated with a mode. When the variable is applied to a layer's property, the layer expresses the value based on the mode it's currently in, allowing us to quickly switch our designs between contexts.
+
+For example, we might have a color variable storing two color values: a blue color under one mode, and a white color under a different mode. We apply this variable to a text layer, which will either appear as blue or white depending on the mode it’s in.
+Here are a few ways you can use modes to switch contexts:
+
+Different color themes, like light and dark modes
+
+Different languages to see how copy flows in designs
+
+Devices sizes to see how elements look with different spacing and padding
+
+Learn how to switch design contexts with variable modes.
+Considerations
+Styles and variables
+Both variables and styles act as a source of truth and can be reused throughout designs for efficiency and consistency.
+When deciding whether to use a variable or style, keep in mind:
+
+A style is great for creating a composite of values. Also, styles cannot be used in other styles or variables.
+
+Variables can be used to create multiple modes—such as light and dark modes. Also, variables can be applied to styles and other variables, allowing the ability to implement design tokens. 
+
+Learn the difference between styles and variables.
+
+Ready to continue your variables journey? Learn how to create and manage variables.
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Was this article helpful?
+ 
+
+ Yes
+ No
+ 
+ 
+ 
+ 
+
+ 
+ 
+ Help Center feedback
+ 
+ Got a second? Tell us what we’re doing well.
+ 
+ 
+ 
+ 
+ Submit article feedback
+ 
+Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form.
+ 
+ 
+ 
+ Help Center feedback
+ 
+ Thanks for letting us know! What was the issue?
+ 
+ 
+ 
+ 
+ -- Please choose an option --
+ Incorrect or missing information
+ Hard to understand
+ There are typos or broken links
+ Issues with images, GIFs, or videos
+ I wish the feature worked a different way
+ Something else
+ 
+ 
+ Submit article feedback
+ 
+Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form.
+ 
+ 
+ 
+ 
+
+ 
+Thank you for helping us improve Figma’s Help Center!
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 
+ 한국어
+ 
+ 
+ 
+ Nederlands (Nederland)
+ 
+ 
+ 
+ Polski (Polska)
+ 
+ 
+ 
+ Português do Brasil
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Use cases
+ 
+ 
+
+ UI design
+ 
+ 
+
+ UX design
+ 
+ 
+
+ Prototyping
+ 
+ 
+
+ Graphic design
+ 
+ 
+
+ Wireframing
+ 
+ 
+
+ Brainstorming
+ 
+ 
+
+ Templates
+ 
+ 
+
+ Remote design
+ 
+ 
+ 
+ 
+
+ Explore
+ 
+ 
+
+ Design features
+ 
+ 
+
+ Prototyping features
+ 
+ 
+
+ Design systems features
+ 
+ 
+
+ Collaboration features
+ 
+ 
+
+ FigJam
+ 
+ 
+
+ Pricing
+ 
+ 
+
+ Enterprise
+ 
+ 
+
+ Students and educators
+ 
+ 
+
+ Customers
+ 
+ 
+
+ Security
+ 
+ 
+
+ Integrations
+ 
+ 
+
+ Contact
+ 
+ 
+ 
+ 
+
+ Resources
+ 
+ 
+
+ Blog
+ 
+ 
+
+ Best practices
+ 
+ 
+
+ Support
+ 
+ 
+
+ Developers
+ 
+ 
+
+ Learn design
+ 
+ 
+
+ Downloads
+ 
+ 
+
+ What's new
+ 
+ 
+
+ Releases
+ 
+ 
+
+ Careers
+ 
+ 
+
+ About us
+ 
+ 
+
+ Agency partners
+ 
+ 
+
+ Privacy
+ 
+ 
+
+ Status
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+

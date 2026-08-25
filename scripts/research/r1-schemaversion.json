@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/where-can-i-find-the-rest-api-schema-27604",
+    "name": "Where can I find the REST API Schema? - Figma Forum",
+    "snippet": "Feb 26, 2021 · A schema define all possible valid responses by the REST API. the schema is version 0, which may mean they have not taken the time to create ...",
+    "host_name": "forum.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api",
+    "name": "Introduction | Developer Docs",
+    "snippet": "The Figma API is based on the REST structure. Files Images File versions Users Comments Folders Projects Components and styles",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/how-to-fetch-all-the-versions-of-a-file-using-the-rest-api-16853",
+    "name": "How to fetch all the versions of a file using the Rest API - Figma Forum",
+    "snippet": "Dec 1, 2024 · The GET file versions endpoint returns an object with versions and pagination . Use the URL from pagination.next_page to get previous versions.",
+    "host_name": "forum.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/get-the-curent-file-version-trough-the-plugin-api-35553",
+    "name": "Get the curent file version trough the Plugin API - Figma Forum",
+    "snippet": "Feb 7, 2024 · Plugin API always displays the latest version of the file. To access previous versions you need to use the REST API, as you are doing.",
+    "host_name": "forum.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/figma/rest-api-spec",
+    "name": "GitHub - figma/rest-api-spec: OpenAPI specification and types for the",
+    "snippet": "The OpenAPI (v3.1.0) specification is located in the openapi/ directory. This specification can be used with a wide variety of tools to generate API ...",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://context7.com/figma/rest-api-spec",
+    "name": "Figma REST API (figma/rest-api-spec) | Context7",
+    "snippet": "**schemaVersion** (number) - Version of the schema. Retrieves a list of component sets contained within a specific Figma file.",
+    "host_name": "context7.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/76175309/figma-api-fails-to-get-large-files",
+    "name": "Figma Api fails to get large files - Stack Overflow",
+    "snippet": "May 4, 2023 · Even though the GET /v1/files/{file_key} endpoint is designed to return a JSON tree, Figma internally still processes the full file structure.",
+    "host_name": "stackoverflow.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/get-url-for-current-design-that-includes-version-number-14817",
+    "name": "Get URL for current design that includes version number",
+    "snippet": "Oct 18, 2024 · You can get the current version ID using the REST API (for example, the GET file versions endpoint). You can also use the ...",
+    "host_name": "forum.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

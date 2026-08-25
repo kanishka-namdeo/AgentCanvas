@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040318013-Play-your-prototypes",
+    "name": "Play your prototypes – Figma Learn - Help Center",
+    "snippet": "Use presentation view to play your prototypes in a new tab. you can interact with hotspots or enter keyboard shortcuts within your prototype. Alt enter Figma ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040314193-Guide-to-prototyping-in-Figma",
+    "name": "Guide to prototyping in Figma",
+    "snippet": "For an even more efficient workflow, you can quickly toggle between the Design and Prototype tabs using the keyboard shortcut Shift E .",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040321093-View-prototypes-on-a-mobile-device",
+    "name": "View prototypes on a mobile device - Figma Learn",
+    "snippet": "To access it, double tap and hold anywhere on the screen. To hide the menu bar and access the prototype again, tap anywhere on the prototype. The menu lets you:.",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/8878274530455-Use-videos-in-prototypes",
+    "name": "Use videos in prototypes – Figma Learn - Help Center",
+    "snippet": "Add video to your prototypes to replicate the experience your users would have in a site or app with video playback or previews.",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard – Figma Learn - Help Center",
+    "snippet": "Enable the desired tool using its keyboard shortcut, the actions menu, or press F6 (Mac) or Ctrl F6 (Windows) until the toolbar is focused, then use the arrow ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/31304485164695-Create-a-Figma-Make-file",
+    "name": "Create a Figma Make file",
+    "snippet": "With Figma Make, you can use the chat interface to create functional prototypes, web apps, interactive UI, and more. Figma Make is AI-driven, ...",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

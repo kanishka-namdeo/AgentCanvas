@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/enabling-snap-to-pixel-instantly-modifies-the-fractional-coordinates-of-the-frames-in-the-file-4028",
+    "name": "Enabling “Snap to Pixel” instantly modifies the fractional coordinates",
+    "snippet": "Jan 26, 2024 · To sum up, Figma file has snap to pixel grid, but it still can paste a copied frames with fractional coordinates inside. Can I fix it somehow?",
+    "host_name": "forum.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041065034-Adjust-your-zoom-and-view-options",
+    "name": "Adjust your zoom and view options - Figma Learn",
+    "snippet": "To toggle snap to pixel grid, open the Zoom/view options menu (from the zoom level in the toolbar) and select Snap to pixel grid, or use keyboard shortcut:",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=Kf1jhxal2uw",
+    "name": "Figma Tutorial - Lesson 54 - View Outline and Pixel Preview Options",
+    "snippet": "Dec 17, 2021 · the preview mode. This lesson has been made using Figma Desktop App ... Figma Tutorial - Lesson 54 - View Outline and Pixel Preview Options.",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/FigmaDesigners/posts/1098702140621522",
+    "name": "How can we view in outline mode in Figma?? - Facebook",
+    "snippet": "Jul 2, 2021 · Pixel Preview - 1x or 2x, we see the edges in pixel mode, Ctrl + Alt + Y. all new or movable layers are placed on even pixels.",
+    "host_name": "www.facebook.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/share-your-feedback-26/frustrating-snap-to-pixel-grid-changes-37448",
+    "name": "Frustrating Snap to Pixel Grid Changes - Figma Forum",
+    "snippet": "Feb 10, 2025 · The recent Aspect Ratio update has brought with it a frustrating change to the way objects snap to the pixel grid.",
+    "host_name": "forum.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1im8u5v/snap_to_pixel_grid_changes",
+    "name": "Snap to Pixel Grid Changes : r/FigmaDesign - Reddit",
+    "snippet": "Feb 10, 2025 · The recent Aspect Ratio update has brought with it a frustrating change to the way objects snap to the pixel grid.",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://imagy.app/how-to-turn-on-snap-to-grid-in-figma",
+    "name": "How to Turn On Snap to Grid in Figma - imagy.app",
+    "snippet": "Feb 28, 2024 · To turn Pixel Preview on, open the Zoom Settings menu. Then, hover over Pixel Preview to open the sub-menu.",
+    "host_name": "imagy.app",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=Vfx0teIBt3g",
+    "name": "Figma Tutorial: Multi Layout Grids for Web Design - YouTube",
+    "snippet": "Mar 4, 2021 · Setup 2 types of pixel-perfect grids in less than 5 minutes for Website Design Show me some love! SUBSCRIBE: http://bit.ly/VinitDesigns ...",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

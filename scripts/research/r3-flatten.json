@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/30101373312279-Flatten-layers",
+    "name": "Flatten layers – Figma Learn - Help Center",
+    "snippet": "To flatten a selection of objects, right-click on it and select Flatten or use the keyboard shortcut: Mac: Option Shift F Windows: Alt Shift F",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360047239073-Convert-text-to-vector-paths",
+    "name": "Convert text to vector paths – Figma Learn - Help Center",
+    "snippet": "To flatten a text layer: Select the text layer you want to flatten. Right-click on the selection and select Flatten or use the keyboard shortcut: Mac: Option ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039957534-Boolean-operations",
+    "name": "Boolean operations – Figma Learn - Help Center",
+    "snippet": "You can apply boolean operations to shape layers, vector paths, and text layers. ... Subtract selection keyboard shortcut: Mac: Option Shift S; Windows: Alt Shift ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039957634-Edit-vector-layers",
+    "name": "Edit vector layers – Figma Learn - Help Center",
+    "snippet": "To enter vector edit mode, select one or more vector layers and press Enter . While in vector edit mode, you'll be able to see and interact with the existing ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard – Figma Learn - Help Center",
+    "snippet": "To select multiple layers at once, draw a selection box by holding Command (Mac) or Ctrl (Windows) and use the arrow keys to resize the box.",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040449873-Select-layers-and-objects",
+    "name": "Select layers and objects – Figma Learn - Help Center",
+    "snippet": "To select nested layers, hold down the modifier key and drag the marquee across the objects: Mac: ⌘ Windows: Ctrl. Use the keyboard shortcut ⌘ Command / Ctrl A ...",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

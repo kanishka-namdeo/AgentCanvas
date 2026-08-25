@@ -1,0 +1,551 @@
+
+
+Node types | Developer Docs
+
+Skip to main content
+
+On this page
+
+Node types
+Node type indicates what kind of node you are working with: for example, a FRAME node versus a RECTANGLE node. A node can have additional properties associated with it depending on its node type. The following is a catalog of properties that can be applied to a node, grouped by node type.
+
+Node typeProperties
+ | 
+DOCUMENT​ | 
+childrenNode[]An array of canvases attached to the document.
+ | 
+CANVAS​ | 
+childrenNode[]An array of top level layers on the canvas.
+backgroundColorColorBackground color of the canvas.
+prototypeStartNodeIDStringdeprecated
+Node ID that corresponds to the start frame for prototypes. This is deprecated with the introduction of multiple flows. Please use the flowStartingPoints field.
+flowStartingPointsFlowStartingPoint[]default: []
+A array of flow starting points sorted by its position in the prototype settings panel.
+prototypeDevicePrototypeDeviceThe device used to view a prototype.
+exportSettingsExportSettingsdefault: []Export settings for the canvas.
+measurementsMeasurement[]default: []An array of measurements displaying pinned distances between nodes on the canvas in Dev Mode.
+ | 
+FRAME​ | 
+childrenNode[]An array of nodes that are direct children of this node.
+lockedBooleandefault: falseIf true, layer is locked and cannot be edited.
+backgroundPaint[]deprecatedBackground of the node. This is deprecated, as backgrounds for frames are now in the fills field.
+backgroundColorColordeprecatedBackground color of the node. This is deprecated, as frames now support more than a solid color as a background. Please use the fills field instead.
+fillsPaint[]default: []An array of fill paints applied to the node.
+strokesPaint[]default: []An array of stroke paints applied to the node.
+complexStrokePropertiesComplexStrokePropertiesdefault: {}cspdesc
+variableWidthPointsVariableWidthPoint[]default: []A list of points describing the width profile of variable width strokes.
+strokeWeightNumberThe weight of strokes on the node.
+strokeAlignString
+Position of stroke relative to vector outline, as a string enum.
+INSIDE: stroke drawn inside the shape boundary
+OUTSIDE: stroke drawn outside the shape boundary
+CENTER: stroke drawn centered along the shape boundary
+strokeDashesNumber[]default: []An array of floating point numbers describing the pattern of dash length and gap lengths that the vector path follows. For example a value of [1, 2] indicates that the path has a dash of length 1 followed by a gap of length 2, repeated.
+cornerRadiusNumberRadius of each corner of the frame if a single radius is set for all corners.
+rectangleCornerRadiiNumber[]default: same as cornerRadiusArray of length 4 of the radius of each corner of the rectangle, starting in the top left and proceeding clockwise.
+cornerSmoothingNumberdefault: 0A value that lets you control how "smooth" the corners are. Ranges from 0 to 1. 0 means that the corner is perfectly circular. A value of 0.6 means the corner matches the iOS 7 "squircle" icon shape. Other values produce various other curves. See this post for the gory details!
+exportSettingsExportSettings[]default: []An array of export settings representing images to export from the node.
+blendModeBlendModeHow this node blends with nodes behind it in the scene (see blend mode section for more details).
+preserveRatioBooleandeprecateddefault: falseKeep height and width constrained to same ratio. Deprecated in favor of targetAspectRatio.
+targetAspectRatio0If set, keeps height and width constrained to the target aspect ratio. Unlike preserveRatio, also works outside of properties panel resizing actions.
+constraintsLayoutConstraintHorizontal and vertical layout constraints for the node.
+layoutAlignString
+Determines if the layer should stretch along the parent's counter axis. This property is only provided for direct children of auto-layout frames.
+INHERIT
+STRETCH
+In previous versions of auto layout, determined how the layer is aligned inside an auto-layout frame. This property is only provided for direct children of auto-layout frames.
+MIN
+CENTER
+MAX
+STRETCH
+In horizontal auto-layout frames, MIN and MAX correspond to TOP and BOTTOM. In vertical auto-layout frames, MIN and MAX correspond to LEFT and RIGHT.
+interactionsInteraction[]List of prototype interactions on this node, which includes both the method of interaction with this node in a prototype, and the behavior of that interaction.
+transitionNodeIDStringdefault: nullNode ID of node to transition to in prototyping.
+transitionDurationNumberdefault: nullThe duration of the prototyping transition on this node (in milliseconds).
+transitionEasingEasingTypedefault: nullThe easing curve used in the prototyping transition on this node.
+opacityNumberdefault: 1Overall opacity of paint (colors within the paint can also have opacity values which would blend with this).
+absoluteBoundingBoxRectangleBounding box of the node in absolute space coordinates.
+absoluteRenderBounds0The actual bounds of a node accounting for drop shadows, thick strokes, and anything else that may fall outside the node's regular bounding box defined in x, y, width, and height. The x and y inside this property represent the absolute position of the node on the page. This value will be null if the node is invisible.
+sizeVectorWidth and height of element. This is different from the width and height of the bounding box in that the absolute bounding box represents the element after scaling and rotation. Only present if geometry=paths is passed.
+minWidthNumber | nulldefault: nullThe minWidth of the frame, or null if not set.
+maxWidthNumber | nulldefault: nullThe maxWidth of the frame, or null if not set.
+minHeightNumber | nulldefault: nullThe minHeight of the frame, or null if not set.
+maxHeightNumber | nulldefault: nullThe maxHeight of the frame, or null if not set.
+relativeTransformTransformThe top two rows of a matrix that represents the 2D transform of this node relative to its parent. The bottom row of the matrix is implicitly always (0, 0, 1). Use to transform coordinates in geometry. Only present if geometry=paths is passed.
+clipsContentBooleanWhether or not this node clips content outside of its bounds.
+layoutModeStringdefault: NONE
+Whether this layer uses auto-layout to position its children.
+NONE
+HORIZONTAL
+VERTICAL
+GRID
+layoutSizingHorizontalString
+The horizontal sizing setting on this auto-layout frame or frame child.
+FIXED
+HUG
+FILL
+HUG is only valid on auto-layout frames and text nodes. FILL is only valid on auto-layout frame children.
+layoutSizingVerticalString
+The vertical sizing setting on this auto-layout frame or frame child.
+FIXED
+HUG
+FILL
+HUG is only valid on auto-layout frames and text nodes. FILL is only valid on auto-layout frame children.
+layoutWrapString
+Whether this auto-layout frame has wrapping enabled.
+NO_WRAP
+WRAP
+primaryAxisSizingModeStringdefault: AUTO
+Whether the primary axis has a fixed length (determined by the user) or an automatic length (determined by the layout engine). This property is only applicable for auto-layout frames.
+FIXED
+AUTO
+counterAxisSizingModeStringdefault: AUTO
+Whether the counter axis has a fixed length (determined by the user) or an automatic length (determined by the layout engine). This property is only applicable for auto-layout frames.
+FIXED
+AUTO
+primaryAxisAlignItemsStringdefault: MIN
+Determines how the auto-layout frame’s children should be aligned in the primary axis direction. This property is only applicable for auto-layout frames.
+MIN
+CENTER
+MAX
+SPACE_BETWEEN
+counterAxisAlignItemsStringdefault: MIN
+Determines how the auto-layout frame’s children should be aligned in the counter axis direction. This property is only applicable for auto-layout frames.
+MIN
+CENTER
+MAX
+BASELINE
+counterAxisAlignContentStringdefault: AUTO
+Determines how the auto-layout frame’s wrapped tracks should be aligned in the counter axis direction. This property is only applicable for auto-layout frames with layoutWrap: "WRAP".
+AUTO
+SPACE_BETWEEN
+gridRowCountNumberThe number of rows in the grid layout. This property is only applicable for auto-layout frames with layoutMode: "GRID".
+gridColumnCountNumberThe number of columns in the grid layout. This property is only applicable for auto-layout frames with layoutMode: "GRID".
+gridRowGapNumberdefault: 0The distance between rows in the grid layout. This property is only applicable for auto-layout frames with layoutMode: "GRID".
+gridColumnGapNumberdefault: 0The distance between columns in the grid layout. This property is only applicable for auto-layout frames with layoutMode: "GRID".
+gridColumnsSizingStringThe string for the CSS grid-template-columns property. This property is only applicable for auto-layout frames with layoutMode: "GRID".
+gridRowsSizingStringThe string for the CSS grid-template-rows property. This property is only applicable for auto-layout frames with layoutMode: "GRID".
+gridAutoTracksStringdefault: NONE
+Controls how frames with layoutMode: "GRID" handle automatic row creation.
+NONE: the row count is controlled by the user-set value of gridRowCount, but will never be below the number of necessary rows to hold all items within the grid.
+ROWS: new rows are added automatically as children are appended, and removed if a row becomes empty.
+gridItemsPositioningStringdefault: MANUAL
+Controls how children are positioned within the grid. This property is only applicable for auto-layout frames with layoutMode: "GRID".
+MANUAL: children are placed in explicitly assigned grid cells.
+ROW_AUTO_FLOW: children automatically flow into the next available cell in row-major order.
+gridChildHorizontalAlignStringdefault: AUTO
+Determines how a GRID frame's child should be aligned in the horizontal direction within its grid area. This property is only applicable for direct children of frames with layoutMode: "GRID".
+AUTO
+MIN
+CENTER
+MAX
+gridChildVerticalAlignStringdefault: AUTO
+Determines how a GRID frame's child should be aligned in the vertical direction within its grid area. This property is only applicable for direct children of frames with layoutMode: "GRID".
+AUTO
+MIN
+CENTER
+MAX
+gridRowSpanNumberdefault: 1The number of rows that a GRID frame's child should span. This property is only applicable for direct children of frames with layoutMode: "GRID".
+gridColumnSpanNumberdefault: 1The number of columns that a GRID frame's child should span. This property is only applicable for direct children of frames with layoutMode: "GRID".
+gridColumnAnchorIndexNumberdefault: 0The index of the column that a GRID frame's child should be anchored to. This property is only applicable for direct children of frames with layoutMode: "GRID".
+gridRowAnchorIndexNumberdefault: 0The index of the row that a GRID frame's child should be anchored to. This property is only applicable for direct children of frames with layoutMode: "GRID".
+paddingLeftNumberdefault: 0The padding between the left border of the frame and its children. This property is only applicable for auto-layout frames.
+paddingRightNumberdefault: 0The padding between the right border of the frame and its children. This property is only applicable for auto-layout frames.
+paddingTopNumberdefault: 0The padding between the top border of the frame and its children. This property is only applicable for auto-layout frames.
+paddingBottomNumberdefault: 0The padding between the bottom border of the frame and its children. This property is only applicable for auto-layout frames.
+horizontalPaddingNumberdeprecateddefault: 0The horizontal padding between the borders of the frame and its children. This property is only applicable for auto-layout frames. Deprecated in favor of setting individual paddings.
+verticalPaddingNumberdeprecateddefault: 0The vertical padding between the borders of the frame and its children. This property is only applicable for auto-layout frames. Deprecated in favor of setting individual paddings.
+itemSpacingNumberdefault: 0The distance between children of the frame. Can be negative. This property is only applicable for auto-layout frames.
+counterAxisSpacingNumberdefault: 0The distance between wrapped tracks of an auto-layout frame. This property is only applicable for auto-layout frames with layoutWrap: "WRAP".
+layoutPositioningStringdefault: AUTO
+Determines whether a layer's size and position should be determined by auto-layout settings or manually adjustable.
+ABSOLUTE
+AUTO
+itemReverseZIndexBooleandefault: falseDetermines the canvas stacking order of layers in this frame. When true, the first layer will be draw on top. This property is only applicable for auto-layout frames.
+strokesIncludedInLayoutBooleandefault: falseDetermines whether strokes are included in layout calculations. When true, auto-layout frames behave like css box-sizing: border-box. This property is only applicable for auto-layout frames.
+layoutGridsLayoutGrid[]default: []An array of layout grids attached to this node (see layout grids section for more details). GROUP nodes do not have this attribute.
+overflowDirectionStringdefault: NONE
+Defines the scrolling behavior of the frame, if there exist contents outside of the frame boundaries. The frame can either scroll vertically, horizontally, or in both directions to the extents of the content contained within it. This behavior can be observed in a prototype.
+HORIZONTAL_SCROLLING
+VERTICAL_SCROLLING
+HORIZONTAL_AND_VERTICAL_SCROLLING
+NONE
+effectsEffect[]default: []An array of effects attached to this node (see effects section for more details).
+isMaskBooleandefault: falseDoes this node mask sibling nodes in front of it?
+isMaskOutlineBooleandeprecateddefault: falseWhether the mask ignores fill style (e.g. gradients) and effects. This property is deprecated; please use the maskType field instead (isMaskOutline=true corresponds to maskType="VECTOR").
+maskTypeString
+If this layer is a mask, this property describes the operation used to mask the layer's siblings. The value may be one of the following:
+ALPHA: the mask node's alpha channel will be used to determine the opacity of each pixel in the masked result.
+VECTOR: if the mask node has visible fill paints, every pixel inside the node's fill regions will be fully visible in the masked result. If the mask has visible stroke paints, every pixel inside the node's stroke regions will be fully visible in the masked result.
+LUMINANCE: the luminance value of each pixel of the mask node will be used to determine the opacity of that pixel in the masked result.
+stylesMap<String, String>A mapping of a style_type to style ID (see Style for more details) of styles present on this node. The style ID can be used to look up more information about the style in the top-level styles field.
+devStatus0default: nullWhether the node is marked Ready for dev or Completed. If the node does not have a status, the property is null.
+annotationsAnnotation[]default: []An array of annotations displaying notes and pinned properties of nodes. Currently a maximum of 1 annotation is supported.
+ | 
+GROUP​ | See properties for FRAME.
+ | 
+TRANSFORM_GROUP​ | 
+[Available in beta, API is subject to change] A group that represents a node transform.
+Transform groups have all of the properties of a FRAME, plus:
+transformModifiersTransformModifier[]default: []
+ | 
+SECTION​ | 
+sectionContentsHiddenBooleandefault: falseWhether the contents of the section are visible.
+devStatus0default: nullWhether the section is marked Ready for dev or Completed. If the section does not have a status, the property is null.
+fillsPaint[]default: []An array of fill paints applied to the node.
+strokesPaint[]default: []An array of stroke paints applied to the node.
+complexStrokePropertiesComplexStrokePropertiesdefault: {"type": "BASIC"}cspdesc
+variableWidthPointsVariableWidthPoint[]default: []A list of points describing the width profile of variable width strokes.
+strokeWeightNumberThe weight of strokes on the node.
+strokeAlignString
+Position of stroke relative to vector outline, as a string enum.
+INSIDE: stroke drawn inside the shape boundary
+OUTSIDE: stroke drawn outside the shape boundary
+CENTER: stroke drawn centered along the shape boundary
+childrenNode[]An array of nodes that are contained in the section.
+absoluteBoundingBoxRectangleBounding box of the node in absolute space coordinates.
+absoluteRenderBounds0The actual bounds of a node accounting for drop shadows, thick strokes, and anything else that may fall outside the node's regular bounding box defined in x, y, width, and height. The x and y inside this property represent the absolute position of the node on the page. This value will be null if the node is invisible.
+ | 
+VECTOR​ | 
+lockedBooleandefault: falseIf true, layer is locked and cannot be edited.
+exportSettingsExportSetting[]default: []An array of export settings representing images to export from the node.
+blendModeBlendModeHow this node blends with nodes behind it in the scene (see blend mode section for more details).
+preserveRatioBooleandefault: falseKeep height and width constrained to same ratio.
+layoutAlignString
+Determines if the layer should stretch along the parent’s counter axis. This property is only provided for direct children of auto-layout frames.
+INHERIT
+STRETCH
+In previous versions of auto layout, determined how the layer is aligned inside an auto-layout frame.
+MIN
+CENTER
+MAX
+STRETCH
+In horizontal auto-layout frames, MIN and MAX correspond to TOP and BOTTOM. In vertical auto-layout frames, MIN and MAX correspond to LEFT and RIGHT.
+layoutGrowNumberdefault: 0This property is applicable only for direct children of auto-layout frames, ignored otherwise. Determines whether a layer should stretch along the parent's primary axis. A 0 corresponds to a fixed size and 1 corresponds to stretch.
+constraintsLayoutConstraintHorizontal and vertical layout constraints for node.
+transitionNodeIDString | nulldefault: nullNode ID of node to transition to in prototyping.
+transitionDurationNumber | nulldefault: nullThe duration of the prototyping transition on this node (in milliseconds).
+transitionEasingEasingTypedefault: nullThe easing curve used in the prototyping transition on this node.
+opacityNumberdefault: 1Opacity of the node.
+absoluteBoundingBoxRectangleBounding box of the node in absolute space coordinates.
+absoluteRenderBounds0The actual bounds of a node accounting for drop shadows, thick strokes, and anything else that may fall outside the node's regular bounding box defined in x, y, width, and height. The x and y inside this property represent the absolute position of the node on the page. This value will be null if the node is invisible.
+effectsEffect[]default: []An array of effects attached to this node (see effects section for more details).
+sizeVectorWidth and height of element. This is different from the width and height of the bounding box in that the absolute bounding box represents the element after scaling and rotation. Only present if geometry=paths is passed.
+relativeTransformTransformThe top two rows of a matrix that represents the 2D transform of this node relative to its parent. The bottom row of the matrix is implicitly always (0, 0, 1). Use to transform coordinates in geometry. Only present if geometry=paths is passed.
+isMaskBooleandefault: falseDoes this node mask sibling nodes in front of it?
+fillsPaint[]default: []An array of fill paints applied to the node.
+fillGeometryPath[]default: []An array of paths representing the object fill. Only present if parameter geometry=paths is used.
+fillOverrideTableMap<Number, PaintOverride>Map from ID to PaintOverride for looking up fill overrides. To see which regions are overriden, you must use the geometry=paths option. Each path returned may have an overrideId which maps to this table.
+strokesPaint[]default: []An array of stroke paints applied to the node.
+complexStrokePropertiesComplexStrokePropertiesdefault: {}cspdesc
+variableWidthPointsVariableWidthPoint[]default: []A list of points describing the width profile of variable width strokes.
+strokeWeightNumberThe weight of strokes on the node.
+individualStrokeWeightsStrokeWeightsAn object including the top, bottom, left, and right stroke weights. Only returned if individual stroke weights are used.
+strokeCapString
+A string enum with values describing the end caps of vector paths.
+NONE
+ROUND
+SQUARE
+LINE_ARROW
+TRIANGLE_ARROW
+DIAMOND_FILLED
+CIRCLE_FILLED
+TRIANGLE_FILLED
+WASHI_TAPE_1
+WASHI_TAPE_2
+WASHI_TAPE_3
+WASHI_TAPE_4
+WASHI_TAPE_5
+WASHI_TAPE_6
+strokeJoinString
+How corners in vector paths are rendered, as a string enum.
+MITER
+BEVEL
+ROUND
+strokeDashesNumber[]default: []An array of floating point numbers describing the pattern of dash length and gap lengths that the vector stroke will use when drawn. For example a value of [1, 2] indicates that the stroke will be drawn with a dash of length 1 followed by a gap of length 2, repeated.
+strokeMiterAngleNumberdefault: 28.96Only valid if strokeJoin is MITER. The corner angle, in degrees, below which strokeJoin will be set to BEVEL to avoid super sharp corners. By default this is 28.96 degrees.
+strokeGeometryPath[]Only specified if parameter geometry=paths is used. An array of paths representing the object stroke.
+strokeAlignString
+Position of stroke relative to vector outline, as a string enum.
+INSIDE: stroke drawn inside the shape boundary
+OUTSIDE: stroke drawn outside the shape boundary
+CENTER: stroke drawn centered along the shape boundary
+stylesMap<String, String>A mapping of a style_type to style ID (see Style for more details) of styles present on this node. The style ID can be used to look up more information about the style in the top-level styles field.
+annotationsAnnotation[]default: []An array of annotations displaying notes and pinned properties of nodes. Currently a maximum of 1 annotation is supported.
+ | 
+BOOLEAN_OPERATION​ | 
+Has all the properties of VECTOR except annotations, plus:
+childrenNode[]An array of nodes that are being boolean operated on.
+booleanOperationString
+The type of boolean operation applied, as a string enum.
+UNION
+INTERSECT
+SUBTRACT
+EXCLUDE
+ | 
+STAR​ | 
+See properties for VECTOR.
+ | 
+LINE​ | 
+See properties for VECTOR.
+ | 
+ELLIPSE​ | 
+Has all the properties of VECTOR, plus:
+arcDataArcDataStart and end angles of the ellipse measured clockwise from the x axis, plus the inner radius for donuts.
+ | 
+REGULAR_POLYGON​ | 
+See properties for VECTOR.
+ | 
+RECTANGLE​ | 
+Has all the properties of VECTOR, plus:
+cornerRadiusNumberRadius of each corner of the rectangle if a single radius is set for all corners.
+rectangleCornerRadiiNumber[]Array of length 4 of the radius of each corner of the rectangle, starting in the top left and proceeding clockwise.
+cornerSmoothingNumberA value that lets you control how "smooth" the corners are. Ranges from 0 to 1. 0 is the default and means that the corner is perfectly circular. A value of 0.6 means the corner matches the iOS 7 "squircle" icon shape. Other values produce various other curves. See this post for the gory details!
+ | 
+TABLE​ | 
+FigJam table node.
+absoluteBoundingBoxRectangleBounding box of the node in absolute space coordinates.
+absoluteRenderBounds0The actual bounds of a node accounting for drop shadows, thick strokes, and anything else that may fall outside the node's regular bounding box defined in x, y, width, and height. The x and y inside this property represent the absolute position of the node on the page. This value will be null if the node is invisible.
+blendModeBlendModeHow this node blends with nodes behind it in the scene (see blend mode section for more details).
+childrenNode[]An array of table cell nodes within the table. The table cells are sorted by row, then column.
+constraintsLayoutConstraintHorizontal and vertical layout constraints for node.
+effectsEffect[]default: []An array of effects attached to this node (see effects section for more details).
+exportSettingsExportSetting[]default: []An array of export settings representing images to export from the node.
+relativeTransformTransformThe top two rows of a matrix that represents the 2D transform of this node relative to its parent. The bottom row of the matrix is implicitly always (0, 0, 1). Use to transform coordinates in geometry. Only present if geometry=paths is passed.
+sizeVectorWidth and height of element. This is different from the width and height of the bounding box in that the absolute bounding box represents the element after scaling and rotation. Only present if geometry=paths is passed.
+strokesPaint[]default: []An array of stroke paints applied to the node.
+complexStrokePropertiesComplexStrokePropertiesdefault: {}cspdesc
+variableWidthPointsVariableWidthPoint[]default: []A list of points describing the width profile of variable width strokes.
+strokeAlignString
+Position of stroke relative to vector outline, as a string enum.
+INSIDE: stroke drawn inside the shape boundary
+OUTSIDE: stroke drawn outside the shape boundary
+CENTER: stroke drawn centered along the shape boundary
+strokeWeightNumberThe weight of strokes on the node.
+ | 
+TABLE_CELL​ | 
+FigJam table cell node.
+absoluteBoundingBoxRectangleBounding box of the node in absolute space coordinates.
+absoluteRenderBounds0The actual bounds of a node accounting for drop shadows, thick strokes, and anything else that may fall outside the node's regular bounding box defined in x, y, width, and height. The x and y inside this property represent the absolute position of the node on the page. This value will be null if the node is invisible.
+charactersStringText contained within a text box.
+fillsPaint[]default: []An array of fill paints applied to the node.
+relativeTransformTransformThe top two rows of a matrix that represents the 2D transform of this node relative to its parent. The bottom row of the matrix is implicitly always (0, 0, 1). Use to transform coordinates in geometry. Only present if geometry=paths is passed.
+sizeVectorWidth and height of element. This is different from the width and height of the bounding box in that the absolute bounding box represents the element after scaling and rotation. Only present if geometry=paths is passed.
+ | 
+TEXT​ | 
+Has all the properties of VECTOR except fillOverrideTable, plus:
+charactersStringText contained within a text box.
+styleTypeStyleStyle of text including font family and weight (see type style section for more information).
+characterStyleOverridesNumber[]The array corresponds to characters in the text box, where each element references the styleOverrideTable to apply specific styles to each character. The array's length can be less than or equal to the number of characters due to the removal of trailing zeros. Elements with a value of 0 indicate characters that use the default type style. If the array is shorter than the total number of characters, the characters beyond the array's length also use the default style.
+styleOverrideTableMap<Number, TypeStyle>Map from ID to TypeStyle for looking up style overrides.
+lineTypesLineType[]
+An array with the same number of elements as lines in the text node, where lines are delimited by newline or paragraph separator characters. Each element in the array corresponds to the list type of a specific line. List types are represented as string enums with one of these possible values:
+ORDERED: Text is an ordered list (numbered).
+UNORDERED: Text is an unordered list (bulleted).
+NONE: Text is plain text and not part of any list.
+lineIndentationsNumber[]An array with the same number of elements as lines in the text node, where lines are delimited by newline or paragraph separator characters. Each element in the array corresponds to the indentation level of a specific line.
+ | 
+TEXT_PATH​ | 
+[Available in beta, API is subject to change] Has all the properties of VECTOR except fillOverrideTable, plus:
+charactersStringText contained within the text path.
+styleTextPathTypeStyleStyle of text including font family and weight (see TextPathTypeStyle section for more information).
+characterStyleOverridesNumber[]The array corresponds to characters in the text path, where each element references the styleOverrideTable to apply specific styles to each character. The array's length can be less than or equal to the number of characters due to the removal of trailing zeros. Elements with a value of 0 indicate characters that use the default type style. If the array is shorter than the total number of characters, the characters beyond the array's length also use the default style.
+styleOverrideTableMap<Number, TextPathTypeStyle>Map from ID to TextPathTypeStyle for looking up style overrides.
+textPathStartDataTextPathStartDataData describing the starting position of the text on the path.
+ | 
+SLICE​ | 
+exportSettingsExportSetting[]default: []An array of export settings representing images to export from the node.
+absoluteBoundingBoxRectangleBounding box of the node in absolute space coordinates.
+absoluteRenderBounds0The actual bounds of a node accounting for drop shadows, thick strokes, and anything else that may fall outside the node's regular bounding box defined in x, y, width, and height. The x and y inside this property represent the absolute position of the node on the page. This value will be null if the node is invisible.
+sizeVectorWidth and height of element. This is different from the width and height of the bounding box in that the absolute bounding box represents the element after scaling and rotation. Only present if geometry=paths is passed.
+relativeTransformTransformThe top two rows of a matrix that represents the 2D transform of this node relative to its parent. The bottom row of the matrix is implicitly always (0, 0, 1). Use to transform coordinates in geometry. Only present if geometry=paths is passed.
+ | 
+COMPONENT​ | 
+Has all the properties of FRAME, plus:
+componentPropertyDefinitionsMap<String, ComponentPropertyDefinition>default: {}A mapping of name to ComponentPropertyDefinition for every component property on this component. Each property has a type, defaultValue, and other optional values (see property types section below)
+ | 
+COMPONENT_SET​ | 
+Has all the properties of FRAME, plus:
+componentPropertyDefinitionsMap<String, ComponentPropertyDefinition>default: {}A mapping of name to ComponentPropertyDefinition for every component property on this component set. Each property has a type, defaultValue, and other optional values (see property types section below)
+ | 
+INSTANCE​ | 
+Has all the properties of FRAME, plus:
+componentIdStringID of component that this instance came from, refers to components table (see endpoints section below).
+isExposedInstanceBooleandefault: falseIf true, this node has been marked as exposed to its containing component or component set.
+exposedInstancesString[]default: []IDs of instances that have been exposed to this node's level.
+componentPropertiesMap<String, ComponentProperty>default: {}A mapping of name to ComponentProperty for all component properties on this instance. Each property has a type, value, and other optional values (see property types section below)
+overridesOverrides[]default: []An array of all of the fields directly overridden on this instance. Inherited overrides are not included.
+ | 
+STICKY​ | 
+FigJam sticky node.
+absoluteBoundingBoxRectangleBounding box of the node in absolute space coordinates.
+absoluteRenderBounds0The actual bounds of a node accounting for drop shadows, thick strokes, and anything else that may fall outside the node's regular bounding box defined in x, y, width, and height. The x and y inside this property represent the absolute position of the node on the page. This value will be null if the node is invisible.
+authorVisibleBooleandefault: falseIf true, author name is visible.
+backgroundColorColordeprecatedBackground color of the node. This is deprecated, please use the fills field instead.
+blendModeBlendModeHow this node blends with nodes behind it in the scene (see blend mode section for more details).
+charactersStringText contained within a text box.
+effectsEffect[]default: []An array of effects attached to this node (see effects section for more details).
+exportSettingsExportSetting[]default: []An array of export settings representing images to export from the node.
+fillsPaint[]default: []An array of fill paints applied to the node.
+lockedBooleandefault: falseIf true, sticky is locked and cannot be edited.
+opacityNumberOverall opacity of paint (colors within the paint can also have opacity values which would blend with this)
+relativeTransformTransformThe top two rows of a matrix that represents the 2D transform of this node relative to its parent. The bottom row of the matrix is implicitly always (0, 0, 1). Use to transform coordinates in geometry. Only present if geometry=paths is passed.
+ | 
+SHAPE_WITH_TEXT​ | 
+FigJam Shape-with-text node.
+absoluteBoundingBoxRectangleBounding box of the node in absolute space coordinates.
+absoluteRenderBounds0The actual bounds of a node accounting for drop shadows, thick strokes, and anything else that may fall outside the node's regular bounding box defined in x, y, width, and height. The x and y inside this property represent the absolute position of the node on the page. This value will be null if the node is invisible.
+backgroundColorColordeprecatedBackground color of the canvas.
+blendModeBlendModeHow this node blends with nodes behind it in the scene (see blend mode section for more details).
+charactersStringText contained within a text box.
+cornerRadiusNumberRadius of each corner of the rectangle if a single radius is set for all corners.
+rectangleCornerRadiiNumber[]Array of length 4 of the radius of each corner of the rectangle, starting in the top left and proceeding clockwise.
+cornerSmoothingNumberA value that lets you control how "smooth" the corners are. Ranges from 0 to 1. 0 is the default and means that the corner is perfectly circular. A value of 0.6 means the corner matches the iOS 7 "squircle" icon shape. Other values produce various other curves. See this post for the gory details!
+effectsEffect[]default: []An array of effects attached to this node (see effects section for more details).
+exportSettingsExportSetting[]default: []An array of export settings representing images to export from the node.
+fillsPaint[]default: []An array of fill paints applied to the node.
+isMaskBooleandefault: falseDoes this node mask sibling nodes in front of it?
+lockedBooleandefault: falseIf true, shape-with-text is locked and cannot be edited.
+opacityNumberOverall opacity of paint (colors within the paint can also have opacity values which would blend with this)
+shapeTypeShapeTypeShape-with-text geometric shape type.
+strokesPaint[]default: []An array of stroke paints applied to the node.
+complexStrokePropertiesComplexStrokePropertiesdefault: {}cspdesc
+variableWidthPointsVariableWidthPoint[]default: []A list of points describing the width profile of variable width strokes.
+strokeWeightNumberThe weight of strokes on the node.
+strokeCapString
+The end cap of vector paths, as a string enum.
+NONE
+ROUND
+SQUARE
+LINE_ARROW
+TRIANGLE_ARROW
+DIAMOND_FILLED
+CIRCLE_FILLED
+TRIANGLE_FILLED
+WASHI_TAPE_1
+WASHI_TAPE_2
+WASHI_TAPE_3
+WASHI_TAPE_4
+WASHI_TAPE_5
+WASHI_TAPE_6
+strokeJoinStringdefault: MITER
+How corners in vector paths are rendered, as a string enum.
+MITER
+BEVEL
+ROUND
+strokeDashesNumber[]default: []An array of floating point numbers describing the pattern of dash length and gap lengths that the vector path follows. For example a value of [1, 2] indicates that the path has a dash of length 1 followed by a gap of length 2, repeated.
+strokeAlignString
+Position of stroke relative to vector outline, as a string enum.
+INSIDE: stroke drawn inside the shape boundary
+OUTSIDE: stroke drawn outside the shape boundary
+CENTER: stroke drawn centered along the shape boundary
+relativeTransformTransformThe top two rows of a matrix that represents the 2D transform of this node relative to its parent. The bottom row of the matrix is implicitly always (0, 0, 1). Use to transform coordinates in geometry. Only present if geometry=paths is passed.
+stylesMap<StyleType, String>A mapping of a StyleType to style ID (see Style of styles present on this node. The style ID can be used to look up more information about the style in the top-level styles field.
+ | 
+CONNECTOR​ | 
+FigJam connector node.
+absoluteBoundingBoxRectangleBounding box of the node in absolute space coordinates.
+absoluteRenderBounds0The actual bounds of a node accounting for drop shadows, thick strokes, and anything else that may fall outside the node's regular bounding box defined in x, y, width, and height. The x and y inside this property represent the absolute position of the node on the page. This value will be null if the node is invisible.
+backgroundColorColorBackground color of the canvas.
+blendModeBlendModeHow this node blends with nodes behind it in the scene (see blend mode section for more details).
+charactersStringText contained within a text box.
+connectorStartConnectorEndpointConnector starting endpoint.
+connectorEndConnectorEndpointConnector ending endpoint.
+connectorStartStrokeCapStringdefault: NONE
+The end cap of the start of the connector, as a string enum.
+NONE
+LINE_ARROW
+TRIANGLE_ARROW
+DIAMOND_FILLED
+CIRCLE_FILLED
+TRIANGLE_FILLED
+connectorEndStrokeCapStringdefault: NONE
+The end cap of the end of the connector, as a string enum.
+NONE
+LINE_ARROW
+TRIANGLE_ARROW
+DIAMOND_FILLED
+CIRCLE_FILLED
+TRIANGLE_FILLED
+connectorLineTypeConnectorLineTypeConnector line type.
+cornerRadiusNumberRadius of each corner of the rectangle if a single radius is set for all corners.
+rectangleCornerRadiiNumber[]Array of length 4 of the radius of each corner of the rectangle, starting in the top left and proceeding clockwise.
+cornerSmoothingNumberA value that lets you control how "smooth" the corners are. Ranges from 0 to 1. 0 is the default and means that the corner is perfectly circular. A value of 0.6 means the corner matches the iOS 7 "squircle" icon shape. Other values produce various other curves. See this post for the gory details!
+effectsEffect[]default: []An array of effects attached to this node (see effects section for more details).
+exportSettingsExportSetting[]default: []An array of export settings representing images to export from the node.
+fillsPaint[]default: []An array of fill paints applied to the node.
+isMaskBooleandefault: falseDoes this node mask sibling nodes in front of it?
+lockedBooleandefault: falseIf true, connector is locked and cannot be edited.
+opacityNumberOverall opacity of paint (colors within the paint can also have opacity values which would blend with this)
+strokesPaint[]default: []An array of stroke paints applied to the node.
+complexStrokePropertiesComplexStrokePropertiesdefault: {}cspdesc
+variableWidthPointsVariableWidthPoint[]default: []A list of points describing the width profile of variable width strokes.
+strokeWeightNumberThe weight of strokes on the node.
+strokeCapStringdefault: NONE
+The end cap of vector paths, as a string enum.
+NONE
+ROUND
+SQUARE
+LINE_ARROW
+TRIANGLE_ARROW
+DIAMOND_FILLED
+CIRCLE_FILLED
+TRIANGLE_FILLED
+WASHI_TAPE_1
+WASHI_TAPE_2
+WASHI_TAPE_3
+WASHI_TAPE_4
+WASHI_TAPE_5
+WASHI_TAPE_6
+strokeJoinStringdefault: MITER
+How corners in vector paths are rendered, as a string enum.
+MITER
+BEVEL
+ROUND
+strokeDashesNumber[]default: []An array of floating point numbers describing the pattern of dash length and gap lengths that the vector path follows. For example a value of [1, 2] indicates that the path has a dash of length 1 followed by a gap of length 2, repeated.
+strokeAlignString
+Position of stroke relative to vector outline, as a string enum.
+INSIDE: stroke drawn inside the shape boundary
+OUTSIDE: stroke drawn outside the shape boundary
+CENTER: stroke drawn centered along the shape boundary
+textBackgroundConnectorTextBackgroundConnector text background.
+relativeTransformTransformThe top two rows of a matrix that represents the 2D transform of this node relative to its parent. The bottom row of the matrix is implicitly always (0, 0, 1). Use to transform coordinates in geometry. Only present if geometry=paths is passed.
+stylesMap<StyleType, String>A mapping of a StyleType to style ID (see Style of styles present on this node. The style ID can be used to look up more information about the style in the top-level styles field.
+ | 
+WASHI_TAPE​ | 
+See properties for VECTOR.
+
+DOCUMENT
+CANVAS
+FRAME
+GROUP
+TRANSFORM_GROUP
+SECTION
+VECTOR
+BOOLEAN_OPERATION
+STAR
+LINE
+ELLIPSE
+REGULAR_POLYGON
+RECTANGLE
+TABLE
+TABLE_CELL
+TEXT
+TEXT_PATH
+SLICE
+COMPONENT
+COMPONENT_SET
+INSTANCE
+STICKY
+SHAPE_WITH_TEXT
+CONNECTOR
+WASHI_TAPE
+
+Was this page helpful?
+Leave us feedback
+Community Forum
+Discord Server
+GitHub Samples
+
+FigJam·Enterprise·Learn·Education·Careers·Pricing·Developers·Blog·Downloads·Releases·Security·Legal·Contact
+

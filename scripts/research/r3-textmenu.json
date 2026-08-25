@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/23570416033943-Use-the-actions-menu-in-Figma-Design",
+    "name": "Use the actions menu in Figma Design",
+    "snippet": "Access plugins and widgets. Tip: You can also open the actions menu using Command K on MacOS or Control K on Windows. Access Figma AI tools. Note: Figma AI is ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041064174-Access-design-tools-from-the-toolbar",
+    "name": "Access design tools from the toolbar – Figma Learn - Help Center",
+    "snippet": "Plugins and widgets Commands for common actions in Figma, like collapsing all layers in the navigation panel, or toggling rulers on and off",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=izyyWf6Ukmo",
+    "name": "Figma Project: Build a Navigation Menu with Components - YouTube",
+    "snippet": "Jun 12, 2018 · Figma is free to use. Sign up here: http://bit.ly/2KaMEjB In this video, we'll show you how to build a website navigation bar with a ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.folivora.ai/t/figma-keyboard-shortcuts-and-keyboard-layout/23741",
+    "name": "Figma keyboard shortcuts and keyboard layout",
+    "snippet": "Aug 17, 2021 · I''d like to create some important shortcut replacements for Figma.app Unfortunately the App is poorly designed to not showing all commands ...",
+    "host_name": "community.folivora.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039831974-Explore-the-navigation-bar-and-left-sidebar",
+    "name": "Explore the navigation bar and left sidebar – Figma Learn - Help Center",
+    "snippet": "The Tools tab contains an assortment of plugins, widgets, shaders, and Weave tools that you can use to extend the capabilities of Figma Design",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=OZCbuLVsDmI",
+    "name": "Add text expander content snippet shortcuts in Figma - YouTube",
+    "snippet": "Aug 6, 2023 · This video tutorial is a complete step-by-step guide showing you how to add text expander content snippet shortcuts in Figma using the ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/index247.html",
+    "name": "Suggest a Feature | Figma Forum",
+    "snippet": "Add a text range selection event for Text Review plugins. Text review plugins can only return suggestions while entering text edit mode and on the ...",
+    "host_name": "forum.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/design-bootcamp/76-features-in-figma-to-know-7dbb35cdb5a7",
+    "name": "76 features in Figma to know - Medium",
+    "snippet": "Mar 4, 2023 · The plugins dropdown allows us to add many tools to our Figma capabilities. We can import plugins to help us create 3d assets, add striking ...",
+    "host_name": "medium.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]
