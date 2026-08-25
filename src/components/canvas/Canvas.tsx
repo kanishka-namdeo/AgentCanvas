@@ -68,6 +68,10 @@ export function Canvas() {
   // 'dom' DOM parity-mode renderer. Absent field (pre-flag settings blob)
   // resolves to 'svg'.
   const renderer = useSettings((s) => s.renderer) ?? 'svg';
+  // DOM renderer layout strategy (spec Phase 2 dual layout mode): 'parity'
+  // (default — resolver absolute geometry) or 'native' (browser CSS flexbox
+  // for auto-layout containers). Ignored by the SVG renderer.
+  const layoutMode = useSettings((s) => s.canvasLayoutMode) ?? 'parity';
   // P0-01/02: Track the last right-click position + the shape under the cursor
   // at right-click time. The context-menu items use these to choose between
   // the empty-canvas and shape variants.
@@ -506,6 +510,7 @@ export function Canvas() {
           selectedIds={selectedIds}
           highlightIds={agentHighlightIds}
           viewport={viewport}
+          layoutMode={layoutMode}
           onShapeMouseDown={onShapeMouseDown}
           onResizeHandleMouseDown={onResizeHandleMouseDown}
         />

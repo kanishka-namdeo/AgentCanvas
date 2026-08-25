@@ -209,6 +209,7 @@ function mountBoth(doc: CanvasDocument): MountedPair {
       selectedIds={[]}
       highlightIds={[]}
       viewport={{ zoom: 1, panX: 0, panY: 0 }}
+      layoutMode="parity"
       onShapeMouseDown={noopMouseDown}
       onResizeHandleMouseDown={noopResizeHandle}
     />,
@@ -396,6 +397,7 @@ describe.skipIf(!process.env.PARITY_BROWSER)('parity: browser-gated geometry ora
         selectedIds={[]}
         highlightIds={[]}
         viewport={{ zoom, panX, panY }}
+        layoutMode="parity"
         onShapeMouseDown={noopMouseDown}
         onResizeHandleMouseDown={noopResizeHandle}
       />,

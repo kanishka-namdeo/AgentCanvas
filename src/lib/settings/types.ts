@@ -53,6 +53,16 @@ export type DefaultPalette = 'slate' | 'warm' | 'forest' | 'mono';
 /// 'svg' at the call site, so no migrate bump is needed.
 export type RendererMode = 'svg' | 'dom';
 
+/// DOM renderer layout strategy (spec §3.4 dual layout mode, Phase 2).
+/// 'parity' = every node absolutely positioned from the resolver's computed
+/// geometry (default — pixel-comparable with the SVG renderer).
+/// 'native' = containers with `layout ≠ 'none'` render as real CSS flexbox
+/// and the browser is the layout authority (measured-bounds readback feeds
+/// real sizes back to the resolver as hints). DOM renderer only — ignored
+/// in SVG mode. Optional field: absent (pre-Phase-2 settings blob) resolves
+/// to 'parity' at the call site, so no migrate bump is needed.
+export type CanvasLayoutMode = 'parity' | 'native';
+
 export interface AppSettings {
   // ── Phase 1: Agent behavior ──────────────────────────────────────────────
   /// LLM sampling temperature. 0.0 = deterministic, 1.0 = very creative.
@@ -78,6 +88,10 @@ export interface AppSettings {
   /// Canvas renderer backend — 'svg' (classic) or 'dom' (parity mode).
   /// Optional because pre-flag settings blobs lack it; consumers default to 'svg'.
   renderer?: RendererMode;
+  /// DOM renderer layout strategy — 'parity' (resolver geometry, default) or
+  /// 'native' (browser CSS flexbox layout, spec Phase 2).
+  /// Optional because pre-Phase-2 settings blobs lack it; consumers default to 'parity'.
+  canvasLayoutMode?: CanvasLayoutMode;
 
   // ── Phase 2: LLM provider ────────────────────────────────────────────────
   /// Which LLM client to construct in the runner.

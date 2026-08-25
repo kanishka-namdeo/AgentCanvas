@@ -142,11 +142,19 @@ function backgroundFromVariables(variables: { [key: string]: PenVariableDef } | 
   return typeof raw === 'string' ? raw : '#f8fafc';
 }
 
-/** Recompute the derived caches (shapes + tokens + background) after a tree mutation. */
-function recomputeDerived(doc: CanvasDocument): CanvasDocument {
+/** Recompute the derived caches (shapes + tokens + background) after a tree mutation.
+ *  `measuredBounds` (spec §3.8 readback) is an optional HINT map of real
+ *  browser-measured node sizes — passed by the canvas store so `fit_content`
+ *  nodes with no intrinsic content size use measured sizes instead of the
+ *  100×100 placeholder. Server-side / jsdom callers omit it (unchanged
+ *  behavior). */
+function recomputeDerived(
+  doc: CanvasDocument,
+  measuredBounds?: Record<string, { width: number; height: number }>,
+): CanvasDocument {
   return {
     ...doc,
-    shapes: resolvePenTree(doc),
+    shapes: resolvePenTree(doc, measuredBounds ? { measuredBounds } : undefined),
     tokens: variablesToTokens(doc.variables),
     background: backgroundFromVariables(doc.variables),
   };
@@ -154,7 +162,20 @@ function recomputeDerived(doc: CanvasDocument): CanvasDocument {
 
 // ---- The patch applier ----------------------------------------------------
 
-export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): CanvasDocument {
+/** Optional inputs for `applyPatchToCanvas` (spec Phase 2). */
+export interface ApplyPatchOpts {
+  /// Measured-bounds readback (spec §3.8): real browser-measured node sizes
+  /// from the DOM renderer's ResizeObserver pool. Threaded into
+  /// `recomputeDerived` → `resolvePenTree` as intrinsic-size hints for
+  /// `fit_content` nodes. Omitted by server-side / jsdom callers.
+  measuredBounds?: Record<string, { width: number; height: number }>;
+}
+
+export function applyPatchToCanvas(
+  canvas: CanvasDocument,
+  patch: CanvasPatch,
+  opts?: ApplyPatchOpts,
+): CanvasDocument {
   // Clone the tree + variables immutably; derived caches recomputed at the end.
   // Defensive: legacy docs / test fixtures may omit `children` — treat as empty tree.
   const next: CanvasDocument = {
@@ -866,7 +887,7 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
     next.pages = next.pages.map((p, i) => (i === activeIndex ? { ...p, children: next.children } : p));
   }
 
-  return recomputeDerived(next);
+  return recomputeDerived(next, opts?.measuredBounds);
 }
 
 /// Find a page's index by id or name (case-insensitive partial match).

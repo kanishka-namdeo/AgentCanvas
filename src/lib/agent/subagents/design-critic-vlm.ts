@@ -120,6 +120,12 @@ export async function dispatchDesignCriticVlmSubAgent(
       };
     }
 
+    // TODO(spec §3.8 / Phase 2): thread the browser's `measuredBounds` map
+    // (canvas store runtime slice, client-side) through the runner's tool
+    // context so this render prefers real measured geometry over the
+    // resolver's predictions. This sub-agent runs SERVER-side and has no
+    // canvas-store access today — the renderCanvasToPng `measuredBounds`
+    // param stays unwired here (documented in worklog M2-a).
     const png = await renderCanvasToPng(shapes, 1440, 900);
     const base64 = png.toString('base64');
     toolCallCount++;

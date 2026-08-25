@@ -86,6 +86,15 @@ export interface AgentToolCallEntry {
   summary?: string;
 }
 
+/// A real browser-measured node size (spec §3.8 measured-bounds readback).
+/// Written by the DOM renderer's ResizeObserver pool in NATIVE layout mode;
+/// consumed as an intrinsic-size hint by the resolver (`fit_content` nodes)
+/// and (future) `pen_get_computed` / snapshot enrichment.
+export interface MeasuredBounds {
+  width: number;
+  height: number;
+}
+
 /// The model the runner actually RESOLVED for the current turn — emitted by
 /// the server as `agent:model_info` right after the LLM session is created.
 /// Can differ from the configured model (settings store) when the resolver
@@ -145,6 +154,21 @@ interface CanvasState {
   /// 'pan' = click-and-drag pans the canvas (sticky pan mode). The Space-held
   /// shortcut in Canvas.tsx overrides this temporarily.
   toolMode: 'select' | 'pan';
+
+  // ---- Measured-bounds readback (spec §3.8) --------------------------------
+  /// REAL browser-measured node sizes keyed by node id (native DOM layout
+  /// mode only). EPHEMERAL runtime state — follows the agentHighlightIds
+  /// pattern exactly: NOT part of undo snapshots (undo/redo restore
+  /// `document` only), NOT persisted (the canvas store has no persist
+  /// middleware), and writing it NEVER recomputes `document`. It is a
+  /// one-way readback cache: model → DOM → measure → cache; the cache only
+  /// re-enters as a HINT on the NEXT document mutation (recomputeDerived),
+  /// so there is no layout feedback loop.
+  measuredBounds: Record<string, MeasuredBounds>;
+  /// Merge one measured bound (from the ResizeObserver pool's rAF flush).
+  setMeasuredBounds: (id: string, bounds: MeasuredBounds) => void;
+  /// Merge many measured bounds at once (batch variant).
+  setMeasuredBoundsMany: (entries: Record<string, MeasuredBounds> | Array<[string, MeasuredBounds]>) => void;
 
   // ---- Plugin state (Phase 5) ---------------------------------------------
   /// Pending ask_user_question — set when the agent emits
@@ -269,6 +293,23 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   undoStack: [],
   redoStack: [],
   toolMode: 'select',
+  measuredBounds: {},
+
+  setMeasuredBounds: (id, bounds) =>
+    set((s) => ({
+      measuredBounds: { ...s.measuredBounds, [id]: bounds },
+    })),
+
+  setMeasuredBoundsMany: (entries) =>
+    set((s) => {
+      const next = { ...s.measuredBounds };
+      if (Array.isArray(entries)) {
+        for (const [id, bounds] of entries) next[id] = bounds;
+      } else {
+        Object.assign(next, entries);
+      }
+      return { measuredBounds: next };
+    }),
 
   // Plugin state (Phase 5)
   pendingQuestion: null,
@@ -354,10 +395,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       set((s) => ({
         undoStack: [...s.undoStack, s.document].slice(-50),
         redoStack: [], // clear redo on new mutation
-        document: applyPatchToCanvas(s.document, patch),
+        document: applyPatchToCanvas(s.document, patch, { measuredBounds: s.measuredBounds }),
       }));
     } else {
-      set((s) => ({ document: applyPatchToCanvas(s.document, patch) }));
+      set((s) => ({ document: applyPatchToCanvas(s.document, patch, { measuredBounds: s.measuredBounds }) }));
     }
   },
 
@@ -633,14 +674,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     if (!session || session.documentId !== documentId) return;
     ss.setActiveSession(documentId, sessionId);
     set({ activeSessionId: sessionId });
-    // Load the session's current snapshot.
+    // Load the session's current snapshot. Measured bounds from the previous
+    // document are stale (ids don't carry over) — clear the readback cache.
     if (session.currentSnapshotId) {
       const snap = ss.getSnapshot(session.currentSnapshotId);
       if (snap) {
-        set({ document: { ...snap.document, id: documentId } });
+        set({ document: { ...snap.document, id: documentId }, measuredBounds: {} });
       }
     } else {
-      set({ document: { ...EMPTY_DOC, id: documentId, name: session.title } });
+      set({ document: { ...EMPTY_DOC, id: documentId, name: session.title }, measuredBounds: {} });
     }
     // Rebuild `turns` from session messages.
     get()._syncTurnsFromSession();
@@ -741,7 +783,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         if (!doc.shapes) doc.shapes = resolvePenTree(doc);
         if (!doc.tokens) doc.tokens = { colors: [], textStyles: [] };
         if (!doc.viewport) doc.viewport = { zoom: 1, panX: 120, panY: 80 };
-        set({ document: doc });
+        set({ document: doc, measuredBounds: {} });
         break;
       }
       case 'canvas:patch': {
@@ -761,10 +803,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           set((s) => ({
             undoStack: [...s.undoStack, s.document].slice(-50),
             redoStack: [], // clear redo on new mutation
-            document: applyPatchToCanvas(s.document, event.patch),
+            document: applyPatchToCanvas(s.document, event.patch, { measuredBounds: s.measuredBounds }),
           }));
         } else {
-          set((s) => ({ document: applyPatchToCanvas(s.document, event.patch) }));
+          set((s) => ({ document: applyPatchToCanvas(s.document, event.patch, { measuredBounds: s.measuredBounds }) }));
         }
         // If this is a "select" patch from the agent, briefly highlight.
         if (event.patch.op === 'select' && event.patch.shapeIds) {

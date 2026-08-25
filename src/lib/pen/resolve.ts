@@ -31,6 +31,34 @@ import type {
 import type { Shape, Layer, CanvasDocument, AutoLayout, GradientFill, ShadowEffect, CornerRadii } from '../canvas/types';
 import { collectComponents, expandRef, walkTree } from './document';
 
+// ---- Native-layout tree export (spec Phase 2, §3.2/§3.4) -----------------
+
+/// One node of the resolver's pre-flattening tree: the emitted flat `Shape`
+/// (absolute geometry, resolved styles) paired with its SOURCE .pen node
+/// (layout vocabulary: layout/gap/padding/justifyContent/alignItems, sizing
+/// modes width/height: number | 'fit_content' | 'fill_container',
+/// layoutPosition) plus the resolved children.
+///
+/// Consumed by the DOM renderer's NATIVE layout mode (dom/DomCanvas.tsx),
+/// which lets the browser lay out `layout ≠ 'none'` containers via CSS
+/// flexbox instead of using the resolver's predicted absolute geometry.
+export interface ResolvedTreeNode {
+  layer: Shape;
+  pen: PenChild;
+  children: ResolvedTreeNode[];
+}
+
+/// Optional inputs shared by both resolve entry points.
+export interface ResolveOpts {
+  /// Measured bounds readback (spec §3.8): REAL browser-measured sizes keyed
+  /// by node id, produced by the DOM renderer's ResizeObserver pool in native
+  /// layout mode. Used as an intrinsic-size HINT for `fit_content` nodes that
+  /// have no intrinsic content size (the resolver cannot measure text) —
+  /// instead of falling back to the 100×100 placeholder. Purely advisory:
+  /// absent/unknown ids keep today's behavior.
+  measuredBounds?: Record<string, { width: number; height: number }>;
+}
+
 // ---- Container node predicate (Figma-canonical) --------------------------
 //
 // Returns true for any .pen node type that can contain children. Includes the
@@ -74,8 +102,11 @@ function resolveValue<T extends string | number | boolean>(
   return themed as T;
 }
 
-/** Pick the winning value from a variable def given the effective theme. */
-function resolveThemedValue(def: PenVariableDef, theme: PenTheme): string | number | boolean {
+/** Pick the winning value from a variable def given the effective theme.
+ *  Exported for the DOM renderer's variable publishing (dom/variables.ts),
+ *  which resolves document variables to CSS custom properties under the
+ *  document-default theme (spec §3.6). */
+export function resolveThemedValue(def: PenVariableDef, theme: PenTheme): string | number | boolean {
   const value = def.value as PenVariableDef['value'];
   if (!Array.isArray(value)) {
     // Single value — resolve nested $refs one level.
@@ -242,12 +273,16 @@ function nodeHeight(node: PenChild): unknown {
 /** Compute the intrinsic size of a node, given its (already-sized) children.
  *  Uses a two-phase approach for fill_container children: first sizes
  *  non-fill children to determine the parent's fit_content size, then
- *  resolves fill_container children against the now-known parent size. */
+ *  resolves fill_container children against the now-known parent size.
+ *  `measured` (spec §3.8 readback) supplies real browser-measured sizes for
+ *  fit_content nodes with no intrinsic content — consulted before the
+ *  100×100 placeholder fallback. */
 function computeIntrinsicSize(
   node: PenChild,
   children: ResolvedNode[],
   parentContentW: number,
   parentContentH: number,
+  measured?: Record<string, { width: number; height: number }>,
 ): { width: number; height: number } {
   let width: number;
   let height: number;
@@ -314,11 +349,17 @@ function computeIntrinsicSize(
 
     // Fallback if still 0 after sizing: 0×0 for groups/sections (invisible containers),
     // 100×100 for other types (frames, components) which need a minimum visible size.
+    // Spec §3.8 measured-bounds readback: when the DOM renderer has measured
+    // this node for real (native layout mode), prefer the measured size over
+    // the 100×100 prediction placeholder.
+    const measuredFor = measured?.[node.id];
     if ((isFitContent(w) || implicitFitW) && width === 0) {
-      width = (node.type === 'group' || node.type === 'section') ? 0 : 100;
+      if (measuredFor && Number.isFinite(measuredFor.width) && measuredFor.width > 0) width = measuredFor.width;
+      else width = (node.type === 'group' || node.type === 'section') ? 0 : 100;
     }
     if ((isFitContent(h) || implicitFitH) && height === 0) {
-      height = (node.type === 'group' || node.type === 'section') ? 0 : 100;
+      if (measuredFor && Number.isFinite(measuredFor.height) && measuredFor.height > 0) height = measuredFor.height;
+      else height = (node.type === 'group' || node.type === 'section') ? 0 : 100;
     }
   }
 
@@ -493,8 +534,25 @@ function layoutChildren(
 /**
  * Resolve a .pen document tree into a flat list of `Shape` render nodes
  * with absolute positions, expanded refs, and resolved variables/themes.
+ * Thin wrapper over `resolvePenTreeDetailed` — identical behavior.
  */
-export function resolvePenTree(doc: CanvasDocument): Shape[] {
+export function resolvePenTree(doc: CanvasDocument, opts?: ResolveOpts): Shape[] {
+  return resolvePenTreeDetailed(doc, opts).layers;
+}
+
+/**
+ * Resolve a .pen document tree into BOTH representations the renderers need
+ * (spec Phase 2):
+ *   - `layers`: the flat, depth-first `Shape[]` (identical to
+ *     `resolvePenTree`'s output — the SVG renderer + parity-mode DOM
+ *     renderer + panels consume this).
+ *   - `tree`: the pre-flattening tree (`ResolvedTreeNode[]`) pairing each
+ *     emitted Shape with its source .pen node and resolved children — the
+ *     DOM renderer's NATIVE layout mode consumes this so it can emit real
+ *     CSS flexbox for `layout ≠ 'none'` containers.
+ */
+export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts): { layers: Shape[]; tree: ResolvedTreeNode[] } {
+  const measured = opts?.measuredBounds;
   const variables = doc.variables;
   const components = collectComponents(doc.children);
   const out: Shape[] = [];
@@ -545,12 +603,12 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
 
       if (isContainerNode(n) && (n.children?.length ?? 0) > 0) {
         const kids = resolve(n.children!, rn, rn.theme);
-        const { width, height } = computeIntrinsicSize(n, kids, parentContentW, parentContentH);
+        const { width, height } = computeIntrinsicSize(n, kids, parentContentW, parentContentH, measured);
         rn.width = width;
         rn.height = height;
         rn._kids = kids;
       } else {
-        const { width, height } = computeIntrinsicSize(n, [], parentContentW, parentContentH);
+        const { width, height } = computeIntrinsicSize(n, [], parentContentW, parentContentH, measured);
         rn.width = width;
         rn.height = height;
       }
@@ -596,8 +654,12 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
   // are laid out.
   layoutTree(resolved);
 
-  // Flatten depth-first, emitting Shape for each node.
-  function emit(nodes: (ResolvedNode & { _kids?: ResolvedNode[] })[], parentId: string | null) {
+  // Flatten depth-first, emitting Shape for each node. The walk builds BOTH
+  // the flat list (`out` — parent pushed before its children, matching the
+  // original emit order exactly) and the pre-flattening tree consumed by the
+  // DOM renderer's native layout mode.
+  function emit(nodes: (ResolvedNode & { _kids?: ResolvedNode[] })[], parentId: string | null): ResolvedTreeNode[] {
+    const treeNodes: ResolvedTreeNode[] = [];
     for (const rn of nodes) {
       const n = rn.node;
       const vars = variables;
@@ -713,14 +775,17 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
       mapNodeExtras(shape, n, vars, theme);
 
       out.push(shape);
-      if (rn._kids && rn._kids.length > 0) {
-        emit(rn._kids as (ResolvedNode & { _kids?: ResolvedNode[] })[], n.id);
-      }
+      const kids =
+        rn._kids && rn._kids.length > 0
+          ? emit(rn._kids as (ResolvedNode & { _kids?: ResolvedNode[] })[], n.id)
+          : [];
+      treeNodes.push({ layer: shape, pen: n, children: kids });
     }
+    return treeNodes;
   }
 
-  emit(resolved, null);
-  return out;
+  const tree = emit(resolved, null);
+  return { layers: out, tree };
 }
 
 /** Map a .pen node type to our renderer's Layer type. */

@@ -44,7 +44,7 @@ import {
   type LLMProvider, type SnapshotCadence, type SkillSelectionMode,
   type AutoArchiveIdleAfter, type Density, type ThemePreference,
   type DefaultPalette, type ThinkingLevel, type McpServerConfig,
-  type RendererMode,
+  type RendererMode, type CanvasLayoutMode,
   normalizeLLMProvider,
   providerRequiresApiKey,
   providerDefaultModel,
@@ -671,6 +671,7 @@ function AppearanceSection() {
   const themePreference = useSettings((s) => s.themePreference);
   const density = useSettings((s) => s.density);
   const renderer = useSettings((s) => s.renderer) ?? 'svg';
+  const layoutMode = useSettings((s) => s.canvasLayoutMode) ?? 'parity';
   const set = useSettings((s) => s.set);
 
   // Apply theme preference immediately via the same .dark class toggle that
@@ -761,6 +762,24 @@ function AppearanceSection() {
             <SelectContent>
               <SelectItem value="svg" className="text-[11px]">SVG (classic)</SelectItem>
               <SelectItem value="dom" className="text-[11px]">DOM (experimental)</SelectItem>
+            </SelectContent>
+          </Select>
+        </Row>
+
+        <Row
+          label="Canvas layout mode"
+          description="DOM renderer only — native uses browser CSS layout (spec Phase 2); ignored in SVG mode."
+        >
+          <Select
+            value={layoutMode}
+            onValueChange={(v) => set('canvasLayoutMode', v as CanvasLayoutMode)}
+          >
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="parity" className="text-[11px]">Parity (resolver)</SelectItem>
+              <SelectItem value="native" className="text-[11px]">Native (CSS flex)</SelectItem>
             </SelectContent>
           </Select>
         </Row>

@@ -19,7 +19,8 @@
 
 import { memo } from 'react';
 import type { Layer } from '@/lib/canvas/types';
-import { styleFor } from './styleFor';
+import type { PenChild } from '@/lib/pen/types';
+import { styleFor, nativeLayoutOptsFor } from './styleFor';
 import { renderIsland } from './islands';
 
 export interface DomNodeProps {
@@ -37,6 +38,25 @@ export interface DomNodeProps {
   getChildren: (id: string) => Layer[];
   onShapeMouseDown: (e: React.MouseEvent, shape: Layer) => void;
   onHover: (id: string | null) => void;
+
+  // ---- Native CSS layout mode (spec §3.4, Phase 2) -------------------------
+  /// 'parity' (default / undefined) = Phase-1 behavior, byte-for-byte: every
+  /// node absolutely positioned from the resolver's geometry.
+  layoutMode?: 'parity' | 'native';
+  /// The SOURCE .pen node for this layer (native mode; undefined in parity —
+  /// DomCanvas looks it up from the resolver tree's pen index).
+  penNode?: PenChild;
+  /// Parent's flex direction (native mode): 'vertical' | 'horizontal' when
+  /// the parent renders as a CSS flex container, null otherwise (root or
+  /// layout:'none' parent). This node is a FLOW child iff parentDirection is
+  /// set AND its own `layoutPosition !== 'absolute'`.
+  parentDirection?: 'vertical' | 'horizontal' | null;
+  /// .pen node lookup for children (stable useCallback in DomCanvas).
+  getPenNode?: (id: string) => PenChild | undefined;
+  /// Measurement registration (native mode): DomCanvas's MeasuredBoundsPool
+  /// observes the node div; called with null on unmount. Undefined in parity
+  /// mode (no measurement — geometry comes from the resolver).
+  registerEl?: (id: string, el: HTMLDivElement | null) => void;
 }
 
 export const DomNode = memo(function DomNode({
@@ -47,12 +67,41 @@ export const DomNode = memo(function DomNode({
   getChildren,
   onShapeMouseDown,
   onHover,
+  layoutMode,
+  penNode,
+  parentDirection,
+  getPenNode,
+  registerEl,
 }: DomNodeProps) {
-  const style = styleFor(layer, { relX: layer.x - parentX, relY: layer.y - parentY });
+  // ---- Native layout mode decisions (spec §3.4) ----------------------------
+  // A node is a flex CONTAINER when its own .pen layout is vertical/horizontal;
+  // it is a flex ITEM (flow child) when its parent is a flex container and it
+  // hasn't opted out via layoutPosition:'absolute'. Children of layout:'none'
+  // parents (and roots) stay absolutely positioned from resolver geometry.
+  const native = layoutMode === 'native';
+  const ownLayoutOpts = native ? nativeLayoutOptsFor(penNode) : null;
+  const isFlowChild =
+    native &&
+    parentDirection != null &&
+    (penNode as { layoutPosition?: string } | undefined)?.layoutPosition !== 'absolute';
+
+  const style = styleFor(layer, {
+    relX: layer.x - parentX,
+    relY: layer.y - parentY,
+    nativeLayout: ownLayoutOpts ?? undefined,
+    flowChild: isFlowChild
+      ? {
+          penWidth: (penNode as { width?: unknown } | undefined)?.width,
+          penHeight: (penNode as { height?: unknown } | undefined)?.height,
+          parentDirection: parentDirection!,
+        }
+      : undefined,
+  });
   const isInstance = !!layer.componentId && layer.componentId !== layer.id;
 
   return (
     <div
+      ref={registerEl ? (el: HTMLDivElement | null) => registerEl(layer.id, el) : undefined}
       data-node-id={layer.id}
       data-node-type={layer.type}
       data-instance-of={isInstance ? layer.componentId : undefined}
@@ -113,7 +162,9 @@ export const DomNode = memo(function DomNode({
       )}
 
       {/* (3) recursive children — DOM order + zIndex CSS mirror the SVG
-              renderer's flat zIndex sort */}
+              renderer's flat zIndex sort. In native mode children also carry
+              the flex context: parentDirection tells each child whether it
+              flows (flex item) or positions absolutely. */}
       {childLayers.map((child) => (
         <DomNode
           key={child.id}
@@ -122,6 +173,11 @@ export const DomNode = memo(function DomNode({
           parentX={layer.x}
           parentY={layer.y}
           getChildren={getChildren}
+          layoutMode={layoutMode}
+          penNode={getPenNode?.(child.id)}
+          parentDirection={ownLayoutOpts ? ownLayoutOpts.direction : null}
+          getPenNode={getPenNode}
+          registerEl={registerEl}
           onShapeMouseDown={onShapeMouseDown}
           onHover={onHover}
         />
