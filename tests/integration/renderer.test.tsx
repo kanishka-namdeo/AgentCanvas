@@ -1,23 +1,37 @@
 // Integration tests — renderer reflects document state driven through the store.
 //
+// Phase 5 migration (spec acceptance criterion): selectors migrated from
+// SVG-specific (`rect`, `<text>`, `ellipse`, `polygon`, `image`, `filter`,
+// `linearGradient`, `stop`) to the renderer-agnostic DATA-ATTRIBUTE CONTRACT
+// (spec Appendix C):
+//   - `[data-node-id]`            every node carries this
+//   - `[data-node-type="..."]`    stable per-LayerType selector
+//   - `[data-instance-of]`        instances only
+//
+// Color/style assertions use the inline-style `background` / `boxShadow` /
+// `textShadow` properties (jsdom normalizes hex fills to rgb — see
+// dom-node.test.tsx for the same pattern). SVG-specific constructs (gradient
+// stops, filter primitives) are tested at the unit-test layer (dom-node /
+// ShapeRenderer) and replaced here with their DOM equivalents (linear-gradient
+// CSS background, boxShadow CSS).
+//
 // Strategy:
 //   - Set up `useCanvasStore` with an initial document.
 //   - Drive mutations through `_onSync({type:'canvas:patch', patch})` — the
 //     same path WebSocket events take in production. Wrap in `act()` so React
 //     flushes state updates before assertions run.
 //   - Render the `Canvas` component (which subscribes to the store) via
-//     @testing-library/react and assert the SVG reflects the mutations.
+//     @testing-library/react and assert the DOM reflects the mutations.
 //
 // We test the integration of:
 //   - The store's document state
 //   - The Canvas component's subscription to that state
-//   - The ShapeRenderer's rendering of each shape type
+//   - The DomCanvas/DomNode rendering of each shape type
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
-import { useSettings } from '@/lib/settings/store';
 import { Canvas } from '@/components/canvas/Canvas';
 import type { CanvasDocument, Shape } from '@/lib/canvas/types'
 import type { PenChild } from '@/lib/pen/types';
@@ -49,8 +63,8 @@ function makeShape(id: string, overrides: Partial<Shape> = {}): Shape {
     parentId: null, zIndex: 0,
     locked: false, visible: true,
     autoLayout: null, tokenBinding: null, componentId: null,
-    points: null, closed: false, src: null, radii: null,
-    gradient: null, shadow: null, blur: 0, maskId: null,
+    points: null, closed: false, src: null, radii: null, gradient: null,
+    shadow: null, blur: 0, maskId: null,
     ...overrides,
   };
 }
@@ -78,12 +92,9 @@ function resetStore(doc: CanvasDocument = makeDoc([])) {
     snapshots: {},
     activeSessionByDoc: {},
   });
-  // Phase 5 default-flip guard: production now defaults to 'dom' but these
-  // tests assert SVG-specific selectors (`rect`, `<text>`, `ellipse`, …).
-  // Pin to 'svg' so the SvgCanvas mounts and the assertions still hold.
-  // Renderer-agnostic migration to the data-attribute contract is tracked
-  // separately (spec Phase 5 acceptance criterion).
-  useSettings.setState({ renderer: 'svg', canvasLayoutMode: 'parity', domCulling: false });
+  // Phase 5: default mode is now 'dom' (no SVG pin). These tests use
+  // data-attribute selectors ([data-node-type]) which work in BOTH renderer
+  // modes — the test runs against whichever renderer is the default.
 }
 
 function renderCanvas() {
@@ -106,19 +117,31 @@ function redo() {
   act(() => useCanvasStore.getState().redo());
 }
 
+/// Hex → rgb() helper. jsdom's CSSOM normalizes hex fills to rgb in inline
+/// styles (see dom-node.test.tsx). This helper converts hex → rgb so the
+/// assertions read naturally and survive the normalization.
+function hexToRgb(hex: string): string {
+  const m = hex.match(/^#?([0-9a-fA-F]{6})$/);
+  if (!m) return hex;
+  const r = parseInt(m[1].slice(0, 2), 16);
+  const g = parseInt(m[1].slice(2, 4), 16);
+  const b = parseInt(m[1].slice(4, 6), 16);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 // ---- Tests -------------------------------------------------------------------
 
-describe('renderer integration: document mutations appear in the SVG', () => {
+describe('renderer integration: document mutations appear in the canvas (data-attribute contract)', () => {
   beforeEach(() => {
     resetStore();
     cleanup();
   });
 
-  it('renders an empty canvas with no shapes', () => {
+  it('renders an empty canvas with no shape nodes', () => {
     const { container } = renderCanvas();
-    // No shape rects should be present (just the <defs> gradients etc).
-    const rects = container.querySelectorAll('rect, ellipse, circle, polygon, polyline, image, text');
-    expect(rects.length).toBe(0);
+    // No [data-node-id] elements should be present.
+    const nodes = container.querySelectorAll('[data-node-id]');
+    expect(nodes.length).toBe(0);
   });
 
   it('renders a rectangle after a canvas:patch add op', () => {
@@ -128,9 +151,11 @@ describe('renderer integration: document mutations appear in the SVG', () => {
       shape: { type: 'rectangle', name: 'Card', x: 10, y: 10, width: 80, height: 50, fill: '#ff0000', id: 'r1' },
       summary: 'add rect',
     });
-    const rect = container.querySelector('rect');
+    const rect = container.querySelector('[data-node-type="rectangle"]') as HTMLElement | null;
     expect(rect).not.toBeNull();
-    expect(rect!.getAttribute('fill')).toBe('#ff0000');
+    expect(rect!.getAttribute('data-node-id')).toBe('r1');
+    // Fill maps to CSS background (jsdom normalizes hex → rgb).
+    expect(rect!.style.background).toBe(hexToRgb('#ff0000'));
   });
 
   it('reflects an update patch — fill changes appear in the rendered rect', () => {
@@ -138,8 +163,9 @@ describe('renderer integration: document mutations appear in the SVG', () => {
     const { container } = renderCanvas();
 
     // Find the rect with the original fill.
-    const before = container.querySelector('rect[fill="#ff0000"]');
+    const before = container.querySelector('[data-node-type="rectangle"]') as HTMLElement | null;
     expect(before).not.toBeNull();
+    expect(before!.style.background).toBe(hexToRgb('#ff0000'));
 
     // Apply an update patch changing the fill to blue.
     applyPatch({
@@ -150,17 +176,16 @@ describe('renderer integration: document mutations appear in the SVG', () => {
     });
 
     // The new fill should be present; the old should be gone.
-    const after = container.querySelector('rect[fill="#0000ff"]');
+    const after = container.querySelector('[data-node-type="rectangle"]') as HTMLElement | null;
     expect(after).not.toBeNull();
-    const oldGone = container.querySelector('rect[fill="#ff0000"]');
-    expect(oldGone).toBeNull();
+    expect(after!.style.background).toBe(hexToRgb('#0000ff'));
   });
 
   it('reflects a remove patch — the rect disappears', () => {
     resetStore(makeDoc([makeShape('r1'), makeShape('r2')]));
     const { container } = renderCanvas();
 
-    const before = container.querySelectorAll('rect');
+    const before = container.querySelectorAll('[data-node-type="rectangle"]');
     expect(before.length).toBeGreaterThanOrEqual(2);
 
     applyPatch({
@@ -169,28 +194,28 @@ describe('renderer integration: document mutations appear in the SVG', () => {
       summary: 'remove r1',
     });
 
-    const after = container.querySelectorAll('rect');
+    const after = container.querySelectorAll('[data-node-type="rectangle"]');
     expect(after.length).toBe(before.length - 1);
   });
 
   it('reflects a clear patch — all shapes disappear', () => {
     resetStore(makeDoc([makeShape('r1'), makeShape('r2'), makeShape('r3')]));
     const { container } = renderCanvas();
-    expect(container.querySelectorAll('rect').length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll('[data-node-id]').length).toBeGreaterThanOrEqual(3);
 
     applyPatch({ op: 'clear', summary: 'clear all' });
 
-    expect(container.querySelectorAll('rect').length).toBe(0);
+    expect(container.querySelectorAll('[data-node-id]').length).toBe(0);
   });
 
-  it('renders a text shape as SVG <text> with the correct content', () => {
+  it('renders a text shape with the correct content', () => {
     const { container } = renderCanvas();
     applyPatch({
       op: 'add',
       shape: { type: 'text', name: 'Heading', x: 0, y: 0, width: 200, height: 32, text: 'Hello world', fontSize: 24, textColor: '#0f172a', id: 't1' },
       summary: 'add text',
     });
-    const text = container.querySelector('text');
+    const text = container.querySelector('[data-node-type="text"]');
     expect(text).not.toBeNull();
     expect(text!.textContent).toContain('Hello world');
   });
@@ -202,12 +227,14 @@ describe('renderer integration: document mutations appear in the SVG', () => {
       shape: { type: 'ellipse', name: 'Avatar', x: 0, y: 0, width: 80, height: 80, fill: '#00ff00', id: 'e1' },
       summary: 'add ellipse',
     });
-    const ellipse = container.querySelector('ellipse');
+    const ellipse = container.querySelector('[data-node-type="ellipse"]') as HTMLElement | null;
     expect(ellipse).not.toBeNull();
-    expect(ellipse!.getAttribute('fill')).toBe('#00ff00');
+    expect(ellipse!.style.background).toBe(hexToRgb('#00ff00'));
+    // Ellipses always render with border-radius: 50% (SVG parity).
+    expect(ellipse!.style.borderRadius).toBe('50%');
   });
 
-  it('renders a path (closed polygon) from points', () => {
+  it('renders a path (closed polygon) — data-attribute + island present', () => {
     const { container } = renderCanvas();
     applyPatch({
       op: 'add',
@@ -221,17 +248,21 @@ describe('renderer integration: document mutations appear in the SVG', () => {
       },
       summary: 'add triangle',
     });
-    const polygon = container.querySelector('polygon');
+    // The DOM renderer wraps the polygon SVG island in a div with
+    // data-node-type="path" (spec §3.7 SVG islands). The island itself is
+    // a <polygon> SVG element rendered inside the div — covered by the
+    // dom-node unit tests. Integration test asserts the wrapper exists
+    // with the right type + id.
+    const wrapper = container.querySelector('[data-node-type="path"]');
+    expect(wrapper).not.toBeNull();
+    expect(wrapper!.getAttribute('data-node-id')).toBe('p1');
+    // The SVG island inside the wrapper carries the polygon.
+    const polygon = wrapper!.querySelector('polygon');
     expect(polygon).not.toBeNull();
     expect(polygon!.getAttribute('fill')).toBe('#ff8800');
-    // The points attribute should contain all three vertices.
-    const pts = polygon!.getAttribute('points') ?? '';
-    expect(pts).toContain('50,0');
-    expect(pts).toContain('100,100');
-    expect(pts).toContain('0,100');
   });
 
-  it('renders an image shape with href', () => {
+  it('renders an image shape with the src on an inner <img>', () => {
     const { container } = renderCanvas();
     applyPatch({
       op: 'add',
@@ -243,13 +274,15 @@ describe('renderer integration: document mutations appear in the SVG', () => {
       },
       summary: 'add image',
     });
-    const image = container.querySelector('image');
-    expect(image).not.toBeNull();
-    const href = image!.getAttribute('href') ?? image!.getAttribute('xlink:href');
-    expect(href).toBe('https://example.com/photo.png');
+    const wrapper = container.querySelector('[data-node-type="image"]');
+    expect(wrapper).not.toBeNull();
+    // The DOM renderer paints an <img> inside the wrapper div (islands.tsx).
+    const img = wrapper!.querySelector('img');
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute('src')).toBe('https://example.com/photo.png');
   });
 
-  it('renders a shadow filter on a shape with shadow set', () => {
+  it('renders a shadow on a shape with shadow set (CSS boxShadow)', () => {
     const { container } = renderCanvas();
     applyPatch({
       op: 'add',
@@ -261,12 +294,19 @@ describe('renderer integration: document mutations appear in the SVG', () => {
       },
       summary: 'add shadowed rect',
     });
-    // The ShapeRenderer renders shadow filters inside a <defs> with a <filter>.
-    const filters = container.querySelectorAll('filter');
-    expect(filters.length).toBeGreaterThanOrEqual(1);
+    // DOM renderer maps shadow → CSS boxShadow (non-text). The SVG renderer
+    // would have rendered a <filter> inside <defs>. The data-attribute
+    // contract doesn't cover filter primitives — the assertion is the
+    // boxShadow style on the node div.
+    const rect = container.querySelector('[data-node-type="rectangle"]') as HTMLElement | null;
+    expect(rect).not.toBeNull();
+    // boxShadow format: `<x>px <y>px <blur>px <spread>px <color>` — jsdom
+    // keeps the original hex color (unlike background which normalizes to rgb).
+    expect(rect!.style.boxShadow).toContain('0px 4px 12px');
+    expect(rect!.style.boxShadow).toContain('#000000');
   });
 
-  it('renders a gradient fill via <linearGradient>', () => {
+  it('renders a gradient fill (CSS linear-gradient)', () => {
     const { container } = renderCanvas();
     applyPatch({
       op: 'add',
@@ -284,10 +324,16 @@ describe('renderer integration: document mutations appear in the SVG', () => {
       },
       summary: 'add gradient rect',
     });
-    const gradient = container.querySelector('linearGradient');
-    expect(gradient).not.toBeNull();
-    const stops = gradient!.querySelectorAll('stop');
-    expect(stops.length).toBe(2);
+    // DOM renderer maps gradient → CSS `background: linear-gradient(...)`.
+    // The SVG renderer would have rendered a <linearGradient> def + stops.
+    // The data-attribute contract asserts the linear-gradient string on
+    // the node div's background.
+    const rect = container.querySelector('[data-node-type="rectangle"]') as HTMLElement | null;
+    expect(rect).not.toBeNull();
+    expect(rect!.style.background).toContain('linear-gradient');
+    // Both stop colors should appear in the gradient string.
+    expect(rect!.style.background).toContain('rgb(255, 0, 0)');
+    expect(rect!.style.background).toContain('rgb(0, 0, 255)');
   });
 
   it('reflects undo: shape disappears after undo of an add patch', () => {
@@ -297,11 +343,11 @@ describe('renderer integration: document mutations appear in the SVG', () => {
       shape: { type: 'rectangle', name: 'Card', x: 0, y: 0, width: 100, height: 100, fill: '#00ff00', id: 'u1' },
       summary: 'add',
     });
-    expect(container.querySelectorAll('rect').length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelectorAll('[data-node-id]').length).toBeGreaterThanOrEqual(1);
 
     undo();
     // After undo, the shape should be gone.
-    expect(container.querySelectorAll('rect[fill="#00ff00"]').length).toBe(0);
+    expect(container.querySelectorAll('[data-node-id="u1"]').length).toBe(0);
   });
 
   it('reflects redo: shape reappears after redo of an undone add patch', () => {
@@ -312,16 +358,23 @@ describe('renderer integration: document mutations appear in the SVG', () => {
       summary: 'add',
     });
     undo();
-    expect(container.querySelectorAll('rect[fill="#00ff00"]').length).toBe(0);
+    expect(container.querySelectorAll('[data-node-id="rd1"]').length).toBe(0);
 
     redo();
-    expect(container.querySelectorAll('rect[fill="#00ff00"]').length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelectorAll('[data-node-id="rd1"]').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('hidden shapes (visible: false) render nothing', () => {
+  it('hidden shapes (visible: false) render nothing visible', () => {
     resetStore(makeDoc([makeShape('h1', { visible: false, fill: '#abcdef' })]));
     const { container } = renderCanvas();
-    expect(container.querySelector('rect[fill="#abcdef"]')).toBeNull();
+    // DOM renderer: hidden → visibility:hidden (subtree stays mounted but
+    // not visible). The shape div exists (per spec — re-show doesn't remount),
+    // but its visibility is 'hidden'.
+    const node = container.querySelector('[data-node-id="h1"]') as HTMLElement | null;
+    expect(node).not.toBeNull();
+    expect(node!.style.visibility).toBe('hidden');
+    // And the fill is still set on the div (would render if visible).
+    expect(node!.style.background).toBe(hexToRgb('#abcdef'));
   });
 
   it('bulk_add renders all shapes in one update', () => {
@@ -335,14 +388,19 @@ describe('renderer integration: document mutations appear in the SVG', () => {
       ],
       summary: 'bulk add 3',
     });
-    expect(container.querySelector('rect[fill="#ff0000"]')).not.toBeNull();
-    expect(container.querySelector('rect[fill="#00ff00"]')).not.toBeNull();
-    expect(container.querySelector('rect[fill="#0000ff"]')).not.toBeNull();
+    expect(container.querySelector('[data-node-id="ba1"]') as HTMLElement | null).not.toBeNull();
+    expect(container.querySelector('[data-node-id="ba2"]') as HTMLElement | null).not.toBeNull();
+    expect(container.querySelector('[data-node-id="ba3"]') as HTMLElement | null).not.toBeNull();
+    // Verify each rect has its expected fill.
+    expect((container.querySelector('[data-node-id="ba1"]') as HTMLElement)!.style.background).toBe(hexToRgb('#ff0000'));
+    expect((container.querySelector('[data-node-id="ba2"]') as HTMLElement)!.style.background).toBe(hexToRgb('#00ff00'));
+    expect((container.querySelector('[data-node-id="ba3"]') as HTMLElement)!.style.background).toBe(hexToRgb('#0000ff'));
   });
 
   it('background op changes the canvas container style', () => {
     const { container } = renderCanvas();
-    // Initial background is white (#ffffff) — the outer div has style.background.
+    // Initial background is white (#ffffff) — the outer wrapper carries
+    // style.background (the world div, in DOM mode).
     const outerBefore = container.firstChild as HTMLElement;
     expect(outerBefore).not.toBeNull();
     expect(outerBefore.style.background).toContain('rgb(255, 255, 255)');
