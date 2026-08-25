@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.reddit.com/r/ChatGPTCoding/comments/1inyt2s/my_experience_with_cursor_vs_cline_after_3_months",
+    "name": "My experience with Cursor vs Cline after 3 months of daily use - Reddit",
+    "snippet": "Feb 12, 2025 · TLDR: Both are solid tools but Cline is in a different league, though it comes with higher (but worth it) costs. I personally like to use Cline ... For people who've used both Cline and Cursor, which one do you prefer? I've used Cursor with claude, and Cline with DeepSeek v2.5, Gemini ... More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/add-a-setting-to-keep-request-response-permanently-expanded-in-agent-chat/152276",
+    "name": "Add a setting to keep Request & Response permanently expanded",
+    "snippet": "Feb 19, 2026 · Cursor already exposes hotkeys for collapse/expand in the editor, so a similar UX pattern can be applied to Agent chat.",
+    "host_name": "forum.cursor.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=5zR1ZE5aqho",
+    "name": "Cursor Crash Course & AI Coding For Beginners - YouTube",
+    "snippet": "Aug 19, 2025 · In this video, we'll explore the Cursor AI editor and my workflow for coding with AI. We will talk about context, rules, tab completion, ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@fstory97/developing-with-alpha-from-cursor-to-settling-on-vs-codes-cline-218be9b4bae2",
+    "name": "[Developing with Alpha] From Cursor to Settling on VS Code's Cline",
+    "snippet": "Mar 25, 2025 · Alpha is currently operating through Cursor's AI agent system. Right now, Alpha functions through: persona and behavior rules defined by system ...",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cline.bot/ide",
+    "name": "Cline IDE - The Coding Agent for VS Code, JetBrains, Cursor, and",
+    "snippet": "The original surface for the Cline agent: a chat sidebar that reads your files, runs your tools, edits your code, and shows you every change before it lands.",
+    "host_name": "cline.bot",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=LoDFscy_9Ro",
+    "name": "My 10X Cursor Design Workflow - YouTube",
+    "snippet": "Aug 5, 2025 · ... cursor-course/blob/main/.cursor/rules/design_profile.json Contact Software Freelancing: https://shawnesquivel.com/ Contact me ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]
