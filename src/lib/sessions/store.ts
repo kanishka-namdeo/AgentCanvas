@@ -63,7 +63,7 @@ function makeSession(documentId: string, partial?: Partial<Session>): Session {
     currentSnapshotId: null,
     currentRunId: null,
     lastRunId: null,
-    model: 'gpt-4o-mini',
+    model: 'unresolved',
     messageCount: 0,
     runCount: 0,
     toolCallCount: 0,
@@ -107,6 +107,11 @@ interface SessionStoreState {
 
   // ---- Mutations: Sessions ----
   createSession: (documentId: string, partial?: Partial<Session>) => Session;
+  /// Record the RESOLVED model on a session (from agent:model_info events).
+  /// Sessions seed with 'unresolved' — the canvas store calls this when the
+  /// runner reports the actual model (which can differ from the configured
+  /// one due to resolver fallbacks).
+  setSessionModel: (id: string, model: string) => void;
   setActiveSession: (documentId: string, sessionId: string) => void;
   renameSession: (id: string, title: string) => void;
   autoTitleFromPrompt: (sessionId: string, prompt: string) => void;
@@ -123,7 +128,7 @@ interface SessionStoreState {
   touchSession: (id: string) => void;
 
   // ---- Mutations: Runs ----
-  startRun: (sessionId: string, prompt: string, trigger?: RunTrigger) => Run;
+  startRun: (sessionId: string, prompt: string, trigger?: RunTrigger, model?: string) => Run;
   endRun: (runId: string, status: RunStatus, errorMessage?: string) => void;
 
   // ---- Mutations: Messages ----
@@ -310,6 +315,23 @@ export const useSessionStore = create<SessionStoreState>()(
             updateServerSession(id, { title: trimmed });
           });
         }
+      },
+
+      setSessionModel: (id, model) => {
+        const trimmed = model.trim();
+        if (!trimmed) return;
+        set((s) => {
+          const session = s.sessions[id];
+          // No-op when unchanged (model_info fires per turn — don't spam
+          // the persist middleware with identical writes).
+          if (!session || session.model === trimmed) return s;
+          return {
+            sessions: {
+              ...s.sessions,
+              [id]: { ...session, model: trimmed, updatedAt: nowISO() },
+            },
+          };
+        });
       },
 
       autoTitleFromPrompt: (sessionId, prompt) => {
@@ -518,7 +540,7 @@ export const useSessionStore = create<SessionStoreState>()(
       },
 
       // ---- Runs ----
-      startRun: (sessionId, prompt, trigger = 'user_message') => {
+      startRun: (sessionId, prompt, trigger = 'user_message', model) => {
         const session = get().sessions[sessionId];
         if (!session) throw new Error(`session ${sessionId} not found`);
         const ts = nowISO();
@@ -528,7 +550,7 @@ export const useSessionStore = create<SessionStoreState>()(
           status: 'in_progress',
           trigger,
           prompt,
-          model: session.model,
+          model: model ?? session.model,
           toolCallIds: [],
           stepCount: 0,
           errorMessage: null,

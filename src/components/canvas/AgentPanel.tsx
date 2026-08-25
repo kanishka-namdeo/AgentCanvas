@@ -49,8 +49,17 @@ import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl 
 import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers, Square,
-  ChevronRight, Clock, CornerDownLeft,
+  ChevronRight, Clock, CornerDownLeft, Cpu, Zap,
 } from 'lucide-react';
+
+/// Format a token count for compact display: 45200 → "45.2K".
+/// Inlined (rather than imported from lib/agent/context-manager) because that
+/// module pulls in the server-only pi-coding-agent SDK and this is a client
+/// component — see the module-not-found failure in dev.log.
+function formatTokens(tokens: number): string {
+  if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}K`;
+  return String(tokens);
+}
 
 // Note: the document variables + token counts previously shown in a status
 // strip inside this panel have been moved to the Properties panel's empty
@@ -127,6 +136,147 @@ const PROMPT_GROUPS: PromptGroup[] = [
   },
 ];
 
+// ==== Model + context usage indicator ========================================
+//
+// Shows WHICH model the agent resolved (not just the configured one) and HOW
+// MUCH of its context window is in use. UX pattern researched from industry:
+//
+//   - Cline: context-window progress bar in the chat header with token
+//     counts ("45K / 200K") + a "context left" percentage.
+//   - Claude Code: `/context` breakdown (input / output / cache tokens with
+//     a cost roll-up) + status-line context percentage.
+//   - Cursor: model name as a badge next to the chat input, clickable to
+//     switch models (we open Settings → LLM provider).
+//   - OpenCode: traffic-light states — healthy / warning / critical as the
+//     window fills (we use <70% / 70–90% / >90%).
+//
+// Data flow: runner-native emits `agent:model_info` (resolved model + true
+// context window) once per attempt; the translator emits
+// `agent:context_update` with the usage payload on every LLM call
+// (message_end). The canvas store reduces both.
+
+interface ModelContextStatusProps {
+  activeModel: import('@/lib/canvas/store').ActiveModelInfo | null;
+  usageTotals: import('@/lib/canvas/store').UsageTotals;
+  contextTokens: number;
+  contextWindow: number;
+  lastCompacted: boolean;
+}
+
+function ModelContextStatus({
+  activeModel, usageTotals, contextTokens, contextWindow, lastCompacted,
+}: ModelContextStatusProps) {
+  // Fall back to the CONFIGURED model from the settings store until the
+  // runner reports the resolved one (first turn / before any turn).
+  const configuredProvider = useSettings((s) => s.llmProvider);
+  const configuredModel = useSettings((s) => s.modelName);
+
+  const modelId = activeModel?.modelId ?? configuredModel;
+  const provider = activeModel?.provider ?? configuredProvider;
+  const isResolved = activeModel !== null;
+  const usedFallback = activeModel?.usedFallback === true;
+
+  const window_ = contextWindow || 1;
+  const pct = Math.min(100, Math.round((contextTokens / window_) * 100));
+  // OpenCode-style traffic-light thresholds.
+  const state: 'ok' | 'warn' | 'critical' =
+    pct >= 90 ? 'critical' : pct >= 70 ? 'warn' : 'ok';
+  const barColor =
+    state === 'critical' ? 'var(--ac-danger)' :
+    state === 'warn' ? 'var(--ac-warning)' : 'var(--ac-success)';
+  const textColorCls =
+    state === 'critical' ? 'ac-text-danger' :
+    state === 'warn' ? 'ac-text-warning' : 'ac-text-3';
+
+  // Claude Code /context-style tooltip breakdown.
+  const tooltip = [
+    `Model: ${modelId}${isResolved ? '' : ' (configured — not yet resolved)'}`,
+    `Provider: ${provider}${usedFallback ? ' (sandbox fallback)' : ''}`,
+    `Context window: ${contextWindow.toLocaleString()} tokens`,
+    activeModel ? `Max output: ${activeModel.maxTokens.toLocaleString()} tokens` : null,
+    '',
+    `Context usage: ${contextTokens.toLocaleString()} / ${contextWindow.toLocaleString()} (${pct}%)${lastCompacted ? ' — compacted' : ''}`,
+    usageTotals.llmCalls > 0
+      ? `Session totals: ${usageTotals.llmCalls} LLM calls · in ${usageTotals.inputTokens.toLocaleString()} · out ${usageTotals.outputTokens.toLocaleString()} · cache read ${usageTotals.cacheReadTokens.toLocaleString()} · cache write ${usageTotals.cacheWriteTokens.toLocaleString()}`
+      : null,
+    usageTotals.cost > 0 ? `Estimated cost: $${usageTotals.cost.toFixed(4)}` : null,
+    '',
+    'Click the model name to change it in Settings.',
+  ].filter((l) => l !== null).join('\n');
+
+  return (
+    <>
+      {/* Model badge — resolved model once known, configured model before the
+          first turn. Click → Settings → LLM provider (Cursor-style). */}
+      <button
+        onClick={() => {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('agentcanvas:open-settings'));
+          }
+        }}
+        title={tooltip}
+        className={`flex items-center gap-0.5 px-1 py-0.5 rounded font-mono ac-transition hover:ac-surface-1 ac-focus-ring ${
+          usedFallback ? 'ac-text-warning' : 'ac-text-2'
+        }`}
+      >
+        <Cpu className="h-3 w-3 flex-shrink-0" />
+        <span className="max-w-[110px] truncate">{modelId}</span>
+        {usedFallback && (
+          <span className="flex-shrink-0" title="Endpoint was unreachable — z.ai sandbox fallback model in use">
+            <Zap className="h-2.5 w-2.5" />
+          </span>
+        )}
+      </button>
+
+      {/* Context usage — Cline-style progress bar with % + absolute tokens.
+          Hidden until the first LLM call reports usage (no fake data). */}
+      {contextTokens > 0 && (
+        <span
+          className="flex items-center gap-1"
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Context window usage: ${pct}%`}
+          title={tooltip}
+        >
+          <svg width="48" height="8" className="flex-shrink-0">
+            <rect x="0" y="0" width="48" height="8" rx="4" fill="currentColor" opacity="0.15" />
+            <rect
+              x="0" y="0"
+              width={Math.min(48, Math.max(2, (contextTokens / window_) * 48))}
+              height="8" rx="4"
+              fill={barColor}
+              style={{ transition: 'width 0.3s ease' }}
+            />
+          </svg>
+          {lastCompacted && (
+            <span className="ac-text-success" title="Context was compacted" aria-label="compacted">✓</span>
+          )}
+          <span className={textColorCls}>
+            {formatTokens(contextTokens)}/{formatTokens(contextWindow)}
+          </span>
+          <span className={`${textColorCls} font-medium`} title={`${pct}% of context window used`}>
+            {pct}%
+          </span>
+        </span>
+      )}
+
+      {/* Session cumulative usage — total tokens across all LLM calls this
+          session (input + output), shown once any usage was reported. */}
+      {usageTotals.llmCalls > 0 && (
+        <span
+          className="hidden lg:flex items-center gap-0.5"
+          title={`Session usage: ${usageTotals.llmCalls} LLM calls, ${usageTotals.inputTokens + usageTotals.outputTokens} tokens total${usageTotals.cost > 0 ? `, $${usageTotals.cost.toFixed(4)}` : ''}`}
+        >
+          <Clock className="h-2.5 w-2.5" />
+          {formatTokens(usageTotals.inputTokens + usageTotals.outputTokens)} tok
+        </span>
+      )}
+    </>
+  );
+}
+
 export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const turns = useCanvasStore((s) => s.turns);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
@@ -136,6 +286,8 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const contextTokens = useCanvasStore((s) => s.contextTokens);
   const contextWindow = useCanvasStore((s) => s.contextWindow);
   const lastCompacted = useCanvasStore((s) => s.lastCompacted);
+  const activeModel = useCanvasStore((s) => s.activeModel);
+  const usageTotals = useCanvasStore((s) => s.usageTotals);
   const thinkingLevel = useSettings((s) => s.thinkingLevel);
   const setSetting = useSettings((s) => s.set);
   const [input, setInput] = useState('');
@@ -359,28 +511,13 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
           </Badge>
         </div>
         <div className="flex items-center gap-2 text-[10px] ac-text-3">
-          {/* Context token usage with progress bar */}
-          {contextTokens > 0 && (
-            <span
-              className="flex items-center gap-1"
-              title={`Context: ${contextTokens.toLocaleString()} / ${contextWindow.toLocaleString()} tokens${lastCompacted ? ' (compacted)' : ''}`}
-            >
-              {/* Mini progress bar */}
-              <svg width="32" height="8" className="flex-shrink-0">
-                <rect x="0" y="0" width="32" height="8" rx="4" fill="currentColor" opacity="0.15" />
-                <rect
-                  x="0" y="0"
-                  width={Math.min(32, Math.max(2, (contextTokens / contextWindow) * 32))}
-                  height="8" rx="4"
-                  fill={contextTokens > contextWindow * 0.8 ? 'var(--ac-warning)' : 'var(--ac-success)'}
-                />
-              </svg>
-              {lastCompacted && <span className="ac-text-success" title="Context was compacted">✓</span>}
-              <span className={contextTokens > contextWindow * 0.8 ? 'ac-text-warning' : 'ac-text-3'}>
-                {(contextTokens / 1000).toFixed(1)}K
-              </span>
-            </span>
-          )}
+          <ModelContextStatus
+            activeModel={activeModel}
+            usageTotals={usageTotals}
+            contextTokens={contextTokens}
+            contextWindow={contextWindow}
+            lastCompacted={lastCompacted}
+          />
           {/* Thinking level quick-cycle button */}
           <button
             onClick={() => {
@@ -731,8 +868,8 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                 thinking…
               </div>
             )}
-            {/* Turn meta footer — tool count + duration + relative time.
-                Shown on completed turns (not while streaming). */}
+            {/* Turn meta footer — tool count + duration + token usage +
+                relative time. Shown on completed turns (not while streaming). */}
             {!turn.streaming && (turn.toolCalls.length > 0 || turn.startedAt) && (
               <div className="flex items-center gap-2 text-[9px] ac-text-4">
                 {turn.toolCalls.length > 0 && (
@@ -745,6 +882,15 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                   <span className="flex items-center gap-0.5" title="Turn duration">
                     <Clock className="h-2.5 w-2.5" />
                     {formatDuration(turn.endedAt ?? Date.now(), turn.startedAt)}
+                  </span>
+                )}
+                {turn.tokenUsage && (turn.tokenUsage.input > 0 || turn.tokenUsage.output > 0) && (
+                  <span
+                    className="flex items-center gap-0.5"
+                    title={`Turn token usage: ${turn.tokenUsage.input.toLocaleString()} input + ${turn.tokenUsage.output.toLocaleString()} output (all LLM calls in this turn)`}
+                  >
+                    <Cpu className="h-2.5 w-2.5" />
+                    {formatTokens(turn.tokenUsage.input + turn.tokenUsage.output)} tok
                   </span>
                 )}
               </div>

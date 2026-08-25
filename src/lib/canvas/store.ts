@@ -67,6 +67,9 @@ export interface ChatTurn {
   /// finalized — powers the "N tools · Xs" footer on each turn.
   startedAt?: number;
   endedAt?: number;
+  /// Cumulative tokens consumed by THIS turn's LLM calls (input + output,
+  /// summed across tool-call iterations). Powers the "· 12.3K tok" footer.
+  tokenUsage?: { input: number; output: number };
 }
 
 export interface AgentToolCallEntry {
@@ -75,6 +78,33 @@ export interface AgentToolCallEntry {
   argsPreview: string;
   success?: boolean;
   summary?: string;
+}
+
+/// The model the runner actually RESOLVED for the current turn — emitted by
+/// the server as `agent:model_info` right after the LLM session is created.
+/// Can differ from the configured model (settings store) when the resolver
+/// applies a legacy-id mapping, first-available fallback, or the z.ai sandbox
+/// fallback. Powers the model badge in the AgentPanel header.
+export interface ActiveModelInfo {
+  provider: string;
+  modelId: string;
+  label: string;
+  contextWindow: number;
+  maxTokens: number;
+  usedFallback: boolean;
+}
+
+/// Cumulative LLM usage for the live app session (aggregated from every
+/// `agent:context_update` that carries a usage payload — one per LLM call).
+/// Displayed in the AgentPanel's model/context tooltip (Claude Code
+/// `/context`-style breakdown) and the per-turn footers.
+export interface UsageTotals {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  cost: number;
+  llmCalls: number;
 }
 
 interface CanvasState {
@@ -92,6 +122,12 @@ interface CanvasState {
   contextTokens: number;
   contextWindow: number;
   lastCompacted: boolean;
+  /// The RESOLVED model for the current/last turn (from agent:model_info).
+  /// Null until the first turn completes resolution — the AgentPanel falls
+  /// back to the CONFIGURED model from the settings store meanwhile.
+  activeModel: ActiveModelInfo | null;
+  /// Cumulative usage across all LLM calls this app session.
+  usageTotals: UsageTotals;
   documentId: string;
   /// Active session id (mirrors sessionStore.activeSessionByDoc[documentId]).
   activeSessionId: string | null;
@@ -209,6 +245,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   contextTokens: 0,
   contextWindow: 128_000,
   lastCompacted: false,
+  activeModel: null,
+  usageTotals: {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    cost: 0,
+    llmCalls: 0,
+  },
   documentId: 'default',
   activeSessionId: null,
   undoStack: [],
@@ -322,7 +367,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
 
     // Start a Run in the session store.
-    const run = useSessionStore.getState().startRun(sessionId, text, 'user_message');
+    // Prefer the RESOLVED model from the previous turn (agent:model_info)
+    // so run records carry the real model, not the 'unresolved' seed.
+    const resolvedModel = get().activeModel?.modelId;
+    const run = useSessionStore
+      .getState()
+      .startRun(sessionId, text, 'user_message', resolvedModel);
     // Auto-title if this is the first message.
     useSessionStore.getState().autoTitleFromPrompt(sessionId, text);
     // Append user message + assistant placeholder.
@@ -980,13 +1030,65 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         });
         break;
       }
+      case 'agent:model_info': {
+        // The runner resolved a model (may differ from the configured one —
+        // e.g. the z.ai sandbox fallback). Store it for the AgentPanel badge
+        // and sync the session-store's model so SessionHeader shows the REAL
+        // model instead of the stale seed value.
+        set({ activeModel: {
+          provider: event.provider,
+          modelId: event.modelId,
+          label: event.label,
+          contextWindow: event.contextWindow,
+          maxTokens: event.maxTokens,
+          usedFallback: event.usedFallback ?? false,
+        } });
+        const sid = get().activeSessionId;
+        if (sid) {
+          try {
+            useSessionStore.getState().setSessionModel(sid, event.modelId);
+          } catch { /* session may have been deleted mid-turn — non-fatal */ }
+        }
+        break;
+      }
       case 'agent:context_update': {
         // Track token usage for the UI (Phase 1: context management).
-        set({
+        // Extended (model+context feature): when the event carries a usage
+        // payload (one per LLM call, emitted from the translator's
+        // message_end), also accumulate session-wide totals and the
+        // per-turn token footer, and store the last call's breakdown for
+        // the tooltip.
+        const prevTotals = get().usageTotals;
+        const usage = event.usage;
+        const nextTotals = usage
+          ? {
+              inputTokens: prevTotals.inputTokens + usage.input,
+              outputTokens: prevTotals.outputTokens + usage.output,
+              cacheReadTokens: prevTotals.cacheReadTokens + usage.cacheRead,
+              cacheWriteTokens: prevTotals.cacheWriteTokens + usage.cacheWrite,
+              cost: prevTotals.cost + usage.cost,
+              llmCalls: prevTotals.llmCalls + 1,
+            }
+          : prevTotals;
+        set((s) => ({
           contextTokens: event.tokenCount,
           contextWindow: event.contextWindow,
           lastCompacted: event.compacted ?? false,
-        });
+          usageTotals: nextTotals,
+          turns: usage
+            ? s.turns.map((t, i) =>
+                i === s.turns.length - 1 && t.role === 'assistant'
+                  ? {
+                      ...t,
+                      tokenUsage: {
+                        input: (t.tokenUsage?.input ?? 0) + usage.input,
+                        output: (t.tokenUsage?.output ?? 0) + usage.output,
+                      },
+                    }
+                  : t,
+              )
+            : s.turns,
+        }));
         break;
       }
       // ---- Plugin events (Phase 5) ------------------------------------------

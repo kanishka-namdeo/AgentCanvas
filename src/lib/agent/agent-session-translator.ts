@@ -94,10 +94,27 @@ export interface TranslatorState {
   messageOpen: boolean;
   /// True once agent_end has been translated for this prompt cycle.
   turnEnded: boolean;
+  /// The resolved model's context window (tokens). Used to fill
+  /// `agent:context_update.contextWindow` with the REAL window instead of
+  /// the old hardcoded 128K. Set by the runner via subscribeAndTranslate()
+  /// after resolveModel() (it can differ per attempt — sandbox fallback swaps
+  /// the model, and with it the window).
+  contextWindow: number;
 }
 
-export function createTranslatorState(): TranslatorState {
-  return { messageOpen: false, turnEnded: false };
+export function createTranslatorState(contextWindow = 128_000): TranslatorState {
+  return { messageOpen: false, turnEnded: false, contextWindow };
+}
+
+/// Derive the "current context fill" token count from a pi-ai `Usage`
+/// payload. Mirrors the SDK's `calculateContextTokens`: the input of the last
+/// LLM call plus its output (and cache reads/writes) is the size of the
+/// context the model just saw — i.e. how full the window is now.
+function contextTokensFromUsage(usage: {
+  input?: number; output?: number; cacheRead?: number; cacheWrite?: number; totalTokens?: number;
+}): number {
+  if (typeof usage.totalTokens === 'number' && usage.totalTokens > 0) return usage.totalTokens;
+  return (usage.input ?? 0) + (usage.output ?? 0) + (usage.cacheRead ?? 0) + (usage.cacheWrite ?? 0);
 }
 
 export function translateAgentSessionEvent(event: AgentSessionEvent, state?: TranslatorState): TranslatedEvents {
@@ -132,6 +149,35 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
     }
 
     case 'message_end': {
+      // Extract the LLM usage payload from the completed AssistantMessage.
+      // `event.message` is the full AssistantMessage (pi-ai types): it carries
+      // `usage` (input/output/cacheRead/cacheWrite tokens + cost), `model`,
+      // and `provider`. This fires once per LLM iteration — each tool-call
+      // round is one LLM call — which is exactly the granularity a context
+      // usage bar wants (Cline / Claude Code update per iteration too).
+      const msg = (event as any).message;
+      const usage = msg?.usage;
+      if (usage && typeof usage.input === 'number') {
+        const cost =
+          typeof usage.cost?.total === 'number' ? usage.cost.total :
+          typeof msg.cost === 'number' ? msg.cost : 0;
+        out.push({
+          kind: 'agent_event',
+          event: {
+            type: 'agent:context_update',
+            tokenCount: contextTokensFromUsage(usage),
+            contextWindow: state?.contextWindow ?? 128_000,
+            usage: {
+              input: usage.input ?? 0,
+              output: usage.output ?? 0,
+              cacheRead: usage.cacheRead ?? 0,
+              cacheWrite: usage.cacheWrite ?? 0,
+              cost,
+            },
+            model: typeof msg.model === 'string' ? msg.model : undefined,
+          },
+        });
+      }
       // Suppress duplicate closes: only emit when a message is actually open.
       if (!state || state.messageOpen) {
         out.push({ kind: 'agent_event', event: { type: 'agent:message_end' } });
@@ -237,7 +283,9 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
         event: {
           type: 'agent:context_update',
           tokenCount: tokensAfter,
-          contextWindow: 128_000, // GLM-4.6 default; SDK doesn't expose per-model window here
+          // Real resolved-model window when the runner provided one (via
+          // subscribeAndTranslate); 128K fallback keeps old callers working.
+          contextWindow: state?.contextWindow ?? 128_000,
           compacted: true,
         },
       });
@@ -373,10 +421,13 @@ export function createEventQueue(): EventQueue {
 /// returned function and for closing the queue.
 export function subscribeAndTranslate(
   subscribe: (listener: (event: AgentSessionEvent) => void) => () => void,
+  options?: { contextWindow?: number },
 ): { queue: EventQueue; unsubscribe: () => void } {
   const queue = createEventQueue();
   // One state per prompt cycle → duplicate closing events are suppressed.
-  const state = createTranslatorState();
+  // The context window comes from the RESOLVED model so context_update
+  // events report the real window (see runner-native.ts).
+  const state = createTranslatorState(options?.contextWindow ?? 128_000);
   const listener = (event: AgentSessionEvent) => {
     const translated = translateAgentSessionEvent(event, state);
     queue.push(translated);

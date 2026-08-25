@@ -614,9 +614,33 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
 
     // 13. Subscribe to AgentSessionEvents via the translator. The translator
     //     pushes AgentStreamEvents onto an async queue; we drain it below.
-    const { queue, unsubscribe } = subscribeAndTranslate((listener) =>
-      session!.subscribe(listener),
+    //     Pass the RESOLVED model's context window so `agent:context_update`
+    //     events report the real window (the old translator hardcoded 128K).
+    const { queue, unsubscribe } = subscribeAndTranslate(
+      (listener) => session!.subscribe(listener),
+      { contextWindow: currentModel.model.contextWindow },
     );
+
+    // 13a. Emit the resolved-model info to the client BEFORE the turn starts.
+    //      The client previously only knew the CONFIGURED model (settings
+    //      store) — but the resolved one can differ (legacy-id mapping,
+    //      first-available fallback, z.ai sandbox fallback) and the UI needs
+    //      the true context window for the usage bar. Follows the Cline /
+    //      Claude Code / Cursor pattern: model identity + context capacity
+    //      surfaced next to the chat. Emitted per attempt so a fallback swap
+    //      mid-run re-broadcasts the new model.
+    yield {
+      kind: 'agent_event',
+      event: {
+        type: 'agent:model_info',
+        provider: String(currentModel.model.provider ?? 'unknown'),
+        modelId: String(currentModel.model.id ?? 'unknown'),
+        label: currentModel.label,
+        contextWindow: currentModel.model.contextWindow,
+        maxTokens: currentModel.model.maxTokens,
+        usedFallback: currentModel.usedFallback === true,
+      },
+    };
 
     // 13b. Set per-turn plugin state.
     //      - Event sink: lets plugin tools emit SyncEvents through the same

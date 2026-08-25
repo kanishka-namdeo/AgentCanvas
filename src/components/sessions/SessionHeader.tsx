@@ -180,8 +180,14 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
                 </span>
               </>
             )}
-            <span className="ac-text-5">·</span>
-            <span className="font-mono ac-text-4">{session.model}</span>
+            {session.model && session.model !== 'unresolved' && (
+              <>
+                <span className="ac-text-5">·</span>
+                <span className="font-mono ac-text-4" title="Resolved model for this session (set on the first agent turn)">
+                  {session.model}
+                </span>
+              </>
+            )}
           </div>
         </div>
         <Button

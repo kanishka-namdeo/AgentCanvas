@@ -418,7 +418,15 @@ export type SyncEvent =
   | { type: 'agent:plan_step_update'; step: number; status: string }
   | { type: 'agent:subagent_dispatch'; subAgentType: string; task: string }
   | { type: 'agent:subagent_result'; subAgentType: string; success: boolean; summary: string; toolCalls: number }
-  | { type: 'agent:context_update'; tokenCount: number; contextWindow: number; compacted?: boolean }
+  | { type: 'agent:context_update'; tokenCount: number; contextWindow: number; compacted?: boolean; usage?: { input: number; output: number; cacheRead: number; cacheWrite: number; cost: number }; model?: string }
+  // Emitted by the runner right after the LLM model is resolved (and again if
+  // the z.ai sandbox fallback swaps the model mid-run). Carries the RESOLVED
+  // model — which can differ from the configured one (legacy-id mapping,
+  // first-available fallback, sandbox fallback) — plus its true context window,
+  // so the UI can render a model badge + an accurate context-usage bar.
+  // Pattern follows Cline / Claude Code / Cursor: model name near the chat
+  // input area, context window as a progress bar with token counts.
+  | { type: 'agent:model_info'; provider: string; modelId: string; label: string; contextWindow: number; maxTokens: number; usedFallback?: boolean }
   // ---- Plugin events (Phase 5) ------------------------------------------
   // Emitted by the ask_user_question tool: blocks the agent mid-turn while
   // the user picks from typed options. The frontend renders a dialog; the

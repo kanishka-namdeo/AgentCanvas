@@ -124,6 +124,16 @@ export default function Home() {
     return () => { delete (window as any).__openCommandPalette; };
   }, []);
 
+  // The AgentPanel's model badge (and any other decoupled component) can
+  // request the Settings dialog via a CustomEvent — mirrors the
+  // `__openCommandPalette` pattern above but event-based so components
+  // don't need window globals.
+  useEffect(() => {
+    const openSettings = () => setSettingsOpen(true);
+    window.addEventListener('agentcanvas:open-settings', openSettings);
+    return () => window.removeEventListener('agentcanvas:open-settings', openSettings);
+  }, []);
+
   useEffect(() => {
     import('@/lib/sessions').then(({ sweepIdleSessions, enforceSessionCap }) => {
       const settings = useSettings.getState();
