@@ -142,7 +142,7 @@ When the user requests a durable behavior change, record it here or in the relev
 | `src/lib/sessions/AGENTS.md` | Session persistence: Zustand localStorage store + server-sync bridge (`/api/sessions*`), fork/restore, sweep/enforce helpers |
 | `src/lib/web/AGENTS.md` | Web search + fetch: 4-provider search chain (z.ai → DDG → Startpage → Jina), 3-backend fetch pipeline (readability → z.ai page_reader → Jina), quality gates |
 | `.zscripts/AGENTS.md` | Sandbox boot/build runtime: `dev.sh` boot flow (auto-run at container start), deploy artifact pipeline, `start.sh` production entrypoint |
-| `docs/AGENTS.md` | Durable docs: z.ai sandbox runbook, phase design docs, menu-specs P0–P2 trackers |
+| `docs/AGENTS.md` | Durable docs: z.ai sandbox runbook, phase design docs (design-systems, agentic-workflows, html-dom-renderer spec), menu-specs P0–P2 trackers |
 | `examples/websocket/AGENTS.md` | Reference Socket.IO demo (gateway routing pattern; port-collision warning) |
 | `mini-services/canvas-sync/AGENTS.md` | Socket.IO service for live multi-viewer canvas sync (EADDRINUSE-exit-0 twin contract) |
 | `prisma/AGENTS.md` | Prisma schema: Document, Shape, AgentAction + session models (Session, SessionMessage, SessionRun, SessionSnapshot) |
