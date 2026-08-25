@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The DOM-primary renderer (parity mode) — spec `docs/html-dom-renderer.md` Phase 1. Real DOM/CSS per node instead of one flat `<svg>`: every resolved `Layer` becomes an absolutely-positioned `<div>` (nested by `parentId`), freeform vector types become inline SVG islands, and all selection chrome renders in a screen-space overlay. Mounted by the Canvas shell when `settings.renderer === 'dom'` (Settings → Appearance → Canvas renderer; default remains `'svg'`).
+The DOM-primary renderer — spec `docs/html-dom-renderer.md` Phases 1–5. Real DOM/CSS per node instead of one flat `<svg>`: every resolved `Layer` becomes a nested `<div>` (per `parentId`), freeform vector types become inline SVG islands, and all selection chrome renders in a screen-space overlay. Mounted by the Canvas shell when `settings.renderer === 'dom'` (Settings → Appearance → Canvas renderer; **default after Phase 5 flip**, SVG kept as compatibility/export-only mode for one minor release). Phase 4 adds L4 CSS containment (`content-visibility: auto` + `contain` on container subtrees) + L5 mount culling (CullingCoordinator: viewport intersection + hysteresis + budget-aware ≥2k nodes + placeholder swap).
 
 ## Ownership
 

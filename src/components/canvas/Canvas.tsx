@@ -85,10 +85,13 @@ export function Canvas() {
   const outlineMode = useCanvasStore((s) => s.outlineMode);
   const toggleViewFlag = useCanvasStore((s) => s.toggleViewFlag);
   const clipboard = useClipboard();
-  // Renderer feature flag (spec Phase 1): 'svg' classic renderer (default) or
-  // 'dom' DOM parity-mode renderer. Absent field (pre-flag settings blob)
-  // resolves to 'svg'.
-  const renderer = useSettings((s) => s.renderer) ?? 'svg';
+  // Renderer feature flag (spec Phase 1+5): 'svg' = classic single-<svg>
+  // renderer (compatibility / export-only mode after Phase 5 flip); 'dom' =
+  // DOM parity-mode renderer (default after Phase 5 — real divs per node +
+  // SVG islands + screen-space chrome + native CSS layout + L4/L5 culling).
+  // Absent field (pre-flag settings blob, or first-time-load) resolves to
+  // 'dom' so fresh sessions pick up the new default.
+  const renderer = useSettings((s) => s.renderer) ?? 'dom';
   // DOM renderer layout strategy (spec Phase 2 dual layout mode): 'parity'
   // (default — resolver absolute geometry) or 'native' (browser CSS flexbox
   // for auto-layout containers). Ignored by the SVG renderer.

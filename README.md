@@ -23,7 +23,7 @@ Chat in plain English → the agent reasons, calls tools, and draws the design f
 
 > *"Design a mobile login screen with social sign-in options, then generate a 3-screen onboarding flow that follows it."*
 
-…and watch the agent plan, call ~50 typed canvas tools, and stream patches onto an infinite SVG canvas in real time. You can jump in any time with the manual toolbar, properties inspector, and layers panel — everything stays in sync.
+…and watch the agent plan, call ~50 typed canvas tools, and stream patches onto an infinite DOM-rendered canvas in real time. You can jump in any time with the manual toolbar, properties inspector, and layers panel — everything stays in sync.
 
 Think **Excalidraw + Figma + an AI pair designer**, running locally.
 

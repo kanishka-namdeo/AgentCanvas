@@ -46,11 +46,13 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 export type DefaultPalette = 'slate' | 'warm' | 'forest' | 'mono';
 
 /// Canvas renderer backend (spec docs/html-dom-renderer.md, renderer feature
-/// flag). 'svg' = the classic single-<svg> renderer (default until Phase 5);
-/// 'dom' = the DOM parity-mode renderer (real divs per node + SVG islands +
-/// screen-space chrome overlay). Persisted with the rest of AppSettings —
-/// an absent field (settings saved before the flag existed) resolves to
-/// 'svg' at the call site, so no migrate bump is needed.
+/// flag). 'svg' = the classic single-<svg> renderer (kept as a
+/// compatibility / export-only mode after Phase 5); 'dom' = the DOM
+/// parity-mode renderer (real divs per node + SVG islands + screen-space
+/// chrome overlay + native CSS layout + L4/L5 culling). Persisted with the
+/// rest of AppSettings — an absent field (settings saved before the flag
+/// existed, or before Phase 5 defaulted to 'dom') resolves to 'dom' at the
+/// call site, so no migrate bump is needed.
 export type RendererMode = 'svg' | 'dom';
 
 /// DOM renderer layout strategy (spec §3.4 dual layout mode, Phase 2).
@@ -153,7 +155,13 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultPalette: 'slate',
 
   themePreference: 'system',
-  renderer: 'svg' as RendererMode,
+  // Phase 5 default flip (spec §Phase 5): DOM is now the default renderer.
+  // SVG mode is kept as a compatibility / export-only fallback for one minor
+  // release before the removal decision (separate spec). Existing settings
+  // blobs saved before this flip will pick up 'dom' on next read because the
+  // optional field defaults to 'dom' at the call site (Canvas.tsx). Users who
+  // explicitly pinned 'svg' keep their choice.
+  renderer: 'dom' as RendererMode,
   // Phase 4: culling defaults to ON — only active when renderer='dom' AND the
   // document exceeds the budget thresholds (L5: ≥2k nodes per page; L4 is
   // always on for container types in 'dom' mode). SVG mode ignores this.

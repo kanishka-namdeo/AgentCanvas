@@ -17,6 +17,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
+import { useSettings } from '@/lib/settings/store';
 import { Canvas } from '@/components/canvas/Canvas';
 import type { CanvasDocument, Shape } from '@/lib/canvas/types'
 import type { PenChild } from '@/lib/pen/types';
@@ -77,6 +78,12 @@ function resetStore(doc: CanvasDocument = makeDoc([])) {
     snapshots: {},
     activeSessionByDoc: {},
   });
+  // Phase 5 default-flip guard: production now defaults to 'dom' but these
+  // tests assert SVG-specific selectors (`rect`, `<text>`, `ellipse`, …).
+  // Pin to 'svg' so the SvgCanvas mounts and the assertions still hold.
+  // Renderer-agnostic migration to the data-attribute contract is tracked
+  // separately (spec Phase 5 acceptance criterion).
+  useSettings.setState({ renderer: 'svg', canvasLayoutMode: 'parity', domCulling: false });
 }
 
 function renderCanvas() {

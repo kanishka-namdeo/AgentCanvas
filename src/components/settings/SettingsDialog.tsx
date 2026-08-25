@@ -670,8 +670,9 @@ function SessionsSection() {
 function AppearanceSection() {
   const themePreference = useSettings((s) => s.themePreference);
   const density = useSettings((s) => s.density);
-  const renderer = useSettings((s) => s.renderer) ?? 'svg';
+  const renderer = useSettings((s) => s.renderer) ?? 'dom';
   const layoutMode = useSettings((s) => s.canvasLayoutMode) ?? 'parity';
+  const domCulling = useSettings((s) => s.domCulling) ?? true;
   const set = useSettings((s) => s.set);
 
   // Apply theme preference immediately via the same .dark class toggle that
@@ -750,7 +751,7 @@ function AppearanceSection() {
 
         <Row
           label="Canvas renderer"
-          description="SVG (classic) or DOM (experimental, spec Phase 1). Applies immediately and persists."
+          description="DOM (default, spec Phases 1–5) renders real divs + SVG islands + screen-space chrome + native CSS layout + L4/L5 culling. SVG kept as a compatibility / export fallback. Applies immediately and persists."
         >
           <Select
             value={renderer}
@@ -760,8 +761,8 @@ function AppearanceSection() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="svg" className="text-[11px]">SVG (classic)</SelectItem>
-              <SelectItem value="dom" className="text-[11px]">DOM (experimental)</SelectItem>
+              <SelectItem value="dom" className="text-[11px]">DOM (default)</SelectItem>
+              <SelectItem value="svg" className="text-[11px]">SVG (compat)</SelectItem>
             </SelectContent>
           </Select>
         </Row>
@@ -782,6 +783,17 @@ function AppearanceSection() {
               <SelectItem value="native" className="text-[11px]">Native (CSS flex)</SelectItem>
             </SelectContent>
           </Select>
+        </Row>
+
+        <Row
+          label="DOM culling"
+          description="Phase 4 (spec §4.2). On = container subtrees get content-visibility:auto (L4) + far-offscreen top-level frames swap to placeholder divs above 2k nodes (L5). SVG mode ignores this; disable for measurement-sensitive workflows."
+        >
+          <Switch
+            checked={domCulling}
+            onCheckedChange={(v) => set('domCulling', v)}
+            disabled={renderer === 'svg'}
+          />
         </Row>
       </div>
 
