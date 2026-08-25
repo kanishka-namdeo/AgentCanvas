@@ -23,6 +23,7 @@ import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape } from '@/lib/canvas/types';
 import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, downloadDataUrl, copyToClipboard } from '@/lib/canvas/export';
 import { chordFor, SHORTCUTS_BY_ACTION, currentPlatform } from '@/lib/canvas/shortcuts';
+import { VersionHistoryDialog } from '@/components/canvas/VersionHistoryDialog';
 import {
   Menubar, MenubarMenu, MenubarTrigger, MenubarContent, MenubarItem,
   MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubTrigger,
@@ -59,6 +60,8 @@ export function TopMenuBar(props: TopMenuBarProps) {
   const outlineMode = useCanvasStore((s) => s.outlineMode);
   const toggleViewFlag = useCanvasStore((s) => s.toggleViewFlag);
   const clipboard = useClipboard();
+  // Version-history dialog (Phase 7 group C — D14): File → "Version history…".
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const platform = currentPlatform();
   const chord = (action: string) => {
     const def = SHORTCUTS_BY_ACTION.get(action);
@@ -208,6 +211,9 @@ export function TopMenuBar(props: TopMenuBarProps) {
               </MenubarSubContent>
             </MenubarSub>
             <MenubarSeparator />
+            <MenubarItem onClick={() => setVersionHistoryOpen(true)}>
+              Version history… <MenubarShortcut>{chord('save-checkpoint')}</MenubarShortcut>
+            </MenubarItem>
             <MenubarItem onClick={props.onOpenSettings}>
               Settings… <MenubarShortcut>⌘,</MenubarShortcut>
             </MenubarItem>
@@ -456,6 +462,9 @@ export function TopMenuBar(props: TopMenuBarProps) {
           </MenubarContent>
         </MenubarMenu>
       </Menubar>
+
+      {/* Version history (Phase 7 group C — defect D14) */}
+      <VersionHistoryDialog open={versionHistoryOpen} onOpenChange={setVersionHistoryOpen} />
 
       {/* Connection + viewer indicators — always visible (right-aligned). */}
       <div className="ml-auto flex items-center gap-2 pr-1">

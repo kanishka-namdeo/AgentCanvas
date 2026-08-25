@@ -345,6 +345,7 @@ export default function Home() {
         const metaAction = dispatch(e, [
           'group', 'ungroup', 'frame-selection', 'duplicate',
           'lock', 'hide', 'rename', 'create-component', 'detach-instance',
+          'save-checkpoint',
         ]);
         if (metaAction) {
           e.preventDefault();
@@ -410,6 +411,15 @@ export default function Home() {
               if (inst) {
                 state.sendPatch({ op: 'detach_instance', shapeId: inst.id, summary: `Detached instance ${inst.name}` });
               }
+              break;
+            }
+            case 'save-checkpoint': {
+              // Phase 7 group C (D14): manual version-history checkpoint
+              // (⌘⌥S / Ctrl+Alt+S — registry action 'save-checkpoint').
+              const name = window.prompt('Checkpoint name:', 'Manual save') ?? 'Manual save';
+              const saved = state.addCheckpoint(name, false);
+              if (saved) toast.success('Checkpoint saved', { description: name });
+              else toast.message('No changes since the last checkpoint');
               break;
             }
           }

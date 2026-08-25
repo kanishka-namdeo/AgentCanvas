@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import type { CanvasDocument, CanvasPatch, ClientEvent, Shape, SyncEvent } from '@/lib/canvas/types';
 import { createEmptyCanvasDocument } from '@/lib/canvas/types';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
+import { checkpointSignature, newCheckpointId, MAX_CHECKPOINTS, type Checkpoint } from '@/lib/canvas/version-history';
 import { resolvePenTree } from '@/lib/pen/resolve';
 import { useSessionStore, hydrateSessionStore } from '@/lib/sessions';
 import { useSettings } from '@/lib/settings/store';
@@ -201,6 +202,32 @@ interface CanvasState {
   worldElement: HTMLElement | null;
   /// Register/unregister the world element (DomCanvas useEffect).
   setWorldElement: (el: HTMLElement | null) => void;
+
+  // ---- Version-history checkpoints (spec Phase 7 group C — D14) -------------
+  /// Named document snapshots (newest first), auto-captured at each agent
+  /// turn end (Figma Make's recoverable-writes model) or saved manually via
+  /// ⌘⌥S. EPHEMERAL state — follows the measuredBounds pattern exactly: NOT
+  /// part of undo snapshots (undo/redo restore `document` only), NOT
+  /// persisted, and writing them never recomputes `document`.
+  checkpoints: Checkpoint[];
+  /// Signature of the document captured by the most recent checkpoint —
+  /// lets addCheckpoint skip redundant captures of an unchanged document.
+  lastCheckpointSignature: string | null;
+  /// Monotone counter of completed agent turns — labels auto-checkpoints
+  /// ("Turn N"). Lives in the slice so it survives store resets cleanly.
+  turnCounter: number;
+  /// Capture a named checkpoint of the CURRENT document. Returns false (and
+  /// does nothing) when the document is unchanged since the last checkpoint
+  /// (signature match). Capped at MAX_CHECKPOINTS (oldest dropped; index 0
+  /// = newest always kept).
+  addCheckpoint: (label: string, auto: boolean) => boolean;
+  /// Restore a checkpoint by id. NEVER destructive: first captures a
+  /// "Before restore" checkpoint of the current state, then pushes the
+  /// current document onto the undo stack (same push sendPatch makes), then
+  /// swaps `document` in. Returns false when the id is unknown.
+  restoreCheckpoint: (id: string) => boolean;
+  /// Drop every checkpoint (File → Version history → Clear).
+  clearCheckpoints: () => void;
 
   // ---- Plugin state (Phase 5) ---------------------------------------------
   /// Pending ask_user_question — set when the agent emits
@@ -483,6 +510,48 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   outlineMode: false,
   measuredBounds: {},
   worldElement: null,
+
+  // Version-history checkpoints (Phase 7 group C — ephemeral, like above).
+  checkpoints: [],
+  lastCheckpointSignature: null,
+  turnCounter: 0,
+
+  addCheckpoint: (label, auto) => {
+    const s = get();
+    const sig = checkpointSignature(s.document);
+    // Skip redundant captures — the document is unchanged since the last
+    // checkpoint (e.g. two turn_ends with no writes in between).
+    if (sig === s.lastCheckpointSignature) return false;
+    set({
+      checkpoints: [
+        { id: newCheckpointId(), label, createdAt: Date.now(), auto, document: s.document },
+        ...s.checkpoints,
+      ].slice(0, MAX_CHECKPOINTS),
+      lastCheckpointSignature: sig,
+    });
+    return true;
+  },
+
+  restoreCheckpoint: (id) => {
+    const target = get().checkpoints.find((c) => c.id === id);
+    if (!target) return false;
+    // 1. Capture the CURRENT state first — restoring is never destructive.
+    //    (Skipped automatically when the current doc is unchanged.)
+    get().addCheckpoint('Before restore', false);
+    // 2. Same undo push sendPatch makes, so ⌘Z walks back out of a restore.
+    const cur = get();
+    set({
+      undoStack: [...cur.undoStack, cur.document].slice(-50),
+      redoStack: [],
+      document: target.document,
+      // The restored doc IS already checkpointed (the target itself) — keep
+      // the skip-unchanged invariant coherent for the next auto-checkpoint.
+      lastCheckpointSignature: checkpointSignature(target.document),
+    });
+    return true;
+  },
+
+  clearCheckpoints: () => set({ checkpoints: [], lastCheckpointSignature: null }),
 
   setViewFlag: (flag, value) => set({ [flag]: value } as Partial<CanvasState>),
   toggleViewFlag: (flag) =>
@@ -905,10 +974,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     if (session.currentSnapshotId) {
       const snap = ss.getSnapshot(session.currentSnapshotId);
       if (snap) {
-        set({ document: { ...snap.document, id: documentId }, measuredBounds: {} });
+        set({ document: { ...snap.document, id: documentId }, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
       }
     } else {
-      set({ document: { ...EMPTY_DOC, id: documentId, name: session.title }, measuredBounds: {} });
+      set({ document: { ...EMPTY_DOC, id: documentId, name: session.title }, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
     }
     // Rebuild `turns` from session messages.
     get()._syncTurnsFromSession();
@@ -1009,7 +1078,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         if (!doc.shapes) doc.shapes = resolvePenTree(doc);
         if (!doc.tokens) doc.tokens = { colors: [], textStyles: [] };
         if (!doc.viewport) doc.viewport = { zoom: 1, panX: 120, panY: 80 };
-        set({ document: doc, measuredBounds: {} });
+        set({ document: doc, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
         break;
       }
       case 'canvas:patch': {
@@ -1153,6 +1222,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             break;
           }
         }
+        // Version-history auto-checkpoint (spec Phase 7 group C — D14):
+        // every completed agent turn is a restorable checkpoint (Figma
+        // Make's model). Runs after the duplicate guard above so the turn
+        // counter increments exactly once per real turn; addCheckpoint
+        // itself skips when the turn produced no writes.
+        set((s) => ({ turnCounter: s.turnCounter + 1 }));
+        get().addCheckpoint(`Turn ${get().turnCounter}`, true);
         if (last?.sessionId) {
           // Snapshot cadence — respect the user's settings. Default is
           // 'every-turn'. 'every-N-turns' captures only on every Nth turn
