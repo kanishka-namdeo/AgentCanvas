@@ -14,7 +14,7 @@
 import { create } from 'zustand';
 import { io, type Socket } from 'socket.io-client';
 import { toast } from 'sonner';
-import type { CanvasDocument, CanvasPatch, ClientEvent, Shape, SyncEvent } from '@/lib/canvas/types';
+import type { CanvasDocument, CanvasPatch, ClientEvent, Shape, SyncEvent, GuideLine } from '@/lib/canvas/types';
 import { createEmptyCanvasDocument } from '@/lib/canvas/types';
 import { applyPatchToCanvas, applyPatchesToCanvas } from '@/lib/canvas/patch';
 import { checkpointSignature, newCheckpointId, MAX_CHECKPOINTS, type Checkpoint } from '@/lib/canvas/version-history';
@@ -151,6 +151,14 @@ interface CanvasState {
   /// Pushed before every mutating patch; popped on undo/redo.
   undoStack: CanvasDocument[];
   redoStack: CanvasDocument[];
+  /// Phase 7 §H.1 / §H.2 guide lines — separate undo/redo stacks. Guides
+  /// are NOT part of the .pen document (chrome state) so they need their
+  /// own stacks; the main `undo()`/`redo()` actions fall through to these
+  /// when the document stack is empty so a single ⌘Z gesture can walk back
+  /// either kind of mutation. Same cap (50) + clear-redo-on-mutation
+  /// semantics as the document stacks.
+  guideUndoStack: GuideLine[][];
+  guideRedoStack: GuideLine[][];
   /// Active canvas interaction tool. 'select' = click-to-select (default).
   /// 'pan' = click-and-drag pans the canvas (sticky pan mode). 'scale' =
   /// Figma's K tool — resize handles scale the layer proportionally
@@ -189,6 +197,28 @@ interface CanvasState {
   /// gesture (Canvas.tsx keydown/keyup handlers). Not in setViewFlag
   /// because it's not a user-toggleable View menu item.
   setMeasureMode: (value: boolean) => void;
+
+  // ---- Guide lines (spec Phase 7 §H.1 / §H.2 — drag-out guides) -------------
+  /// User-authored horizontal/vertical guide lines. Chrome state (NOT part
+  /// of the .pen document) — they live in the screen-space overlay above
+  /// the world tree. PERSISTED across session reloads via a dedicated
+  /// localStorage key (`agentcanvas.guides.v1`) — see saveGuidesToStorage /
+  /// loadGuidesFromStorage helpers below. The persistence layer is a
+  /// single localStorage slot shared across all sessions (guides are a
+  /// per-canvas viewer-chrome concern, not per-session content). The
+  /// `addGuide`/`removeGuide`/`clearGuides` actions write to localStorage
+  /// after each mutation; `init()` loads the saved guides on startup.
+  guideLines: GuideLine[];
+  /// Add a new guide. Pushes the prior guideLines array onto guideUndoStack,
+  /// clears guideRedoStack, persists to localStorage.
+  addGuide: (guide: GuideLine) => void;
+  /// Remove a guide by id. Same undo/persist semantics as addGuide.
+  removeGuide: (id: string) => void;
+  /// Remove ALL guides. Same undo/persist semantics as addGuide.
+  clearGuides: () => void;
+  /// Load guides from localStorage into the store (called by init(); also
+  /// exposed for tests + future "reset to defaults" flows).
+  loadGuides: () => void;
 
   // ---- Measured-bounds readback (spec §3.8) --------------------------------
   /// REAL browser-measured node sizes keyed by node id (native DOM layout
@@ -662,6 +692,65 @@ async function handleScreenshotRequest(event: Extract<SyncEvent, { type: 'agent:
 
 const EMPTY_DOC: CanvasDocument = createEmptyCanvasDocument('default', 'Untitled');
 
+// ---- Guide lines persistence (spec Phase 7 §H.1 / §H.2) ----------------------
+//
+// The canvas store has no persist middleware (unlike settings/sessions which
+// each wrap their own zustand `persist`). Guide lines are chrome state —
+// per-canvas, not per-session — so a SINGLE localStorage slot is the right
+// shape (vs. per-session snapshots the document takes). We follow the same
+// "load on init / save on mutation" pattern the document takes via the
+// session-store snapshot mechanism, just with a leaner dedicated slot.
+//
+// Defensive: localStorage is unavailable in SSR + can throw (private mode,
+// quota). All access is guarded; failures degrade to in-memory-only (the
+// guides still work for the session, just don't survive reload).
+const GUIDES_STORAGE_KEY = 'agentcanvas.guides.v1';
+
+/// Persist the current guideLines array to localStorage. No-op + silent
+/// on failure (private mode, quota exceeded, SSR). Called by
+/// addGuide/removeGuide/clearGuides after each mutation.
+export function saveGuidesToStorage(guides: GuideLine[]): void {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(GUIDES_STORAGE_KEY, JSON.stringify(guides));
+  } catch {
+    // Quota exceeded / private mode — degrade to in-memory only. The user
+    // still gets guides for this session; they just won't survive a reload.
+  }
+}
+
+/// Load the persisted guideLines array from localStorage. Returns `[]`
+/// when the slot is empty or parsing fails (corrupted entry). Called by
+/// init() on startup; also exposed via the `loadGuides` action for tests.
+export function loadGuidesFromStorage(): GuideLine[] {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(GUIDES_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // Defensive: filter to well-formed GuideLine entries only — a
+    // corrupted slot shouldn't crash the canvas on startup.
+    return parsed.filter((g): g is GuideLine =>
+      typeof g === 'object' && g !== null &&
+      typeof g.id === 'string' &&
+      (g.axis === 'horizontal' || g.axis === 'vertical') &&
+      typeof g.position === 'number',
+    );
+  } catch {
+    return [];
+  }
+}
+
+/// New guide id. crypto.randomUUID when available, fallback elsewhere
+/// (older jsdom builds). Mirrors newCheckpointId.
+export function newGuideId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `g-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   document: EMPTY_DOC,
   selectedIds: [],
@@ -687,12 +776,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   activeSessionId: null,
   undoStack: [],
   redoStack: [],
+  guideUndoStack: [],
+  guideRedoStack: [],
   toolMode: 'select',
   pixelGridVisible: true,
   snapToPixel: false,
   outlineMode: false,
   rulersVisible: false,
   measureMode: false,
+  guideLines: [],
   measuredBounds: {},
   worldElement: null,
 
@@ -743,6 +835,56 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((s) => ({ [flag]: !s[flag] } as Partial<CanvasState>)),
 
   setMeasureMode: (value) => set({ measureMode: value }),
+
+  // ---- Guide lines actions (spec Phase 7 §H.1 / §H.2) ----------------------
+  // Same undo pattern as applyPatch: push the prior state, clear redo,
+  // cap at 50. The "prior state" here is the guideLines array (NOT the
+  // document — guides are chrome state with their own stacks). The main
+  // undo()/redo() actions fall through to these stacks when the document
+  // stack is empty, so a single ⌘Z gesture can walk back guide mutations.
+  addGuide: (guide) => {
+    const s = get();
+    const next = [...s.guideLines, guide];
+    set({
+      guideLines: next,
+      guideUndoStack: [...s.guideUndoStack, s.guideLines].slice(-50),
+      guideRedoStack: [],
+    });
+    saveGuidesToStorage(next);
+  },
+
+  removeGuide: (id) => {
+    const s = get();
+    // No-op when the id isn't present (still pushes nothing to undo —
+    // matches Figma's silent-no-op behavior for right-click on a missing
+    // guide).
+    if (!s.guideLines.some((g) => g.id === id)) return;
+    const next = s.guideLines.filter((g) => g.id !== id);
+    set({
+      guideLines: next,
+      guideUndoStack: [...s.guideUndoStack, s.guideLines].slice(-50),
+      guideRedoStack: [],
+    });
+    saveGuidesToStorage(next);
+  },
+
+  clearGuides: () => {
+    const s = get();
+    // No-op when there are no guides — don't push a no-op undo entry
+    // (matches the document's empty-stack behavior).
+    if (s.guideLines.length === 0) return;
+    set({
+      guideLines: [],
+      guideUndoStack: [...s.guideUndoStack, s.guideLines].slice(-50),
+      guideRedoStack: [],
+    });
+    saveGuidesToStorage([]);
+  },
+
+  loadGuides: () => {
+    const stored = loadGuidesFromStorage();
+    set({ guideLines: stored });
+  },
 
   setWorldElement: (el) => {
     // Only clear when the SAME element is still registered (a remount may
@@ -817,6 +959,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
 
     set({ socket, documentId });
+
+    // Hydrate persisted guide lines from localStorage (Phase 7 §H.1 / §H.2).
+    // Same shape as the session-snapshot document hydration below: load on
+    // init, save on mutation. Single slot shared across sessions (guides are
+    // per-canvas chrome state, not per-session content).
+    get().loadGuides();
 
     // Hydrate from the session store: pick (or create) the active session
     // for this document, then load its latest snapshot (if any) into the
@@ -1104,25 +1252,53 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   undo: () => {
-    const { undoStack, document, redoStack } = get();
-    if (undoStack.length === 0) return;
-    const prev = undoStack[undoStack.length - 1];
-    set({
-      document: prev,
-      undoStack: undoStack.slice(0, -1),
-      redoStack: [...redoStack, document].slice(-50),
-    });
+    const { undoStack, document, redoStack, guideUndoStack, guideRedoStack, guideLines } = get();
+    // Document mutations take precedence — preserve chronology within the
+    // document stack. Only when the document stack is empty do we fall
+    // through to the guide stack, so a single ⌘Z gesture can still walk
+    // back guide-only mutations (e.g. add guide → undo).
+    if (undoStack.length > 0) {
+      const prev = undoStack[undoStack.length - 1];
+      set({
+        document: prev,
+        undoStack: undoStack.slice(0, -1),
+        redoStack: [...redoStack, document].slice(-50),
+      });
+      return;
+    }
+    if (guideUndoStack.length > 0) {
+      const prevGuides = guideUndoStack[guideUndoStack.length - 1];
+      set({
+        guideLines: prevGuides,
+        guideUndoStack: guideUndoStack.slice(0, -1),
+        guideRedoStack: [...guideRedoStack, guideLines].slice(-50),
+      });
+      saveGuidesToStorage(prevGuides);
+    }
   },
 
   redo: () => {
-    const { redoStack, document, undoStack } = get();
-    if (redoStack.length === 0) return;
-    const next = redoStack[redoStack.length - 1];
-    set({
-      document: next,
-      redoStack: redoStack.slice(0, -1),
-      undoStack: [...undoStack, document].slice(-50),
-    });
+    const { redoStack, document, undoStack, guideRedoStack, guideUndoStack, guideLines } = get();
+    // Mirror of undo: document redo stack takes precedence; fall through to
+    // the guide redo stack only when the document stack is empty.
+    if (redoStack.length > 0) {
+      const next = redoStack[redoStack.length - 1];
+      set({
+        document: next,
+        redoStack: redoStack.slice(0, -1),
+        undoStack: [...undoStack, document].slice(-50),
+      });
+      return;
+    }
+    if (guideRedoStack.length > 0) {
+      const nextGuides = guideRedoStack[guideRedoStack.length - 1];
+      set({
+        guideLines: nextGuides,
+        guideRedoStack: guideRedoStack.slice(0, -1),
+        guideUndoStack: [...guideUndoStack, guideLines].slice(-50),
+      });
+      saveGuidesToStorage(nextGuides);
+    }
   },
 
   setToolMode: (mode) => set({ toolMode: mode }),

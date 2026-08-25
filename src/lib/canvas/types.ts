@@ -222,6 +222,33 @@ export interface Viewport {
   panY: number;
 }
 
+// ---- Guide lines (spec Phase 7 §H.1 / §H.2 — drag-out guides from rulers) -----
+//
+// User-authored horizontal/vertical guide lines that live in the screen-space
+// chrome overlay (NOT in the .pen document — they are chrome state, parallel
+// to the rulers themselves). Drag out from a ruler onto the canvas to create;
+// right-click a guide to delete. PERSISTED across session reloads via a
+// dedicated localStorage key (parallel to how `document` is persisted through
+// session snapshots). NOT part of undo snapshots for canvas mutations —
+// `addGuide`/`removeGuide`/`clearGuides` push the prior `guideLines` array
+// onto the undo stack instead, so guides have their OWN undo semantics
+// (separate from the document undo stack — see store.ts undo/redo).
+export interface GuideLine {
+  id: string;
+  /// 'horizontal' = a y-line (drag from the TOP ruler); 'vertical' = an
+  /// x-line (drag from the LEFT ruler). Naming matches Figma's UI: a
+  /// "horizontal guide" is a horizontal line that you drag down from the
+  /// top ruler.
+  axis: 'horizontal' | 'vertical';
+  /// Canvas-space coordinate (y for horizontal guides, x for vertical).
+  /// Stored in canvas space (NOT screen space) so the guide stays put as
+  /// the user pans/zooms — the renderer projects to screen each frame.
+  position: number;
+  /// Stroke color. Default '#f24822' (Figma's guide red). Optional so
+  /// themes / future drag-time color pickers can override.
+  color?: string;
+}
+
 // ---- Derived token view (for the tokens panel) ---------------------------
 //
 // .pen stores variables as `{ [key]: { type, value } }`. The tokens panel

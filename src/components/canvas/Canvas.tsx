@@ -46,6 +46,8 @@ import { useSettings } from '@/lib/settings/store';
 import { SvgCanvas } from './svg/SvgCanvas';
 import { DomCanvas } from './dom/DomCanvas';
 import { Rulers } from './Rulers';
+import { Guides } from './dom/Guides';
+import { newGuideId } from '@/lib/canvas/store';
 import { MIN_SIZE, type ResizeHandle } from './svg/ShapeRenderer';
 
 interface DragState {
@@ -86,6 +88,14 @@ export function Canvas() {
   const outlineMode = useCanvasStore((s) => s.outlineMode);
   const rulersVisible = useCanvasStore((s) => s.rulersVisible);
   const toggleViewFlag = useCanvasStore((s) => s.toggleViewFlag);
+  // Phase 7 §H.1 / §H.2 guide lines — drag-out guides from rulers +
+  // right-click delete. Mounted in the screen-space overlay (above the
+  // world, below the selection chrome) so they don't get panned/zoomed.
+  // Gated on `rulersVisible` (Figma behavior — guides only show when
+  // rulers are visible).
+  const guideLines = useCanvasStore((s) => s.guideLines);
+  const addGuideAction = useCanvasStore((s) => s.addGuide);
+  const removeGuideAction = useCanvasStore((s) => s.removeGuide);
   // Phase 7 §H.2 measure overlay (Alt/Option hover): measureMode is set
   // transiently by the keydown/keyup handler below — never user-toggled.
   // The DOM renderer reads it to know when to paint the redline overlay.
@@ -906,6 +916,29 @@ export function Canvas() {
           zoom={zoom}
           width={size.w}
           height={size.h}
+          onAddGuide={(axis, position) =>
+            addGuideAction({
+              id: newGuideId(),
+              axis,
+              position,
+              color: '#f24822',
+            })
+          }
+        />
+      )}
+
+      {/* Phase 7 §H.1 / §H.2 guide lines — drag-out guides from rulers,
+          rendered in the screen-space overlay above the world (so they
+          don't get panned/zoomed). Right-click a guide to delete. */}
+      {renderer === 'dom' && rulersVisible && (
+        <Guides
+          guideLines={guideLines}
+          panX={panX}
+          panY={panY}
+          zoom={zoom}
+          width={size.w}
+          height={size.h}
+          onRemoveGuide={(id) => removeGuideAction(id)}
         />
       )}
 

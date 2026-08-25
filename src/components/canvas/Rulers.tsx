@@ -17,13 +17,14 @@
 //     major ticks on screen.
 //   - Numbers represent CANVAS-SPACE coordinates — they change as you
 //     pan/zoom (the world div's transform is the inverse).
-//   - Pointer-events: none — clicks pass through to the canvas below.
-//     (Future: drag-out guides — separate work, spec §H.1 bullet.)
+//   - Pointer-events: none on the outer wrapper + corner box (clicks pass
+//     through to the canvas). The ruler SVGs themselves ARE pointer-active
+//     so the user can drag a guide out (Phase 7 §H.1 bullet).
 //
 // Rendered at the screen-space overlay layer (above the world, below the
 // chrome selection overlay) so it doesn't get panned/zoomed with the world.
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { CanvasDocument } from '@/lib/canvas/types';
 
 export interface RulersProps {
@@ -39,6 +40,13 @@ export interface RulersProps {
   /// The document being rendered (for ruler color theming via the canvas
   /// surface var; not currently used but reserved for future theming).
   document: CanvasDocument;
+  /// Phase 7 §H.1 drag-out guides callback — invoked when the user drags
+  /// out of the ruler onto the canvas (moved >4px and released inside the
+  /// canvas area). The parent wires this to `addGuide` on the canvas store.
+  /// axis = 'horizontal' for a guide dragged from the TOP ruler (a y-line),
+  /// 'vertical' for one dragged from the LEFT ruler (an x-line). position
+  /// is in CANVAS-SPACE coordinates (already pan/zoom-corrected).
+  onAddGuide?: (axis: 'horizontal' | 'vertical', position: number) => void;
 }
 
 /// Decide the major + minor tick spacing for a given zoom level.
@@ -123,7 +131,34 @@ export function computeTicks(
   return ticks;
 }
 
-export function Rulers({ panX, panY, zoom, width, height }: RulersProps) {
+/// Minimum pointer travel (screen pixels) before a pointer-down on the ruler
+/// is treated as a drag-out-guide gesture rather than a click. 4px matches
+/// the common "click vs. drag" threshold in UI frameworks (Figma uses ~3).
+export const GUIDE_DRAG_THRESHOLD_PX = 4;
+
+/// In-progress drag state held in component-local refs (no React state churn
+/// per pointermove — the live preview line is drawn off this ref, not via
+/// setState, so dragging is smooth even at 60+ Hz on a slow machine).
+interface DragState {
+  /// 'horizontal' = dragged from the TOP ruler (creates a y-line).
+  /// 'vertical' = dragged from the LEFT ruler (creates an x-line).
+  axis: 'horizontal' | 'vertical';
+  /// Screen-space coordinate where pointerdown landed along the drag axis.
+  /// Used only to measure travel against GUIDE_DRAG_THRESHOLD_PX.
+  startScreen: number;
+  /// Pointer id captured at pointerdown (so we can keep receiving move
+  /// events even when the pointer leaves the ruler bounds).
+  pointerId: number;
+  /// The SVG element that captured the pointer (so we can release capture
+  /// on pointerup). Stored because the active element may have changed by
+  /// the time pointerup fires.
+  capturedEl: SVGElement | null;
+  /// Canvas-space coordinate of the most recent pointermove (the preview
+  /// line is drawn at this position). Null until the first pointermove.
+  currentCanvas: number | null;
+}
+
+export function Rulers({ panX, panY, zoom, width, height, onAddGuide }: RulersProps) {
   const xTicks = useMemo(() => computeTicks(panX, zoom, width), [panX, zoom, width]);
   const yTicks = useMemo(() => computeTicks(panY, zoom, height), [panY, zoom, height]);
 
@@ -131,6 +166,139 @@ export function Rulers({ panX, panY, zoom, width, height }: RulersProps) {
   const TICK_MAJOR_LEN = 10;
   const TICK_MINOR_LEN = 5;
   const LABEL_SIZE = 9;
+
+  // Local drag state — kept in a ref so pointermove handlers don't trigger
+  // React re-renders. The preview line is rendered from a `useState` mirror
+  // that we bump only when the position visibly changes (≥1 canvas px) to
+  // avoid spamming React with 60Hz updates during a drag.
+  const dragRef = useRef<DragState | null>(null);
+  const [preview, setPreview] = useState<{ axis: 'horizontal' | 'vertical'; position: number } | null>(null);
+
+  /// Begin a potential guide drag from the top ruler (horizontal guide).
+  /// We capture the pointer so we keep receiving move/up events even when
+  /// the pointer leaves the ruler bounds (Figma behavior — drag the line
+  /// onto the canvas, not just within the ruler strip).
+  const onTopRulerPointerDown = (e: ReactPointerEvent<SVGElement>) => {
+    if (e.button !== 0) return; // only left mouse button
+    const el = e.currentTarget;
+    try {
+      el.setPointerCapture(e.pointerId);
+    } catch {
+      // setPointerCapture can throw if the pointer is already released
+      // (race) — non-fatal; we'll still get move/up events while over the
+      // ruler. The capture is for the out-of-ruler drag case.
+    }
+    dragRef.current = {
+      axis: 'horizontal',
+      startScreen: e.clientY,
+      pointerId: e.pointerId,
+      capturedEl: el,
+      currentCanvas: null,
+    };
+    e.preventDefault();
+  };
+
+  /// Begin a potential guide drag from the left ruler (vertical guide).
+  /// Mirror of onTopRulerPointerDown.
+  const onLeftRulerPointerDown = (e: ReactPointerEvent<SVGElement>) => {
+    if (e.button !== 0) return;
+    const el = e.currentTarget;
+    try {
+      el.setPointerCapture(e.pointerId);
+    } catch {
+      /* see above */
+    }
+    dragRef.current = {
+      axis: 'vertical',
+      startScreen: e.clientX,
+      pointerId: e.pointerId,
+      capturedEl: el,
+      currentCanvas: null,
+    };
+    e.preventDefault();
+  };
+
+  /// Pointer move — when a drag is active, compute the canvas-space
+  /// coordinate of the pointer along the drag axis and update the preview.
+  /// Both rulers share this handler (the axis is in the drag state).
+  const onPointerMove = (e: ReactPointerEvent<SVGElement>) => {
+    const drag = dragRef.current;
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    const screen = drag.axis === 'horizontal' ? e.clientY : e.clientX;
+    const pan = drag.axis === 'horizontal' ? panY : panX;
+    const canvasPos = (screen - pan) / Math.max(zoom, 0.0001);
+    drag.currentCanvas = canvasPos;
+    // Bump React state only when the canvas-space position changes by ≥1
+    // canvas px — keeps pointermove from saturating the React reconciler
+    // at 60Hz during a fast drag. The render path reads `preview` for the
+    // dashed preview line; the final commit reads dragRef on pointerup.
+    setPreview((prev) => {
+      if (prev && prev.axis === drag.axis && Math.abs(prev.position - canvasPos) < 1) {
+        return prev; // unchanged — skip setState
+      }
+      return { axis: drag.axis, position: canvasPos };
+    });
+  };
+
+  /// Pointer up — if the drag traveled more than the threshold AND ended
+  /// inside the canvas area (not on the ruler itself), call onAddGuide.
+  /// Always clears the drag state + releases pointer capture.
+  const onPointerUp = (e: ReactPointerEvent<SVGElement>) => {
+    const drag = dragRef.current;
+    if (!drag || e.pointerId !== drag.pointerId) {
+      dragRef.current = null;
+      setPreview(null);
+      return;
+    }
+    const endScreen = drag.axis === 'horizontal' ? e.clientY : e.clientX;
+    const travel = Math.abs(endScreen - drag.startScreen);
+    // The pointer must have moved past the threshold AND ended outside the
+    // ruler strip (the ruler itself is RULER_SIZE tall/wide; ending inside
+    // it means the user clicked-and-released without leaving the ruler — a
+    // no-op drag, not a guide creation).
+    let endedInsideRuler: boolean;
+    if (drag.axis === 'horizontal') {
+      // Top ruler — strip is y ∈ [0, RULER_SIZE). Ending inside means the
+      // pointer was still in the ruler strip at release.
+      endedInsideRuler = e.clientY < RULER_SIZE;
+    } else {
+      // Left ruler — strip is x ∈ [0, RULER_SIZE).
+      endedInsideRuler = e.clientX < RULER_SIZE;
+    }
+    if (
+      travel > GUIDE_DRAG_THRESHOLD_PX &&
+      !endedInsideRuler &&
+      drag.currentCanvas !== null &&
+      onAddGuide
+    ) {
+      onAddGuide(drag.axis, drag.currentCanvas);
+    }
+    // Release capture + clear drag state.
+    if (drag.capturedEl) {
+      try {
+        drag.capturedEl.releasePointerCapture(drag.pointerId);
+      } catch {
+        /* pointer already released — non-fatal */
+      }
+    }
+    dragRef.current = null;
+    setPreview(null);
+  };
+
+  /// Pointer cancel (e.g. browser interruption) — same cleanup as up, but
+  /// no guide creation.
+  const onPointerCancel = (e: ReactPointerEvent<SVGElement>) => {
+    const drag = dragRef.current;
+    if (drag && drag.capturedEl) {
+      try {
+        drag.capturedEl.releasePointerCapture(drag.pointerId);
+      } catch {
+        /* non-fatal */
+      }
+    }
+    dragRef.current = null;
+    setPreview(null);
+  };
 
   return (
     <div
@@ -149,7 +317,8 @@ export function Rulers({ panX, panY, zoom, width, height }: RulersProps) {
         userSelect: 'none',
       }}
     >
-      {/* Top-left corner box — covers the intersection. */}
+      {/* Top-left corner box — covers the intersection. Pointer-events
+          stay none so clicks at the corner pass through to the canvas. */}
       <div
         style={{
           position: 'absolute',
@@ -163,7 +332,8 @@ export function Rulers({ panX, panY, zoom, width, height }: RulersProps) {
         }}
       />
 
-      {/* Top ruler (horizontal ticks). */}
+      {/* Top ruler (horizontal ticks). The SVG is pointer-active so the
+          user can drag a guide out from it. */}
       <div
         style={{
           position: 'absolute',
@@ -174,12 +344,17 @@ export function Rulers({ panX, panY, zoom, width, height }: RulersProps) {
           background: 'var(--ac-canvas-bg, #f8fafc)',
           borderBottom: '1px solid var(--ac-canvas-default-stroke, #cbd5e1)',
           overflow: 'hidden',
+          cursor: 'default',
         }}
       >
         <svg
           width={width - RULER_SIZE}
           height={RULER_SIZE}
-          style={{ display: 'block', position: 'absolute', left: 0, top: 0 }}
+          style={{ display: 'block', position: 'absolute', left: 0, top: 0, pointerEvents: 'auto', touchAction: 'none' }}
+          onPointerDown={onTopRulerPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerCancel}
         >
           {xTicks.map((t, i) => (
             <g key={`x-${i}`}>
@@ -208,7 +383,7 @@ export function Rulers({ panX, panY, zoom, width, height }: RulersProps) {
         </svg>
       </div>
 
-      {/* Left ruler (vertical ticks). */}
+      {/* Left ruler (vertical ticks). Same pointer-active treatment. */}
       <div
         style={{
           position: 'absolute',
@@ -219,12 +394,17 @@ export function Rulers({ panX, panY, zoom, width, height }: RulersProps) {
           background: 'var(--ac-canvas-bg, #f8fafc)',
           borderRight: '1px solid var(--ac-canvas-default-stroke, #cbd5e1)',
           overflow: 'hidden',
+          cursor: 'default',
         }}
       >
         <svg
           width={RULER_SIZE}
           height={height - RULER_SIZE}
-          style={{ display: 'block', position: 'absolute', left: 0, top: 0 }}
+          style={{ display: 'block', position: 'absolute', left: 0, top: 0, pointerEvents: 'auto', touchAction: 'none' }}
+          onPointerDown={onLeftRulerPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerCancel}
         >
           {yTicks.map((t, i) => (
             <g key={`y-${i}`}>
@@ -252,6 +432,49 @@ export function Rulers({ panX, panY, zoom, width, height }: RulersProps) {
           ))}
         </svg>
       </div>
+
+      {/* In-progress guide preview — a red dashed line at the live drag
+          position. Rendered at the outermost wrapper so it can extend the
+          full viewport (the rulers themselves are clipped). Pointer-events
+          none so it doesn't block the move events. */}
+      {preview && (
+        <div
+          data-ac-guide-preview=""
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            zIndex: 51,
+          }}
+        >
+          <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0 }}>
+            {preview.axis === 'horizontal' ? (
+              <line
+                x1={0}
+                y1={preview.position * zoom + panY}
+                x2={width}
+                y2={preview.position * zoom + panY}
+                stroke="#f24822"
+                strokeWidth={1}
+                strokeDasharray="4 3"
+              />
+            ) : (
+              <line
+                x1={preview.position * zoom + panX}
+                y1={0}
+                x2={preview.position * zoom + panX}
+                y2={height}
+                stroke="#f24822"
+                strokeWidth={1}
+                strokeDasharray="4 3"
+              />
+            )}
+          </svg>
+        </div>
+      )}
     </div>
   );
 }
