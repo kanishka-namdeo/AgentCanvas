@@ -39,6 +39,7 @@ import {
 import { toast } from 'sonner';
 import { PluginUI } from './PluginUI';
 import { MarkdownMessage } from './Markdown';
+import { ModelSwitcher } from './ModelSwitcher';
 import { suggestFollowUps } from '@/lib/agent/followups';
 import {
   matchCommands, resolveCommand, parseCommandInput, COMMAND_MENU_LIMIT,
@@ -49,7 +50,7 @@ import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl 
 import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers, Square,
-  ChevronRight, Clock, CornerDownLeft, Cpu, Zap,
+  ChevronRight, Clock, CornerDownLeft, Cpu,
 } from 'lucide-react';
 
 /// Format a token count for compact display: 45200 → "45.2K".
@@ -201,32 +202,15 @@ function ModelContextStatus({
       : null,
     usageTotals.cost > 0 ? `Estimated cost: $${usageTotals.cost.toFixed(4)}` : null,
     '',
-    'Click the model name to change it in Settings.',
+    'Click the model name to browse and switch available models.',
   ].filter((l) => l !== null).join('\n');
 
   return (
     <>
-      {/* Model badge — resolved model once known, configured model before the
-          first turn. Click → Settings → LLM provider (Cursor-style). */}
-      <button
-        onClick={() => {
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('agentcanvas:open-settings'));
-          }
-        }}
-        title={tooltip}
-        className={`flex items-center gap-0.5 px-1 py-0.5 rounded font-mono ac-transition hover:ac-surface-1 ac-focus-ring ${
-          usedFallback ? 'ac-text-warning' : 'ac-text-2'
-        }`}
-      >
-        <Cpu className="h-3 w-3 flex-shrink-0" />
-        <span className="max-w-[110px] truncate">{modelId}</span>
-        {usedFallback && (
-          <span className="flex-shrink-0" title="Endpoint was unreachable — z.ai sandbox fallback model in use">
-            <Zap className="h-2.5 w-2.5" />
-          </span>
-        )}
-      </button>
+      {/* Model badge + switcher — resolved model once known, configured model
+          before the first turn. Click → dropdown of actually-available models
+          (Cursor / ChatGPT / Open WebUI pattern — see ModelSwitcher.tsx). */}
+      <ModelSwitcher activeModel={activeModel} badgeTooltip={tooltip} />
 
       {/* Context usage — Cline-style progress bar with % + absolute tokens.
           Hidden until the first LLM call reports usage (no fake data). */}

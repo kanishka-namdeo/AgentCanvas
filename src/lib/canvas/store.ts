@@ -1034,15 +1034,20 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // The runner resolved a model (may differ from the configured one —
         // e.g. the z.ai sandbox fallback). Store it for the AgentPanel badge
         // and sync the session-store's model so SessionHeader shows the REAL
-        // model instead of the stale seed value.
-        set({ activeModel: {
-          provider: event.provider,
-          modelId: event.modelId,
-          label: event.label,
+        // model instead of the stale seed value. Also adopt the model's true
+        // context window immediately so the usage bar + tooltip are correct
+        // even before the first LLM call reports usage.
+        set({
+          activeModel: {
+            provider: event.provider,
+            modelId: event.modelId,
+            label: event.label,
+            contextWindow: event.contextWindow,
+            maxTokens: event.maxTokens,
+            usedFallback: event.usedFallback ?? false,
+          },
           contextWindow: event.contextWindow,
-          maxTokens: event.maxTokens,
-          usedFallback: event.usedFallback ?? false,
-        } });
+        });
         const sid = get().activeSessionId;
         if (sid) {
           try {

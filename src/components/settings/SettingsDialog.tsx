@@ -36,7 +36,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Bot, KeyRound, Sliders, History, Palette, ShieldCheck,
   Keyboard, RotateCcw, Download, Trash2, AlertTriangle,
-  Plug, Server, Plus, X, CheckCircle2, XCircle, Loader2,
+  Plug, Server, Plus, X, CheckCircle2, XCircle, Loader2, RefreshCw,
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings/store';
 import {
@@ -53,6 +53,7 @@ import { listProviders, getProviderMetadata } from '@/lib/llm';
 import { useSessionStore, estimateLocalStorageUsage, sweepIdleSessions } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { toast } from 'sonner';
+import { useModelCatalog } from '@/hooks/use-model-catalog';
 
 type Section =
   | 'agent' | 'llm' | 'sessions' | 'appearance' | 'data' | 'shortcuts' | 'plugins' | 'mcp';
@@ -313,6 +314,13 @@ function LLMSection() {
   const modelName = useSettings((s) => s.modelName);
   const apiBaseUrl = useSettings((s) => s.apiBaseUrl);
   const set = useSettings((s) => s.set);
+  // Live model listing from POST /api/models — the same source the AgentPanel
+  // model switcher uses. "Load live models" merges the endpoint's actual
+  // model list into the dropdown below (falls back to curated popularModels
+  // until clicked).
+  const { loading: modelsLoading, data: modelsData, error: modelsError, refresh: refreshModels } = useModelCatalog();
+  const liveModelIds = (modelsData?.provider.models ?? []).map((m) => m.id);
+  const liveLoaded = modelsData !== null;
 
   // Normalize the stored provider (handles legacy 'zai-auto' etc.).
   const normalizedProvider = normalizeLLMProvider(llmProvider as string);
@@ -399,40 +407,80 @@ function LLMSection() {
         <Row
           label="Model"
           description={
-            meta && meta.popularModels.length > 0
-              ? `Popular: ${meta.popularModels.slice(0, 3).join(', ')}…  — or type your own.`
-              : 'Type the model name your provider expects.'
+            liveLoaded
+              ? modelsData?.provider.source === 'endpoint'
+                ? `Live from the endpoint: ${liveModelIds.length} models available.`
+                : `From the ${normalizedProvider} catalog (${liveModelIds.length} models).`
+              : meta && meta.popularModels.length > 0
+                ? `Popular: ${meta.popularModels.slice(0, 3).join(', ')}…  — or load the live list.`
+                : 'Type the model name your provider expects, or load the live list.'
           }
         >
-          {(meta && meta.popularModels.length > 0) ? (
-            <Select
-              value={modelName || meta.defaultModel}
-              onValueChange={(v) => set('modelName', v)}
+          <div className="flex items-center gap-1.5 w-full sm:max-w-md">
+            <div className="flex-1 min-w-0">
+              {(meta && meta.popularModels.length > 0) || liveLoaded ? (
+                <Select
+                  value={modelName || meta?.defaultModel}
+                  onValueChange={(v) => set('modelName', v)}
+                >
+                  <SelectTrigger size="sm" className="h-7 w-full text-[11px]">
+                    <SelectValue placeholder={meta?.defaultModel || 'Select a model'} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {/* Live models (from the endpoint / catalog) first — dedup
+                        against the curated list so nothing shows twice. */}
+                    {liveLoaded && liveModelIds
+                      .filter((m) => !meta?.popularModels.includes(m))
+                      .map((m) => (
+                        <SelectItem key={`live-${m}`} value={m} className="text-[11px] font-mono">
+                          {m}
+                        </SelectItem>
+                      ))}
+                    {meta?.popularModels.map((m) => (
+                      <SelectItem key={m} value={m} className="text-[11px] font-mono">
+                        {m}
+                      </SelectItem>
+                    ))}
+                    {/* Allow custom models — show current custom value if not listed */}
+                    {modelName &&
+                      !meta?.popularModels.includes(modelName) &&
+                      !liveModelIds.includes(modelName) && (
+                        <SelectItem value={modelName} className="text-[11px] font-mono">
+                          {modelName} (custom)
+                        </SelectItem>
+                      )}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={modelName}
+                  onChange={(e) => set('modelName', e.target.value)}
+                  placeholder={meta?.defaultModel || 'model-name'}
+                  className="h-7 w-full text-[11px] font-mono"
+                />
+              )}
+            </div>
+            {/* Load-live-models button — probes the endpoint / catalog via
+                POST /api/models (same source as the AgentPanel switcher). */}
+            <button
+              onClick={() => {
+                refreshModels();
+                toast.message('Loading available models…');
+              }}
+              disabled={modelsLoading}
+              title="Fetch the models actually available from the configured provider right now"
+              className="flex-shrink-0 flex items-center gap-1 h-7 px-2 rounded-md border ac-border-subtle text-[10px] ac-text-2 ac-transition hover:ac-surface-1 disabled:opacity-50"
             >
-              <SelectTrigger size="sm" className="h-7 w-full sm:max-w-md text-[11px]">
-                <SelectValue placeholder={meta.defaultModel || 'Select a model'} />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {meta.popularModels.map((m) => (
-                  <SelectItem key={m} value={m} className="text-[11px] font-mono">
-                    {m}
-                  </SelectItem>
-                ))}
-                {/* Allow custom models — show current custom value if not in list */}
-                {modelName && !meta.popularModels.includes(modelName) && (
-                  <SelectItem value={modelName} className="text-[11px] font-mono">
-                    {modelName} (custom)
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Input
-              value={modelName}
-              onChange={(e) => set('modelName', e.target.value)}
-              placeholder={meta?.defaultModel || 'model-name'}
-              className="h-7 w-full sm:max-w-md text-[11px] font-mono"
-            />
+              {modelsLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3" />
+              )}
+              Live
+            </button>
+          </div>
+          {modelsError && (
+            <p className="mt-1 text-[10px] ac-text-warning">{modelsError}</p>
           )}
         </Row>
 

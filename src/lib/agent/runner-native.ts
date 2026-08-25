@@ -1026,7 +1026,15 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
       // (Fix 2) doesn't reject the gated tool calls during the fix turn.
       inCritiqueReprrompt = true;
       yield { kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } as any };
-      const { queue: fixQueue, unsubscribe: fixUnsubscribe } = subscribeAndTranslate((listener) => session!.subscribe(listener));
+      // Same translator options as the main attempt loop — the critique fix
+      // turn's message_end events also carry usage payloads, and the context
+      // window must be the RESOLVED model's (not the translator's 128K
+      // default, which would overwrite the UI's correct window on every
+      // critique iteration).
+      const { queue: fixQueue, unsubscribe: fixUnsubscribe } = subscribeAndTranslate(
+        (listener) => session!.subscribe(listener),
+        { contextWindow: currentModel.model.contextWindow },
+      );
       const fixRestoreSink = setEventSink((event: any) => {
         fixQueue.push([{ kind: 'agent_event', event }]);
       });
