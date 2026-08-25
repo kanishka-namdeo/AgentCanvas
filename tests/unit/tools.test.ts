@@ -1010,8 +1010,8 @@ describe('tools: pen_update_shape routes `parent` arg to a reparent patch (safet
     expect(r.patches?.[1].op).toBe('reparent');
     expect(r.patches?.[1].newParentId).toBe('frame');
     expect(r.patches?.[1].keepAbsolutePosition).toBe(true);
-    // Response text educates the LLM about pen_reparent_shape.
-    expect(r.content).toContain('pen_reparent_shape');
+    // Response text educates the LLM about pen_reparent_nodes.
+    expect(r.content).toContain('pen_reparent_nodes');
     // After applying both patches, rect should be inside frame with absolute pos preserved.
     const updated = h.doc.shapes.find((s) => s.id === 'rect');
     expect(updated?.parentId).toBe('frame');
@@ -1253,7 +1253,7 @@ describe('tools: pen_reparent_shape', () => {
       newParentId: 'frame',
     });
     expect(r.isError).toBe(true);
-    expect(r.content).toContain('no shapeId');
+    expect(r.content).toContain('no nodeId');
   });
 });
 
@@ -1295,9 +1295,9 @@ describe('tools: pen_set_constraints', () => {
 // ---- Tool registration sanity ------------------------------------------------
 
 describe('tools: registration sanity', () => {
-  it('returns 79 tools total (57 base + 7 Phase 2 component-system + 6 Phase 3 agentic-workflow + 2 Task 7-c UI-quality-enforcement + 7 Phase 3 Figma-MCP-aligned tools incl. M2-c round-trips)', () => {
+  it('returns 77 tools total (79 pre-Phase-6 minus the pen_list_shapes supersede and the legacy mark-as-component pen_create_component fold — spec Phase 6 / G.3)', () => {
     const tools = createCanvasTools(h.ctx);
-    expect(tools).toHaveLength(79);
+    expect(tools).toHaveLength(77);
   });
 
   it('every tool has a unique name', () => {

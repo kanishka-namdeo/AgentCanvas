@@ -18,9 +18,9 @@
 //   7. vector       — paths/booleans/masks
 //
 // Core tools (always loaded regardless of skill):
-//   pen_create_shape, pen_update_shape, pen_delete_shape,
-//   pen_list_shapes, pen_clear, pen_set_background,
-//   pen_select_shape, pen_undo, pen_redo
+//   pen_create_node, pen_update_node, pen_delete_nodes,
+//   pen_get_metadata, pen_clear, pen_set_background,
+//   pen_select_nodes, pen_undo, pen_redo
 //
 // This reduces per-turn tool count from 56 → ~15-20 (core + one skill),
 // well within the "safe zone" (<25 tools) identified by the research.
@@ -33,13 +33,13 @@ import type { Skill, SkillCategory } from './types';
 // creating, updating, deleting, listing, or selecting shapes.
 
 export const CORE_TOOL_NAMES = [
-  'pen_create_shape',
-  'pen_update_shape',
-  'pen_delete_shape',
-  'pen_list_shapes',
+  'pen_create_node',
+  'pen_update_node',
+  'pen_delete_nodes',
+  'pen_get_metadata',
   'pen_clear',
   'pen_set_background',
-  'pen_select_shape',
+  'pen_select_nodes',
   'pen_undo',
   'pen_redo',
 ] as const;
@@ -74,12 +74,12 @@ WIREFRAME — only produce that if the user explicitly says "wireframe", "low-fi
    If the request is a multi-screen flow (onboarding, ecommerce, auth, signup_funnel), call
    pen_generate_user_flow instead. If it's a diagram (flowchart, mindmap), call pen_generate_diagram.
 
-2. LIST: After generating, call pen_list_shapes to see what was created + their IDs.
-   IMPORTANT: copy shape IDs verbatim from the pen_list_shapes output — do NOT wrap them in
+2. LIST: After generating, call pen_get_metadata to see what was created + their IDs.
+   IMPORTANT: copy shape IDs verbatim from the pen_get_metadata output — do NOT wrap them in
    arrays or quotes-within-quotes. The shapeId parameter is a plain STRING, e.g. "abc-123",
    NOT ["abc-123"].
 
-3. TOKENIZE: Define the semantic color tokens via pen_set_variable (or pen_update_tokens).
+3. TOKENIZE: Define the semantic color tokens via pen_set_variable (or pen_set_variables).
    Required tokens: $color.bg, $color.surface, $color.surface-2, $color.border, $color.text,
    $color.text-muted, $color.primary, $color.primary-fg, $color.accent, $color.success, $color.danger.
    Use the values from the HIGH-FIDELITY DESIGN SYSTEM in your system prompt.
@@ -101,7 +101,7 @@ WIREFRAME — only produce that if the user explicitly says "wireframe", "low-fi
    Do NOT gradient body text or the full page background.
 
 7. CONTENT: Replace placeholder text ("Lorem ipsum", "Item 1", "Label", "Heading") with realistic
-   domain copy via pen_generate_copy or pen_update_shape (text field). Use real names ("Sarah Chen"),
+   domain copy via pen_generate_copy or pen_update_node (text field). Use real names ("Sarah Chen"),
    real numbers ("$12,480", "+18.2%"), real labels ("Monthly revenue"). NEVER leave "Lorem ipsum" on
    a high-fidelity design.
 
@@ -114,11 +114,11 @@ WIREFRAME — only produce that if the user explicitly says "wireframe", "low-fi
    instances. This closes the gap vs Figma AI: proactively suggest componentization.
 
 10. HIERARCHY: when the prompt asks to "move X into a (new) frame" or "reparent X", FIRST create the
-    target frame with pen_create_shape, THEN call pen_reparent_shape to move the existing shape into it.
-    pen_reparent_shape preserves the shape's absolute canvas position by default — pass
+    target frame with pen_create_node, THEN call pen_reparent_nodes to move the existing shape into it.
+    pen_reparent_nodes preserves the shape's absolute canvas position by default — pass
     keepAbsolutePosition=false if you want the stored relative x/y reinterpreted verbatim against the
-    new parent. Do NOT pass a "parent" field to pen_update_shape — that field is silently ignored;
-    always use pen_reparent_shape for reparenting.
+    new parent. Do NOT pass a "parent" field to pen_update_node — that field is silently ignored;
+    always use pen_reparent_nodes for reparenting.
 
 11. SELF-CRITIQUE (MANDATORY for high-fidelity work): After the design is complete, call
     pen_self_critique to get a senior-designer review. The critic will score wireframe-only output
@@ -147,7 +147,7 @@ WIREFRAME — only produce that if the user explicitly says "wireframe", "low-fi
 • Gradient stops: [{offset: 0, color: "#0ea5e9"}, {offset: 1, color: "#6366f1"}].
   offset is 0..1. At least 2 stops required.
 
-• If a tool call returns "Error: no shape with id X", call pen_list_shapes to see the actual IDs.
+• If a tool call returns "Error: no shape with id X", call pen_get_metadata to see the actual IDs.
   Do NOT retry the same call with the same ID — that loops forever.
 
 === LAYOUT & AESTHETIC TIPS ===============================================
@@ -192,8 +192,8 @@ to a different approach (do NOT loop on the same failing call).`,
       'pen_generate_user_flow',
       'pen_generate_diagram',
       'pen_generate_copy',
-      'pen_create_shape',
-      'pen_update_shape',
+      'pen_create_node',
+      'pen_update_node',
       'pen_upload_image',
       'pen_search_icons',
       'pen_generate_image',
@@ -205,19 +205,19 @@ to a different approach (do NOT loop on the same failing call).`,
       'pen_set_blur',
       'pen_set_corner_radius_per_corner',
       // ---- Token / palette tools ----
-      'pen_update_tokens',
+      'pen_set_variables',
       'pen_apply_palette',
       'pen_generate_palette',
-      'pen_apply_token',
-      'pen_bind_shape_to_token',
-      'pen_unbind_shape',
-      'pen_list_tokens',
+      'pen_apply_variable',
+      'pen_bind_variable',
+      'pen_unbind_variable',
+      'pen_list_variables',
       'pen_set_variable',
       // ---- Layout tools (needed for auto-layout + reparenting post-generation) ----
       'pen_apply_auto_layout',
       'pen_align_shapes',
-      'pen_reparent_shape',
-      'pen_duplicate_shape',
+      'pen_reparent_nodes',
+      'pen_duplicate_nodes',
       'pen_group_shapes',
       'pen_ungroup_shapes',
       'pen_bring_to_front',
@@ -226,10 +226,10 @@ to a different approach (do NOT loop on the same failing call).`,
       'pen_move_backward',
       'pen_bulk_update_by_filter',
       'pen_find_replace_text',
-      'pen_find_shapes',
+      'pen_find_nodes',
       // Phase 3 (spec §5.2): pen_insert_html is the PREFERRED construction
       // primitive for composite UI inside wireframe generation (one call vs
-      // many pen_create_shape) — Figma MCP generate_figma_design analog.
+      // many pen_create_node) — Figma MCP generate_figma_design analog.
       'pen_insert_html',
       'pen_get_metadata',
       // Figma-hierarchy: post-generation refinement often involves moving
@@ -241,7 +241,7 @@ to a different approach (do NOT loop on the same failing call).`,
       'pen_place_component_instance',
       'pen_override_instance',
       'pen_self_critique',
-      'pen_list_shapes',
+      'pen_get_metadata',
     ],
     keywords: [
       'design', 'build', 'create', 'make', 'wireframe', 'mockup', 'screen',
@@ -269,7 +269,7 @@ new shapes (if the user wants new shapes, that's the wireframe skill).
 
 === BEFORE YOU START ======================================================
 
-Always call pen_list_shapes FIRST to see what shapes exist and their current positions.
+Always call pen_get_metadata FIRST to see what shapes exist and their current positions.
 You need shape IDs to target them with layout operations.
 
 === TOOL SELECTION GUIDE ==================================================
@@ -279,7 +279,7 @@ You need shape IDs to target them with layout operations.
 • "group these" → pen_group_shapes (wraps in a group shape)
 • "ungroup" → pen_ungroup_shapes (children promoted to grandparent, abs pos preserved)
 • "organize my layers" → pen_organize_layers (auto-renames + re-zindexes everything)
-• "duplicate this" → pen_duplicate_shape (offsets 24px)
+• "duplicate this" → pen_duplicate_nodes (offsets 24px)
 • "apply auto layout" → pen_apply_auto_layout (direction, gap, padding, alignX, alignY)
 • "bring to front" / "send to back" → pen_bring_to_front / pen_send_to_back
 • "move forward" / "move backward" → pen_move_forward / pen_move_backward
@@ -287,13 +287,13 @@ You need shape IDs to target them with layout operations.
 • "hide this" / "show" → pen_set_visible
 
 HIERARCHY (Figma-style nesting):
-• "move X into Y" / "reparent X to Y" → pen_reparent_shape (shapeId, newParentId)
+• "move X into Y" / "reparent X to Y" → pen_reparent_nodes (nodeIds, parentId)
   - newParentId null/empty = promote to root (top-level)
   - Default keepAbsolutePosition=true — the shape stays put visually (its stored
     relative x/y is remapped to the new parent's coordinate frame).
   - Rejects reparenting into self or a descendant (cycle prevention).
-  - DO NOT use pen_update_shape with a "parent" field — that field is silently
-    ignored. Always use pen_reparent_shape.
+  - DO NOT use pen_update_node with a "parent" field — that field is silently
+    ignored. Always use pen_reparent_nodes.
 • "set constraints" / "pin to edges" → pen_set_constraints (shapeId, horizontal, vertical)
   - horizontal: left | right | center | scale | left_right
   - vertical:   top  | bottom | center | scale | top_bottom
@@ -318,7 +318,7 @@ tool calls: list_shapes → align/group/organize → confirm.`,
       'pen_align_shapes',
       'pen_group_shapes',
       'pen_ungroup_shapes',
-      'pen_duplicate_shape',
+      'pen_duplicate_nodes',
       'pen_organize_layers',
       'pen_apply_auto_layout',
       'pen_bring_to_front',
@@ -332,7 +332,7 @@ tool calls: list_shapes → align/group/organize → confirm.`,
       // Reparent moves a shape between parents (preserves absolute position
       // by default); constraints pin a child's edges to its parent for
       // responsive resize.
-      'pen_reparent_shape',
+      'pen_reparent_nodes',
       'pen_set_constraints',
       // Phase 3 (spec §5.2): HTML fragment → .pen subtree construction
       // primitive (Figma MCP generate_figma_design analog) + the navigation
@@ -349,7 +349,7 @@ tool calls: list_shapes → align/group/organize → confirm.`,
       // Figma-hierarchy triggers: "move X into Y", "reparent", "container",
       // "into a frame" — these verbs should make layout a secondary skill
       // (alongside the primary wireframe/styling/etc.) so the LLM gets
-      // pen_reparent_shape in its tool list.
+      // pen_reparent_nodes in its tool list.
       'move', 'reparent', 'container', 'into', 'nest', 'parent',
       'constraints', 'pin', 'resize',
     ],
@@ -369,7 +369,7 @@ existing shapes — colors, gradients, shadows, blurs, corner radii, and design 
 
 === BEFORE YOU START ======================================================
 
-Call pen_list_shapes to see what exists. For token-based styling, call pen_list_tokens
+Call pen_get_metadata to see what exists. For token-based styling, call pen_list_variables
 to see the current design tokens.
 
 === TOOL SELECTION GUIDE ==================================================
@@ -380,9 +380,9 @@ COLORS & PALETTES:
   NEVER pass palette as a string. Pass bindToTokens=true to also create color tokens.
 • "generate a palette from this color" → pen_generate_palette (baseColor, rule)
   rules: analogous, complementary, triadic, monochromatic, split_complementary
-• "set up design tokens" → pen_update_tokens (define named colors + text styles)
-• "bind this shape to a token" → pen_bind_shape_to_token
-• "apply a token to shapes" → pen_apply_token
+• "set up design tokens" → pen_set_variables (define named colors + text styles)
+• "bind this shape to a token" → pen_bind_variable
+• "apply a token to shapes" → pen_apply_variable
 
 EFFECTS:
 • "add a gradient" → pen_set_gradient_fill (type=linear|radial, angle, stops)
@@ -414,11 +414,11 @@ The task is complete when the shapes have the requested visual style. Typically 
       'pen_generate_design_brief',
       'pen_apply_palette',
       'pen_generate_palette',
-      'pen_update_tokens',
-      'pen_apply_token',
-      'pen_bind_shape_to_token',
-      'pen_unbind_shape',
-      'pen_list_tokens',
+      'pen_set_variables',
+      'pen_apply_variable',
+      'pen_bind_variable',
+      'pen_unbind_variable',
+      'pen_list_variables',
       'pen_set_gradient_fill',
       'pen_set_shadow',
       'pen_set_blur',
@@ -448,13 +448,13 @@ and report it to the user. You do NOT modify the canvas — all tools in this sk
 
 === TOOL SELECTION GUIDE ==================================================
 
-• "what's on the canvas" / "list shapes" → pen_list_shapes
-• "find all rectangles" / "find shapes with fill X" → pen_find_shapes
+• "what's on the canvas" / "list shapes" → pen_get_metadata
+• "find all rectangles" / "find shapes with fill X" → pen_find_nodes
   filter by: type, fill, name, parentId
 • "check my design" / "audit consistency" → pen_audit_design
   Returns findings about: color drift, type scale issues, low-contrast text,
   token usage, alignment near-misses.
-• "what tokens do I have" → pen_list_tokens
+• "what tokens do I have" → pen_list_variables
 
 === REPORTING =============================================================
 
@@ -468,14 +468,14 @@ The task is complete when you've reported the information the user asked for. Ty
 tool calls. Do NOT make changes — if the user wants fixes, they'll ask in a follow-up.`,
     allowedTools: [
       // Task 7-g Fix 3 — read-only analysis skill still receives gated tools via
-      // CORE_TOOL_NAMES (pen_create_shape) + PEN_TOOL_NAMES (pen_set_variable) in
+      // CORE_TOOL_NAMES (pen_create_node) + PEN_TOOL_NAMES (pen_set_variable) in
       // the runner's allowedToolNames union, so pen_generate_design_brief must be
       // present for the brief-first recovery path (Task 7-f regression).
       'pen_generate_design_brief',
-      'pen_list_shapes',
-      'pen_find_shapes',
+      'pen_get_metadata',
+      'pen_find_nodes',
       'pen_audit_design',
-      'pen_list_tokens',
+      'pen_list_variables',
       // Phase 3 (spec §5.2) read ladder: metadata (navigate) → design
       // context / variable defs (inspect). Figma MCP verb names under pen_.
       'pen_get_metadata',
@@ -527,7 +527,7 @@ The task is complete when the exported content has been generated and presented.
 1 tool call. Do NOT modify the canvas — export is read-only.`,
     allowedTools: [
       // Task 7-g Fix 3 — export skill still receives gated tools via
-      // CORE_TOOL_NAMES (pen_create_shape) + PEN_TOOL_NAMES (pen_set_variable) in
+      // CORE_TOOL_NAMES (pen_create_node) + PEN_TOOL_NAMES (pen_set_variable) in
       // the runner's allowedToolNames union, so pen_generate_design_brief must be
       // present for the brief-first recovery path (Task 7-f regression).
       'pen_generate_design_brief',
@@ -590,7 +590,7 @@ Typically 2-4 tool calls (1-2 searches + 1-2 fetches). Do NOT fetch more than 3-
 synthesize from what you have.`,
     allowedTools: [
       // Task 7-g Fix 3 — research skill still receives gated tools via
-      // CORE_TOOL_NAMES (pen_create_shape) + PEN_TOOL_NAMES (pen_set_variable) in
+      // CORE_TOOL_NAMES (pen_create_node) + PEN_TOOL_NAMES (pen_set_variable) in
       // the runner's allowedToolNames union, so pen_generate_design_brief must be
       // present for the brief-first recovery path (Task 7-f regression).
       'pen_generate_design_brief',
@@ -649,14 +649,14 @@ polygons, and boolean combinations — that go beyond the basic rectangle/ellips
 
 The task is complete when the custom vector shape has been created. Typically 1-3 tool calls.`,
     allowedTools: [
-      // Task 7-g Fix 3 — vector skill includes pen_create_shape (gated by brief-first enforcement),
+      // Task 7-g Fix 3 — vector skill includes pen_create_node (gated by brief-first enforcement),
       // so pen_generate_design_brief must be available for the recovery path.
       'pen_generate_design_brief',
       'pen_create_path',
       'pen_boolean_op',
       'pen_mask_with',
-      'pen_create_shape',
-      'pen_update_shape',
+      'pen_create_node',
+      'pen_update_node',
     ],
     keywords: [
       'path', 'polygon', 'polyline', 'vector', 'freeform', 'custom shape',
@@ -719,13 +719,13 @@ export function getToolNamesForCategory(category: SkillCategory): string[] {
 
 export const ALL_TOOL_NAMES = [
   // Core
-  'pen_create_shape', 'pen_update_shape', 'pen_delete_shape',
-  'pen_list_shapes', 'pen_clear', 'pen_set_background', 'pen_select_shape',
+  'pen_create_node', 'pen_update_node', 'pen_delete_nodes',
+  'pen_get_metadata', 'pen_clear', 'pen_set_background', 'pen_select_nodes',
   // Layout
-  'pen_duplicate_shape', 'pen_group_shapes', 'pen_ungroup_shapes',
+  'pen_duplicate_nodes', 'pen_group_shapes', 'pen_ungroup_shapes',
   'pen_align_shapes', 'pen_organize_layers', 'pen_apply_auto_layout',
   // Figma hierarchy
-  'pen_reparent_shape', 'pen_set_constraints',
+  'pen_reparent_nodes', 'pen_set_constraints',
   // Components (legacy)
   'pen_create_component', 'pen_instantiate_component',
   // Component System (Phase 2 — Figma-aligned)
@@ -737,16 +737,16 @@ export const ALL_TOOL_NAMES = [
   'pen_search_design_patterns', 'pen_save_design_pattern',
   'pen_clear_pattern_memory', 'pen_pattern_stats',
   // Tokens / palette
-  'pen_update_tokens', 'pen_apply_palette', 'pen_generate_palette',
+  'pen_set_variables', 'pen_apply_palette', 'pen_generate_palette',
   // Generators
   'pen_generate_design_brief', 'pen_generate_wireframe', 'pen_generate_user_flow', 'pen_generate_diagram',
   // Analysis
   'pen_generate_copy', 'pen_audit_design',
   // Token binding
-  'pen_bind_shape_to_token', 'pen_unbind_shape', 'pen_list_tokens', 'pen_apply_token',
+  'pen_bind_variable', 'pen_unbind_variable', 'pen_list_variables', 'pen_apply_variable',
   // .pen-aligned tools (variables, themes, refs, slots, export)
-  'pen_set_variable', 'pen_apply_theme', 'pen_create_ref', 'pen_override_descendant',
-  'pen_mark_slot', 'pen_export_pen', 'pen_set_theme_axis', 'pen_list_themes',
+  'pen_set_variable', 'pen_set_explicit_modes', 'pen_create_ref', 'pen_override_descendant',
+  'pen_mark_slot', 'pen_export_pen', 'pen_set_variable_modes', 'pen_list_collections',
   // Lock & visibility
   'pen_set_locked', 'pen_set_visible',
   // Z-order
@@ -760,7 +760,7 @@ export const ALL_TOOL_NAMES = [
   'pen_insert_html', 'pen_get_metadata', 'pen_get_design_context',
   'pen_get_variable_defs', 'pen_bake_layout', 'pen_get_computed', 'pen_get_screenshot',
   // Find & filter
-  'pen_find_shapes', 'pen_bulk_update_by_filter', 'pen_find_replace_text',
+  'pen_find_nodes', 'pen_bulk_update_by_filter', 'pen_find_replace_text',
   // Vector
   'pen_create_path', 'pen_boolean_op', 'pen_mask_with',
   // Effects

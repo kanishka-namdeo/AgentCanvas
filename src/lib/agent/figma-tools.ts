@@ -23,7 +23,7 @@ import type { CanvasToolContext } from './tools';
 
 export function createFigmaTools(ctx: CanvasToolContext) {
   const createPage = defineTool({
-    name: 'figma_create_page',
+    name: 'pen_create_page',
     label: 'Create Page',
     description:
       'Add a new PAGE to the document. Pages are top-level canvas surfaces within a file — ' +
@@ -57,7 +57,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
   });
 
   const setActivePage = defineTool({
-    name: 'figma_set_active_page',
+    name: 'pen_set_active_page',
     label: 'Switch Active Page',
     description:
       'Switch the active page. The canvas swaps to the target page\'s layer tree + viewport.',
@@ -89,7 +89,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
   });
 
   const renamePage = defineTool({
-    name: 'figma_rename_page',
+    name: 'pen_rename_page',
     label: 'Rename Page',
     description: 'Rename an existing page. Identify it by id or by current name.',
     promptSnippet: 'Rename a page.',
@@ -116,7 +116,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
   });
 
   const deletePage = defineTool({
-    name: 'figma_delete_page',
+    name: 'pen_delete_page',
     label: 'Delete Page',
     description:
       'Delete a page from the document. The page\'s layer tree is permanently removed. ' +
@@ -144,7 +144,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
   });
 
   const createSection = defineTool({
-    name: 'figma_create_section',
+    name: 'pen_create_section',
     label: 'Create Section',
     description:
       'Create a SECTION node — Figma\'s large grouping container with a header label. ' +
@@ -183,7 +183,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
   });
 
   const createComponent = defineTool({
-    name: 'figma_create_component',
+    name: 'pen_create_component',
     label: 'Create Component',
     description:
       'Promote a frame (or create a new one) into a COMPONENT — a reusable design element. ' +
@@ -225,11 +225,11 @@ export function createFigmaTools(ctx: CanvasToolContext) {
   });
 
   const createComponentSet = defineTool({
-    name: 'figma_create_component_set',
+    name: 'pen_create_component_set',
     label: 'Create Component Set',
     description:
       'Create a COMPONENT_SET — a container for VARIANTS of a component. ' +
-      'After creating the set, call figma_add_variant for each variant combination. ' +
+      'After creating the set, call pen_add_variant for each variant combination. ' +
       'Each variant\'s name follows Figma\'s convention: "Property=Value, Property=Value".',
     promptSnippet: 'Create a COMPONENT_SET for variants.',
     parameters: Type.Object({
@@ -269,7 +269,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
           type: 'text',
           text:
             `Created component set "${params.name}" (id: ${id}) with variant axes [${params.variantPropertyAxes.join(', ')}]. ` +
-            `Now call figma_add_variant for each variant combination. Remember the naming convention: ` +
+            `Now call pen_add_variant for each variant combination. Remember the naming convention: ` +
             `"Property=Value, Property=Value" (e.g. "Size=Large, State=Hover").`,
         }],
         details: { id, name: params.name, variantPropertyAxes: params.variantPropertyAxes },
@@ -278,7 +278,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
   });
 
   const addVariant = defineTool({
-    name: 'figma_add_variant',
+    name: 'pen_add_variant',
     label: 'Add Variant',
     description:
       'Add a variant COMPONENT to an existing component_set. The variant\'s name is auto-derived ' +
@@ -326,7 +326,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
   });
 
   const setComponentProperty = defineTool({
-    name: 'figma_set_component_property',
+    name: 'pen_set_component_property',
     label: 'Set Component Property',
     description:
       'Define a component property on a COMPONENT. Figma\'s 4 property types: ' +
@@ -384,7 +384,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
   });
 
   const setInstanceProperty = defineTool({
-    name: 'figma_set_instance_property',
+    name: 'pen_set_instance_property',
     label: 'Set Instance Property Override',
     description:
       'Override a component property on an existing INSTANCE (PenRef). Use this to customize a placed ' +
@@ -436,7 +436,25 @@ export function createFigmaTools(ctx: CanvasToolContext) {
   ];
 }
 
+// Canonical names (spec Phase 6 / G.3 — the figma_* surface folded into the
+// pen_* names, closing D10): the `figma_*` spellings resolve through the alias
+// registry in tool-aliases.ts and remain PERMANENT aliases.
 export const FIGMA_TOOL_NAMES = [
+  'pen_create_page',
+  'pen_set_active_page',
+  'pen_rename_page',
+  'pen_delete_page',
+  'pen_create_section',
+  'pen_create_component',
+  'pen_create_component_set',
+  'pen_add_variant',
+  'pen_set_component_property',
+  'pen_set_instance_property',
+] as const;
+
+/// Legacy `figma_*` alias names (kept in the always-on exposure sets during
+/// the window; payloads were already Figma-shaped, so nothing else changes).
+export const FIGMA_TOOL_LEGACY_NAMES = [
   'figma_create_page',
   'figma_set_active_page',
   'figma_rename_page',

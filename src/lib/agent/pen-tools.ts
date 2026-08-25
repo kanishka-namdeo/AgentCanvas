@@ -133,42 +133,46 @@ export function createPenTools(ctx: CanvasToolContext) {
     },
   });
 
-  // ---- Tool: pen_apply_theme ----------------------------------------------
+  // ---- Tool: pen_set_explicit_modes (was pen_apply_theme) -------------------
 
   const applyTheme = defineTool({
-    name: 'pen_apply_theme',
-    label: 'Apply .pen Theme',
+    name: 'pen_set_explicit_modes',
+    label: 'Set Explicit Modes',
     description:
-      'Set a pen.dev theme axis value on a node (e.g. mode=dark, spacing=condensed). ' +
-      'Descendants inherit the theme. Variables that have a matching theme-conditional value ' +
-      'will resolve to that value under this node. Maps to .pen `theme` on an Entity.',
-    promptSnippet: 'Apply a theme axis value (e.g. mode=dark) to a node and its descendants.',
+      'Set explicit variable modes on a node (e.g. mode=dark, spacing=condensed). ' +
+      'Descendants inherit the modes. Variables that have a matching mode-conditional value ' +
+      'will resolve to that value under this node. Maps to Figma `explicitVariableModes` ' +
+      '(legacy .pen `theme` on an Entity).',
+    promptSnippet: 'Set explicit variable modes (e.g. mode=dark) on a node and its descendants.',
     promptGuidelines: [
-      'Theme axes are defined at the document level (e.g. { mode: ["light","dark"] }).',
-      'Pass the shapeId of the node to theme (usually a frame).',
-      'All descendants inherit the theme unless they set their own.',
+      'Variable collections are defined at the document level (e.g. { mode: ["light","dark"] }).',
+      'Pass the nodeId of the node to mode (usually a frame).',
+      'All descendants inherit the modes unless they set their own.',
     ],
     parameters: Type.Object({
-      shapeId: Type.String({ description: 'ID of the node to apply the theme to.' }),
-      theme: Type.Record(Type.String(), Type.String(), {
-        description: 'Theme axis -> value map, e.g. {"mode":"dark"} or {"mode":"dark","spacing":"condensed"}.',
+      nodeId: Type.String({ description: 'ID of the node to set explicit modes on (legacy alias: shapeId).' }),
+      explicitVariableModes: Type.Record(Type.String(), Type.String(), {
+        description: 'Collection → mode map, e.g. {"mode":"dark"} or {"mode":"dark","spacing":"condensed"}. Legacy alias: theme.',
       }),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
-      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      const p = params as any;
+      const nodeId: string = params.nodeId ?? p.shapeId;
+      const modes: Record<string, string> = params.explicitVariableModes ?? p.theme ?? {};
+      const shape = ctx.getShapes().find((s) => s.id === nodeId);
       if (!shape) {
         return {
-          content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }],
-          details: { error: 'not_found', shapeId: params.shapeId },
+          content: [{ type: 'text', text: `Error: no shape with id ${nodeId}` }],
+          details: { error: 'not_found', shapeId: nodeId },
           isError: true as any,
         };
       }
       // Store theme in shape metadata (Phase C adds a first-class theme field).
       const patch: CanvasPatch = {
         op: 'update',
-        shapeId: params.shapeId,
+        shapeId: nodeId,
         shape: {},
-        summary: `Applied theme ${JSON.stringify(params.theme)} to "${shape.name}"`,
+        summary: `Applied modes ${JSON.stringify(modes)} to "${shape.name}"`,
       };
       ctx.applyPatch(patch);
       return {
@@ -176,12 +180,12 @@ export function createPenTools(ctx: CanvasToolContext) {
           {
             type: 'text',
             text:
-              `Applied theme ${JSON.stringify(params.theme)} to "${shape.name}". ` +
-              `Descendants will inherit this theme. (Note: full theme-variable resolution lands in Phase C; ` +
+              `Applied modes ${JSON.stringify(modes)} to "${shape.name}". ` +
+              `Descendants will inherit these modes. (Note: full mode-variable resolution lands in Phase C; ` +
               `for now this is recorded as metadata.)`,
           },
         ],
-        details: { shapeId: params.shapeId, theme: params.theme, patch },
+        details: { shapeId: nodeId, theme: modes, patch },
       };
     },
   });
@@ -193,12 +197,12 @@ export function createPenTools(ctx: CanvasToolContext) {
     label: 'Create Component Instance (ref)',
     description:
       'Create a pen.dev component INSTANCE — a `ref` node that reuses a reusable component (one marked ' +
-      'with reusable:true / created via pen_create_component). The instance replicates the component ' +
+      'with reusable:true / created via pen_create_component or pen_convert_to_component). The instance replicates the component ' +
       'tree but can override individual descendant properties via `descendants`. ' +
       'Maps to .pen `ref` + `descendants`.',
     promptSnippet: 'Instantiate a reusable component as a `ref`, with optional descendant overrides.',
     promptGuidelines: [
-      'First mark a shape as reusable via pen_create_component (or set reusable=true).',
+      'First mark a shape as reusable via pen_convert_to_component (or pen_create_component).',
       'Pass the componentId as `ref`. The instance inherits the component tree.',
       'Use `descendants` to override properties: { "label": { "text": "Cancel" } }.',
       'Descendant keys are slash-separated ID paths: "ok-button/label".',
@@ -494,44 +498,49 @@ export function createPenTools(ctx: CanvasToolContext) {
     },
   });
 
-  // ---- Tool: pen_set_theme_axis -------------------------------------------
+  // ---- Tool: pen_set_variable_modes (was pen_set_theme_axis) -----------------
 
   const setThemeAxis = defineTool({
-    name: 'pen_set_theme_axis',
-    label: 'Define Theme Axis',
+    name: 'pen_set_variable_modes',
+    label: 'Define Variable Modes',
     description:
-      'Define (or update) a pen.dev theme axis at the document level. A theme axis is a named ' +
+      'Define (or update) a variable collection at the document level. A collection is a named ' +
       'dimension along which variables can vary — e.g. `mode: ["light", "dark"]` or ' +
       '`spacing: ["regular", "condensed"]` or `device: ["phone", "tablet", "desktop"]`. ' +
-      'The FIRST value is the default. Variables can then have theme-conditional values ' +
-      'that resolve based on a node\'s effective theme. Maps to .pen `themes`.',
-    promptSnippet: 'Define a multi-axis theme (e.g. mode: light/dark, spacing: regular/condensed).',
+      'The FIRST mode is the default. Variables can then have mode-conditional values ' +
+      'that resolve based on a node\'s effective modes. Maps to Figma `VariableCollection` ' +
+      '(legacy .pen `themes`).',
+    promptSnippet: 'Define a variable collection with its modes (e.g. mode: light/dark, spacing: regular/condensed).',
     promptGuidelines: [
-      'Common axes: mode (light/dark), spacing (regular/condensed), device (phone/tablet/desktop).',
-      'The first value in `values` is the default theme value for that axis.',
-      'After defining an axis, use pen_set_variable with themedValues to make variables theme-aware.',
-      'Use pen_apply_theme to set a theme value on a specific node.',
+      'Common collections: mode (light/dark), spacing (regular/condensed), device (phone/tablet/desktop).',
+      'The first mode in `modes` is the default for that collection.',
+      'After defining a collection, use pen_set_variable with themedValues to make variables mode-aware.',
+      'Use pen_set_explicit_modes to set modes on a specific node.',
     ],
     parameters: Type.Object({
-      axis: Type.String({ description: 'Theme axis name, e.g. "mode" or "spacing".' }),
-      values: Type.Array(Type.String(), {
-        description: 'Allowed values for this axis, in priority order. First = default. E.g. ["light", "dark"].',
+      collectionId: Type.String({ description: 'Collection (axis) name, e.g. "mode" or "spacing". Legacy aliases: axis, themeAxis.' }),
+      modes: Type.Array(Type.Union([Type.String(), Type.Object({ modeId: Type.Optional(Type.String()), name: Type.Optional(Type.String()) })]), {
+        description: 'Modes for this collection, in priority order. First = default. E.g. ["light", "dark"] or [{modeId:"1", name:"light"}]. Legacy aliases: values, themeValues.',
       }),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
-      const values = Array.isArray(params?.values) ? params.values.map(String) : [];
-      if (!params?.axis || values.length === 0) {
+      const p = params as any;
+      const axis: string = params.collectionId ?? p.axis ?? p.themeAxis ?? '';
+      const rawModes = Array.isArray(params.modes) ? params.modes : (Array.isArray(p.values) ? p.values : []);
+      const values = rawModes.map((m: any) =>
+        m && typeof m === 'object' ? String(m.name ?? m.modeId ?? '') : String(m));
+      if (!axis || values.length === 0) {
         return {
-          content: [{ type: 'text', text: 'Error: `axis` and at least one `values` entry are required.' }],
+          content: [{ type: 'text', text: 'Error: `collectionId` and at least one `modes` entry are required.' }],
           details: { error: 'missing_args' },
           isError: true as any,
         };
       }
       const patch: CanvasPatch = {
         op: 'set_theme_axis',
-        themeAxis: params.axis,
+        themeAxis: axis,
         themeValues: values,
-        summary: `Defined theme axis "${params.axis}": [${values.join(', ')}]`,
+        summary: `Defined collection "${axis}" with modes: [${values.join(', ')}]`,
       };
       ctx.applyPatch(patch);
       return {
@@ -539,29 +548,29 @@ export function createPenTools(ctx: CanvasToolContext) {
           {
             type: 'text',
             text:
-              `Defined theme axis "${params.axis}" with ${values.length} value(s): [${values.join(', ')}]. ` +
-              `Default = "${values[0]}". Variables can now use themedValues with { ${params.axis}: "<value>" } ` +
-              `and nodes can set their theme via pen_apply_theme.`,
+              `Defined collection "${axis}" with ${values.length} mode(s): [${values.join(', ')}]. ` +
+              `Default = "${values[0]}". Variables can now use themedValues with { ${axis}: "<value>" } ` +
+              `and nodes can set their modes via pen_set_explicit_modes.`,
           },
         ],
-        details: { axis: params.axis, values, patch },
+        details: { axis, values, patch },
       };
     },
   });
 
-  // ---- Tool: pen_list_themes ----------------------------------------------
+  // ---- Tool: pen_list_collections (was pen_list_themes) ---------------------
 
   const listThemes = defineTool({
-    name: 'pen_list_themes',
-    label: 'List Themes & Variables',
+    name: 'pen_list_collections',
+    label: 'List Collections & Variables',
     description:
-      'List all pen.dev theme axes and document variables. Returns the theme axis definitions ' +
-      'and every variable (key, type, value or themed-values). Read-only — useful before applying ' +
-      'themes or binding variables.',
-    promptSnippet: 'List all theme axes and $variables (read-only).',
+      'List all variable collections and document variables. Returns the collection definitions ' +
+      '(each collection with its modes) and every variable (key, type, value or mode-values). ' +
+      'Read-only — useful before setting explicit modes or binding variables.',
+    promptSnippet: 'List all variable collections (with modes) and $variables (read-only).',
     promptGuidelines: [
-      'Use this to see what variables and theme axes exist before editing them.',
-      'Returns theme axes (axis -> values) and variables (key -> type + value).',
+      'Use this to see what variables and collections exist before editing them.',
+      'Returns collections (collection → modes) and variables (key → type + value).',
     ],
     parameters: Type.Object({}),
     async execute(_toolCallId, _params, _signal, _onUpdate, _ctx) {
@@ -569,13 +578,13 @@ export function createPenTools(ctx: CanvasToolContext) {
       const themes: { [axis: string]: string[] } = (doc as any).themes ?? {};
       const variables: { [key: string]: PenVariableDef } = (doc as any).variables ?? {};
       const themeLines = Object.keys(themes).length === 0
-        ? '  (no theme axes defined)'
-        : Object.entries(themes).map(([axis, vals]) => `  • ${axis}: [${(vals as string[]).join(', ')}]`).join('\n');
+        ? '  (no collections defined)'
+        : Object.entries(themes).map(([axis, vals]) => `  • ${axis}: modes=[${(vals as string[]).join(', ')}]`).join('\n');
       const varLines = Object.keys(variables).length === 0
         ? '  (no variables defined)'
         : Object.entries(variables).map(([k, v]) => {
             const val = Array.isArray(v.value)
-              ? `${(v.value as any[]).length} themed value(s)`
+              ? `${(v.value as any[]).length} mode value(s)`
               : String(v.value);
             return `  • $${k} (${v.type}) = ${val}`;
           }).join('\n');
@@ -584,7 +593,7 @@ export function createPenTools(ctx: CanvasToolContext) {
           {
             type: 'text',
             text:
-              `Theme axes (${Object.keys(themes).length}):\n${themeLines}\n\n` +
+              `Collections (${Object.keys(themes).length}):\n${themeLines}\n\n` +
               `Variables (${Object.keys(variables).length}):\n${varLines}`,
           },
         ],
@@ -596,13 +605,25 @@ export function createPenTools(ctx: CanvasToolContext) {
   return [setVariable, applyTheme, createRef, overrideDescendant, markSlot, exportPen, setThemeAxis, listThemes];
 }
 
+// Canonical names (spec Phase 6 / G.3): the theme-era spellings
+// (pen_apply_theme / pen_set_theme_axis / pen_list_themes) resolve through the
+// alias registry in tool-aliases.ts during the deprecation window.
 export const PEN_TOOL_NAMES = [
   'pen_set_variable',
-  'pen_apply_theme',
+  'pen_set_explicit_modes',
   'pen_create_ref',
   'pen_override_descendant',
   'pen_mark_slot',
   'pen_export_pen',
+  'pen_set_variable_modes',
+  'pen_list_collections',
+] as const;
+
+/// Legacy alias names kept alongside the canonical set so always-on exposure
+/// (runner filters spread PEN_TOOL_NAMES) keeps the deprecated spellings
+/// visible during the window.
+export const PEN_TOOL_LEGACY_NAMES = [
+  'pen_apply_theme',
   'pen_set_theme_axis',
   'pen_list_themes',
 ] as const;

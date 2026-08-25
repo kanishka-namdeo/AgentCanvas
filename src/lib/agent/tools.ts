@@ -8,9 +8,11 @@
 //
 // === TOOL INVENTORY (research-driven) =====================================
 //
-// Core canvas ops (existing):
-//   pen_create_shape, pen_update_shape, pen_delete_shape,
-//   pen_list_shapes, pen_clear, pen_set_background, pen_select_shape
+// Core canvas ops (existing — renamed to Figma-canonical names in Phase 6,
+// with the legacy names kept as aliases; see tool-aliases.ts / Appendix G §G.3):
+//   pen_create_node, pen_update_node, pen_delete_nodes,
+//   pen_get_metadata (supersedes pen_list_shapes), pen_clear,
+//   pen_set_background, pen_select_nodes
 //
 // Extended scenarios (added based on /research/*.json findings):
 //
@@ -22,7 +24,7 @@
 //      - pen_instantiate_component
 //
 //   3. Layer organization (Figma layers panel + AI plugins)
-//      - pen_duplicate_shape
+//      - pen_duplicate_nodes
 //      - pen_group_shapes
 //      - pen_ungroup_shapes
 //      - pen_align_shapes
@@ -62,6 +64,14 @@ import { serializeNodes } from '../canvas/serialize';
 import { resolvePenTreeDetailed, type ResolvedTreeNode } from '../pen/resolve';
 import type { PenChild } from '../pen/types';
 import { emitEvent, hasSink } from './plugins/event-bus';
+import {
+  aliasToolEntries,
+  deprecationNotice,
+  normalizeAutoLayoutV3,
+  normalizeToolParams,
+  resolveToolName,
+  type AliasToolLike,
+} from './tool-aliases';
 import {
   awaitClientResponse,
   getMeasuredBounds,
@@ -165,13 +175,23 @@ const ShapeInputSchema = Type.Object({
     bottomLeft: Type.Number({ description: 'Bottom-left radius in px' }),
   }, { description: 'Per-corner border radii (overrides uniform radius). Use for toast cards, sheets.' })),
   autoLayout: Type.Optional(Type.Object({
-    direction: Type.Union([Type.Literal('horizontal'), Type.Literal('vertical')], { description: 'Layout direction' }),
-    gap: Type.Optional(Type.Number({ description: 'Gap between children in px (default 8)' })),
-    padding: Type.Optional(Type.Number({ description: 'Padding inside frame in px (default 16)' })),
+    direction: Type.Optional(Type.Union([Type.Literal('horizontal'), Type.Literal('vertical')], { description: 'Layout direction (legacy spelling; v3: layoutMode)' })),
+    gap: Type.Optional(Type.Number({ description: 'Gap between children in px (default 8). v3 alias: itemSpacing.' })),
+    padding: Type.Optional(Type.Number({ description: 'Padding inside frame in px (default 16). v3 aliases: paddingLeft/Right/Top/Bottom (uniform during the window).' })),
     alignX: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Horizontal alignment (default center)' })),
     alignY: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Vertical alignment (default center)' })),
-  }, { description: 'Auto Layout (flexbox) for frames. Prefer over manual x/y for contained UI.' })),
-  parentId: Type.Optional(Type.String({ description: 'Parent frame/group ID. If omitted, the shape is a top-level layer. (Note: to MOVE an existing shape into a frame, use pen_reparent_shape instead.)' })),
+    // Figma v3 spellings (spec Phase 6 / G.3 row 1) — normalized to the legacy
+    // fields above by normalizeToolParams before execute runs.
+    layoutMode: Type.Optional(Type.Union([Type.Literal('VERTICAL'), Type.Literal('HORIZONTAL'), Type.Literal('NONE'), Type.Literal('GRID')], { description: 'v3: VERTICAL | HORIZONTAL | NONE' })),
+    itemSpacing: Type.Optional(Type.Number({ description: 'v3: main-axis gap in px' })),
+    paddingLeft: Type.Optional(Type.Number({ description: 'v3: left padding' })),
+    paddingRight: Type.Optional(Type.Number({ description: 'v3: right padding' })),
+    paddingTop: Type.Optional(Type.Number({ description: 'v3: top padding' })),
+    paddingBottom: Type.Optional(Type.Number({ description: 'v3: bottom padding' })),
+    primaryAxisAlignItems: Type.Optional(Type.Union([Type.Literal('MIN'), Type.Literal('CENTER'), Type.Literal('MAX'), Type.Literal('SPACE_BETWEEN'), Type.Literal('SPACE_AROUND')], { description: 'v3: primary-axis alignment' })),
+    counterAxisAlignItems: Type.Optional(Type.Union([Type.Literal('MIN'), Type.Literal('CENTER'), Type.Literal('MAX')], { description: 'v3: counter-axis alignment' })),
+  }, { description: 'Auto Layout (flexbox) for frames — accepts legacy {direction,gap,padding,alignX,alignY} or Figma v3 {layoutMode,itemSpacing,paddingLeft…,primaryAxisAlignItems,counterAxisAlignItems}. Prefer over manual x/y for contained UI.' })),
+  parentId: Type.Optional(Type.String({ description: 'Parent frame/group ID. If omitted, the shape is a top-level layer. (Note: to MOVE an existing node into a frame, use pen_reparent_nodes instead.)' })),
 });
 
 /// LLMs occasionally pass a nested object param as a JSON STRING (observed
@@ -373,7 +393,12 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
   if ((params as any).visible !== undefined) out.visible = (params as any).visible !== false;
   // High-fidelity extended fields:
   if ((params as any).autoLayout) {
-    const al = (params as any).autoLayout;
+    // Accept BOTH spellings (spec Phase 6 / G.3 row 1): legacy
+    // {direction,gap,padding,alignX,alignY} and Figma v3
+    // {layoutMode,itemSpacing,paddingLeft…,primaryAxisAlignItems,counterAxisAlignItems}.
+    // normalizeToolParams folds v3→legacy at the execution boundary; this is
+    // the safety net for direct execute calls.
+    const al = normalizeAutoLayoutV3((params as any).autoLayout);
     out.autoLayout = {
       direction: al.direction === 'horizontal' ? 'horizontal' : 'vertical',
       gap: al.gap !== undefined ? Number(al.gap) : 8,
@@ -554,15 +579,15 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
 const createShape = defineTool({
-    name: 'pen_create_shape',
-    label: 'Create Shape',
+    name: 'pen_create_node',
+    label: 'Create Node',
     description:
-      'Create a new shape on the canvas. Use this to add rectangles, ellipses, text, lines, frames (artboards), or groups. ' +
-      'Returns the new shape id. The shape appears immediately on every viewer\'s screen.',
-    promptSnippet: 'Create canvas shapes (rectangle, ellipse, text, line, frame).',
+      'Create a new node on the canvas — the workhorse. Use this to add rectangles, ellipses, text, lines, frames (artboards), or groups. ' +
+      'Returns the new node id. The node appears immediately on every viewer\'s screen.',
+    promptSnippet: 'Create canvas nodes (rectangle, ellipse, text, line, frame).',
     promptGuidelines: [
-      'When the user asks to "add" / "draw" / "create" / "put" a shape, use pen_create_shape.',
-      'Always specify `type`, `x`, `y`, `width`, `height`. For text shapes include `text`, `fontSize`, `textColor`.',
+      'When the user asks to "add" / "draw" / "create" / "put" a node, use pen_create_node.',
+      'Always specify `type`, `x`, `y`, `width`, `height`. For text nodes include `text`, `fontSize`, `textColor`.',
       'Coordinates are canvas-space pixels; the visible area at zoom 1 is roughly 0..1200 x 0..800.',
     ],
     parameters: ShapeInputSchema,
@@ -591,25 +616,28 @@ const createShape = defineTool({
   });
 
   const updateShape = defineTool({
-    name: 'pen_update_shape',
-    label: 'Update Shape',
+    name: 'pen_update_node',
+    label: 'Update Node',
     description:
-      'Update one or more properties of an existing shape. Only the fields you provide are changed; others stay the same. ' +
-      'Use this to move, resize, recolor, or edit text. Returns the patched shape.',
-    promptSnippet: 'Update properties of an existing shape (position, size, fill, text, …).',
+      'Update one or more properties of an existing node. Only the fields you provide are changed; others stay the same. ' +
+      'Use this to move, resize, recolor, or edit text. Returns the patched node.',
+    promptSnippet: 'Update properties of an existing node (position, size, fill, text, …).',
     promptGuidelines: [
-      'Call pen_list_shapes first if you don\'t know the id.',
-      'You may pass any subset of shape properties — only the ones you include are changed.',
+      'Call pen_get_metadata first if you don\'t know the node id.',
+      'You may pass any subset of node properties — only the ones you include are changed.',
       'To change text content, set `text`. To change color, set `fill` (hex like #ff0000).',
     ],
     parameters: Type.Object({
-      shapeId: Type.Optional(Type.String({ description: 'ID of the shape to update (alias: id)' })),
-      id: Type.Optional(Type.String({ description: 'Alias for shapeId' })),
+      nodeId: Type.Optional(Type.String({ description: 'ID of the node to update (aliases: id, shapeId)' })),
+      id: Type.Optional(Type.String({ description: 'Alias for nodeId' })),
+      shapeId: Type.Optional(Type.String({ description: 'Legacy alias for nodeId' })),
       changes: Type.Optional(LooseShapeInputSchema),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      // Tolerate LLMs that pass `id` instead of `shapeId`.
-      const shapeId = params.shapeId ?? (params as any).id;
+      // Tolerate LLMs that pass `id` or the legacy `shapeId` instead of `nodeId`
+      // (normalizeToolParams folds shapeId→nodeId at the execution boundary;
+      // the fallbacks here cover direct execute calls).
+      const shapeId = params.nodeId ?? params.shapeId ?? (params as any).id;
       const existing = ctx.getShapes().find((s) => s.id === shapeId);
       if (!existing) {
         return {
@@ -625,7 +653,7 @@ const createShape = defineTool({
       let rawChanges = parseLooseShapeInput(params.changes);
       if (!rawChanges || Object.keys(rawChanges).length === 0) {
         // Strip metadata fields, keep shape fields.
-        const { shapeId: _s, id: _i, changes: _c, ...rest } = params as any;
+        const { nodeId: _n, shapeId: _s, id: _i, changes: _c, ...rest } = params as any;
         rawChanges = rest;
       }
       // Figma-hierarchy safety net: the LLM may pass `parent` or `parentId`
@@ -633,7 +661,7 @@ const createShape = defineTool({
       // update patch applier silently DROPS this field because ShapeInputSchema
       // doesn't declare it. Detect it here and route to a separate `reparent`
       // patch so the LLM's intent is honored, instead of failing silently.
-      // The response also tells the LLM to use pen_reparent_shape directly
+      // The response also tells the LLM to use pen_reparent_nodes directly
       // next time — turning a silent failure into a successful reparent + an
       // LLM education hint.
       let reparentPatch: CanvasPatch | null = null;
@@ -651,14 +679,14 @@ const createShape = defineTool({
           const newParent = ctx.getShapes().find((s) => s.id === newParentId);
           if (!newParent) {
             return {
-              content: [{ type: 'text', text: `Error: cannot reparent — no shape with id ${newParentId}. Hint: use pen_reparent_shape for moving shapes between parents.` }],
+              content: [{ type: 'text', text: `Error: cannot reparent — no shape with id ${newParentId}. Hint: use pen_reparent_nodes for moving nodes between parents.` }],
               details: { error: 'parent_not_found', newParentId },
               isError: true as any,
             };
           }
           if (newParent.type !== 'frame' && newParent.type !== 'group') {
             return {
-              content: [{ type: 'text', text: `Error: cannot reparent into ${newParent.type} "${newParent.name}" — parent must be a frame or group. Hint: use pen_reparent_shape.` }],
+              content: [{ type: 'text', text: `Error: cannot reparent into ${newParent.type} "${newParent.name}" — parent must be a frame or group. Hint: use pen_reparent_nodes.` }],
               details: { error: 'parent_not_container', parentType: newParent.type },
               isError: true as any,
             };
@@ -677,14 +705,14 @@ const createShape = defineTool({
           shapeId,
           newParentId,
           keepAbsolutePosition: true,
-          summary: `Reparented ${existing.name} → ${newParentId ? 'new parent' : 'root'} (via pen_update_shape parent arg)`,
+          summary: `Reparented ${existing.name} → ${newParentId ? 'new parent' : 'root'} (via pen_update_node parent arg)`,
         };
         // Strip parent/parentId from the changes so the update patch doesn't
         // also try to set them (the update op would silently drop them anyway,
         // but stripping keeps the changes payload clean).
         const { parent: _p, parentId: _pi, ...restChanges } = changesAny;
         rawChanges = restChanges;
-        reparentHint = ` Also reparented to ${newParentId ? `parent ${newParentId}` : 'root'} (TIP: use pen_reparent_shape directly for explicit reparenting).`;
+        reparentHint = ` Also reparented to ${newParentId ? `parent ${newParentId}` : 'root'} (TIP: use pen_reparent_nodes directly for explicit reparenting).`;
       }
       const coerced = coerceShapeInput(rawChanges);
       // If the LLM passed no actual changes (e.g. only `parent`), and we
@@ -720,28 +748,32 @@ const createShape = defineTool({
   });
 
   const deleteShape = defineTool({
-    name: 'pen_delete_shape',
-    label: 'Delete Shape',
-    description: 'Delete one or more shapes from the canvas by id. This is permanent for the current session.',
-    promptSnippet: 'Delete shapes by id.',
+    name: 'pen_delete_nodes',
+    label: 'Delete Nodes',
+    description: 'Delete one or more nodes from the canvas by id. This is permanent for the current session.',
+    promptSnippet: 'Delete nodes by id.',
     promptGuidelines: [
-      'Use pen_list_shapes to find ids before deleting.',
-      'You can delete multiple shapes in one call by passing multiple ids.',
+      'Use pen_get_metadata to find ids before deleting.',
+      'You can delete multiple nodes in one call by passing multiple ids.',
     ],
     parameters: Type.Object({
-      shapeIds: Type.Array(Type.String(), { description: 'Ids of shapes to delete' }),
+      nodeIds: Type.Array(Type.String(), { description: 'Ids of nodes to delete (legacy alias: shapeIds)' }),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      // Defensive against LLM arg-shape errors: the schema says shapeIds is an
-      // array, but LLMs occasionally pass `shapeId` (singular) or omit it
+      // Defensive against LLM arg-shape errors: the schema says nodeIds is an
+      // array, but LLMs occasionally pass `nodeId` (singular) or omit it
       // entirely. Coerce to an empty array so we return a proper "not found"
-      // error instead of crashing inside `params.shapeIds.includes(...)`.
-      // (Cast through `any` because the schema only declares `shapeIds`, but
-      // we intentionally check for the common LLM mistake of passing `shapeId`.)
+      // error instead of crashing inside `params.nodeIds.includes(...)`.
+      // (Cast through `any` because the schema only declares `nodeIds`, but
+      // we intentionally check for the common LLM mistakes of passing the
+      // singular or the legacy spelling.)
       const p = params as any;
-      const shapeIds: string[] = Array.isArray(p?.shapeIds)
-        ? p.shapeIds.filter((id: unknown): id is string => typeof id === 'string')
-        : (typeof p?.shapeId === 'string' ? [p.shapeId] : []);
+      const shapeIds: string[] = Array.isArray(p?.nodeIds)
+        ? p.nodeIds.filter((id: unknown): id is string => typeof id === 'string')
+        : (typeof p?.nodeId === 'string' ? [p.nodeId]
+          : Array.isArray(p?.shapeIds)
+            ? p.shapeIds.filter((id: unknown): id is string => typeof id === 'string')
+            : (typeof p?.shapeId === 'string' ? [p.shapeId] : []));
       const existing = ctx.getShapes().filter((s) => shapeIds.includes(s.id));
       if (existing.length === 0) {
         return {
@@ -763,40 +795,9 @@ const createShape = defineTool({
     },
   });
 
-  const listShapes = defineTool({
-    name: 'pen_list_shapes',
-    label: 'List Shapes',
-    description:
-      'List every shape currently on the canvas. Returns each shape\'s id, name, type, position, size, and key style. ' +
-      'Always call this before mutating existing shapes if you don\'t already know the ids.',
-    promptSnippet: 'List all shapes on the canvas with their ids and properties.',
-    promptGuidelines: [
-      'Call this before update/delete operations to find the right shape id.',
-    ],
-    parameters: Type.Object({}),
-    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const shapes = ctx.getShapes();
-      const r = (v: unknown) => { const n = typeof v === 'number' ? v : Number(v); return Number.isFinite(n) ? Math.round(n) : 0; };
-      const summary = shapes
-        .map(
-          (s) =>
-            `• ${s.id} | ${s.type} "${s.name}" | pos=(${r(s.x)},${r(s.y)}) size=${r(s.width)}×${r(s.height)} fill=${s.fill}${s.text ? ` text="${s.text}"` : ''}`,
-        )
-        .join('\n');
-      // (s.text ? ... : '') guards against undefined — only shows text= when there's actual text.
-      return {
-        content: [
-          {
-            type: 'text',
-            text: shapes.length === 0
-              ? 'Canvas is empty. No shapes yet.'
-              : `${shapes.length} shape(s) on canvas:\n${summary}`,
-          },
-        ],
-        details: { count: shapes.length, shapes },
-      };
-    },
-  });
+  // (pen_list_shapes was superseded by pen_get_metadata — spec Phase 6 / G.3.
+  //  The legacy name stays callable via the alias registry in tool-aliases.ts:
+  //  it resolves to pen_get_metadata and appends a migration notice.)
 
   const clearCanvas = defineTool({
     name: 'pen_clear',
@@ -840,23 +841,27 @@ const createShape = defineTool({
   });
 
   const selectShape = defineTool({
-    name: 'pen_select_shape',
-    label: 'Select Shape',
+    name: 'pen_select_nodes',
+    label: 'Select Nodes',
     description:
-      'Visually highlight one or more shapes on the canvas (a brief flash). Use this to point at a shape you just created or are describing.',
-    promptSnippet: 'Visually highlight shapes on the canvas.',
+      'Visually highlight one or more nodes on the canvas (a brief flash). Use this to point at a node you just created or are describing.',
+    promptSnippet: 'Visually highlight nodes on the canvas.',
     parameters: Type.Object({
-      shapeIds: Type.Array(Type.String(), { description: 'Ids to select' }),
+      nodeIds: Type.Array(Type.String(), { description: 'Node ids to select (legacy alias: shapeIds)' }),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const p = params as any;
+      const nodeIds: string[] = Array.isArray(p?.nodeIds)
+        ? p.nodeIds.filter((id: unknown): id is string => typeof id === 'string')
+        : (Array.isArray(p?.shapeIds) ? p.shapeIds : []);
       const patch: CanvasPatch = {
         op: 'select',
-        shapeIds: params.shapeIds,
-        summary: `Selected ${params.shapeIds.length} shape(s)`,
+        shapeIds: nodeIds,
+        summary: `Selected ${nodeIds.length} node(s)`,
       };
       ctx.applyPatch(patch);
       return {
-        content: [{ type: 'text', text: `Highlighted ${params.shapeIds.length} shape(s).` }],
+        content: [{ type: 'text', text: `Highlighted ${nodeIds.length} node(s).` }],
         details: { patch },
       };
     },
@@ -867,37 +872,41 @@ const createShape = defineTool({
   // =====================================================================
 
   const duplicateShape = defineTool({
-    name: 'pen_duplicate_shape',
-    label: 'Duplicate Shapes',
+    name: 'pen_duplicate_nodes',
+    label: 'Duplicate Nodes',
     description:
-      'Duplicate one or more shapes. Each copy is offset 24px down-right from its original. ' +
-      'Returns the new shape ids. Useful for repeating elements (lists, grids).',
-    promptSnippet: 'Duplicate shapes (with new ids).',
+      'Duplicate one or more nodes. Each copy is offset 24px down-right from its original. ' +
+      'Returns the new node ids. Useful for repeating elements (lists, grids).',
+    promptSnippet: 'Duplicate nodes (with new ids).',
     promptGuidelines: [
-      'Use this when the user asks to "copy" / "duplicate" / "repeat" a shape.',
-      'The duplicate is offset 24px — use pen_align_shapes or pen_update_shape to reposition.',
+      'Use this when the user asks to "copy" / "duplicate" / "repeat" a node.',
+      'The duplicate is offset 24px — use pen_align_shapes or pen_update_node to reposition.',
     ],
     parameters: Type.Object({
-      shapeIds: Type.Array(Type.String(), { description: 'Ids of shapes to duplicate' }),
+      nodeIds: Type.Array(Type.String(), { description: 'Ids of nodes to duplicate (legacy alias: shapeIds)' }),
       offsetX: Type.Optional(Type.Number({ description: 'Horizontal offset in px (default 24)' })),
       offsetY: Type.Optional(Type.Number({ description: 'Vertical offset in px (default 24)' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const ox = params.offsetX ?? 24;
       const oy = params.offsetY ?? 24;
+      const p = params as any;
+      const nodeIds: string[] = Array.isArray(p?.nodeIds)
+        ? p.nodeIds.filter((id: unknown): id is string => typeof id === 'string')
+        : (Array.isArray(p?.shapeIds) ? p.shapeIds : []);
       const patch: CanvasPatch = {
         op: 'duplicate',
-        shapeIds: params.shapeIds,
-        summary: `Duplicated ${params.shapeIds.length} shape(s)`,
+        shapeIds: nodeIds,
+        summary: `Duplicated ${nodeIds.length} node(s)`,
       };
       // The patch ops carry the offset implicitly (see patch.ts duplicate case).
       // We can't pass per-call offsets through CanvasPatch without extending
       // the type — so we ignore custom offsets here and apply the default.
-      // (If the user really needs custom offsets, they can update_shape after.)
+      // (If the user really needs custom offsets, they can update_node after.)
       void ox; void oy;
       ctx.applyPatch(patch);
       return {
-        content: [{ type: 'text', text: `Duplicated ${params.shapeIds.length} shape(s) (offset 24px).` }],
+        content: [{ type: 'text', text: `Duplicated ${nodeIds.length} node(s) (offset 24px).` }],
         details: { patch },
       };
     },
@@ -957,51 +966,55 @@ const createShape = defineTool({
   // =====================================================================
 
   const reparentShape = defineTool({
-    name: 'pen_reparent_shape',
-    label: 'Reparent Shape',
+    name: 'pen_reparent_nodes',
+    label: 'Reparent Nodes',
     description:
-      'Move one or more shapes to a new parent (frame or group). Figma-hierarchy semantics: by default each ' +
-      'shape\'s absolute canvas position is preserved by remapping its stored relative x/y to the new parent\'s ' +
+      'Move one or more nodes to a new parent (frame or group). Figma-hierarchy semantics: by default each ' +
+      'node\'s absolute canvas position is preserved by remapping its stored relative x/y to the new parent\'s ' +
       'coordinate frame. Pass keepAbsolutePosition=false to keep the stored x/y verbatim against the new ' +
       'parent. Reparenting into the node itself or one of its descendants is rejected (would create a cycle). ' +
-      'Supports batch mode: pass shapeIds (plural) to reparent multiple shapes into the same new parent in one call.',
-    promptSnippet: 'Move shape(s) to a new parent (frame/group).',
+      'Supports batch mode: pass nodeIds (plural) to reparent multiple nodes into the same new parent in one call.',
+    promptSnippet: 'Move node(s) to a new parent (frame/group).',
     promptGuidelines: [
       'The new parent must be a frame or group (containers only). Use null/empty for root.',
-      'By default each shape\'s absolute position is preserved — pass keepAbsolutePosition=false only when ' +
+      'By default each node\'s absolute position is preserved — pass keepAbsolutePosition=false only when ' +
         'you want the stored relative x/y to be reinterpreted verbatim against the new parent.',
-      'Pass shapeIds (plural array) for batch reparent — all shapes go to the SAME new parent. ' +
-        'Example: shapeIds=["a","b"], newParentId="frame1".',
+      'Pass nodeIds (plural array) for batch reparent — all nodes go to the SAME new parent. ' +
+        'Example: nodeIds=["a","b"], parentId="frame1".',
     ],
     parameters: Type.Object({
-      shapeIds: Type.Optional(Type.Array(Type.String(), { description: 'IDs of nodes to move (batch). All shapes reparent to the SAME new parent in one call.' })),
-      shapeId: Type.Optional(Type.String({ description: 'ID of a single node to move (alias for shapeIds: [shapeId])' })),
-      newParentId: Type.Optional(Type.Union(
+      nodeIds: Type.Optional(Type.Array(Type.String(), { description: 'IDs of nodes to move (batch). All nodes reparent to the SAME new parent in one call. Legacy alias: shapeIds.' })),
+      nodeId: Type.Optional(Type.String({ description: 'ID of a single node to move (alias for nodeIds: [nodeId]). Legacy alias: shapeId.' })),
+      parentId: Type.Optional(Type.Union(
         [Type.String({ description: 'ID of the new parent (frame or group)' }), Type.Null()],
-        { description: 'New parent ID, or null/empty to move to root (top-level). Aliases: parentId, parent.' },
+        { description: 'New parent ID, or null/empty to move to root (top-level). Aliases: newParentId, parent.' },
       )),
-      parentId: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Alias for newParentId (.pen convention)' })),
-      parent: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Alias for newParentId' })),
-      index: Type.Optional(Type.Number({ description: 'Insertion index inside the new parent\'s children. Default = append. Only applies to single-shape reparent.' })),
+      newParentId: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Legacy alias for parentId (.pen 2.17 spelling)' })),
+      parent: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Alias for parentId' })),
+      index: Type.Optional(Type.Number({ description: 'Insertion index inside the new parent\'s children. Default = append. Only applies to single-node reparent.' })),
       keepAbsolutePosition: Type.Optional(Type.Boolean({ description: 'Default true — remap x/y so the node stays put visually. False = keep stored x/y verbatim.' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shapes = ctx.getShapes();
-      // Tolerate argument-shape variations:
-      //   - shapeIds (plural array, batch) — primary.
-      //   - shapeId (singular string) — alias, treat as [shapeId].
-      const ids: string[] = Array.isArray(params.shapeIds)
-        ? params.shapeIds.filter((id: unknown): id is string => typeof id === 'string')
-        : (typeof params.shapeId === 'string' ? [params.shapeId] : []);
+      // Tolerate argument-shape variations (normalizeToolParams folds the
+      // legacy spellings onto the canonical ones at the execution boundary):
+      //   - nodeIds (plural array, batch) — primary.
+      //   - nodeId (singular string) — alias, treat as [nodeId].
+      const ids: string[] = Array.isArray(params.nodeIds)
+        ? params.nodeIds.filter((id: unknown): id is string => typeof id === 'string')
+        : (typeof params.nodeId === 'string' ? [params.nodeId]
+          : Array.isArray((params as any).shapeIds)
+            ? ((params as any).shapeIds as unknown[]).filter((id): id is string => typeof id === 'string')
+            : (typeof (params as any).shapeId === 'string' ? [(params as any).shapeId] : []));
       if (ids.length === 0) {
         return {
-          content: [{ type: 'text', text: 'Error: no shapeId(s) provided. Pass shapeIds (array) or shapeId (string).' }],
+          content: [{ type: 'text', text: 'Error: no nodeId(s) provided. Pass nodeIds (array) or nodeId (string).' }],
           details: { error: 'no_shape_ids' },
           isError: true as any,
         };
       }
-      // Resolve newParentId from any of the aliases.
-      const newParentRaw = params.newParentId ?? params.parentId ?? params.parent ?? null;
+      // Resolve parentId from any of the aliases.
+      const newParentRaw = params.parentId ?? params.newParentId ?? params.parent ?? null;
       const newParentId: string | null =
         newParentRaw === null || newParentRaw === '' || newParentRaw === undefined
           ? null
@@ -1024,7 +1037,7 @@ const createShape = defineTool({
           };
         }
       }
-      // Reparent each shape, collecting patches + per-shape errors.
+      // Reparent each node, collecting patches + per-node errors.
       // Cycle prevention is handled by the patch applier (moveNode uses
       // isDescendant). We collect errors but still apply the valid reparents.
       const patches: CanvasPatch[] = [];
@@ -1032,13 +1045,13 @@ const createShape = defineTool({
       const keepAbsolute = params.keepAbsolutePosition ?? true;
       for (const id of ids) {
         const shape = shapes.find((s) => s.id === id);
-        if (!shape) { errors.push(`no shape with id ${id}`); continue; }
+        if (!shape) { errors.push(`no node with id ${id}`); continue; }
         if (newParentId === id) { errors.push(`cannot reparent "${shape.name}" into itself`); continue; }
         patches.push({
           op: 'reparent',
           shapeId: id,
           newParentId,
-          index: ids.length === 1 ? params.index : undefined, // index only valid for single-shape reparent
+          index: ids.length === 1 ? params.index : undefined, // index only valid for single-node reparent
           keepAbsolutePosition: keepAbsolute,
           summary: `Reparented "${shape.name}" → ${newParentId ? `parent "${shapes.find((s) => s.id === newParentId)?.name ?? newParentId}"` : 'root'}`,
         });
@@ -1048,7 +1061,7 @@ const createShape = defineTool({
       const parentLabel = newParentId ? `parent "${newParentId}"` : 'root';
       const summary = patches.length === 0
         ? `Reparent failed: ${errors.join('; ')}`
-        : `Reparented ${patches.length} shape(s) → ${parentLabel}.${errors.length ? ` Errors: ${errors.join('; ')}` : ''}`;
+        : `Reparented ${patches.length} node(s) → ${parentLabel}.${errors.length ? ` Errors: ${errors.join('; ')}` : ''}`;
       const isError = patches.length === 0;
       return {
         content: [{ type: 'text', text: isError ? `Error: ${summary}` : summary }],
@@ -1205,7 +1218,7 @@ const createShape = defineTool({
       'Only meaningful for `frame` or `group` shapes.',
     promptSnippet: 'Configure Auto Layout on a frame/group (direction, gap, padding, alignment).',
     promptGuidelines: [
-      'The frame must already exist — create it with pen_create_shape first.',
+      'The frame must already exist — create it with pen_create_node first.',
       'Children (shapes whose parentId points at this frame) will be repositioned.',
     ],
     parameters: Type.Object({
@@ -1289,38 +1302,12 @@ const createShape = defineTool({
   // COMPONENTS & VARIANTS (research: Figma components + AI plugins)
   // =====================================================================
 
-  const createComponent = defineTool({
-    name: 'pen_create_component',
-    label: 'Create Component',
-    description:
-      'Mark an existing shape as a reusable component (sets componentId = its own id, so it can be instantiated). ' +
-      'The shape becomes the "main instance" — future calls to pen_instantiate_component create linked copies.',
-    promptSnippet: 'Turn a shape into a reusable component.',
-    parameters: Type.Object({
-      shapeId: Type.String({ description: 'ID of the shape to mark as a component' }),
-    }),
-    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
-      if (!shape) {
-        return {
-          content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }],
-          details: { error: 'not_found' },
-          isError: true as any,
-        };
-      }
-      const patch: CanvasPatch = {
-        op: 'update',
-        shapeId: params.shapeId,
-        shape: { componentId: params.shapeId, name: `Component: ${shape.name}` },
-        summary: `Marked "${shape.name}" as a component`,
-      };
-      ctx.applyPatch(patch);
-      return {
-        content: [{ type: 'text', text: `Shape ${params.shapeId} is now a component.` }],
-        details: { patch, componentId: params.shapeId },
-      };
-    },
-  });
+  // (Spec Phase 6 / G.3: the legacy mark-a-shape-as-component tool that lived
+  //  under `pen_create_component` here was folded away — the canonical
+  //  `pen_create_component` is now the Figma-shaped create-a-new-COMPONENT
+  //  tool in figma-tools.ts (the figma_ spelling is a permanent alias), and
+  //  the mark-an-existing-shape flow is served by pen_convert_to_component,
+  //  which takes the identical shapeId param and produces a proper Component.)
 
   const instantiateComponent = defineTool({
     name: 'pen_instantiate_component',
@@ -1389,10 +1376,10 @@ const createShape = defineTool({
   //   6. pen_combine_as_variants      — wrap components into a ComponentSet
   //   7. pen_swap_variant             — switch which variant the instance shows
   //
-  // The legacy `pen_create_component` + `pen_instantiate_component` tools above
-  // are kept for backward compat — they set `componentId` on a shape / shallow
-  // copy without producing a proper PenRef. New agent code should prefer the
-  // Phase 2 tools below.
+  // The legacy `pen_instantiate_component` tool above is kept for backward
+  // compat — it shallow-copies a shape without producing a proper PenRef.
+  // New agent code should prefer the Phase 2 tools below (and
+  // pen_create_component / figma_create_component for creating components).
   // =====================================================================
 
   const convertToComponent = defineTool({
@@ -1663,16 +1650,16 @@ const createShape = defineTool({
   // =====================================================================
 
   const updateTokens = defineTool({
-    name: 'pen_update_tokens',
-    label: 'Update Design Tokens',
+    name: 'pen_set_variables',
+    label: 'Set Variables',
     description:
-      'Update the document\'s design tokens — named colors and text styles that shapes can bind to. ' +
-      'When a token changes, every shape bound to it (via tokenBinding) is recolored automatically. ' +
-      'Pass only the tokens you want to add or change; existing ones are merged by key.',
-    promptSnippet: 'Update design tokens (color palette, text styles).',
+      'Update the document\'s variables — named colors and text styles that nodes can bind to. ' +
+      'When a variable changes, every node bound to it (via tokenBinding) is recolored automatically. ' +
+      'Pass only the variables you want to add or change; existing ones are merged by key.',
+    promptSnippet: 'Update variables (color palette, text styles).',
     promptGuidelines: [
-      'Token keys use dotted paths: `bg.primary`, `accent`, `text.heading`, etc.',
-      'After updating tokens, use pen_apply_palette to bind shapes to them.',
+      'Variable keys use dotted paths: `bg.primary`, `accent`, `text.heading`, etc.',
+      'After updating variables, use pen_apply_palette to bind nodes to them.',
     ],
     parameters: Type.Object({
       colors: Type.Optional(Type.Array(
@@ -2228,85 +2215,90 @@ const createShape = defineTool({
   // =====================================================================
 
   const bindShapeToToken = defineTool({
-    name: 'pen_bind_shape_to_token',
-    label: 'Bind Shape to Token',
+    name: 'pen_bind_variable',
+    label: 'Bind Variable',
     description:
-      'Bind a shape property (fill, stroke, or textColor) to a named design token. ' +
-      'When the token value changes, the bound property auto-updates. ' +
-      'Use this after pen_update_tokens or pen_apply_palette to create a live link.',
-    promptSnippet: 'Bind a shape property to a design token (live link).',
+      'Bind a node property (fill, stroke, or textColor) to a named variable. ' +
+      'When the variable\'s value changes, the bound property auto-updates. ' +
+      'Use this after pen_set_variables or pen_apply_palette to create a live link.',
+    promptSnippet: 'Bind a node property to a variable (live link).',
     promptGuidelines: [
-      'The tokenKey must match a key in the document\'s color tokens. Call pen_list_tokens to see available keys.',
-      'Binding fill: the shape\'s fill is set to the token value immediately and re-computed on token changes.',
+      'The variableId must match a key in the document\'s color variables. Call pen_list_variables to see available keys.',
+      'Binding fill: the node\'s fill is set to the variable value immediately and re-computed on variable changes.',
     ],
     parameters: Type.Object({
-      shapeId: Type.String({ description: 'ID of the shape to bind' }),
-      tokenKey: Type.String({ description: 'Token key (e.g. "bg.primary", "accent")' }),
+      nodeId: Type.String({ description: 'ID of the node to bind (legacy alias: shapeId)' }),
+      variableId: Type.String({ description: 'Variable key (e.g. "bg.primary", "accent") — legacy alias: tokenKey' }),
       property: Type.Union(
         [Type.Literal('fill'), Type.Literal('stroke'), Type.Literal('textColor')],
-        { description: 'Which property to bind' },
+        { description: 'Which property to bind (Figma scopes: fills, strokes, characters)' },
       ),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      const p = params as any;
+      const nodeId: string = params.nodeId ?? p.shapeId;
+      const variableId: string = params.variableId ?? p.tokenKey;
+      const shape = ctx.getShapes().find((s) => s.id === nodeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found', shapeId: params.shapeId }, isError: true as any };
+        return { content: [{ type: 'text', text: `Error: no shape with id ${nodeId}` }], details: { error: 'not_found', shapeId: nodeId }, isError: true as any };
       }
-      const token = ctx.getTokens().colors.find((c) => c.key === params.tokenKey);
+      const token = ctx.getTokens().colors.find((c) => c.key === variableId);
       if (!token) {
-        return { content: [{ type: 'text', text: `Error: no color token with key "${params.tokenKey}"` }], details: { error: 'token_not_found', tokenKey: params.tokenKey }, isError: true as any };
+        return { content: [{ type: 'text', text: `Error: no color variable with key "${variableId}"` }], details: { error: 'token_not_found', tokenKey: variableId }, isError: true as any };
       }
       const binding = { ...(shape.tokenBinding ?? {}) };
-      if (params.property === 'fill') { binding.fillToken = params.tokenKey; }
-      else if (params.property === 'stroke') { binding.strokeToken = params.tokenKey; }
-      else { binding.textToken = params.tokenKey; }
+      if (params.property === 'fill') { binding.fillToken = variableId; }
+      else if (params.property === 'stroke') { binding.strokeToken = variableId; }
+      else { binding.textToken = variableId; }
       const changes: Partial<Shape> = { tokenBinding: binding };
       if (params.property === 'fill') changes.fill = token.value;
       else if (params.property === 'stroke') changes.stroke = token.value;
       else changes.textColor = token.value;
-      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: changes, summary: `Bound ${params.property} to token "${params.tokenKey}"` };
+      const patch: CanvasPatch = { op: 'update', shapeId: nodeId, shape: changes, summary: `Bound ${params.property} to variable "${variableId}"` };
       ctx.applyPatch(patch);
-      return { content: [{ type: 'text', text: `Bound ${shape.name}.${params.property} to token "${params.tokenKey}" (${token.value}).` }], details: { shapeId: params.shapeId, tokenKey: params.tokenKey, property: params.property, patch } };
+      return { content: [{ type: 'text', text: `Bound ${shape.name}.${params.property} to variable "${variableId}" (${token.value}).` }], details: { shapeId: nodeId, tokenKey: variableId, property: params.property, patch } };
     },
   });
 
   const unbindShape = defineTool({
-    name: 'pen_unbind_shape',
-    label: 'Unbind Shape from Token',
-    description: 'Remove a token binding from a shape property. The shape keeps its current color value but will no longer auto-update when the token changes.',
-    promptSnippet: 'Remove a token binding from a shape.',
+    name: 'pen_unbind_variable',
+    label: 'Unbind Variable',
+    description: 'Remove a variable binding from a node property. The node keeps its current color value but will no longer auto-update when the variable changes.',
+    promptSnippet: 'Remove a variable binding from a node.',
     parameters: Type.Object({
-      shapeId: Type.String({ description: 'ID of the shape to unbind' }),
+      nodeId: Type.String({ description: 'ID of the node to unbind (legacy alias: shapeId)' }),
       property: Type.Union(
         [Type.Literal('fill'), Type.Literal('stroke'), Type.Literal('textColor')],
-        { description: 'Which property to unbind' },
+        { description: 'Which property to unbind (Figma scopes: fills, strokes, characters)' },
       ),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      const p = params as any;
+      const nodeId: string = params.nodeId ?? p.shapeId;
+      const shape = ctx.getShapes().find((s) => s.id === nodeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+        return { content: [{ type: 'text', text: `Error: no shape with id ${nodeId}` }], details: { error: 'not_found' }, isError: true as any };
       }
       const binding = { ...(shape.tokenBinding ?? {}) };
       // Bake in the current resolved value before removing the binding, so the
-      // shape retains its last-themed appearance (doesn't revert to the
+      // node retains its last-themed appearance (doesn't revert to the
       // pre-binding fill).
       const changes: Partial<Shape> = {};
       if (params.property === 'fill') { delete binding.fillToken; changes.fill = shape.fill; }
       else if (params.property === 'stroke') { delete binding.strokeToken; changes.stroke = shape.stroke; }
       else { delete binding.textToken; changes.textColor = shape.textColor; }
       changes.tokenBinding = Object.keys(binding).length === 0 ? null : binding;
-      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: changes, summary: `Unbound ${params.property} from token` };
+      const patch: CanvasPatch = { op: 'update', shapeId: nodeId, shape: changes, summary: `Unbound ${params.property} from variable` };
       ctx.applyPatch(patch);
-      return { content: [{ type: 'text', text: `Unbound ${shape.name}.${params.property}.` }], details: { shapeId: params.shapeId, property: params.property, patch } };
+      return { content: [{ type: 'text', text: `Unbound ${shape.name}.${params.property}.` }], details: { shapeId: nodeId, property: params.property, patch } };
     },
   });
 
   const listTokens = defineTool({
-    name: 'pen_list_tokens',
-    label: 'List Design Tokens',
-    description: 'List all design tokens (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before pen_bind_shape_to_token to see available token keys.',
-    promptSnippet: 'List all design tokens (colors + text styles).',
+    name: 'pen_list_variables',
+    label: 'List Variables',
+    description: 'List all variables (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before pen_bind_variable to see available variable keys.',
+    promptSnippet: 'List all variables (colors + text styles).',
     parameters: Type.Object({}),
     async execute(toolCallId) {
       const tokens = ctx.getTokens();
@@ -2318,27 +2310,32 @@ const createShape = defineTool({
   });
 
   const applyToken = defineTool({
-    name: 'pen_apply_token',
-    label: 'Apply Token to Shapes',
-    description: 'Apply a design token\'s value to one or more shapes. Optionally also bind the shapes to the token (live link). ' +
-      'This is the batch version of pen_bind_shape_to_token.',
-    promptSnippet: 'Apply a token value to multiple shapes at once.',
+    name: 'pen_apply_variable',
+    label: 'Apply Variable to Nodes',
+    description: 'Apply a variable\'s value to one or more nodes. Optionally also bind the nodes to the variable (live link). ' +
+      'This is the batch version of pen_bind_variable.',
+    promptSnippet: 'Apply a variable value to multiple nodes at once.',
     parameters: Type.Object({
-      shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to apply the token to' }),
-      tokenKey: Type.String({ description: 'Token key to apply' }),
+      nodeIds: Type.Array(Type.String(), { description: 'Node IDs to apply the variable to (legacy alias: shapeIds)' }),
+      variableId: Type.String({ description: 'Variable key to apply — legacy alias: tokenKey' }),
       property: Type.Union(
         [Type.Literal('fill'), Type.Literal('stroke'), Type.Literal('textColor')],
-        { description: 'Which property to set' },
+        { description: 'Which property to set (Figma scopes: fills, strokes, characters)' },
       ),
       bind: Type.Optional(Type.Boolean({ description: 'If true, also create a live binding (default false)' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const token = ctx.getTokens().colors.find((c) => c.key === params.tokenKey);
+      const p = params as any;
+      const variableId: string = params.variableId ?? p.tokenKey;
+      const nodeIds: string[] = Array.isArray(params.nodeIds)
+        ? params.nodeIds
+        : (Array.isArray(p.shapeIds) ? p.shapeIds : []);
+      const token = ctx.getTokens().colors.find((c) => c.key === variableId);
       if (!token) {
-        return { content: [{ type: 'text', text: `Error: no color token with key "${params.tokenKey}"` }], details: { error: 'token_not_found' }, isError: true as any };
+        return { content: [{ type: 'text', text: `Error: no color variable with key "${variableId}"` }], details: { error: 'token_not_found' }, isError: true as any };
       }
       const shapes = ctx.getShapes();
-      const updates = params.shapeIds
+      const updates = nodeIds
         .map((id) => shapes.find((s) => s.id === id))
         .filter((s): s is Shape => !!s)
         .map((s) => {
@@ -2348,9 +2345,9 @@ const createShape = defineTool({
           else changes.textColor = token.value;
           if (params.bind) {
             const binding = { ...(s.tokenBinding ?? {}) };
-            if (params.property === 'fill') binding.fillToken = params.tokenKey;
-            else if (params.property === 'stroke') binding.strokeToken = params.tokenKey;
-            else binding.textToken = params.tokenKey;
+            if (params.property === 'fill') binding.fillToken = variableId;
+            else if (params.property === 'stroke') binding.strokeToken = variableId;
+            else binding.textToken = variableId;
             changes.tokenBinding = binding;
           }
           return { id: s.id, changes };
@@ -2358,9 +2355,9 @@ const createShape = defineTool({
       if (updates.length === 0) {
         return { content: [{ type: 'text', text: 'No matching shapes found.' }], details: { error: 'not_found' }, isError: true as any };
       }
-      const patch: CanvasPatch = { op: 'update_many', updates, summary: `Applied token "${params.tokenKey}" to ${updates.length} shape(s)${params.bind ? ' (bound)' : ''}` };
+      const patch: CanvasPatch = { op: 'update_many', updates, summary: `Applied variable "${variableId}" to ${updates.length} node(s)${params.bind ? ' (bound)' : ''}` };
       ctx.applyPatch(patch);
-      return { content: [{ type: 'text', text: `Applied token "${params.tokenKey}" (${token.value}) to ${updates.length} shape(s).` }], details: { count: updates.length, tokenKey: params.tokenKey, patch } };
+      return { content: [{ type: 'text', text: `Applied variable "${variableId}" (${token.value}) to ${updates.length} node(s).` }], details: { count: updates.length, tokenKey: variableId, patch } };
     },
   });
 
@@ -2819,7 +2816,7 @@ const createShape = defineTool({
     description: 'Insert an HTML fragment (inline styles only) as design nodes under a parent. ' +
       'Block containers become frames (auto-layout when the style is flex); headings/paragraphs/spans ' +
       'become text nodes; img becomes image fills. Sanitized server-side (whitelisted tags/attributes, ' +
-      'URL schemes). Prefer this over repeated pen_create_shape for composite UI — one call builds a ' +
+      'URL schemes). Prefer this over repeated pen_create_node for composite UI — one call builds a ' +
       'whole card, form, or nav bar. Emits ONE bulk_add patch.',
     promptSnippet: 'Insert an HTML fragment as a .pen subtree (one call, composite UI).',
     parameters: Type.Object({
@@ -2931,7 +2928,7 @@ const createShape = defineTool({
         if (pageIdx === (doc?.activePageIndex ?? -1)) {
           // Fall through to the tree walk below using roots (parentId null).
         } else {
-          return { content: [{ type: 'text', text: pageListLines(`page "${pages![pageIdx].name}" is not the active page — switch to it first (figma_set_active_page).`) }], details: { mode: 'page_list', note: 'inactive_page' } };
+          return { content: [{ type: 'text', text: pageListLines(`page "${pages![pageIdx].name}" is not the active page — switch to it first (pen_set_active_page).`) }], details: { mode: 'page_list', note: 'inactive_page' } };
         }
       }
 
@@ -3328,17 +3325,17 @@ const createShape = defineTool({
 
   // =====================================================================
   // PHASE 2c: FIND & FILTER (3 tools)
-  // Lets the agent query and bulk-transform shapes without first calling
-  // pen_list_shapes and filtering client-side.
+  // Lets the agent query and bulk-transform nodes without first calling
+  // pen_get_metadata and filtering client-side.
   // =====================================================================
 
   const findShapes = defineTool({
-    name: 'pen_find_shapes',
-    label: 'Find Shapes',
-    description: 'Find shapes matching a filter. Returns shape IDs and a summary. Read-only. ' +
-      'Use this to bulk-select shapes by type, color, name, or parent. ' +
-      'Example: find all ellipses, find all shapes with fill #ff0000, find all children of a frame.',
-    promptSnippet: 'Find shapes by type/color/name/parent.',
+    name: 'pen_find_nodes',
+    label: 'Find Nodes',
+    description: 'Find nodes matching a filter. Returns node IDs and a summary. Read-only. ' +
+      'Use this to bulk-select nodes by type, color, name, or parent. ' +
+      'Example: find all ellipses, find all nodes with fill #ff0000, find all children of a frame.',
+    promptSnippet: 'Find nodes by type/color/name/parent.',
     parameters: Type.Object({
       type: Type.Optional(ShapeTypeSchema),
       fill: Type.Optional(Type.String({ description: 'Filter by exact fill color' })),
@@ -3360,7 +3357,7 @@ const createShape = defineTool({
   const bulkUpdateByFilter = defineTool({
     name: 'pen_bulk_update_by_filter',
     label: 'Bulk Update by Filter',
-    description: 'Update all shapes matching a filter. Combines pen_find_shapes + pen_update_shape into one call. ' +
+    description: 'Update all nodes matching a filter. Combines pen_find_nodes + pen_update_node into one call. ' +
       'Example: "make all ellipses red" → filter type=ellipse, changes fill=#ff0000.',
     promptSnippet: 'Update all shapes matching a filter in one call.',
     parameters: Type.Object({
@@ -3514,7 +3511,7 @@ const createShape = defineTool({
     name: 'pen_mask_with',
     label: 'Mask with Shape',
     description: 'Clip a shape using another shape as a mask. The mask shape\'s geometry defines the visible region of the target. ' +
-      'To remove a mask, call this with maskId=null (or use pen_update_shape to clear maskId).',
+      'To remove a mask, call this with maskId=null (or use pen_update_node to clear maskId).',
     promptSnippet: 'Mask one shape with another.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape to be masked (clipped)' }),
@@ -4025,13 +4022,13 @@ const createShape = defineTool({
     name: 'pen_generate_design_brief',
     label: 'Generate Design Brief (Pre-Generation)',
     description:
-      'Dispatch the design-brief sub-agent to produce a JSON design brief from the user prompt BEFORE any pen_create_shape / pen_generate_wireframe call. ' +
+      'Dispatch the design-brief sub-agent to produce a JSON design brief from the user prompt BEFORE any pen_create_node / pen_generate_wireframe call. ' +
       'Returns: primaryColor, accentColor, neutralPalette, typography (fontFamily, headingScale, bodySize), componentCount, layoutGrid (cols, rows), informationArchitecture (ordered section list). ' +
       'Implements v0\'s GenerateDesignInspiration pattern (think-before-draw). ' +
       'MANDATORY FIRST STEP for any high-fidelity design request — the brief drives all subsequent palette / typography / layout decisions.',
     promptSnippet: 'Produce a JSON design brief from the prompt before drawing anything.',
     promptGuidelines: [
-      'Call this FIRST — before pen_create_shape / pen_generate_wireframe / pen_apply_palette.',
+      'Call this FIRST — before pen_create_node / pen_generate_wireframe / pen_apply_palette.',
       'Use the returned primaryColor + accentColor as the $color.primary + $color.accent tokens in pen_set_variable / pen_apply_palette.',
       'Use the neutralPalette (5-7 hex codes) as $color.bg / surface / surface-2 / border / text / text-muted / text-subtle.',
       'Use informationArchitecture as the ordered checklist of components to scaffold (every entry → at least one shape).',
@@ -4354,7 +4351,8 @@ const createShape = defineTool({
     createShape,
     updateShape,
     deleteShape,
-    listShapes,
+    // (pen_list_shapes folded into getMetadata — G.3 supersede row; legacy
+    //  name resolves via the alias registry with a migration notice.)
     clearCanvas,
     setBackground,
     selectShape,
@@ -4367,8 +4365,8 @@ const createShape = defineTool({
     organizeLayers,
     // Auto layout
     applyAutoLayout,
-    // Components
-    createComponent,
+    // Components (pen_create_component itself now lives in figma-tools.ts —
+    // the Figma-shaped fold target per G.3; see the comment above.)
     instantiateComponent,
     // Component System (Phase 2 — Figma-aligned components & design systems)
     convertToComponent,
@@ -4474,8 +4472,8 @@ export interface OpenAIToolSpec {
 }
 
 export function toolsToOpenAISpec(tools: ReturnType<typeof createCanvasTools>): OpenAIToolSpec[] {
-  return tools.map((t) => ({
-    type: 'function',
+  const canonical = tools.map((t) => ({
+    type: 'function' as const,
     function: {
       name: t.name,
       description: t.description,
@@ -4484,6 +4482,18 @@ export function toolsToOpenAISpec(tools: ReturnType<typeof createCanvasTools>): 
       parameters: Value.Clean(t.parameters, {}) as object,
     },
   }));
+  // Spec Phase 6 part 2 (§9.3 #4): expose BOTH vocabularies during the
+  // deprecation window — the LLM sees the canonical tools plus the legacy
+  // aliases (deprecated-prefixed), so old-vocabulary calls still land.
+  const aliases = aliasToolEntries(tools as unknown as AliasToolLike[]).map((t) => ({
+    type: 'function' as const,
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: Value.Clean((t as any).parameters, {}) as object,
+    },
+  }));
+  return [...canonical, ...aliases];
 }
 
 // ---- Execute a tool by name -------------------------------------------------
@@ -4502,7 +4512,11 @@ export async function executeTool(
   toolName: string,
   args: any,
 ): Promise<{ content: string; patch?: CanvasPatch; patches?: CanvasPatch[]; isError?: boolean }> {
-  const tool = tools.find((t) => t.name === toolName);
+  // Spec Phase 6 part 2 (§9.3 #4): resolve legacy tool names to their
+  // canonical successors. Unknown names still error exactly as before
+  // (resolveToolName passes them through — never silently resolve).
+  const { name: canonicalName, aliasOf } = resolveToolName(toolName);
+  const tool = tools.find((t) => t.name === canonicalName);
   if (!tool) {
     return { content: `Unknown tool: ${toolName}`, isError: true };
   }
@@ -4513,7 +4527,9 @@ export async function executeTool(
   // a known failure mode with large tool registries (see worklog.md
   // assess-skills task). We detect and repair it here so the tool doesn't
   // crash with "Cannot read properties of undefined (reading 'includes')".
-  const repairedArgs = repairArrayArgs(args);
+  // (normalizeToolParams folds legacy param spellings — shapeIds etc. — onto
+  // the canonical names FIRST, so the repair lists cover both vocabularies.)
+  const repairedArgs = repairArrayArgs(normalizeToolParams(canonicalName, args));
 
   try {
     const result = await tool.execute(
@@ -4536,6 +4552,13 @@ export async function executeTool(
       const truncated = text.slice(0, MAX_TOOL_RESULT_CHARS);
       const remainingLines = text.slice(MAX_TOOL_RESULT_CHARS).split('\n').length;
       text = truncated + `\n\n…[truncated: ${remainingLines} more lines omitted. Refine your query or use a filter to see specific results.]`;
+    }
+
+    // Spec Phase 6 part 2: a legacy-name call appends the one-line migration
+    // notice AFTER truncation so it always survives — the model learns the
+    // canonical spelling mid-session.
+    if (aliasOf) {
+      text += `\n${deprecationNotice(toolName, aliasOf)}`;
     }
 
     return { content: text, patch, patches, isError };
@@ -4563,7 +4586,7 @@ function repairArrayArgs(args: any): any {
   // True array params — accept either a real array OR a stringified JSON array.
   // The LLM occasionally passes `palette="[\"#fff\",\"#000\"]"` instead of
   // `palette=["#fff","#000"]`. Detect + parse.
-  const arrayParams = ['palette', 'shapeIds', 'nodes', 'updates', 'stops', 'points', 'axes', 'componentIds', 'parameters'];
+  const arrayParams = ['palette', 'shapeIds', 'nodeIds', 'nodes', 'updates', 'stops', 'points', 'axes', 'componentIds', 'parameters', 'modes'];
   for (const param of arrayParams) {
     const val = (repaired as any)[param];
     if (typeof val === 'string' && val.trim().startsWith('[')) {
@@ -4583,7 +4606,7 @@ function repairArrayArgs(args: any): any {
   // tools take `shapeIds` plural). Unwrap to the first element.
   // This was the root cause of the "no shape with id [\"abc\"]" loop where
   // the agent retried the same failing call 16+ times.
-  const stringParams = ['shapeId', 'instanceId', 'variantComponentId', 'parentId', 'groupId', 'newParentId', 'maskId'];
+  const stringParams = ['shapeId', 'nodeId', 'instanceId', 'variantComponentId', 'parentId', 'groupId', 'newParentId', 'maskId', 'variableId', 'collectionId'];
   for (const param of stringParams) {
     const val = (repaired as any)[param];
     if (typeof val === 'string' && val.trim().startsWith('[')) {
@@ -4822,7 +4845,7 @@ function applyHighFidelityStyling(
 ///
 /// Honors the system prompt's LETTER SPACING RULES table. The shape is mutated
 /// in place — only fields not already set by the template are filled, so the
-/// agent's follow-up `pen_update_shape` calls (e.g. to change the brand name's
+/// agent's follow-up `pen_update_node` calls (e.g. to change the brand name's
 /// text) won't be overwritten.
 ///
 /// Naming patterns cover every text shape the wireframe templates emit:

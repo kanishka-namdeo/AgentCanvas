@@ -58,8 +58,9 @@ import {
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { ThinkingLevel } from '@earendil-works/pi-agent-core';
 import { createCanvasTools, type CanvasToolContext } from './tools';
-import { createPenTools, PEN_TOOL_NAMES } from './pen-tools';
-import { createFigmaTools, FIGMA_TOOL_NAMES } from './figma-tools';
+import { createPenTools, PEN_TOOL_NAMES, PEN_TOOL_LEGACY_NAMES } from './pen-tools';
+import { createFigmaTools, FIGMA_TOOL_NAMES, FIGMA_TOOL_LEGACY_NAMES } from './figma-tools';
+import { applyToolAliases, aliasTargetAllowed } from './tool-aliases';
 import type { CanvasDocument, CanvasPatch } from '../canvas/types';
 import type { AgentRunSettings } from '../settings/types';
 import { normalizeLLMProvider, DEFAULT_SETTINGS } from '../settings/types';
@@ -175,12 +176,17 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // These are added to the customTools array alongside the canvas tools
   // and always-available (not subject to skill filtering).
   const pluginTools = getEnabledPluginTools(settings);
-  const allTools: ToolDefinition[] = [
+  // Spec Phase 6 part 2 (§9.3 #4): applyToolAliases (a) wraps every canonical
+  // tool's execute with normalizeToolParams (legacy param spellings never
+  // reach execute bodies) and (b) appends legacy-name alias entries so the
+  // SDK can dispatch deprecated spellings — each alias executes its TARGET
+  // and appends the one-line deprecation notice to the result text.
+  const allTools: ToolDefinition[] = applyToolAliases([
     ...canvasTools,
     ...penTools,
     ...figmaTools,
     ...pluginTools,
-  ] as unknown as ToolDefinition[];
+  ] as unknown as ToolDefinition[]);
   const pluginToolNames = getEnabledPluginToolNames(settings);
 
   // 3. Build a provider-aware LLM client for the sub-agents (web-research,
@@ -242,10 +248,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const allowedToolNames = new Set<string>([
     ...getToolNamesForCategory(activeCategory),
     ...PEN_TOOL_NAMES,
+    ...PEN_TOOL_LEGACY_NAMES,
     ...FIGMA_TOOL_NAMES,
+    ...FIGMA_TOOL_LEGACY_NAMES,
     ...pluginToolNames,
   ]);
-  const filteredTools = allTools.filter((t) => allowedToolNames.has(t.name));
+  // Legacy ALIAS entries ride along whenever their canonical target is
+  // allowed (aliasTargetAllowed) — spec Phase 6 part 2.
+  const filteredTools = allTools.filter((t) =>
+    allowedToolNames.has(t.name) || aliasTargetAllowed(t.name, allowedToolNames));
 
   // ---- Task 7-e Fix 2 — Architectural enforcement: pen_generate_design_brief
   //      MUST be the first tool call for design requests.
@@ -277,6 +288,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const GATED_TOOL_NAMES = new Set<string>([
     'pen_generate_wireframe',
     'pen_create_shape',
+    'pen_create_node',
     'pen_apply_palette',
     'pen_set_variable',
   ]);

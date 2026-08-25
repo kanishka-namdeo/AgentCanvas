@@ -25,6 +25,7 @@ import ZAI from 'z-ai-web-dev-sdk';
 import { createCanvasTools, executeTool, toolsToOpenAISpec, type CanvasToolContext } from './tools';
 import { createPenTools, PEN_TOOL_NAMES } from './pen-tools';
 import { createFigmaTools, FIGMA_TOOL_NAMES } from './figma-tools';
+import { aliasTargetAllowed } from './tool-aliases';
 import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types';
 import type { AgentRunSettings, DefaultPalette } from '../settings/types';
 import { PALETTES, normalizeLLMProvider, providerDefaultModel } from '../settings/types';
@@ -753,8 +754,14 @@ export function filterToolSpecs(
 ): ReturnType<typeof toolsToOpenAISpec> {
   const allowedNames = new Set(getToolNamesForCategory(category));
   const penNameSet = new Set<string>([...PEN_TOOL_NAMES, ...FIGMA_TOOL_NAMES]);
+  // Spec Phase 6 part 2: legacy ALIAS specs (appended by toolsToOpenAISpec)
+  // pass whenever their canonical target is allowed.
   return allSpecs.filter(
-    (s) => allowedNames.has(s.function.name) || penNameSet.has(s.function.name),
+    (s) =>
+      allowedNames.has(s.function.name) ||
+      penNameSet.has(s.function.name) ||
+      aliasTargetAllowed(s.function.name, allowedNames) ||
+      aliasTargetAllowed(s.function.name, penNameSet),
   );
 }
 
@@ -892,6 +899,7 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
   const GATED_TOOL_NAMES_LEGACY = new Set<string>([
     'pen_generate_wireframe',
     'pen_create_shape',
+    'pen_create_node',
     'pen_apply_palette',
     'pen_set_variable',
   ]);
