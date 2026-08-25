@@ -132,7 +132,13 @@ interface SessionStoreState {
   endRun: (runId: string, status: RunStatus, errorMessage?: string) => void;
 
   // ---- Mutations: Messages ----
-  appendUserMessage: (sessionId: string, runId: string, text: string, images?: import('../agent/attachments').AttachedImage[]) => Message;
+  appendUserMessage: (
+    sessionId: string,
+    runId: string,
+    text: string,
+    images?: import('../agent/attachments').AttachedImage[],
+    selection?: { count: number; names: string[] },
+  ) => Message;
   appendAssistantMessage: (sessionId: string, runId: string) => Message;
   appendAssistantText: (messageId: string, text: string) => void;
   finalizeAssistantMessage: (messageId: string, status?: 'complete' | 'error' | 'cancelled', error?: string) => void;
@@ -632,7 +638,7 @@ export const useSessionStore = create<SessionStoreState>()(
           });
         }
       },
-      appendUserMessage: (sessionId, runId, text, images) => {
+      appendUserMessage: (sessionId, runId, text, images, selection) => {
         const session = get().sessions[sessionId];
         if (!session) throw new Error(`session ${sessionId} not found`);
         const msg: Message = {
@@ -644,6 +650,7 @@ export const useSessionStore = create<SessionStoreState>()(
           // Attachments persist with the message (localStorage cache) so
           // history keeps its thumbnails; the server copy is text-only.
           ...(images && images.length > 0 ? { images } : {}),
+          ...(selection ? { selection } : {}),
           toolCalls: [],
           status: 'complete',
           snapshotId: null,

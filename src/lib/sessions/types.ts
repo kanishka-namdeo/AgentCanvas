@@ -137,6 +137,9 @@ export interface Message {
   /// paperclip). Compact data URLs — persisted via the localStorage cache;
   /// the server DB copy stores text only (images are session-local).
   images?: import('../agent/attachments').AttachedImage[];
+  /// Canvas selection the user had active when sending this message — the
+  /// agent receives it as targeting context ("these/those" in the prompt).
+  selection?: { count: number; names: string[] };
   /// Tool calls emitted by this message (assistant messages only).
   toolCalls: ToolCallRecord[];
   status: MessageStatus;

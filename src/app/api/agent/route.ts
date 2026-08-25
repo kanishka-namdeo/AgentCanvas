@@ -88,6 +88,18 @@ export async function POST(req: NextRequest) {
         }))
     : [];
 
+  // Canvas-selection targeting context — the layers the user had selected
+  // when sending (names capped at 16 server-side).
+  const selection: { count: number; names: string[] } | undefined =
+    body.selection && typeof body.selection.count === 'number' && Array.isArray(body.selection.names)
+      ? {
+          count: body.selection.count,
+          names: body.selection.names
+            .filter((n: unknown): n is string => typeof n === 'string')
+            .slice(0, 16),
+        }
+      : undefined;
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -96,7 +108,7 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        for await (const ev of runAgent({ documentId, prompt, canvas, settings, images })) {
+        for await (const ev of runAgent({ documentId, prompt, canvas, settings, images, selection })) {
           if (ev.kind === 'patch') {
             send({ type: 'patch', patch: ev.patch, toolCallId: ev.toolCallId });
           } else {

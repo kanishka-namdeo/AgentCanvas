@@ -54,13 +54,16 @@ import {
   imageFilesFromDataTransfer,
   formatDataUrlSize,
   modelSupportsImages,
+  makeAttachedImage,
+  downscaleImageFile,
   MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_DATAURL_LENGTH,
 } from '@/lib/agent/attachments';
 import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers, Square,
   ChevronRight, Clock, CornerDownLeft, Cpu, Paperclip, X, ArrowDown,
-  RotateCcw, TriangleAlert,
+  RotateCcw, TriangleAlert, Copy, Camera, BoxSelect,
 } from 'lucide-react';
 
 /// Format a token count for compact display: 45200 → "45.2K".
@@ -309,6 +312,11 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const redo = useCanvasStore((s) => s.redo);
   const newSession = useCanvasStore((s) => s.newSession);
   const select = useCanvasStore((s) => s.select);
+  // Canvas selection — drives the "N layers selected" context chip above the
+  // input (progressive disclosure: the chip TELLS the user what context the
+  // next prompt will carry, and can be cleared in place).
+  const selectedIds = useCanvasStore((s) => s.selectedIds);
+  const selectionCount = selectedIds.length;
 
   const matchingCommands = useMemo(
     // Cap = rendered window, so navigation can never outrun the highlight.
@@ -421,6 +429,43 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     setAttachments((a) => a.filter((img) => img.id !== id));
   };
 
+  /// Attach a PNG snapshot of the current canvas (v0/Figma-Make pattern: give
+  /// the agent — especially a vision model — a visual reference of exactly
+  /// what you're looking at). Renders via the existing client-side exporter,
+  /// then guarantees the attachment size cap through the downscale pipeline.
+  const [snapshotBusy, setSnapshotBusy] = useState(false);
+  const attachCanvasSnapshot = async () => {
+    if (agentBusy || snapshotBusy) return;
+    const shapes = document.shapes ?? [];
+    if (shapes.length === 0) {
+      toast.error('Canvas is empty', { description: 'Draw something first, then attach the snapshot.' });
+      return;
+    }
+    if (attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE) {
+      toast.error(`Limit is ${MAX_ATTACHMENTS_PER_MESSAGE} images per message`);
+      return;
+    }
+    setSnapshotBusy(true);
+    try {
+      // scale 1 — a chat reference doesn't need @2x; keeps the payload small.
+      let dataUrl = await exportPngDataUrl(shapes, { scale: 1 });
+      if (!dataUrl) throw new Error('rasterization failed');
+      if (dataUrl.length > MAX_DATAURL_LENGTH) {
+        // Huge canvas — re-encode through the downscale pipeline (1280px edge).
+        const blob = await (await fetch(dataUrl)).blob();
+        dataUrl = await downscaleImageFile(new File([blob], 'canvas-snapshot.png', { type: blob.type || 'image/png' }));
+      }
+      const attached = makeAttachedImage('canvas-snapshot.png', dataUrl);
+      if (!attached) throw new Error('snapshot too large');
+      setAttachments((a) => [...a, attached]);
+      toast.success('Canvas snapshot attached', { description: 'The agent will see the canvas as an image.' });
+    } catch {
+      toast.error('Could not snapshot the canvas');
+    } finally {
+      setSnapshotBusy(false);
+    }
+  };
+
   // Register a global focus hook so the top-header Run button can focus
   // the chat input without prop-drilling. Cleared on unmount.
   useEffect(() => {
@@ -492,6 +537,19 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     const images = attachments;
     // Sendable with text OR images alone ("what's in this image?" prompts).
     if ((!text && images.length === 0) || agentBusy) return;
+    // Selection context: capture the CURRENT canvas selection (names, capped)
+    // so "these/those" prompts carry concrete layer targeting. Only when the
+    // user has something selected — the chip above the input discloses this.
+    const selection =
+      selectedIds.length > 0
+        ? {
+            count: selectedIds.length,
+            names: selectedIds
+              .map((id) => document.shapes.find((s) => s.id === id)?.name)
+              .filter((n): n is string => typeof n === 'string')
+              .slice(0, 8),
+          }
+        : undefined;
     if (text.startsWith('/')) {
       // Single source of truth for command resolution (chat-commands.ts).
       // (Bug fix: the previous inline logic re-called matchCommands, which
@@ -539,7 +597,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     pushPromptHistory(promptText);
     // Submitting re-engages follow-the-bottom (the user acted at the bottom).
     stickToBottomRef.current = true;
-    promptAgent(promptText, images.length > 0 ? images : undefined);
+    promptAgent(promptText, images.length > 0 ? images : undefined, selection);
     setInput('');
     setAttachments([]);
     setHistoryCursor(-1);
@@ -764,6 +822,28 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
       {/* Input — minimal chrome. Paperclip (image attach) always visible;
           Send appears when there's text OR staged attachments. */}
       <div className="border-t ac-border-subtle p-2 ac-surface-0">
+        {/* Selection context chip (progressive disclosure) — only appears
+            when layers are selected. Shows WHAT context the next prompt will
+            carry; × clears the canvas selection in place. */}
+        {selectionCount > 0 && !agentBusy && (
+          <div
+            className="flex items-center gap-1.5 mb-1.5 px-2 py-1 rounded-md border ac-border-subtle ac-surface-1"
+            title={`The agent will target your ${selectionCount} selected layer${selectionCount === 1 ? '' : 's'} ("these"/"those" in your prompt refers to them).`}
+          >
+            <BoxSelect className="h-3 w-3 flex-shrink-0 ac-text-info" />
+            <span className="text-[10px] ac-text-2 truncate flex-1">
+              {selectionCount} layer{selectionCount === 1 ? '' : 's'} selected — agent will target them
+            </span>
+            <button
+              onClick={() => select([])}
+              aria-label="Clear selection context"
+              title="Clear selection (the prompt will apply to the whole canvas)"
+              className="p-0.5 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring flex-shrink-0"
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </div>
+        )}
         {/* Slash-command autocomplete — floats above the textarea. */}
         {cmdMenuOpen && (
           <div className="mb-1.5 rounded-lg border ac-border-default ac-surface-0 shadow-lg overflow-hidden" role="listbox" aria-label="Slash commands">
@@ -940,15 +1020,28 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                 void addFiles(files);
               }}
             />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={agentBusy || attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
-              title={`Attach images (${attachments.length}/${MAX_ATTACHMENTS_PER_MESSAGE}) — paste or drop works too`}
-              aria-label="Attach images"
-              className="p-1 -ml-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Paperclip className="h-3.5 w-3.5" />
-            </button>
+            <div className="flex items-center gap-0.5">
+              {/* Canvas snapshot attach (v0/Figma-Make pattern) — renders the
+                  current canvas to a PNG and stages it as an image attachment. */}
+              <button
+                onClick={() => void attachCanvasSnapshot()}
+                disabled={agentBusy || snapshotBusy || attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
+                title="Attach a snapshot of the canvas as an image reference"
+                aria-label="Attach canvas snapshot"
+                className="p-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {snapshotBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={agentBusy || attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
+                title={`Attach images (${attachments.length}/${MAX_ATTACHMENTS_PER_MESSAGE}) — paste or drop works too`}
+                aria-label="Attach images"
+                className="p-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Paperclip className="h-3.5 w-3.5" />
+              </button>
+            </div>
             {(input.trim() || attachments.length > 0) && (
               <Button
                 size="sm"
@@ -980,8 +1073,24 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
             <div className="w-6 h-6 rounded-full ac-surface-2 flex items-center justify-center flex-shrink-0">
               <User className="h-3 w-3 ac-text-3" />
             </div>
-            <div className="flex-1 text-xs ac-text-1 ac-surface-1 rounded-lg rounded-tl-sm p-2">
+            <div
+              className="flex-1 text-xs ac-text-1 ac-surface-1 rounded-lg rounded-tl-sm p-2"
+              // Absolute timestamp on hover (progressive disclosure — no
+              // visible chrome, but the info is one hover away).
+              title={turn.startedAt ? new Date(turn.startedAt).toLocaleString() : undefined}
+            >
               {turn.text}
+              {/* Selection-targeting chip — what canvas layers this prompt
+                  was aimed at (Figma-AI-style context trail). */}
+              {turn.selection && turn.selection.count > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded text-[9px] ac-text-3 ac-surface-2 border ac-border-subtle"
+                  title={`Sent with ${turn.selection.count} layer(s) selected: ${turn.selection.names.join(', ')}`}
+                >
+                  <BoxSelect className="h-2.5 w-2.5 ac-text-info" />
+                  {turn.selection.count} layer{turn.selection.count === 1 ? '' : 's'} targeted
+                </span>
+              )}
               {/* Attachment thumbnails (sent images). Click opens the
                   full-size data URL in a new tab for inspection. */}
               {turn.images && turn.images.length > 0 && (
@@ -1002,10 +1111,27 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                 </div>
               )}
             </div>
+            {/* Hover actions (progressive disclosure — icons replace the
+                hidden right-click menu as the primary affordance): copy +
+                fork. Fade in on hover/focus; always keyboard-reachable. */}
+            {turn.text && (
+              <button
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(turn.text ?? '').then(() => toast.message('Prompt copied to clipboard'));
+                  }
+                }}
+                className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
+                title="Copy prompt"
+                aria-label="Copy prompt"
+              >
+                <Copy className="h-3 w-3" />
+              </button>
+            )}
             {turn.messageId && (
               <button
                 onClick={() => forkActiveSession(turn.messageId)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
+                className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
                 title="Fork chat from this message"
               >
                 <GitBranch className="h-3 w-3" />
@@ -1028,8 +1154,12 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
             onClick={() => {
               if (!turn.text || agentBusy) return;
               // Re-send the same prompt — the agent will generate a fresh response.
-              // Images ride along so vision prompts re-send intact.
-              promptAgent(turn.text, turn.images && turn.images.length > 0 ? turn.images : undefined);
+              // Images + selection ride along so vision/targeted prompts re-send intact.
+              promptAgent(
+                turn.text,
+                turn.images && turn.images.length > 0 ? turn.images : undefined,
+                turn.selection,
+              );
               toast.message('Regenerating…');
             }}
           >
@@ -1051,19 +1181,63 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <div className="flex gap-2">
+        <div className="group flex gap-2">
           <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0 shadow-sm">
             <Bot className="h-3 w-3 text-white" />
           </div>
           <div className="flex-1 space-y-2">
-            {/* Tool calls */}
-            {turn.toolCalls.map((tc) => (
-              <ToolCallEntry key={tc.id} tc={tc} />
-            ))}
+            {/* Tool calls — collapsed to ONE summary row per completed turn
+                (ChatGPT "Used N tools" pattern); expands for the details.
+                While any call is pending the cluster stays open so the user
+                sees live activity. See ToolCallsCluster below. */}
+            {turn.toolCalls.length > 0 && <ToolCallsCluster toolCalls={turn.toolCalls} />}
             {/* Text — rendered as markdown (bold, lists, code blocks) the way
                 Claude / ChatGPT / v0 render assistant messages. */}
             {turn.text && (
               <MarkdownMessage text={turn.text} />
+            )}
+            {/* Hover actions (ChatGPT/Claude pattern): copy + regenerate.
+                Fade in on hover/focus — the right-click menu keeps the
+                extended actions for power users. */}
+            {!turn.streaming && turn.text && (
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity -ml-1">
+                <button
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                      navigator.clipboard.writeText(turn.text ?? '').then(() => toast.message('Message copied to clipboard'));
+                    }
+                  }}
+                  className="p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
+                  title="Copy message"
+                  aria-label="Copy message"
+                >
+                  <Copy className="h-2.5 w-2.5" />
+                </button>
+                <button
+                  disabled={agentBusy}
+                  onClick={() => {
+                    if (agentBusy) return;
+                    const turns = useCanvasStore.getState().turns;
+                    const idx = turns.findIndex((t) => t.id === turn.id);
+                    const userTurn = idx > 0 ? turns[idx - 1] : null;
+                    if (userTurn?.role === 'user' && userTurn.text) {
+                      promptAgent(
+                        userTurn.text,
+                        userTurn.images && userTurn.images.length > 0 ? userTurn.images : undefined,
+                        userTurn.selection,
+                      );
+                      toast.message('Regenerating…');
+                    } else {
+                      toast.message('No preceding prompt to regenerate from');
+                    }
+                  }}
+                  className="p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Regenerate response"
+                  aria-label="Regenerate response"
+                >
+                  <RotateCcw className="h-2.5 w-2.5" />
+                </button>
+              </div>
             )}
             {turn.streaming && !turn.text && turn.toolCalls.length === 0 && (
               <div className="flex items-center gap-1.5 text-xs ac-text-4">
@@ -1120,6 +1294,7 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                       promptAgent(
                         userTurn.text,
                         userTurn.images && userTurn.images.length > 0 ? userTurn.images : undefined,
+                        userTurn.selection,
                       );
                       toast.message('Retrying…');
                     } else {
@@ -1158,6 +1333,7 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
               promptAgent(
                 userTurn.text,
                 userTurn.images && userTurn.images.length > 0 ? userTurn.images : undefined,
+                userTurn.selection,
               );
               toast.message('Regenerating…');
             } else {
@@ -1186,39 +1362,133 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
   );
 }
 
+// ==== Tool-call cards (progressive disclosure) ================================
+//
+// Long agent turns stack dozens of tool calls, each with a JSON args preview
+// and a summary — a wall of monospace text that buries the actual response.
+// Research pattern (ChatGPT / Cursor / Cline):
+//
+//   - ChatGPT: ONE summary row per turn ("Used 29 tools", or the last
+//     activity label); expanding reveals the individual calls.
+//   - Cursor: per-call rows collapse to a single line (name + status);
+//     users explicitly request collapse/expand controls in agent chat.
+//   - Cline: status line shows current activity; details open on demand.
+//
+// Two levels of disclosure here:
+//   1. ToolCallsCluster — turn-level: one row when finished, live-expanded
+//      while any call is pending (users watch activity while it runs, then
+//      it folds away).
+//   2. ToolCallEntry — card-level: single line with the summary inline;
+//      args JSON + full summary expand on click (chevron).
+
+function ToolCallsCluster({ toolCalls }: { toolCalls: AgentToolCallEntry[] }) {
+  const anyPending = toolCalls.some((tc) => tc.success === undefined);
+  // `null` = no user override → follow the pending state (expanded while
+  // running, collapsed when done). A click pins the opposite.
+  const [override, setOverride] = useState<boolean | null>(null);
+  const expanded = override ?? anyPending;
+  const failCount = toolCalls.filter((tc) => tc.success === false).length;
+  // ChatGPT-style activity label: the most recent tool summary.
+  const lastWithSummary = [...toolCalls].reverse().find((tc) => tc.summary);
+
+  return (
+    <div className="space-y-1">
+      <button
+        onClick={() => setOverride(!expanded)}
+        aria-expanded={expanded}
+        title={expanded ? 'Collapse tool activity' : 'Expand tool activity'}
+        className="w-full flex items-center gap-1.5 px-1.5 py-1 rounded-md text-[10px] ac-text-3 hover:ac-surface-1 ac-transition ac-focus-ring"
+      >
+        <Wrench className="h-3 w-3 ac-text-4 flex-shrink-0" />
+        <span className="font-medium ac-text-2 flex-shrink-0">
+          Tools <span className="ac-text-4 font-normal">{toolCalls.length}</span>
+        </span>
+        {failCount > 0 && (
+          <span className="ac-text-danger flex-shrink-0" title={`${failCount} failed`}>
+            <XCircle className="h-2.5 w-2.5" />
+          </span>
+        )}
+        {anyPending ? (
+          <Loader2 className="h-2.5 w-2.5 animate-spin ac-text-4 flex-shrink-0" />
+        ) : (
+          !expanded && lastWithSummary?.summary && (
+            <span className="text-[10px] ac-text-4 truncate flex-1 min-w-0">
+              {lastWithSummary.summary}
+            </span>
+          )
+        )}
+        <ChevronRight
+          className={`h-3 w-3 ac-text-4 ml-auto flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+        />
+      </button>
+      {expanded && (
+        <div className="space-y-1">
+          {toolCalls.map((tc) => (
+            <ToolCallEntry key={tc.id} tc={tc} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
   const success = tc.success;
   const pending = success === undefined;
   // Color-code by tool category for quick visual scanning.
   const category = toolCategory(tc.name);
+  // Card-level disclosure: one line by default; args + full summary expand
+  // on click. Pending calls stay open (live feedback while executing).
+  const [override, setOverride] = useState<boolean | null>(null);
+  const expanded = override ?? pending;
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <div className="rounded-md border ac-border-subtle ac-surface-1 px-2 py-1.5">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium ac-text-1">
-            <Wrench className="h-3 w-3 ac-text-4" />
-            <code className="text-[10px] ac-surface-2 ac-text-2 px-1 py-0.5 rounded font-mono">{tc.name}</code>
-            {category && (
-              <Badge variant="outline" className={`text-[9px] h-3.5 px-1 py-0 font-normal ${category.cls}`}>
-                {category.label}
-              </Badge>
+        <div className="rounded-md border ac-border-subtle ac-surface-1">
+          <button
+            onClick={() => setOverride(!expanded)}
+            aria-expanded={expanded}
+            title={expanded ? 'Collapse details' : 'Show arguments & full summary'}
+            className={`w-full flex items-center gap-1.5 text-[11px] font-medium ac-text-1 text-left ac-transition hover:ac-surface-1 ${
+              expanded ? 'px-2 pt-1.5 pb-1' : 'px-2 py-1 rounded-md'
+            }`}
+          >
+            <Wrench className="h-3 w-3 ac-text-4 flex-shrink-0" />
+            <code className="text-[10px] ac-surface-2 ac-text-2 px-1 py-0.5 rounded font-mono truncate flex-shrink-0">{tc.name}</code>
+            {/* Collapsed: the summary rides inline (one line, truncated) —
+                the ONLY detail visible without expanding. */}
+            {!expanded && tc.summary && (
+              <span className="text-[10px] ac-text-4 font-normal truncate flex-1 min-w-0">{tc.summary}</span>
             )}
-            {pending && <Loader2 className="h-3 w-3 animate-spin ac-text-4 ml-auto" />}
-            {success === true && <CheckCircle2 className="h-3 w-3 ac-text-success ml-auto" />}
-            {success === false && <XCircle className="h-3 w-3 ac-text-danger ml-auto" />}
-          </div>
-          {tc.argsPreview && (
-            <pre className="mt-1 text-[10px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all">
-              {tc.argsPreview}
-            </pre>
-          )}
-          {tc.summary && (
-            <div className="mt-1 text-[10px] ac-text-3">{tc.summary}</div>
+            {pending && <Loader2 className="h-3 w-3 animate-spin ac-text-4 ml-auto flex-shrink-0" />}
+            {success === true && <CheckCircle2 className="h-3 w-3 ac-text-success ml-auto flex-shrink-0" />}
+            {success === false && <XCircle className="h-3 w-3 ac-text-danger ml-auto flex-shrink-0" />}
+            <ChevronRight
+              className={`h-2.5 w-2.5 ac-text-4 flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+            />
+          </button>
+          {expanded && (
+            <div className="px-2 pb-1.5">
+              {category && (
+                <Badge variant="outline" className={`text-[9px] h-3.5 px-1 py-0 font-normal ${category.cls}`}>
+                  {category.label}
+                </Badge>
+              )}
+              {tc.argsPreview && (
+                <pre className="mt-1 text-[10px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all">
+                  {tc.argsPreview}
+                </pre>
+              )}
+              {tc.summary && (
+                <div className="mt-1 text-[10px] ac-text-3">{tc.summary}</div>
+              )}
+            </div>
           )}
         </div>
       </ContextMenuTrigger>
-      {/* P1-29: Tool-call card right-click — Copy args, Replay tool call,
-          Pin to top, View raw output, Convert to user prompt. */}
+      {/* Right-click — kept lean (working actions only; stub entries removed
+          to reduce menu noise). */}
       <ContextMenuContent>
         <ContextMenuItem onClick={() => {
           if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -1227,20 +1497,15 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
         }}>
           Copy args (as JSON)
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => toast.message('Replay tool call — not yet implemented (P2-33)')}>
-          Replay tool call
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => toast.message('View raw output — not yet implemented')}>
-          View raw output
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => toast.message('Convert to user prompt — not yet implemented')}>
-          Convert to user prompt
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => toast.message('Inspect tool spec — not yet implemented')}>
-          Inspect tool spec
-        </ContextMenuItem>
+        {tc.summary && (
+          <ContextMenuItem onClick={() => {
+            if (typeof navigator !== 'undefined' && navigator.clipboard) {
+              navigator.clipboard.writeText(tc.summary ?? '').then(() => toast.message('Summary copied to clipboard'));
+            }
+          }}>
+            Copy summary
+          </ContextMenuItem>
+        )}
       </ContextMenuContent>
     </ContextMenu>
   );

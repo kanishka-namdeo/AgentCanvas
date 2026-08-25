@@ -510,9 +510,16 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   //     it as context (identical to legacy runner). Done once per turn
   //     (outside the attempt loop) — the user prompt doesn't change between
   //     attempts.
+  //     Selection context: when the user had canvas layers selected, a
+  //     targeting note rides in front of the prompt so "these/those/the
+  //     selection" resolves to concrete layer names (Figma-AI-style
+  //     selection awareness).
+  const selectionNote = opts.selection
+    ? `[SELECTION CONTEXT: the user currently has ${opts.selection.count} layer(s) selected on the canvas: ${opts.selection.names.join(', ')}. When the user says "this", "these", "that", "those", or "the selection", they mean THESE layers. Target them unless asked otherwise.]\n\n`
+    : '';
   const userMessage = webResearchSummary
-    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${prompt}`
-    : prompt;
+    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}`
+    : `${selectionNote}${prompt}`;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;

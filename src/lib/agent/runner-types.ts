@@ -83,6 +83,9 @@ export interface AgentRunOptions {
   /// so vision-capable models see them natively. Entries are compact data
   /// URLs — see lib/agent/attachments.ts for the client-side pipeline.
   images?: Array<{ id?: string; name?: string; dataUrl: string }>;
+  /// Canvas layers the user had selected when sending the prompt — injected
+  /// as targeting context so "these/those/the selection" resolves.
+  selection?: { count: number; names: string[] };
 }
 
 // Type-only re-exports to avoid runtime circular imports. These are imported

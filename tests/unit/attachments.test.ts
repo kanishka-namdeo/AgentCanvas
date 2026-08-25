@@ -12,7 +12,9 @@ import {
   dataUrlToImageContent,
   formatDataUrlSize,
   isImageFile,
+  makeAttachedImage,
   MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_DATAURL_LENGTH,
   type AttachedImage,
 } from '@/lib/agent/attachments';
 
@@ -118,5 +120,48 @@ describe('promptAgent image plumbing contract', () => {
     const parsed = JSON.parse(payload);
     expect(parsed.images[0].dataUrl).toBe('data:image/png;base64,aGVsbG8=');
     expect(parsed.images[0].name).toBe('ref.png');
+  });
+});
+
+// ---- makeAttachedImage (canvas-snapshot pipeline) --------------------------------
+
+describe('makeAttachedImage', () => {
+  it('wraps a valid image data URL with a generated id', () => {
+    const img = makeAttachedImage('canvas-snapshot.png', 'data:image/png;base64,aGVsbG8=');
+    expect(img).not.toBeNull();
+    expect(img!.name).toBe('canvas-snapshot.png');
+    expect(img!.id).toMatch(/^img_/);
+    expect(img!.dataUrl).toBe('data:image/png;base64,aGVsbG8=');
+  });
+
+  it('rejects non-image data URLs', () => {
+    expect(makeAttachedImage('x.txt', 'data:text/plain;base64,aGVsbG8=')).toBeNull();
+    expect(makeAttachedImage('x', 'not-a-data-url')).toBeNull();
+  });
+
+  it('rejects payloads above the transport cap', () => {
+    const huge = `data:image/png;base64,${'A'.repeat(MAX_DATAURL_LENGTH + 1)}`;
+    expect(makeAttachedImage('big.png', huge)).toBeNull();
+  });
+});
+
+// ---- selection-context plumbing (store → runner contract) -----------------------
+
+describe('selection-context plumbing contract', () => {
+  it('selection serializes over the wire with count + names', () => {
+    const payload = JSON.stringify({
+      type: 'agent:prompt',
+      documentId: 'doc',
+      prompt: 'make these blue',
+      selection: { count: 2, names: ['Card 1', 'Card 2'] },
+    });
+    const parsed = JSON.parse(payload);
+    expect(parsed.selection.count).toBe(2);
+    expect(parsed.selection.names).toEqual(['Card 1', 'Card 2']);
+  });
+
+  it('omission is JSON-clean (no selection key when nothing selected)', () => {
+    const payload = JSON.stringify({ type: 'agent:prompt', documentId: 'doc', prompt: 'hi' });
+    expect(JSON.parse(payload).selection).toBeUndefined();
   });
 });

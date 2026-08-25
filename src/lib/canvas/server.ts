@@ -100,7 +100,7 @@ export function startCanvasSyncService() {
         }
         case 'agent:prompt': {
           console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${event.prompt.slice(0, 80)}… (images: ${event.images?.length ?? 0})`);
-          driveAgent(event.documentId, event.prompt, event.settings, event.images).catch((err) => {
+          driveAgent(event.documentId, event.prompt, event.settings, event.images, event.selection).catch((err) => {
             console.error('[canvas-sync] agent drive failed:', err);
           });
           break;
@@ -150,6 +150,7 @@ async function driveAgent(
   prompt: string,
   settings?: import('../settings/types').AgentRunSettings,
   images?: Array<{ id?: string; name?: string; dataUrl: string }>,
+  selection?: { count: number; names: string[] },
 ) {
   const state = ensureDocument(documentId);
 
@@ -167,8 +168,9 @@ async function driveAgent(
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     // `images` rides along in the body — compact data URLs produced by the
-    // client's downscale pipeline (lib/agent/attachments.ts).
-    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings, images }),
+    // client's downscale pipeline (lib/agent/attachments.ts). `selection`
+    // is the canvas-selection targeting context.
+    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings, images, selection }),
   });
 
   if (!res.ok || !res.body) {

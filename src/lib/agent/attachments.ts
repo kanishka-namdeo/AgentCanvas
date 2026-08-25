@@ -183,3 +183,12 @@ export function formatDataUrlSize(dataUrl: string): string {
   if (bytes >= 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${bytes} B`;
 }
+
+/// Wrap an already-encoded data URL into an AttachedImage (used by the
+/// canvas-snapshot attach flow, which produces PNGs directly rather than
+/// reading File objects). Returns null when the data URL is not a base64
+/// image or exceeds the transport cap.
+export function makeAttachedImage(name: string, dataUrl: string): AttachedImage | null {
+  if (!dataUrl.startsWith('data:image/') || dataUrl.length > MAX_DATAURL_LENGTH) return null;
+  return { id: newId(), name, dataUrl };
+}
