@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The agent layer: defines the 95-tool surface the AI agent can call against the canvas (75 in `tools.ts` + 8 .pen-aligned in `pen-tools.ts` + 10 Figma-canonical in `figma-tools.ts`, plus up to 32 plugin tools), and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
+The agent layer: defines the 97-tool surface the AI agent can call against the canvas (77 in `tools.ts` + 8 .pen-aligned in `pen-tools.ts` + 10 Figma-canonical in `figma-tools.ts`, plus up to 32 plugin tools), and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
 
 This is the contract layer between the LLM and the canvas. Tool names, parameter schemas, skill definitions, and the system prompt's tool catalog are the public surface — changing them is a breaking change for prior session replays.
 
@@ -46,12 +46,13 @@ User prompt
 
 ## Ownership
 
-- `tools.ts` — 77 `defineTool()` definitions (70 canvas tools + 5 Phase 3 Figma-MCP-aligned tools + web_search + web_fetch) + `executeTool` dispatcher (response cap `MAX_TOOL_RESULT_CHARS = 25_000` + `repairArrayArgs()` argument repair). Owned by this folder. The Phase 3 set (spec §5.2/Appendix D): `pen_insert_html` (sanitized HTML → ONE `bulk_add` patch with nested .pen children — the preferred composite-UI construction primitive), `pen_get_metadata` (page-list default / sparse `id | name | type | x/y/w/h` tree — pure model read), `pen_get_variable_defs` (variables + text styles with `var(--acv-…)` codeSyntax), `pen_get_design_context` (4-part handoff: code + screenshot + instructions + assets), `pen_bake_layout` (v1 server-side notice — measured bounds land with the round-trip phase). `pen_copy_as_code` v2 delegates to `src/lib/canvas/serialize.ts`.
+- `tools.ts` — 79 `defineTool()` definitions (70 canvas tools + 7 Phase 3 Figma-MCP-aligned tools + web_search + web_fetch) + `executeTool` dispatcher (response cap `MAX_TOOL_RESULT_CHARS = 25_000` + `repairArrayArgs()` argument repair). Owned by this folder. The Phase 3 set (spec §5.2/Appendix D): `pen_insert_html` (sanitized HTML → ONE `bulk_add` patch with nested .pen children — the preferred composite-UI construction primitive), `pen_get_metadata` (page-list default / sparse `id | name | type | x/y/w/h` tree — pure model read), `pen_get_variable_defs` (variables + text styles with `var(--acv-…)` codeSyntax), `pen_get_design_context` (4-part handoff: code + screenshot + instructions + assets), `pen_get_computed` / `pen_get_screenshot` (M2-c client round-trips — live `getComputedStyle`/`getBoundingClientRect` readback + real html-to-image canvas capture; ≤2s pending map in `client-roundtrip.ts`, ALWAYS fall back to resolver data / server resvg with `measured:false`, never hang), `pen_bake_layout` (writes the server-side measured-bounds map into .pen sizes via ONE `update_many`; skips dynamic fit_content/fill_container sizing). `pen_copy_as_code` v2 delegates to `src/lib/canvas/serialize.ts`.
 - `pen-tools.ts` — 8 additional .pen-aligned tools (pen_set_variable, pen_apply_theme, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_theme_axis, pen_list_themes). These expose pen.dev concepts (variables, themes, refs, slots) that complement the granular pen_* tool surface.
 - `figma-tools.ts` — 10 Figma-canonical tools: figma_create_page, figma_set_active_page, figma_rename_page, figma_delete_page, figma_create_section, figma_create_component, figma_create_component_set, figma_add_variant, figma_set_component_property, figma_set_instance_property. Exports `createFigmaTools(ctx)` + `FIGMA_TOOL_NAMES`. Always loaded (not skill-gated).
 - `runner.ts` — public entry point + thin delegator: routes to `runAgentNative` (production) or `runAgentLegacy` (injected MockLLM tests); re-exports shared types/helpers.
 - `runner-native.ts` — production agent loop: `createAgentSession` from `@earendil-works/pi-coding-agent` with pi-ai Model resolution, stub resource loader, in-memory session/settings managers, plugin wiring, and `noTools: 'all'`.
-- `runner-legacy.ts` — legacy hand-rolled LLM loop (test path + shared helpers): `SYSTEM_PROMPT_TEMPLATE`, `buildSystemPrompt`, `buildSubAgentLLMClient`, `filterToolSpecs`, `normalizeCanvas`, `round()`.
+- `runner-legacy.ts` — legacy hand-rolled LLM loop (test path + shared helpers): `SYSTEM_PROMPT_TEMPLATE`, `buildSystemPrompt`, `buildSubAgentLLMClient`, `filterToolSpecs`, `normalizeCanvas`, `round()`. `canvasSnapshot` enriches layer lines with ` measured=<w>×<h>` from the `client-roundtrip.ts` measured-bounds map (spec §5.5) when the DOM renderer has pushed bounds for the document.
+- `client-roundtrip.ts` — server-side pending registry for the client round-trips (M2-c, spec §5.2/§5.4): `awaitClientResponse(toolCallId, emit, timeoutMs)` NEVER rejects (timeout → null → tool fallback — the agent loop cannot hang), `resolveComputedResponse`/`resolveScreenshotResponse` (called by POST `/api/agent/client-responses`), plus the per-document measured-bounds runtime store `setMeasuredBounds`/`getMeasuredBounds` (LRU cap 20 docs, fed by the client's `canvas:measured_bounds` pushes). Timeouts live in the mutable `ROUNDTRIP_DEFAULTS` (2s tools / 3s VLM critic) so tests can shrink them.
 - `runner-types.ts` — shared `AgentStreamEvent` / `LLMClient` / `AgentRunOptions` types, extracted to break the runner↔translator circular import.
 - `classifier.ts` — intent classifier (keyword pass + LLM fallback at confidence < 0.7). Routes prompts to skill categories.
 - `planner.ts` — plan module. Generates step lists for multi-step tasks (LLM-based; keyword fallback when no client).
@@ -67,7 +68,7 @@ User prompt
 
 ## Local Contracts
 
-### Tool surface (95 registered in production — do not rename/remove without parent-level decision)
+### Tool surface (97 registered in production — do not rename/remove without parent-level decision)
 All canvas tools are prefixed with `pen_` (e.g., `pen_create_shape`, `pen_update_shape`). The web tools (`web_search`, `web_fetch`) have no prefix. Figma tools use `figma_` prefix. Plugin tools (up to 32, from `plugins/`) are added when their plugin is enabled.
 
 Per-skill `allowedTools` views (tools appear in multiple categories — these are the skill groupings from `skills/registry.ts`):
@@ -75,7 +76,7 @@ Per-skill `allowedTools` views (tools appear in multiple categories — these ar
 - **Wireframe (15)**: pen_generate_wireframe, pen_generate_user_flow, pen_generate_diagram, pen_generate_copy, pen_create_shape, pen_update_shape, pen_upload_image, pen_search_icons, pen_generate_image, pen_update_tokens, pen_apply_palette, pen_generate_palette, pen_reparent_shape, pen_insert_html, pen_get_metadata
 - **Layout (17)**: pen_align_shapes, pen_group_shapes, pen_ungroup_shapes, pen_duplicate_shape, pen_organize_layers, pen_apply_auto_layout, pen_bring_to_front, pen_send_to_back, pen_move_forward, pen_move_backward, pen_reorder_shape, pen_set_locked, pen_set_visible, pen_reparent_shape, pen_set_constraints, pen_insert_html, pen_get_metadata
 - **Styling (13)**: pen_apply_palette, pen_generate_palette, pen_update_tokens, pen_apply_token, pen_bind_shape_to_token, pen_unbind_shape, pen_list_tokens, pen_set_gradient_fill, pen_set_shadow, pen_set_blur, pen_set_corner_radius_per_corner, pen_find_replace_text, pen_bulk_update_by_filter
-- **Inspect (7)**: pen_list_shapes, pen_find_shapes, pen_audit_design, pen_list_tokens, pen_get_metadata, pen_get_design_context, pen_get_variable_defs
+- **Inspect (9)**: pen_list_shapes, pen_find_shapes, pen_audit_design, pen_list_tokens, pen_get_metadata, pen_get_design_context, pen_get_variable_defs, pen_get_computed, pen_get_screenshot
 - **Export (5)**: pen_export_json, pen_export_svg, pen_export_png, pen_copy_as_code, pen_bake_layout
 - **Vector (5)**: pen_create_path, pen_boolean_op, pen_mask_with, pen_create_shape, pen_update_shape
 - **Web (2)**: web_search, web_fetch
@@ -85,7 +86,7 @@ Per-skill `allowedTools` views (tools appear in multiple categories — these ar
 - **Pen-aligned (8)**: pen_set_variable, pen_apply_theme, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_theme_axis, pen_list_themes
 - **Figma-canonical (10)**: figma_create_page, figma_set_active_page, figma_rename_page, figma_delete_page, figma_create_section, figma_create_component, figma_create_component_set, figma_add_variant, figma_set_component_property, figma_set_instance_property
 
-Registry views: `ALL_TOOL_NAMES` in `skills/registry.ts` = 78 (excludes the 10 always-loaded figma tools). `runner-native.ts` registers all 88 base tools plus enabled plugin tools.
+Registry views: `ALL_TOOL_NAMES` in `skills/registry.ts` = 80 (excludes the 10 always-loaded figma tools). `runner-native.ts` registers all 90 base tools plus enabled plugin tools.
 
 ### Skill categories (7 + multi)
 wireframe, layout, styling, inspect, export, web_research, vector, multi
@@ -238,6 +239,8 @@ If validation fails, the runner re-prompts the agent with the failure reasons + 
 ### P2.1 / T3 — VLM screenshot critique (`subagents/design-critic-vlm.ts` + `canvas/render-to-png.ts` + `pen_visual_critique` tool)
 The `renderCanvasToPng(shapes, 1440, 900)` function builds an SVG string from the resolved layers (mirroring the ShapeRenderer JSX but emitting raw SVG markup, with full support for typography fields + gradients + shadows + radii + opacity), then rasterizes via `@resvg/resvg-js` at 2x scale for crisp text. The VLM critic sub-agent base64-encodes the PNG and calls the vision LLM with the SAME structured-critique prompt used for the Task 7-a baseline (8 dimensions, 1-10 score, top-5 fixes). The "after" score is directly comparable to the 2/10 baseline.
 
+**M2-c ground-truth seam (spec §5.4)**: before the resvg render, the critic first asks the connected CLIENT for a real screenshot (`agent:screenshot_request` round-trip via `client-roundtrip.ts`, 3s budget). On success it critiques the actual DOM-renderer picture (log: "VLM critic using real client screenshot"); on timeout/no-sink it falls back to the resvg approximation unchanged (D8 fallback discipline). The result carries `screenshotSource: 'client' | 'server'` telemetry.
+
 The VLM catches what text-critic cannot see: alignment, whitespace distribution, "generic AI look" (the v0/Midjourney pattern — flat colored divs with no real content density). The mandatory critique loop dispatches BOTH critics on each iteration and merges their defects before re-prompting the agent.
 
 ### P3.1 / T4 — Design-token enforcement (`coerceShapeInput` + system-prompt COMPONENT RECIPES rewrite)
@@ -248,6 +251,7 @@ This `AGENTS.md` "UI QUALITY ENFORCEMENT" section is the spec for the architectu
 
 ### New dependencies
 - `@resvg/resvg-js@2.6.2` — pure-JS SVG → PNG rasterizer, used by `renderCanvasToPng`. No native deps; works in the Next.js runtime.
+- `html-to-image@1.11.13` — client-only canvas capture (DOM world element → PNG data URL) for `agent:screenshot_request` round-trips. Dynamically imported in `store.ts` (never in the server bundle).
 
 ### Verification
 - `bunx tsc --noEmit` — must pass (added the new SyncEvent variant `agent:critique` + the `AgentRunSettings.maxDesignCritiqueIterations` field + the new sub-agent / validator modules).

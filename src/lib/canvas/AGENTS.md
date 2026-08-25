@@ -35,6 +35,7 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - `_syncTurnsFromSession` rebuilds the live `turns` buffer from session-store messages when switching sessions. Tool calls are joined by `runId`.
 - The store bridges into `useSessionStore`, which uses `skipHydration: true` + a manual `hydrateSessionStore()` call in `init()` to avoid SSR hydration mismatches.
 - **forkActiveSession(fromMessageId)**: when `fromMessageId` is provided, finds the snapshot whose `sourceMessageId` matches and calls `forkSessionFromSnapshot()` to seed the fork from that point in history (not the parent's latest state). Falls back to `forkSession()` (latest state) if no matching snapshot is found.
+- **Client round-trips (M2-c, spec §5.2/§5.4)**: `_onSync` handles `agent:computed_request` (querySelector `[data-node-id]` → getComputedStyle + getBoundingClientRect, canvas-space rect divided out of the world transform, POST to `/api/agent/client-responses`) and `agent:screenshot_request` (dynamic `import('html-to-image')` → `toPng(worldElement, { pixelRatio, backgroundColor })`; no world element registered → POST `error: 'no-dom-renderer'`). `worldElement` is an EPHEMERAL store field registered by DomCanvas on mount (both layout modes), cleared on unmount. `pushMeasuredBounds()` emits the `canvas:measured_bounds` ClientEvent over the socket AND POSTs a copy so the server-side map (spec §3.8) stays fresh; DomCanvas throttles it (800ms trailing, native mode only).
 
 ### React subscription safety
 - Zustand selectors MUST return stable references. Never write `useCanvasStore((s) => s.document.tokens ?? { colors: [], textStyles: [] })` — the `?? {}` creates a new object every render and triggers an infinite loop.
@@ -105,11 +106,12 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - On `prompt`: calls the agent runner and fans out events to all subscribers.
 - Patches are applied via `applyPatchToCanvas` from `patch.ts`.
 - The API route (`/api/agent`) handles document loading directly via Prisma — there is no dedicated server-side loader module.
+- Client round-trips (M2-c): `canvas:measured_bounds` from a client refreshes the SERVER-side measured-bounds map (`setMeasuredBounds` from `agent/client-roundtrip.ts` — same process as the tools when running in-process). `canvas:computed_response` / `canvas:screenshot_response` socket copies are accepted but resolve via the HTTP route (`POST /api/agent/client-responses`) — the authoritative pending map lives in the Next.js process. Server→client round-trip REQUEST events (`agent:computed_request` / `agent:screenshot_request`) ride the EXISTING SyncEvent fan-out (NDJSON → driveAgent → `io.emit('sync')`) — no per-type wiring needed.
 
 ## Work Guidance
 
 - When changing the `Shape` type: update `prisma/schema.prisma` (the `Shape` model), `types.ts`, `patch.ts` (default values), `tools.ts` (tool schemas), and `PropertiesPanel.tsx` (form fields). All five are coupled.
-- When adding a new `SyncEvent` kind: add the type, add the `_onSync` case in `store.ts`, add the API route forwarding case in `app/api/agent/route.ts`, add the mini-service broadcast case in `mini-services/canvas-sync/index.ts`.
+- When adding a new `SyncEvent` kind: add the type, add the `_onSync` case in `store.ts`, add the API route forwarding case in `app/api/agent/route.ts`, add the mini-service broadcast case in `mini-services/canvas-sync/index.ts`. (Exception: server→client round-trip REQUEST events need no route/service wiring — every SyncEvent passes through the NDJSON stream + fan-out unfiltered.)
 - When debugging "the canvas didn't update": check `window.__canvasStore.getState()` in the browser console — the store is the source of truth, not the DOM.
 - When debugging infinite re-renders: check all Zustand selectors for `?? {}` / `?? []` patterns. Replace with stable constants.
 

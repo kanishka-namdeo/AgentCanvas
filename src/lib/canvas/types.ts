@@ -439,6 +439,16 @@ export type SyncEvent =
   // ask_user_question. The frontend POSTs to /api/agent/answers; the runner
   // resolves the pending tool call and continues the agent loop.
   | { type: 'agent:ask_user_answered'; toolCallId: string; answers: string[][]; cancelled: boolean }
+  // ---- Client round-trip requests (spec §5.2 / Phase 3, M2-c) -------------
+  // Emitted by pen_get_computed: asks the connected client for real
+  // getComputedStyle + getBoundingClientRect data on live DOM nodes. The
+  // client POSTs results to /api/agent/client-responses which resolves the
+  // pending tool call. Same pending-map pattern as ask_user_question.
+  | { type: 'agent:computed_request'; toolCallId: string; nodeIds: string[]; properties?: string[] }
+  // Emitted by pen_get_screenshot: asks the connected client to capture the
+  // real rendered canvas (html-to-image) and return a PNG data URL. The
+  // client POSTs the data URL (or an error) to /api/agent/client-responses.
+  | { type: 'agent:screenshot_request'; toolCallId: string; nodeId?: string; scale?: number }
   // Emitted by the todo tool: a structured task list overlay that survives
   // compaction. The frontend renders the live list in the AgentPanel.
   | { type: 'agent:todo_update'; todos: Array<{
@@ -466,4 +476,16 @@ export type ClientEvent =
   | { type: 'canvas:patch'; patch: CanvasPatch }
   | { type: 'canvas:request_full'; documentId: string }
   | { type: 'agent:prompt'; documentId: string; prompt: string; settings?: AgentRunSettings; images?: Array<{ id?: string; name?: string; dataUrl: string }>; selection?: { count: number; names: string[] } }
-  | { type: 'agent:steer'; documentId: string; text: string };
+  | { type: 'agent:steer'; documentId: string; text: string }
+  // ---- Client round-trip responses (spec §5.2 / Phase 3, M2-c) ------------
+  // Client answers an agent:computed_request (results also reach the server's
+  // pending map via POST /api/agent/client-responses; the socket copy keeps
+  // the in-process canvas-sync's measured-bounds cache warm for tools).
+  | { type: 'canvas:computed_response'; toolCallId: string; results: Array<{ id: string; rect: { x: number; y: number; width: number; height: number }; canvasRect?: { x: number; y: number; width?: number; height?: number }; computed: Record<string, string> }> }
+  // Client answers an agent:screenshot_request with a PNG data URL (or an
+  // error string when capture failed / no DOM renderer is mounted).
+  | { type: 'canvas:screenshot_response'; toolCallId: string; dataUrl?: string; error?: string }
+  // Push of the DOM renderer's measured-bounds runtime cache (spec §3.8) so
+  // the SERVER-side map stays fresh between round-trips — consumed by
+  // canvasSnapshot enrichment (§5.5) and pen_bake_layout.
+  | { type: 'canvas:measured_bounds'; documentId: string; bounds: Record<string, { width: number; height: number }> };

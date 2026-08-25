@@ -35,7 +35,7 @@
 //   native — from the resolver tree directly (parent/child structure is
 //     authoritative by construction; tree order == zIndex order per parent).
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CanvasDocument, Layer, Shape } from '@/lib/canvas/types';
 import type { PenChild } from '@/lib/pen/types';
 import { resolvePenTreeDetailed, type ResolvedTreeNode } from '@/lib/pen/resolve';
@@ -220,6 +220,39 @@ export function DomCanvas({
 
   useEffect(() => () => pool?.disconnect(), [pool]);
 
+  // ---- World-element registration (client round-trips, Phase 3 M2-c) -------
+  // ALWAYS register (both layout modes — parity rects stay valid): the
+  // store's round-trip handlers use this element for screen→canvas-space
+  // conversion (agent:computed_request) and html-to-image capture
+  // (agent:screenshot_request). Cleared on unmount.
+  const worldRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = worldRef.current;
+    if (el) useCanvasStore.getState().setWorldElement(el);
+    return () => {
+      if (useCanvasStore.getState().worldElement === el) {
+        useCanvasStore.getState().setWorldElement(null);
+      }
+    };
+  }, []);
+
+  // ---- Measured-bounds digest push (native mode only) ----------------------
+  // Throttled 800ms trailing: every change to the store's measuredBounds
+  // slice re-arms ONE timer; when it fires we push the whole digest to the
+  // server (socket event + POST) so canvasSnapshot enrichment (§5.5) and
+  // pen_bake_layout see fresh sizes. The selector runs unconditionally
+  // (hooks rule); the GATE on layoutMode lives in the effect — parity mode
+  // never writes measuredBounds (pool is null) so the digest stays {}.
+  const boundsDigest = useCanvasStore((s) => s.measuredBounds);
+  useEffect(() => {
+    if (layoutMode !== 'native') return;
+    if (Object.keys(boundsDigest).length === 0) return;
+    const t = setTimeout(() => {
+      useCanvasStore.getState().pushMeasuredBounds();
+    }, 800);
+    return () => clearTimeout(t);
+  }, [boundsDigest, layoutMode]);
+
   const registerEl = useMemo(() => {
     if (!pool) return undefined;
     return (id: string, el: HTMLDivElement | null) => {
@@ -239,6 +272,7 @@ export function DomCanvas({
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
       {/* World layer — pan/zoom is the only thing that changes here. */}
       <div
+        ref={worldRef}
         data-ac-world=""
         data-ac-theme={worldThemeAttr(document)}
         style={{

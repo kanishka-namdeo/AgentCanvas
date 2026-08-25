@@ -355,7 +355,7 @@ describe('tools-mcp: pen_bake_layout', () => {
   it('returns the no-measured notice and makes NO patch', async () => {
     const r = await run('pen_bake_layout', { nodeIds: ['a', 'b'] });
     expect(r.isError).toBeFalsy();
-    expect(r.content).toContain('measured bounds require a connected client');
+    expect(r.content).toContain('no measured bounds available');
     expect(r.content).toContain('no changes made');
     expect(h.patches).toHaveLength(0);
   });

@@ -7,7 +7,7 @@ The agent plugin subsystem: a registry of 8 ported pi-agent plugins exposing up 
 ## Ownership
 
 - `index.ts` — plugin registry: `ALL_PLUGINS` manifest (pluginId, pluginName, description, category, defaultEnabled, tools) + `getEnabledPlugins` / `getEnabledPluginTools` / `getEnabledPluginToolNames` / `getPlugin` / `getAllPlugins`, all gated by `settings.enabledPlugins`. `/api/plugins` serves these manifests.
-- `event-bus.ts` — module-level per-turn `SyncEvent` sink installed by `runAgentNative`; `setEventSink` / `emitEvent` / `hasSink` let plugin tools fire UI events mid-turn.
+- `event-bus.ts` — module-level per-turn `SyncEvent` sink installed by `runAgentNative`; `setEventSink` / `emitEvent` / `hasSink` let plugin tools fire UI events mid-turn. NON-plugin consumers too (M2-c): `tools.ts`'s round-trip tools (`pen_get_computed` / `pen_get_screenshot`) and the VLM critic emit `agent:computed_request` / `agent:screenshot_request` through this sink — same mechanism as ask-user-question, answers resolve via `/api/agent/client-responses` + `agent/client-roundtrip.ts`.
 - `ask-user-question.ts` — `ask_user_question` tool: emits `agent:ask_user_question`, blocks for answers resolved via `/api/agent/answers` (5-minute timeout); also backs `/api/agent/pending`.
 - `todo.ts` — 5 `todo_*` tools maintaining a per-session todo list; each mutation emits `agent:todo_update`.
 - `memory.ts` — 5 `memory_*` + `scratchpad` tools over file-backed long-term memory in `~/.pi/agent/memory/` (MEMORY.md, SCRATCHPAD.md, daily log).

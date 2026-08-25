@@ -61,6 +61,14 @@ import { parseHtmlFragment, htmlToPenTreeDetailed } from '../canvas/html-import'
 import { serializeNodes } from '../canvas/serialize';
 import { resolvePenTreeDetailed, type ResolvedTreeNode } from '../pen/resolve';
 import type { PenChild } from '../pen/types';
+import { emitEvent, hasSink } from './plugins/event-bus';
+import {
+  awaitClientResponse,
+  getMeasuredBounds,
+  ROUNDTRIP_DEFAULTS,
+  type ComputedResult,
+  type ScreenshotResult,
+} from './client-roundtrip';
 
 // ---- Tool execution context -------------------------------------------------
 //
@@ -2740,11 +2748,70 @@ const createShape = defineTool({
   // Server (get_metadata / get_design_context / get_variable_defs) under
   // our existing pen_ namespace, plus the code→canvas construction
   // primitive pen_insert_html (Figma analog: generate_figma_design) and the
-  // measured-bounds writeback placeholder pen_bake_layout.
+  // measured-bounds writeback pen_bake_layout.
   //
-  // The socket round-trip tools (pen_get_computed, pen_get_screenshot) and
-  // the mounted-iframe HTML extraction path land with the NEXT phase.
+  // pen_get_computed / pen_get_screenshot (M2-c) are CLIENT ROUND-TRIP
+  // tools: they emit a SyncEvent through the per-turn plugin event sink,
+  // block on the client-roundtrip pending map (≤2s), and FALL BACK to
+  // resolver data / server-side rendering when no client answers — the
+  // agent loop can never hang. `hasSink()` short-circuits the wait when
+  // we're not even inside an agent turn (tests, headless calls).
   // =====================================================================
+
+  /// Build a resolver-data ComputedResult for one shape (fallback when the
+  /// client is offline / a node is unmounted). Values are the resolver's
+  /// predictions, not real layout — flagged measured:false.
+  function resolverComputedFallback(s: Shape, properties?: string[]): ComputedResult {
+    const computed: Record<string, string> = {
+      display: s.autoLayout ? 'flex' : 'block',
+      position: 'absolute',
+      width: `${Math.round(s.width)}px`,
+      height: `${Math.round(s.height)}px`,
+      backgroundColor: s.fill ?? 'rgba(0, 0, 0, 0)',
+      color: (s as Shape & { textColor?: string }).textColor ?? s.fill ?? 'inherit',
+      fontFamily: (s as Shape & { fontFamily?: string }).fontFamily ?? 'Inter, system-ui, sans-serif',
+      fontSize: `${(s as Shape & { fontSize?: number }).fontSize ?? 16}px`,
+      fontWeight: String((s as Shape & { fontWeight?: number }).fontWeight ?? 400),
+      opacity: String(s.opacity ?? 1),
+      zIndex: String(s.zIndex ?? 0),
+      overflow: (s as Shape & { clip?: boolean }).clip ? 'hidden' : 'visible',
+      visibility: s.visible === false ? 'hidden' : 'visible',
+    };
+    if (s.autoLayout) {
+      computed.flexDirection = s.autoLayout.direction === 'vertical' ? 'column' : 'row';
+      computed.gap = `${s.autoLayout.gap ?? 0}px`;
+      computed.alignItems = s.autoLayout.alignY ?? 'start';
+      computed.justifyContent = s.autoLayout.alignX ?? 'start';
+    }
+    if (s.radius != null) computed.borderRadius = `${s.radius}px`;
+    if (properties && properties.length > 0) {
+      const keep = new Set(properties);
+      for (const k of Object.keys(computed)) if (!keep.has(k)) delete computed[k];
+    }
+    return {
+      id: s.id,
+      rect: { x: Math.round(s.x), y: Math.round(s.y), width: Math.round(s.width), height: Math.round(s.height) },
+      canvasRect: { x: Math.round(s.x), y: Math.round(s.y), width: Math.round(s.width), height: Math.round(s.height) },
+      computed,
+      measured: false as const,
+    };
+  }
+
+  /// Ask the connected client for a real screenshot (agent:screenshot_request
+  /// round-trip). Null when no sink / no client answered in time.
+  async function requestClientScreenshot(
+    toolCallId: string,
+    nodeId: string | undefined,
+    scale: number | undefined,
+    timeoutMs: number,
+  ): Promise<ScreenshotResult | null> {
+    if (!hasSink()) return null; // outside an agent turn — no client can answer
+    return awaitClientResponse<ScreenshotResult>(
+      toolCallId,
+      () => emitEvent({ type: 'agent:screenshot_request', toolCallId, ...(nodeId ? { nodeId } : {}), ...(scale ? { scale } : {}) }),
+      timeoutMs,
+    );
+  }
 
   const insertHtml = defineTool({
     name: 'pen_insert_html',
@@ -2985,29 +3052,41 @@ const createShape = defineTool({
       const framework = params.framework ?? 'react';
       const code = serializeNodes([subtree], { framework, rootName: subtree.layer.name || 'Selection' });
 
-      // Part 2 — screenshot: attempt the server-side PNG render (resvg).
-      // Real client-canvas capture lands with the round-trip tools (next phase).
-      let screenshotNote = '[screenshot unavailable server-side — client capture lands with the round-trip tools]';
+      // Part 2 — screenshot: prefer the REAL client capture (round-trip,
+      // ≤2s — html-to-image on the live world element, spec §5.4); fall back
+      // to the server-side resvg render (images dropped, D8 discipline).
+      let screenshotNote = '[screenshot unavailable — no client answered and the server render failed]';
       let screenshotDataUrl: string | undefined;
       let screenshotSize: { width: number; height: number } | undefined;
-      try {
-        const layers = flattenTree([subtree]);
-        if (layers.length > 0) {
-          const minX = Math.min(...layers.map((s) => s.x));
-          const minY = Math.min(...layers.map((s) => s.y));
-          const maxX = Math.max(...layers.map((s) => s.x + s.width));
-          const maxY = Math.max(...layers.map((s) => s.y + s.height));
-          const w = Math.max(1, Math.round(maxX - minX));
-          const h = Math.max(1, Math.round(maxY - minY));
-          const shifted = layers.map((s) => ({ ...s, x: s.x - minX, y: s.y - minY }));
-          const { renderCanvasToPng } = await import('../canvas/render-to-png');
-          const png = await renderCanvasToPng(shifted, w, h);
-          screenshotDataUrl = `data:image/png;base64,${png.toString('base64')}`;
-          screenshotSize = { width: w, height: h };
-          screenshotNote = `[server-side PNG render ${w}×${h} @2x — data URL in details.screenshotDataUrl (${Math.round(screenshotDataUrl.length / 1024)} KB); client-canvas capture lands with the round-trip tools]`;
+      const shot = await requestClientScreenshot(
+        toolCallId,
+        params.nodeId,
+        undefined,
+        ROUNDTRIP_DEFAULTS.screenshotTimeoutMs,
+      );
+      if (shot?.dataUrl) {
+        screenshotDataUrl = shot.dataUrl;
+        screenshotNote = `[real client screenshot (DOM renderer capture @2x) — data URL in details.screenshotDataUrl (${Math.round(screenshotDataUrl.length / 1024)} KB); measured: true]`;
+      } else {
+        try {
+          const layers = flattenTree([subtree]);
+          if (layers.length > 0) {
+            const minX = Math.min(...layers.map((s) => s.x));
+            const minY = Math.min(...layers.map((s) => s.y));
+            const maxX = Math.max(...layers.map((s) => s.x + s.width));
+            const maxY = Math.max(...layers.map((s) => s.y + s.height));
+            const w = Math.max(1, Math.round(maxX - minX));
+            const h = Math.max(1, Math.round(maxY - minY));
+            const shifted = layers.map((s) => ({ ...s, x: s.x - minX, y: s.y - minY }));
+            const { renderCanvasToPng } = await import('../canvas/render-to-png');
+            const png = await renderCanvasToPng(shifted, w, h);
+            screenshotDataUrl = `data:image/png;base64,${png.toString('base64')}`;
+            screenshotSize = { width: w, height: h };
+            screenshotNote = `[server-side PNG render ${w}×${h} @2x — data URL in details.screenshotDataUrl (${Math.round(screenshotDataUrl.length / 1024)} KB); measured: false (no client responded)]`;
+          }
+        } catch {
+          // resvg unavailable or render failed — keep the fallback note.
         }
-      } catch {
-        // resvg unavailable or render failed — keep the fallback note.
       }
 
       // Part 3 — conversion instructions (static guidance, Figma-shaped).
@@ -3041,20 +3120,209 @@ const createShape = defineTool({
     name: 'pen_bake_layout',
     label: 'Bake Measured Layout',
     description: 'Write browser-measured node sizes back into the model as fixed sizes (spec §3.8). ' +
-      'v1 server-side fallback: measured bounds require a connected client — the socket round-trip ' +
-      'lands with the next phase. The schema is stable from day one.',
-    promptSnippet: 'Bake measured bounds into node sizes (requires a connected client).',
+      'Reads the measured-bounds runtime cache the DOM renderer pushes (native layout mode) and emits ONE ' +
+      'update_many patch with real width/height. Nodes whose .pen sizing is dynamic (fit_content / ' +
+      'fill_container) are skipped — baking would fight the layout engine. ' +
+      'Without measured data (SVG renderer, no client) nothing changes.',
+    promptSnippet: 'Bake measured bounds into node sizes (requires measured data from a connected client).',
     parameters: Type.Object({
       nodeIds: Type.Optional(Type.Array(Type.String({ description: 'Node ids to bake' }))),
       all: Type.Optional(Type.Boolean({ description: 'Bake every node with measured bounds' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      // No measured-bounds channel exists in CanvasToolContext yet —
-      // measuredBounds arrive via the DOM renderer's ResizeObserver pool
-      // (client) and reach patches through the round-trip events (next phase).
-      const requested = params.all ? 'all nodes' : (params.nodeIds ?? []).join(', ') || '(none specified)';
-      const text = `measured bounds require a connected client (round-trip tools, next phase); no changes made\nRequested: ${requested}`;
-      return { content: [{ type: 'text', text }], details: { measured: false, requested: { nodeIds: params.nodeIds ?? null, all: params.all ?? false }, patch: null } };
+      const doc = ctx.getDocument?.();
+      const documentId = doc?.id ?? '';
+      const bounds = documentId ? getMeasuredBounds(documentId) : {};
+      const measuredIds = Object.keys(bounds).filter((id) => {
+        const b = bounds[id];
+        return b && Number.isFinite(b.width) && Number.isFinite(b.height) && (b.width > 0 || b.height > 0);
+      });
+
+      if (measuredIds.length === 0) {
+        const requested = params.all ? 'all nodes' : (params.nodeIds ?? []).join(', ') || '(none specified)';
+        const text = `no measured bounds available (SVG renderer, parity mode, or no client push yet); no changes made\n` +
+          `Requested: ${requested}\n` +
+          `Tip: measured bounds flow when the DOM renderer runs in native layout mode (settings → renderer 'dom').`;
+        return { content: [{ type: 'text', text }], details: { measured: false, requested: { nodeIds: params.nodeIds ?? null, all: params.all ?? false }, patch: null } };
+      }
+
+      // Candidate ids: explicit list intersected with the measured map, or
+      // every measured id when `all`.
+      const requestedIds = params.all ? measuredIds : (params.nodeIds ?? []).filter((id) => measuredIds.includes(id));
+      if (requestedIds.length === 0) {
+        const text = `none of the requested node ids have measured bounds (${measuredIds.length} measured id(s) available); no changes made`;
+        return { content: [{ type: 'text', text }], details: { measured: false, requested: { nodeIds: params.nodeIds ?? null, all: params.all ?? false }, patch: null, measuredIds } };
+      }
+
+      // Dynamic-sizing guard (spec: never bake fit_content / fill_container).
+      const { tree } = doc ? resolvePenTreeDetailed(doc) : { tree: [] as ResolvedTreeNode[] };
+      const skipped: Array<{ id: string; reason: string }> = [];
+      const updates: Array<{ id: string; changes: Record<string, number> }> = [];
+      for (const id of requestedIds) {
+        const tn = findTreeNode(tree, id);
+        const pen = tn?.pen as Partial<PenChild> | undefined;
+        const wDyn = pen && typeof (pen as { width?: unknown }).width === 'string';
+        const hDyn = pen && typeof (pen as { height?: unknown }).height === 'string';
+        if (wDyn || hDyn) {
+          skipped.push({
+            id,
+            reason: `dynamic sizing (width=${wDyn ? String((pen as { width?: unknown }).width) : 'fixed'}, height=${hDyn ? String((pen as { height?: unknown }).height) : 'fixed'}) — skipped, the layout engine owns this size`,
+          });
+          continue;
+        }
+        const b = bounds[id];
+        updates.push({ id, changes: { width: Math.round(b.width), height: Math.round(b.height) } });
+      }
+
+      if (updates.length === 0) {
+        const text = `all requested nodes use dynamic sizing (fit_content / fill_container) — nothing baked\n` +
+          skipped.map((s) => `  ${s.id}: ${s.reason}`).join('\n');
+        return { content: [{ type: 'text', text }], details: { measured: true, baked: 0, skipped, patch: null } };
+      }
+
+      const patch: CanvasPatch = {
+        op: 'update_many',
+        updates,
+        summary: `Baked measured layout into ${updates.length} node(s)`,
+      };
+      ctx.applyPatch(patch);
+      const lines = [
+        `Baked measured sizes into ${updates.length} node(s):`,
+        ...updates.map((u) => `  ${u.id}: ${u.changes.width}×${u.changes.height}`),
+      ];
+      if (skipped.length > 0) {
+        lines.push(`Skipped ${skipped.length} dynamic-sizing node(s):`);
+        lines.push(...skipped.map((s) => `  ${s.id}: ${s.reason}`));
+      }
+      return { content: [{ type: 'text', text: lines.join('\n') }], details: { measured: true, baked: updates.length, skipped, patch } };
+    },
+  });
+
+  const getComputed = defineTool({
+    name: 'pen_get_computed',
+    label: 'Get Computed Styles (live DOM readback)',
+    description: 'Read REAL browser-computed styles + measured rects for specific nodes (getComputedStyle + ' +
+      'getBoundingClientRect on the live DOM renderer). No Figma analog — the DOM-renderer dividend. ' +
+      'Use it to verify your own work after patches: actual widths, contrast, computed colors post-variable-resolution, ' +
+      'flex gap/padding reality. Falls back to resolver-predicted data (measured:false) when no client ' +
+      'is connected — never hangs.',
+    promptSnippet: 'Read real computed styles + measured rects for nodes (live DOM readback).',
+    parameters: Type.Object({
+      nodeIds: Type.Array(Type.String({ description: 'Node ids to read (use pen_get_metadata to find ids)' }), { minItems: 1, maxItems: 20 }),
+      properties: Type.Optional(Type.Array(Type.String({
+        description: 'Optional computed-style property filter (camelCase: backgroundColor, fontSize, gap, …). Default: curated ~33-prop subset',
+      }))),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      if (!params.nodeIds || params.nodeIds.length === 0) {
+        return {
+          content: [{ type: 'text', text: 'Error: nodeIds must be a non-empty array. Call pen_get_metadata (no nodeId) for the page list, then pass nodeIds for the sparse tree.' }],
+          details: { error: 'no_node_ids' },
+          isError: true as any,
+        };
+      }
+      const shapes = ctx.getShapes();
+      const byId = new Map(shapes.map((s) => [s.id, s] as const));
+
+      // Round-trip first (≤2s). No sink (outside a turn) → straight fallback.
+      let clientResults: ComputedResult[] | null = null;
+      if (hasSink()) {
+        clientResults = await awaitClientResponse<ComputedResult[]>(
+          toolCallId,
+          () => emitEvent({ type: 'agent:computed_request', toolCallId, nodeIds: params.nodeIds, properties: params.properties }),
+          ROUNDTRIP_DEFAULTS.computedTimeoutMs,
+        );
+      }
+      const byClient = new Map((clientResults ?? []).map((r) => [r.id, r] as const));
+
+      const results: ComputedResult[] = params.nodeIds.map((id) => {
+        const live = byClient.get(id);
+        if (live) return { ...live, measured: true };
+        const s = byId.get(id);
+        if (s) return resolverComputedFallback(s, params.properties);
+        return {
+          id,
+          rect: { x: 0, y: 0, width: 0, height: 0 },
+          computed: {},
+          measured: false,
+        };
+      });
+
+      const liveCount = results.filter((r) => r.measured).length;
+      const summaryLine = liveCount === params.nodeIds.length
+        ? `All ${results.length} node(s) read from the LIVE DOM (measured: true).`
+        : liveCount > 0
+          ? `${liveCount}/${results.length} node(s) read from the live DOM; the rest fell back to resolver data (measured: false).`
+          : `client offline — resolver fallback (measured: false for all ${results.length} node(s))`;
+
+      const blocks = results.map((r) => {
+        const rect = r.canvasRect ?? r.rect;
+        const propLines = Object.entries(r.computed).map(([k, v]) => `    ${k}: ${v}`);
+        return [
+          `node ${r.id}${byId.get(r.id) ? ` (${byId.get(r.id)!.type} "${byId.get(r.id)!.name}")` : ' (unknown id)'} — measured: ${r.measured === true}`,
+          `    rect (canvas space): x=${rect.x} y=${rect.y} w=${rect.width} h=${rect.height}`,
+          ...(propLines.length > 0 ? propLines : ['    (no computed properties available)']),
+        ].join('\n');
+      });
+
+      const unknown = results.filter((r) => !byId.get(r.id) && !byClient.get(r.id));
+      const text = [summaryLine, ...blocks].join('\n\n') +
+        (unknown.length > 0 ? `\n\nUnknown node id(s) (not in canvas or DOM): ${unknown.map((u) => u.id).join(', ')}` : '');
+      return { content: [{ type: 'text', text }], details: { measured: liveCount > 0, liveCount, results } };
+    },
+  });
+
+  const getScreenshot = defineTool({
+    name: 'pen_get_screenshot',
+    label: 'Get Screenshot (real canvas)',
+    description: 'Capture a PNG screenshot of the REAL rendered canvas — the DOM renderer captured via ' +
+      'html-to-image at the requested scale (default 2). Figma MCP analog: get_screenshot. Use for ' +
+      'self-verification after building UI. Falls back to the server-side resvg render (measured:false, ' +
+      'images dropped) when no client responds within 2s — never hangs. The data URL lands in ' +
+      'details.screenshotDataUrl; the text carries dimensions + KB only (tool-result size caps).',
+    promptSnippet: 'Screenshot the real rendered canvas (client capture, server fallback).',
+    parameters: Type.Object({
+      nodeId: Type.Optional(Type.String({ description: 'Optional node id — informational scope hint; the capture covers the visible canvas' })),
+      scale: Type.Optional(Type.Number({ description: 'Pixel ratio for the capture (default 2)' })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const shot = await requestClientScreenshot(toolCallId, params.nodeId, params.scale, ROUNDTRIP_DEFAULTS.screenshotTimeoutMs);
+      if (shot?.dataUrl) {
+        const kb = Math.round(shot.dataUrl.length / 1024);
+        const text = `Real client screenshot captured${params.nodeId ? ` (scope hint: node ${params.nodeId}; capture covers the visible canvas)` : ''} — ` +
+          `PNG data URL in details.screenshotDataUrl (${kb} KB), measured: true.`;
+        return { content: [{ type: 'text', text }], details: { screenshotDataUrl: shot.dataUrl, measured: true, scale: params.scale ?? 2 } };
+      }
+
+      // Fallback — server-side resvg render of the full document bbox.
+      const shapes = ctx.getShapes();
+      if (shapes.length === 0) {
+        return { content: [{ type: 'text', text: 'Canvas is empty — nothing to screenshot.' }], details: { measured: false } };
+      }
+      try {
+        const minX = Math.min(...shapes.map((s) => s.x));
+        const minY = Math.min(...shapes.map((s) => s.y));
+        const maxX = Math.max(...shapes.map((s) => s.x + s.width));
+        const maxY = Math.max(...shapes.map((s) => s.y + s.height));
+        const w = Math.max(1, Math.round(maxX - minX));
+        const h = Math.max(1, Math.round(maxY - minY));
+        const shifted = shapes.map((s) => ({ ...s, x: s.x - minX, y: s.y - minY }));
+        const { renderCanvasToPng } = await import('../canvas/render-to-png');
+        const png = await renderCanvasToPng(shifted, w, h);
+        const dataUrl = `data:image/png;base64,${png.toString('base64')}`;
+        const kb = Math.round(dataUrl.length / 1024);
+        const reason = shot?.error ? `client reported: ${shot.error}` : 'no client responded within the timeout';
+        const text = `client offline — resolver fallback (${reason}); server-side PNG render ${w}×${h} @2x, ` +
+          `data URL in details.screenshotDataUrl (${kb} KB), measured: false (server approximation — images may be dropped).`;
+        return { content: [{ type: 'text', text }], details: { screenshotDataUrl: dataUrl, measured: false, width: w, height: h, scale: 2 } };
+      } catch (err) {
+        const reason = shot?.error ? `client: ${shot.error}` : 'no client + server render failed';
+        return {
+          content: [{ type: 'text', text: `screenshot unavailable (${reason}): ${err instanceof Error ? err.message : String(err)}` }],
+          details: { measured: false, error: err instanceof Error ? err.message : String(err), clientError: shot?.error },
+          isError: true as any,
+        };
+      }
     },
   });
 
@@ -4151,6 +4419,8 @@ const createShape = defineTool({
     getVariableDefs,
     getDesignContext,
     bakeLayout,
+    getComputed,
+    getScreenshot,
     // Phase 2c: Find & filter
     findShapes,
     bulkUpdateByFilter,

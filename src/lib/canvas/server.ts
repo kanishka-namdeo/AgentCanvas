@@ -15,6 +15,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from './types';
 import { applyPatchToCanvas } from './patch';
+import { setMeasuredBounds } from '../agent/client-roundtrip';
 
 const PORT = 3003;
 
@@ -116,6 +117,23 @@ export function startCanvasSyncService() {
             type: 'agent:message_delta',
             text: `\n\n_[Steer: ${event.text}]_`,
           } satisfies SyncEvent);
+          break;
+        }
+        case 'canvas:measured_bounds': {
+          // Measured-bounds digest push from a DOM renderer (spec §3.8):
+          // refresh the SERVER-side runtime cache consumed by canvasSnapshot
+          // enrichment (§5.5) + pen_bake_layout. Client→server only — NOT
+          // rebroadcast (every viewer measures its own local copy).
+          setMeasuredBounds(event.documentId, event.bounds);
+          break;
+        }
+        case 'canvas:computed_response':
+        case 'canvas:screenshot_response': {
+          // Round-trip answers normally arrive via POST /api/agent/answers'
+          // sibling route (/api/agent/client-responses) — the HTTP path is
+          // authoritative because it resolves the pending map in the SAME
+          // process as the agent tools. The socket copies are accepted but
+          // intentionally ignored here (no broadcast, no state change).
           break;
         }
       }

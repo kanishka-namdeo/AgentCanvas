@@ -22,6 +22,8 @@ import type { SubAgentResult, SubAgentParams } from '../skills/types';
 import type { LLMClientLike as LLMClient } from '../llm-retry';
 import { callLLMWithRetry } from '../llm-retry';
 import { renderCanvasToPng } from '../../canvas/render-to-png';
+import { emitEvent, hasSink } from '../plugins/event-bus';
+import { awaitClientResponse, ROUNDTRIP_DEFAULTS } from '../client-roundtrip';
 
 // ---- Public types ----------------------------------------------------------
 
@@ -103,7 +105,7 @@ Respond with ONLY the JSON object — no markdown fences, no commentary.`;
  */
 export async function dispatchDesignCriticVlmSubAgent(
   params: SubAgentParams & { originalPrompt?: string },
-): Promise<SubAgentResult & { critique?: VlmCritique }> {
+): Promise<SubAgentResult & { critique?: VlmCritique; screenshotSource?: 'client' | 'server' }> {
   let toolCallCount = 0;
 
   try {
@@ -120,14 +122,36 @@ export async function dispatchDesignCriticVlmSubAgent(
       };
     }
 
-    // TODO(spec §3.8 / Phase 2): thread the browser's `measuredBounds` map
-    // (canvas store runtime slice, client-side) through the runner's tool
-    // context so this render prefers real measured geometry over the
-    // resolver's predictions. This sub-agent runs SERVER-side and has no
-    // canvas-store access today — the renderCanvasToPng `measuredBounds`
-    // param stays unwired here (documented in worklog M2-a).
-    const png = await renderCanvasToPng(shapes, 1440, 900);
-    const base64 = png.toString('base64');
+    // Ground-truth first (spec §5.4, M2-c): ask the connected client for a
+    // REAL screenshot of the rendered canvas (html-to-image on the live
+    // world element). 3s budget; on timeout / no sink fall back to the
+    // server-side resvg render — the D8 fallback discipline (the critic
+    // must still run, just on the approximate picture).
+    let base64: string;
+    let screenshotSource: 'client' | 'server' = 'server';
+    const roundtripId = `vlm-critic-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const shot = hasSink()
+      ? await awaitClientResponse<{ dataUrl?: string; error?: string }>(
+          roundtripId,
+          () => emitEvent({ type: 'agent:screenshot_request', toolCallId: roundtripId, scale: 2 }),
+          ROUNDTRIP_DEFAULTS.criticScreenshotTimeoutMs,
+        )
+      : null;
+    if (shot?.dataUrl) {
+      // Strip the data: URL prefix — the multimodal message below wants raw base64.
+      base64 = shot.dataUrl.slice(shot.dataUrl.indexOf(',') + 1);
+      screenshotSource = 'client';
+      console.log('[design-critic-vlm] VLM critic using real client screenshot');
+    } else {
+      // TODO(spec §3.8 / Phase 2): thread the browser's `measuredBounds` map
+      // (canvas store runtime slice, client-side) through the runner's tool
+      // context so this render prefers real measured geometry over the
+      // resolver's predictions. The renderCanvasToPng `measuredBounds` param
+      // can now read the server-side map — wired below when a document id is
+      // available in SubAgentParams.
+      const png = await renderCanvasToPng(shapes, 1440, 900);
+      base64 = png.toString('base64');
+    }
     toolCallCount++;
 
     // Build the multimodal user message (text + image_url).
@@ -204,6 +228,9 @@ Critique this rendered canvas screenshot. Return ONLY the JSON per the system pr
       toolCalls: toolCallCount,
       success: true,
       critique,
+      // Telemetry: which picture the critic actually judged ('client' = real
+      // DOM-renderer capture, 'server' = resvg approximation, spec §5.4).
+      screenshotSource,
     };
   } catch (err) {
     return {

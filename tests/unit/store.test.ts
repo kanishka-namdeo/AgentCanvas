@@ -16,7 +16,7 @@
 //   - _onSync does NOT push for non-mutating 'select' patches
 //   - _onSync clears the redoStack on every mutating patch
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
 import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types'
@@ -557,6 +557,192 @@ describe('store: promptAgent HTTP fallback — single-apply (D5)', () => {
       expect(s.undoStack).toHaveLength(2);
     } finally {
       globalThis.fetch = originalFetch as typeof fetch;
+    }
+  });
+});
+
+// ---- Client round-trip handlers (Phase 3, M2-c) -----------------------------------
+//
+// agent:computed_request → reads the live DOM (querySelector data-node-id +
+// getComputedStyle + getBoundingClientRect) and POSTs the results to
+// /api/agent/client-responses. agent:screenshot_request without a world
+// element POSTs the 'no-dom-renderer' error. Fetch is mocked to capture the
+// POST payload shape (jsdom rects are all-zero — geometry assertions stay
+// structural).
+
+describe('store: client round-trip handlers', () => {
+  interface CapturedPost {
+    url: string;
+    body: any;
+  }
+
+  function captureFetch(): { posts: CapturedPost[]; restore: () => void } {
+    const posts: CapturedPost[] = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (url: any, init?: any) => {
+      posts.push({ url: String(url), body: JSON.parse(String(init?.body ?? '{}')) });
+      return { ok: true } as any;
+    }) as unknown as typeof fetch;
+    return {
+      posts,
+      restore: () => {
+        globalThis.fetch = originalFetch as typeof fetch;
+      },
+    };
+  }
+
+  let mounted: HTMLElement[];
+
+  beforeEach(() => {
+    resetStore(makeDoc([]));
+    useCanvasStore.setState({ worldElement: null });
+    mounted = [];
+  });
+
+  afterEach(() => {
+    for (const el of mounted) el.remove();
+    useCanvasStore.setState({ worldElement: null });
+  });
+
+  function mountNode(id: string, style = 'display:flex;background-color:rgb(14,165,233);'): HTMLElement {
+    const el = document.createElement('div');
+    el.setAttribute('data-node-id', id);
+    el.setAttribute('style', style);
+    document.body.appendChild(el);
+    mounted.push(el);
+    return el;
+  }
+
+  it('agent:computed_request reads the live DOM and POSTs results to /api/agent/client-responses', async () => {
+    mountNode('live-1');
+    const { posts, restore } = captureFetch();
+    try {
+      useCanvasStore.getState()._onSync({
+        type: 'agent:computed_request',
+        toolCallId: 'tc-1',
+        nodeIds: ['live-1', 'not-mounted'],
+      });
+      await vi.waitFor(() => {
+        expect(posts.length).toBeGreaterThanOrEqual(1);
+      });
+      const post = posts.find((p) => p.url.includes('/api/agent/client-responses'))!;
+      expect(post.body.kind).toBe('computed');
+      expect(post.body.toolCallId).toBe('tc-1');
+      // Mounted node reported; unmounted node omitted (tool falls back per node).
+      expect(post.body.results).toHaveLength(1);
+      const res = post.body.results[0];
+      expect(res.id).toBe('live-1');
+      expect(res.rect).toMatchObject({ x: 0, y: 0, width: 0, height: 0 }); // jsdom zero-rect, shape present
+      expect(res.computed.display).toBe('flex');
+      expect(res.computed.backgroundColor).toBe('rgb(14, 165, 233)');
+      // The full curated subset (≥30 props) when no filter was requested.
+      expect(Object.keys(res.computed).length).toBeGreaterThanOrEqual(30);
+    } finally {
+      restore();
+    }
+  });
+
+  it('filters computed properties to the requested subset', async () => {
+    mountNode('live-2');
+    const { posts, restore } = captureFetch();
+    try {
+      useCanvasStore.getState()._onSync({
+        type: 'agent:computed_request',
+        toolCallId: 'tc-2',
+        nodeIds: ['live-2'],
+        properties: ['backgroundColor', 'fontSize'],
+      });
+      await vi.waitFor(() => {
+        expect(posts.length).toBeGreaterThanOrEqual(1);
+      });
+      const res = posts[0].body.results[0];
+      expect(Object.keys(res.computed).sort()).toEqual(['backgroundColor', 'fontSize']);
+    } finally {
+      restore();
+    }
+  });
+
+  it('adds canvasRect (world-transform divided out) when a world element is registered', async () => {
+    mountNode('live-3');
+    const world = document.createElement('div');
+    document.body.appendChild(world);
+    mounted.push(world);
+    useCanvasStore.setState({ worldElement: world });
+    const { posts, restore } = captureFetch();
+    try {
+      useCanvasStore.getState()._onSync({
+        type: 'agent:computed_request',
+        toolCallId: 'tc-3',
+        nodeIds: ['live-3'],
+      });
+      await vi.waitFor(() => {
+        expect(posts.length).toBeGreaterThanOrEqual(1);
+      });
+      const res = posts[0].body.results[0];
+      // jsdom rects are zero → canvasRect is zeros too, but the FIELD is present.
+      expect(res.canvasRect).toMatchObject({ x: 0, y: 0 });
+    } finally {
+      restore();
+    }
+  });
+
+  it('agent:screenshot_request without a world element POSTs the no-dom-renderer error', async () => {
+    const { posts, restore } = captureFetch();
+    try {
+      useCanvasStore.getState()._onSync({
+        type: 'agent:screenshot_request',
+        toolCallId: 'tc-shot',
+      });
+      await vi.waitFor(() => {
+        expect(posts.length).toBeGreaterThanOrEqual(1);
+      });
+      const post = posts.find((p) => p.url.includes('/api/agent/client-responses'))!;
+      expect(post.body.kind).toBe('screenshot');
+      expect(post.body.toolCallId).toBe('tc-shot');
+      expect(post.body.error).toBe('no-dom-renderer');
+      expect(post.body.dataUrl).toBeUndefined();
+    } finally {
+      restore();
+    }
+  });
+
+  it('pushMeasuredBounds POSTs the digest and emits the socket ClientEvent', () => {
+    const { posts, restore } = captureFetch();
+    const emitted: any[] = [];
+    const fakeSocket = { emit: (_ch: string, ev: any) => emitted.push(ev) };
+    try {
+      useCanvasStore.setState({
+        connected: true,
+        socket: fakeSocket as any,
+        measuredBounds: { n1: { width: 84, height: 24 } },
+      });
+      useCanvasStore.getState().pushMeasuredBounds();
+      const post = posts.find((p) => p.url.includes('/api/agent/client-responses'))!;
+      expect(post.body.kind).toBe('measured_bounds');
+      expect(post.body.documentId).toBe('test-doc');
+      expect(post.body.bounds).toEqual({ n1: { width: 84, height: 24 } });
+      expect(emitted).toHaveLength(1);
+      expect(emitted[0].type).toBe('canvas:measured_bounds');
+      expect(emitted[0].documentId).toBe('test-doc');
+    } finally {
+      restore();
+    }
+  });
+
+  it('pushMeasuredBounds is a no-op with an empty digest', () => {
+    const { posts, restore } = captureFetch();
+    const emitted: any[] = [];
+    try {
+      useCanvasStore.setState({
+        connected: true,
+        socket: { emit: (_ch: string, ev: any) => emitted.push(ev) } as any,
+        measuredBounds: {},
+      });
+      useCanvasStore.getState().pushMeasuredBounds();
+      expect(posts).toHaveLength(0);
+      expect(emitted).toHaveLength(0);
+    } finally {
+      restore();
     }
   });
 });

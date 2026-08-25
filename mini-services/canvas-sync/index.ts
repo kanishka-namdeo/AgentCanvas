@@ -15,6 +15,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from '../../src/lib/canvas/types';
 import { applyPatchToCanvas } from '../../src/lib/canvas/patch';
+import { setMeasuredBounds } from '../../src/lib/agent/client-roundtrip';
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -112,6 +113,21 @@ io.on('connection', (socket) => {
         driveAgent(event.documentId, event.prompt, socket.id, event.settings).catch((err) => {
           console.error('[canvas-sync] agent drive failed:', err);
         });
+        break;
+      }
+      case 'canvas:measured_bounds': {
+        // Measured-bounds digest push (spec §3.8). In the standalone
+        // mini-service process this only warms a LOCAL copy — the
+        // authoritative server-side map lives in the Next.js process and is
+        // refreshed by the client's POST to /api/agent/client-responses.
+        setMeasuredBounds(event.documentId, event.bounds);
+        break;
+      }
+      case 'canvas:computed_response':
+      case 'canvas:screenshot_response':
+      case 'agent:steer': {
+        // Round-trip answers resolve via the HTTP route (same-process map);
+        // steer is handled by the in-process service. Accepted, no-op here.
         break;
       }
     }

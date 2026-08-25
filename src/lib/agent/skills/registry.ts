@@ -481,6 +481,9 @@ tool calls. Do NOT make changes — if the user wants fixes, they'll ask in a fo
       'pen_get_metadata',
       'pen_get_design_context',
       'pen_get_variable_defs',
+      // M2-c round-trip reads — live DOM readback + real screenshots.
+      'pen_get_computed',
+      'pen_get_screenshot',
     ],
     keywords: [
       'audit', 'check', 'analyze', 'inspect', 'find', 'list', 'search',
@@ -755,7 +758,7 @@ export const ALL_TOOL_NAMES = [
   'pen_export_json', 'pen_export_svg', 'pen_export_png', 'pen_copy_as_code',
   // Phase 3 (spec §5.2) — Figma-MCP-aligned tools
   'pen_insert_html', 'pen_get_metadata', 'pen_get_design_context',
-  'pen_get_variable_defs', 'pen_bake_layout',
+  'pen_get_variable_defs', 'pen_bake_layout', 'pen_get_computed', 'pen_get_screenshot',
   // Find & filter
   'pen_find_shapes', 'pen_bulk_update_by_filter', 'pen_find_replace_text',
   // Vector

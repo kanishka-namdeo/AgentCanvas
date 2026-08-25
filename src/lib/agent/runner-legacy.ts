@@ -33,6 +33,7 @@ import type { LLMClient as RegistryLLMClient, LLMProviderConfig } from '../llm';
 import { createEmptyCanvasDocument } from '../canvas/types';
 import { applyPatchToCanvas } from '../canvas/patch';
 import { resolvePenTree } from '../pen/resolve';
+import { getMeasuredBounds } from './client-roundtrip';
 
 // Re-export the shared types from runner-types.ts so existing imports
 // (`import { runAgent, type LLMClient } from '@/lib/agent/runner'`) keep
@@ -613,6 +614,12 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
   const shapes = canvas.shapes ?? [];
   const tokens = canvas.tokens ?? { colors: [], textStyles: [] };
 
+  // Measured-bounds readback (spec §3.8/§5.5, M2-c): real browser-measured
+  // sizes keyed by layer id, pushed by the DOM renderer (native layout mode)
+  // via canvas:measured_bounds. When present, layers carry ` measured=w×h`
+  // so the agent's mental model stops diverging from pixels.
+  const measured = getMeasuredBounds(canvas.id);
+
   // Index shapes by id and by parent for tree traversal.
   const byId = new Map(shapes.map((s) => [s.id, s] as const));
   const childrenOf = (parentId: string | null | undefined) =>
@@ -650,7 +657,11 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
       : '';
     const starLabel = s.type === 'star' && s.pointCount ? ` points=${s.pointCount}` : '';
     const polygonLabel = s.type === 'polygon' && s.polygonCount ? ` sides=${s.polygonCount}` : '';
-    return `${indent}${bullet} ${s.id} | ${s.type} "${s.name}" | pos=(${round(s.x)},${round(s.y)}) size=${round(s.width)}×${round(s.height)} fill=${s.fill}${textLabel}${parentLabel}${componentLabel}${autoLayoutLabel}${constraintsLabel}${sectionLabel}${variantAxesLabel}${variantValuesLabel}${componentPropsLabel}${instancePropsLabel}${booleanTypeLabel}${starLabel}${polygonLabel}`;
+    const mb = measured[s.id];
+    const measuredLabel = mb && Number.isFinite(mb.width) && Number.isFinite(mb.height)
+      ? ` measured=${Math.round(mb.width)}×${Math.round(mb.height)}`
+      : '';
+    return `${indent}${bullet} ${s.id} | ${s.type} "${s.name}" | pos=(${round(s.x)},${round(s.y)}) size=${round(s.width)}×${round(s.height)}${measuredLabel} fill=${s.fill}${textLabel}${parentLabel}${componentLabel}${autoLayoutLabel}${constraintsLabel}${sectionLabel}${variantAxesLabel}${variantValuesLabel}${componentPropsLabel}${instancePropsLabel}${booleanTypeLabel}${starLabel}${polygonLabel}`;
   };
 
   const renderTree = (parentId: string | null, depth: number): string => {

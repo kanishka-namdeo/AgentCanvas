@@ -169,6 +169,20 @@ interface CanvasState {
   setMeasuredBounds: (id: string, bounds: MeasuredBounds) => void;
   /// Merge many measured bounds at once (batch variant).
   setMeasuredBoundsMany: (entries: Record<string, MeasuredBounds> | Array<[string, MeasuredBounds]>) => void;
+  /// Push the current measured-bounds digest to the server (socket event +
+  /// POST) so the SERVER-side map stays fresh for canvasSnapshot enrichment
+  /// (spec §5.5) and pen_bake_layout. Throttled by DomCanvas (800ms trailing).
+  pushMeasuredBounds: () => void;
+
+  // ---- Client round-trip state (spec §5.2 / Phase 3, M2-c) -----------------
+  /// The DOM renderer's world element ([data-ac-world]) — registered by
+  /// DomCanvas on mount (BOTH layout modes; parity rects stay valid), cleared
+  /// on unmount. EPHEMERAL runtime field like measuredBounds: not persisted,
+  /// not part of undo snapshots. The round-trip handlers read live DOM
+  /// geometry relative to this element (screen→canvas-space conversion).
+  worldElement: HTMLElement | null;
+  /// Register/unregister the world element (DomCanvas useEffect).
+  setWorldElement: (el: HTMLElement | null) => void;
 
   // ---- Plugin state (Phase 5) ---------------------------------------------
   /// Pending ask_user_question — set when the agent emits
@@ -265,6 +279,159 @@ let highlightTimeout: any;
 /// `agentBusy` is already false).
 let agentAbort: AbortController | null = null;
 
+// ---- Client round-trip helpers (spec §5.2/§5.4, Phase 3 — M2-c) ------------
+//
+// The server-side tools (pen_get_computed / pen_get_screenshot / the VLM
+// critic) emit `agent:computed_request` / `agent:screenshot_request`
+// SyncEvents; the handlers below read the LIVE DOM and POST the answer to
+// /api/agent/client-responses, which resolves the tool's pending promise.
+// The server never waits forever: it falls back to resolver data after its
+// own timeout, so a failed POST here is harmless.
+
+/// Curated computed-style subset (spec §5.2 "~20-prop subset"). Keys are the
+/// camelCase names the agent sees; values are the CSS property names for
+/// getComputedStyle.getPropertyValue.
+const COMPUTED_PROPERTIES: Array<[string, string]> = [
+  ['display', 'display'],
+  ['position', 'position'],
+  ['width', 'width'],
+  ['height', 'height'],
+  ['backgroundColor', 'background-color'],
+  ['color', 'color'],
+  ['fontFamily', 'font-family'],
+  ['fontSize', 'font-size'],
+  ['fontWeight', 'font-weight'],
+  ['lineHeight', 'line-height'],
+  ['letterSpacing', 'letter-spacing'],
+  ['textAlign', 'text-align'],
+  ['borderRadius', 'border-radius'],
+  ['boxShadow', 'box-shadow'],
+  ['opacity', 'opacity'],
+  ['transform', 'transform'],
+  ['zIndex', 'z-index'],
+  ['overflow', 'overflow'],
+  ['flexDirection', 'flex-direction'],
+  ['gap', 'gap'],
+  ['paddingTop', 'padding-top'],
+  ['paddingRight', 'padding-right'],
+  ['paddingBottom', 'padding-bottom'],
+  ['paddingLeft', 'padding-left'],
+  ['marginTop', 'margin-top'],
+  ['marginBottom', 'margin-bottom'],
+  ['marginLeft', 'margin-left'],
+  ['marginRight', 'margin-right'],
+  ['flex', 'flex'],
+  ['alignItems', 'align-items'],
+  ['justifyContent', 'justify-content'],
+  ['cursor', 'cursor'],
+  ['visibility', 'visibility'],
+];
+
+function escapeAttrValue(v: string): string {
+  return v.replace(/["\\]/g, '\\$&');
+}
+
+async function postClientResponse(payload: Record<string, unknown>): Promise<void> {
+  try {
+    await fetch('/api/agent/client-responses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    // Network failure — the server's pending round-trip times out on its
+    // own and falls back; nothing to surface to the user.
+    console.error('[client-roundtrip] response POST failed:', err);
+  }
+}
+
+/// Collect getComputedStyle + getBoundingClientRect for one node id.
+/// Screen-space rect comes straight from the DOM; canvasRect divides out
+/// the world transform (zoom + pan) so the agent sees canvas coordinates.
+function readComputedForNode(
+  id: string,
+  worldRect: { x: number; y: number } | null,
+  zoom: number,
+  properties?: string[],
+): { id: string; missing: true } | {
+  id: string;
+  rect: { x: number; y: number; width: number; height: number };
+  canvasRect?: { x: number; y: number; width: number; height: number };
+  computed: Record<string, string>;
+} {
+  if (typeof document === 'undefined') return { id, missing: true };
+  const el = document.querySelector(`[data-node-id="${escapeAttrValue(id)}"]`);
+  if (!el) return { id, missing: true };
+  const r = el.getBoundingClientRect();
+  const cs = typeof getComputedStyle === 'function' ? getComputedStyle(el) : null;
+  const computed: Record<string, string> = {};
+  if (cs) {
+    const wanted = properties && properties.length > 0
+      ? COMPUTED_PROPERTIES.filter(([camel]) => properties.includes(camel))
+      : COMPUTED_PROPERTIES;
+    for (const [camel, css] of wanted) {
+      computed[camel] = cs.getPropertyValue(css);
+    }
+  }
+  const z = zoom > 0 ? zoom : 1;
+  return {
+    id,
+    rect: {
+      x: Math.round(r.x),
+      y: Math.round(r.y),
+      width: Math.round(r.width),
+      height: Math.round(r.height),
+    },
+    canvasRect: worldRect
+      ? {
+          x: Math.round((r.x - worldRect.x) / z),
+          y: Math.round((r.y - worldRect.y) / z),
+          width: Math.round(r.width / z),
+          height: Math.round(r.height / z),
+        }
+      : undefined,
+    computed,
+  };
+}
+
+/// agent:computed_request handler — read live DOM, POST results.
+function handleComputedRequest(event: Extract<SyncEvent, { type: 'agent:computed_request' }>): void {
+  const { worldElement, document } = useCanvasStore.getState();
+  const worldRect = worldElement ? worldElement.getBoundingClientRect() : null;
+  const zoom = document.viewport?.zoom ?? 1;
+  const results = event.nodeIds.map((id) => readComputedForNode(id, worldRect ? { x: worldRect.x, y: worldRect.y } : null, zoom, event.properties));
+  // Missing nodes (SVG renderer / unmounted) are simply omitted — the tool
+  // falls back to resolver data per node.
+  const found = results.filter((r): r is Exclude<typeof r, { missing: true }> => !('missing' in r));
+  void postClientResponse({ kind: 'computed', toolCallId: event.toolCallId, results: found });
+}
+
+/// agent:screenshot_request handler — capture the real world element via
+/// html-to-image and POST the data URL. Dynamic import keeps the ~10kB lib
+/// out of the initial bundle (only loads when the agent asks for a shot).
+async function handleScreenshotRequest(event: Extract<SyncEvent, { type: 'agent:screenshot_request' }>): Promise<void> {
+  const { worldElement, document } = useCanvasStore.getState();
+  if (!worldElement) {
+    // SVG renderer (or nothing) mounted — no DOM renderer to capture.
+    await postClientResponse({ kind: 'screenshot', toolCallId: event.toolCallId, error: 'no-dom-renderer' });
+    return;
+  }
+  try {
+    const { toPng } = await import('html-to-image');
+    const dataUrl = await toPng(worldElement, {
+      pixelRatio: typeof event.scale === 'number' && event.scale > 0 ? event.scale : 2,
+      backgroundColor: document.background,
+    });
+    await postClientResponse({ kind: 'screenshot', toolCallId: event.toolCallId, dataUrl });
+  } catch (err) {
+    await postClientResponse({
+      kind: 'screenshot',
+      toolCallId: event.toolCallId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 const EMPTY_DOC: CanvasDocument = createEmptyCanvasDocument('default', 'Untitled');
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
@@ -294,6 +461,40 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   redoStack: [],
   toolMode: 'select',
   measuredBounds: {},
+  worldElement: null,
+
+  setWorldElement: (el) => {
+    // Only clear when the SAME element is still registered (a remount may
+    // have already registered its replacement — don't clobber it).
+    if (el === null && get().worldElement) {
+      set({ worldElement: null });
+      return;
+    }
+    if (el) set({ worldElement: el });
+  },
+
+  pushMeasuredBounds: () => {
+    const { measuredBounds, documentId, socket, connected } = get();
+    const ids = Object.keys(measuredBounds);
+    if (ids.length === 0) return; // nothing measured (parity mode / jsdom)
+    if (socket && connected) {
+      // Same send path as every other ClientEvent (canvas:patch etc.).
+      socket.emit('client', {
+        type: 'canvas:measured_bounds',
+        documentId,
+        bounds: measuredBounds,
+      } satisfies ClientEvent);
+    }
+    // POST copy — keeps the Next.js process's server-side map fresh even
+    // when the socket path is the standalone mini-service process.
+    fetch('/api/agent/client-responses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'measured_bounds', documentId, bounds: measuredBounds }),
+    }).catch(() => {
+      /* fire-and-forget — the next throttle tick retries */
+    });
+  },
 
   setMeasuredBounds: (id, bounds) =>
     set((s) => ({
@@ -1174,6 +1375,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       // ---- Plugin events (Phase 5) ------------------------------------------
+      // ---- Client round-trip requests (Phase 3, M2-c) ----------------------
+      case 'agent:computed_request': {
+        // Read the live DOM and POST the computed-style results. Fire and
+        // forget — the tool's server-side timeout bounds the wait.
+        handleComputedRequest(event);
+        break;
+      }
+      case 'agent:screenshot_request': {
+        void handleScreenshotRequest(event);
+        break;
+      }
       case 'agent:ask_user_question': {
         // The agent is asking the user a structured question. Store it;
         // the AgentPanel renders a dialog. Cleared when the user submits
