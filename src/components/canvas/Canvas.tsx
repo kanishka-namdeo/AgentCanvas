@@ -45,6 +45,7 @@ import { useCanvasGestures, clampZoom } from '@/lib/canvas/use-canvas-gestures';
 import { useSettings } from '@/lib/settings/store';
 import { SvgCanvas } from './svg/SvgCanvas';
 import { DomCanvas } from './dom/DomCanvas';
+import { Rulers } from './Rulers';
 import { MIN_SIZE, type ResizeHandle } from './svg/ShapeRenderer';
 
 interface DragState {
@@ -83,6 +84,7 @@ export function Canvas() {
   const pixelGridVisible = useCanvasStore((s) => s.pixelGridVisible);
   const snapToPixel = useCanvasStore((s) => s.snapToPixel);
   const outlineMode = useCanvasStore((s) => s.outlineMode);
+  const rulersVisible = useCanvasStore((s) => s.rulersVisible);
   const toggleViewFlag = useCanvasStore((s) => s.toggleViewFlag);
   const clipboard = useClipboard();
   // Renderer feature flag (spec Phase 1+5): 'svg' = classic single-<svg>
@@ -804,6 +806,21 @@ export function Canvas() {
           highlightIds={highlightSet}
           onShapeMouseDown={onShapeMouseDown}
           onResizeHandleMouseDown={onResizeHandleMouseDown}
+        />
+      )}
+
+      {/* Phase 7 §H.2 rulers — top + left pixel rulers showing canvas-space
+          coordinates with adaptive tick marks. DOM-renderer-only; toggled
+          via the View menu. The world div is rendered ABOVE this z-index
+          (rulers don't intercept pointer events — pointer-events:none). */}
+      {renderer === 'dom' && rulersVisible && (
+        <Rulers
+          document={document}
+          panX={panX}
+          panY={panY}
+          zoom={zoom}
+          width={size.w}
+          height={size.h}
         />
       )}
 

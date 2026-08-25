@@ -54,10 +54,11 @@ export function TopMenuBar(props: TopMenuBarProps) {
   const setToolMode = useCanvasStore((s) => s.setToolMode);
   const connected = useCanvasStore((s) => s.connected);
   const viewerCount = useCanvasStore((s) => s.viewerCount);
-  // Phase 7 view flags (⌘' pixel grid / ⌘⇧' snap / ⌘⇧O outline).
+  // Phase 7 view flags (⌘' pixel grid / ⌘⇧' snap / ⌘⇧O outline / View-menu rulers).
   const pixelGridVisible = useCanvasStore((s) => s.pixelGridVisible);
   const snapToPixel = useCanvasStore((s) => s.snapToPixel);
   const outlineMode = useCanvasStore((s) => s.outlineMode);
+  const rulersVisible = useCanvasStore((s) => s.rulersVisible);
   const toggleViewFlag = useCanvasStore((s) => s.toggleViewFlag);
   const clipboard = useClipboard();
   // Version-history dialog (Phase 7 group C — D14): File → "Version history…".
@@ -311,10 +312,12 @@ export function TopMenuBar(props: TopMenuBarProps) {
               100% <MenubarShortcut>{chord('zoom.100')}</MenubarShortcut>
             </MenubarItem>
             <MenubarSeparator />
-            {/* Rulers are NOT in this phase (deferred — see worklog/spec H
-                deviations); disabled stub keeps the Figma menu shape honest. */}
-            <MenubarItem disabled title="Rulers + guides land in a later phase">
-              Rulers <span className="ml-auto text-[9px] ac-text-4">coming soon</span>
+            {/* Phase 7 §H.2 rulers — top + left pixel rulers showing
+                canvas-space coordinates with adaptive tick marks.
+                DOM-renderer-only; toggled via View menu (Figma ⌘R is
+                rename, so we don't steal that chord — View menu only). */}
+            <MenubarItem onClick={() => toggleViewFlag('rulersVisible')}>
+              {rulersVisible ? '✓ ' : ''}Rulers
             </MenubarItem>
             <MenubarItem onClick={() => toggleViewFlag('pixelGridVisible')}>
               {pixelGridVisible ? '✓ ' : ''}Pixel grid <MenubarShortcut>{chord('pixel-grid')}</MenubarShortcut>

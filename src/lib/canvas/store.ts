@@ -171,8 +171,24 @@ interface CanvasState {
   /// ⌘⇧O outline mode: fills stripped to transparent + 1px outlines (DOM
   /// renderer only — see globals.css [data-ac-outline]; default off).
   outlineMode: boolean;
-  setViewFlag: (flag: 'pixelGridVisible' | 'snapToPixel' | 'outlineMode', value: boolean) => void;
-  toggleViewFlag: (flag: 'pixelGridVisible' | 'snapToPixel' | 'outlineMode') => void;
+  /// Phase 7 §H.2 rulers (spec): top + left pixel rulers showing
+  /// canvas-space coordinates with adaptive tick marks. Default OFF;
+  /// toggled via the View menu (Figma ⌘R is rename so we don't steal
+  /// the chord — View menu only). DOM-renderer-only (the SVG renderer
+  /// would need its own ruler implementation).
+  rulersVisible: boolean;
+  /// Phase 7 §H.2 measure distances (⌥+hover): when true (set transiently
+  /// while Alt/Option is held), the canvas shows distance lines + labels
+  /// from the hovered shape to its 2-3 nearest sibling shapes + the
+  /// active frame edges. Not user-toggled — driven by the Alt-hold gesture.
+  /// The renderer reads this state to know when to paint the overlay.
+  measureMode: boolean;
+  setViewFlag: (flag: 'pixelGridVisible' | 'snapToPixel' | 'outlineMode' | 'rulersVisible', value: boolean) => void;
+  toggleViewFlag: (flag: 'pixelGridVisible' | 'snapToPixel' | 'outlineMode' | 'rulersVisible') => void;
+  /// Phase 7 §H.2 measure mode setter — set transiently by the Alt-hold
+  /// gesture (Canvas.tsx keydown/keyup handlers). Not in setViewFlag
+  /// because it's not a user-toggleable View menu item.
+  setMeasureMode: (value: boolean) => void;
 
   // ---- Measured-bounds readback (spec §3.8) --------------------------------
   /// REAL browser-measured node sizes keyed by node id (native DOM layout
@@ -675,6 +691,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   pixelGridVisible: true,
   snapToPixel: false,
   outlineMode: false,
+  rulersVisible: false,
+  measureMode: false,
   measuredBounds: {},
   worldElement: null,
 
@@ -723,6 +741,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   setViewFlag: (flag, value) => set({ [flag]: value } as Partial<CanvasState>),
   toggleViewFlag: (flag) =>
     set((s) => ({ [flag]: !s[flag] } as Partial<CanvasState>)),
+
+  setMeasureMode: (value) => set({ measureMode: value }),
 
   setWorldElement: (el) => {
     // Only clear when the SAME element is still registered (a remount may
