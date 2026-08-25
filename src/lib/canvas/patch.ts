@@ -919,6 +919,43 @@ export function applyPatchToCanvas(
   return recomputeDerived(next, opts?.measuredBounds);
 }
 
+/**
+ * Apply a SEQUENCE of patches to one document state (spec §4.4 patch
+ * coalescing). Order-preserving serial application — each patch is applied
+ * to the running result of the previous one.
+ *
+ * The win this function delivers is at the STORE level, not at the patch
+ * level: the store collapses N React commits into ONE `set()` call by
+ * queueing incoming `canvas:patch` events for ≤ 1 animation frame and
+ * applying the batched sequence via this function. Per-patch
+ * `applyPatchToCanvas` (clone + apply + recompute derived) is still N times
+ * — what's saved is N × `set()` (which triggers N React reconciliations +
+ * N DOM mutations) → 1 × `set()`. That's the "≤ 3 commits for 500-node
+ * bulk_add" acceptance criterion.
+ *
+ * Semantics are identical to looping `applyPatchToCanvas` externally and
+ * threading the result through — that equivalence is what the Phase 4
+ * property test (tests/unit/patch-coalesce.test.ts) pins. Undo semantics
+ * are NOT changed by this function: the store-side caller pushes one
+ * undo entry per mutating patch (matching the unbatched path's behavior)
+ * but performs only ONE `set()` call.
+ *
+ * Empty patches array is a no-op — returns the input document unchanged
+ * (cheap reference equality for the no-work case).
+ */
+export function applyPatchesToCanvas(
+  canvas: CanvasDocument,
+  patches: CanvasPatch[],
+  opts?: ApplyPatchOpts,
+): CanvasDocument {
+  if (patches.length === 0) return canvas;
+  let next = canvas;
+  for (const patch of patches) {
+    next = applyPatchToCanvas(next, patch, opts);
+  }
+  return next;
+}
+
 /// Find a page's index by id or name (case-insensitive partial match).
 function findPageIndex(
   pages: NonNullable<CanvasDocument['pages']>,

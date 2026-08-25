@@ -328,6 +328,11 @@ export function DomCanvas({
   // Reads refs (canvasSize, prevCulled) and the roots array; writes state
   // (culledIds) only when the decision changed (cheap no-op when nothing
   // crossed any margin — the common case during continuous pan).
+  /* eslint-disable react-hooks/set-state-in-effect -- L5 culling syncs
+     React state from external inputs (ResizeObserver measurements +
+     pan/zoom from props). The setState call only fires when the decision
+     actually changed, so cascading re-renders are bounded to one per
+     margin-crossing event (rare during pan). */
   useEffect(() => {
     if (!l4Culling) {
       // Culling disabled — flush the set if it was non-empty.
@@ -379,6 +384,7 @@ export function DomCanvas({
       }
     };
   }, [l4Culling, panX, panY, zoom, roots, layers.length, selectedIds, hoveredId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Variable publishing (spec §3.6): every document variable becomes a
   // `--acv-*` custom property on the world container; token-bound nodes

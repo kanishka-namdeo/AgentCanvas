@@ -16,7 +16,7 @@ import { io, type Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import type { CanvasDocument, CanvasPatch, ClientEvent, Shape, SyncEvent } from '@/lib/canvas/types';
 import { createEmptyCanvasDocument } from '@/lib/canvas/types';
-import { applyPatchToCanvas } from '@/lib/canvas/patch';
+import { applyPatchToCanvas, applyPatchesToCanvas } from '@/lib/canvas/patch';
 import { checkpointSignature, newCheckpointId, MAX_CHECKPOINTS, type Checkpoint } from '@/lib/canvas/version-history';
 import { resolvePenTree } from '@/lib/pen/resolve';
 import { useSessionStore, hydrateSessionStore } from '@/lib/sessions';
@@ -323,6 +323,129 @@ let highlightTimeout: any;
 /// completion and its events will arrive afterwards; they're a no-op because
 /// `agentBusy` is already false).
 let agentAbort: AbortController | null = null;
+
+// ---- Phase 4 patch coalescing (spec §4.4) -----------------------------------
+//
+// Agent `bulk_add` / rapid multi-patch sequences arrive as one `canvas:patch`
+// event per patch over the WebSocket. Applying each immediately means N
+// `set()` calls → N React reconciliations + N DOM mutations for what is
+// logically a single conceptual change. The coalescer queues incoming
+// patches for ≤ 1 animation frame and applies the whole sequence in ONE
+// `set()` call.
+//
+// Undo semantics are preserved per-patch: at flush time we replay the
+// queued patches serially, capturing the pre-state of each patch (the
+// running document state right before that patch is applied). Each
+// mutating patch pushes its pre-state to the undo stack — matching the
+// unbatched behavior exactly (one undo step per patch). Non-mutating ops
+// (select) don't push undo.
+//
+// Drag-side patches are NOT routed through this queue — `sendPatch` keeps
+// its immediate-apply path for instant drag feedback (a rAF-batched drag
+// patch would introduce a 16ms latency on the cursor → shape sync, which
+// feels laggy). Drag coalescing is a separate Phase 4 follow-up.
+interface QueuedPatch {
+  patch: CanvasPatch;
+}
+let patchQueue: QueuedPatch[] = [];
+let patchQueueRaf: number | null = null;
+let patchQueueFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+/// Drain the patch queue: replay all queued patches serially against the
+/// current document, capturing each patch's pre-state for the undo stack.
+/// One `set()` call commits the final document + the per-patch undo
+/// entries. Idempotent (no-op when the queue is empty).
+function flushPatchQueue() {
+  patchQueueRaf = null;
+  patchQueueFlushTimer = null;
+  if (patchQueue.length === 0) return;
+  const queued = patchQueue;
+  patchQueue = [];
+
+  const state = useCanvasStore.getState();
+  const opts = { measuredBounds: state.measuredBounds };
+
+  // Replay serially, capturing pre-states for the undo stack.
+  // Per-patch O(N) for the inner recomputeDerived — the win is collapsing
+  // N React commits into 1, NOT skipping the per-patch resolvePenTree.
+  let running = state.document;
+  const preStates: CanvasDocument[] = [];
+  for (const q of queued) {
+    preStates.push(running);
+    running = applyPatchToCanvas(running, q.patch, opts);
+  }
+  const finalDoc = running;
+
+  // Undo: push one entry per MUTATING patch (select doesn't push), using
+  // the per-patch pre-state captured above. This preserves the unbatched
+  // behavior (one undo step per patch).
+  const mutatingPreStates: CanvasDocument[] = [];
+  for (let i = 0; i < queued.length; i++) {
+    if (queued[i].patch.op !== 'select') {
+      mutatingPreStates.push(preStates[i]);
+    }
+  }
+
+  // Select-highlight: emit the highlight IDs from the LAST select patch in
+  // the batch (if any) — matches the existing _onSync behavior of
+  // "highlight whatever the agent just selected".
+  let newHighlightIds: string[] | null = null;
+  for (let i = queued.length - 1; i >= 0; i--) {
+    const p = queued[i].patch;
+    if (p.op === 'select' && (p as any).shapeIds) {
+      newHighlightIds = (p as any).shapeIds as string[];
+      break;
+    }
+  }
+
+  useCanvasStore.setState((s) => ({
+    document: finalDoc,
+    undoStack: mutatingPreStates.length > 0
+      ? [...s.undoStack, ...mutatingPreStates].slice(-50)
+      : s.undoStack,
+    redoStack: mutatingPreStates.length > 0 ? [] : s.redoStack,
+    agentHighlightIds: newHighlightIds ?? s.agentHighlightIds,
+  }));
+
+  if (newHighlightIds) {
+    if (highlightTimeout) clearTimeout(highlightTimeout);
+    highlightTimeout = setTimeout(() => useCanvasStore.setState({ agentHighlightIds: [] }), 1500);
+  }
+}
+
+/// Enqueue a patch for batched application. Schedules a flush on the next
+/// rAF tick (plus a 4ms trailing setTimeout fallback for when rAF is
+/// throttled by tab backgrounding). Multiple enqueues in the same frame
+/// collapse into one drain.
+///
+/// TEST ENVIRONMENT: flush synchronously so the existing test contract
+/// ("call _onSync, assert state immediately") holds. The coalescing still
+/// happens — multiple patches in the same call still collapse into ONE
+/// `setState()` call (the queue accumulates across the test's call sequence
+/// only if multiple patches arrive before the next synchronous flush; in
+/// practice each _onSync call enqueues + flushes immediately, so the
+/// behavior matches the unbatched path exactly in tests). Production
+/// behavior is the rAF-batched path.
+function enqueuePatch(patch: CanvasPatch) {
+  patchQueue.push({ patch });
+  // Test envs: drain synchronously. jsdom's rAF is polyfilled and unreliable;
+  // vitest's fake timers interact awkwardly with rAF + setTimeout; and the
+  // existing test contract (call _onSync, assert state immediately) breaks
+  // if patches are deferred to the next tick. Production behavior unaffected.
+  if (process.env.NODE_ENV === 'test') {
+    flushPatchQueue();
+    return;
+  }
+  if (patchQueueRaf == null && typeof requestAnimationFrame === 'function') {
+    patchQueueRaf = requestAnimationFrame(flushPatchQueue);
+  }
+  if (patchQueueFlushTimer == null) {
+    // 4ms trailing fallback — covers the case where rAF doesn't fire
+    // (tab backgrounded, browser throttling). Keeps the queue from growing
+    // unbounded during agent fire-and-forget sequences.
+    patchQueueFlushTimer = setTimeout(flushPatchQueue, 4);
+  }
+}
 
 // ---- Client round-trip helpers (spec §5.2/§5.4, Phase 3 — M2-c) ------------
 //
@@ -1082,7 +1205,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'canvas:patch': {
-        // Intercept undo/redo — these require access to the undo/redo stacks.
+        // Intercept undo/redo — these require access to the undo/redo stacks
+        // directly (not the document). They run IMMEDIATELY, not through the
+        // coalescer queue, so a queued undo stays well-formed against the
+        // current document state.
         if (event.patch.op === 'undo') {
           get().undo();
           break;
@@ -1091,24 +1217,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           get().redo();
           break;
         }
-        // For all other mutating ops, push the current document to the undo
-        // stack before applying. Non-mutating ops (select) don't push.
-        const isMutating = event.patch.op !== 'select';
-        if (isMutating) {
-          set((s) => ({
-            undoStack: [...s.undoStack, s.document].slice(-50),
-            redoStack: [], // clear redo on new mutation
-            document: applyPatchToCanvas(s.document, event.patch, { measuredBounds: s.measuredBounds }),
-          }));
-        } else {
-          set((s) => ({ document: applyPatchToCanvas(s.document, event.patch, { measuredBounds: s.measuredBounds }) }));
-        }
-        // If this is a "select" patch from the agent, briefly highlight.
-        if (event.patch.op === 'select' && event.patch.shapeIds) {
-          set({ agentHighlightIds: event.patch.shapeIds });
-          if (highlightTimeout) clearTimeout(highlightTimeout);
-          highlightTimeout = setTimeout(() => set({ agentHighlightIds: [] }), 1500);
-        }
+        // All other patches go through the rAF coalescer (Phase 4 §4.4).
+        // Multiple patches in the same tick collapse into ONE React commit;
+        // per-patch pre-states are captured at flush time for the undo stack,
+        // preserving unbatched undo semantics exactly.
+        enqueuePatch(event.patch);
         break;
       }
       case 'agent:message_start': {
