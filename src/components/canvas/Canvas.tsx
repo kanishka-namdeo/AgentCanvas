@@ -33,7 +33,9 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { useCanvasGestures, clampZoom } from '@/lib/canvas/use-canvas-gestures';
+import { useSettings } from '@/lib/settings/store';
 import { SvgCanvas } from './svg/SvgCanvas';
+import { DomCanvas } from './dom/DomCanvas';
 import { MIN_SIZE, type ResizeHandle } from './svg/ShapeRenderer';
 
 interface DragState {
@@ -62,6 +64,10 @@ export function Canvas() {
   const select = useCanvasStore((s) => s.select);
   const toolMode = useCanvasStore((s) => s.toolMode);
   const clipboard = useClipboard();
+  // Renderer feature flag (spec Phase 1): 'svg' classic renderer (default) or
+  // 'dom' DOM parity-mode renderer. Absent field (pre-flag settings blob)
+  // resolves to 'svg'.
+  const renderer = useSettings((s) => s.renderer) ?? 'svg';
   // P0-01/02: Track the last right-click position + the shape under the cursor
   // at right-click time. The context-menu items use these to choose between
   // the empty-canvas and shape variants.
@@ -494,17 +500,28 @@ export function Canvas() {
         </div>
       )}
 
-      <SvgCanvas
-        document={document}
-        size={size}
-        zoom={zoom}
-        panX={panX}
-        panY={panY}
-        selectedIds={selectedSet}
-        highlightIds={highlightSet}
-        onShapeMouseDown={onShapeMouseDown}
-        onResizeHandleMouseDown={onResizeHandleMouseDown}
-      />
+      {renderer === 'dom' ? (
+        <DomCanvas
+          document={document}
+          selectedIds={selectedIds}
+          highlightIds={agentHighlightIds}
+          viewport={viewport}
+          onShapeMouseDown={onShapeMouseDown}
+          onResizeHandleMouseDown={onResizeHandleMouseDown}
+        />
+      ) : (
+        <SvgCanvas
+          document={document}
+          size={size}
+          zoom={zoom}
+          panX={panX}
+          panY={panY}
+          selectedIds={selectedSet}
+          highlightIds={highlightSet}
+          onShapeMouseDown={onShapeMouseDown}
+          onResizeHandleMouseDown={onResizeHandleMouseDown}
+        />
+      )}
 
       {/* Zoom indicator */}
       <div

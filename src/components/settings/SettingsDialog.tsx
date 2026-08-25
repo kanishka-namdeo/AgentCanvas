@@ -44,6 +44,7 @@ import {
   type LLMProvider, type SnapshotCadence, type SkillSelectionMode,
   type AutoArchiveIdleAfter, type Density, type ThemePreference,
   type DefaultPalette, type ThinkingLevel, type McpServerConfig,
+  type RendererMode,
   normalizeLLMProvider,
   providerRequiresApiKey,
   providerDefaultModel,
@@ -669,6 +670,7 @@ function SessionsSection() {
 function AppearanceSection() {
   const themePreference = useSettings((s) => s.themePreference);
   const density = useSettings((s) => s.density);
+  const renderer = useSettings((s) => s.renderer) ?? 'svg';
   const set = useSettings((s) => s.set);
 
   // Apply theme preference immediately via the same .dark class toggle that
@@ -695,7 +697,7 @@ function AppearanceSection() {
     <>
       <h2 className="text-[13px] font-semibold ac-text-1 mb-1">Appearance</h2>
       <p className="text-[11px] ac-text-4 mb-4 leading-relaxed">
-        Theme + UI density. Applies immediately.
+        Theme + UI density + canvas renderer. Applies immediately.
       </p>
 
       <div className="space-y-4">
@@ -741,6 +743,24 @@ function AppearanceSection() {
             <SelectContent>
               <SelectItem value="comfortable" className="text-[11px]">Comfortable</SelectItem>
               <SelectItem value="compact" className="text-[11px]">Compact</SelectItem>
+            </SelectContent>
+          </Select>
+        </Row>
+
+        <Row
+          label="Canvas renderer"
+          description="SVG (classic) or DOM (experimental, spec Phase 1). Applies immediately and persists."
+        >
+          <Select
+            value={renderer}
+            onValueChange={(v) => set('renderer', v as RendererMode)}
+          >
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="svg" className="text-[11px]">SVG (classic)</SelectItem>
+              <SelectItem value="dom" className="text-[11px]">DOM (experimental)</SelectItem>
             </SelectContent>
           </Select>
         </Row>

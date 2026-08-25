@@ -7,8 +7,9 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
 ## Ownership
 
 - `Canvas.tsx` — the infinite canvas **shell**. Owns viewport state, gestures, selection/drag/resize interaction, agent-highlight ids, and right-click context menus, but no longer paints shapes itself: it renders `svg/SvgCanvas` (classic, default) or `dom/DomCanvas` (DOM parity mode) per the `renderer` setting and passes them identical callback props. Shape data comes from `useCanvasStore`. Handles pan (middle-mouse / space-drag / pan-tool), zoom (wheel, pointer-stable), click-to-select, drag-to-move, 8-handle resize, Alt+drag duplicate (Figma pattern), Shift-constrain resize (aspect ratio lock), and right-click context menus (empty-canvas + shape variants with cut/copy/paste/z-order/group/ungroup/lock/hide/delete).
-- `svg/ShapeRenderer.tsx` — classic renderer, per-layer SVG element factory (extracted verbatim from Canvas.tsx): gradients (linear/radial defs), shadow/blur SVG filters, all 17 LayerTypes, selection outline + 8 zoom-compensated resize handles, agent-highlight pulse, component M/I badges, auto-layout indicator. Exports `ResizeHandle`, `HANDLE_SIZE`, `MIN_SIZE`, `handlePosition`, `cursorForHandle`.
+- `svg/ShapeRenderer.tsx` — classic renderer, per-layer SVG element factory (extracted verbatim from Canvas.tsx): gradients (linear/radial defs), shadow/blur SVG filters, all 16 LayerTypes (types.ts has 16 values — earlier docs said 17), selection outline + 8 zoom-compensated resize handles, agent-highlight pulse, component M/I badges, auto-layout indicator. Exports `ResizeHandle`, `HANDLE_SIZE`, `MIN_SIZE`, `handlePosition`, `cursorForHandle`.
 - `svg/SvgCanvas.tsx` — classic renderer surface: the single `<svg>` + `<defs>` (component-hatch pattern, per-`clip:true`-frame clipPaths) + flat dedupe-by-id/zIndex-sorted shape loop with nearest-clipping-ancestor lookup. Consumed by `Canvas.tsx`.
+- `dom/` — the DOM-primary renderer (parity mode, spec `docs/html-dom-renderer.md` Phase 1): `DomCanvas` (world container + tree building + cycle guard), `DomNode` (memoized recursive per-layer div, data-attribute contract), `styleFor` (pure Layer→CSS vocabulary), `DomChrome` (screen-space selection/handles/badges overlay), `islands` (SVG islands for path/star/polygon + img/boolean content). Behind the `renderer: 'dom'` settings flag. See `dom/AGENTS.md`.
 - `Toolbar.tsx` — **floating pill** at the bottom-center of the canvas (tldraw/Excalidraw pattern). Tool buttons: Select (V), Pan (H), Rectangle, Ellipse, Text, Line, Frame, Clear, plus Undo and Redo buttons (disabled when `!canUndo`/`!canRedo` or `agentBusy`). Shape buttons are `disabled` when `agentBusy`. Clear is `disabled` when canvas is empty. Select/Pan buttons toggle `toolMode` in the store with `aria-pressed`.
 - `CommandPalette.tsx` — ⌘K command palette (Dialog + cmdk). Fuzzy-searchable list of all 19 preset prompts grouped by category (Designs, User Flows, Diagrams, Design Systems, Analysis, Layers & Layout). Supports custom free-form prompts as a fallback. Opens via `⌘K`. Prompt items disabled when `agentBusy`.
 - `LayersPanel.tsx` — left panel: tree-ordered shape list with per-type icons, expand/collapse containers (state persisted in localStorage), drag-to-reparent (HTML5 DnD, emits `reparent` patch), search/filter by name, rename (double-click or context menu), lock/hide toggles, badge cluster (Master > Instance > AL > theme > token > constraints; at most 1 visible per row, rest in hover tooltip). Rich context menu: clipboard (cut/copy/paste/paste-in-place/duplicate), z-order (4 items), group/ungroup, lock/hide, create component, mark as slot, copy-as submenu (HTML/React/Tailwind/SVG/JSON), export submenu (PNG/SVG/.pen), select all children, expand/collapse subtree, apply theme axis, bind to token, reparent-to picker, rename, duplicate, delete. Footer shows document variable + theme-axis counts.
@@ -53,7 +54,7 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
 
 ### Component contracts
 - `Canvas.tsx`:
-  - Reads `document.shapes`, `selectedIds`, `toolMode` from the canvas store.
+  - Reads `document.shapes`, `selectedIds`, `toolMode` from the canvas store and `renderer` from the settings store (`useSettings((s) => s.renderer) ?? 'svg'`). Renders `svg/SvgCanvas` (default) or `dom/DomCanvas` with identical callback props; ALL interaction state (pan/zoom/drag/resize/context menu) lives in the shell and works identically in both modes.
   - `toolMode === 'pan'` makes click-drag pan the canvas (same as Space-held). `onShapeMouseDown` returns early in pan mode (no selection).
   - Cursor: `cursor-grab` when `spaceDown || toolMode === 'pan'`, else `cursor-default`.
   - Zoom controls (bottom-left) have `aria-label` + `title` (Zoom out / Zoom in / Reset zoom to 100%).
@@ -145,6 +146,8 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
 
 ## Child DOX Index
 
-No child AGENTS.md files in this folder.
+| Path | Scope |
+|------|-------|
+| `dom/AGENTS.md` | DOM-primary renderer module (parity mode): world/chrome structure, data-attribute contract, styleFor CSS vocabulary, islands, parity invariants |
 
-*Siblings: `../sessions/AGENTS.md` (Session management UI), `../ui/AGENTS.md` (shadcn/ui primitives).*
+*Siblings: `../sessions/AGENTS.md` (Session management UI), `../ui/AGENTS.md` (shadcn/ui primitives). `svg/` has no own AGENTS.md — it is documented in this file's Ownership section (legacy renderer, frozen as the parity baseline).*

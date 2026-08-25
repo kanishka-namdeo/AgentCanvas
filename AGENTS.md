@@ -146,8 +146,8 @@ When the user requests a durable behavior change, record it here or in the relev
 | `examples/websocket/AGENTS.md` | Reference Socket.IO demo (gateway routing pattern; port-collision warning) |
 | `mini-services/canvas-sync/AGENTS.md` | Socket.IO service for live multi-viewer canvas sync (EADDRINUSE-exit-0 twin contract) |
 | `prisma/AGENTS.md` | Prisma schema: Document, Shape, AgentAction + session models (Session, SessionMessage, SessionRun, SessionSnapshot) |
-| `scripts/AGENTS.md` | Dev scripts: dev-server + sandbox one-shot bring-up launchers, screenshot automation, intent classifier eval, token cost measurement |
-| `tests/AGENTS.md` | Test suite: Vitest unit/integration tests (18 files), shell smoke tests, CI notes |
+| `scripts/AGENTS.md` | Dev scripts: dev-server + sandbox one-shot bring-up launchers, screenshot automation, intent classifier eval, token cost measurement, DOM-renderer bench corpus generator |
+| `tests/AGENTS.md` | Test suite: Vitest unit/integration tests (32 files), shell smoke tests, CI notes |
 | `research/AGENTS.md` | Read-only research: 7 web-research JSON surveys, gap-analysis + spec-compliance reports, `specs/` API snapshot cache (~74 refs) + `specs/llm-providers/` (28 provider snapshots) |
 
 - Root-owned files: `README.md`, `LICENSE`, root tool/config files (`package.json`, `bun.lock`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `vitest.config.ts`, `prisma.config.ts`, `components.json`, `instrumentation.ts`, `Caddyfile`, `.env.example`, `.gitignore`), `public/` static assets (logo.svg, robots.txt), and root-level project documentation. Session artifacts (`worklog.md`, `TEST_RESULTS_WORKLOG.md`, `test-results-*.json`, `tool-results/`) are transient and gitignored — do not commit them.

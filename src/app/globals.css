@@ -372,6 +372,13 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Agent-highlight pulse — the DOM renderer's chrome overlay equivalent of the
+   SVG renderer's <animate> stroke-opacity loop (Canvas highlight outline). */
+@keyframes ac-agent-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
 /* ─── Compact density ──────────────────────────────────────────────────────
    Activated when [data-density="compact"] is set on the root div (page.tsx).
    Tightens spacing + font sizes globally. Designed to be opt-in: comfortable

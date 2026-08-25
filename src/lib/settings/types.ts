@@ -45,6 +45,14 @@ export type Density = 'comfortable' | 'compact';
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type DefaultPalette = 'slate' | 'warm' | 'forest' | 'mono';
 
+/// Canvas renderer backend (spec docs/html-dom-renderer.md, renderer feature
+/// flag). 'svg' = the classic single-<svg> renderer (default until Phase 5);
+/// 'dom' = the DOM parity-mode renderer (real divs per node + SVG islands +
+/// screen-space chrome overlay). Persisted with the rest of AppSettings —
+/// an absent field (settings saved before the flag existed) resolves to
+/// 'svg' at the call site, so no migrate bump is needed.
+export type RendererMode = 'svg' | 'dom';
+
 export interface AppSettings {
   // ── Phase 1: Agent behavior ──────────────────────────────────────────────
   /// LLM sampling temperature. 0.0 = deterministic, 1.0 = very creative.
@@ -67,6 +75,9 @@ export interface AppSettings {
   // ── Phase 1: Appearance ───────────────────────────────────────────────────
   /// 'system' follows the OS prefers-color-scheme.
   themePreference: ThemePreference;
+  /// Canvas renderer backend — 'svg' (classic) or 'dom' (parity mode).
+  /// Optional because pre-flag settings blobs lack it; consumers default to 'svg'.
+  renderer?: RendererMode;
 
   // ── Phase 2: LLM provider ────────────────────────────────────────────────
   /// Which LLM client to construct in the runner.
@@ -117,6 +128,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultPalette: 'slate',
 
   themePreference: 'system',
+  renderer: 'svg' as RendererMode,
 
   llmProvider: 'custom',
   apiKey: '123456',

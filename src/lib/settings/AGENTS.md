@@ -8,7 +8,7 @@ This is the single source of truth for every setting the user can change in the 
 
 ## Ownership
 
-- `types.ts` — `AppSettings`, `AgentRunSettings`, `DEFAULT_SETTINGS`, `PALETTES`, `McpServerConfig`, `ThinkingLevel`, all union types (`LLMProvider`, `SnapshotCadence`, `SkillSelectionMode`, `AutoArchiveIdleAfter`, `Density`, `ThemePreference`, `DefaultPalette`), plus provider helpers (`normalizeLLMProvider`, `providerRequiresApiKey`, `providerDefaultModel`, `providerDefaultBaseURL`). Owned by this folder.
+- `types.ts` — `AppSettings`, `AgentRunSettings`, `DEFAULT_SETTINGS`, `PALETTES`, `McpServerConfig`, `ThinkingLevel`, all union types (`LLMProvider`, `SnapshotCadence`, `SkillSelectionMode`, `AutoArchiveIdleAfter`, `Density`, `ThemePreference`, `DefaultPalette`, `RendererMode`), plus provider helpers (`normalizeLLMProvider`, `providerRequiresApiKey`, `providerDefaultModel`, `providerDefaultBaseURL`). Owned by this folder.
 - `store.ts` — Zustand store with `persist` (localStorage key `agentcanvas.settings.v1`). Exposes `useSettings()` hook, `useAgentRunSettings()` convenience selector (returns all data fields + setters, scoped to avoid re-renders from unrelated store changes), and `set()` / `patch()` / `reset()` / `replaceAll()` mutators.
 
 ## Local Contracts
@@ -25,6 +25,7 @@ This is the single source of truth for every setting the user can change in the 
 | `enabledPlugins` | `string[]` (plugin ids) | (14 default-enabled tools' plugins) | 5 — Plugins |
 | `mcpServers` | `McpServerConfig[]` | `[]` | 5 — MCP |
 | `themePreference` | `'system' \| 'light' \| 'dark'` | `'system'` | 1 — Appearance |
+| `renderer` | `'svg' \| 'dom'` (optional — absent = `'svg'`) | `'svg'` | 1 — Appearance (canvas renderer feature flag, spec `docs/html-dom-renderer.md` Phase 1; select lives in Settings → Appearance → “Canvas renderer”) |
 | `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'custom'` | 2 — LLM provider |
 | `apiKey` | `string` | `'123456'` | 2 |
 | `modelName` | `string` | `'kimi-k2-5'` | 2 |
