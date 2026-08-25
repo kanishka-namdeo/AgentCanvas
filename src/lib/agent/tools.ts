@@ -221,6 +221,31 @@ function parseLooseShapeInput(
 
 // ---- Helpers ----------------------------------------------------------------
 
+/// Phase 4 §4.5 node-budget helper: count all descendants (transitive
+/// children) of a node in the flat `shapes` array. Used by pen_audit_design
+/// to flag top-level frames that exceed the 300-descendant budget.
+/// Recursive walk — bounded by the document size; cheap (O(N) per call)
+/// and only invoked once per top-level frame per audit.
+function countDescendants(shapes: Shape[], rootId: string): number {
+  // Build a children-index once: childId → parentId. Then BFS from rootId.
+  const childrenOf = new Map<string, string[]>();
+  for (const s of shapes) {
+    if (s.parentId == null) continue;
+    const list = childrenOf.get(s.parentId);
+    if (list) list.push(s.id);
+    else childrenOf.set(s.parentId, [s.id]);
+  }
+  let count = 0;
+  const queue: string[] = [...(childrenOf.get(rootId) ?? [])];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    count++;
+    const kids = childrenOf.get(id);
+    if (kids) queue.push(...kids);
+  }
+  return count;
+}
+
 /// Task 7-c P3.1 / T4 — design-token enforcement hint.
 ///
 /// The system prompt's COMPONENT RECIPES now use $color.* token syntax
@@ -2199,10 +2224,82 @@ const createShape = defineTool({
         findings.push(`• Possible alignment near-miss: ${misaligned.length} shape(s) within 4px of an alignment grid line.`);
       }
 
+      // 6. Phase 4 node-budget warnings (spec §4.5). Three structural checks:
+      //    (a) per-frame budget — top-level frames with > 300 descendants
+      //        are hard to navigate + slow to render.
+      //    (b) per-page budget — total node count > 5000 engages L5 mount
+      //        culling (placeholder swap). Flag for the agent to consider
+      //        component_set extraction before that kicks in.
+      //    (c) component_set repeat detection — sibling subtrees with the
+      //        same structural fingerprint (child types + nesting depth)
+      //        appearing ≥ 3 times → recommend pen_combine_as_variants.
+      const doc = ctx.getDocument?.();
+      let nodeBudgetFindings = 0;
+      if (doc) {
+        // (a) Per-frame budget. Walk children of each top-level frame.
+        const topLevelFrames = shapes.filter((s) => s.type === 'frame' && (s.parentId == null));
+        for (const frame of topLevelFrames) {
+          const descendantCount = countDescendants(shapes, frame.id);
+          if (descendantCount > 300) {
+            nodeBudgetFindings++;
+            findings.push(
+              `• Frame "${frame.name ?? frame.id}" has ${descendantCount} descendants (> 300 budget) — consider splitting into sections or extracting component_set.`,
+            );
+          }
+        }
+
+        // (b) Per-page budget.
+        const pageCount = shapes.length;
+        if (pageCount > 4000) {
+          nodeBudgetFindings++;
+          findings.push(
+            `• Page has ${pageCount} nodes — approaching the 5k L5-culling threshold. Consider component_set extraction or splitting into multiple pages.`,
+          );
+        }
+
+        // (c) Component_set repeat detection. Build a structural fingerprint
+        // of each top-level frame's children: sorted tuple of (child type, child
+        // own-children-count). Frames with the same fingerprint are likely
+        // the same pattern repeated — recommend combining into a component_set.
+        const fingerprints = new Map<string, { frameIds: string[]; sample: string }>();
+        for (const frame of topLevelFrames) {
+          const children = shapes.filter((s) => s.parentId === frame.id);
+          if (children.length === 0) continue;
+          const sig = children
+            .map((c) => `${c.type}:${countDescendants(shapes, c.id)}`)
+            .sort()
+            .join('|');
+          if (sig.length === 0) continue;
+          const existing = fingerprints.get(sig);
+          if (existing) {
+            existing.frameIds.push(frame.id);
+          } else {
+            fingerprints.set(sig, { frameIds: [frame.id], sample: sig });
+          }
+        }
+        for (const { frameIds, sample } of fingerprints.values()) {
+          if (frameIds.length >= 3) {
+            nodeBudgetFindings++;
+            findings.push(
+              `• Pattern repeat: ${frameIds.length} top-level frames share the same child structure (${sample.slice(0, 60)}${sample.length > 60 ? '…' : ''}). Consider combining into a component_set via pen_combine_as_variants.`,
+            );
+          }
+        }
+      }
+      if (nodeBudgetFindings === 0 && doc) {
+        findings.push('• Node budget: all frames within 300-descendant budget; page total under L5 threshold; no ≥3× pattern repeats (good).');
+      }
+
       const report = `Design audit (${shapes.length} shapes, ${tokens.colors.length} tokens):\n${findings.join('\n')}`;
       return {
         content: [{ type: 'text', text: report }],
-        details: { findings, colorCount: colors.size, fontSizeCount: fontSizes.size, lowContrastCount: lowContrast },
+        details: {
+          findings,
+          colorCount: colors.size,
+          fontSizeCount: fontSizes.size,
+          lowContrastCount: lowContrast,
+          nodeBudgetFindings,
+        },
       };
     },
   });
