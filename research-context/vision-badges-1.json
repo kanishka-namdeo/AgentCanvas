@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://openrouter.ai/models",
+    "name": "Compare AI Models: Pricing, Context & Benchmarks - OpenRouter",
+    "snippet": "Compare 500+ LLMs from OpenAI, Anthropic, Google, Meta and more — pricing, context length, and benchmarks side by side, all through one API.",
+    "host_name": "openrouter.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openrouter.ai/collections/vision-models",
+    "name": "AI Models with Vision: Multimodal LLMs for Image Understanding",
+    "snippet": "Vision models are multimodal LLMs that analyze images, read documents, interpret charts, and answer questions about visual content alongside text.",
+    "host_name": "openrouter.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openrouter.ai/docs/guides/overview/multimodal/overview",
+    "name": "OpenRouter Multimodal Capabilities - Complete Documentation",
+    "snippet": "OpenRouter supports multiple input and output modalities beyond text, allowing you to send images, PDFs, audio, and video files. Send images to vision-capable ...",
+    "host_name": "openrouter.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.teamday.ai/blog/best-free-ai-models-openrouter-2026",
+    "name": "OpenRouter Free Models 2026: All 14 Live, No Credit Card - TeamDay.ai",
+    "snippet": "This snapshot comes from OpenRouter's public model API and includes the :free text and multimodal model IDs whose prompt and completion prices are both zero.",
+    "host_name": "www.teamday.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.codecademy.com/article/what-is-openrouter",
+    "name": "What is OpenRouter? A Guide with Practical Examples - Codecademy",
+    "snippet": "The OpenRouter platform supports multimodal models that can process images, PDFs, and other document types in addition to text.",
+    "host_name": "www.codecademy.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://costgoat.com/pricing/openrouter-free-models",
+    "name": "OpenRouter Free Models: All 19 Listed (Aug 2026) - CostGoat",
+    "snippet": "3 days ago · All free AI models on OpenRouter, zero cost, no credit card. Compare context lengths, capabilities, and rate limits. Updated live.",
+    "host_name": "costgoat.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

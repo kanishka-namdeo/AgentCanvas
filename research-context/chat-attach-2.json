@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://forum.cursor.com/t/composer-2-5-forcing-me-to-use-a-higher-paying-model-due-to-an-error/164684",
+    "name": "Composer 2.5 forcing me to use a higher paying model due to an error",
+    "snippet": "Jul 2, 2026 · The “Model does not support images” error only shows up when there's an image somewhere in the conversation. In your screenshot, this chat has ...",
+    "host_name": "forum.cursor.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=wyN3iMhgiFM",
+    "name": "Convert Screenshot to Code in Minutes (With Cursor AI) - YouTube",
+    "snippet": "Sep 2, 2024 · in just minutes using Cursor. The process involves two key secrets: using a well-crafted prompt file and utilizing Cursor's chat feature ...",
+    "host_name": "www.youtube.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/can-cursor-read-image-when-i-tag-a-picture-in-the-context/63162",
+    "name": "Can cursor read image when i tag a picture in the context? - Help",
+    "snippet": "Mar 12, 2025 · Yes. Some models have better vision than others. And not all work with images. Try restarting Cursor as well, sometimes it helps. Chat view ...",
+    "host_name": "forum.cursor.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1l8p4hu/claude_code_do_we_have_a_way_to_paste_screenshot",
+    "name": "Claude Code. Do we have a way to paste screenshot to terminal on",
+    "snippet": "Jun 11, 2025 · On Mac, you can use CTRL+V to paste a screenshot that is in your clipboard. On windows, you can paste the image into a Copilot chatbox … will ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://silships.substack.com/p/why-prompting-screenshots-is-great",
+    "name": "Why prompting screenshots is great but not enough in Cursor",
+    "snippet": "Dec 2, 2025 · A simple way to help Cursor see your actual layout, structure and behavior.",
+    "host_name": "silships.substack.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/microsoft/vscode-copilot-release/issues/3530",
+    "name": "Attach Image is needed like Cursor.ai #3530 - GitHub",
+    "snippet": "Dec 23, 2024 · The cursor.ai has a feature that can attach/upload images to chat. That's very helpful for frontend developers , that can quickly implement ...",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

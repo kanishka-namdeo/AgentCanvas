@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://github.com/danny-avila/LibreChat/discussions/1836",
+    "name": "Connecting LibreChat to a local LM Studio, which hosts a Mistral 7B.",
+    "snippet": "Apr 23, 2024 · Hello,. I've set up LibreChat to connect to LM Studio, which hosts a Mistral 7B. Visibly, the whole installation works, on the LM Studio side with the ... Using LMStudio for RAG/File Search with LibreChat? #7713 - GitHub Model Specs Settings a little buggy · danny-avila LibreChat - GitHub More results from github.com",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.librechat.ai/docs/configuration/librechat_yaml/object_structure/model_specs",
+    "name": "Model Specs Object Structure - LibreChat",
+    "snippet": "Specifies the level of detail required in image analysis tasks, applicable to models with vision capabilities (OpenAI spec).",
+    "host_name": "www.librechat.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lmstudio.ai/ceveyne/draw-things-chat/files/docs/USER_GUIDE.md",
+    "name": "Draw Things Chat - ceveyne - LM Studio",
+    "snippet": "A software-technical problem for this project is a missing feature in the LM Studio SDK: The client only shows itself open to image attachments if a vision- ...",
+    "host_name": "lmstudio.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.librechat.ai/docs/features/image_gen",
+    "name": "Image Generation & Editing - LibreChat",
+    "snippet": "Use IMAGE_GEN_OAI_MODEL to choose a different OpenAI image model when your deployment supports it. See OpenAI's Image Generation documentation for more details.",
+    "host_name": "www.librechat.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=HYfsuxRXb34",
+    "name": "How to Use Images in LM Studio with Vision Models Locally - YouTube",
+    "snippet": "Apr 27, 2024 · This video is a step-by-step guide to talk with images in LM Studio locally by using any Vision model on Windows.",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lmstudio.ai/blog/lmstudio-v0.3.31",
+    "name": "LM Studio 0.3.31 | LM Studio Blog",
+    "snippet": "Nov 4, 2025 · Improve image understanding output quality, vision models Can be changed in Settings > Chat > Image … resized before being sent to vision- ...",
+    "host_name": "lmstudio.ai",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

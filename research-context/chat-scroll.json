@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://medium.com/@disgcfrguy/the-scroll-problem-nobody-talks-about-when-building-ai-chat-interface-987c223cafc0",
+    "name": "The scroll problem nobody talks about when building AI",
+    "snippet": "Messages come in , the view follows them down. Maybe you put a “ scroll to bottom ” button when someone reads back through history. You wire it up ... Read more",
+    "host_name": "medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ui.shadcn.com/docs/components/base/message-scroller",
+    "name": "Message Scroller - Shadcn UI",
+    "snippet": "A chat scroll container that anchors turns, opens saved transcripts, follows streamed responses, loads history without jumping , and jumps to any message.",
+    "host_name": "ui.shadcn.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/72636816/scroll-to-bottom-when-new-message-added",
+    "name": "Scroll to bottom when new message added",
+    "snippet": "I am making a chatbot. I want to scroll to the bottom of the chat box when a new input is given by the user or the Data is sent through API. It ... Read more",
+    "host_name": "stackoverflow.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/anthropics/claude-code/issues/53382",
+    "name": "[BUG] Desktop app: chat window auto-scrolls to bottom",
+    "snippet": "Apr 25, 2026 — If the user is at the bottom of the scroll container, auto- scroll to follow new streaming content. If the user has scrolled up beyond that ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "Apr 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/vuejsdevelopers/posts/717618725316813",
+    "name": "How to scroll to bottom in chat app on new message",
+    "snippet": "I'm implementing a chat app, but I can't handle for scroll to bottom when have new message. Click the Gear Icon, then click \"Labs,\" then scroll ...",
+    "host_name": "www.facebook.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]
