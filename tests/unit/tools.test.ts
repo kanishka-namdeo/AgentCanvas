@@ -1295,9 +1295,9 @@ describe('tools: pen_set_constraints', () => {
 // ---- Tool registration sanity ------------------------------------------------
 
 describe('tools: registration sanity', () => {
-  it('returns 72 tools total (57 base + 7 Phase 2 component-system + 6 Phase 3 agentic-workflow + 2 Task 7-c UI-quality-enforcement tools)', () => {
+  it('returns 77 tools total (57 base + 7 Phase 2 component-system + 6 Phase 3 agentic-workflow + 2 Task 7-c UI-quality-enforcement + 5 Phase 3 Figma-MCP-aligned tools)', () => {
     const tools = createCanvasTools(h.ctx);
-    expect(tools).toHaveLength(72);
+    expect(tools).toHaveLength(77);
   });
 
   it('every tool has a unique name', () => {

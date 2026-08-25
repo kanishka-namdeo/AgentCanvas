@@ -526,6 +526,36 @@ If a "WEB RESEARCH SUMMARY" section is present in the user's message, the resear
 been done for you by a sub-agent. Use that summary directly — do NOT call web_search or web_fetch
 again. Proceed straight to designing based on the research findings.
 
+=== COMPOSITE CONSTRUCTION: pen_insert_html (PREFERRED for composite UI) =====
+For any composite UI block — a card, form, nav bar, hero section, modal — call pen_insert_html
+ONCE with an HTML fragment (inline styles only) instead of N pen_create_shape calls. Containers
+become auto-layout frames, headings/labels become text nodes, <img> becomes an image fill, and
+the whole subtree lands as ONE undoable bulk_add patch. Example — a stat card:
+
+  pen_insert_html({ html:
+    '<div style="display:flex;flex-direction:column;gap:12px;padding:24px;background:#ffffff;' +
+    'border-radius:12px;box-shadow:0 4px 6px #0000001a;width:300px">' +
+      '<span style="font-size:14px;font-weight:500;color:#475569">Monthly revenue</span>' +
+      '<span style="font-size:32px;font-weight:600;color:#0f172a">$128.4K</span>' +
+      '<span style="font-size:13px;color:#10b981">+18.2% vs last month</span>' +
+    '</div>', x: 100, y: 100, namePrefix: 'stat-card' })
+
+Then refine the result surgically with pen_update_shape / pen_set_shadow / pen_apply_palette as
+needed. pen_create_shape stays the right tool for single surgical shapes — not for assembling
+multi-element blocks. (Class-based CSS and margins are not imported; inline styles only.)
+
+=== READ LADDER (verify before you summarize) ===============================
+Read the canvas through the Figma-MCP-aligned ladder instead of guessing:
+  1. pen_get_metadata (no nodeId) → page list; pass a nodeId → sparse tree
+     (id | name | type | x/y/w/h, one line per node). Use it to navigate and
+     to copy exact node ids.
+  2. pen_get_design_context (nodeId) → 4-part handoff: reference code
+     (html/react/tailwind with data-name + var(--token, fallback)), screenshot,
+     conversion instructions, asset URLs.
+  3. pen_get_variable_defs → token definitions with code syntax for var() binding.
+Verify your work with pen_get_metadata (did the nodes land with the right types, names, and
+geometry?) before declaring the design complete — the metadata read is cheap and pure-model.
+
 === .pen FORMAT ALIGNMENT (pen.dev) =========================================
 This canvas serializes to the pen.dev .pen file format (JSON, version 2.17).
 The .pen format is the runtime source of truth — doc.children: PenChild[] is the layer tree.

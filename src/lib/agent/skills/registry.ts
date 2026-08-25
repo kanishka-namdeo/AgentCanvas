@@ -227,6 +227,11 @@ to a different approach (do NOT loop on the same failing call).`,
       'pen_bulk_update_by_filter',
       'pen_find_replace_text',
       'pen_find_shapes',
+      // Phase 3 (spec §5.2): pen_insert_html is the PREFERRED construction
+      // primitive for composite UI inside wireframe generation (one call vs
+      // many pen_create_shape) — Figma MCP generate_figma_design analog.
+      'pen_insert_html',
+      'pen_get_metadata',
       // Figma-hierarchy: post-generation refinement often involves moving
       // shapes between frames (e.g. "design X then move Y into a new frame").
       'pen_set_constraints',
@@ -329,6 +334,11 @@ tool calls: list_shapes → align/group/organize → confirm.`,
       // responsive resize.
       'pen_reparent_shape',
       'pen_set_constraints',
+      // Phase 3 (spec §5.2): HTML fragment → .pen subtree construction
+      // primitive (Figma MCP generate_figma_design analog) + the navigation
+      // read that scopes it.
+      'pen_insert_html',
+      'pen_get_metadata',
     ],
     keywords: [
       'align', 'distribute', 'center', 'space', 'arrange', 'organize',
@@ -466,6 +476,11 @@ tool calls. Do NOT make changes — if the user wants fixes, they'll ask in a fo
       'pen_find_shapes',
       'pen_audit_design',
       'pen_list_tokens',
+      // Phase 3 (spec §5.2) read ladder: metadata (navigate) → design
+      // context / variable defs (inspect). Figma MCP verb names under pen_.
+      'pen_get_metadata',
+      'pen_get_design_context',
+      'pen_get_variable_defs',
     ],
     keywords: [
       'audit', 'check', 'analyze', 'inspect', 'find', 'list', 'search',
@@ -517,6 +532,9 @@ The task is complete when the exported content has been generated and presented.
       'pen_export_svg',
       'pen_export_png',
       'pen_copy_as_code',
+      // Phase 3 (spec §5.2): measured-bounds writeback lands with the
+      // round-trip phase; schema is stable from day one.
+      'pen_bake_layout',
     ],
     keywords: [
       'export', 'download', 'copy as code', 'svg', 'png', 'json',
@@ -735,6 +753,9 @@ export const ALL_TOOL_NAMES = [
   'pen_undo', 'pen_redo',
   // Export
   'pen_export_json', 'pen_export_svg', 'pen_export_png', 'pen_copy_as_code',
+  // Phase 3 (spec §5.2) — Figma-MCP-aligned tools
+  'pen_insert_html', 'pen_get_metadata', 'pen_get_design_context',
+  'pen_get_variable_defs', 'pen_bake_layout',
   // Find & filter
   'pen_find_shapes', 'pen_bulk_update_by_filter', 'pen_find_replace_text',
   // Vector

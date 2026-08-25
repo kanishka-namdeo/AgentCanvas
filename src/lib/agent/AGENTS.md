@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The agent layer: defines the 88-tool surface the AI agent can call against the canvas (70 in `tools.ts` + 8 .pen-aligned in `pen-tools.ts` + 10 Figma-canonical in `figma-tools.ts`, plus up to 32 plugin tools), and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
+The agent layer: defines the 95-tool surface the AI agent can call against the canvas (75 in `tools.ts` + 8 .pen-aligned in `pen-tools.ts` + 10 Figma-canonical in `figma-tools.ts`, plus up to 32 plugin tools), and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
 
 This is the contract layer between the LLM and the canvas. Tool names, parameter schemas, skill definitions, and the system prompt's tool catalog are the public surface — changing them is a breaking change for prior session replays.
 
@@ -46,7 +46,7 @@ User prompt
 
 ## Ownership
 
-- `tools.ts` — 70 `defineTool()` definitions (68 canvas tools + web_search + web_fetch) + `executeTool` dispatcher (response cap `MAX_TOOL_RESULT_CHARS = 25_000` + `repairArrayArgs()` argument repair). Owned by this folder.
+- `tools.ts` — 77 `defineTool()` definitions (70 canvas tools + 5 Phase 3 Figma-MCP-aligned tools + web_search + web_fetch) + `executeTool` dispatcher (response cap `MAX_TOOL_RESULT_CHARS = 25_000` + `repairArrayArgs()` argument repair). Owned by this folder. The Phase 3 set (spec §5.2/Appendix D): `pen_insert_html` (sanitized HTML → ONE `bulk_add` patch with nested .pen children — the preferred composite-UI construction primitive), `pen_get_metadata` (page-list default / sparse `id | name | type | x/y/w/h` tree — pure model read), `pen_get_variable_defs` (variables + text styles with `var(--acv-…)` codeSyntax), `pen_get_design_context` (4-part handoff: code + screenshot + instructions + assets), `pen_bake_layout` (v1 server-side notice — measured bounds land with the round-trip phase). `pen_copy_as_code` v2 delegates to `src/lib/canvas/serialize.ts`.
 - `pen-tools.ts` — 8 additional .pen-aligned tools (pen_set_variable, pen_apply_theme, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_theme_axis, pen_list_themes). These expose pen.dev concepts (variables, themes, refs, slots) that complement the granular pen_* tool surface.
 - `figma-tools.ts` — 10 Figma-canonical tools: figma_create_page, figma_set_active_page, figma_rename_page, figma_delete_page, figma_create_section, figma_create_component, figma_create_component_set, figma_add_variant, figma_set_component_property, figma_set_instance_property. Exports `createFigmaTools(ctx)` + `FIGMA_TOOL_NAMES`. Always loaded (not skill-gated).
 - `runner.ts` — public entry point + thin delegator: routes to `runAgentNative` (production) or `runAgentLegacy` (injected MockLLM tests); re-exports shared types/helpers.
@@ -67,16 +67,16 @@ User prompt
 
 ## Local Contracts
 
-### Tool surface (88 registered in production — do not rename/remove without parent-level decision)
+### Tool surface (95 registered in production — do not rename/remove without parent-level decision)
 All canvas tools are prefixed with `pen_` (e.g., `pen_create_shape`, `pen_update_shape`). The web tools (`web_search`, `web_fetch`) have no prefix. Figma tools use `figma_` prefix. Plugin tools (up to 32, from `plugins/`) are added when their plugin is enabled.
 
 Per-skill `allowedTools` views (tools appear in multiple categories — these are the skill groupings from `skills/registry.ts`):
 - **Core (9)**: pen_create_shape, pen_update_shape, pen_delete_shape, pen_list_shapes, pen_clear, pen_set_background, pen_select_shape, pen_undo, pen_redo
-- **Wireframe (13)**: pen_generate_wireframe, pen_generate_user_flow, pen_generate_diagram, pen_generate_copy, pen_create_shape, pen_update_shape, pen_upload_image, pen_search_icons, pen_generate_image, pen_update_tokens, pen_apply_palette, pen_generate_palette, pen_reparent_shape
-- **Layout (15)**: pen_align_shapes, pen_group_shapes, pen_ungroup_shapes, pen_duplicate_shape, pen_organize_layers, pen_apply_auto_layout, pen_bring_to_front, pen_send_to_back, pen_move_forward, pen_move_backward, pen_reorder_shape, pen_set_locked, pen_set_visible, pen_reparent_shape, pen_set_constraints
+- **Wireframe (15)**: pen_generate_wireframe, pen_generate_user_flow, pen_generate_diagram, pen_generate_copy, pen_create_shape, pen_update_shape, pen_upload_image, pen_search_icons, pen_generate_image, pen_update_tokens, pen_apply_palette, pen_generate_palette, pen_reparent_shape, pen_insert_html, pen_get_metadata
+- **Layout (17)**: pen_align_shapes, pen_group_shapes, pen_ungroup_shapes, pen_duplicate_shape, pen_organize_layers, pen_apply_auto_layout, pen_bring_to_front, pen_send_to_back, pen_move_forward, pen_move_backward, pen_reorder_shape, pen_set_locked, pen_set_visible, pen_reparent_shape, pen_set_constraints, pen_insert_html, pen_get_metadata
 - **Styling (13)**: pen_apply_palette, pen_generate_palette, pen_update_tokens, pen_apply_token, pen_bind_shape_to_token, pen_unbind_shape, pen_list_tokens, pen_set_gradient_fill, pen_set_shadow, pen_set_blur, pen_set_corner_radius_per_corner, pen_find_replace_text, pen_bulk_update_by_filter
-- **Inspect (4)**: pen_list_shapes, pen_find_shapes, pen_audit_design, pen_list_tokens
-- **Export (4)**: pen_export_json, pen_export_svg, pen_export_png, pen_copy_as_code
+- **Inspect (7)**: pen_list_shapes, pen_find_shapes, pen_audit_design, pen_list_tokens, pen_get_metadata, pen_get_design_context, pen_get_variable_defs
+- **Export (5)**: pen_export_json, pen_export_svg, pen_export_png, pen_copy_as_code, pen_bake_layout
 - **Vector (5)**: pen_create_path, pen_boolean_op, pen_mask_with, pen_create_shape, pen_update_shape
 - **Web (2)**: web_search, web_fetch
 - **Components (2 legacy)**: pen_create_component, pen_instantiate_component

@@ -943,6 +943,19 @@ function insertUnderParent(children: PenChild[], node: PenChild, parentId: strin
 
 // ---- Helpers for tree sibling replacement --------------------------------
 
+/// Coerce a width/height value: .pen sizing-behavior STRINGS
+/// ('fit_content', 'fit_content(100)', 'fill_container') must survive
+/// normalization verbatim (the resolver interprets them); everything else
+/// goes through the numeric coercion. Previously `num()` clobbered them to
+/// the 100 default, so bulk_add/add patches from the HTML importer lost
+/// fit_content sizing (spec Phase 3, pen_insert_html pipeline).
+function sizeValue(v: unknown, def: number): number | string {
+  if (typeof v === 'string' && (v.startsWith('fit_content') || v.startsWith('fill_container'))) {
+    return v;
+  }
+  return num(v, def);
+}
+
 /** Replace one specific children array (found by reference) with a new one. */
 function replaceSiblings(children: PenChild[], oldArr: PenChild[], newArr: PenChild[]): PenChild[] {
   if (children === oldArr) return newArr;
@@ -973,8 +986,8 @@ function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, i
     name: partial.name ?? 'Shape',
     x: num(partial.x, 0),
     y: num(partial.y, 0),
-    width: num(partial.width, 100),
-    height: num(partial.height, 100),
+    width: sizeValue(partial.width, 100),
+    height: sizeValue(partial.height, 100),
     rotation: num(partial.rotation, 0),
     opacity: num(partial.opacity, 1),
     enabled: partial.enabled ?? true,

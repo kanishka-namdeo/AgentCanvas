@@ -57,6 +57,10 @@
 import { Type, type Static } from '@sinclair/typebox';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { CanvasPatch, Shape, ShapeType, AutoLayout, DesignTokens, ColorToken, TextStyleToken } from '../canvas/types';
+import { parseHtmlFragment, htmlToPenTreeDetailed } from '../canvas/html-import';
+import { serializeNodes } from '../canvas/serialize';
+import { resolvePenTreeDetailed, type ResolvedTreeNode } from '../pen/resolve';
+import type { PenChild } from '../pen/types';
 
 // ---- Tool execution context -------------------------------------------------
 //
@@ -413,11 +417,6 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } {
 /// Escape a string for safe inclusion in XML/SVG text content.
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-}
-
-/// Escape a string for safe inclusion in HTML text content.
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /// Escape a string for use in a RegExp.
@@ -2611,13 +2610,87 @@ const createShape = defineTool({
     },
   });
 
+  // ---- Shared helpers for the Figma-MCP-aligned read/serialize tools -------
+
+  /// Find a subtree by node id in the resolver's tree (pre-order).
+  function findTreeNode(tree: ResolvedTreeNode[], id: string): ResolvedTreeNode | null {
+    for (const n of tree) {
+      if (n.layer.id === id) return n;
+      const found = findTreeNode(n.children, id);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  /// Flatten a resolved tree (root included, depth-first).
+  function flattenTree(tree: ResolvedTreeNode[]): Shape[] {
+    const out: Shape[] = [];
+    const walk = (nodes: ResolvedTreeNode[]) => {
+      for (const n of nodes) {
+        out.push(n.layer);
+        walk(n.children);
+      }
+    };
+    walk(tree);
+    return out;
+  }
+
+  /// Recursively count nodes in a .pen children array.
+  function countTreeNodes(children: PenChild[]): number {
+    let count = 0;
+    const walk = (nodes: PenChild[]) => {
+      for (const n of nodes) {
+        count++;
+        const kids = (n as { children?: PenChild[] }).children;
+        if (Array.isArray(kids)) walk(kids);
+      }
+    };
+    walk(children);
+    return count;
+  }
+
+  /// Collect a node + its strict descendants from a flat layer list.
+  function subtreeLayers(layers: Shape[], rootId: string): Shape[] {
+    const root = layers.find((s) => s.id === rootId);
+    if (!root) return [];
+    const byParent = new Map<string, Shape[]>();
+    for (const s of layers) {
+      const p = s.parentId ?? null;
+      if (p) {
+        const list = byParent.get(p) ?? [];
+        list.push(s);
+        byParent.set(p, list);
+      }
+    }
+    const out: Shape[] = [root];
+    const queue = [rootId];
+    const seen = new Set([rootId]);
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      for (const child of byParent.get(id) ?? []) {
+        if (seen.has(child.id)) continue;
+        seen.add(child.id);
+        out.push(child);
+        queue.push(child.id);
+      }
+    }
+    return out;
+  }
+
+  /// Sanitize a variable key into a CSS custom-property identifier fragment.
+  function varKey(key: string): string {
+    return key.replace(/[^a-zA-Z0-9-]/g, '-');
+  }
+
   const copyAsCode = defineTool({
     name: 'pen_copy_as_code',
-    label: 'Copy as Code',
+    label: 'Copy as Code (v2 — tree serializer)',
     description: 'Generate HTML + Tailwind CSS code from the canvas shapes. Useful for handoff to developers. ' +
-      'Each shape becomes a positioned div; text shapes become <span> elements. ' +
+      'v2 (spec §5.3): consumes the .pen tree — auto-layout containers become REAL nested flexbox ' +
+      '(not flat absolutes); layout:none containers become relative containers with absolutely-positioned ' +
+      'children; every element carries data-name/data-node-id; token-bound fills emit var(--acv-key, fallback). ' +
       'Supports: html (standalone HTML), react (JSX component), tailwind (Tailwind classes).',
-    promptSnippet: 'Generate HTML/React/Tailwind code from the canvas.',
+    promptSnippet: 'Generate HTML/React/Tailwind code from the canvas (nested flex output).',
     parameters: Type.Object({
       frameId: Type.Optional(Type.String({ description: 'If provided, export only shapes inside this frame' })),
       framework: Type.Union(
@@ -2626,42 +2699,362 @@ const createShape = defineTool({
       ),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const allShapes = ctx.getShapes();
-      let shapes = allShapes;
-      if (params.frameId) {
-        const frame = allShapes.find((s) => s.id === params.frameId);
-        if (frame) {
-          shapes = allShapes.filter((s) => s.id !== params.frameId && s.x >= frame.x && s.y >= frame.y && s.x + s.width <= frame.x + frame.width && s.y + s.height <= frame.y + frame.height);
+      const doc = ctx.getDocument?.();
+      let input: ResolvedTreeNode[] | Shape[];
+      if (doc) {
+        const { tree, layers } = resolvePenTreeDetailed(doc);
+        if (params.frameId) {
+          const subtree = findTreeNode(tree, params.frameId);
+          if (subtree) {
+            input = [subtree];
+          } else {
+            // Fallback: subtree collection from the flat layers (matches the
+            // legacy export filter semantics).
+            const scoped = subtreeLayers(layers, params.frameId);
+            if (scoped.length === 0) {
+              return { content: [{ type: 'text', text: 'No shapes to export.' }], details: { error: 'empty' } };
+            }
+            input = scoped;
+          }
+        } else {
+          input = tree;
         }
+      } else {
+        // No document snapshot — degrade to the flat layer view.
+        const layers = ctx.getShapes();
+        input = params.frameId ? subtreeLayers(layers, params.frameId) : layers;
       }
-      if (shapes.length === 0) {
+      const shapeCount = input.length;
+      if (shapeCount === 0) {
         return { content: [{ type: 'text', text: 'No shapes to export.' }], details: { error: 'empty' } };
       }
-      const minX = Math.min(...shapes.map((s) => s.x));
-      const minY = Math.min(...shapes.map((s) => s.y));
-      const els = shapes.map((s) => {
-        const x = Math.round(s.x - minX);
-        const y = Math.round(s.y - minY);
-        const w = Math.round(s.width);
-        const h = Math.round(s.height);
-        if (s.type === 'text') {
-          const fs = Math.round(s.fontSize);
-          return `    <span style="position:absolute;left:${x}px;top:${y}px;font-size:${fs}px;color:${s.textColor};font-family:Inter,sans-serif">${escapeHtml(s.text ?? '')}</span>`;
-        }
-        const r = Math.round(s.radius);
-        const radius = r > 0 ? `;border-radius:${r}px` : '';
-        const stroke = s.strokeWidth > 0 ? `;border:${s.strokeWidth}px solid ${s.stroke}` : '';
-        return `    <div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${s.fill}${radius}${stroke}"></div>`;
-      }).join('\n');
-      const totalW = Math.max(...shapes.map((s) => s.x + s.width)) - minX;
-      const totalH = Math.max(...shapes.map((s) => s.y + s.height)) - minY;
-      let code: string;
-      if (params.framework === 'react') {
-        code = `export function CanvasExport() {\n  return (\n    <div style={{ position: 'relative', width: ${Math.round(totalW)}, height: ${Math.round(totalH)} }}>\n${els}\n    </div>\n  );\n}`;
-      } else {
-        code = `<div style="position:relative;width:${Math.round(totalW)}px;height:${Math.round(totalH)}px">\n${els}\n</div>`;
+      const code = serializeNodes(input, { framework: params.framework, rootName: 'CanvasExport' });
+      return { content: [{ type: 'text', text: `Generated ${params.framework} code (${shapeCount} nodes, nested-flex serializer v2):\n\`\`\`${params.framework === 'react' ? 'tsx' : 'html'}\n${code}\n\`\`\`` }], details: { code, framework: params.framework, shapeCount } };
+    },
+  });
+
+  // =====================================================================
+  // PHASE 3 (spec §5.2): FIGMA-MCP-ALIGNED TOOLS
+  //
+  // Read-side tools adopt the exact verb names of Figma's Dev Mode MCP
+  // Server (get_metadata / get_design_context / get_variable_defs) under
+  // our existing pen_ namespace, plus the code→canvas construction
+  // primitive pen_insert_html (Figma analog: generate_figma_design) and the
+  // measured-bounds writeback placeholder pen_bake_layout.
+  //
+  // The socket round-trip tools (pen_get_computed, pen_get_screenshot) and
+  // the mounted-iframe HTML extraction path land with the NEXT phase.
+  // =====================================================================
+
+  const insertHtml = defineTool({
+    name: 'pen_insert_html',
+    label: 'Insert HTML as Design Nodes',
+    description: 'Insert an HTML fragment (inline styles only) as design nodes under a parent. ' +
+      'Block containers become frames (auto-layout when the style is flex); headings/paragraphs/spans ' +
+      'become text nodes; img becomes image fills. Sanitized server-side (whitelisted tags/attributes, ' +
+      'URL schemes). Prefer this over repeated pen_create_shape for composite UI — one call builds a ' +
+      'whole card, form, or nav bar. Emits ONE bulk_add patch.',
+    promptSnippet: 'Insert an HTML fragment as a .pen subtree (one call, composite UI).',
+    parameters: Type.Object({
+      html: Type.String({ description: 'HTML fragment. Inline styles only (class-based CSS is not parsed in v1). Whitelisted tags: div span p h1-h6 ul ol li img button label input textarea form a section header footer nav main hr br strong em' }),
+      parentId: Type.Optional(Type.String({ description: 'Parent node id (frame/group/page). Default: canvas root' })),
+      x: Type.Optional(Type.Number({ description: 'X position of the fragment root (default 0)' })),
+      y: Type.Optional(Type.Number({ description: 'Y position of the fragment root (default 0)' })),
+      namePrefix: Type.Optional(Type.String({ description: 'Prefix for generated layer names (default "html")' })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const html = (params.html ?? '').trim();
+      if (!html) {
+        return { content: [{ type: 'text', text: 'Error: html parameter is empty.' }], details: { error: 'empty_html' }, isError: true as any };
       }
-      return { content: [{ type: 'text', text: `Generated ${params.framework} code (${shapes.length} shapes, ${Math.round(totalW)}×${Math.round(totalH)}):\n\`\`\`${params.framework === 'react' ? 'tsx' : 'html'}\n${code}\n\`\`\`` }], details: { code, framework: params.framework, shapeCount: shapes.length } };
+      // Verify the parent exists (default root) — page ids count too. The
+      // resolved layer list already covers every tree node (the resolver
+      // flattens the whole .pen tree), so `inLayers` subsumes a tree search.
+      const parentId = params.parentId ?? null;
+      if (parentId) {
+        const doc = ctx.getDocument?.();
+        const inLayers = ctx.getShapes().some((s) => s.id === parentId);
+        const pageMatch = (doc?.pages ?? []).some((p) => p.id === parentId);
+        if (!inLayers && !pageMatch) {
+          return {
+            content: [{ type: 'text', text: `Error: no node with id "${parentId}" — cannot insert. Call pen_get_metadata (no nodeId) to see the page list, then pass a nodeId for the sparse tree.` }],
+            details: { error: 'unknown_parent', parentId },
+            isError: true as any,
+          };
+        }
+      }
+      const fragment = parseHtmlFragment(html);
+      const prefix = (params.namePrefix ?? '').trim() || 'html';
+      const { nodes, stats } = htmlToPenTreeDetailed(fragment, { namePrefix: prefix });
+      if (nodes.length === 0) {
+        return { content: [{ type: 'text', text: 'Nothing to insert — the fragment produced no nodes (all content was dropped by the sanitizer, e.g. a bare <svg> subtree).' }], details: { error: 'no_nodes', stats } };
+      }
+      // Root nodes are placed at x/y (multiple roots get a 300px column
+      // stride); children keep their relative 0-flow coords — auto-layout
+      // computes real placement. Children ride along NESTED inside each
+      // root's children array (bulk_add carries nested .pen subtrees).
+      const x = typeof params.x === 'number' ? params.x : 0;
+      const y = typeof params.y === 'number' ? params.y : 0;
+      const shapes = nodes.map((node, i) => ({
+        ...node,
+        x: x + i * 300,
+        y,
+        parentId,
+      })) as Array<Partial<Shape> & { id: string }>;
+      const patch: CanvasPatch = {
+        op: 'bulk_add',
+        shapes,
+        summary: `pen_insert_html: ${stats.nodeCount} node(s) from a ${html.length}-char fragment under ${parentId ?? 'canvas root'}`,
+      };
+      ctx.applyPatch(patch);
+      // Collect created ids (roots + descendants) for the result payload.
+      const ids: string[] = [];
+      const walk = (ns: PenChild[]) => {
+        for (const n of ns) {
+          ids.push(n.id);
+          const kids = (n as { children?: PenChild[] }).children;
+          if (Array.isArray(kids)) walk(kids);
+        }
+      };
+      walk(nodes);
+      const typeLines = Object.entries(stats.typeCounts).map(([t, c]) => `${t}×${c}`).join(', ');
+      const skippedNote = stats.skippedSvg > 0 ? ` Skipped ${stats.skippedSvg} svg/path element(s) (vector import lands with the mounted-iframe phase).` : '';
+      return {
+        content: [{ type: 'text', text: `Inserted ${stats.nodeCount} node(s) under ${parentId ?? 'canvas root'}: ${typeLines}.${skippedNote}\nRoot node ids: ${nodes.map((n) => n.id).join(', ')}\nMargins and class-based CSS are not imported (v1 — inline styles only); text sizes are estimates until measured bounds land.` }],
+        details: { patch, nodeIds: ids, rootIds: nodes.map((n) => n.id), typeCounts: stats.typeCounts, skipped: stats.skippedSvg, nodeCount: stats.nodeCount },
+      };
+    },
+  });
+
+  const getMetadata = defineTool({
+    name: 'pen_get_metadata',
+    label: 'Get Canvas Metadata (sparse tree)',
+    description: 'Read canvas structure. With nodeId: sparse tree of that subtree — ' +
+      'one line per node: id, name, type, x, y, width, height. Without nodeId (or unknown id): ' +
+      'the page list (id + name). Always call this before heavier reads.',
+    promptSnippet: 'Navigate the canvas: page list by default, sparse subtree tree with a nodeId.',
+    parameters: Type.Object({
+      nodeId: Type.Optional(Type.String({ description: 'Node id (or page id) to read. Omit for the page list.' })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const doc = ctx.getDocument?.();
+      const layers = ctx.getShapes();
+      const pages = doc?.pages ?? null;
+
+      const pageListLines = (note?: string): string => {
+        const lines: string[] = [];
+        if (pages && pages.length > 0) {
+          pages.forEach((p, i) => {
+            const active = i === (doc?.activePageIndex ?? -1) ? ' *active*' : '';
+            lines.push(`page ${i}: ${p.id} — "${p.name}" (${countTreeNodes(p.children ?? [])} nodes)${active}`);
+          });
+        } else {
+          lines.push(`page 0: ${doc?.id ?? 'page-1'} — "${doc?.name ?? 'Page 1'}" (${countTreeNodes(doc?.children ?? [])} nodes)`);
+        }
+        return (note ? `${note}\n` : '') + lines.join('\n') + '\nPass a nodeId (or page id) for the sparse tree.';
+      };
+
+      if (!params.nodeId) {
+        return { content: [{ type: 'text', text: pageListLines() }], details: { mode: 'page_list' } };
+      }
+
+      // Page id? Active page → tree of roots; inactive page → page list + hint.
+      const pageIdx = pages ? pages.findIndex((p) => p.id === params.nodeId) : -1;
+      if (pageIdx !== -1) {
+        if (pageIdx === (doc?.activePageIndex ?? -1)) {
+          // Fall through to the tree walk below using roots (parentId null).
+        } else {
+          return { content: [{ type: 'text', text: pageListLines(`page "${pages![pageIdx].name}" is not the active page — switch to it first (figma_set_active_page).`) }], details: { mode: 'page_list', note: 'inactive_page' } };
+        }
+      }
+
+      const target = layers.find((s) => s.id === params.nodeId);
+      if (!target) {
+        // Figma MCP recovery behavior: unknown id → page list, never an error dead-end.
+        return { content: [{ type: 'text', text: pageListLines(`nodeId "${params.nodeId}" not found — showing the page list.`) }], details: { mode: 'page_list', note: 'unknown_node_id' } };
+      }
+
+      // Sparse indented tree — ONE LINE PER NODE, capped at 400 lines.
+      const byParent = new Map<string, Shape[]>();
+      const byId = new Map<string, Shape>();
+      for (const s of layers) {
+        byId.set(s.id, s);
+        const p = s.parentId ?? null;
+        if (p) {
+          const list = byParent.get(p) ?? [];
+          list.push(s);
+          byParent.set(p, list);
+        }
+      }
+      const lines: string[] = [];
+      let truncated = false;
+      const MAX_LINES = 400;
+      const walk = (id: string, depth: number) => {
+        if (lines.length >= MAX_LINES) {
+          truncated = true;
+          return;
+        }
+        const s = byId.get(id);
+        if (!s) return;
+        lines.push(`${'  '.repeat(depth)}${s.id} | ${s.name} | ${s.type} | x=${Math.round(s.x)} y=${Math.round(s.y)} w=${Math.round(s.width)} h=${Math.round(s.height)}`);
+        const kids = (byParent.get(id) ?? []).slice().sort((a, b) => a.zIndex - b.zIndex);
+        for (const kid of kids) walk(kid.id, depth + 1);
+      };
+      walk(params.nodeId, 0);
+      const treeText = lines.join('\n') + (truncated ? `\n…[truncated at ${MAX_LINES} lines — pass a deeper nodeId to see the rest]` : '');
+      return {
+        content: [{ type: 'text', text: treeText }],
+        details: { mode: 'tree', nodeId: params.nodeId, lineCount: lines.length, truncated },
+      };
+    },
+  });
+
+  const getVariableDefs = defineTool({
+    name: 'pen_get_variable_defs',
+    label: 'Get Variable Definitions',
+    description: 'Read the document variable (design token) definitions: names, types, values (or themed values), ' +
+      'and CSS code syntax — so generated code binds tokens (var(--acv-<name>)) instead of raw hex. ' +
+      'Also lists the derived text styles. v1: definitions are document-level (nodeId accepted for future scoping).',
+    promptSnippet: 'Read design-token variable definitions with code syntax for var() binding.',
+    parameters: Type.Object({
+      nodeId: Type.Optional(Type.String({ description: 'Selection node id (v1: definitions are document-level; reserved for scoped reads)' })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const doc = ctx.getDocument?.();
+      const variables = doc?.variables ?? {};
+      const tokens = ctx.getTokens();
+      const variablesOut = Object.entries(variables).map(([name, def]) => {
+        const isThemed = Array.isArray(def.value);
+        return {
+          name,
+          type: def.type,
+          ...(isThemed
+            ? { themedValues: (def.value as Array<{ value: unknown; theme?: unknown }>).map((tv) => ({ value: tv.value, theme: tv.theme })) }
+            : { value: (def as { value: unknown }).value }),
+          codeSyntax: `var(--acv-${varKey(name)})`,
+        };
+      });
+      const textStylesOut = (tokens.textStyles ?? []).map((t) => ({
+        name: t.name,
+        type: 'textStyle' as const,
+        fontSize: t.fontSize,
+        fontWeight: t.fontWeight,
+        lineHeight: t.lineHeight,
+        color: t.color,
+        codeSyntax: `var(--acv-${varKey(t.key)})`,
+      }));
+      const varLines = variablesOut.length > 0
+        ? variablesOut.map((v) => `  ${v.name} | ${v.type} | ${'value' in v ? String(v.value) : `${(v as { themedValues: unknown[] }).themedValues.length} themed values`} | ${v.codeSyntax}`)
+        : ['  (none — define tokens with pen_set_variable)'];
+      const styleLines = textStylesOut.length > 0
+        ? textStylesOut.map((t) => `  ${t.name} | fontSize=${t.fontSize} fontWeight=${t.fontWeight} lineHeight=${t.lineHeight} color=${t.color} | ${t.codeSyntax}`)
+        : ['  (none)'];
+      const text = `VARIABLES (${variablesOut.length}):\n${varLines.join('\n')}\n\nTEXT STYLES (${textStylesOut.length}):\n${styleLines.join('\n')}\n\nBind these in code as var(--acv-<name>) — the serializer emits var(--acv-key, fallback) for token-bound fills.`;
+      return { content: [{ type: 'text', text }], details: { variables: variablesOut, textStyles: textStylesOut, nodeId: params.nodeId ?? null, scope: 'document' } };
+    },
+  });
+
+  const getDesignContext = defineTool({
+    name: 'pen_get_design_context',
+    label: 'Get Design Context (4-part handoff)',
+    description: 'Full design context for a selection: (1) reference code (html/react/tailwind, ' +
+      'data-name/data-node-id attrs, var(--token, fallback) values), (2) screenshot, ' +
+      '(3) conversion instructions, (4) asset URLs. Scoped to a nodeId — no whole-canvas dumps.',
+    promptSnippet: 'Get the 4-part design handoff payload (code + screenshot + instructions + assets) for a node.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'Node id to read (use pen_get_metadata to find ids)' }),
+      framework: Type.Optional(Type.Union(
+        [Type.Literal('html'), Type.Literal('react'), Type.Literal('tailwind')],
+        { description: 'Code-part flavor (default react)' },
+      )),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const doc = ctx.getDocument?.();
+      if (!doc) {
+        return { content: [{ type: 'text', text: 'Error: document snapshot unavailable in this context.' }], details: { error: 'no_document' }, isError: true as any };
+      }
+      const { tree } = resolvePenTreeDetailed(doc);
+      const subtree = findTreeNode(tree, params.nodeId);
+      if (!subtree) {
+        return {
+          content: [{ type: 'text', text: `Error: nodeId "${params.nodeId}" not found. Call pen_get_metadata (no nodeId) for the page list, then pass a nodeId for the sparse tree.` }],
+          details: { error: 'unknown_node', nodeId: params.nodeId },
+          isError: true as any,
+        };
+      }
+      const framework = params.framework ?? 'react';
+      const code = serializeNodes([subtree], { framework, rootName: subtree.layer.name || 'Selection' });
+
+      // Part 2 — screenshot: attempt the server-side PNG render (resvg).
+      // Real client-canvas capture lands with the round-trip tools (next phase).
+      let screenshotNote = '[screenshot unavailable server-side — client capture lands with the round-trip tools]';
+      let screenshotDataUrl: string | undefined;
+      let screenshotSize: { width: number; height: number } | undefined;
+      try {
+        const layers = flattenTree([subtree]);
+        if (layers.length > 0) {
+          const minX = Math.min(...layers.map((s) => s.x));
+          const minY = Math.min(...layers.map((s) => s.y));
+          const maxX = Math.max(...layers.map((s) => s.x + s.width));
+          const maxY = Math.max(...layers.map((s) => s.y + s.height));
+          const w = Math.max(1, Math.round(maxX - minX));
+          const h = Math.max(1, Math.round(maxY - minY));
+          const shifted = layers.map((s) => ({ ...s, x: s.x - minX, y: s.y - minY }));
+          const { renderCanvasToPng } = await import('../canvas/render-to-png');
+          const png = await renderCanvasToPng(shifted, w, h);
+          screenshotDataUrl = `data:image/png;base64,${png.toString('base64')}`;
+          screenshotSize = { width: w, height: h };
+          screenshotNote = `[server-side PNG render ${w}×${h} @2x — data URL in details.screenshotDataUrl (${Math.round(screenshotDataUrl.length / 1024)} KB); client-canvas capture lands with the round-trip tools]`;
+        }
+      } catch {
+        // resvg unavailable or render failed — keep the fallback note.
+      }
+
+      // Part 3 — conversion instructions (static guidance, Figma-shaped).
+      const instructions = [
+        'Retarget this reference code to the user\'s stack; it is a structural guide, not a drop-in.',
+        'Keep the data-name attributes — they map generated DOM back to design layers for future edits.',
+        'Bind tokens, not values: replace raw colors with var(--acv-<name>) where a token binding is shown.',
+        'Preserve the flex structure — auto-layout containers are intentional responsive intent.',
+        'Absolutely-positioned children (layout:none containers) are pixel placements; keep them absolute.',
+      ].join('\n  ');
+
+      // Part 4 — assets: image src URLs in the subtree.
+      const assets = flattenTree([subtree])
+        .filter((s) => (s.type === 'image' || s.src) && s.src)
+        .map((s) => s.src as string);
+      const assetLines = assets.length > 0 ? assets.map((a) => `  ${a}`).join('\n') : '  (none)';
+
+      const text =
+        `=== 1. REFERENCE CODE (${framework}) ===\n${code}\n\n` +
+        `=== 2. SCREENSHOT ===\n${screenshotNote}\n\n` +
+        `=== 3. CONVERSION INSTRUCTIONS ===\n  ${instructions}\n\n` +
+        `=== 4. ASSETS ===\n${assetLines}`;
+      return {
+        content: [{ type: 'text', text }],
+        details: { nodeId: params.nodeId, framework, code, screenshotDataUrl, screenshotSize, assets },
+      };
+    },
+  });
+
+  const bakeLayout = defineTool({
+    name: 'pen_bake_layout',
+    label: 'Bake Measured Layout',
+    description: 'Write browser-measured node sizes back into the model as fixed sizes (spec §3.8). ' +
+      'v1 server-side fallback: measured bounds require a connected client — the socket round-trip ' +
+      'lands with the next phase. The schema is stable from day one.',
+    promptSnippet: 'Bake measured bounds into node sizes (requires a connected client).',
+    parameters: Type.Object({
+      nodeIds: Type.Optional(Type.Array(Type.String({ description: 'Node ids to bake' }))),
+      all: Type.Optional(Type.Boolean({ description: 'Bake every node with measured bounds' })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      // No measured-bounds channel exists in CanvasToolContext yet —
+      // measuredBounds arrive via the DOM renderer's ResizeObserver pool
+      // (client) and reach patches through the round-trip events (next phase).
+      const requested = params.all ? 'all nodes' : (params.nodeIds ?? []).join(', ') || '(none specified)';
+      const text = `measured bounds require a connected client (round-trip tools, next phase); no changes made\nRequested: ${requested}`;
+      return { content: [{ type: 'text', text }], details: { measured: false, requested: { nodeIds: params.nodeIds ?? null, all: params.all ?? false }, patch: null } };
     },
   });
 
@@ -3752,6 +4145,12 @@ const createShape = defineTool({
     exportSvg,
     exportPng,
     copyAsCode,
+    // Phase 3 (spec §5.2): Figma-MCP-aligned tools
+    insertHtml,
+    getMetadata,
+    getVariableDefs,
+    getDesignContext,
+    bakeLayout,
     // Phase 2c: Find & filter
     findShapes,
     bulkUpdateByFilter,

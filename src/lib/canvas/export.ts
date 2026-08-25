@@ -9,13 +9,10 @@
 // a string (or data URL). The caller handles the download / clipboard copy.
 
 import type { Shape } from '@/lib/canvas/types';
+import { serializeNodes } from './serialize';
 
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export interface ExportOptions {
@@ -277,43 +274,22 @@ export function exportJson(doc: unknown): string {
 }
 
 /// Generate HTML / React / Tailwind code from the canvas shapes.
+///
+/// v2 (spec §5.3 — copy-as-code v2): delegates to the shared tree serializer
+/// (`serializeNodes`) so the client-side export and the agent-side
+/// `pen_copy_as_code` / `pen_get_design_context` tools emit IDENTICAL code.
+/// The parent/child map is rebuilt from the resolved layers' parentId links;
+/// auto-layout containers serialize as real nested flexbox, layout:none
+/// containers as relative containers with absolutely-positioned children,
+/// and every element carries data-name/data-node-id.
 export function exportCode(
   allShapes: Shape[],
   framework: 'html' | 'react' | 'tailwind',
   opts: ExportOptions = {},
 ): string | null {
   let shapes = opts.frameId ? filterByFrame(allShapes, opts.frameId) : allShapes;
-  const norm = normalizeBounds(shapes);
-  if (!norm) return null;
-  const els = norm.shapes.map((s) => {
-    const x = Math.round(s.x);
-    const y = Math.round(s.y);
-    const w = Math.round(s.width);
-    const h = Math.round(s.height);
-    if (s.type === 'text') {
-      const fs = Math.round(s.fontSize);
-      const text = escapeHtml(s.text ?? '');
-      if (framework === 'tailwind') {
-        return `    <span className="absolute" style={{ left: ${x}, top: ${y}, fontSize: ${fs}, color: '${s.textColor}', fontFamily: 'Inter,sans-serif' }}>${text}</span>`;
-      }
-      return `    <span style="position:absolute;left:${x}px;top:${y}px;font-size:${fs}px;color:${s.textColor};font-family:Inter,sans-serif">${text}</span>`;
-    }
-    const r = Math.round(s.radius);
-    if (framework === 'tailwind') {
-      const radiusCls = r > 0 ? ` rounded-[${r}px]` : '';
-      const strokeCls = s.strokeWidth > 0 ? ` border-[${s.strokeWidth}px] border-[${s.stroke}]` : '';
-      return `    <div className="absolute${radiusCls}${strokeCls}" style={{ left: ${x}, top: ${y}, width: ${w}, height: ${h}, background: '${s.fill}' }} />`;
-    }
-    const radius = r > 0 ? `;border-radius:${r}px` : '';
-    const stroke = s.strokeWidth > 0 ? `;border:${s.strokeWidth}px solid ${s.stroke}` : '';
-    return `    <div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${s.fill}${radius}${stroke}"></div>`;
-  }).join('\n');
-  const totalW = Math.round(norm.w);
-  const totalH = Math.round(norm.h);
-  if (framework === 'react') {
-    return `export function CanvasExport() {\n  return (\n    <div style={{ position: 'relative', width: ${totalW}, height: ${totalH} }}>\n${els}\n    </div>\n  );\n}`;
-  }
-  return `<div style="position:relative;width:${totalW}px;height:${totalH}px">\n${els}\n</div>`;
+  if (shapes.length === 0) return null;
+  return serializeNodes(shapes, { framework, rootName: 'CanvasExport' });
 }
 
 /// Trigger a browser download of the given content.
