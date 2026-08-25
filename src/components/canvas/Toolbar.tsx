@@ -30,6 +30,8 @@ import {
   Hand,
   Undo2,
   Redo2,
+  Scaling,
+  Section as SectionIcon,
 } from 'lucide-react';
 
 const SHAPE_DEFAULTS: Record<LayerType, Partial<{ width: number; height: number; fill: string; text: string; fontSize: number; stroke: string }>> = {
@@ -96,13 +98,14 @@ export function Toolbar() {
   const btnCls =
     'h-8 w-8 ac-text-2 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring rounded-full';
 
-  // Select/Pan toggle button class — active state gets a filled background.
+  // Select/Pan/Scale toggle button class — active state gets a filled background.
   const modeBtnCls = (active: boolean) =>
     `h-8 w-8 ac-transition ac-focus-ring rounded-full ${
       active
         ? 'ac-surface-2 ac-text-1 shadow-sm'
         : 'ac-text-2 hover:ac-text-1 hover:ac-surface-2'
     }`;
+
 
   const canvasEmpty = shapes.length === 0;
 
@@ -138,14 +141,57 @@ export function Toolbar() {
         >
           <Hand className="h-4 w-4" />
         </Button>
+        {/* Phase 7: Scale tool (K) — resize handles scale the layer
+            proportionally (width/height/fontSize/strokeWidth, Figma
+            rescale() semantics; see lib/canvas/scale.ts). */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={modeBtnCls(toolMode === 'scale')}
+          title="Scale tool (K) — drag a corner handle to scale proportionally"
+          aria-label="Scale tool"
+          aria-pressed={toolMode === 'scale'}
+          onClick={() => setToolMode('scale')}
+        >
+          <Scaling className="h-4 w-4" />
+        </Button>
 
+        {/* Separator between H.1 tool groups. */}
         <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
 
+        {/* H.1 group 2: Frame (F) / Section (⇧S). */}
         <Button
           variant="ghost"
           size="icon"
           className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Rectangle"
+          title="Frame (F)"
+          aria-label="Add frame"
+          disabled={agentBusy}
+          onClick={() => createShape('frame')}
+        >
+          <Frame className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
+          title="Section (⇧S)"
+          aria-label="Add section"
+          disabled={agentBusy}
+          onClick={() => createShape('section')}
+        >
+          <SectionIcon className="h-4 w-4" />
+        </Button>
+
+        {/* Separator between H.1 tool groups. */}
+        <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
+
+        {/* H.1 group 3: shapes (R / O / L). */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
+          title="Rectangle (R)"
           aria-label="Add rectangle"
           disabled={agentBusy}
           onClick={() => createShape('rectangle')}
@@ -156,7 +202,7 @@ export function Toolbar() {
           variant="ghost"
           size="icon"
           className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Ellipse"
+          title="Ellipse (O)"
           aria-label="Add ellipse"
           disabled={agentBusy}
           onClick={() => createShape('ellipse')}
@@ -167,39 +213,32 @@ export function Toolbar() {
           variant="ghost"
           size="icon"
           className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Text"
-          aria-label="Add text"
-          disabled={agentBusy}
-          onClick={() => createShape('text')}
-        >
-          <Type className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Line"
+          title="Line (L)"
           aria-label="Add line"
           disabled={agentBusy}
           onClick={() => createShape('line')}
         >
           <Minus className="h-4 w-4" />
         </Button>
+
+        {/* Separator between H.1 tool groups. */}
+        <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
+
+        {/* H.1 group 4: Text (T). */}
         <Button
           variant="ghost"
           size="icon"
           className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Frame"
-          aria-label="Add frame"
+          title="Text (T)"
+          aria-label="Add text"
           disabled={agentBusy}
-          onClick={() => createShape('frame')}
+          onClick={() => createShape('text')}
         >
-          <Frame className="h-4 w-4" />
+          <Type className="h-4 w-4" />
         </Button>
 
+        {/* Separator between H.1 tool groups. */}
         <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
-
-        {/* Undo / Redo — discoverable buttons (keyboard: ⌘Z / ⌘⇧Z). */}
         <Button
           variant="ghost"
           size="icon"
@@ -223,6 +262,7 @@ export function Toolbar() {
           <Redo2 className="h-4 w-4" />
         </Button>
 
+        {/* Separator between H.1 tool groups. */}
         <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
 
         <Button

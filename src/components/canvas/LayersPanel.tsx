@@ -21,7 +21,7 @@
 //     layer).
 //   - Right-click menu: Delete, Rename, Duplicate.
 
-import { useState, useMemo, type ReactNode, type ComponentType } from 'react';
+import { useState, useEffect, useMemo, type ReactNode, type ComponentType } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape, LayerType } from '@/lib/canvas/types';
@@ -43,6 +43,9 @@ import {
   // Phase 2 component-system icons (instance actions):
   Unlink,                  // detach instance
   RotateCcw,               // reset overrides
+  // Phase 7 Pages column icons:
+  Plus,                    // add page
+  Files,                   // page chip
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -135,6 +138,21 @@ export function LayersPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => loadCollapsed(document.id));
   const [searchQuery, setSearchQuery] = useState('');
+
+  // ---- ⌘R rename (spec Phase 7) ----------------------------------------------
+  // page.tsx's registry dispatch for 'rename' fires this CustomEvent; we
+  // focus the first selected layer's inline rename input.
+  useEffect(() => {
+    const onRenameRequest = () => {
+      const sel = useCanvasStore.getState().selectedIds;
+      if (sel.length > 0) setEditingId(sel[0]);
+    };
+    window.addEventListener('ac:layers-rename', onRenameRequest);
+    return () => window.removeEventListener('ac:layers-rename', onRenameRequest);
+  }, []);
+
+  // ---- Pages column state (spec Phase 7 — Appendix H §H.1 left sidebar) ------
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
 
   // Persist the collapsed set whenever it changes.
   const updateCollapsed = (next: Set<string>) => {
@@ -440,11 +458,13 @@ export function LayersPanel() {
             </ContextMenuItem>
           )}
           {/* ── Group 4: Visibility ──────────────────────────────────── */}
+          {/* Phase 7: Lock/Hide rebound to Figma chords ⌘⇧L / ⌘⇧H (legacy
+              ⌘L / ⌘; kept as registry aliases — Appendix H §H.3 #3). */}
           <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: shape.id, shape: { locked: !shape.locked }, summary: `${shape.locked ? 'Unlocked' : 'Locked'} ${shape.name}` })}>
-            <Lock className="h-3.5 w-3.5 mr-2" /> {shape.locked ? 'Unlock' : 'Lock'} <span className="ml-auto text-[10px] ac-text-4">⌘L</span>
+            <Lock className="h-3.5 w-3.5 mr-2" /> {shape.locked ? 'Unlock' : 'Lock'} <span className="ml-auto text-[10px] ac-text-4">⌘⇧L</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: shape.id, shape: { visible: !shape.visible }, summary: `${shape.visible ? 'Hid' : 'Showed'} ${shape.name}` })}>
-            <Eye className="h-3.5 w-3.5 mr-2" /> {shape.visible ? 'Hide' : 'Show'} <span className="ml-auto text-[10px] ac-text-4">⌘;</span>
+            <Eye className="h-3.5 w-3.5 mr-2" /> {shape.visible ? 'Hide' : 'Show'} <span className="ml-auto text-[10px] ac-text-4">⌘⇧H</span>
           </ContextMenuItem>
           <ContextMenuSeparator />
           {/* ── Group 5: Components ──────────────────────────────────── */}
@@ -454,7 +474,7 @@ export function LayersPanel() {
               componentId — keep it only for non-frame/group shapes. */}
           {(shape.type === 'frame' || shape.type === 'group') && (
             <ContextMenuItem onClick={() => sendPatch({ op: 'convert_to_component', shapeId: shape.id, summary: `Promoted ${shape.name} to reusable Component` })}>
-              <ComponentIcon className="h-3.5 w-3.5 mr-2" /> Create component <span className="ml-auto text-[10px] ac-text-4">⌘⇧C</span>
+              <ComponentIcon className="h-3.5 w-3.5 mr-2" /> Create component <span className="ml-auto text-[10px] ac-text-4">⌥⌘K</span>
             </ContextMenuItem>
           )}
           {shape.type !== 'frame' && shape.type !== 'group' && (
@@ -631,7 +651,7 @@ export function LayersPanel() {
           <ContextMenuSeparator />
           {/* ── Group 8: Existing items (Rename / Delete / Duplicate) ── */}
           <ContextMenuItem onClick={() => setEditingId(shape.id)}>
-            <Edit2 className="h-3.5 w-3.5 mr-2" /> Rename
+            <Edit2 className="h-3.5 w-3.5 mr-2" /> Rename <span className="ml-auto text-[10px] ac-text-4">⌘R</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => sendPatch({ op: 'duplicate', shapeIds: [shape.id], summary: `Duplicated ${shape.name}` })}>
             <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate
@@ -659,9 +679,100 @@ export function LayersPanel() {
   const nodeCount = shapes.length;
   const variableCount = document.variables ? Object.keys(document.variables).length : 0;
   const themeAxisCount = document.themes ? Object.keys(document.themes).length : 0;
+  const pages = document.pages ?? [];
 
   return (
-    <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
+    <div className="flex h-full ac-surface-0 ac-hide-scrollbar" data-ac-layers-panel>
+      {/* ---- Pages column (spec Phase 7 — Appendix H §H.1) --------------------
+          Left-edge vertical strip, rendered only when the document carries a
+          pages array. Chip = click activates (set_active_page patch),
+          double-click renames inline, + adds a page (add_page patch), and the
+          chip context menu duplicates / deletes. NOTE (v1): duplicate creates
+          a same-named EMPTY page — copying a page's layer tree needs a
+          page-children patch op that doesn't exist yet. */}
+      {pages.length > 0 && (
+        <div className="w-24 flex-shrink-0 border-r ac-border-subtle flex flex-col" data-ac-pages-column>
+          <div className="px-2 py-2 border-b ac-border-subtle text-[9px] font-semibold uppercase tracking-wide ac-text-4">
+            Pages
+          </div>
+          <div className="flex-1 overflow-y-auto py-1 ac-hide-scrollbar">
+            {pages.map((page, idx) => (
+              <ContextMenu key={page.id}>
+                <ContextMenuTrigger asChild>
+                  <div
+                    data-ac-page={page.id}
+                    className={`mx-1 mb-0.5 px-1.5 py-1 rounded text-[10px] cursor-pointer ac-transition flex items-center gap-1 ${
+                      idx === (document.activePageIndex ?? 0)
+                        ? 'bg-[var(--ac-accent-soft)] ac-text-1 font-medium'
+                        : 'ac-text-3 hover:ac-surface-1'
+                    }`}
+                    title={`${page.name} (${page.children?.length ?? 0} nodes)`}
+                    onClick={() =>
+                      sendPatch({ op: 'set_active_page', pageId: page.id, summary: `Switched to page "${page.name}"` })
+                    }
+                    onDoubleClick={() => setEditingPageId(page.id)}
+                  >
+                    <Files className="h-3 w-3 flex-shrink-0 ac-text-4" />
+                    {editingPageId === page.id ? (
+                      <Input
+                        autoFocus
+                        defaultValue={page.name}
+                        className="h-4 text-[10px] px-1 py-0 flex-1 min-w-0"
+                        onBlur={(e) => {
+                          const name = e.target.value.trim() || page.name;
+                          sendPatch({ op: 'rename_page', pageId: page.id, pageName: name, summary: `Renamed page to "${name}"` });
+                          setEditingPageId(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                          if (e.key === 'Escape') setEditingPageId(null);
+                        }}
+                      />
+                    ) : (
+                      <span className="truncate">{page.name}</span>
+                    )}
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-44">
+                  <ContextMenuItem onClick={() => setEditingPageId(page.id)}>
+                    <Edit2 className="h-3.5 w-3.5 mr-2" /> Rename page
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    onClick={() =>
+                      sendPatch({ op: 'add_page', pageName: `${page.name} copy`, summary: `Duplicated page "${page.name}" (empty v1)` })
+                    }
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate page <span className="ml-auto text-[9px] ac-text-4">empty</span>
+                  </ContextMenuItem>
+                  {pages.length > 1 && (
+                    <ContextMenuItem
+                      className="ac-text-danger"
+                      onClick={() => sendPatch({ op: 'delete_page', pageId: page.id, summary: `Deleted page "${page.name}"` })}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete page
+                    </ContextMenuItem>
+                  )}
+                </ContextMenuContent>
+              </ContextMenu>
+            ))}
+          </div>
+          <div className="p-1 border-t ac-border-subtle">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-6 text-[10px] ac-text-3 hover:ac-text-1"
+              title="Add a page"
+              aria-label="Add page"
+              onClick={() => sendPatch({ op: 'add_page', summary: 'Added a page' })}
+            >
+              <Plus className="h-3 w-3 mr-1" /> Page
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Layers column (pre-existing panel) ---- */}
+      <div className="flex flex-col flex-1 min-w-0 ac-hide-scrollbar">
       <div className="flex items-center justify-between px-3 py-2 border-b ac-border-subtle">
         <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide ac-text-2 min-w-0">
           <Layers className="h-3.5 w-3.5 ac-text-3 flex-shrink-0" />
@@ -741,7 +852,9 @@ export function LayersPanel() {
           {variableCount} variable{variableCount === 1 ? '' : 's'}
           {' · '}
           {themeAxisCount} theme axis{themeAxisCount === 1 ? '' : 'es'}
+          {pages.length > 0 ? ` · ${pages.length} page${pages.length === 1 ? '' : 's'}` : ''}
         </span>
+      </div>
       </div>
     </div>
   );
