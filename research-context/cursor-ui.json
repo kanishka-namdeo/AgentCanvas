@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://open-vsx.org/extension/lixen/cursor-usage",
+    "name": "Cursor Usage Monitor",
+    "snippet": "A VS Code extension that displays real-time Cursor AI usage statistics in the status bar . Monitor your API usage, track remaining requests, and stay informed ... Read more",
+    "host_name": "open-vsx.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/Tendo33/cursor-usage-tracker",
+    "name": "Tendo33/cursor-usage-tracker",
+    "snippet": "Cursor extension that shows your Cursor request usage in the status bar . a hover card with requests, token usage, and the next reset date.",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cursor.com/docs/account/teams/analytics",
+    "name": "Analytics | Cursor Docs",
+    "snippet": "The Cursor Token Rate applies when the underlying request is a third-party model request subject to the rate, including when Auto routes to a third-party model . Read more",
+    "host_name": "cursor.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/cursor-ide-ui-ux-tweaks-6-show-token-usage-directly-in-the-model-selector/167581",
+    "name": "Show token usage directly in the model selector",
+    "snippet": "Aug 6, 2026 — Show token usage directly in the model selector Currently, users can view their token usage in Cursor Settings or on the Cursor Usage ...",
+    "host_name": "forum.cursor.com",
+    "rank": 3,
+    "date": "Aug 6, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://marketplace.visualstudio.com/items?itemName=JinYong.cursor-usage-panel",
+    "name": "Cursor Usage Panel",
+    "snippet": "Display your Cursor AI request usage directly in the status bar with real-time model info and trend prediction. Features Real-time usage display . Automatically ...",
+    "host_name": "marketplace.visualstudio.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/cursor/comments/1o4n02i/holy_hell_you_can_actually_see_your_usage_inside",
+    "name": "Holy hell, you can actually see your usage inside Cursor",
+    "snippet": "How to turn it on: Go to \" Cursor Settings\" Go to \"Chat\" Change \" Usage Summary\" dropdown to \"Always\". Cursor token / usage ?",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

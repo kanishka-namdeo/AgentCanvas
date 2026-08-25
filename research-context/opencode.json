@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.youtube.com/watch?v=Jvl_MOBPRXI&vl=en-US",
+    "name": "Your Claude Code Terminal Could Look Like This - YouTube",
+    "snippet": "Jan 24, 2026 · Are you flying blind with your Claude Code context window? In this tutorial, I'll show you exactly how to transform your plain Claude Code ...",
+    "host_name": "www.youtube.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/openai/codex/issues/17313",
+    "name": "New progress bar indicator for context remaining is a downgrade #17313",
+    "snippet": "Apr 10, 2026 · The new bar-only indicator is a clear usability regression. The old numeric percentage made context usage instantly understandable,",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.claude.com/docs/en/statusline",
+    "name": "Customize your status line - Claude Code Docs",
+    "snippet": "Configure a custom status bar to monitor context window usage, costs, and git status in Claude Code. The status line is a customizable bar at the bottom of ...",
+    "host_name": "code.claude.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1sbwlng/a_status_bar_for_claude_code_showing_context",
+    "name": "A status bar for Claude Code showing context window + rate limits in real",
+    "snippet": "Apr 4, 2026 · A status bar for Claude Code showing context window + rate limits in real time. I built small shell script that adds a status line directly in ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://open-vsx.org/extension/koarthur/opencode-harness",
+    "name": "OpenCode (Unofficial) — AI Coding Assistant for VS Code",
+    "snippet": "VS Code Status Bar Indicator. A status bar entry mirrors the known remaining percentage: ◔ 85% — Healthy; ◕ 30% — Warning; ◗ 5% — Critical. Hover to see a ...",
+    "host_name": "open-vsx.org",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=FX7jcd3GYtI",
+    "name": "I Cut My OpenCode Token Usage by 96% - Here's How - YouTube",
+    "snippet": "Jun 23, 2026 · But to be fair to the Opencode devs, it's mainly a coding AI agent, so it's not really meant for casual conversation usage. Although they could ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

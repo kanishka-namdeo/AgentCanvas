@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.reddit.com/r/CLine/comments/1ozn1g1/cline_is_sending_300k_tokens_for_even_oneword",
+    "name": "Cline is sending 300k+ tokens for even one-word requests - Reddit",
+    "snippet": "Nov 17, 2025 · Hi, I need help diagnosing an issue where Cline is sending extremely inflated context sizes. Even a one-word request like “hello” consumes ... Cline w/ Claude Sonnet 1M Context window - Reddit I built a statusline that shows your context window and usage limits in ... More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/cline/cline/issues/7383",
+    "name": "Context Window Usage Mismatch - UI shows ~50% but API receives 100",
+    "snippet": "Nov 9, 2025 · Actual Behavior: The UI showed ~100K tokens (~50% usage) while the API received 200,926 tokens (>100% of the 200K limit), resulting in task ...",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cline.bot/blog/understanding-the-new-context-window-progress-bar-in-cline",
+    "name": "Cline's Visual Solution to Context Management",
+    "snippet": "Jan 30, 2025 · The progress bar visualizes how much of your context window you've used; The total shows your model's maximum capacity (e.g., 200k for Claude ...",
+    "host_name": "cline.bot",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/1017154953178967/posts/1422917672602691",
+    "name": "Wish you had a progress bar to keep up with your context window in",
+    "snippet": "Dec 12, 2025 · Try prompting Claude to add a progress bar showing the percentage of context currently used.",
+    "host_name": "www.facebook.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.andrewconnell.com/articles/claude-code-cli-statusline",
+    "name": "Claude Code Status Line: Track Token & Quota Usage",
+    "snippet": "Jun 6, 2026 · Context window usage: a progress bar and a percentage showing how full my context window is as of the last turn. In the screenshot I'm at 7 ...",
+    "host_name": "www.andrewconnell.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=Z0GWWTHpcik",
+    "name": "Understanding the Context Window & Token Costs | Vibe Coding with Cline",
+    "snippet": "Apr 14, 2025 · Welcome back to Vibe Coding with Cline! In Lesson 3, Professor Patterns takes a deep dive into the important concept of \"Context Windows\" ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

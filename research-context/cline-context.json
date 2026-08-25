@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://github.com/cline/cline/issues/7814",
+    "name": "Model Configuration and Context Window Progress Bar not visible in",
+    "snippet": "Dec 2, 2025 · Expected behavior: The Model Configuration section and Context Window Progress Bar should remain visible and functional in the UI after ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1p7yewn/can_we_please_have_a_contextpercentage_indication",
+    "name": "r/ClaudeAI on Reddit: Can we please have a \"Context-Percentage",
+    "snippet": "Nov 27, 2025 · Can we please have a \"Context-Percentage\" Indication or smarter Auto-Compact? A smarter Auto-Compact would be nice.",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/1017154953178967/posts/1422917672602691",
+    "name": "Wish you had a progress bar to keep up with your context window in",
+    "snippet": "Dec 12, 2025 · You can now add context window information to your status line. Customize. Try prompting Claude to add a progress bar showing the percentage of ...",
+    "host_name": "www.facebook.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.cline.bot/features/auto-compact",
+    "name": "Auto Compact - Cline documentation",
+    "snippet": "When your conversation approaches the model's context window limit, Cline automatically summarizes it to free up space and keep working.",
+    "host_name": "docs.cline.bot",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lalatenduswain.medium.com/understanding-context-left-until-auto-compact-0-in-claude-cli-b7f6e43a62dc",
+    "name": "Understanding “Context Left Until Auto-Compact: 0%” in Claude CLI",
+    "snippet": "Oct 17, 2025 · The “Context left until auto-compact” indicator acts as a progress bar, showing how much buffer remains before this process kicks in.",
+    "host_name": "lalatenduswain.medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1idbit9/cline_autonomous_coding_agent_just_deployed_a",
+    "name": "Cline (autonomous coding agent) just deployed a massive release with",
+    "snippet": "Jan 30, 2025 · ... context window progress bar, and many more features. If you're non ... Cline is a VS Code extension. https://marketplace.visualstudio ...",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://levelup.gitconnected.com/why-i-compact-my-ai-coding-agent-at-20-not-90-1a665c0c4e5d",
+    "name": "Why I Compact My AI Coding Agent at 20%, Not 90%",
+    "snippet": "Jun 26, 2026 · Your AI coding agent gets worse as its context window fills. Here's when to compact on Claude Code and Codex, plus the exact settings to ...",
+    "host_name": "levelup.gitconnected.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/CLine/comments/1k06748/workflow_tip_proactive_context_management",
+    "name": "Proactive Context Management & Persistent Memory with Cline",
+    "snippet": "Apr 15, 2025 · We implemented the context progress bar to make it visual when users should start new tasks. This is because after exceeding 50% of the ...",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

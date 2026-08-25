@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://code.claude.com/docs/en/context-window",
+    "name": "Explore the context window - Claude Code Docs",
+    "snippet": "Claude Code's context window holds everything Claude knows about your session: your instructions, the files it reads, its own responses, and content that ...",
+    "host_name": "code.claude.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=9tcQPTagVmQ&vl=en",
+    "name": "How to Find Context Usage in Claude Code CLI (Monitor Token Window",
+    "snippet": "Mar 30, 2026 · by monitoring your context window consumption and keeping track of how many tokens you're using per session directly in your command-line ...",
+    "host_name": "www.youtube.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/anthropics/claude-code/issues/39187",
+    "name": "Feature: context window usage indicator in Claude Code UI #39187",
+    "snippet": "Mar 25, 2026 · Add a small, non-intrusive context usage indicator in the Claude Code status bar or header area. Shows percentage and/or absolute token count ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1rsrpfx/is_there_a_way_for_claude_code_the_model_to_see",
+    "name": "Is there a way for Claude Code (the model) to see its own context usage?",
+    "snippet": "Mar 13, 2026 · Claude Code (the model) has no native visibility into its own context window usage — but you can surface it through a PreToolUse hook that ... Made a simple context window monitor for Claude Code - Reddit How do you manage your context window/tokens when working with ... More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://claudefa.st/blog/guide/mechanics/context-management",
+    "name": "Claude Code Context Window: Optimize Your Token Usage",
+    "snippet": "The /context command shows exactly where your tokens are going: system prompt, tools, memory files, skills, and conversation history.",
+    "host_name": "claudefa.st",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.andrewconnell.com/articles/claude-code-cli-statusline",
+    "name": "Claude Code Status Line: Track Token & Quota Usage",
+    "snippet": "Jun 6, 2026 · Customize the Claude Code status line to track context window usage, session limits, and weekly quotas so you stop burning tokens you don't need ...",
+    "host_name": "www.andrewconnell.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jdhodges.com/blog/claude-code-context-slash-command-token-usage",
+    "name": "Claude Code /context Command: See Exactly Where Your Tokens Go",
+    "snippet": "Mar 22, 2026 · Type /context in Claude Code to see a full breakdown of where your context window tokens are being spent. It shows system overhead, MCP tools, ...",
+    "host_name": "www.jdhodges.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://marketplace.visualstudio.com/items?itemName=KorbinianSlavik.vscode-claude-context",
+    "name": "Claude Context Monitor - Visual Studio Marketplace",
+    "snippet": "Extension for Visual Studio Code - Live Claude Code context window monitor with traffic-light status bar and token breakdown panel.",
+    "host_name": "marketplace.visualstudio.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]
