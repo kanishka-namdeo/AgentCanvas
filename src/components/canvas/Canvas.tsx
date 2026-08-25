@@ -28,7 +28,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { useCanvasGestures } from '@/lib/canvas/use-canvas-gestures';
+import { useCanvasGestures, clampZoom } from '@/lib/canvas/use-canvas-gestures';
 
 interface DragState {
   kind: 'pan' | 'move' | 'resize';
@@ -579,7 +579,7 @@ export function Canvas() {
           className="px-1 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
           aria-label="Zoom out"
           title="Zoom out"
-          onClick={() => setViewport((v) => ({ ...v, zoom: Math.max(0.1, v.zoom * 0.9) }))}
+          onClick={() => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom * 0.9) }))}
         >
           −
         </button>
@@ -588,7 +588,7 @@ export function Canvas() {
           className="px-1 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
           aria-label="Zoom in"
           title="Zoom in"
-          onClick={() => setViewport((v) => ({ ...v, zoom: Math.min(4, v.zoom * 1.1) }))}
+          onClick={() => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom * 1.1) }))}
         >
           +
         </button>
@@ -681,10 +681,10 @@ export function Canvas() {
               <SquareStack className="h-3.5 w-3.5 mr-2" /> Clear selection <span className="ml-auto text-[10px] ac-text-4">⎋</span>
             </ContextMenuItem>
             <ContextMenuSeparator />
-            <ContextMenuItem onClick={() => setViewport((v) => ({ ...v, zoom: Math.min(4, v.zoom * 1.2) }))}>
+            <ContextMenuItem onClick={() => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom * 1.2) }))}>
               <ArrowUp className="h-3.5 w-3.5 mr-2" /> Zoom in
             </ContextMenuItem>
-            <ContextMenuItem onClick={() => setViewport((v) => ({ ...v, zoom: Math.max(0.1, v.zoom * 0.8) }))}>
+            <ContextMenuItem onClick={() => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom * 0.8) }))}>
               <ArrowDown className="h-3.5 w-3.5 mr-2" /> Zoom out
             </ContextMenuItem>
             <ContextMenuItem onClick={() => setViewport({ zoom: 1, panX: 120, panY: 80 })}>

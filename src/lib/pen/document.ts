@@ -249,6 +249,16 @@ export function updateNode(
 // ---- Ref expansion --------------------------------------------------------
 
 /**
+ * Max nesting depth for recursive ref expansion (cycle protection).
+ *
+ * A component whose subtree transitively references itself (A → B → A) would
+ * expand forever. Beyond this depth nested refs are left unexpanded — the
+ * resolver maps leftover `ref` nodes to a plain rectangle, mirroring Figma's
+ * cycle protection.
+ */
+const MAX_REF_DEPTH = 16;
+
+/**
  * Expand a `ref` node into a resolved subtree by deep-cloning the component
  * and applying `descendants` overrides.
  *
@@ -259,10 +269,27 @@ export function updateNode(
  *
  * The `descendants` map references the SOURCE ids (the component's ids), so
  * we tag each cloned node with `_sourceId` during clone to locate them.
+ *
+ * D3: nested refs are expanded RECURSIVELY. If the component's own subtree
+ * contains a `ref` node (an instance of another component), that ref is
+ * expanded too — cloned, its `descendants` overrides applied, fresh ids —
+ * instead of surviving as a raw `ref` that the resolver would map to a
+ * placeholder rectangle. Expansion is capped at MAX_REF_DEPTH and cut short
+ * when a component transitively references itself (the ref is left as-is).
  */
 export function expandRef(
   ref: PenRef,
   components: Map<string, PenChild>,
+): PenChild | null {
+  return expandRefAtDepth(ref, components, 0, new Set<string>());
+}
+
+/** Shared expansion core used by both the top-level ref and nested refs. */
+function expandRefAtDepth(
+  ref: PenRef,
+  components: Map<string, PenChild>,
+  depth: number,
+  chain: Set<string>,
 ): PenChild | null {
   const component = components.get(ref.ref);
   if (!component) return null;
@@ -295,7 +322,47 @@ export function expandRef(
   // layers / properties panels can show a "component instance (ref)" badge.
   (clone as any).componentId = ref.ref;
 
+  // D3: recursively expand nested refs inside the cloned subtree. The nested
+  // ref's own root overrides (id, x/y, any properties an outer instance
+  // override landed on it) were merged above, so the expansion keeps the
+  // clone's fresh id and stays addressable by `_sourceId`.
+  if (isContainer(clone) && 'children' in clone && Array.isArray((clone as { children?: unknown }).children)) {
+    const childChain = new Set(chain).add(ref.ref);
+    (clone as { children: PenChild[] }).children =
+      (clone as { children: PenChild[] }).children.map((c) => expandNestedRefs(c, components, depth + 1, childChain));
+  }
+
   return clone;
+}
+
+/**
+ * Walk a cloned subtree, expanding any nested `ref` nodes (D3).
+ * Returns a new node when a replacement happened; the input node otherwise.
+ */
+function expandNestedRefs(
+  node: PenChild,
+  components: Map<string, PenChild>,
+  depth: number,
+  chain: Set<string>,
+): PenChild {
+  if (node.type === 'ref') {
+    const nested = node as PenRef;
+    // Cycle / depth guard: a component already on this expansion chain
+    // (A → B → A) or a nesting depth beyond MAX_REF_DEPTH is left as a raw
+    // `ref` — the resolver renders it as a plain rectangle (Figma-style
+    // cycle protection).
+    if (depth > MAX_REF_DEPTH || chain.has(nested.ref)) return node;
+    const expanded = expandRefAtDepth(nested, components, depth, chain);
+    // Unknown component id — leave the raw ref in place.
+    if (!expanded) return node;
+    return expanded;
+  }
+  if (isContainer(node) && 'children' in node && Array.isArray((node as { children?: unknown }).children)) {
+    const children = (node as { children: PenChild[] }).children;
+    if (children.length === 0) return node;
+    return { ...node, children: children.map((c) => expandNestedRefs(c, components, depth, chain)) };
+  }
+  return node;
 }
 
 /** Apply a descendants map to a cloned subtree (in place). */

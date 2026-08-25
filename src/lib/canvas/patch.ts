@@ -853,6 +853,19 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
     }
   }
 
+  // D1: keep the active page's children in sync with the tree we just mutated.
+  // `doc.children` is the source of truth for the ACTIVE page and is expected
+  // to mirror `pages[activePageIndex].children` (see types.ts) — without this
+  // write-back, switching pages (`set_active_page` loads `active.children`)
+  // would reload the STALE pre-patch tree. Guarded: legacy docs without
+  // `pages`, or an out-of-range `activePageIndex`, skip the write-back.
+  // Immutable: the pages array + the active page object are copied, never
+  // mutated in place (the input document's pages stay untouched).
+  const activeIndex = next.activePageIndex;
+  if (next.pages && activeIndex !== undefined && activeIndex >= 0 && activeIndex < next.pages.length) {
+    next.pages = next.pages.map((p, i) => (i === activeIndex ? { ...p, children: next.children } : p));
+  }
+
   return recomputeDerived(next);
 }
 

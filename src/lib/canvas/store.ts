@@ -481,7 +481,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
                 | { type: 'patch'; patch: CanvasPatch; toolCallId?: string }
                 | { type: 'agent_event'; event: SyncEvent };
               if (evt.type === 'patch') {
-                set((s) => ({ document: applyPatchToCanvas(s.document, evt.patch) }));
+                // D5: `_onSync` is the SINGLE applier in the fallback path —
+                // it applies the patch and pushes the pre-mutation document to
+                // the undo stack. (An early apply here used to double-apply
+                // every patch — e.g. an `add` produced two nodes with the same
+                // id — masked only by the renderer's render-time id dedupe.)
                 get()._onSync({ type: 'canvas:patch', patch: evt.patch, toolCallId: evt.toolCallId });
               } else {
                 get()._onSync(evt.event);

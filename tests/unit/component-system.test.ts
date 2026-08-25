@@ -503,3 +503,209 @@ describe('Component System — deriveVariantAxes (via combine_as_variants)', () 
     expect(set!.variantPropertyAxes).toEqual(['Variant']);
   });
 });
+
+// ---- Tests: nested refs (D3 recursive expansion) -------------------------
+
+describe('Component System — nested refs (D3 recursive expansion)', () => {
+  /// Build a doc with:
+  ///   - Component B ("Badge") — reusable, contains a text child "Badge".
+  ///   - Component A ("Card") — reusable, contains a nested ref → B.
+  ///   - An instance of A placed at root ("inst-a").
+  /// Regression (D3): the nested ref used to survive expansion as a raw `ref`
+  /// node, which the resolver mapped to a plain rectangle.
+  function docWithNestedRef(): { doc: CanvasDocument; aId: string; bId: string; bTextId: string } {
+    const aId = 'card-comp';
+    const bId = 'badge-comp';
+    const bTextId = 'badge-label';
+    let next = createEmptyCanvasDocument('test');
+    // Component B (reusable) with a text child.
+    next = applyPatchToCanvas(next, {
+      op: 'create_component',
+      shapeId: bId,
+      shape: {
+        id: bId,
+        type: 'component',
+        name: 'Badge',
+        x: 0, y: 0, width: 60, height: 24,
+        fill: '#22c55e',
+        reusable: true,
+      },
+      summary: 'Add Badge component',
+    });
+    next = applyPatchToCanvas(next, {
+      op: 'add',
+      shapeId: bTextId,
+      shape: {
+        id: bTextId,
+        type: 'text',
+        name: 'Badge label',
+        x: 8, y: 4, width: 44, height: 16,
+        text: 'Badge',
+        fontSize: 10,
+        parentId: bId,
+      },
+      summary: 'Add badge label',
+    });
+    // Component A (reusable) containing a nested instance (ref) of B.
+    next = applyPatchToCanvas(next, {
+      op: 'create_component',
+      shapeId: aId,
+      shape: {
+        id: aId,
+        type: 'component',
+        name: 'Card',
+        x: 0, y: 200, width: 200, height: 120,
+        fill: '#e2e8f0',
+        reusable: true,
+      },
+      summary: 'Add Card component',
+    });
+    next = applyPatchToCanvas(next, {
+      op: 'place_instance',
+      shapeId: 'nested-badge',
+      componentId: bId,
+      shape: { x: 12, y: 12, parentId: aId },
+      summary: 'Place nested Badge inside Card',
+    });
+    // Place an instance of A at the root.
+    next = applyPatchToCanvas(next, {
+      op: 'place_instance',
+      shapeId: 'inst-a',
+      componentId: aId,
+      shape: { x: 400, y: 100 },
+      summary: 'Place Card instance',
+    });
+    return { doc: next, aId, bId, bTextId };
+  }
+
+  it('renders the nested component instance as primitives, not a rectangle', () => {
+    const { doc } = docWithNestedRef();
+    const shapes = doc.shapes;
+    const instA = shapes.find((s) => s.id === 'inst-a');
+    expect(instA).toBeDefined();
+    // The nested ref → B must have been expanded: inst-a's child is B's clone
+    // (type 'component' — B's own type), NOT a placeholder rectangle.
+    const nested = shapes.find((s) => s.parentId === 'inst-a');
+    expect(nested).toBeDefined();
+    expect(nested!.type).toBe('component');
+    expect(nested!.type).not.toBe('rectangle');
+    expect(nested!.componentId).toBe('badge-comp');
+    // ...and B's text child is actually rendered as a text shape.
+    const badgeText = shapes.find((s) => s.parentId === nested!.id && s.type === 'text');
+    expect(badgeText).toBeDefined();
+    expect(badgeText!.text).toBe('Badge');
+  });
+
+  it('assigns fresh, unique ids to the nested instance descendants', () => {
+    const { doc } = docWithNestedRef();
+    const shapes = doc.shapes;
+    const allIds = shapes.map((s) => s.id);
+    // No duplicate ids in the resolved output (the renderer dedupes by id —
+    // duplicates would silently mask data).
+    expect(new Set(allIds).size).toBe(allIds.length);
+    // The nested B-instance root got a FRESH id (not B's component id, not
+    // the source nested-ref id, not inst-a's id).
+    const nested = shapes.find((s) => s.parentId === 'inst-a')!;
+    expect(nested!.id).not.toBe('badge-comp');
+    expect(nested!.id).not.toBe('nested-badge');
+    expect(nested!.id).not.toBe('inst-a');
+    // Its text child also got a fresh id (not B's source text id).
+    const badgeText = shapes.find((s) => s.parentId === nested!.id && s.type === 'text')!;
+    expect(badgeText!.id).not.toBe('badge-label');
+    // The source components render with their own ids (no collision with the
+    // nested clone).
+    expect(shapes.filter((s) => s.id === 'badge-comp').length).toBe(1);
+  });
+
+  it('applies instance overrides that target the nested ref (root override lands on the expansion)', () => {
+    const { doc, aId } = docWithNestedRef();
+    // Override the nested ref node itself (by its source id inside A) —
+    // the override must land on the EXPANDED B-instance root.
+    const next = applyPatchToCanvas(doc, {
+      op: 'set_instance_override',
+      shapeId: 'inst-a',
+      descendantPath: 'nested-badge',
+      override: { fill: '#ff0000' },
+      summary: 'Recolor nested badge',
+    });
+    const nested = next.shapes.find((s) => s.parentId === 'inst-a');
+    expect(nested).toBeDefined();
+    expect(nested!.fill).toBe('#ff0000');
+    // Sanity: the main component A is untouched.
+    expect(next.shapes.find((s) => s.id === aId)!.fill).toBe('#e2e8f0');
+  });
+
+  it('detached instances bake the nested ref too (no raw refs survive)', () => {
+    const { doc } = docWithNestedRef();
+    const next = applyPatchToCanvas(doc, {
+      op: 'detach_instance',
+      shapeId: 'inst-a',
+      summary: 'Detach Card instance',
+    });
+    // Walk the detached subtree — no node may remain type 'ref'.
+    const detached = next.children.find((c) => c.id === 'inst-a')!;
+    expect(detached!.type).not.toBe('ref');
+    const refNodes: string[] = [];
+    const walk = (nodes: PenChild[]) => {
+      for (const n of nodes) {
+        if (n.type === 'ref') refNodes.push(n.id);
+        if ('children' in n && Array.isArray((n as { children?: PenChild[] }).children)) {
+          walk((n as { children: PenChild[] }).children);
+        }
+      }
+    };
+    walk([detached]);
+    expect(refNodes).toEqual([]);
+  });
+
+  it('leaves a self-referencing component unexpanded past the cycle guard (no infinite loop)', () => {
+    // Component Ouroboros contains a ref to ITSELF.
+    let next = createEmptyCanvasDocument('test');
+    next = applyPatchToCanvas(next, {
+      op: 'create_component',
+      shapeId: 'ouro',
+      shape: {
+        id: 'ouro',
+        type: 'component',
+        name: 'Ouroboros',
+        x: 0, y: 0, width: 100, height: 100,
+        fill: '#818cf8',
+        reusable: true,
+      },
+      summary: 'Add self-referencing component',
+    });
+    next = applyPatchToCanvas(next, {
+      op: 'place_instance',
+      shapeId: 'self-ref',
+      componentId: 'ouro',
+      shape: { x: 10, y: 10, parentId: 'ouro' },
+      summary: 'Place self reference',
+    });
+    next = applyPatchToCanvas(next, {
+      op: 'place_instance',
+      shapeId: 'inst-ouro',
+      componentId: 'ouro',
+      shape: { x: 500, y: 500 },
+      summary: 'Place Ouroboros instance',
+    });
+    // Resolution terminates and emits a bounded number of shapes: the
+    // instance root + exactly one level of expansion (the inner self-ref is
+    // cut by the cycle guard and renders as a rectangle).
+    const instShapes = next.shapes.filter((s) => s.id === 'inst-ouro' || isDescendantOf(next.shapes, s.id, 'inst-ouro'));
+    expect(instShapes.length).toBe(2); // inst root + one rectangle placeholder (cycle cut immediately)
+    const placeholder = instShapes.find((s) => s.type === 'rectangle');
+    expect(placeholder).toBeDefined();
+    // The whole document resolves without blowing up.
+    expect(next.shapes.length).toBeGreaterThan(0);
+  });
+});
+
+/// Is `shapeId` a (transitive) descendant of `ancestorId` in the flat shape list?
+function isDescendantOf(shapes: Array<{ id: string; parentId?: string | null }>, shapeId: string, ancestorId: string): boolean {
+  let current = shapes.find((s) => s.id === shapeId);
+  while (current && current.parentId) {
+    if (current.parentId === ancestorId) return true;
+    current = shapes.find((s) => s.id === current!.parentId);
+  }
+  return false;
+}

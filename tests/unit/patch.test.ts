@@ -12,6 +12,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
+import { createMultiPageCanvasDocument } from '@/lib/canvas/types';
 import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types'
 import type { PenChild } from '@/lib/pen/types';
 
@@ -880,5 +881,109 @@ describe('patch: set_constraints', () => {
     }));
     expect(out.shapes[0].constraints).toEqual({ horizontal: 'center', vertical: 'scale' });
     expect(out.shapes[0].name).toBe('Renamed');
+  });
+});
+
+// ---- pages desync (D1) ---------------------------------------------------------
+
+describe('patch: pages desync (D1)', () => {
+  // Regression: tree mutations used to update `doc.children` but never write
+  // back to `pages[activePageIndex].children`, so `set_active_page` (which
+  // loads `active.children`) reloaded the STALE pre-patch tree.
+
+  /// Build a 2-page doc with page 0 ("Page 1") active and empty pages.
+  function makeTwoPageDoc(): CanvasDocument {
+    let doc: CanvasDocument = createMultiPageCanvasDocument('test');
+    doc = applyPatchToCanvas(doc, patch({ op: 'add_page', pageName: 'Page 2', summary: 'Add page 2' }));
+    expect(doc.pages!.length).toBe(2);
+    // add_page switches to the new page — switch back so page 0 is active.
+    doc = applyPatchToCanvas(doc, patch({ op: 'set_active_page', pageId: doc.pages![0].id, summary: 'Back to page 1' }));
+    expect(doc.activePageIndex).toBe(0);
+    return doc;
+  }
+
+  it('writes tree mutations back to the active page (add while page 0 active)', () => {
+    const doc = makeTwoPageDoc();
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'add',
+      shapeId: 'on-page-0',
+      shape: { id: 'on-page-0', type: 'rectangle', name: 'R', x: 10, y: 10, width: 30, height: 30 },
+    }));
+    // The active page's children must reflect the mutation...
+    expect(out.pages![0].children.map((c) => c.id)).toContain('on-page-0');
+    // ...and the derived render cache agrees with the tree.
+    expect(out.shapes.map((s) => s.id)).toContain('on-page-0');
+  });
+
+  it('switching pages and back does not reload stale content', () => {
+    let doc = makeTwoPageDoc();
+    doc = applyPatchToCanvas(doc, patch({
+      op: 'add',
+      shapeId: 'on-page-0',
+      shape: { id: 'on-page-0', type: 'rectangle', name: 'R', x: 10, y: 10, width: 30, height: 30 },
+    }));
+    const page0Id = doc.pages![0].id;
+    const page1Id = doc.pages![1].id;
+    // Switch to page 2 (empty), then back to page 1.
+    doc = applyPatchToCanvas(doc, patch({ op: 'set_active_page', pageId: page1Id, summary: 'To page 2' }));
+    expect(doc.activePageIndex).toBe(1);
+    expect(doc.children.map((c) => c.id)).not.toContain('on-page-0');
+    doc = applyPatchToCanvas(doc, patch({ op: 'set_active_page', pageId: page0Id, summary: 'Back to page 1' }));
+    expect(doc.activePageIndex).toBe(0);
+    // Before the D1 fix this reloaded the stale (empty) page-1 children.
+    expect(doc.children.map((c) => c.id)).toContain('on-page-0');
+    expect(doc.shapes.map((s) => s.id)).toContain('on-page-0');
+  });
+
+  it('remove mutations are written back too (node disappears from the page)', () => {
+    let doc = makeTwoPageDoc();
+    doc = applyPatchToCanvas(doc, patch({
+      op: 'add',
+      shapeId: 'doomed',
+      shape: { id: 'doomed', type: 'rectangle', name: 'R', x: 0, y: 0, width: 10, height: 10 },
+    }));
+    const out = applyPatchToCanvas(doc, patch({ op: 'remove', shapeId: 'doomed', summary: 'Remove' }));
+    expect(out.pages![0].children.map((c) => c.id)).not.toContain('doomed');
+    expect(out.children.map((c) => c.id)).not.toContain('doomed');
+  });
+
+  it('is pure — the input document\'s pages are never mutated', () => {
+    const doc = makeTwoPageDoc();
+    const pagesBefore = doc.pages!;
+    const childrenBefore = pagesBefore[0].children;
+    applyPatchToCanvas(doc, patch({
+      op: 'add',
+      shapeId: 'on-page-0',
+      shape: { id: 'on-page-0', type: 'rectangle', name: 'R', x: 0, y: 0, width: 10, height: 10 },
+    }));
+    expect(doc.pages![0].children).toBe(childrenBefore);
+    expect(doc.pages![0].children.length).toBe(0);
+  });
+
+  it('skips the write-back when activePageIndex is out of range (no crash)', () => {
+    const doc = makeTwoPageDoc();
+    const out = applyPatchToCanvas(
+      { ...doc, activePageIndex: 99 },
+      patch({
+        op: 'add',
+        shapeId: 'orphan',
+        shape: { id: 'orphan', type: 'rectangle', name: 'R', x: 0, y: 0, width: 10, height: 10 },
+      }),
+    );
+    // Pages untouched; the tree still mutated; no throw.
+    expect(out.pages!.length).toBe(2);
+    expect(out.pages!.every((p) => p.children.length === 0)).toBe(true);
+    expect(out.children.map((c) => c.id)).toContain('orphan');
+  });
+
+  it('legacy single-page docs (no pages array) are unaffected', () => {
+    const doc = makeDoc([makeShape({ id: 'a' })]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'add',
+      shapeId: 'b',
+      shape: { id: 'b', type: 'rectangle', name: 'B', x: 0, y: 0, width: 10, height: 10 },
+    }));
+    expect(out.pages).toBeUndefined();
+    expect(out.children.map((c) => c.id)).toEqual(['a', 'b']);
   });
 });

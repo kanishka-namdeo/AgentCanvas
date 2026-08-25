@@ -30,6 +30,7 @@ Two kinds of tests live here:
 | `clipboard.test.ts` | Pure clipboard helpers — `serializeShapes`, `deserializeShapes`, `offsetShapes`, `detectPayloadKind`. Tests round-trip serialization, field preservation, ID rewriting for parent references, and payload kind detection (shape/color/value/constraints). |
 | `figma-ontology.test.ts` | Figma ontology alignment — tests for Pages, Sections, Components, Component Sets, Variants, Component Properties. Verifies `add_page`, `set_active_page`, `rename_page`, `delete_page`, `add_section`, `create_component`, `create_component_set`, `add_variant`, `set_component_property`, `set_instance_property` patch ops + resolver mapping. |
 | `llm-providers.test.ts` | LLM provider registry — tests `getProvider()`, `listProviders()`, `createLLMClient()` for the provider registry. Verifies factory creation, capability flags, metadata completeness, and OpenAI-compatible factory behavior. |
+| `zoom-clamp.test.ts` | Zoom clamp unification (spec defect D6): the shared `clampZoom` helper + `MIN_ZOOM`/`MAX_ZOOM` constants exported from `src/lib/canvas/use-canvas-gestures.ts` — canonical range 0.1–8 for every zoom control (gestures, Canvas zoom buttons, context-menu items), plus a source-level guard that `Canvas.tsx` consumes the shared clamp instead of inline caps. |
 
 ### Vitest integration tests (`tests/integration/`)
 

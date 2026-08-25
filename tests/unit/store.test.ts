@@ -16,7 +16,7 @@
 //   - _onSync does NOT push for non-mutating 'select' patches
 //   - _onSync clears the redoStack on every mutating patch
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
 import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types'
@@ -456,5 +456,107 @@ describe('store: _onSync canvas:patch — op coverage for new ops', () => {
     expect(useCanvasStore.getState().undoStack).toHaveLength(1);
     const rectShape = useCanvasStore.getState().document.shapes.find((s) => s.id === 'rect');
     expect(rectShape?.constraints).toEqual({ horizontal: 'left_right', vertical: 'top_bottom' });
+  });
+});
+
+// ---- HTTP fallback single-apply (D5) ----------------------------------------
+
+describe('store: promptAgent HTTP fallback — single-apply (D5)', () => {
+  beforeEach(() => resetStore());
+
+  // Regression: the fallback path used to apply every patch TWICE — once
+  // inline (`set(document: applyPatchToCanvas(...))`) and again inside
+  // `_onSync`'s canvas:patch handler. An `add` with a fixed id produced two
+  // tree nodes with the SAME id, masked only by the renderer's render-time
+  // id dedupe. `_onSync` must be the single applier in the fallback path.
+  it('applies each streamed patch exactly once (no duplicate ids)', async () => {
+    const doc = makeDoc([]);
+    resetStore(doc);
+
+    const patchLine =
+      JSON.stringify({
+        type: 'patch',
+        patch: { op: 'add', shapeId: 'only-one', shape: { id: 'only-one', type: 'rectangle', name: 'Solo', x: 0, y: 0, width: 10, height: 10 }, summary: 'add one' },
+      }) + '\n';
+    const encoder = new TextEncoder();
+    let sent = false;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      return {
+        ok: true,
+        body: {
+          getReader: () => ({
+            read: async () => {
+              if (sent) return { done: true, value: undefined };
+              sent = true;
+              return { done: false, value: encoder.encode(patchLine) };
+            },
+          }),
+        },
+      };
+    }) as unknown as typeof fetch;
+
+    try {
+      // socket is null + connected is false → the HTTP fallback path runs.
+      useCanvasStore.getState().promptAgent('draw one rectangle');
+      // The fallback is an un-awaited async loop; wait for turn_end to flip
+      // agentBusy back to false.
+      await vi.waitFor(() => {
+        expect(useCanvasStore.getState().agentBusy).toBe(false);
+      });
+
+      const s = useCanvasStore.getState();
+      // Exactly ONE node with the fixed id in the resolved render cache...
+      const matches = s.document.shapes.filter((sh) => sh.id === 'only-one');
+      expect(matches).toHaveLength(1);
+      // ...and exactly one in the .pen tree.
+      const treeMatches = s.document.children.filter((c) => c.id === 'only-one');
+      expect(treeMatches).toHaveLength(1);
+      // The patch went through _onSync, so it pushed exactly one undo entry.
+      expect(s.undoStack).toHaveLength(1);
+      // And undo restores the pre-patch document.
+      s.undo();
+      expect(useCanvasStore.getState().document.shapes.map((sh) => sh.id)).not.toContain('only-one');
+    } finally {
+      globalThis.fetch = originalFetch as typeof fetch;
+    }
+  });
+
+  it('streams multiple patches and applies each exactly once', async () => {
+    const doc = makeDoc([]);
+    resetStore(doc);
+
+    const lines = [
+      JSON.stringify({ type: 'patch', patch: { op: 'add', shapeId: 'a', shape: { id: 'a', type: 'rectangle', name: 'A', x: 0, y: 0, width: 10, height: 10 }, summary: 'add a' } }),
+      JSON.stringify({ type: 'patch', patch: { op: 'add', shapeId: 'b', shape: { id: 'b', type: 'ellipse', name: 'B', x: 20, y: 0, width: 10, height: 10 }, summary: 'add b' } }),
+      JSON.stringify({ type: 'agent_event', event: { type: 'agent:message_delta', text: 'done' } }),
+    ].join('\n') + '\n';
+    const encoder = new TextEncoder();
+    let sent = false;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => ({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (sent) return { done: true, value: undefined };
+            sent = true;
+            return { done: false, value: encoder.encode(lines) };
+          },
+        }),
+      },
+    })) as unknown as typeof fetch;
+
+    try {
+      useCanvasStore.getState().promptAgent('draw two shapes');
+      await vi.waitFor(() => {
+        expect(useCanvasStore.getState().agentBusy).toBe(false);
+      });
+      const s = useCanvasStore.getState();
+      expect(s.document.shapes.map((sh) => sh.id)).toEqual(['a', 'b']);
+      expect(s.undoStack).toHaveLength(2);
+    } finally {
+      globalThis.fetch = originalFetch as typeof fetch;
+    }
   });
 });
