@@ -1,5 +1,6 @@
 # co-canvas — continuous integration
 # Runs lint + typecheck + tests on every push and pull request.
+# Nightly bench job runs the Phase 4 Playwright perf gates (Appendix F).
 name: CI
 
 on:
@@ -7,6 +8,13 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Phase 4 — DOM-renderer perf gates (spec Appendix F). Nightly + manual
+  # dispatch only — the bench needs a real Chromium + a built app, so it's
+  # too expensive for every push. The lint-typecheck-test job still runs on
+  # every push/PR; this only gates the nightly perf regression signal.
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
 
 # Cancel in-progress runs for the same ref when a new commit is pushed.
 concurrency:
@@ -65,3 +73,87 @@ jobs:
         env:
           DATABASE_URL: "file:./db/ci-test.db"
           NODE_ENV: "test"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Phase 4 — nightly bench job (spec docs/html-dom-renderer.md Appendix F).
+  # Browser-gated perf gates: pan/zoom p95 ≤ 16ms @ ≥1k nodes, patch p95 ≤ 16ms,
+  # bulk_add ≤ 3 React commits. Runs ONLY on schedule + workflow_dispatch — the
+  # lint-typecheck-test job above handles push/PR verification; this job needs
+  # a real Chromium + a production build, so it's too slow for per-push.
+  bench:
+    name: Bench (Phase 4 perf gates)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: lint-typecheck-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: bun run db:generate
+
+      # Install Playwright's bundled Chromium + system deps (libnss3, etc).
+      # playwright-core is in devDependencies; this downloads the browser
+      # binary the runner launches via `chromium.launch()`.
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Build (production)
+        run: bun run build
+        env:
+          DATABASE_URL: "file:./db/ci-bench.db"
+          NODE_ENV: "production"
+
+      # Start the standalone server in the background and wait for it to be
+      # ready before launching the bench. The bench runner connects to
+      # http://localhost:3000 by default.
+      - name: Start standalone server
+        run: |
+          bun run start &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          # Poll until the server responds (max 60s).
+          for i in $(seq 1 60); do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 | grep -q '^[23]'; then
+              echo "Server is ready (attempt $i)."
+              break
+            fi
+            sleep 1
+          done
+        env:
+          DATABASE_URL: "file:./db/ci-bench.db"
+          NODE_ENV: "production"
+
+      - name: Run bench (CI mode — gates enforced)
+        run: bun run bench:ci
+        env:
+          DATABASE_URL: "file:./db/ci-bench.db"
+          NODE_ENV: "production"
+          # The runner falls back to driving __canvasStore directly when the
+          # dev-only test hooks aren't shipped in production builds.
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -n "$SERVER_PID" ]; then kill $SERVER_PID 2>/dev/null || true; fi
+
+      # Upload results.json on failure so the regression signal is
+      # inspectable from the Actions UI.
+      - name: Upload bench results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-results
+          path: scripts/dom-renderer-bench/results.json
+          if-no-files-found: warn
+          retention-days: 14

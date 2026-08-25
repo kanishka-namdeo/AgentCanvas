@@ -84,5 +84,10 @@ dev.log
 /test-results-*.json
 server.log
 
+# Playwright + bench artifacts (Phase 4 — scripts/dom-renderer-bench/run.ts)
+/scripts/dom-renderer-bench/results.json
+/playwright-report/
+/test-results/
+
 # Session artifacts (transient)
 /TEST_RESULTS_WORKLOG.md

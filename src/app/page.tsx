@@ -19,7 +19,7 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useSettings } from '@/lib/settings/store';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
-import type { CanvasPatch, Shape } from '@/lib/canvas/types';
+import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types';
 import { SHORTCUTS_BY_ACTION, matchShortcut } from '@/lib/canvas/shortcuts';
 import { SessionSidebar } from '@/components/sessions/SessionSidebar';
 import { SessionHeader } from '@/components/sessions/SessionHeader';
@@ -123,6 +123,53 @@ export default function Home() {
   useEffect(() => {
     (window as any).__openCommandPalette = () => setPaletteOpen(true);
     return () => { delete (window as any).__openCommandPalette; };
+  }, []);
+
+  // Phase 4 — DOM-renderer bench test hooks (spec Appendix F).
+  //
+  // Dev-only: never registered in production builds (`process.env.NODE_ENV !==
+  // 'production'` guard). The bench runner (scripts/dom-renderer-bench/run.ts)
+  // uses these to inject synthetic documents and drive patches from outside
+  // the React tree; when the hooks are absent (production CI), the runner
+  // falls back to driving `__canvasStore` directly (always exposed in
+  // store.ts:1920). Keeping these as named hooks documents the bench's surface
+  // area so the canvas app and the runner don't drift.
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    if (typeof window === 'undefined') return;
+    const w = window as any;
+    w.__agentcanvas_test_inject_document = (doc: CanvasDocument) => {
+      // Swap in the synthetic doc; reset undo/redo so the bench's `update`
+      // patches start from a clean slate. Preserves viewport — the runner
+      // drives its own viewport via __canvasStore anyway.
+      const cur = useCanvasStore.getState();
+      useCanvasStore.setState({
+        document: { ...cur.document, ...doc, viewport: doc.viewport ?? cur.document.viewport },
+        undoStack: [],
+        redoStack: [],
+      });
+    };
+    w.__agentcanvas_test_get_world_element = (): HTMLElement | null => {
+      // Prefer the store's registered worldElement (DomCanvas registers it on
+      // mount — see store.ts:892); fall back to a DOM query so the hook still
+      // works if the renderer hasn't registered yet (race during reload).
+      // NOTE: `window.document` (not bare `document`) — the enclosing
+      // component shadows the global with the store's `document` field at
+      // line 50 (`const document = useCanvasStore((s) => s.document)`).
+      const fromStore = useCanvasStore.getState().worldElement;
+      return fromStore || window.document.querySelector('[data-ac-world]');
+    };
+    w.__agentcanvas_test_apply_patch = (patch: CanvasPatch) => {
+      // Routes through sendPatch so the patch-coalescing queue + undo semantics
+      // match the production patch path exactly (no bypass — same code path
+      // the agent + drag gestures use).
+      useCanvasStore.getState().sendPatch(patch);
+    };
+    return () => {
+      delete w.__agentcanvas_test_inject_document;
+      delete w.__agentcanvas_test_get_world_element;
+      delete w.__agentcanvas_test_apply_patch;
+    };
   }, []);
 
   // The AgentPanel's model badge (and any other decoupled component) can
