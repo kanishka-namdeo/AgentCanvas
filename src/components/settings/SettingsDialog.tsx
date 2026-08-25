@@ -36,7 +36,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Bot, KeyRound, Sliders, History, Palette, ShieldCheck,
   Keyboard, RotateCcw, Download, Trash2, AlertTriangle,
-  Plug, Server, Plus, X, CheckCircle2, XCircle, Loader2, RefreshCw,
+  Plug, Server, Plus, X, CheckCircle2, XCircle, Loader2, RefreshCw, Eye,
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings/store';
 import {
@@ -54,6 +54,7 @@ import { useSessionStore, estimateLocalStorageUsage, sweepIdleSessions } from '@
 import { useCanvasStore } from '@/lib/canvas/store';
 import { toast } from 'sonner';
 import { useModelCatalog } from '@/hooks/use-model-catalog';
+import { modelSupportsImages } from '@/lib/agent/attachments';
 
 type Section =
   | 'agent' | 'llm' | 'sessions' | 'appearance' | 'data' | 'shortcuts' | 'plugins' | 'mcp';
@@ -320,6 +321,13 @@ function LLMSection() {
   // until clicked).
   const { loading: modelsLoading, data: modelsData, error: modelsError, refresh: refreshModels } = useModelCatalog();
   const liveModelIds = (modelsData?.provider.models ?? []).map((m) => m.id);
+  // Vision-capable live models — id set for the Eye icon in the dropdown
+  // (same capability metadata the ModelSwitcher rows render).
+  const liveVisionModels = new Set(
+    (modelsData?.provider.models ?? [])
+      .filter((m) => modelSupportsImages(m.input))
+      .map((m) => m.id),
+  );
   const liveLoaded = modelsData !== null;
 
   // Normalize the stored provider (handles legacy 'zai-auto' etc.).
@@ -433,7 +441,15 @@ function LLMSection() {
                       .filter((m) => !meta?.popularModels.includes(m))
                       .map((m) => (
                         <SelectItem key={`live-${m}`} value={m} className="text-[11px] font-mono">
-                          {m}
+                          <span className="flex items-center gap-1.5">
+                            <span className="truncate">{m}</span>
+                            {liveVisionModels.has(m) && (
+                              <Eye
+                                className="h-3 w-3 flex-shrink-0 ac-text-info"
+                                aria-label="supports image input"
+                              />
+                            )}
+                          </span>
                         </SelectItem>
                       ))}
                     {meta?.popularModels.map((m) => (

@@ -47,10 +47,20 @@ import {
 } from '@/lib/agent/chat-commands';
 import { pushPromptHistory, navigateHistory } from '@/lib/agent/prompt-history';
 import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl } from '@/lib/canvas/export';
+import { useModelCatalog } from '@/hooks/use-model-catalog';
+import {
+  type AttachedImage,
+  stageImageFiles,
+  imageFilesFromDataTransfer,
+  formatDataUrlSize,
+  modelSupportsImages,
+  MAX_ATTACHMENTS_PER_MESSAGE,
+} from '@/lib/agent/attachments';
 import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers, Square,
-  ChevronRight, Clock, CornerDownLeft, Cpu,
+  ChevronRight, Clock, CornerDownLeft, Cpu, Paperclip, X, ArrowDown,
+  RotateCcw, TriangleAlert,
 } from 'lucide-react';
 
 /// Format a token count for compact display: 45200 → "45.2K".
@@ -281,6 +291,15 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   // Slash-command autocomplete: selected index + dismissed flag (Escape).
   const [cmdIndex, setCmdIndex] = useState(0);
   const [cmdDismissed, setCmdDismissed] = useState(false);
+  // Image attachments (ChatGPT/Claude/Cursor pattern: paperclip + paste +
+  // drag-and-drop, staged as preview chips until sent). Downscaled client-side
+  // by lib/agent/attachments.ts before they ever leave the browser.
+  const [attachments, setAttachments] = useState<AttachedImage[]>([]);
+  const [dragOver, setDragOver] = useState(false);
+  // "Jump to latest" pill — visible while the user has scrolled away from
+  // the bottom (ChatGPT/Claude pattern; auto-follow pauses so they can read).
+  const [showJump, setShowJump] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -367,6 +386,41 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     }
   };
 
+  // ==== Image attachments ====================================================
+  //
+  // Capability guard data — the shared model catalog tells us whether the
+  // CURRENT model accepts image input (LM Studio/Cursor pattern: warn when
+  // images are staged against a text-only model instead of failing at send).
+  // `autoFetch` populates the catalog on mount so the guard works before the
+  // user ever opens the model switcher; the request is shared module-level.
+  const { data: catalogData } = useModelCatalog({ autoFetch: true });
+  const configuredModelName = useSettings((s) => s.modelName);
+  const guardModelId = activeModel?.modelId ?? configuredModelName;
+  const guardModelEntry = useMemo(() => {
+    const all = [...(catalogData?.provider.models ?? []), ...(catalogData?.zaiSandbox?.models ?? [])];
+    return all.find((m) => m.id === guardModelId) ?? null;
+  }, [catalogData, guardModelId]);
+  // Tri-state: true/false when the catalog knows, null when unknown
+  // (endpoint-only model id or listing not loaded yet) — never nag on unknown.
+  const modelAcceptsImages = guardModelEntry ? modelSupportsImages(guardModelEntry.input) : null;
+
+  /// Stage image files from ANY source (paperclip, paste, drop).
+  /// Rejections toast once, compactly.
+  const addFiles = async (files: File[]) => {
+    if (files.length === 0 || agentBusy) return;
+    const { staged, rejections } = await stageImageFiles(files, attachments.length);
+    if (staged.length > 0) setAttachments((a) => [...a, ...staged]);
+    if (rejections.length > 0) {
+      toast.error(rejections.length === 1 ? rejections[0] : `${rejections.length} images were skipped`, {
+        description: rejections.slice(0, 3).join(' · '),
+      });
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments((a) => a.filter((img) => img.id !== id));
+  };
+
   // Register a global focus hook so the top-header Run button can focus
   // the chat input without prop-drilling. Cleared on unmount.
   useEffect(() => {
@@ -409,7 +463,11 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
         // Near-bottom threshold: 48px (a couple of lines) — anything more and
         // we consider the user scrolled away and stop following.
         const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
-        stickToBottomRef.current = distance < 48;
+        const atBottom = distance < 48;
+        stickToBottomRef.current = atBottom;
+        // Jump-to-latest pill state — functional setState with an equality
+        // guard bails out of re-renders while atBottom doesn't change.
+        setShowJump((prev) => (prev === !atBottom ? prev : !atBottom));
       };
       el.addEventListener('scroll', onScroll, { passive: true });
       cleanup = () => el.removeEventListener('scroll', onScroll);
@@ -421,9 +479,19 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     };
   }, []);
 
+  /// Jump to the bottom of the conversation and re-engage follow-the-bottom.
+  const jumpToLatest = () => {
+    stickToBottomRef.current = true;
+    setShowJump(false);
+    const el = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    if (el) el.scrollTop = el.scrollHeight;
+  };
+
   const submit = () => {
     const text = input.trim();
-    if (!text || agentBusy) return;
+    const images = attachments;
+    // Sendable with text OR images alone ("what's in this image?" prompts).
+    if ((!text && images.length === 0) || agentBusy) return;
     if (text.startsWith('/')) {
       // Single source of truth for command resolution (chat-commands.ts).
       // (Bug fix: the previous inline logic re-called matchCommands, which
@@ -465,11 +533,15 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
           return;
       }
     }
-    pushPromptHistory(text);
+    // A prompt with ONLY images (no text) still needs a non-empty prompt for
+    // the runner — fall back to a minimal ask.
+    const promptText = text || 'What do you see in this image? Describe it in detail.';
+    pushPromptHistory(promptText);
     // Submitting re-engages follow-the-bottom (the user acted at the bottom).
     stickToBottomRef.current = true;
-    promptAgent(text);
+    promptAgent(promptText, images.length > 0 ? images : undefined);
     setInput('');
+    setAttachments([]);
     setHistoryCursor(-1);
     setCmdIndex(0);
     setCmdDismissed(false);
@@ -478,7 +550,39 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const activePrompts = PROMPT_GROUPS.find((g) => g.id === activeGroup)?.prompts ?? [];
 
   return (
-    <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
+    <div
+      className="relative flex flex-col h-full ac-surface-0 ac-hide-scrollbar"
+      // Drag-and-drop images anywhere onto the chat (ChatGPT/Claude pattern).
+      onDragOver={(e) => {
+        if (Array.from(e.dataTransfer.types).includes('Files')) {
+          e.preventDefault();
+          setDragOver(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        // Only clear when leaving the panel itself (not crossing children).
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false);
+      }}
+      onDrop={(e) => {
+        if (Array.from(e.dataTransfer.types).includes('Files')) {
+          e.preventDefault();
+          setDragOver(false);
+          void addFiles(imageFilesFromDataTransfer(e.dataTransfer));
+        }
+      }}
+    >
+      {/* Drop overlay — dashed highlight over the whole panel while a file
+          drag is in progress. */}
+      {dragOver && (
+        <div className="absolute inset-0 z-50 m-2 rounded-xl border-2 border-dashed flex items-center justify-center bg-[color:var(--ac-accent-soft)] pointer-events-none"
+          style={{ borderColor: 'var(--ac-accent)' }}
+        >
+          <div className="flex items-center gap-2 text-xs font-medium ac-text-1">
+            <Paperclip className="h-4 w-4" style={{ color: 'var(--ac-accent)' }} />
+            Drop images to attach
+          </div>
+        </div>
+      )}
       {/* Header (optional — hidden when used inside a panel that already has SessionHeader) */}
       {!hideHeader && (
       <div className="flex items-center justify-between px-3 py-2 border-b ac-border-subtle">
@@ -531,8 +635,9 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
       <PluginUI />
 
       {/* Conversation */}
-      <ScrollArea ref={scrollRef} className="flex-1 min-h-0 ac-hide-scrollbar">
-        <div className="p-3 space-y-3">
+      <div className="relative flex-1 min-h-0">
+        <ScrollArea ref={scrollRef} className="h-full ac-hide-scrollbar">
+          <div className="p-3 space-y-3">
           {turns.length === 0 && (
             <div className="space-y-3">
               <div className="rounded-lg border ac-border-subtle ac-surface-1 p-3 text-xs ac-text-2">
@@ -547,6 +652,11 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                   covering wireframes, user flows, diagrams, variables, themes, component
                   instances, slots, copy, and audits. You can also draw manually — the
                   agent will see your edits.
+                </p>
+                <p className="mt-2 leading-relaxed ac-text-3">
+                  Attach reference images with the paperclip, by pasting, or by dropping
+                  them here — vision-capable models (look for the Eye icon next to a model)
+                  will use them as visual context.
                 </p>
               </div>
 
@@ -632,10 +742,27 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             </div>
           )}
           {agentBusy && <SteerInput />}
-        </div>
-      </ScrollArea>
+          </div>
+        </ScrollArea>
 
-      {/* Input — minimal chrome. Send button only appears when there's input. */}
+        {/* Jump-to-latest pill — ChatGPT/Claude pattern. Shown only while the
+            user has scrolled away from the bottom (auto-follow is paused);
+            clicking re-engages follow + scrolls down. */}
+        {showJump && (
+          <button
+            onClick={jumpToLatest}
+            aria-label="Jump to latest message"
+            title="Jump to latest"
+            className="absolute bottom-3 right-3 z-20 flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium ac-surface-0 ac-border-default shadow-md hover:ac-surface-1 ac-transition ac-focus-ring ac-text-2"
+          >
+            <ArrowDown className="h-3 w-3" />
+            Latest
+          </button>
+        )}
+      </div>
+
+      {/* Input — minimal chrome. Paperclip (image attach) always visible;
+          Send appears when there's text OR staged attachments. */}
       <div className="border-t ac-border-subtle p-2 ac-surface-0">
         {/* Slash-command autocomplete — floats above the textarea. */}
         {cmdMenuOpen && (
@@ -679,6 +806,46 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
           </div>
         )}
         <div className="rounded-lg border ac-border-default ac-surface-0 focus-within:ac-border-strong ac-transition shadow-sm">
+          {/* Staged attachment previews — thumbnails with remove ×, name +
+              compacted size. ChatGPT/Claude pattern; max 4 per message. */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 px-2 pt-2">
+              {attachments.map((att) => (
+                <div
+                  key={att.id}
+                  className="group/att relative rounded-md border ac-border-subtle overflow-hidden ac-surface-1"
+                  title={`${att.name} · ${formatDataUrlSize(att.dataUrl)}`}
+                >
+                          <img src={att.dataUrl} alt={att.name} className="h-14 w-14 object-cover" />
+                  <button
+                    onClick={() => removeAttachment(att.id)}
+                    aria-label={`Remove ${att.name}`}
+                    title="Remove attachment"
+                    className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/70 text-white opacity-0 group-hover/att:opacity-100 transition-opacity ac-focus-ring"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                  <div className="absolute bottom-0 inset-x-0 px-1 py-px bg-black/70 text-white text-[8px] font-mono truncate">
+                    {formatDataUrlSize(att.dataUrl)}
+                  </div>
+                </div>
+              ))}
+              {attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE && (
+                <div className="flex items-center px-1 text-[9px] ac-text-4">max {MAX_ATTACHMENTS_PER_MESSAGE}</div>
+              )}
+            </div>
+          )}
+          {/* Vision guard — LM Studio/Cursor pattern: warn (don't block) when
+              images are staged against a model KNOWN to lack image input.
+              Unknown capability (endpoint-only ids) never nags. */}
+          {attachments.length > 0 && modelAcceptsImages === false && (
+            <div className="flex items-center gap-1.5 mx-2 mt-2 px-2 py-1 rounded-md text-[10px] ac-text-warning ac-surface-1 border ac-border-subtle">
+              <TriangleAlert className="h-3 w-3 flex-shrink-0" />
+              <span className="leading-snug">
+                {guardModelId} doesn’t accept image input — switch to a vision model (Eye) to use attachments.
+              </span>
+            </div>
+          )}
           <Textarea
             ref={inputRef}
             value={input}
@@ -689,7 +856,16 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               // Editing text manually exits history-navigation mode.
               if (historyCursor !== -1) setHistoryCursor(-1);
             }}
-            placeholder="Ask the agent to design something…  (⌘K for prompts)"
+            // Paste-to-attach (ChatGPT/Claude/Cursor pattern): clipboard image
+            // files stage as attachments instead of being dropped on the floor.
+            onPaste={(e) => {
+              const files = imageFilesFromDataTransfer(e.clipboardData);
+              if (files.length > 0) {
+                e.preventDefault();
+                void addFiles(files);
+              }
+            }}
+            placeholder="Ask the agent to design something…  (⌘K for prompts · paste images to attach)"
             className="text-xs resize-none min-h-[44px] max-h-[120px] border-0 shadow-none focus-visible:ring-0 ac-text-2 placeholder:ac-text-4 bg-transparent"
             disabled={agentBusy}
             onKeyDown={(e) => {
@@ -746,11 +922,34 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               }
             }}
           />
-          {/* Action row — only rendered when there's input to send. The
-              placeholder hint inside the textarea already teaches ⌘K behavior,
-              so we don't need a separate "Enter to send" caption. */}
-          {input.trim() && (
-            <div className="flex items-center justify-end px-2 pb-1.5 pt-0.5 border-t ac-border-subtle">
+          {/* Action row — always visible: paperclip (image attach) on the
+              left, Send on the right once there's text OR staged
+              attachments. ChatGPT keeps the attach button permanently
+              available so images can be staged before typing. */}
+          <div className="flex items-center justify-between px-2 pb-1.5 pt-0.5 border-t ac-border-subtle">
+            {/* Hidden file input + paperclip trigger (ChatGPT pattern). */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []);
+                e.target.value = ''; // allow re-selecting the same file
+                void addFiles(files);
+              }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={agentBusy || attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
+              title={`Attach images (${attachments.length}/${MAX_ATTACHMENTS_PER_MESSAGE}) — paste or drop works too`}
+              aria-label="Attach images"
+              className="p-1 -ml-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+            </button>
+            {(input.trim() || attachments.length > 0) && (
               <Button
                 size="sm"
                 onClick={submit}
@@ -761,8 +960,8 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                 <Send className="h-3 w-3 mr-1" />
                 Send
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -783,6 +982,25 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
             </div>
             <div className="flex-1 text-xs ac-text-1 ac-surface-1 rounded-lg rounded-tl-sm p-2">
               {turn.text}
+              {/* Attachment thumbnails (sent images). Click opens the
+                  full-size data URL in a new tab for inspection. */}
+              {turn.images && turn.images.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {turn.images.map((img) => (
+                    <button
+                      key={img.id}
+                      onClick={() => window.open(img.dataUrl, '_blank')}
+                      title={`${img.name} — click to view full size`}
+                      className="relative rounded-md border ac-border-default overflow-hidden ac-focus-ring cursor-zoom-in"
+                    >
+                                  <img src={img.dataUrl} alt={img.name} className="h-20 w-20 object-cover" />
+                      <span className="absolute bottom-0 inset-x-0 px-1 py-px bg-black/70 text-white text-[8px] font-mono truncate">
+                        {img.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {turn.messageId && (
               <button
@@ -810,7 +1028,8 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
             onClick={() => {
               if (!turn.text || agentBusy) return;
               // Re-send the same prompt — the agent will generate a fresh response.
-              promptAgent(turn.text);
+              // Images ride along so vision prompts re-send intact.
+              promptAgent(turn.text, turn.images && turn.images.length > 0 ? turn.images : undefined);
               toast.message('Regenerating…');
             }}
           >
@@ -879,6 +1098,42 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                 )}
               </div>
             )}
+            {/* Failed turn — inline Retry affordance. The error text itself
+                is already appended to the message by the store reducer; this
+                adds the missing one-click recovery (ChatGPT's "Regenerate"
+                on error bubbles). Re-sends the preceding user prompt WITH
+                its attachments. */}
+            {turn.error && !turn.streaming && (
+              <div className="flex items-center justify-between gap-2 rounded-md border ac-border-subtle ac-surface-1 px-2 py-1.5">
+                <span className="flex items-center gap-1.5 text-[10px] ac-text-danger min-w-0">
+                  <TriangleAlert className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate" title={turn.error}>Turn failed</span>
+                </span>
+                <button
+                  disabled={agentBusy}
+                  onClick={() => {
+                    if (agentBusy) return;
+                    const turns = useCanvasStore.getState().turns;
+                    const idx = turns.findIndex((t) => t.id === turn.id);
+                    const userTurn = idx > 0 ? turns[idx - 1] : null;
+                    if (userTurn?.role === 'user' && userTurn.text) {
+                      promptAgent(
+                        userTurn.text,
+                        userTurn.images && userTurn.images.length > 0 ? userTurn.images : undefined,
+                      );
+                      toast.message('Retrying…');
+                    } else {
+                      toast.message('No preceding prompt to retry from');
+                    }
+                  }}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ac-text-2 ac-surface-2 hover:ac-text-1 ac-transition ac-focus-ring disabled:opacity-40 flex-shrink-0"
+                  title="Re-send the previous prompt (with its attachments)"
+                >
+                  <RotateCcw className="h-2.5 w-2.5" />
+                  Retry
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </ContextMenuTrigger>
@@ -900,7 +1155,10 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
             const idx = turns.findIndex((t) => t.id === turn.id);
             const userTurn = idx > 0 ? turns[idx - 1] : null;
             if (userTurn?.role === 'user' && userTurn.text) {
-              promptAgent(userTurn.text);
+              promptAgent(
+                userTurn.text,
+                userTurn.images && userTurn.images.length > 0 ? userTurn.images : undefined,
+              );
               toast.message('Regenerating…');
             } else {
               toast.message('No preceding prompt to regenerate from');

@@ -133,6 +133,10 @@ export interface Message {
   role: MessageRole;
   /// Final text of the message (accumulated from deltas).
   text: string;
+  /// Image attachments staged with this user message (paste / drop /
+  /// paperclip). Compact data URLs — persisted via the localStorage cache;
+  /// the server DB copy stores text only (images are session-local).
+  images?: import('../agent/attachments').AttachedImage[];
   /// Tool calls emitted by this message (assistant messages only).
   toolCalls: ToolCallRecord[];
   status: MessageStatus;

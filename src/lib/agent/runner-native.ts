@@ -77,6 +77,7 @@ import {
 } from './skills';
 import { resolveModel, resolveZaiSandboxFallback } from './pi-ai-model-resolver';
 import { subscribeAndTranslate } from './agent-session-translator';
+import { dataUrlToImageContent } from './attachments';
 import type { AgentStreamEvent, AgentRunOptions } from './runner-types';
 import {
   normalizeCanvas,
@@ -512,6 +513,29 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const userMessage = webResearchSummary
     ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${prompt}`
     : prompt;
+  // The message actually sent to session.prompt() — the user message with
+  // an attachment note appended when images ride along (see below).
+  let userMessageWithAttachments = userMessage;
+
+  // Image attachments (Task: vision-capable chat) — convert the compact
+  // data URLs staged by the client into the pi-ai ImageContent shape.
+  // `session.prompt(text, { images })` attaches them natively; models that
+  // accept image input see them inline with the prompt. Malformed entries
+  // are skipped rather than failing the whole turn (dataUrlToImageContent
+  // returns null for anything that isn't a base64 image data URL).
+  const promptImages = (opts.images ?? [])
+    .map((a) => dataUrlToImageContent(a.dataUrl))
+    .filter((c): c is { type: 'image'; data: string; mimeType: string } => c !== null);
+  if (promptImages.length > 0) {
+    // Make the attachment count visible in the prompt text too — text-only
+    // models (no image input support) still get a mention that images were
+    // attached, which keeps the conversation coherent after a model switch.
+    const names = (opts.images ?? [])
+      .map((a) => a.name ?? 'image')
+      .slice(0, promptImages.length)
+      .join(', ');
+    userMessageWithAttachments = `${userMessage}\n\n[${promptImages.length} image${promptImages.length === 1 ? '' : 's'} attached: ${names}]`;
+  }
 
   const sessionId = opts.documentId ?? `session-${Date.now()}`;
 
@@ -676,10 +700,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     //     finalization).
     try {
       // Kick off the prompt — don't await yet.
-      const promptPromise = session.prompt(userMessage, {
+      const promptPromise = session.prompt(userMessageWithAttachments, {
         // Disable prompt-template expansion — we built the system prompt
         // ourselves and don't want pi to expand `/skill:foo` commands.
         expandPromptTemplates: false,
+        // Image attachments — pi-ai ImageContent parts; vision-capable
+        // models receive them inline with the prompt (PromptOptions.images).
+        ...(promptImages.length > 0 ? { images: promptImages } : {}),
       });
 
       // Drain events as they arrive. The queue's drain() async iterator

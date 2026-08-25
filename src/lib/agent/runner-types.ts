@@ -78,6 +78,11 @@ export interface AgentRunOptions {
   /// / 'auto' / zai-auto). This keeps the existing test suite (which doesn't
   /// pass settings) working without modification.
   settings?: AgentRunSettings;
+  /// Image attachments staged by the user in the chat input (paste, drop,
+  /// or the paperclip). Passed to the pi SDK's session.prompt({ images })
+  /// so vision-capable models see them natively. Entries are compact data
+  /// URLs — see lib/agent/attachments.ts for the client-side pipeline.
+  images?: Array<{ id?: string; name?: string; dataUrl: string }>;
 }
 
 // Type-only re-exports to avoid runtime circular imports. These are imported

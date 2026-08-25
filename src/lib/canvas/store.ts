@@ -31,6 +31,9 @@ export interface ChatTurn {
   role: 'user' | 'assistant';
   /// Final text of the turn. Empty for user turns that only contain tool calls.
   text: string;
+  /// Image attachments staged with this user turn (paste / drop /
+  /// paperclip). Stored as compact data URLs — see attachments.ts.
+  images?: import('../agent/attachments').AttachedImage[];
   /// Tool calls made during this turn (assistant only).
   toolCalls: AgentToolCallEntry[];
   /// Whether the turn is still streaming.
@@ -182,7 +185,7 @@ interface CanvasState {
   init: (documentId: string) => () => void;
   sendPatch: (patch: CanvasPatch) => void;
   select: (ids: string[]) => void;
-  promptAgent: (text: string) => void;
+  promptAgent: (text: string, images?: import('../agent/attachments').AttachedImage[]) => void;
   /// Queue a steering message to be delivered to the agent mid-turn.
   /// The agent will receive this after its current tool batch, before the
   /// next LLM call — letting the user redirect without waiting for the
@@ -353,7 +356,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   select: (ids) => set({ selectedIds: ids }),
 
-  promptAgent: (text) => {
+  promptAgent: (text, images) => {
     const { socket, connected, documentId, activeSessionId, document } = get();
 
     // Ensure we have an active session.
@@ -376,7 +379,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // Auto-title if this is the first message.
     useSessionStore.getState().autoTitleFromPrompt(sessionId, text);
     // Append user message + assistant placeholder.
-    const userMsg = useSessionStore.getState().appendUserMessage(sessionId, run.id, text);
+    const userMsg = useSessionStore.getState().appendUserMessage(sessionId, run.id, text, images);
     const assistantMsg = useSessionStore.getState().appendAssistantMessage(sessionId, run.id);
 
     // Mirror into the live `turns` buffer.
@@ -384,6 +387,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       id: userMsg.id,
       role: 'user',
       text,
+      // Attachments travel with the turn so every viewer (and the session
+      // history) can render the thumbnails.
+      ...(images && images.length > 0 ? { images } : {}),
       toolCalls: [],
       streaming: false,
       sessionId,
@@ -420,6 +426,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         documentId,
         prompt: text,
         settings,
+        // Image attachments — the sync server forwards them to /api/agent,
+        // which hands them to the runner → session.prompt({ images }).
+        ...(images && images.length > 0 ? { images } : {}),
       } satisfies ClientEvent);
       return;
     }
@@ -433,7 +442,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         const res = await fetch('/api/agent', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ documentId, prompt: text, canvasState: get().document, settings }),
+          body: JSON.stringify({
+            documentId,
+            prompt: text,
+            canvasState: get().document,
+            settings,
+            ...(images && images.length > 0 ? { images } : {}),
+          }),
           signal,
         });
         if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -685,6 +700,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         id: m.id,
         role: m.role === 'user' ? 'user' : 'assistant',
         text: m.text,
+        // Attachments persist on the session-store message (localStorage)
+        // — rehydrate them into the live turn so history keeps its thumbnails.
+        ...(m.images && m.images.length > 0 ? { images: m.images } : {}),
         toolCalls,
         streaming: m.status === 'streaming',
         error: m.error,

@@ -99,8 +99,8 @@ export function startCanvasSyncService() {
           break;
         }
         case 'agent:prompt': {
-          console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${event.prompt.slice(0, 80)}…`);
-          driveAgent(event.documentId, event.prompt, event.settings).catch((err) => {
+          console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${event.prompt.slice(0, 80)}… (images: ${event.images?.length ?? 0})`);
+          driveAgent(event.documentId, event.prompt, event.settings, event.images).catch((err) => {
             console.error('[canvas-sync] agent drive failed:', err);
           });
           break;
@@ -145,7 +145,12 @@ export function startCanvasSyncService() {
 // Calls the Next.js /api/agent route over HTTP and bridges the NDJSON
 // stream back out as socket.io `sync` events.
 
-async function driveAgent(documentId: string, prompt: string, settings?: import('../settings/types').AgentRunSettings) {
+async function driveAgent(
+  documentId: string,
+  prompt: string,
+  settings?: import('../settings/types').AgentRunSettings,
+  images?: Array<{ id?: string; name?: string; dataUrl: string }>,
+) {
   const state = ensureDocument(documentId);
 
   const fanout = (event: SyncEvent) => {
@@ -161,7 +166,9 @@ async function driveAgent(documentId: string, prompt: string, settings?: import(
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings }),
+    // `images` rides along in the body — compact data URLs produced by the
+    // client's downscale pipeline (lib/agent/attachments.ts).
+    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings, images }),
   });
 
   if (!res.ok || !res.body) {

@@ -71,6 +71,23 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Image attachments — compact data URLs staged by the chat input
+  // (paste / drop / paperclip). Validated defensively: only entries whose
+  // dataUrl parses as a base64 image reach the runner.
+  const images: Array<{ id?: string; name?: string; dataUrl: string }> = Array.isArray(body.images)
+    ? body.images
+        .filter(
+          (a: any) =>
+            a && typeof a.dataUrl === 'string' && a.dataUrl.startsWith('data:image/'),
+        )
+        .slice(0, 4)
+        .map((a: any) => ({
+          ...(typeof a.id === 'string' ? { id: a.id } : {}),
+          ...(typeof a.name === 'string' ? { name: a.name } : {}),
+          dataUrl: a.dataUrl,
+        }))
+    : [];
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -79,7 +96,7 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        for await (const ev of runAgent({ documentId, prompt, canvas, settings })) {
+        for await (const ev of runAgent({ documentId, prompt, canvas, settings, images })) {
           if (ev.kind === 'patch') {
             send({ type: 'patch', patch: ev.patch, toolCallId: ev.toolCallId });
           } else {

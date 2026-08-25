@@ -26,8 +26,9 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSettings } from '@/lib/settings/store';
 import { useModelCatalog } from '@/hooks/use-model-catalog';
+import { modelSupportsImages } from '@/lib/agent/attachments';
 import {
-  Check, ChevronDown, Cpu, Loader2, RefreshCw, Search, Settings2, Zap, TriangleAlert,
+  Brain, Check, ChevronDown, Cpu, Eye, Loader2, RefreshCw, Search, Settings2, Zap, TriangleAlert,
 } from 'lucide-react';
 
 /// Compact token formatting (matches AgentPanel's inlined helper).
@@ -36,6 +37,50 @@ function fmtTokens(tokens: number | null): string {
   if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(tokens % 1_000_000 === 0 ? 0 : 1)}M`;
   if (tokens >= 1000) return `${(tokens / 1000).toFixed(tokens % 1000 === 0 ? 0 : 1)}K`;
   return String(tokens);
+}
+
+// ==== Capability icons =======================================================
+//
+// How other apps denote multimodal support (researched):
+//
+//   - OpenRouter: capability TAGS on every model card ("vision", "reasoning")
+//     sourced from the model's declared input modalities — the densest
+//     scannable form in a long list.
+//   - LM Studio: shows the image-attach affordance ONLY for vision models,
+//     and tags models with a small "vision" chip in the model list.
+//   - Cursor: model picker rows carry short capability hints; attaching an
+//     image to a text-only model surfaces "Model does not support images".
+//
+// We render icons instead of text tags (the dropdown is space-constrained):
+// an Eye = accepts image input, a Brain = reasoning model. Tooltips carry
+// the full wording for discoverability, and a one-line legend at the bottom
+// of the list teaches the icons on first open.
+
+function CapabilityIcons({ input, reasoning }: { input: string[]; reasoning: boolean }) {
+  const vision = modelSupportsImages(input);
+  if (!vision && !reasoning) return null;
+  return (
+    <span className="flex items-center gap-0.5 flex-shrink-0">
+      {vision && (
+        <span
+          title="Vision — accepts image input (attach screenshots in chat)"
+          aria-label="supports image input"
+          className="inline-flex items-center justify-center ac-text-info"
+        >
+          <Eye className="h-3 w-3" />
+        </span>
+      )}
+      {reasoning && (
+        <span
+          title="Reasoning — extended thinking before answering"
+          aria-label="reasoning model"
+          className="inline-flex items-center justify-center ac-text-3"
+        >
+          <Brain className="h-3 w-3" />
+        </span>
+      )}
+    </span>
+  );
 }
 
 interface ModelOption {
@@ -74,10 +119,11 @@ function ModelRow({
         <span className="block text-[9px] ac-text-4">
           {fmtTokens(model.contextWindow)} ctx
           {model.maxTokens ? ` · ${fmtTokens(model.maxTokens)} out` : ''}
-          {model.reasoning ? ' · reasoning' : ''}
-          {model.input.includes('image') ? ' · vision' : ''}
         </span>
       </span>
+      {/* OpenRouter-style capability tags, icon form — Eye = image input,
+          Brain = reasoning. Tooltips carry the wording. */}
+      <CapabilityIcons input={model.input} reasoning={model.reasoning} />
     </button>
   );
 }
@@ -128,6 +174,17 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
 
   const modelId = activeModel?.modelId ?? configuredModel;
   const usedFallback = activeModel?.usedFallback === true;
+
+  // Vision capability of the CURRENT model — looked up from the catalog
+  // listing (same metadata the rows render). Unknown when the listing
+  // hasn't loaded or the model isn't in the catalog (endpoint-only ids) —
+  // in that case we show no eye rather than a wrong one (LM Studio only
+  // marks models it KNOWS are vision-capable).
+  const currentModelEntry = [...(data?.provider.models ?? []), ...(data?.zaiSandbox?.models ?? [])]
+    .find((m) => m.id === modelId);
+  const currentModelVision = currentModelEntry
+    ? modelSupportsImages(currentModelEntry.input)
+    : false;
 
   // Switch handler — applies to the NEXT turn (Cursor behavior). Reset the
   // resolved-model state so the badge immediately reflects the selection,
@@ -190,6 +247,16 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
         >
           <Cpu className="h-3 w-3 flex-shrink-0" />
           <span className="max-w-[110px] truncate">{modelId}</span>
+          {/* Vision indicator — Eye when the current model accepts image
+              input (signals that the attach button / paste will work). */}
+          {currentModelVision && (
+            <span
+              className="flex-shrink-0 ac-text-info"
+              title="Vision — this model accepts image input (paste or attach images in chat)"
+            >
+              <Eye className="h-2.5 w-2.5" />
+            </span>
+          )}
           {usedFallback && (
             <span className="flex-shrink-0" title="Endpoint was unreachable — z.ai sandbox fallback model in use">
               <Zap className="h-2.5 w-2.5" />
@@ -305,8 +372,21 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
           )}
         </div>
 
+        {/* Legend — teaches the capability icons (a single quiet line between
+            the list and the footer so it's visible without hovering). */}
+        <div className="flex items-center gap-3 px-1.5 pt-1.5 mt-1 border-t ac-border-subtle text-[9px] ac-text-4">
+          <span className="flex items-center gap-1">
+            <Eye className="h-2.5 w-2.5 ac-text-info" />
+            image input
+          </span>
+          <span className="flex items-center gap-1">
+            <Brain className="h-2.5 w-2.5 ac-text-3" />
+            reasoning
+          </span>
+        </div>
+
         {/* Footer: settings escape hatch + next-turn hint (ChatGPT pattern) */}
-        <div className="flex items-center justify-between pt-1.5 mt-1 border-t ac-border-subtle">
+        <div className="flex items-center justify-between pt-1 mt-0.5">
           <button
             onClick={() => {
               setOpen(false);
