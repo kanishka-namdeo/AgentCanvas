@@ -55,6 +55,11 @@ export interface DomCanvasProps {
   /// geometry — default, pixel-comparable with SVG) or 'native' (browser CSS
   /// flexbox for `layout ≠ 'none` containers + measured-bounds readback).
   layoutMode: 'parity' | 'native';
+  /// Outline mode (spec Phase 7, ⌘⇧O): when true the world div carries
+  /// `data-ac-outline` and globals.css strips fills to transparent + adds a
+  /// 1px default-stroke outline on every [data-node-type] element. Text
+  /// keeps its color. DOM-renderer-only feature.
+  outlineMode?: boolean;
   onShapeMouseDown: (e: React.MouseEvent, shape: Shape) => void;
   onResizeHandleMouseDown: (e: React.MouseEvent, shape: Shape, handle: ResizeHandle) => void;
 }
@@ -177,6 +182,7 @@ export function DomCanvas({
   highlightIds,
   viewport,
   layoutMode,
+  outlineMode,
   onShapeMouseDown,
   onResizeHandleMouseDown,
 }: DomCanvasProps) {
@@ -275,6 +281,7 @@ export function DomCanvas({
         ref={worldRef}
         data-ac-world=""
         data-ac-theme={worldThemeAttr(document)}
+        data-ac-outline={outlineMode ? '' : undefined}
         style={{
           position: 'absolute',
           top: 0,

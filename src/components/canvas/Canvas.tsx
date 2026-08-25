@@ -14,6 +14,12 @@
 //   - resize handles on the active selection
 //   - agent-highlight glow (briefly shown when the agent uses canvas_select_shape)
 //   - P0-01/02: right-click context menu (empty canvas + shape variants)
+//   - Phase 7 (spec §6 / Appendix H): marquee selection (⌘-drag = nested),
+//     ⌘+click deep select, Enter/⇧Enter/Tab/⇧Tab hierarchy navigation,
+//     ⇧1/⇧2/⇧0 zoom chords, outline mode (⌘⇧O), pixel grid (⌘') and
+//     snap-to-pixel (⌘⇧') view options, and the K scale tool. All chords are
+//     matched against the single shortcut registry (lib/canvas/shortcuts.ts)
+//     so the keymap and the help dialog can never drift.
 //
 // Local edits emit CanvasPatches via the store so other viewers (and the
 // agent) see them. Agent-originated patches arrive via the same store and
@@ -24,6 +30,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape } from '@/lib/canvas/types';
+import { SHORTCUTS_BY_ACTION, matchShortcut } from '@/lib/canvas/shortcuts';
+import { fitViewport, DEFAULT_VIEWPORT } from '@/lib/canvas/viewport';
+import { scaleGeometry } from '@/lib/canvas/scale';
 import { PenLine, MousePointerClick, Scissors, Copy, ClipboardPaste, Trash2, ArrowUp, ArrowDown, BringToFront, SendToBack, Group as GroupIcon, SquareStack, Lock, Eye } from 'lucide-react';
 import {
   ContextMenu,
@@ -39,7 +48,7 @@ import { DomCanvas } from './dom/DomCanvas';
 import { MIN_SIZE, type ResizeHandle } from './svg/ShapeRenderer';
 
 interface DragState {
-  kind: 'pan' | 'move' | 'resize';
+  kind: 'pan' | 'move' | 'resize' | 'marquee';
   startX: number;
   startY: number;
   /// Original positions of the shapes being moved (canvas-space).
@@ -49,6 +58,13 @@ interface DragState {
   /// Original pan when starting a pan drag.
   panX?: number;
   panY?: number;
+  /// Marquee (Phase 7): current pointer position, container-relative screen
+  /// coords. Updated on mousemove; consumed on mouseup.
+  curX?: number;
+  curY?: number;
+  /// ⌘-drag nested marquee (Phase 7): also selects descendants of
+  /// intersecting groups/frames (Figma's nested-marquee semantics).
+  nested?: boolean;
   /// P2-31: Track whether Alt was held at drag-start. On mouse-up with
   /// altWasDown, the move handler emits a duplicate patch (creating a copy
   /// at the dragged-to position) and reverts the original to its starting
@@ -63,6 +79,11 @@ export function Canvas() {
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const select = useCanvasStore((s) => s.select);
   const toolMode = useCanvasStore((s) => s.toolMode);
+  // Phase 7 view flags (ephemeral store slice — see store.ts).
+  const pixelGridVisible = useCanvasStore((s) => s.pixelGridVisible);
+  const snapToPixel = useCanvasStore((s) => s.snapToPixel);
+  const outlineMode = useCanvasStore((s) => s.outlineMode);
+  const toggleViewFlag = useCanvasStore((s) => s.toggleViewFlag);
   const clipboard = useClipboard();
   // Renderer feature flag (spec Phase 1): 'svg' classic renderer (default) or
   // 'dom' DOM parity-mode renderer. Absent field (pre-flag settings blob)
@@ -97,7 +118,70 @@ export function Canvas() {
     return () => ro.disconnect();
   }, []);
 
-  // Keyboard: space to pan, delete to remove selection, escape to clear.
+  // ---- Phase 7: zoom + hierarchy-navigation helpers ---------------------------
+
+  // Apply a zoom action (⇧1 fit / ⇧2 selection / ⇧0 100% / ⇧+ / ⇧−, plus the
+  // TopMenuBar View items which fire the 'ac:canvas-zoom' CustomEvent — the
+  // viewport state is shell-local, so the menu routes through the shell).
+  const applyZoom = useCallback(
+    (kind: 'fit' | 'selection' | '100' | 'in' | 'out') => {
+      if (kind === 'fit') {
+        setViewport(fitViewport(document.shapes ?? [], size));
+      } else if (kind === 'selection') {
+        const selected = (document.shapes ?? []).filter((s) => selectedIds.includes(s.id));
+        if (selected.length > 0) setViewport(fitViewport(selected, size));
+      } else if (kind === '100') {
+        setViewport({ ...DEFAULT_VIEWPORT });
+      } else {
+        setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom * (kind === 'in' ? 1.2 : 1 / 1.2)) }));
+      }
+    },
+    [document.shapes, size, selectedIds],
+  );
+
+  useEffect(() => {
+    const onZoomRequest = (ev: Event) => {
+      const kind = (ev as CustomEvent).detail?.kind as 'fit' | 'selection' | '100' | 'in' | 'out' | undefined;
+      if (kind) applyZoom(kind);
+    };
+    window.addEventListener('ac:canvas-zoom', onZoomRequest);
+    return () => window.removeEventListener('ac:canvas-zoom', onZoomRequest);
+  }, [applyZoom]);
+
+  // Enter/⇧Enter/Tab/⇧Tab hierarchy navigation (spec Phase 7): Enter selects
+  // the topmost child of the selected container; ⇧Enter selects the parent;
+  // Tab/⇧Tab cycle siblings within the same parent (zIndex order, wrapping).
+  const navigateHierarchy = useCallback(
+    (dir: 'child' | 'parent' | 'next' | 'prev') => {
+      if (selectedIds.length !== 1) return;
+      const current = findShape(document, selectedIds[0]);
+      if (!current) return;
+      const shapes = document.shapes ?? [];
+      if (dir === 'child') {
+        const children = shapes
+          .filter((s) => (s.parentId ?? null) === current.id)
+          .sort((a, b) => a.zIndex - b.zIndex);
+        if (children.length > 0) select([children[children.length - 1].id]); // topmost
+      } else if (dir === 'parent') {
+        if (current.parentId) select([current.parentId]);
+      } else {
+        const pid = current.parentId ?? null;
+        const siblings = shapes
+          .filter((s) => (s.parentId ?? null) === pid)
+          .sort((a, b) => a.zIndex - b.zIndex);
+        if (siblings.length < 2) return;
+        const idx = siblings.findIndex((s) => s.id === current.id);
+        if (idx < 0) return;
+        const nextIdx = dir === 'next' ? (idx + 1) % siblings.length : (idx - 1 + siblings.length) % siblings.length;
+        select([siblings[nextIdx].id]);
+      }
+    },
+    [selectedIds, document, select],
+  );
+
+  // Keyboard: space to pan, delete to remove selection, escape to clear,
+  // plus the Phase 7 canvas-scope registry chords (zoom / view options /
+  // hierarchy navigation). App-scope chords live in page.tsx.
   useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
       if (e.code === 'Space' && !isEditableTarget(e.target)) {
@@ -115,6 +199,25 @@ export function Canvas() {
         }
       } else if (e.key === 'Escape') {
         select([]);
+      } else {
+        if (isEditableTarget(e.target)) return;
+        // ---- Registry-driven canvas chords (spec Phase 7 / Appendix H) ----
+        const match = (action: string) => {
+          const def = SHORTCUTS_BY_ACTION.get(action);
+          return def ? matchShortcut(e, def) : false;
+        };
+        if (match('zoom.fit')) { e.preventDefault(); applyZoom('fit'); return; }
+        if (match('zoom.selection')) { e.preventDefault(); applyZoom('selection'); return; }
+        if (match('zoom.100')) { e.preventDefault(); applyZoom('100'); return; }
+        if (match('zoom.in')) { e.preventDefault(); applyZoom('in'); return; }
+        if (match('zoom.out')) { e.preventDefault(); applyZoom('out'); return; }
+        if (match('outline-mode')) { e.preventDefault(); toggleViewFlag('outlineMode'); return; }
+        if (match('pixel-grid')) { e.preventDefault(); toggleViewFlag('pixelGridVisible'); return; }
+        if (match('snap-to-pixel')) { e.preventDefault(); toggleViewFlag('snapToPixel'); return; }
+        if (match('nav.child')) { e.preventDefault(); navigateHierarchy('child'); return; }
+        if (match('nav.parent')) { e.preventDefault(); navigateHierarchy('parent'); return; }
+        if (match('nav.sibling-next')) { e.preventDefault(); navigateHierarchy('next'); return; }
+        if (match('nav.sibling-prev')) { e.preventDefault(); navigateHierarchy('prev'); return; }
       }
     };
     const onUp = (e: KeyboardEvent) => {
@@ -126,7 +229,7 @@ export function Canvas() {
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
     };
-  }, [selectedIds, sendPatch, select]);
+  }, [selectedIds, sendPatch, select, applyZoom, navigateHierarchy, toggleViewFlag]);
 
   // ---- Coordinate conversion -------------------------------------------------
   const screenToCanvas = useCallback(
@@ -185,10 +288,24 @@ export function Canvas() {
 
       if (e.button !== 0) return;
 
-      // Click on empty canvas → clear selection.
-      // (SVG group for shapes handles its own clicks.)
+      // Click on empty canvas → clear selection. In select mode this ALSO
+      // starts a marquee (rubber-band) drag (spec Phase 7): dragging selects
+      // every layer whose bbox intersects the swept rect. ⌘/Ctrl at drag-start
+      // = nested marquee — descendants of intersecting containers are
+      // selected too. (SVG-group click handling is unchanged — shape handlers
+      // stopPropagation so this branch only sees non-shape targets.)
       if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.emptyBg === 'true') {
         select([]);
+        if (toolMode === 'select') {
+          setDragState({
+            kind: 'marquee',
+            startX: sx,
+            startY: sy,
+            curX: sx,
+            curY: sy,
+            nested: e.metaKey || e.ctrlKey,
+          });
+        }
       }
     },
     [spaceDown, toolMode, viewport, select],
@@ -211,6 +328,13 @@ export function Canvas() {
         return;
       }
 
+      // Marquee: track the current pointer (screen space) for rendering; the
+      // actual selection happens on mouse-up.
+      if (dragState.kind === 'marquee') {
+        setDragState({ ...dragState, curX: sx, curY: sy });
+        return;
+      }
+
       const dxCanvas = (sx - dragState.startX) / viewport.zoom;
       const dyCanvas = (sy - dragState.startY) / viewport.zoom;
 
@@ -225,6 +349,12 @@ export function Canvas() {
               newX -= parent.x;
               newY -= parent.y;
             }
+          }
+          // Snap-to-pixel (⌘⇧', spec Phase 7): round drag results to integer
+          // canvas coordinates before the patch is emitted.
+          if (snapToPixel) {
+            newX = Math.round(newX);
+            newY = Math.round(newY);
           }
           const patch: CanvasPatch = {
             op: 'update',
@@ -241,8 +371,55 @@ export function Canvas() {
       } else if (dragState.kind === 'resize' && dragState.originals && dragState.handle) {
         const orig = dragState.originals[0];
         if (!orig) return;
-        let { x, y, width, height } = orig;
         const h = dragState.handle;
+        // Figma-hierarchy: like the move handler, if the resized shape is
+        // nested, convert the new absolute x/y to relative coords by
+        // subtracting the parent's absolute position. Width/height stay the
+        // same — they're not parent-relative.
+        const current = findShape(document, orig.id);
+        const toRelative = (absX: number, absY: number) => {
+          let relX = absX;
+          let relY = absY;
+          if (current?.parentId) {
+            const parent = findShape(document, current.parentId);
+            if (parent) {
+              relX -= parent.x;
+              relY -= parent.y;
+            }
+          }
+          return { relX, relY };
+        };
+
+        if (toolMode === 'scale') {
+          // K scale tool (spec Phase 7): proportional resize — width/height/
+          // fontSize/strokeWidth all multiply by one factor anchored at the
+          // opposite corner (Figma rescale() semantics).
+          const scaled = scaleGeometry(
+            {
+              ...orig,
+              fontSize: current?.fontSize,
+              strokeWidth: current?.strokeWidth,
+            },
+            h,
+            dxCanvas,
+            dyCanvas,
+          );
+          let { x: sx2, y: sy2, width, height } = scaled;
+          if (snapToPixel) {
+            sx2 = Math.round(sx2);
+            sy2 = Math.round(sy2);
+            width = Math.round(width);
+            height = Math.round(height);
+          }
+          const { relX, relY } = toRelative(sx2, sy2);
+          const shape: Record<string, unknown> = { x: relX, y: relY, width, height };
+          if (scaled.fontSize !== undefined) shape.fontSize = scaled.fontSize;
+          if (scaled.strokeWidth !== undefined) shape.strokeWidth = scaled.strokeWidth;
+          sendPatch({ op: 'update', shapeId: orig.id, shape: shape as Partial<Shape>, summary: '' });
+          return;
+        }
+
+        let { x, y, width, height } = orig;
         if (h.includes('e')) width = Math.max(MIN_SIZE, orig.width + dxCanvas);
         if (h.includes('s')) height = Math.max(MIN_SIZE, orig.height + dyCanvas);
         if (h.includes('w')) {
@@ -276,20 +453,15 @@ export function Canvas() {
             width = newWidthFromHeight;
           }
         }
-        // Figma-hierarchy: like the move handler, if the resized shape is
-        // nested, convert the new absolute x/y to relative coords by
-        // subtracting the parent's absolute position. Width/height stay the
-        // same — they're not parent-relative.
-        const current = findShape(document, orig.id);
-        let relX = x;
-        let relY = y;
-        if (current?.parentId) {
-          const parent = findShape(document, current.parentId);
-          if (parent) {
-            relX -= parent.x;
-            relY -= parent.y;
-          }
+        // Snap-to-pixel (⌘⇧', spec Phase 7): round resize results to integer
+        // canvas coordinates before the patch is emitted.
+        if (snapToPixel) {
+          x = Math.round(x);
+          y = Math.round(y);
+          width = Math.round(width);
+          height = Math.round(height);
         }
+        const { relX, relY } = toRelative(x, y);
         const patch: CanvasPatch = {
           op: 'update',
           shapeId: orig.id,
@@ -299,10 +471,54 @@ export function Canvas() {
         sendPatch(patch);
       }
     },
-    [dragState, viewport.zoom, sendPatch, document],
+    [dragState, viewport.zoom, sendPatch, document, toolMode, snapToPixel],
   );
 
   const onMouseUp = useCallback(() => {
+    // Marquee (spec Phase 7): select every layer whose bbox intersects the
+    // swept rect (partially-intersecting included). The rect corners are
+    // container-relative screen coords; convert to canvas space by inverting
+    // the pan/zoom transform. Nested marquee (⌘-drag) additionally selects
+    // all descendants of intersecting containers.
+    if (dragState?.kind === 'marquee') {
+      const x0 = dragState.startX;
+      const y0 = dragState.startY;
+      const x1 = dragState.curX ?? dragState.startX;
+      const y1 = dragState.curY ?? dragState.startY;
+      const isDrag = Math.abs(x1 - x0) > 2 || Math.abs(y1 - y0) > 2;
+      if (isDrag) {
+        const cx0 = (Math.min(x0, x1) - viewport.panX) / viewport.zoom;
+        const cy0 = (Math.min(y0, y1) - viewport.panY) / viewport.zoom;
+        const cx1 = (Math.max(x0, x1) - viewport.panX) / viewport.zoom;
+        const cy1 = (Math.max(y0, y1) - viewport.panY) / viewport.zoom;
+        const shapes = document.shapes ?? [];
+        const hitIds = new Set(
+          shapes
+            .filter((s) => s.visible !== false)
+            .filter((s) => !(s.x > cx1 || s.x + s.width < cx0 || s.y > cy1 || s.y + s.height < cy0))
+            .map((s) => s.id),
+        );
+        if (dragState.nested) {
+          // Recurse: any shape with an intersecting ANCESTOR joins the
+          // selection (Figma's nested marquee grabs whole subtrees).
+          for (const s of shapes) {
+            if (hitIds.has(s.id)) continue;
+            let p = s.parentId;
+            while (p) {
+              if (hitIds.has(p)) {
+                hitIds.add(s.id);
+                break;
+              }
+              const parent = shapes.find((x) => x.id === p);
+              p = parent?.parentId ?? null;
+            }
+          }
+        }
+        if (hitIds.size > 0) select([...hitIds]);
+      }
+      setDragState(null);
+      return;
+    }
     if (dragState?.kind === 'move' && dragState.originals) {
       // P2-31: If Alt was held at drag-start, emit a duplicate patch (which
       // creates a copy at the current position + 24 offset) and revert the
@@ -328,7 +544,7 @@ export function Canvas() {
       }
     }
     setDragState(null);
-  }, [dragState, sendPatch, document]);
+  }, [dragState, sendPatch, document, viewport, select]);
 
   // ---- Shape interaction handlers -------------------------------------------
   const onShapeMouseDown = useCallback(
@@ -340,6 +556,27 @@ export function Canvas() {
       if (!rect) return;
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
+
+      // Deep select (spec Phase 7 / Appendix H): ⌘/Ctrl+click cycles the
+      // selection through the ancestor chain instead of re-selecting the top
+      // hit. Robust v1 semantics (same in BOTH renderers):
+      //   1st ⌘+click  → selects the event-target node itself (in the DOM
+      //                  renderer the DEEPEST node's handler fires first and
+      //                  stopPropagation()s, so this is the node under the
+      //                  cursor; in the SVG renderer it's the hit shape).
+      //   2nd ⌘+click  → the clicked node is already selected → select its
+      //                  PARENT (parentId chain up, one hop per click).
+      // No move drag starts on deep-select (Figma: ⌘+click only re-targets).
+      if (e.metaKey || e.ctrlKey) {
+        e.preventDefault();
+        if (selectedIds.includes(shape.id)) {
+          const parent = shape.parentId ? findShape(document, shape.parentId) : undefined;
+          select(parent ? [parent.id] : [shape.id]);
+        } else {
+          select([shape.id]);
+        }
+        return;
+      }
 
       let newSelected: string[];
       if (e.shiftKey) {
@@ -436,17 +673,45 @@ export function Canvas() {
           onMouseLeave={onMouseUp}
           onContextMenu={onContextMenu}
         >
-      {/* Infinite-canvas backdrop grid */}
+      {/* Infinite-canvas backdrop grid (⌘' pixel-grid toggle, spec Phase 7) */}
       <div
         data-empty-bg="true"
         className="absolute inset-0"
         style={{
+          visibility: pixelGridVisible ? 'visible' : 'hidden',
           backgroundImage:
             'radial-gradient(circle, color-mix(in oklch, var(--ac-text-primary) 12%, transparent) 1px, transparent 1px)',
           backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
           backgroundPosition: `${panX}px ${panY}px`,
         }}
       />
+
+      {/* Marquee selection rect (spec Phase 7) — screen-space, accent border
+          + translucent fill from the selection tokens. data-ac-marquee is the
+          test/automation selector. */}
+      {dragState?.kind === 'marquee' && (() => {
+        const x = Math.min(dragState.startX, dragState.curX ?? dragState.startX);
+        const y = Math.min(dragState.startY, dragState.curY ?? dragState.startY);
+        const w = Math.abs((dragState.curX ?? dragState.startX) - dragState.startX);
+        const h = Math.abs((dragState.curY ?? dragState.startY) - dragState.startY);
+        if (w < 2 && h < 2) return null;
+        return (
+          <div
+            data-ac-marquee=""
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              width: w,
+              height: h,
+              border: `1px solid var(--ac-canvas-selection)`,
+              backgroundColor: 'color-mix(in oklch, var(--ac-canvas-selection) 12%, transparent)',
+              pointerEvents: 'none',
+              zIndex: 5,
+            }}
+          />
+        );
+      })()}
 
       {/* Empty-canvas drop zone — subtle, screen-centered, fades out when shapes exist. */}
       {document.shapes.length === 0 && (
@@ -511,10 +776,13 @@ export function Canvas() {
           highlightIds={agentHighlightIds}
           viewport={viewport}
           layoutMode={layoutMode}
+          outlineMode={outlineMode}
           onShapeMouseDown={onShapeMouseDown}
           onResizeHandleMouseDown={onResizeHandleMouseDown}
         />
       ) : (
+        // NOTE: outline mode (⌘⇧O) is a DOM-renderer feature — the SVG
+        // renderer has no world attribute to hang [data-ac-outline] on.
         <SvgCanvas
           document={document}
           size={size}

@@ -402,3 +402,15 @@
 /* Tighter gap in space-y-3 (used by PropertiesPanel + AgentPanel bodies) */
 [data-density="compact"] .space-y-3 > * + * { margin-top: 0.5rem; }
 [data-density="compact"] .space-y-2 > * + * { margin-top: 0.375rem; }
+
+/* ─── Outline mode (spec Phase 7, ⌘⇧O — DOM renderer only) ────────────────
+   The world container carries [data-ac-outline] when outline mode is on.
+   Every rendered node ([data-node-type], see Appendix C) drops its fills
+   (background images — gradients/images — AND background colors) to
+   transparent and gains a 1px default-stroke outline, leaving only
+   structure + text visible. Text keeps its color (we never touch `color`). */
+[data-ac-outline] [data-node-type] {
+  background-image: none !important;
+  background-color: transparent !important;
+  outline: 1px solid var(--ac-canvas-default-stroke);
+}

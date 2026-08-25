@@ -151,9 +151,27 @@ interface CanvasState {
   undoStack: CanvasDocument[];
   redoStack: CanvasDocument[];
   /// Active canvas interaction tool. 'select' = click-to-select (default).
-  /// 'pan' = click-and-drag pans the canvas (sticky pan mode). The Space-held
+  /// 'pan' = click-and-drag pans the canvas (sticky pan mode). 'scale' =
+  /// Figma's K tool — resize handles scale the layer proportionally
+  /// (width/height/fontSize/strokeWidth, spec Phase 7). The Space-held
   /// shortcut in Canvas.tsx overrides this temporarily.
-  toolMode: 'select' | 'pan';
+  toolMode: 'select' | 'pan' | 'scale';
+
+  // ---- View flags (spec Phase 7 — Appendix H view options) ------------------
+  /// EPHEMERAL shell-level view state (follows the measuredBounds pattern:
+  /// NOT part of undo snapshots, NOT persisted — they are viewer-chrome
+  /// concerns, not document content).
+  /// ⌘' pixel grid backdrop visibility (default on — preserves pre-Phase-7
+  /// behavior where the grid always rendered).
+  pixelGridVisible: boolean;
+  /// ⌘⇧' snap-to-pixel: drag/resize results are rounded to integer canvas
+  /// coordinates before the patch is emitted (default off).
+  snapToPixel: boolean;
+  /// ⌘⇧O outline mode: fills stripped to transparent + 1px outlines (DOM
+  /// renderer only — see globals.css [data-ac-outline]; default off).
+  outlineMode: boolean;
+  setViewFlag: (flag: 'pixelGridVisible' | 'snapToPixel' | 'outlineMode', value: boolean) => void;
+  toggleViewFlag: (flag: 'pixelGridVisible' | 'snapToPixel' | 'outlineMode') => void;
 
   // ---- Measured-bounds readback (spec §3.8) --------------------------------
   /// REAL browser-measured node sizes keyed by node id (native DOM layout
@@ -245,8 +263,8 @@ interface CanvasState {
   undo: () => void;
   /// Redo a previously undone change. Pops the redo stack.
   redo: () => void;
-  /// Set the active canvas tool mode ('select' or 'pan').
-  setToolMode: (mode: 'select' | 'pan') => void;
+  /// Set the active canvas tool mode ('select', 'pan' or 'scale').
+  setToolMode: (mode: 'select' | 'pan' | 'scale') => void;
   setDocumentName: (name: string) => void;
   /// Switch the active session for this document. Rebuilds `turns` from
   /// the session store's messages and replaces the canvas with the
@@ -460,8 +478,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   undoStack: [],
   redoStack: [],
   toolMode: 'select',
+  pixelGridVisible: true,
+  snapToPixel: false,
+  outlineMode: false,
   measuredBounds: {},
   worldElement: null,
+
+  setViewFlag: (flag, value) => set({ [flag]: value } as Partial<CanvasState>),
+  toggleViewFlag: (flag) =>
+    set((s) => ({ [flag]: !s[flag] } as Partial<CanvasState>)),
 
   setWorldElement: (el) => {
     // Only clear when the SAME element is still registered (a remount may
