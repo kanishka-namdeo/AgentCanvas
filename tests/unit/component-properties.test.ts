@@ -13,10 +13,12 @@
 //   - INSTANCE_SWAP → nested ref target rewrite (+ expansion of the swap)
 //   - VARIANT → component_set ref renders the child variant matching the
 //     instance's property values
+//   - SLOT → bound frame's children replaced with a swapped ref (expands),
+//             bound ref's target rewritten, preferredValues whitelist,
+//             empty value no-op, precedence vs descendants overrides
 //   - Precedence: explicit `descendants` overrides WIN over property-driven
 //     writes (D2 applies after, skipping overridden fields)
 //   - Definitions absent → componentProperties are inert (no interpretation)
-//   - SLOT → TODO no-op (deferred)
 //   - Binding by node NAME (exact + normalized "Show Icon" ≈ "show-icon")
 
 import { describe, it, expect } from 'vitest';
@@ -29,6 +31,7 @@ import type {
   PenComponent,
   PenComponentSet,
   PenFrame,
+  PenRectangle,
   PenRef,
   PenText,
 } from '@/lib/pen/types';
@@ -293,16 +296,6 @@ describe('D2 componentProperties — precedence + safety', () => {
     expect((cloned as { enabled?: boolean }).enabled).toBeUndefined();
   });
 
-  it('SLOT properties are a documented no-op (deferred)', () => {
-    const master: PenComponent = {
-      ...buttonMaster(),
-      componentPropertyDefinitions: { 'show-icon': { type: 'slot', defaultValue: '' } },
-    };
-    const doc = docWith([master]);
-    const ref: PenRef = { id: 'inst', type: 'ref', ref: 'master', x: 0, y: 0, componentProperties: { 'show-icon': 'anything' } };
-    expect(() => expand(ref, doc)).not.toThrow();
-  });
-
   it('nested instances get their own componentProperties applied (recursion)', () => {
     // Outer master contains a nested ref to the button master; the OUTER
     // instance swaps the nested one's icon off via its own properties.
@@ -323,5 +316,205 @@ describe('D2 componentProperties — precedence + safety', () => {
     const iconShape = shapes.find((s) => s.parentId === 'inner-btn' && s.name === 'Show Icon');
     expect(iconShape).toBeDefined();
     expect(iconShape!.visible).toBe(false);
+  });
+});
+
+// ---- SLOT --------------------------------------------------------------------
+
+describe('D2 componentProperties — SLOT swaps the bound slot location', () => {
+  // Standard fixture: master has an `icon-slot` frame (24x24) carrying a
+  // placeholder rectangle; preferredValues whitelist = ['icon-a', 'icon-b'].
+  function slotFrameDoc(): CanvasDocument {
+    const iconA: PenComponent = { id: 'icon-a', type: 'component', reusable: true, name: 'Icon A', x: 0, y: 0, width: 24, height: 24, fill: '#ff0000' };
+    const iconB: PenComponent = { id: 'icon-b', type: 'component', reusable: true, name: 'Icon B', x: 0, y: 0, width: 24, height: 24, fill: '#0000ff' };
+    const placeholder: PenRectangle = {
+      id: 'placeholder-rect', type: 'rectangle', name: 'Placeholder',
+      x: 0, y: 0, width: 24, height: 24, fill: '#ccc',
+    };
+    const placeholderFrame: PenFrame = {
+      id: 'icon-slot', type: 'frame', name: 'Icon Slot',
+      x: 4, y: 4, width: 24, height: 24,
+      children: [placeholder],
+      slot: ['icon-a', 'icon-b'],
+    };
+    const master: PenComponent = {
+      id: 'master', type: 'component', reusable: true, name: 'Button',
+      x: 0, y: 0, width: 80, height: 32,
+      componentPropertyDefinitions: {
+        'icon-slot': { type: 'slot', defaultValue: '', preferredValues: ['icon-a', 'icon-b'] },
+      },
+      children: [placeholderFrame],
+    };
+    return docWith([iconA, iconB, master]);
+  }
+
+  function findSlotFrame(expanded: PenChild): PenFrame | undefined {
+    const kids = (expanded as PenComponent).children ?? [];
+    return kids.find((c) => (c as { _sourceId?: string })._sourceId === 'icon-slot') as PenFrame | undefined;
+  }
+
+  it('SLOT properties with empty value leave placeholder in place', () => {
+    const doc = slotFrameDoc();
+    const ref: PenRef = { id: 'inst', type: 'ref', ref: 'master', x: 0, y: 0, componentProperties: { 'icon-slot': '' } };
+    const expanded = expand(ref, doc)!;
+    const frame = findSlotFrame(expanded!);
+    expect(frame).toBeDefined();
+    // Empty string → slot is "empty", placeholder stays.
+    expect((frame!.children ?? []).length).toBe(1);
+    expect((frame!.children![0] as PenRectangle).type).toBe('rectangle');
+    expect((frame!.children![0] as { _sourceId?: string })._sourceId).toBe('placeholder-rect');
+    expect((frame!.children![0] as PenRectangle).fill).toBe('#ccc');
+  });
+
+  it('SLOT property swaps bound frame children to a ref instance', () => {
+    const doc = slotFrameDoc();
+    const ref: PenRef = { id: 'inst', type: 'ref', ref: 'master', x: 0, y: 0, componentProperties: { 'icon-slot': 'icon-a' } };
+    const expanded = expand(ref, doc)!;
+    const frame = findSlotFrame(expanded!);
+    expect(frame).toBeDefined();
+    // The dropped ref was expanded by `expandNestedRefs` into a full
+    // icon-a component clone — carrying the ref's x/y/w/h (filled the
+    // frame's box) and componentId = swap target.
+    expect((frame!.children ?? []).length).toBe(1);
+    const swapped = frame!.children![0] as PenComponent & { componentId?: string };
+    expect(swapped.type).toBe('component');
+    expect(swapped.componentId).toBe('icon-a');
+    expect(swapped.x).toBe(0);
+    expect(swapped.y).toBe(0);
+    expect(swapped.width).toBe(24);
+    expect(swapped.height).toBe(24);
+    // icon-a's properties carry over (component subtree is cloned, not just
+    // the raw ref node):
+    expect(swapped.fill).toBe('#ff0000');
+  });
+
+  it('SLOT property on a ref-bound descendant rewrites ref target', () => {
+    // Like INSTANCE_SWAP but typed as slot — bound descendant is a nested
+    // ref, the SLOT property rewrites its target.
+    const iconA: PenComponent = { id: 'icon-a', type: 'component', reusable: true, name: 'Icon A', x: 0, y: 0, width: 24, height: 24, fill: '#ff0000' };
+    const iconB: PenComponent = { id: 'icon-b', type: 'component', reusable: true, name: 'Icon B', x: 0, y: 0, width: 24, height: 24, fill: '#0000ff' };
+    const nestedRef: PenRef = { id: 'icon-slot', type: 'ref', ref: 'icon-a', x: 4, y: 4, name: 'Icon Slot' };
+    const master: PenComponent = {
+      id: 'master', type: 'component', reusable: true, name: 'Button',
+      x: 0, y: 0, width: 80, height: 32,
+      componentPropertyDefinitions: {
+        'icon-slot': { type: 'slot', defaultValue: 'icon-a', preferredValues: ['icon-a', 'icon-b'] },
+      },
+      children: [nestedRef],
+    };
+    const doc = docWith([iconA, iconB, master]);
+    const ref: PenRef = { id: 'inst', type: 'ref', ref: 'master', x: 0, y: 0, componentProperties: { 'icon-slot': 'icon-b' } };
+    const expanded = expand(ref, doc)!;
+    // The bound nested ref was rewritten to icon-b, then expanded into the
+    // icon-b component clone (carrying componentId = swapped target).
+    const swapped = findIn([expanded], (expanded as PenComponent).children![0].id) as PenComponent & { componentId?: string };
+    expect(swapped.componentId).toBe('icon-b');
+    expect(swapped.fill).toBe('#0000ff');
+  });
+
+  it('SLOT property with preferredValues whitelist rejects out-of-whitelist value', () => {
+    // Add icon-c to the doc — not in the master's preferredValues whitelist.
+    const base = slotFrameDoc();
+    const iconC: PenComponent = { id: 'icon-c', type: 'component', reusable: true, name: 'Icon C', x: 0, y: 0, width: 24, height: 24, fill: '#00ff00' };
+    const doc = docWith([...base.children, iconC]);
+    const ref: PenRef = { id: 'inst', type: 'ref', ref: 'master', x: 0, y: 0, componentProperties: { 'icon-slot': 'icon-c' } };
+    const expanded = expand(ref, doc)!;
+    const frame = findSlotFrame(expanded!);
+    // Whitelist fail — placeholder rect stays, no swap.
+    expect((frame!.children ?? []).length).toBe(1);
+    expect((frame!.children![0] as PenRectangle).type).toBe('rectangle');
+    expect((frame!.children![0] as { _sourceId?: string })._sourceId).toBe('placeholder-rect');
+    expect((frame!.children![0] as PenRectangle).fill).toBe('#ccc');
+  });
+
+  it('SLOT property value not in preferredValues when preferredValues is absent allows any component', () => {
+    // No preferredValues on the definition → any string component id allowed.
+    const iconC: PenComponent = { id: 'icon-c', type: 'component', reusable: true, name: 'Icon C', x: 0, y: 0, width: 24, height: 24, fill: '#00ff00' };
+    const placeholder: PenRectangle = {
+      id: 'placeholder-rect', type: 'rectangle', name: 'Placeholder',
+      x: 0, y: 0, width: 24, height: 24, fill: '#ccc',
+    };
+    const placeholderFrame: PenFrame = {
+      id: 'icon-slot', type: 'frame', name: 'Icon Slot',
+      x: 4, y: 4, width: 24, height: 24,
+      children: [placeholder],
+    };
+    const master: PenComponent = {
+      id: 'master', type: 'component', reusable: true, name: 'Button',
+      x: 0, y: 0, width: 80, height: 32,
+      // Note: NO preferredValues on the definition.
+      componentPropertyDefinitions: { 'icon-slot': { type: 'slot', defaultValue: '' } },
+      children: [placeholderFrame],
+    };
+    const doc = docWith([iconC, master]);
+    const ref: PenRef = { id: 'inst', type: 'ref', ref: 'master', x: 0, y: 0, componentProperties: { 'icon-slot': 'icon-c' } };
+    const expanded = expand(ref, doc)!;
+    const frame = findSlotFrame(expanded!);
+    expect(frame).toBeDefined();
+    // Swap proceeds — icon-c (which would be rejected if a whitelist existed).
+    const swapped = frame!.children![0] as PenComponent & { componentId?: string };
+    expect(swapped.type).toBe('component');
+    expect(swapped.componentId).toBe('icon-c');
+    expect(swapped.fill).toBe('#00ff00');
+  });
+
+  it('SLOT property with explicit descendants override on children wins', () => {
+    // Instance sets BOTH componentProperties['icon-slot'] = 'icon-a' AND a
+    // descendants override on the bound frame's `children`. The explicit
+    // override wins — children stays as the explicit rect, NOT the swapped
+    // ref expansion.
+    const doc = slotFrameDoc();
+    const explicitRect: PenRectangle = {
+      id: 'explicit-rect', type: 'rectangle', name: 'Explicit',
+      x: 0, y: 0, width: 24, height: 24, fill: '#00ff00',
+    };
+    const ref: PenRef = {
+      id: 'inst', type: 'ref', ref: 'master', x: 0, y: 0,
+      componentProperties: { 'icon-slot': 'icon-a' },
+      // Source-id path from the cloned root → the bound icon-slot frame.
+      descendants: { 'master/icon-slot': { children: [explicitRect] } },
+    };
+    const expanded = expand(ref, doc)!;
+    const frame = findSlotFrame(expanded!);
+    expect(frame).toBeDefined();
+    // Children stays as the explicit rect — NOT the swapped ref expansion.
+    expect((frame!.children ?? []).length).toBe(1);
+    expect((frame!.children![0] as PenRectangle).type).toBe('rectangle');
+    expect((frame!.children![0] as PenRectangle).id).toBe('explicit-rect');
+    expect((frame!.children![0] as PenRectangle).fill).toBe('#00ff00');
+  });
+
+  it('SLOT property on a text-bound descendant is a no-op', () => {
+    // Bound descendant is a text node — not a valid slot location.
+    const label: PenText = {
+      id: 'icon-slot', type: 'text', name: 'Icon Slot',
+      x: 0, y: 0, width: 80, height: 16, content: 'placeholder',
+    };
+    const master: PenComponent = {
+      id: 'master', type: 'component', reusable: true, name: 'Button',
+      x: 0, y: 0, width: 80, height: 32,
+      componentPropertyDefinitions: { 'icon-slot': { type: 'slot', defaultValue: '' } },
+      children: [label],
+    };
+    const doc = docWith([master]);
+    const ref: PenRef = { id: 'inst', type: 'ref', ref: 'master', x: 0, y: 0, componentProperties: { 'icon-slot': 'icon-a' } };
+    const expanded = expand(ref, doc)!;
+    const cloned = ((expanded as PenComponent).children ?? []).find((c) => (c as { _sourceId?: string })._sourceId === 'icon-slot') as PenText;
+    expect(cloned).toBeDefined();
+    expect(cloned.type).toBe('text');
+    // Content unchanged — text nodes aren't slot locations.
+    expect(cloned.content).toBe('placeholder');
+  });
+
+  it('SLOT property with empty string value is a no-op', () => {
+    const doc = slotFrameDoc();
+    const ref: PenRef = { id: 'inst', type: 'ref', ref: 'master', x: 0, y: 0, componentProperties: { 'icon-slot': '' } };
+    expect(() => expand(ref, doc)).not.toThrow();
+    const expanded = expand(ref, doc)!;
+    const frame = findSlotFrame(expanded!);
+    expect(frame).toBeDefined();
+    // No new ref dropped — children stays as the single placeholder rect.
+    expect((frame!.children ?? []).length).toBe(1);
+    expect((frame!.children![0] as PenRectangle).type).toBe('rectangle');
   });
 });

@@ -341,11 +341,11 @@ function expandRefAtDepth(
   (clone as any).componentId = ref.ref;
 
   // D2: interpret the instance's componentProperties (BOOLEAN → descendant
-  // `enabled`, TEXT → descendant `content`, INSTANCE_SWAP → nested ref
-  // target rewrite). Applied AFTER descendants overrides so EXPLICIT
-  // per-instance overrides win over property-driven writes (see
-  // `descendantOverrideSetsField`). SLOT has no rendering semantic yet
-  // (TODO); VARIANT was resolved by the retarget above.
+  // `enabled`, TEXT → descendant `content`, INSTANCE_SWAP / SLOT → nested
+  // ref target rewrite OR slot-location children replacement). Applied
+  // AFTER descendants overrides so EXPLICIT per-instance overrides win
+  // over property-driven writes (see `descendantOverrideSetsField`).
+  // VARIANT was resolved by the retarget above.
   applyComponentProperties(clone, ref, target);
 
   // D3: recursively expand nested refs inside the cloned subtree. The nested
@@ -472,7 +472,9 @@ function findBySourcePath(root: PenChild, segments: string[]): PenChild | null {
 //   INSTANCE_SWAP rewrites a bound descendant ref's `ref` target component id
 //   VARIANT       (component_set refs only) swaps which child variant the ref
 //                 renders — resolved BEFORE cloning in expandRefAtDepth
-//   SLOT          TODO — no rendering semantic in the .pen model yet
+//   SLOT          marks an instance-swap LOCATION: rewrites a bound descendant
+//                 ref's target OR replaces a bound container's children with
+//                 a single new ref instance (preferredValues gates the swap)
 
 /** Normalize a property name / node name for fuzzy binding: lowercase,
  *  alphanumerics only ("Show Icon" ≡ "show-icon" ≡ "showicon"). */
@@ -603,11 +605,65 @@ function applyComponentProperties(clone: PenChild, ref: PenRef, component: PenCh
         // A variant-typed property on a plain component has no set to pick
         // from — nothing to do here.
         break;
-      case 'slot':
-        // TODO(D2 follow-up): SLOT marks an instance-swap LOCATION; the .pen
-        // model has no slot-content wiring yet, so there is no semantic to
-        // apply. Deferred (documented in worklog M2-a).
+      case 'slot': {
+        // SLOT marks an instance-swap LOCATION — a placeholder descendant
+        // inside the component that gets replaced with an instance of the
+        // swapped component when the SLOT property value is set on an
+        // instance (Figma's SLOT property type, added 2024). See
+        // docs/html-dom-renderer.md §5.6 + Appendix G.
+        const bound = findBoundDescendant(clone, name);
+        if (!bound) break;
+        // Value must be a non-empty string — empty string means "slot is
+        // empty", placeholder stays in place.
+        if (typeof value !== 'string' || value === '') break;
+        // preferredValues whitelist (when present) gates which component ids
+        // may be dropped into the slot.
+        if (def.preferredValues && !def.preferredValues.includes(value)) break;
+
+        if (bound.type === 'ref') {
+          // Bound descendant is already a ref — just rewrite its target
+          // (same as instance_swap, simplest case). Precedence: an explicit
+          // per-instance descendants override on `ref` wins.
+          if (descendantOverrideSetsField(ref, clone, bound, 'ref')) break;
+          (bound as PenRef).ref = value;
+          break;
+        }
+
+        if (
+          bound.type === 'frame' ||
+          bound.type === 'group' ||
+          bound.type === 'component' ||
+          bound.type === 'section'
+        ) {
+          // Bound descendant is a container — the slot location. Replace
+          // its `children` with a single new `PenRef` instance that fills
+          // the container. The downstream `expandNestedRefs` walk expands
+          // the new ref into a full subtree clone. Precedence: an explicit
+          // per-instance descendants override on `children` wins.
+          if (descendantOverrideSetsField(ref, clone, bound, 'children')) break;
+          const container = bound as { children?: PenChild[]; width?: number; height?: number };
+          const newRef: PenRef = {
+            id: newId(),
+            type: 'ref',
+            ref: value,
+            x: 0,
+            y: 0,
+          };
+          // Fill the container's box; groups have no inherent size, so the
+          // ref inherits natural sizing from the swapped component.
+          if (typeof container.width === 'number') {
+            (newRef as { width?: number }).width = container.width;
+          }
+          if (typeof container.height === 'number') {
+            (newRef as { height?: number }).height = container.height;
+          }
+          container.children = [newRef];
+          break;
+        }
+
+        // Text / shape / other node types — not a valid slot location.
         break;
+      }
     }
   }
 }
