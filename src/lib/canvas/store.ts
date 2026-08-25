@@ -340,12 +340,21 @@ let agentAbort: AbortController | null = null;
 // unbatched behavior exactly (one undo step per patch). Non-mutating ops
 // (select) don't push undo.
 //
-// Drag-side patches are NOT routed through this queue — `sendPatch` keeps
-// its immediate-apply path for instant drag feedback (a rAF-batched drag
-// patch would introduce a 16ms latency on the cursor → shape sync, which
-// feels laggy). Drag coalescing is a separate Phase 4 follow-up.
-interface QueuedPatch {
+// Drag-side patches (sendPatch) ALSO route through this queue (Phase 4 §4.4
+// item 3) with last-write-wins per shapeId for `update` ops: when a drag
+// fires multiple `update` patches for the same shapeId within one frame,
+// only the LATEST one survives to flush time. The dropped earlier patches
+// also drop their undo entries — so ⌘Z walks back an entire drag gesture
+// as a single undo step (one per frame per shapeId), not 60+ per second of
+// dragging. Socket emit stays immediate (in sendPatch) — only the local
+// apply + undo push are coalesced.
+export interface QueuedPatch {
   patch: CanvasPatch;
+  /// True for sendPatch-driven (local user edits). Used at flush time to
+  /// apply last-write-wins dedup for `update` ops with the same shapeId
+  /// within a single frame. False for _onSync-driven (agent) patches,
+  /// which preserve full per-patch undo semantics (one step per patch).
+  local?: boolean;
 }
 let patchQueue: QueuedPatch[] = [];
 let patchQueueRaf: number | null = null;
@@ -359,11 +368,15 @@ function flushPatchQueue() {
   patchQueueRaf = null;
   patchQueueFlushTimer = null;
   if (patchQueue.length === 0) return;
-  const queued = patchQueue;
+  let queued = patchQueue;
   patchQueue = [];
 
   const state = useCanvasStore.getState();
   const opts = { measuredBounds: state.measuredBounds };
+
+  // Drag-side last-write-wins per shapeId (Phase 4 §4.4 item 3). Pure
+  // function — extracted as `dedupeLocalUpdates` for unit testing.
+  queued = dedupeLocalUpdates(queued);
 
   // Replay serially, capturing pre-states for the undo stack.
   // Per-patch O(N) for the inner recomputeDerived — the win is collapsing
@@ -413,6 +426,37 @@ function flushPatchQueue() {
   }
 }
 
+/**
+ * Drag-side last-write-wins per shapeId (Phase 4 §4.4 item 3). Pure
+ * function — exported for unit testing. Walk the queue from END to START;
+ * for each LOCAL `update` op with a shapeId, keep only the LATEST entry per
+ * shapeId — drop earlier ones from the queue (their pre-states won't reach
+ * the undo stack, so a drag gesture collapses to one undo step per frame
+ * per shapeId, not one per mousemove).
+ *
+ * _onSync-driven (agent) patches are NEVER deduped — their full per-patch
+ * undo semantics are preserved. Non-update ops (add/remove/select/...)
+ * are NEVER deduped either — only `update` ops with the `local` flag set
+ * AND a `shapeId` field participate in the LWW.
+ *
+ * Order is preserved for surviving patches (the unshift keeps the queue in
+ * the original order).
+ */
+export function dedupeLocalUpdates(queued: QueuedPatch[]): QueuedPatch[] {
+  if (!queued.some((q) => q.local && q.patch.op === 'update')) return queued;
+  const seen = new Set<string>();
+  const deduped: QueuedPatch[] = [];
+  for (let i = queued.length - 1; i >= 0; i--) {
+    const q = queued[i];
+    if (q.local && q.patch.op === 'update' && q.patch.shapeId) {
+      if (seen.has(q.patch.shapeId)) continue; // drop — newer one survives
+      seen.add(q.patch.shapeId);
+    }
+    deduped.unshift(q);
+  }
+  return deduped;
+}
+
 /// Enqueue a patch for batched application. Schedules a flush on the next
 /// rAF tick (plus a 4ms trailing setTimeout fallback for when rAF is
 /// throttled by tab backgrounding). Multiple enqueues in the same frame
@@ -426,8 +470,8 @@ function flushPatchQueue() {
 /// practice each _onSync call enqueues + flushes immediately, so the
 /// behavior matches the unbatched path exactly in tests). Production
 /// behavior is the rAF-batched path.
-function enqueuePatch(patch: CanvasPatch) {
-  patchQueue.push({ patch });
+function enqueuePatch(patch: CanvasPatch, local = false) {
+  patchQueue.push({ patch, local });
   // Test envs: drain synchronously. jsdom's rAF is polyfilled and unreliable;
   // vitest's fake timers interact awkwardly with rAF + setTimeout; and the
   // existing test contract (call _onSync, assert state immediately) breaks
@@ -804,20 +848,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     if (socket && connected) {
       socket.emit('client', { type: 'canvas:patch', patch } satisfies ClientEvent);
     }
-    // Apply locally too so the UI feels instant.
-    // Push to undo stack for mutating ops (matches the _onSync behavior).
-    // Non-mutating ops (select) don't push. This ensures undo works for
-    // manual edits made while disconnected from the WS service.
-    const isMutating = patch.op !== 'select';
-    if (isMutating) {
-      set((s) => ({
-        undoStack: [...s.undoStack, s.document].slice(-50),
-        redoStack: [], // clear redo on new mutation
-        document: applyPatchToCanvas(s.document, patch, { measuredBounds: s.measuredBounds }),
-      }));
-    } else {
-      set((s) => ({ document: applyPatchToCanvas(s.document, patch, { measuredBounds: s.measuredBounds }) }));
-    }
+    // Phase 4 §4.4 item 3: route the local apply through the same rAF queue
+    // as _onSync-driven patches. Drag-side `update` ops get last-write-wins
+    // per shapeId within a frame — N mousemove patches for the same shapeId
+    // collapse to ONE patch (and ONE undo entry) per frame per shapeId.
+    // Other ops (add/remove/select/...) preserve full per-patch undo semantics
+    // (one undo step per patch) because the LWW dedup only applies to `update`.
+    // Socket emit ABOVE stays immediate — only the local apply + undo push
+    // are coalesced, so multiplayer collaboration sees no extra latency.
+    enqueuePatch(patch, true);
   },
 
   select: (ids) => set({ selectedIds: ids }),
