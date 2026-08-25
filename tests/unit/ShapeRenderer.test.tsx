@@ -20,7 +20,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
-import { ShapeRenderer } from '@/components/canvas/Canvas';
+import { ShapeRenderer } from '@/components/canvas/svg/ShapeRenderer';
 import type { Shape } from '@/lib/canvas/types';
 
 // ---- Helpers -----------------------------------------------------------------
