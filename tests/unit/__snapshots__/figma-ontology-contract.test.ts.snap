@@ -1,0 +1,398 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`figma-ontology contract — canonical tables > FIGMA_ALIGN_KIND order is sorted-stable (frozen) 1`] = `
+[
+  "LEFT",
+  "RIGHT",
+  "HCENTER",
+  "TOP",
+  "BOTTOM",
+  "VCENTER",
+  "DISTRIBUTE_H",
+  "DISTRIBUTE_V",
+  "TIDY",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_AXIS_ALIGN order is sorted-stable (frozen) 1`] = `
+[
+  "MIN",
+  "CENTER",
+  "MAX",
+  "SPACE_BETWEEN",
+  "SPACE_AROUND",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_BLEND_MODE order is sorted-stable (frozen) 1`] = `
+[
+  "PASS_THROUGH",
+  "NORMAL",
+  "DARKEN",
+  "MULTIPLY",
+  "LINEAR_BURN",
+  "COLOR_BURN",
+  "LIGHTEN",
+  "SCREEN",
+  "LINEAR_DODGE",
+  "COLOR_DODGE",
+  "OVERLAY",
+  "SOFT_LIGHT",
+  "HARD_LIGHT",
+  "DIFFERENCE",
+  "EXCLUSION",
+  "HUE",
+  "SATURATION",
+  "COLOR",
+  "LUMINOSITY",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_COMPONENT_PROPERTY_TYPE order is sorted-stable (frozen) 1`] = `
+[
+  "BOOLEAN",
+  "TEXT",
+  "INSTANCE_SWAP",
+  "VARIANT",
+  "SLOT",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_CONSTRAINT_H order is sorted-stable (frozen) 1`] = `
+[
+  "LEFT",
+  "RIGHT",
+  "CENTER",
+  "LEFT_RIGHT",
+  "SCALE",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_CONSTRAINT_V order is sorted-stable (frozen) 1`] = `
+[
+  "TOP",
+  "BOTTOM",
+  "CENTER",
+  "TOP_BOTTOM",
+  "SCALE",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_EFFECT_TYPE order is sorted-stable (frozen) 1`] = `
+[
+  "DROP_SHADOW",
+  "INNER_SHADOW",
+  "LAYER_BLUR",
+  "BACKGROUND_BLUR",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_LAYOUT_MODE order is sorted-stable (frozen) 1`] = `
+[
+  "NONE",
+  "VERTICAL",
+  "HORIZONTAL",
+  "GRID",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_LAYOUT_POSITIONING order is sorted-stable (frozen) 1`] = `
+[
+  "AUTO",
+  "ABSOLUTE",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_LAYOUT_SIZING order is sorted-stable (frozen) 1`] = `
+[
+  "FIXED",
+  "HUG",
+  "FILL",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_PAINT_TYPE order is sorted-stable (frozen) 1`] = `
+[
+  "SOLID",
+  "GRADIENT_LINEAR",
+  "GRADIENT_RADIAL",
+  "GRADIENT_ANGULAR",
+  "GRADIENT_DIAMOND",
+  "IMAGE",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_SCALE_MODE order is sorted-stable (frozen) 1`] = `
+[
+  "FILL",
+  "FIT",
+  "TILE",
+  "STRETCH",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_TEXT_ALIGN order is sorted-stable (frozen) 1`] = `
+[
+  "LEFT",
+  "CENTER",
+  "RIGHT",
+  "JUSTIFIED",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_TEXT_AUTO_RESIZE order is sorted-stable (frozen) 1`] = `
+[
+  "NONE",
+  "HEIGHT",
+  "WIDTH_AND_HEIGHT",
+]
+`;
+
+exports[`figma-ontology contract — canonical tables > FIGMA_VARIABLE_TYPE order is sorted-stable (frozen) 1`] = `
+[
+  "BOOLEAN",
+  "FLOAT",
+  "STRING",
+  "COLOR",
+]
+`;
+
+exports[`figma-ontology contract — full ontology snapshot (the freeze guard) > the serialized ontology is byte-stable 1`] = `
+"{
+  "domains": {
+    "layoutMode": [
+      "NONE",
+      "VERTICAL",
+      "HORIZONTAL",
+      "GRID"
+    ],
+    "axisAlign": [
+      "MIN",
+      "CENTER",
+      "MAX",
+      "SPACE_BETWEEN",
+      "SPACE_AROUND"
+    ],
+    "layoutSizing": [
+      "FIXED",
+      "HUG",
+      "FILL"
+    ],
+    "layoutPositioning": [
+      "AUTO",
+      "ABSOLUTE"
+    ],
+    "paintType": [
+      "SOLID",
+      "GRADIENT_LINEAR",
+      "GRADIENT_RADIAL",
+      "GRADIENT_ANGULAR",
+      "GRADIENT_DIAMOND",
+      "IMAGE"
+    ],
+    "scaleMode": [
+      "FILL",
+      "FIT",
+      "TILE",
+      "STRETCH"
+    ],
+    "effectType": [
+      "DROP_SHADOW",
+      "INNER_SHADOW",
+      "LAYER_BLUR",
+      "BACKGROUND_BLUR"
+    ],
+    "textAutoResize": [
+      "NONE",
+      "HEIGHT",
+      "WIDTH_AND_HEIGHT"
+    ],
+    "constraintsH": [
+      "LEFT",
+      "RIGHT",
+      "CENTER",
+      "LEFT_RIGHT",
+      "SCALE"
+    ],
+    "constraintsV": [
+      "TOP",
+      "BOTTOM",
+      "CENTER",
+      "TOP_BOTTOM",
+      "SCALE"
+    ],
+    "variableType": [
+      "BOOLEAN",
+      "FLOAT",
+      "STRING",
+      "COLOR"
+    ],
+    "componentPropertyType": [
+      "BOOLEAN",
+      "TEXT",
+      "INSTANCE_SWAP",
+      "VARIANT",
+      "SLOT"
+    ],
+    "blendMode": [
+      "PASS_THROUGH",
+      "NORMAL",
+      "DARKEN",
+      "MULTIPLY",
+      "LINEAR_BURN",
+      "COLOR_BURN",
+      "LIGHTEN",
+      "SCREEN",
+      "LINEAR_DODGE",
+      "COLOR_DODGE",
+      "OVERLAY",
+      "SOFT_LIGHT",
+      "HARD_LIGHT",
+      "DIFFERENCE",
+      "EXCLUSION",
+      "HUE",
+      "SATURATION",
+      "COLOR",
+      "LUMINOSITY"
+    ],
+    "textAlign": [
+      "LEFT",
+      "CENTER",
+      "RIGHT",
+      "JUSTIFIED"
+    ],
+    "alignKind": [
+      "LEFT",
+      "RIGHT",
+      "HCENTER",
+      "TOP",
+      "BOTTOM",
+      "VCENTER",
+      "DISTRIBUTE_H",
+      "DISTRIBUTE_V",
+      "TIDY"
+    ]
+  },
+  "aliases": {
+    "layoutMode": {
+      "none": "NONE",
+      "vertical": "VERTICAL",
+      "horizontal": "HORIZONTAL"
+    },
+    "axisAlign": {
+      "start": "MIN",
+      "center": "CENTER",
+      "end": "MAX",
+      "space_between": "SPACE_BETWEEN",
+      "space_around": "SPACE_AROUND"
+    },
+    "layoutSizing": {
+      "fit_content": "HUG",
+      "fill_container": "FILL"
+    },
+    "layoutPositioning": {
+      "auto": "AUTO",
+      "absolute": "ABSOLUTE"
+    },
+    "paintType": {
+      "color": "SOLID",
+      "linear": "GRADIENT_LINEAR",
+      "radial": "GRADIENT_RADIAL",
+      "angular": "GRADIENT_ANGULAR",
+      "image": "IMAGE"
+    },
+    "scaleMode": {
+      "stretch": "STRETCH",
+      "fill": "FILL",
+      "fit": "FIT"
+    },
+    "effectType": {
+      "inner": "INNER_SHADOW",
+      "outer": "DROP_SHADOW",
+      "blur": "LAYER_BLUR",
+      "background_blur": "BACKGROUND_BLUR"
+    },
+    "textAutoResize": {
+      "auto": "WIDTH_AND_HEIGHT",
+      "fixed-width": "NONE",
+      "fixed-width-height": "HEIGHT"
+    },
+    "constraintsH": {
+      "left": "LEFT",
+      "right": "RIGHT",
+      "center": "CENTER",
+      "scale": "SCALE",
+      "left_right": "LEFT_RIGHT"
+    },
+    "constraintsV": {
+      "top": "TOP",
+      "bottom": "BOTTOM",
+      "center": "CENTER",
+      "scale": "SCALE",
+      "top_bottom": "TOP_BOTTOM"
+    },
+    "variableType": {
+      "color": "COLOR",
+      "number": "FLOAT",
+      "string": "STRING",
+      "boolean": "BOOLEAN"
+    },
+    "componentPropertyType": {
+      "boolean": "BOOLEAN",
+      "text": "TEXT",
+      "instance_swap": "INSTANCE_SWAP",
+      "variant": "VARIANT",
+      "slot": "SLOT"
+    },
+    "blendMode": {
+      "normal": "NORMAL",
+      "darken": "DARKEN",
+      "multiply": "MULTIPLY",
+      "linearBurn": "LINEAR_BURN",
+      "colorBurn": "COLOR_BURN",
+      "light": "LIGHTEN",
+      "lighten": "LIGHTEN",
+      "screen": "SCREEN",
+      "linearDodge": "LINEAR_DODGE",
+      "colorDodge": "COLOR_DODGE",
+      "overlay": "OVERLAY",
+      "softLight": "SOFT_LIGHT",
+      "hardLight": "HARD_LIGHT",
+      "difference": "DIFFERENCE",
+      "exclusion": "EXCLUSION",
+      "hue": "HUE",
+      "saturation": "SATURATION",
+      "color": "COLOR",
+      "luminosity": "LUMINOSITY",
+      "pass_through": "PASS_THROUGH",
+      "pass-through": "PASS_THROUGH"
+    },
+    "textAlign": {
+      "left": "LEFT",
+      "center": "CENTER",
+      "right": "RIGHT",
+      "justify": "JUSTIFIED"
+    },
+    "alignKind": {
+      "left": "LEFT",
+      "right": "RIGHT",
+      "top": "TOP",
+      "bottom": "BOTTOM",
+      "center_h": "HCENTER",
+      "center_v": "VCENTER",
+      "distribute_h": "DISTRIBUTE_H",
+      "distribute_v": "DISTRIBUTE_V"
+    }
+  },
+  "merges": {
+    "blendMode:LIGHTEN": [
+      "light",
+      "lighten"
+    ],
+    "blendMode:PASS_THROUGH": [
+      "pass_through",
+      "pass-through"
+    ]
+  }
+}"
+`;

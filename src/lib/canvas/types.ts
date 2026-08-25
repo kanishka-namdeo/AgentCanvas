@@ -13,9 +13,16 @@
 // the layers/properties panels consume. It carries absolute positions,
 // resolved variable values, expanded ref subtrees, and a depth-first zIndex.
 
-import type { PenChild, PenDocument, PenVariableDef, PenTheme } from '../pen/types';
+import type { PenChild, PenDocument, PenVariableDef, PenTheme, FigmaPaint, FigmaEffect } from '../pen/types';
 import { PEN_FORMAT_VERSION } from '../pen/types';
 import type { AgentRunSettings } from '../settings/types';
+import type {
+  FigmaLayoutMode,
+  FigmaAxisAlign,
+  FigmaLayoutSizing,
+  FigmaLayoutPositioning,
+  FigmaTextAutoResize,
+} from '../pen/figma-ontology';
 
 // ---- Resolved render layer (what the renderer sees) -----------------------
 //
@@ -91,9 +98,14 @@ export interface ShadowEffect {
 /// the equivalent vertical set). Stored on the .pen node as an opaque
 /// property; the renderer does not yet enforce these, but the agent and the
 /// Properties panel can read and edit them.
+///
+/// The union carries BOTH spellings during the Phase 6 dual-field window:
+/// legacy lowercase (the stored form legacy readers match on) + canonical
+/// SCREAMING (accepted at every parse boundary via pen/normalize.ts; the
+/// v3 migration writes it into serialized files).
 export interface Constraints {
-  horizontal: 'left' | 'right' | 'center' | 'scale' | 'left_right';
-  vertical: 'top' | 'bottom' | 'center' | 'scale' | 'top_bottom';
+  horizontal: 'left' | 'right' | 'center' | 'scale' | 'left_right' | 'LEFT' | 'RIGHT' | 'CENTER' | 'SCALE' | 'LEFT_RIGHT';
+  vertical: 'top' | 'bottom' | 'center' | 'scale' | 'top_bottom' | 'TOP' | 'BOTTOM' | 'CENTER' | 'SCALE' | 'TOP_BOTTOM';
 }
 
 /// A resolved render layer — the flattened, absolutely-positioned view of a
@@ -167,6 +179,38 @@ export interface Layer {
   innerRadiusRatio?: number | null;
   polygonCount?: number | null;
   exportSettings?: Array<{ format: 'png' | 'svg' | 'pdf' | 'jpg'; suffix?: string; scale?: number }> | null;
+  // ---- Figma ontology v3 mirrors (spec Phase 6 part 1 — dual-field window) ----
+  // Populated by resolvePenTree ALONGSIDE the legacy fields above (single
+  // source, two projections — spec §9.3 #3). Legacy fields are unchanged;
+  // consumers migrate one-by-one to the v3 mirrors in part 2.
+  /// v3: NONE | VERTICAL | HORIZONTAL — mirrors `autoLayout.direction` (null layout → NONE).
+  layoutMode?: FigmaLayoutMode | null;
+  /// v3: main-axis gap. Mirrors `autoLayout.gap`.
+  itemSpacing?: number | null;
+  /// v3: per-side padding. Mirrors the expanded `autoLayout.padding`.
+  paddingLeft?: number | null;
+  paddingRight?: number | null;
+  paddingTop?: number | null;
+  paddingBottom?: number | null;
+  /// v3: primary-axis alignment. Mirrors `autoLayout.alignX`.
+  primaryAxisAlignItems?: FigmaAxisAlign | null;
+  /// v3: counter-axis alignment. Mirrors `autoLayout.alignY`.
+  counterAxisAlignItems?: FigmaAxisAlign | null;
+  /// v3: per-axis sizing mode (HUG ← fit_content, FILL ← fill_container, FIXED ← number).
+  layoutSizingHorizontal?: FigmaLayoutSizing | null;
+  layoutSizingVertical?: FigmaLayoutSizing | null;
+  /// v3: AUTO | ABSOLUTE. Mirrors the .pen node's `layoutPosition`.
+  layoutPositioning?: FigmaLayoutPositioning | null;
+  /// v3: text content. Mirrors `text` (Figma TextNode.characters).
+  characters?: string | null;
+  /// v3: NONE | HEIGHT | WIDTH_AND_HEIGHT. Mirrors the .pen node's `textGrowth`.
+  textAutoResize?: FigmaTextAutoResize | null;
+  /// v3: [TL, TR, BR, BL]. Mirrors the `radii` object.
+  rectangleCornerRadii?: [number, number, number, number] | null;
+  /// v3: the resolved paint array. Mirrors `fill` / `gradient` (SOLID or typed gradient).
+  fills?: FigmaPaint[] | null;
+  /// v3: resolved typed effect entries. Mirrors `shadow` / `blur`.
+  effects?: FigmaEffect[] | null;
 }
 
 /// DEPRECATED alias — use `Layer` in new code. The resolved render node type.
@@ -344,7 +388,12 @@ export interface CanvasPatch {
   viewport?: Viewport;
   tokens?: Partial<DesignTokens>;
   groupId?: string;
-  alignKind?: 'left' | 'center_h' | 'right' | 'top' | 'center_v' | 'bottom' | 'distribute_h' | 'distribute_v';
+  alignKind?:
+    | 'left' | 'center_h' | 'right' | 'top' | 'center_v' | 'bottom' | 'distribute_h' | 'distribute_v'
+    // Figma-canonical values (spec Phase 6 / Appendix G §G.2) — accepted at
+    // the patch boundary via pen/normalize.ts; legacy values stay valid
+    // during the dual-field window.
+    | 'LEFT' | 'RIGHT' | 'HCENTER' | 'TOP' | 'BOTTOM' | 'VCENTER' | 'DISTRIBUTE_H' | 'DISTRIBUTE_V' | 'TIDY';
   zorderKind?: 'front' | 'back' | 'forward' | 'backward';
   zIndex?: number;
   // New .pen-aligned fields:
@@ -352,7 +401,7 @@ export interface CanvasPatch {
   themeValues?: string[];                // for set_theme_axis
   theme?: PenTheme;                      // for set_node_theme
   variableKey?: string;                  // for set_variable
-  variableType?: 'color' | 'number' | 'string' | 'boolean';
+  variableType?: 'color' | 'number' | 'string' | 'boolean' | 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
   variableValue?: string | number | boolean | Array<{ value: string | number | boolean; theme?: PenTheme }>;
   slotComponents?: string[];             // for mark_slot
   // Figma-hierarchy fields:

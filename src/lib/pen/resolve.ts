@@ -27,9 +27,19 @@ import type {
   PenVariableDef,
   PenThemedValue,
   PenRef,
+  FigmaPaint,
+  FigmaEffect,
 } from './types';
 import type { Shape, Layer, CanvasDocument, AutoLayout, GradientFill, ShadowEffect, CornerRadii } from '../canvas/types';
 import { collectComponents, expandRef, walkTree } from './document';
+import {
+  normalizeLayoutMode,
+  normalizeAxisAlign,
+  normalizeLayoutSizing,
+  normalizeLayoutPositioning,
+  normalizeTextAutoResize,
+  gradientAngleToHandles,
+} from './normalize';
 
 // ---- Native-layout tree export (spec Phase 2, §3.2/§3.4) -----------------
 
@@ -407,7 +417,11 @@ function resolvePadding(pad: PenLayout['padding']): Padding {
 //   left_right — child stretches to fill (x = 0, width = contentW)
 
 function applyConstraintH(mode: string, storedX: number, childW: number, contentW: number): number {
-  switch (mode) {
+  // Phase 6 dual-field window: constraints may be stored in EITHER casing
+  // (legacy lowercase from patches; SCREAMING from the v3 migration) —
+  // normalize to lowercase so both spellings hit identical behavior.
+  const m = typeof mode === 'string' ? mode.toLowerCase() : mode;
+  switch (m) {
     case 'right': return contentW - childW - storedX;
     case 'center': return (contentW - childW) / 2;
     case 'scale': return storedX * contentW;
@@ -418,7 +432,9 @@ function applyConstraintH(mode: string, storedX: number, childW: number, content
 }
 
 function applyConstraintV(mode: string, storedY: number, childH: number, contentH: number): number {
-  switch (mode) {
+  // See applyConstraintH — both spellings behave identically.
+  const m = typeof mode === 'string' ? mode.toLowerCase() : mode;
+  switch (m) {
     case 'bottom': return contentH - childH - storedY;
     case 'center': return (contentH - childH) / 2;
     case 'scale': return storedY * contentH;
@@ -774,6 +790,12 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
       // Map .pen-specific fields onto Shape extensions.
       mapNodeExtras(shape, n, vars, theme);
 
+      // ---- Figma ontology v3 mirrors (spec Phase 6 part 1 — dual-field) ----
+      // Same source, two projections: the legacy fields above are UNCHANGED;
+      // the v3 mirrors below let new consumers read canonical vocabulary
+      // without a flag day (spec §9.3 #3).
+      applyV3Mirrors(shape, n);
+
       out.push(shape);
       const kids =
         rn._kids && rn._kids.length > 0
@@ -786,6 +808,150 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
 
   const tree = emit(resolved, null);
   return { layers: out, tree };
+}
+
+// ---- Figma ontology v3 mirrors (spec Phase 6 part 1 — dual-field window) ---
+//
+// Populates the v3 projection on each emitted Shape from the SAME sources
+// the legacy fields above use (or from already-normalized v3 fields when the
+// node carries them — migrated .pen imports and normalized patch inserts do).
+// Purely additive: legacy fields keep their exact pre-Phase-6 values.
+
+function applyV3Mirrors(shape: Shape, node: PenChild): void {
+  const n = node as any;
+  const al = shape.autoLayout;
+
+  // layoutMode: v3 field > autoLayout direction > legacy `layout`.
+  if (n.layoutMode !== undefined) {
+    shape.layoutMode = normalizeLayoutMode(n.layoutMode) as Shape['layoutMode'];
+  } else if (al) {
+    shape.layoutMode = al.direction === 'horizontal' ? 'HORIZONTAL' : 'VERTICAL';
+  } else if (n.layout !== undefined) {
+    shape.layoutMode = normalizeLayoutMode(n.layout) as Shape['layoutMode'];
+  }
+
+  // itemSpacing: v3 field > legacy gap (same source autoLayout.gap uses).
+  if (n.itemSpacing !== undefined) {
+    shape.itemSpacing = typeof n.itemSpacing === 'number' ? n.itemSpacing : num(n.itemSpacing, 0);
+  } else if (al) {
+    shape.itemSpacing = al.gap;
+  } else if (n.gap !== undefined) {
+    shape.itemSpacing = num(n.gap, 0);
+  }
+
+  // Per-side padding: v3 sides > legacy `padding` scalar/tuple expansion
+  // (resolvePadding is the exact function the layout engine uses).
+  const hasV3Pad =
+    n.paddingLeft !== undefined || n.paddingRight !== undefined ||
+    n.paddingTop !== undefined || n.paddingBottom !== undefined;
+  if (hasV3Pad || n.padding !== undefined) {
+    const pad = resolvePadding(n.padding);
+    shape.paddingLeft = n.paddingLeft !== undefined ? num(n.paddingLeft, 0) : pad.left;
+    shape.paddingRight = n.paddingRight !== undefined ? num(n.paddingRight, 0) : pad.right;
+    shape.paddingTop = n.paddingTop !== undefined ? num(n.paddingTop, 0) : pad.top;
+    shape.paddingBottom = n.paddingBottom !== undefined ? num(n.paddingBottom, 0) : pad.bottom;
+  }
+
+  // primaryAxisAlignItems: v3 field > justifyContent > alignX mapping.
+  if (n.primaryAxisAlignItems !== undefined) {
+    shape.primaryAxisAlignItems = normalizeAxisAlign(n.primaryAxisAlignItems) as Shape['primaryAxisAlignItems'];
+  } else if (n.justifyContent !== undefined) {
+    shape.primaryAxisAlignItems = normalizeAxisAlign(n.justifyContent) as Shape['primaryAxisAlignItems'];
+  } else if (al) {
+    shape.primaryAxisAlignItems = al.alignX === 'center' ? 'CENTER' : al.alignX === 'max' ? 'MAX' : 'MIN';
+  }
+
+  // counterAxisAlignItems: v3 field > alignItems > alignY mapping.
+  if (n.counterAxisAlignItems !== undefined) {
+    shape.counterAxisAlignItems = normalizeAxisAlign(n.counterAxisAlignItems) as Shape['counterAxisAlignItems'];
+  } else if (n.alignItems !== undefined) {
+    shape.counterAxisAlignItems = normalizeAxisAlign(n.alignItems) as Shape['counterAxisAlignItems'];
+  } else if (al) {
+    shape.counterAxisAlignItems = al.alignY === 'center' ? 'CENTER' : al.alignY === 'max' ? 'MAX' : 'MIN';
+  }
+
+  // layoutSizing*: v3 field > derived from the sizing strings/numbers.
+  const sizingOf = (v: unknown, v3: unknown): Shape['layoutSizingHorizontal'] => {
+    if (v3 !== undefined) return normalizeLayoutSizing(v3) as Shape['layoutSizingHorizontal'];
+    if (typeof v === 'string') {
+      if (v.startsWith('fit_content')) return 'HUG';
+      if (v.startsWith('fill_container')) return 'FILL';
+      return undefined;
+    }
+    if (typeof v === 'number') return 'FIXED';
+    return undefined;
+  };
+  const sizingH = sizingOf(n.width, n.layoutSizingHorizontal);
+  if (sizingH) shape.layoutSizingHorizontal = sizingH;
+  const sizingV = sizingOf(n.height, n.layoutSizingVertical);
+  if (sizingV) shape.layoutSizingVertical = sizingV;
+
+  // layoutPositioning: v3 field > legacy layoutPosition.
+  if (n.layoutPositioning !== undefined) {
+    shape.layoutPositioning = normalizeLayoutPositioning(n.layoutPositioning) as Shape['layoutPositioning'];
+  } else if (n.layoutPosition !== undefined) {
+    shape.layoutPositioning = normalizeLayoutPositioning(n.layoutPosition) as Shape['layoutPositioning'];
+  }
+
+  // characters: the same content mapTextContent produced for `text`.
+  if (shape.text !== undefined) {
+    shape.characters = shape.text;
+  }
+
+  // textAutoResize: v3 field > legacy textGrowth.
+  if (n.textAutoResize !== undefined) {
+    shape.textAutoResize = normalizeTextAutoResize(n.textAutoResize) as Shape['textAutoResize'];
+  } else if (n.textGrowth !== undefined) {
+    shape.textAutoResize = normalizeTextAutoResize(n.textGrowth) as Shape['textAutoResize'];
+  }
+
+  // rectangleCornerRadii: v3 field > the radii object derived from the tuple.
+  if (Array.isArray(n.rectangleCornerRadii) && n.rectangleCornerRadii.length === 4) {
+    shape.rectangleCornerRadii = [
+      num(n.rectangleCornerRadii[0], 0),
+      num(n.rectangleCornerRadii[1], 0),
+      num(n.rectangleCornerRadii[2], 0),
+      num(n.rectangleCornerRadii[3], 0),
+    ];
+  } else if (shape.radii) {
+    shape.rectangleCornerRadii = [
+      shape.radii.topLeft,
+      shape.radii.topRight,
+      shape.radii.bottomRight,
+      shape.radii.bottomLeft,
+    ];
+  }
+
+  // fills: the single resolved paint array (SOLID from `fill`, or the typed
+  // gradient entry carrying the resolved stops + angle-derived handles).
+  if (shape.gradient) {
+    const g = shape.gradient;
+    const paint: FigmaPaint = {
+      type: g.type === 'radial' ? 'GRADIENT_RADIAL' : 'GRADIENT_LINEAR',
+      gradientStops: g.stops.map((s) => ({ position: s.offset, color: s.color })),
+      gradientHandlePositions: gradientAngleToHandles(g.angle),
+    };
+    shape.fills = [paint];
+  } else {
+    shape.fills = [{ type: 'SOLID', color: shape.fill }];
+  }
+
+  // effects: the resolved shadow/blur as typed entries.
+  const effects: FigmaEffect[] = [];
+  if (shape.shadow) {
+    const s = shape.shadow;
+    effects.push({
+      type: s.inset ? 'INNER_SHADOW' : 'DROP_SHADOW',
+      offset: { x: s.x, y: s.y },
+      radius: s.blur,
+      spread: s.spread ?? 0,
+      color: s.color,
+    });
+  }
+  if (shape.blur && shape.blur > 0) {
+    effects.push({ type: 'LAYER_BLUR', radius: shape.blur });
+  }
+  if (effects.length > 0) shape.effects = effects;
 }
 
 /** Map a .pen node type to our renderer's Layer type. */

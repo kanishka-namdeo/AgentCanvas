@@ -14,8 +14,122 @@
 // Naming convention note: we preserve pen.dev's camelCase property names
 // (layout, justifyContent, cornerRadius, textGrowth, …) verbatim so that
 // objects serialize to/from real .pen files with zero translation.
+//
+// ---- .pen v3 (Figma-canonical vocabulary, spec Phase 6) --------------------
+//
+// AgentCanvas extends the 2.17 schema with Figma-REST-shaped v3 fields
+// (Appendix G §G.1): `layoutMode`/`itemSpacing`/`paddingLeft…`/`fills`/
+// `effects`/`characters`/`visible`/`rectangleCornerRadii`/variable
+// collections/records… The v3 fields are ADDITIVE and OPTIONAL during the
+// Phase 6 dual-field window: every node carries BOTH the legacy spelling
+// (`gap: 8`) and the v3 mirror (`itemSpacing: 8`), so legacy readers (the
+// resolver, panels, tools, tests) keep working unchanged while new code
+// migrates to the canonical vocabulary. Spellings are frozen in
+// figma-ontology.ts (the vocabulary authority); 2.x files import forever via
+// migrate.ts (migrate-on-read).
 
 export const PEN_FORMAT_VERSION = '2.17' as const;
+
+/** Version stamp written by the Figma-canonical (v3) export path. */
+export const PEN_FORMAT_VERSION_V3 = '3.0' as const;
+
+import type {
+  FigmaLayoutMode,
+  FigmaAxisAlign,
+  FigmaLayoutSizing,
+  FigmaLayoutPositioning,
+  FigmaScaleMode,
+  FigmaTextAutoResize,
+  FigmaVariableType,
+  FigmaBlendMode,
+} from './figma-ontology';
+
+// ---- v3 paint / effect / variable shapes ----------------------------------
+
+/** Figma REST `Paint` — v3 fill/stroke entry (type frozen in figma-ontology). */
+export type FigmaPaint =
+  | {
+      type: 'SOLID';
+      color: string;
+      /** Opacity 0..1 (Figma name; legacy used hex alpha only). */
+      solidity?: number;
+      visible?: boolean;
+      opacity?: number;
+      blendMode?: FigmaBlendMode;
+    }
+  | {
+      type: 'GRADIENT_LINEAR' | 'GRADIENT_RADIAL' | 'GRADIENT_ANGULAR' | 'GRADIENT_DIAMOND';
+      gradientStops: Array<{ position: number; color: string }>;
+      /** Normalized object-space handles (TL=(0,0), BR=(1,1)). */
+      gradientHandlePositions: Array<{ x: number; y: number }>;
+      visible?: boolean;
+      opacity?: number;
+      blendMode?: FigmaBlendMode;
+    }
+  | {
+      type: 'IMAGE';
+      scaleMode?: FigmaScaleMode;
+      /** Image URL (our superset: Figma REST uses an imageRef key). */
+      imageRef?: string;
+      url?: string;
+      visible?: boolean;
+      opacity?: number;
+      blendMode?: FigmaBlendMode;
+    }
+  /** Superset entries (§9.1 rule (e)) — .pen shader / mesh_gradient passes through. */
+  | Record<string, unknown>;
+
+/** Figma REST `Effect` — v3 effect entry. */
+export type FigmaEffect =
+  | {
+      type: 'DROP_SHADOW' | 'INNER_SHADOW';
+      offset?: { x: number; y: number };
+      radius?: number;
+      spread?: number;
+      color?: string;
+      visible?: boolean;
+      blendMode?: FigmaBlendMode;
+    }
+  | {
+      type: 'LAYER_BLUR' | 'BACKGROUND_BLUR';
+      radius?: number;
+      visible?: boolean;
+    };
+
+/** Figma REST `VariableAlias` — a value slot bound to another variable. */
+export interface VariableAlias {
+  type: 'VARIABLE_ALIAS';
+  id: string;
+}
+
+/** Figma REST `VariableCollection` — replaces the legacy `themes` axis map. */
+export interface PenVariableCollection {
+  id: string;
+  name: string;
+  modes: Array<{ modeId: string; name: string }>;
+  defaultModeId: string;
+}
+
+/** Figma REST `Variable` — id'd record replacing the legacy `$key` map. */
+export interface PenVariableRecord {
+  id: string;
+  name: string;
+  variableCollectionId: string;
+  resolvedType: FigmaVariableType;
+  valuesByMode: { [modeId: string]: string | number | boolean | VariableAlias };
+  scopes?: string[];
+  codeSyntax?: { [syntax: string]: string };
+  description?: string;
+}
+
+/** Node-level bound-variable slots (replaces legacy `tokenBinding`). */
+export interface PenBoundVariables {
+  fills?: VariableAlias[];
+  strokes?: VariableAlias[];
+  characters?: VariableAlias[];
+  cornerRadius?: VariableAlias[];
+  itemSpacing?: VariableAlias[];
+}
 
 // ---- Theme ----------------------------------------------------------------
 
@@ -72,6 +186,21 @@ export interface PenLayout {
   justifyContent?: 'start' | 'center' | 'end' | 'space_between' | 'space_around';
   /** Cross-axis alignment. Default 'start'. */
   alignItems?: 'start' | 'center' | 'end';
+
+  // ---- v3 mirrors (Figma REST names; dual-carry during the window) ----
+  /** v3: NONE | VERTICAL | HORIZONTAL (+GRID reserved). Mirrors `layout`. */
+  layoutMode?: FigmaLayoutMode;
+  /** v3: main-axis gap. Mirrors `gap`. */
+  itemSpacing?: PenNumberOrVariable;
+  /** v3: per-side padding. Mirrors the `padding` tuple expansion. */
+  paddingLeft?: PenNumberOrVariable;
+  paddingRight?: PenNumberOrVariable;
+  paddingTop?: PenNumberOrVariable;
+  paddingBottom?: PenNumberOrVariable;
+  /** v3: MIN | CENTER | MAX | SPACE_BETWEEN | SPACE_AROUND. Mirrors `justifyContent`. */
+  primaryAxisAlignItems?: FigmaAxisAlign;
+  /** v3: MIN | CENTER | MAX. Mirrors `alignItems`. */
+  counterAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX';
 }
 
 /**
@@ -92,6 +221,11 @@ export interface PenPosition {
 export interface PenSize {
   width?: PenNumberOrVariable | PenSizingBehavior;
   height?: PenNumberOrVariable | PenSizingBehavior;
+
+  // ---- v3 mirrors (Figma REST names) ----
+  /** v3: FIXED | HUG | FILL per axis ('fit_content'→HUG, 'fill_container'→FILL). */
+  layoutSizingHorizontal?: FigmaLayoutSizing;
+  layoutSizingVertical?: FigmaLayoutSizing;
 }
 
 // ---- Graphics -------------------------------------------------------------
@@ -175,6 +309,14 @@ export interface PenCanHaveStroke {
   strokeLinecap?: 'butt' | 'round' | 'square';
   strokeLinejoin?: 'miter' | 'bevel' | 'round';
   strokeAlignment?: 'inner' | 'center' | 'outer';
+
+  // ---- v3 mirrors (Figma REST names) ----
+  /** v3: stroke paint array. Mirrors `stroke`. */
+  strokes?: FigmaPaint[];
+  /** v3: stroke thickness. Mirrors `strokeWidth`. */
+  strokeWeight?:
+    | PenNumberOrVariable
+    | { top?: PenNumberOrVariable; right?: PenNumberOrVariable; bottom?: PenNumberOrVariable; left?: PenNumberOrVariable };
 }
 
 export type PenEffect =
@@ -195,10 +337,18 @@ export type PenEffects = PenEffect | PenEffect[];
 
 export interface PenCanHaveEffects {
   effect?: PenEffects;
+
+  // ---- v3 mirror (Figma REST name) ----
+  /** v3: typed effect entries. Mirrors `effect`. */
+  effects?: FigmaEffect[];
 }
 
 export interface PenCanHaveGraphics extends PenCanHaveEffects, PenCanHaveStroke {
   fill?: PenFills;
+
+  // ---- v3 mirror (Figma REST name) ----
+  /** v3: paint array. Mirrors `fill` (string | entries → typed paints). */
+  fills?: FigmaPaint[];
 }
 
 // ---- Entity (base) --------------------------------------------------------
@@ -220,12 +370,29 @@ export interface PenEntity extends PenPosition {
   metadata?: { type: string; [key: string]: unknown };
   /** Degrees CCW around top-left corner. */
   rotation?: PenNumberOrVariable;
+
+  // ---- v3 mirrors (Figma REST names) ----
+  /** v3: visibility. Mirrors `enabled` (same boolean semantics). */
+  visible?: PenBooleanOrVariable;
+  /** v3: AUTO | ABSOLUTE. Mirrors `layoutPosition`. */
+  layoutPositioning?: FigmaLayoutPositioning;
+  /** v3: node-level blend mode (Figma spellings; groups default PASS_THROUGH). */
+  blendMode?: FigmaBlendMode;
+  /** v3: per-subtree mode resolution. Mirrors `theme` ({axis:value} → {collectionId:modeId}). */
+  explicitVariableModes?: { [collectionId: string]: string };
+  /** v3: variable bindings. Mirrors `tokenBinding` (per-field alias arrays). */
+  boundVariables?: PenBoundVariables;
 }
 
 export interface PenRectangleish extends PenEntity, PenSize, PenCanHaveGraphics {
   cornerRadius?:
     | PenNumberOrVariable
     | [PenNumberOrVariable, PenNumberOrVariable, PenNumberOrVariable, PenNumberOrVariable];
+
+  // ---- v3 mirror (Figma REST name) ----
+  /** v3: [TL, TR, BR, BL]. Mirrors the 4-tuple `cornerRadius` (kept verbatim
+   *  during the window — the tuple is only flattened to a scalar in part 2). */
+  rectangleCornerRadii?: [number, number, number, number];
 }
 
 // ---- Component Properties (Figma-aligned) --------------------------------
@@ -328,6 +495,12 @@ export interface PenText extends PenEntity, PenSize, PenCanHaveGraphics, PenText
    *   'fixed-width-height'— both fixed; may overflow.
    */
   textGrowth?: 'auto' | 'fixed-width' | 'fixed-width-height';
+
+  // ---- v3 mirrors (Figma REST names) ----
+  /** v3: text content. Mirrors `content`. */
+  characters?: PenTextContent;
+  /** v3: NONE | HEIGHT | WIDTH_AND_HEIGHT. Mirrors `textGrowth`. */
+  textAutoResize?: FigmaTextAutoResize;
 }
 
 export interface PenCanHaveChildren {
@@ -484,6 +657,8 @@ export interface PenRef extends PenEntity {
   type: 'ref';
   /** ID of the referenced (reusable) object. */
   ref: string;
+  /** v3 mirror (Figma InstanceNode name): the referenced component's id. */
+  componentId?: string;
   /**
    * Customize descendant properties.
    * - No `type` key  => property overrides applied to that descendant.
@@ -546,11 +721,20 @@ export interface PenPage {
 }
 
 export interface PenDocument {
-  version: typeof PEN_FORMAT_VERSION;
+  /** Format version — '2.17' (legacy) or '3.0' (Figma-canonical). 2.x files
+   *  are migrated on read (pen/migrate.ts); export writes '3.0'. */
+  version: string;
   themes?: { [axis: string]: string[] };
   /** Imported .pen / .lib.pen files: { alias: relativeURI }. */
   imports?: { [alias: string]: string };
   variables?: { [key: string]: PenVariableDef };
+  // ---- v3 mirrors (Figma REST variable model) ----
+  /** v3: replaces `themes` (axis → collection + modes). Dual-carried. */
+  variableCollections?: PenVariableCollection[];
+  /** v3: id'd variable records replacing the `variables` `$key` map. The
+   *  legacy `variables` map keeps its 2.17 shape during the window (the
+   *  resolver/tools read it); `variableRecords` carries the v3 projection. */
+  variableRecords?: PenVariableRecord[];
   /**
    * Top-level children — used for backward compat with single-page .pen files.
    * When `pages` is set, this field is ignored (kept empty).

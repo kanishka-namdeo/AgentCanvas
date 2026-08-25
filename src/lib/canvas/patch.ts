@@ -14,6 +14,7 @@
 import type { CanvasDocument, CanvasPatch, Shape, DesignTokens, ColorToken, TextStyleToken, Constraints } from './types';
 import type { PenChild, PenVariableDef, PenTheme, PenRef, PenComponent, PenComponentSet, PenFrame } from '../pen/types';
 import { resolvePenTree } from '../pen/resolve';
+import { normalizePatchPayload, normalizePenNode } from '../pen/normalize';
 import { findNode, findNodeArray, insertNode, removeNode, updateNode, moveNode, deepCloneNode, newId, collectComponents, walkTree, getAncestorOffset, getAbsolutePosition, isDescendant, expandRef } from '../pen/document';
 
 // ---- Helpers --------------------------------------------------------------
@@ -41,7 +42,12 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
   // (locked, tokenBinding, maskId, points, closed, componentId) — these are
   // carried as opaque node properties so they survive the tree round-trip
   // and are surfaced on resolved Shapes by resolvePenTree.
-  for (const k of ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'opacity', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'strokeAlignment', 'effect', 'reusable', 'theme', 'enabled', 'flipX', 'flipY', 'layoutPosition', 'metadata', 'layout', 'gap', 'padding', 'justifyContent', 'alignItems', 'layoutIncludeStroke', 'clip', 'placeholder', 'slot', 'content', 'fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'fontStyle', 'underline', 'lineHeight', 'textAlign', 'textAlignVertical', 'strikethrough', 'href', 'textGrowth', 'children', 'geometry', 'viewBox', 'fillRule', 'polygonCount', 'cornerRadius', 'innerRadius', 'startAngle', 'sweepAngle', 'library', 'icon', 'weight', 'scriptUri', 'inputs', 'ref', 'descendants', 'context', 'locked', 'tokenBinding', 'maskId', 'points', 'closed', 'componentId', 'src', 'constraints', 'label', 'collapsed', 'pointCount', 'booleanOperationType', 'exportSettings', 'componentPropertyDefinitions', 'componentProperties', 'variantPropertyAxes', 'variantPropertyValues', 'variantLayout']) {
+  for (const k of ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'opacity', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'strokeAlignment', 'effect', 'reusable', 'theme', 'enabled', 'flipX', 'flipY', 'layoutPosition', 'metadata', 'layout', 'gap', 'padding', 'justifyContent', 'alignItems', 'layoutIncludeStroke', 'clip', 'placeholder', 'slot', 'content', 'fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'fontStyle', 'underline', 'lineHeight', 'textAlign', 'textAlignVertical', 'strikethrough', 'href', 'textGrowth', 'children', 'geometry', 'viewBox', 'fillRule', 'polygonCount', 'cornerRadius', 'innerRadius', 'startAngle', 'sweepAngle', 'library', 'icon', 'weight', 'scriptUri', 'inputs', 'ref', 'descendants', 'context', 'locked', 'tokenBinding', 'maskId', 'points', 'closed', 'componentId', 'src', 'constraints', 'label', 'collapsed', 'pointCount', 'booleanOperationType', 'exportSettings', 'componentPropertyDefinitions', 'componentProperties', 'variantPropertyAxes', 'variantPropertyValues', 'variantLayout',
+    // Figma ontology v3 fields (spec Phase 6 part 1) — passed through so
+    // imported/migrated .pen trees survive the patch round-trip; the
+    // dual-carry normalizer (normalizePenNode) keeps them in sync with the
+    // legacy spellings above.
+    'layoutMode', 'itemSpacing', 'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'primaryAxisAlignItems', 'counterAxisAlignItems', 'layoutSizingHorizontal', 'layoutSizingVertical', 'layoutPositioning', 'fills', 'strokes', 'strokeWeight', 'effects', 'rectangleCornerRadii', 'characters', 'textAutoResize', 'visible', 'explicitVariableModes', 'boundVariables', 'blendMode']) {
     if (input[k] !== undefined) out[k] = input[k];
   }
 
@@ -176,6 +182,12 @@ export function applyPatchToCanvas(
   patch: CanvasPatch,
   opts?: ApplyPatchOpts,
 ): CanvasDocument {
+  // Parse-boundary normalization (spec §9.3 #1 / Appendix G §G.4): patch op
+  // names and payload FIELD names are frozen (§5.1) — only enum VALUES
+  // canonicalize (alignKind spelling, constraints casing, variableType
+  // spelling). Pure + total: unknown values pass through unchanged.
+  patch = normalizePatchPayload(patch as unknown as Record<string, unknown>) as CanvasPatch;
+
   // Clone the tree + variables immutably; derived caches recomputed at the end.
   // Defensive: legacy docs / test fixtures may omit `children` — treat as empty tree.
   const next: CanvasDocument = {
@@ -356,14 +368,16 @@ export function applyPatchToCanvas(
       if (targets.length < 2) break;
       const kind = patch.alignKind ?? 'left';
       const updates: Array<{ id: string; newX?: number; newY?: number }> = [];
+      // Canonical (Figma) spellings normalize to the same behavior as their
+      // legacy aliases (Appendix G §G.2) — both cases handled explicitly.
       switch (kind) {
-        case 'left': { const m = Math.min(...targets.map((s) => s.x)); for (const t of targets) updates.push({ id: t.id, newX: m }); break; }
-        case 'right': { const m = Math.max(...targets.map((s) => s.x + s.width)); for (const t of targets) updates.push({ id: t.id, newX: m - t.width }); break; }
-        case 'center_h': { const m = targets.reduce((a, s) => a + s.x + s.width / 2, 0) / targets.length; for (const t of targets) updates.push({ id: t.id, newX: m - t.width / 2 }); break; }
-        case 'top': { const m = Math.min(...targets.map((s) => s.y)); for (const t of targets) updates.push({ id: t.id, newY: m }); break; }
-        case 'bottom': { const m = Math.max(...targets.map((s) => s.y + s.height)); for (const t of targets) updates.push({ id: t.id, newY: m - t.height }); break; }
-        case 'center_v': { const m = targets.reduce((a, s) => a + s.y + s.height / 2, 0) / targets.length; for (const t of targets) updates.push({ id: t.id, newY: m - t.height / 2 }); break; }
-        case 'distribute_h': {
+        case 'left': case 'LEFT': { const m = Math.min(...targets.map((s) => s.x)); for (const t of targets) updates.push({ id: t.id, newX: m }); break; }
+        case 'right': case 'RIGHT': { const m = Math.max(...targets.map((s) => s.x + s.width)); for (const t of targets) updates.push({ id: t.id, newX: m - t.width }); break; }
+        case 'center_h': case 'HCENTER': { const m = targets.reduce((a, s) => a + s.x + s.width / 2, 0) / targets.length; for (const t of targets) updates.push({ id: t.id, newX: m - t.width / 2 }); break; }
+        case 'top': case 'TOP': { const m = Math.min(...targets.map((s) => s.y)); for (const t of targets) updates.push({ id: t.id, newY: m }); break; }
+        case 'bottom': case 'BOTTOM': { const m = Math.max(...targets.map((s) => s.y + s.height)); for (const t of targets) updates.push({ id: t.id, newY: m - t.height }); break; }
+        case 'center_v': case 'VCENTER': { const m = targets.reduce((a, s) => a + s.y + s.height / 2, 0) / targets.length; for (const t of targets) updates.push({ id: t.id, newY: m - t.height / 2 }); break; }
+        case 'distribute_h': case 'DISTRIBUTE_H': {
           const sorted = [...targets].sort((a, b) => a.x - b.x);
           if (sorted.length < 3) break;
           const first = sorted[0], last = sorted[sorted.length - 1];
@@ -374,7 +388,7 @@ export function applyPatchToCanvas(
           for (const s of sorted) { updates.push({ id: s.id, newX: cur }); cur += s.width + gap; }
           break;
         }
-        case 'distribute_v': {
+        case 'distribute_v': case 'DISTRIBUTE_V': {
           const sorted = [...targets].sort((a, b) => a.y - b.y);
           if (sorted.length < 3) break;
           const first = sorted[0], last = sorted[sorted.length - 1];
@@ -383,6 +397,21 @@ export function applyPatchToCanvas(
           const gap = (span - totalH) / (sorted.length - 1);
           let cur = first.y;
           for (const s of sorted) { updates.push({ id: s.id, newY: cur }); cur += s.height + gap; }
+          break;
+        }
+        case 'TIDY': {
+          // Figma "Tidy up" — v1 approximation: behaves as DISTRIBUTE_H on the
+          // selection bbox (same math as distribute_h above).
+          // TODO(spec Phase 7): real tidy semantics — grid re-flow (rows+
+          // columns) when the selection spans multiple visual rows.
+          const sorted = [...targets].sort((a, b) => a.x - b.x);
+          if (sorted.length < 3) break;
+          const first = sorted[0], last = sorted[sorted.length - 1];
+          const span = (last.x + last.width) - first.x;
+          const totalW = sorted.reduce((a, s) => a + s.width, 0);
+          const gap = (span - totalW) / (sorted.length - 1);
+          let cur = first.x;
+          for (const s of sorted) { updates.push({ id: s.id, newX: cur }); cur += s.width + gap; }
           break;
         }
       }
@@ -1001,7 +1030,10 @@ function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, i
       type === 'component_set' || type === 'section' || type === 'boolean_operation') {
     if (!Array.isArray(base.children)) base.children = [];
   }
-  return base as PenChild;
+  // Dual-carry normalization (spec Phase 6 part 1): populate canonical v3
+  // fields (layoutMode/itemSpacing/fills/…) from any legacy spellings on the
+  // payload. Pure + idempotent; legacy fields untouched.
+  return normalizePenNode(base as PenChild);
 }
 
 // ---- Phase 2 component-system helpers -------------------------------------
