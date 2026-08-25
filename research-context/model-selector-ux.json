@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://docs.openwebui.com/alternatives/librechat",
+    "name": "Open WebUI vs LibreChat / Open WebUI",
+    "snippet": "LibreChat if you want a clean, focused multi-provider chat interface with strong model comparison features. Choose Open WebUI if you need a broader platform ...",
+    "host_name": "docs.openwebui.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/LocalLLaMA/comments/1uim2i4/librechat_or_openwebui",
+    "name": "LibreChat or OpenWebUI ? : r/LocalLLaMA - Reddit",
+    "snippet": "Jun 29, 2026 · Open WebUI is moving fast but is a little bit heavier than it probably needs to be. For the time being though it works perfectly well. OpenWebUI vs LibreChat? : r/LocalLLaMA OpenWebUI vs LibreChat : r/selfhosted More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.openwebui.com/features/workspace/models",
+    "name": "Models - Open WebUI",
+    "snippet": "The model picker is searchable, type in the Search a model box to filter a long list, and a custom model is only selectable when its base model is available.",
+    "host_name": "docs.openwebui.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.librechat.ai/docs/configuration/librechat_yaml/object_structure/model_specs",
+    "name": "Model Specs Object Structure - LibreChat",
+    "snippet": "The modelSpecs object helps you provide a simpler UI experience for AI models within your application. The list array contains detailed configurations for each ...",
+    "host_name": "www.librechat.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://onyx.app/insights/openwebui-vs-librechat-vs-onyx",
+    "name": "OpenWebUI vs LibreChat vs Onyx: Full Comparison (2026)",
+    "snippet": "May 7, 2026 · Choosing between OpenWebUI vs LibreChat vs Onyx for self-hosted AI chat? This detailed comparison covers features, connectors, ...",
+    "host_name": "onyx.app",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/open-webui/open-webui/discussions/5902",
+    "name": "Customizable Model Selection for Improved User Experience #5902",
+    "snippet": "Oct 4, 2024 · Open Web UI, the dropdown menu for choosing which model to use always shows all models, The user can then click on the models they would like ... Add default model setting for each user · danny-avila LibreChat ... System-wide custom model settings (lightweight GPTs) #1291 - GitHub More results from github.com",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

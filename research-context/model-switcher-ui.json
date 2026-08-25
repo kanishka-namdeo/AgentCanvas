@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.youtube.com/watch?v=6_eFTT8XS2M",
+    "name": "I'm Canceling Claude Code for GPT-5 in Cursor (Live 4-Hour Test)",
+    "snippet": "Aug 7, 2025 · ... input (vs Opus's $15!) - Automatic Thinking: No special toggle needed for high-level reasoning. - Pro Tier: UNLIMITED GPT-5 access in ChatGPT ...",
+    "host_name": "www.youtube.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cursor.com/help/models-and-usage/available-models",
+    "name": "Available models | Cursor Docs",
+    "snippet": "How do I switch models? ... Open the model selector in your chat or agent panel and choose the model you want, or press CmdCtrl + / to cycle through models. Your ...",
+    "host_name": "cursor.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mindstudio.ai/blog/why-not-switch-models-mid-conversation-ai-coding-agents",
+    "name": "Why You Shouldn't Switch Models Mid-Conversation in AI Coding Agents",
+    "snippet": "May 17, 2026 · Cursor's blog explains why switching models mid-session causes cache misses, out-of-distribution context, and slower turns—and what to do ...",
+    "host_name": "www.mindstudio.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=dV1SFgEXyLs",
+    "name": "Cursor, Claude Code, OpenAI gpt-5 AMA: Workflows + Live Q&A",
+    "snippet": "Aug 17, 2025 · ... model 00:07:31 Using Claude to generate advanced GPT-5 prompts 00:10:38 Why he's moving the community to Polar.sh for payments 00:11:58 Demo ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aiuxplayground.com/pattern/model-selection-ui",
+    "name": "Model Selection UI · Performance AI UX Pattern",
+    "snippet": "Jul 10, 2026 · UI lets users choose which model or tier runs a task (balancing speed, quality, cost, and tools) via a picker in the composer or settings.",
+    "host_name": "aiuxplayground.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/cannot-switch-between-models-during-an-ongoing-chat/122369",
+    "name": "Cannot switch between models during an ongoing chat - Bug Reports",
+    "snippet": "Jul 25, 2025 · Start a conversation with O3 or Claude 3.5 / Claude 4. Use one or more of Cursor's tools. Attempt to switch the model to OpenAI GPT-4.1. OR. use ...",
+    "host_name": "forum.cursor.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ai-learningpath.nstech.com.br/pages/cursor/cursor_models_switching.html",
+    "name": "Cursor: Switching Models - NSTech Learning Path",
+    "snippet": "You can typically switch models in a few ways: Chat Panel Dropdown: Located within the Chat panel (Cmd+L / Ctrl+L), this is ideal for selecting a model for ...",
+    "host_name": "ai-learningpath.nstech.com.br",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1mk7plb/just_recreated_that_gpt5_cursor_demo_in_claude",
+    "name": "Just recreated that GPT-5 Cursor demo in Claude Code - Reddit",
+    "snippet": "Aug 7, 2025 · Cursor demo in Claude Code … switching models when one of them gets stuck can help. plugging it into the UI is easy, designing a good UI is ...",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]
