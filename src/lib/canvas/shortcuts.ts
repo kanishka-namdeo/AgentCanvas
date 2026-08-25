@@ -334,6 +334,13 @@ export const SHORTCUTS: ShortcutDef[] = [
   { action: 'shortcuts-dialog', label: 'Open the keyboard shortcuts cheat sheet', mac: '⌘/', win: 'Ctrl+/', scope: 'app', also: ['⌃⇧?'] },
   { action: 'toggle-left-panel', label: 'Toggle left panel', mac: '⌘⇧1', win: 'Ctrl+Shift+1', scope: 'app', also: ['⌘1'] },
   { action: 'toggle-right-panel', label: 'Toggle right panel', mac: '⌘⇧2', win: 'Ctrl+Shift+2', scope: 'app', also: ['⌘2'] },
+  // --- Sidebar tab selection (Appendix H §H.3 deviation #1) ---
+  // Figma's ⌥1/⌥2/⌥3 select the Layers/Assets/Templates tabs INSIDE the
+  // left sidebar. Our top-level panel toggles stay ⌘⇧1/⌘⇧2 (legacy muscle
+  // memory); these chords switch the LayersPanel's internal Tabs (the
+  // Layers tree ↔ the Assets component grid).
+  { action: 'panel.layers-tab', label: 'Switch left sidebar to Layers tab', mac: '⌥1', win: 'Alt+1', scope: 'app' },
+  { action: 'panel.assets-tab', label: 'Switch left sidebar to Assets tab', mac: '⌥2', win: 'Alt+2', scope: 'app' },
   { action: 'delete', label: 'Delete selection', mac: '⌫', win: 'Del', scope: 'canvas' },
 ];
 

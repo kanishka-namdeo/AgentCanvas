@@ -29,10 +29,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
-import type { CanvasPatch, Shape } from '@/lib/canvas/types';
+import type { CanvasPatch, Shape, Viewport } from '@/lib/canvas/types';
 import { SHORTCUTS_BY_ACTION, matchShortcut } from '@/lib/canvas/shortcuts';
 import { fitViewport, DEFAULT_VIEWPORT } from '@/lib/canvas/viewport';
 import { scaleGeometry } from '@/lib/canvas/scale';
+import {
+  COMPONENT_DRAG_MIME,
+  readComponentIdFromDrop,
+  buildComponentDropPatch,
+} from '@/lib/canvas/assets-drag';
 import { PenLine, MousePointerClick, Scissors, Copy, ClipboardPaste, Trash2, ArrowUp, ArrowDown, BringToFront, SendToBack, Group as GroupIcon, SquareStack, Lock, Eye } from 'lucide-react';
 import {
   ContextMenu,
@@ -125,6 +130,14 @@ export function Canvas() {
   // the empty-canvas and shape variants.
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [contextShape, setContextShape] = useState<Shape | null>(null);
+
+  // Phase 7 §H.1 — Assets panel drop target. When the user drags a reusable
+  // component card from the LayersPanel's Assets tab over the canvas, we
+  // show a dashed accent border around the world (the drop affordance);
+  // on drop we read the component id from the drag payload and emit a
+  // `place_instance` patch (the documented Figma behavior path) that
+  // places a linked instance at the cursor's canvas-space coordinates.
+  const [isDropTarget, setIsDropTarget] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ zoom: 1, panX: 120, panY: 80 });
@@ -762,6 +775,54 @@ export function Canvas() {
     [document.shapes, viewport.panX, viewport.panY, viewport.zoom, selectedIds, select],
   );
 
+  // Phase 7 §H.1 — Assets panel drop handler. HTML5 DnD fires onDragOver
+  // continuously while a drag is in progress; we must call `preventDefault()`
+  // on it (otherwise the browser blocks the drop). We also gate on the
+  // drag carrying our COMPONENT_DRAG_MIME so we don't paint the affordance
+  // for unrelated drags (file drags from the OS, layer-row reparent drags
+  // from the LayersPanel tree, etc.). On drop, we read the component id,
+  // compute canvas-space coords, and emit a `place_instance` patch — the
+  // same op the agent uses (pen_place_instance tool), so the placed
+  // instance is a fully linked PenRef, not a frozen copy.
+  const onCanvasDragOver = useCallback(
+    (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes(COMPONENT_DRAG_MIME)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      if (!isDropTarget) setIsDropTarget(true);
+    },
+    [isDropTarget],
+  );
+
+  const onCanvasDragLeave = useCallback(
+    (e: React.DragEvent) => {
+      // Only clear when leaving the container itself (relatedTarget is
+      // null/outside) — dragleave fires for every child boundary crossing
+      // during a drag, which would flicker the affordance.
+      if (e.currentTarget === e.target || e.relatedTarget === null) {
+        setIsDropTarget(false);
+      }
+    },
+    [],
+  );
+
+  const onCanvasDrop = useCallback(
+    (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes(COMPONENT_DRAG_MIME)) return;
+      e.preventDefault();
+      setIsDropTarget(false);
+      const componentId = readComponentIdFromDrop(e.dataTransfer);
+      if (!componentId) return;
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const vp: Viewport = viewport;
+      const patch = buildComponentDropPatch(componentId, e.clientX, e.clientY, rect, vp);
+      if (!patch) return;
+      sendPatch(patch);
+    },
+    [viewport, sendPatch],
+  );
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -774,7 +835,25 @@ export function Canvas() {
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseUp}
           onContextMenu={onContextMenu}
+          onDragOver={onCanvasDragOver}
+          onDragLeave={onCanvasDragLeave}
+          onDrop={onCanvasDrop}
         >
+      {/* Phase 7 §H.1 — Assets panel drop affordance: dashed accent border
+          around the canvas while a component card is being dragged over it.
+          Rendered as a sibling of the backdrop grid (pointer-events:none so
+          it never intercepts the drop). data-ac-drop-target is the selector
+          the tests look for. */}
+      {isDropTarget && (
+        <div
+          data-ac-drop-target=""
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            boxShadow: 'inset 0 0 0 2px var(--ac-accent)',
+            backgroundColor: 'color-mix(in oklch, var(--ac-accent) 6%, transparent)',
+          }}
+        />
+      )}
       {/* Infinite-canvas backdrop grid (⌘' pixel-grid toggle, spec Phase 7) */}
       <div
         data-empty-bg="true"

@@ -488,12 +488,14 @@ export default function Home() {
       // ---- Phase 7 registry chords (non-meta family) -----------------------
       // Tools (V/H/K/F/⇧S/S/R/O/L/T), align (⌥A/W/S/D, ⌥H/⌥V) and flip
       // (⇧H/⇧V). Exact modifier matching means plain 'h' still switches the
-      // hand tool while ⇧H flips — no ad-hoc shift guards needed.
+      // hand tool while ⇧H flips — no ad-hoc shift guards needed. Also
+      // covers the sidebar tab-selectors ⌥1 / ⌥2 (Appendix H §H.3 #1).
       const plainAction = dispatch(e, [
         'tool.move', 'tool.hand', 'tool.scale', 'tool.frame', 'tool.section',
         'tool.slice', 'tool.rectangle', 'tool.ellipse', 'tool.line', 'tool.text',
         'align.left', 'align.top', 'align.bottom', 'align.right',
         'align.hcenter', 'align.vcenter', 'flip.h', 'flip.v',
+        'panel.layers-tab', 'panel.assets-tab',
       ]);
       if (plainAction) {
         e.preventDefault();
@@ -551,6 +553,16 @@ export default function Home() {
             break;
           case 'flip.v':
             flipSelection('flipY');
+            break;
+          case 'panel.layers-tab':
+            // ⌥1 — switch left sidebar to Layers tab. Dispatched via
+            // CustomEvent so the LayersPanel can own its tab state
+            // locally (no store round-trip); same pattern as ⌘R rename.
+            window.dispatchEvent(new CustomEvent('ac:layers-set-tab', { detail: 'layers' }));
+            break;
+          case 'panel.assets-tab':
+            // ⌥2 — switch left sidebar to Assets tab (component grid).
+            window.dispatchEvent(new CustomEvent('ac:layers-set-tab', { detail: 'assets' }));
             break;
         }
         return;

@@ -281,3 +281,59 @@ describe('KeyboardShortcutsDialog data source = registry (no drift)', () => {
     expect(groups[0].entries.map((e) => e.action)).toContain('zoom.fit');
   });
 });
+
+// Phase 7 §H.1 — sidebar tab selection (Appendix H §H.3 deviation #1).
+// ⌥1 / ⌥2 select the Layers/Assets tabs INSIDE the left sidebar (Figma's
+// own sidebar chords); the top-level panel toggles stay ⌘⇧1/⌘⇧2 (legacy).
+describe('sidebar tab-selectors — ⌥1 (Layers) / ⌥2 (Assets)', () => {
+  it('panel.layers-tab registered with mac ⌥1 / win Alt+1', () => {
+    const def = SHORTCUTS_BY_ACTION.get('panel.layers-tab');
+    expect(def, 'panel.layers-tab must be registered').toBeDefined();
+    expect(def!.mac).toBe('⌥1');
+    expect(def!.win).toBe('Alt+1');
+    expect(def!.scope).toBe('app');
+  });
+
+  it('panel.assets-tab registered with mac ⌥2 / win Alt+2', () => {
+    const def = SHORTCUTS_BY_ACTION.get('panel.assets-tab');
+    expect(def, 'panel.assets-tab must be registered').toBeDefined();
+    expect(def!.mac).toBe('⌥2');
+    expect(def!.win).toBe('Alt+2');
+    expect(def!.scope).toBe('app');
+  });
+
+  it('⌥1 / ⌥2 do NOT collide with ⇧1 (zoom.fit) / ⇧2 (zoom.selection) — different modifiers', () => {
+    const fit = SHORTCUTS_BY_ACTION.get('zoom.fit')!;
+    const sel = SHORTCUTS_BY_ACTION.get('zoom.selection')!;
+    const layers = SHORTCUTS_BY_ACTION.get('panel.layers-tab')!;
+    const assets = SHORTCUTS_BY_ACTION.get('panel.assets-tab')!;
+    expect(canonicalChord(layers.mac)).not.toBe(canonicalChord(fit.mac));
+    expect(canonicalChord(assets.mac)).not.toBe(canonicalChord(sel.mac));
+  });
+
+  it('mac: ⌥1 matches via event.code Digit1 (Alt+digit types alternate glyphs)', () => {
+    pinPlatform('mac');
+    const layers = SHORTCUTS_BY_ACTION.get('panel.layers-tab')!;
+    // Alt+1 on a US mac layout types '¡' — match via physical code.
+    expect(matchShortcut(keyEvent({ key: '¡', altKey: true, code: 'Digit1' }), layers)).toBe(true);
+    // Alt+1 with key='1' (win layout) should also match.
+    expect(matchShortcut(keyEvent({ key: '1', altKey: true, code: 'Digit1' }), layers)).toBe(true);
+    // Plain 1 (no Alt) must NOT trigger.
+    expect(matchShortcut(keyEvent({ key: '1', code: 'Digit1' }), layers)).toBe(false);
+  });
+
+  it('mac: ⌥2 matches via event.code Digit2', () => {
+    pinPlatform('mac');
+    const assets = SHORTCUTS_BY_ACTION.get('panel.assets-tab')!;
+    expect(matchShortcut(keyEvent({ key: '™', altKey: true, code: 'Digit2' }), assets)).toBe(true);
+    expect(matchShortcut(keyEvent({ key: '2', altKey: true, code: 'Digit2' }), assets)).toBe(true);
+  });
+
+  it('win: Alt+1 / Alt+2 match ctrl-alt (digit via event.code)', () => {
+    pinPlatform('win');
+    const layers = SHORTCUTS_BY_ACTION.get('panel.layers-tab')!;
+    const assets = SHORTCUTS_BY_ACTION.get('panel.assets-tab')!;
+    expect(matchShortcut(keyEvent({ key: '1', altKey: true, code: 'Digit1' }), layers)).toBe(true);
+    expect(matchShortcut(keyEvent({ key: '2', altKey: true, code: 'Digit2' }), assets)).toBe(true);
+  });
+});
