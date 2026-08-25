@@ -45,6 +45,11 @@ import { DomNode } from './DomNode';
 import { DomChrome } from './DomChrome';
 import { cssVariablesFor, worldThemeAttr } from './variables';
 import { MeasuredBoundsPool } from './measure';
+import {
+  computeCullingDecision,
+  viewportFromPanZoom,
+  rootLayerRects,
+} from './CullingCoordinator';
 
 export interface DomCanvasProps {
   document: CanvasDocument;
@@ -276,13 +281,115 @@ export function DomCanvas({
 
   const { zoom, panX, panY } = viewport;
 
+  // ---- Phase 4 L5 mount culling (spec §4.2) --------------------------------
+  // Tracks a wrapper-ref + ResizeObserver so we know the canvas pixel size,
+  // then computes a culling decision (viewport ∩ root rects ± margin +
+  // hysteresis) whenever pan/zoom changes. Budget-aware: the coordinator
+  // itself no-ops below 2000 nodes (L4 alone handles small documents).
+  //   - During motion: rAF-throttled (one pass per frame max).
+  //   - After motion stops: 150ms trailing debounce for the final decision.
+  // The culled set is React state so a change triggers the roots.map swap
+  // (placeholder div vs. full DomNode). Selected or hovered roots are
+  // never culled (the user is actively interacting with them — placeholder
+  // swap would lose selection chrome + measured bounds).
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [culledIds, setCulledIds] = useState<Set<string>>(new Set());
+  const prevCulledRef = useRef<Set<string>>(culledIds);
+  // rAF + debounce tokens live in refs so the effect cleanup can cancel them.
+  const rafTokenRef = useRef<number | null>(null);
+  const debounceTokenRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Canvas pixel size — updated by ResizeObserver on the wrapper div. Reads
+  // as a ref so the pan/zoom effect (which reads it) doesn't re-arm on every
+  // resize, only on pan/zoom changes.
+  const canvasSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+  const [, forceCanvasSizeTick] = useState(0); // bump to re-run the culling effect after first measurement
+
+  // Wrapper ResizeObserver — keep canvasSizeRef fresh + trigger one culling
+  // pass when size changes (the viewport rect changes when the wrapper
+  // changes, even at constant pan/zoom).
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const e = entries[0];
+      if (!e) return;
+      const w = Math.max(1, Math.floor(e.contentRect.width));
+      const h = Math.max(1, Math.floor(e.contentRect.height));
+      if (canvasSizeRef.current.w !== w || canvasSizeRef.current.h !== h) {
+        canvasSizeRef.current = { w, h };
+        forceCanvasSizeTick((n) => n + 1);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Compute culling decision on pan/zoom / canvas-size / root-set changes.
+  // Reads refs (canvasSize, prevCulled) and the roots array; writes state
+  // (culledIds) only when the decision changed (cheap no-op when nothing
+  // crossed any margin — the common case during continuous pan).
+  useEffect(() => {
+    if (!l4Culling) {
+      // Culling disabled — flush the set if it was non-empty.
+      if (prevCulledRef.current.size > 0) {
+        prevCulledRef.current = new Set();
+        setCulledIds(new Set());
+      }
+      return;
+    }
+    const { w, h } = canvasSizeRef.current;
+    if (w <= 0 || h <= 0) return; // not yet measured
+    const vp = viewportFromPanZoom(panX, panY, zoom, w, h);
+    const rects = rootLayerRects(roots);
+    // Selection / hover immunity — never cull a root the user is interacting
+    // with (placeholder swap would drop selection chrome + measured bounds).
+    const immune = new Set<string>(selectedIds);
+    if (hoveredId) immune.add(hoveredId);
+    const filterableRects = rects.filter((r) => !immune.has(r.id));
+    const nodeCount = layers.length;
+
+    const run = () => {
+      rafTokenRef.current = null;
+      const decision = computeCullingDecision(vp, filterableRects, prevCulledRef.current, nodeCount);
+      if (decision.changed) {
+        prevCulledRef.current = decision.culledIds;
+        setCulledIds(decision.culledIds);
+      }
+    };
+
+    // Trailing debounce 150ms — the authoritative final decision after motion ends.
+    if (debounceTokenRef.current) clearTimeout(debounceTokenRef.current);
+    debounceTokenRef.current = setTimeout(run, 150);
+    // rAF throttle during motion — at most one pass per frame, never blocking.
+    if (rafTokenRef.current == null) {
+      rafTokenRef.current =
+        typeof requestAnimationFrame === 'function'
+          ? requestAnimationFrame(run)
+          : (null as unknown as number);
+    }
+
+    return () => {
+      if (debounceTokenRef.current) {
+        clearTimeout(debounceTokenRef.current);
+        debounceTokenRef.current = null;
+      }
+      if (rafTokenRef.current != null && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(rafTokenRef.current);
+        rafTokenRef.current = null;
+      }
+    };
+  }, [l4Culling, panX, panY, zoom, roots, layers.length, selectedIds, hoveredId]);
+
   // Variable publishing (spec §3.6): every document variable becomes a
   // `--acv-*` custom property on the world container; token-bound nodes
   // reference them via var(--acv-…, resolvedFallback) in styleFor.
   const cssVars = useMemo(() => cssVariablesFor(document), [document]);
 
   return (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
+    <div
+      ref={wrapperRef}
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}
+    >
       {/* World layer — pan/zoom is the only thing that changes here. */}
       <div
         ref={worldRef}
@@ -299,24 +406,47 @@ export function DomCanvas({
           ...cssVars,
         }}
       >
-        {roots.map((layer) => (
-          <DomNode
-            key={layer.id}
-            layer={layer}
-            childLayers={getChildren(layer.id)}
-            parentX={0}
-            parentY={0}
-            getChildren={getChildren}
-            layoutMode={layoutMode}
-            penNode={getPenNode(layer.id)}
-            parentDirection={null}
-            getPenNode={getPenNode}
-            registerEl={registerEl}
-            l4Culling={l4Culling}
-            onShapeMouseDown={onShapeMouseDown}
-            onHover={onHover}
-          />
-        ))}
+        {roots.map((layer) =>
+          culledIds.has(layer.id) ? (
+            // L5 placeholder — preserves geometry so pan/zoom + scroll math
+            // stay correct while the subtree is unmounted. data-ac-placeholder
+            // is the selector hook for tests + future "skip in computed read"
+            // logic. data-node-id stays so pen_get_computed can recognize
+            // culled subtrees and surface a hint instead of empty data.
+            <div
+              key={layer.id}
+              data-ac-placeholder=""
+              data-node-id={layer.id}
+              data-node-type={layer.type}
+              style={{
+                position: 'absolute',
+                left: `${layer.x}px`,
+                top: `${layer.y}px`,
+                width: `${layer.width}px`,
+                height: `${layer.height}px`,
+                zIndex: layer.zIndex,
+                pointerEvents: 'auto',
+              }}
+            />
+          ) : (
+            <DomNode
+              key={layer.id}
+              layer={layer}
+              childLayers={getChildren(layer.id)}
+              parentX={0}
+              parentY={0}
+              getChildren={getChildren}
+              layoutMode={layoutMode}
+              penNode={getPenNode(layer.id)}
+              parentDirection={null}
+              getPenNode={getPenNode}
+              registerEl={registerEl}
+              l4Culling={l4Culling}
+              onShapeMouseDown={onShapeMouseDown}
+              onHover={onHover}
+            />
+          ),
+        )}
       </div>
       {/* Chrome overlay — screen space, above the world. */}
       <DomChrome
