@@ -2910,11 +2910,15 @@ const createShape = defineTool({
   const insertHtml = defineTool({
     name: 'pen_insert_html',
     label: 'Insert HTML as Design Nodes',
-    description: 'Insert an HTML fragment (inline styles only) as design nodes under a parent. ' +
+    description: 'Insert an HTML fragment as design nodes under a parent. ' +
       'Block containers become frames (auto-layout when the style is flex); headings/paragraphs/spans ' +
       'become text nodes; img becomes image fills. Sanitized server-side (whitelisted tags/attributes, ' +
       'URL schemes). Prefer this over repeated pen_create_node for composite UI — one call builds a ' +
-      'whole card, form, or nav bar. Emits ONE bulk_add patch.',
+      'whole card, form, or nav bar. Emits ONE bulk_add patch. ' +
+      'mode="v2" requests full-fidelity mounted-iframe extraction (browser-side getComputedStyle + ' +
+      'getBoundingClientRect walk); until the client-roundtrip channel is wired, v2 falls back to v1 ' +
+      'with a note (the v2 extraction module itself is implemented + tested in ' +
+      'src/lib/canvas/html-import-mounted.ts).',
     promptSnippet: 'Insert an HTML fragment as a .pen subtree (one call, composite UI).',
     parameters: Type.Object({
       html: Type.String({ description: 'HTML fragment. Inline styles only (class-based CSS is not parsed in v1). Whitelisted tags: div span p h1-h6 ul ol li img button label input textarea form a section header footer nav main hr br strong em' }),
@@ -2922,12 +2926,30 @@ const createShape = defineTool({
       x: Type.Optional(Type.Number({ description: 'X position of the fragment root (default 0)' })),
       y: Type.Optional(Type.Number({ description: 'Y position of the fragment root (default 0)' })),
       namePrefix: Type.Optional(Type.String({ description: 'Prefix for generated layer names (default "html")' })),
+      mode: Type.Optional(Type.Union(
+        [Type.Literal('v1'), Type.Literal('v2')],
+        { description: 'Extraction mode. v1 (default): server-side hand-rolled tokenizer, inline styles only. v2: mounted-iframe browser extraction with full cascade resolution + measured geometry (currently falls back to v1 — the agent→client→iframe→patch round-trip is a documented TODO; the v2 extraction module + tests are in place).' },
+      )),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const html = (params.html ?? '').trim();
       if (!html) {
         return { content: [{ type: 'text', text: 'Error: html parameter is empty.' }], details: { error: 'empty_html' }, isError: true as any };
       }
+      const mode = params.mode === 'v2' ? 'v2' : 'v1';
+      // v2 wiring TODO: when a client-roundtrip channel is wired, v2 mode
+      // should emit an `agent:extract_html_request` event with the html
+      // payload, block on awaitClientResponse for the extracted .pen tree,
+      // and convert that tree into a bulk_add patch (parallel to the
+      // agent:computed_request / agent:screenshot_request pattern in
+      // client-roundtrip.ts). The extraction module
+      // (extractHtmlViaIframe in src/lib/canvas/html-import-mounted.ts)
+      // runs ONLY in the browser — it mounts a hidden sandboxed iframe
+      // (allow-same-origin, NO allow-scripts) and walks the parsed DOM
+      // with getComputedStyle + getBoundingClientRect. Until that wiring
+      // lands, v2 mode falls back to v1 with an explicit note so the agent
+      // loop can never hang and the call still produces a usable patch.
+      const v2Fallback = mode === 'v2';
       // Verify the parent exists (default root) — page ids count too. The
       // resolved layer list already covers every tree node (the resolver
       // flattens the whole .pen tree), so `inLayers` subsumes a tree search.
@@ -2980,9 +3002,12 @@ const createShape = defineTool({
       walk(nodes);
       const typeLines = Object.entries(stats.typeCounts).map(([t, c]) => `${t}×${c}`).join(', ');
       const skippedNote = stats.skippedSvg > 0 ? ` Skipped ${stats.skippedSvg} svg/path element(s) (vector import lands with the mounted-iframe phase).` : '';
+      const v2Note = v2Fallback
+        ? ` [v2 client-side extraction pending — using v1 fallback. The mounted-iframe extractor (src/lib/canvas/html-import-mounted.ts) is implemented + tested; the agent→client→iframe→patch round-trip is a documented TODO pending client-roundtrip channel wiring.]`
+        : '';
       return {
-        content: [{ type: 'text', text: `Inserted ${stats.nodeCount} node(s) under ${parentId ?? 'canvas root'}: ${typeLines}.${skippedNote}\nRoot node ids: ${nodes.map((n) => n.id).join(', ')}\nMargins and class-based CSS are not imported (v1 — inline styles only); text sizes are estimates until measured bounds land.` }],
-        details: { patch, nodeIds: ids, rootIds: nodes.map((n) => n.id), typeCounts: stats.typeCounts, skipped: stats.skippedSvg, nodeCount: stats.nodeCount },
+        content: [{ type: 'text', text: `Inserted ${stats.nodeCount} node(s) under ${parentId ?? 'canvas root'}: ${typeLines}.${skippedNote}\nRoot node ids: ${nodes.map((n) => n.id).join(', ')}\nMargins and class-based CSS are not imported (v1 — inline styles only); text sizes are estimates until measured bounds land.${v2Note}` }],
+        details: { patch, nodeIds: ids, rootIds: nodes.map((n) => n.id), typeCounts: stats.typeCounts, skipped: stats.skippedSvg, nodeCount: stats.nodeCount, mode, v2Fallback },
       };
     },
   });
