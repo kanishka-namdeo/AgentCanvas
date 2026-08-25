@@ -86,6 +86,11 @@ export function Canvas() {
   const outlineMode = useCanvasStore((s) => s.outlineMode);
   const rulersVisible = useCanvasStore((s) => s.rulersVisible);
   const toggleViewFlag = useCanvasStore((s) => s.toggleViewFlag);
+  // Phase 7 §H.2 measure overlay (Alt/Option hover): measureMode is set
+  // transiently by the keydown/keyup handler below — never user-toggled.
+  // The DOM renderer reads it to know when to paint the redline overlay.
+  const measureMode = useCanvasStore((s) => s.measureMode);
+  const setMeasureMode = useCanvasStore((s) => s.setMeasureMode);
   const clipboard = useClipboard();
   // Renderer feature flag (spec Phase 1+5): 'svg' = classic single-<svg>
   // renderer (compatibility / export-only mode after Phase 5 flip); 'dom' =
@@ -116,6 +121,15 @@ export function Canvas() {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
   const [size, setSize] = useState({ w: 1200, h: 800 });
+  // Phase 7 §H.2 measure overlay: pointer position in canvas space, tracked
+  // while Alt/Option is held + the pointer is over the canvas + no drag is
+  // active. Cleared when Alt releases (the keyup effect resets measureMode
+  // → this effect's [measureMode] cleanup clears the pointer too). A ref
+  // mirrors the state so the mousemove handler can dedupe setState calls
+  // (the pointer moves many times per frame — only setState when the
+  // canvas-space coords have moved more than ~0.5px to avoid render spam).
+  const [pointerCanvas, setPointerCanvas] = useState<{ x: number; y: number } | null>(null);
+  const pointerCanvasRef = useRef<{ x: number; y: number } | null>(null);
 
   // Track container size for responsive rendering.
   useEffect(() => {
@@ -194,8 +208,22 @@ export function Canvas() {
   // Keyboard: space to pan, delete to remove selection, escape to clear,
   // plus the Phase 7 canvas-scope registry chords (zoom / view options /
   // hierarchy navigation). App-scope chords live in page.tsx.
+  // Also: Phase 7 §H.2 — track Alt/Option hold to drive the measure
+  // overlay (setMeasureMode on every keydown + keyup, gated by the same
+  // input-focus guard as the rest of the keymap). The cleanup resets
+  // measureMode to false on unmount so the overlay can't get stuck on if
+  // the component unmounts while Alt is held.
   useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
+      // Phase 7 §H.2 — track Alt-hold on every keydown (Alt's own keydown
+      // fires repeatedly while held; setState is idempotent). Skip while
+      // typing in an input/textarea (reuse the file's editable-target
+      // guard). Do NOT preventDefault — Alt has native browser behaviors
+      // (option-key character entry on macOS, menu-focus on Windows) we
+      // don't want to block.
+      if (!isEditableTarget(e.target)) {
+        setMeasureMode(e.altKey);
+      }
       if (e.code === 'Space' && !isEditableTarget(e.target)) {
         setSpaceDown(true);
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -233,15 +261,45 @@ export function Canvas() {
       }
     };
     const onUp = (e: KeyboardEvent) => {
+      // §H.2 — Alt release clears measureMode. Same editable-target guard
+      // so keyup inside an input doesn't toggle the overlay off (we never
+      // toggled it on in that case).
+      if (!isEditableTarget(e.target)) {
+        setMeasureMode(e.altKey);
+      }
       if (e.code === 'Space') setSpaceDown(false);
     };
+    // Window blur — if the user Alt-Tabs away while Alt is held, the keyup
+    // never fires; reset measureMode so the overlay doesn't get stuck on.
+    const onBlur = () => setMeasureMode(false);
     window.addEventListener('keydown', onDown);
     window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', onBlur);
     return () => {
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
+      window.removeEventListener('blur', onBlur);
+      // Reset on unmount — the store slice outlives this component.
+      setMeasureMode(false);
     };
-  }, [selectedIds, sendPatch, select, applyZoom, navigateHierarchy, toggleViewFlag]);
+  }, [selectedIds, sendPatch, select, applyZoom, navigateHierarchy, toggleViewFlag, setMeasureMode]);
+
+  // Phase 7 §H.2 — clear the tracked pointer when Alt releases (so the
+  // overlay disappears the instant the key does, regardless of when the
+  // next mousemove fires). Also clears when entering a drag (the overlay
+  // would be visually noisy + incorrect during drag — Figma hides it).
+  /* eslint-disable react-hooks/set-state-in-effect -- Alt-hold is a
+     window-scope keyboard gesture; the only way to observe its release
+     is via the store flag it writes. The setState call only fires when
+     the flag transitions from on → off (rare — once per Alt-hold), so
+     cascading renders are bounded to one per release. */
+  useEffect(() => {
+    if (!measureMode && pointerCanvasRef.current !== null) {
+      pointerCanvasRef.current = null;
+      setPointerCanvas(null);
+    }
+  }, [measureMode]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // ---- Coordinate conversion -------------------------------------------------
   const screenToCanvas = useCallback(
@@ -325,7 +383,29 @@ export function Canvas() {
 
   const onMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (!dragState) return;
+      if (!dragState) {
+        // Phase 7 §H.2 idle-hover path — track the pointer in canvas
+        // space so the measure overlay can compute distance redlines to
+        // nearby siblings + the containing frame's edges. Only runs when
+        // Alt is held; on every other idle mousemove we bail immediately
+        // (the existing behavior). The ref mirrors the state so we can
+        // dedupe setState calls (the pointer moves many times per frame;
+        // only setState when the canvas-space coords have moved > ~0.5px
+        // to avoid render-spamming the overlay on every mousemove event).
+        if (!measureMode) return;
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        const cx = (sx - viewport.panX) / viewport.zoom;
+        const cy = (sy - viewport.panY) / viewport.zoom;
+        const prev = pointerCanvasRef.current;
+        if (!prev || Math.abs(prev.x - cx) > 0.5 || Math.abs(prev.y - cy) > 0.5) {
+          pointerCanvasRef.current = { x: cx, y: cy };
+          setPointerCanvas({ x: cx, y: cy });
+        }
+        return;
+      }
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
       const sx = e.clientX - rect.left;
@@ -483,7 +563,7 @@ export function Canvas() {
         sendPatch(patch);
       }
     },
-    [dragState, viewport.zoom, sendPatch, document, toolMode, snapToPixel],
+    [dragState, viewport, measureMode, sendPatch, document, toolMode, snapToPixel],
   );
 
   const onMouseUp = useCallback(() => {
@@ -790,6 +870,11 @@ export function Canvas() {
           layoutMode={layoutMode}
           outlineMode={outlineMode}
           l4Culling={l4Culling}
+          // Phase 7 §H.2 measure overlay — pointer in canvas space +
+          // measureMode flag threaded through to DomChrome where the
+          // MeasureOverlay component is mounted.
+          pointerCanvas={pointerCanvas}
+          measureMode={measureMode}
           onShapeMouseDown={onShapeMouseDown}
           onResizeHandleMouseDown={onResizeHandleMouseDown}
         />

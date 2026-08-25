@@ -15,6 +15,7 @@
 
 import type { Layer, Shape } from '@/lib/canvas/types';
 import { cursorForHandle, handlePosition, type ResizeHandle } from '../svg/ShapeRenderer';
+import { MeasureOverlay } from './MeasureOverlay';
 
 export interface DomChromeProps {
   /// Flat layer list (deduped) — the lookup table for selected/highlighted ids.
@@ -23,6 +24,14 @@ export interface DomChromeProps {
   highlightIds: string[];
   hoveredId: string | null;
   viewport: { zoom: number; panX: number; panY: number };
+  /// Phase 7 §H.2 measure overlay — pointer in canvas space (null when Alt
+  /// not held OR pointer has left canvas). Mounted inside the chrome layer
+  /// (screen-space, above the world tree, below the resize handles).
+  pointerCanvas?: { x: number; y: number } | null;
+  /// Phase 7 §H.2 measure overlay — true while Alt/Option is held. The
+  /// Canvas shell sets this transiently via the store's setMeasureMode on
+  /// keydown/keyup.
+  measureMode?: boolean;
   onResizeHandleMouseDown: (e: React.MouseEvent, shape: Shape, handle: ResizeHandle) => void;
 }
 
@@ -36,6 +45,8 @@ export function DomChrome({
   highlightIds,
   hoveredId,
   viewport,
+  pointerCanvas,
+  measureMode,
   onResizeHandleMouseDown,
 }: DomChromeProps) {
   const { zoom, panX, panY } = viewport;
@@ -208,6 +219,25 @@ export function DomChrome({
             }}
           />
         ))}
+
+      {/* 7. Phase 7 §H.2 measure overlay — Alt/Option hover distance
+              redlines to nearby siblings + containing frame edges. Mounted
+              at the END of the chrome so it paints above all other chrome
+              elements (selection outlines, handles, badges). Screen-space
+              SVG with pointer-events: none — never blocks canvas interaction.
+              Only renders when Alt is held (measureMode) AND the pointer is
+              over the canvas (pointerCanvas != null); MeasureOverlay itself
+              additionally gates on selection.length > 0. */}
+      {measureMode && pointerCanvas && (
+        <MeasureOverlay
+          pointerCanvas={pointerCanvas}
+          layers={layers}
+          selection={selectedIds}
+          panX={panX}
+          panY={panY}
+          zoom={zoom}
+        />
+      )}
     </div>
   );
 }

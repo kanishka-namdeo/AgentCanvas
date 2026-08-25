@@ -71,6 +71,14 @@ export interface DomCanvasProps {
   /// settings.domCulling && settings.renderer === 'dom'. Default false keeps
   /// DomCanvas backward-compatible with callers that haven't been updated.
   l4Culling?: boolean;
+  /// Phase 7 §H.2 measure overlay — pointer position in canvas space
+  /// (null when Alt is not held OR the pointer has left the canvas).
+  /// Threaded through to DomChrome which mounts <MeasureOverlay>.
+  pointerCanvas?: { x: number; y: number } | null;
+  /// Phase 7 §H.2 measure overlay — true while Alt/Option is held. The
+  /// Canvas shell sets this transiently via the store's setMeasureMode on
+  /// keydown/keyup. DomChrome renders the overlay only when this is true.
+  measureMode?: boolean;
   onShapeMouseDown: (e: React.MouseEvent, shape: Shape) => void;
   onResizeHandleMouseDown: (e: React.MouseEvent, shape: Shape, handle: ResizeHandle) => void;
 }
@@ -195,6 +203,8 @@ export function DomCanvas({
   layoutMode,
   outlineMode,
   l4Culling,
+  pointerCanvas,
+  measureMode,
   onShapeMouseDown,
   onResizeHandleMouseDown,
 }: DomCanvasProps) {
@@ -461,6 +471,8 @@ export function DomCanvas({
         highlightIds={highlightIds}
         hoveredId={hoveredId}
         viewport={viewport}
+        pointerCanvas={pointerCanvas}
+        measureMode={measureMode}
         onResizeHandleMouseDown={onResizeHandleMouseDown}
       />
     </div>
