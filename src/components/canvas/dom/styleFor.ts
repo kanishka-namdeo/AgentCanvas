@@ -44,6 +44,18 @@ export interface StyleForOpts {
   /// modes) instead of the resolver's predicted absolute box; no
   /// left/top are emitted. Absent → absolute positioning (parity behavior).
   flowChild?: FlowChildOpts;
+  /// Phase 4 L4 culling (spec §4.2): when true and this layer is a container
+  /// type (frame/component/component_set/instance/group/section), styleFor
+  /// emits `content-visibility: auto`, `contain: layout style paint`, and
+  /// `contain-intrinsic-size: <w>px <h>px` so the browser skips
+  /// layout/paint for offscreen subtrees. The intrinsic size preserves
+  /// scrollbar/scroll-height math when the subtree is skipped. Non-container
+  /// nodes ignore this option (culling single shapes buys nothing and
+  /// breaks text measurement). Truthiness + container type are both
+  /// required — the caller in DomNode computes whether the document is
+  /// large enough to warrant culling (spec §4.2 budget guidance: ≥ 2k
+  /// nodes per page).
+  l4Culling?: boolean;
 }
 
 /// Flex-container emission options derived from a .pen node's layout fields
@@ -70,7 +82,15 @@ export interface FlowChildOpts {
 }
 
 /// The container types whose `clip: true` clips their children (spec §3.5).
+/// ALSO the types eligible for L4 culling (spec §4.2) — `content-visibility:
+/// auto` only helps when the subtree can be skipped as a unit, which is
+/// only true for container types whose children mount inside them.
 const CLIPPABLE_TYPES = new Set(['frame', 'component', 'instance', 'group', 'section']);
+/// Exported for tests + DomNode's culling gate so the type list stays in one
+/// place — Phase 4 L5 coordinator also uses this for its placeholder swap
+/// decision (top-level frame/component/section only; group/instance stay
+/// mounted because their bounds are derived from children, not declared).
+export const CULLABLE_CONTAINER_TYPES = CLIPPABLE_TYPES;
 
 /// .pen justifyContent → CSS justify-content (spec §3.4 table).
 const JUSTIFY_MAP: Record<string, string> = {
@@ -444,6 +464,21 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
     // line box to the box top — the residual ~10% fontSize divergence is
     // documented at the top of this file.
     style.paddingTop = 0;
+  }
+
+  // ---- L4 culling (spec §4.2, Phase 4) ------------------------------------------
+  // Only emit for container types — single shapes (rect/text/line/ellipse/
+  // path/…) gain nothing from `content-visibility: auto` and text measurement
+  // breaks when the browser skips layout. `contain: layout style paint`
+  // guarantees that layout/paint effects of this subtree can't escape its
+  // box — a hard requirement for `content-visibility: auto` to be safe.
+  // `contain-intrinsic-size: <w>px <h>px` preserves scrollbar / scroll-height
+  // math while the subtree is skipped, so the world div's overall geometry
+  // stays stable (pan/zoom math relies on the resolver-declared sizes).
+  if (opts.l4Culling && CLIPPABLE_TYPES.has(layer.type) && layer.width > 0 && layer.height > 0) {
+    style.contentVisibility = 'auto';
+    style.contain = 'layout style paint';
+    style.containIntrinsicSize = `${layer.width}px ${layer.height}px`;
   }
 
   return style;

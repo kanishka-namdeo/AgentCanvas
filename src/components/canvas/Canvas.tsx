@@ -93,6 +93,13 @@ export function Canvas() {
   // (default — resolver absolute geometry) or 'native' (browser CSS flexbox
   // for auto-layout containers). Ignored by the SVG renderer.
   const layoutMode = useSettings((s) => s.canvasLayoutMode) ?? 'parity';
+  // Phase 4 L4 culling (spec §4.2): settings.domCulling defaults to true; only
+  // meaningful when renderer === 'dom'. SVG mode never culls. The L5
+  // CullingCoordinator (≥2k nodes per page) is wired separately inside
+  // DomCanvas and reads the same setting via this same flag through the
+  // `l4Culling` prop — they're a single Phase 4 surface for the user.
+  const domCulling = useSettings((s) => s.domCulling) ?? true;
+  const l4Culling = renderer === 'dom' && domCulling;
   // P0-01/02: Track the last right-click position + the shape under the cursor
   // at right-click time. The context-menu items use these to choose between
   // the empty-canvas and shape variants.
@@ -777,6 +784,7 @@ export function Canvas() {
           viewport={viewport}
           layoutMode={layoutMode}
           outlineMode={outlineMode}
+          l4Culling={l4Culling}
           onShapeMouseDown={onShapeMouseDown}
           onResizeHandleMouseDown={onResizeHandleMouseDown}
         />

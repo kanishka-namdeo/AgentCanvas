@@ -92,6 +92,17 @@ export interface AppSettings {
   /// 'native' (browser CSS flexbox layout, spec Phase 2).
   /// Optional because pre-Phase-2 settings blobs lack it; consumers default to 'parity'.
   canvasLayoutMode?: CanvasLayoutMode;
+  /// Phase 4 L4 + L5 culling (spec §4.2). When true and the renderer is 'dom',
+  /// the DOM renderer emits `content-visibility: auto` + `contain` on
+  /// container subtrees (L4) and the L5 CullingCoordinator swaps far-offscreen
+  /// top-level frames for placeholder divs above ~2k nodes per page. The flag
+  /// exists so power users can disable culling for debugging or for
+  /// measurement-sensitive workflows (e.g., measuring an offscreen subtree via
+  /// `pen_get_computed` while the rest of the page is culled). SVG mode
+  /// ignores this flag entirely. Optional — pre-Phase-4 settings blobs lack
+  /// it; consumers default to true (culling is on by default once the
+  /// renderer flips to 'dom' in Phase 5).
+  domCulling?: boolean;
 
   // ── Phase 2: LLM provider ────────────────────────────────────────────────
   /// Which LLM client to construct in the runner.
@@ -143,6 +154,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   themePreference: 'system',
   renderer: 'svg' as RendererMode,
+  // Phase 4: culling defaults to ON — only active when renderer='dom' AND the
+  // document exceeds the budget thresholds (L5: ≥2k nodes per page; L4 is
+  // always on for container types in 'dom' mode). SVG mode ignores this.
+  domCulling: true,
 
   llmProvider: 'custom',
   apiKey: '123456',

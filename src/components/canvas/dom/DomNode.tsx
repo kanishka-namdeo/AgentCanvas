@@ -57,6 +57,14 @@ export interface DomNodeProps {
   /// observes the node div; called with null on unmount. Undefined in parity
   /// mode (no measurement — geometry comes from the resolver).
   registerEl?: (id: string, el: HTMLDivElement | null) => void;
+  /// Phase 4 L4 culling (spec §4.2). When true, styleFor emits
+  /// `content-visibility: auto` + `contain: layout style paint` +
+  /// `contain-intrinsic-size` on container subtrees so the browser skips
+  /// layout/paint for offscreen content. False (or undefined) = no L4
+  /// emission. The flag flows down the recursive DomNode tree unchanged
+  /// because every container is a candidate — the caller (DomCanvas)
+  /// computes it once from settings + renderer mode + document size budget.
+  l4Culling?: boolean;
 }
 
 export const DomNode = memo(function DomNode({
@@ -72,6 +80,7 @@ export const DomNode = memo(function DomNode({
   parentDirection,
   getPenNode,
   registerEl,
+  l4Culling,
 }: DomNodeProps) {
   // ---- Native layout mode decisions (spec §3.4) ----------------------------
   // A node is a flex CONTAINER when its own .pen layout is vertical/horizontal;
@@ -89,6 +98,7 @@ export const DomNode = memo(function DomNode({
     relX: layer.x - parentX,
     relY: layer.y - parentY,
     nativeLayout: ownLayoutOpts ?? undefined,
+    l4Culling: l4Culling ? true : undefined,
     flowChild: isFlowChild
       ? {
           penWidth: (penNode as { width?: unknown } | undefined)?.width,
@@ -178,6 +188,7 @@ export const DomNode = memo(function DomNode({
           parentDirection={ownLayoutOpts ? ownLayoutOpts.direction : null}
           getPenNode={getPenNode}
           registerEl={registerEl}
+          l4Culling={l4Culling}
           onShapeMouseDown={onShapeMouseDown}
           onHover={onHover}
         />

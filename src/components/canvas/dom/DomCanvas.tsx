@@ -60,6 +60,12 @@ export interface DomCanvasProps {
   /// 1px default-stroke outline on every [data-node-type] element. Text
   /// keeps its color. DOM-renderer-only feature.
   outlineMode?: boolean;
+  /// Phase 4 L4 culling (spec §4.2): when true, container subtrees get
+  /// `content-visibility: auto` + `contain` so the browser skips layout/paint
+  /// for offscreen content. Caller (Canvas shell) computes this from
+  /// settings.domCulling && settings.renderer === 'dom'. Default false keeps
+  /// DomCanvas backward-compatible with callers that haven't been updated.
+  l4Culling?: boolean;
   onShapeMouseDown: (e: React.MouseEvent, shape: Shape) => void;
   onResizeHandleMouseDown: (e: React.MouseEvent, shape: Shape, handle: ResizeHandle) => void;
 }
@@ -183,6 +189,7 @@ export function DomCanvas({
   viewport,
   layoutMode,
   outlineMode,
+  l4Culling,
   onShapeMouseDown,
   onResizeHandleMouseDown,
 }: DomCanvasProps) {
@@ -305,6 +312,7 @@ export function DomCanvas({
             parentDirection={null}
             getPenNode={getPenNode}
             registerEl={registerEl}
+            l4Culling={l4Culling}
             onShapeMouseDown={onShapeMouseDown}
             onHover={onHover}
           />
