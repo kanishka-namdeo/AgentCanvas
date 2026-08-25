@@ -69,7 +69,7 @@ export function suggestFollowUps(ctx: FollowUpContext): string[] {
     out.push('Add arrows with labels showing the flow direction');
   }
 
-  if (used('figma_create_component') || used('pen_create_ref')) {
+  if (used('figma_create_component') || used('pen_create_component') || used('pen_create_ref')) {
     out.push('Place 3 instances of this component with different text overrides');
   }
 
@@ -101,7 +101,8 @@ export function suggestFollowUps(ctx: FollowUpContext): string[] {
 
 function hasStylingPass(tools: string[]): boolean {
   return tools.some((t) =>
-    t === 'pen_apply_palette' || t === 'pen_set_shadow' || t === 'pen_set_gradient_fill' || t === 'pen_update_tokens',
+    t === 'pen_apply_palette' || t === 'pen_set_shadow' || t === 'pen_set_gradient_fill' ||
+    t === 'pen_update_tokens' || t === 'pen_set_variables',
   );
 }
 

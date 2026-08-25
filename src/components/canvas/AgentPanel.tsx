@@ -1517,11 +1517,11 @@ function toolCategory(name: string): { label: string; cls: string } | null {
   // meaning to the hue) — info for core, warning for layers, success for
   // auto-layout, danger for analysis, etc.
   // Core canvas ops
-  if (name.startsWith('pen_create') || name.startsWith('pen_update') || name.startsWith('pen_delete') || name === 'pen_list_shapes' || name === 'pen_clear' || name === 'pen_set_background' || name === 'pen_select_shape') {
+  if (name.startsWith('pen_create') || name.startsWith('pen_update') || name.startsWith('pen_delete') || name === 'pen_get_metadata' || name === 'pen_list_shapes' || name === 'pen_clear' || name === 'pen_set_background' || name === 'pen_select_nodes' || name === 'pen_select_shape') {
     return { label: 'core', cls: 'ac-status-neutral' };
   }
-  // .pen design-system tools: variables, themes
-  if (name.startsWith('pen_set_variable') || name.startsWith('pen_apply_theme') || name.startsWith('pen_set_theme') || name.startsWith('pen_list_themes')) {
+  // .pen design-system tools: variables, collections, modes
+  if (name.startsWith('pen_set_variable') || name.startsWith('pen_apply_theme') || name.startsWith('pen_set_theme') || name.startsWith('pen_list_themes') || name.startsWith('pen_set_explicit') || name.startsWith('pen_list_collections') || name.startsWith('pen_list_variables') || name.startsWith('pen_bind_variable') || name.startsWith('pen_unbind_variable') || name.startsWith('pen_apply_variable')) {
     return { label: 'design-system', cls: 'ac-status-info' };
   }
   // .pen component-instance tools: refs + descendants + slots

@@ -221,16 +221,16 @@ export function PropertiesPanel() {
 
           <Separator />
 
-          {/* Design tokens panel */}
+          {/* Variables panel (Figma "Variables" — was "Design Tokens") */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Palette className="h-3 w-3 ac-text-4" />
-              <Label className="text-[11px] ac-text-3">Design Tokens</Label>
+              <Label className="text-[11px] ac-text-3">Variables</Label>
               <span className="text-[10px] ac-text-4 ml-auto">{(document.tokens?.colors ?? []).length} color(s)</span>
             </div>
             {(document.tokens?.colors ?? []).length === 0 ? (
               <div className="text-[10px] ac-text-4 px-2 py-3 border border-dashed ac-border-subtle rounded text-center">
-                No tokens yet. Ask the agent: <em>&quot;Generate a triadic palette from #0ea5e9&quot;</em>
+                No variables yet. Ask the agent: <em>&quot;Generate a triadic palette from #0ea5e9&quot;</em>
               </div>
             ) : (
               <div className="space-y-1">
@@ -265,7 +265,7 @@ export function PropertiesPanel() {
               <span className="font-mono ac-text-3">
                 {document.themes ? Object.keys(document.themes).length : 0}
               </span>{' '}
-              theme axis{(document.themes ? Object.keys(document.themes).length : 0) === 1 ? '' : 'es'}
+              collection{(document.themes ? Object.keys(document.themes).length : 0) === 1 ? '' : 's'}
             </span>
           </div>
 
@@ -683,7 +683,7 @@ export function PropertiesPanel() {
                   <ContextMenuItem onClick={() => copyColorHex(shape.fill)}>Copy as rgba</ContextMenuItem>
                   <ContextMenuItem onClick={() => copyColorHex(shape.fill)}>Copy as hsl</ContextMenuItem>
                   <ContextMenuSeparator />
-                  <ContextMenuItem onClick={() => toast.message('Save as token — not yet implemented')}>Save as token…</ContextMenuItem>
+                  <ContextMenuItem onClick={() => toast.message('Save as variable — not yet implemented')}>Save as variable…</ContextMenuItem>
                 </ContextMenuContent>
               </ContextMenu>
             </div>
@@ -849,7 +849,7 @@ export function PropertiesPanel() {
           </>
         )}
 
-        {/* Theme — edit the node's effective theme (set_node_theme patch) */}
+        {/* Variables · Modes — edit the node's explicit variable modes (set_node_theme patch) */}
         {!isMulti && (
           <>
             <Separator />
@@ -857,7 +857,7 @@ export function PropertiesPanel() {
               <CollapsibleTrigger asChild>
                 <button type="button" className="group flex items-center gap-1.5 w-full text-left">
                   <ChevronDown className="h-3 w-3 ac-text-4 transition-transform group-data-[state=closed]:-rotate-90" />
-                  <Label className="text-[11px] ac-text-3">Theme</Label>
+                  <Label className="text-[11px] ac-text-3">Variables · Modes</Label>
                   {Object.keys(effectiveTheme).length > 0 && (
                     <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal ac-text-3 ac-border-subtle">
                       {Object.entries(effectiveTheme).map(([k, v]) => `${k}:${v}`).join(' · ')}
@@ -868,7 +868,7 @@ export function PropertiesPanel() {
               <CollapsibleContent className="space-y-2 pt-2">
                 {themeAxisKeys.length === 0 ? (
                   <p className="text-[10px] ac-text-4 px-2 py-2 border border-dashed ac-border-subtle rounded">
-                    No theme axes defined. Use <em>pen_set_theme_axis</em> to define one (e.g. mode: light/dark).
+                    No collections defined. Use <em>pen_set_variable_modes</em> to define one (e.g. mode: light/dark).
                   </p>
                 ) : (
                   <>
@@ -903,7 +903,7 @@ export function PropertiesPanel() {
                         className="h-6 text-[10px] w-full"
                         onClick={clearNodeTheme}
                       >
-                        Clear node theme
+                        Clear node modes
                       </Button>
                     )}
                   </>

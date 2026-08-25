@@ -68,7 +68,7 @@ describe('canvasSnapshot: measured= enrichment (spec §5.5)', () => {
     // Spec §5.5 shape: size=<model>×<model> measured=<real>×<real> …
     expect(line).toContain('size=100×100 measured=84×24');
     expect(line).toContain('fill=');
-    expect(line).toContain('text="Total"');
+    expect(line).toContain('characters="Total"');
   });
 
   it('rounds fractional measured sizes', () => {
@@ -118,5 +118,76 @@ describe('canvasSnapshot: measured= enrichment (spec §5.5)', () => {
     expect(childLine).toContain('measured=55×66');
     // Indentation proves the child stayed nested under the parent.
     expect(childLine.startsWith('    ◦')).toBe(true);
+  });
+});
+
+// ---- D9 regression guard: v3 snapshot vocabulary (spec Phase 6 part 2 / §10.2 #6) ----
+//
+// canvasSnapshot must speak Figma v3 vocabulary: ZERO occurrences of the
+// legacy substrings `shape=`, `token`, `theme axis`, and presence of the v3
+// field names `characters=` / `layoutMode=` / `itemSpacing=` / `modes=`.
+
+describe('canvasSnapshot: v3 vocabulary (D9 closure)', () => {
+  it('contains ZERO legacy substrings (shape=, token, theme axis)', () => {
+    const doc = makeDoc('snap-doc', [
+      makeShape('total', { text: 'Total revenue', characters: 'Total revenue' }),
+      makeShape('frame-a', {
+        type: 'frame',
+        autoLayout: { direction: 'vertical', gap: 12, padding: 16, alignX: 'center', alignY: 'min' } as any,
+        layoutMode: 'VERTICAL',
+        itemSpacing: 12,
+        theme: { mode: 'dark' } as any,
+      }),
+      makeShape('hidden-one', { visible: false }),
+    ]);
+    doc.variables = { 'color.primary': { type: 'color', value: '#0ea5e9' } };
+    doc.themes = { mode: ['light', 'dark'] };
+    doc.tokens = {
+      colors: [{ name: 'Primary', key: 'color.primary', value: '#0ea5e9' }],
+      textStyles: [{ name: 'Heading L', key: 'text.heading.l', fontSize: 24, fontWeight: 700, lineHeight: 1.25, color: '#0f172a' }],
+    };
+    const snap = canvasSnapshot(doc);
+    expect(snap).not.toContain('shape=');
+    expect(snap).not.toContain('token');
+    expect(snap).not.toContain('Theme axis');
+    expect(snap.toLowerCase()).not.toContain('theme axis');
+  });
+
+  it('emits the v3 field names (characters=, layoutMode=, itemSpacing=, modes=, visible=false)', () => {
+    const doc = makeDoc('snap-doc', [
+      makeShape('total', { text: 'Total revenue', characters: 'Total revenue' }),
+      makeShape('frame-a', {
+        type: 'frame',
+        autoLayout: { direction: 'vertical', gap: 12, padding: 16, alignX: 'center', alignY: 'min' } as any,
+        layoutMode: 'VERTICAL',
+        itemSpacing: 12,
+        theme: { mode: 'dark' } as any,
+      }),
+      makeShape('hidden-one', { visible: false }),
+    ]);
+    doc.variables = { 'color.primary': { type: 'color', value: '#0ea5e9' } };
+    doc.themes = { mode: ['light', 'dark'] };
+    const snap = canvasSnapshot(doc);
+    expect(snap).toContain('characters="Total revenue"');
+    expect(snap).toContain('layoutMode=VERTICAL');
+    expect(snap).toContain('itemSpacing=12');
+    expect(snap).toContain('modes={"mode":"dark"}');
+    expect(snap).toContain('visible=false');
+    // Collections section carries the v3 modes= vocabulary too.
+    expect(snap).toContain('Collections');
+    expect(snap).toContain('mode: modes=[light, dark]');
+  });
+
+  it('derives layoutMode= from the legacy autoLayout mirror when v3 fields are absent', () => {
+    const doc = makeDoc('snap-doc', [
+      makeShape('row', {
+        type: 'frame',
+        autoLayout: { direction: 'horizontal', gap: 8, padding: 12, alignX: 'min', alignY: 'center' } as any,
+      }),
+    ]);
+    const snap = canvasSnapshot(doc);
+    const line = snap.split('\n').find((l) => l.includes('row'))!;
+    expect(line).toContain('layoutMode=HORIZONTAL');
+    expect(line).toContain('itemSpacing=8');
   });
 });

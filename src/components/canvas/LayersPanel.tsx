@@ -340,8 +340,8 @@ export function LayersPanel() {
               if (isComponentMaster) all.push({ label: 'Master', node: <span className="text-[9px] px-1 py-0 rounded ac-status-info font-medium">M</span> });
               if (isComponentInstance) all.push({ label: 'Instance (ref)', node: <span className="text-[9px] px-1 py-0 rounded ac-status-warning font-medium">◆</span> });
               if (hasAutoLayout) all.push({ label: 'Auto Layout', node: <span className="text-[9px] px-1 py-0 rounded ac-status-success font-medium">AL</span> });
-              if (themeStr) all.push({ label: `theme: ${themeStr}`, node: <span className="text-[9px] px-1 py-0 rounded ac-surface-2 ac-text-3 font-medium">{themeStr}</span> });
-              if (hasTokenBinding) all.push({ label: 'Bound to design token', node: <span className="w-1.5 h-1.5 rounded-full ac-dot-info" /> });
+              if (themeStr) all.push({ label: `modes: ${themeStr}`, node: <span className="text-[9px] px-1 py-0 rounded ac-surface-2 ac-text-3 font-medium">{themeStr}</span> });
+              if (hasTokenBinding) all.push({ label: 'Bound to variable', node: <span className="w-1.5 h-1.5 rounded-full ac-dot-info" /> });
               // Constraints badge (small "C" pill) — surfaces that the node has
               // Figma-style layout constraints set.
               if (shape.constraints) {
