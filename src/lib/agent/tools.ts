@@ -110,6 +110,71 @@ export interface CanvasToolContext {
   getDocument?: () => import('../canvas/types').CanvasDocument;
 }
 
+// ---- Multi-screen collision guard --------------------------------------------
+//
+// The "second prompt" failure mode: the user asks for one screen, then the
+// next screen in a separate prompt. If the agent believes it is drawing on a
+// fresh surface (a new page whose patch never reached the client, or plain
+// coordinate amnesia), it places the new screen frame at the FIRST screen's
+// coordinates and the two designs stack into visual garbage.
+//
+// This guard makes top-level screen frames collision-proof at the tool layer:
+// when a new top-level frame would MUTUALLY majority-overlap (≥50% of BOTH
+// rects) an existing top-level frame, it is placed to the right of all
+// existing screens instead, and the tool result reports the final position so
+// the agent anchors subsequent children correctly. Sections are excluded both
+// ways — enclosing frames is a section's purpose. Small frames nested inside
+// a screen's bounds (component previews, overlays) don't trip the mutual
+// threshold and pass through untouched.
+
+/// Frame types that participate in top-level collision avoidance.
+const TOP_LEVEL_FRAME_TYPES = new Set(['frame', 'component', 'component_set']);
+
+/// Gutter between side-by-side screens (matches the snapshot's placement hint).
+const SCREEN_GUTTER = 80;
+
+/// Resolve the placement for a new top-level frame. Pure function — exported
+/// for unit tests.
+export function resolveTopLevelFramePlacement(
+  existingShapes: Array<Pick<Shape, 'id' | 'type' | 'parentId' | 'x' | 'y' | 'width' | 'height'>>,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): { x: number; y: number; adjusted: boolean } {
+  const obstacles = existingShapes.filter(
+    (s) =>
+      !s.parentId &&
+      TOP_LEVEL_FRAME_TYPES.has(s.type) &&
+      Number.isFinite(s.x) && Number.isFinite(s.y) &&
+      Number.isFinite(s.width) && Number.isFinite(s.height) &&
+      s.width > 0 && s.height > 0,
+  );
+  if (obstacles.length === 0) return { x, y, adjusted: false };
+
+  const w = Number.isFinite(width) && width > 0 ? width : 100;
+  const h = Number.isFinite(height) && height > 0 ? height : 100;
+  const newArea = w * h;
+  let collision = false;
+  for (const o of obstacles) {
+    const ix = Math.max(0, Math.min(x + w, o.x + o.width) - Math.max(x, o.x));
+    const iy = Math.max(0, Math.min(y + h, o.y + o.height) - Math.max(y, o.y));
+    const inter = ix * iy;
+    if (inter <= 0) continue;
+    const oArea = o.width * o.height;
+    // Mutual majority overlap: the new frame covers ≥50% of the existing
+    // frame AND the existing frame covers ≥50% of the new one.
+    if (inter / newArea >= 0.5 && inter / oArea >= 0.5) {
+      collision = true;
+      break;
+    }
+  }
+  if (!collision) return { x, y, adjusted: false };
+
+  const maxRight = Math.max(...obstacles.map((o) => o.x + o.width));
+  return { x: Math.round(maxRight + SCREEN_GUTTER), y: Math.round(y), adjusted: true };
+}
+
 // ---- Parameter schemas ------------------------------------------------------
 
 const ShapeTypeSchema = Type.Union(
@@ -631,6 +696,25 @@ const createShape = defineTool({
         coerced.iconName = resolved.name;
         coerced.iconLibrary = 'lucide';
       }
+      // Multi-screen collision guard: a new TOP-LEVEL frame that would stack
+      // on an existing screen is auto-placed to the right of all screens
+      // (see resolveTopLevelFramePlacement). Children (parentId set) and
+      // non-frame nodes pass through untouched.
+      let placementAdjusted = false;
+      if (!coerced.parentId && TOP_LEVEL_FRAME_TYPES.has(coerced.type as string)) {
+        const placement = resolveTopLevelFramePlacement(
+          ctx.getShapes(),
+          coerced.x ?? 0,
+          coerced.y ?? 0,
+          coerced.width ?? 100,
+          coerced.height ?? 100,
+        );
+        if (placement.adjusted) {
+          coerced.x = placement.x;
+          coerced.y = placement.y;
+          placementAdjusted = true;
+        }
+      }
       const patch: CanvasPatch = {
         op: 'add',
         shapeId: id,
@@ -642,11 +726,14 @@ const createShape = defineTool({
         coerced.type === 'icon' && coerced.iconName
           ? ` Lucide icon "${coerced.iconName}" — recolor via stroke.`
           : '';
+      const placementNote = placementAdjusted
+        ? ` NOTE: auto-placed to free space (would have covered an existing screen) — position subsequent child layers relative to THESE coordinates.`
+        : '';
       return {
         content: [
           {
             type: 'text',
-            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.${iconNote}`,
+            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.${iconNote}${placementNote}`,
           },
         ],
         details: { shapeId: id, patch },
@@ -1977,6 +2064,30 @@ const createShape = defineTool({
       if (params.fidelity === 'lofi') {
         applyLofiFidelity(wf.shapes);
       }
+      // Multi-screen collision guard: if the generated screen frame would
+      // stack on an existing top-level screen, shift the WHOLE template
+      // (frame + children + arrows keep their relative layout) to free
+      // space to the right of all existing screens.
+      let placementNote = '';
+      const wfFrame = wf.shapes.find((s: any) => s.id === wf.frameId);
+      if (wfFrame) {
+        const placement = resolveTopLevelFramePlacement(
+          ctx.getShapes(),
+          wfFrame.x ?? x,
+          wfFrame.y ?? y,
+          wfFrame.width ?? 375,
+          wfFrame.height ?? 812,
+        );
+        if (placement.adjusted) {
+          const dx = placement.x - (wfFrame.x ?? x);
+          const dy = placement.y - (wfFrame.y ?? y);
+          for (const s of wf.shapes) {
+            if (typeof s.x === 'number') s.x += dx;
+            if (typeof s.y === 'number') s.y += dy;
+          }
+          placementNote = ` NOTE: auto-placed to free space at (${placement.x}, ${placement.y}) — it would have covered an existing screen. Position follow-up layers relative to the FINAL coordinates.`;
+        }
+      }
       // Apply the caller's text overrides (poka-yoke for copy fidelity: the
       // templates ship placeholder values like "$12.4k" — when the user gave
       // exact copy, the agent passes `texts` and the generated screen carries
@@ -1993,7 +2104,8 @@ const createShape = defineTool({
           {
             type: 'text',
             text:
-              `Generated ${params.template} wireframe at (${x}, ${y}). ${wf.shapes.length} shapes added. Frame id: ${wf.frameId}.` +
+              `Generated ${params.template} wireframe at (${wfFrame?.x ?? x}, ${wfFrame?.y ?? y}). ${wf.shapes.length} shapes added. Frame id: ${wf.frameId}.` +
+              placementNote +
               (appliedTexts > 0
                 ? ` Applied ${appliedTexts} text override(s).`
                 : params.texts && Object.keys(params.texts).length > 0

@@ -534,8 +534,13 @@ ${'${PALETTES_LIST}'}
   Don't duplicate the same rectangle-stack 5 times — make it a component.
 - For multi-state components (default / hover / disabled / sizes): use a COMPONENT_SET with
   variant axes. Name variants "Size=Large, State=Hover" per Figma convention.
-- For multi-screen flows: create separate PAGES (Home, Dashboard, Settings) rather than cramming
-  everything onto one canvas. Use pen_create_page.
+- MULTI-SCREEN DESIGNS: keep every screen as a separate top-level FRAME on the SAME page, laid
+  out side-by-side (Figma frame-flow style). Position each new screen to the RIGHT of existing
+  screens using the "Next screen placement" line at the end of the canvas snapshot (x = rightmost
+  edge + 80, same y as existing screens). NEVER place a new screen frame on top of existing
+  frames — stacked screens visually destroy the earlier design. Only create a separate PAGE when
+  the user explicitly asks for one ("put it on a new page"); pen_create_page swaps the canvas away
+  from what the user is currently looking at.
 - Bind fills/strokes/text to $variables (color.primary, text.body.size) so the design system
   stays editable. Avoid hardcoded hex values when a variable exists.
 - SELF-CRITIQUE IS MANDATORY for high-fidelity work. After you finish the styling pass, call
@@ -654,8 +659,10 @@ variant axes on the set; each variant's name follows "Property=Value, Property=V
 SLOTS: use pen_mark_slot on a frame inside a component to mark where recommended
 child components can be inserted. Maps to Figma's "preferred instances" concept.
 
-PAGES: use pen_create_page to add a new page to the file. Use pen_set_active_page
-to switch the active page. Use pages for multi-screen designs — one page per screen.
+PAGES: pen_create_page adds a new page and pen_set_active_page switches to it. Create a new page
+ONLY when the user explicitly asks for a separate page — switching pages hides the previous canvas
+from view. For multi-screen designs, keep all screens as side-by-side top-level frames on ONE page
+(the canvas snapshot's "Next screen placement" line gives the exact free coordinates).
 
 FLEXBOX LAYOUT: frames/components/component_sets/sections support flexbox via autoLayout —
 legacy {direction, gap, padding, alignX, alignY} or Figma v3 {layoutMode, itemSpacing,
@@ -764,6 +771,28 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
   };
 
   const treeLines = shapes.length === 0 ? '  (empty)' : renderTree(null, 0).trimEnd();
+
+  // Multi-screen placement hint (the "second prompt" contract): report the
+  // bounds of existing TOP-LEVEL screen frames and the exact free position
+  // for the next one. Without this, a follow-up prompt ("now create the
+  // dashboard screen") lands the new screen at the canvas origin or on top
+  // of the first screen, and the two designs stack into visual garbage.
+  // Sections are excluded — enclosing frames is a section's purpose.
+  const screenFrames = shapes.filter(
+    (s) => !s.parentId && (s.type === 'frame' || s.type === 'component_set'),
+  );
+  let placementLine: string;
+  if (screenFrames.length === 0) {
+    placementLine = 'canvas is empty — place the first screen frame around (200, 50)';
+  } else {
+    const minX = Math.min(...screenFrames.map((s) => s.x));
+    const minY = Math.min(...screenFrames.map((s) => s.y));
+    const maxRight = Math.max(...screenFrames.map((s) => s.x + s.width));
+    const maxBottom = Math.max(...screenFrames.map((s) => s.y + s.height));
+    placementLine =
+      `existing screens span (${round(minX)},${round(minY)})→(${round(maxRight)},${round(maxBottom)}); ` +
+      `place the NEXT screen frame at (${round(maxRight + 80)},${round(minY)}) — to the RIGHT of existing screens, never on top of them`;
+  }
   // v3 vocabulary (D9): Variables / Collections (with modes) / Text styles —
   // no legacy `token` / `theme axis` substrings anywhere in the snapshot.
   const variablesMap: Record<string, { type: string; value: unknown }> = canvas.variables ?? {};
@@ -793,7 +822,8 @@ ${collectionLines}
 - Text styles (${tokens.textStyles.length}):
 ${textStyleLines}
 - Layer tree (${shapes.length} layer(s), indented = nesting):
-${treeLines}`;
+${treeLines}
+- Next screen placement: ${placementLine}`;
 }
 
 /// Build the palettes list string with the user's default palette first.

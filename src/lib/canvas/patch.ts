@@ -622,6 +622,21 @@ export function applyPatchToCanvas(
     case 'add_page': {
       const pageName = patch.pageName ?? `Page ${(next.pages?.length ?? 1) + 1}`;
       const pageId = crypto.randomUUID();
+      // Legacy single-page doc (no `pages` array yet) WITH existing content:
+      // migrate the current children into an implicit "Page 1" BEFORE
+      // appending. Without this, `next.pages = [newPage]` + `next.children
+      // = []` orphaned the entire existing layer tree — the first screen of
+      // a multi-screen design was silently destroyed the moment a second
+      // page was added. Empty legacy docs skip the implicit page (the new
+      // page simply becomes the first page — pinned by figma-ontology tests).
+      if ((!next.pages || next.pages.length === 0) && next.children.length > 0) {
+        next.pages = [{
+          id: `${next.id}-page-1`,
+          name: 'Page 1',
+          children: next.children,
+          viewport: { ...next.viewport },
+        }];
+      }
       const newPage = {
         id: pageId,
         name: pageName,

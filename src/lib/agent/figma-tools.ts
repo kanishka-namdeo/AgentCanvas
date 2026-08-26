@@ -27,11 +27,13 @@ export function createFigmaTools(ctx: CanvasToolContext) {
     label: 'Create Page',
     description:
       'Add a new PAGE to the document. Pages are top-level canvas surfaces within a file — ' +
-      'use them for multi-screen designs (e.g. "Home", "Dashboard", "Mobile flows"). ' +
+      'create one ONLY when the user explicitly asks for a separate page ("put this on a new page"). ' +
+      'By default, keep multiple screens as side-by-side top-level frames on the CURRENT page — ' +
+      'a new page swaps the canvas away from what the user is looking at, hiding their work. ' +
       'The new page becomes active after creation.',
     promptSnippet: 'Add a new page to the document.',
     promptGuidelines: [
-      'Use pages for multi-screen designs — one page per screen / per state / per prototype flow.',
+      'Create a page only on explicit user request — most multi-screen designs belong as side-by-side top-level frames on ONE page.',
       'Give the page a descriptive name: "Home", "Sign up flow", "Dashboard v2".',
     ],
     parameters: Type.Object({
@@ -51,7 +53,12 @@ export function createFigmaTools(ctx: CanvasToolContext) {
           type: 'text',
           text: `Created page "${params.name}". It is now the active page — the canvas has swapped to its empty layer tree.`,
         }],
-        details: { pageName: params.name },
+        // `patch` MUST ride in details: the agent-session translator extracts
+        // patches from tool results (details.patch / details.patches) and
+        // streams them to every viewer + the WS twin. ctx.applyPatch only
+        // updates the runner-LOCAL canvas — without this field the page op
+        // silently desyncs every other canvas (the multi-screen overlap bug).
+        details: { patch, pageName: params.name },
       };
     },
   });
@@ -83,7 +90,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
           type: 'text',
           text: `Switched active page to "${params.pageName ?? params.pageId}".`,
         }],
-        details: { pageId: params.pageId, pageName: params.pageName },
+        details: { patch, pageId: params.pageId, pageName: params.pageName },
       };
     },
   });
@@ -110,7 +117,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
       ctx.applyPatch(patch);
       return {
         content: [{ type: 'text', text: `Renamed page to "${params.newName}".` }],
-        details: { pageId: params.pageId, newName: params.newName },
+        details: { patch, pageId: params.pageId, newName: params.newName },
       };
     },
   });
@@ -138,7 +145,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
       ctx.applyPatch(patch);
       return {
         content: [{ type: 'text', text: `Deleted page "${params.pageName ?? params.pageId}".` }],
-        details: { pageId: params.pageId, pageName: params.pageName },
+        details: { patch, pageId: params.pageId, pageName: params.pageName },
       };
     },
   });
@@ -177,7 +184,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
       ctx.applyPatch(patch);
       return {
         content: [{ type: 'text', text: `Created section "${params.label}" (id: ${id}).` }],
-        details: { id, label: params.label },
+        details: { patch, id, label: params.label },
       };
     },
   });
@@ -219,7 +226,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
       ctx.applyPatch(patch);
       return {
         content: [{ type: 'text', text: `Created component "${params.name}" (id: ${id}). Now use pen_create_ref to place instances.` }],
-        details: { id, name: params.name },
+        details: { patch, id, name: params.name },
       };
     },
   });
@@ -272,7 +279,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
             `Now call pen_add_variant for each variant combination. Remember the naming convention: ` +
             `"Property=Value, Property=Value" (e.g. "Size=Large, State=Hover").`,
         }],
-        details: { id, name: params.name, variantPropertyAxes: params.variantPropertyAxes },
+        details: { patch, id, name: params.name, variantPropertyAxes: params.variantPropertyAxes },
       };
     },
   });
@@ -320,7 +327,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
       ctx.applyPatch(patch);
       return {
         content: [{ type: 'text', text: `Added variant "${name}" (id: ${id}) to component set ${params.componentSetId}.` }],
-        details: { id, name, variantPropertyValues: params.variantPropertyValues },
+        details: { patch, id, name, variantPropertyValues: params.variantPropertyValues },
       };
     },
   });
@@ -374,6 +381,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
             `on component ${params.componentId}. Instances can now override this property.`,
         }],
         details: {
+          patch,
           componentId: params.componentId,
           propertyName: params.propertyName,
           propertyType: params.propertyType,
@@ -414,6 +422,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
           text: `Overrode property "${params.propertyName}" = ${JSON.stringify(params.value)} on instance ${params.instanceId}.`,
         }],
         details: {
+          patch,
           instanceId: params.instanceId,
           propertyName: params.propertyName,
           value: params.value,

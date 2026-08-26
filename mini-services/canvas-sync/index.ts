@@ -120,9 +120,11 @@ io.on('connection', (socket) => {
       case 'agent:prompt': {
         // The frontend asks the WS service to drive the agent. We forward
         // this to the Next.js API route via fetch, then stream the API's
-        // SSE response back out as `sync` events.
+        // SSE response back out as `sync` events. Images + selection ride
+        // along — dropping them here silently stripped attachments for
+        // every WS-connected viewer (the in-process twin forwards them).
         console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${event.prompt.slice(0, 80)}…`);
-        driveAgent(event.documentId, event.prompt, socket.id, event.settings).catch((err) => {
+        driveAgent(event.documentId, event.prompt, socket.id, event.settings, event.images, event.selection).catch((err) => {
           console.error('[canvas-sync] agent drive failed:', err);
         });
         break;
@@ -170,7 +172,14 @@ io.on('connection', (socket) => {
 // bridges the Server-Sent-Events stream back into socket.io `sync` events
 // so every subscribed viewer sees the agent work in real time.
 
-async function driveAgent(documentId: string, prompt: string, originatorSocketId: string, settings?: any) {
+async function driveAgent(
+  documentId: string,
+  prompt: string,
+  originatorSocketId: string,
+  settings?: any,
+  images?: Array<{ id?: string; name?: string; dataUrl: string }>,
+  selection?: { count: number; names: string[] },
+) {
   const state = ensureDocument(documentId);
 
   // Helper that fans an event out to every viewer (including the originator).
@@ -186,7 +195,7 @@ async function driveAgent(documentId: string, prompt: string, originatorSocketId
   const res = await fetch(gatewayUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings }),
+    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings, images, selection }),
   });
 
   if (!res.ok || !res.body) {
