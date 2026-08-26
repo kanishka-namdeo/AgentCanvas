@@ -64,6 +64,7 @@ export function DomChrome({
   const highlightedLayers = highlightIds
     .map((id) => byId.get(id))
     .filter((l): l is Layer => !!l);
+  const highlightSet = new Set(highlightIds);
 
   return (
     <div
@@ -166,9 +167,18 @@ export function DomChrome({
           </div>
         ))}
 
-      {/* 5. Auto-layout indicator (dashed inner outline + "AL" pill). */}
+      {/* 5. Auto-layout indicator (dashed inner outline + "AL" pill).
+              Figma-parity gating: only painted while the frame is selected,
+              hovered, or agent-highlighted — never permanently. An
+              agent-built screen can be nearly all flex containers, and the
+              always-on version painted the canvas solid green. */}
       {layers
-        .filter((l) => !!l.autoLayout && (l.type === 'frame' || l.type === 'group'))
+        .filter(
+          (l) =>
+            !!l.autoLayout &&
+            (l.type === 'frame' || l.type === 'group') &&
+            (selectedSet.has(l.id) || hoveredId === l.id || highlightSet.has(l.id)),
+        )
         .map((l) => (
           <div key={`al-${l.id}`}>
             <div
