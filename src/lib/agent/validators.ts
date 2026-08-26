@@ -46,8 +46,15 @@ export interface ValidationResult {
  * The thresholds are deliberately lenient (50% / 30% / 1) so the gate
  * catches the wireframe-only failure mode without forcing perfection.
  * The mandatory critique loop (T2) handles higher-bar polish.
+ *
+ * `opts.relaxMinCount` skips rule 1 — used when the runner scopes validation
+ * to a turn's NEW shapes only (multi-screen shared canvas): an edit turn that
+ * legitimately adds only a few shapes must not be told to pad the canvas.
  */
-export function validateCanvasBeforeComplete(shapes: Layer[]): ValidationResult {
+export function validateCanvasBeforeComplete(
+  shapes: Layer[],
+  opts?: { relaxMinCount?: boolean },
+): ValidationResult {
   const reasons: string[] = [];
   const totalShapes = shapes.length;
 
@@ -63,7 +70,7 @@ export function validateCanvasBeforeComplete(shapes: Layer[]): ValidationResult 
   const autoLayoutContainers = shapes.filter((s) => !!s.autoLayout);
 
   // Rule 1: too few shapes.
-  if (totalShapes < 5) {
+  if (!opts?.relaxMinCount && totalShapes < 5) {
     reasons.push(
       `Too few shapes (<5). A real dashboard needs at least 5 components — ` +
       `you only have ${totalShapes}. Add more (KPI cards, chart, table, sidebar, topbar, buttons).`,
@@ -104,6 +111,38 @@ export function validateCanvasBeforeComplete(shapes: Layer[]): ValidationResult 
       `The wireframe generator's post-processor adds autoLayout to these container types — ` +
       `if you scaffolded manually via pen_create_shape, you missed it. ` +
       `Call pen_update_shape with autoLayout={direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min"} on each card / sidebar / topbar.`,
+    );
+  }
+
+  // Rule 5: children spilling below their parent screen frame (multi-screen
+  // stress-test finding). Frames don't clip, so overflowing layers render as
+  // "broken boxes" below the screen. Direct children of frames only; 40px
+  // tolerance for decorative bleeds.
+  const framesById = new Map(
+    shapes.filter((s) => s.type === 'frame').map((s) => [s.id, s] as const),
+  );
+  const overflowing: Array<{ name: string; over: number; frame: string }> = [];
+  for (const s of shapes) {
+    const parentId = (s as any).parentId as string | null | undefined;
+    if (!parentId) continue;
+    const frame = framesById.get(parentId);
+    if (!frame) continue;
+    const h = (s as any).height ?? 0;
+    const over = s.y + h - (frame.y + frame.height);
+    if (over > 40) {
+      overflowing.push({ name: s.name ?? s.id, over: Math.round(over), frame: frame.name ?? frame.id });
+    }
+  }
+  if (overflowing.length > 0) {
+    const examples = overflowing
+      .slice(0, 4)
+      .map((o) => `"${o.name}" is ${o.over}px below frame "${o.frame}"`)
+      .join('; ');
+    reasons.push(
+      `${overflowing.length} layer(s) extend below their parent screen frame (${examples}). ` +
+      `Content spilling out of a frame renders as broken boxes below the screen. ` +
+      `Compress the vertical layout (pen_update_shape to move/resize layers so everything fits inside the frame) ` +
+      `or, if the screen genuinely needs more room, deliberately resize the frame with pen_update_node FIRST.`,
     );
   }
 

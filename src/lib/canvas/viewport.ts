@@ -59,3 +59,26 @@ export function fitViewport(
   const panY = (size.h - h * zoom) / 2 - bbox.y * zoom;
   return { zoom, panX, panY };
 }
+
+/**
+ * True when `bbox` (canvas-space) extends outside the viewport's visible
+ * rect (also canvas-space). Drives the agent turn-end "reveal": zoom-to-fit
+ * only when the turn's content landed off-screen (multi-screen designs grow
+ * rightward); in-view work never disturbs the user's zoom/pan.
+ */
+export function contentOutsideViewport(
+  bbox: BBoxLike,
+  viewport: ViewportState,
+  size: { w: number; h: number },
+): boolean {
+  const visX = -viewport.panX / viewport.zoom;
+  const visY = -viewport.panY / viewport.zoom;
+  const visW = size.w / viewport.zoom;
+  const visH = size.h / viewport.zoom;
+  return (
+    bbox.x < visX ||
+    bbox.y < visY ||
+    bbox.x + bbox.width > visX + visW ||
+    bbox.y + bbox.height > visY + visH
+  );
+}

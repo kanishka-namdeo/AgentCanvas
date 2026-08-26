@@ -104,7 +104,7 @@ Respond with ONLY the JSON object — no markdown fences, no commentary.`;
  * and feeds them back to the agent as a re-prompt.
  */
 export async function dispatchDesignCriticVlmSubAgent(
-  params: SubAgentParams & { originalPrompt?: string },
+  params: SubAgentParams & { originalPrompt?: string; priorShapeIds?: string[] },
 ): Promise<SubAgentResult & { critique?: VlmCritique; screenshotSource?: 'client' | 'server' }> {
   let toolCallCount = 0;
 
@@ -154,6 +154,14 @@ export async function dispatchDesignCriticVlmSubAgent(
     }
     toolCallCount++;
 
+    // Prior-content scope note (multi-screen stress-test fix): the rendered
+    // screenshot shows the WHOLE canvas — earlier screens included. Tell the
+    // VLM critic which screens are prior deliverables so it doesn't flag
+    // (and "fix") the user's earlier work.
+    const priorScopeNote = (params.priorShapeIds ?? []).length > 0
+      ? `\n\nSCOPE: the screenshot may show screens from EARLIER requests (e.g. a previously created login screen). Those are the user's prior deliverables — NOT defects. Do NOT flag them or recommend deleting/replacing/restyling them. Critique ONLY the newest screen, the one created for the current request: "${params.originalPrompt ?? params.task}".`
+      : '';
+
     // Build the multimodal user message (text + image_url).
     // The ZAI client's chat.completions.create accepts the OpenAI-shape
     // messages array including the image_url content part.
@@ -163,7 +171,7 @@ export async function dispatchDesignCriticVlmSubAgent(
         {
           type: 'text',
           text: `Original user request (for context, do not let it bias your evaluation):
-${params.originalPrompt ?? params.task}
+${params.originalPrompt ?? params.task}${priorScopeNote}
 
 Critique this rendered canvas screenshot. Return ONLY the JSON per the system prompt.`,
         },

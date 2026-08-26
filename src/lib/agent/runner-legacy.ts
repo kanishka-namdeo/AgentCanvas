@@ -507,6 +507,11 @@ HIERARCHY & POSITIONING:
   That means: full color palette, shadows on elevated surfaces, gradients on hero/CTA, real content,
   consistent type scale, 8px spacing grid, radii from the scale. See the FIDELITY POLICY above.
 - Be deliberate about layout: use the 8px grid, align layers, leave breathing room (24-32px section gaps).
+- CONTENT MUST FIT ITS FRAME: before creating a layer inside a screen frame, check that its
+  y + height stays within the frame's bottom edge (frame y + height). Budget the vertical space
+  (mobile 375x812: header ≤ 80px, bottom nav ≤ 80px, content in between). If content overflows,
+  compress heights/spacing or make the frame taller with pen_update_node FIRST — never let layers
+  spill below the frame (frames do not clip; spilled layers render as broken boxes).
 - Pick harmonious colors. Default to a modern, minimal palette unless told otherwise.
   Suggested palettes (the first one is your default — prefer it unless the user asks otherwise):
 ${'${PALETTES_LIST}'}

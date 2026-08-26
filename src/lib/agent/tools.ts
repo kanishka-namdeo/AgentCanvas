@@ -729,11 +729,27 @@ const createShape = defineTool({
       const placementNote = placementAdjusted
         ? ` NOTE: auto-placed to free space (would have covered an existing screen) — position subsequent child layers relative to THESE coordinates.`
         : '';
+      // Frame-overflow warning (stress-test finding): the model stacks
+      // vertical sections without checking the frame's bottom edge, and
+      // frames don't clip — spilled layers render as broken boxes below the
+      // screen. Warn at creation time so the model self-corrects.
+      let overflowNote = '';
+      if (coerced.parentId) {
+        const parent = ctx.getShapes().find((s) => s.id === coerced.parentId);
+        if (parent && parent.type === 'frame') {
+          const childBottom = (coerced.y ?? 0) + (coerced.height ?? 0);
+          const frameBottom = parent.y + parent.height;
+          const over = childBottom - frameBottom;
+          if (over > 40) {
+            overflowNote = ` NOTE: this layer's bottom edge is ${Math.round(over)}px BELOW its parent frame "${parent.name}" (${Math.round(parent.height)}px tall). Keep content INSIDE the screen frame — compress the vertical layout (reduce heights/spacing), or if the screen genuinely needs more room, resize the frame deliberately with pen_update_node first.`;
+          }
+        }
+      }
       return {
         content: [
           {
             type: 'text',
-            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.${iconNote}${placementNote}`,
+            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.${iconNote}${placementNote}${overflowNote}`,
           },
         ],
         details: { shapeId: id, patch },

@@ -484,6 +484,12 @@ let patchQueue: QueuedPatch[] = [];
 let patchQueueRaf: number | null = null;
 let patchQueueFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
+/// True when an agent turn added shapes to the canvas (add/bulk_add patches
+/// since the last turn end). Drives the turn-end "reveal": zoom-to-fit when
+/// the turn's content landed outside the visible rect (multi-screen designs
+/// grow rightward — without the reveal the user never sees screen 3+).
+let agentAddedShapesThisTurn = false;
+
 /// Drain the patch queue: replay all queued patches serially against the
 /// current document, capturing each patch's pre-state for the undo stack.
 /// One `set()` call commits the final document + the per-patch undo
@@ -1723,6 +1729,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // Multiple patches in the same tick collapse into ONE React commit;
         // per-patch pre-states are captured at flush time for the undo stack,
         // preserving unbatched undo semantics exactly.
+        if (event.patch.op === 'add' || event.patch.op === 'bulk_add') {
+          agentAddedShapesThisTurn = true;
+        }
         enqueuePatch(event.patch);
         break;
       }
@@ -1905,6 +1914,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // itself skips when the turn produced no writes.
         set((s) => ({ turnCounter: s.turnCounter + 1 }));
         get().addCheckpoint(`Turn ${get().turnCounter}`, true);
+
+        // Turn-end reveal (multi-screen stress-test fix): when this turn
+        // added canvas content, ask the Canvas shell to make it visible. The
+        // shell's 'reveal' zoom action is a no-op unless content lies
+        // OUTSIDE the visible rect — the user's zoom/pan is never yanked for
+        // in-view work. Dispatched via the same CustomEvent channel the menu
+        // uses ('ac:canvas-zoom'); the shell owns the pixel size, we own the
+        // turn lifecycle.
+        if (agentAddedShapesThisTurn && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('ac:canvas-zoom', { detail: { kind: 'reveal' } }));
+        }
+        agentAddedShapesThisTurn = false;
         if (last?.sessionId) {
           // Snapshot cadence — respect the user's settings. Default is
           // 'every-turn'. 'every-N-turns' captures only on every Nth turn

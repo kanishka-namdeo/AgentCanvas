@@ -40,7 +40,7 @@ function makeHarness(initialChildren: Array<Record<string, unknown>> = []): Test
     ...createEmptyCanvasDocument('doc-ms'),
     children: initialChildren as never,
   };
-  doc.shapes = applyPatchToCanvas(doc, { op: 'select', shapeIds: [] }).shapes;
+  doc.shapes = applyPatchToCanvas(doc, { op: 'select', shapeIds: [], summary: '' }).shapes;
   const ctx: CanvasToolContext = {
     getShapes: () => doc.shapes,
     getTokens: () => doc.tokens,
@@ -362,5 +362,291 @@ describe('multi-screen turns — system prompt guidance', () => {
     expect(prompt).toContain('MULTI-SCREEN DESIGNS');
     expect(prompt).toContain('side-by-side');
     expect(SYSTEM_PROMPT_TEMPLATE).not.toContain('one page per screen');
+  });
+});
+
+// ---- 6. Critique-loop prior-content protection -------------------------------
+
+describe('multi-screen turns — critique loop protects prior content', () => {
+  it('prior-content guard blocks pen_delete_nodes on prior shapes while active', async () => {
+    const { wrapToolsWithPriorContentGuard } = await import('@/lib/agent/prior-content-guard');
+    let guardActive = false;
+    const protectedIds = new Set(['prior-1']);
+    const names = new Map([['prior-1', 'Login Card']]);
+    let deleteExecuted = false;
+    const tools = wrapToolsWithPriorContentGuard(
+      [
+        {
+          name: 'pen_delete_nodes',
+          execute: async () => {
+            deleteExecuted = true;
+            return { content: [{ type: 'text', text: 'deleted' }] };
+          },
+        },
+      ] as any,
+      {
+        getProtectedShapeIds: () => protectedIds,
+        getProtectedShapeNames: () => names,
+        isGuardActive: () => guardActive,
+      },
+    );
+
+    // Inactive guard (main turn): delete passes through.
+    const mainTurn: any = await (tools[0] as any).execute('c1', { nodeIds: ['prior-1'] }, undefined, undefined, undefined);
+    expect(deleteExecuted).toBe(true);
+    expect(mainTurn.isError).toBeUndefined();
+
+    // Active guard (critique fix-turn): delete of a prior shape is REJECTED.
+    guardActive = true;
+    const fixTurn: any = await (tools[0] as any).execute('c2', { nodeIds: ['prior-1'] }, undefined, undefined, undefined);
+    expect(fixTurn.isError).toBe(true);
+    expect(fixTurn.details.error).toBe('prior_content_protected');
+    expect(fixTurn.content[0].text).toContain('Login Card');
+    expect(fixTurn.content[0].text).toContain('prior work');
+
+    // New-shape deletes still pass while the guard is active.
+    const newShapeDelete: any = await (tools[0] as any).execute('c3', { nodeIds: ['new-1'] }, undefined, undefined, undefined);
+    expect(newShapeDelete.isError).toBeUndefined();
+  });
+
+  it('prior-content guard blocks pen_clear entirely while active, allows otherwise', async () => {
+    const { wrapToolsWithPriorContentGuard } = await import('@/lib/agent/prior-content-guard');
+    let guardActive = false;
+    let clearExecuted = false;
+    const tools = wrapToolsWithPriorContentGuard(
+      [
+        {
+          name: 'pen_clear',
+          execute: async () => {
+            clearExecuted = true;
+            return { content: [{ type: 'text', text: 'cleared' }] };
+          },
+        },
+      ] as any,
+      {
+        getProtectedShapeIds: () => new Set(['x']),
+        getProtectedShapeNames: () => new Map([['x', 'X']]),
+        isGuardActive: () => guardActive,
+      },
+    );
+
+    const mainTurn: any = await (tools[0] as any).execute('c1', {}, undefined, undefined, undefined);
+    expect(clearExecuted).toBe(true);
+
+    guardActive = true;
+    const fixTurn: any = await (tools[0] as any).execute('c2', {}, undefined, undefined, undefined);
+    expect(fixTurn.isError).toBe(true);
+    expect(fixTurn.details.error).toBe('prior_content_protected');
+  });
+
+  it('extractNodeIdsFromParams tolerates LLM arg-shape mistakes', async () => {
+    const { extractNodeIdsFromParams } = await import('@/lib/agent/prior-content-guard');
+    expect(extractNodeIdsFromParams({ nodeIds: ['a', 'b'] })).toEqual(['a', 'b']);
+    expect(extractNodeIdsFromParams({ nodeId: 'a' })).toEqual(['a']);
+    expect(extractNodeIdsFromParams({ shapeIds: ['a'] })).toEqual(['a']);
+    expect(extractNodeIdsFromParams({ shapeId: 'a' })).toEqual(['a']);
+    expect(extractNodeIdsFromParams({})).toEqual([]);
+    expect(extractNodeIdsFromParams({ nodeIds: ['a', 42, null] })).toEqual(['a']);
+  });
+
+  it('critic snapshot is scoped: prior shapes excluded + out-of-scope header', async () => {
+    // dispatchDesignCriticSubAgent would need an LLM; exercise the serializer
+    // indirectly through the module by calling the dispatcher with a mock LLM
+    // whose completion we can't easily fabricate — instead verify via the
+    // exported path: build a canvas, call the dispatcher with priorShapeIds
+    // and a stub LLM that echoes the user message it received.
+    const { dispatchDesignCriticSubAgent } = await import('@/lib/agent/subagents/design-critic');
+    let receivedUserMessage = '';
+    const stubLlm = {
+      chat: {
+        completions: {
+          create: async (params: any) => {
+            receivedUserMessage = params.messages.find((m: any) => m.role === 'user').content;
+            return { choices: [{ message: { content: 'CRITIQUE:\n- [MINOR] x\nSCORE: 8' } }] };
+          },
+        },
+      },
+    };
+    const h = makeHarness([
+      { id: 'prior-frame', type: 'frame', name: 'Login Card', x: 0, y: 0, width: 400, height: 600 },
+      { id: 'prior-text', type: 'text', name: 'Email Label', x: 10, y: 10, width: 100, height: 20 },
+    ]);
+    // Add a NEW shape (created "this turn").
+    await runCanvasTool(h, 'pen_create_node', {
+      type: 'rectangle',
+      name: 'New Card',
+      x: 1000,
+      y: 100,
+      width: 200,
+      height: 100,
+    });
+
+    await dispatchDesignCriticSubAgent({
+      task: 'Critique the current canvas design.',
+      canvas: h.doc,
+      originalPrompt: 'Now create a dashboard screen',
+      llm: stubLlm as any,
+      priorShapeIds: ['prior-frame', 'prior-text'],
+    });
+
+    expect(receivedUserMessage).toContain('Out of scope: 2 shape(s) from EARLIER turns');
+    expect(receivedUserMessage).toContain('"Login Card"');
+    expect(receivedUserMessage).toContain('NEVER recommend deleting, replacing, or restyling them');
+    expect(receivedUserMessage).toContain('New Card');
+    // The prior shapes' own property lines must NOT appear as review targets
+    // (the out-of-scope header may name them, but no `• "…"` bullet does).
+    expect(receivedUserMessage).not.toContain('• "Email Label"');
+    expect(receivedUserMessage).not.toContain('• "Login Card"');
+  });
+
+  it('validateCanvasBeforeComplete relaxMinCount lets small edit turns pass', async () => {
+    const { validateCanvasBeforeComplete } = await import('@/lib/agent/validators');
+    // 2 shapes — fails rule 1 by default; with relaxMinCount the remaining
+    // rules pass because the text has weight 700 and the card has a shadow.
+    const shapes = [
+      { type: 'rectangle', name: 'Card', x: 0, y: 0, width: 10, height: 10, shadow: { x: 0, y: 1, blur: 2, color: '#000' } },
+      { type: 'text', name: 'Label', x: 0, y: 0, width: 10, height: 10, fontWeight: 700 },
+    ] as any[];
+    expect(validateCanvasBeforeComplete(shapes).ok).toBe(false);
+    expect(validateCanvasBeforeComplete(shapes, { relaxMinCount: true }).ok).toBe(true);
+  });
+});
+
+// ---- 7. Turn-end reveal (off-screen content becomes visible) ------------------
+
+describe('multi-screen turns — turn-end reveal', () => {
+  it('contentOutsideViewport detects off-screen rightward growth', async () => {
+    const { contentOutsideViewport } = await import('@/lib/canvas/viewport');
+    // Viewport: zoom 1, pan (120, 80), 1200x800 visible → canvas rect
+    // (-120..1080, -80..720). Three side-by-side 375px screens at x=200,
+    // 655, 1110 extend to 1485 — outside horizontally.
+    const vp = { zoom: 1, panX: 120, panY: 80 };
+    const size = { w: 1200, h: 800 };
+    const threeScreens = { x: 200, y: 50, width: 1285, height: 600 }; // 200..1485
+    expect(contentOutsideViewport(threeScreens, vp, size)).toBe(true);
+
+    // One screen at (200,50) 375x600 — fully inside (bottom edge 650 < 720).
+    const oneScreen = { x: 200, y: 50, width: 375, height: 600 };
+    expect(contentOutsideViewport(oneScreen, vp, size)).toBe(false);
+
+    // Two screens (200..1030) still inside the 1080 visible edge.
+    const twoScreens = { x: 200, y: 50, width: 830, height: 600 };
+    expect(contentOutsideViewport(twoScreens, vp, size)).toBe(false);
+  });
+
+  it('fitViewport zooms out to fit three side-by-side screens', async () => {
+    const { fitViewport } = await import('@/lib/canvas/viewport');
+    const screens = [
+      { x: 200, y: 50, width: 375, height: 812 },
+      { x: 655, y: 50, width: 375, height: 812 },
+      { x: 1110, y: 50, width: 375, height: 812 },
+    ];
+    const vp = fitViewport(screens, { w: 1200, h: 800 });
+    // All three screens (200..1485) must fit inside the visible rect.
+    expect(vp.zoom).toBeLessThan(1);
+    const visX = -vp.panX / vp.zoom;
+    const visW = 1200 / vp.zoom;
+    expect(visX).toBeLessThanOrEqual(200);
+    expect(visX + visW).toBeGreaterThanOrEqual(1485);
+  });
+
+  it('the store dispatches a reveal zoom request on turn end after adds', async () => {
+    const { useCanvasStore } = await import('@/lib/canvas/store');
+    const received: string[] = [];
+    const listener = (ev: Event) => {
+      received.push((ev as CustomEvent).detail?.kind ?? '?');
+    };
+    window.addEventListener('ac:canvas-zoom', listener);
+    try {
+      const st = useCanvasStore.getState();
+      // Simulate an agent turn: patch an add through _onSync, then turn_end.
+      st._onSync({
+        type: 'canvas:patch',
+        patch: {
+          op: 'add',
+          shapeId: 'reveal-1',
+          shape: { id: 'reveal-1', type: 'frame', name: 'Screen', x: 200, y: 50, width: 375, height: 812 },
+          summary: 'add',
+        } as CanvasPatch,
+      });
+      // Flush the rAF-coalesced patch queue synchronously.
+      await new Promise((r) => setTimeout(r, 60));
+      st._onSync({ type: 'agent:turn_end' });
+      expect(received).toContain('reveal');
+    } finally {
+      window.removeEventListener('ac:canvas-zoom', listener);
+    }
+  });
+});
+
+// ---- 8. Frame overflow (content must fit its screen) --------------------------
+
+describe('multi-screen turns — content fits inside screen frames', () => {
+  it('validateCanvasBeforeComplete flags children spilling below their frame', async () => {
+    const { validateCanvasBeforeComplete } = await import('@/lib/agent/validators');
+    const shapes = [
+      { id: 'f1', type: 'frame', name: 'Login', x: 200, y: 50, width: 375, height: 812, parentId: null },
+      { id: 'c1', type: 'rectangle', name: 'Header', x: 200, y: 50, width: 375, height: 70, parentId: 'f1' },
+      // 158px below the frame bottom (1020 vs 862) — must be flagged.
+      { id: 'c2', type: 'rectangle', name: 'Sign Up Prompt', x: 220, y: 980, width: 335, height: 40, parentId: 'f1' },
+    ] as any[];
+    const result = validateCanvasBeforeComplete(shapes, { relaxMinCount: true });
+    expect(result.ok).toBe(false);
+    expect(result.reasons.some((r) => r.includes('below their parent screen frame'))).toBe(true);
+    expect(result.reasons.some((r) => r.includes('"Sign Up Prompt"') && r.includes('158px'))).toBe(true);
+  });
+
+  it('validateCanvasBeforeComplete tolerates small decorative bleeds (≤40px)', async () => {
+    const { validateCanvasBeforeComplete } = await import('@/lib/agent/validators');
+    const shapes = [
+      { id: 'f1', type: 'frame', name: 'Login', x: 0, y: 0, width: 375, height: 812, parentId: null },
+      { id: 'c1', type: 'rectangle', name: 'Card', x: 10, y: 10, width: 355, height: 790, parentId: 'f1' },
+    ] as any[];
+    const result = validateCanvasBeforeComplete(shapes, { relaxMinCount: true });
+    expect(result.reasons.some((r) => r.includes('parent screen frame'))).toBe(false);
+  });
+
+  it('pen_create_node warns when a child would land below its parent frame', async () => {
+    const h = makeHarness();
+    const frame: any = await runCanvasTool(h, 'pen_create_node', {
+      type: 'frame',
+      name: 'Login',
+      x: 200,
+      y: 50,
+      width: 375,
+      height: 812,
+    });
+    const frameId = frame.details.shapeId;
+    // Child at y=980 inside an 812-tall frame starting at y=50 — bottom edge 158px below.
+    const child: any = await runCanvasTool(h, 'pen_create_node', {
+      type: 'rectangle',
+      name: 'Sign Up Prompt',
+      x: 220,
+      y: 980,
+      width: 335,
+      height: 40,
+      parentId: frameId,
+    });
+    const text = child.content.map((c: any) => c.text).join('\n');
+    expect(text).toContain('BELOW its parent frame "Login"');
+    expect(text).toContain('158px');
+    // A child that fits produces no warning.
+    const fitting: any = await runCanvasTool(h, 'pen_create_node', {
+      type: 'rectangle',
+      name: 'Header',
+      x: 200,
+      y: 50,
+      width: 375,
+      height: 70,
+      parentId: frameId,
+    });
+    expect(fitting.content.map((c: any) => c.text).join('\n')).not.toContain('BELOW');
+  });
+
+  it('the system prompt carries the vertical-budget rule', async () => {
+    const { buildSystemPrompt } = await import('@/lib/agent/runner-legacy');
+    const prompt = buildSystemPrompt('', '', '', createEmptyCanvasDocument('d'), 'slate', true);
+    expect(prompt).toContain('CONTENT MUST FIT ITS FRAME');
+    expect(prompt).toContain('spill below the frame');
   });
 });

@@ -106,7 +106,7 @@ Scoring guide:
  * text. The main agent can then act on each finding.
  */
 export async function dispatchDesignCriticSubAgent(
-  params: SubAgentParams & { originalPrompt: string },
+  params: SubAgentParams & { originalPrompt: string; priorShapeIds?: string[] },
 ): Promise<SubAgentResult> {
   let toolCallCount = 0;
   const startTime = Date.now();
@@ -117,8 +117,13 @@ export async function dispatchDesignCriticSubAgent(
     // ZAI.create() for the sandbox auto-credential path.
     const llm: LLMClient = params.llm ?? ((await ZAI.create()) as unknown as LLMClient);
 
-    // Serialize the canvas snapshot for the critic.
-    const snapshot = serializeCanvasForCritic(params.canvas);
+    // Serialize the canvas snapshot for the critic — scoped to the turn's
+    // NEW shapes when prior content exists (multi-screen stress-test fix:
+    // the critic used to review the whole canvas and flag the user's earlier
+    // screens as "defects", which the fix-turn then "resolved" by deleting
+    // them).
+    const priorShapeIds = new Set(params.priorShapeIds ?? []);
+    const snapshot = serializeCanvasForCritic(params.canvas, priorShapeIds);
 
     const userMessage = `Original user request (for context, do not let it bias your evaluation):
 ${params.originalPrompt}
@@ -195,14 +200,38 @@ Review this design critically. End your response with "CRITIQUE:" and "SCORE:" a
  * The critic doesn't need every property — only the ones that affect
  * design quality. We deliberately omit internal ids (except for naming)
  * to keep the snapshot under 2k tokens for typical designs.
+ *
+ * When `priorShapeIds` is non-empty, the snapshot is SCOPED: only the
+ * turn's NEW shapes are serialized, with a header naming the prior
+ * deliverables as explicitly out of scope. This stops the critic from
+ * flagging (and the fix-turn from "fixing") the user's earlier screens.
  */
-function serializeCanvasForCritic(canvas: CanvasDocument): string {
-  const shapes = canvas.shapes ?? [];
-  if (shapes.length === 0) return '(empty canvas)';
+function serializeCanvasForCritic(canvas: CanvasDocument, priorShapeIds?: Set<string>): string {
+  const allShapes = canvas.shapes ?? [];
+  if (allShapes.length === 0) return '(empty canvas)';
+
+  const hasPrior = priorShapeIds !== undefined && priorShapeIds.size > 0;
+  const shapes = hasPrior ? allShapes.filter((s) => !priorShapeIds!.has(s.id)) : allShapes;
 
   const lines: string[] = [];
   lines.push(`Background: ${canvas.background}`);
-  lines.push(`Total shapes: ${shapes.length}`);
+  if (hasPrior) {
+    const priorTopLevel = allShapes
+      .filter((s) => priorShapeIds!.has(s.id) && !s.parentId)
+      .map((s) => `"${s.name ?? s.id}"`);
+    lines.push(
+      `Out of scope: ${priorShapeIds!.size} shape(s) from EARLIER turns` +
+      (priorTopLevel.length > 0
+        ? ` (${priorTopLevel.slice(0, 6).join(', ')}${priorTopLevel.length > 6 ? ', …' : ''})`
+        : '') +
+      ` — the user's previous deliverables. Do NOT flag them, their styling, or their coexistence as defects. ` +
+      `NEVER recommend deleting, replacing, or restyling them. Evaluate ONLY the ${shapes.length} new shape(s) below.`,
+    );
+  }
+  lines.push(`Shapes under review: ${shapes.length}`);
+  if (shapes.length === 0 && hasPrior) {
+    lines.push('(no new shapes this turn — nothing to review)');
+  }
   lines.push('');
 
   // Group shapes by type for compactness.

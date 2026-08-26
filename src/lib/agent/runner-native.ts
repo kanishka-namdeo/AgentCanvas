@@ -65,6 +65,7 @@ import type { CanvasDocument, CanvasPatch } from '../canvas/types';
 import type { AgentRunSettings } from '../settings/types';
 import { normalizeLLMProvider, DEFAULT_SETTINGS } from '../settings/types';
 import { applyPatchToCanvas } from '../canvas/patch';
+import { wrapToolsWithPriorContentGuard } from './prior-content-guard';
 import { classifyIntent } from './classifier';
 import { generatePlan, formatPlanForPrompt } from './planner';
 import { dispatchWebResearchSubAgent } from './subagents/web-research';
@@ -155,6 +156,23 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
 
   // 1. Normalize canvas + build tool context (identical to legacy runner).
   let canvas: CanvasDocument = normalizeCanvas(initialCanvas);
+
+  // Multi-screen prior-content bookkeeping (stress-test fix): the shapes that
+  // exist at TURN START are the user's prior deliverables (screens from
+  // earlier prompts). The critique loop must scope itself to the NEW shapes,
+  // and the prior-content tool guard must refuse to delete prior shapes during
+  // critique fix-turns — otherwise the critic can flag the login screen as a
+  // "defect" and the fix-turn "fixes" it by deleting the user's work.
+  const turnStartShapeIds = new Set((canvas.shapes ?? []).map((s) => s.id));
+  const turnStartShapeNames = new Map(
+    (canvas.shapes ?? []).map((s) => [s.id, s.name ?? s.id] as const),
+  );
+  // Per-run state (persists across attempt loop + critique loop). Declared
+  // early — the prior-content tool guard (built below) closes over
+  // inCritiqueReprrompt, so it must be initialized before any tool executes.
+  let hasGeneratedBrief = false;
+  let inCritiqueReprrompt = false;
+
   const ctx: CanvasToolContext = {
     getShapes: () => canvas.shapes ?? [],
     getTokens: () => canvas.tokens ?? { colors: [], textStyles: [] },
@@ -168,7 +186,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // 2. Create all 88 tools. These are already `ToolDefinition[]` (defined
   //    via `defineTool` from `@earendil-works/pi-coding-agent`), so they
   //    can be passed straight to `createAgentSession({ customTools })`.
-  const canvasTools = createCanvasTools(ctx);
+  const canvasTools = wrapToolsWithPriorContentGuard(createCanvasTools(ctx) as unknown as ToolDefinition[], {
+    getProtectedShapeIds: () => turnStartShapeIds,
+    getProtectedShapeNames: () => turnStartShapeNames,
+    isGuardActive: () => inCritiqueReprrompt,
+  }) as unknown as ReturnType<typeof createCanvasTools>;
   const penTools = createPenTools(ctx);
   const figmaTools = createFigmaTools(ctx);
   // Plugin tools (ask_user_question, todo, memory, mega-compact,
@@ -279,10 +301,6 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     return /\b(design|dashboard|landing\s*page|app|ui|build|create|make|draw|scaffold|layout|interface|website|page|screen)\b/.test(t);
   };
   const shouldEnforceBrief = isDesignRequest(prompt);
-
-  // Per-run state (persists across attempt loop + critique loop).
-  let hasGeneratedBrief = false;
-  let inCritiqueReprrompt = false;
 
   const BRIEF_TOOL_NAME = 'pen_generate_design_brief';
   const GATED_TOOL_NAMES = new Set<string>([
@@ -935,6 +953,16 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       // the silent-failure guard above already surfaced the error).
       if (shapesForCritique.length === 0) break;
 
+      // Multi-screen scoping (stress-test fix): the turn's deliverable is the
+      // NEW content. Shapes that existed at turn start are the user's prior
+      // deliverables — they are NOT defects and must never be "fixed" by
+      // deletion or restructuring. Pure edit turns (no new shapes) skip the
+      // critique loop entirely — there is nothing new to critique, and a
+      // whole-canvas critique would re-litigate prior screens forever.
+      const newShapesForCritique = shapesForCritique.filter((s) => !turnStartShapeIds.has(s.id));
+      if (newShapesForCritique.length === 0) break;
+      const priorShapeIds = [...turnStartShapeIds];
+
       // Skip critique during an explicit wireframe / low-fi request — the
       // validation gate's typography/shadow rules don't apply to lofi output.
       const lowerPrompt = prompt.toLowerCase();
@@ -952,6 +980,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           canvas,
           originalPrompt: prompt,
           llm: subAgentLLM,
+          priorShapeIds,
         });
         textCritiqueSummary = textResult.summary;
         // The text critic's summary includes a SCORE: line — parse the number.
@@ -974,6 +1003,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           canvas,
           originalPrompt: prompt,
           llm: subAgentLLM,
+          priorShapeIds,
         });
         vlmCritique = vlmResult.critique;
         if (vlmCritique) vlmSeverity = vlmCritique.severity;
@@ -985,8 +1015,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       }
 
       // ---- 3. Pre-complete validation gate (T10) -----------------------------
+      // Scoped to the NEW shapes: prior screens' typography/shadows are the
+      // user's accepted history, not this turn's defects. min-count is
+      // relaxed because edit turns legitimately add only a few shapes.
       const { validateCanvasBeforeComplete } = await import('./validators');
-      const validation = validateCanvasBeforeComplete(shapesForCritique);
+      const validation = validateCanvasBeforeComplete(newShapesForCritique, {
+        relaxMinCount: true,
+      });
 
       // ---- 4. Exit decision --------------------------------------------------
       const defects = [
@@ -1039,11 +1074,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       };
       yield { kind: 'agent_event', event: { type: 'agent:message_end' } as any };
 
-      // Build a summary of the current canvas shapes so the agent has full
+      // Build a summary of the turn's NEW shapes so the agent has full
       // context (in case the conversation context isn't enough on its own).
       // Include id, type, name, fill, textColor, fontWeight, letterSpacing,
       // textAlign, shadow presence — the fields the defects usually target.
-      const shapeSummaries = shapesForCritique.slice(0, 30).map((s, i) => {
+      // PRIOR shapes are deliberately excluded: listing them invites the
+      // model to "fix" (or delete) the user's earlier screens.
+      const shapeSummaries = newShapesForCritique.slice(0, 40).map((s, i) => {
         const parts = [`${i + 1}. id=${s.id} type=${s.type} name="${s.name ?? ''}"`];
         if (s.fill) parts.push(`fill=${s.fill}`);
         if (s.type === 'text') {
@@ -1058,6 +1095,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         return parts.join(' ');
       }).join('\n');
 
+      // Prior-content scope note for the fix message: names the user's earlier
+      // deliverables so the model knows exactly what is off-limits.
+      const priorTopLevelNames = shapesForCritique
+        .filter((s) => turnStartShapeIds.has(s.id) && !s.parentId)
+        .map((s) => `"${s.name ?? s.id}"`);
+      const priorScopeNote = priorShapeIds.length > 0
+        ? `\nSCOPE GUARD (critical): the canvas ALSO contains ${priorShapeIds.length} shapes created in EARLIER turns — the user's previous deliverables${priorTopLevelNames.length > 0 ? ` (${priorTopLevelNames.slice(0, 6).join(', ')}${priorTopLevelNames.length > 6 ? ', …' : ''})` : ''}. Do NOT delete, move, restyle, or replace ANY shape you did not create in THIS turn. Deleting or restructuring prior work is a critical failure — the user asked for a new screen, not a redesign of their existing ones. pen_delete_nodes / pen_clear on prior content will be REJECTED.\n`
+        : '';
+
       // Task 7-e Fix 3 #5: Strengthened fix-message — explicitly enumerate
       // which tools the agent MUST call + a "Do NOT respond with text only"
       // directive. The previous vague "Fix them by calling pen_update_shape
@@ -1067,9 +1113,9 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
 
 ${defects.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}
 
-Current canvas state (${shapesForCritique.length} shapes):
+Shapes you created THIS turn (${newShapesForCritique.length} — these are the ONLY shapes you may modify):
 ${shapeSummaries}
-
+${priorScopeNote}
 You MUST call at least one of: pen_update_shape, pen_create_shape, pen_bulk_update_by_filter, pen_set_shadow, pen_set_gradient_fill, pen_apply_palette — to address these defects.
 
 Do NOT respond with text only. Do NOT declare done until you have made at least one tool call to fix each defect.
@@ -1080,7 +1126,8 @@ Specifically:
 - If a text shape has no textAlign, call pen_update_shape with { shapeId, textAlign: 'left' for body / 'center' for hero / 'right' for numeric }.
 - If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:1, blur:2, color:"#0000000d" } (subtle sm shadow; use y:4/blur:6 only for raised states).
 - If a card/sidebar/topbar has no autoLayout, call pen_update_shape with { shapeId, autoLayout: { direction:"vertical", gap:8, padding:24, alignX:"min", alignY:"min" } }.
-- If the canvas has fewer than 5 shapes, call pen_create_shape to add the missing components (KPI cards, chart, table, etc.) per the design brief's informationArchitecture.
+- If a layer extends below its parent screen frame, call pen_update_shape to move/resize it (and its siblings) so ALL content fits inside the frame — or deliberately enlarge the frame with pen_update_node first.
+- If your screen is missing core components (KPI cards, chart, table, etc.) per the design brief's informationArchitecture, call pen_create_shape to add them.
 
 Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
 

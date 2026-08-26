@@ -30,7 +30,7 @@ import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape, Viewport } from '@/lib/canvas/types';
 import { SHORTCUTS_BY_ACTION, matchShortcut } from '@/lib/canvas/shortcuts';
-import { fitViewport, DEFAULT_VIEWPORT } from '@/lib/canvas/viewport';
+import { fitViewport, bboxOf, contentOutsideViewport, DEFAULT_VIEWPORT } from '@/lib/canvas/viewport';
 import { scaleGeometry } from '@/lib/canvas/scale';
 import {
   COMPONENT_DRAG_MIME,
@@ -163,13 +163,23 @@ export function Canvas() {
   // Apply a zoom action (⇧1 fit / ⇧2 selection / ⇧0 100% / ⇧+ / ⇧−, plus the
   // TopMenuBar View items which fire the 'ac:canvas-zoom' CustomEvent — the
   // viewport state is shell-local, so the menu routes through the shell).
+  // 'reveal' is the agent turn-end variant: zoom-to-fit ONLY when content
+  // extends outside the visible rect (multi-screen reveal), otherwise keep
+  // the user's viewport untouched.
   const applyZoom = useCallback(
-    (kind: 'fit' | 'selection' | '100' | 'in' | 'out') => {
+    (kind: 'fit' | 'selection' | '100' | 'in' | 'out' | 'reveal') => {
       if (kind === 'fit') {
         setViewport(fitViewport(document.shapes ?? [], size));
       } else if (kind === 'selection') {
         const selected = (document.shapes ?? []).filter((s) => selectedIds.includes(s.id));
         if (selected.length > 0) setViewport(fitViewport(selected, size));
+      } else if (kind === 'reveal') {
+        setViewport((v) => {
+          const bbox = bboxOf(document.shapes ?? []);
+          if (!bbox) return v;
+          if (!contentOutsideViewport(bbox, v, size)) return v;
+          return fitViewport(document.shapes ?? [], size);
+        });
       } else if (kind === '100') {
         setViewport({ ...DEFAULT_VIEWPORT });
       } else {
@@ -181,7 +191,7 @@ export function Canvas() {
 
   useEffect(() => {
     const onZoomRequest = (ev: Event) => {
-      const kind = (ev as CustomEvent).detail?.kind as 'fit' | 'selection' | '100' | 'in' | 'out' | undefined;
+      const kind = (ev as CustomEvent).detail?.kind as 'fit' | 'selection' | '100' | 'in' | 'out' | 'reveal' | undefined;
       if (kind) applyZoom(kind);
     };
     window.addEventListener('ac:canvas-zoom', onZoomRequest);
