@@ -851,6 +851,16 @@ function buildDesignSystemPackSection(packName: string): string {
       tagline: 'Indigo accent on slate gray, 4-8px radii, system font stack. Mantine 7.x runtime — best for data-dense admin tools.',
       overrides: 'Use the FIDELITY POLICY color rule but with indigo-accent-on-slate. Radii: button 4px, card 8px, input 6px — NOT the 8/12/16 scale from the policy.',
     },
+    'radix-themes': {
+      label: 'Radix Themes',
+      tagline: 'Indigo accent on cool gray surfaces, soft tinted accent panels, 6px radii, Inter + Roboto Mono. Radix Themes — accessible, themeable components.',
+      overrides: 'Use the FIDELITY POLICY color rule with indigo-accent-on-cool-gray. Radii: button 6px, card 8px, input 6px — NOT the 8/12/16 scale from the policy. For selected/hovered states prefer SOFT TINTED accent surfaces (var(--color-accent-muted)) over heavy shadows — that is the Radix signature. Inputs get a visible border (var(--color-border-strong)) plus an indigo focus ring.',
+    },
+    'tailwind-catalyst': {
+      label: 'Tailwind Catalyst',
+      tagline: 'Zinc neutrals with INK-BLACK primary buttons, 8px radii, Inter, indigo focus rings. Tailwind Labs first-party app UI kit.',
+      overrides: 'OVERRIDE the primary-button rule: primary buttons are INK-BLACK (var(--button-bg-primary) = zinc-950), NOT accent-colored — indigo is ONLY for links, focus rings, and selected states. Radii: button 8px, input 8px, card 12px. Shadows stay subtle (var(--shadow-sm)) — 1px borders do the separation work. Headings use tracking-tight.',
+    },
   };
   const info = known[packName];
   const humanLabel = info?.label ?? packName;
@@ -903,6 +913,13 @@ ${overrides}
 - Text hierarchy in any card/form: heading = var(--text-xl) or var(--text-2xl) weight 600 color var(--color-text-primary); body/labels = var(--text-sm) weight 400-500 color var(--color-text-primary); secondary/help = var(--text-sm) color var(--color-text-muted). NEVER make a decorative "logo"/brand wordmark larger than the heading.
 - Vertical rhythm: use a CONSISTENT gap between stacked form rows (var(--space-4) to var(--space-6)), and a LARGER gap (var(--space-8)) between sections (header vs form vs footer). Do not let one gap dwarf another.
 - Card container: fill: var(--color-surface-raised), border 1px var(--color-border-default) (for Geist) or shadow var(--shadow-sm) (for shadcn/Mantine — use the pack's shadow tokens), radius: var(--radius-card), generous internal padding (var(--space-8) to var(--space-12)).
+
+## LAYOUT ASSEMBLY (hard requirement — read before positioning ANY shape)
+A card/form/screen is ONE container with every child INSIDE its bounds:
+1. Draw the card container FIRST and note its x/y/width/height. Every subsequent element's coordinates must satisfy: card.x ≤ element.x AND element.x + element.width ≤ card.x + card.width. NEVER place a label, input, icon, or button outside the card rect.
+2. Stacked rows share the SAME left edge: all full-width children have identical x (±4px tolerance). Labels sit directly above their input (gap var(--space-1) to var(--space-2)); rows stack with a uniform gap (var(--space-4) to var(--space-6)).
+3. Order top-to-bottom: header block (title + subtitle), then form fields, then primary CTA (full card width minus padding), then footer links. Icons go INSIDE their input's bounds, vertically centered.
+4. BEFORE you finish, verify: does every element belong to exactly one card? Are there exactly as many cards as the design needs (usually ONE for a login/signup/settings form)? If any element's x is more than 8px off its siblings' x, or a heading sits outside the card, FIX the coordinates before ending the turn.
 
 ## Final reminder (read this last)
 When you start the next tool call, ask yourself: "Am I using var(--*) for every fill, stroke, radius, and font?" If you find yourself typing a # hex code or a bare number for radius/size, STOP and substitute the corresponding pack variable.

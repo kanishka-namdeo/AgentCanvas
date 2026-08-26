@@ -30,7 +30,11 @@ src/lib/design-systems/
     │   └── tokens.css
     ├── vercel-geist/       # Black/white, monochrome, square corners
     │   └── tokens.css
-    └── mantine-default/   # Warm gray, enterprise
+    ├── mantine-default/   # Warm gray, enterprise
+    │   └── tokens.css
+    ├── radix-themes/      # Indigo on cool gray, soft tinted panels
+    │   └── tokens.css
+    └── tailwind-catalyst/ # Zinc neutrals, ink-black buttons, 8px radii
         └── tokens.css
 ```
 
@@ -48,7 +52,8 @@ src/lib/design-systems/
 User: "Build me a SaaS dashboard"
   ↓
 Agent: calls `ask_user_question` with options from
-       `buildDesignSystemQuestion()` (shadcn/ui / Vercel Geist / Mantine)
+       `buildDesignSystemQuestion()` (shadcn/ui / Vercel Geist / Mantine /
+       Radix Themes / Tailwind Catalyst)
   ↓
 User picks: Vercel Geist
   ↓

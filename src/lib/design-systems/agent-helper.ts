@@ -76,6 +76,8 @@ function humanifyPackName(name: string): string {
     'shadcn-default': 'shadcn/ui',
     'vercel-geist': 'Vercel Geist',
     'mantine-default': 'Mantine',
+    'radix-themes': 'Radix Themes',
+    'tailwind-catalyst': 'Tailwind Catalyst',
   };
   return known[name] ?? name.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }

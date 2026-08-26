@@ -119,7 +119,14 @@ export function DesignSystemPicker({ open, onOpenChange, onPick }: DesignSystemP
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {pack.dependencies.map((d) => (
-                      <Badge key={d.package} variant="outline" className="font-mono text-[10px]">
+                      <Badge
+                        key={d.package}
+                        variant="outline"
+                        /* Dark-mode audit fix: use the ac token system — the default
+                         * outline badge colors (muted-foreground) were unreadable
+                         * on dark surfaces. Bumped 10px → 11px for legibility. */
+                        className="font-mono text-[11px] ac-text-2 ac-border-default"
+                      >
                         {d.package}@≥{d.min}
                       </Badge>
                     ))}
@@ -180,7 +187,7 @@ function PackCard({
       className={cn(
         'w-full text-left p-3 rounded-md border ac-transition cursor-pointer',
         active
-          ? 'ac-surface-2 border-[var(--ac-accent)] shadow-[inset_3px_0_0_0_var(--ac-accent),0_0_0_1px_var(--ac-accent-border)]'
+          ? 'ac-surface-3 border-[var(--ac-accent)] shadow-[inset_3px_0_0_0_var(--ac-accent),0_0_0_1px_var(--ac-accent-border)]'
           : 'ac-surface-0 ac-border-subtle hover:ac-surface-1 hover:ac-border-default',
       )}
     >
@@ -231,6 +238,8 @@ function humanifyName(name: string): string {
     'shadcn-default': 'shadcn / ui',
     'vercel-geist': 'Vercel Geist',
     'mantine-default': 'Mantine',
+    'radix-themes': 'Radix Themes',
+    'tailwind-catalyst': 'Catalyst',
   };
   return known[name] ?? name.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }

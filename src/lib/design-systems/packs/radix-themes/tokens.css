@@ -1,0 +1,159 @@
+/* ───────────────────────────────────────────────────────────────
+ * radix-themes / tokens.css
+ * Indigo accent on cool gray surfaces, soft tinted accent panels.
+ * Radix Themes (@radix-ui/themes) — accessible, themeable kit.
+ * Radius medium (6px), Inter body, Roboto Mono code.
+ * ─────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── 1. PRIMITIVE ───────────────────────────────────────────── */
+  /* Radix indigo scale (light) — the default accent color. */
+  --r-indigo-1:  #fdfdfe;
+  --r-indigo-2:  #f3f4fe;
+  --r-indigo-3:  #e9edfe;
+  --r-indigo-4:  #dfe5fc;
+  --r-indigo-5:  #d3dbfa;
+  --r-indigo-6:  #c4cdf6;
+  --r-indigo-7:  #b1bcf1;
+  --r-indigo-8:  #97a3ee;
+  --r-indigo-9:  #3e63dd;   /* Solid accent step */
+  --r-indigo-10: #3553c3;
+  --r-indigo-11: #2f3d8f;   /* Accessible text on light */
+  --r-indigo-12: #1d1e47;
+
+  /* Radix gray scale (light) — cool, blue-tinted neutrals. */
+  --r-gray-1:  #fcfcfd;
+  --r-gray-2:  #f7f8f8;
+  --r-gray-3:  #eff0f1;
+  --r-gray-4:  #e6e7eb;
+  --r-gray-5:  #dde0e4;
+  --r-gray-6:  #cfd2d8;
+  --r-gray-7:  #b8bcc4;
+  --r-gray-8:  #9ba1ab;
+  --r-gray-9:  #787f8c;
+  --r-gray-10: #6b7280;
+  --r-gray-11: #4b5563;
+  --r-gray-12: #2a2e37;
+
+  /* Radix status scales (light, step 9). */
+  --r-grass-9: #30a46c;
+  --r-amber-9: #ffb224;
+  --r-red-9:   #e5484d;
+  --r-blue-9:  #0090ff;
+
+  /* Radix Themes radius scale: none / small / medium / large / full. */
+  --radius-none: 0;
+  --radius-xs:   4px;
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-full: 9999px;
+
+  --space-0:  0px;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  --font-sans:  'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:   'Roboto Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+
+  /* Radix shadows are low, layered, and subtle. */
+  --shadow-xs: 0 1px 2px 0 rgba(10, 13, 20, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(10, 13, 20, 0.08), 0 1px 2px -1px rgba(10, 13, 20, 0.05);
+  --shadow-md: 0 4px 6px -2px rgba(10, 13, 20, 0.08), 0 2px 4px -2px rgba(10, 13, 20, 0.06);
+  --shadow-lg: 0 12px 16px -4px rgba(10, 13, 20, 0.08), 0 4px 6px -2px rgba(10, 13, 20, 0.05);
+}
+
+:root {
+  /* ── 2. SEMANTIC ─────────────────────────────────────────────── */
+  --color-bg:              var(--r-gray-2);   /* Radix app background */
+  --color-bg-muted:        var(--r-gray-3);
+  --color-bg-subtle:       var(--r-gray-4);
+  --color-surface:         var(--r-gray-1);
+  --color-surface-raised:  #ffffff;           /* Panel / card surfaces */
+
+  --color-border-default:    var(--r-gray-5);
+  --color-border-subtle:     var(--r-gray-4);
+  --color-border-strong:     var(--r-gray-8);
+
+  --color-text-primary:    var(--r-gray-12);
+  --color-text-secondary:  var(--r-gray-11);
+  --color-text-muted:      var(--r-gray-9);
+  --color-text-on-accent:  #ffffff;
+
+  --color-accent:        var(--r-indigo-9);
+  --color-accent-hover:  var(--r-indigo-10);
+  --color-accent-active: var(--r-indigo-11);
+  --color-accent-fg:     #ffffff;
+  --color-accent-muted:  var(--r-indigo-3);   /* Soft tinted accent surface */
+
+  --color-success:       var(--r-grass-9);
+  --color-warning:       var(--r-amber-9);
+  --color-error:         var(--r-red-9);
+  --color-info:          var(--r-blue-9);
+
+  --radius-button: var(--radius-md);   /* medium — Radix default */
+  --radius-card:   var(--radius-lg);
+  --radius-input:  var(--radius-md);
+  --radius-pill:   var(--radius-full);
+}
+
+:root {
+  /* ── 3. COMPONENT ───────────────────────────────────────────── */
+  /* Buttons mirror Radix variants: solid / surface / ghost. */
+  --button-bg-primary:       var(--color-accent);
+  --button-bg-primary-hover: var(--color-accent-hover);
+  --button-fg-primary:       var(--color-accent-fg);
+  --button-bg-secondary:     var(--color-surface-raised);
+  --button-fg-secondary:     var(--color-text-primary);
+  --button-bg-ghost:         transparent;
+  --button-fg-ghost:         var(--color-text-primary);
+  --button-border:           var(--color-border-default);
+  --button-padding-x:        var(--space-3);
+  --button-padding-y:        var(--space-2);
+  --button-font-size:        var(--text-sm);
+  --button-font-weight:      500;
+
+  --input-bg:              var(--color-surface-raised);
+  --input-fg:              var(--color-text-primary);
+  --input-border:          var(--color-border-strong);  /* Radix inputs have a visible border */
+  --input-border-focus:    var(--r-indigo-8);           /* + indigo focus ring */
+  --input-padding-x:       var(--space-2);
+  --input-padding-y:       var(--space-2);
+  --input-radius:          var(--radius-input);
+
+  --card-bg:               var(--color-surface-raised);
+  --card-border:           var(--color-border-default);
+  --card-radius:           var(--radius-card);
+  --card-padding:          var(--space-5);
+  --card-shadow:           var(--shadow-xs);  /* Radix surfaces: hairline border + low shadow */
+
+  --table-header-bg:      var(--color-bg-muted);
+  --table-header-fg:      var(--color-text-secondary);
+  --table-row-bg-even:    var(--color-surface-raised);
+  --table-row-bg-odd:     var(--color-surface);
+  --table-border:         var(--color-border-subtle);
+
+  --dialog-overlay-bg:    rgba(10, 13, 20, 0.45);
+  --dialog-bg:            var(--color-surface-raised);
+  --dialog-border:        var(--color-border-default);
+  --dialog-radius:        var(--radius-lg);
+}

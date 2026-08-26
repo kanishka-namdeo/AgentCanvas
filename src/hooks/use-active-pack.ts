@@ -10,6 +10,8 @@ const KNOWN_LABELS: Record<string, string> = {
   'shadcn-default': 'shadcn/ui',
   'vercel-geist': 'Vercel Geist',
   'mantine-default': 'Mantine',
+  'radix-themes': 'Radix',
+  'tailwind-catalyst': 'Catalyst',
 };
 
 export function humanifyPackName(name: string | null): string {

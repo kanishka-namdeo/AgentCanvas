@@ -99,10 +99,12 @@ export function Toolbar() {
     'h-8 w-8 ac-text-2 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring rounded-full';
 
   // Select/Pan/Scale toggle button class — active state gets a filled background.
+  // Dark-mode audit fix: surface-3 (not 2) so the active pill stays clearly
+  // visible on the translucent dark toolbar (L .28 vs .17 chrome).
   const modeBtnCls = (active: boolean) =>
     `h-8 w-8 ac-transition ac-focus-ring rounded-full ${
       active
-        ? 'ac-surface-2 ac-text-1 shadow-sm'
+        ? 'ac-surface-3 ac-text-1 shadow-sm'
         : 'ac-text-2 hover:ac-text-1 hover:ac-surface-2'
     }`;
 

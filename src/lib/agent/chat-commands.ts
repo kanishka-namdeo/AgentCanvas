@@ -26,6 +26,10 @@ export interface ChatCommand {
 }
 
 export const CHAT_COMMANDS: ChatCommand[] = [
+  // --- Design system (client-side, instant) ---
+  // e.g. `/pick-pack geist` — fuzzy-resolves to vercel-geist and pins it
+  // for all subsequent agent generations this session.
+  { cmd: '/pick-pack', label: '/pick-pack', hint: 'Pin a design-system pack (e.g. /pick-pack geist)', kind: 'action', run: 'pick-pack', args: true },
   // --- Canvas utilities (client-side, instant) ---
   { cmd: '/clear', label: '/clear', hint: 'Erase the canvas (undoable)', kind: 'action', run: 'clear' },
   { cmd: '/undo', label: '/undo', hint: 'Undo the last canvas change', kind: 'action', run: 'undo' },
@@ -60,6 +64,51 @@ export function matchCommands(input: string): ChatCommand[] {
 
 /// Max commands rendered in the autocomplete menu at once.
 export const COMMAND_MENU_LIMIT = 8;
+
+// ---- pick-pack resolution --------------------------------------------------
+
+/// Minimal shape needed to resolve a pack argument. `PackSummary` from
+/// `@/lib/design-systems/types` satisfies this structurally.
+export interface PackRef {
+  name: string;
+  description?: string;
+}
+
+/// Resolve a free-text `/pick-pack` argument to a registry pack name.
+/// Pure + synchronous so it is trivially testable and runs identically
+/// on the client (the panel passes the pack list from useDesignSystems).
+///
+/// Match order (first hit wins, case-insensitive):
+///   1. exact name            ('vercel-geist')
+///   2. name endsWith arg     ('geist'  → vercel-geist)
+///   3. name includes arg     ('radix'  → radix-themes)
+///   4. fuzzy: arg matches ANY of the name's dash-words or the pack's
+///      human label synonyms ('catalyst' → tailwind-catalyst)
+///
+/// Returns null when nothing matches or the arg is empty.
+export function resolvePackName(arg: string, packs: PackRef[]): string | null {
+  const q = arg.trim().toLowerCase();
+  if (!q) return null;
+
+  // 1. exact
+  const exact = packs.find((p) => p.name.toLowerCase() === q);
+  if (exact) return exact.name;
+
+  // 2. endsWith — the natural shortcut: 'geist' → 'vercel-geist'
+  const ends = packs.find((p) => p.name.toLowerCase().endsWith(q));
+  if (ends) return ends.name;
+
+  // 3. includes — 'radix' → 'radix-themes', 'catalyst' → 'tailwind-catalyst'
+  const incl = packs.find((p) => p.name.toLowerCase().includes(q));
+  if (incl) return incl.name;
+
+  // 4. synonym words — 'tailwind' → tailwind-catalyst, 'shadcn' → shadcn-default
+  const words = (p: PackRef) => p.name.toLowerCase().split('-');
+  const syn = packs.find((p) => words(p).some((w) => w === q || (q.length >= 3 && w.startsWith(q))));
+  if (syn) return syn.name;
+
+  return null;
+}
 
 /// Resolve input + selected command into an execution plan.
 /// Returns null when input isn't a command.

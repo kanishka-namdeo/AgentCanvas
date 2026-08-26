@@ -1,0 +1,151 @@
+/* ───────────────────────────────────────────────────────────────
+ * tailwind-catalyst / tokens.css
+ * Zinc neutrals, ink-black primary buttons, 8px radii, indigo
+ * focus rings. Tailwind Labs' Catalyst — Headless UI + Tailwind,
+ * designed to be copied into your project and owned.
+ * ─────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── 1. PRIMITIVE ───────────────────────────────────────────── */
+  /* Tailwind zinc scale — Catalyst's neutral foundation. */
+  --z-zinc-50:  #fafafa;
+  --z-zinc-100: #f4f4f5;
+  --z-zinc-200: #e4e4e7;
+  --z-zinc-300: #d4d4d8;
+  --z-zinc-400: #a1a1aa;
+  --z-zinc-500: #71717a;
+  --z-zinc-600: #52525b;
+  --z-zinc-700: #3f3f46;
+  --z-zinc-800: #27272a;
+  --z-zinc-900: #18181b;
+  --z-zinc-950: #09090b;   /* Ink — the Catalyst primary button */
+
+  /* Indigo — Catalyst's link / focus-ring accent. */
+  --z-indigo-50:  #eef2ff;
+  --z-indigo-500: #6366f1;
+  --z-indigo-600: #4f46e5;
+  --z-indigo-700: #4338ca;
+
+  /* Status (Tailwind emerald / amber / red / sky, step 600). */
+  --z-emerald-600: #059669;
+  --z-amber-500:   #f59e0b;
+  --z-red-600:     #dc2626;
+  --z-sky-600:     #0284c7;
+
+  /* Catalyst radii: rounded-lg on controls, rounded-xl on containers. */
+  --radius-xs:   2px;
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-full: 9999px;
+
+  --space-0:  0px;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  --font-sans:  'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:   ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+
+  /* Catalyst shadows: single low layer — borders do the separation. */
+  --shadow-xs: 0 1px 2px 0 rgb(9 9 11 / 0.05);
+  --shadow-sm: 0 1px 2px 0 rgb(9 9 11 / 0.06), 0 1px 3px 0 rgb(9 9 11 / 0.04);
+  --shadow-md: 0 2px 4px -1px rgb(9 9 11 / 0.06), 0 4px 6px -1px rgb(9 9 11 / 0.04);
+  --shadow-lg: 0 8px 16px -4px rgb(9 9 11 / 0.08), 0 4px 8px -4px rgb(9 9 11 / 0.04);
+}
+
+:root {
+  /* ── 2. SEMANTIC ─────────────────────────────────────────────── */
+  --color-bg:              var(--z-zinc-50);
+  --color-bg-muted:        var(--z-zinc-100);
+  --color-bg-subtle:       var(--z-zinc-200);
+  --color-surface:         #ffffff;
+  --color-surface-raised:  #ffffff;
+
+  --color-border-default:    var(--z-zinc-200);  /* zinc-950/10 equivalent */
+  --color-border-subtle:     var(--z-zinc-100);
+  --color-border-strong:     var(--z-zinc-800);
+
+  --color-text-primary:    var(--z-zinc-950);
+  --color-text-secondary:  var(--z-zinc-600);
+  --color-text-muted:      var(--z-zinc-500);
+  --color-text-on-accent:  #ffffff;
+
+  /* Accent = indigo: links, focus rings, selected states — NOT buttons. */
+  --color-accent:        var(--z-indigo-600);
+  --color-accent-hover:  var(--z-indigo-500);
+  --color-accent-active: var(--z-indigo-700);
+  --color-accent-fg:     #ffffff;
+  --color-accent-muted:  var(--z-indigo-50);
+
+  --color-success:       var(--z-emerald-600);
+  --color-warning:       var(--z-amber-500);
+  --color-error:         var(--z-red-600);
+  --color-info:          var(--z-sky-600);
+
+  --radius-button: var(--radius-lg);   /* rounded-lg — buttons + inputs */
+  --radius-card:   var(--radius-xl);   /* rounded-xl — cards + containers */
+  --radius-input:  var(--radius-lg);
+  --radius-pill:   var(--radius-full);
+}
+
+:root {
+  /* ── 3. COMPONENT ───────────────────────────────────────────── */
+  /* Buttons: Catalyst's signature is the INK-BLACK solid button
+     (zinc-950 → zinc-800 on hover), not an accent-colored one. */
+  --button-bg-primary:       var(--z-zinc-950);
+  --button-bg-primary-hover: var(--z-zinc-800);
+  --button-fg-primary:       #ffffff;
+  --button-bg-secondary:     var(--color-surface-raised);
+  --button-fg-secondary:     var(--color-text-primary);
+  --button-bg-ghost:         transparent;
+  --button-fg-ghost:         var(--color-text-primary);
+  --button-border:           var(--color-border-default);
+  --button-padding-x:        var(--space-4);
+  --button-padding-y:        var(--space-2);
+  --button-font-size:        var(--text-sm);
+  --button-font-weight:      500;
+
+  --input-bg:              var(--color-surface-raised);
+  --input-fg:              var(--color-text-primary);
+  --input-border:          var(--color-border-default);
+  --input-border-focus:    var(--color-accent);   /* indigo focus ring */
+  --input-padding-x:       var(--space-3);
+  --input-padding-y:       var(--space-2);
+  --input-radius:          var(--radius-input);
+
+  --card-bg:               var(--color-surface-raised);
+  --card-border:           var(--color-border-default);
+  --card-radius:           var(--radius-card);
+  --card-padding:          var(--space-6);
+  --card-shadow:           var(--shadow-sm);
+
+  --table-header-bg:      var(--color-bg-muted);
+  --table-header-fg:      var(--color-text-secondary);
+  --table-row-bg-even:    var(--color-surface-raised);
+  --table-row-bg-odd:     var(--color-surface);
+  --table-border:         var(--color-border-subtle);
+
+  --dialog-overlay-bg:    rgba(9, 9, 11, 0.5);
+  --dialog-bg:            var(--color-surface-raised);
+  --dialog-border:        var(--color-border-default);
+  --dialog-radius:        var(--radius-xl);
+}

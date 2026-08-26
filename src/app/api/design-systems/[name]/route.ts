@@ -11,11 +11,13 @@ import { getPackDetail } from '@/lib/design-systems/loader';
 export const dynamic = 'force-static';
 
 export async function generateStaticParams() {
-  // Pre-render the three known packs at build time.
+  // Pre-render the known packs at build time.
   return [
     { name: 'shadcn-default' },
     { name: 'vercel-geist' },
     { name: 'mantine-default' },
+    { name: 'radix-themes' },
+    { name: 'tailwind-catalyst' },
   ];
 }
 

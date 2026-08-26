@@ -42,9 +42,11 @@ import { MarkdownMessage } from './Markdown';
 import { ModelSwitcher } from './ModelSwitcher';
 import { suggestFollowUps } from '@/lib/agent/followups';
 import {
-  matchCommands, resolveCommand, parseCommandInput, COMMAND_MENU_LIMIT,
+  matchCommands, resolveCommand, parseCommandInput, COMMAND_MENU_LIMIT, resolvePackName,
   type ChatCommand,
 } from '@/lib/agent/chat-commands';
+import { useDesignSystems, setActivePack } from '@/hooks/use-design-systems';
+import { humanifyPackName } from '@/hooks/use-active-pack';
 import { pushPromptHistory, navigateHistory } from '@/lib/agent/prompt-history';
 import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl } from '@/lib/canvas/export';
 import { useModelCatalog } from '@/hooks/use-model-catalog';
@@ -312,6 +314,10 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const redo = useCanvasStore((s) => s.redo);
   const newSession = useCanvasStore((s) => s.newSession);
   const select = useCanvasStore((s) => s.select);
+  // Design-system pack list — feeds `/pick-pack` resolution. Module-level
+  // shared fetch (same as the picker), so the first AgentPanel mount warms
+  // the cache for the TopMenuBar badge too.
+  const { packs: packList } = useDesignSystems();
   // Canvas selection — drives the "N layers selected" context chip above the
   // input (progressive disclosure: the chip TELLS the user what context the
   // next prompt will carry, and can be cleared in place).
@@ -345,6 +351,29 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     }
     const docName = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
     switch (cmd.run) {
+      case 'pick-pack': {
+        // /pick-pack <name> — fuzzy-resolve + pin the design-system pack.
+        // Matches: exact name ('vercel-geist'), suffix ('geist'), substring
+        // ('radix', 'catalyst'), or dash-word ('tailwind', 'shadcn').
+        if (!args.trim()) {
+          toast.error('Usage: /pick-pack <name>', {
+            description: `Available packs: ${packList.map((p) => p.name).join(', ') || 'loading…'}`,
+          });
+          break;
+        }
+        const resolved = resolvePackName(args, packList);
+        if (!resolved) {
+          toast.error(`Unknown pack "${args.trim()}"`, {
+            description: `Available packs: ${packList.map((p) => p.name).join(', ')}`,
+          });
+          break;
+        }
+        setActivePack(resolved);
+        toast.success(`Pinned ${humanifyPackName(resolved)}`, {
+          description: 'Applies to every agent generation this session. View → Design system to change.',
+        });
+        break;
+      }
       case 'clear':
         sendPatch({ op: 'clear', summary: 'Cleared canvas' });
         toast.success('Canvas cleared', { description: 'Undoable — /undo restores it.' });

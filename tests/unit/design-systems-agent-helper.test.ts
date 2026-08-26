@@ -42,6 +42,24 @@ const mockPacks: PackSummary[] = [
     bestFor: ['enterprise', 'dashboard', 'fullstack'],
     isDefault: false,
   },
+  {
+    name: 'radix-themes',
+    version: '1.0.0',
+    description: 'Indigo accent on cool gray, soft tinted panels.',
+    palette: { primary: '#3e63dd', background: '#fcfcfd', accent: '#3e63dd', text: '#2a2e37' },
+    fontStack: { body: 'Inter', heading: 'Inter', mono: 'Roboto Mono' },
+    bestFor: ['nextjs', 'fullstack', 'saas'],
+    isDefault: false,
+  },
+  {
+    name: 'tailwind-catalyst',
+    version: '1.0.0',
+    description: 'Zinc neutrals, ink-black buttons, 8px radii.',
+    palette: { primary: '#09090b', background: '#fafafa', accent: '#4f46e5', text: '#09090b' },
+    fontStack: { body: 'Inter', heading: 'Inter', mono: 'ui-monospace' },
+    bestFor: ['fullstack', 'saas', 'minimal'],
+    isDefault: false,
+  },
 ];
 
 describe('buildDesignSystemQuestion', () => {
@@ -70,6 +88,8 @@ describe('buildDesignSystemQuestion', () => {
     expect(labels.some((l) => l.includes('shadcn/ui'))).toBe(true);
     expect(labels.some((l) => l.includes('Vercel Geist'))).toBe(true);
     expect(labels.some((l) => l.includes('Mantine'))).toBe(true);
+    expect(labels.some((l) => l.includes('Radix Themes'))).toBe(true);
+    expect(labels.some((l) => l.includes('Tailwind Catalyst'))).toBe(true);
   });
 
   it('includes palette hint and best-for tags in each option description', async () => {

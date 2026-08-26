@@ -13,6 +13,8 @@ export async function generateStaticParams() {
     { name: 'shadcn-default' },
     { name: 'vercel-geist' },
     { name: 'mantine-default' },
+    { name: 'radix-themes' },
+    { name: 'tailwind-catalyst' },
   ];
 }
 

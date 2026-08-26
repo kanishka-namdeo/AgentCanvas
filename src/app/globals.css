@@ -218,17 +218,20 @@
    values automatically — no component changes needed.
    --------------------------------------------------------------------------- */
 .dark {
-  /* Text hierarchy — inverted L axis, slightly desaturated for comfort */
+  /* Text hierarchy — inverted L axis, slightly desaturated for comfort.
+     2026-08-26 dark-mode VLM audit: tertiary/quaternary brightened — chat
+     metadata + placeholders were failing readable-on-dark checks. */
   --ac-text-primary:    oklch(0.97 0.005 264);
   --ac-text-secondary:  oklch(0.80 0.012 264);
-  --ac-text-tertiary:   oklch(0.68 0.012 264);
-  --ac-text-quaternary: oklch(0.55 0.012 264);
-  --ac-text-faint:      oklch(0.42 0.01 264);
+  --ac-text-tertiary:   oklch(0.72 0.012 264);
+  --ac-text-quaternary: oklch(0.63 0.012 264);
+  --ac-text-faint:      oklch(0.50 0.01 264);
 
-  /* Border scale — lighter than text but visible against dark surfaces */
-  --ac-border-subtle:   oklch(0.26 0.008 264);
-  --ac-border-default:  oklch(0.32 0.01 264);
-  --ac-border-strong:   oklch(0.42 0.014 264);
+  /* Border scale — lighter than text but visible against dark surfaces.
+     Brightened so panel separators read as structure (audit blocker). */
+  --ac-border-subtle:   oklch(0.29 0.008 264);
+  --ac-border-default:  oklch(0.35 0.01 264);
+  --ac-border-strong:   oklch(0.46 0.014 264);
 
   /* Surface elevation — darkest at the page, lighter for raised panels */
   --ac-surface-0: oklch(0.17 0.008 264);
@@ -267,8 +270,10 @@
   --ac-neutral-soft:   oklch(0.28 0.008 264);
   --ac-neutral-border: oklch(0.40 0.010 264);
 
-  /* Canvas surface — dark adaptation */
-  --ac-canvas-bg:           oklch(0.19 0.009 264);
+  /* Canvas surface — dark adaptation. Canvas sits ABOVE the panel chrome
+     (0.235 vs 0.17–0.20) — the Figma-dark pattern: lighter stage, darker
+     tools, so the artwork area reads as a distinct environment. */
+  --ac-canvas-bg:           oklch(0.235 0.009 264);
   --ac-canvas-grid:         oklch(0.65 0.012 264 / 30%);
   --ac-canvas-default-fill: oklch(0.32 0.010 264);
   --ac-canvas-default-stroke: oklch(0.62 0.015 264);

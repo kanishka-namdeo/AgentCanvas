@@ -127,6 +127,40 @@ describe('buildSystemPrompt — design-system pack wiring', () => {
     });
   });
 
+  describe('with packName="radix-themes"', () => {
+    const prompt = buildSystemPrompt('', '', '', emptyCanvas(), 'slate', false, 'radix-themes');
+
+    it('uses the human label "Radix Themes"', () => {
+      expect(prompt).toContain('"Radix Themes" design-system pack');
+    });
+
+    it('includes the cool-gray / soft tinted panels tagline', () => {
+      expect(prompt).toContain('cool gray');
+      expect(prompt).toContain('soft tinted');
+    });
+
+    it('tells the agent to prefer tinted accent surfaces over heavy shadows', () => {
+      expect(prompt).toContain('var(--color-accent-muted)');
+    });
+  });
+
+  describe('with packName="tailwind-catalyst"', () => {
+    const prompt = buildSystemPrompt('', '', '', emptyCanvas(), 'slate', false, 'tailwind-catalyst');
+
+    it('uses the human label "Tailwind Catalyst"', () => {
+      expect(prompt).toContain('"Tailwind Catalyst" design-system pack');
+    });
+
+    it('overrides the primary-button rule: ink-black, not accent-colored', () => {
+      expect(prompt).toContain('INK-BLACK');
+      expect(prompt).toContain('zinc-950');
+    });
+
+    it('keeps indigo scoped to links / focus rings / selected states', () => {
+      expect(prompt).toContain('focus rings');
+    });
+  });
+
   describe('with an unknown packName', () => {
     const prompt = buildSystemPrompt('', '', '', emptyCanvas(), 'slate', false, 'radix-tailwind');
 

@@ -47,6 +47,13 @@ describe('Design-System Registry — registry.json', () => {
     expect(names).toContain('vercel-geist');
     expect(names).toContain('mantine-default');
   });
+
+  it('hits the 5-pack target (adds radix-themes + tailwind-catalyst)', () => {
+    const names = REGISTRY_JSON.packs.map((p) => p.name);
+    expect(REGISTRY_JSON.packs.length).toBe(5);
+    expect(names).toContain('radix-themes');
+    expect(names).toContain('tailwind-catalyst');
+  });
 });
 
 describe('Design-System Registry — per-pack structure', () => {
@@ -199,5 +206,34 @@ describe('Design-System Registry — default pack', () => {
     // Tokens use aligned columns (multiple spaces around `:`), so a
     // regex with `\s*` is more robust than a literal substring match.
     expect(css).toMatch(/--m-blue-6:\s*#228be6/);
+  });
+
+  it('radix-themes uses Radix indigo-9 as accent with medium (6px) radius', () => {
+    const radix = REGISTRY_JSON.packs.find((p) => p.name === 'radix-themes');
+    expect(radix).toBeDefined();
+    expect(radix!.palette.accent).toBe('#3e63dd');
+    const tokensPath = join(REGISTRY_DIR, 'packs', 'radix-themes', 'tokens.css');
+    const css = readFileSync(tokensPath, 'utf-8');
+    expect(css).toMatch(/--r-indigo-9:\s*#3e63dd/);
+    // Radix Themes radius scale: medium = 6px is the default.
+    expect(css).toMatch(/--radius-md:\s*6px/);
+    // Soft tinted accent surface (the Radix signature for selected states).
+    expect(css).toMatch(/--color-accent-muted:\s*var\(--r-indigo-3\)/);
+  });
+
+  it('tailwind-catalyst uses zinc-950 ink buttons + indigo-600 focus accent', () => {
+    const catalyst = REGISTRY_JSON.packs.find((p) => p.name === 'tailwind-catalyst');
+    expect(catalyst).toBeDefined();
+    expect(catalyst!.palette.primary).toBe('#09090b');
+    expect(catalyst!.palette.accent).toBe('#4f46e5');
+    const tokensPath = join(REGISTRY_DIR, 'packs', 'tailwind-catalyst', 'tokens.css');
+    const css = readFileSync(tokensPath, 'utf-8');
+    // The signature: primary buttons are INK-BLACK, not accent-colored.
+    expect(css).toMatch(/--button-bg-primary:\s*var\(--z-zinc-950\)/);
+    expect(css).toMatch(/--z-zinc-950:\s*#09090b/);
+    expect(css).toMatch(/--z-indigo-600:\s*#4f46e5/);
+    // Catalyst radii: rounded-lg (8px) controls, rounded-xl (12px) containers.
+    expect(css).toMatch(/--radius-button:\s*var\(--radius-lg\)/);
+    expect(css).toMatch(/--radius-card:\s*var\(--radius-xl\)/);
   });
 });
