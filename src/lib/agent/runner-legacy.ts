@@ -791,6 +791,13 @@ Output this plan as a short text message BEFORE your first tool call. This helps
 }
 
 /// Build the full system prompt by filling in the template variables.
+///
+/// When `packName` is supplied, appends a design-system section that tells
+/// the agent the user has pinned a specific design-system pack and lists the
+/// CSS variables to reference (`var(--color-accent)`, `var(--color-text-primary)`,
+/// `var(--radius-card)`, etc.). The Canvas component injects the pack's
+/// tokens.css on the world root so these variables resolve to the pack's
+/// actual values at render time.
 export function buildSystemPrompt(
   skillMetadata: string,
   skillBody: string,
@@ -798,14 +805,108 @@ export function buildSystemPrompt(
   canvas: CanvasDocument,
   defaultPalette: DefaultPalette,
   planFirst: boolean,
+  packName?: string,
 ): string {
-  return SYSTEM_PROMPT_TEMPLATE
-    .replace('${PLAN_FIRST_SECTION}', buildPlanFirstSection(planFirst))
-    .replace('${SKILL_METADATA}', skillMetadata)
-    .replace('${SKILL_BODY}', skillBody || '(No skill-specific instructions — all tools available.)')
-    .replace('${PLAN_SECTION}', planSection)
-    .replace('${PALETTES_LIST}', buildPalettesList(defaultPalette))
-    + '\n\n' + canvasSnapshot(canvas);
+  const base =
+    SYSTEM_PROMPT_TEMPLATE
+      .replace('${PLAN_FIRST_SECTION}', buildPlanFirstSection(planFirst))
+      .replace('${SKILL_METADATA}', skillMetadata)
+      .replace('${SKILL_BODY}', skillBody || '(No skill-specific instructions — all tools available.)')
+      .replace('${PLAN_SECTION}', planSection)
+      .replace('${PALETTES_LIST}', buildPalettesList(defaultPalette))
+      + '\n\n' + canvasSnapshot(canvas);
+  if (!packName) return base;
+  return base + '\n\n' + buildDesignSystemPackSection(packName);
+}
+
+/// Build the design-system pack section appended to the system prompt when
+/// the user has pinned a pack via the DesignSystemPicker. Tells the agent:
+///   - the pack name + brief description (palette / radius / fonts),
+///   - the CSS variables to use INSTEAD OF hardcoded hex / `$color.*` refs,
+///   - the iron rule: never hardcode hex / px when a var exists.
+///
+/// This is the runtime counterpart to `DESIGN_SYSTEM_SYSTEM_PROMPT_FRAGMENT`
+/// in `src/lib/design-systems/agent-helper.ts` — that constant is the generic
+/// "the registry exists, you should ask" fragment, while this is the
+/// pack-specific "the user picked X, here are its tokens" fragment.
+function buildDesignSystemPackSection(packName: string): string {
+  // Pack-name → human label + brief tagline + canonical variable set.
+  // The variable list is deliberately the SEMANTIC layer only (not raw
+  // primitives like `--indigo-500`) — agents that stick to semantic
+  // variables produce pack-faithful output (the pack author chose these
+  // aliases to map to the right primitives for the design language).
+  const known: Record<string, { label: string; tagline: string; overrides: string }> = {
+    'shadcn-default': {
+      label: 'shadcn/ui',
+      tagline: 'Indigo accent on neutral slate, 6px button radius, Inter body, JetBrains Mono code. v0/bold founded — best for new Next.js fullstack apps.',
+      overrides: 'Use the standard FIDELITY POLICY color rule (60/30/10 indigo-on-slate). Radii: button 6px, card 8px, input 6px (NOT the 8/12/16 scale from the policy).',
+    },
+    'vercel-geist': {
+      label: 'Vercel Geist',
+      tagline: 'Strict monochrome + zero rounded corners + Geist Sans/Mono. Hyper-minimal, technical, Vercel.com look.',
+      overrides: 'OVERRIDE the FIDELITY POLICY: (a) IGNORE "Full color palette (60/30/10), NOT grayscale" — Vercel Geist IS strict black/white/gray monochrome, no gradients, no accent color tints. (b) IGNORE "Corner radii sm 6 / md 8 / lg 12 / xl 16" — ALL corners are 0px (square) in Geist. (c) IGNORE "Drop shadows on every elevated surface" — Geist uses 1px borders instead of shadows. (d) IGNORE "Gradients on hero areas / primary CTAs" — Geist uses solid black fills only.',
+    },
+    'mantine-default': {
+      label: 'Mantine',
+      tagline: 'Indigo accent on slate gray, 4-8px radii, system font stack. Mantine 7.x runtime — best for data-dense admin tools.',
+      overrides: 'Use the FIDELITY POLICY color rule but with indigo-accent-on-slate. Radii: button 4px, card 8px, input 6px — NOT the 8/12/16 scale from the policy.',
+    },
+  };
+  const info = known[packName];
+  const humanLabel = info?.label ?? packName;
+  const tagline = info?.tagline ?? '';
+  const overrides = info?.overrides ?? '(no overrides - follow the FIDELITY POLICY as-is, but use the pack variables for fills/strokes/text.)';
+
+  return `=== DESIGN-SYSTEM PACK (user-pinned — OVERRIDES the FIDELITY POLICY above) ===
+⚠️  THIS SECTION OVERRIDES THE FIDELITY POLICY SECTION ABOVE. READ THIS FIRST.
+The user has pinned the "${humanLabel}" design-system pack${tagline ? ` — ${tagline}` : ''}.
+
+The pack's tokens.css is ALREADY INJECTED on the canvas world root as a
+<style> tag. Every CSS variable below is therefore live and resolvable
+to the pack's actual values at render time. You MUST reference these
+variables instead of hardcoding hex colors, pixel sizes, or font stacks.
+
+## Semantic color variables (PREFER THESE)
+- Backgrounds: var(--color-bg), var(--color-bg-muted), var(--color-bg-subtle), var(--color-surface), var(--color-surface-raised)
+- Borders:    var(--color-border-default), var(--color-border-subtle), var(--color-border-strong)
+- Text:       var(--color-text-primary), var(--color-text-secondary), var(--color-text-muted), var(--color-text-on-accent)
+- Accent:     var(--color-accent), var(--color-accent-hover), var(--color-accent-active), var(--color-accent-fg), var(--color-accent-muted)
+- Status:     var(--color-success), var(--color-warning), var(--color-error), var(--color-info) (+ their -muted tints)
+
+## Component-scoped variables
+- Button:  var(--button-bg-primary), var(--button-bg-primary-hover), var(--button-fg-primary), var(--button-bg-secondary), var(--button-fg-secondary), var(--button-bg-ghost), var(--button-fg-ghost), var(--button-border)
+- Input:   var(--input-bg), var(--input-fg), var(--input-border), var(--input-padding-x), var(--input-padding-y)
+
+## Radius / spacing / typography
+- Radii:  var(--radius-xs) … var(--radius-2xl), var(--radius-full), var(--radius-button), var(--radius-card), var(--radius-input), var(--radius-pill)
+- Spacing: var(--space-0) … var(--space-20) (4pt grid: 0/4/8/12/16/20/24/32/40/48/64/80px)
+- Fonts:  var(--font-sans), var(--font-mono)
+- Type:   var(--text-xs) (12) · var(--text-sm) (14) · var(--text-base) (16) · var(--text-lg) (18) · var(--text-xl) (20) · var(--text-2xl) (24) · var(--text-3xl) (30) · var(--text-4xl) (36)
+- Shadow: var(--shadow-xs), var(--shadow-sm), var(--shadow-md), var(--shadow-lg)
+
+## FIDELITY POLICY OVERRIDES FOR THIS PACK
+${overrides}
+
+## Iron rule (pack-pinned — applies on EVERY shape you create this turn)
+1. NEVER hardcode a hex color when a var(--color-*) exists. Pass fill: "var(--color-surface)" instead of fill: "#ffffff".
+2. NEVER hardcode a px radius when a var(--radius-*) exists. Pass cornerRadius: "var(--radius-card)" instead of cornerRadius: 8. The pack's --radius-card resolves to the correct value for the design language (8px for shadcn, 0px for Geist, 8px for Mantine).
+3. NEVER hardcode a px size when a var(--space-*) exists.
+4. NEVER hardcode a font family when a var(--font-*) exists.
+5. NEVER hardcode a font size when a var(--text-*) exists.
+6. For fills/strokes/text-color on shapes: pass the variable as the value, e.g. fill: "var(--color-surface)". The DOM renderer accepts var(--*) directly — it does NOT need a $-prefixed .pen variable.
+7. If you need a value not in the pack (e.g. a one-off illustration color), prefer var(--color-text-muted) or another pack token over arbitrary hex. Only fall back to hex when no pack variable fits, and call out the fallback in your message.
+8. Do NOT use $color.* .pen variables this turn — use the pack's CSS variables instead. The pack's tokens.css is already on the canvas root; .pen variables would shadow it.
+
+## Component specs for this pack (inputs / buttons / text)
+- Every input/field: 1px border (stroke: var(--color-border-default), strokeWeight: 1), fill: var(--color-surface-raised), radius: var(--radius-input), padding 10-12px vertical / 12-16px horizontal. Do NOT leave inputs as bare boxes — they MUST have the 1px border.
+- Every primary button: fill: var(--button-bg-primary), text: var(--button-fg-primary), radius: var(--radius-button), padding 10px vertical / 16-20px horizontal, font-weight 500.
+- Text hierarchy in any card/form: heading = var(--text-xl) or var(--text-2xl) weight 600 color var(--color-text-primary); body/labels = var(--text-sm) weight 400-500 color var(--color-text-primary); secondary/help = var(--text-sm) color var(--color-text-muted). NEVER make a decorative "logo"/brand wordmark larger than the heading.
+- Vertical rhythm: use a CONSISTENT gap between stacked form rows (var(--space-4) to var(--space-6)), and a LARGER gap (var(--space-8)) between sections (header vs form vs footer). Do not let one gap dwarf another.
+- Card container: fill: var(--color-surface-raised), border 1px var(--color-border-default) (for Geist) or shadow var(--shadow-sm) (for shadcn/Mantine — use the pack's shadow tokens), radius: var(--radius-card), generous internal padding (var(--space-8) to var(--space-12)).
+
+## Final reminder (read this last)
+When you start the next tool call, ask yourself: "Am I using var(--*) for every fill, stroke, radius, and font?" If you find yourself typing a # hex code or a bare number for radius/size, STOP and substitute the corresponding pack variable.
+`.trim();
 }
 
 /// Filter the tool specs to only include the tools for the active skill.
@@ -1203,7 +1304,7 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
     // File skills are optional — ignore errors.
   }
 
-  const systemContent = buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst) + fileSkillsSection;
+  const systemContent = buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst, opts.settings?.pack) + fileSkillsSection;
 
   // Build the initial message history.
   const messages: Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_calls?: any[]; tool_call_id?: string }> = [

@@ -474,7 +474,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   }
 
   const systemContent =
-    buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst) +
+    buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst, settings?.pack) +
     fileSkillsSection +
     memorySection;
 
@@ -529,9 +529,18 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const selectionNote = opts.selection
     ? `[SELECTION CONTEXT: the user currently has ${opts.selection.count} layer(s) selected on the canvas: ${opts.selection.names.join(', ')}. When the user says "this", "these", "that", "those", or "the selection", they mean THESE layers. Target them unless asked otherwise.]\n\n`
     : '';
+  // Design-system pack reminder — when a pack is pinned, append a short
+  // reminder to the END of the user's prompt so it's the last thing the
+  // agent reads before its first tool call. The full pack section lives
+  // in the system prompt (see `buildDesignSystemPackSection`); this is
+  // just a final nudge to counter the agent's prior training bias
+  // toward colorful + rounded defaults.
+  const packReminder = settings?.pack
+    ? `\n\n[PACK REMINDER: the "${settings.pack}" design-system pack is pinned. Use \`var(--color-*)\`, \`var(--radius-*)\`, \`var(--space-*)\`, \`var(--font-*)\`, \`var(--button-*)\` from the pack — NEVER hardcoded hex / px / font-family. The pack's tokens.css is already injected on the canvas root. See the "DESIGN-SYSTEM PACK" section in the system prompt for the full variable list + the FIDELITY POLICY OVERRIDES for this pack.]`
+    : '';
   const userMessage = webResearchSummary
-    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}`
-    : `${selectionNote}${prompt}`;
+    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}${packReminder}`
+    : `${selectionNote}${prompt}${packReminder}`;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;

@@ -22,6 +22,7 @@ import { resolvePenTree } from '@/lib/pen/resolve';
 import { useSessionStore, hydrateSessionStore } from '@/lib/sessions';
 import { useSettings } from '@/lib/settings/store';
 import { agentRunSettings } from '@/lib/settings/types';
+import { getActivePack } from '@/hooks/use-design-systems';
 
 /// A single chat turn — either the user's prompt or the agent's response.
 /// This is the LIVE streaming buffer; the session store is the persistent
@@ -1149,6 +1150,16 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // maxIterations, planFirst, defaultPalette, skillSelectionMode,
     // LLM provider config) from the settings store.
     const settings = agentRunSettings(useSettings.getState());
+    // Inject the active design-system pack (if any) from localStorage.
+    // The runner reads `settings.pack` to (a) append the design-system
+    // system-prompt fragment and (b) tell the agent which CSS variables
+    // to reference (`var(--color-accent)` etc. — the Canvas component
+    // injects the pack's tokens.css on the world root, so the variables
+    // resolve to the pack's actual values at render time).
+    const activePack = getActivePack();
+    if (activePack) {
+      (settings as { pack?: string }).pack = activePack;
+    }
     if (socket && connected) {
       socket.emit('client', {
         type: 'agent:prompt',

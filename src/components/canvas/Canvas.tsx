@@ -52,6 +52,7 @@ import { Rulers } from './Rulers';
 import { Guides } from './dom/Guides';
 import { newGuideId } from '@/lib/canvas/store';
 import { MIN_SIZE, type ResizeHandle } from './handleMath';
+import { PackTokensStyle } from './PackTokensStyle';
 
 interface DragState {
   kind: 'pan' | 'move' | 'resize' | 'marquee';
@@ -828,6 +829,13 @@ export function Canvas() {
           onDragLeave={onCanvasDragLeave}
           onDrop={onCanvasDrop}
         >
+      {/* Design-system pack tokens — when the user has pinned a pack via
+          the DesignSystemPicker, this injects the pack's tokens.css as a
+          `<style>` tag scoped to the canvas subtree. The agent's
+          `var(--color-accent)`, `var(--color-text-primary)`, `var(--radius-card)`
+          etc. references then resolve to the pack's actual values at render
+          time. Renders nothing when no pack is chosen. */}
+      <PackTokensStyle />
       {/* Phase 7 §H.1 — Assets panel drop affordance: dashed accent border
           around the canvas while a component card is being dragged over it.
           Rendered as a sibling of the backdrop grid (pointer-events:none so

@@ -224,6 +224,20 @@ export interface AgentRunSettings {
   /// Set to 0 to disable the mandatory loop (reverts to the pre-7-c
   /// behavior where pen_self_critique was opt-in).
   maxDesignCritiqueIterations?: number;
+  /// Design-System Registry pack name (e.g. 'shadcn-default',
+  /// 'vercel-geist', 'mantine-default'). When set, the runner:
+  ///   1. Appends the design-system prompt fragment to the system prompt,
+  ///      telling the agent which pack is in scope and which CSS variables
+  ///      to reference (`var(--color-accent)`, `var(--color-text-primary)`,
+  ///      `var(--radius-card)`, etc.).
+  ///   2. The Canvas component (client-side) injects the pack's tokens.css
+  ///      as a `<style>` tag on the world root, so any `var(--*)` the agent
+  ///      emits resolves to the pack's actual values.
+  /// When undefined, the agent runs as before (no pack context, agent
+  /// invents palette / spacing from the legacy `$color.*` variable space).
+  /// Sourced from the active-pack localStorage entry set by the
+  /// `DesignSystemPicker` (see `src/hooks/use-design-systems.ts`).
+  pack?: string;
 }
 
 /// Configuration for an MCP server connection (used by the mcp-adapter plugin).
