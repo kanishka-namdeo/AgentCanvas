@@ -33,6 +33,7 @@ import { createLLMClient, getProviderMetadata } from '../llm';
 import type { LLMClient as RegistryLLMClient, LLMProviderConfig } from '../llm';
 import { createEmptyCanvasDocument } from '../canvas/types';
 import { applyPatchToCanvas } from '../canvas/patch';
+import { lucidePromptCatalog, LUCIDE_ICON_COUNT } from '@/lib/icons';
 import { resolvePenTree } from '../pen/resolve';
 import { getMeasuredBounds } from './client-roundtrip';
 
@@ -356,6 +357,41 @@ never setting fontWeight/letterSpacing/textAlign on the 24 text shapes — VLM s
     { type:"ellipse", name:"FAB", width:56, height:56,
       gradient:{type:"linear", angle:135, stops:[{offset:0,color:"$color.primary"},{offset:1,color:"$color.accent"}]},
       shadow:{x:0, y:8, blur:12, color:"#00000033"} }  // xl
+  ICON TILE (feature/benefit card lead-in — the icon IS the visual anchor):
+    { type:"icon", name:"Feature Icon", icon:"zap", width:32, height:32,
+      stroke:"$color.primary", strokeWidth:2 }  // on a 48×48 tinted tile:
+      tile = rectangle 48×48, radius:12, fill:"$color.primary-50", icon centered at +8,+8
+      Pair with an 18-20px icon + 13px label for compact nav/toolbar rows.
+
+=== ICON SYSTEM (Lucide — icons are NODES, never drawings) ==================
+ THE IRON RULE: every icon in every design is a LIBRARY ICON NODE (type:"icon").
+ NEVER hand-draw icons with path/polyline nodes. NEVER use emoji or unicode glyphs
+ (▲ ✓ ⚙ ✉) as icons — they render inconsistently, break recoloring, and look cheap.
+ A design with hand-drawn or emoji icons is a FAILED design, full stop.
+
+ HOW TO PLACE AN ICON:
+   pen_create_node { type:"icon", icon:"<name>", x, y, width, height,
+                     stroke:"$color.text", strokeWidth:2 }
+   • \`icon\` MUST be an exact name from the catalog below (or found via
+     pen_search_icons). Never invent a name — unknown names render a visible
+     dashed placeholder, and the tool call fails with suggestions.
+   • Icons are square: width === height. Sizing guide: 16-20px inline with text,
+     24px toolbars/menus, 28-32px feature cards, 48px hero/empty-state.
+   • Recolor via \`stroke\` (NOT fill — lucide glyphs are stroke-painted). Use
+     $color.* tokens so icons recolor with the palette: $color.text for neutral
+     icons, $color.primary for accent icons, $color.text-muted for passive ones.
+   • strokeWidth 2 is the lucide default (use 1.5 for dense UI, 2.5+ for display).
+   • Icon + text rows: icon 18-20px, 8px gap to a 14px/500 label, baseline-aligned,
+     icon stroke matching the label's color.
+   • Icon buttons: 36-40px square hit target, icon 18-20px centered, neutral
+     $color.text-muted stroke; the primary action button may use $color.primary.
+
+ ICON CATALOG (${'${LUCIDE_ICON_COUNT}'} curated Lucide icons — search more with pen_search_icons):
+${'${LUCIDE_ICON_CATALOG}'}
+
+ When no name below fits, call pen_search_icons {query:"<what it should mean>"}
+ (e.g. "password security" → lock, "revenue growth" → trending-up) and use an
+ exact name from the results.
 
 === THE 5 LAWS OF BEAUTIFUL UI (distilled from ClawHub ui-ux-design skill) =
  1. CONTRAST creates hierarchy. Big vs small. Dark vs light. Never low-contrast text on bg.
@@ -814,6 +850,8 @@ export function buildSystemPrompt(
       .replace('${SKILL_BODY}', skillBody || '(No skill-specific instructions — all tools available.)')
       .replace('${PLAN_SECTION}', planSection)
       .replace('${PALETTES_LIST}', buildPalettesList(defaultPalette))
+      .replace('${LUCIDE_ICON_COUNT}', String(LUCIDE_ICON_COUNT))
+      .replace('${LUCIDE_ICON_CATALOG}', lucidePromptCatalog())
       + '\n\n' + canvasSnapshot(canvas);
   if (!packName) return base;
   return base + '\n\n' + buildDesignSystemPackSection(packName);

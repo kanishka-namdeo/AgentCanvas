@@ -122,11 +122,12 @@ export const DomNode = memo(function DomNode({
       onMouseEnter={() => onHover(layer.id)}
       onMouseLeave={() => onHover(null)}
     >
-      {/* (1) vector / image / boolean content */}
+      {/* (1) vector / image / icon / boolean content */}
       {(layer.type === 'path' ||
         layer.type === 'star' ||
         layer.type === 'polygon' ||
         layer.type === 'image' ||
+        layer.type === 'icon' ||
         layer.type === 'boolean_operation') &&
         renderIsland(layer)}
 

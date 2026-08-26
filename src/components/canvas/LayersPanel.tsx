@@ -43,6 +43,7 @@ import {
   Star as StarIcon,        // star
   Hexagon,                 // polygon
   CornerDownRight,         // instance (component instance)
+  Gem,                     // icon (library glyph node — lucide)
   // Phase 2 component-system icons (instance actions):
   Unlink,                  // detach instance
   RotateCcw,               // reset overrides
@@ -89,6 +90,7 @@ const TYPE_ICON: Record<LayerType, ComponentType<{ className?: string }>> = {
   polygon: Hexagon,
   slice: Crop,
   image: ImageIcon,
+  icon: Gem,
 };
 
 /**

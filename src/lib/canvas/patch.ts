@@ -52,6 +52,16 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
   }
 
   // Legacy → .pen field mappings.
+  // Icon nodes: the tool-side/Shape spelling (iconName/iconLibrary — the
+  // resolved Layer fields) maps onto the .pen PenIcon spelling (icon/library).
+  // Both spellings are accepted so pen_create_node, pen_update_node, and the
+  // generators all round-trip icon identity (docs/lucide-icons.md).
+  if (input.iconName !== undefined && out.icon === undefined) {
+    out.icon = String(input.iconName);
+  }
+  if (input.iconLibrary !== undefined && out.library === undefined) {
+    out.library = String(input.iconLibrary);
+  }
   // visible → enabled (legacy Shape.visible maps to .pen Entity.enabled)
   if (input.visible !== undefined && input.enabled === undefined) {
     out.enabled = input.visible;

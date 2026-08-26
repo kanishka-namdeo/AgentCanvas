@@ -309,11 +309,11 @@ function computeIntrinsicSize(
 
   if (isFillContainer(w)) width = parentContentW;
   else if (isFitContent(w) || implicitFitW) width = 0; // computed from children below
-  else width = num(w, 100);
+  else width = num(w, node.type === 'icon' ? 24 : 100); // icons default to the lucide 24×24 grid
 
   if (isFillContainer(h)) height = parentContentH;
   else if (isFitContent(h) || implicitFitH) height = 0;
-  else height = num(h, 100);
+  else height = num(h, node.type === 'icon' ? 24 : 100);
 
   // fit_content: derive from children.
   const layout = (node as PenLayout).layout;
@@ -744,6 +744,10 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
         points: (n as any).points ?? null,
         closed: (n as any).closed ?? false,
         src: (n as any).src ?? null,
+        // Icon nodes (.pen PenIcon): library-qualified name, resolved to
+        // geometry at render time from src/lib/icons (see docs/lucide-icons.md).
+        iconName: n.type === 'icon' ? String((n as any).icon ?? '') || null : null,
+        iconLibrary: n.type === 'icon' ? String((n as any).library ?? 'lucide') : null,
         gradient: resolveGradient(fills, vars, theme) ?? ((n as any).gradient ?? null),
         shadow,
         blur,
@@ -784,6 +788,35 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
         if (tb.textToken) {
           const v = resolveValue(`$${tb.textToken}`, vars, rn.theme);
           if (typeof v === 'string') shape.textColor = v;
+        }
+      }
+
+      // ---- Icon paint normalization (docs/lucide-icons.md) ----------------------
+      // Lucide glyphs are STROKE-painted on a 24-unit grid. The .pen PenIcon
+      // carries its paint in `fill` (per spec) — normalize so every renderer
+      // can simply use layer.stroke / layer.strokeWidth:
+      //   • explicit node.stroke + strokeWidth win (the agent's tool params)
+      //   • else the icon's fill (PenIcon.paint) becomes the stroke color
+      //   • width defaults to 2 (the lucide profile) when unspecified
+      if (n.type === 'icon') {
+        const nStroke = (n as any).stroke;
+        const hasPaint = (n as any).fill !== undefined && (n as any).fill !== null;
+        // Width: explicit strokeWidth wins, else the lucide profile (2).
+        const iconStrokeWidth = stroke.width > 0 ? stroke.width : 2;
+        if (nStroke) {
+          // Explicit stroke color (the agent's `stroke` tool param): keep it.
+          shape.stroke = stroke.color;
+          shape.strokeWidth = iconStrokeWidth;
+        } else if (hasPaint) {
+          // PenIcon.paint lives in `fill` per the .pen spec — promote it.
+          shape.stroke = shape.fill;
+          shape.strokeWidth = iconStrokeWidth;
+        } else {
+          shape.stroke = '#0f172a';
+          shape.strokeWidth = iconStrokeWidth;
+        }
+        if (shape.stroke === '#e2e8f0' && !hasPaint && !nStroke) {
+          shape.stroke = '#0f172a'; // generic resolver default is a light gray — wrong for icons
         }
       }
 
@@ -968,7 +1001,7 @@ function mapNodeType(node: PenChild): Layer['type'] {
     case 'context':
     case 'prompt': return 'text';
     case 'path': return 'path';
-    case 'icon': return 'text';
+    case 'icon': return 'icon';
     case 'polygon': return 'polygon';
     case 'star': return 'star';
     case 'line': return 'line';
@@ -990,7 +1023,9 @@ function mapTextContent(node: PenChild): string | undefined {
     return c === undefined ? undefined : String(c);
   }
   if (node.type === 'icon') {
-    return `[icon:${(node as any).icon ?? ''}]`;
+    // Icons are geometric library glyphs, not text — no text content to map.
+    // (The name lives in `iconName` on the resolved Layer.)
+    return undefined;
   }
   return undefined;
 }

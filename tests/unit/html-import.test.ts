@@ -131,11 +131,13 @@ describe('html-import: XSS corpus (sanitizer)', () => {
     expect(roots[0].children[0].type).toBe('element');
   });
 
-  it('drops class, id, data-*, srcset, formaction attributes', () => {
+  it('drops id, data-*, srcset, formaction attributes (class survives for lucide svg detection)', () => {
     const [el] = parseHtmlFragment(
       '<div class="c" id="i" data-x="1" role="presentation">t</div>',
     );
-    expect(el.attrs).toEqual({});
+    // `class` is now whitelisted so class="lucide lucide-<name>" inline svgs
+    // can be detected and mapped to native icon nodes (docs/lucide-icons.md).
+    expect(el.attrs).toEqual({ class: 'c' });
     const [img] = parseHtmlFragment('<img src="/ok.png" srcset="/ok.png 2x" alt="a">');
     expect(Object.keys(img.attrs).sort()).toEqual(['alt', 'src']);
   });

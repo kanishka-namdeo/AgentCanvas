@@ -10,6 +10,7 @@
 
 import type { Shape } from '@/lib/canvas/types';
 import { serializeNodes } from './serialize';
+import { lucideIconGroupSvg } from '@/lib/icons';
 
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
@@ -203,6 +204,32 @@ function shapeToSvg(s: Shape, uid: string): { el: string; defs: string[] } {
       return { el: `  <polygon points="${polygonPoints(s)}"${base}/>`, defs };
     case 'image':
       return { el: `  <image x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" href="${s.src ?? ''}"${attrs}/>`, defs };
+    case 'icon': {
+      // Lucide glyph: stroke-painted <g> positioned + scaled from the 24-grid
+      // (docs/lucide-icons.md). Stroke falls back through stroke → textColor →
+      // fill so token-bound icons recolor like any other node. Opacity/rotation
+      // wrap the glyph in outer <g> elements (the inner g already transforms).
+      if (!s.iconName) return { el: '', defs };
+      const color =
+        s.stroke && s.stroke !== 'transparent' ? s.stroke
+        : s.textColor && s.textColor !== 'transparent' ? s.textColor
+        : s.fill && s.fill !== 'transparent' ? s.fill
+        : '#0f172a';
+      let g = lucideIconGroupSvg(s.iconName, s.x, s.y, Math.min(s.width, s.height) || 24, {
+        stroke: color,
+        strokeWidth: s.strokeWidth > 0 ? s.strokeWidth : undefined,
+      });
+      if (!g) return { el: '', defs };
+      if (s.rotation) {
+        const cx = s.x + s.width / 2;
+        const cy = s.y + s.height / 2;
+        g = `<g transform="rotate(${s.rotation} ${cx} ${cy})">${g}</g>`;
+      }
+      if (s.opacity !== undefined && s.opacity < 1) {
+        g = `<g opacity="${s.opacity}">${g}</g>`;
+      }
+      return { el: `  ${g}`, defs };
+    }
     default:
       return { el: '', defs };
   }

@@ -489,6 +489,65 @@ describe('DomNode: SVG islands', () => {
     const pts = (polygon!.getAttribute('points') ?? '').split(' ');
     expect(pts).toHaveLength(6);
   });
+
+  it('icon renders a lucide island <svg> with stroke-painted glyph elements', () => {
+    const { container } = renderNode(
+      makeLayer({
+        id: 'ic1',
+        type: 'icon',
+        x: 10,
+        y: 10,
+        width: 24,
+        height: 24,
+        iconName: 'lock',
+        stroke: '#0ea5e9',
+        strokeWidth: 2,
+        fill: 'transparent',
+      }),
+    );
+    const el = nodeEl(container);
+    const svg = el.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('viewBox')).toBe('0 0 24 24');
+    expect(svg!.getAttribute('stroke')).toBe('#0ea5e9');
+    expect(svg!.getAttribute('stroke-width')).toBe('2');
+    expect(svg!.getAttribute('fill')).toBe('none');
+    // lock = rect + path (real lucide geometry, not a polyline approximation)
+    expect(svg!.querySelector('rect')).not.toBeNull();
+    expect(svg!.querySelector('path')).not.toBeNull();
+    // The node div itself is only the positioning/hit box: no bg, no border.
+    expect(el.style.background).toBe('');
+    expect(el.style.border).toBe('');
+  });
+
+  it('icon with an unknown name renders the dashed placeholder box', () => {
+    const { container } = renderNode(
+      makeLayer({ id: 'ic2', type: 'icon', width: 24, height: 24, iconName: 'zzz-not-real' }),
+    );
+    const el = nodeEl(container);
+    expect(el.querySelector('svg')).toBeNull();
+    const placeholder = el.firstElementChild as HTMLElement;
+    expect(placeholder).not.toBeNull();
+    expect(placeholder.style.border).toContain('dashed');
+    expect(placeholder.textContent).toContain('zzz-not-real');
+  });
+
+  it('icon falls back to textColor for the glyph stroke when stroke is transparent', () => {
+    const { container } = renderNode(
+      makeLayer({
+        id: 'ic3',
+        type: 'icon',
+        width: 24,
+        height: 24,
+        iconName: 'check',
+        stroke: 'transparent',
+        textColor: '#64748b',
+      }),
+    );
+    const svg = nodeEl(container).querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('stroke')).toBe('#64748b');
+  });
 });
 
 // ---- Structural type specials ------------------------------------------------------------------

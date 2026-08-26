@@ -53,6 +53,9 @@ const SHAPE_DEFAULTS: Record<LayerType, Partial<{ width: number; height: number;
   slice:             { width: 200, height: 120, fill: 'transparent', stroke: 'var(--ac-canvas-component)' },
   star:              { width: 120, height: 120, fill: 'var(--ac-canvas-accent-fill)' },
   polygon:           { width: 120, height: 120, fill: 'var(--ac-canvas-accent-fill)' },
+  // Library icon node (lucide) — default glyph + neutral stroke (the human
+  // toolbar doesn't expose it; agent tools + pen_search_icons create icons).
+  icon:              { width: 24, height: 24, fill: 'transparent', stroke: 'var(--ac-canvas-default-text)' },
 };
 
 export function Toolbar() {

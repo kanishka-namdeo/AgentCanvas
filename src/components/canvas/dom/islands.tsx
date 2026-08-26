@@ -13,8 +13,10 @@
 // for boolean_operation nodes.
 
 import type { Layer } from '@/lib/canvas/types';
+import { createElement } from 'react';
+import { lucideIconElements, LUCIDE_DEFAULT_STROKE_WIDTH } from '@/lib/icons';
 
-/// Render the island/content child for a vector, image, or boolean node.
+/// Render the island/content child for a vector, image, icon, or boolean node.
 /// Returns null for every other type (DomNode only calls this for the types
 /// that need it — see DomNode's content switch).
 export function renderIsland(layer: Layer): React.ReactNode {
@@ -29,6 +31,8 @@ export function renderIsland(layer: Layer): React.ReactNode {
       return imageContent(layer);
     case 'boolean_operation':
       return booleanContent(layer);
+    case 'icon':
+      return iconIsland(layer);
     default:
       return null;
   }
@@ -127,6 +131,61 @@ function polygonIsland(layer: Layer): React.ReactNode {
         stroke={stroke}
         strokeWidth={layer.strokeWidth}
       />
+    </svg>
+  );
+}
+
+/// `icon` — a Lucide library glyph (docs/lucide-icons.md). The node div is
+/// the positioning/hit box; this island paints the glyph as an inline SVG on
+/// the 24×24 lucide grid, stroke-painted with the layer's stroke color
+/// (the resolver normalizes PenIcon.fill → layer.stroke). Stroke width stays
+/// in viewBox units so it scales with the icon exactly like lucide-react
+/// does when resized.
+function iconIsland(layer: Layer): React.ReactNode {
+  const elements = layer.iconName ? lucideIconElements(layer.iconName) : null;
+  const stroke =
+    layer.stroke && layer.stroke !== 'transparent'
+      ? layer.stroke
+      : layer.textColor && layer.textColor !== 'transparent'
+        ? layer.textColor
+        : '#0f172a';
+  const sw = layer.strokeWidth > 0 ? layer.strokeWidth : LUCIDE_DEFAULT_STROKE_WIDTH;
+  if (!elements) {
+    // Unknown icon name — a visible dashed placeholder beat silent nothing:
+    // the miss is immediately obvious on canvas (and in VLM critiques).
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          border: '1.5px dashed var(--ac-canvas-highlight)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 10,
+          color: 'var(--ac-canvas-highlight)',
+          pointerEvents: 'none',
+          overflow: 'hidden',
+        }}
+      >
+        {layer.iconName ? `⌗ ${layer.iconName}` : '⌗ icon'}
+      </div>
+    );
+  }
+  return (
+    <svg
+      width="100%"
+      height="100%"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={stroke}
+      strokeWidth={sw}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      preserveAspectRatio="xMidYMid meet"
+      style={ISLAND_SVG_STYLE}
+    >
+      {elements.map((el, i) => createElement(el.tag, { key: i, ...el.attrs }))}
     </svg>
   );
 }

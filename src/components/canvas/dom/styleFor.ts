@@ -303,7 +303,9 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
   }
 
   const isText = layer.type === 'text';
-  const isVector = layer.type === 'path' || layer.type === 'star' || layer.type === 'polygon';
+  // Vector-ish types paint themselves via SVG islands (path/star/polygon) or
+  // inline glyph SVGs (icon) — no CSS background/border/radius applies.
+  const isVector = layer.type === 'path' || layer.type === 'star' || layer.type === 'polygon' || layer.type === 'icon';
 
   // ---- Token bindings → CSS custom properties (spec §3.6, Phase 2) -------------
   // When the world container publishes `--acv-*` custom properties (see
@@ -367,9 +369,9 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
   }
 
   // ---- Corner radii -------------------------------------------------------------
-  if (isText || layer.type === 'line' || layer.type === 'group' || layer.type === 'slice') {
+  if (isText || layer.type === 'line' || layer.type === 'group' || layer.type === 'slice' || layer.type === 'icon') {
     // Radii don't apply: text is glyph painting, line is a pill, group/slice
-    // are outline-only containers.
+    // are outline-only containers, icon is a glyph island.
   } else if (layer.type === 'ellipse') {
     // Ellipse ignores radius fields — always a circle/ellipse mask.
     style.borderRadius = '50%';

@@ -10,7 +10,8 @@
 //      dangerous-content tags — <script>, <style>, <iframe>, <object>,
 //      <embed> — are dropped WITH all their contents.
 //   2. Attribute whitelist: style, src, alt, width, height, href, type,
-//      placeholder, value. Everything else — on*, class, id, data-*,
+//      placeholder, value, class, viewBox, stroke (the last three feed the
+//      Lucide icon round-trip below). Everything else — on*, id, data-*,
 //      srcset, formaction, style-adjacent exotics — is dropped.
 //   3. href/src URL scheme whitelist: http://, https://, protocol-relative
 //      //, root-relative /, ./, ../, #fragment, and data:image/ — anything
@@ -23,11 +24,14 @@
 //   - margins are ignored (no .pen concept; auto-layout flow replaces them)
 //   - multi-selector / class-based CSS is not parsed (inline styles only)
 //   - gradients / background images are dropped (solid colors only)
-//   - <svg>/<path> subtrees are skipped (counted as skipped in stats)
+//   - <svg> subtrees EXCEPT Lucide glyphs (class="lucide lucide-<name>") are
+//     skipped (counted in stats); lucide svgs become native icon nodes
+//     (docs/lucide-icons.md)
 //   - text node sizes are ESTIMATES (server cannot measure text); auto-layout
 //     does the real placement of containers.
 
 import type { PenChild } from '../pen/types';
+import { getLucideIcon } from '@/lib/icons';
 
 // ---- Public types -----------------------------------------------------------
 
@@ -73,6 +77,10 @@ const VOID_TAGS = new Set(['img', 'br', 'hr', 'input', 'embed']);
 
 const ALLOWED_ATTRS = new Set([
   'style', 'src', 'alt', 'width', 'height', 'href', 'type', 'placeholder', 'value',
+  // Lucide inline-SVG detection (class="lucide lucide-lock") — the icon
+  // round-trip in convert() needs the class + viewBox + stroke to map library
+  // glyphs to native icon nodes instead of skipping the subtree.
+  'class', 'viewbox', 'stroke',
 ]);
 
 // ---- Entity decoding --------------------------------------------------------
@@ -441,6 +449,18 @@ function nodeName(prefix: string, tag: string, text?: string): string {
   return slug ? `${prefix}-${tag}-${slug}` : `${prefix}-${tag}`;
 }
 
+/// Extract a Lucide icon name from an inline <svg>'s attrs — matches the
+/// class="lucide lucide-<name>" convention lucide-react emits. The name is
+/// validated + canonicalized against the registry so alias/renamed spellings
+/// still resolve. Returns null for non-lucide svgs (those stay skipped).
+function lucideNameFromAttrs(attrs: Record<string, string>): string | null {
+  const cls = attrs['class'] ?? '';
+  const m = /(?:^|\s)lucide-([a-z0-9-]+)(?=\s|$)/i.exec(cls);
+  if (!m) return null;
+  const resolved = getLucideIcon(m[1]);
+  return resolved ? resolved.name : null;
+}
+
 /// Concatenate all descendant text of an element; <br> contributes '\n'.
 function collectText(children: ImportedChild[]): string {
   let out = '';
@@ -562,8 +582,43 @@ export function htmlToPenTreeDetailed(
   const convert = (el: ImportedNode): PenChild[] => {
     const style = parseStyle(el.attrs.style);
 
-    // svg/path → skipped in v1 (counted, subtree dropped).
-    if (el.tag === 'svg' || el.tag === 'path') {
+    // Lucide inline SVG → native icon node (docs/lucide-icons.md). Real lucide
+    // markup carries class="lucide lucide-<name>" + a 0 0 24 24 viewBox — map
+    // it to a symbolic icon node so pasted/agent HTML round-trips as editable,
+    // recolorable library glyphs. Non-lucide svgs stay skipped as before.
+    if (el.tag === 'svg') {
+      const lucideName = lucideNameFromAttrs(el.attrs);
+      if (lucideName) {
+        const fs = frameStyle(style);
+        const w = (fs.width as number) ?? pxNum(el.attrs.width, 24);
+        const h = (fs.height as number) ?? pxNum(el.attrs.height, 24);
+        // lucide glyphs paint with currentColor — the inline `color:` style
+        // (or a plain `stroke=` attr) carries the intended paint.
+        const color =
+          isPlainColor(style['color']) ? style['color']!.trim()
+          : isPlainColor(el.attrs['stroke']) ? el.attrs['stroke'].trim()
+          : undefined;
+        const node: PenChild = {
+          id: crypto.randomUUID(),
+          type: 'icon',
+          name: nodeName(prefix, 'icon', lucideName),
+          x: 0,
+          y: 0,
+          width: w > 0 ? w : 24,
+          height: h > 0 ? h : 24,
+          library: 'lucide',
+          icon: lucideName,
+          ...(color ? { fill: color } : {}),
+        };
+        bump('icon');
+        return [node];
+      }
+      stats.skippedSvg++;
+      return [];
+    }
+
+    // path → skipped in v1 (counted, subtree dropped).
+    if (el.tag === 'path') {
       stats.skippedSvg++;
       return [];
     }

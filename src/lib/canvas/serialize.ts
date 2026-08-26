@@ -25,6 +25,7 @@
 import type { Shape } from './types';
 import type { ResolvedTreeNode } from '../pen/resolve';
 import type { PenChild } from '../pen/types';
+import { lucideIconElements, LUCIDE_VIEWBOX, LUCIDE_DEFAULT_STROKE_WIDTH } from '@/lib/icons';
 
 export interface SerializeOpts {
   framework: 'html' | 'react' | 'tailwind';
@@ -146,6 +147,42 @@ function isTransparent(v: string | undefined): boolean {
   return !v || v === 'transparent' || v === 'none';
 }
 
+/// Icon paint color: stroke → textColor → fill → dark (the resolver normalizes
+/// PenIcon.fill → layer.stroke, so the first branch usually wins).
+function iconColor(l: Shape): string {
+  if (l.stroke && !isTransparent(l.stroke)) return cssColor(l, 'stroke');
+  if (l.textColor && !isTransparent(l.textColor)) return cssColor(l, 'text');
+  if (l.fill && !isTransparent(l.fill)) return cssColor(l, 'fill');
+  return '#0f172a';
+}
+
+/// Lucide glyph → inline <svg> markup (lucide-style, stroke="currentColor").
+/// `react` selects JSX-safe camelCase for the wrapper's stroke attrs; the
+/// registry's element attrs are single-word lowercase (d, cx, r, points…),
+/// valid in both spellings. `extraAttrs` injects framework positioning
+/// (data-name/style/class) onto the <svg> tag itself — the glyph IS the node.
+function iconSvgMarkup(l: Shape, react: boolean, extraAttrs = ''): string {
+  const elements = l.iconName ? lucideIconElements(l.iconName) : null;
+  if (!elements) return '';
+  const size = Math.round(Math.min(l.width, l.height) || 24);
+  const sw = l.strokeWidth > 0 ? l.strokeWidth : LUCIDE_DEFAULT_STROKE_WIDTH;
+  const wAttr = react ? 'strokeWidth' : 'stroke-width';
+  const capAttr = react ? 'strokeLinecap' : 'stroke-linecap';
+  const joinAttr = react ? 'strokeLinejoin' : 'stroke-linejoin';
+  const inner = elements
+    .map((el) => {
+      const attrs = Object.entries(el.attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
+      return `    <${el.tag} ${attrs}/>`;
+    })
+    .join('\n');
+  const extra = extraAttrs ? ` ${extraAttrs}` : '';
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg"${extra} width="${size}" height="${size}" ` +
+    `viewBox="0 0 ${LUCIDE_VIEWBOX} ${LUCIDE_VIEWBOX}" fill="none" stroke="currentColor" ` +
+    `${wAttr}="${sw}" ${capAttr}="round" ${joinAttr}="round">\n${inner}\n  </svg>`
+  );
+}
+
 /// Visual (non-positional) styles shared by all frameworks.
 function visualStyles(node: SerNode): StyleMap {
   const l = node.layer;
@@ -232,6 +269,10 @@ function stylesFor(node: SerNode, mode: 'root' | 'absolute' | 'flexChild', offse
     styles['border-top'] = `${Math.max(1, l.strokeWidth)}px solid ${l.stroke || l.fill}`;
   } else if (l.type === 'image' && l.src) {
     // handled as <img> by the emitters; size only
+  } else if (l.type === 'icon') {
+    // The glyph IS the node (an inline <svg>); positioning/size come from the
+    // base styles above and the color is appended by the emitters so icons
+    // recolor via `color` + stroke="currentColor" (idiomatic lucide markup).
   } else {
     Object.assign(styles, boxStyles(node));
   }
@@ -267,6 +308,16 @@ function emitHtml(node: SerNode, mode: 'root' | 'absolute' | 'flexChild', offset
   }
   if (ltype === 'text') {
     return `${indent}<span ${attrs}>${escapeHtmlText(l.text ?? '')}</span>`;
+  }
+  if (ltype === 'icon' && l.iconName) {
+    // Lucide glyph — inline <svg>, stroke="currentColor" + color style.
+    const iconStyles = stylesFor(node, mode, offset);
+    iconStyles['color'] = iconColor(l);
+    const iconAttrs =
+      `data-name="${escapeHtmlAttr(l.name)}" data-node-id="${escapeHtmlAttr(l.id)}"` +
+      ` style="${escapeHtmlAttr(styleToInlineCss(iconStyles))}"`;
+    const markup = iconSvgMarkup(l, false, iconAttrs);
+    return markup ? `${indent}${markup}` : '';
   }
 
   const kids = node.children
@@ -331,6 +382,13 @@ function emitReact(node: SerNode, mode: 'root' | 'absolute' | 'flexChild', offse
   }
   if (ltype === 'text') {
     return `${indent}<span ${attrs} style=${styleProp}>${jsxText(l.text ?? '')}</span>`;
+  }
+  if (ltype === 'icon' && l.iconName) {
+    const iconStyles = stylesFor(node, mode, offset);
+    iconStyles['color'] = iconColor(l);
+    const iconAttrs = `${attrs} style=${styleToJsxObject(iconStyles)}`;
+    const markup = iconSvgMarkup(l, true, iconAttrs);
+    return markup ? `${indent}${markup}` : '';
   }
 
   const kids = node.children
@@ -466,6 +524,9 @@ function classesFor(node: SerNode, mode: 'root' | 'absolute' | 'flexChild', offs
     cls.push(colorClasses(l.stroke || l.fill).bg.startsWith('bg-')
       ? colorClasses(l.stroke || l.fill).bg.replace(/^bg-/, 'border-')
       : `border-[${(l.stroke || l.fill).replace(/\s+/g, '_')}]`);
+  } else if (l.type === 'icon') {
+    // Glyph: no bg/border/radius — just the paint color (stroke=currentColor).
+    cls.push(colorClasses(iconColor(l)).text);
   } else if (l.type !== 'image') {
     if (!isTransparent(l.fill)) cls.push(colorClasses(cssColor(l, 'fill')).bg);
     if (l.radii) {
@@ -500,6 +561,10 @@ function emitTailwind(node: SerNode, mode: 'root' | 'absolute' | 'flexChild', of
   }
   if (l.type === 'text') {
     return `${indent}<span class="${cls}" ${attrs}>${escapeHtmlText(l.text ?? '')}</span>`;
+  }
+  if (l.type === 'icon' && l.iconName) {
+    const markup = iconSvgMarkup(l, false, `class="${cls}" ${attrs}`);
+    return markup ? `${indent}${markup}` : '';
   }
 
   const kids = node.children

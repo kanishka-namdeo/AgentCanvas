@@ -913,16 +913,15 @@ describe('tools: pen_upload_image', () => {
 });
 
 describe('tools: pen_search_icons', () => {
-  it('places a known icon as a path', async () => {
+  it('places a known icon as a first-class icon node', async () => {
     const r = await run(h, 'pen_search_icons', {
       icon: 'check', x: 100, y: 100, size: 24,
     });
     expect(r.isError).toBeFalsy();
     const s = h.doc.shapes[0];
-    expect(s.type).toBe('path');
+    expect(s.type).toBe('icon');
     expect(s.name).toBe('Icon: check');
-    expect(s.points!.length).toBeGreaterThan(0);
-    expect(s.closed).toBe(false);
+    expect(s.iconName).toBe('check');
     expect(s.width).toBe(24);
     expect(s.height).toBe(24);
   });
@@ -932,11 +931,12 @@ describe('tools: pen_search_icons', () => {
       icon: 'check', x: 0, y: 0, size: 48,
     });
     const s = h.doc.shapes[0];
+    expect(s.type).toBe('icon');
     expect(s.width).toBe(48);
     expect(s.height).toBe(48);
-    // The check icon's first point at 24px is at (20, 6).
-    // At 48px (2x scale) it should be at (40, 12).
-    expect(s.points![0]).toEqual({ x: 40, y: 12 });
+    // Geometry resolves from the registry at render time (docs/lucide-icons.md)
+    // — the stored node stays symbolic (icon name), no baked points.
+    expect(s.points).toBeFalsy();
   });
 
   it('uses default stroke color and width', async () => {
@@ -946,16 +946,75 @@ describe('tools: pen_search_icons', () => {
     expect(s.strokeWidth).toBe(2);
   });
 
+  it('searches by meaning and returns ranked names', async () => {
+    const r = await run(h, 'pen_search_icons', { query: 'password security' });
+    expect(r.isError).toBeFalsy();
+    expect(r.content).toContain('lock');
+    expect(h.doc.shapes.length).toBe(0); // search-only: nothing placed
+  });
+
+  it('places the top query match when x/y are given', async () => {
+    const r = await run(h, 'pen_search_icons', { query: 'revenue growth', x: 40, y: 40 });
+    expect(r.isError).toBeFalsy();
+    const s = h.doc.shapes[0];
+    expect(s.type).toBe('icon');
+    expect(['trending-up', 'chart-column', 'chart-pie']).toContain(s.iconName);
+  });
+
+  it('resolves tolerant icon spellings ("Trash 2")', async () => {
+    const r = await run(h, 'pen_search_icons', { icon: 'Trash 2', x: 0, y: 0 });
+    expect(r.isError).toBeFalsy();
+    const s = h.doc.shapes[0];
+    expect(s.type).toBe('icon');
+    expect(s.iconName).toBe('trash-2');
+  });
+
   it('returns isError when the icon name is unknown', async () => {
     const r = await run(h, 'pen_search_icons', { icon: 'definitely-not-real', x: 0, y: 0 });
     expect(r.isError).toBe(true);
     expect(r.content).toContain('not found');
-    expect(r.content).toContain('check'); // lists available icons
   });
 
   it('matches icon names case-insensitively', async () => {
     const r = await run(h, 'pen_search_icons', { icon: 'CHECK', x: 0, y: 0 });
     expect(r.isError).toBeFalsy();
+    expect(h.doc.shapes[0].iconName).toBe('check');
+  });
+});
+
+describe('tools: pen_create_node (icon type)', () => {
+  it('creates an icon node with a catalog name', async () => {
+    const r = await run(h, 'pen_create_node', {
+      type: 'icon', icon: 'lock', x: 20, y: 20, width: 24, height: 24, stroke: '#0ea5e9',
+    });
+    expect(r.isError).toBeFalsy();
+    const s = h.doc.shapes[0];
+    expect(s.type).toBe('icon');
+    expect(s.iconName).toBe('lock');
+    expect(s.stroke).toBe('#0ea5e9');
+    expect(r.content).toContain('lock');
+  });
+
+  it('defaults icon size to the lucide 24×24 grid when omitted', async () => {
+    await run(h, 'pen_create_node', { type: 'icon', icon: 'star', x: 0, y: 0 });
+    const s = h.doc.shapes[0];
+    expect(s.width).toBe(24);
+    expect(s.height).toBe(24);
+  });
+
+  it('fails with suggestions for an unknown icon name', async () => {
+    const r = await run(h, 'pen_create_node', {
+      type: 'icon', icon: 'made-up-glyph', x: 0, y: 0,
+    });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('not in the Lucide catalog');
+    expect(h.doc.shapes.length).toBe(0);
+  });
+
+  it('fails when an icon node omits the icon name', async () => {
+    const r = await run(h, 'pen_create_node', { type: 'icon', x: 0, y: 0 });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('icon');
   });
 });
 

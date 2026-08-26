@@ -51,7 +51,10 @@ export type LayerType =
   | 'boolean_operation'
   | 'slice'
   | 'star'
-  | 'polygon';
+  | 'polygon'
+  // Library icon node (.pen PenIcon — lucide by default; geometry resolves
+  // at render time from src/lib/icons, see docs/lucide-icons.md):
+  | 'icon';
 
 /// DEPRECATED alias — use `LayerType` in new code.
 export type ShapeType = LayerType;
@@ -155,6 +158,12 @@ export interface Layer {
   points?: { x: number; y: number }[] | null;
   closed?: boolean;
   src?: string | null;
+  /// Icon node: the library-qualified icon name ('lock', 'arrow-right', …).
+  /// Resolved to geometry at render time from src/lib/icons (lucide).
+  iconName?: string | null;
+  /// Icon node: the source library ('lucide' — others map to lucide
+  /// equivalents for now, matching the .pen PenIcon spec).
+  iconLibrary?: string | null;
   radii?: CornerRadii | null;
   gradient?: GradientFill | null;
   shadow?: ShadowEffect | null;

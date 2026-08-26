@@ -63,6 +63,7 @@ import { parseHtmlFragment, htmlToPenTreeDetailed } from '../canvas/html-import'
 import { serializeNodes } from '../canvas/serialize';
 import { resolvePenTreeDetailed, type ResolvedTreeNode } from '../pen/resolve';
 import type { PenChild } from '../pen/types';
+import { getLucideIcon, searchLucideIcons, lucidePromptCatalog } from '@/lib/icons';
 import { emitEvent, hasSink } from './plugins/event-bus';
 import {
   aliasToolEntries,
@@ -121,8 +122,9 @@ const ShapeTypeSchema = Type.Union(
     Type.Literal('group'),
     Type.Literal('path'),
     Type.Literal('image'),
+    Type.Literal('icon'),
   ],
-  { description: 'Shape kind' },
+  { description: 'Shape kind. Use \'icon\' for library icons (Lucide) — pass the icon name in `icon`' },
 );
 
 const ShapeInputSchema = Type.Object({
@@ -152,6 +154,9 @@ const ShapeInputSchema = Type.Object({
   src: Type.Optional(Type.String({ description: 'Image source URL (data URL or remote) — type=image only' })),
   closed: Type.Optional(Type.Boolean({ description: 'For path shapes: close the path (fill it). Default false.' })),
   blur: Type.Optional(Type.Number({ description: 'Gaussian blur radius in px' })),
+  // ---- Icon fields (type=icon — Lucide library glyphs, docs/lucide-icons.md) ----
+  icon: Type.Optional(Type.String({ description: 'Icon name from the Lucide catalog (type=icon only), e.g. "lock", "arrow-right", "chart-column". Call pen_search_icons to find names by meaning. NEVER invent a name.' })),
+  library: Type.Optional(Type.String({ description: 'Icon library. Only "lucide" is supported (default). Kept for .pen PenIcon spec compatibility.' })),
   // ---- High-fidelity extended fields (so the LLM can create polished shapes in one call) ----
   gradient: Type.Optional(Type.Object({
     type: Type.Union([Type.Literal('linear'), Type.Literal('radial')], { description: 'Gradient type' }),
@@ -383,6 +388,16 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
   if ((params as any).src !== undefined) out.src = String((params as any).src);
   if ((params as any).closed !== undefined) out.closed = !!(params as any).closed;
   if ((params as any).blur !== undefined) out.blur = Number((params as any).blur) || 0;
+  // Icon fields (type=icon): the library-qualified name flows through to the
+  // .pen PenIcon node (patch.ts passthrough) and is resolved to geometry at
+  // render time (docs/lucide-icons.md).
+  if ((params as any).icon !== undefined) out.iconName = String((params as any).icon);
+  if ((params as any).library !== undefined) out.iconLibrary = String((params as any).library);
+  // Icons default to the lucide 24×24 grid when size is omitted.
+  if (out.type === 'icon') {
+    if (params.width === undefined) out.width = 24;
+    if (params.height === undefined) out.height = 24;
+  }
   if (Array.isArray((params as any).points)) {
     out.points = (params as any).points.map((p: any) => ({ x: Number(p.x) || 0, y: Number(p.y) || 0 }));
   }
@@ -483,45 +498,11 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/// A curated subset of Lucide icon path data (24×24 viewBox).
-/// Each icon is an array of {x, y} polyline points. These are simplified
-/// approximations of the real Lucide icons — enough for placeholder use.
-const LUCIDE_ICONS: Record<string, Array<{ x: number; y: number }>> = {
-  check: [{ x: 20, y: 6 }, { x: 9, y: 17 }, { x: 4, y: 12 }],
-  x: [{ x: 18, y: 6 }, { x: 6, y: 18 }, { x: 6, y: 6 }, { x: 18, y: 18 }],
-  plus: [{ x: 12, y: 5 }, { x: 12, y: 19 }, { x: 5, y: 12 }, { x: 19, y: 12 }],
-  minus: [{ x: 5, y: 12 }, { x: 19, y: 12 }],
-  'arrow-right': [{ x: 5, y: 12 }, { x: 19, y: 12 }, { x: 12, y: 5 }, { x: 12, y: 19 }],
-  'arrow-left': [{ x: 19, y: 12 }, { x: 5, y: 12 }, { x: 12, y: 19 }, { x: 12, y: 5 }],
-  'arrow-up': [{ x: 12, y: 19 }, { x: 12, y: 5 }, { x: 5, y: 12 }, { x: 19, y: 12 }],
-  'arrow-down': [{ x: 12, y: 5 }, { x: 12, y: 19 }, { x: 5, y: 12 }, { x: 19, y: 12 }],
-  'chevron-down': [{ x: 6, y: 9 }, { x: 12, y: 15 }, { x: 18, y: 9 }],
-  'chevron-up': [{ x: 18, y: 15 }, { x: 12, y: 9 }, { x: 6, y: 15 }],
-  'chevron-left': [{ x: 15, y: 18 }, { x: 9, y: 12 }, { x: 15, y: 6 }],
-  'chevron-right': [{ x: 9, y: 18 }, { x: 15, y: 12 }, { x: 9, y: 6 }],
-  search: [{ x: 11, y: 11 }, { x: 21, y: 21 }, { x: 11, y: 11 }, { x: 11, y: 8 }, { x: 8, y: 8 }, { x: 8, y: 11 }, { x: 11, y: 11 }],
-  settings: [{ x: 12, y: 12 }, { x: 12, y: 12 }, { x: 19, y: 12 }, { x: 19, y: 12 }, { x: 12, y: 5 }, { x: 12, y: 5 }, { x: 5, y: 12 }, { x: 5, y: 12 }],
-  user: [{ x: 20, y: 21 }, { x: 20, y: 21 }, { x: 16, y: 16 }, { x: 12, y: 12 }, { x: 8, y: 16 }, { x: 4, y: 21 }, { x: 4, y: 21 }],
-  heart: [{ x: 20, y: 8 }, { x: 20, y: 8 }, { x: 12, y: 8 }, { x: 4, y: 8 }, { x: 4, y: 8 }, { x: 12, y: 21 }, { x: 20, y: 8 }],
-  star: [{ x: 12, y: 2 }, { x: 15, y: 8 }, { x: 22, y: 8 }, { x: 17, y: 13 }, { x: 19, y: 20 }, { x: 12, y: 16 }, { x: 5, y: 20 }, { x: 7, y: 13 }, { x: 2, y: 8 }, { x: 9, y: 8 }, { x: 12, y: 2 }],
-  bell: [{ x: 18, y: 8 }, { x: 18, y: 8 }, { x: 6, y: 8 }, { x: 6, y: 8 }, { x: 6, y: 8 }, { x: 18, y: 8 }, { x: 16, y: 16 }, { x: 8, y: 16 }, { x: 18, y: 8 }, { x: 12, y: 2 }, { x: 6, y: 8 }],
-  mail: [{ x: 4, y: 4 }, { x: 20, y: 4 }, { x: 20, y: 20 }, { x: 4, y: 20 }, { x: 4, y: 4 }, { x: 4, y: 4 }, { x: 12, y: 13 }, { x: 20, y: 4 }],
-  phone: [{ x: 22, y: 16 }, { x: 22, y: 16 }, { x: 16, y: 16 }, { x: 13, y: 13 }, { x: 13, y: 13 }, { x: 11, y: 11 }, { x: 11, y: 11 }, { x: 8, y: 8 }, { x: 2, y: 8 }, { x: 2, y: 8 }],
-  calendar: [{ x: 3, y: 4 }, { x: 21, y: 4 }, { x: 21, y: 20 }, { x: 3, y: 20 }, { x: 3, y: 4 }, { x: 3, y: 4 }, { x: 8, y: 2 }, { x: 8, y: 6 }, { x: 16, y: 2 }, { x: 16, y: 6 }],
-  clock: [{ x: 12, y: 12 }, { x: 12, y: 12 }, { x: 12, y: 6 }, { x: 12, y: 6 }, { x: 12, y: 12 }, { x: 16, y: 12 }, { x: 12, y: 12 }],
-  home: [{ x: 3, y: 12 }, { x: 12, y: 3 }, { x: 21, y: 12 }, { x: 5, y: 12 }, { x: 5, y: 21 }, { x: 19, y: 21 }, { x: 19, y: 12 }],
-  menu: [{ x: 3, y: 6 }, { x: 21, y: 6 }, { x: 3, y: 12 }, { x: 21, y: 12 }, { x: 3, y: 18 }, { x: 21, y: 18 }],
-  share: [{ x: 4, y: 12 }, { x: 4, y: 12 }, { x: 12, y: 20 }, { x: 12, y: 20 }, { x: 12, y: 20 }, { x: 20, y: 12 }, { x: 20, y: 12 }, { x: 12, y: 4 }, { x: 12, y: 4 }, { x: 12, y: 4 }, { x: 4, y: 12 }],
-  download: [{ x: 12, y: 3 }, { x: 12, y: 15 }, { x: 7, y: 10 }, { x: 12, y: 15 }, { x: 17, y: 10 }, { x: 4, y: 21 }, { x: 20, y: 21 }],
-  upload: [{ x: 12, y: 21 }, { x: 12, y: 9 }, { x: 7, y: 14 }, { x: 12, y: 9 }, { x: 17, y: 14 }, { x: 4, y: 3 }, { x: 20, y: 3 }],
-  edit: [{ x: 12, y: 20 }, { x: 9, y: 20 }, { x: 9, y: 20 }, { x: 5, y: 16 }, { x: 5, y: 16 }, { x: 16, y: 5 }, { x: 16, y: 5 }, { x: 19, y: 8 }, { x: 19, y: 8 }, { x: 8, y: 19 }],
-  trash: [{ x: 3, y: 6 }, { x: 21, y: 6 }, { x: 8, y: 6 }, { x: 8, y: 6 }, { x: 8, y: 6 }, { x: 16, y: 6 }, { x: 16, y: 6 }, { x: 19, y: 6 }, { x: 19, y: 6 }, { x: 18, y: 20 }, { x: 6, y: 20 }, { x: 6, y: 6 }],
-  copy: [{ x: 9, y: 9 }, { x: 9, y: 9 }, { x: 9, y: 21 }, { x: 9, y: 21 }, { x: 9, y: 21 }, { x: 21, y: 21 }, { x: 21, y: 21 }, { x: 21, y: 9 }, { x: 21, y: 9 }, { x: 9, y: 9 }, { x: 9, y: 9 }, { x: 4, y: 4 }, { x: 4, y: 4 }, { x: 4, y: 16 }],
-  lock: [{ x: 5, y: 11 }, { x: 5, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 5, y: 11 }, { x: 5, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 11 }],
-  unlock: [{ x: 5, y: 11 }, { x: 5, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 5, y: 11 }, { x: 5, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 4 }],
-  eye: [{ x: 2, y: 12 }, { x: 12, y: 12 }, { x: 22, y: 12 }, { x: 12, y: 12 }, { x: 2, y: 12 }, { x: 12, y: 5 }, { x: 12, y: 5 }, { x: 19, y: 12 }, { x: 19, y: 12 }, { x: 12, y: 19 }, { x: 12, y: 19 }, { x: 5, y: 12 }],
-  'eye-off': [{ x: 2, y: 2 }, { x: 2, y: 2 }, { x: 22, y: 22 }, { x: 9, y: 9 }, { x: 9, y: 9 }, { x: 15, y: 15 }, { x: 15, y: 15 }, { x: 2, y: 12 }, { x: 12, y: 12 }, { x: 22, y: 12 }],
-};
+/// DEPRECATED polyline icon approximations — REMOVED.
+/// Real Lucide icons now ship as first-class `icon` nodes with geometry from
+/// the generated registry (src/lib/icons, docs/lucide-icons.md). The old
+/// table mangled multi-contour icons into single connected polylines with
+/// degenerate repeated points; every renderer now paints true lucide glyphs.
 
 // ---- Tool factory -----------------------------------------------------------
 
@@ -608,12 +589,13 @@ const createShape = defineTool({
     name: 'pen_create_node',
     label: 'Create Node',
     description:
-      'Create a new node on the canvas — the workhorse. Use this to add rectangles, ellipses, text, lines, frames (artboards), or groups. ' +
+      'Create a new node on the canvas — the workhorse. Use this to add rectangles, ellipses, text, lines, frames (artboards), groups, or ICONS (Lucide glyphs via type:"icon" + icon:"<name>"). ' +
       'Returns the new node id. The node appears immediately on every viewer\'s screen.',
-    promptSnippet: 'Create canvas nodes (rectangle, ellipse, text, line, frame).',
+    promptSnippet: 'Create canvas nodes (rectangle, ellipse, text, line, frame, icon).',
     promptGuidelines: [
       'When the user asks to "add" / "draw" / "create" / "put" a node, use pen_create_node.',
       'Always specify `type`, `x`, `y`, `width`, `height`. For text nodes include `text`, `fontSize`, `textColor`.',
+      'For ICONS use type:"icon" with icon:"<lucide-name>" (find names via pen_search_icons) — never draw icons with path nodes or emoji.',
       'Coordinates are canvas-space pixels; the visible area at zoom 1 is roughly 0..1200 x 0..800.',
     ],
     parameters: ShapeInputSchema,
@@ -622,6 +604,33 @@ const createShape = defineTool({
       const coerced = coerceShapeInput(params);
       // Default type to 'rectangle' if the LLM omitted it.
       if (!coerced.type) coerced.type = 'rectangle';
+      // Icon nodes: validate the name against the Lucide catalog and resolve
+      // tolerant spellings ("Trash 2", "lucide-lock") to canonical names.
+      // A silent unknown name would render a dashed placeholder — surfacing
+      // suggestions here turns the miss into a self-correcting round-trip.
+      if (coerced.type === 'icon') {
+        const rawName = coerced.iconName ?? '';
+        if (!rawName) {
+          return {
+            content: [{ type: 'text', text: 'Error: icon nodes require the `icon` field (a Lucide name, e.g. "lock"). Call pen_search_icons with a semantic query to find names.' }],
+            details: { error: 'icon_name_missing' },
+            isError: true as any,
+          };
+        }
+        const resolved = getLucideIcon(rawName);
+        if (!resolved) {
+          const suggestions = searchLucideIcons(String(rawName).replace(/[-_]+/g, ' '), { limit: 6 })
+            .map((m) => m.name)
+            .join(', ');
+          return {
+            content: [{ type: 'text', text: `Error: icon "${rawName}" is not in the Lucide catalog.${suggestions ? ` Closest matches: ${suggestions}.` : ''} Use pen_search_icons {query:"..."} to find the right name.` }],
+            details: { error: 'icon_not_found', requested: rawName, suggestions },
+            isError: true as any,
+          };
+        }
+        coerced.iconName = resolved.name;
+        coerced.iconLibrary = 'lucide';
+      }
       const patch: CanvasPatch = {
         op: 'add',
         shapeId: id,
@@ -629,11 +638,15 @@ const createShape = defineTool({
         summary: `Created ${coerced.type}${params.name ? ` "${params.name}"` : ''} at (${coerced.x ?? 0}, ${coerced.y ?? 0})`,
       };
       ctx.applyPatch(patch);
+      const iconNote =
+        coerced.type === 'icon' && coerced.iconName
+          ? ` Lucide icon "${coerced.iconName}" — recolor via stroke.`
+          : '';
       return {
         content: [
           {
             type: 'text',
-            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.`,
+            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.${iconNote}`,
           },
         ],
         details: { shapeId: id, patch },
@@ -3921,56 +3934,121 @@ const createShape = defineTool({
 
   const searchIcons = defineTool({
     name: 'pen_search_icons',
-    label: 'Place Icon',
-    description: 'Place a Lucide icon on the canvas as a path shape. ' +
-      'Renders the icon as a stroked polyline path. ' +
-      'Available icons: check, x, plus, minus, arrow-right, arrow-left, arrow-up, arrow-down, ' +
-      'chevron-down, chevron-up, chevron-left, chevron-right, search, settings, user, heart, ' +
-      'star, bell, mail, phone, calendar, clock, home, menu, share, download, upload, ' +
-      'edit, trash, copy, lock, unlock, eye, eye-off.',
-    promptSnippet: 'Place a Lucide icon on the canvas.',
+    label: 'Search & Place Icon',
+    description:
+      'Search the Lucide icon catalog by MEANING and optionally place an icon on the canvas as a first-class icon node. ' +
+      'Two modes: (1) SEARCH — pass `query` (e.g. "password security", "analytics chart") to get ranked icon names with categories; ' +
+      '(2) PLACE — pass `icon` (an exact name) plus `x`/`y` to place it. Combine both (`query` + `x`/`y`) to place the best match. ' +
+      'Icons render as true Lucide glyphs, recolorable via `stroke`, and are the ONLY correct way to add icons — ' +
+      'never hand-draw icons with path nodes and never use emoji as icons.',
+    promptSnippet: 'Search the Lucide icon catalog by meaning; place real icon nodes (never hand-drawn icons).',
+    promptGuidelines: [
+      'ALWAYS find icon names through this tool (or the ICON CATALOG in the system prompt) — never invent names.',
+      'Place icons with icon nodes (type:"icon"); recolor with `stroke`, resize via width/height.',
+      'Typical icon sizes: 16-20px inline with text, 24px toolbars, 32-48px feature cards.',
+    ],
     parameters: Type.Object({
-      icon: Type.String({ description: 'Icon name (see description for list)' }),
-      x: Type.Number({ description: 'Canvas-space X' }),
-      y: Type.Number({ description: 'Canvas-space Y' }),
-      size: Type.Optional(Type.Number({ description: 'Icon size in px (default 24)' })),
-      stroke: Type.Optional(Type.String({ description: 'Stroke color (default #0f172a)' })),
-      strokeWidth: Type.Optional(Type.Number({ description: 'Stroke width (default 2)' })),
+      query: Type.Optional(Type.String({ description: 'Semantic search: what the icon should MEAN, e.g. "password security", "payment", "upload file". Returns ranked matches.' })),
+      icon: Type.Optional(Type.String({ description: 'Exact icon name to place (e.g. "lock"). Tolerates case/spacing ("Trash 2" → trash-2).' })),
+      category: Type.Optional(Type.String({ description: 'Optional category filter: navigation, actions, communication, media, files, commerce, users, security, status, weather-nature, tech-dev, time, layout, essentials' })),
+      limit: Type.Optional(Type.Number({ description: 'Max search results (default 12, max 24)' })),
+      x: Type.Optional(Type.Number({ description: 'Canvas-space X — provide to PLACE the icon (with `icon`, or the top `query` match)' })),
+      y: Type.Optional(Type.Number({ description: 'Canvas-space Y — provide to PLACE the icon' })),
+      size: Type.Optional(Type.Number({ description: 'Icon size in px (default 24, square)' })),
+      stroke: Type.Optional(Type.String({ description: 'Icon stroke color hex or $color.* token (default #0f172a)' })),
+      strokeWidth: Type.Optional(Type.Number({ description: 'Stroke width in lucide units (default 2)' })),
+      parentId: Type.Optional(Type.String({ description: 'Parent frame/group ID to place the icon inside' })),
+      name: Type.Optional(Type.String({ description: 'Layer name (default "Icon: <name>")' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const iconData = LUCIDE_ICONS[params.icon.toLowerCase()];
-      if (!iconData) {
-        const available = Object.keys(LUCIDE_ICONS).join(', ');
-        return { content: [{ type: 'text', text: `Icon "${params.icon}" not found. Available: ${available}` }], details: { error: 'icon_not_found', requested: params.icon, available: Object.keys(LUCIDE_ICONS) }, isError: true as any };
+      // ---- Resolve what to place (if anything) -------------------------------
+      let toPlace: string | null = null;
+      if (params.icon) {
+        const resolved = getLucideIcon(params.icon);
+        if (!resolved) {
+          const suggestions = searchLucideIcons(params.icon, { limit: 8 })
+            .map((m) => m.name)
+            .join(', ');
+          return {
+            content: [{ type: 'text', text: `Icon "${params.icon}" not found in the Lucide catalog.${suggestions ? ` Closest matches: ${suggestions}.` : ''} Call pen_search_icons with a semantic \`query\` to find the right name.` }],
+            details: { error: 'icon_not_found', requested: params.icon, suggestions },
+            isError: true as any,
+          };
+        }
+        toPlace = resolved.name;
+      } else if (params.query && params.x !== undefined && params.y !== undefined) {
+        const top = searchLucideIcons(params.query, { category: params.category, limit: 1 })[0];
+        if (top) toPlace = top.name;
       }
-      const id = crypto.randomUUID();
-      const sz = Number(params.size) || 24;
-      const sw = params.strokeWidth ?? 2;
-      const sc = params.stroke ?? '#0f172a';
-      // Lucide icons are 24×24 viewBox. Scale to requested size.
-      const scale = sz / 24;
-      const points = iconData.map((p: { x: number; y: number }) => ({ x: (params.x || 0) + p.x * scale, y: (params.y || 0) + p.y * scale }));
-      const shape: Partial<Shape> = {
-        id,
-        type: 'path',
-        name: `Icon: ${params.icon}`,
-        x: params.x || 0,
-        y: params.y || 0,
-        width: sz,
-        height: sz,
-        fill: 'transparent',
-        stroke: sc,
-        strokeWidth: sw,
-        radius: 0,
-        fontSize: 16,
-        textColor: '#0f172a',
-        points,
-        closed: false,
-        zIndex: ctx.getShapes().length,
+
+      // ---- Placement ----------------------------------------------------------
+      if (toPlace && params.x !== undefined && params.y !== undefined) {
+        const id = crypto.randomUUID();
+        const sz = Number(params.size) || 24;
+        const shape: Partial<Shape> = {
+          id,
+          type: 'icon',
+          name: params.name || `Icon: ${toPlace}`,
+          x: Number(params.x) || 0,
+          y: Number(params.y) || 0,
+          width: sz,
+          height: sz,
+          fill: 'transparent',
+          stroke: params.stroke ?? '#0f172a',
+          strokeWidth: params.strokeWidth ?? 2,
+          radius: 0,
+          fontSize: 16,
+          textColor: '#0f172a',
+          iconName: toPlace,
+          iconLibrary: 'lucide',
+          zIndex: ctx.getShapes().length,
+          ...(params.parentId ? { parentId: params.parentId } : {}),
+        };
+        const patch: CanvasPatch = {
+          op: 'add',
+          shapeId: id,
+          shape,
+          summary: `Placed lucide icon "${toPlace}" at (${params.x}, ${params.y})`,
+        };
+        ctx.applyPatch(patch);
+        const placedMsg = `Placed lucide icon "${toPlace}" (id ${id}) at (${params.x}, ${params.y}), size ${sz}px. Recolor via pen_update_node {stroke}, resize via {width,height}.`;
+        // Also surface a few related names so the model can vary without
+        // another search round-trip.
+        const related = searchLucideIcons(toPlace.replace(/-/g, ' '), { limit: 5 })
+          .map((m) => m.name)
+          .filter((n) => n !== toPlace)
+          .slice(0, 4);
+        return {
+          content: [{ type: 'text', text: related.length > 0 ? `${placedMsg} Related icons: ${related.join(', ')}.` : placedMsg }],
+          details: { shapeId: id, icon: toPlace, patch },
+        };
+      }
+
+      // ---- Search-only ----------------------------------------------------------
+      const query = params.query ?? params.icon ?? '';
+      if (!query) {
+        return {
+          content: [{ type: 'text', text: 'Pass `query` (what the icon should mean) to search, and optional `icon` + `x`/`y` to place. Example: {"query":"password security"} or {"icon":"lock","x":100,"y":50}.' }],
+          details: { error: 'missing_query' },
+          isError: true as any,
+        };
+      }
+      const matches = searchLucideIcons(query, {
+        category: params.category,
+        limit: Math.max(1, Math.min(24, params.limit ?? 12)),
+      });
+      if (matches.length === 0) {
+        return {
+          content: [{ type: 'text', text: `No icons matched "${query}". Try a broader, shorter query (single words work best: "lock", "chart", "user"), or browse a category via {"query":"","category":"actions"}.` }],
+          details: { error: 'no_matches', query },
+          isError: true as any,
+        };
+      }
+      const lines = matches.map((m) => `  ${m.name}${m.category ? ` (${m.category})` : ''}`);
+      return {
+        content: [{ type: 'text', text: `Lucide icons matching "${query}" (${matches.length}):\n${lines.join('\n')}\n\nPlace with pen_search_icons {icon:"<name>", x, y, size, stroke} or pen_create_node {type:"icon", icon:"<name>", x, y}.` }],
+        details: { query, matches: matches.map((m) => m.name) },
       };
-      const patch: CanvasPatch = { op: 'add', shapeId: id, shape, summary: `Placed icon "${params.icon}" at (${params.x}, ${params.y})` };
-      ctx.applyPatch(patch);
-      return { content: [{ type: 'text', text: `Placed icon "${params.icon}" with id ${id} at (${params.x}, ${params.y}), size ${sz}px.` }], details: { shapeId: id, icon: params.icon, patch } };
     },
   });
 

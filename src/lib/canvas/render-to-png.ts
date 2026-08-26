@@ -19,6 +19,7 @@
 
 import type { Layer } from '../canvas/types';
 import { Resvg } from '@resvg/resvg-js';
+import { lucideIconGroupSvg } from '@/lib/icons';
 
 // ---- Public API ------------------------------------------------------------
 
@@ -254,9 +255,32 @@ function renderShapeToSvg(s: Layer, measuredBounds?: MeasuredBoundsMap): string 
       }
       return `  <polygon points="${pts.join(' ')}" fill="${fillValue}"${opacityAttr}${transformAttr}/>`;
     }
+    case 'icon': {
+      // Lucide glyph — stroke-painted <g> translate/scale'd from the 24-grid
+      // (docs/lucide-icons.md). resvg renders plain <g transform> + path data
+      // reliably, so this is the same emission the SVG export uses.
+      if (!s.iconName) return '';
+      const color =
+        s.stroke && s.stroke !== 'transparent' ? s.stroke
+        : s.textColor && s.textColor !== 'transparent' ? s.textColor
+        : s.fill && s.fill !== 'transparent' ? s.fill
+        : '#0f172a';
+      let g = lucideIconGroupSvg(s.iconName, s.x, s.y, Math.min(W, H) || 24, {
+        stroke: color,
+        strokeWidth: s.strokeWidth > 0 ? s.strokeWidth : undefined,
+      });
+      if (!g) return '';
+      if (transformAttr) {
+        g = `<g${transformAttr}>${g}</g>`;
+      }
+      if (opacityAttr) {
+        g = `<g${opacityAttr}>${g}</g>`;
+      }
+      return `  ${g}`;
+    }
     default: {
       // Group / section / component / instance / boolean_operation /
-      // slice / context / note / prompt / icon / script / ref — render as
+      // slice / context / note / prompt / script / ref — render as
       // a no-op bounding box (the children render separately as siblings).
       return '';
     }
