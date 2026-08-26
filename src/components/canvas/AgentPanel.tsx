@@ -372,7 +372,14 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
         break;
       }
       case 'export-png':
-        void exportPngDataUrl(document.shapes).then((dataUrl) => {
+        // Phase 5 §5.4 contract: capture the LIVE DOM world via html-to-image
+        // (same path as the agent's agent:screenshot_request round-trip); fall
+        // back to the SVG projection when no DOM world is mounted.
+        void exportPngDataUrl(document.shapes, {
+          worldElement: useCanvasStore.getState().worldElement,
+          backgroundColor: document.background,
+          scale: 2,
+        }).then((dataUrl) => {
           if (!dataUrl) { toast.error('Nothing to export'); return; }
           if (dataUrl.startsWith('data:image/png')) {
             downloadDataUrl(dataUrl, `${docName}.png`);
@@ -431,8 +438,14 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
 
   /// Attach a PNG snapshot of the current canvas (v0/Figma-Make pattern: give
   /// the agent — especially a vision model — a visual reference of exactly
-  /// what you're looking at). Renders via the existing client-side exporter,
-  /// then guarantees the attachment size cap through the downscale pipeline.
+  /// what you're looking at). Spec Phase 5 §5.4 contract: capture the LIVE
+  /// DOM-rendered world element via html-to-image — the SAME path the agent's
+  /// `agent:screenshot_request` round-trip uses — so the agent sees the
+  /// actual canvas (fonts, images, measured native-layout geometry,
+  /// drop-shadows, gradients) instead of the lossy SVG projection. Falls
+  /// back to the SVG-projection path when no DOM world is mounted
+  /// (SVG-compat renderer / tainted canvas / no html-to-image).
+  /// Guarantees the attachment size cap through the downscale pipeline.
   const [snapshotBusy, setSnapshotBusy] = useState(false);
   const attachCanvasSnapshot = async () => {
     if (agentBusy || snapshotBusy) return;
@@ -448,7 +461,14 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     setSnapshotBusy(true);
     try {
       // scale 1 — a chat reference doesn't need @2x; keeps the payload small.
-      let dataUrl = await exportPngDataUrl(shapes, { scale: 1 });
+      // worldElement from the store — the same one the agent's screenshot
+      // round-trip captures. When null (SVG-compat renderer / unmounted),
+      // exportPngDataUrl falls back to the SVG-projection path automatically.
+      let dataUrl = await exportPngDataUrl(shapes, {
+        scale: 1,
+        worldElement: useCanvasStore.getState().worldElement,
+        backgroundColor: document.background,
+      });
       if (!dataUrl) throw new Error('rasterization failed');
       if (dataUrl.length > MAX_DATAURL_LENGTH) {
         // Huge canvas — re-encode through the downscale pipeline (1280px edge).

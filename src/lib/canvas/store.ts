@@ -674,11 +674,35 @@ async function handleScreenshotRequest(event: Extract<SyncEvent, { type: 'agent:
     await postClientResponse({ kind: 'screenshot', toolCallId: event.toolCallId, error: 'no-dom-renderer' });
     return;
   }
+  // The world element is a transform container with no explicit width/height
+  // (its children are absolutely positioned, so they don't contribute to its
+  // content box). html-to-image captures the element's own box, so a 0x0
+  // world produces an empty image. Fall back to the world's PARENT (the
+  // visible canvas surface — has `right:0; bottom:0` so it fills the canvas
+  // viewport). The agent sees exactly what's visible on the user's screen —
+  // which is the spec §5.4 "ground truth" contract.
+  let captureTarget: HTMLElement = worldElement;
+  const worldRect = worldElement.getBoundingClientRect();
+  if ((worldRect.width === 0 || worldRect.height === 0) && worldElement.parentElement) {
+    captureTarget = worldElement.parentElement;
+  }
   try {
     const { toPng } = await import('html-to-image');
-    const dataUrl = await toPng(worldElement, {
+    const dataUrl = await toPng(captureTarget, {
       pixelRatio: typeof event.scale === 'number' && event.scale > 0 ? event.scale : 2,
       backgroundColor: document.background,
+      // Skip the ruler/guides/measure chrome overlays — they're screen-space,
+      // not part of the canvas content. Same filter as export.ts:exportPngDataUrl
+      // so the agent sees the same picture the user exports.
+      filter: (node) => {
+        if (!(node instanceof HTMLElement)) return true;
+        if (node.dataset?.acChrome !== undefined) return false;
+        if (node.dataset?.acRulers !== undefined) return false;
+        if (node.dataset?.acGuides !== undefined) return false;
+        if (node.dataset?.acMeasure !== undefined) return false;
+        if (node.dataset?.acDropTarget !== undefined) return false;
+        return true;
+      },
     });
     await postClientResponse({ kind: 'screenshot', toolCallId: event.toolCallId, dataUrl });
   } catch (err) {

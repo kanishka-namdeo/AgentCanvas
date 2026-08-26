@@ -203,7 +203,7 @@ The `applyHighFidelityStyling` post-processor runs after every `buildWireframe` 
 - Caption / Footer / Fine print → 400 / +0.2
 - Link / Forgot password / Sign in link → 500 / 0 / left
 
-It also adds `autoLayout` to layout containers (cards = vertical, sidebars = vertical, topbars = horizontal, tab bars = horizontal). The renderer (`Canvas.tsx` ShapeRenderer case 'text') honors all these fields, so the wireframe generator's output is now typographically-rich end-to-end — closing the "0% typography usage" root cause the VLM baseline exposed.
+It also adds `autoLayout` to layout containers (cards = vertical, sidebars = vertical, topbars = horizontal, tab bars = horizontal). The DOM renderer's `styleFor.ts` (default after Phase 5 flip; SVG-compat `ShapeRenderer` case 'text' is the fallback only) honors all these fields, so the wireframe generator's output is now typographically-rich end-to-end — closing the "0% typography usage" root cause the VLM baseline exposed.
 
 ### P1.2 / T1 — Pre-generation design brief (`pen_generate_design_brief` tool + `subagents/design-brief.ts`)
 The new `pen_generate_design_brief` tool dispatches the design-brief sub-agent, which calls the LLM in an isolated context with the user prompt + a strict JSON-output system prompt. The sub-agent returns a `DesignBrief`:
@@ -237,9 +237,12 @@ Default `maxDesignCritiqueIterations = 2` — agent gets 1 chance to self-correc
 If validation fails, the runner re-prompts the agent with the failure reasons + "Fix these before declaring done." This catches the exact wireframe-only failure mode the VLM baseline exposed (39 bare scaffolds + 11 pen_set_variable + 7 pen_set_shadow + 1 gradient, ZERO typography fields across 24 text shapes).
 
 ### P2.1 / T3 — VLM screenshot critique (`subagents/design-critic-vlm.ts` + `canvas/render-to-png.ts` + `pen_visual_critique` tool)
-The `renderCanvasToPng(shapes, 1440, 900)` function builds an SVG string from the resolved layers (mirroring the ShapeRenderer JSX but emitting raw SVG markup, with full support for typography fields + gradients + shadows + radii + opacity), then rasterizes via `@resvg/resvg-js` at 2x scale for crisp text. The VLM critic sub-agent base64-encodes the PNG and calls the vision LLM with the SAME structured-critique prompt used for the Task 7-a baseline (8 dimensions, 1-10 score, top-5 fixes). The "after" score is directly comparable to the 2/10 baseline.
 
-**M2-c ground-truth seam (spec §5.4)**: before the resvg render, the critic first asks the connected CLIENT for a real screenshot (`agent:screenshot_request` round-trip via `client-roundtrip.ts`, 3s budget). On success it critiques the actual DOM-renderer picture (log: "VLM critic using real client screenshot"); on timeout/no-sink it falls back to the resvg approximation unchanged (D8 fallback discipline). The result carries `screenshotSource: 'client' | 'server'` telemetry.
+**Phase 5 §5.4 ground-truth seam — DOM capture is primary.** The VLM critic first asks the connected CLIENT for a real screenshot via the `agent:screenshot_request` round-trip (`client-roundtrip.ts`, 3s budget). On success the critic critiques the actual DOM-rendered picture captured by `html-to-image` against the live `[data-ac-world]` element (log: "VLM critic using real client screenshot"; `screenshotSource: 'client'`). This is the source of truth after Phase 5 — the canvas is DOM-rendered, so the critic must see what the user sees.
+
+**Server-side resvg fallback (D8 discipline).** When the round-trip times out / no-sink / `html-to-image` unavailable, the critic falls back to `renderCanvasToPng(shapes, 1440, 900)` — a server-side SVG→PNG rasterizer that builds an SVG string from the resolved layers (mirroring the SVG-compat ShapeRenderer JSX but emitting raw SVG markup, with full support for typography fields + gradients + shadows + radii + opacity) and rasterizes via `@resvg/resvg-js` at 2x scale for crisp text. Result carries `screenshotSource: 'server'` telemetry. The same fallback path is used by `pen_get_screenshot`, `pen_get_design_context`, and `pen_export_png` (Phase 5 §5.4 unified contract — all agent-facing surfaces prefer DOM capture; resvg is the no-client fallback).
+
+The VLM critic sub-agent base64-encodes the PNG and calls the vision LLM with the SAME structured-critique prompt used for the Task 7-a baseline (8 dimensions, 1-10 score, top-5 fixes). The "after" score is directly comparable to the 2/10 baseline.
 
 The VLM catches what text-critic cannot see: alignment, whitespace distribution, "generic AI look" (the v0/Midjourney pattern — flat colored divs with no real content density). The mandatory critique loop dispatches BOTH critics on each iteration and merges their defects before re-prompting the agent.
 

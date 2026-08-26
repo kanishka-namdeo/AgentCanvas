@@ -648,7 +648,14 @@ export function LayersPanel() {
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
               <ContextMenuItem onClick={async () => {
-                const dataUrl = await exportPngDataUrl(shapes, { frameId: isContainerNode ? shape.id : undefined });
+                // Phase 5 §5.4: DOM-capture path captures the frame's DOM
+                // subtree via html-to-image (located by [data-node-id]).
+                // Falls back to SVG projection when no DOM world is mounted.
+                const dataUrl = await exportPngDataUrl(shapes, {
+                  frameId: isContainerNode ? shape.id : undefined,
+                  worldElement: useCanvasStore.getState().worldElement,
+                  backgroundColor: document.background,
+                });
                 if (!dataUrl) { toast.error('Nothing to export'); return; }
                 const safeName = shape.name.replace(/[^a-z0-9-_]+/gi, '-');
                 if (dataUrl.startsWith('data:image/png')) {

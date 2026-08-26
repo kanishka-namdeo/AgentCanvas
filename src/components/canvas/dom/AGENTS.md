@@ -44,7 +44,7 @@ The world root carries `data-ac-world`; the chrome root carries `data-ac-chrome`
 - `bunx vitest run tests/integration/renderer-dom.test.tsx` — store-driven behavior in DOM mode (add/update/remove/undo/redo/bulk/nesting/chrome).
 - `bunx vitest run tests/integration/renderer-parity.test.tsx` — SVG vs DOM structural/geometry/z-order parity over the fixture corpus.
 - `bun run lint` + `bunx tsc --noEmit`.
-- Manual: Settings → Appearance → Canvas renderer → DOM (experimental); shapes, selection, drag, resize, context menu, zoom, undo/redo all work; switching back to SVG restores the classic renderer.
+- Manual: Settings → Appearance → Canvas renderer → DOM (default after Phase 5); shapes, selection, drag, resize, context menu, zoom, undo/redo all work; switching to SVG (compat) restores the classic renderer for export-only use cases.
 
 ## Child DOX Index
 

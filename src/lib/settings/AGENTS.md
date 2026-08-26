@@ -25,7 +25,9 @@ This is the single source of truth for every setting the user can change in the 
 | `enabledPlugins` | `string[]` (plugin ids) | (14 default-enabled tools' plugins) | 5 — Plugins |
 | `mcpServers` | `McpServerConfig[]` | `[]` | 5 — MCP |
 | `themePreference` | `'system' \| 'light' \| 'dark'` | `'system'` | 1 — Appearance |
-| `renderer` | `'svg' \| 'dom'` (optional — absent = `'svg'`) | `'svg'` | 1 — Appearance (canvas renderer feature flag, spec `docs/html-dom-renderer.md` Phase 1; select lives in Settings → Appearance → “Canvas renderer”) |
+| `renderer` | `'svg' \| 'dom'` (optional — absent = `'dom'`) | `'dom'` | 1 — Appearance (canvas renderer feature flag, spec `docs/html-dom-renderer.md` Phase 5: DOM is the default after the Phase 5 flip; SVG kept as compat/export-only mode. Select lives in Settings → Appearance → “Canvas renderer” labeled “DOM (default)” / “SVG (compat)”) |
+| `canvasLayoutMode` | `'parity' \| 'native'` (optional — absent = `'parity'`) | `'parity'` | 1 — Appearance (DOM renderer layout strategy, spec Phase 2: `parity` uses resolver geometry; `native` uses browser CSS flexbox layout + measured-bounds readback) |
+| `domCulling` | `boolean` (optional — absent = `true`) | `true` | 1 — Appearance (Phase 4 scale hardening: L4 CSS containment + L5 mount culling when ≥2k nodes; toggle in Settings → Appearance → “DOM Culling Switch”) |
 | `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'custom'` | 2 — LLM provider |
 | `apiKey` | `string` | `'123456'` | 2 |
 | `modelName` | `string` | `'kimi-k2-5'` | 2 |

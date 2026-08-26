@@ -2662,9 +2662,12 @@ const createShape = defineTool({
   const exportPng = defineTool({
     name: 'pen_export_png',
     label: 'Export as PNG (data URL)',
-    description: 'Export the canvas as an SVG data URL that can be used in <img> tags or downloaded. ' +
-      'True PNG rasterization requires a browser; this tool returns an SVG data URL which any browser can render and convert to PNG.',
-    promptSnippet: 'Export the canvas as an image data URL.',
+    description: 'Export the canvas as a PNG (or SVG-fallback) data URL the agent can embed in <img> tags or pass to other tools. ' +
+      'Spec Phase 5 §5.4 contract: tries the client DOM-capture round-trip first (real DOM-rendered canvas — fonts, images, measured native-layout geometry, drop-shadows, gradients), ' +
+      'falls back to the server-side resvg SVG→PNG rasterizer (full-fidelity SVG projection with gradients/shadows/polygons/stars), ' +
+      'and finally to a lossy inline SVG emitter (rect/ellipse/line/text only — last resort when resvg is unavailable). ' +
+      'For on-screen inspection use pen_get_screenshot (same capture path, different framing).',
+    promptSnippet: 'Export the canvas as a PNG/SVG image data URL.',
     parameters: Type.Object({
       frameId: Type.Optional(Type.String({ description: 'If provided, export only shapes inside this frame' })),
     }),
@@ -2689,8 +2692,46 @@ const createShape = defineTool({
       const minY = Math.min(...shapes.map((s) => s.y));
       const maxX = Math.max(...shapes.map((s) => s.x + s.width));
       const maxY = Math.max(...shapes.map((s) => s.y + s.height));
-      const w = maxX - minX;
-      const h = maxY - minY;
+      const w = Math.max(1, Math.round(maxX - minX));
+      const h = Math.max(1, Math.round(maxY - minY));
+
+      // ---- Primary path: client DOM-capture round-trip (spec §5.4) ----
+      // Same path as pen_get_screenshot — captures the live DOM-rendered
+      // world via html-to-image. Returns a real PNG data URL when the
+      // client answers. hasSink() short-circuits when no agent turn is
+      // active (headless runs, tests).
+      if (hasSink()) {
+        const shot = await requestClientScreenshot(
+          toolCallId,
+          params.frameId,
+          2,
+          ROUNDTRIP_DEFAULTS.screenshotTimeoutMs,
+        );
+        if (shot?.dataUrl) {
+          return {
+            content: [{ type: 'text', text: `Exported as PNG data URL (${w}×${h}, ${shapes.length} shapes, real DOM-rendered capture @2x). Length: ${shot.dataUrl.length} chars. Use in an <img src="..."> tag.` }],
+            details: { dataUrl: shot.dataUrl, width: w, height: h, shapeCount: shapes.length, source: 'client-dom-capture' as const, measured: true },
+          };
+        }
+      }
+
+      // ---- Fallback 1: server-side resvg SVG→PNG rasterizer (full fidelity) ----
+      try {
+        const shifted = shapes.map((s) => ({ ...s, x: s.x - minX, y: s.y - minY }));
+        const { renderCanvasToPng } = await import('../canvas/render-to-png');
+        const png = await renderCanvasToPng(shifted, w, h);
+        const dataUrl = `data:image/png;base64,${png.toString('base64')}`;
+        return {
+          content: [{ type: 'text', text: `Exported as PNG data URL (${w}×${h}, ${shapes.length} shapes, server-side resvg rasterization @2x — no client responded). Length: ${dataUrl.length} chars. Use in an <img src="..."> tag.` }],
+          details: { dataUrl, width: w, height: h, shapeCount: shapes.length, source: 'server-resvg' as const, measured: false },
+        };
+      } catch {
+        // resvg unavailable or render failed — fall through to the lossy emitter.
+      }
+
+      // ---- Fallback 2: lossy inline SVG emitter (last resort) ----
+      // Drops gradients/shadows/polygons/stars/text-decoration. Only used
+      // when both the client round-trip AND resvg are unavailable.
       const els = shapes.map((s) => {
         const rx = s.x - minX;
         const ry = s.y - minY;
@@ -2709,7 +2750,10 @@ const createShape = defineTool({
       }).join('');
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${els}</svg>`;
       const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-      return { content: [{ type: 'text', text: `Exported as SVG data URL (${w}×${h}, ${shapes.length} shapes). Length: ${dataUrl.length} chars. Use in an <img src="..."> tag.` }], details: { dataUrl, width: w, height: h, shapeCount: shapes.length } };
+      return {
+        content: [{ type: 'text', text: `Exported as SVG data URL (${w}×${h}, ${shapes.length} shapes, lossy inline emitter — resvg + client DOM capture both unavailable; gradients/shadows/polygons/stars dropped). Length: ${dataUrl.length} chars. Use in an <img src="..."> tag.` }],
+        details: { dataUrl, width: w, height: h, shapeCount: shapes.length, source: 'lossy-inline-svg' as const, measured: false },
+      };
     },
   });
 

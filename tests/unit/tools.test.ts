@@ -463,16 +463,27 @@ describe('tools: pen_export_svg', () => {
 });
 
 describe('tools: pen_export_png', () => {
-  it('returns an SVG data URL', async () => {
+  it('returns an image data URL (PNG if resvg available, SVG as lossy last resort)', async () => {
     h.addShape({ id: 's1', type: 'rectangle', x: 0, y: 0, width: 100, height: 50 });
     // Call the tool directly so we can inspect `details.dataUrl` (executeTool
     // only surfaces the text content + patch).
+    //
+    // Phase 5 §5.4 contract: tool tries (1) client DOM-capture round-trip,
+    // (2) server-side resvg SVG→PNG rasterizer, (3) lossy inline SVG emitter
+    // as last resort. In the test env there's no agent sink → path (1) is
+    // skipped; path (2) succeeds if @resvg/resvg-js is installed (returns
+    // a PNG data URL); path (3) is the lossy SVG fallback.
     const tool = tools(h).find((t) => t.name === 'pen_export_png')!;
     const result: any = await tool.execute('call-1', {}, undefined, undefined, undefined as any);
     const dataUrl = result.details?.dataUrl as string | undefined;
     expect(dataUrl).toBeTruthy();
-    expect(dataUrl).toMatch(/^data:image\/svg\+xml;base64,/);
-    expect(result.content[0].text).toContain('Exported as SVG data URL');
+    // Either PNG (resvg path) or SVG (lossy emitter path) is acceptable —
+    // the contract is "an image data URL", not a specific format.
+    expect(dataUrl).toMatch(/^data:image\/(png|svg\+xml);base64,/);
+    expect(result.content[0].text).toContain('Exported as');
+    expect(result.content[0].text).toContain('data URL');
+    // Source telemetry — one of the three documented sources.
+    expect(['client-dom-capture', 'server-resvg', 'lossy-inline-svg']).toContain(result.details?.source);
   });
 
   it('returns empty when there are no shapes', async () => {

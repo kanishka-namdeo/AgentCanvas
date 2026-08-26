@@ -158,10 +158,13 @@ export function TopMenuBar(props: TopMenuBarProps) {
               Export as SVG
             </MenubarItem>
             <MenubarItem onClick={async () => {
-              // Rasterizes via offscreen canvas (2x) — produces a REAL .png
-              // download. Previously this opened an SVG data URL in a tab and
-              // claimed it was a PNG export.
-              const dataUrl = await exportPngDataUrl(document.shapes);
+              // Phase 5 contract (spec §5.4): primary path captures the LIVE
+              // DOM-rendered world via html-to-image (matches what the agent
+              // sees via agent:screenshot_request); falls back to the SVG
+              // projection when no DOM world is mounted (SVG-compat renderer,
+              // tainted canvas, etc.).
+              const worldElement = useCanvasStore.getState().worldElement;
+              const dataUrl = await exportPngDataUrl(document.shapes, { worldElement, backgroundColor: document.background, scale: 2 });
               if (!dataUrl) { toast.error('Nothing to export', { description: 'Draw something first.' }); return; }
               const name = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
               if (dataUrl.startsWith('data:image/png')) {

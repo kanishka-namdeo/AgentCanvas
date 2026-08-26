@@ -207,7 +207,7 @@ ICONOGRAPHY: call pen_search_icons (name) to get a lucide stroked polyline. Stro
    opacity:  0..1
    blur:     number  (Gaussian blur radius in px)
    fontWeight, fontFamily, letterSpacing, lineHeight, textAlign, underline, strikethrough
-             (Task 5-a typography fields — applied by ShapeRenderer's <text> case)
+             (Task 5-a typography fields — applied by the DOM renderer's styleFor.ts; ShapeRenderer <text> is the SVG-compat fallback only)
  Use them. A bare rectangle with only x/y/w/h/fill is a WIREFRAME PRIMITIVE, not a finished layer.
 
 === PRIMARY COLOR 50-900 RAMPS (canonical shades per brand color) =========

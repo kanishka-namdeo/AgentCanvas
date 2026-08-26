@@ -236,15 +236,95 @@ export function exportSvgWithSize(allShapes: Shape[], opts: ExportOptions = {}):
   };
 }
 
-/// Export the canvas as a REAL PNG data URL (rasterized at `opts.scale`, default 2x).
+/// Export the canvas as a REAL PNG data URL.
 ///
-/// Previously this returned the SVG data URL unchanged — the UI said "Exported
-/// PNG" but the user never received an actual PNG. Now the SVG is drawn into an
-/// offscreen canvas and rasterized. Must run in a browser (Image + canvas).
-export async function exportPngDataUrl(allShapes: Shape[], opts: ExportOptions = {}): Promise<string | null> {
+/// After spec Phase 5 (DOM default flip + §5.4 ground-truth seam), the primary
+/// path captures the LIVE DOM-rendered world element via `html-to-image` —
+/// same contract as the agent's `agent:screenshot_request` round-trip. This
+/// guarantees the exported PNG matches what the user sees on screen
+/// (fonts, images, measured native-layout geometry, drop-shadows, gradients
+/// — all the things the SVG projection drops).
+///
+/// Options:
+///   - `opts.worldElement` (HTMLElement | null): the live DOM world element.
+///     When provided AND mounted, the DOM-capture path is used. When null /
+///     not provided OR the dynamic import fails, falls back to the SVG
+///     projection (`exportSvgWithSize` + Image + canvas) — same lossy path
+///     that pre-Phase-5 export used, kept as the explicit fallback so the
+///     function never throws in environments without `html-to-image`
+///     (jsdom tests, SSR, private mode, etc.).
+///   - `opts.scale` (number, default 2): pixel ratio for rasterization.
+///   - `opts.backgroundColor` (string, optional): passed to html-to-image
+///     `toPng` to fill transparent areas (default: the canvas background).
+///   - `opts.frameId` (string, optional): export only shapes inside this
+///     frame. When the DOM capture path is active AND `opts.worldElement` is
+///     set, the function locates the DOM node with `[data-node-id="<frameId>"]`
+///     inside the world element and captures that subtree instead of the
+///     whole world — so frame exports also see the real DOM. Falls back to
+///     SVG-projection filtering when no DOM node matches (SVG renderer,
+///     jsdom tests, unknown frame id).
+export async function exportPngDataUrl(
+  allShapes: Shape[],
+  opts: ExportOptions & { worldElement?: HTMLElement | null; backgroundColor?: string } = {},
+): Promise<string | null> {
   const withSize = exportSvgWithSize(allShapes, opts);
   if (!withSize) return null;
   const scale = opts.scale ?? 2;
+
+  // ---- Primary path: capture the live DOM world element via html-to-image.
+  // Spec §5.4 — the DOM renderer is the source of truth after Phase 5.
+  // The world element is the same one the agent's `agent:screenshot_request`
+  // round-trip captures, so exports match the agent's view.
+  const worldEl = opts.worldElement ?? null;
+  if (worldEl && typeof window !== 'undefined') {
+    // For frame exports, locate the frame's DOM node inside the world.
+    // Falls through to whole-world capture when not found.
+    let captureTarget: HTMLElement = worldEl;
+    if (opts.frameId) {
+      const frameEl = worldEl.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(opts.frameId)}"]`);
+      if (frameEl) captureTarget = frameEl;
+    } else {
+      // The world element is a transform container with no explicit width/height
+      // (its children are absolutely positioned, so they don't contribute to
+      // its content box). html-to-image captures the element's own box, so a
+      // 0x0 world produces an empty image. Fall back to the world's PARENT
+      // (the visible canvas surface — has `right:0; bottom:0` so it fills
+      // the canvas viewport). This is what users actually want exported:
+      // what's visible on their screen, including the canvas background.
+      const r = captureTarget.getBoundingClientRect();
+      if ((r.width === 0 || r.height === 0) && captureTarget.parentElement) {
+        captureTarget = captureTarget.parentElement;
+      }
+    }
+    try {
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(captureTarget, {
+        pixelRatio: scale,
+        backgroundColor: opts.backgroundColor,
+        // Skip the ruler/guides/measure chrome overlays — they're screen-space,
+        // not part of the canvas content.
+        filter: (node) => {
+          if (!(node instanceof HTMLElement)) return true;
+          // Drop the chrome overlay + rulers + guides + measure overlay.
+          if (node.dataset?.acChrome !== undefined) return false;
+          if (node.dataset?.acRulers !== undefined) return false;
+          if (node.dataset?.acGuides !== undefined) return false;
+          if (node.dataset?.acMeasure !== undefined) return false;
+          // Drop the drop-target affordance border if present.
+          if (node.dataset?.acDropTarget !== undefined) return false;
+          return true;
+        },
+      });
+      return dataUrl;
+    } catch {
+      // html-to-image unavailable or capture failed — fall through to the
+      // SVG-projection fallback. Common in tests / tainted-canvas / no-DOM.
+    }
+  }
+
+  // ---- Fallback path: SVG projection + Image + canvas rasterization.
+  // Lossy: drops gradients/shadows/polygons/stars/text-decoration/measured
+  // geometry. Kept for compat-only environments (jsdom, SSR, no html-to-image).
   try {
     const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(withSize.svg)}`;
     const img = new Image();

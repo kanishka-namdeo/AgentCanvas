@@ -88,7 +88,9 @@ export interface AppSettings {
   /// 'system' follows the OS prefers-color-scheme.
   themePreference: ThemePreference;
   /// Canvas renderer backend — 'svg' (classic) or 'dom' (parity mode).
-  /// Optional because pre-flag settings blobs lack it; consumers default to 'svg'.
+  /// Optional because pre-flag settings blobs lack it; consumers default to 'dom'
+  /// (Phase 5 flip — spec `docs/html-dom-renderer.md` Phase 5; SVG kept as
+  /// compat/export-only mode).
   renderer?: RendererMode;
   /// DOM renderer layout strategy — 'parity' (resolver geometry, default) or
   /// 'native' (browser CSS flexbox layout, spec Phase 2).
