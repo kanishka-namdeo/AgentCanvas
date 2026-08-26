@@ -117,9 +117,12 @@ export async function deleteServerSession(id: string): Promise<void> {
 /// Append a message to a session on the server.
 /// `documentId` lets the route auto-create a missing session shell
 /// (pre-fix localStorage sessions) instead of failing with an FK error.
+/// `messageId` upserts under the CLIENT's message id — this keeps server
+/// rows id-linked to localStorage messages, which the attachment sync and
+/// cross-device hydration rely on.
 export async function appendServerMessage(
   sessionId: string,
-  message: { role: 'user' | 'assistant'; content: string; status?: string; error?: string; runId?: string; messageId?: string },
+  message: { role: 'user' | 'assistant'; content: string; status?: string; error?: string; runId?: string; messageId?: string; diffSummary?: string },
   documentId?: string,
 ): Promise<string | null> {
   try {
@@ -133,6 +136,84 @@ export async function appendServerMessage(
     return data.message?.id ?? null;
   } catch {
     return null;
+  }
+}
+
+/// Persist a user message's image attachments to the server DB
+/// (SessionAttachment rows — the "alongside localStorage" copy). Fire-and-
+/// forget: the localStorage cache stays authoritative for the live UI when
+/// the server is unreachable. Idempotent — rows are keyed by the client's
+/// attachment id (img_…), so retries never duplicate.
+export async function syncServerAttachments(
+  sessionId: string,
+  messageId: string,
+  images: Array<{ id: string; name: string; dataUrl: string }>,
+): Promise<number> {
+  if (!images || images.length === 0) return 0;
+  try {
+    const res = await fetch(`/api/sessions/${sessionId}/attachments`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ messageId, attachments: images }),
+    });
+    if (!res.ok) return 0;
+    const data = await res.json().catch(() => ({}));
+    return data.saved ?? 0;
+  } catch {
+    return 0; // silent — localStorage cache still holds the images.
+  }
+}
+
+/// Fetch a session's messages (with attachments + diff summaries) from the
+/// server, mapped back into the client Message shape. Used for cross-device
+/// hydration: a fresh browser gets full history INCLUDING image thumbnails
+/// and turn-diff records. Returns [] when the server is unreachable.
+export async function fetchServerMessages(sessionId: string): Promise<Array<{
+  id: string; role: string; text: string; status: string; error: string | null;
+  runId: string | null; createdAt: string;
+  images?: Array<{ id: string; name: string; dataUrl: string }>;
+  patchOps?: Array<{ op: string; count: number; summary: string }>;
+}>> {
+  try {
+    const res = await fetch(`/api/sessions/${sessionId}/messages`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const messages = data.messages ?? [];
+    return messages.map((m: any) => ({
+      id: m.id,
+      role: m.role,
+      text: m.content,
+      status: m.status,
+      error: m.error ?? null,
+      runId: m.runId ?? null,
+      createdAt: m.createdAt,
+      ...(Array.isArray(m.attachments) && m.attachments.length > 0
+        ? {
+            images: m.attachments.map((a: any) => ({
+              id: a.id,
+              name: a.name,
+              dataUrl: `data:${a.mimeType};base64,${a.data}`,
+            })),
+          }
+        : {}),
+      ...(m.diffSummary
+        ? { patchOps: safeParsePatchOps(m.diffSummary) }
+        : {}),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function safeParsePatchOps(raw: string): Array<{ op: string; count: number; summary: string }> {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (r: any) => r && typeof r.op === 'string' && typeof r.count === 'number' && typeof r.summary === 'string',
+    );
+  } catch {
+    return [];
   }
 }
 

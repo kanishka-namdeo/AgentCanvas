@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { useCanvasStore } from '@/lib/canvas/store';
 import {
-  CheckCircle2, Circle, Loader2, AlertCircle, ListTodo, X, Plus,
+  CheckCircle2, Circle, Loader2, AlertCircle, ListTodo, X, Plus, ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -133,6 +133,100 @@ function AskUserQuestionDialog() {
   );
 }
 
+// ── ApprovalDialog ─────────────────────────────────────────────────────────
+//
+// Renders the destructive-op approval gate (see lib/agent/plugins/approval-gate.ts).
+// The agent is BLOCKED mid-turn until the user picks Allow / Deny — the
+// decision POSTs to /api/agent/approvals, which resolves the server-side
+// pending promise and the gated tool proceeds (or returns a denial result
+// the model adapts to).
+//
+// Copy + layout pattern from Cursor's "Run command?" / Cline's Approve card:
+// what will happen (description), what exactly is affected (details), and
+// the destructive action visually distinct (red Allow is deliberately NOT
+// used — Allow is the primary brand action, Deny is the safe one).
+
+function ApprovalDialog() {
+  const pending = useCanvasStore((s) => s.pendingApproval);
+  const submit = useCanvasStore((s) => s.submitApproval);
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
+  // Local decision guard — the POST is async; disable both buttons until the
+  // dialog closes so a double-click can't flip the decision.
+  const [decided, setDecided] = useState(false);
+
+  if (!pending) {
+    // Reset the guard whenever the dialog closes.
+    if (decided) setDecided(false);
+    return null;
+  }
+
+  const decide = (approved: boolean) => {
+    if (decided) return;
+    setDecided(true);
+    void submit(pending.toolCallId, approved);
+  };
+
+  return (
+    <Dialog open={!!pending} onOpenChange={(open) => { if (!open) decide(false); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4" style={{ color: 'var(--ac-danger)' }} />
+            Approve destructive operation
+          </DialogTitle>
+          <DialogDescription>
+            The agent wants to run an operation that deletes content. It is paused
+            until you decide.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="rounded-md border ac-border-subtle ac-surface-1 p-3">
+            <div className="flex items-center gap-2">
+              <code className="text-[11px] font-mono px-1.5 py-0.5 rounded ac-surface-2 ac-text-2 flex-shrink-0">
+                {pending.toolName}
+              </code>
+              {agentBusy && (
+                <span className="flex items-center gap-1 text-[10px] ac-text-4">
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                  agent paused
+                </span>
+              )}
+            </div>
+            <div className="mt-2 text-[13px] font-medium ac-text-1">{pending.description}</div>
+            {pending.details.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {pending.details.map((d, i) => (
+                  <li key={i} className="text-[11px] ac-text-3 flex gap-1.5">
+                    <span className="ac-text-4 flex-shrink-0">•</span>
+                    <span className="min-w-0 break-words">{d}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <p className="text-[10px] ac-text-4">
+            Unattended gates auto-deny after 5 minutes. You can turn the gate off
+            in Settings → Agent behavior.
+          </p>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => decide(false)} disabled={decided} className="h-8 text-[12px]">
+            Deny
+          </Button>
+          <Button
+            onClick={() => decide(true)}
+            disabled={decided}
+            className="h-8 text-[12px]"
+            title="Allow this operation to run"
+          >
+            Allow
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── TodoOverlay ────────────────────────────────────────────────────────────
 
 const STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -227,6 +321,7 @@ export function PluginUI() {
   return (
     <>
       <AskUserQuestionDialog />
+      <ApprovalDialog />
       <TodoOverlay />
       <BackgroundTaskList />
     </>

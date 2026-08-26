@@ -53,6 +53,9 @@ export async function POST(req: NextRequest) {
         planFirst: typeof body.settings.planFirst === 'boolean' ? body.settings.planFirst : DEFAULT_SETTINGS.planFirst,
         thinkingLevel: body.settings.thinkingLevel ?? DEFAULT_SETTINGS.thinkingLevel,
         defaultPalette: body.settings.defaultPalette ?? DEFAULT_SETTINGS.defaultPalette,
+        // Destructive-op approval gate ('destructive' gates clear/delete
+        // tools on a human Allow/Deny; 'off' disables gating).
+        approvalMode: body.settings.approvalMode ?? DEFAULT_SETTINGS.approvalMode,
         skillSelectionMode: body.settings.skillSelectionMode ?? DEFAULT_SETTINGS.skillSelectionMode,
         llmProvider: body.settings.llmProvider ?? DEFAULT_SETTINGS.llmProvider,
         apiKey: typeof body.settings.apiKey === 'string' ? body.settings.apiKey : DEFAULT_SETTINGS.apiKey,

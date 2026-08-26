@@ -44,6 +44,13 @@ export type AutoArchiveIdleAfter = 'never' | '7d' | '30d';
 export type Density = 'comfortable' | 'compact';
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type DefaultPalette = 'slate' | 'warm' | 'forest' | 'mono';
+/// Approval gate for destructive agent operations (Cursor's "Run command?"
+/// / Cline's Approve-button pattern).
+///   - 'destructive' (default): pen_clear, pen_delete_shape, figma_delete_page,
+///     pen_clear_pattern_memory pause the agent until the user Allows/Denies.
+///   - 'off': no gating — the agent runs everything autonomously (the
+///     pre-gate behavior; only disable for trusted automation).
+export type ApprovalMode = 'destructive' | 'off';
 
 export interface AppSettings {
   // ── Phase 1: Agent behavior ──────────────────────────────────────────────
@@ -63,6 +70,9 @@ export interface AppSettings {
   /// Default color palette the agent suggests for new designs.
   /// Default 'slate' matches the previous first-listed palette in the system prompt.
   defaultPalette: DefaultPalette;
+  /// Approval gate for destructive agent operations.
+  /// 'destructive' gates clear/delete tools on a human Allow/Deny prompt.
+  approvalMode: ApprovalMode;
 
   // ── Phase 1: Appearance ───────────────────────────────────────────────────
   /// 'system' follows the OS prefers-color-scheme.
@@ -115,6 +125,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   planFirst: true,
   thinkingLevel: 'high',
   defaultPalette: 'slate',
+  approvalMode: 'destructive',
 
   themePreference: 'system',
 
@@ -146,6 +157,7 @@ export interface AgentRunSettings {
   planFirst: boolean;
   thinkingLevel: ThinkingLevel;
   defaultPalette: DefaultPalette;
+  approvalMode: ApprovalMode;
   skillSelectionMode: SkillSelectionMode;
   llmProvider: LLMProvider;
   apiKey: string;
@@ -206,6 +218,7 @@ export function agentRunSettings(s: AppSettings): AgentRunSettings {
     planFirst: s.planFirst,
     thinkingLevel: s.thinkingLevel,
     defaultPalette: s.defaultPalette,
+    approvalMode: s.approvalMode,
     skillSelectionMode: s.skillSelectionMode,
     llmProvider: s.llmProvider,
     apiKey: s.apiKey,

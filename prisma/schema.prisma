@@ -162,10 +162,42 @@ model SessionMessage {
   error      String?
   /// Run this message belongs to.
   runId      String?
+  /// JSON array of the turn's canvas-mutation records
+  /// ([{ op, count, summary }, …] — see lib/agent/turn-diff.ts). Rolled up
+  /// into the "+12 −3 ~5" diff summary card on the client. Assistant
+  /// messages only; null/empty = no tracked changes.
+  diffSummary String?
   /// Creation order.
   createdAt  DateTime @default(now())
 
+  attachments SessionAttachment[]
+
   @@index([sessionId])
+}
+
+/// An image attachment on a user message (paste / paperclip / drop /
+/// canvas snapshot). Persisted server-side alongside the localStorage cache
+/// so history survives browser clears and syncs across devices.
+///
+/// The client downscales to ≤1280px + re-encodes as JPEG/PNG BEFORE upload
+/// (lib/agent/attachments.ts), so `data` (raw base64, no data: prefix) is
+/// bounded at ~1.1MB per row. The attachment id is the CLIENT-generated id
+/// (img_…) — upserts are idempotent, so re-syncing never duplicates rows.
+model SessionAttachment {
+  id        String   @id
+  messageId String
+  message   SessionMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  /// Original file name (display only).
+  name      String
+  /// e.g. "image/jpeg" | "image/png".
+  mimeType  String
+  /// Decoded byte size (informational).
+  sizeBytes Int      @default(0)
+  /// Base64 image payload (no data: URL prefix).
+  data      String
+  createdAt DateTime @default(now())
+
+  @@index([messageId])
 }
 
 /// A run — one execution of the agent (one prompt → tool calls → response).

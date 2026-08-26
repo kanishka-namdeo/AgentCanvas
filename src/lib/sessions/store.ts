@@ -142,6 +142,23 @@ interface SessionStoreState {
   appendAssistantMessage: (sessionId: string, runId: string) => Message;
   appendAssistantText: (messageId: string, text: string) => void;
   finalizeAssistantMessage: (messageId: string, status?: 'complete' | 'error' | 'cancelled', error?: string) => void;
+  /// Record one canvas mutation against the assistant message whose turn
+  /// applied it (roll-up input for the turn-diff summary card).
+  appendPatchOp: (messageId: string, record: import('../agent/turn-diff').PatchOpRecord) => void;
+  /// Re-sync a finalized message to the server with its CURRENT diff
+  /// records. Needed because the pi SDK emits `message_end` BEFORE the
+  /// tools execute (and the critique loop appends more patches after the
+  /// mid-run `turn_end`), so the finalize-time sync would ship an empty
+  /// diffSummary. Idempotent upsert — safe on every turn_end.
+  resyncMessageDiff: (messageId: string) => void;
+  /// Import messages fetched from the server (cross-device hydration).
+  /// Only fills GAPS — messages already known locally (by id) are kept as-is.
+  importServerMessages: (sessionId: string, messages: Array<{
+    id: string; role: string; text: string; status?: string; error?: string | null;
+    runId?: string | null; createdAt?: string;
+    images?: import('../agent/attachments').AttachedImage[];
+    patchOps?: import('../agent/turn-diff').PatchOpRecord[];
+  }>) => number;
 
   // ---- Mutations: Tool calls ----
   startToolCall: (runId: string, toolCallId: string, name: string, argsPreview: string) => ToolCallRecord;
@@ -675,10 +692,17 @@ export const useSessionStore = create<SessionStoreState>()(
           import('./server-sync').then(({ appendServerMessage }) => {
             appendServerMessage(
               sessionId,
-              { role: 'user', content: text, status: 'complete', runId },
+              { role: 'user', content: text, status: 'complete', runId, messageId: msg.id },
               s?.documentId,
             );
           });
+          // Persist image attachments to the server DB (fire-and-forget,
+          // alongside the localStorage copy). Idempotent by attachment id.
+          if (images && images.length > 0) {
+            import('./server-sync').then(({ syncServerAttachments }) => {
+              syncServerAttachments(sessionId, msg.id, images);
+            });
+          }
         }
         return msg;
       },
@@ -745,7 +769,8 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           };
         });
-        // Sync assistant message to server.
+        // Sync assistant message to server (including the turn's diff
+        // summary records — the "+N −M" card is rebuilt server-side).
         if (typeof window !== 'undefined') {
           const msg = get().messages[messageId];
           if (msg) {
@@ -759,12 +784,104 @@ export const useSessionStore = create<SessionStoreState>()(
                   status,
                   error,
                   runId: msg.runId ?? undefined,
+                  messageId: msg.id,
+                  diffSummary:
+                    msg.patchOps && msg.patchOps.length > 0
+                      ? JSON.stringify(msg.patchOps)
+                      : undefined,
                 },
                 s?.documentId,
               );
             });
           }
         }
+      },
+
+      appendPatchOp: (messageId, record) => {
+        set((s) => {
+          const msg = s.messages[messageId];
+          if (!msg) return s;
+          return {
+            messages: {
+              ...s.messages,
+              [messageId]: { ...msg, patchOps: [...(msg.patchOps ?? []), record] },
+            },
+          };
+        });
+      },
+
+      resyncMessageDiff: (messageId) => {
+        const msg = get().messages[messageId];
+        if (!msg || typeof window === 'undefined') return;
+        const s = get().sessions[msg.sessionId];
+        import('./server-sync').then(({ appendServerMessage }) => {
+          appendServerMessage(
+            msg.sessionId,
+            {
+              role: 'assistant',
+              content: msg.text,
+              status: msg.status === 'streaming' ? 'complete' : msg.status,
+              error: msg.error,
+              runId: msg.runId ?? undefined,
+              messageId: msg.id,
+              diffSummary:
+                msg.patchOps && msg.patchOps.length > 0
+                  ? JSON.stringify(msg.patchOps)
+                  : undefined,
+            },
+            s?.documentId,
+          );
+        });
+      },
+
+      importServerMessages: (sessionId, incoming) => {
+        const session = get().sessions[sessionId];
+        if (!session || incoming.length === 0) return 0;
+        let imported = 0;
+        set((s) => {
+          const messages = { ...s.messages };
+          const messageIds = [...session.messageIds];
+          for (const m of incoming) {
+            // Gap-fill only: never overwrite a locally-known message (the
+            // local copy is authoritative for in-flight streaming state).
+            if (messages[m.id]) continue;
+            messages[m.id] = {
+              id: m.id,
+              sessionId,
+              runId: m.runId ?? null,
+              role: m.role === 'user' ? 'user' : 'assistant',
+              text: m.text,
+              ...(m.images && m.images.length > 0 ? { images: m.images } : {}),
+              ...(m.patchOps && m.patchOps.length > 0 ? { patchOps: m.patchOps } : {}),
+              toolCalls: [],
+              status: m.status === 'streaming' ? 'streaming' : m.status === 'error' ? 'error' : 'complete',
+              error: m.error ?? undefined,
+              snapshotId: null,
+              createdAt: m.createdAt ?? nowISO(),
+              completedAt: m.createdAt ?? nowISO(),
+            };
+            messageIds.push(m.id);
+            imported++;
+          }
+          if (imported === 0) return s;
+          // Keep chronological order (createdAt may interleave with local ids).
+          messageIds.sort((a, b) =>
+            (messages[a]?.createdAt ?? '').localeCompare(messages[b]?.createdAt ?? ''),
+          );
+          return {
+            messages,
+            sessions: {
+              ...s.sessions,
+              [sessionId]: {
+                ...session,
+                messageIds,
+                messageCount: messageIds.length,
+                updatedAt: nowISO(),
+              },
+            },
+          };
+        });
+        return imported;
       },
 
       // ---- Tool calls ----

@@ -439,6 +439,15 @@ export type SyncEvent =
   // ask_user_question. The frontend POSTs to /api/agent/answers; the runner
   // resolves the pending tool call and continues the agent loop.
   | { type: 'agent:ask_user_answered'; toolCallId: string; answers: string[][]; cancelled: boolean }
+  // ---- Approval gate (destructive ops) --------------------------------------
+  // Emitted by the approval-gate wrapper when the agent is about to run a
+  // DESTRUCTIVE tool (pen_clear, pen_delete_shape, …). Blocks the agent
+  // mid-turn until the user Allows or Denies via POST /api/agent/approvals
+  // (Cursor's "Run command?" / Cline's Approve-button pattern).
+  | { type: 'agent:approval_request'; toolCallId: string; toolName: string; description: string; details: string[] }
+  // Fan-out only (the deciding client's POST resolves the server-side gate;
+  // this event tells the OTHER viewers the gate closed).
+  | { type: 'agent:approval_resolved'; toolCallId: string; approved: boolean }
   // Emitted by the todo tool: a structured task list overlay that survives
   // compaction. The frontend renders the live list in the AgentPanel.
   | { type: 'agent:todo_update'; todos: Array<{

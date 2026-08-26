@@ -74,6 +74,7 @@ export function useAgentRunSettings(): AppSettings {
     planFirst: s.planFirst,
     thinkingLevel: s.thinkingLevel,
     defaultPalette: s.defaultPalette,
+    approvalMode: s.approvalMode ?? DEFAULT_SETTINGS.approvalMode,
     skillSelectionMode: s.skillSelectionMode,
     llmProvider: s.llmProvider,
     apiKey: s.apiKey,

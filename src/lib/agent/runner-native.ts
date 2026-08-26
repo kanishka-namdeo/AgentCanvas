@@ -90,6 +90,12 @@ import {
   getEnabledPluginToolNames,
 } from './plugins';
 import { setEventSink } from './plugins/event-bus';
+import {
+  DESTRUCTIVE_TOOLS,
+  buildApprovalRequest,
+  requestApproval,
+  deniedToolResult,
+} from './plugins/approval-gate';
 import { setActiveSession as setTodoActiveSession } from './plugins/todo';
 import { setActiveSession as setGoalActiveSession } from './plugins/goal-list-loop-audit';
 import { setActiveSession as setBackgroundTaskActiveSession } from './plugins/background-tasks';
@@ -151,6 +157,9 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const thinkingLevel = settings?.thinkingLevel ?? 'medium';
   const defaultPalette = settings?.defaultPalette ?? 'slate';
   const skillSelectionMode = settings?.skillSelectionMode ?? 'auto';
+  // Approval gate mode (Cursor/Cline human-in-the-loop pattern for
+  // destructive ops). Default 'destructive' — matches DEFAULT_SETTINGS.
+  const approvalMode = settings?.approvalMode ?? 'destructive';
 
   // 1. Normalize canvas + build tool context (identical to legacy runner).
   let canvas: CanvasDocument = normalizeCanvas(initialCanvas);
@@ -326,6 +335,49 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       })
     : filteredTools;
 
+  // ---- Destructive-op approval gate (Cursor "Run command?" / Cline Approve) --
+  //
+  // Wraps DESTRUCTIVE tools (pen_clear, pen_delete_shape, figma_delete_page,
+  // pen_clear_pattern_memory) so that, before they execute, the agent BLOCKS
+  // on a human Allow/Deny decision:
+  //
+  //   1. buildApprovalRequest() renders the tool args into a human
+  //      description ("Delete 3 layers: Card, Button, Input") using the
+  //      CURRENT canvas shape names.
+  //   2. requestApproval() emits `agent:approval_request` through the turn's
+  //      event sink (the frontend shows a dialog) and awaits the user's
+  //      POST /api/agent/approvals.
+  //   3. Approved → the original tool runs. Denied/timed out → an isError
+  //      result is returned so the MODEL adapts (no retry, no workaround).
+  //
+  // 'off' (settings.approvalMode) skips the wrap entirely. The wrap composes
+  // AFTER the brief-enforcement wrap (both are plain execute() decorators,
+  // and their gated tool sets are disjoint).
+  const approvalWrappedTools: ToolDefinition[] =
+    approvalMode === 'off'
+      ? enforcementWrappedTools
+      : enforcementWrappedTools.map((t) => {
+          if (!DESTRUCTIVE_TOOLS.has(t.name)) return t;
+          const toolAny = t as any;
+          const origExecute = toolAny.execute;
+          if (typeof origExecute !== 'function') return t;
+          return {
+            ...t,
+            execute: async (toolCallId: string, params: any, signal: any, onUpdate: any, runCtx: any) => {
+              // Shape names from the LIVE canvas (mutates as the turn runs).
+              const shapeLookup = canvas.shapes?.map((s) => ({ id: s.id, name: s.name, type: s.type })) ?? [];
+              const request = buildApprovalRequest(toolCallId, t.name, params, shapeLookup);
+              if (request) {
+                const decision = await requestApproval(request);
+                if (!decision.approved) {
+                  return deniedToolResult(t.name, decision.timedOut);
+                }
+              }
+              return origExecute(toolCallId, params, signal, onUpdate, runCtx);
+            },
+          } as unknown as ToolDefinition;
+        });
+
   // Emit skill selection event (UI parity with legacy runner).
   yield {
     kind: 'agent_event',
@@ -334,7 +386,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       category: activeCategory,
       confidence: classification.confidence,
       method: classification.method,
-      toolCount: enforcementWrappedTools.length,
+      toolCount: approvalWrappedTools.length,
     },
   };
 
@@ -616,8 +668,8 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         modelRuntime: currentModel.modelRuntime,
         thinkingLevel: mapThinkingLevel(thinkingLevel),
         noTools: 'all',
-        customTools: enforcementWrappedTools,
-        tools: enforcementWrappedTools.map((t) => t.name),
+        customTools: approvalWrappedTools,
+        tools: approvalWrappedTools.map((t) => t.name),
         resourceLoader,
         sessionManager: SessionManager.inMemory(process.cwd()),
         settingsManager: SettingsManager.inMemory({

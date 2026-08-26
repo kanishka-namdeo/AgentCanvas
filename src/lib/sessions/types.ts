@@ -134,12 +134,18 @@ export interface Message {
   /// Final text of the message (accumulated from deltas).
   text: string;
   /// Image attachments staged with this user message (paste / drop /
-  /// paperclip). Compact data URLs — persisted via the localStorage cache;
-  /// the server DB copy stores text only (images are session-local).
+  /// paperclip). Compact data URLs — persisted via the localStorage cache
+  /// AND synced to the server DB (SessionAttachment rows) so history
+  /// survives browser clears / syncs across devices.
   images?: import('../agent/attachments').AttachedImage[];
   /// Canvas selection the user had active when sending this message — the
   /// agent receives it as targeting context ("these/those" in the prompt).
   selection?: { count: number; names: string[] };
+  /// Compact records of the canvas mutations this (assistant) message's
+  /// tools applied — [{ op, count, summary }, …]. Rolled up into the
+  /// turn-diff summary card. Mirrored to the server message row's
+  /// diffSummary column.
+  patchOps?: import('../agent/turn-diff').PatchOpRecord[];
   /// Tool calls emitted by this message (assistant messages only).
   toolCalls: ToolCallRecord[];
   status: MessageStatus;

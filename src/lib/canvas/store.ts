@@ -21,6 +21,7 @@ import { resolvePenTree } from '@/lib/pen/resolve';
 import { useSessionStore, hydrateSessionStore } from '@/lib/sessions';
 import { useSettings } from '@/lib/settings/store';
 import { agentRunSettings } from '@/lib/settings/types';
+import { patchToOpRecord } from '@/lib/agent/turn-diff';
 
 /// A single chat turn — either the user's prompt or the agent's response.
 /// This is the LIVE streaming buffer; the session store is the persistent
@@ -39,6 +40,11 @@ export interface ChatTurn {
   selection?: { count: number; names: string[] };
   /// Tool calls made during this turn (assistant only).
   toolCalls: AgentToolCallEntry[];
+  /// Compact records of the canvas mutations this (assistant) turn applied
+  /// — the roll-up input for the turn-diff summary card ("+12 −3 ~5").
+  /// Mirrored to the session-store Message (localStorage) and the server
+  /// message row's diffSummary column.
+  patchOps?: import('../agent/turn-diff').PatchOpRecord[];
   /// Whether the turn is still streaming.
   streaming: boolean;
   /// Error message, if the turn failed.
@@ -159,6 +165,16 @@ interface CanvasState {
       options: Array<{ label: string; description?: string }>;
     }>;
   } | null;
+  /// Pending destructive-op approval — set when the agent emits
+  /// `agent:approval_request` (the approval gate wrapped a clear/delete
+  /// tool). The AgentPanel renders an Allow/Deny dialog from this. Cleared
+  /// when the user decides (POST /api/agent/approvals).
+  pendingApproval: {
+    toolCallId: string;
+    toolName: string;
+    description: string;
+    details: string[];
+  } | null;
   /// Live todo list — updated by `agent:todo_update` events from the
   /// todo plugin. Rendered as an overlay in the AgentPanel.
   todos: Array<{
@@ -228,6 +244,10 @@ interface CanvasState {
   /// Submit answers (or cancel) a pending ask_user_question. POSTs to
   /// /api/agent/answers, which resolves the pending tool call on the server.
   submitQuestionAnswers: (toolCallId: string, answers: string[][], cancelled: boolean) => Promise<void>;
+  /// Resolve a pending destructive-op approval (POST /api/agent/approvals).
+  /// `approved` true → the gated tool executes; false → the agent gets a
+  /// denial result and adapts without the destructive step.
+  submitApproval: (toolCallId: string, approved: boolean) => Promise<void>;
   /// Clear the todo list (client-side — does NOT affect the server's todo state).
   clearTodos: () => void;
 }
@@ -272,6 +292,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   // Plugin state (Phase 5)
   pendingQuestion: null,
+  pendingApproval: null,
   todos: [],
   backgroundTasks: [],
   mcpServers: [],
@@ -629,6 +650,30 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     if (!session || session.documentId !== documentId) return;
     ss.setActiveSession(documentId, sessionId);
     set({ activeSessionId: sessionId });
+    // Cross-device hydration: when this browser's localStorage cache has no
+    // (or partial) messages for the session, pull the server copy — INCLUDING
+    // image attachments (SessionAttachment rows) and turn-diff records —
+    // before building the turns. Fire-and-forget is not enough here: the
+    // turns rebuild below must see the imported messages, so we kick off the
+    // async fetch and rebuild again when it lands.
+    if (typeof window !== 'undefined' && session.messageIds.length === 0) {
+      import('@/lib/sessions/server-sync').then(({ fetchServerMessages }) =>
+        fetchServerMessages(sessionId).then((messages) => {
+          if (messages.length === 0) return;
+          const imported = useSessionStore.getState().importServerMessages(sessionId, messages);
+          if (imported > 0) {
+            get()._syncTurnsFromSession();
+            try {
+              import('sonner').then(({ toast }) => {
+                toast.message(`Restored ${imported} messages from server`, {
+                  description: 'History (with attachments) synced from the database.',
+                });
+              });
+            } catch { /* sonner unavailable */ }
+          }
+        }),
+      );
+    }
     // Load the session's current snapshot.
     if (session.currentSnapshotId) {
       const snap = ss.getSnapshot(session.currentSnapshotId);
@@ -716,6 +761,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // — rehydrate them into the live turn so history keeps its thumbnails.
         ...(m.images && m.images.length > 0 ? { images: m.images } : {}),
         ...(m.selection ? { selection: m.selection } : {}),
+        // Turn-diff records persist on the message too — rehydrate so the
+        // "+12 −3 ~5" card survives reloads / session switches.
+        ...(m.patchOps && m.patchOps.length > 0 ? { patchOps: m.patchOps } : {}),
         toolCalls,
         streaming: m.status === 'streaming',
         error: m.error,
@@ -767,6 +815,41 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           set({ agentHighlightIds: event.patch.shapeIds });
           if (highlightTimeout) clearTimeout(highlightTimeout);
           highlightTimeout = setTimeout(() => set({ agentHighlightIds: [] }), 1500);
+        }
+        // Turn-diff tracking: patches that carry a toolCallId were applied by
+        // the AGENT (the runner tags every tool-emitted patch; user-initiated
+        // patches via sendPatch never carry one). Attribute them to the last
+        // assistant turn — the "+12 −3 ~5" diff summary card rolls these up.
+        //
+        // Attribution rule (deliberately NOT agentBusy-gated): the pi SDK
+        // emits `message_end` for the assistant message that CARRIES the
+        // tool-call requests BEFORE the tools execute, and the mandatory
+        // critique loop emits a mid-run `agent:turn_end` before its fix-turn
+        // patches — both flip streaming/agentBusy false while the turn's
+        // patches are still arriving. The "last turn is an assistant turn"
+        // check is the stable boundary: once the user sends the next prompt,
+        // the last turn is a USER turn and late patches stop being attributed.
+        if (event.toolCallId) {
+          const record = patchToOpRecord(event.patch);
+          if (record) {
+            const live = get().turns[get().turns.length - 1];
+            if (live && live.role === 'assistant') {
+              set((s) => {
+                const turns = [...s.turns];
+                const last = turns[turns.length - 1];
+                if (last && last.role === 'assistant') {
+                  turns[turns.length - 1] = {
+                    ...last,
+                    patchOps: [...(last.patchOps ?? []), record],
+                  };
+                }
+                return { turns };
+              });
+              if (live.messageId) {
+                useSessionStore.getState().appendPatchOp(live.messageId, record);
+              }
+            }
+          }
         }
         break;
       }
@@ -877,7 +960,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         if (last?.runId) {
           const run = useSessionStore.getState().getRun(last.runId);
           if (run && run.status === 'completed') {
-            // Already finalized — skip duplicate snapshot.
+            // Already finalized — but the critique loop may have appended
+            // more patches since the LAST turn_end: re-sync the diff
+            // records (idempotent upsert) before skipping.
+            if (last.messageId) {
+              useSessionStore.getState().resyncMessageDiff(last.messageId);
+            }
             break;
           }
         }
@@ -924,6 +1012,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           }
           if (last.runId) {
             useSessionStore.getState().endRun(last.runId, 'completed');
+          }
+          // Turn fully done — ship the accumulated diff records to the
+          // server (the finalize-time sync predates tool execution; this
+          // is the one that carries the full patchOps roll-up).
+          if (last.messageId) {
+            useSessionStore.getState().resyncMessageDiff(last.messageId);
           }
         }
         break;
@@ -1140,6 +1234,30 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         set({ pendingQuestion: null });
         break;
       }
+      case 'agent:approval_request': {
+        // The approval gate wrapped a destructive tool — the agent is BLOCKED
+        // mid-turn until the user Allows or Denies (POST /api/agent/approvals
+        // resolves the server-side promise).
+        set({
+          pendingApproval: {
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            description: event.description,
+            details: event.details,
+          },
+        });
+        break;
+      }
+      case 'agent:approval_resolved': {
+        // The deciding client posted its decision — close the dialog for
+        // every OTHER viewer too (fan-out event).
+        set((s) =>
+          s.pendingApproval?.toolCallId === event.toolCallId
+            ? { pendingApproval: null }
+            : {},
+        );
+        break;
+      }
       case 'agent:todo_update': {
         set({ todos: event.todos });
         break;
@@ -1196,6 +1314,33 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     } catch (err) {
       // Network error — the server's pending question will time out after 5 min.
       console.error('Failed to submit question answers:', err);
+    }
+  },
+
+  submitApproval: async (toolCallId, approved) => {
+    set({ pendingApproval: null });
+    try {
+      const res = await fetch('/api/agent/approvals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toolCallId, approved }),
+      });
+      if (res.ok) {
+        import('sonner').then(({ toast }) => {
+          if (approved) {
+            toast.success('Approved', { description: 'The agent will run the operation.' });
+          } else {
+            toast.message('Denied', { description: 'The agent was told to skip this operation.' });
+          }
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.error('Failed to submit approval:', err);
+      import('sonner').then(({ toast }) => {
+        toast.error('Could not deliver the decision', {
+          description: 'The gate will time out as denied in 5 minutes.',
+        });
+      }).catch(() => {});
     }
   },
 

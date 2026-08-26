@@ -43,7 +43,7 @@ import {
   DEFAULT_SETTINGS, PALETTES,
   type LLMProvider, type SnapshotCadence, type SkillSelectionMode,
   type AutoArchiveIdleAfter, type Density, type ThemePreference,
-  type DefaultPalette, type ThinkingLevel, type McpServerConfig,
+  type DefaultPalette, type ThinkingLevel, type McpServerConfig, type ApprovalMode,
   normalizeLLMProvider,
   providerRequiresApiKey,
   providerDefaultModel,
@@ -187,6 +187,7 @@ function AgentSection() {
   const thinkingLevel = useSettings((s) => s.thinkingLevel);
   const defaultPalette = useSettings((s) => s.defaultPalette);
   const skillSelectionMode = useSettings((s) => s.skillSelectionMode);
+  const approvalMode = useSettings((s) => s.approvalMode);
   const set = useSettings((s) => s.set);
 
   return (
@@ -300,6 +301,24 @@ function AgentSection() {
             <SelectContent>
               <SelectItem value="auto" className="text-[11px]">Auto (recommended)</SelectItem>
               <SelectItem value="manual" className="text-[11px]">Manual (no skill pinning)</SelectItem>
+            </SelectContent>
+          </Select>
+        </Row>
+
+        <Row
+          label="Destructive-op approval"
+          description="'Gate destructive' pauses the agent on clear/delete operations until you Allow or Deny (unattended gates auto-deny after 5 min). 'Off' runs everything autonomously."
+        >
+          <Select
+            value={approvalMode}
+            onValueChange={(v) => set('approvalMode', v as ApprovalMode)}
+          >
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="destructive" className="text-[11px]">Gate destructive (recommended)</SelectItem>
+              <SelectItem value="off" className="text-[11px]">Off (autonomous)</SelectItem>
             </SelectContent>
           </Select>
         </Row>

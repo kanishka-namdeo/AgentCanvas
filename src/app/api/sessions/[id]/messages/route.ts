@@ -17,6 +17,9 @@ export async function GET(
     const messages = await db.sessionMessage.findMany({
       where: { sessionId: id },
       orderBy: { createdAt: 'asc' },
+      // Attachments ride along — the client's cross-device hydration maps
+      // them back into AttachedImage data URLs (server-sync.fetchServerMessages).
+      include: { attachments: true },
     });
     return NextResponse.json({ messages });
   } catch (err) {
@@ -31,7 +34,7 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  const { role, content, status, error, runId, messageId, documentId } = body;
+  const { role, content, status, error, runId, messageId, documentId, diffSummary } = body;
 
   try {
     // If messageId is provided, update the existing message (streaming →
@@ -44,6 +47,7 @@ export async function POST(
           ...(content !== undefined ? { content } : {}),
           ...(status !== undefined ? { status } : {}),
           ...(error !== undefined ? { error } : {}),
+          ...(diffSummary !== undefined ? { diffSummary } : {}),
         },
         create: {
           id: messageId,
@@ -53,6 +57,7 @@ export async function POST(
           status: status || 'complete',
           error: error || null,
           runId: runId || null,
+          ...(diffSummary !== undefined ? { diffSummary } : {}),
         },
       });
       return NextResponse.json({ message: msg });

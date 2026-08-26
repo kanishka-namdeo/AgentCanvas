@@ -49,6 +49,11 @@ import { pushPromptHistory, navigateHistory } from '@/lib/agent/prompt-history';
 import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl } from '@/lib/canvas/export';
 import { useModelCatalog } from '@/hooks/use-model-catalog';
 import {
+  summarizeTurnDiff,
+  isDiffEmpty,
+  type PatchOpRecord,
+} from '@/lib/agent/turn-diff';
+import {
   type AttachedImage,
   stageImageFiles,
   imageFilesFromDataTransfer,
@@ -63,7 +68,7 @@ import {
   Bot, User, Wrench, CheckCircle2, XCircle, Loader2, Send, Sparkles,
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers, Square,
   ChevronRight, Clock, CornerDownLeft, Cpu, Paperclip, X, ArrowDown,
-  RotateCcw, TriangleAlert, Copy, Camera, BoxSelect,
+  RotateCcw, TriangleAlert, Copy, Camera, BoxSelect, GitCompareArrows,
 } from 'lucide-react';
 
 /// Format a token count for compact display: 45200 → "45.2K".
@@ -1065,6 +1070,10 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
   const forkActiveSession = useCanvasStore((s) => s.forkActiveSession);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
+  const diff = useMemo(
+    () => (turn.patchOps && turn.patchOps.length > 0 ? summarizeTurnDiff(turn.patchOps) : null),
+    [turn.patchOps],
+  );
   if (turn.role === 'user') {
     return (
       <ContextMenu>
@@ -1191,6 +1200,10 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                 While any call is pending the cluster stays open so the user
                 sees live activity. See ToolCallsCluster below. */}
             {turn.toolCalls.length > 0 && <ToolCallsCluster toolCalls={turn.toolCalls} />}
+            {/* Turn diff summary — "what did the agent change" at a glance
+                (Cursor's "Edited N files" / GitHub +/- language). Only on
+                completed turns with tracked mutations. */}
+            {diff && !turn.streaming && !isDiffEmpty(diff) && <DiffSummaryCard diff={diff} />}
             {/* Text — rendered as markdown (bold, lists, code blocks) the way
                 Claude / ChatGPT / v0 render assistant messages. */}
             {turn.text && (
@@ -1380,6 +1393,87 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
 //      it folds away).
 //   2. ToolCallEntry — card-level: single line with the summary inline;
 //      args JSON + full summary expand on click (chevron).
+
+// ==== Turn diff summary card =================================================
+//
+// "What did the agent change" at a glance — the canvas analog of Cursor's
+// "Edited N files" chip and GitHub's +/- diffstat language:
+//
+//   +12   3   ~5        [expand ▸]
+//   created deleted updated
+//
+// Categories render in the order GitHub users already scan: green additions
+// (created), red deletions, amber modifications, neutral restructuring.
+// Expanding lists the per-op summary lines (the human-readable patch
+// summaries each tool authored). The card is derived from compact PatchOpRecords
+// tracked by the canvas store during the turn — see lib/agent/turn-diff.ts.
+
+function DiffSummaryCard({ diff }: { diff: import('@/lib/agent/turn-diff').TurnDiffSummary }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="rounded-md border ac-border-subtle ac-surface-1 overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        title={`Canvas changes this turn — ${diff.entries.length} operation${diff.entries.length === 1 ? '' : 's'}. Click to ${expanded ? 'collapse' : 'expand'} the details.`}
+        className="w-full flex items-center gap-2 px-2 py-1.5 text-[10px] hover:ac-surface-2 ac-transition ac-focus-ring text-left"
+      >
+        <GitCompareArrows className="h-3 w-3 ac-text-4 flex-shrink-0" />
+        <span className="ac-text-2 font-medium flex-shrink-0">Canvas changes</span>
+        <span className="flex items-center gap-1.5 flex-wrap">
+          {diff.cleared && (
+            <span className="ac-text-danger font-medium" title="Canvas cleared">cleared</span>
+          )}
+          {diff.created > 0 && (
+            <span className="ac-text-success font-medium" title={`${diff.created} layer${diff.created === 1 ? '' : 's'} created`}>
+              +{diff.created}
+            </span>
+          )}
+          {diff.updated > 0 && (
+            <span className="ac-text-warning font-medium" title={`${diff.updated} layer${diff.updated === 1 ? '' : 's'} updated`}>
+              ~{diff.updated}
+            </span>
+          )}
+          {diff.deleted > 0 && (
+            <span className="ac-text-danger font-medium" title={`${diff.deleted} layer${diff.deleted === 1 ? '' : 's'} deleted`}>
+              −{diff.deleted}
+            </span>
+          )}
+          {diff.restructured > 0 && (
+            <span className="ac-text-3 font-medium" title={`${diff.restructured} layer${diff.restructured === 1 ? '' : 's'} restructured (group/reorder/instance ops)`}>
+              ⇄{diff.restructured}
+            </span>
+          )}
+        </span>
+        <span className="text-[9px] ac-text-4 truncate flex-1 min-w-0 hidden sm:inline">
+          {diff.entries.length} op{diff.entries.length === 1 ? '' : 's'}
+        </span>
+        <ChevronRight
+          className={`h-3 w-3 ac-text-4 flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+        />
+      </button>
+      {expanded && (
+        <div className="px-2 pb-1.5 pt-0.5 space-y-0.5 max-h-48 overflow-y-auto ac-hide-scrollbar border-t ac-border-subtle">
+          {diff.entries.map((rec: PatchOpRecord, i: number) => {
+            const tone =
+              rec.op === 'clear' || rec.op === 'remove' || rec.op === 'delete_page'
+                ? 'ac-text-danger'
+                : rec.op === 'add' || rec.op === 'bulk_add' || rec.op === 'duplicate'
+                  ? 'ac-text-success'
+                  : 'ac-text-3';
+            return (
+              <div key={i} className="flex items-start gap-1.5 text-[10px] leading-relaxed">
+                <code className={`font-mono px-1 rounded ac-surface-2 flex-shrink-0 ${tone}`}>{rec.op}</code>
+                <span className="ac-text-3 min-w-0 break-words">{rec.summary}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ToolCallsCluster({ toolCalls }: { toolCalls: AgentToolCallEntry[] }) {
   const anyPending = toolCalls.some((tc) => tc.success === undefined);
