@@ -131,13 +131,13 @@ export interface Layer {
   fontSize: number;
   textColor: string;
   /// Typography fields surfaced from .pen PenText.PenTextStyle.
-  /// Previously dropped by resolve.ts → the SVG <text> renderer had no way
+  /// Previously dropped by resolve.ts → the legacy SVG renderer had no way
   /// to apply weight / spacing / alignment, so every AI-generated text layer
   /// rendered at default 400 weight, left-aligned, with no letter-spacing —
   /// regardless of what the system prompt told the AI to specify. Adding
-  /// them on the resolved Layer (and applying them in ShapeRenderer) closes
-  /// the loop end-to-end. All optional for backward compat with shapes that
-  /// don't specify them.
+  /// them on the resolved Layer (and applying them in the DOM renderer's
+  /// styleFor.ts) closes the loop end-to-end. All optional for backward
+  /// compat with shapes that don't specify them.
   fontWeight?: number;
   fontFamily?: string;
   letterSpacing?: number;

@@ -369,9 +369,9 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
     hintTokenSyntaxIfRawHex('textColor', params.textColor);
   }
   // Typography fields (passed through to the .pen node via patch.ts and
-  // applied by the SVG renderer). Without these, the system prompt's
-  // weight/alignment instructions were silently dropped — the AI could
-  // not actually specify a heading weight or a centered title.
+  // applied by the DOM renderer's styleFor.ts). Without these, the system
+  // prompt's weight/alignment instructions were silently dropped — the AI
+  // could not actually specify a heading weight or a centered title.
   if ((params as any).fontWeight !== undefined) out.fontWeight = Number((params as any).fontWeight) || 400;
   if ((params as any).fontFamily !== undefined) out.fontFamily = String((params as any).fontFamily);
   if ((params as any).letterSpacing !== undefined) out.letterSpacing = Number((params as any).letterSpacing) || 0;
@@ -3330,7 +3330,7 @@ const createShape = defineTool({
       'Reads the measured-bounds runtime cache the DOM renderer pushes (native layout mode) and emits ONE ' +
       'update_many patch with real width/height. Nodes whose .pen sizing is dynamic (fit_content / ' +
       'fill_container) are skipped — baking would fight the layout engine. ' +
-      'Without measured data (SVG renderer, no client) nothing changes.',
+      'Without measured data (no client push yet, or parity mode) nothing changes.',
     promptSnippet: 'Bake measured bounds into node sizes (requires measured data from a connected client).',
     parameters: Type.Object({
       nodeIds: Type.Optional(Type.Array(Type.String({ description: 'Node ids to bake' }))),
@@ -3347,7 +3347,7 @@ const createShape = defineTool({
 
       if (measuredIds.length === 0) {
         const requested = params.all ? 'all nodes' : (params.nodeIds ?? []).join(', ') || '(none specified)';
-        const text = `no measured bounds available (SVG renderer, parity mode, or no client push yet); no changes made\n` +
+        const text = `no measured bounds available (parity mode, or no client push yet); no changes made\n` +
           `Requested: ${requested}\n` +
           `Tip: measured bounds flow when the DOM renderer runs in native layout mode (settings → renderer 'dom').`;
         return { content: [{ type: 'text', text }], details: { measured: false, requested: { nodeIds: params.nodeIds ?? null, all: params.all ?? false }, patch: null } };
@@ -3788,7 +3788,7 @@ const createShape = defineTool({
     name: 'pen_set_shadow',
     label: 'Set Drop Shadow',
     description: 'Apply a drop shadow to a shape. Set blur=0 and color=transparent to remove. ' +
-      'The shadow is rendered via an SVG filter on the client.',
+      'The shadow is rendered via CSS box-shadow (text layers use text-shadow).',
     promptSnippet: 'Apply a drop shadow to a shape.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape ID' }),
@@ -3821,7 +3821,7 @@ const createShape = defineTool({
   const setBlur = defineTool({
     name: 'pen_set_blur',
     label: 'Set Blur',
-    description: 'Apply a Gaussian blur to a shape. Set radius to 0 to remove. Rendered via an SVG filter.',
+    description: 'Apply a Gaussian blur to a shape. Set radius to 0 to remove. Rendered via CSS filter: blur().',
     promptSnippet: 'Apply a Gaussian blur to a shape.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape ID' }),
@@ -3881,7 +3881,7 @@ const createShape = defineTool({
     name: 'pen_upload_image',
     label: 'Place Image',
     description: 'Place an image on the canvas from a data URL or remote URL. ' +
-      'Use this for logos, photos, or any raster image. The image is rendered via an SVG <image> element. ' +
+      'Use this for logos, photos, or any raster image. The image is rendered as a CSS-styled <img> element. ' +
       'Data URLs (base64) are preferred for persistence; remote URLs may break if the host goes down.',
     promptSnippet: 'Place an image on the canvas.',
     parameters: Type.Object({
@@ -4915,9 +4915,9 @@ function applyHighFidelityStyling(
     //   - Input placeholder/label:    weight 400, letterSpacing 0, left
     //   - Sidebar nav item:           weight 500, letterSpacing 0, left
     //   - Caption / overline:         weight 500, letterSpacing +0.4-0.8
-    // The renderer (Canvas.tsx ShapeRenderer case 'text') honors fontWeight,
+    // The renderer (DOM renderer's styleFor.ts) honors fontWeight,
     // letterSpacing, lineHeight, textAlign, fontFamily — so these fields flow
-    // through .pen PenTextStyle → resolvePenTree → Layer → SVG <text>.
+    // through .pen PenTextStyle → resolvePenTree → Layer → CSS text properties.
     if (s.type === 'text') {
       applyTypographyByName(s, name);
     }

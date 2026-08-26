@@ -1,5 +1,7 @@
 # UI-Improvement Research: How Production AI UI Tools Produce Good-Looking UI — and What AgentCanvas Is Missing
 
+> **Status note (2026-08-26):** This document is preserved as a historical research artifact from Task 7-b (2026-08-24). Several code references have since drifted — notably the legacy SVG renderer (`svg/SvgCanvas.tsx`, `svg/ShapeRenderer.tsx`) was deleted in the post-Phase-5 cleanup sweep. The canvas now renders via the DOM renderer (`src/components/canvas/dom/`). The T3 VLM critique implementation it describes (`subagents/design-critic-vlm.ts` + `src/lib/canvas/render-to-png.ts`) is still alive and correct — `renderCanvasToPng` consumes the resolver's `Layer[]` and emits raw SVG markup for `@resvg/resvg-js`, NOT the live `<svg>` element. Treat body references to "the Canvas component's SVG output" as superseded.
+
 **Task ID:** 7-b
 **Author:** general-purpose (research subagent)
 **Date:** 2026-08-24

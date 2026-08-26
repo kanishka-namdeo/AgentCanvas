@@ -93,7 +93,7 @@
 │   PenRef with its expanded subtree (via expandRef). Then       │
 │   computes absolute positions + sizes + resolves $variables.   │
 │                                                                 │
-│   Result: doc.shapes (flat list for SVG rendering).              │
+│   Result: doc.shapes (flat list for DOM rendering).              │
 └──────────────────────┬──────────────────────────────────────────┘
                        │ doc.shapes
                        ▼

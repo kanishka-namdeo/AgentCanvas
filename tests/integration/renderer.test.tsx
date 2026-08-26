@@ -1,18 +1,18 @@
 // Integration tests — renderer reflects document state driven through the store.
 //
 // Phase 5 migration (spec acceptance criterion): selectors migrated from
-// SVG-specific (`rect`, `<text>`, `ellipse`, `polygon`, `image`, `filter`,
-// `linearGradient`, `stop`) to the renderer-agnostic DATA-ATTRIBUTE CONTRACT
-// (spec Appendix C):
+// the legacy SVG-specific (`rect`, `<text>`, `ellipse`, `polygon`, `image`,
+// `filter`, `linearGradient`, `stop`) to the renderer-agnostic
+// DATA-ATTRIBUTE CONTRACT (spec Appendix C):
 //   - `[data-node-id]`            every node carries this
 //   - `[data-node-type="..."]`    stable per-LayerType selector
 //   - `[data-instance-of]`        instances only
 //
 // Color/style assertions use the inline-style `background` / `boxShadow` /
 // `textShadow` properties (jsdom normalizes hex fills to rgb — see
-// dom-node.test.tsx for the same pattern). SVG-specific constructs (gradient
-// stops, filter primitives) are tested at the unit-test layer (dom-node /
-// ShapeRenderer) and replaced here with their DOM equivalents (linear-gradient
+// dom-node.test.tsx for the same pattern). SVG-as-primitive constructs
+// (gradient stops, filter primitives) are tested at the unit-test layer
+// (dom-node) and replaced here with their DOM equivalents (linear-gradient
 // CSS background, boxShadow CSS).
 //
 // Strategy:

@@ -4,7 +4,7 @@
 
 **An AI-native collaborative canvas — Figma for AI agents.**
 
-Chat in plain English → the agent reasons, calls tools, and draws the design for you. Live, on an infinite SVG canvas, with real-time multiplayer presence.
+Chat in plain English → the agent reasons, calls tools, and draws the design for you. Live, on an infinite HTML/DOM canvas with inline SVG islands for vector primitives, with real-time multiplayer presence.
 
 [![CI](https://github.com/kanishka-namdeo/co-canvas/actions/workflows/ci.yml/badge.svg)](https://github.com/kanishka-namdeo/co-canvas/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -53,7 +53,7 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 - **Streaming responses** — agent thoughts + tool-call cards stream in live, `.pen` tree mutations happen as you watch.
 
 ### 🎨 Full design tool, not just a toy
-- **Infinite SVG canvas** — pan (middle-mouse / space-drag), zoom (wheel), 8-handle resize, drag-move, delete-to-remove.
+- **Infinite HTML/DOM canvas** — pan (middle-mouse / space-drag), zoom (wheel), 8-handle resize, drag-move, delete-to-remove. Real divs per node, inline `<svg>` islands for vector primitives (path/star/polygon), browser-native CSS for `box-shadow` / `filter: blur()` / `border-radius` / flexbox auto-layout. L4 `content-visibility` culling + L5 mount culling for ≥2k nodes per page.
 - **Manual toolbar** — rectangle, ellipse, text, line, frame, group; select / pan / clear modes.
 - **Properties inspector** — geometry, fill/stroke, radius, opacity, rotation, text, Auto Layout editor, multi-select align/distribute.
 - **Layers panel** — z-order, visibility, lock, component-instance badges, token-binding dots, right-click context menu.
@@ -268,7 +268,7 @@ bun run test:ui
 | `tests/unit/patch.test.ts` | Pure patch-application logic (add/update/remove/clear/group/align/tokens/zorder/...) |
 | `tests/unit/store.test.ts` | Zustand canvas store — `SyncEvent` reduction, undo/redo, turn buffering |
 | `tests/unit/tools.test.ts` | The 50+ tool definitions + `executeTool` dispatch |
-| `tests/unit/ShapeRenderer.test.tsx` | SVG shape rendering for every shape type |
+| `tests/unit/dom-node.test.tsx` | DOM shape rendering for every shape type (styleFor.ts + islands.tsx + data-attribute contract) |
 | `tests/integration/runner.test.ts` | `runAgent` with an injected `MockLLM` — verifies event ordering |
 | `tests/integration/pipeline.test.ts` | End-to-end: prompt → agent → patch → canvas mutation → session-store recording |
 | `tests/integration/renderer.test.tsx` | Canvas rendering after patches apply |

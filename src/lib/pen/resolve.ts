@@ -726,7 +726,7 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
         // nodes). Previously dropped here, so the SVG renderer couldn't apply
         // weight / spacing / alignment even when the AI specified them via
         // pen_create_shape. Pass them through verbatim (with safe coercion)
-        // so ShapeRenderer can apply them.
+        // so the DOM renderer's styleFor.ts can apply them.
         fontWeight: (n as any).fontWeight !== undefined ? num((n as any).fontWeight, 400) : undefined,
         fontFamily: (n as any).fontFamily !== undefined ? String((n as any).fontFamily) : undefined,
         letterSpacing: (n as any).letterSpacing !== undefined ? num((n as any).letterSpacing, 0) : undefined,

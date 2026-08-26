@@ -6,9 +6,10 @@
 // can't see: alignment, whitespace distribution, the "generic AI look",
 // contrast issues that don't show up in a property dump.
 //
-// Implementation: build an SVG string from the shapes (mirroring the
-// ShapeRenderer JSX in Canvas.tsx, but emitting raw SVG markup), then
-// rasterize via `@resvg/resvg-js` at 2x scale for crisp text.
+// Implementation: build an SVG string from the shapes (mirroring the DOM
+// renderer's styleFor.ts vocabulary but emitting raw SVG markup — a server-
+// side fallback for when no live client DOM is mounted), then rasterize
+// via `@resvg/resvg-js` at 2x scale for crisp text.
 //
 // We mirror only the shapes the renderer needs (rectangle / ellipse / text /
 // line / path / frame). Per-corner radii, gradients, shadows, opacity,
@@ -197,8 +198,8 @@ function renderShapeToSvg(s: Layer, measuredBounds?: MeasuredBoundsMap): string 
       return `  <line x1="${s.x}" y1="${s.y}" x2="${s.x + W}" y2="${s.y + H}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round"${opacityAttr}${transformAttr}/>`;
     }
     case 'text': {
-      // Apply typography fields exactly like ShapeRenderer's <text> case in
-      // Canvas.tsx — fontWeight / letterSpacing / lineHeight / textAlign /
+      // Apply typography fields exactly like the DOM renderer's styleFor.ts
+      // — fontWeight / letterSpacing / lineHeight / textAlign /
       // fontFamily / underline / strikethrough.
       const ta = s.textAlign ?? 'left';
       const anchor = ta === 'center' ? 'middle' : ta === 'right' ? 'end' : 'start';

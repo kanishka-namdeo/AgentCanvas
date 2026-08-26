@@ -2,15 +2,15 @@
 
 ## Purpose
 
-The DOM-primary renderer — spec `docs/html-dom-renderer.md` Phases 1–5. Real DOM/CSS per node instead of one flat `<svg>`: every resolved `Layer` becomes a nested `<div>` (per `parentId`), freeform vector types become inline SVG islands, and all selection chrome renders in a screen-space overlay. Mounted by the Canvas shell when `settings.renderer === 'dom'` (Settings → Appearance → Canvas renderer; **default after Phase 5 flip**, SVG kept as compatibility/export-only mode for one minor release). Phase 4 adds L4 CSS containment (`content-visibility: auto` + `contain` on container subtrees) + L5 mount culling (CullingCoordinator: viewport intersection + hysteresis + budget-aware ≥2k nodes + placeholder swap).
+The DOM renderer — spec `docs/html-dom-renderer.md` Phases 1–5. Real DOM/CSS per node instead of one flat `<svg>`: every resolved `Layer` becomes a nested `<div>` (per `parentId`), freeform vector types become inline SVG islands, and all selection chrome renders in a screen-space overlay. Always mounted by the Canvas shell (the legacy SVG renderer was removed in the post-Phase-5 cleanup sweep — SVG-as-export-format is unaffected and continues to flow through `src/lib/canvas/export.ts` + `src/lib/canvas/render-to-png.ts`). Phase 4 adds L4 CSS containment (`content-visibility: auto` + `contain` on container subtrees) + L5 mount culling (CullingCoordinator: viewport intersection + hysteresis + budget-aware ≥2k nodes + placeholder swap).
 
 ## Ownership
 
 - `DomCanvas.tsx` — world container + chrome coordinator. Builds the layer tree from `document.shapes` (`useMemo`): dedupe by id (last-writer-wins), children index sorted by zIndex, roots = parentId null / missing parent (orphans render as roots so nothing disappears vs SVG mode) / cycle-broken chains (defensive promote-to-root, one `console.warn` in dev). Owns hover state (`hoveredId`). Pan/zoom is a single CSS `transform` on the world div (`data-ac-world`, `willChange: transform`) — the only thing that changes during navigation. M2-c: the world div is REGISTERED on the store (`setWorldElement`, both layout modes — cleared on unmount) for the client round-trips (screen→canvas-space conversion + html-to-image capture), and a throttled (800ms trailing, native mode only) effect pushes the measured-bounds digest to the server (`pushMeasuredBounds` → socket `canvas:measured_bounds` + POST) so `canvasSnapshot` / `pen_bake_layout` see fresh sizes.
 - `DomNode.tsx` — `React.memo`'d recursive renderer for ONE layer. Emits the data-attribute contract, wires `onMouseDown`/`onMouseEnter`/`onMouseLeave`, renders type-specific children content (islands, `<img>`, text string, section label chip, slice tag) and recurses into zIndex-sorted children with parent-relative offsets. Parent position arrives as `parentX`/`parentY` numbers (not an object) so the memo shallow-compare stays effective.
 - `styleFor.ts` — pure `Layer` → `React.CSSProperties` mapping (the shared paint vocabulary, spec Appendix B): base absolute geometry + zIndex, fill → `background` (solid / `linear-gradient` with angle+90 / `radial-gradient`), stroke → `border`, radii → `borderRadius` (4-corner string), shadow → `boxShadow` (`textShadow` on text), blur → `filter`, opacity, rotation (`transform: rotate()`, origin `0 0` — spec defect D4), clip → `overflow: hidden`, full text typography, line-as-rotated-pill, and type specials (group transparent, section dashed + chip colors, component/instance accent borders, slice overlay, boolean dashed placeholder). No React state, no DOM reads.
-- `DomChrome.tsx` — screen-space overlay (`data-ac-chrome`, `zIndex` above the world, `pointerEvents: none` except handles). Canvas→screen: `sx = x * zoom + panX`. Renders: selection outlines, 8 resize handles (ported `handlePosition`/`cursorForHandle` at constant screen size), agent-highlight pulse (`ac-agent-pulse` keyframes in `src/app/globals.css`), component M/I + type badges, auto-layout indicator, group dashed outline on select/hover. Selection/hover changes re-render ONLY this overlay — never the world tree.
-- `islands.tsx` — `renderIsland(layer)`: inline `<svg>` islands for `path` (absolute points + offset viewBox), `star`, `polygon` (relative-center point math mirroring the SVG renderer), plus the non-vector content emitters: `<img>` for `image`, dashed op-symbol placeholder for `boolean_operation`. Islands never intercept pointer events.
+- `DomChrome.tsx` — screen-space overlay (`data-ac-chrome`, `zIndex` above the world, `pointerEvents: none` except handles). Canvas→screen: `sx = x * zoom + panX`. Renders: selection outlines, 8 resize handles (via `handleMath.ts`'s `handlePosition`/`cursorForHandle` at constant screen size — DOM chrome uses 8px, no zoom-compensation unlike the legacy SVG renderer), agent-highlight pulse (`ac-agent-pulse` keyframes in `src/app/globals.css`), component M/I + type badges, auto-layout indicator, group dashed outline on select/hover. Selection/hover changes re-render ONLY this overlay — never the world tree.
+- `islands.tsx` — `renderIsland(layer)`: inline `<svg>` islands for `path` (absolute points + offset viewBox), `star`, `polygon` (relative-center point math mirroring the legacy SVG renderer), plus the non-vector content emitters: `<img>` for `image`, dashed op-symbol placeholder for `boolean_operation`. Islands never intercept pointer events.
 
 ## Local Contracts
 
@@ -42,12 +42,12 @@ The world root carries `data-ac-world`; the chrome root carries `data-ac-chrome`
 
 - `bunx vitest run tests/unit/dom-node.test.tsx` — per-type style + contract assertions.
 - `bunx vitest run tests/integration/renderer-dom.test.tsx` — store-driven behavior in DOM mode (add/update/remove/undo/redo/bulk/nesting/chrome).
-- `bunx vitest run tests/integration/renderer-parity.test.tsx` — SVG vs DOM structural/geometry/z-order parity over the fixture corpus.
+- `bunx vitest run tests/integration/renderer-dom-native.test.tsx` — native layout mode (Phase 2) DOM tree + measured-bounds flow.
 - `bun run lint` + `bunx tsc --noEmit`.
-- Manual: Settings → Appearance → Canvas renderer → DOM (default after Phase 5); shapes, selection, drag, resize, context menu, zoom, undo/redo all work; switching to SVG (compat) restores the classic renderer for export-only use cases.
+- Manual: open the app; shapes, selection, drag, resize, context menu, zoom, undo/redo all work. The DOM renderer is always mounted — there's no renderer toggle in Settings.
 
 ## Child DOX Index
 
 No child AGENTS.md files in this folder.
 
-*Siblings: `../svg/AGENTS.md` does not exist — the SVG renderer (`../svg/`) is documented in `../AGENTS.md` Ownership. Parent: `../AGENTS.md`.*
+*Parent: `../AGENTS.md`. The legacy `../svg/` directory was removed in the post-Phase-5 cleanup sweep; handle-math now lives in `../handleMath.ts`.*

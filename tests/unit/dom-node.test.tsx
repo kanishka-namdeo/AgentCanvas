@@ -1,6 +1,8 @@
 // Tests for the DOM renderer's DomNode component (spec Phase 1).
 //
-// Mirror of tests/unit/ShapeRenderer.test.tsx for the DOM renderer: render
+// DOM renderer test suite — covers the per-shape type cases that the legacy
+// SVG ShapeRenderer test suite used to cover, ported to the DOM data-attribute
+// contract. Render
 // DomNode directly (no store, no Canvas shell) and assert the emitted inline
 // styles + data-attribute contract (spec Appendix C). Parity mode uses inline
 // styles only, so jsdom's CSSOM is sufficient — no layout engine needed.

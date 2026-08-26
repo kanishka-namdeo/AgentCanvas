@@ -77,7 +77,7 @@ function pathIsland(layer: Layer): React.ReactNode {
   );
 }
 
-/// `star` — point math mirrors the SVG renderer (ShapeRenderer star case)
+/// `star` — point math mirrors the legacy SVG renderer's star case
 /// but with the center RELATIVE to the node (cx = width/2, cy = height/2)
 /// inside a `0 0 w h` viewBox.
 function starIsland(layer: Layer): React.ReactNode {

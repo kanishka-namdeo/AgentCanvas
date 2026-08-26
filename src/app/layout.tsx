@@ -20,7 +20,8 @@ const geistMono = Geist_Mono({
 // canvas falls back to the OS default sans-serif (San Francisco on macOS,
 // Segoe UI on Windows) — inconsistent with the app chrome (Geist) and never
 // the designer-grade font the prompt promised. Exposing it as --font-inter
-// lets the SVG ShapeRenderer pick it up via fontFamily="var(--font-inter)".
+// lets the DOM renderer's styleFor.ts pick it up via fontFamily referencing
+// var(--font-inter).
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
