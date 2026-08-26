@@ -18,6 +18,7 @@ import {
   setMeasuredBounds,
   getMeasuredBounds,
   __resetClientRoundtripForTests,
+  resolveExtractedHtmlResponse,
 } from '@/lib/agent/client-roundtrip';
 
 beforeEach(() => {
@@ -116,6 +117,49 @@ describe('client-roundtrip: typed resolvers', () => {
     const shot = await promise;
     expect(shot?.dataUrl).toBeUndefined();
     expect(shot?.error).toBe('invalid_data_url');
+  });
+});
+
+// ---- resolveExtractedHtmlResponse (Phase 3 v2 — pen_insert_html mode='v2') ---
+
+describe('client-roundtrip: resolveExtractedHtmlResponse', () => {
+  it('resolves with the extracted children when the client answers', async () => {
+    const children = [
+      { id: 'n1', type: 'frame', x: 0, y: 0, width: 100, height: 50, fill: '#ff0000' },
+      { id: 'n2', type: 'text', x: 4, y: 4, content: 'hi' },
+    ];
+    const promise = awaitClientResponse<{ children?: unknown[]; warnings?: string[]; nodeCount?: number; error?: string }>('e-1', () => {
+      setTimeout(() => resolveExtractedHtmlResponse('e-1', children as Array<Record<string, unknown>>, ['max-depth: 20 (skipped 3 descendants)']), 1);
+    }, 1000);
+    const result = await promise;
+    expect(result?.children).toEqual(children);
+    expect(result?.warnings).toEqual(['max-depth: 20 (skipped 3 descendants)']);
+    expect(result?.nodeCount).toBe(2);
+    expect(result?.error).toBeUndefined();
+  });
+
+  it('resolves with an error when the client reports an extraction failure', async () => {
+    const promise = awaitClientResponse<{ children?: unknown[]; warnings?: string[]; nodeCount?: number; error?: string }>('e-2', () => {
+      setTimeout(() => resolveExtractedHtmlResponse('e-2', undefined, undefined, 'no-dom-renderer'), 1);
+    }, 1000);
+    const result = await promise;
+    expect(result?.children).toEqual([]);
+    expect(result?.error).toBe('no-dom-renderer');
+    expect(result?.nodeCount).toBe(0);
+  });
+
+  it('coerces a missing children array to empty (defensive — never throws)', async () => {
+    const promise = awaitClientResponse<{ children?: unknown[]; warnings?: string[]; nodeCount?: number; error?: string }>('e-3', () => {
+      // Client POST malformed — children is a string instead of an array.
+      setTimeout(() => resolveExtractedHtmlResponse('e-3', 'not-an-array' as unknown as Array<Record<string, unknown>>), 1);
+    }, 1000);
+    const result = await promise;
+    expect(result?.children).toEqual([]);
+    expect(result?.error).toBe('extract_html_failed');
+  });
+
+  it('returns false when resolving an unknown / already-timed-out call', () => {
+    expect(resolveExtractedHtmlResponse('does-not-exist', [{ id: 'x', type: 'frame' }])).toBe(false);
   });
 });
 

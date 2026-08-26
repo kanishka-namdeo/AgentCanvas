@@ -525,6 +525,12 @@ export type SyncEvent =
   // real rendered canvas (html-to-image) and return a PNG data URL. The
   // client POSTs the data URL (or an error) to /api/agent/client-responses.
   | { type: 'agent:screenshot_request'; toolCallId: string; nodeId?: string; scale?: number }
+  // Emitted by pen_insert_html (mode='v2'): asks the connected client to
+  // mount a sandboxed iframe, write the HTML, walk the parsed DOM with
+  // getComputedStyle + getBoundingClientRect, and return the extracted .pen
+  // tree. The client POSTs the extracted children (or an error) to
+  // /api/agent/client-responses — same pending-map pattern as the others.
+  | { type: 'agent:extract_html_request'; toolCallId: string; html: string }
   // Emitted by the todo tool: a structured task list overlay that survives
   // compaction. The frontend renders the live list in the AgentPanel.
   | { type: 'agent:todo_update'; todos: Array<{
@@ -561,6 +567,11 @@ export type ClientEvent =
   // Client answers an agent:screenshot_request with a PNG data URL (or an
   // error string when capture failed / no DOM renderer is mounted).
   | { type: 'canvas:screenshot_response'; toolCallId: string; dataUrl?: string; error?: string }
+  // Client answers an agent:extract_html_request with the extracted .pen
+  // tree children (or an error string when the iframe mount failed / no
+  // DOM renderer mounted). `warnings` carries the cap-hit / unwrap notices
+  // from `walkDomForPenTree` so the agent can surface them in the result.
+  | { type: 'canvas:extract_html_response'; toolCallId: string; children?: Array<Record<string, unknown>>; warnings?: string[]; error?: string }
   // Push of the DOM renderer's measured-bounds runtime cache (spec §3.8) so
   // the SERVER-side map stays fresh between round-trips — consumed by
   // canvasSnapshot enrichment (§5.5) and pen_bake_layout.

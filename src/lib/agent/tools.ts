@@ -78,6 +78,7 @@ import {
   ROUNDTRIP_DEFAULTS,
   type ComputedResult,
   type ScreenshotResult,
+  type ExtractedHtmlResult,
 } from './client-roundtrip';
 
 // ---- Tool execution context -------------------------------------------------
@@ -2915,20 +2916,20 @@ const createShape = defineTool({
       'become text nodes; img becomes image fills. Sanitized server-side (whitelisted tags/attributes, ' +
       'URL schemes). Prefer this over repeated pen_create_node for composite UI — one call builds a ' +
       'whole card, form, or nav bar. Emits ONE bulk_add patch. ' +
-      'mode="v2" requests full-fidelity mounted-iframe extraction (browser-side getComputedStyle + ' +
-      'getBoundingClientRect walk); until the client-roundtrip channel is wired, v2 falls back to v1 ' +
-      'with a note (the v2 extraction module itself is implemented + tested in ' +
-      'src/lib/canvas/html-import-mounted.ts).',
+      'mode="v2" requests full-fidelity mounted-iframe extraction (browser-side sandboxed iframe, ' +
+      'getComputedStyle + getBoundingClientRect walk, full cascade resolution, measured geometry). ' +
+      'On timeout / no client connected / extraction error, v2 falls back to v1 with an explicit note ' +
+      'so the agent loop can never hang.',
     promptSnippet: 'Insert an HTML fragment as a .pen subtree (one call, composite UI).',
     parameters: Type.Object({
-      html: Type.String({ description: 'HTML fragment. Inline styles only (class-based CSS is not parsed in v1). Whitelisted tags: div span p h1-h6 ul ol li img button label input textarea form a section header footer nav main hr br strong em' }),
+      html: Type.String({ description: 'HTML fragment. v1: inline styles only (class-based CSS is not parsed). v2: full cascade resolution via mounted-iframe extraction. v1 whitelisted tags: div span p h1-h6 ul ol li img button label input textarea form a section header footer nav main hr br strong em' }),
       parentId: Type.Optional(Type.String({ description: 'Parent node id (frame/group/page). Default: canvas root' })),
       x: Type.Optional(Type.Number({ description: 'X position of the fragment root (default 0)' })),
       y: Type.Optional(Type.Number({ description: 'Y position of the fragment root (default 0)' })),
-      namePrefix: Type.Optional(Type.String({ description: 'Prefix for generated layer names (default "html")' })),
+      namePrefix: Type.Optional(Type.String({ description: 'Prefix for generated layer names (default "html"). v2 ignores — names are derived from the source DOM.' })),
       mode: Type.Optional(Type.Union(
         [Type.Literal('v1'), Type.Literal('v2')],
-        { description: 'Extraction mode. v1 (default): server-side hand-rolled tokenizer, inline styles only. v2: mounted-iframe browser extraction with full cascade resolution + measured geometry (currently falls back to v1 — the agent→client→iframe→patch round-trip is a documented TODO; the v2 extraction module + tests are in place).' },
+        { description: 'Extraction mode. v1 (default): server-side hand-rolled tokenizer, inline styles only. v2: mounted-iframe browser extraction with full cascade resolution + measured geometry (sandbox="allow-same-origin" only — NO allow-scripts, so XSS scripts in the imported HTML cannot execute; falls back to v1 on timeout/error/no-client).' },
       )),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
@@ -2937,19 +2938,6 @@ const createShape = defineTool({
         return { content: [{ type: 'text', text: 'Error: html parameter is empty.' }], details: { error: 'empty_html' }, isError: true as any };
       }
       const mode = params.mode === 'v2' ? 'v2' : 'v1';
-      // v2 wiring TODO: when a client-roundtrip channel is wired, v2 mode
-      // should emit an `agent:extract_html_request` event with the html
-      // payload, block on awaitClientResponse for the extracted .pen tree,
-      // and convert that tree into a bulk_add patch (parallel to the
-      // agent:computed_request / agent:screenshot_request pattern in
-      // client-roundtrip.ts). The extraction module
-      // (extractHtmlViaIframe in src/lib/canvas/html-import-mounted.ts)
-      // runs ONLY in the browser — it mounts a hidden sandboxed iframe
-      // (allow-same-origin, NO allow-scripts) and walks the parsed DOM
-      // with getComputedStyle + getBoundingClientRect. Until that wiring
-      // lands, v2 mode falls back to v1 with an explicit note so the agent
-      // loop can never hang and the call still produces a usable patch.
-      const v2Fallback = mode === 'v2';
       // Verify the parent exists (default root) — page ids count too. The
       // resolved layer list already covers every tree node (the resolver
       // flattens the whole .pen tree), so `inLayers` subsumes a tree search.
@@ -2966,6 +2954,64 @@ const createShape = defineTool({
           };
         }
       }
+      const x = typeof params.x === 'number' ? params.x : 0;
+      const y = typeof params.y === 'number' ? params.y : 0;
+
+      // ---- v2 path: ask the connected client to extract via iframe ----
+      // Spec Phase 3 v2. The client mounts a sandboxed iframe
+      // (allow-same-origin only — NO allow-scripts, so XSS scripts in the
+      // imported HTML cannot execute), writes the HTML, walks the parsed
+      // DOM with getComputedStyle + getBoundingClientRect, and POSTs the
+      // extracted .pen tree back. Mirrors the agent:computed_request /
+      // agent:screenshot_request round-trip pattern in client-roundtrip.ts.
+      // NEVER hangs — awaitClientResponse resolves null on timeout; we fall
+      // back to v1 below. hasSink() short-circuits the wait when no agent
+      // turn is active (no client can answer).
+      if (mode === 'v2' && hasSink()) {
+        const extracted = await awaitClientResponse<ExtractedHtmlResult>(
+          toolCallId,
+          () => emitEvent({ type: 'agent:extract_html_request', toolCallId, html }),
+          ROUNDTRIP_DEFAULTS.extractHtmlTimeoutMs,
+        );
+        if (extracted && !extracted.error && Array.isArray(extracted.children) && extracted.children.length > 0) {
+          // The extracted children arrive as plain JSON (no class
+          // instances) — they're already .pen-shaped nodes from
+          // walkDomForPenTree. Cast back to PenChild[] for the patch.
+          const extractedNodes = extracted.children as unknown as PenChild[];
+          const shapes = extractedNodes.map((node, i) => ({
+            ...node,
+            x: x + i * 300,
+            y,
+            parentId,
+          })) as Array<Partial<Shape> & { id: string }>;
+          const patch: CanvasPatch = {
+            op: 'bulk_add',
+            shapes,
+            summary: `pen_insert_html v2: ${extracted.nodeCount ?? extractedNodes.length} node(s) from a ${html.length}-char fragment under ${parentId ?? 'canvas root'} (mounted-iframe extraction)`,
+          };
+          ctx.applyPatch(patch);
+          const ids: string[] = [];
+          const walk = (ns: PenChild[]) => {
+            for (const n of ns) {
+              ids.push(n.id);
+              const kids = (n as { children?: PenChild[] }).children;
+              if (Array.isArray(kids)) walk(kids);
+            }
+          };
+          walk(extractedNodes);
+          const warnNote = extracted.warnings && extracted.warnings.length > 0
+            ? `\nWarnings: ${extracted.warnings.join('; ')}`
+            : '';
+          return {
+            content: [{ type: 'text', text: `Inserted ${extractedNodes.length} node(s) under ${parentId ?? 'canvas root'} via mounted-iframe v2 extraction (full cascade + measured geometry).\nRoot node ids: ${extractedNodes.map((n) => n.id).join(', ')}${warnNote}` }],
+            details: { patch, nodeIds: ids, rootIds: extractedNodes.map((n) => n.id), mode, v2Fallback: false, v2Extraction: true, warnings: extracted.warnings ?? [], nodeCount: extractedNodes.length },
+          };
+        }
+        // else: fall through to v1 with a v2-fallback note.
+      }
+
+      // ---- v1 path (default, and v2 fallback) ----
+      const v2Fallback = mode === 'v2';
       const fragment = parseHtmlFragment(html);
       const prefix = (params.namePrefix ?? '').trim() || 'html';
       const { nodes, stats } = htmlToPenTreeDetailed(fragment, { namePrefix: prefix });
@@ -2976,8 +3022,6 @@ const createShape = defineTool({
       // stride); children keep their relative 0-flow coords — auto-layout
       // computes real placement. Children ride along NESTED inside each
       // root's children array (bulk_add carries nested .pen subtrees).
-      const x = typeof params.x === 'number' ? params.x : 0;
-      const y = typeof params.y === 'number' ? params.y : 0;
       const shapes = nodes.map((node, i) => ({
         ...node,
         x: x + i * 300,
@@ -3003,7 +3047,7 @@ const createShape = defineTool({
       const typeLines = Object.entries(stats.typeCounts).map(([t, c]) => `${t}×${c}`).join(', ');
       const skippedNote = stats.skippedSvg > 0 ? ` Skipped ${stats.skippedSvg} svg/path element(s) (vector import lands with the mounted-iframe phase).` : '';
       const v2Note = v2Fallback
-        ? ` [v2 client-side extraction pending — using v1 fallback. The mounted-iframe extractor (src/lib/canvas/html-import-mounted.ts) is implemented + tested; the agent→client→iframe→patch round-trip is a documented TODO pending client-roundtrip channel wiring.]`
+        ? ` [v2 mounted-iframe extraction unavailable (no client responded within ${ROUNDTRIP_DEFAULTS.extractHtmlTimeoutMs}ms, or no agent turn active) — using v1 fallback. Margins and class-based CSS are not imported (v1 — inline styles only).]`
         : '';
       return {
         content: [{ type: 'text', text: `Inserted ${stats.nodeCount} node(s) under ${parentId ?? 'canvas root'}: ${typeLines}.${skippedNote}\nRoot node ids: ${nodes.map((n) => n.id).join(', ')}\nMargins and class-based CSS are not imported (v1 — inline styles only); text sizes are estimates until measured bounds land.${v2Note}` }],

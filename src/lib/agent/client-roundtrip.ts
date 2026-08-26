@@ -42,6 +42,13 @@ export const ROUNDTRIP_DEFAULTS = {
   computedTimeoutMs: 2000,
   screenshotTimeoutMs: 2000,
   criticScreenshotTimeoutMs: 3000,
+  /// Phase 3 v2 — mounted-iframe extraction budget. The browser mounts a
+  /// sandboxed iframe, writes the HTML, waits for layout (rAF + 50ms), and
+  /// walks the DOM. 4s leaves a comfortable margin above the 5s iframe
+  /// timeout itself (extractHtmlViaIframe caps at opts.timeout ?? 5000 —
+  /// but a tool emitting this MUST stay below the agent loop's overall
+  /// response deadline, so we shrink here). Tunable via the same export.
+  extractHtmlTimeoutMs: 4000,
 };
 
 /** Result payload for an `agent:computed_request` round-trip. */
@@ -61,6 +68,19 @@ export interface ComputedResult {
 /** Result payload for an `agent:screenshot_request` round-trip. */
 export interface ScreenshotResult {
   dataUrl?: string;
+  error?: string;
+}
+
+/** Result payload for an `agent:extract_html_request` round-trip (Phase 3 v2).
+ *  Mirrors `ExtractedPenTree` from `html-import-mounted.ts` but the client
+ *  serializes the children as a plain JSON array (no class instances, no
+ *  circular refs) so the POST body crosses the wire cleanly. `error` is set
+ *  when the client couldn't extract (no DOM renderer mounted, iframe
+ *  blocked, parse failure). */
+export interface ExtractedHtmlResult {
+  children?: Array<Record<string, unknown>>;
+  warnings?: string[];
+  nodeCount?: number;
   error?: string;
 }
 
@@ -116,6 +136,26 @@ export function resolveScreenshotResponse(
     dataUrl: valid ? dataUrl : undefined,
     error: error ?? (valid ? undefined : dataUrl ? 'invalid_data_url' : 'screenshot_failed'),
   } satisfies ScreenshotResult);
+}
+
+/// Resolver for canvas:extract_html_response POSTs (kind: 'extract_html').
+/// Mirrors the screenshot contract — accept the extracted children array or
+/// an error string (when the client couldn't mount the iframe / no DOM
+/// renderer mounted). Defensive: a missing or non-array children field is
+/// coerced to an empty array; a missing error is `undefined`.
+export function resolveExtractedHtmlResponse(
+  toolCallId: string,
+  children?: Array<Record<string, unknown>>,
+  warnings?: string[],
+  error?: string,
+): boolean {
+  const ok = !error && Array.isArray(children);
+  return resolveClientResponse(toolCallId, {
+    children: ok ? children : [],
+    warnings: Array.isArray(warnings) ? warnings : [],
+    nodeCount: ok ? children!.length : 0,
+    error: error ?? (ok ? undefined : 'extract_html_failed'),
+  } satisfies ExtractedHtmlResult);
 }
 
 // ---- Server-side measured-bounds store (spec §3.8) --------------------------

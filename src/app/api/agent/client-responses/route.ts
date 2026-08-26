@@ -8,6 +8,7 @@
 // Body:
 //   { kind: 'computed', toolCallId: string, results: ComputedResult[] }
 //   { kind: 'screenshot', toolCallId: string, dataUrl?: string, error?: string }
+//   { kind: 'extract_html', toolCallId: string, children?: PenChild[], warnings?: string[], error?: string }
 //   { kind: 'measured_bounds', documentId: string, bounds: Record<id, {width,height}> }
 //     — measured-bounds pushes may ALSO piggyback on a computed response via
 //       the optional `documentId` + `bounds` fields.
@@ -16,6 +17,7 @@ import { NextRequest } from 'next/server';
 import {
   resolveComputedResponse,
   resolveScreenshotResponse,
+  resolveExtractedHtmlResponse,
   setMeasuredBounds,
 } from '@/lib/agent/client-roundtrip';
 
@@ -70,7 +72,14 @@ export async function POST(req: NextRequest) {
       const resolved = resolveScreenshotResponse(toolCallId, dataUrl, error);
       return jsonOk({ ok: true, resolved });
     }
+    case 'extract_html': {
+      const children = Array.isArray(body.children) ? body.children : undefined;
+      const warnings = Array.isArray(body.warnings) ? body.warnings : undefined;
+      const error = typeof body.error === 'string' ? body.error : undefined;
+      const resolved = resolveExtractedHtmlResponse(toolCallId, children, warnings, error);
+      return jsonOk({ ok: true, resolved });
+    }
     default:
-      return jsonError("kind must be 'computed', 'screenshot' or 'measured_bounds'", 400);
+      return jsonError("kind must be 'computed', 'screenshot', 'extract_html' or 'measured_bounds'", 400);
   }
 }

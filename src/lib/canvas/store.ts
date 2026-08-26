@@ -690,6 +690,36 @@ async function handleScreenshotRequest(event: Extract<SyncEvent, { type: 'agent:
   }
 }
 
+/// agent:extract_html_request handler (Phase 3 v2 — pen_insert_html mode='v2').
+/// Mounts a hidden sandboxed iframe, writes the HTML, walks the parsed DOM
+/// via `extractHtmlViaIframe` (allow-same-origin only, NO allow-scripts —
+/// XSS scripts in the imported HTML cannot execute), and POSTs the
+/// extracted .pen tree back to the agent. Browser-only — the dynamic import
+/// keeps `html-import-mounted.ts` out of the SSR bundle and the iframe
+/// machinery only loads when the agent actually asks. Falls back to an
+/// `extract_failed` error response when no client can mount (headless runs,
+/// SSR / SSR-like environments) — the tool then falls back to v1.
+async function handleExtractHtmlRequest(event: Extract<SyncEvent, { type: 'agent:extract_html_request' }>): Promise<void> {
+  try {
+    const { extractHtmlViaIframe } = await import('./html-import-mounted');
+    // Tighter timeout than the agent-side budget — leaves slack for the
+    // POST round-trip before the tool's 4s awaitClientResponse budget elapses.
+    const result = await extractHtmlViaIframe(event.html, { timeout: 3500 });
+    await postClientResponse({
+      kind: 'extract_html',
+      toolCallId: event.toolCallId,
+      children: result.children as Array<Record<string, unknown>>,
+      warnings: result.warnings,
+    });
+  } catch (err) {
+    await postClientResponse({
+      kind: 'extract_html',
+      toolCallId: event.toolCallId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 const EMPTY_DOC: CanvasDocument = createEmptyCanvasDocument('default', 'Untitled');
 
 // ---- Guide lines persistence (spec Phase 7 §H.1 / §H.2) ----------------------
@@ -1833,6 +1863,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
       case 'agent:screenshot_request': {
         void handleScreenshotRequest(event);
+        break;
+      }
+      case 'agent:extract_html_request': {
+        // Mount the sandboxed iframe, walk the DOM, POST the extracted
+        // .pen tree back. Fire and forget — the tool's server-side timeout
+        // bounds the wait; on timeout/null the tool falls back to v1.
+        void handleExtractHtmlRequest(event);
         break;
       }
       case 'agent:ask_user_question': {

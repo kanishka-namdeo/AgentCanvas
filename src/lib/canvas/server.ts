@@ -128,7 +128,8 @@ export function startCanvasSyncService() {
           break;
         }
         case 'canvas:computed_response':
-        case 'canvas:screenshot_response': {
+        case 'canvas:screenshot_response':
+        case 'canvas:extract_html_response': {
           // Round-trip answers normally arrive via POST /api/agent/answers'
           // sibling route (/api/agent/client-responses) — the HTTP path is
           // authoritative because it resolves the pending map in the SAME
