@@ -42,6 +42,7 @@ interface TopMenuBarProps {
   onExportPen?: () => void;
   onImportPen?: () => void;
   onOpenShortcuts?: () => void;
+  onOpenDesignSystems?: () => void;
 }
 
 export function TopMenuBar(props: TopMenuBarProps) {
@@ -330,6 +331,14 @@ export function TopMenuBar(props: TopMenuBarProps) {
             </MenubarItem>
             <MenubarItem onClick={() => toggleViewFlag('outlineMode')}>
               {outlineMode ? '✓ ' : ''}Outline mode <MenubarShortcut>{chord('outline-mode')}</MenubarShortcut>
+            </MenubarItem>
+            <MenubarSeparator />
+            {/* Design-System Registry picker — opens a modal where the
+                user picks which pack the agent should use for subsequent
+                UI generation. Replaces per-turn ad-hoc palette/font
+                decisions with a single deliberate choice. */}
+            <MenubarItem onClick={props.onOpenDesignSystems}>
+              Design Systems…
             </MenubarItem>
           </MenubarContent>
         </MenubarMenu>

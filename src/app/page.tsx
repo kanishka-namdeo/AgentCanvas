@@ -15,6 +15,7 @@ import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
 import { AgentPanel } from '@/components/canvas/AgentPanel';
 import { CommandPalette } from '@/components/canvas/CommandPalette';
 import { KeyboardShortcutsDialog } from '@/components/canvas/KeyboardShortcutsDialog';
+import { DesignSystemPicker } from '@/components/design-systems/DesignSystemPicker';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useSettings } from '@/lib/settings/store';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
@@ -96,6 +97,10 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   // ⌘/ keyboard shortcuts modal visibility.
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // Design-System Registry picker visibility — opens a modal where the
+  // user picks which pack the agent should use for subsequent UI
+  // generation. Mounted via View → "Design Systems…".
+  const [designSystemsOpen, setDesignSystemsOpen] = useState(false);
 
   // Auto-archive idle sessions on app mount, per the user's setting.
   // Also enforce the max-sessions-retained cap. Runs once after hydration.
@@ -699,6 +704,7 @@ export default function Home() {
             onExportPen={() => toast.message('Use the .pen file menu in the header to export.')}
             onImportPen={() => toast.message('Use the .pen file menu in the header to import.')}
             onOpenShortcuts={() => setShortcutsOpen(true)}
+            onOpenDesignSystems={() => setDesignSystemsOpen(true)}
           />
         )}
         {/* ───────────────────────── Top bar ───────────────────────── */}
@@ -897,6 +903,17 @@ export default function Home() {
       {/* Settings dialog — agent behavior, LLM provider, sessions, appearance, data, shortcuts */}
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
+      {/* Design-System Registry picker — View → "Design Systems…" */}
+      <DesignSystemPicker
+        open={designSystemsOpen}
+        onOpenChange={setDesignSystemsOpen}
+        onPick={(name) => {
+          toast.success(`Design system set to ${name}`, {
+            description: 'The agent will use this pack for all UI generation this session.',
+          });
+        }}
+      />
     </TooltipProvider>
   );
 }
