@@ -455,7 +455,15 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
       style.textDecoration = decoration;
     }
     style.whiteSpace = 'pre-wrap';
-    style.wordBreak = 'break-word';
+    // `overflowWrap: 'break-word'` (NOT `wordBreak: 'break-word'`) — only breaks
+    // inside a word as a LAST RESORT, when the word is wider than the container.
+    // `wordBreak: 'break-word'`/`'break-all'` breaks mid-word aggressively,
+    // which mangles short UI labels like "AppName" → "AppNa / me" when the
+    // text container is sized too narrow. With overflowWrap, normal UI text
+    // wraps at spaces only; pathological long strings (URLs, no-space tokens)
+    // still break to avoid overflowing the layer box.
+    style.overflowWrap = 'break-word';
+    style.wordBreak = 'normal';
     // Column flow so multi-line text + child nodes stack in document order.
     style.display = 'flex';
     style.flexDirection = 'column';

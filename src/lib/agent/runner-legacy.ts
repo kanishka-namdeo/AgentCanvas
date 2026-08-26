@@ -169,6 +169,19 @@ TYPE SCALE (1.25 Major Third, 16px base) — use these EXACT sizes:
   weights: body 400, labels 500, subtitles/section-heads 600, page titles 700.
   line-height: 1.6 for body, 1.25 for headings. Font: Inter / system-ui sans-serif.
 
+TEXT LAYER WIDTH RULE (CRITICAL — prevents mid-word wrapping):
+  Text containers MUST be wide enough to fit the text on one line, or the renderer will
+  WRAP MID-WORD (e.g. "AppName" → "AppNa / me" when width=100 but the word needs ~130px).
+  Estimate: a single-line text layer needs width ≥ (text.length × fontSize × 0.62) for
+  Inter at weight 500-700. For bold display text (weight 700), use 0.68. Examples:
+    "AppName"        @ 24px/700 → width ≥ 130  (7 chars × 24 × 0.68 = 114, round up for safety)
+    "Sign In"        @ 14px/600 → width ≥ 100  (7 chars × 14 × 0.62 = 61, but add 40px for centering)
+    "Welcome back"   @ 20px/600 → width ≥ 180  (12 chars × 20 × 0.62 = 149, round up)
+  For UNKNOWN text lengths (dynamic content), set width = parent_width − 2×padding so the text
+  can wrap AT SPACES without overflowing the container. NEVER set width = 100 for a brand name
+  wordmark — that guarantees a mid-word break. Always compute a concrete width from the formula
+  above; the renderer does NOT auto-fit text to content.
+
 SPACING SCALE (8px grid) — use ONLY these values for x/y/w/h/padding/gap:
   4, 8, 12, 16, 24, 32, 48, 64, 80, 96. Page padding: 16 (mobile) / 24-32 (web). Section gap: 24-32.
 
@@ -187,6 +200,16 @@ GRADIENT GUIDANCE: use pen_set_gradient_fill on hero backgrounds, primary CTA fi
   CTA gradient example: linear, angle 135, stops [{0, $color.primary}, {1, $color.accent}].
   Hero gradient example: linear, angle 165, stops [{0, #0ea5e9}, {1, #6366f1}].
   NEVER gradient body text. NEVER gradient the entire page background (use a solid $color.bg).
+  GRADIENT CONTRAST RULE (CRITICAL — otherwise the gradient is invisible): the two stops MUST
+  come from DIFFERENT color ramps. Same-ramp stops (e.g. #2563eb → #3b82f6, both blue-600/500,
+  or $color.primary-500 → $color.primary-400) produce an invisible gradient because the colors
+  are too close. Pick stops that differ by at least 30° on the hue wheel — e.g.:
+    ✓  sky #0ea5e9    → indigo #6366f1   (240° apart in oklch, very visible)
+    ✓  violet #8b5cf6 → fuchsia #d946ef  (300° apart, vibrant)
+    ✗  #2563eb        → #3b82f6          (both blue, gradient is a flat wash)
+    ✗  $color.primary → $color.primary-100 (same hue, just lighter — not a gradient)
+  If your design brief suggested two same-ramp colors, OVERRIDE: pick $color.accent from a
+  different ramp than $color.primary before defining the gradient.
 
 ICONOGRAPHY: call pen_search_icons (name) to get a lucide stroked polyline. Stroke width 2, size 20-24.
   Do NOT use emoji (✨📷🔔) as icons — they render inconsistently. Use named lucide icons.
@@ -297,8 +320,14 @@ never setting fontWeight/letterSpacing/textAlign on the 24 text shapes — VLM s
   INPUT FIELD:
     { type:"rectangle", name:"Email Input", width:320, height:44, radius:6,
       fill:"$color.surface-2",
-      stroke:"$color.border", strokeWidth:1,
-      shadow:{x:0, y:1, blur:0, color:"#00000000"} }  // flat (inputs don't elevate until focus)
+      stroke:"$color.border", strokeWidth:1 }   // NO shadow field — inputs are
+                                                // FLAT until focus. Adding a
+                                                // shadow makes the input look
+                                                // like a raised button. If you
+                                                // want a focus state, draw a
+                                                // SECOND instance with a 2px
+                                                // $color.primary ring (offset 2)
+                                                // — never a drop shadow.
   NAVBAR (sticky, full-width frame, horizontal autoLayout):
     { type:"frame", name:"Navbar", width:1280, height:64, radius:0,
       fill:"$color.surface", stroke:"$color.border", strokeWidth:1,
