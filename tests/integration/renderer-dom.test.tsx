@@ -106,7 +106,7 @@ describe('DOM renderer integration: document mutations appear as DOM nodes', () 
   afterEach(() => {
     // Restore the default so nothing leaks (defensive — vitest isolates
     // environments per file, but the settings store persists to localStorage).
-    useSettings.setState({ renderer: 'svg' });
+    useSettings.setState({ renderer: 'dom' });
   });
 
   it('renders an empty canvas with no nodes and no svg world', () => {
@@ -115,8 +115,9 @@ describe('DOM renderer integration: document mutations appear as DOM nodes', () 
     // The DOM renderer mounts the world container + chrome overlay…
     expect(container.querySelector('[data-ac-world]')).not.toBeNull();
     expect(container.querySelector('[data-ac-chrome]')).not.toBeNull();
-    // …and no classic <svg> paint tree (no <defs> — SvgCanvas always emits
-    // one; the only svgs left are chrome/empty-state icons outside the world).
+    // …and no <svg> world paint tree — the DOM renderer uses real divs per
+    // node, with inline <svg> islands only for vector primitives (path /
+    // star / polygon) which require no <defs>.
     expect(container.querySelector('[data-ac-world] svg')).toBeNull();
     expect(container.querySelector('defs')).toBeNull();
   });

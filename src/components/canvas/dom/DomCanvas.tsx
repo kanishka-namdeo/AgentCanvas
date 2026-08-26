@@ -40,7 +40,7 @@ import type { CanvasDocument, Layer, Shape } from '@/lib/canvas/types';
 import type { PenChild } from '@/lib/pen/types';
 import { resolvePenTreeDetailed, type ResolvedTreeNode } from '@/lib/pen/resolve';
 import { useCanvasStore } from '@/lib/canvas/store';
-import type { ResizeHandle } from '../svg/ShapeRenderer';
+import type { ResizeHandle } from '../handleMath';
 import { DomNode } from './DomNode';
 import { DomChrome } from './DomChrome';
 import { cssVariablesFor, worldThemeAttr } from './variables';

@@ -14,7 +14,7 @@
 // chrome-level assertions (multi-select outline counts etc.).
 
 import type { Layer, Shape } from '@/lib/canvas/types';
-import { cursorForHandle, handlePosition, type ResizeHandle } from '../svg/ShapeRenderer';
+import { cursorForHandle, handlePosition, type ResizeHandle } from '../handleMath';
 import { MeasureOverlay } from './MeasureOverlay';
 
 export interface DomChromeProps {

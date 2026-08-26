@@ -191,7 +191,7 @@ function resetStore(doc: CanvasDocument) {
 describe('LayersPanel — Assets tab (Phase 7 §H.1)', () => {
   beforeEach(() => {
     cleanup();
-    useSettings.setState({ renderer: 'svg' });
+    useSettings.setState({ renderer: 'dom' });
     stubClientRect(0, 0);
   });
   afterEach(() => {
@@ -328,7 +328,7 @@ describe('LayersPanel — Assets tab (Phase 7 §H.1)', () => {
 describe('Canvas — component drop places a linked instance (Phase 7 §H.1)', () => {
   beforeEach(() => {
     cleanup();
-    useSettings.setState({ renderer: 'svg' });
+    useSettings.setState({ renderer: 'dom' });
     stubClientRect(0, 0);
   });
   afterEach(() => {

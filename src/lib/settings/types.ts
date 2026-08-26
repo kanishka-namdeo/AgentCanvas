@@ -45,24 +45,26 @@ export type Density = 'comfortable' | 'compact';
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type DefaultPalette = 'slate' | 'warm' | 'forest' | 'mono';
 
-/// Canvas renderer backend (spec docs/html-dom-renderer.md, renderer feature
-/// flag). 'svg' = the classic single-<svg> renderer (kept as a
-/// compatibility / export-only mode after Phase 5); 'dom' = the DOM
-/// parity-mode renderer (real divs per node + SVG islands + screen-space
-/// chrome overlay + native CSS layout + L4/L5 culling). Persisted with the
-/// rest of AppSettings — an absent field (settings saved before the flag
-/// existed, or before Phase 5 defaulted to 'dom') resolves to 'dom' at the
-/// call site, so no migrate bump is needed.
-export type RendererMode = 'svg' | 'dom';
+/// Canvas renderer backend (spec docs/html-dom-renderer.md). DOM is the only
+/// live renderer as of the SVG-renderer-removal sweep — real divs per node +
+/// inline SVG islands for vector primitives + screen-space chrome overlay +
+/// native CSS layout + L4/L5 culling. The 'svg' option was removed in the
+/// post-Phase-5 cleanup (the classic single-<svg> renderer is gone; the
+/// SVG-as-export-format path in `src/lib/canvas/export.ts` is unaffected and
+/// remains the user-facing Export-as-SVG feature). The field is kept on
+/// AppSettings for forward compatibility — old persisted blobs with
+/// `renderer: 'svg'` are silently coerced to 'dom' at the call site.
+export type RendererMode = 'dom';
 
 /// DOM renderer layout strategy (spec §3.4 dual layout mode, Phase 2).
 /// 'parity' = every node absolutely positioned from the resolver's computed
-/// geometry (default — pixel-comparable with the SVG renderer).
+/// geometry (default — the DOM tree is a projection of the resolver's
+/// numbers; layout authority lives in the resolver).
 /// 'native' = containers with `layout ≠ 'none'` render as real CSS flexbox
 /// and the browser is the layout authority (measured-bounds readback feeds
-/// real sizes back to the resolver as hints). DOM renderer only — ignored
-/// in SVG mode. Optional field: absent (pre-Phase-2 settings blob) resolves
-/// to 'parity' at the call site, so no migrate bump is needed.
+/// real sizes back to the resolver as hints). Optional field: absent
+/// (pre-Phase-2 settings blob) resolves to 'parity' at the call site, so no
+/// migrate bump is needed.
 export type CanvasLayoutMode = 'parity' | 'native';
 
 export interface AppSettings {
@@ -87,25 +89,25 @@ export interface AppSettings {
   // ── Phase 1: Appearance ───────────────────────────────────────────────────
   /// 'system' follows the OS prefers-color-scheme.
   themePreference: ThemePreference;
-  /// Canvas renderer backend — 'svg' (classic) or 'dom' (parity mode).
-  /// Optional because pre-flag settings blobs lack it; consumers default to 'dom'
-  /// (Phase 5 flip — spec `docs/html-dom-renderer.md` Phase 5; SVG kept as
-  /// compat/export-only mode).
+  /// Canvas renderer backend. Always 'dom' — the SVG renderer was removed
+  /// in the post-Phase-5 cleanup sweep. Optional because pre-cleanup
+  /// settings blobs may carry the legacy 'svg' value; consumers coerce to
+  /// 'dom' at the call site. Kept on the type so persisted settings don't
+  /// break on load.
   renderer?: RendererMode;
   /// DOM renderer layout strategy — 'parity' (resolver geometry, default) or
   /// 'native' (browser CSS flexbox layout, spec Phase 2).
   /// Optional because pre-Phase-2 settings blobs lack it; consumers default to 'parity'.
   canvasLayoutMode?: CanvasLayoutMode;
-  /// Phase 4 L4 + L5 culling (spec §4.2). When true and the renderer is 'dom',
-  /// the DOM renderer emits `content-visibility: auto` + `contain` on
-  /// container subtrees (L4) and the L5 CullingCoordinator swaps far-offscreen
-  /// top-level frames for placeholder divs above ~2k nodes per page. The flag
-  /// exists so power users can disable culling for debugging or for
-  /// measurement-sensitive workflows (e.g., measuring an offscreen subtree via
-  /// `pen_get_computed` while the rest of the page is culled). SVG mode
-  /// ignores this flag entirely. Optional — pre-Phase-4 settings blobs lack
-  /// it; consumers default to true (culling is on by default once the
-  /// renderer flips to 'dom' in Phase 5).
+  /// Phase 4 L4 + L5 culling (spec §4.2). When true, the DOM renderer emits
+  /// `content-visibility: auto` + `contain` on container subtrees (L4) and
+  /// the L5 CullingCoordinator swaps far-offscreen top-level frames for
+  /// placeholder divs above ~2k nodes per page. The flag exists so power
+  /// users can disable culling for debugging or for measurement-sensitive
+  /// workflows (e.g., measuring an offscreen subtree via
+  /// `pen_get_computed` while the rest of the page is culled). Optional —
+  /// pre-Phase-4 settings blobs lack it; consumers default to true (culling
+  /// is on by default).
   domCulling?: boolean;
 
   // ── Phase 2: LLM provider ────────────────────────────────────────────────
@@ -157,16 +159,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultPalette: 'slate',
 
   themePreference: 'system',
-  // Phase 5 default flip (spec §Phase 5): DOM is now the default renderer.
-  // SVG mode is kept as a compatibility / export-only fallback for one minor
-  // release before the removal decision (separate spec). Existing settings
-  // blobs saved before this flip will pick up 'dom' on next read because the
-  // optional field defaults to 'dom' at the call site (Canvas.tsx). Users who
-  // explicitly pinned 'svg' keep their choice.
+  // DOM is the only live renderer (post-Phase-5 cleanup). The Settings UI
+  // no longer surfaces a renderer picker. Persisted blobs from before the
+  // cleanup that still carry the legacy 'svg' value are silently coerced
+  // to 'dom' by the store's migrate function (see src/lib/settings/store.ts).
   renderer: 'dom' as RendererMode,
-  // Phase 4: culling defaults to ON — only active when renderer='dom' AND the
-  // document exceeds the budget thresholds (L5: ≥2k nodes per page; L4 is
-  // always on for container types in 'dom' mode). SVG mode ignores this.
+  // Phase 4: culling defaults to ON — only active when the document
+  // exceeds the budget thresholds (L5: ≥2k nodes per page; L4 is always on
+  // for container types).
   domCulling: true,
 
   llmProvider: 'custom',

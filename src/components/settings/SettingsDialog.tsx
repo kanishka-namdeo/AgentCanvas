@@ -44,7 +44,7 @@ import {
   type LLMProvider, type SnapshotCadence, type SkillSelectionMode,
   type AutoArchiveIdleAfter, type Density, type ThemePreference,
   type DefaultPalette, type ThinkingLevel, type McpServerConfig,
-  type RendererMode, type CanvasLayoutMode,
+  type CanvasLayoutMode,
   normalizeLLMProvider,
   providerRequiresApiKey,
   providerDefaultModel,
@@ -670,7 +670,6 @@ function SessionsSection() {
 function AppearanceSection() {
   const themePreference = useSettings((s) => s.themePreference);
   const density = useSettings((s) => s.density);
-  const renderer = useSettings((s) => s.renderer) ?? 'dom';
   const layoutMode = useSettings((s) => s.canvasLayoutMode) ?? 'parity';
   const domCulling = useSettings((s) => s.domCulling) ?? true;
   const set = useSettings((s) => s.set);
@@ -750,26 +749,8 @@ function AppearanceSection() {
         </Row>
 
         <Row
-          label="Canvas renderer"
-          description="DOM (default, spec Phases 1–5) renders real divs + SVG islands + screen-space chrome + native CSS layout + L4/L5 culling. SVG kept as a compatibility / export fallback. Applies immediately and persists."
-        >
-          <Select
-            value={renderer}
-            onValueChange={(v) => set('renderer', v as RendererMode)}
-          >
-            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dom" className="text-[11px]">DOM (default)</SelectItem>
-              <SelectItem value="svg" className="text-[11px]">SVG (compat)</SelectItem>
-            </SelectContent>
-          </Select>
-        </Row>
-
-        <Row
           label="Canvas layout mode"
-          description="DOM renderer only — native uses browser CSS layout (spec Phase 2); ignored in SVG mode."
+          description="Native uses browser CSS flexbox layout (spec Phase 2); Parity uses resolver-computed absolute geometry. Applies immediately and persists."
         >
           <Select
             value={layoutMode}
@@ -787,12 +768,11 @@ function AppearanceSection() {
 
         <Row
           label="DOM culling"
-          description="Phase 4 (spec §4.2). On = container subtrees get content-visibility:auto (L4) + far-offscreen top-level frames swap to placeholder divs above 2k nodes (L5). SVG mode ignores this; disable for measurement-sensitive workflows."
+          description="Phase 4 (spec §4.2). On = container subtrees get content-visibility:auto (L4) + far-offscreen top-level frames swap to placeholder divs above 2k nodes (L5). Disable for measurement-sensitive workflows."
         >
           <Switch
             checked={domCulling}
             onCheckedChange={(v) => set('domCulling', v)}
-            disabled={renderer === 'svg'}
           />
         </Row>
       </div>

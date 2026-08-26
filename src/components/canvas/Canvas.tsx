@@ -4,9 +4,8 @@
 //
 // The shell owns viewport state, gestures, selection/drag/resize interaction,
 // context menus, zoom UI, the empty state, and the backdrop grid. The actual
-// paint tree is delegated to a renderer module chosen by the `renderer`
-// setting (Settings → Appearance): `svg/SvgCanvas` (classic) or `dom/DomCanvas`
-// (DOM parity mode — spec docs/html-dom-renderer.md). Supports:
+// paint tree is delegated to the DOM renderer module (`dom/DomCanvas` —
+// spec docs/html-dom-renderer.md). Supports:
 //   - pan (middle-mouse drag or space-drag)
 //   - zoom (wheel)
 //   - click to select
@@ -48,12 +47,11 @@ import {
 } from '@/components/ui/context-menu';
 import { useCanvasGestures, clampZoom } from '@/lib/canvas/use-canvas-gestures';
 import { useSettings } from '@/lib/settings/store';
-import { SvgCanvas } from './svg/SvgCanvas';
 import { DomCanvas } from './dom/DomCanvas';
 import { Rulers } from './Rulers';
 import { Guides } from './dom/Guides';
 import { newGuideId } from '@/lib/canvas/store';
-import { MIN_SIZE, type ResizeHandle } from './svg/ShapeRenderer';
+import { MIN_SIZE, type ResizeHandle } from './handleMath';
 
 interface DragState {
   kind: 'pan' | 'move' | 'resize' | 'marquee';
@@ -107,24 +105,16 @@ export function Canvas() {
   const measureMode = useCanvasStore((s) => s.measureMode);
   const setMeasureMode = useCanvasStore((s) => s.setMeasureMode);
   const clipboard = useClipboard();
-  // Renderer feature flag (spec Phase 1+5): 'svg' = classic single-<svg>
-  // renderer (compatibility / export-only mode after Phase 5 flip); 'dom' =
-  // DOM parity-mode renderer (default after Phase 5 — real divs per node +
-  // SVG islands + screen-space chrome + native CSS layout + L4/L5 culling).
-  // Absent field (pre-flag settings blob, or first-time-load) resolves to
-  // 'dom' so fresh sessions pick up the new default.
-  const renderer = useSettings((s) => s.renderer) ?? 'dom';
   // DOM renderer layout strategy (spec Phase 2 dual layout mode): 'parity'
   // (default — resolver absolute geometry) or 'native' (browser CSS flexbox
-  // for auto-layout containers). Ignored by the SVG renderer.
+  // for auto-layout containers).
   const layoutMode = useSettings((s) => s.canvasLayoutMode) ?? 'parity';
-  // Phase 4 L4 culling (spec §4.2): settings.domCulling defaults to true; only
-  // meaningful when renderer === 'dom'. SVG mode never culls. The L5
-  // CullingCoordinator (≥2k nodes per page) is wired separately inside
+  // Phase 4 L4 culling (spec §4.2): settings.domCulling defaults to true.
+  // The L5 CullingCoordinator (≥2k nodes per page) is wired separately inside
   // DomCanvas and reads the same setting via this same flag through the
   // `l4Culling` prop — they're a single Phase 4 surface for the user.
   const domCulling = useSettings((s) => s.domCulling) ?? true;
-  const l4Culling = renderer === 'dom' && domCulling;
+  const l4Culling = domCulling;
   // P0-01/02: Track the last right-click position + the shape under the cursor
   // at right-click time. The context-menu items use these to choose between
   // the empty-canvas and shape variants.
@@ -674,11 +664,10 @@ export function Canvas() {
 
       // Deep select (spec Phase 7 / Appendix H): ⌘/Ctrl+click cycles the
       // selection through the ancestor chain instead of re-selecting the top
-      // hit. Robust v1 semantics (same in BOTH renderers):
-      //   1st ⌘+click  → selects the event-target node itself (in the DOM
-      //                  renderer the DEEPEST node's handler fires first and
-      //                  stopPropagation()s, so this is the node under the
-      //                  cursor; in the SVG renderer it's the hit shape).
+      // hit. Robust v1 semantics:
+      //   1st ⌘+click  → selects the event-target node itself (the DEEPEST
+      //                  node's handler fires first and stopPropagation()s, so
+      //                  this is the node under the cursor).
       //   2nd ⌘+click  → the clicked node is already selected → select its
       //                  PARENT (parentId chain up, one hop per click).
       // No move drag starts on deep-select (Figma: ⌘+click only re-targets).
@@ -950,44 +939,28 @@ export function Canvas() {
         </div>
       )}
 
-      {renderer === 'dom' ? (
-        <DomCanvas
-          document={document}
-          selectedIds={selectedIds}
-          highlightIds={agentHighlightIds}
-          viewport={viewport}
-          layoutMode={layoutMode}
-          outlineMode={outlineMode}
-          l4Culling={l4Culling}
-          // Phase 7 §H.2 measure overlay — pointer in canvas space +
-          // measureMode flag threaded through to DomChrome where the
-          // MeasureOverlay component is mounted.
-          pointerCanvas={pointerCanvas}
-          measureMode={measureMode}
-          onShapeMouseDown={onShapeMouseDown}
-          onResizeHandleMouseDown={onResizeHandleMouseDown}
-        />
-      ) : (
-        // NOTE: outline mode (⌘⇧O) is a DOM-renderer feature — the SVG
-        // renderer has no world attribute to hang [data-ac-outline] on.
-        <SvgCanvas
-          document={document}
-          size={size}
-          zoom={zoom}
-          panX={panX}
-          panY={panY}
-          selectedIds={selectedSet}
-          highlightIds={highlightSet}
-          onShapeMouseDown={onShapeMouseDown}
-          onResizeHandleMouseDown={onResizeHandleMouseDown}
-        />
-      )}
+      <DomCanvas
+        document={document}
+        selectedIds={selectedIds}
+        highlightIds={agentHighlightIds}
+        viewport={viewport}
+        layoutMode={layoutMode}
+        outlineMode={outlineMode}
+        l4Culling={l4Culling}
+        // Phase 7 §H.2 measure overlay — pointer in canvas space +
+        // measureMode flag threaded through to DomChrome where the
+        // MeasureOverlay component is mounted.
+        pointerCanvas={pointerCanvas}
+        measureMode={measureMode}
+        onShapeMouseDown={onShapeMouseDown}
+        onResizeHandleMouseDown={onResizeHandleMouseDown}
+      />
 
       {/* Phase 7 §H.2 rulers — top + left pixel rulers showing canvas-space
-          coordinates with adaptive tick marks. DOM-renderer-only; toggled
-          via the View menu. The world div is rendered ABOVE this z-index
-          (rulers don't intercept pointer events — pointer-events:none). */}
-      {renderer === 'dom' && rulersVisible && (
+          coordinates with adaptive tick marks. Toggled via the View menu.
+          The world div is rendered ABOVE this z-index (rulers don't
+          intercept pointer events — pointer-events:none). */}
+      {rulersVisible && (
         <Rulers
           document={document}
           panX={panX}
@@ -1009,7 +982,7 @@ export function Canvas() {
       {/* Phase 7 §H.1 / §H.2 guide lines — drag-out guides from rulers,
           rendered in the screen-space overlay above the world (so they
           don't get panned/zoomed). Right-click a guide to delete. */}
-      {renderer === 'dom' && rulersVisible && (
+      {rulersVisible && (
         <Guides
           guideLines={guideLines}
           panX={panX}

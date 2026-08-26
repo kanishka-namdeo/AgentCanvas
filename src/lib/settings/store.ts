@@ -3,7 +3,7 @@
 // the agent runner + /api/agent route consume via agentRunSettings().
 //
 // Storage: localStorage key `agentcanvas.settings.v1`. Versioned so future
-// schema changes can migrate (currently v2 — see the `migrate` function
+// schema changes can migrate (currently v3 — see the `migrate` function
 // below; the key name is kept stable so stored values keep flowing through
 // `migrate` instead of being silently discarded by a key rename).
 
@@ -33,30 +33,40 @@ export const useSettings = create<SettingsStore>()(
     }),
     {
       name: 'agentcanvas.settings.v1',
-      version: 2,
-      // v1 → v2: the default inference endpoint moved from the z.ai sandbox
-      // (zai / glm-5.3 / no key / no base URL) to a custom OpenAI-compatible
-      // endpoint. Browsers that still hold the OLD first-run defaults are
-      // migrated to the new default endpoint; anything a user actually
-      // customized (their own provider, key, model, or URL) is preserved
-      // untouched.
+      version: 3,
+      // Migrate chain:
+      //   v1 → v2: the default inference endpoint moved from the z.ai sandbox
+      //     (zai / glm-5.3 / no key / no base URL) to a custom OpenAI-compatible
+      //     endpoint. Browsers that still hold the OLD first-run defaults are
+      //     migrated to the new default endpoint; anything a user actually
+      //     customized (their own provider, key, model, or URL) is preserved
+      //     untouched.
+      //   v2 → v3: SVG renderer was deleted (post-Phase-5 cleanup). Any
+      //     persisted blob with `renderer: 'svg'` (set by a user before the
+      //     cleanup) is coerced to 'dom' — the only live renderer. The
+      //     Settings UI no longer exposes the renderer picker.
       migrate: (persisted, _version) => {
         const s = (persisted ?? {}) as Partial<AppSettings>;
+        // v1 → v2: old-defaults inference-endpoint rewrite.
         const looksLikeOldDefaults =
           s.llmProvider === 'zai' &&
           s.modelName === 'glm-5.3' &&
           !s.apiKey &&
           !s.apiBaseUrl;
-        if (looksLikeOldDefaults) {
-          return {
-            ...s,
-            llmProvider: DEFAULT_SETTINGS.llmProvider,
-            apiKey: DEFAULT_SETTINGS.apiKey,
-            modelName: DEFAULT_SETTINGS.modelName,
-            apiBaseUrl: DEFAULT_SETTINGS.apiBaseUrl,
-          } as AppSettings;
-        }
-        return s as AppSettings;
+        const withLlm = looksLikeOldDefaults
+          ? {
+              ...s,
+              llmProvider: DEFAULT_SETTINGS.llmProvider,
+              apiKey: DEFAULT_SETTINGS.apiKey,
+              modelName: DEFAULT_SETTINGS.modelName,
+              apiBaseUrl: DEFAULT_SETTINGS.apiBaseUrl,
+            }
+          : s;
+        // v2 → v3: coerce legacy `renderer: 'svg'` to 'dom'.
+        const withRenderer = (withLlm.renderer && withLlm.renderer !== 'dom')
+          ? { ...withLlm, renderer: 'dom' as const }
+          : withLlm;
+        return withRenderer as AppSettings;
       },
       // Only persist the data fields, not the setter functions.
       partialize: ({ set: _set, patch: _patch, reset: _reset, replaceAll: _replaceAll, ...data }) => data,

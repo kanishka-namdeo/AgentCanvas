@@ -118,7 +118,7 @@ describe('Phase 7 canvas interactions', () => {
   });
 
   afterEach(() => {
-    useSettings.setState({ renderer: 'svg' });
+    useSettings.setState({ renderer: 'dom' });
     cleanup();
   });
 
