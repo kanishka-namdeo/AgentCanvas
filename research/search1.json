@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://javascript.plainenglish.io/shadcn-ui-vs-radix-ui-vs-tailwind-ui-which-should-you-choose-in-2025-b8b4cadeaa25",
+    "name": "ShadCN UI vs Radix UI vs Tailwind UI, Which Should You",
+    "snippet": "Jul 14, 2025 — ShadCN UI : A set of prebuilt, open-source, accessible components built using Tailwind CSS and Radix UI. You get the actual component code in ... Read more",
+    "host_name": "javascript.plainenglish.io",
+    "rank": 0,
+    "date": "Jul 14, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://ui.shadcn.com",
+    "name": "The Foundation for your Design System - shadcn/ui",
+    "snippet": "A set of beautifully designed components that you can customize, extend, and build on. Start here then make it your own. Open Source. Open Code. Build Your Own. Read more",
+    "host_name": "ui.shadcn.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.logrocket.com/building-ui-60-seconds-shadcn-framer-ai",
+    "name": "Building a UI in 60 seconds with Shadcn and Framer AI",
+    "snippet": "Jan 14, 2025 — Follow a tutorial to quickly create UI components with Shadcn and Framer AI , and discover the advantages of each tool.",
+    "host_name": "blog.logrocket.com",
+    "rank": 2,
+    "date": "Jan 14, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/pulse/leveraging-ai-build-scalable-component-library-shadcnui-kartik-patel-bpslc",
+    "name": "Leveraging AI to Build a Scalable Component Library with",
+    "snippet": "shadcn / ui has emerged as a standout solution—flexible, unopinionated, and elegantly aligned with Tailwind's workflow. Using AI to accelerate, ...",
+    "host_name": "www.linkedin.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/react/comments/1m75but/shadcnui_vs_radix_tailwind_others_whats_your_goto",
+    "name": "Shadcn/UI vs Radix + Tailwind + others — what's your go-",
+    "snippet": "Hey everyone. I've been exploring Shadcn/UI lately, and I can see why it's gotten so much attention in the React community. Read more",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@hashbyt/how-shadcns-new-components-redefine-modern-ui-design-d3621786855e",
+    "name": "How Shadcn's New Components Redefine Modern UI",
+    "snippet": "Discover how Shadcn's 2025 UI components like Field, Input Group, and Spinner bridge the gap between Tailwind and Radix.",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/i/shadcn-vs-radix",
+    "name": "Shadcn/ui vs. Radix UI: How they relate and when to use",
+    "snippet": "Jun 25, 2026 — Compare shadcn/ui and Radix UI on distribution, styling, and customization to pick the right React component system .",
+    "host_name": "vercel.com",
+    "rank": 6,
+    "date": "Jun 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://dualite.dev/blogs/best-ui-component-libraries",
+    "name": "Best UI Component Libraries in 2026: shadcn/ui, MUI",
+    "snippet": "Jun 14, 2026 — The best UI component libraries in 2026 are shadcn/ui (best for new React projects with Tailwind), MUI (best for enterprise apps needing ... Read more",
+    "host_name": "dualite.dev",
+    "rank": 7,
+    "date": "Jun 14, 2026",
+    "favicon": ""
+  }
+]

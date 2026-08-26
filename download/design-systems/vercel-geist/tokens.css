@@ -1,0 +1,132 @@
+/* ───────────────────────────────────────────────────────────────
+ * vercel-geist / tokens.css
+ * Geist design language: strict monochrome, mono-font accents,
+ * zero rounded corners, hyper-minimal.
+ *
+ * Source: Vercel Geist open-source packages (geist@1.x).
+ * ─────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── 1. PRIMITIVE ───────────────────────────────────────────── */
+  --black:      #000000;
+  --white:      #ffffff;
+  --gray-50:    #fafafa;
+  --gray-100:   #f5f5f5;
+  --gray-200:   #eaeaea;
+  --gray-300:   #e0e0e0;
+  --gray-400:   #a0a0a0;
+  --gray-500:   #888888;
+  --gray-600:   #666666;
+  --gray-700:   #444444;
+  --gray-800:   #333333;
+  --gray-900:   #1a1a1a;
+  --gray-950:   #0a0a0a;
+
+  --blue-vercel: #0070f3;   /* Vercel blue — used sparingly as accent */
+  --amber:        #f5a623;   /* Warning amber */
+  --red-error:    #ee0000;   /* Error red */
+  --green-ok:     #0070f3;   /* Reuse blue for success in Geist */
+
+  /* Geist uses square corners — radius is 0 */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-full: 9999px;
+
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --font-sans:  'Geist Sans', system-ui, sans-serif;
+  --font-mono:   'Geist Mono', ui-monospace, monospace;
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+}
+
+:root {
+  /* ── 2. SEMANTIC ─────────────────────────────────────────────── */
+  --color-bg:              var(--white);
+  --color-bg-muted:        var(--gray-50);
+  --color-bg-subtle:       var(--gray-100);
+  --color-surface:         var(--white);
+  --color-surface-raised:  var(--white);
+
+  --color-border-default:    var(--gray-200);
+  --color-border-subtle:     var(--gray-100);
+  --color-border-strong:     var(--gray-950);
+
+  --color-text-primary:    var(--gray-950);
+  --color-text-secondary:  var(--gray-600);
+  --color-text-muted:      var(--gray-500);
+  --color-text-on-accent:  var(--white);
+
+  --color-accent:        var(--blue-vercel);
+  --color-accent-hover:  var(--blue-vercel);
+  --color-accent-active: var(--blue-vercel);
+  --color-accent-fg:     var(--white);
+
+  --color-success:       var(--blue-vercel);
+  --color-warning:       var(--amber);
+  --color-error:         var(--red-error);
+
+  --radius-button: var(--radius-md);
+  --radius-card:   var(--radius-lg);
+  --radius-input:  var(--radius-md);
+  --radius-pill:   var(--radius-full);
+}
+
+:root {
+  /* ── 3. COMPONENT ───────────────────────────────────────────── */
+  --button-bg-primary:       var(--gray-950);
+  --button-bg-primary-hover: var(--black);
+  --button-fg-primary:       var(--white);
+  --button-bg-secondary:     var(--white);
+  --button-fg-secondary:     var(--gray-950);
+  --button-bg-ghost:         transparent;
+  --button-fg-ghost:         var(--gray-950);
+  --button-border:           var(--gray-200);
+  --button-padding-x:        var(--space-5);
+  --button-padding-y:        var(--space-2);
+  --button-font-size:        var(--text-sm);
+  --button-font-weight:      500;
+
+  --input-bg:              var(--white);
+  --input-fg:              var(--gray-950);
+  --input-border:          var(--gray-200);
+  --input-border-focus:    var(--gray-950);
+  --input-padding-x:       var(--space-3);
+  --input-padding-y:       var(--space-2);
+  --input-radius:          var(--radius-input);
+
+  --card-bg:               var(--white);
+  --card-border:           var(--gray-200);
+  --card-radius:           var(--radius-card);
+  --card-padding:          var(--space-6);
+  --card-shadow:           none;  /* Geist cards: shadowless, border-only */
+
+  --table-header-bg:      var(--gray-50);
+  --table-header-fg:      var(--gray-600);
+  --table-row-bg-even:    var(--white);
+  --table-row-bg-odd:     var(--white);  /* No zebra in Geist */
+  --table-border:         var(--gray-200);
+
+  --dialog-overlay-bg:    rgba(0,0,0,0.6);
+  --dialog-bg:            var(--white);
+  --dialog-border:        var(--gray-200);
+  --dialog-radius:        var(--radius-xl);
+}

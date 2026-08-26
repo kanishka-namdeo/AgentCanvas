@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.reddit.com/r/reactjs/comments/1eqcv6q/shadcn_vs_parkui_vs_chakra_ui_which_componentui",
+    "name": "Shadcn vs ParkUI vs Chakra UI - which component/ui library should I",
+    "snippet": "Aug 12, 2024 · If you want feature rich library with high customization, try mantine , ChakraUI seems to be the best. Mantine has a first-party \"AppShell\" ... UI Kits - Shadcn or Mantine? : r/reactjs - Reddit How to decide between ui component libraries : r/reactjs - Reddit More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://makersden.io/blog/react-ui-libs-2025-comparing-shadcn-radix-mantine-mui-chakra",
+    "name": "React UI libraries in 2025: Comparing shadcn/ui, Radix, Mantine, MUI",
+    "snippet": "Sep 20, 2025 · Discover the top React component libraries in 2025 and explore emerging trends like copy-paste architecture, headless primitives, ...",
+    "host_name": "makersden.io",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=4ettB5JqDps",
+    "name": "React UI Libraries Compared: Which One Should You Choose in 2026?",
+    "snippet": "Feb 1, 2025 · Ultimate Guide to Choose the Perfect React UI Library in 2025! Confused about which React UI library to use? In this comprehensive guide, ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://yakhil25.medium.com/react-component-libraries-in-2026-the-definitive-guide-to-choosing-your-stack-fa7ae0368077",
+    "name": "React Component Libraries in 2026: The Definitive Guide to  - Medium",
+    "snippet": "Jan 24, 2026 · If shadcn/ui feels too hands-on, Mantine is the perfect middle ground. Rating: 9/10. 5. Chakra UI — The Accessibility-First ...",
+    "host_name": "yakhil25.medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://smile.eu/en/publications-and-events/best-react-ui-library",
+    "name": "Best React UI Library in 2025 - Smile",
+    "snippet": "Mar 7, 2024 · This article aims to facilitate this process by undertaking a comparison of various React component libraries, Headless libraries: components ...",
+    "host_name": "smile.eu",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/orgs/kriasoft/discussions/1977",
+    "name": "Best UI library for React projects in 2025 · kriasoft · Discussion #1977",
+    "snippet": "Best UI library for React projects in 2025. ShadCN UI Website: https://ui.shadcn.com/ The harmonious fusion of shadcn/ui with radix-ui and tailwind emerged as ...",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://adminlte.io/blog/mantine-vs-chakra-ui-vs-mui",
+    "name": "9 Best Chakra UI Alternatives in 2026 (Mantine, MUI, shadcn & More)",
+    "snippet": "Aug 13, 2026 · Moving to Mantine is relatively smooth thanks to a similar API. Moving to shadcn/ui or a headless library like Radix is more of a re- ...",
+    "host_name": "adminlte.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://heroui.com/en/blog/best-react-ui-component-libraries",
+    "name": "12 Best React UI Component Libraries in 2026 - HeroUI",
+    "snippet": "May 16, 2026 · Compare the 12 best React UI component libraries in 2026: HeroUI, shadcn/ui, MUI, Chakra UI, Mantine, and more. Features, accessibility, and ...",
+    "host_name": "heroui.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

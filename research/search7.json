@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://tailwindcss.com/plus/ui-kit",
+    "name": "Catalyst - Tailwind CSS Application UI Kit",
+    "snippet": "Catalyst is a modern application UI kit built with Tailwind CSS, Headless UI and React, designed and built by the Tailwind CSS team.",
+    "host_name": "tailwindcss.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://catalyst.tailwindui.com/docs",
+    "name": "Getting started - Catalyst UI Kit for Tailwind CSS",
+    "snippet": "Catalyst is a starter kit for building your own component systems with React and Tailwind CSS — designed and developed by the Tailwind CSS team.",
+    "host_name": "catalyst.tailwindui.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/aniftyco/awesome-tailwindcss",
+    "name": "Awesome things related to Tailwind CSS · GitHub",
+    "snippet": "Tailwind CSS is a utility-first CSS framework for rapidly building custom user interfaces. Catalyst - Beautiful, accessible application UI kit for React. ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=YbGgHqZKrHM",
+    "name": "Tailwind UI Review [2024] - YouTube",
+    "snippet": "May 13, 2024 · My 2024 review of Tailwind UI. TailwindUI is the Tailwind CSS component library built by the creators of TailwindCSS. With so many Tailwind ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forums.realmacsoftware.com/t/using-tailwind-components/44543",
+    "name": "Using Tailwind Components - RapidWeaver Elements Forum",
+    "snippet": "Sep 5, 2024 · In this tutorial I'll show you how to build a Custom TailwindCSS Component that displays a customizable blurry background.",
+    "host_name": "forums.realmacsoftware.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=d6vKDLSBHNE",
+    "name": "Use Tailwind UI in Elements. No Hacks, Just Custom Components!",
+    "snippet": "Aug 1, 2025 · RapidWeaver Elements is a visual Tailwind CSS Website builder for macOS that lets you design and publish fast, modern websites, ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/tailwindcss/comments/1b0rtd9/difference_between_tailwind_ui_and_tailwind",
+    "name": "Difference between Tailwind ui and Tailwind Catalyst - Reddit",
+    "snippet": "Feb 26, 2024 · It's a collection of beautiful, production-ready UI components you drop into your projects alongside your own code that are yours to customize, ...",
+    "host_name": "www.reddit.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tailkits.com/blog/tailwind-plus-replaced-tailwind-ui",
+    "name": "Tailwind Plus: The New Era of Tailwind UI - Tailkits",
+    "snippet": "Includes all previous components, templates, and Catalyst UI kit, with ongoing additions ... Templates, components, tools and more to build products with Tailwind ...",
+    "host_name": "tailkits.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]
