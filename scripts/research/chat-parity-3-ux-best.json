@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.youtube.com/watch?v=8OWb8OdwJT0",
+    "name": "Best chat UI libraries for React in 2026 - YouTube",
+    "snippet": "1 day ago · Three component libraries, one goal: make your AI chat UI look like someone designed it on purpose. I go through AI Elements, prompt-kit, ...",
+    "host_name": "www.youtube.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://thefrontkit.com/blogs/ai-chat-ui-best-practices",
+    "name": "AI Chat UI Best Practices for 2026 - thefrontkit",
+    "snippet": "Feb 15, 2026 · Production-ready AI chat UI patterns: streaming responses, document previews, citation rendering, feedback capture, and accessibility.",
+    "host_name": "thefrontkit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/Innovatixinc/posts/static-chat-interfaces-are-dead-here-is-how-modern-ai-applications-are-evolving-/1727119669416122",
+    "name": "Building a 'backendless' dynamic UI for AI stream data - Facebook",
+    "snippet": "Aug 13, 2026 · When users interact with AI, they no longer just want block text or basic markdown in a chat bubble. They expect rich, real-time visual ...",
+    "host_name": "www.facebook.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://21st.dev/blog/ai-chat-ui-components-react",
+    "name": "AI Chat UI in React: The Parts Nobody Warns You About - 21st.dev",
+    "snippet": "7 days ago · An AI chat interface is four pieces: a prompt input, a scrolling thread, a set of states for the model's turn (waiting, streaming, stopped, ...",
+    "host_name": "21st.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://getstream.io/chat/docs/sdk/react/guides/ai-integrations",
+    "name": "AI Integrations - React Chat Messaging Docs - GetStream.io",
+    "snippet": "Best Practices · Start with the default AI components before building custom UX. · Keep AI state messaging clear and aligned with backend state names. · Rate-limit ...",
+    "host_name": "getstream.io",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=ufo46oWej3g",
+    "name": "The Ultimate React Native Chat App in 2026 - YouTube",
+    "snippet": "Jan 15, 2026 · ... Best Practices Learn React vs React Native by Building a Real Product From Absolute Beginner to Production-Level Real-Time App ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.setproduct.com/blog/ai-chat-interface-ui-design",
+    "name": "Designing AI chat interfaces: Anatomy, patterns, pitfalls",
+    "snippet": "May 29, 2026 · A practical guide to AI chat UI: anatomy, message states, streaming pattern, mobile vs desktop layouts, accessibility, and anti-patterns to ...",
+    "host_name": "www.setproduct.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/reactjs/comments/1nh05xb/how_does_chatgpt_stream_text_smoothly_without",
+    "name": "How does ChatGPT stream text smoothly without React UI lag?",
+    "snippet": "Sep 14, 2025 · I'm building a chat app with lazy loading. When I stream tokens, each chunk updates state → triggers useEffect → rerenders the chat list. This ...",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://alexander-lukashov.medium.com/the-overview-of-ui-libraries-for-ai-chat-interfaces-in-2026-146a1492114a",
+    "name": "The Overview of UI Libraries for AI Chat Interfaces in 2026 - Medium",
+    "snippet": "Mar 16, 2026 · The Overview of UI Libraries for AI Chat Interfaces in 2026 A practical overview of what's available, what's missing, and what I learned ...",
+    "host_name": "alexander-lukashov.medium.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.saastr.com/ai-app-of-the-week-assistant-ui-the-react-library-thats-eating-the-ai-chat-interface-market",
+    "name": "AI App of the Week: Assistant UI – The React Library That's Eating the AI",
+    "snippet": "Think of it like this: You get building blocks—message components, input fields, attachment handlers, streaming renderers—that you can assemble and customize ...",
+    "host_name": "www.saastr.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

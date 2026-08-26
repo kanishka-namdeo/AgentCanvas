@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://medium.com/tech-ai-chat/my-experience-with-cline-on-vscode-using-claude-sonnet-4-0-d8e9897fda44",
+    "name": "My Experience with Cline on VSCode — Using Claude",
+    "snippet": "Cline Extension , which is an open-source AI coding assistant. I think there's a setting to auto approve the Press enter. Completion of Task ...",
+    "host_name": "medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.deployhq.com/guides/cline",
+    "name": "Cline for VS Code: Free AI Coding Agent Setup Guide (2026)",
+    "snippet": "Jul 27, 2026 — Cline's auto-approve settings let you pre-authorise specific categories of action.",
+    "host_name": "www.deployhq.com",
+    "rank": 1,
+    "date": "Jul 27, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.cline.bot/usage/ide",
+    "name": "IDE",
+    "snippet": "When you send a follow - up message, Cline will: Read your current index.html file to understand the existing code Propose specific changes. Wait for your  ...",
+    "host_name": "docs.cline.bot",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/cline/cline",
+    "name": "cline/cline: Autonomous coding agent as an SDK",
+    "snippet": "Every file edit and terminal command requires your approval , so you stay in control of what actually changes. Or toggle auto - approve and let Cline run ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.datacamp.com/tutorial/cline-ai",
+    "name": "Cline AI: A Guide With Nine Practical Examples",
+    "snippet": "Jul 14, 2025 — Learn what Cline is , how it compares to other AI coding assistants like Cursor, and how to use it through nine practical examples.",
+    "host_name": "www.datacamp.com",
+    "rank": 4,
+    "date": "Jul 14, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev",
+    "name": "Cline",
+    "snippet": "Cline , an AI assistant. Cline can handle complex software development tasks step-by-step. this extension provides a human-in-the-loop GUI to approve every file ...",
+    "host_name": "marketplace.visualstudio.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.verdent.ai/guides/coding/ai-coding-tools-vscode",
+    "name": "AI Coding Tools for VS Code: Extensions and Agents",
+    "snippet": "Aug 18, 2026 — AI coding tools for VS Code now span completion, chat , agent mode, and approval -based execution. Compare the workflows before installing.",
+    "host_name": "www.verdent.ai",
+    "rank": 6,
+    "date": "Aug 18, 2026",
+    "favicon": ""
+  }
+]

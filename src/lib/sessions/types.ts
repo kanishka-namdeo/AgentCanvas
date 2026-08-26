@@ -144,6 +144,10 @@ export interface Message {
   toolCalls: ToolCallRecord[];
   status: MessageStatus;
   error?: string;
+  /// User feedback on an assistant message (Cursor thumbs up/down pattern).
+  /// Optional + client-local: absent = not rated; toggling back to the same
+  /// value clears it.
+  feedback?: 'up' | 'down';
   /// Snapshot captured at the end of this message's turn (assistant only).
   snapshotId: string | null;
 

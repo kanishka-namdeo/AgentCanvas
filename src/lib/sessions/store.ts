@@ -142,6 +142,15 @@ interface SessionStoreState {
   appendAssistantMessage: (sessionId: string, runId: string) => Message;
   appendAssistantText: (messageId: string, text: string) => void;
   finalizeAssistantMessage: (messageId: string, status?: 'complete' | 'error' | 'cancelled', error?: string) => void;
+  /// Remove every message AFTER `afterMessageId` (exclusive) in the session.
+  /// Used by the chat's inline edit-and-resend (Cursor semantics: editing a
+  /// user message discards the branch that followed it in the live thread).
+  /// Returns the number of messages removed. Idempotent when the message is
+  /// last or unknown.
+  truncateMessagesAfter: (sessionId: string, afterMessageId: string) => number;
+  /// Set / toggle user feedback (thumbs up/down) on a message. Passing the
+  /// value the message already carries CLEARS it (toggle semantics).
+  setMessageFeedback: (messageId: string, feedback: 'up' | 'down') => void;
 
   // ---- Mutations: Tool calls ----
   startToolCall: (runId: string, toolCallId: string, name: string, argsPreview: string) => ToolCallRecord;
@@ -765,6 +774,47 @@ export const useSessionStore = create<SessionStoreState>()(
             });
           }
         }
+      },
+
+      truncateMessagesAfter: (sessionId, afterMessageId) => {
+        const session = get().sessions[sessionId];
+        if (!session) return 0;
+        const idx = session.messageIds.indexOf(afterMessageId);
+        if (idx === -1 || idx === session.messageIds.length - 1) return 0;
+        const removed = session.messageIds.slice(idx + 1);
+        set((s) => {
+          const messages = { ...s.messages };
+          for (const id of removed) delete messages[id];
+          const sess = s.sessions[sessionId];
+          return {
+            messages,
+            sessions: {
+              ...s.sessions,
+              [sessionId]: {
+                ...sess,
+                messageIds: sess.messageIds.slice(0, idx + 1),
+                messageCount: Math.max(0, sess.messageCount - removed.length),
+                updatedAt: nowISO(),
+              },
+            },
+          };
+        });
+        return removed.length;
+      },
+
+      setMessageFeedback: (messageId, feedback) => {
+        set((s) => {
+          const msg = s.messages[messageId];
+          if (!msg) return s;
+          // Toggle: rating the same value again clears the feedback.
+          const next = msg.feedback === feedback ? undefined : feedback;
+          return {
+            messages: {
+              ...s.messages,
+              [messageId]: next ? { ...msg, feedback: next } : { ...msg, feedback: undefined },
+            },
+          };
+        });
       },
 
       // ---- Tool calls ----

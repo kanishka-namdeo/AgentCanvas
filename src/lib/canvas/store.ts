@@ -78,6 +78,20 @@ export interface ChatTurn {
   /// Cumulative tokens consumed by THIS turn's LLM calls (input + output,
   /// summed across tool-call iterations). Powers the "· 12.3K tok" footer.
   tokenUsage?: { input: number; output: number };
+  /// User feedback on an assistant turn (Cursor thumbs up/down). Mirrored
+  /// to the session-store Message of the same id.
+  feedback?: 'up' | 'down';
+}
+
+/// A prompt the user submitted WHILE the agent was busy (Cursor 3's default
+/// queueing behavior — see docs/chat-parity.md). Flushed automatically,
+/// one at a time, when the running turn ends (or errors).
+export interface QueuedPrompt {
+  id: string;
+  text: string;
+  images?: import('../agent/attachments').AttachedImage[];
+  selection?: { count: number; names: string[] };
+  queuedAt: number;
 }
 
 export interface AgentToolCallEntry {
@@ -135,6 +149,9 @@ interface CanvasState {
   viewerCount: number;
   turns: ChatTurn[];
   agentBusy: boolean;
+  /// Prompts submitted while the agent was busy — sent automatically, one
+  /// per turn end, in submission order (Cursor-style message queueing).
+  queuedPrompts: QueuedPrompt[];
   /// Context token tracking (Phase 1: context management).
   contextTokens: number;
   contextWindow: number;
@@ -328,6 +345,29 @@ interface CanvasState {
   /// next LLM call — letting the user redirect without waiting for the
   /// full turn to complete.
   steerAgent: (text: string) => void;
+  /// Queue a prompt to send AFTER the running turn finishes (Cursor 3
+  /// default: the input stays usable while the agent works; new messages
+  /// queue instead of being blocked). Ignored when the agent is idle —
+  /// route straight to promptAgent instead.
+  queuePrompt: (
+    text: string,
+    images?: import('../agent/attachments').AttachedImage[],
+    selection?: { count: number; names: string[] },
+  ) => void;
+  /// Remove a queued prompt (the × on a queued chip).
+  removeQueuedPrompt: (id: string) => void;
+  /// Send ONE queued prompt immediately (the ▶ on a queued chip). Only
+  /// meaningful while the agent is idle — e.g. after the user stopped the
+  /// previous turn and the queue survived.
+  sendQueuedPromptNow: (id: string) => void;
+  /// Edit a user turn in place and re-send it (Cursor's edit-and-resend):
+  /// truncates every turn AFTER the edited user message (live buffer AND
+  /// the session store's messages) and starts a fresh run with the edited
+  /// text + the original attachments/selection. Refused while busy.
+  editUserTurn: (turnId: string, newText: string) => void;
+  /// Rate an assistant turn (thumbs up/down). Toggle: rating the value the
+  /// turn already has clears it. Mirrored to the session-store Message.
+  setTurnFeedback: (turnId: string, feedback: 'up' | 'down') => void;
   /// Stop the in-flight agent turn. Aborts the HTTP fetch (when in fallback
   /// mode), finalizes the last assistant message + run as `cancelled`, and
   /// emits a synthetic `agent:turn_end` so the rest of the pipeline (snapshot
@@ -370,6 +410,12 @@ let highlightTimeout: any;
 /// completion and its events will arrive afterwards; they're a no-op because
 /// `agentBusy` is already false).
 let agentAbort: AbortController | null = null;
+/// Set when the user explicitly stops the agent. The synthetic turn_end
+/// emitted by the aborted HTTP fallback would otherwise FLUSH the queued
+/// prompts — but stopping means "halt everything", so the queue must
+/// survive untouched (the chips stay visible with a Send button). Consumed
+/// by the queue-flush sites in _onSync.
+let suppressQueueFlush = false;
 
 // ---- Phase 4 patch coalescing (spec §4.4) -----------------------------------
 //
@@ -815,6 +861,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   viewerCount: 1,
   turns: [],
   agentBusy: false,
+  queuedPrompts: [],
   contextTokens: 0,
   contextWindow: 128_000,
   lastCompacted: false,
@@ -1241,6 +1288,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   stopAgent: () => {
     const { agentBusy } = get();
     if (!agentBusy) return;
+    // Stop ≠ turn end for the QUEUE: don't auto-send the next queued prompt
+    // when the synthetic turn_end lands (see suppressQueueFlush above).
+    suppressQueueFlush = true;
     // Abort the in-flight HTTP fetch (if any).
     if (agentAbort) {
       agentAbort.abort();
@@ -1313,6 +1363,78 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       });
     } catch {
       // sonner not available — skip.
+    }
+  },
+
+  queuePrompt: (text, images, selection) => {
+    const { agentBusy } = get();
+    // Queueing is a busy-state concept. When the agent is idle the UI calls
+    // promptAgent directly — but keep this safe if invoked programmatically.
+    if (!agentBusy || !text.trim()) return;
+    const q: QueuedPrompt = {
+      id: `q_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      text: text.trim(),
+      queuedAt: Date.now(),
+      ...(images && images.length > 0 ? { images } : {}),
+      ...(selection ? { selection } : {}),
+    };
+    set((s) => ({ queuedPrompts: [...s.queuedPrompts, q] }));
+  },
+
+  removeQueuedPrompt: (id) => {
+    set((s) => ({ queuedPrompts: s.queuedPrompts.filter((q) => q.id !== id) }));
+  },
+
+  sendQueuedPromptNow: (id) => {
+    const { agentBusy, queuedPrompts } = get();
+    if (agentBusy) return;
+    const q = queuedPrompts.find((item) => item.id === id);
+    if (!q) return;
+    set((s) => ({ queuedPrompts: s.queuedPrompts.filter((item) => item.id !== id) }));
+    get().promptAgent(q.text, q.images, q.selection);
+  },
+
+  editUserTurn: (turnId, newText) => {
+    const { agentBusy, turns, document } = get();
+    const text = newText.trim();
+    if (agentBusy || !text) return;
+    const idx = turns.findIndex((t) => t.id === turnId);
+    if (idx === -1 || turns[idx].role !== 'user') return;
+    const edited = turns[idx];
+    // Cursor edit semantics: the branch AFTER the edited message is
+    // discarded. Truncate the live buffer…
+    set({ turns: turns.slice(0, idx + 1) });
+    // …and the persisted session messages (same ids — user turns carry
+    // messageId === turn.id).
+    if (edited.sessionId && edited.messageId) {
+      useSessionStore.getState().truncateMessagesAfter(edited.sessionId, edited.messageId);
+    }
+    // Re-send with the edited text + the original attachments/selection.
+    get().promptAgent(
+      text,
+      edited.images && edited.images.length > 0 ? edited.images : undefined,
+      edited.selection,
+    );
+    // The canvas may have advanced past the truncated branch; that's the
+    // accepted trade-off of edit-resend on a mutable document (Cursor has
+    // the same behavior for non-checkpointed files — the canvas equivalent
+    // of a checkpoint is the version-history snapshot, which is untouched).
+    void document;
+  },
+
+  setTurnFeedback: (turnId, feedback) => {
+    set((s) => {
+      const turns = s.turns.map((t) => {
+        if (t.id !== turnId) return t;
+        const next = t.feedback === feedback ? undefined : feedback;
+        return next ? { ...t, feedback: next } : { ...t, feedback: undefined };
+      });
+      return { turns };
+    });
+    // Mirror to the session-store message (id-stable).
+    const turn = get().turns.find((t) => t.id === turnId);
+    if (turn?.messageId) {
+      useSessionStore.getState().setMessageFeedback(turn.messageId, feedback);
     }
   },
 
@@ -1391,7 +1513,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const session = ss.getSession(sessionId);
     if (!session || session.documentId !== documentId) return;
     ss.setActiveSession(documentId, sessionId);
-    set({ activeSessionId: sessionId });
+    // Switching chats abandons the queue — queued prompts belonged to the
+    // PREVIOUS conversation's flow (Cursor drops queued messages when you
+    // switch to a different chat pane too).
+    set({ activeSessionId: sessionId, queuedPrompts: [] });
     // Load the session's current snapshot. Measured bounds from the previous
     // document are stale (ids don't carry over) — clear the readback cache.
     if (session.currentSnapshotId) {
@@ -1483,6 +1608,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         toolCalls,
         streaming: m.status === 'streaming',
         error: m.error,
+        ...(m.feedback ? { feedback: m.feedback } : {}),
         sessionId: m.sessionId,
         runId: m.runId ?? undefined,
         messageId: m.id,
@@ -1687,6 +1813,22 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             useSessionStore.getState().endRun(last.runId, 'completed');
           }
         }
+        // Cursor-style message queue flush: send the NEXT queued prompt
+        // (if any) now that the turn is closed out. Runs after the snapshot
+        // logic above so the queued turn starts from the finished state; the
+        // duplicate-turn_end guard earlier in this case prevents a double
+        // flush. promptAgent re-arms agentBusy, so exactly one queued
+        // message is sent per completion. Suppressed after an explicit Stop
+        // (the queue survives for manual send).
+        if (suppressQueueFlush) {
+          suppressQueueFlush = false;
+        } else {
+          const next = get().queuedPrompts[0];
+          if (next) {
+            set((s) => ({ queuedPrompts: s.queuedPrompts.slice(1) }));
+            get().promptAgent(next.text, next.images, next.selection);
+          }
+        }
         break;
       }
       case 'agent:error': {
@@ -1718,6 +1860,20 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         toast.error('Agent error', {
           description: event.message?.slice(0, 200) ?? 'Unknown error',
         });
+        // A failed turn still frees the agent — flush the next queued
+        // prompt (Cursor queues survive a failed turn and retry in order).
+        if (!suppressQueueFlush) {
+          const next = get().queuedPrompts[0];
+          if (next) {
+            set((s) => ({ queuedPrompts: s.queuedPrompts.slice(1) }));
+            // Let the error state settle into the thread before the new run
+            // appends its placeholder turns (avoids a same-tick mutation race
+            // with the error reducer above).
+            setTimeout(() => {
+              get().promptAgent(next.text, next.images, next.selection);
+            }, 0);
+          }
+        }
         break;
       }
       case 'presence': {

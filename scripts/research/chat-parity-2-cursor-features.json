@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://cursor.com/changelog/1-6",
+    "name": "Slash commands, summarization, and improved Agent",
+    "snippet": "Sep 12, 2025 — Cursor automatically summarizes long conversation for you when reaching the context window limit. You can now summarize context on-demand with ... Read more",
+    "host_name": "cursor.com",
+    "rank": 0,
+    "date": "Sep 12, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/slash-command-suggestions-disappear-after-conversation-starts/159078",
+    "name": "Slash command suggestions disappear after conversation",
+    "snippet": "Apr 26, 2026 — Describe the Bug. After a chat conversation has started, typing / in the Cursor chat input no longer shows the list of available slash commands . Read more",
+    "host_name": "forum.cursor.com",
+    "rank": 1,
+    "date": "Apr 26, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.emgoto.com/cursor",
+    "name": "Getting started with Cursor AI",
+    "snippet": "Dec 12, 2025 — To open up the AI chat sidebar, you can type “Cmd + I”, or click the little diamond icon in the top right corner of your window (which I've also ... Read more",
+    "host_name": "www.emgoto.com",
+    "rank": 2,
+    "date": "Dec 12, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://cursor.com/docs/agent/overview",
+    "name": "Overview | Cursor Docs",
+    "snippet": "Cursor's assistant that can complete complex coding tasks independently, run terminal commands , and edit code. making edits, or running commands .",
+    "host_name": "cursor.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://explainx.ai/blog/cursor-cli-slash-commands-complete-reference-guide-2026",
+    "name": "Cursor CLI Slash Commands: Complete Reference (2026)",
+    "snippet": "Jun 11, 2026 — Every Cursor CLI slash command —/plan, /ask, /model, /compress, /mcp, /rules, and 25+ more. Workflow guide from official docs.",
+    "host_name": "explainx.ai",
+    "rank": 4,
+    "date": "Jun 11, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reactsquad.io/blog/this-new-cursor-feature-changes-everything-slash-commands",
+    "name": "This New Cursor Feature Changes Everything (Slash",
+    "snippet": "Sep 18, 2025 — This is a Cursor slash command . ‍. You're going to learn how to use Slash commands to automate tasks, chain them, and pass inputs. Read more",
+    "host_name": "www.reactsquad.io",
+    "rank": 5,
+    "date": "Sep 18, 2025",
+    "favicon": ""
+  }
+]

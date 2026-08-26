@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://forum.cursor.com/t/queue-follow-ups-after-thinking-ends-not-only-after-the-full-reply/156391",
+    "name": "Queue follow-ups after “thinking” ends, not only",
+    "snippet": "Apr 1, 2026 — When the agent is working on something and you send a new message , it is by default queued , yes, until after the current model finishes thinking ... Read more",
+    "host_name": "forum.cursor.com",
+    "rank": 0,
+    "date": "Apr 1, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.digitalapplied.com/blog/cursor-3-11-side-chats-agent-transcript-search-2026",
+    "name": "Cursor 3.11: Side Chats and Agent Transcript Search",
+    "snippet": "Jul 12, 2026 — Cursor 3.11 adds dur able parallel side chats, local search across your agent transcript history, and new cloud-agent hooks.",
+    "host_name": "www.digitalapplied.com",
+    "rank": 1,
+    "date": "Jul 12, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.infoq.com/news/2026/04/cursor-3-agent-first-interface",
+    "name": "Cursor 3 Introduces Agent-First Interface, Moving beyond",
+    "snippet": "Apr 16, 2026 — Cursor 3, a redesigned interface for its AI coding tool that shifts the primary interaction model from file editing to managing parallel coding ...",
+    "host_name": "www.infoq.com",
+    "rank": 2,
+    "date": "Apr 16, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/cursor/comments/1uy1s30/cursor_ai_new_interface_garbage",
+    "name": "Cursor AI new interface = GARBAGE",
+    "snippet": "I updated cursor and when it reopened, the entire interface looked like claude code and it was utter garbage. Read more",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@mariamargarida/exploring-cursors-new-ui-06947811cba9",
+    "name": "Exploring Cursor's New UI",
+    "snippet": "First, the updated chat interface is now more about choosing where you want to work. User Interface design directions for 2026 and beyond,",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.deployhq.com/guides/cursor",
+    "name": "Cursor 2026: Composer, Agent Mode, MCP & Background",
+    "snippet": "Apr 30, 2026 — Cursor is the AI-first code editor that started as a VS Code fork in 2023 and, by mid- 2026 , has matured into a standalone agentic IDE ... Read more",
+    "host_name": "www.deployhq.com",
+    "rank": 5,
+    "date": "Apr 30, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://petronellatech.com/blog/cursor-ai-ide-setup-guide/?srsltid=AfmBOoo91ivi330XyVD9iS739HTwBzncPQD8r-ubMHZHYo65ImlC0wAr",
+    "name": "Cursor AI IDE 2026: Setup, Agents, Security Guide",
+    "snippet": "May 12, 2026 — The agent loop changes how you scope tickets, how you write commit messages , and how you handle code review. Installing Cursor in 2026 . Read more",
+    "host_name": "petronellatech.com",
+    "rank": 6,
+    "date": "May 12, 2026",
+    "favicon": ""
+  }
+]
