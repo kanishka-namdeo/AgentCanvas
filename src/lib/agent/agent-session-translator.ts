@@ -191,11 +191,14 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
       const e = event as any;
       const toolCallId: string = e.toolCallId ?? '';
       const toolName: string = e.toolName ?? '';
-      // The SDK doesn't expose a pre-formatted args preview; we render a short
-      // JSON snapshot from the args object.
+      // The SDK doesn't expose a pre-formatted args preview; we render a JSON
+      // snapshot from the args object. Cap is generous (2K chars) so the chat
+      // UI can pretty-print the full args (Cursor-style tool cards show real
+      // arguments, not a 120-char stub); these travel the same NDJSON/socket
+      // path as canvas patches, which are routinely far larger.
       let argsPreview = '';
       try {
-        argsPreview = JSON.stringify(e.args ?? {}).slice(0, 120);
+        argsPreview = JSON.stringify(e.args ?? {}).slice(0, 2000);
       } catch {
         argsPreview = '(unserializable args)';
       }

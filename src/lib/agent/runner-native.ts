@@ -570,6 +570,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   let didFallback = false;
   let everSawMessageEnd = false;
   let everSawTurnEnd = false;
+  // True when a translator-emitted agent:turn_end was WITHHELD from the
+  // client stream (see the drain loops) — the tail must then emit the one
+  // authoritative turn_end so the UI never hangs.
+  let withheldTurnEnd = false;
   let lastSawActivity = false;
   let lastSawErrorEvent = false;
   let lastPromptError: any = undefined;
@@ -770,7 +774,18 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       for await (const ev of queue.drain()) {
         if (ev.kind === 'agent_event') {
           if (ev.event.type === 'agent:message_end') sawMessageEnd = true;
-          if (ev.event.type === 'agent:turn_end') sawTurnEnd = true;
+          if (ev.event.type === 'agent:turn_end') {
+            sawTurnEnd = true;
+            // WITHHOLD the per-attempt turn_end from the client stream: the
+            // critique loop below may still run (critics + fix-turn can take
+            // tens of seconds). Emitting it here made the client go idle
+            // (agentBusy=false → queue flush → snapshot) while the server was
+            // still working — racing a queued follow-up against the fix-turn
+            // and misattributing critique events to the next turn's bubble.
+            // The tail emits exactly ONE authoritative turn_end instead.
+            withheldTurnEnd = true;
+            continue;
+          }
           if (ev.event.type === 'agent:error') sawErrorEvent = true;
           // "Activity" = USER-VISIBLE output only (text or tool calls). Thinking
           // deltas deliberately do NOT count: a 429'd attempt can emit partial
@@ -1117,6 +1132,13 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
               fixSawActivity = true;
               fixSawToolCall = true;
             }
+            // Same turn_end withholding as the main drain loop — the
+            // fix-turn's agent_end must not close the client's turn while
+            // another critique iteration may follow.
+            if (ev.event.type === 'agent:turn_end') {
+              withheldTurnEnd = true;
+              continue;
+            }
           }
           yield ev;
           if (fixError) {
@@ -1222,7 +1244,10 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
   if (!everSawMessageEnd) {
     yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
   }
-  if (!everSawTurnEnd) {
+  // Exactly ONE turn_end reaches the client: either the translator's (when
+  // none were withheld) or the authoritative tail emission below (when they
+  // were — the critique loop has finished by this point).
+  if (!everSawTurnEnd || withheldTurnEnd) {
     yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
   }
 }

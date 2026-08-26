@@ -81,6 +81,26 @@ export interface ChatTurn {
   /// User feedback on an assistant turn (Cursor thumbs up/down). Mirrored
   /// to the session-store Message of the same id.
   feedback?: 'up' | 'down';
+  /// Live reasoning stream (pi-agent `agent:thinking_delta`). Displayed as a
+  /// collapsible "Thinking… / Thought for Ns" block above the answer
+  /// (Cursor thought-bubble / Claude thinking pattern). Live-buffer only —
+  /// not mirrored to the session store; reasoning is transient context.
+  thinking?: string;
+  /// Epoch-ms timestamps bounding the thinking phase. `thinkingEndedAt` is
+  /// stamped by the first message_delta / tool_call_start AFTER thinking
+  /// began — that's the moment the UI collapses the block.
+  thinkingStartedAt?: number;
+  thinkingEndedAt?: number;
+  /// Self-critique findings from the runner's mandatory critique loop
+  /// (pi-agent `agent:critique`). Rendered as a "self-review" row on the
+  /// turn so users can see WHY the agent iterated.
+  critique?: {
+    iteration: number;
+    defects: string[];
+    textSeverity: 'low' | 'medium' | 'high';
+    vlmSeverity: 'low' | 'medium' | 'high';
+    vlmScore?: number;
+  };
 }
 
 /// A prompt the user submitted WHILE the agent was busy (Cursor 3's default
@@ -100,6 +120,10 @@ export interface AgentToolCallEntry {
   argsPreview: string;
   success?: boolean;
   summary?: string;
+  /// Epoch-ms timestamps for the per-call duration chip ("1.2s") on the
+  /// tool card — Cursor/Cline render elapsed time per terminal command.
+  startedAt?: number;
+  endedAt?: number;
 }
 
 /// A real browser-measured node size (spec §3.8 measured-bounds readback).
@@ -1659,7 +1683,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
           if (last && last.role === 'assistant') {
-            turns[turns.length - 1] = { ...last, text: last.text + event.text };
+            turns[turns.length - 1] = {
+              ...last,
+              text: last.text + event.text,
+              // First answer text after thinking → close the thinking phase
+              // (the UI collapses "Thinking…" into "Thought for Ns").
+              ...(last.thinking && !last.thinkingEndedAt
+                ? { thinkingEndedAt: Date.now() }
+                : {}),
+            };
           }
           return { turns };
         });
@@ -1685,6 +1717,52 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         }
         break;
       }
+      case 'agent:thinking_delta': {
+        // Live reasoning stream — pi-agent emits these when the model has a
+        // thinking/reasoning phase. Accumulated into the turn's `thinking`
+        // buffer and rendered as a collapsible dimmed block above the answer
+        // (Cursor "thought bubble" / Claude thinking pattern). Previously
+        // this event had no reducer case and the tokens were dropped.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant') {
+            turns[turns.length - 1] = {
+              ...last,
+              thinking: (last.thinking ?? '') + event.text,
+              ...(last.thinkingStartedAt === undefined
+                ? { thinkingStartedAt: Date.now() }
+                : {}),
+            };
+          }
+          return { turns };
+        });
+        break;
+      }
+      case 'agent:critique': {
+        // Self-critique findings from the runner's mandatory critique loop.
+        // Stored on the turn for the "self-review" row — one entry per
+        // iteration (later iterations overwrite earlier ones; the LAST
+        // critique is the one that gated the final output).
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant') {
+            turns[turns.length - 1] = {
+              ...last,
+              critique: {
+                iteration: event.iteration,
+                defects: event.defects,
+                textSeverity: event.textSeverity,
+                vlmSeverity: event.vlmSeverity,
+                ...(event.vlmScore !== undefined ? { vlmScore: event.vlmScore } : {}),
+              },
+            };
+          }
+          return { turns };
+        });
+        break;
+      }
       case 'agent:tool_call_start': {
         set((s) => {
           const turns = [...s.turns];
@@ -1692,12 +1770,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           if (last && last.role === 'assistant') {
             turns[turns.length - 1] = {
               ...last,
+              // A tool call also closes the thinking phase (models think →
+              // act; the answer text may only arrive after the tools ran).
+              ...(last.thinking && !last.thinkingEndedAt
+                ? { thinkingEndedAt: Date.now() }
+                : {}),
               toolCalls: [
                 ...last.toolCalls,
                 {
                   id: event.toolCallId,
                   name: event.toolName,
                   argsPreview: event.argsPreview,
+                  startedAt: Date.now(),
                 },
               ],
             };
@@ -1725,7 +1809,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               ...last,
               toolCalls: last.toolCalls.map((tc) =>
                 tc.id === event.toolCallId
-                  ? { ...tc, success: event.success, summary: event.summary }
+                  ? { ...tc, success: event.success, summary: event.summary, endedAt: Date.now() }
                   : tc,
               ),
             };
@@ -1840,7 +1924,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               ...last,
               streaming: false,
               error: event.message,
-              text: (last.text ? last.text + '\n\n' : '') + `⚠️ ${event.message}`,
+              // The error is surfaced by the turn's dedicated error row —
+              // NOT spliced into the markdown text (polluting the answer
+              // made partial responses unreadable and uncopyable).
             };
           }
           return { turns, agentBusy: false };

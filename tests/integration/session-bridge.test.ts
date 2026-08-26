@@ -291,7 +291,10 @@ describe('session bridge: error path', () => {
     expect(s.agentBusy).toBe(false);
     expect(s.turns[1].streaming).toBe(false);
     expect(s.turns[1].error).toBe('LLM rate-limited');
-    expect(s.turns[1].text).toContain('LLM rate-limited');
+    // Chat-parity change: the error message lives on turn.error (rendered by
+    // the dedicated error row) and is NOT spliced into the markdown text —
+    // partial responses stay readable and copyable.
+    expect(s.turns[1].text).not.toContain('LLM rate-limited');
 
     const ss = useSessionStore.getState();
     expect(ss.getMessage(assistantMessageId)?.status).toBe('error');

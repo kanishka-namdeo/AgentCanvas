@@ -42,9 +42,9 @@ function CodeBlock({ children }: { children: ReactNode }) {
   );
 }
 
-export const MarkdownMessage = memo(function MarkdownMessage({ text }: { text: string }) {
+export const MarkdownMessage = memo(function MarkdownMessage({ text, streaming }: { text: string; streaming?: boolean }) {
   return (
-    <div className="text-xs ac-text-1 leading-relaxed markdown-chat">
+    <div className={`text-xs ac-text-1 leading-relaxed markdown-chat ${streaming ? 'is-streaming' : ''}`}>
       <ReactMarkdown
         components={{
           // Tighten the default spacing for a chat panel.

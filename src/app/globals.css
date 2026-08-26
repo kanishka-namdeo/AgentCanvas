@@ -384,6 +384,46 @@
   50%      { opacity: 0.4; }
 }
 
+/* ─── Streaming caret ──────────────────────────────────────────────────────
+   Thin blinking bar appended after the assistant's streaming markdown so a
+   paused stream never looks like a finished one (ChatGPT / Claude / Cursor
+   pattern — see docs/chat-parity.md). Disabled under reduced motion. */
+.ac-caret {
+  display: inline-block;
+  width: 2px;
+  height: 0.95em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background-color: var(--ac-accent);
+  animation: ac-caret-blink 1.1s steps(1) infinite;
+}
+@keyframes ac-caret-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ac-caret { animation: none; opacity: 0.6; }
+}
+
+/* Streaming caret on the LAST markdown block — appended via ::after so it
+   lands at the end of the last text line (not on its own line below the
+   block). Applies to every block-level child (p, li, h*, pre, …). */
+.markdown-chat.is-streaming > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 0.9em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background-color: var(--ac-accent);
+  animation: ac-caret-blink 1.1s steps(1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .markdown-chat.is-streaming > :last-child::after { animation: none; opacity: 0.6; }
+}
+
 /* ─── Compact density ──────────────────────────────────────────────────────
    Activated when [data-density="compact"] is set on the root div (page.tsx).
    Tightens spacing + font sizes globally. Designed to be opt-in: comfortable

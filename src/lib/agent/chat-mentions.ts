@@ -105,17 +105,36 @@ export function applyMention(input: string, mention: LayerMention, caretIndex = 
 /// exact normalized match only — this is targeting, not search). Unknown
 /// names are skipped silently; the prompt text still carries them for the
 /// LLM to read.
+///
+/// Multi-word layer names ("@Hero Section") are matched longest-first against
+/// the text that follows the '@' (separator-insensitive, trailing punctuation
+/// tolerated). The previous `/@([^\s@]+)/` regex stopped at the first space,
+/// so mentioning ANY multi-word layer silently produced no targeting — while
+/// applyMention happily inserted those names.
 export function extractMentionedLayerIds(input: string, shapes: Shape[]): string[] {
-  const byNorm = new Map<string, string>();
-  for (const s of shapes) {
-    if (s.name) byNorm.set(norm(s.name), s.id);
-  }
+  // Longest name first so "@Hero Section" wins over a hypothetical "@Hero".
+  const entries = shapes
+    .filter((s) => s.name && s.name.trim())
+    .map((s) => ({ id: s.id, name: s.name as string, norm: norm(s.name as string) }))
+    .sort((a, b) => b.name.length - a.name.length);
   const ids: string[] = [];
-  const re = /@([^\s@]+)/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(input)) !== null) {
-    const id = byNorm.get(norm(m[1]));
-    if (id && !ids.includes(id)) ids.push(id);
+  let i = input.indexOf('@');
+  while (i !== -1) {
+    // '@' must start a word (same rule as activeMentionToken).
+    const startsWord = i === 0 || /\s/.test(input[i - 1]);
+    if (startsWord) {
+      const rest = input.slice(i + 1);
+      for (const e of entries) {
+        // Compare the normalized prefix of the same length as the layer name;
+        // tolerate trailing punctuation ("@Header, please" → "Header").
+        const candidate = rest.slice(0, e.name.length).replace(/[^\w\s-]+$/, '');
+        if (candidate && norm(candidate) === e.norm) {
+          if (!ids.includes(e.id)) ids.push(e.id);
+          break;
+        }
+      }
+    }
+    i = input.indexOf('@', i + 1);
   }
   return ids;
 }
