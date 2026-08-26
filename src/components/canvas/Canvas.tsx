@@ -910,9 +910,9 @@ export function Canvas() {
             >
               <PenLine className="h-5 w-5" />
             </div>
-            <div className="space-y-1">
-              <div className="text-[14px] font-semibold ac-text-1">Empty canvas</div>
-              <div className="text-[12px] ac-text-3 leading-relaxed">
+            <div className="space-y-1.5">
+              <div className="text-[18px] font-semibold ac-text-1 tracking-tight">Empty canvas</div>
+              <div className="text-[12px] ac-text-2 leading-relaxed">
                 Describe what you want to build in the panel on the right,
                 <br />
                 or pick a shape from the toolbar to drop one in.

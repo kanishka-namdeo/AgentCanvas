@@ -181,7 +181,7 @@ export function SessionSidebar() {
                         {session.title}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] ac-text-4">
+                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] ac-text-3">
                       <span>{relativeTime(session.lastOpenedAt)}</span>
                       <span className="ac-text-5">·</span>
                       <span>{session.messageCount} msg</span>

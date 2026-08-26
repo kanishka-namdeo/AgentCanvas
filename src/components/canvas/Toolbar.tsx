@@ -115,7 +115,12 @@ export function Toolbar() {
     // when not on a button; we re-enable pointer events on the pill itself.
     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
       <div
-        className="pointer-events-auto flex items-center gap-0.5 px-1.5 py-1 rounded-full border ac-border-default ac-surface-0 shadow-lg ac-transition"
+        className="pointer-events-auto flex items-center gap-0.5 px-1.5 py-1 rounded-full border ac-border-default shadow-lg ac-transition"
+        style={{
+          backgroundColor: 'color-mix(in oklch, var(--ac-surface-0) 92%, transparent)',
+          backdropFilter: 'blur(8px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(8px) saturate(140%)',
+        }}
         role="toolbar"
         aria-label="Canvas toolbar"
       >

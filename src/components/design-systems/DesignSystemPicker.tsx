@@ -113,7 +113,7 @@ export function DesignSystemPicker({ open, onOpenChange, onPick }: DesignSystemP
                 )}
 
                 {/* Dependencies */}
-                <div className="mt-4">
+                <div className="mt-6">
                   <h4 className="text-xs font-semibold uppercase tracking-wide ac-text-3 mb-2">
                     Dependencies
                   </h4>
@@ -127,15 +127,15 @@ export function DesignSystemPicker({ open, onOpenChange, onPick }: DesignSystemP
                 </div>
 
                 {/* Import map */}
-                <div className="mt-4">
+                <div className="mt-6">
                   <h4 className="text-xs font-semibold uppercase tracking-wide ac-text-3 mb-2">
                     Import map
                   </h4>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-mono ac-surface-1 rounded-md p-3">
                     {Object.entries(pack.importMap).map(([comp, path]) => (
                       <div key={comp} className="flex justify-between gap-2">
-                        <span className="ac-text-2">{comp}</span>
-                        <span className="ac-text-3 truncate">{path}</span>
+                        <span className="ac-text-1">{comp}</span>
+                        <span className="ac-text-2 truncate">{path}</span>
                       </div>
                     ))}
                   </div>
@@ -150,7 +150,7 @@ export function DesignSystemPicker({ open, onOpenChange, onPick }: DesignSystemP
         </div>
 
         <DialogFooter className="px-6 py-4 border-t ac-border-subtle flex-row justify-between">
-          <p className="text-[11px] ac-text-3">
+          <p className="text-[11px] ac-text-2">
             The chosen pack is persisted to <code className="font-mono">localStorage</code> —
             the agent will pick it up automatically on next UI generation.
           </p>
@@ -180,8 +180,8 @@ function PackCard({
       className={cn(
         'w-full text-left p-3 rounded-md border ac-transition cursor-pointer',
         active
-          ? 'ac-surface-2 border-[var(--ac-accent)] shadow-[inset_2px_0_0_0_var(--ac-accent)]'
-          : 'ac-surface-0 ac-border-subtle hover:ac-surface-1',
+          ? 'ac-surface-2 border-[var(--ac-accent)] shadow-[inset_3px_0_0_0_var(--ac-accent),0_0_0_1px_var(--ac-accent-border)]'
+          : 'ac-surface-0 ac-border-subtle hover:ac-surface-1 hover:ac-border-default',
       )}
     >
       <div className="flex items-center gap-1 mb-2">
@@ -201,12 +201,12 @@ function PackCard({
         )}
       </div>
       <div className="text-sm font-semibold ac-text-1 mb-1">{humanifyName(pack.name)}</div>
-      <p className="text-[11px] ac-text-3 leading-snug line-clamp-2 mb-2">{pack.description}</p>
+      <p className="text-[11px] ac-text-2 leading-snug line-clamp-3 mb-2">{pack.description}</p>
       <div className="flex flex-wrap gap-1">
         {pack.bestFor.slice(0, 3).map((tag) => (
           <span
             key={tag}
-            className="text-[9px] uppercase tracking-wide ac-text-3 ac-surface-2 px-1.5 py-0.5 rounded"
+            className="text-[9px] uppercase tracking-wide ac-text-2 ac-surface-2 px-1.5 py-0.5 rounded"
           >
             {tag}
           </span>

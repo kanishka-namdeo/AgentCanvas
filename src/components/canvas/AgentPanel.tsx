@@ -731,7 +731,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                   instances, slots, copy, and audits. You can also draw manually — the
                   agent will see your edits.
                 </p>
-                <p className="mt-2 leading-relaxed ac-text-3">
+                <p className="mt-2 leading-relaxed ac-text-2">
                   Attach reference images with the paperclip, by pasting, or by dropping
                   them here — vision-capable models (look for the Eye icon next to a model)
                   will use them as visual context.
