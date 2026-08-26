@@ -404,14 +404,21 @@ interface CanvasState {
   /// Set the active canvas tool mode ('select', 'pan' or 'scale').
   setToolMode: (mode: 'select' | 'pan' | 'scale') => void;
   setDocumentName: (name: string) => void;
-  /// Switch the active session for this document. Rebuilds `turns` from
-  /// the session store's messages and replaces the canvas with the
-  /// session's latest snapshot.
+  /// Switch the active conversation for this document. SHARED-CANVAS MODEL:
+  /// rebuilds `turns` from the session store's messages but NEVER touches the
+  /// document — all chats on a canvas share one live document.
   switchSession: (sessionId: string) => void;
-  /// Create a new session for this document and activate it.
+  /// Create a new conversation for this document and activate it. The canvas
+  /// is NOT reset — the new chat continues from the current shared state.
   newSession: () => string | null;
-  /// Fork the active session from a specific message.
+  /// Fork the active conversation from a specific message (copies the
+  /// message prefix into a new chat). The canvas is shared and untouched.
   forkActiveSession: (fromMessageId?: string | null) => string | null;
+  /// Restore the shared canvas to a document snapshot: appends a 'restore'
+  /// snapshot (append-only), swaps the live document, and broadcasts a
+  /// `document:restore` so every viewer follows. Remote (metadata-only)
+  /// snapshots are fetched from the server first.
+  restoreSnapshot: (snapshotId: string) => Promise<void>;
 
   // Internal — called by socket event handler
   _onSync: (event: SyncEvent) => void;
@@ -1093,8 +1100,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     get().loadGuides();
 
     // Hydrate from the session store: pick (or create) the active session
-    // for this document, then load its latest snapshot (if any) into the
-    // canvas and rebuild `turns`.
+    // for this document, then load the DOCUMENT's latest snapshot (if any)
+    // into the canvas — the timeline is shared across every chat on this
+    // canvas (newest entry wins, regardless of which session produced it).
+    // Remote (metadata-only) entries are skipped: they carry no document
+    // payload, and boot stays synchronous.
     const ss = useSessionStore.getState();
     let active = ss.getActiveSession(documentId);
     if (!active) {
@@ -1111,15 +1121,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
     }
     set({ activeSessionId: active.id });
-    // Load the snapshot if one exists.
-    if (active.currentSnapshotId) {
-      const snap = ss.getSnapshot(active.currentSnapshotId);
-      if (snap) {
-        set({ document: { ...snap.document, id: documentId } });
-      }
+    // Load the document's newest local snapshot (shared canvas model).
+    const latest = ss.listSnapshots(documentId)[0];
+    if (latest && !latest.remote) {
+      set({ document: { ...latest.document, id: documentId } });
     } else {
-      // No snapshot — use the document name from the session title.
-      set((s) => ({ document: { ...s.document, id: documentId, name: active!.title } }));
+      // No usable snapshot — keep the current document, just re-key its id.
+      set((s) => ({ document: { ...s.document, id: documentId } }));
     }
     get()._syncTurnsFromSession();
 
@@ -1310,7 +1318,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   stopAgent: () => {
-    const { agentBusy } = get();
+    const { agentBusy, documentId } = get();
     if (!agentBusy) return;
     // Stop ≠ turn end for the QUEUE: don't auto-send the next queued prompt
     // when the synthetic turn_end lands (see suppressQueueFlush above).
@@ -1336,9 +1344,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
       if (last?.sessionId) {
         useSessionStore.getState().captureSnapshot(
-          last.sessionId,
+          documentId,
           get().document,
           {
+            sessionId: last.sessionId,
             source: 'turn_end',
             sourceRunId: last.runId ?? undefined,
             sourceMessageId: last.messageId ?? undefined,
@@ -1519,12 +1528,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   switchSession: (sessionId) => {
     const { documentId, agentBusy } = get();
-    // Guard: switching sessions mid-turn would replace `document` while the
-    // streaming agent keeps patching the old one (incoming patches would land
-    // on the NEW session's canvas, and `_onSync` would append to `turns`
-    // rebuilt for the new session — corrupting both). The user must stop the
-    // agent first. (The SessionSidebar buttons should also be disabled —
-    // this is the store-level backstop.)
+    // Guard: switching chats mid-turn would interleave the streaming agent's
+    // deltas + tool calls into the NEW session's turns buffer (both chats
+    // share the canvas, but the transcript recording is per-chat). The user
+    // must stop the agent first. (The SessionSidebar buttons should also be
+    // disabled — this is the store-level backstop.)
     if (agentBusy) {
       try {
         import('sonner').then(({ toast }) => {
@@ -1541,17 +1549,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // PREVIOUS conversation's flow (Cursor drops queued messages when you
     // switch to a different chat pane too).
     set({ activeSessionId: sessionId, queuedPrompts: [] });
-    // Load the session's current snapshot. Measured bounds from the previous
-    // document are stale (ids don't carry over) — clear the readback cache.
-    if (session.currentSnapshotId) {
-      const snap = ss.getSnapshot(session.currentSnapshotId);
-      if (snap) {
-        set({ document: { ...snap.document, id: documentId }, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
-      }
-    } else {
-      set({ document: { ...EMPTY_DOC, id: documentId, name: session.title }, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
-    }
-    // Rebuild `turns` from session messages.
+    // SHARED-CANVAS MODEL: the document is NOT swapped — every chat on this
+    // canvas mutates the same live document. Only the transcript changes.
+    // (Measured bounds + checkpoints stay valid: the document is untouched.)
     get()._syncTurnsFromSession();
   },
 
@@ -1559,44 +1559,83 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const { documentId } = get();
     const ss = useSessionStore.getState();
     const session = ss.createSession(documentId, { title: 'New chat' });
+    // switchSession no longer swaps the canvas — the new chat simply
+    // continues on the CURRENT shared document state with an empty
+    // transcript.
     get().switchSession(session.id);
     return session.id;
   },
 
   forkActiveSession: (fromMessageId) => {
-    const { activeSessionId, documentId } = get();
+    const { activeSessionId } = get();
     if (!activeSessionId) return null;
-    const ss = useSessionStore.getState();
-    // If fromMessageId is provided, try to fork from the snapshot captured at
-    // the end of that message's turn (not the parent's currentSnapshotId).
-    // This makes "Fork from this message" actually seed the fork from that
-    // point in history.
-    if (fromMessageId) {
-      // Find the snapshot whose sourceMessageId === fromMessageId.
-      // If not found, fall back to the closest earlier snapshot.
-      const session = ss.sessions[activeSessionId];
-      if (session) {
-        const allSnaps = session.snapshotIds
-          .map((id) => ss.snapshots[id])
-          .filter(Boolean)
-          .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-        const exact = allSnaps.find((s) => s.sourceMessageId === fromMessageId);
-        // Or: the most recent snapshot at or before the message's turn.
-        // For simplicity, use exact match if found; otherwise fall through to default forkSession.
-        if (exact) {
-          const fork = ss.forkSessionFromSnapshot(activeSessionId, exact.id);
-          if (fork) {
-            get().switchSession(fork.id);
-            return fork.id;
-          }
-        }
-      }
-    }
-    // Default: fork from the parent's currentSnapshotId (latest state).
-    const fork = ss.forkSession(activeSessionId, fromMessageId ?? null);
+    // Conversation fork (shared canvas): the fork gets a copy of the parent's
+    // message prefix and shares the live document. No snapshot lookup — the
+    // canvas timeline is document-scoped and never forked.
+    const fork = useSessionStore.getState().forkSession(activeSessionId, fromMessageId ?? null);
     if (!fork) return null;
     get().switchSession(fork.id);
     return fork.id;
+  },
+
+  restoreSnapshot: async (snapshotId) => {
+    const { documentId, socket, connected } = get();
+    const ss = useSessionStore.getState();
+    const snap = ss.getSnapshot(snapshotId);
+    if (!snap || snap.documentId !== documentId) return;
+    // Resolve the target document. Remote (metadata-only) entries must be
+    // fetched from the server first — the local placeholder is empty.
+    let resolved: CanvasDocument | null = snap.remote ? null : snap.document;
+    if (snap.remote) {
+      try {
+        const { fetchDocumentSnapshot } = await import('@/lib/sessions/server-sync');
+        const full = await fetchDocumentSnapshot(documentId, snap.id);
+        if (full?.document) {
+          resolved = full.document as CanvasDocument;
+          // Fill in the local registry entry so future restores are local.
+          useSessionStore.getState().ingestServerSnapshot({
+            ...full,
+            document: resolved,
+          });
+        }
+      } catch {
+        // fetch module failures surface through the null below.
+      }
+      if (!resolved) {
+        try {
+          import('sonner').then(({ toast }) => {
+            toast.error('Restore failed', { description: 'Could not fetch the snapshot from the server.' });
+          });
+        } catch { /* sonner unavailable */ }
+        return;
+      }
+    }
+    // Type-level guard: both branches above guarantee a resolved document
+    // (remote entries return early on fetch failure).
+    if (!resolved) return;
+    // Append-only restore on the document timeline (creates a new 'restore'
+    // snapshot + server-syncs it).
+    const restored = useSessionStore.getState().restoreSnapshot(documentId, snapshotId);
+    if (!restored) return;
+    // Swap the shared document. Measured bounds + checkpoints reference the
+    // previous content's ids — clear them (undo/redo stacks stay: undo can
+    // still step back over the restore).
+    set({
+      document: { ...resolved, id: documentId },
+      measuredBounds: {},
+      checkpoints: [],
+      lastCheckpointSignature: null,
+    });
+    // Broadcast the restored state so other viewers + the in-memory WS doc
+    // follow (the server rebroadcasts it as canvas:full to all subscribers,
+    // including us — an idempotent replace).
+    if (socket && connected) {
+      socket.emit('client', {
+        type: 'document:restore',
+        documentId,
+        document: get().document,
+      } satisfies ClientEvent);
+    }
   },
 
   _syncTurnsFromSession: () => {
@@ -1651,6 +1690,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         if (!doc.shapes) doc.shapes = resolvePenTree(doc);
         if (!doc.tokens) doc.tokens = { colors: [], textStyles: [] };
         if (!doc.viewport) doc.viewport = { zoom: 1, panX: 120, panY: 80 };
+        // Empty-incoming guard (shared canvas): a restarted WS service can
+        // reply to `subscribe` with a fresh empty in-memory document while
+        // this client just hydrated real content from the document's latest
+        // snapshot — clobbering it would silently destroy the user's canvas.
+        // Skip empty replaces when local content exists and no agent turn is
+        // in flight. (The in-process service seeds itself from the DB latest
+        // DocumentSnapshot, so a healthy path never trips this guard.)
+        const incomingEmpty = doc.children.length === 0 && doc.shapes.length === 0;
+        const local = get().document;
+        const localEmpty = (local.children?.length ?? 0) === 0 && local.shapes.length === 0;
+        if (incomingEmpty && !localEmpty && !get().agentBusy) {
+          break;
+        }
         set({ document: doc, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
         break;
       }
@@ -1826,6 +1878,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'agent:turn_end': {
+        const { documentId } = get();
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
@@ -1859,7 +1912,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           // auto-capture entirely; the user must use the History panel's
           // "Capture current state" button.
           const cadence = useSettings.getState().snapshotCadence;
-          const maxSnaps = useSettings.getState().maxSnapshotsPerSession;
+          const maxSnaps = useSettings.getState().maxSnapshotsPerCanvas;
           const sess = useSessionStore.getState().sessions[last.sessionId];
           const turnNumber = sess?.runCount ?? 0;
           const shouldCapture =
@@ -1869,25 +1922,33 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           // cadence === 'manual' → shouldCapture stays false
 
           if (shouldCapture) {
+            // SHARED-CANVAS MODEL: the snapshot lands on the DOCUMENT
+            // timeline (keyed by documentId) with the chat's sessionId as
+            // provenance — every chat on this canvas contributes to the same
+            // version history.
             useSessionStore.getState().captureSnapshot(
-              last.sessionId,
+              documentId,
               get().document,
               {
+                sessionId: last.sessionId,
                 source: 'turn_end',
                 sourceRunId: last.runId ?? undefined,
                 sourceMessageId: last.messageId ?? undefined,
                 createdBy: 'agent',
               },
             );
-            // Enforce max snapshots per session — trim oldest, but never
+            // Enforce max snapshots per DOCUMENT — trim oldest, but never
             // delete bookmarked snapshots (the user marked them as keepers).
-            if (sess && sess.snapshotIds.length >= maxSnaps) {
-              const allSnaps = useSessionStore.getState().snapshots;
-              const candidates = sess.snapshotIds
-                .map((id) => allSnaps[id])
-                .filter((s) => s && !s.bookmarked)
+            // Remote (metadata-only) entries are server-owned; local trims
+            // only apply to local captures.
+            const docSnaps = useSessionStore.getState()
+              .listSnapshots(documentId)
+              .filter((sn) => !sn.remote);
+            if (docSnaps.length >= maxSnaps) {
+              const candidates = docSnaps
+                .filter((sn) => !sn.bookmarked)
                 .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-              const excess = (sess.snapshotIds.length + 1) - maxSnaps;
+              const excess = (docSnaps.length + 1) - maxSnaps;
               for (let i = 0; i < excess && i < candidates.length; i++) {
                 useSessionStore.getState().deleteSnapshot?.(candidates[i].id);
               }

@@ -566,6 +566,9 @@ export type ClientEvent =
   | { type: 'subscribe'; documentId: string }
   | { type: 'canvas:patch'; patch: CanvasPatch }
   | { type: 'canvas:request_full'; documentId: string }
+  // Shared-canvas restore: the client swapped the document back to a snapshot
+  // and pushes the new state so every viewer + the in-memory WS doc follow.
+  | { type: 'document:restore'; documentId: string; document: CanvasDocument }
   | { type: 'agent:prompt'; documentId: string; prompt: string; settings?: AgentRunSettings; images?: Array<{ id?: string; name?: string; dataUrl: string }>; selection?: { count: number; names: string[] } }
   | { type: 'agent:steer'; documentId: string; text: string }
   // ---- Client round-trip responses (spec §5.2 / Phase 3, M2-c) ------------

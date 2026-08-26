@@ -7,9 +7,10 @@
 // thousands of empty "Canvas · demo" Session rows with zero messages/runs/
 // snapshots (2,733 at discovery time), all runs orphaned.
 //
-// This script deletes Session rows that have NO messages, NO runs, and NO
-// snapshots (pure empty shells — safe to drop; the client recreates sessions
-// on demand). Rows with any content are kept untouched.
+// This script deletes Session rows that have NO messages and NO runs (pure
+// empty shells — safe to drop; the client recreates sessions on demand).
+// Rows with any content are kept untouched. Snapshots are document-scoped
+// (shared-canvas model) and no longer factor into session emptiness.
 //
 // Run: bun run scripts/cleanup-orphan-sessions.ts [--dry-run]
 
@@ -29,7 +30,6 @@ async function main() {
     where: {
       messages: { none: {} },
       runs: { none: {} },
-      snapshots: { none: {} },
     },
   });
 

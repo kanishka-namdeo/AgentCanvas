@@ -1,24 +1,34 @@
 // Agent session store — persisted to localStorage via Zustand `persist`.
 //
-// Single source of truth for: sessions, runs, messages, tool-call records,
-// and canvas snapshots. The canvas store (lib/canvas/store.ts) bridges into
-// this store: every promptAgent call starts a Run; every streaming event
-// updates a Message / ToolCallRecord; every turn_end captures a Snapshot.
+// Single source of truth for: sessions (conversation contexts), runs,
+// messages, tool-call records, and DOCUMENT-scoped canvas snapshots. The
+// canvas store (lib/canvas/store.ts) bridges into this store: every
+// promptAgent call starts a Run; every streaming event updates a Message /
+// ToolCallRecord; every turn_end captures a Snapshot on the shared canvas.
+//
+// SHARED-CANVAS MODEL: the Document is the shared artifact. Multiple
+// sessions attach to one documentId and mutate ONE canvas. Snapshots belong
+// to the document (with sessionId/runId/messageId provenance), never to a
+// chat — deleting a chat preserves the canvas timeline.
 //
 // Persistence model
 // -----------------
-// localStorage key: `agentcanvas.sessions.v1`
-// Value: { sessions, runs, messages, toolCalls, snapshots, activeSessionId }
+// localStorage key: `agentcanvas.sessions.v1` (version 2 — see migrate)
+// Value: { sessions, runs, messages, toolCalls, snapshots, activeSessionByDoc }
 //
 // State invariants
 // ----------------
 // 1. Only one Run per Session may be in a non-terminal status
 //    (queued | in_progress | awaiting_tool | cancelling).
-// 2. Forking sets parentId + forkedFromMessageId + forkedFromSnapshotId
-//    and seeds currentSnapshotId from a deep copy of that snapshot.
+// 2. Forking sets parentId + forkedFromMessageId on the new session and
+//    copies the parent's message prefix (conversation fork). Runs, tool
+//    calls, and snapshots are NOT copied — the canvas is shared.
 // 3. Snapshots are append-only — restore creates a NEW snapshot with
 //    source: 'restore' pointing at the restored one. Forward history
 //    is never destroyed (Lovable model).
+// 4. Snapshot entries hydrated from the server list endpoint carry
+//    remote: true (metadata placeholder, no document JSON) until
+//    fetchDocumentSnapshot fills them in on restore.
 
 'use client';
 
@@ -45,6 +55,22 @@ function deepClone<T>(v: T): T {
   return JSON.parse(JSON.stringify(v));
 }
 
+/// Placeholder document for remote (metadata-only) snapshot entries — the
+/// server LIST endpoint omits the heavy document JSON; restore fetches the
+/// real payload before use. Never rendered or restored as-is.
+const EMPTY_PLACEHOLDER_DOC: CanvasDocument = {
+  id: 'remote-placeholder',
+  name: 'Remote snapshot',
+  version: '2.17',
+  children: [],
+  variables: undefined,
+  themes: undefined,
+  background: '#f8fafc',
+  viewport: { zoom: 1, panX: 0, panY: 0 },
+  shapes: [],
+  tokens: { colors: [], textStyles: [] },
+};
+
 // ---- Default factory --------------------------------------------------------
 
 function makeSession(documentId: string, partial?: Partial<Session>): Session {
@@ -60,7 +86,6 @@ function makeSession(documentId: string, partial?: Partial<Session>): Session {
     forkedFromMessageId: null,
     forkedFromSnapshotId: null,
     isRoot: true,
-    currentSnapshotId: null,
     currentRunId: null,
     lastRunId: null,
     model: 'unresolved',
@@ -69,7 +94,6 @@ function makeSession(documentId: string, partial?: Partial<Session>): Session {
     toolCallCount: 0,
     messageIds: [],
     runIds: [],
-    snapshotIds: [],
     createdAt: ts,
     updatedAt: ts,
     lastOpenedAt: ts,
@@ -102,7 +126,8 @@ interface SessionStoreState {
   getToolCall: (id: string) => ToolCallRecord | undefined;
   listToolCalls: (runId: string) => ToolCallRecord[];
   getSnapshot: (id: string) => Snapshot | undefined;
-  listSnapshots: (sessionId: string) => Snapshot[];
+  /// Document-scoped snapshot listing (shared canvas model) — newest first.
+  listSnapshots: (documentId: string) => Snapshot[];
   getStats: (documentId?: string) => SessionStats;
 
   // ---- Mutations: Sessions ----
@@ -121,10 +146,6 @@ interface SessionStoreState {
   unarchiveSession: (id: string) => void;
   deleteSession: (id: string) => void;
   forkSession: (parentId: string, fromMessageId: string | null) => Session | undefined;
-  /// Fork a session and seed the fork from a SPECIFIC snapshot's document
-  /// (not the parent's currentSnapshotId). Used by the RunHistoryPanel's
-  /// "Fork from this snapshot" action. The snapshot must belong to the parent.
-  forkSessionFromSnapshot: (parentId: string, snapshotId: string) => Session | undefined;
   touchSession: (id: string) => void;
 
   // ---- Mutations: Runs ----
@@ -156,24 +177,43 @@ interface SessionStoreState {
   startToolCall: (runId: string, toolCallId: string, name: string, argsPreview: string) => ToolCallRecord;
   endToolCall: (toolCallId: string, success: boolean, summary: string, patchSummary?: string) => void;
 
-  // ---- Mutations: Snapshots ----
-  captureSnapshot: (sessionId: string, document: CanvasDocument, opts?: {
+  // ---- Mutations: Snapshots (document-scoped, shared canvas model) ----
+  captureSnapshot: (documentId: string, document: CanvasDocument, opts?: {
+    sessionId?: string | null;
     source?: SnapshotSource;
     sourceRunId?: string;
     sourceMessageId?: string;
     label?: string;
     createdBy?: 'agent' | 'user' | 'system';
   }) => Snapshot;
-  restoreSnapshot: (sessionId: string, snapshotId: string) => Snapshot | undefined;
+  restoreSnapshot: (documentId: string, snapshotId: string) => Snapshot | undefined;
+  /// Upsert a server-side snapshot into the local registry (adopting the
+  /// server id). Entries without a `document` payload are stored as
+  /// metadata-only placeholders (remote: true) — the History panel lists
+  /// them and restore fetches the full document on demand.
+  ingestServerSnapshot: (snap: {
+    id: string;
+    documentId: string;
+    sessionId?: string | null;
+    messageId?: string | null;
+    runId?: string | null;
+    source?: string;
+    nodeCount?: number;
+    label?: string | null;
+    bookmarked?: boolean;
+    createdAt?: string;
+    document?: unknown;
+  }) => Snapshot | undefined;
   bookmarkSnapshot: (snapshotId: string) => void;
   labelSnapshot: (snapshotId: string, label: string) => void;
-  /// Permanently delete a snapshot. Refuses to delete bookmarked snapshots
-  /// (the user marked them as keepers). Updates the parent session's
-  /// snapshotIds list. If the session's currentSnapshotId was pointing at
-  /// the deleted snapshot, repoints it to the most recent remaining snapshot.
+  /// Permanently delete a document snapshot. Refuses to delete bookmarked
+  /// snapshots (the user marked them as keepers). Document-scoped — no
+  /// session bookkeeping (snapshots outlive chats on the shared canvas).
   deleteSnapshot: (snapshotId: string) => void;
 
   // ---- Bulk ----
+  /// Delete every session AND every snapshot of a document (full canvas
+  /// wipe — used by Settings → "Clear all chats").
   clearAllForDocument: (documentId: string) => void;
 }
 
@@ -250,18 +290,21 @@ export const useSessionStore = create<SessionStoreState>()(
 
       getSnapshot: (id) => get().snapshots[id],
 
-      listSnapshots: (sessionId) => {
-        const session = get().sessions[sessionId];
-        if (!session) return [];
-        return session.snapshotIds
-          .map((id) => get().snapshots[id])
-          .filter(Boolean)
+      listSnapshots: (documentId) => {
+        // Document-scoped (shared canvas model): the timeline belongs to the
+        // canvas, aggregated across every chat that produced entries.
+        return Object.values(get().snapshots)
+          .filter((snap) => snap.documentId === documentId)
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       },
 
       getStats: (documentId) => {
         const sessions = Object.values(get().sessions);
         const filtered = documentId ? sessions.filter((s) => s.documentId === documentId) : sessions;
+        const snapshots = Object.values(get().snapshots);
+        const filteredSnaps = documentId
+          ? snapshots.filter((snap) => snap.documentId === documentId)
+          : snapshots;
         const stats: SessionStats = {
           totalSessions: filtered.length,
           activeSessions: filtered.filter((s) => s.status === 'active').length,
@@ -269,7 +312,7 @@ export const useSessionStore = create<SessionStoreState>()(
           totalRuns: filtered.reduce((n, s) => n + s.runCount, 0),
           totalMessages: filtered.reduce((n, s) => n + s.messageCount, 0),
           totalToolCalls: filtered.reduce((n, s) => n + s.toolCallCount, 0),
-          totalSnapshots: filtered.reduce((n, s) => n + s.snapshotIds.length, 0),
+          totalSnapshots: filteredSnaps.length,
         };
         return stats;
       },
@@ -428,11 +471,12 @@ export const useSessionStore = create<SessionStoreState>()(
         set((s) => {
           const session = s.sessions[id];
           if (!session) return s;
-          // Cascade delete: messages, runs, tool calls, snapshots.
+          // Cascade delete: messages, runs, tool calls. Snapshots are
+          // DOCUMENT-scoped (shared canvas) — they outlive the chat and stay
+          // in the canvas timeline with their sessionId provenance intact.
           const messages = { ...s.messages };
           const runs = { ...s.runs };
           const toolCalls = { ...s.toolCalls };
-          const snapshots = { ...s.snapshots };
           for (const mid of session.messageIds) delete messages[mid];
           for (const rid of session.runIds) {
             const run = runs[rid];
@@ -441,103 +485,73 @@ export const useSessionStore = create<SessionStoreState>()(
               delete runs[rid];
             }
           }
-          for (const sid of session.snapshotIds) delete snapshots[sid];
           const sessions = { ...s.sessions };
           delete sessions[id];
           const active = { ...s.activeSessionByDoc };
           if (active[session.documentId] === id) delete active[session.documentId];
-          return { sessions, runs, messages, toolCalls, snapshots, activeSessionByDoc: active };
+          return { sessions, runs, messages, toolCalls, activeSessionByDoc: active };
         });
       },
 
       forkSession: (parentId, fromMessageId) => {
+        // SHARED-CANVAS MODEL: forking forks the CONVERSATION, not the canvas.
+        // The new chat gets a copy of the parent's message prefix (all of it,
+        // or up to & including fromMessageId) so it has the context to
+        // diverge; runs / tool-call records / snapshots are NOT copied (they
+        // stay with the parent) and the canvas is untouched — both chats
+        // continue mutating the same shared document.
         const parent = get().sessions[parentId];
         if (!parent) return undefined;
-        const ts = nowISO();
         const fork = makeSession(parent.documentId, {
           title: `Fork of ${parent.title}`,
           parentId,
           forkedFromMessageId: fromMessageId,
-          forkedFromSnapshotId: parent.currentSnapshotId,
+          forkedFromSnapshotId: null,
           isRoot: false,
           model: parent.model,
         });
-        // If parent has a current snapshot, seed the fork's currentSnapshotId
-        // with a fresh Snapshot (source: 'fork') that deep-copies it.
-        const updates: Partial<SessionStoreState> = {
-          sessions: { ...get().sessions, [fork.id]: fork },
-          activeSessionByDoc: {
-            ...get().activeSessionByDoc,
-            [parent.documentId]: fork.id,
-          },
-        };
-        const parentSnap = parent.currentSnapshotId
-          ? get().snapshots[parent.currentSnapshotId]
-          : undefined;
-        if (parentSnap) {
-          const forkSnap: Snapshot = {
-            id: newId('snap'),
-            sessionId: fork.id,
-            parentSnapshotId: parentSnap.id,
-            source: 'fork',
-            sourceRunId: null,
-            sourceMessageId: fromMessageId ?? null,
-            document: deepClone(parentSnap.document),
-            nodeCount: parentSnap.nodeCount,
-            label: null,
-            bookmarked: false,
-            createdAt: ts,
-            createdBy: 'user',
-          };
-          updates.snapshots = { ...get().snapshots, [forkSnap.id]: forkSnap };
-          updates.sessions = {
-            ...updates.sessions!,
-            [fork.id]: { ...fork, currentSnapshotId: forkSnap.id, snapshotIds: [forkSnap.id] },
-          };
+        // Copy the conversation prefix.
+        const msgs = get().listMessages(parentId);
+        let prefix = msgs;
+        if (fromMessageId) {
+          const idx = msgs.findIndex((m) => m.id === fromMessageId);
+          if (idx >= 0) prefix = msgs.slice(0, idx + 1);
         }
-        set(updates as SessionStoreState);
-        return get().sessions[fork.id];
-      },
-
-      forkSessionFromSnapshot: (parentId, snapshotId) => {
-        const parent = get().sessions[parentId];
-        const snap = get().snapshots[snapshotId];
-        if (!parent || !snap || snap.sessionId !== parentId) return undefined;
-        const ts = nowISO();
-        const fork = makeSession(parent.documentId, {
-          title: `Fork of ${parent.title}`,
-          parentId,
-          forkedFromMessageId: null,
-          forkedFromSnapshotId: snapshotId,
-          isRoot: false,
-          model: parent.model,
-        });
-        // Seed the fork with a deep copy of the requested snapshot's document.
-        const forkSnap: Snapshot = {
-          id: newId('snap'),
-          sessionId: fork.id,
-          parentSnapshotId: snap.id,
-          source: 'fork',
-          sourceRunId: null,
-          sourceMessageId: null,
-          document: deepClone(snap.document),
-          nodeCount: snap.nodeCount,
-          label: `Forked from ${snap.label ?? snap.id.slice(0, 12)}`,
-          bookmarked: false,
-          createdAt: ts,
-          createdBy: 'user',
-        };
+        const messages = { ...get().messages };
+        const forkMessageIds: string[] = [];
+        for (const m of prefix) {
+          const copy: Message = {
+            ...m,
+            id: newId('msg'),
+            sessionId: fork.id,
+            // Runs and their tool-call records belong to the parent — the
+            // fork keeps the readable transcript only.
+            runId: null,
+            toolCalls: [],
+            snapshotId: null,
+            feedback: undefined,
+            status: m.status === 'streaming' ? 'complete' : m.status,
+            createdAt: m.createdAt,
+            completedAt: m.completedAt,
+          };
+          messages[copy.id] = copy;
+          forkMessageIds.push(copy.id);
+        }
         set({
           sessions: {
             ...get().sessions,
-            [fork.id]: { ...fork, currentSnapshotId: forkSnap.id, snapshotIds: [forkSnap.id] },
+            [fork.id]: {
+              ...fork,
+              messageIds: forkMessageIds,
+              messageCount: forkMessageIds.length,
+            },
           },
-          snapshots: { ...get().snapshots, [forkSnap.id]: forkSnap },
+          messages,
           activeSessionByDoc: {
             ...get().activeSessionByDoc,
             [parent.documentId]: fork.id,
           },
-        } as Partial<SessionStoreState>);
+        });
         return get().sessions[fork.id];
       },
 
@@ -893,15 +907,17 @@ export const useSessionStore = create<SessionStoreState>()(
         });
       },
 
-      // ---- Snapshots ----
-      captureSnapshot: (sessionId, document, opts = {}) => {
-        const session = get().sessions[sessionId];
-        if (!session) throw new Error(`session ${sessionId} not found`);
+      // ---- Snapshots (document-scoped, shared canvas model) ----
+      captureSnapshot: (documentId, document, opts = {}) => {
+        // Append-only capture on the DOCUMENT timeline. `sessionId` (when
+        // provided) is provenance only — which chat's turn produced this.
         const ts = nowISO();
+        const parent = get().listSnapshots(documentId)[0] ?? null;
         const snap: Snapshot = {
           id: newId('snap'),
-          sessionId,
-          parentSnapshotId: session.currentSnapshotId,
+          documentId,
+          sessionId: opts.sessionId ?? null,
+          parentSnapshotId: parent?.id ?? null,
           source: opts.source ?? 'turn_end',
           sourceRunId: opts.sourceRunId ?? null,
           sourceMessageId: opts.sourceMessageId ?? null,
@@ -909,48 +925,48 @@ export const useSessionStore = create<SessionStoreState>()(
           nodeCount: document.shapes.length,
           label: opts.label ?? null,
           bookmarked: false,
+          remote: false,
           createdAt: ts,
           createdBy: opts.createdBy ?? 'agent',
         };
         set((s) => ({
           snapshots: { ...s.snapshots, [snap.id]: snap },
-          sessions: {
-            ...s.sessions,
-            [sessionId]: {
-              ...session,
-              snapshotIds: [...session.snapshotIds, snap.id],
-              currentSnapshotId: snap.id,
-              updatedAt: ts,
-            },
-          },
         }));
-        // Sync snapshot to server.
+        // Sync snapshot to server (document-scoped endpoint).
         if (typeof window !== 'undefined') {
-          const s = get().sessions[sessionId];
-          import('./server-sync').then(({ captureServerSnapshot }) => {
-            captureServerSnapshot(
-              sessionId,
+          import('./server-sync').then(({ captureDocumentSnapshot }) => {
+            captureDocumentSnapshot({
+              id: snap.id,
+              documentId,
+              sessionId: snap.sessionId,
               document,
-              opts.source ?? 'turn_end',
-              opts.sourceRunId,
-              s?.documentId,
-            );
+              source: snap.source,
+              runId: snap.sourceRunId,
+              messageId: snap.sourceMessageId,
+              nodeCount: snap.nodeCount,
+              label: snap.label,
+            });
           });
         }
         return snap;
       },
 
-      restoreSnapshot: (sessionId, snapshotId) => {
-        const session = get().sessions[sessionId];
+      restoreSnapshot: (documentId, snapshotId) => {
+        // Restore the SHARED document = create a NEW snapshot that deep-copies
+        // the chosen one (append-only history; the user can still go forward).
         const snap = get().snapshots[snapshotId];
-        if (!session || !snap || snap.sessionId !== sessionId) return undefined;
-        // Restore = create a NEW snapshot that deep-copies the chosen snapshot
-        // (append-only history; the user can still go back forward).
+        if (!snap || snap.documentId !== documentId) return undefined;
+        // Remote (metadata-only) entries must be filled in by the caller
+        // (canvas store's restoreSnapshot action fetches the full document
+        // first) — refuse rather than restore an empty placeholder.
+        if (snap.remote) return undefined;
         const ts = nowISO();
+        const parent = get().listSnapshots(documentId)[0] ?? null;
         const restored: Snapshot = {
           id: newId('snap'),
-          sessionId,
-          parentSnapshotId: snap.id,
+          documentId,
+          sessionId: snap.sessionId,
+          parentSnapshotId: parent?.id ?? null,
           source: 'restore',
           sourceRunId: null,
           sourceMessageId: null,
@@ -958,22 +974,57 @@ export const useSessionStore = create<SessionStoreState>()(
           nodeCount: snap.nodeCount,
           label: `Restored from ${snap.label ?? snap.id.slice(0, 12)}`,
           bookmarked: false,
+          remote: false,
           createdAt: ts,
           createdBy: 'user',
         };
         set((s) => ({
           snapshots: { ...s.snapshots, [restored.id]: restored },
-          sessions: {
-            ...s.sessions,
-            [sessionId]: {
-              ...session,
-              snapshotIds: [...session.snapshotIds, restored.id],
-              currentSnapshotId: restored.id,
-              updatedAt: ts,
-            },
-          },
         }));
+        // Persist the restore entry server-side too (the restored state is
+        // now the document's latest).
+        if (typeof window !== 'undefined') {
+          import('./server-sync').then(({ captureDocumentSnapshot }) => {
+            captureDocumentSnapshot({
+              id: restored.id,
+              documentId,
+              sessionId: restored.sessionId,
+              document: restored.document,
+              source: 'restore',
+              nodeCount: restored.nodeCount,
+              label: restored.label,
+            });
+          });
+        }
         return restored;
+      },
+
+      ingestServerSnapshot: (srv) => {
+        // Upsert a server-side snapshot row into the local registry, adopting
+        // the SERVER id (same contract as session adoption — future syncs
+        // never FK-fail / duplicate). Entries without a document payload are
+        // metadata-only placeholders (remote: true).
+        const existing = get().snapshots[srv.id];
+        if (existing && !existing.remote) return existing;
+        const doc = srv.document as CanvasDocument | undefined;
+        const snap: Snapshot = {
+          id: srv.id,
+          documentId: srv.documentId,
+          sessionId: srv.sessionId ?? null,
+          parentSnapshotId: existing?.parentSnapshotId ?? null,
+          source: (srv.source as SnapshotSource) ?? 'turn_end',
+          sourceRunId: srv.runId ?? null,
+          sourceMessageId: srv.messageId ?? null,
+          document: doc ?? existing?.document ?? EMPTY_PLACEHOLDER_DOC,
+          nodeCount: srv.nodeCount ?? 0,
+          label: srv.label ?? null,
+          bookmarked: srv.bookmarked ?? false,
+          remote: !doc,
+          createdAt: srv.createdAt ?? nowISO(),
+          createdBy: 'agent',
+        };
+        set((s) => ({ snapshots: { ...s.snapshots, [snap.id]: snap } }));
+        return snap;
       },
 
       bookmarkSnapshot: (snapshotId) => {
@@ -987,6 +1038,15 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           };
         });
+        // Sync the bookmark flag server-side (fire-and-forget).
+        if (typeof window !== 'undefined') {
+          const snap = get().snapshots[snapshotId];
+          if (snap) {
+            import('./server-sync').then(({ updateDocumentSnapshot }) => {
+              updateDocumentSnapshot(snap.documentId, snap.id, { bookmarked: snap.bookmarked });
+            });
+          }
+        }
       },
 
       labelSnapshot: (snapshotId, label) => {
@@ -1000,45 +1060,31 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           };
         });
+        // Sync the label server-side (fire-and-forget).
+        if (typeof window !== 'undefined') {
+          const snap = get().snapshots[snapshotId];
+          if (snap) {
+            import('./server-sync').then(({ updateDocumentSnapshot }) => {
+              updateDocumentSnapshot(snap.documentId, snap.id, { label: snap.label });
+            });
+          }
+        }
       },
 
       deleteSnapshot: (snapshotId) => {
+        const snap = get().snapshots[snapshotId];
+        if (!snap || snap.bookmarked) return; // refuse to delete bookmarked
         set((s) => {
-          const snap = s.snapshots[snapshotId];
-          if (!snap || snap.bookmarked) return s; // refuse to delete bookmarked
-          const sessionId = snap.sessionId;
-          const session = s.sessions[sessionId];
-          if (!session) {
-            // Session already gone — just drop the snapshot.
-            const snapshots = { ...s.snapshots };
-            delete snapshots[snapshotId];
-            return { snapshots };
-          }
-          const newSnapshotIds = session.snapshotIds.filter((id) => id !== snapshotId);
-          // Repoint currentSnapshotId if it was the deleted one.
-          const newCurrent = session.currentSnapshotId === snapshotId
-            ? (newSnapshotIds.length > 0
-                ? [...newSnapshotIds]
-                    .map((id) => s.snapshots[id])
-                    .filter(Boolean)
-                    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]?.id ?? null
-                : null)
-            : session.currentSnapshotId;
           const snapshots = { ...s.snapshots };
           delete snapshots[snapshotId];
-          return {
-            snapshots,
-            sessions: {
-              ...s.sessions,
-              [sessionId]: {
-                ...session,
-                snapshotIds: newSnapshotIds,
-                currentSnapshotId: newCurrent,
-                updatedAt: nowISO(),
-              },
-            },
-          };
+          return { snapshots };
         });
+        // Sync the delete server-side (fire-and-forget).
+        if (typeof window !== 'undefined') {
+          import('./server-sync').then(({ deleteDocumentSnapshot }) => {
+            deleteDocumentSnapshot(snap.documentId, snapshotId);
+          });
+        }
       },
 
       // ---- Bulk ----
@@ -1049,6 +1095,16 @@ export const useSessionStore = create<SessionStoreState>()(
         for (const s of sessions) {
           get().deleteSession(s.id);
         }
+        // Full canvas wipe also clears the document-scoped snapshot timeline
+        // (bookmark protection applies per-snapshot via deleteSnapshot, but a
+        // deliberate "clear everything" removes all entries).
+        set((s) => {
+          const snapshots = { ...s.snapshots };
+          for (const snap of Object.values(snapshots)) {
+            if (snap.documentId === documentId) delete snapshots[snap.id];
+          }
+          return { snapshots };
+        });
       },
     }),
     {
@@ -1075,7 +1131,43 @@ export const useSessionStore = create<SessionStoreState>()(
         snapshots: s.snapshots,
         activeSessionByDoc: s.activeSessionByDoc,
       }),
-      version: 1,
+      version: 2,
+      // v1 → v2 (shared-canvas model): snapshots moved from session-owned
+      // (session.snapshotIds / session.currentSnapshotId, snapshot.sessionId
+      // as the owning key) to DOCUMENT-owned (snapshot.documentId, sessionId
+      // kept as provenance). Migration re-keys every snapshot by its owner
+      // session's documentId and strips the removed session fields.
+      migrate: (persisted, _version) => {
+        const s = (persisted ?? {}) as {
+          sessions?: Record<string, Session & { currentSnapshotId?: string | null; snapshotIds?: string[] }>;
+          snapshots?: Record<string, Snapshot & { sessionId: string | null; documentId?: string }>;
+          runs?: Record<string, Run>;
+          messages?: Record<string, Message>;
+          toolCalls?: Record<string, ToolCallRecord>;
+          activeSessionByDoc?: Record<string, string>;
+        };
+        const sessions = { ...(s.sessions ?? {}) };
+        const snapshots = { ...(s.snapshots ?? {}) };
+        for (const snap of Object.values(snapshots)) {
+          if (!snap.documentId) {
+            const owner = snap.sessionId ? sessions[snap.sessionId] : undefined;
+            snap.documentId = owner?.documentId ?? 'demo';
+          }
+          snap.remote = false;
+        }
+        for (const sess of Object.values(sessions)) {
+          delete (sess as Partial<Session> & { currentSnapshotId?: string | null }).currentSnapshotId;
+          delete (sess as Partial<Session> & { snapshotIds?: string[] }).snapshotIds;
+        }
+        return {
+          sessions,
+          snapshots,
+          runs: s.runs ?? {},
+          messages: s.messages ?? {},
+          toolCalls: s.toolCalls ?? {},
+          activeSessionByDoc: s.activeSessionByDoc ?? {},
+        };
+      },
       // Next.js SSR safety: skip auto-hydration on the server. The client
       // hydrates manually in a useEffect (see hydrateSessionStore() below).
       skipHydration: true,
@@ -1093,16 +1185,17 @@ export function hydrateSessionStore() {
   if (persistApi?.rehydrate) {
     persistApi.rehydrate();
   }
-  // Also fetch sessions from the server (Phase 3: server-side persistence).
-  // This merges server-side sessions with the localStorage cache so sessions
-  // survive browser clears and can sync across devices.
-  // Fire-and-forget — the localStorage cache is used for instant UI, the
-  // server fetch updates the list in the background.
-  import('./server-sync').then(({ fetchServerSessionsStrict }) => {
+  // Also fetch sessions + document snapshots from the server (Phase 3:
+  // server-side persistence). This merges server-side sessions with the
+  // localStorage cache so sessions survive browser clears and can sync
+  // across devices. Fire-and-forget — the localStorage cache is used for
+  // instant UI, the server fetch updates the list in the background.
+  import('./server-sync').then(({ fetchServerSessionsStrict, fetchDocumentSnapshots }) => {
     // Fetch for all known documents.
     const store = useSessionStore.getState();
     const docIds = new Set(Object.values(store.sessions).map((s) => s.documentId));
     for (const docId of docIds) {
+      // ---- Session merge ----
       // STRICT fetch: null = server unreachable (keep cache as-is), array =
       // authoritative server state for this document (safe to reconcile).
       fetchServerSessionsStrict(docId).then((serverSessions) => {
@@ -1115,16 +1208,16 @@ export function hydrateSessionStore() {
         // server-side create, so every reload multiplied the session rows
         // (this was the source of thousands of empty "Canvas · demo" rows).
         //
-        // We also skip empty server shells (no messages/runs/snapshots) —
-        // they carry nothing worth adopting; the client creates a fresh
-        // session on demand when it needs one.
+        // We also skip empty server shells (no messages/runs) — they carry
+        // nothing worth adopting; the client creates a fresh session on
+        // demand when it needs one. (Snapshots no longer count toward
+        // hasContent — they are document-scoped, not session-scoped.)
         const incoming: Session[] = [];
         const localSessions = useSessionStore.getState().sessions;
         for (const ss of serverSessions) {
           if (localSessions[ss.id]) continue;
-          const counts = ss._count as { messages?: number; runs?: number; snapshots?: number } | undefined;
-          const hasContent =
-            (counts?.messages ?? 0) > 0 || (counts?.runs ?? 0) > 0 || (counts?.snapshots ?? 0) > 0;
+          const counts = ss._count as { messages?: number; runs?: number } | undefined;
+          const hasContent = (counts?.messages ?? 0) > 0 || (counts?.runs ?? 0) > 0;
           if (!hasContent) continue;
           const ts = nowISO();
           incoming.push({
@@ -1158,8 +1251,7 @@ export function hydrateSessionStore() {
           if (id === activeId) continue;
           const empty =
             (sess.messageIds?.length ?? 0) === 0 &&
-            (sess.runIds?.length ?? 0) === 0 &&
-            (sess.snapshotIds?.length ?? 0) === 0;
+            (sess.runIds?.length ?? 0) === 0;
           if (empty) ghostIds.push(id);
         }
         if (incoming.length > 0 || ghostIds.length > 0) {
@@ -1168,9 +1260,27 @@ export function hydrateSessionStore() {
             for (const sess of incoming) sessions[sess.id] = sess;
             for (const gid of ghostIds) delete sessions[gid];
             // No child cascade needed: the sweep only removes EMPTY sessions
-            // (messageIds/runIds/snapshotIds all empty by construction).
+            // (messageIds/runIds both empty by construction — snapshots are
+            // document-scoped and never cascade from session deletion).
             return { sessions };
           });
+        }
+      });
+
+      // ---- Document snapshot merge (shared canvas model) ----
+      // Adopt server-side canvas snapshots missing from the local registry.
+      // Entries arrive WITHOUT the heavy document JSON (metadata-only,
+      // remote: true placeholders) — the History panel lists them and restore
+      // fetches the full payload on demand. Local snapshots are NEVER swept:
+      // the server list is not authoritative for captures that failed to
+      // sync (offline), and stale-local ghosts are bounded by the per-document
+      // snapshot cap instead.
+      fetchDocumentSnapshots(docId).then((serverSnaps) => {
+        if (!serverSnaps) return;
+        const local = useSessionStore.getState().snapshots;
+        for (const srv of serverSnaps) {
+          if (local[srv.id]) continue;
+          useSessionStore.getState().ingestServerSnapshot(srv);
         }
       });
     }

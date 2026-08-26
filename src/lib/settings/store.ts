@@ -33,7 +33,7 @@ export const useSettings = create<SettingsStore>()(
     }),
     {
       name: 'agentcanvas.settings.v1',
-      version: 3,
+      version: 4,
       // Migrate chain:
       //   v1 → v2: the default inference endpoint moved from the z.ai sandbox
       //     (zai / glm-5.3 / no key / no base URL) to a custom OpenAI-compatible
@@ -45,8 +45,11 @@ export const useSettings = create<SettingsStore>()(
       //     persisted blob with `renderer: 'svg'` (set by a user before the
       //     cleanup) is coerced to 'dom' — the only live renderer. The
       //     Settings UI no longer exposes the renderer picker.
+      //   v3 → v4: snapshots became document-scoped (shared canvas model) —
+      //     `maxSnapshotsPerSession` renamed to `maxSnapshotsPerCanvas` with
+      //     the value preserved.
       migrate: (persisted, _version) => {
-        const s = (persisted ?? {}) as Partial<AppSettings>;
+        const s = (persisted ?? {}) as Partial<AppSettings> & { maxSnapshotsPerSession?: number };
         // v1 → v2: old-defaults inference-endpoint rewrite.
         const looksLikeOldDefaults =
           s.llmProvider === 'zai' &&
@@ -66,7 +69,13 @@ export const useSettings = create<SettingsStore>()(
         const withRenderer = (withLlm.renderer && withLlm.renderer !== 'dom')
           ? { ...withLlm, renderer: 'dom' as const }
           : withLlm;
-        return withRenderer as AppSettings;
+        // v3 → v4: rename the snapshot cap to its document-scoped name.
+        const { maxSnapshotsPerSession: legacyCap, ...rest } = withRenderer;
+        const withCanvasCap: Partial<AppSettings> = {
+          ...rest,
+          maxSnapshotsPerCanvas: rest.maxSnapshotsPerCanvas ?? legacyCap ?? DEFAULT_SETTINGS.maxSnapshotsPerCanvas,
+        };
+        return withCanvasCap as AppSettings;
       },
       // Only persist the data fields, not the setter functions.
       partialize: ({ set: _set, patch: _patch, reset: _reset, replaceAll: _replaceAll, ...data }) => data,
@@ -92,7 +101,7 @@ export function useAgentRunSettings(): AppSettings {
     themePreference: s.themePreference,
     snapshotCadence: s.snapshotCadence,
     maxSessionsRetained: s.maxSessionsRetained,
-    maxSnapshotsPerSession: s.maxSnapshotsPerSession,
+    maxSnapshotsPerCanvas: s.maxSnapshotsPerCanvas,
     autoArchiveIdleAfter: s.autoArchiveIdleAfter,
     density: s.density,
     set: s.set,

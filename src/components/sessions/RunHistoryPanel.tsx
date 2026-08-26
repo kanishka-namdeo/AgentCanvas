@@ -3,10 +3,12 @@
 // Run history panel — docked below the agent chat.
 //
 // Shows:
-//   - Timeline of Runs in the active session (newest first)
+//   - Timeline of Runs in the ACTIVE CHAT (newest first)
 //   - Per-run: prompt, status badge, tool-call count, duration
 //   - Expandable tool-call list with status + args preview + summary
-//   - Snapshot list with restore / bookmark actions
+//   - Snapshot list for the SHARED CANVAS (document-scoped timeline with
+//     per-chat provenance — every chat on this canvas contributes entries)
+//     with restore / bookmark / delete actions
 //
 // Mirrors patterns from Bolt.new's workbench, Cursor's agent log,
 // and Replit's checkpoint timeline (see research notes §4 + §9).
@@ -29,7 +31,7 @@ import {
 } from '@/components/ui/context-menu';
 import { toast } from 'sonner';
 import {
-  ChevronRight, Wrench, Clock, History, Bookmark, BookmarkCheck, RotateCcw, Camera, GitFork,
+  ChevronRight, Wrench, Clock, History, Bookmark, BookmarkCheck, RotateCcw, Camera, MessageSquare,
 } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 
@@ -55,13 +57,15 @@ function relativeTime(iso: string): string {
 
 export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean } = {}) {
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
-  const switchSession = useCanvasStore((s) => s.switchSession);
+  const documentId = useCanvasStore((s) => s.documentId);
   const document = useCanvasStore((s) => s.document);
 
-  // Subscribe to the session + its runs / snapshots so we re-render on change.
+  // Subscribe to the session + its runs / the document's snapshots so we
+  // re-render on change. Snapshots are DOCUMENT-scoped (shared canvas).
   const session = useSessionStore((s) => (activeSessionId ? s.sessions[activeSessionId] : undefined));
   const runsMap = useSessionStore((s) => s.runs);
   const snapshotsMap = useSessionStore((s) => s.snapshots);
+  const sessionsMap = useSessionStore((s) => s.sessions);
 
   const runs = useMemo(() => {
     if (!session) return [];
@@ -72,12 +76,19 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
   }, [session, runsMap]);
 
   const snapshots = useMemo(() => {
-    if (!session) return [];
-    return session.snapshotIds
-      .map((id) => snapshotsMap[id])
-      .filter(Boolean)
+    // Shared-canvas model: the snapshot timeline belongs to the DOCUMENT —
+    // entries from every chat on this canvas, newest first.
+    return Object.values(snapshotsMap)
+      .filter((snap) => snap.documentId === documentId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [session, snapshotsMap]);
+  }, [snapshotsMap, documentId]);
+
+  /// Provenance lookup: which chat produced a snapshot (informational — the
+  /// session may since have been deleted).
+  const snapshotSource = (snap: Snapshot): string => {
+    if (!snap.sessionId) return 'system';
+    return sessionsMap[snap.sessionId]?.title ?? 'deleted chat';
+  };
 
   const [tab, setTab] = useState<'runs' | 'snapshots'>('runs');
 
@@ -92,28 +103,27 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
   }
 
   const handleRestoreSnapshot = (snap: Snapshot) => {
-    const restored = useSessionStore.getState().restoreSnapshot(session.id, snap.id);
-    if (restored) {
-      useCanvasStore.setState({ document: { ...restored.document, id: session.documentId } });
-      toast.success(`Restored snapshot from ${relativeTime(snap.createdAt)}`, {
-        description: `${snap.nodeCount} nodes`,
+    // Canvas-store action: appends a 'restore' snapshot (append-only), swaps
+    // the shared document, and broadcasts document:restore so every viewer
+    // follows. Remote (metadata-only) entries are fetched from the server.
+    useCanvasStore.getState().restoreSnapshot(snap.id)
+      .then(() => {
+        toast.success(`Restored canvas from ${relativeTime(snap.createdAt)}`, {
+          description: `${snap.nodeCount} nodes · shared across all chats`,
+        });
+      })
+      .catch(() => {
+        toast.error('Restore failed', { description: 'Could not fetch the snapshot from the server.' });
       });
-    }
   };
 
-  const handleForkFromSnapshot = (snap: Snapshot) => {
-    // Fork the active session AND seed the fork from the clicked snapshot's
-    // document (not the parent's currentSnapshotId). The previous implementation
-    // called forkActiveSession then restoreSnapshot on the fork, but
-    // restoreSnapshot's sessionId guard blocked the cross-session restore,
-    // leaving the fork at the parent's latest state.
-    const fork = useSessionStore.getState().forkSessionFromSnapshot(session.id, snap.id);
-    if (fork) {
-      useCanvasStore.getState().switchSession(fork.id);
-      toast.success(`Forked from snapshot`, {
-        description: `${snap.nodeCount} nodes · ${relativeTime(snap.createdAt)}`,
-      });
+  const handleDeleteSnapshot = (snap: Snapshot) => {
+    if (snap.bookmarked) {
+      toast.message('Snapshot is bookmarked', { description: 'Unbookmark it before deleting.' });
+      return;
     }
+    useSessionStore.getState().deleteSnapshot(snap.id);
+    toast.success('Snapshot deleted');
   };
 
   return (
@@ -194,16 +204,17 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
               {snapshots.length === 0 && (
                 <div className="text-center text-[11px] ac-text-4 py-8 px-3">
                   <p className="font-medium ac-text-3 mb-1">No snapshots yet</p>
-                  <p>They’re captured at the end of each turn.</p>
+                  <p>They’re captured at the end of each turn — shared by every chat on this canvas.</p>
                 </div>
               )}
-              {snapshots.map((snap) => (
+              {snapshots.map((snap, i) => (
                 <SnapshotCard
                   key={snap.id}
                   snapshot={snap}
-                  isActive={snap.id === session.currentSnapshotId}
+                  sourceLabel={snapshotSource(snap)}
+                  isActive={i === 0}
                   onRestore={() => handleRestoreSnapshot(snap)}
-                  onFork={() => handleForkFromSnapshot(snap)}
+                  onDelete={() => handleDeleteSnapshot(snap)}
                   onBookmark={() => useSessionStore.getState().bookmarkSnapshot(snap.id)}
                 />
               ))}
@@ -212,7 +223,7 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
         </div>
       </ScrollArea>
 
-      {/* Capture manual snapshot */}
+      {/* Capture manual snapshot — document-scoped (shared canvas) */}
       {tab === 'snapshots' && (
         <div className="px-2 py-1.5 border-t ac-border-subtle ac-surface-1">
           <Button
@@ -220,13 +231,14 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
             variant="outline"
             className="w-full h-7 text-[11px] ac-border-default ac-text-2 hover:ac-surface-2 ac-transition"
             onClick={() => {
-              const snap = useSessionStore.getState().captureSnapshot(session.id, document, {
+              const snap = useSessionStore.getState().captureSnapshot(documentId, document, {
+                sessionId: activeSessionId,
                 source: 'manual',
                 label: 'Manual snapshot',
                 createdBy: 'user',
               });
-              toast.success('Captured snapshot', {
-                description: `${snap.nodeCount} nodes`,
+              toast.success('Captured canvas snapshot', {
+                description: `${snap.nodeCount} nodes · visible in every chat's history`,
               });
             }}
           >
@@ -360,12 +372,13 @@ function ToolCallCard({ tc }: { tc: ToolCallRecord }) {
 }
 
 function SnapshotCard({
-  snapshot, isActive, onRestore, onFork, onBookmark,
+  snapshot, isActive, sourceLabel, onRestore, onDelete, onBookmark,
 }: {
   snapshot: Snapshot;
   isActive: boolean;
+  sourceLabel: string;
   onRestore: () => void;
-  onFork: () => void;
+  onDelete: () => void;
   onBookmark: () => void;
 }) {
   const sourceColor: Record<Snapshot['source'], string> = {
@@ -385,9 +398,14 @@ function SnapshotCard({
             <span className="text-[11px] font-medium ac-text-1 flex-1 truncate">
               {snapshot.label ?? snapshot.id.slice(0, 12)}
             </span>
+            {snapshot.remote && (
+              <span className="text-[9px] ac-status-info px-1 py-0 rounded font-medium" title="Synced from the server">
+                remote
+              </span>
+            )}
             {isActive && (
               <span className="text-[9px] ac-status-success px-1 py-0 rounded font-medium">
-                current
+                latest
               </span>
             )}
           </div>
@@ -399,6 +417,12 @@ function SnapshotCard({
             <span className="ac-text-5">·</span>
             <span>{relativeTime(snapshot.createdAt)}</span>
           </div>
+          <div className="flex items-center gap-1 mt-1 text-[9px] ac-text-4 min-w-0">
+            <MessageSquare className="h-2.5 w-2.5 shrink-0" />
+            <span className="truncate" title={`Captured by chat: ${sourceLabel}`}>
+              {sourceLabel}
+            </span>
+          </div>
           <div className="flex items-center gap-1 mt-1.5">
             <Button
               size="sm"
@@ -406,20 +430,10 @@ function SnapshotCard({
               className="h-5 text-[9px] px-1.5 ac-border-default ac-text-2 hover:ac-surface-1 ac-transition"
               onClick={onRestore}
               disabled={isActive}
-              title="Restore this snapshot"
+              title="Restore the shared canvas to this snapshot"
             >
               <RotateCcw className="h-2.5 w-2.5 mr-0.5" />
               Restore
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-5 text-[9px] px-1.5 ac-border-default ac-text-2 hover:ac-surface-1 ac-transition"
-              onClick={onFork}
-              title="Fork from this snapshot"
-            >
-              <GitFork className="h-2.5 w-2.5 mr-0.5" />
-              Fork
             </Button>
             <Button
               size="sm"
@@ -435,17 +449,17 @@ function SnapshotCard({
           </div>
         </div>
       </ContextMenuTrigger>
-      {/* P1-22: Snapshot card right-click — Restore, Fork, Bookmark,
-          Rename, Delete, Export .pen, Copy JSON, Set as current. */}
+      {/* P1-22: Snapshot card right-click — Restore, Bookmark, Rename,
+          Delete, Export .pen, Copy JSON. (Fork-from-snapshot was removed in
+          the shared-canvas model — restore covers the semantics.) */}
       <ContextMenuContent>
         <ContextMenuItem onClick={onRestore} disabled={isActive}>Restore</ContextMenuItem>
-        <ContextMenuItem onClick={onFork}>Fork from here</ContextMenuItem>
         <ContextMenuItem onClick={onBookmark}>{snapshot.bookmarked ? 'Remove bookmark' : 'Bookmark'}</ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={() => toast.message('Rename snapshot — not yet implemented (P2-38)')}>
           Rename snapshot
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => toast.message('Delete snapshot — not yet implemented')} className="ac-text-danger">
+        <ContextMenuItem onClick={onDelete} className="ac-text-danger">
           Delete snapshot
         </ContextMenuItem>
         <ContextMenuSeparator />
@@ -458,10 +472,6 @@ function SnapshotCard({
         </ContextMenuItem>
         <ContextMenuItem onClick={() => toast.message('Export as .pen — not yet implemented')}>
           Export as .pen
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => toast.message('Set as current — not yet implemented (P2-45)')}>
-          Set as current
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

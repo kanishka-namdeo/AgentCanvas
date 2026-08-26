@@ -113,11 +113,12 @@ model AgentAction {
 // The session format is compatible with the pi-agent SDK's serializeConversation()
 // output — sessions can be exported/imported in the standard JSONL format.
 
-/// A chat session — a conversation about a specific document.
-/// Analogous to a Figma "branch" or a ChatGPT "conversation".
+/// A chat session — a conversation context attached to one shared canvas
+/// document (Figma/Cursor model: multiple chats mutate the same canvas).
+/// Analogous to a ChatGPT "conversation" scoped to a document.
 model Session {
   id         String   @id @default(cuid())
-  /// The document this session belongs to. Multiple sessions can exist per document.
+  /// The shared document this conversation is attached to.
   documentId String
   /// Display title (auto-generated from the first prompt or user-set).
   title      String   @default("Untitled")
@@ -129,8 +130,6 @@ model Session {
   runCount   Int      @default(0)
   /// Total tool calls across all runs (denormalized).
   toolCallCount Int   @default(0)
-  /// Snapshot count (denormalized).
-  snapshotCount Int    @default(0)
   /// ISO timestamp of last activity.
   lastOpenedAt String @default("")
   /// For fork tracking — the parent session ID if this session was forked.
@@ -141,7 +140,6 @@ model Session {
 
   messages   SessionMessage[]
   runs       SessionRun[]
-  snapshots  SessionSnapshot[]
 
   @@index([documentId])
   @@index([status])
@@ -188,19 +186,32 @@ model SessionRun {
   @@index([sessionId])
 }
 
-/// A canvas snapshot — a point-in-time capture of the canvas state.
-/// Used for restore/fork: the user can jump back to any snapshot.
-model SessionSnapshot {
+/// A canvas snapshot — point-in-time capture of a DOCUMENT (shared canvas
+/// model). Keyed by documentId; sessionId/messageId/runId are provenance for
+/// which chat's turn produced the capture. The document timeline is shared
+/// across every chat on the canvas.
+model DocumentSnapshot {
   id         String   @id @default(cuid())
-  sessionId  String
-  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  /// The canvas document JSON at snapshot time.
-  document   String
-  /// 'turn_end' | 'manual' | 'fork'
-  source     String   @default("turn_end")
-  /// Run ID that produced this snapshot (if any).
+  /// The shared document this snapshot belongs to.
+  documentId String
+  /// Provenance: the chat whose turn produced this capture (nullable).
+  sessionId  String?
+  /// Provenance: the chat message whose turn produced this capture.
+  messageId  String?
+  /// Provenance: the agent run that produced this capture.
   runId      String?
+  /// JSON-serialized CanvasDocument at capture time.
+  document   String
+  /// 'turn_end' | 'manual' | 'fork' | 'restore'
+  source     String   @default("turn_end")
+  /// Node count for quick display in the history panel.
+  nodeCount  Int      @default(0)
+  /// Optional user/system label.
+  label      String?
+  /// Whether the user marked this snapshot as a keeper.
+  bookmarked Boolean  @default(false)
   createdAt  DateTime @default(now())
 
+  @@index([documentId])
   @@index([sessionId])
 }

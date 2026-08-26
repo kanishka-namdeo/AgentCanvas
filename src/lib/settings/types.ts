@@ -130,8 +130,9 @@ export interface AppSettings {
   snapshotCadence: SnapshotCadence;
   /// Max sessions retained in localStorage. Older sessions auto-archived.
   maxSessionsRetained: number;
-  /// Max snapshots per session. Older snapshots auto-deleted.
-  maxSnapshotsPerSession: number;
+  /// Max snapshots per canvas (per document — shared canvas model). Oldest
+  /// non-bookmarked snapshots auto-deleted.
+  maxSnapshotsPerCanvas: number;
 
   // ── Phase 3: Power-user ──────────────────────────────────────────────────
   /// 'auto' = classifier picks skill; 'manual' = user pins a skill.
@@ -181,7 +182,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   snapshotCadence: 'every-turn',
   maxSessionsRetained: 100,
-  maxSnapshotsPerSession: 50,
+  maxSnapshotsPerCanvas: 50,
 
   skillSelectionMode: 'auto',
   autoArchiveIdleAfter: 'never',

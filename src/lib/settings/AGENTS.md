@@ -34,12 +34,14 @@ This is the single source of truth for every setting the user can change in the 
 | `apiBaseUrl` | `string` | `'https://irhnglwoxe.a.pinggy.link/v1'` | 2 |
 | `snapshotCadence` | `'every-turn' \| 'every-3-turns' \| 'every-5-turns' \| 'manual'` | `'every-turn'` | 2 — Sessions |
 | `maxSessionsRetained` | `number` | `100` | 2 |
-| `maxSnapshotsPerSession` | `number` | `50` | 2 |
+| `maxSnapshotsPerCanvas` | `number` | `50` | 2 |
 | `skillSelectionMode` | `'auto' \| 'manual'` | `'auto'` | 3 — Power-user |
 | `autoArchiveIdleAfter` | `'never' \| '7d' \| '30d'` | `'never'` | 3 |
 | `density` | `'comfortable' \| 'compact'` | `'comfortable'` | 3 |
 
 `normalizeLLMProvider()` migrates legacy `zai-auto` / `zai-key` / `openai-compatible` values to current registry ids.
+
+`maxSnapshotsPerCanvas` (persist v4 rename of `maxSnapshotsPerSession`) is the per-document snapshot cap under the shared-canvas model — snapshots are document-scoped, and the oldest non-bookmarked ones are auto-deleted when the cap is exceeded.
 
 **Default LLM (testing)**: `llmProvider='custom'` + `modelName='kimi-k2-5'` + `apiBaseUrl='https://irhnglwoxe.a.pinggy.link/v1'` + `apiKey='123456'` — a custom OpenAI-compatible endpoint. `pi-ai-model-resolver.ts` builds a synthetic `openai-completions` Model for it (pi-ai's catalog doesn't know custom endpoints). An empty `modelName` falls back to the registry default (empty for `custom`). Legacy `glm-4.6` settings map to `glm-4.7` (zai catalog path).
 
@@ -54,7 +56,7 @@ The canvas store's `promptAgent()` calls `agentRunSettings(useSettings.getState(
 
 ### Persistence
 - `persist` middleware with `localStorage` key `agentcanvas.settings.v1`.
-- Schema version is `2`. v1 → v2 (endpoint migration): stored blobs that still look like the OLD first-run defaults (`zai` + `glm-5.3` + no key + no base URL) are migrated to the new default endpoint; anything user-customized is preserved untouched. Bump + add `migrate` if the shape changes again.
+- Schema version is `4`. v1 → v2 (endpoint migration): stored blobs that still look like the OLD first-run defaults (`zai` + `glm-5.3` + no key + no base URL) are migrated to the new default endpoint; anything user-customized is preserved untouched. v3 → v4: `maxSnapshotsPerSession` → `maxSnapshotsPerCanvas` (shared-canvas rename — value preserved, old key deleted). Bump + add `migrate` if the shape changes again.
 - `partialize` strips the setter functions (`set`, `patch`, `reset`, `replaceAll`) so only data is persisted.
 - The `apiKey` field is stored in localStorage (client-side only). It is NEVER written to disk on the server. For production multi-user deployments, swap the storage adapter to a server-side secrets manager.
 

@@ -794,7 +794,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
         break;
       case 'new-chat': {
         const id = newSession();
-        if (id) toast.success('Started a new chat');
+        if (id) toast.success('Started a new chat', { description: 'The canvas is shared — it keeps its current state.' });
         break;
       }
       case 'select-all':

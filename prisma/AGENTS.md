@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Prisma schema + SQLite datasource. Defines the `Document`, `Shape`, and `AgentAction` models (canvas persistence + agent audit log) and the `Session`, `SessionMessage`, `SessionRun`, `SessionSnapshot` models (server-side session persistence, consumed by the `/api/sessions*` routes and `src/lib/sessions/server-sync.ts`).
+The Prisma schema + SQLite datasource. Defines the `Document`, `Shape`, and `AgentAction` models (canvas persistence + agent audit log) and the `Session`, `SessionMessage`, `SessionRun`, `DocumentSnapshot` models (server-side session + canvas-snapshot persistence, consumed by the `/api/sessions*` + `/api/documents/[documentId]/snapshots*` routes and `src/lib/sessions/server-sync.ts`).
 
 ## Ownership
 
@@ -76,12 +76,13 @@ All of these fields are optional in the TypeScript type, so the Prisma model sti
 - Index: `@@index([documentId])`.
 - Audit log of every tool call. Currently written by... nobody (the runner emits events but does not persist them to this table; the session store handles persistence via localStorage + the Session* tables). This table is reserved for future server-side replay.
 
-#### Session models (server-side session persistence — live)
-- `Session` — the server-side mirror of the client session: `id`, `documentId`, `title`, `status` (`active` | `archived`), `pinned`, `model`, counter fields (`messageCount`, `runCount`, `toolCallCount`, `snapshotCount`), `lastOpenedAt`, timestamps. Written by `/api/sessions*` routes via `src/lib/sessions/server-sync.ts` — the DB is the source of truth, localStorage the cache.
+#### Session + snapshot models (server-side persistence — live)
+- `Session` — the server-side mirror of the client session (a conversation context on a shared canvas): `id`, `documentId`, `title`, `status` (`active` | `archived`), `pinned`, `model`, counter fields (`messageCount`, `runCount`, `toolCallCount` — `snapshotCount` and the `snapshots` relation were DROPPED), `lastOpenedAt`, timestamps. Written by `/api/sessions*` routes via `src/lib/sessions/server-sync.ts` — the DB is the source of truth, localStorage the cache.
 - `SessionMessage` — one chat turn: `id`, `sessionId` (FK, cascade), `role`, `content`, `status`, `error`, `runId`, `createdAt`.
 - `SessionRun` — one agent invocation: `id`, `sessionId` (FK, cascade), `status`, `errorMessage`, `toolCallCount`, `toolCalls` (JSON), `prompt`, timestamps.
-- `SessionSnapshot` — canvas snapshot: `id`, `sessionId` (FK, cascade), `source`, `runId`, `document` (serialized CanvasDocument JSON), `createdAt`.
-- All four cascade-delete with their `Session`.
+- `DocumentSnapshot` — canvas snapshot, DOCUMENT-scoped (shared-canvas model — the snapshot timeline belongs to the canvas): `id`, `documentId` (owning canvas, `@@index([documentId])`), `sessionId` / `messageId` / `runId` (PROVENANCE — plain string columns, NOT FKs, so deleting a chat never deletes canvas history; `@@index([sessionId])`), `document` (serialized CanvasDocument JSON), `source` (default `"turn_end"`), `nodeCount`, `label`, `bookmarked`, `createdAt`. Replaces the legacy `SessionSnapshot`; served by `/api/documents/[documentId]/snapshots*`.
+- `SessionMessage` + `SessionRun` cascade-delete with their `Session`; `DocumentSnapshot` does NOT (it outlives its provenance session).
+- **Legacy backfill**: `scripts/migrate-snapshots-to-doc.ts` copies every `SessionSnapshot` row into `DocumentSnapshot` (`documentId` = the session's `documentId`, `sessionId` = the old owning session). Idempotent — skips when the target is already migrated. Migration order (SQLite, no migrations folder): add `DocumentSnapshot` (keep `SessionSnapshot`) → `bunx prisma db push` → run the backfill → remove `SessionSnapshot` from the schema → `bunx prisma db push` again.
 
 ### Migration rules
 - Dev: `bun run db:push --accept-data-loss` applies schema changes directly to SQLite (drops+recreates tables as needed — dev only).

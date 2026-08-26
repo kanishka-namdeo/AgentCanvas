@@ -105,6 +105,18 @@ io.on('connection', (socket) => {
         socket.emit('sync', { type: 'canvas:full', document: state.document } satisfies SyncEvent);
         break;
       }
+      case 'document:restore': {
+        // Shared-canvas restore: a viewer swapped the document back to a
+        // snapshot. Replace the in-memory state and rebroadcast the full
+        // document to EVERY subscriber (including the sender — idempotent).
+        // Standalone flavor: no DB seed here (memory-only by design — the
+        // in-process twin that wins the port owns the authoritative state).
+        const state = ensureDocument(event.documentId);
+        state.document = event.document;
+        broadcast(state, { type: 'canvas:full', document: state.document } satisfies SyncEvent);
+        console.log(`[canvas-sync] document:restore on ${event.documentId} broadcast to ${state.subscribers.size} viewers`);
+        break;
+      }
       case 'agent:prompt': {
         // The frontend asks the WS service to drive the agent. We forward
         // this to the Next.js API route via fetch, then stream the API's

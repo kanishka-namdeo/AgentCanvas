@@ -62,8 +62,8 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ### 🔄 Real-time + persistent
 - **Multi-viewer collaboration** — Socket.IO broadcasts every patch + agent event to all subscribers, with live viewer-count presence.
-- **Session history** — Sessions → Runs → Messages → ToolCallRecords → Snapshots, persisted to `localStorage`.
-- **Fork & restore** — branch a session from any past message, or restore a snapshot (append-only — never destroys history).
+- **Session history** — chats are conversation contexts on ONE shared canvas (Figma/Cursor-style): Sessions → Runs → Messages → ToolCallRecords persisted to `localStorage`, plus document-scoped Snapshots — the canvas's own version history, synced to the server DB.
+- **Fork & restore** — fork a chat from any past message (conversation fork: copies the message prefix, keeps the shared canvas), or restore a snapshot (append-only — never destroys history, and broadcasts to every viewer).
 - **Run lifecycle** — OpenAI-Assistants-style state machine (queued → in_progress → awaiting_tool → completed/failed/cancelled) with a Stop button.
 - **Local-only fallback** — if the Socket.IO service is down, the client POSTs directly to `/api/agent` so the app still works end-to-end.
 
@@ -140,7 +140,9 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 └─────────────────────────────┘
 ```
 
-**The flow in one paragraph:** you submit a prompt → the request goes to `POST /api/agent` (either via the Socket.IO service or as a direct fetch) → `runAgent()` in `src/lib/agent/runner.ts` builds a system prompt containing a textual snapshot of the canvas + a catalog of ~50 tools → the LLM (via pi-ai — by default the custom OpenAI-compatible endpoint, configurable in Settings → LLM provider) returns tool calls → `executeTool()` in `src/lib/agent/tools.ts` runs each one, mutating the Zustand canvas store → patches + chat deltas stream back to the browser as newline-delimited JSON → the Socket.IO service fans every event out to all subscribers → everyone's canvas updates live.
+*The canvas document is the shared artifact: multiple chat sessions (session store) attach to one `documentId` and mutate ONE canvas — switching chats never swaps the canvas. Snapshots are the canvas's version history (document-scoped, append-only, with per-chat provenance).*
+
+**The flow in one paragraph:** you submit a prompt → the request goes to `POST /api/agent` (either via the Socket.IO service or as a direct fetch) → `runAgent()` in `src/lib/agent/runner.ts` builds a system prompt containing a textual snapshot of the canvas + a catalog of ~50 tools → the LLM (via pi-ai — by default the custom OpenAI-compatible endpoint, configurable in Settings → LLM provider) returns tool calls → `executeTool()` in `src/lib/agent/tools.ts` runs each one, mutating the Zustand canvas store → patches + chat deltas stream back to the browser as newline-delimited JSON → the Socket.IO service fans every event out to all subscribers → everyone's canvas updates live. State is organized Figma/Cursor-style around that ONE shared canvas: chat sessions are conversation contexts attached to the document (switching chats never swaps the canvas), and snapshots form the canvas's own version history.
 
 ---
 

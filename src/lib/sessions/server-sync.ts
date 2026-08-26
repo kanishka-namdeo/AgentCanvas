@@ -1,11 +1,12 @@
 // Server-side session sync — bridges the client's localStorage-based session
 // store with the server-side Prisma persistence.
 //
-// The client calls these functions to sync sessions on key events:
+// The client calls these functions to sync on key events:
 //   - createSession → POST /api/sessions
 //   - appendMessage → POST /api/sessions/[id]/messages
 //   - startRun / endRun → POST /api/sessions/[id]/runs
-//   - captureSnapshot → POST /api/sessions/[id]/snapshots
+//   - captureSnapshot / restore → POST /api/documents/[documentId]/snapshots
+//     (document-scoped, shared canvas model)
 //
 // The client's localStorage remains the fast cache for instant UI updates.
 // The server is the source of truth for persistence.
@@ -22,14 +23,29 @@ interface ServerSession {
   pinned: boolean;
   runCount: number;
   toolCallCount: number;
-  snapshotCount: number;
   lastOpenedAt: string;
   parentSessionId: string | null;
   createdAt: string;
   updatedAt: string;
   /// Relation counts returned by GET /api/sessions (Prisma `_count` include).
   /// Used by the client merge to skip empty session shells.
-  _count?: { messages: number; runs: number; snapshots: number };
+  _count?: { messages: number; runs: number };
+}
+
+/// A document-scoped canvas snapshot row (shared canvas model). The LIST
+/// endpoint omits the heavy `document` JSON; the single-GET includes it.
+export interface ServerDocSnapshot {
+  id: string;
+  documentId: string;
+  sessionId: string | null;
+  messageId: string | null;
+  runId: string | null;
+  source: string;
+  nodeCount: number;
+  label: string | null;
+  bookmarked: boolean;
+  createdAt: string;
+  document?: unknown;
 }
 
 /// Fetch sessions from the server for a given document.
@@ -92,7 +108,7 @@ export async function createServerSession(session: {
 /// Update a session on the server (title, status, pinned, counts).
 export async function updateServerSession(
   id: string,
-  updates: Partial<Pick<ServerSession, 'title' | 'status' | 'pinned' | 'runCount' | 'toolCallCount' | 'snapshotCount' | 'lastOpenedAt'>>,
+  updates: Partial<Pick<ServerSession, 'title' | 'status' | 'pinned' | 'runCount' | 'toolCallCount' | 'lastOpenedAt'>>,
 ): Promise<void> {
   try {
     await fetch(`/api/sessions/${id}`, {
@@ -156,26 +172,104 @@ export async function syncServerRun(
   }
 }
 
-/// Capture a snapshot on the server.
-/// `documentId` lets the route auto-create a missing session shell.
-export async function captureServerSnapshot(
-  sessionId: string,
-  document: unknown,
-  source: string = 'turn_end',
-  runId?: string,
-  documentId?: string,
-): Promise<string | null> {
+/// Capture a document-scoped snapshot on the server (shared canvas model).
+/// Idempotent: keyed by the client-supplied `id` (same contract as
+/// createServerSession — the server row shares the client id so future
+/// bookmark/label/delete syncs target the same row).
+export async function captureDocumentSnapshot(payload: {
+  id: string;
+  documentId: string;
+  sessionId?: string | null;
+  document: unknown;
+  source?: string;
+  runId?: string | null;
+  messageId?: string | null;
+  nodeCount?: number;
+  label?: string | null;
+}): Promise<boolean> {
   try {
-    const res = await fetch(`/api/sessions/${sessionId}/snapshots`, {
+    const res = await fetch(`/api/documents/${encodeURIComponent(payload.documentId)}/snapshots`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ document, source, runId, documentId }),
+      body: JSON.stringify({
+        id: payload.id,
+        sessionId: payload.sessionId ?? undefined,
+        document: payload.document,
+        source: payload.source,
+        runId: payload.runId ?? undefined,
+        messageId: payload.messageId ?? undefined,
+        nodeCount: payload.nodeCount,
+        label: payload.label ?? undefined,
+      }),
     });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/// List a document's snapshots (metadata only — no document JSON).
+/// Returns null when the server is unreachable (caller keeps the local cache).
+export async function fetchDocumentSnapshots(documentId: string): Promise<ServerDocSnapshot[] | null> {
+  try {
+    const res = await fetch(`/api/documents/${encodeURIComponent(documentId)}/snapshots`);
     if (!res.ok) return null;
     const data = await res.json();
-    return data.snapshot?.id ?? null;
+    return data.snapshots ?? null;
   } catch {
     return null;
+  }
+}
+
+/// Fetch ONE snapshot including the full document JSON (restore path for
+/// remote metadata-only entries).
+export async function fetchDocumentSnapshot(
+  documentId: string,
+  id: string,
+): Promise<ServerDocSnapshot | null> {
+  try {
+    const res = await fetch(
+      `/api/documents/${encodeURIComponent(documentId)}/snapshots/${encodeURIComponent(id)}`,
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.snapshot ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/// Update a snapshot's label / bookmark flag on the server.
+export async function updateDocumentSnapshot(
+  documentId: string,
+  id: string,
+  updates: { label?: string | null; bookmarked?: boolean },
+): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `/api/documents/${encodeURIComponent(documentId)}/snapshots/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(updates),
+      },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/// Delete a snapshot on the server.
+export async function deleteDocumentSnapshot(documentId: string, id: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `/api/documents/${encodeURIComponent(documentId)}/snapshots/${encodeURIComponent(id)}`,
+      { method: 'DELETE' },
+    );
+    return res.ok;
+  } catch {
+    return false;
   }
 }
 

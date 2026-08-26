@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Next.js Route Handlers. Four route families: the `/api/agent` endpoints that run the agent loop server-side (plus question-answers, background-task status, and pending-question polling), the `/api/sessions*` CRUD family for server-side session persistence (Prisma), the `/api/plugins` + `/api/mcp` settings-support endpoints, the `/api` health check, and the `/api/pen/import` + `/api/pen/export` .pen file conversion endpoints.
+Next.js Route Handlers. Five route families: the `/api/agent` endpoints that run the agent loop server-side (plus question-answers, background-task status, and pending-question polling), the `/api/sessions*` CRUD family for server-side session persistence (Prisma), the `/api/documents/[documentId]/snapshots*` family for the document-scoped canvas snapshot timeline (shared-canvas model — snapshots belong to the canvas, not to a chat), the `/api/plugins` + `/api/mcp` settings-support endpoints, the `/api` health check, and the `/api/pen/import` + `/api/pen/export` .pen file conversion endpoints.
 
 ## Ownership
 
@@ -11,11 +11,12 @@ Next.js Route Handlers. Four route families: the `/api/agent` endpoints that run
 - `agent/background/[id]/route.ts` — GET: background-task status by id (404 if unknown); backed by `getBackgroundTaskStatus()` from `src/lib/agent/plugins/background-tasks`. Polled by the BackgroundTaskList UI.
 - `agent/pending/route.ts` — GET: `{ pending: [...] }` list of unanswered `ask_user_question` toolCallIds (frontend polls on reconnect); backed by `getPendingQuestions()`.
 - `plugins/route.ts` — GET: all agent-plugin manifests (`pluginId, pluginName, description, category, defaultEnabled, toolCount, toolNames`) for Settings → Plugins; backed by `getAllPlugins()`. User toggles live client-side (`enabledPlugins` setting) — not persisted server-side.
-- `sessions/route.ts` — GET/POST: server-side session persistence (DB is source of truth, localStorage is cache). GET filters by `documentId` + `status` (default `active`), ordered `lastOpenedAt desc`, with message/run/snapshot counts; POST creates a session (`documentId` required, else 400).
-- `sessions/[id]/route.ts` — GET/PATCH/DELETE: fetch session with messages (asc) + runs (asc) + snapshots (desc), 404 if missing; update title/status/pinned/counters/lastOpenedAt; cascade delete.
+- `sessions/route.ts` — GET/POST: server-side session persistence (DB is source of truth, localStorage is cache). GET filters by `documentId` + `status` (default `active`), ordered `lastOpenedAt desc`, with message/run counts (the snapshot `_count` include was dropped — snapshots are document-scoped now); POST creates a session (`documentId` required, else 400).
+- `sessions/[id]/route.ts` — GET/PATCH/DELETE: fetch session with messages (asc) + runs (asc) (the snapshots include was dropped — snapshots are document-scoped now), 404 if missing; update title/status/pinned/counters/lastOpenedAt (`snapshotCount` dropped); cascade delete (messages + runs only — snapshots no longer cascade with their session).
 - `sessions/[id]/messages/route.ts` — GET/POST: list (asc) or append messages; POST with `messageId` updates an existing message (streaming → complete).
-- `sessions/[id]/snapshots/route.ts` — GET/POST: list snapshot metadata (document JSON excluded — too large); create snapshot from `{document, source (default 'turn_end'), runId}` and increment `snapshotCount`.
 - `sessions/[id]/runs/route.ts` — POST only: create a run, or update an existing one when `runId` is passed (status/errorMessage/toolCallCount/toolCalls); increments `runCount` + bumps `lastOpenedAt`.
+- `documents/[documentId]/snapshots/route.ts` — GET/POST: the document-scoped snapshot timeline (shared-canvas model — snapshots belong to the canvas, not to any one chat). GET (`?limit=100`) lists snapshot METADATA only (document JSON excluded — too large; `createdAt desc`). POST creates/upserts a `DocumentSnapshot` from `{id, document, sessionId?, source?, runId?, messageId?, nodeCount?, label?, bookmarked?}` — IDEMPOTENT by the client-supplied `id` (an existing id returns the existing row); validates `document` is an object.
+- `documents/[documentId]/snapshots/[id]/route.ts` — GET/PATCH/DELETE: single snapshot. GET returns the snapshot INCLUDING the parsed `document` JSON (404 when missing — the fetch-on-demand path for restoring `remote` placeholders); PATCH updates `{label?, bookmarked?}`; DELETE refuses bookmarked snapshots (400).
 - `mcp/[id]/route.ts` — GET/POST: status + `{action: 'connect' | 'disconnect'}` control for one MCP server (placeholder registry via `src/lib/agent/plugins/mcp-adapter`; real MCP SDK wiring is a TODO in code). Used by Settings → MCP Servers.
 - `route.ts` — root API health check. Returns a static JSON payload.
 - `pen/import/route.ts` — .pen file import endpoint. Converts .pen JSON to CanvasDocument + CanvasPatch ops.
@@ -61,15 +62,24 @@ Next.js Route Handlers. Four route families: the `/api/agent` endpoints that run
 - `/api/agent/background/[id]` is polled by the BackgroundTaskList UI while background tasks run.
 
 ### `/api/sessions*` family
-- Server-side persistence via Prisma (`db.session`, `db.sessionMessage`, `db.sessionRun`, `db.sessionSnapshot` from `src/lib/db`). The DB is the source of truth; the localStorage store (see `src/lib/sessions/AGENTS.md`) is a cache.
+- Server-side persistence via Prisma (`db.session`, `db.sessionMessage`, `db.sessionRun` from `src/lib/db`; canvas snapshots live in `db.documentSnapshot` behind the `/api/documents/[documentId]/snapshots*` routes — see below). The DB is the source of truth; the localStorage store (see `src/lib/sessions/AGENTS.md`) is a cache.
 - **Client-supplied session id**: POST `/api/sessions` accepts an optional `id` (the client's localStorage session id) and creates the row with THAT id — this keeps client and server rows aligned so child writes never FK-fail. The POST is idempotent: an existing id returns the existing row.
-- **Auto-heal**: the runs/messages/snapshots POST routes accept an optional `documentId` and create the missing parent session shell when absent (see `ensure-session.ts`) — pre-fix localStorage sessions heal on their next write instead of erroring.
+- **Auto-heal**: the runs/messages POST routes accept an optional `documentId` and create the missing parent session shell when absent (see `ensure-session.ts`) — pre-fix localStorage sessions heal on their next write instead of erroring.
 - **Upserts**: POST with `runId` (runs) or `messageId` (messages) upserts — creates the row when the server never saw the initial create (previously an unhandled P2025 500).
 - **List cap**: GET `/api/sessions` returns at most 50 sessions (most recent first) so a legacy DB of empty shells cannot flood the client merge.
 - **Error contract**: all handlers catch errors and return structured JSON (`{ error }`) with 400/404/500 — P2025 on PATCH → 404, on DELETE → idempotent success. No raw Prisma errors in the log.
 - All writes go through `src/lib/sessions/server-sync.ts` on the client — do not call these routes ad hoc from components.
-- Snapshot GET excludes the `document` JSON (too large for list payloads); fetch metadata only.
-- Deleting a session cascades to messages, runs, and snapshots (schema-level `onDelete: Cascade`).
+- Snapshot list GET (`/api/documents/[documentId]/snapshots`) excludes the `document` JSON (too large for list payloads); the single-snapshot GET includes it (fetch-on-demand for remote placeholders at restore).
+- Deleting a session cascades to messages and runs (schema-level `onDelete: Cascade`) but NOT snapshots — `DocumentSnapshot` rows are document-scoped (plain `sessionId` provenance column, no FK), so canvas history survives its chat.
+
+### `/api/documents/[documentId]/snapshots*` family
+- The document-scoped snapshot timeline (shared-canvas model): snapshots belong to the CANVAS (`documentId`), with `sessionId`/`messageId`/`runId` provenance columns — deleting a chat never deletes its snapshots. Follows the Next 16 `params: Promise<{...}>` await pattern used by sibling routes.
+- `GET /api/documents/[documentId]/snapshots?limit=100` → `{ snapshots: ServerDocSnapshot[] }` — METADATA only (no `document` JSON), `createdAt desc`.
+- `POST /api/documents/[documentId]/snapshots` → upsert by client-supplied `id` (idempotent — replays after reconnect don't duplicate rows); validates `document` is an object before stringify; returns `{ snapshot }`.
+- `GET /api/documents/[documentId]/snapshots/[id]` → `{ snapshot }` INCLUDING the parsed `document` JSON (404 when missing) — the fetch-on-demand path the canvas store uses when restoring a `remote` placeholder.
+- `PATCH /api/documents/[documentId]/snapshots/[id]` body `{ label?, bookmarked? }` → `{ snapshot }`.
+- `DELETE /api/documents/[documentId]/snapshots/[id]` → `{ ok: true }`; REFUSES bookmarked snapshots (400).
+- The legacy `/api/sessions/[id]/snapshots` route was DELETED (obsolete under the shared-canvas model).
 
 ### `/api/plugins` + `/api/mcp/[id]`
 - Read-only plugin manifests (GET) and MCP server connect/disconnect control (POST). Both exist to serve SettingsDialog sections 7 (Plugins) and 8 (MCP Servers).
@@ -152,4 +162,4 @@ Next.js Route Handlers. Four route families: the `/api/agent` endpoints that run
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder contains: `agent/route.ts`, `agent/answers/route.ts`, `agent/background/[id]/route.ts`, `agent/pending/route.ts`, `plugins/route.ts`, `sessions/route.ts`, `sessions/[id]/route.ts`, `sessions/[id]/messages/route.ts`, `sessions/[id]/snapshots/route.ts`, `sessions/[id]/runs/route.ts`, `mcp/[id]/route.ts`, `route.ts`, `pen/import/route.ts`, `pen/export/route.ts`.
+No child `AGENTS.md` files. This folder contains: `agent/route.ts`, `agent/answers/route.ts`, `agent/background/[id]/route.ts`, `agent/pending/route.ts`, `plugins/route.ts`, `sessions/route.ts`, `sessions/[id]/route.ts`, `sessions/[id]/messages/route.ts`, `sessions/[id]/runs/route.ts`, `documents/[documentId]/snapshots/route.ts`, `documents/[documentId]/snapshots/[id]/route.ts`, `mcp/[id]/route.ts`, `route.ts`, `pen/import/route.ts`, `pen/export/route.ts`.

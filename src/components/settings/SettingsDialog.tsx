@@ -9,7 +9,7 @@
 // Sections:
 //   1. Agent behavior   — temperature, maxIterations, thinkingLevel, planFirst, defaultPalette, skillSelectionMode
 //   2. LLM provider     — provider (registry list), apiKey, modelName, apiBaseUrl
-//   3. Sessions         — snapshotCadence, maxSessionsRetained, maxSnapshotsPerSession, autoArchiveIdleAfter
+//   3. Sessions         — snapshotCadence, maxSessionsRetained, maxSnapshotsPerCanvas (per-document), autoArchiveIdleAfter
 //   4. Appearance       — theme, density
 //   5. Data & privacy   — storage usage, export all, clear all
 //   6. Shortcuts        — read-only reference list
@@ -582,7 +582,7 @@ function LLMSection() {
 function SessionsSection() {
   const snapshotCadence = useSettings((s) => s.snapshotCadence);
   const maxSessionsRetained = useSettings((s) => s.maxSessionsRetained);
-  const maxSnapshotsPerSession = useSettings((s) => s.maxSnapshotsPerSession);
+  const maxSnapshotsPerCanvas = useSettings((s) => s.maxSnapshotsPerCanvas);
   const autoArchiveIdleAfter = useSettings((s) => s.autoArchiveIdleAfter);
   const set = useSettings((s) => s.set);
 
@@ -616,13 +616,13 @@ function SessionsSection() {
         </Row>
 
         <Row
-          label="Max snapshots per session"
-          description="Oldest non-bookmarked snapshots auto-deleted when exceeded."
+          label="Max canvas snapshots"
+          description="Oldest non-bookmarked canvas snapshots auto-deleted when exceeded. Snapshots are shared across every chat on the canvas."
         >
           <Input
             type="number"
-            value={maxSnapshotsPerSession}
-            onChange={(e) => set('maxSnapshotsPerSession', Math.max(5, Math.min(200, parseInt(e.target.value) || 50)))}
+            value={maxSnapshotsPerCanvas}
+            onChange={(e) => set('maxSnapshotsPerCanvas', Math.max(5, Math.min(200, parseInt(e.target.value) || 50)))}
             min={5}
             max={200}
             className="h-7 w-20 text-[11px]"
@@ -842,16 +842,17 @@ function DataSection() {
   };
 
   const handleClearSnapshots = () => {
-    if (!confirm('Delete all non-bookmarked snapshots across all sessions?')) return;
+    if (!confirm('Delete all non-bookmarked canvas snapshots? The snapshot timeline is shared across every chat on this canvas.')) return;
     const store = useSessionStore.getState();
+    const docId = useCanvasStore.getState().documentId;
     let count = 0;
     for (const snap of Object.values(store.snapshots)) {
-      if (!snap.bookmarked) {
+      if (snap.documentId === docId && !snap.bookmarked) {
         store.deleteSnapshot(snap.id);
         count++;
       }
     }
-    toast.success(`Deleted ${count} snapshot${count === 1 ? '' : 's'}`);
+    toast.success(`Deleted ${count} canvas snapshot${count === 1 ? '' : 's'}`);
     refresh();
   };
 
