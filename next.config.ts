@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
     "linkedom",
     "z-ai-web-dev-sdk",
     "@earendil-works/pi-coding-agent",
+    // Native binary package (prebuilt .node binding). Without this,
+    // Turbopack tries to bundle the .js shim and fails with
+    // "non-ecmascript placeable asset" during `next build`.
+    "@resvg/resvg-js",
   ],
 };
 
