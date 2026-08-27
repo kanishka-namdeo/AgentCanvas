@@ -1,0 +1,60 @@
+{
+  "comment": "Scenario matrix for the VLM inspection exercise. One-shot = single prompt (generation quality). Multi-shot = 2-3 turns on the SAME chat session (editing fidelity, preservation, refinement). Prompts are deliberately distinct from scripts/agent-eval/scenarios.ts to avoid teaching-to-the-test contamination.",
+  "scenarios": [
+    {
+      "id": "os-hero",
+      "type": "one-shot",
+      "turns": [
+        { "prompt": "Create a landing page hero section for a design tool called 'PixelForge': a bold headline 'Design at the speed of thought', a subheadline saying it turns prompts into polished UI in minutes, a primary 'Get Started' button and a secondary 'Watch Demo' button." }
+      ]
+    },
+    {
+      "id": "os-profile",
+      "type": "one-shot",
+      "turns": [
+        { "prompt": "Create a user profile card: a circular avatar placeholder, the name 'Maya Chen', the job title 'Product Designer', and a row of three stats - 128 Followers, 342 Following, 56 Posts." }
+      ]
+    },
+    {
+      "id": "os-kanban",
+      "type": "one-shot",
+      "turns": [
+        { "prompt": "Create a kanban board with three columns - To Do, In Progress, Done - each column containing two task cards with a short realistic title and a small colored tag." }
+      ]
+    },
+    {
+      "id": "os-barchart",
+      "type": "one-shot",
+      "turns": [
+        { "prompt": "Create a card containing a bar chart titled 'Monthly Revenue' with six bars for Jan to Jun showing 12k, 18k, 15k, 24k, 29k and 33k, with value labels above each bar." }
+      ]
+    },
+    {
+      "id": "ms-navbar",
+      "type": "multi-shot",
+      "turns": [
+        { "prompt": "Create a website top navigation bar for a site called 'Acme': the logo text 'Acme' on the left, the links Home, Products, Pricing and About in the middle, and a 'Sign Up' button on the right." },
+        { "prompt": "Add a shopping cart icon with a small red badge showing '3' between the links and the Sign Up button." },
+        { "prompt": "Give the navbar a dark background, make the Home link highlighted in blue, and vertically center everything." }
+      ]
+    },
+    {
+      "id": "ms-pricing",
+      "type": "multi-shot",
+      "turns": [
+        { "prompt": "Create a pricing card for the 'Pro' plan at $12 per month: the plan name, the price, a list of 4 realistic features, and a 'Choose Pro' button." },
+        { "prompt": "Turn it into a row of three pricing cards side by side: Starter at $0, Pro at $12 with a 'Popular' badge and a highlighted border, and Team at $49." },
+        { "prompt": "Make all three cards the same height with consistent padding, and center the plan names." }
+      ]
+    },
+    {
+      "id": "ms-settings",
+      "type": "multi-shot",
+      "turns": [
+        { "prompt": "Create an 'Account Settings' panel with two labeled input fields: Display Name and Email Address." },
+        { "prompt": "Add a primary 'Save Changes' button and a ghost-style 'Cancel' button below the fields." },
+        { "prompt": "Add a 'Notifications' section below with two toggle rows - 'Email updates' and 'Product news' - both shown switched on." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,730 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_create_node",
+      "description": "Create a new node on the canvas — the workhorse. Use this to add rectangles, ellipses, text, lines, frames (artboards), groups, or ICONS (Lucide glyphs via type:\"icon\" + icon:\"<name>\"). Returns the new node id. The node appears immediately on every viewer's screen.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_create_subtree",
+      "description": "Create an entire NESTED component tree in ONE call — a frame with children, grandchildren, text, icons, auto-layout — instead of one pen_create_node per node. PREFER this over repeated pen_create_node whenever you can enumerate the structure up front (cards, nav bars, forms, hero sections, whole screens). Each node accepts every pen_create_node field plus `children`; ids are optional. Returns the root id + node count.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_update_node",
+      "description": "Update one or more properties of an existing node. Only the fields you provide are changed; others stay the same. Use this to move, resize, recolor, or edit text. Returns the patched node.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_delete_nodes",
+      "description": "Delete one or more nodes from the canvas by id. This is permanent for the current session.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_clear",
+      "description": "Remove every shape from the canvas. Use sparingly — this is destructive and cannot be undone in this demo.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_set_background",
+      "description": "Set the canvas background color.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_select_nodes",
+      "description": "Visually highlight one or more nodes on the canvas (a brief flash). Use this to point at a node you just created or are describing.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_duplicate_nodes",
+      "description": "Duplicate one or more nodes. Each copy is offset 24px down-right from its original. Returns the new node ids. Useful for repeating elements (lists, grids).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_group_shapes",
+      "description": "Wrap one or more shapes in a group. The group becomes a new container shape with its own bounding box; children keep their position but gain a parentId pointing at the group. Use this to organize related shapes.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_ungroup_shapes",
+      "description": "Dissolve one or more groups. Children are promoted to the group's parent (grandparent) and their stored x/y is remapped to preserve their absolute canvas position (Figma-hierarchy behavior).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_reparent_nodes",
+      "description": "Move one or more nodes to a new parent (frame or group). Figma-hierarchy semantics: by default each node's absolute canvas position is preserved by remapping its stored relative x/y to the new parent's coordinate frame. Pass keepAbsolutePosition=false to keep the stored x/y verbatim against the new parent. Reparenting into the node itself or one of its descendants is rejected (would create a cycle). Supports batch mode: pass nodeIds (plural) to reparent multiple nodes into the same new parent in one call.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_align_shapes",
+      "description": "Align or distribute multiple shapes. Alignment snaps to min/max/average; distribution spaces them evenly. Requires at least 2 shapes for alignment, 3+ for distribution.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_organize_layers",
+      "description": "Automatically rename and re-zIndex all shapes based on type and reading order. Rectangles become \"Card N\", ellipses \"Ellipse N\", text shapes take their text content (truncated), frames become \"Frame N\". Useful for cleaning up messy canvases.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_apply_auto_layout",
+      "description": "Apply an Auto Layout configuration to a frame or group. The container's children will be arranged automatically based on direction, gap, padding, and alignment (mirrors Figma Auto Layout). Only meaningful for `frame` or `group` shapes.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_instantiate_component",
+      "description": "Create a linked instance of an existing component. The instance copies the component's shape but gets a new id and componentId pointing at the original. Useful for placing the same UI element multiple times.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_convert_to_component",
+      "description": "Promote an existing frame, group, or shape into a reusable Component (Figma: ⌘⇧O). The selected node becomes the \"main component\" — its type changes from \"frame\" to \"component\", and `reusable=true` is set so future instances can reference it via `pen_place_component_instance`. Use this AFTER designing a UI element you want to reuse (button, card, header, etc.).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_place_component_instance",
+      "description": "Place a linked instance of a reusable Component at (x, y). Creates a proper PenRef node that references the main component. The instance inherits the main's full subtree and can be overridden locally (text, fill, stroke, child visibility) without affecting the main. When the main component changes, all instances update automatically.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_override_instance",
+      "description": "Override a descendant property on a component instance (PenRef). Lets you customize one instance without affecting the main component or other instances. Supported overrides: text content, fill, stroke, opacity, visibility, fontSize, textColor, radius. The descendant path is slash-separated source-ids (e.g. \"button-frame/label-text\").",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_reset_instance",
+      "description": "Clear ALL overrides on a component instance — re-sync from the main component. Equivalent to Figma's right-click → \"Reset Instance\" / \"Reset Overrides\".",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_detach_instance",
+      "description": "Detach a component instance from its main component (Figma: right-click → \"Detach Instance\"). The instance becomes a standalone frame containing the resolved tree (with overrides baked in). Future changes to the main component will NOT propagate to the detached frame. Use this when you need to heavily customize a single instance beyond what overrides allow.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_combine_as_variants",
+      "description": "Wrap multiple Component nodes into a ComponentSet (Figma: select multiple components → \"Combine as Variants\"). The resulting set exposes the variant axes (e.g. Size, State) as a property picker on instances. Component naming convention MUST be \"Property=Value, Property=Value\" (e.g. \"Size=Large, State=Default\") for the axes to be auto-derived. You can also pass `axes` explicitly. After combining, instances of the SET can switch between variants via `pen_swap_variant`.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_swap_variant",
+      "description": "Switch which variant of a ComponentSet the instance points to. The instance keeps its existing overrides (text, fill, etc.) where the new variant has matching descendants. Equivalent to Figma's Properties panel variant dropdown.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_set_variables",
+      "description": "Update the document's variables — named colors and text styles that nodes can bind to. When a variable changes, every node bound to it (via tokenBinding) is recolored automatically. Pass only the variables you want to add or change; existing ones are merged by key.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_apply_palette",
+      "description": "Recolor a set of shapes using a new palette. Each shape's fill is mapped to the closest color in the palette by perceptual distance (HSL). Useful for \"re-skinning\" an existing layout without rebuilding it. Optionally binds the shapes to design tokens (so future palette changes propagate automatically). If shapeIds is omitted, applies to ALL shapes on the canvas — use this for \"recolor everything\" requests.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_generate_palette",
+      "description": "Generate a harmonious 5-color palette from a base color using color-theory rules. Returns the palette as a list of hex colors AND saves them as design tokens. Rules: analogous (adjacent hues), complementary (opposite), triadic (3 evenly spaced), monochromatic (variations of one hue), or split-complementary.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_generate_wireframe",
+      "description": "Generate a screen layout from a template. Places a frame plus fully-styled shapes with shadows, gradients, radii, real content, and a color palette applied (fidelity=hifi, default). Pass fidelity=lofi for an explicit wireframe / low-fi / sketch request — grayscale, flat, no shadows. IMPORTANT: templates ship with PLACEHOLDER text (e.g. Stat values \"$128.4K\", \"8,249\"). When the user specifies exact copy — product names, headings, stat values, labels — pass them via `texts` (keyed by the template text layer name, e.g. {\"Stat 1 value\": \"$128.4K\", \"Page title\": \"Acme Analytics\"}) so the generated screen carries the user's real content in this same call. Templates: mobile_login, mobile_signup, mobile_dashboard, mobile_welcome, mobile_permissions, mobile_done, mobile_browse, mobile_product_detail, mobile_cart, mobile_checkout, web_landing, web_dashboard, web_blog, web_pricing. The frame is placed at (x, y) with the template's default size. This is a scaffold — follow it with pen_apply_palette, pen_set_shadow on cards/buttons, and pen_set_gradient_fill on the hero/CTA for full polish.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_generate_user_flow",
+      "description": "Generate a connected series of screens representing a user flow. Places 3-4 frames side by side with arrows between them. Flows: onboarding (3 steps: welcome → permissions → done), ecommerce (4 steps: browse → product → cart → checkout), auth (3 steps: login → mfa → home), signup_funnel (4 steps: landing → signup → verify → dashboard). Each screen is a purpose-built wireframe for that flow step; arrows connect them left-to-right.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_generate_diagram",
+      "description": "Generate a flowchart or mind-map diagram from a list of nodes. Nodes can be linked with arrows. Templates: flowchart (top-down boxes with arrows), mindmap (central node with radial children). Pass a list of node labels; the tool computes positions and connectors.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_generate_copy",
+      "description": "Generate realistic placeholder copy for a text shape. Variants: heading (short punchy title), subheading (one-sentence subtitle), body (lorem-style paragraph), button (CTA label), caption, microcopy. Updates the text content of an existing text shape in place.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_audit_design",
+      "description": "Audit the current canvas for design-consistency issues. Returns a textual report covering: color palette drift (too many distinct colors), spacing inconsistencies, font-size proliferation, low-contrast text, and unaligned shapes. Does NOT mutate the canvas — pure analysis. The agent can then act on the findings.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_bind_variable",
+      "description": "Bind a node property (fill, stroke, or textColor) to a named variable. When the variable's value changes, the bound property auto-updates. Use this after pen_set_variables or pen_apply_palette to create a live link.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_unbind_variable",
+      "description": "Remove a variable binding from a node property. The node keeps its current color value but will no longer auto-update when the variable changes.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_list_variables",
+      "description": "List all variables (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before pen_bind_variable to see available variable keys.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_apply_variable",
+      "description": "Apply a variable's value to one or more nodes. Optionally also bind the nodes to the variable (live link). This is the batch version of pen_bind_variable.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_set_locked",
+      "description": "Lock or unlock one or more shapes. Locked shapes cannot be moved or resized by direct manipulation (but can still be updated via tools).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_set_visible",
+      "description": "Show or hide one or more shapes. Hidden shapes are not rendered but remain in the document. Useful for creating alternative states or simplifying a complex canvas.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_bring_to_front",
+      "description": "Move one or more shapes to the top of the z-order (above all other shapes).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_send_to_back",
+      "description": "Move one or more shapes to the bottom of the z-order (below all other shapes).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_move_forward",
+      "description": "Move a shape one level forward (above its current neighbor).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_move_backward",
+      "description": "Move a shape one level backward (below its current neighbor).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_reorder_shape",
+      "description": "Move a shape to a specific z-index position. Other shapes shift to make room.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_set_constraints",
+      "description": "Set Figma-style layout constraints on a child node. The renderer does not yet enforce these, but the Properties panel and the agent can read them to reason about responsive resize behavior. Horizontal: left / right / center / scale / left_right. Vertical: top / bottom / center / scale / top_bottom. Pass null to clear.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_undo",
+      "description": "Undo the last canvas change. Can be called multiple times to undo further back. NOTE: this only affects the local (client) canvas state — it does not reverse agent tool calls in the chat history.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_redo",
+      "description": "Redo a previously undone canvas change. Can be called multiple times.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_export_json",
+      "description": "Export the full canvas document as a JSON string. Includes all shapes, tokens, background, and viewport. Useful for backup or migration.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_export_svg",
+      "description": "Export the canvas as an SVG string. Each shape is rendered as its SVG element. Useful for embedding in documents or converting to PNG.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_export_png",
+      "description": "Export the canvas as a PNG (or SVG-fallback) data URL the agent can embed in <img> tags or pass to other tools. Spec Phase 5 §5.4 contract: tries the client DOM-capture round-trip first (real DOM-rendered canvas — fonts, images, measured native-layout geometry, drop-shadows, gradients), falls back to the server-side resvg SVG→PNG rasterizer (full-fidelity SVG projection with gradients/shadows/polygons/stars), and finally to a lossy inline SVG emitter (rect/ellipse/line/text only — last resort when resvg is unavailable). For on-screen inspection use pen_get_screenshot (same capture path, different framing).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_copy_as_code",
+      "description": "Generate HTML + Tailwind CSS code from the canvas shapes. Useful for handoff to developers. v2 (spec §5.3): consumes the .pen tree — auto-layout containers become REAL nested flexbox (not flat absolutes); layout:none containers become relative containers with absolutely-positioned children; every element carries data-name/data-node-id; token-bound fills emit var(--acv-key, fallback). Supports: html (standalone HTML), react (JSX component), tailwind (Tailwind classes).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_insert_html",
+      "description": "Insert an HTML fragment as design nodes under a parent. Block containers become frames (auto-layout when the style is flex); headings/paragraphs/spans become text nodes; img becomes image fills. Sanitized server-side (whitelisted tags/attributes, URL schemes). Prefer this over repeated pen_create_node for composite UI — one call builds a whole card, form, or nav bar. Emits ONE bulk_add patch. mode=\"v2\" requests full-fidelity mounted-iframe extraction (browser-side sandboxed iframe, getComputedStyle + getBoundingClientRect walk, full cascade resolution, measured geometry). On timeout / no client connected / extraction error, v2 falls back to v1 with an explicit note so the agent loop can never hang.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_get_metadata",
+      "description": "Read canvas structure. With nodeId: sparse tree of that subtree — one line per node: id, name, type, x, y, width, height. Without nodeId (or unknown id): the page list (id + name). Always call this before heavier reads.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_get_variable_defs",
+      "description": "Read the document variable (design token) definitions: names, types, values (or themed values), and CSS code syntax — so generated code binds tokens (var(--acv-<name>)) instead of raw hex. Also lists the derived text styles. v1: definitions are document-level (nodeId accepted for future scoping).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_get_design_context",
+      "description": "Full design context for a selection: (1) reference code (html/react/tailwind, data-name/data-node-id attrs, var(--token, fallback) values), (2) screenshot, (3) conversion instructions, (4) asset URLs. Scoped to a nodeId — no whole-canvas dumps.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_bake_layout",
+      "description": "Write browser-measured node sizes back into the model as fixed sizes (spec §3.8). Reads the measured-bounds runtime cache the DOM renderer pushes (native layout mode) and emits ONE update_many patch with real width/height. Nodes whose .pen sizing is dynamic (fit_content / fill_container) are skipped — baking would fight the layout engine. Without measured data (no client push yet, or parity mode) nothing changes.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_get_computed",
+      "description": "Read REAL browser-computed styles + measured rects for specific nodes (getComputedStyle + getBoundingClientRect on the live DOM renderer). No Figma analog — the DOM-renderer dividend. Use it to verify your own work after patches: actual widths, contrast, computed colors post-variable-resolution, flex gap/padding reality. Falls back to resolver-predicted data (measured:false) when no client is connected — never hangs.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_get_screenshot",
+      "description": "Capture a PNG screenshot of the REAL rendered canvas — the DOM renderer captured via html-to-image at the requested scale (default 2). Figma MCP analog: get_screenshot. Use for self-verification after building UI. Falls back to the server-side resvg render (measured:false, images dropped) when no client responds within 2s — never hangs. The data URL lands in details.screenshotDataUrl; the text carries dimensions + KB only (tool-result size caps).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_find_nodes",
+      "description": "Find nodes matching a filter. Returns node IDs and a summary. Read-only. Use this to bulk-select nodes by type, color, name, or parent. Example: find all ellipses, find all nodes with fill #ff0000, find all children of a frame.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_bulk_update_by_filter",
+      "description": "Update all nodes matching a filter. Combines pen_find_nodes + pen_update_node into one call. Example: \"make all ellipses red\" → filter type=ellipse, changes fill=#ff0000.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_find_replace_text",
+      "description": "Find and replace text across all text shapes on the canvas. Supports plain string matching. Example: find \"Lorem\" replace \"Welcome\" — updates every text shape containing \"Lorem\".",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_create_path",
+      "description": "Create a freeform path shape from a list of points. If closed=true, the path is filled (polygon); if closed=false, it's a stroked polyline. Points are canvas-space {x, y} coordinates. Minimum 2 points.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_boolean_op",
+      "description": "Combine two shapes using a boolean operation. NOTE: this is a simplified implementation — true vector boolean math requires a polygon-clipping library. union: groups both shapes under a single group with unified fill. subtract: sets the second shape as a mask (clips the first). intersect: same as subtract (mask intersection). exclude: hides the second shape (visual approximation).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_mask_with",
+      "description": "Clip a shape using another shape as a mask. The mask shape's geometry defines the visible region of the target. To remove a mask, call this with maskId=null (or use pen_update_node to clear maskId).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_set_gradient_fill",
+      "description": "Set a linear or radial gradient fill on a shape. Overrides the solid `fill` color. Provide 2+ stops (offset 0..1, color hex). For linear, specify angle 0..360 (0=→, 90=↓, 180=←, 270=↑).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_set_shadow",
+      "description": "Apply a drop shadow to a shape. Set blur=0 and color=transparent to remove. The shadow is rendered via CSS box-shadow (text layers use text-shadow).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_set_blur",
+      "description": "Apply a Gaussian blur to a shape. Set radius to 0 to remove. Rendered via CSS filter: blur().",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_set_corner_radius_per_corner",
+      "description": "Set independent border radii for each corner of a rectangle or frame. Overrides the uniform `radius` property.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_upload_image",
+      "description": "Place an image on the canvas from a data URL or remote URL. Use this for logos, photos, or any raster image. The image is rendered as a CSS-styled <img> element. Data URLs (base64) are preferred for persistence; remote URLs may break if the host goes down.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_search_icons",
+      "description": "Search the Lucide icon catalog by MEANING and optionally place an icon on the canvas as a first-class icon node. Two modes: (1) SEARCH — pass `query` (e.g. \"password security\", \"analytics chart\") to get ranked icon names with categories; (2) PLACE — pass `icon` (an exact name) plus `x`/`y` to place it. Combine both (`query` + `x`/`y`) to place the best match. Icons render as true Lucide glyphs, recolorable via `stroke`, and are the ONLY correct way to add icons — never hand-draw icons with path nodes and never use emoji as icons.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_generate_image",
+      "description": "Generate an image from a text prompt and place it on the canvas. NOTE: in this sandbox, this tool places a placeholder rectangle with the prompt text — actual AI image generation requires the image-generation API. The placeholder uses a dashed border so the user knows to replace it.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "web_search",
+      "description": "Search the web for up-to-date information. Returns a numbered list of results with title, URL, snippet, and publish date. Use this when the user asks about current events, recent releases, real-world products, or anything not in your training data. Works with zero configuration — no API key needed. Tries multiple search engines (z.ai, DuckDuckGo, Startpage, Jina) in fallback order.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "web_fetch",
+      "description": "Fetch a URL and return its content as clean readable markdown / plain text. Handles HTML (with readability extraction), JSON (pretty-printed), RSS/Atom feeds, and plain text. Use this to read a specific web page — e.g. a blog post, documentation page, or API response — in full. Works with zero configuration — no API key needed. Falls back through readability → z.ai page_reader → Jina Reader.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_self_critique",
+      "description": "Dispatch the design-critic sub-agent to review the current canvas from a senior-designer perspective. Returns a structured critique with severity-tagged findings ([BLOCKER] / [MAJOR] / [MINOR] / [PRAISE]) and a 1-10 score. Implements the Reflection agentic pattern (generate → critique → refine). After receiving the critique, act on each [BLOCKER] and [MAJOR] finding to refine the design.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_recommend_components",
+      "description": "Scan the canvas for repeated shape patterns (similar type + size + fill) and recommend which shapes should be converted into reusable Components. Returns a list of candidate groups, each with a suggested component name + the shape ids involved. Closes a key gap vs Figma AI: proactively suggests componentization opportunities instead of waiting for the user to ask. Does NOT mutate the canvas — pure analysis. The agent should follow up with `pen_convert_to_component` + `pen_place_component_instance` to act on the recommendations.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_search_design_patterns",
+      "description": "Retrieve similar past design patterns from the pattern memory (RAG). Returns the top-k most similar patterns, each with the original prompt, a summary, key parameters, and a similarity score. Implements the Memory agentic pattern — the agent learns from past successes. Use this BEFORE generating a new design to inform style choices, layout direction, and palette selection.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_save_design_pattern",
+      "description": "Store the current design as a pattern in the pattern memory for future retrieval. Call this AFTER a successful design generation (especially when the user expresses approval). The stored pattern includes the original prompt, a summary of what was built, the category, and key parameters. Future calls to `pen_search_design_patterns` will retrieve this pattern when a similar prompt is given.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_clear_pattern_memory",
+      "description": "Wipe ALL stored design patterns from the pattern memory. Use this when the user wants to \"forget\" past designs and start fresh (e.g. they pivoted to a different design style). Returns the count of deleted patterns. This action is irreversible.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_pattern_stats",
+      "description": "Inspect the design-pattern memory store: how many patterns are stored, oldest/newest timestamps. Useful for debugging or for the user to see how much the agent has \"learned\".",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_generate_design_brief",
+      "description": "Dispatch the design-brief sub-agent to produce a JSON design brief from the user prompt BEFORE any pen_create_node / pen_generate_wireframe call. Returns: primaryColor, accentColor, neutralPalette, typography (fontFamily, headingScale, bodySize), componentCount, layoutGrid (cols, rows), informationArchitecture (ordered section list). Implements v0's GenerateDesignInspiration pattern (think-before-draw). MANDATORY FIRST STEP for any high-fidelity design request — the brief drives all subsequent palette / typography / layout decisions.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_visual_critique",
+      "description": "Dispatch the VLM (vision) design critic sub-agent. Renders the current canvas to a PNG screenshot, base64-encodes it, and calls a vision LLM with the 8-dimension structured-critique prompt (visual_hierarchy / spacing / color / typography / component_polish / alignment / information_density / overall_professionalism). Returns overall_score 1-10 + per-dimension defects with fixes + top-5 prioritized fixes. Catches what pen_self_critique (text-only) cannot see — alignment, whitespace, \"generic AI look\".",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_create_shape",
+      "description": "[deprecated: use pen_create_node] Create a new node on the canvas — the workhorse. Use this to add rectangles, ellipses, text, lines, frames (artboards), groups, or ICONS (Lucide glyphs via type:\"icon\" + icon:\"<name>\"). Returns the new node id. The node appears immediately on every viewer's screen.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_update_shape",
+      "description": "[deprecated: use pen_update_node] Update one or more properties of an existing node. Only the fields you provide are changed; others stay the same. Use this to move, resize, recolor, or edit text. Returns the patched node.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_delete_shape",
+      "description": "[deprecated: use pen_delete_nodes] Delete one or more nodes from the canvas by id. This is permanent for the current session.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_select_shape",
+      "description": "[deprecated: use pen_select_nodes] Visually highlight one or more nodes on the canvas (a brief flash). Use this to point at a node you just created or are describing.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_duplicate_shape",
+      "description": "[deprecated: use pen_duplicate_nodes] Duplicate one or more nodes. Each copy is offset 24px down-right from its original. Returns the new node ids. Useful for repeating elements (lists, grids).",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_reparent_shape",
+      "description": "[deprecated: use pen_reparent_nodes] Move one or more nodes to a new parent (frame or group). Figma-hierarchy semantics: by default each node's absolute canvas position is preserved by remapping its stored relative x/y to the new parent's coordinate frame. Pass keepAbsolutePosition=false to keep the stored x/y verbatim against the new parent. Reparenting into the node itself or one of its descendants is rejected (would create a cycle). Supports batch mode: pass nodeIds (plural) to reparent multiple nodes into the same new parent in one call.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_update_tokens",
+      "description": "[deprecated: use pen_set_variables] Update the document's variables — named colors and text styles that nodes can bind to. When a variable changes, every node bound to it (via tokenBinding) is recolored automatically. Pass only the variables you want to add or change; existing ones are merged by key.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_bind_shape_to_token",
+      "description": "[deprecated: use pen_bind_variable] Bind a node property (fill, stroke, or textColor) to a named variable. When the variable's value changes, the bound property auto-updates. Use this after pen_set_variables or pen_apply_palette to create a live link.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_unbind_shape",
+      "description": "[deprecated: use pen_unbind_variable] Remove a variable binding from a node property. The node keeps its current color value but will no longer auto-update when the variable changes.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_list_tokens",
+      "description": "[deprecated: use pen_list_variables] List all variables (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before pen_bind_variable to see available variable keys.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_apply_token",
+      "description": "[deprecated: use pen_apply_variable] Apply a variable's value to one or more nodes. Optionally also bind the nodes to the variable (live link). This is the batch version of pen_bind_variable.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_list_shapes",
+      "description": "[deprecated: use pen_get_metadata] Read canvas structure. With nodeId: sparse tree of that subtree — one line per node: id, name, type, x, y, width, height. Without nodeId (or unknown id): the page list (id + name). Always call this before heavier reads.",
+      "parameters": {}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "pen_find_shapes",
+      "description": "[deprecated: use pen_find_nodes] Find nodes matching a filter. Returns node IDs and a summary. Read-only. Use this to bulk-select nodes by type, color, name, or parent. Example: find all ellipses, find all nodes with fill #ff0000, find all children of a frame.",
+      "parameters": {}
+    }
+  }
+]

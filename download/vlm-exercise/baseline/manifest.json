@@ -1,0 +1,16 @@
+[
+  {
+    "scenarioId": "os-hero",
+    "turn": 1,
+    "prompt": "Create a landing page hero section for a design tool called 'PixelForge': a bold headline 'Design at the speed of thought', a subheadline saying it turns prompts into polished UI in minutes, a primary 'Get Started' button and a secondary 'Watch Demo' button.",
+    "startMs": 1787819760122,
+    "endMs": 1787819778736,
+    "durationMs": 18614,
+    "screenshot": "/home/z/my-project/download/vlm-exercise/baseline/os-hero-t1.png",
+    "tapFile": "/home/z/my-project/download/vlm-exercise/baseline/tap-events/os-hero-t1.jsonl",
+    "toolCalls": 0,
+    "timedOut": false,
+    "empty": true,
+    "redone": 1
+  }
+]

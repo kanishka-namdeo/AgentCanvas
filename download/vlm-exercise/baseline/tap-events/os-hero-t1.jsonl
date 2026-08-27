@@ -1,0 +1,18 @@
+{"t":1787819757627,"event":{"type":"canvas:full","shapeCount":2}}
+{"t":1787819760396,"event":{"type":"agent:message_start","role":"assistant"}}
+{"t":1787819760396,"event":{"type":"agent:skill_selected","category":"wireframe","confidence":0.9090909090909091,"method":"keyword","toolCount":107}}
+{"t":1787819761236,"event":{"type":"agent:model_info","provider":"zai","modelId":"glm-5.3","label":"zai/glm-5.3 (sandbox fallback)","contextWindow":1000000,"maxTokens":81920,"usedFallback":true}}
+{"t":1787819761237,"event":{"type":"agent:message_start","role":"assistant"}}
+{"t":1787819761237,"event":{"type":"agent:message_end"}}
+{"t":1787819761495,"event":{"type":"agent:message_start","role":"assistant"}}
+{"t":1787819761497,"event":{"type":"agent:context_update","tokenCount":0,"contextWindow":1000000,"usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"cost":0},"model":"glm-5.3"}}
+{"t":1787819761497,"event":{"type":"agent:message_end"}}
+{"t":1787819763752,"event":{"type":"agent:message_start","role":"assistant"}}
+{"t":1787819763754,"event":{"type":"agent:context_update","tokenCount":0,"contextWindow":1000000,"usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"cost":0},"model":"glm-5.3"}}
+{"t":1787819763754,"event":{"type":"agent:message_end"}}
+{"t":1787819767933,"event":{"type":"agent:message_start","role":"assistant"}}
+{"t":1787819767943,"event":{"type":"agent:context_update","tokenCount":0,"contextWindow":1000000,"usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"cost":0},"model":"glm-5.3"}}
+{"t":1787819767943,"event":{"type":"agent:message_end"}}
+{"t":1787819767943,"event":{"type":"agent:error","message":"The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. Wait about a minute and resend your prompt; if it keeps happening, try a different model in Settings."}}
+{"t":1787819767943,"event":{"type":"agent:turn_end"}}
+{"t":1787819767943,"event":{"type":"agent:turn_end"}}
