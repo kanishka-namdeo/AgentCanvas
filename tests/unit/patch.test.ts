@@ -987,3 +987,105 @@ describe('patch: pages desync (D1)', () => {
     expect(out.children.map((c) => c.id)).toEqual(['a', 'b']);
   });
 });
+
+// ---- add_subtree (batch construction — pen_create_subtree) ---------------------
+
+describe('patch: add_subtree', () => {
+  it('inserts a nested tree, recursively mapping legacy fields + assigning ids', () => {
+    const doc = makeDoc([]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'add_subtree',
+      shapeId: 'card-root',
+      shape: {
+        id: 'card-root',
+        type: 'frame',
+        name: 'Card',
+        x: 40, y: 40, width: 320, height: 'fit_content',
+        radius: 12,                      // legacy → cornerRadius
+        autoLayout: { direction: 'vertical', gap: 8, padding: 16, alignX: 'center', alignY: 'min' },
+        children: [
+          { type: 'text', text: 'Card title', fontSize: 20, textColor: '#0f172a' },   // legacy text/textColor
+          {
+            type: 'frame', name: 'Row', width: 'fill_container', height: 'fit_content',
+            children: [
+              { type: 'rectangle', width: 80, height: 40, fill: '#0ea5e9', radius: 6 },
+              { type: 'rectangle', width: 80, height: 40, fill: '#94a3b8', radius: 6 },
+            ],
+          },
+        ],
+      } as unknown as NonNullable<CanvasPatch['shape']>,
+    }));
+    // Root inserted at top level with the caller-provided id.
+    const root = out.children.find((c) => c.id === 'card-root');
+    expect(root).toBeDefined();
+    expect(root!.type).toBe('frame');
+    expect((root as unknown as Record<string, unknown>).cornerRadius).toBe(12);
+    // Descendants: id-less children got deterministic derived ids (root-i).
+    const kids = (root as unknown as { children: PenChild[] }).children;
+    expect(kids.map((k) => k.id)).toEqual(['card-root-1', 'card-root-2']);
+    // Grandchildren: card-root-2-1 / -2.
+    const row = kids[1] as unknown as { children: PenChild[] };
+    expect(row.children.map((k) => k.id)).toEqual(['card-root-2-1', 'card-root-2-2']);
+    // Legacy mapping: text → content, textColor → fill, radius → cornerRadius.
+    const title = kids[0] as unknown as Record<string, unknown>;
+    expect(title.content).toBe('Card title');
+    expect(title.fill).toBe('#0f172a');
+    expect(row.children[0] as unknown as Record<string, unknown>).toMatchObject({ cornerRadius: 6 });
+    // autoLayout → layout/gap/padding on the root.
+    expect(root).toMatchObject({ layout: 'vertical', gap: 8 });
+    // Derived flat shapes recomputed: root + 2 kids + 2 grandkids = 5.
+    expect(out.shapes.map((s) => s.id)).toEqual([
+      'card-root', 'card-root-1', 'card-root-2', 'card-root-2-1', 'card-root-2-2',
+    ]);
+  });
+
+  it('honors provided descendant ids and strips their parentId (nesting is implicit)', () => {
+    const doc = makeDoc([]);
+    const out = applyPatchToCanvas(doc, patch({
+      op: 'add_subtree',
+      shapeId: 'root',
+      shape: {
+        type: 'frame', width: 200, height: 100,
+        children: [{ id: 'explicit-child', type: 'text', text: 'Hi', parentId: 'root' }],
+      },
+    }));
+    const child = (out.children[0] as unknown as { children: PenChild[] }).children[0];
+    expect(child.id).toBe('explicit-child');
+    expect((child as unknown as Record<string, unknown>).parentId).toBeUndefined();
+  });
+
+  it('inserts under an existing parent frame via the root parentId field', () => {
+    const doc = makeDoc([]);
+    const withParent = applyPatchToCanvas(doc, patch({
+      op: 'add', shapeId: 'frame-1',
+      shape: { id: 'frame-1', type: 'frame', name: 'F', x: 0, y: 0, width: 400, height: 300 },
+    }));
+    const out = applyPatchToCanvas(withParent, patch({
+      op: 'add_subtree',
+      shapeId: 'inner-root',
+      shape: { type: 'frame', width: 100, height: 50, parentId: 'frame-1', children: [{ type: 'rectangle', width: 10, height: 10 }] },
+    }));
+    // Root nested INSIDE frame-1, not at top level.
+    expect(out.children.map((c) => c.id)).toEqual(['frame-1']);
+    const frame = out.children[0] as unknown as { children: PenChild[] };
+    expect(frame.children.map((c) => c.id)).toEqual(['inner-root']);
+    expect((frame.children[0] as unknown as { children: PenChild[] }).children.length).toBe(1);
+  });
+
+  it('is deterministic: re-applying the same patch yields the same derived child ids', () => {
+    const payload = patch({
+      op: 'add_subtree',
+      shapeId: 'tree',
+      shape: { type: 'frame', width: 100, height: 100, children: [{ type: 'text', text: 'a' }, { type: 'text', text: 'b' }] },
+    });
+    const a = applyPatchToCanvas(makeDoc([]), payload);
+    const b = applyPatchToCanvas(makeDoc([]), payload);
+    expect(a.shapes.map((s) => s.id)).toEqual(b.shapes.map((s) => s.id));
+  });
+
+  it('is a no-op (no crash) when shape is missing', () => {
+    const doc = makeDoc([makeShape({ id: 'a' })]);
+    const out = applyPatchToCanvas(doc, patch({ op: 'add_subtree' }));
+    expect(out.children.map((c) => c.id)).toEqual(['a']);
+  });
+});

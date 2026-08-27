@@ -212,3 +212,131 @@ describe('resolvePenTreeDetailed — measured-bounds intrinsic-size hints', () =
     expect(frame.height).toBe(7);
   });
 });
+
+// ---- resolver warnings (agent-visible degradation reporting) ----------------------
+
+describe('resolvePenTreeDetailed — resolver warnings', () => {
+  it('placeholder_size: fires for an empty fit_content frame, silenced by a measured hint', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const frame: PenFrame = {
+      id: 'fit-frame', type: 'frame', x: 0, y: 0,
+      width: 'fit_content', height: 'fit_content', fill: '#fff', children: [],
+    };
+    const withFrame = { ...doc, children: [frame] };
+
+    // No measured hint → placeholder + warning.
+    const warned = resolvePenTreeDetailed(withFrame);
+    expect(warned.warnings.map((w) => w.kind)).toContain('placeholder_size');
+    expect(warned.warnings.find((w) => w.kind === 'placeholder_size')!.nodeId).toBe('fit-frame');
+
+    // Measured hint → no placeholder, no warning.
+    const silenced = resolvePenTreeDetailed(withFrame, {
+      measuredBounds: { 'fit-frame': { width: 217, height: 42 } },
+    });
+    expect(silenced.warnings.filter((w) => w.kind === 'placeholder_size')).toHaveLength(0);
+  });
+
+  it('placeholder_size: NOT raised for groups/sections (0×0 is intentional)', () => {
+    const doc = createEmptyCanvasDocument('test');
+    // PenGroup carries no explicit size — groups auto-fit (implicit fit_content).
+    const group: PenChild = {
+      id: 'grp', type: 'group', x: 0, y: 0, children: [],
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [group] });
+    expect(warnings.filter((w) => w.kind === 'placeholder_size')).toHaveLength(0);
+  });
+
+  it('dropped_ref: fires when a ref targets an unknown component (node vanishes)', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const badRef: PenRef = { id: 'ghost-inst', type: 'ref', ref: 'missing-component', x: 0, y: 0 };
+    const { layers, warnings } = resolvePenTreeDetailed({ ...doc, children: [badRef] });
+    // The node is dropped from the render list …
+    expect(layers.find((l) => l.id === 'ghost-inst')).toBeUndefined();
+    // … and the warning names the missing target.
+    const w = warnings.find((x) => x.kind === 'dropped_ref');
+    expect(w).toBeDefined();
+    expect(w!.nodeId).toBe('ghost-inst');
+    expect(w!.message).toContain('missing-component');
+  });
+
+  it('ref_unexpanded: fires for a ref left raw by the cycle guard (renders as rectangle)', () => {
+    const doc = createEmptyCanvasDocument('test');
+    // Self-referencing component: A contains a ref to A → cycle guard leaves
+    // the nested ref raw; the resolver maps it to a plain rectangle.
+    const a: PenComponent = {
+      id: 'comp-a', type: 'component', reusable: true, x: 0, y: 0, width: 100, height: 50,
+      children: [{ id: 'nested-ref', type: 'ref', ref: 'comp-a', x: 0, y: 0 } as PenRef],
+    };
+    const instance: PenRef = { id: 'inst-a', type: 'ref', ref: 'comp-a', x: 200, y: 100 };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [a, instance] });
+    expect(warnings.some((w) => w.kind === 'ref_unexpanded')).toBe(true);
+  });
+
+  it('unresolved_variable: fires when a fill references an undefined $variable', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const rect: PenChild = {
+      id: 'var-rect', type: 'rectangle', x: 0, y: 0, width: 50, height: 50,
+      fill: '$primary', stroke: '$outline', strokeWidth: 2,
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [rect] });
+    const kinds = warnings.filter((w) => w.kind === 'unresolved_variable');
+    expect(kinds.length).toBeGreaterThanOrEqual(1);
+    expect(kinds.some((w) => w.message!.includes('$primary'))).toBe(true);
+  });
+
+  it('effects_dropped: fires when more than one shadow is enabled on one node', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const rect: PenChild = {
+      id: 'shadowed', type: 'rectangle', x: 0, y: 0, width: 50, height: 50,
+      effect: [
+        { type: 'shadow', offset: { x: 0, y: 2 }, blur: 4, color: '#0000001a' },
+        { type: 'shadow', offset: { x: 0, y: 8 }, blur: 12, color: '#00000033' },
+      ],
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [rect] });
+    const w = warnings.find((x) => x.kind === 'effects_dropped');
+    expect(w).toBeDefined();
+    expect(w!.message).toContain('2 shadows');
+  });
+
+  it('path_geometry_dropped: fires for geometry the simple M/L parser cannot read', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const path: PenChild = {
+      id: 'curvy', type: 'path', x: 0, y: 0, width: 50, height: 50,
+      geometry: 'M 0 0 C 10 10 20 20 30 30',
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [path] });
+    expect(warnings.some((w) => w.kind === 'path_geometry_dropped')).toBe(true);
+  });
+
+  it('unknown_node_type: fires for a type outside the .pen ontology', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const weird = { id: 'alien', type: 'hologram', x: 0, y: 0, width: 50, height: 50 } as unknown as PenChild;
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [weird] });
+    expect(warnings.some((w) => w.kind === 'unknown_node_type' && w.nodeId === 'alien')).toBe(true);
+  });
+
+  it('clean documents produce zero warnings (no false positives)', () => {
+    const { layers, warnings } = resolvePenTreeDetailed(nestedDoc());
+    expect(layers.length).toBeGreaterThan(0);
+    expect(warnings).toHaveLength(0);
+  });
+
+  it('dedupes by (nodeId, kind) and mirrors into the external accumulator', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const frame: PenFrame = {
+      id: 'fit-frame', type: 'frame', x: 0, y: 0,
+      width: 'fit_content', height: 'fit_content', fill: '#fff', children: [],
+    };
+    const external: import('@/lib/pen/resolve').ResolverWarning[] = [];
+    const { warnings } = resolvePenTreeDetailed(
+      { ...doc, children: [frame] },
+      { warnings: external },
+    );
+    // Both axes fell back (w + h) but the (nodeId, kind) pair dedupes to ONE.
+    const placeholders = warnings.filter((w) => w.kind === 'placeholder_size');
+    expect(placeholders).toHaveLength(1);
+    // External accumulator received the same entries.
+    expect(external).toEqual(warnings);
+  });
+});

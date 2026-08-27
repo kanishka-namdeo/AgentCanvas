@@ -225,6 +225,20 @@ export function applyPatchToCanvas(
       }
       break;
     }
+    case 'add_subtree': {
+      // One patch = one whole nested tree (batch-construction primitive for
+      // pen_create_subtree). Unlike bulk_add — which only normalizes each ROOT
+      // entry and requires pre-id'd, .pen-native children — this op recursively
+      // normalizes EVERY node: legacy field mapping (radius/text/autoLayout/
+      // gradient/shadow/…), defaults (name/x/y/w/h), and fresh ids for id-less
+      // descendants. Atomic semantics: one undo step, one broadcast, one
+      // recomputeDerived at the end of the applier.
+      if (!patch.shape) break;
+      const rootId = patch.shapeId ?? (patch.shape as any).id ?? newId();
+      const node = normalizeSubtree(patch.shape, rootId);
+      next.children = insertNode(next.children, node, (patch.shape as any).parentId ?? null);
+      break;
+    }
     case 'update': {
       if (!patch.shapeId) break;
       const penPartial = toPenNodePartial(patch.shape ?? {});
@@ -1096,6 +1110,46 @@ function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, i
   // fields (layoutMode/itemSpacing/fills/…) from any legacy spellings on the
   // payload. Pure + idempotent; legacy fields untouched.
   return normalizePenNode(base as PenChild);
+}
+
+/**
+ * Recursively normalize a nested subtree payload for the 'add_subtree' op.
+ *
+ * For EVERY node (root + all descendants) this applies the full
+ * `toPenNodePartial` legacy-field mapping (radius → cornerRadius, text →
+ * content, autoLayout → layout/gap/…, gradient/shadow/blur → fill/effect)
+ * and `normalizeToNode` defaults (name/x/y/w/h, container children arrays,
+ * dual-carry v3 fields), and assigns a fresh id to every id-less node —
+ * so the LLM can send a minimal, id-free, legacy-spelled tree and get a
+ * fully valid .pen subtree back.
+ *
+ * A `parentId` field on any node is consumed ONLY on the root (by the caller,
+ * for insertion); descendants' parentId fields are stripped — their parent is
+ * implicit from the nesting.
+ */
+function normalizeSubtree(
+  input: Partial<Shape> & Record<string, unknown>,
+  rootId: string,
+): PenChild {
+  const { children, parentId: _rootParentId, ...rest } = input as Record<string, unknown>;
+  const partial = toPenNodePartial(rest as Partial<Shape> & Record<string, unknown>);
+  delete partial.parentId;
+  const id = rootId;
+  const node = normalizeToNode(partial as Partial<PenChild> & Record<string, unknown>, id);
+  if (Array.isArray(children) && children.length > 0) {
+    const kids: PenChild[] = [];
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i] as Partial<Shape> & Record<string, unknown>;
+      if (child === null || typeof child !== 'object') continue;
+      // Stable-ish child ids: honor a provided id, else derive from the root
+      // id + index (deterministic across server/client replay of the same
+      // patch — unlike randomUUID, which would diverge on re-apply).
+      const childId = typeof child.id === 'string' && child.id.length > 0 ? child.id : `${rootId}-${i + 1}`;
+      kids.push(normalizeSubtree(child, childId));
+    }
+    if (kids.length > 0) (node as { children?: PenChild[] }).children = kids;
+  }
+  return node;
 }
 
 // ---- Phase 2 component-system helpers -------------------------------------

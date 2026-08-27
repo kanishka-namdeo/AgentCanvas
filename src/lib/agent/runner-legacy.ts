@@ -34,7 +34,7 @@ import type { LLMClient as RegistryLLMClient, LLMProviderConfig } from '../llm';
 import { createEmptyCanvasDocument } from '../canvas/types';
 import { applyPatchToCanvas } from '../canvas/patch';
 import { lucidePromptCatalog, LUCIDE_ICON_COUNT } from '@/lib/icons';
-import { resolvePenTree } from '../pen/resolve';
+import { resolvePenTree, resolvePenTreeDetailed, type ResolverWarning } from '../pen/resolve';
 import { getMeasuredBounds } from './client-roundtrip';
 
 // Re-export the shared types from runner-types.ts so existing imports
@@ -818,6 +818,22 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
   const textStyleLines = tokens.textStyles.length === 0
     ? '  (none)'
     : tokens.textStyles.map((t) => `  • ${t.key} ${t.fontSize}px/${t.fontWeight} ${t.color} (${t.name})`).join('\n');
+
+  // Resolver degradation warnings (agent-visible): dropped refs, fit_content
+  // placeholder sizes, unresolved $variables, dropped effects. Re-resolve the
+  // tree with the browser's measured-bounds hints so nodes the DOM renderer
+  // measured for real don't produce placeholder false-positives. Deduped by
+  // (nodeId, kind) inside the resolver; capped here for prompt friendliness.
+  const measuredHint = measured && Object.keys(measured).length > 0 ? { measuredBounds: measured } : undefined;
+  const resolveWarnings: ResolverWarning[] = resolvePenTreeDetailed(canvas, measuredHint).warnings;
+  const warnLines = resolveWarnings.length === 0
+    ? ''
+    : resolveWarnings.slice(0, 15).map((w) => `  - [${w.kind}] ${w.nodeId}${w.nodeType ? ` (${w.nodeType})` : ''}: ${w.message}`).join('\n') +
+      (resolveWarnings.length > 15 ? `\n  … ${resolveWarnings.length - 15} more` : '') + '\n';
+  const warningsSection = warnLines
+    ? `- Resolve warnings (${resolveWarnings.length}) — these layers render DEGRADED; fix them (explicit sizes, defined variables, valid refs) before finishing:\n${warnLines}`
+    : '';
+
   return `Current canvas state (.pen v${canvas.version}) — File: "${canvas.name}"${canvas.pages && canvas.pages.length > 0 ? `, Pages: ${canvas.pages.length} (active: "${canvas.pages[canvas.activePageIndex ?? 0]?.name ?? 'Page 1'}")` : ''}:
 - Background: ${canvas.background}
 - Variables (${varEntries.length}):
@@ -828,7 +844,7 @@ ${collectionLines}
 ${textStyleLines}
 - Layer tree (${shapes.length} layer(s), indented = nesting):
 ${treeLines}
-- Next screen placement: ${placementLine}`;
+${warningsSection}- Next screen placement: ${placementLine}`;
 }
 
 /// Build the palettes list string with the user's default palette first.

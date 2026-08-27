@@ -1782,7 +1782,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // Multiple patches in the same tick collapse into ONE React commit;
         // per-patch pre-states are captured at flush time for the undo stack,
         // preserving unbatched undo semantics exactly.
-        if (event.patch.op === 'add' || event.patch.op === 'bulk_add') {
+        if (event.patch.op === 'add' || event.patch.op === 'bulk_add' || event.patch.op === 'add_subtree') {
           agentAddedShapesThisTurn = true;
         }
         // Turn-diff tracking: patches that carry a toolCallId were applied by

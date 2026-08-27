@@ -37,6 +37,13 @@ export interface Scenario {
   prompt: string;
   seed?: CanvasDocument;
   visual?: boolean; // capture a browser screenshot for this scenario
+  /// HELD-OUT scenarios are NEVER iterated against during development — they
+  /// exist to measure generalization, not convergence. run-eval.ts EXCLUDES
+  /// them by default (dev runs: 6/8-style iteration can't touch them) and
+  /// includes them only under --include-heldout (final validation). Once a
+  /// held-out scenario has been used to grade a change, it is burned — write
+  /// a new one for the next measurement (teaching-to-the-test firewall).
+  heldOut?: boolean;
   assertions: Array<(canvas: CanvasDocument, t: Trajectory) => AssertionResult>;
 }
 
@@ -414,6 +421,126 @@ export const SCENARIOS: Scenario[] = [
         });
         return assert('warm sunset hues', warm.length >= Math.ceil(swatches.length / 2), `${warm.length}/${swatches.length} warm`, `only ${warm.length}/${swatches.length} warm-hued — doesn't read as sunset`);
       },
+      ...trajectoryChecks(3),
+    ],
+  },
+
+  // ---- HELD-OUT scenarios (generalization measurement — see Scenario.heldOut) --
+  //
+  // These prompts were written AFTER the dev suite converged and are never
+  // used for iteration. They exercise structural patterns adjacent to (but
+  // distinct from) the dev scenarios: a pricing card row (near: dashboard KPI
+  // row), a settings form (near: login form), and a kanban board (near:
+  // wireframe grid) — so a pass means the agent generalizes, not that it
+  // memorized the dev fixtures.
+
+  {
+    id: 'pricing-cards',
+    heldOut: true,
+    prompt: "Design a pricing section with 3 plan cards side by side: Starter at $9/mo, Pro at $29/mo highlighted as 'Most Popular', and Enterprise at $99/mo. Each card lists at least 3 features.",
+    assertions: [
+      (c) => {
+        // 3 similar-width card containers sharing a height band (pattern:
+        // dashboard-hifi's 4-card row, but the model has never seen THIS ask).
+        const cards = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.width >= 140 && b.width <= 480 && b.height >= 160 && b.height <= 640);
+        const bands = new Map<number, number>();
+        for (const b of cards) {
+          const band = Math.round(b.height / 40) * 40;
+          bands.set(band, (bands.get(band) ?? 0) + 1);
+        }
+        const hasRow = [...bands.values()].some((n) => n >= 3);
+        return assert('3 similar-height plan cards', hasRow, `${cards.length} candidates, bands=${JSON.stringify([...bands])}`, 'no 3 similar-height containers — pricing cards not built');
+      },
+      (c) => {
+        // Prices: '$9' must be standalone (not a substring of $29/$99);
+        // '29' and '99' are unambiguous enough as substrings.
+        const tc = textContent(c);
+        const hasNine = /\$\s*9(?![0-9])/.test(tc) || /\b9\s*\/\s*mo/i.test(tc);
+        const missing = [
+          ...(!hasNine ? ['standalone $9'] : []),
+          ...(!tc.includes('29') ? ['$29'] : []),
+          ...(!tc.includes('99') ? ['$99'] : []),
+        ];
+        return assert('all 3 prices present', missing.length === 0, 'all prices found', `missing: ${missing.join(', ')}`);
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const wanted = ['starter', 'pro', 'enterprise'];
+        const missing = wanted.filter((w) => !tc.includes(w));
+        return assert('3 plan names present', missing.length === 0, 'starter/pro/enterprise found', `missing: ${missing.join(', ')}`);
+      },
+      (c) => assert("'Most Popular' highlight present", textContent(c).toLowerCase().includes('most popular'), 'highlight copy ok', 'no "Most Popular" text on the Pro card'),
+      (c) => assert('colorful (hi-fi)', colorfulLayers(c, 3), '3+ saturated layers', 'too grayscale for a hi-fi pricing section'),
+      (c) => assert('shadows on cards', anyShadow(c), 'shadow present', 'no shadows — flat look'),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(3),
+    ],
+  },
+
+  {
+    id: 'profile-settings',
+    heldOut: true,
+    prompt: "Design an account settings panel: a round avatar, the name 'Ada Lovelace', an email field showing ada@example.org, a timezone selector, and Save and Cancel buttons.",
+    assertions: [
+      (c) => assert('round avatar present', ofTypes(c, ['ellipse']).some((e) => e.width >= 40 && e.height >= 40), 'ellipse avatar found', 'no ellipse >= 40px — avatar missing'),
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        return assert("name 'Ada Lovelace' present", tc.includes('ada lovelace'), 'name found', 'no "Ada Lovelace" text');
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        return assert('email shown', tc.includes('ada@example.org') || tc.includes('ada@example'), 'email found', 'no ada@example.org text');
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const hasSave = tc.includes('save');
+        const hasCancel = tc.includes('cancel');
+        return assert('Save + Cancel actions present', hasSave && hasCancel, `save=${hasSave} cancel=${hasCancel}`, `save=${hasSave} cancel=${hasCancel}`);
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        return assert('timezone selector present', tc.includes('timezone') || tc.includes('gmt') || tc.includes('utc'), 'timezone copy found', 'no timezone/GMT/UTC text');
+      },
+      (c) => {
+        const hasContainer = ofTypes(c, ['frame', 'group', 'section', 'component']).length >= 1;
+        return assert('uses a container/frame', hasContainer, `${ofTypes(c, ['frame', 'group', 'section', 'component']).length} container(s)`, 'no frame/group — flat layer soup');
+      },
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(3),
+    ],
+  },
+
+  {
+    id: 'kanban-board',
+    heldOut: true,
+    prompt: 'Create a kanban board with three columns — To Do, In Progress, Done — each column with a header and two task cards with realistic task titles.',
+    assertions: [
+      (c) => {
+        // 3 columns: tall containers sharing a similar WIDTH band.
+        const cols = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.width >= 140 && b.width <= 480 && b.height >= 240);
+        const bands = new Map<number, number>();
+        for (const b of cols) {
+          const band = Math.round(b.width / 60) * 60;
+          bands.set(band, (bands.get(band) ?? 0) + 1);
+        }
+        const hasCols = [...bands.values()].some((n) => n >= 3);
+        return assert('3 columns present', hasCols, `${cols.length} candidates, bands=${JSON.stringify([...bands])}`, 'no 3 similar-width tall containers — columns not built');
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        // 'To Do' may render as "to do" or "todo"; 'In Progress' and 'Done'
+        // have no common alternates.
+        const missing = ['to do|todo', 'in progress', 'done'].filter((w) => !w.split('|').some((alt) => tc.includes(alt)));
+        return assert('column headers present', missing.length === 0, 'todo/in-progress/done found', `missing headers: ${missing.join(', ')}`);
+      },
+      (c) => {
+        // 6 task cards: card-sized boxes (shorter than columns), same count
+        // as the prompt asks (2 per column × 3).
+        const cards = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.width >= 80 && b.width <= 460 && b.height >= 40 && b.height <= 200);
+        return assert('6 task cards', cards.length >= 6, `${cards.length} card-sized boxes`, `only ${cards.length} card-sized boxes — expected 6 (2 per column)`);
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 10, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few for a 3-column board`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
       ...trajectoryChecks(3),
     ],
   },

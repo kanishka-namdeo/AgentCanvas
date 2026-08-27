@@ -2200,7 +2200,7 @@ function DiffSummaryCard({
             const tone =
               rec.op === 'clear' || rec.op === 'remove' || rec.op === 'delete_page'
                 ? 'ac-text-danger'
-                : rec.op === 'add' || rec.op === 'bulk_add' || rec.op === 'duplicate'
+                : rec.op === 'add' || rec.op === 'bulk_add' || rec.op === 'add_subtree' || rec.op === 'duplicate'
                   ? 'ac-text-success'
                   : 'ac-text-3';
             return (

@@ -29,11 +29,13 @@ import type { Skill, SkillCategory } from './types';
 
 // ---- Core tools (always loaded) -------------------------------------------
 //
-// These 9 tools are needed by every skill — you can't do anything without
-// creating, updating, deleting, listing, or selecting shapes.
+// These 10 tools are needed by every skill — you can't do anything without
+// creating (single node or whole subtree), updating, deleting, listing, or
+// selecting shapes.
 
 export const CORE_TOOL_NAMES = [
   'pen_create_node',
+  'pen_create_subtree',
   'pen_update_node',
   'pen_delete_nodes',
   'pen_get_metadata',
@@ -230,6 +232,10 @@ to a different approach (do NOT loop on the same failing call).`,
       // Phase 3 (spec §5.2): pen_insert_html is the PREFERRED construction
       // primitive for composite UI inside wireframe generation (one call vs
       // many pen_create_node) — Figma MCP generate_figma_design analog.
+      // pen_create_subtree: same round-trip-tax rationale, but .pen-native —
+      // the agent enumerates a whole nested tree (card rows, nav bars, forms)
+      // in ONE call. Core-loaded, listed here for the skill-body narrative.
+      'pen_create_subtree',
       'pen_insert_html',
       'pen_get_metadata',
       // Figma-hierarchy: post-generation refinement often involves moving
@@ -719,7 +725,7 @@ export function getToolNamesForCategory(category: SkillCategory): string[] {
 
 export const ALL_TOOL_NAMES = [
   // Core
-  'pen_create_node', 'pen_update_node', 'pen_delete_nodes',
+  'pen_create_node', 'pen_create_subtree', 'pen_update_node', 'pen_delete_nodes',
   'pen_get_metadata', 'pen_clear', 'pen_set_background', 'pen_select_nodes',
   // Layout
   'pen_duplicate_nodes', 'pen_group_shapes', 'pen_ungroup_shapes',

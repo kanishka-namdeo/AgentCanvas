@@ -1365,9 +1365,9 @@ describe('tools: pen_set_constraints', () => {
 // ---- Tool registration sanity ------------------------------------------------
 
 describe('tools: registration sanity', () => {
-  it('returns 77 tools total (79 pre-Phase-6 minus the pen_list_shapes supersede and the legacy mark-as-component pen_create_component fold — spec Phase 6 / G.3)', () => {
+  it('returns 78 tools total (77 + pen_create_subtree — the batch-construction primitive; 79 pre-Phase-6 minus the pen_list_shapes supersede and the legacy mark-as-component pen_create_component fold — spec Phase 6 / G.3)', () => {
     const tools = createCanvasTools(h.ctx);
-    expect(tools).toHaveLength(77);
+    expect(tools).toHaveLength(78);
   });
 
   it('every tool has a unique name', () => {
@@ -1511,5 +1511,112 @@ describe('tools: pen_generate_wireframe web_dashboard density (Task 8-a)', () =>
     const area = h.doc.shapes.find((s) => s.name === 'Chart area');
     expect(area).toBeTruthy();
     expect(area!.opacity).toBeLessThanOrEqual(0.1);
+  });
+});
+
+// ---- pen_create_subtree (batch construction) ------------------------------------
+
+describe('tools: pen_create_subtree', () => {
+  beforeEach(() => {
+    h.reset();
+  });
+
+  it('emits ONE add_subtree patch carrying the nested tree and reports root id + count', async () => {
+    const r = await run(h, 'pen_create_subtree', {
+      node: {
+        type: 'frame', name: 'Login card', x: 100, y: 80, width: 340, height: 480, radius: 12,
+        children: [
+          { type: 'text', text: 'Sign in', fontSize: 24, textColor: '#0f172a' },
+          { type: 'rectangle', width: 280, height: 44, fill: '#e2e8f0', radius: 8 },
+          { type: 'rectangle', width: 280, height: 44, fill: '#0ea5e9', radius: 8 },
+        ],
+      },
+    });
+    expect(r.isError).toBeFalsy();
+    // ONE patch — the whole point (one undo step, one broadcast).
+    expect(h.patches).toHaveLength(1);
+    expect(h.patches[0].op).toBe('add_subtree');
+    // Result text: root id + node count + depth.
+    expect(r.content).toContain('4 node(s)');
+    expect(r.content).toContain('depth 2');
+    // executeTool unwraps the tool result: the patch rides `r.patch`.
+    const rootId = (r.patch as CanvasPatch).shapeId as string;
+    expect(h.patches[0].shapeId).toBe(rootId);
+    // Applied: root + 3 children resolved into the flat shape list.
+    expect(h.doc.shapes.map((s) => s.type)).toEqual(['frame', 'text', 'rectangle', 'rectangle']);
+    // Legacy fields mapped on descendants: text → content on the child node.
+    const title = h.doc.children[0] as unknown as { children: PenChild[] };
+    expect((title.children[0] as unknown as Record<string, unknown>).content).toBe('Sign in');
+    // Root keeps the caller-visible id reported in the result.
+    expect(h.doc.children[0].id).toBe(rootId);
+  });
+
+  it('accepts a JSON-encoded string node (the GLM stringify gotcha)', async () => {
+    const r = await run(h, 'pen_create_subtree', {
+      node: JSON.stringify({ type: 'frame', width: 200, height: 100, children: [{ type: 'text', text: 'Hi' }] }),
+    });
+    expect(r.isError).toBeFalsy();
+    expect(h.patches).toHaveLength(1);
+    expect(h.doc.shapes.length).toBe(2);
+  });
+
+  it('hydrates children sent as a JSON string INSIDE the node object', async () => {
+    const r = await run(h, 'pen_create_subtree', {
+      node: {
+        type: 'frame', width: 200, height: 100,
+        children: JSON.stringify([{ type: 'text', text: 'Nested as string' }]),
+      },
+    });
+    expect(r.isError).toBeFalsy();
+    expect(h.doc.shapes.length).toBe(2);
+    expect(h.doc.shapes.some((s) => s.text === 'Nested as string')).toBe(true);
+  });
+
+  it('defaults the root type to frame when children are present, rectangle when not', async () => {
+    await run(h, 'pen_create_subtree', { node: { width: 100, height: 100, children: [{ type: 'text', text: 'x' }] } });
+    expect(h.doc.shapes[0].type).toBe('frame');
+    h.reset();
+    await run(h, 'pen_create_subtree', { node: { width: 100, height: 100 } });
+    expect(h.doc.shapes[0].type).toBe('rectangle');
+  });
+
+  it('fails atomically on an unknown icon name (no patch emitted)', async () => {
+    const r = await run(h, 'pen_create_subtree', {
+      node: {
+        type: 'frame', width: 100, height: 100,
+        children: [{ type: 'icon', icon: 'definitely-not-a-lucide-glyph' }],
+      },
+    });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('Error: icon');
+    expect(h.patches).toHaveLength(0);
+  });
+
+  it('fails on an unknown parentId without emitting a patch', async () => {
+    const r = await run(h, 'pen_create_subtree', { node: { type: 'rectangle', width: 10, height: 10 }, parentId: 'nope' });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('parentId "nope" does not exist');
+    expect(h.patches).toHaveLength(0);
+  });
+
+  it('rejects subtrees over the node budget with guidance', async () => {
+    const children = Array.from({ length: 151 }, (_, i) => ({ type: 'text', text: `t${i}` }));
+    const r = await run(h, 'pen_create_subtree', { node: { type: 'frame', width: 100, height: 100, children } });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('max 150');
+    expect(h.patches).toHaveLength(0);
+  });
+
+  it('inserts under a real parent frame when parentId is valid', async () => {
+    const frame = h.addShape({ id: 'host-frame', type: 'frame', name: 'Host', x: 0, y: 0, width: 400, height: 300 });
+    expect(frame).toBeTruthy();
+    const r = await run(h, 'pen_create_subtree', {
+      node: { type: 'frame', width: 100, height: 50, children: [{ type: 'rectangle', width: 10, height: 10 }] },
+      parentId: 'host-frame',
+    });
+    expect(r.isError).toBeFalsy();
+    // The subtree root resolved with the host frame as parent.
+    const subtreeRoot = h.doc.shapes.find((s) => s.parentId === 'host-frame');
+    expect(subtreeRoot).toBeTruthy();
   });
 });

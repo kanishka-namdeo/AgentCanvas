@@ -30,6 +30,7 @@ import type {
   FigmaPaint,
   FigmaEffect,
 } from './types';
+import { PEN_NODE_TYPES } from './types';
 import type { Shape, Layer, CanvasDocument, AutoLayout, GradientFill, ShadowEffect, CornerRadii } from '../canvas/types';
 import { collectComponents, expandRef, walkTree } from './document';
 import {
@@ -67,7 +68,59 @@ export interface ResolveOpts {
   /// instead of falling back to the 100×100 placeholder. Purely advisory:
   /// absent/unknown ids keep today's behavior.
   measuredBounds?: Record<string, { width: number; height: number }>;
+  /// Optional external accumulator for resolver degradation warnings.
+  /// Whenever provided, the warnings collected during this resolve are ALSO
+  /// pushed here (in addition to being returned). Callers that resolve per
+  /// patch can reuse one array across a turn and dedupe by (nodeId, kind).
+  warnings?: ResolverWarning[];
 }
+
+// ---- Resolver warnings (agent-visible degradation reporting) ----------------
+//
+// The resolver historically degrades SILENTLY: fit_content frames fall back
+// to a 100×100 placeholder, refs with missing targets VANISH, cycle-guarded
+// refs render as plain rectangles, $variables without definitions leak the
+// literal '$key' string into fills. The agent never learned its design was
+// degraded, so it could not self-correct. Every degradation site now emits a
+// ResolverWarning; the delivery layers (pen_get_metadata tool result, the
+// runner's canvas snapshot) surface them to the LLM.
+//
+// Kinds are a closed set — treat them as stable API (the agent-facing text
+// renders them, and evals may assert on them).
+
+export type ResolverWarningKind =
+  /// fit_content container rendered at the 100×100 placeholder (no intrinsic
+  /// content, no measured-bounds hint) — size on screen is probably wrong.
+  | 'placeholder_size'
+  /// ref target missing (unknown id, or target not reusable) — the node was
+  /// DROPPED from the render list entirely; it is invisible.
+  | 'dropped_ref'
+  /// ref survived expansion (cycle/depth guard) — rendered as a plain
+  /// rectangle, losing its component identity.
+  | 'ref_unexpanded'
+  /// Node type outside the .pen ontology — rendered as a rectangle.
+  | 'unknown_node_type'
+  /// $variable with no matching definition — the literal '$key' string was
+  /// used as the value (renders as a garbage color / text).
+  | 'unresolved_variable'
+  /// path geometry the simple M/L parser cannot read (curves, relative
+  /// commands) — the path renders with no points.
+  | 'path_geometry_dropped'
+  /// More than one enabled shadow or blur — the resolved Layer model carries
+  /// a single shadow + single blur, so extras were dropped.
+  | 'effects_dropped';
+
+export interface ResolverWarning {
+  nodeId: string;
+  nodeType?: string;
+  kind: ResolverWarningKind;
+  message: string;
+}
+
+/// Node types the renderer understands (PEN_NODE_TYPES + the legacy 'image'
+/// Layer type that mapNodeType passes through). Set lookup — the unknown-type
+/// warning check runs in the per-node hot path.
+const KNOWN_NODE_TYPES: ReadonlySet<string> = new Set<string>([...PEN_NODE_TYPES, 'image']);
 
 // ---- Container node predicate (Figma-canonical) --------------------------
 //
@@ -286,13 +339,15 @@ function nodeHeight(node: PenChild): unknown {
  *  resolves fill_container children against the now-known parent size.
  *  `measured` (spec §3.8 readback) supplies real browser-measured sizes for
  *  fit_content nodes with no intrinsic content — consulted before the
- *  100×100 placeholder fallback. */
+ *  100×100 placeholder fallback. `warn` (optional) receives the
+ *  placeholder_size degradation warning when the fallback fires. */
 function computeIntrinsicSize(
   node: PenChild,
   children: ResolvedNode[],
   parentContentW: number,
   parentContentH: number,
   measured?: Record<string, { width: number; height: number }>,
+  warn?: (kind: ResolverWarningKind, message: string) => void,
 ): { width: number; height: number } {
   let width: number;
   let height: number;
@@ -363,13 +418,22 @@ function computeIntrinsicSize(
     // this node for real (native layout mode), prefer the measured size over
     // the 100×100 prediction placeholder.
     const measuredFor = measured?.[node.id];
+    const isIntentionalInvisible = node.type === 'group' || node.type === 'section';
     if ((isFitContent(w) || implicitFitW) && width === 0) {
       if (measuredFor && Number.isFinite(measuredFor.width) && measuredFor.width > 0) width = measuredFor.width;
-      else width = (node.type === 'group' || node.type === 'section') ? 0 : 100;
+      else if (isIntentionalInvisible) width = 0;
+      else {
+        width = 100;
+        warn?.('placeholder_size', `fit_content width resolved to the 100px placeholder (no intrinsic content and no measured-bounds hint) — set an explicit width or give the node measurable children`);
+      }
     }
     if ((isFitContent(h) || implicitFitH) && height === 0) {
       if (measuredFor && Number.isFinite(measuredFor.height) && measuredFor.height > 0) height = measuredFor.height;
-      else height = (node.type === 'group' || node.type === 'section') ? 0 : 100;
+      else if (isIntentionalInvisible) height = 0;
+      else {
+        height = 100;
+        warn?.('placeholder_size', `fit_content height resolved to the 100px placeholder (no intrinsic content and no measured-bounds hint) — set an explicit height or give the node measurable children`);
+      }
     }
   }
 
@@ -567,12 +631,28 @@ export function resolvePenTree(doc: CanvasDocument, opts?: ResolveOpts): Shape[]
  *     DOM renderer's NATIVE layout mode consumes this so it can emit real
  *     CSS flexbox for `layout ≠ 'none'` containers.
  */
-export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts): { layers: Shape[]; tree: ResolvedTreeNode[] } {
+export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts): { layers: Shape[]; tree: ResolvedTreeNode[]; warnings: ResolverWarning[] } {
   const measured = opts?.measuredBounds;
   const variables = doc.variables;
   const components = collectComponents(doc.children);
   const out: Shape[] = [];
   let zIndex = 0;
+
+  // Degradation-warning collector: deduped by (nodeId, kind) — the resolver
+  // may revisit a node id across ref-expansion clones. External accumulator
+  // (opts.warnings) receives the same entries for cross-patch aggregation.
+  const warnings: ResolverWarning[] = [];
+  const warnSeen = new Set<string>();
+  const warn = (node: PenChild | { id?: unknown; type?: unknown }, kind: ResolverWarningKind, message: string): void => {
+    const id = typeof (node as { id?: unknown }).id === 'string' ? (node as { id: string }).id : '(no id)';
+    const key = `${id}::${kind}`;
+    if (warnSeen.has(key)) return;
+    warnSeen.add(key);
+    const nodeType = typeof (node as { type?: unknown }).type === 'string' ? (node as { type: string }).type : undefined;
+    const entry: ResolverWarning = { nodeId: id, nodeType, kind, message };
+    warnings.push(entry);
+    opts?.warnings?.push(entry);
+  };
 
   // First, expand all refs into a working tree (refs become their resolved
   // subtrees). We do this recursively.
@@ -580,6 +660,12 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
     return (children ?? []).flatMap((child) => {
       if (child.type === 'ref') {
         const expanded = expandRef(child as PenRef, components);
+        if (!expanded) {
+          // Missing target (unknown id / not reusable) — the node is DROPPED
+          // entirely. This is the agent's most likely ref mistake, so the
+          // warning names the target id.
+          warn(child, 'dropped_ref', `ref target "${(child as PenRef).ref}" not found (unknown id, or the target node is not reusable:true) — the instance was DROPPED and renders nothing`);
+        }
         return expanded ? [expanded] : [];
       }
       if (isContainerNode(child) && child.children) {
@@ -619,12 +705,12 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
 
       if (isContainerNode(n) && (n.children?.length ?? 0) > 0) {
         const kids = resolve(n.children!, rn, rn.theme);
-        const { width, height } = computeIntrinsicSize(n, kids, parentContentW, parentContentH, measured);
+        const { width, height } = computeIntrinsicSize(n, kids, parentContentW, parentContentH, measured, (kind, msg) => warn(n, kind, msg));
         rn.width = width;
         rn.height = height;
         rn._kids = kids;
       } else {
-        const { width, height } = computeIntrinsicSize(n, [], parentContentW, parentContentH, measured);
+        const { width, height } = computeIntrinsicSize(n, [], parentContentW, parentContentH, measured, (kind, msg) => warn(n, kind, msg));
         rn.width = width;
         rn.height = height;
       }
@@ -682,6 +768,21 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
       const theme = rn.theme;
       const fills = (n as any).fill as PenFills | undefined;
       const { shadow, blur } = resolveEffects(n, vars, theme);
+      // Degradation: the resolved Layer carries ONE shadow + ONE blur; extra
+      // enabled effects are silently dropped by resolveEffects. Surface it so
+      // the agent stops stacking multiple shadows expecting them to render.
+      // (Guarded on `effect` presence — this sits in the per-node hot path and
+      // most nodes carry no effects at all.)
+      if ((n as any).effect !== undefined && (n as any).effect !== null) {
+        const rawEffects = (n as any).effect;
+        const effArr: Array<Record<string, unknown>> = Array.isArray(rawEffects) ? rawEffects : [rawEffects];
+        const enabled = effArr.filter((e) => e && (e as { enabled?: unknown }).enabled !== false);
+        const shadows = enabled.filter((e) => e.type === 'shadow');
+        const blurs = enabled.filter((e) => e.type === 'blur' || e.type === 'background_blur');
+        if (shadows.length > 1 || blurs.length > 1) {
+          warn(n, 'effects_dropped', `${shadows.length > 1 ? `${shadows.length} shadows ` : ''}${shadows.length > 1 && blurs.length > 1 ? '+ ' : ''}${blurs.length > 1 ? `${blurs.length} blurs ` : ''}on one node — only the first of each renders; merge effects or split onto nested layers`);
+        }
+      }
       const stroke = resolveStroke(n, vars, theme);
       const cr = (n as any).cornerRadius;
       let radius = 0;
@@ -821,7 +922,26 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
       }
 
       // Map .pen-specific fields onto Shape extensions.
-      mapNodeExtras(shape, n, vars, theme);
+      mapNodeExtras(shape, n, vars, theme, (kind, msg) => warn(n, kind, msg));
+
+      // ---- Degradation checks (agent-visible warnings) -------------------------
+      // 1. Leftover raw ref = cycle/depth guard survivor — rendered as a plain
+      //    rectangle, losing its component identity.
+      // 2. Unknown node type — mapNodeType's default quietly rendered it as
+      //    a rectangle. (Set lookup: this is per-node hot path.)
+      if (n.type === 'ref') {
+        warn(n, 'ref_unexpanded', `ref survived expansion (cycle or depth > 16 guard) — rendered as a plain rectangle; break the reference cycle`);
+      } else if (typeof n.type !== 'string' || !KNOWN_NODE_TYPES.has(n.type)) {
+        warn(n, 'unknown_node_type', `unknown node type "${String((n as { type?: unknown }).type)}" — rendered as a rectangle`);
+      }
+      // 3. Unresolved $variable: resolveValue keeps the literal '$key' string,
+      //    which then renders as a garbage color. (Checked AFTER tokenBinding
+      //    overrides so a binding that fixes an unresolved fill isn't flagged.)
+      if (typeof shape.fill === 'string' && shape.fill.startsWith('$')) {
+        warn(n, 'unresolved_variable', `fill references undefined variable "${shape.fill}" — the literal string renders as an invalid color; define it via pen_set_variable or use a concrete hex`);
+      } else if (typeof shape.stroke === 'string' && shape.stroke.startsWith('$') && stroke.width > 0) {
+        warn(n, 'unresolved_variable', `stroke references undefined variable "${shape.stroke}" — the literal string renders as an invalid color`);
+      }
 
       // ---- Figma ontology v3 mirrors (spec Phase 6 part 1 — dual-field) ----
       // Same source, two projections: the legacy fields above are UNCHANGED;
@@ -840,7 +960,7 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
   }
 
   const tree = emit(resolved, null);
-  return { layers: out, tree };
+  return { layers: out, tree, warnings };
 }
 
 // ---- Figma ontology v3 mirrors (spec Phase 6 part 1 — dual-field window) ---
@@ -1036,13 +1156,21 @@ function mapNodeExtras(
   node: PenChild,
   _vars: any,
   _theme: PenTheme,
+  warn?: (kind: ResolverWarningKind, message: string) => void,
 ): void {
   if (node.type === 'path' && (node as any).geometry) {
     // Best-effort: parse "M x y L x y ..." into points.
-    const pts = parsePathGeometry((node as any).geometry);
+    const geometry = String((node as any).geometry);
+    const pts = parsePathGeometry(geometry);
     if (pts.length > 0) {
       shape.points = pts;
-      shape.closed = (node as any).geometry.includes('Z');
+      shape.closed = geometry.includes('Z');
+    }
+    // Curve/arc commands (C/Q/S/T/A, either case) are dropped by the
+    // M/L-only parser — those segments render missing. Path data contains
+    // no other letters, so this scan is unambiguous.
+    if (/[cqsat]/i.test(geometry)) {
+      warn?.('path_geometry_dropped', `path geometry contains curve/arc commands (C/Q/S/T/A) the resolver cannot parse — those segments render missing; use straight "M x y L x y" segments only`);
     }
   }
   // Image fills: extract the first image url into shape.src.

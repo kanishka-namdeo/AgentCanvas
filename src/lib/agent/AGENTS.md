@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The agent layer: defines the 97-tool surface the AI agent can call against the canvas (77 in `tools.ts` + 8 .pen-aligned in `pen-tools.ts` + 10 Figma-canonical in `figma-tools.ts`, plus up to 32 plugin tools), and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
+The agent layer: defines the 98-tool surface the AI agent can call against the canvas (78 in `tools.ts` + 8 .pen-aligned in `pen-tools.ts` + 10 Figma-canonical in `figma-tools.ts`, plus up to 32 plugin tools), and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
 
 This is the contract layer between the LLM and the canvas. Tool names, parameter schemas, skill definitions, and the system prompt's tool catalog are the public surface — changing them is a breaking change for prior session replays.
 
@@ -68,11 +68,11 @@ User prompt
 
 ## Local Contracts
 
-### Tool surface (97 registered in production — do not rename/remove without parent-level decision)
+### Tool surface (98 registered in production — do not rename/remove without parent-level decision)
 All canvas tools are prefixed with `pen_` (e.g., `pen_create_shape`, `pen_update_shape`). The web tools (`web_search`, `web_fetch`) have no prefix. Figma tools use `figma_` prefix. Plugin tools (up to 32, from `plugins/`) are added when their plugin is enabled.
 
 Per-skill `allowedTools` views (tools appear in multiple categories — these are the skill groupings from `skills/registry.ts`):
-- **Core (9)**: pen_create_shape, pen_update_shape, pen_delete_shape, pen_list_shapes, pen_clear, pen_set_background, pen_select_shape, pen_undo, pen_redo
+- **Core (10)**: pen_create_shape, pen_create_subtree, pen_update_shape, pen_delete_shape, pen_list_shapes, pen_clear, pen_set_background, pen_select_shape, pen_undo, pen_redo
 - **Wireframe (15)**: pen_generate_wireframe, pen_generate_user_flow, pen_generate_diagram, pen_generate_copy, pen_create_shape, pen_update_shape, pen_upload_image, pen_search_icons, pen_generate_image, pen_update_tokens, pen_apply_palette, pen_generate_palette, pen_reparent_shape, pen_insert_html, pen_get_metadata
 - **Layout (17)**: pen_align_shapes, pen_group_shapes, pen_ungroup_shapes, pen_duplicate_shape, pen_organize_layers, pen_apply_auto_layout, pen_bring_to_front, pen_send_to_back, pen_move_forward, pen_move_backward, pen_reorder_shape, pen_set_locked, pen_set_visible, pen_reparent_shape, pen_set_constraints, pen_insert_html, pen_get_metadata
 - **Styling (13)**: pen_apply_palette, pen_generate_palette, pen_update_tokens, pen_apply_token, pen_bind_shape_to_token, pen_unbind_shape, pen_list_tokens, pen_set_gradient_fill, pen_set_shadow, pen_set_blur, pen_set_corner_radius_per_corner, pen_find_replace_text, pen_bulk_update_by_filter
@@ -86,7 +86,13 @@ Per-skill `allowedTools` views (tools appear in multiple categories — these ar
 - **Pen-aligned (8)**: pen_set_variable, pen_apply_theme, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_theme_axis, pen_list_themes
 - **Figma-canonical (10)**: figma_create_page, figma_set_active_page, figma_rename_page, figma_delete_page, figma_create_section, figma_create_component, figma_create_component_set, figma_add_variant, figma_set_component_property, figma_set_instance_property
 
-Registry views: `ALL_TOOL_NAMES` in `skills/registry.ts` = 80 (excludes the 10 always-loaded figma tools). `runner-native.ts` registers all 90 base tools plus enabled plugin tools.
+Registry views: `ALL_TOOL_NAMES` in `skills/registry.ts` = 81 (excludes the 10 always-loaded figma tools). `runner-native.ts` registers all 91 base tools plus enabled plugin tools.
+
+### Batch construction (`pen_create_subtree` + the `add_subtree` patch op)
+One call = one whole NESTED component tree (the round-trip-tax killer: hi-fi evals previously spent 28-29 calls assembling primitive stacks). The tool emits a single `add_subtree` patch — one undo step, one broadcast — and `patch.ts`'s `normalizeSubtree` RECURSIVELY maps legacy spellings, fills defaults, and assigns deterministic ids (`rootId-<index>` for id-less descendants, so patch replay is idempotent). Schema is deliberately LOOSE (Type.Recursive + object∪JSON-string unions): pi-ai validates TypeBox BEFORE execute, so strict schemas would hard-fail the stringified params models actually send (the LooseShapeInputSchema gotcha, applied recursively). Guards: 150-node budget, atomic icon-name validation (whole call fails before any patch), unknown-parentId hard error, top-level frame placement guard reused from pen_create_node. Registered as a CORE tool (always loaded) + the wireframe skill narrative.
+
+### Resolver-warning delivery (agent-visible degradation reporting)
+The pen resolver degrades silently no more: `resolvePenTreeDetailed` returns `warnings: ResolverWarning[]` (placeholder_size, dropped_ref, ref_unexpanded, unknown_node_type, unresolved_variable, path_geometry_dropped, effects_dropped — deduped by nodeId+kind, mirrored into `ResolveOpts.warnings`). Two delivery layers feed the LLM: `pen_get_metadata` appends a `RESOLVE WARNINGS` section on every read (`collectResolverWarnings`/`formatResolverWarnings` in tools.ts, threaded with `getMeasuredBounds` so browser-measured nodes don't produce placeholder false-positives), and `canvasSnapshot` (runner-legacy.ts) carries the same section into the per-turn system prompt. Degradation checks live in the resolver's per-node hot path — keep them O(1) (Set lookups, presence guards) or the 4k-node audit test times out.
 
 ### Skill categories (7 + multi)
 wireframe, layout, styling, inspect, export, web_research, vector, multi

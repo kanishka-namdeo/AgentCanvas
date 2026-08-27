@@ -56,7 +56,7 @@ export interface TurnDiffSummary {
 }
 
 /// Ops that create shapes.
-const CREATE_OPS = new Set(['add', 'bulk_add', 'duplicate']);
+const CREATE_OPS = new Set(['add', 'bulk_add', 'add_subtree', 'duplicate']);
 /// Ops that modify existing shapes in place.
 const UPDATE_OPS = new Set([
   'update', 'update_many', 'align', 'zorder', 'background', 'viewport',

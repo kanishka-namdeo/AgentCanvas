@@ -373,6 +373,7 @@ export interface CanvasPatch {
     | 'background'
     | 'select'
     | 'bulk_add'
+    | 'add_subtree'
     | 'update_many'
     | 'duplicate'
     | 'group'
@@ -417,6 +418,15 @@ export interface CanvasPatch {
   /// legacy Shape fields like `radius`, `text`, `autoLayout` — the applier
   /// normalizes them to .pen field names).
   shape?: Partial<Shape> & Record<string, unknown>;
+  /// For 'add_subtree': the ROOT node payload (same legacy-tolerant fields as
+  /// `shape`) whose `children` array carries the nested subtree. Unlike
+  /// 'bulk_add' (which only normalizes each ROOT entry and requires callers
+  /// to pre-id/pre-normalize nested children), the add_subtree applier
+  /// RECURSIVELY normalizes every descendant: legacy field mapping, defaults,
+  /// and fresh ids for id-less nodes. The root's optional `parentId` field
+  /// (inside `shape`) selects the insertion parent; the root itself is
+  /// addressed by `shapeId` (which becomes its final id).
+  /// Frozen payload contract (pen/normalize.ts §5.1): op name + fields.
   shapeIds?: string[];
   shapes?: Array<Partial<Shape> & { id: string }>;
   updates?: Array<{ id: string; changes: Partial<Shape> }>;

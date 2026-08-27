@@ -61,7 +61,7 @@ import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { CanvasPatch, Shape, ShapeType, AutoLayout, DesignTokens, ColorToken, TextStyleToken } from '../canvas/types';
 import { parseHtmlFragment, htmlToPenTreeDetailed } from '../canvas/html-import';
 import { serializeNodes } from '../canvas/serialize';
-import { resolvePenTreeDetailed, type ResolvedTreeNode } from '../pen/resolve';
+import { resolvePenTreeDetailed, type ResolvedTreeNode, type ResolverWarning } from '../pen/resolve';
 import type { PenChild } from '../pen/types';
 import { getLucideIcon, searchLucideIcons, lucidePromptCatalog } from '@/lib/icons';
 import { emitEvent, hasSink } from './plugins/event-bus';
@@ -288,6 +288,127 @@ function parseLooseShapeInput(
     }
   }
   return (value ?? {}) as Static<typeof ShapeInputSchema>;
+}
+
+// ---- Subtree (batch construction) schema ------------------------------------
+//
+// pen_create_subtree's `node` param: a NESTED tree — the round-trip-tax
+// killer for composite UI. One call replaces N pen_create_node calls (the
+// login-hifi eval took 28 calls / 103s largely assembling primitive stacks;
+// the dashboard 29 calls with pen_set_variable ×11).
+//
+// Declared LOOSE on purpose: each node accepts any ShapeInput field in EITHER
+// spelling (legacy `radius`/`text`/`autoLayout` or .pen `cornerRadius`/
+// `content`/`layout` — the patch applier's normalizeSubtree maps both), plus
+// `children`. TypeBox Objects do not reject unknown properties, so extra
+// fields the model invents flow through to the applier instead of failing
+// validation BEFORE execute() (the pi-ai pre-validation gotcha). width/height
+// accept numbers OR sizing-behavior strings ('fit_content'/'fill_container');
+// children accepts an array OR a JSON string (models occasionally stringify
+// nested params — the GLM gotcha documented at LooseShapeInputSchema).
+
+const SubtreeNodeSchema = Type.Recursive((Self) =>
+  Type.Object({
+    type: Type.Optional(Type.String({ description: 'Node type: frame | rectangle | ellipse | text | line | group | section | component | icon. Root defaults to frame when children are present, else rectangle.' })),
+    name: Type.Optional(Type.String({ description: 'Layer name (shown in the layers panel).' })),
+    x: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'X in px, relative to the PARENT (canvas-space for the root). Children of auto-layout parents may omit x/y.' })),
+    y: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'Y in px, relative to the parent.' })),
+    width: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'Width in px, or "fit_content" (size to children) / "fill_container" (size to parent).' })),
+    height: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'Height in px, or "fit_content" / "fill_container".' })),
+    children: Type.Optional(Type.Union([Type.Array(Self), Type.String()], { description: 'Nested child nodes — same shape as this object (any creation field + their own children). A JSON-encoded string is also accepted.' })),
+  }),
+);
+
+const SubtreeInputSchema = Type.Object({
+  node: Type.Union([SubtreeNodeSchema, Type.String()], {
+    description:
+      'The subtree ROOT node as an object (or JSON-encoded string). Accepts every pen_create_node field (fill, text, fontSize, radius, shadow, gradient, autoLayout, icon, …) in legacy or .pen spelling, plus nested `children` — ids are optional (fresh ids are assigned automatically).',
+  }),
+  parentId: Type.Optional(Type.String({ description: 'Optional parent frame/group id to insert the subtree under. Omit for a top-level layer.' })),
+});
+
+type RawSubtreeNode = Record<string, unknown> & { children?: unknown };
+
+function parseSubtreeNode(value: unknown): RawSubtreeNode | null {
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as RawSubtreeNode) : null;
+    } catch {
+      return null;
+    }
+  }
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as RawSubtreeNode;
+  return null;
+}
+
+/// Deep-walk a parsed subtree: hydrate any `children` arrays the model sent
+/// as JSON STRINGS (the LooseShapeInputSchema gotcha, applied recursively)
+/// and drop non-array garbage so the applier always sees real arrays.
+function hydrateSubtreeChildren(node: RawSubtreeNode): void {
+  let kids = node.children;
+  if (typeof kids === 'string') {
+    try {
+      kids = JSON.parse(kids);
+    } catch {
+      kids = undefined;
+    }
+  }
+  if (Array.isArray(kids)) {
+    node.children = kids;
+    for (const k of kids) {
+      if (k && typeof k === 'object') hydrateSubtreeChildren(k as RawSubtreeNode);
+    }
+  } else {
+    delete node.children;
+  }
+}
+
+/// Visit every node in a parsed subtree (root first, depth-first).
+function walkSubtree(node: RawSubtreeNode, fn: (n: RawSubtreeNode) => void): void {
+  fn(node);
+  const kids = node.children;
+  if (Array.isArray(kids)) {
+    for (const k of kids) {
+      if (k && typeof k === 'object') walkSubtree(k as RawSubtreeNode, fn);
+    }
+  }
+}
+
+/// Hard cap on nodes per add_subtree call. A runaway model emitting a
+/// thousand-node "subtree" would blow the patch, the undo pre-state capture,
+/// and the resolve cache in one shot — fail fast with guidance instead.
+const MAX_SUBTREE_NODES = 150;
+
+// ---- Resolver-warning delivery (agent-visible degradation reporting) --------
+//
+// The resolver (pen/resolve.ts) collects degradation warnings on every
+// resolve — fit_content placeholder sizes, dropped refs, unresolved
+// $variables, dropped effects, unparseable paths. These helpers re-resolve
+// the document and format the warnings for the LLM-facing tool result /
+// system-prompt snapshot. Measured bounds from the browser are threaded in
+// as hints so nodes the DOM renderer has already measured for real do NOT
+// produce placeholder false-positives.
+
+/// Max warnings surfaced in one tool result / snapshot section.
+const MAX_RESOLVER_WARNINGS_SHOWN = 15;
+
+function collectResolverWarnings(doc: import('../canvas/types').CanvasDocument | undefined): ResolverWarning[] {
+  if (!doc) return [];
+  const measured = getMeasuredBounds(doc.id);
+  const { warnings } = resolvePenTreeDetailed(
+    doc,
+    measured && Object.keys(measured).length > 0 ? { measuredBounds: measured } : undefined,
+  );
+  return warnings.slice(0, MAX_RESOLVER_WARNINGS_SHOWN * 2);
+}
+
+function formatResolverWarnings(warnings: ResolverWarning[]): string {
+  if (warnings.length === 0) return '';
+  const shown = warnings.slice(0, MAX_RESOLVER_WARNINGS_SHOWN);
+  const lines = shown.map((w) => `  - [${w.kind}] ${w.nodeId}${w.nodeType ? ` (${w.nodeType})` : ''}: ${w.message}`);
+  const more = warnings.length > shown.length ? `\n  … ${warnings.length - shown.length} more` : '';
+  return `\nRESOLVE WARNINGS (${warnings.length}) — parts of this canvas render degraded; fix these before finishing:\n${lines.join('\n')}${more}`;
 }
 
 // ---- Helpers ----------------------------------------------------------------
@@ -753,6 +874,159 @@ const createShape = defineTool({
           },
         ],
         details: { shapeId: id, patch },
+      };
+    },
+  });
+
+  // ---- Batch construction: one call = one whole nested component tree --------
+  //
+  // The round-trip-tax killer. pen_create_node assembles composite UI one
+  // primitive per round trip (login-hifi: 28 calls / 103s; dashboard-hifi:
+  // 29 calls with pen_set_variable ×11). This tool emits ONE 'add_subtree'
+  // patch carrying the entire nested tree — one undo step, one broadcast,
+  // one resolve — while the applier (patch.ts normalizeSubtree) recursively
+  // maps legacy spellings, fills defaults, and assigns fresh ids for every
+  // id-less node, so the model can send a minimal tree.
+  const createSubtree = defineTool({
+    name: 'pen_create_subtree',
+    label: 'Create Subtree (batch)',
+    description:
+      'Create an entire NESTED component tree in ONE call — a frame with children, grandchildren, text, icons, auto-layout — instead of one pen_create_node per node. ' +
+      'PREFER this over repeated pen_create_node whenever you can enumerate the structure up front (cards, nav bars, forms, hero sections, whole screens). ' +
+      'Each node accepts every pen_create_node field plus `children`; ids are optional. Returns the root id + node count.',
+    promptSnippet: 'Batch-create a whole nested node tree (frame + children + grandchildren) in one call.',
+    promptGuidelines: [
+      'PREFER pen_create_subtree over N pen_create_node calls whenever the structure is known up front — one call for a whole card row, nav bar, form, or screen.',
+      'Root type defaults to frame when `children` is present. Give the root explicit x/y/width/height; nested children may omit position under auto-layout parents.',
+      'Node fields accept BOTH spellings (radius/cornerRadius, text/content, autoLayout/layout) — ids are optional and auto-assigned.',
+      'Use autoLayout on container nodes ({direction, gap, padding}) so children flow; combine with width/height "fit_content" to size to content.',
+      'Call pen_get_metadata {nodeId: <rootId>} afterwards to see every generated id for targeted updates.',
+    ],
+    parameters: SubtreeInputSchema,
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const root = parseSubtreeNode(params.node);
+      if (!root) {
+        return {
+          content: [{ type: 'text', text: 'Error: `node` must be an object (or JSON-encoded object) describing the subtree root. Example: {"type":"frame","width":360,"height":640,"children":[{"type":"text","text":"Hello"}]}.' }],
+          details: { error: 'subtree_node_missing' },
+          isError: true as any,
+        };
+      }
+      hydrateSubtreeChildren(root);
+
+      // Root defaults: frame when children present, rectangle otherwise.
+      if (!root.type || typeof root.type !== 'string') {
+        root.type = Array.isArray(root.children) && root.children.length > 0 ? 'frame' : 'rectangle';
+      }
+
+      // Node budget + depth, one walk.
+      let nodeCount = 0;
+      let maxDepth = 0;
+      walkSubtree(root, () => { nodeCount++; });
+      const depthOf = (n: RawSubtreeNode, d: number): void => {
+        maxDepth = Math.max(maxDepth, d);
+        const kids = n.children;
+        if (Array.isArray(kids)) for (const k of kids) if (k && typeof k === 'object') depthOf(k as RawSubtreeNode, d + 1);
+      };
+      depthOf(root, 1);
+      if (nodeCount > MAX_SUBTREE_NODES) {
+        return {
+          content: [{ type: 'text', text: `Error: subtree has ${nodeCount} nodes (max ${MAX_SUBTREE_NODES}). Split the design into multiple pen_create_subtree calls — one call per screen or major section.` }],
+          details: { error: 'subtree_too_large', nodeCount },
+          isError: true as any,
+        };
+      }
+
+      // Icon validation (atomic — fail BEFORE any patch when any icon name
+      // is unresolvable, mirroring pen_create_node's self-correcting miss).
+      // Boxed in an object: the callback assignment inside walkSubtree isn't
+      // visible to TS control-flow analysis, which would otherwise narrow the
+      // plain `let` to `null` at the read below.
+      const iconFailure: { error: { text: string; details: Record<string, unknown> } | null } = { error: null };
+      walkSubtree(root, (n) => {
+        if (iconFailure.error) return;
+        if (n.type !== 'icon') return;
+        const rawName = typeof n.icon === 'string' ? n.icon : (typeof n.iconName === 'string' ? n.iconName : '');
+        if (!rawName) {
+          iconFailure.error = {
+            text: 'Error: icon nodes inside the subtree require the `icon` field (a Lucide name, e.g. "lock"). Call pen_search_icons with a semantic query to find names.',
+            details: { error: 'icon_name_missing' },
+          };
+          return;
+        }
+        const resolved = getLucideIcon(rawName);
+        if (!resolved) {
+          const suggestions = searchLucideIcons(String(rawName).replace(/[-_]+/g, ' '), { limit: 6 })
+            .map((m) => m.name)
+            .join(', ');
+          iconFailure.error = {
+            text: `Error: icon "${rawName}" is not in the Lucide catalog.${suggestions ? ` Closest matches: ${suggestions}.` : ''} Use pen_search_icons {query:"..."} to find the right name.`,
+            details: { error: 'icon_not_found', requested: rawName, suggestions },
+          };
+          return;
+        }
+        n.icon = resolved.name;
+        n.library = 'lucide';
+      });
+      if (iconFailure.error) {
+        return { content: [{ type: 'text', text: iconFailure.error.text }], details: iconFailure.error.details, isError: true as any };
+      }
+
+      // parentId resolution: explicit param > node field. Unknown parent id →
+      // hard error (same contract as pen_insert_html — a silent drop would
+      // strand the tree at root level and confuse every follow-up).
+      const parentId = params.parentId ?? (typeof root.parentId === 'string' && root.parentId.length > 0 ? root.parentId : undefined);
+      if (parentId && !ctx.getShapes().some((s) => s.id === parentId)) {
+        return {
+          content: [{ type: 'text', text: `Error: parentId "${parentId}" does not exist. Call pen_get_metadata (no nodeId) for the page list, or pass a valid frame id.` }],
+          details: { error: 'unknown_parent', parentId },
+          isError: true as any,
+        };
+      }
+
+      // Top-level placement guard for frame-likes (same contract as
+      // pen_create_node — screens never stack on existing screens).
+      let placementAdjusted = false;
+      if (!parentId && TOP_LEVEL_FRAME_TYPES.has(String(root.type))) {
+        const rx = Number(root.x) || 0;
+        const ry = Number(root.y) || 0;
+        const rw = Number(root.width) || 100;
+        const rh = Number(root.height) || 100;
+        const placement = resolveTopLevelFramePlacement(ctx.getShapes(), rx, ry, rw, rh);
+        if (placement.adjusted) {
+          root.x = placement.x;
+          root.y = placement.y;
+          placementAdjusted = true;
+        }
+      }
+
+      const id = crypto.randomUUID();
+      root.id = id;
+      if (parentId) root.parentId = parentId;
+      else delete root.parentId;
+
+      const rootName = typeof root.name === 'string' && root.name.length > 0 ? root.name : String(root.type);
+      const patch: CanvasPatch = {
+        op: 'add_subtree',
+        shapeId: id,
+        shape: root as unknown as CanvasPatch['shape'],
+        summary: `Created subtree "${rootName}" — ${nodeCount} node(s), depth ${maxDepth}`,
+      };
+      ctx.applyPatch(patch);
+
+      const placementNote = placementAdjusted
+        ? ' NOTE: auto-placed to free space (would have covered an existing screen) — position subsequent layers relative to THESE coordinates.'
+        : '';
+      return {
+        content: [
+          {
+            type: 'text',
+            text:
+              `Created subtree "${rootName}" with root id ${id}: ${nodeCount} node(s), depth ${maxDepth}, root at (${Number(root.x) || 0}, ${Number(root.y) || 0}).` +
+              ` All descendant ids were auto-assigned — call pen_get_metadata {nodeId:"${id}"} to see the full tree with every id for targeted updates.${placementNote}`,
+          },
+        ],
+        details: { shapeId: id, nodeCount, depth: maxDepth, patch },
       };
     },
   });
@@ -3255,6 +3529,11 @@ const createShape = defineTool({
       const doc = ctx.getDocument?.();
       const layers = ctx.getShapes();
       const pages = doc?.pages ?? null;
+      // Resolver degradation warnings (dropped refs, placeholder sizes,
+      // unresolved variables …) — surfaced on EVERY metadata read so the
+      // agent can self-correct. Threaded with measured bounds so browser-
+      // measured nodes don't produce placeholder false-positives.
+      const warningsNote = formatResolverWarnings(collectResolverWarnings(doc));
 
       const pageListLines = (note?: string): string => {
         const lines: string[] = [];
@@ -3266,7 +3545,7 @@ const createShape = defineTool({
         } else {
           lines.push(`page 0: ${doc?.id ?? 'page-1'} — "${doc?.name ?? 'Page 1'}" (${countTreeNodes(doc?.children ?? [])} nodes)`);
         }
-        return (note ? `${note}\n` : '') + lines.join('\n') + '\nPass a nodeId (or page id) for the sparse tree.';
+        return (note ? `${note}\n` : '') + lines.join('\n') + '\nPass a nodeId (or page id) for the sparse tree.' + warningsNote;
       };
 
       if (!params.nodeId) {
@@ -3316,7 +3595,7 @@ const createShape = defineTool({
         for (const kid of kids) walk(kid.id, depth + 1);
       };
       walk(params.nodeId, 0);
-      const treeText = lines.join('\n') + (truncated ? `\n…[truncated at ${MAX_LINES} lines — pass a deeper nodeId to see the rest]` : '');
+      const treeText = lines.join('\n') + (truncated ? `\n…[truncated at ${MAX_LINES} lines — pass a deeper nodeId to see the rest]` : '') + warningsNote;
       return {
         content: [{ type: 'text', text: treeText }],
         details: { mode: 'tree', nodeId: params.nodeId, lineCount: lines.length, truncated },
@@ -4765,6 +5044,7 @@ const createShape = defineTool({
   return [
     // Core
     createShape,
+    createSubtree,
     updateShape,
     deleteShape,
     // (pen_list_shapes folded into getMetadata — G.3 supersede row; legacy

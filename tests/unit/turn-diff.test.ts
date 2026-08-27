@@ -31,6 +31,7 @@ describe('patchCategory', () => {
   it('classifies creation ops', () => {
     expect(patchCategory(patch({ op: 'add' }))).toBe('created');
     expect(patchCategory(patch({ op: 'bulk_add' }))).toBe('created');
+    expect(patchCategory(patch({ op: 'add_subtree' }))).toBe('created');
     expect(patchCategory(patch({ op: 'duplicate' }))).toBe('created');
   });
 
