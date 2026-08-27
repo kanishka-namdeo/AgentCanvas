@@ -2,28 +2,42 @@
 //
 // Drives the REAL UI (agent-browser + the app through the Caddy gateway on
 // :81, so the socket.io path is exercised) through the scenario matrix in
-// scenarios.json. Designed for ONE TURN PER INVOCATION (the sandbox reaps
-// background processes between tool calls, so everything must complete
-// inside a single process lifetime):
+// scenarios.json. ONE TURN PER INVOCATION (the sandbox reaps background
+// processes between tool calls, so everything must complete inside a single
+// process lifetime). Bash calls cap at 10 min, but agent turns can exceed
+// that (observed: 45 tool calls / ~11 min on kimi-k2-5); the runner is
+// therefore RESUMABLE:
 //
-//   - Reads manifest.json to find the next pending (scenario, turn)
-//   - Starts an in-process socket.io tap (subscribes to the document on
-//     :3003) so every agent event of the turn is captured
-//   - Ensures the browser is on the app; clicks "New chat" on scenario turn 1
-//   - Submits the prompt, waits for the turn to finish (Stop button gone)
-//   - Screenshots the canvas, flushes the turn's tap events to
-//     tap-events/<scenarioId>-t<turn>.jsonl, updates manifest.json
+//   - Phase RUN:    clear canvas (turn 1) → submit prompt → tap events →
+//                   wait for agent:turn_end. If seen: finalize (screenshot +
+//                   manifest). If MAX_WAIT hit first: write an inFlight
+//                   manifest entry + tap file, exit 0. (A bash timeout kill
+//                   still leaves the inFlight record from the periodic
+//                   flusher.)
+//   - Phase FINISH: re-invoked with an inFlight entry → new tap → wait for
+//                   turn_end (or stop-button-stable fallback) → screenshot,
+//                   merge tap files, finalize.
+//
+// Turn-end detection is DEFINITIVE: the runner watches the socket tap for
+// `agent:turn_end` (emitted by runner-native.ts only AFTER the mandatory
+// design-critique loop finishes — the Stop button disappears during the
+// critique gap, so it cannot be trusted alone). Fallback (turn_end missed
+// across a tap gap): Stop button gone AND no canvas:patch for 60s.
+//
+// Canvas isolation: the app uses a SHARED canvas (New chat does NOT clear
+// the document), so scenario turn 1 emits a socket patch {op:'clear'} right
+// after clicking New chat — each scenario starts from an empty canvas.
 //
 // Usage:
-//   bun scripts/vlm-inspect/run-scenarios.ts <outDir>                  # next pending turn
+//   bun scripts/vlm-inspect/run-scenarios.ts <outDir>                  # next pending turn (or finish in-flight)
 //   bun scripts/vlm-inspect/run-scenarios.ts <outDir> --scenario=os-hero
 //   bun scripts/vlm-inspect/run-scenarios.ts <outDir> --redo=os-hero:2  # re-run a turn
 //
-// Env overrides: MAX_WAIT (per-turn seconds, default 240), APP_URL (default
+// Env overrides: MAX_WAIT (per-turn seconds, default 540), APP_URL (default
 // http://localhost:81).
 
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { io, type Socket } from 'socket.io-client';
 
@@ -33,7 +47,7 @@ const OUT_DIR = resolveDir(process.argv[2]);
 const SCENARIO_ARG = process.argv.find((a) => a.startsWith('--scenario='));
 const REDO_ARG = process.argv.find((a) => a.startsWith('--redo='));
 const APP_URL = process.env.APP_URL ?? 'http://localhost:81';
-const MAX_WAIT_S = Number(process.env.MAX_WAIT ?? 240);
+const MAX_WAIT_S = Number(process.env.MAX_WAIT ?? 540);
 const SYNC_PORT = 3003;
 const DOC_ID = 'demo';
 
@@ -45,14 +59,15 @@ interface ManifestEntry {
   scenarioId: string;
   turn: number;
   prompt: string;
-  startMs: number;
-  endMs: number;
-  durationMs: number;
+  startMs?: number;
+  endMs?: number;
+  durationMs?: number;
   screenshot: string;
   tapFile: string;
-  toolCalls: number;
-  timedOut: boolean;
-  empty: boolean;
+  toolCalls?: number;
+  timedOut?: boolean;
+  empty?: boolean;
+  inFlight?: boolean;
   redone?: number;
 }
 
@@ -107,26 +122,13 @@ function submitPrompt(prompt: string): void {
   abQuiet(['press', 'Enter']);
 }
 
-/// Wait until the agent turn finishes (Stop button gone, double-checked).
-async function waitTurnEnd(): Promise<boolean> {
-  const deadline = Date.now() + MAX_WAIT_S * 1000;
-  while (Date.now() < deadline) {
-    const n = stopButtonCount();
-    if (n !== 1) {
-      await sleep(6000);
-      if (stopButtonCount() !== 1) return true;
-    }
-    await sleep(4000);
-  }
-  return false;
-}
-
 // ---- in-process socket tap ------------------------------------------------------
 
 interface TapEvent { t: number; event: Record<string, unknown> }
 
-function startTap(): { socket: Socket; events: TapEvent[] } {
+function startTap(): { socket: Socket; events: TapEvent[]; lastPatchMs: number } {
   const events: TapEvent[] = [];
+  const tap = { socket: null as unknown as Socket, events, lastPatchMs: Date.now() };
   const socket = io(`http://localhost:${SYNC_PORT}`, {
     path: '/',
     transports: ['websocket', 'polling'],
@@ -135,12 +137,14 @@ function startTap(): { socket: Socket; events: TapEvent[] } {
     reconnectionAttempts: 20,
     reconnectionDelay: 2000,
   });
+  tap.socket = socket;
   socket.on('connect', () => {
     socket.emit('client', { type: 'subscribe', documentId: DOC_ID });
   });
   socket.on('sync', (event: Record<string, unknown>) => {
     const type = event?.type;
     if (type === 'presence') return;
+    if (type === 'canvas:patch') tap.lastPatchMs = Date.now();
     if (type === 'canvas:full') {
       const doc = (event as { document?: { shapes?: unknown[] } }).document;
       events.push({ t: Date.now(), event: { type: 'canvas:full', shapeCount: doc?.shapes?.length ?? -1 } });
@@ -152,7 +156,59 @@ function startTap(): { socket: Socket; events: TapEvent[] } {
     }
     events.push({ t: Date.now(), event });
   });
-  return { socket, events };
+  return tap;
+}
+
+function countToolCalls(events: TapEvent[]): number {
+  return events.filter((e) => e.event.type === 'agent:tool_call_start').length;
+}
+
+function flushTap(tapFile: string, events: TapEvent[]): void {
+  if (!events.length) return;
+  appendFileSync(tapFile, events.map((e) => JSON.stringify(e)).join('\n') + '\n');
+}
+
+/// Definitive turn end: agent:turn_end seen on the tap AFTER submission.
+/// Fallback (turn_end missed across a tap gap): Stop button gone AND no
+/// canvas:patch for 60s AND no new events for 60s.
+async function waitTurnEnd(
+  tap: { events: TapEvent[]; lastPatchMs: number },
+  startMs: number,
+): Promise<{ ended: boolean; via: string }> {
+  const deadline = Date.now() + MAX_WAIT_S * 1000;
+  let stopGoneSince = 0;
+  while (Date.now() < deadline) {
+    const sawTurnEnd = tap.events.some(
+      (e) => e.event.type === 'agent:turn_end' && e.t >= startMs - 2000,
+    );
+    if (sawTurnEnd) {
+      await sleep(3000); // settle for late patches/turn_end doubles
+      return { ended: true, via: 'turn_end' };
+    }
+    const n = stopButtonCount();
+    if (n !== 1) {
+      if (!stopGoneSince) stopGoneSince = Date.now();
+      const quietCanvas = Date.now() - tap.lastPatchMs > 60_000;
+      const quietEvents = Date.now() - (tap.events[tap.events.length - 1]?.t ?? 0) > 60_000;
+      if (Date.now() - stopGoneSince > 90_000 && quietCanvas && quietEvents) {
+        return { ended: true, via: 'stop-stable' };
+      }
+    } else {
+      stopGoneSince = 0;
+    }
+    await sleep(5000);
+  }
+  return { ended: false, via: 'timeout' };
+}
+
+// ---- manifest helpers -------------------------------------------------------------
+
+function readManifest(path: string): ManifestEntry[] {
+  return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : [];
+}
+
+function writeManifest(path: string, manifest: ManifestEntry[]): void {
+  writeFileSync(path, JSON.stringify(manifest, null, 2));
 }
 
 // ---- main -------------------------------------------------------------------------
@@ -162,9 +218,52 @@ async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
   mkdirSync(join(OUT_DIR, 'tap-events'), { recursive: true });
   const manifestPath = join(OUT_DIR, 'manifest.json');
-  let manifest: ManifestEntry[] = existsSync(manifestPath)
-    ? JSON.parse(readFileSync(manifestPath, 'utf8'))
-    : [];
+  let manifest = readManifest(manifestPath);
+
+  // ---- FINISH PHASE: an in-flight turn from a previous invocation ----
+  const inFlightIdx = manifest.findIndex((m) => m.inFlight);
+  if (inFlightIdx >= 0 && !REDO_ARG) {
+    const entry = manifest[inFlightIdx];
+    console.log(`↻ FINISH in-flight turn: ${entry.scenarioId} t${entry.turn} (started ${new Date(entry.startMs!).toISOString()})`);
+    const tap = startTap();
+    await sleep(2500);
+    const { ended, via } = await waitTurnEnd(tap, entry.startMs ?? Date.now() - 60_000);
+    await sleep(4000);
+    const shot = join(OUT_DIR, `${entry.scenarioId}-t${entry.turn}.png`);
+    abQuiet(['screenshot', shot]);
+    flushTap(entry.tapFile, tap.events);
+    try { tap.socket.disconnect(); } catch { /* already gone */ }
+
+    // Merge tool calls across tap parts (dedupe by toolCallId).
+    const seen = new Set<string>();
+    let toolCalls = 0;
+    if (existsSync(entry.tapFile)) {
+      for (const line of readFileSync(entry.tapFile, 'utf8').split('\n')) {
+        if (!line.trim()) continue;
+        try {
+          const ev = JSON.parse(line).event;
+          if (ev?.type === 'agent:tool_call_start' && ev.toolCallId && !seen.has(ev.toolCallId)) {
+            seen.add(ev.toolCallId);
+            toolCalls++;
+          }
+        } catch { /* malformed line */ }
+      }
+    }
+    const endMs = Date.now();
+    delete entry.inFlight;
+    entry.endMs = endMs;
+    entry.durationMs = endMs - (entry.startMs ?? endMs);
+    entry.toolCalls = toolCalls;
+    entry.timedOut = !ended;
+    entry.empty = toolCalls === 0;
+    entry.screenshot = shot;
+    manifest[inFlightIdx] = entry;
+    writeManifest(manifestPath, manifest);
+    console.log(`  ${toolCalls} tool calls · ${(entry.durationMs / 1000).toFixed(0)}s total · ended=${ended} (${via}) · empty=${entry.empty}`);
+    const total = scenarios.reduce((a, s) => a + s.turns.length, 0);
+    console.log(`progress: ${manifest.filter((m) => !m.inFlight).length}/${total} turns done`);
+    process.exit(0);
+  }
 
   // ---- decide which turn to run ----
   let target: { sc: Scenario; turnNo: number; redo: boolean } | null = null;
@@ -182,14 +281,13 @@ async function main() {
       ? scenarios.filter((s) => s.id === SCENARIO_ARG.split('=')[1])
       : scenarios;
     for (const sc of candidates) {
-      const doneTurns = new Set(manifest.filter((m) => m.scenarioId === sc.id).map((m) => m.turn));
+      const doneTurns = new Set(manifest.filter((m) => m.scenarioId === sc.id && !m.inFlight).map((m) => m.turn));
       const next = sc.turns.findIndex((_, i) => !doneTurns.has(i + 1));
       if (next >= 0) { target = { sc, turnNo: next + 1, redo: false }; break; }
     }
-    // If all candidates are done, fall through to any pending scenario.
     if (!target && !SCENARIO_ARG) {
       for (const sc of scenarios) {
-        const doneTurns = new Set(manifest.filter((m) => m.scenarioId === sc.id).map((m) => m.turn));
+        const doneTurns = new Set(manifest.filter((m) => m.scenarioId === sc.id && !m.inFlight).map((m) => m.turn));
         const next = sc.turns.findIndex((_, i) => !doneTurns.has(i + 1));
         if (next >= 0) { target = { sc, turnNo: next + 1, redo: false }; break; }
       }
@@ -208,21 +306,42 @@ async function main() {
 
   // ---- ensure browser is on the app ----
   const url = currentUrl();
-  if (!url.includes('localhost')) {
-    abQuiet(['open', APP_URL]);
-    await sleep(6000);
-  } else if (!url.includes(':81')) {
-    // Reload through the gateway so the socket.io path is used.
+  if (!url.includes('localhost') || !url.includes(':81')) {
     abQuiet(['open', APP_URL]);
     await sleep(6000);
   }
   // If an agent turn is somehow still running, wait it out first.
   for (let i = 0; i < 10 && stopButtonCount() === 1; i++) await sleep(5000);
 
-  // ---- fresh canvas/chat on scenario turn 1 ----
+  const tapFile = join(OUT_DIR, 'tap-events', `${sc.id}-t${turnNo}.jsonl`);
+  if (redo || turnNo === 1) {
+    // Start the tap file clean on redo/turn-1 (a stale file from an aborted
+    // previous attempt would double-count tool calls).
+    writeFileSync(tapFile, '');
+  }
+
+  // ---- fresh chat on scenario turn 1 (+ canvas clear: shared-canvas model) ----
   if (turnNo === 1) {
     abQuiet(['find', 'role', 'button', 'click', '--name', 'New chat']);
     await sleep(3500);
+    // The canvas is SHARED across chats — clear it so each scenario's
+    // screenshot contains only that scenario's shapes.
+    const clearSocket = io(`http://localhost:${SYNC_PORT}`, {
+      path: '/',
+      transports: ['websocket'],
+      forceNew: true,
+    });
+    await new Promise<void>((resolve) => {
+      clearSocket.on('connect', () => {
+        clearSocket.emit('client', { type: 'subscribe', documentId: DOC_ID });
+        setTimeout(() => {
+          clearSocket.emit('client', { type: 'canvas:patch', patch: { op: 'clear', summary: 'Cleared canvas' } });
+          setTimeout(() => { try { clearSocket.disconnect(); } catch { /* noop */ } resolve(); }, 1500);
+        }, 600);
+      });
+      setTimeout(() => { try { clearSocket.disconnect(); } catch { /* noop */ } resolve(); }, 8000);
+    });
+    await sleep(2500); // let the UI settle after the clear broadcast
   }
 
   // ---- run the turn with the tap listening ----
@@ -231,49 +350,56 @@ async function main() {
 
   const startMs = Date.now();
   submitPrompt(prompt);
-  const ended = await waitTurnEnd();
-  // Small settle so late events (turn_end, final patches) still land.
-  await sleep(4000);
-  const endMs = Date.now();
 
+  // Pending-entry bookkeeping BEFORE the long wait: if this process is killed
+  // by the bash timeout, the inFlight record lets the next invocation finish
+  // the turn (screenshot + tap merge).
   const shot = join(OUT_DIR, `${sc.id}-t${turnNo}.png`);
-  abQuiet(['screenshot', shot]);
-
-  const toolCalls = tap.events.filter(
-    (e) => (e.event as { type?: string }).type === 'agent:tool_call_start' && e.t >= startMs - 1000,
-  ).length;
-
-  const tapFile = join(OUT_DIR, 'tap-events', `${sc.id}-t${turnNo}.jsonl`);
-  writeFileSync(tapFile, tap.events.map((e) => JSON.stringify(e)).join('\n') + '\n');
-  try { tap.socket.disconnect(); } catch { /* already gone */ }
-
-  const entry: ManifestEntry = {
+  const pending: ManifestEntry = {
     scenarioId: sc.id,
     turn: turnNo,
     prompt,
     startMs,
-    endMs,
-    durationMs: endMs - startMs,
     screenshot: shot,
     tapFile,
-    toolCalls,
-    timedOut: !ended,
-    empty: toolCalls === 0,
+    inFlight: true,
+    ...(redo ? { redone: (manifest.find((m) => m.scenarioId === sc.id && m.turn === turnNo)?.redone ?? 0) + 1 } : {}),
   };
-  if (redo) entry.redone = (manifest.find((m) => m.scenarioId === sc.id && m.turn === turnNo)?.redone ?? 0) + 1;
-
   manifest = manifest.filter((m) => !(m.scenarioId === sc.id && m.turn === turnNo));
-  manifest.push(entry);
-  manifest.sort((a, b) =>
-    a.scenarioId === b.scenarioId ? a.turn - b.turn : a.scenarioId.localeCompare(b.scenarioId),
-  );
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  manifest.push(pending);
+  writeManifest(manifestPath, manifest);
 
-  console.log(`  ${toolCalls} tool calls · ${((endMs - startMs) / 1000).toFixed(0)}s · timedOut=${!ended} · empty=${toolCalls === 0}`);
+  const { ended, via } = await waitTurnEnd(tap, startMs);
+  await sleep(4000);
+  const endMs = Date.now();
+
+  abQuiet(['screenshot', shot]);
+  flushTap(tapFile, tap.events);
+  try { tap.socket.disconnect(); } catch { /* already gone */ }
+
+  const toolCalls = countToolCalls(tap.events);
+
+  if (!ended) {
+    // Leave the inFlight entry in the manifest; exit so a follow-up call can
+    // finish the turn (bash calls cap below real turn durations).
+    console.log(`  still running after ${MAX_WAIT_S}s — leaving in-flight; re-invoke to finish`);
+    console.log(`  (partial capture: ${toolCalls}+ tool calls)`);
+    process.exit(0);
+  }
+
+  delete pending.inFlight;
+  pending.endMs = endMs;
+  pending.durationMs = endMs - startMs;
+  pending.toolCalls = toolCalls;
+  pending.timedOut = false;
+  pending.empty = toolCalls === 0;
+  writeManifest(manifestPath, manifest);
+
+  console.log(`  ${toolCalls} tool calls · ${((endMs - startMs) / 1000).toFixed(0)}s · ended via ${via} · empty=${toolCalls === 0}`);
   console.log(`  screenshot: ${shot}`);
   console.log(`  tap: ${tapFile}`);
   const total = scenarios.reduce((a, s) => a + s.turns.length, 0);
-  console.log(`progress: ${manifest.length}/${total} turns done`);
+  console.log(`progress: ${manifest.filter((m) => !m.inFlight).length}/${total} turns done`);
 }
 
 main();
