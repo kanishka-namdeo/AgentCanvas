@@ -1,0 +1,55 @@
+[
+  {
+    "scenarioId": "ms-pricing",
+    "turn": 1,
+    "prompt": "Create a pricing card for the 'Pro' plan at $12 per month: the plan name, the price, a list of 4 realistic features, and a 'Choose Pro' button.",
+    "startMs": 1787858407444,
+    "screenshot": "/home/z/my-project/download/vlm-exercise/perf-pass/ms-pricing-t1.png",
+    "tapFile": "/home/z/my-project/download/vlm-exercise/perf-pass/tap-events/ms-pricing-t1.jsonl",
+    "endMs": 1787858682594,
+    "durationMs": 275150,
+    "toolCalls": 31,
+    "timedOut": false,
+    "empty": false
+  },
+  {
+    "scenarioId": "ms-pricing",
+    "turn": 2,
+    "prompt": "Turn it into a row of three pricing cards side by side: Starter at $0, Pro at $12 with a 'Popular' badge and a highlighted border, and Team at $49.",
+    "startMs": 1787858689436,
+    "screenshot": "/home/z/my-project/download/vlm-exercise/perf-pass/ms-pricing-t2.png",
+    "tapFile": "/home/z/my-project/download/vlm-exercise/perf-pass/tap-events/ms-pricing-t2.jsonl",
+    "endMs": 1787858947218,
+    "durationMs": 257782,
+    "toolCalls": 31,
+    "timedOut": false,
+    "empty": false
+  },
+  {
+    "scenarioId": "ms-pricing",
+    "turn": 3,
+    "prompt": "Make all three cards the same height with consistent padding, and center the plan names.",
+    "startMs": 1787858982625,
+    "screenshot": "/home/z/my-project/download/vlm-exercise/perf-pass/ms-pricing-t3.png",
+    "tapFile": "/home/z/my-project/download/vlm-exercise/perf-pass/tap-events/ms-pricing-t3.jsonl",
+    "endMs": 1787859127370,
+    "durationMs": 144745,
+    "toolCalls": 10,
+    "timedOut": false,
+    "empty": false
+  },
+  {
+    "scenarioId": "os-kanban",
+    "turn": 1,
+    "prompt": "Create a kanban board with three columns - To Do, In Progress, Done - each column containing two task cards with a short realistic title and a small colored tag.",
+    "startMs": 1787859881550,
+    "screenshot": "/home/z/my-project/download/vlm-exercise/perf-pass/os-kanban-t1.png",
+    "tapFile": "/home/z/my-project/download/vlm-exercise/perf-pass/tap-events/os-kanban-t1.jsonl",
+    "redone": 1,
+    "endMs": 1787860161452,
+    "durationMs": 279902,
+    "toolCalls": 33,
+    "timedOut": false,
+    "empty": false
+  }
+]

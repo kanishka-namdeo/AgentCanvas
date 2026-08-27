@@ -267,27 +267,51 @@ export function applyPatchToCanvas(
       break;
     }
     case 'duplicate': {
+      // Batch duplication (R1 "78 calls to turn one card into three" finding):
+      // `count` copies per source, laid out in a row/column via `direction` +
+      // `spacing`, or at the legacy +offsetX/+offsetY diagonal when no
+      // direction is given. Default behavior (no count, no direction) is
+      // byte-identical to the pre-batch implementation: one copy at +24/+24.
       const ids = new Set(patch.shapeIds ?? []);
+      const rawCount = Math.floor(Number(patch.count ?? 1));
+      const count = Math.max(1, Math.min(24, Number.isFinite(rawCount) ? rawCount : 1));
+      const direction = patch.direction === 'horizontal' || patch.direction === 'vertical' ? patch.direction : undefined;
+      const spacing = Number.isFinite(Number(patch.spacing)) ? Number(patch.spacing) : 24;
+      const offsetX = Number.isFinite(Number(patch.offsetX)) ? Number(patch.offsetX) : 24;
+      const offsetY = Number.isFinite(Number(patch.offsetY)) ? Number(patch.offsetY) : 24;
       for (const id of ids) {
         const found = findNodeArray(next.children, id);
         if (!found) continue;
         const node = found.array[found.index];
-        const clone = deepCloneNode(node, true);
         // The clone stays in the ORIGINAL's parent (findNodeArray gives the
         // real tree parent — .pen nodes don't store parentId, the old
         // `(node as any).parentId` read was always undefined and teleported
         // nested duplicates to root, where their RELATIVE coords were
         // reinterpreted as absolute).
         const parentId = found.parent?.id ?? null;
-        // Offset the clone by 24px in ABSOLUTE space, expressed back in the
-        // parent's coordinate system so the clone renders next to the
-        // original regardless of nesting depth.
+        // Offsets are applied in ABSOLUTE space, expressed back in the
+        // parent's coordinate system so clones render next to the original
+        // regardless of nesting depth.
         const abs = getAbsolutePosition(next.children, id);
         const parentAbs = parentId ? getAbsolutePosition(next.children, parentId) : { x: 0, y: 0 };
-        (clone as any).x = abs.x + 24 - parentAbs.x;
-        (clone as any).y = abs.y + 24 - parentAbs.y;
-        (clone as any).name = `${(node as any).name ?? 'Shape'} copy`;
-        next.children = insertNode(next.children, clone, parentId);
+        const sourceW = Number((node as any).width) || 0;
+        const sourceH = Number((node as any).height) || 0;
+        for (let i = 1; i <= count; i++) {
+          const clone = deepCloneNode(node, true);
+          let dx = offsetX * i;
+          let dy = offsetY * i;
+          if (direction === 'horizontal') {
+            dx = (sourceW + spacing) * i;
+            dy = 0;
+          } else if (direction === 'vertical') {
+            dx = 0;
+            dy = (sourceH + spacing) * i;
+          }
+          (clone as any).x = abs.x + dx - parentAbs.x;
+          (clone as any).y = abs.y + dy - parentAbs.y;
+          (clone as any).name = `${(node as any).name ?? 'Shape'}${count > 1 || direction ? ` copy ${i}` : ' copy'}`;
+          next.children = insertNode(next.children, clone, parentId);
+        }
       }
       break;
     }

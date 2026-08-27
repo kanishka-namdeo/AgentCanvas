@@ -311,13 +311,15 @@ function isFillContainer(v: unknown): boolean {
  * those to the absolute-positioning branch, stacking every child at the
  * parent origin (entire pricing cards rendered as overlapping piles).
  */
-function normalizeLayoutDir(v: unknown): 'horizontal' | 'vertical' | 'none' | string {
+function normalizeLayoutDir(v: unknown): 'horizontal' | 'vertical' | 'none' {
   if (typeof v !== 'string') return 'none';
   const s = v.trim().toLowerCase();
   if (s === 'horizontal' || s === 'row') return 'horizontal';
   if (s === 'vertical' || s === 'column') return 'vertical';
   if (s === 'none' || s === '') return 'none';
-  return s;
+  // Unknown spellings (including legacy uppercase variants already lowered
+  // above) degrade to 'none' — layoutChildren only understands the union.
+  return 'none';
 }
 
 // ---- Layout (simplified flexbox) -----------------------------------------

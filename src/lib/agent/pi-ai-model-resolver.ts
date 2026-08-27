@@ -287,6 +287,16 @@ function buildCustomEndpointModel(baseUrl: string, modelId: string): Model<Api> 
       supportsUsageInStreaming: true,
       supportsStrictMode: false,
       maxTokensField: 'max_tokens',
+      // Agent Performance Package change 10: opt this model into pi-ai's
+      // prompt-cache hints (prompt_cache_key + prompt_cache_retention are
+      // sent only when cacheRetention==='long' AND this flag is set — the
+      // runner sets process.env.PI_CACHE_RETENTION='long'). Verified live
+      // against the default kimi endpoint: both fields accepted, usage
+      // reports cached_tokens, so the ~45K-token static prefix (tools +
+      // system prompt) hits the cache on every call after the first within
+      // a turn. OpenAI-compatible servers that don't know the fields
+      // ignore them (standard OpenAI body-extension practice).
+      supportsLongCacheRetention: true,
     },
   };
 }

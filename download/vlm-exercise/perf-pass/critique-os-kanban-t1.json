@@ -1,0 +1,54 @@
+{
+  "scores": {
+    "prompt_fidelity": 9,
+    "layout_structure": 8,
+    "spacing_consistency": 7,
+    "typography": 6,
+    "color_cohesion": 9,
+    "component_polish": 6,
+    "cleanliness": 8,
+    "overall_polish": 7
+  },
+  "overall": 7,
+  "defects": [
+    {
+      "dimension": "typography",
+      "severity": "medium",
+      "description": "Text on task cards is extremely small and blurry, making titles and tags difficult to read",
+      "location": "All task cards in all three columns"
+    },
+    {
+      "dimension": "component_polish",
+      "severity": "low",
+      "description": "Task cards lack visible borders or shadows, appearing flat against the background",
+      "location": "All six task cards"
+    },
+    {
+      "dimension": "spacing_consistency",
+      "severity": "low",
+      "description": "Vertical spacing between the two cards in each column appears slightly tight",
+      "location": "Within each of the three columns"
+    }
+  ],
+  "missing_elements": [],
+  "regressions": [],
+  "top_fixes": [
+    "Increase the font size of text inside task cards to ensure readability (at least 12-14px)",
+    "Add subtle borders or drop shadows to task cards to define them as distinct components",
+    "Increase vertical gap between stacked task cards to improve visual breathing room"
+  ],
+  "manifest": {
+    "scenarioId": "os-kanban",
+    "turn": 1,
+    "prompt": "Create a kanban board with three columns - To Do, In Progress, Done - each column containing two task cards with a short realistic title and a small colored tag.",
+    "startMs": 1787859881550,
+    "screenshot": "/home/z/my-project/download/vlm-exercise/perf-pass/os-kanban-t1.png",
+    "tapFile": "/home/z/my-project/download/vlm-exercise/perf-pass/tap-events/os-kanban-t1.jsonl",
+    "redone": 1,
+    "endMs": 1787860161452,
+    "durationMs": 279902,
+    "toolCalls": 33,
+    "timedOut": false,
+    "empty": false
+  }
+}

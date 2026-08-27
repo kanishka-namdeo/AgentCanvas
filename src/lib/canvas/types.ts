@@ -430,6 +430,19 @@ export interface CanvasPatch {
   shapeIds?: string[];
   shapes?: Array<Partial<Shape> & { id: string }>;
   updates?: Array<{ id: string; changes: Partial<Shape> }>;
+  /// For 'duplicate': how many copies to make per source node (default 1).
+  count?: number;
+  /// For 'duplicate': how copies are laid out relative to the source.
+  /// 'horizontal' → each copy offset (width + spacing) to the right;
+  /// 'vertical' → each copy offset (height + spacing) downward;
+  /// omitted → legacy +offsetX/+offsetY (default +24/+24) for every copy.
+  direction?: 'horizontal' | 'vertical';
+  /// For 'duplicate': gap in px between the source's edge and the next copy
+  /// (default 24). Used with direction.
+  spacing?: number;
+  /// For 'duplicate': explicit per-copy offsets (legacy/diagonal mode).
+  offsetX?: number;
+  offsetY?: number;
   background?: string;
   viewport?: Viewport;
   tokens?: Partial<DesignTokens>;

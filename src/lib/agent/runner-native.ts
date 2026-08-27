@@ -60,7 +60,8 @@ import type { ThinkingLevel } from '@earendil-works/pi-agent-core';
 import { createCanvasTools, type CanvasToolContext } from './tools';
 import { createPenTools, PEN_TOOL_NAMES, PEN_TOOL_LEGACY_NAMES } from './pen-tools';
 import { createFigmaTools, FIGMA_TOOL_NAMES, FIGMA_TOOL_LEGACY_NAMES } from './figma-tools';
-import { applyToolAliases, aliasTargetAllowed } from './tool-aliases';
+import { applyToolAliases, TOOL_ALIASES } from './tool-aliases';
+import { applyExecutionModes } from './tool-execution-mode';
 import type { CanvasDocument, CanvasPatch } from '../canvas/types';
 import type { AgentRunSettings } from '../settings/types';
 import { normalizeLLMProvider, DEFAULT_SETTINGS } from '../settings/types';
@@ -85,6 +86,7 @@ import {
   normalizeCanvas,
   buildSystemPrompt,
   buildSubAgentLLMClient,
+  canvasSnapshot,
 } from './runner-legacy';
 // Plugin integration.
 import {
@@ -296,10 +298,16 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     ...FIGMA_TOOL_LEGACY_NAMES,
     ...pluginToolNames,
   ]);
-  // Legacy ALIAS entries ride along whenever their canonical target is
-  // allowed (aliasTargetAllowed) — spec Phase 6 part 2.
+  // Legacy ALIAS entries no longer ride along (Agent Performance Package
+  // change 6): the 26 deprecated-name clones duplicated ~28KB of schema
+  // bytes on EVERY LLM call of the turn. Canonical names only — the alias
+  // layer's normalizeToolParams wrapping still protects execution, and a
+  // model that hallucinates a deprecated name gets a standard unknown-tool
+  // error it self-corrects from (the deprecation window has been open for
+  // many sessions; new contexts never teach the old spellings).
+  const aliasNames = new Set(Object.keys(TOOL_ALIASES));
   const filteredTools = allTools.filter((t) =>
-    allowedToolNames.has(t.name) || aliasTargetAllowed(t.name, allowedToolNames));
+    allowedToolNames.has(t.name) && !aliasNames.has(t.name));
 
   // ---- Task 7-e Fix 2 — Architectural enforcement: pen_generate_design_brief
   //      MUST be the first tool call for design requests.
@@ -322,6 +330,39 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     return /\b(design|dashboard|landing\s*page|app|ui|build|create|make|draw|scaffold|layout|interface|website|page|screen)\b/.test(t);
   };
   const shouldEnforceBrief = isDesignRequest(prompt);
+
+  // ---- Agent Performance Package change 9: pre-generate the design brief --
+  //
+  // Previously the brief cost a FULL-CONTEXT main-loop iteration: the model
+  // called pen_generate_design_brief as its first tool call, waited for the
+  // sub-agent, and only then started drawing — one guaranteed extra round
+  // trip (~10s + ~45K tokens of re-sent prefix) on every design turn.
+  // Dispatching the SMALL brief sub-agent up front (threaded with the
+  // provider-aware subAgentLLM) and injecting its JSON into the first user
+  // message deletes that round trip entirely. The tool-layer brief gate
+  // below stays as the fallback for when pre-generation fails (endpoint
+  // down / parse error / timeout).
+  let preGeneratedBrief: string | null = null;
+  if (shouldEnforceBrief) {
+    try {
+      const { dispatchDesignBriefSubAgent } = await import('./subagents/design-brief');
+      const briefPromise = dispatchDesignBriefSubAgent({
+        task: prompt,
+        canvas,
+        originalPrompt: prompt,
+        ...(subAgentLLM ? { llm: subAgentLLM as any } : {}),
+      });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('brief pre-generation timed out')), 40_000));
+      const briefResult = await Promise.race([briefPromise, timeoutPromise]);
+      if (briefResult?.brief) {
+        preGeneratedBrief = JSON.stringify(briefResult.brief, null, 2);
+        hasGeneratedBrief = true; // the tool-layer gate below becomes a no-op
+      }
+    } catch {
+      // Pre-generation failed — fall back to the tool-layer brief gate.
+    }
+  }
 
   const BRIEF_TOOL_NAME = 'pen_generate_design_brief';
   const GATED_TOOL_NAMES = new Set<string>([
@@ -428,6 +469,16 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           } as unknown as ToolDefinition;
         });
 
+  // ---- Agent Performance Package change 3: order-preserving batch execution.
+  //
+  // pi-agent-core executes ALL tool calls emitted in one assistant message
+  // as a single iteration (parallel by default). The system prompt's new
+  // PARALLEL TOOL EMISSION rule tells the model to batch independent calls;
+  // marking canvas MUTATIONS executionMode:'sequential' guarantees they
+  // still apply in emission order (create-then-style etc.), while read-only
+  // tools (metadata/search/export/critique sub-agents) stay concurrent.
+  const orderedTools: ToolDefinition[] = applyExecutionModes(approvalWrappedTools);
+
   // Emit skill selection event (UI parity with legacy runner).
   yield {
     kind: 'agent_event',
@@ -436,7 +487,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       category: activeCategory,
       confidence: classification.confidence,
       method: classification.method,
-      toolCount: approvalWrappedTools.length,
+      toolCount: orderedTools.length,
     },
   };
 
@@ -564,9 +615,21 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   }
 
   const systemContent =
-    buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst, settings?.pack) +
+    buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst, settings?.pack, /* includeSnapshot */ false) +
     fileSkillsSection +
     memorySection;
+
+  // ---- Agent Performance Package change 10: prompt caching -----------------
+  //
+  // pi-ai sends `prompt_cache_key` (session-stable) only when
+  // cacheRetention==='long' AND the resolved model's compat declares
+  // supportsLongCacheRetention (set for custom OpenAI-compatible endpoints
+  // in pi-ai-model-resolver.ts). Verified live against the default kimi
+  // endpoint: both cache fields are accepted and usage reports cached_tokens,
+  // so the ~45K-token static prefix (tools + system prompt) is served from
+  // cache on every call after the first within a turn. Respects an explicit
+  // user override (||=, not =).
+  process.env.PI_CACHE_RETENTION ||= 'long';
 
   // 9. Resolve the pi-ai Model + ModelRuntime from settings.
   //    Throws if no auth is configured (e.g. user picked OpenAI but didn't
@@ -628,9 +691,24 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const packReminder = settings?.pack
     ? `\n\n[PACK REMINDER: the "${settings.pack}" design-system pack is pinned. Use \`var(--color-*)\`, \`var(--radius-*)\`, \`var(--space-*)\`, \`var(--font-*)\`, \`var(--button-*)\` from the pack — NEVER hardcoded hex / px / font-family. The pack's tokens.css is already injected on the canvas root. See the "DESIGN-SYSTEM PACK" section in the system prompt for the full variable list + the FIDELITY POLICY OVERRIDES for this pack.]`
     : '';
-  const userMessage = webResearchSummary
-    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}${packReminder}`
-    : `${selectionNote}${prompt}${packReminder}`;
+  // ---- Agent Performance Package change 5: canvas snapshot moves from the
+  //      system-prompt tail into the FIRST USER MESSAGE --------------------------------
+  //
+  // The snapshot was the only DYNAMIC section of the system prompt — every
+  // turn rebuilt the whole block, so the ~43KB static prefix (fidelity
+  // policy, recipes, palettes) could never hit a provider prefix cache across
+  // turns. Moving the snapshot keeps identical information at identical
+  // times (built once at turn start) but makes the system prompt
+  // byte-stable. Also injects the pre-generated design brief (change 9)
+  // directly into the first user message so the main loop needs no brief
+  // round-trip.
+  const snapshotSection = `\n\nCURRENT CANVAS SNAPSHOT (at turn start — call pen_get_metadata for live state):\n${canvasSnapshot(canvas)}`;
+  const briefSection = preGeneratedBrief
+    ? `\n\n[PRE-GENERATED DESIGN BRIEF — the palette / typography / layout source of truth for this whole turn. Do NOT call pen_generate_design_brief; build directly from this brief:]\n${preGeneratedBrief}`
+    : '';
+  const userMessage = (webResearchSummary
+    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}`
+    : `${selectionNote}${prompt}`) + briefSection + snapshotSection + packReminder;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;
@@ -731,8 +809,8 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         modelRuntime: currentModel.modelRuntime,
         thinkingLevel: mapThinkingLevel(thinkingLevel),
         noTools: 'all',
-        customTools: approvalWrappedTools,
-        tools: approvalWrappedTools.map((t) => t.name),
+        customTools: orderedTools,
+        tools: orderedTools.map((t) => t.name),
         resourceLoader,
         sessionManager: SessionManager.inMemory(process.cwd()),
         settingsManager: SettingsManager.inMemory({
@@ -746,6 +824,33 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         } as any),
       });
       session = result.session;
+
+      // ---- Agent Performance Package change 7: wire maxIterations -----------
+      //
+      // `settings.maxIterations` (default 20) was read at the top of this
+      // runner but never used — the production loop was unbounded (the VLM
+      // exercise saw 78-call turns spiral under endpoint rate-limits).
+      // pi-agent-core exposes `shouldStopAfterTurn` on the Agent runtime
+      // options, but createAgentSession doesn't plumb it through; the Agent
+      // instance is public on the session, so set it defensively. The budget
+      // spans the main loop AND critique fix re-prompts (continuation runs
+      // share this closure). Exceeding it stops the loop; the critique phase
+      // below still runs on whatever was produced.
+      try {
+        const agentAny = (session as unknown as { agent?: Record<string, unknown> }).agent;
+        if (agentAny && typeof agentAny === 'object' && 'shouldStopAfterTurn' in agentAny) {
+          let toolCallBudget = Math.max(1, maxIterations);
+          (agentAny as { shouldStopAfterTurn: unknown }).shouldStopAfterTurn = (turnCtx: {
+            message?: { content?: Array<{ type?: string }> };
+          }) => {
+            const toolCalls = turnCtx?.message?.content?.filter?.((c: { type?: string }) => c?.type === 'toolCall') ?? [];
+            toolCallBudget -= toolCalls.length;
+            return toolCallBudget <= 0;
+          };
+        }
+      } catch {
+        // Capability probe failed — loop stays unbounded (pre-existing behavior).
+      }
     } catch (err: any) {
       yield {
         kind: 'agent_event',
@@ -1062,51 +1167,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         /\bwireframe\b|\blow-fi\b|\blow-fidelity\b|\bsketch\b|\bskeleton\b|\bmockup\b|\bgraybox\b/.test(lowerPrompt);
       if (isWireframeRequest) break;
 
-      // ---- 1. Text critic ----------------------------------------------------
-      let textCritiqueSummary = '';
-      let textCritiqueSeverity: 'low' | 'medium' | 'high' = 'medium';
-      try {
-        const { dispatchDesignCriticSubAgent } = await import('./subagents/design-critic');
-        const textResult = await dispatchDesignCriticSubAgent({
-          task: 'Critique the current canvas design.',
-          canvas,
-          originalPrompt: prompt,
-          llm: subAgentLLM,
-          priorShapeIds,
-        });
-        textCritiqueSummary = textResult.summary;
-        // The text critic's summary includes a SCORE: line — parse the number.
-        const scoreMatch = textCritiqueSummary.match(/SCORE:\s*(\d+)/i);
-        if (scoreMatch) {
-          const score = parseInt(scoreMatch[1], 10);
-          textCritiqueSeverity = score >= 7 ? 'low' : score >= 4 ? 'medium' : 'high';
-        }
-      } catch (err: any) {
-        textCritiqueSummary = `(text critic failed: ${err.message ?? String(err)})`;
-      }
-
-      // ---- 2. VLM critic (T3) ------------------------------------------------
-      let vlmCritique: any = null;
-      let vlmSeverity: 'low' | 'medium' | 'high' = 'medium';
-      try {
-        const { dispatchDesignCriticVlmSubAgent } = await import('./subagents/design-critic-vlm');
-        const vlmResult = await dispatchDesignCriticVlmSubAgent({
-          task: 'Critique the rendered canvas.',
-          canvas,
-          originalPrompt: prompt,
-          llm: subAgentLLM,
-          priorShapeIds,
-        });
-        vlmCritique = vlmResult.critique;
-        if (vlmCritique) vlmSeverity = vlmCritique.severity;
-      } catch (err: any) {
-        // VLM critic failure is non-fatal — the text critic + validation
-        // gate still drive the loop. Common failure: @resvg/resvg-js
-        // install missing, or the provider doesn't support image_url.
-        console.warn('[vlm-critic] failed (non-fatal):', err instanceof Error ? err.message : String(err));
-      }
-
-      // ---- 3. Pre-complete validation gate (T10) -----------------------------
+      // ---- 1. Pre-complete validation gate (T10) — FREE, so it runs FIRST --
       // Scoped to the NEW shapes: prior screens' typography/shadows are the
       // user's accepted history, not this turn's defects. min-count is
       // relaxed because edit turns legitimately add only a few shapes.
@@ -1114,6 +1175,71 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       const validation = validateCanvasBeforeComplete(newShapesForCritique, {
         relaxMinCount: true,
       });
+
+      // ---- Agent Performance Package change 8: critique gating + -----------
+      //      parallelism.
+      //  - The validation gate is deterministic and free, so it now runs
+      //    BEFORE any LLM critic and gates the expensive VLM pass: small
+      //    CLEAN edits (validation.ok + < 8 new shapes) skip the
+      //    render+vision call entirely — the text critic + validation
+      //    already cover them.
+      //  - When both critics run, they run CONCURRENTLY (Promise.all)
+      //    instead of back-to-back — the text critic (~10-15s) and the VLM
+      //    critic (~10-20s incl. screenshot render) overlap, saving one
+      //    critic's wall-clock per iteration.
+      const smallCleanEdit = validation.ok && newShapesForCritique.length < 8;
+
+      // ---- 2. Text critic + VLM critic (T3), concurrently -------------------
+      let textCritiqueSummary = '';
+      let textCritiqueSeverity: 'low' | 'medium' | 'high' = 'medium';
+      let vlmCritique: any = null;
+      let vlmSeverity: 'low' | 'medium' | 'high' = 'medium';
+      const [textResult, vlmResult] = await Promise.all([
+        (async () => {
+          try {
+            const { dispatchDesignCriticSubAgent } = await import('./subagents/design-critic');
+            return await dispatchDesignCriticSubAgent({
+              task: 'Critique the current canvas design.',
+              canvas,
+              originalPrompt: prompt,
+              llm: subAgentLLM,
+              priorShapeIds,
+            });
+          } catch (err: any) {
+            return { summary: `(text critic failed: ${err.message ?? String(err)})` };
+          }
+        })(),
+        smallCleanEdit
+          ? Promise.resolve(null)
+          : (async () => {
+              try {
+                const { dispatchDesignCriticVlmSubAgent } = await import('./subagents/design-critic-vlm');
+                return await dispatchDesignCriticVlmSubAgent({
+                  task: 'Critique the rendered canvas.',
+                  canvas,
+                  originalPrompt: prompt,
+                  llm: subAgentLLM,
+                  priorShapeIds,
+                });
+              } catch (err: any) {
+                // VLM critic failure is non-fatal — the text critic +
+                // validation gate still drive the loop. Common failure:
+                // @resvg/resvg-js install missing, or the provider doesn't
+                // support image_url.
+                console.warn('[vlm-critic] failed (non-fatal):', err instanceof Error ? err.message : String(err));
+                return null;
+              }
+            })(),
+      ]);
+      textCritiqueSummary = textResult?.summary ?? '';
+      // The text critic's summary includes a SCORE: line — parse the number.
+      const scoreMatch = textCritiqueSummary.match(/SCORE:\s*(\d+)/i);
+      if (scoreMatch) {
+        const score = parseInt(scoreMatch[1], 10);
+        textCritiqueSeverity = score >= 7 ? 'low' : score >= 4 ? 'medium' : 'high';
+      }
+      vlmCritique = vlmResult?.critique ?? null;
+      if (vlmCritique) vlmSeverity = vlmCritique.severity;
 
       // ---- 4. Exit decision --------------------------------------------------
       const defects = [

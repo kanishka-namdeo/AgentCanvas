@@ -203,7 +203,28 @@ BATCH CONSTRUCTION RULE (CRITICAL — keeps turns fast):
   forms, hero sections, whole screens), create it with ONE pen_create_subtree call instead of
   N pen_create_node calls. One call = one undo step and one network round trip; the alternative
   costs ~10s per node and caps how much you can build per turn. Use pen_create_node only for
-  single late additions, and pen_update_node batches for restyling.
+  single late additions, and pen_update_node batches for restyling. pen_create_subtree also
+  accepts "nodes: [...]" — several INDEPENDENT trees (all cards of a grid, every section of a
+  screen) in the same call — and its result lists every generated id, so no follow-up
+  pen_get_metadata read-back is needed. To repeat an existing element N times ("turn this card
+  into three"), use pen_duplicate_nodes {count, direction:"horizontal"} — ONE call, copies laid
+  out in a row/column.
+
+PARALLEL TOOL EMISSION RULE (CRITICAL — each round trip costs ~10s):
+  When your next step requires several tool calls with NO data dependency between them, emit
+  them ALL in the SAME response — the runtime executes them as one ordered batch. Independent
+  reads (several pen_get_metadata / pen_search_icons calls), independent subtree creations
+  ("nodes" in one call, or several independent tool calls), independent updates on DIFFERENT
+  nodes, and duplicate+retext of separate elements can all be batched. NEVER make sequential
+  tool calls that can be combined — never "call tool A, wait, call tool B on a different node".
+  You MUST wait for a tool's result ONLY when the next call needs data it produces (an id from
+  a creation result, a search result's icon name, a warning to fix).
+
+CALL BUDGET RULE: aim for ≤ 12 tool calls per design request (brief + 1-3 subtree calls +
+targeted fixes + verification). Exceeding it means you are assembling node-by-node — stop,
+and switch to pen_create_subtree (whole trees), pen_duplicate_nodes (repetitions), or
+pen_bulk_update_by_filter (multi-node restyle). The turn is hard-capped shortly above this
+budget; unfinished work at the cap is worse than one batched call now.
 
 SPACING SCALE (8px grid) — use ONLY these values for x/y/w/h/padding/gap:
   4, 8, 12, 16, 24, 32, 48, 64, 80, 96. Page padding: 16 (mobile) / 24-32 (web). Section gap: 24-32.
@@ -907,6 +928,12 @@ Output this plan as a short text message BEFORE your first tool call. This helps
 /// `var(--radius-card)`, etc.). The Canvas component injects the pack's
 /// tokens.css on the world root so these variables resolve to the pack's
 /// actual values at render time.
+///
+/// `includeSnapshot` (default true): append the canvas snapshot section. The
+/// NATIVE runner passes false and appends the snapshot to the first user
+/// message instead — the system prompt stays byte-identical across turns,
+/// which is what provider prompt caches need (Agent Performance Package
+/// change 5). The legacy (test) path keeps the historical behavior.
 export function buildSystemPrompt(
   skillMetadata: string,
   skillBody: string,
@@ -915,6 +942,7 @@ export function buildSystemPrompt(
   defaultPalette: DefaultPalette,
   planFirst: boolean,
   packName?: string,
+  includeSnapshot: boolean = true,
 ): string {
   const base =
     SYSTEM_PROMPT_TEMPLATE
@@ -925,7 +953,7 @@ export function buildSystemPrompt(
       .replace('${PALETTES_LIST}', buildPalettesList(defaultPalette))
       .replace('${LUCIDE_ICON_COUNT}', String(LUCIDE_ICON_COUNT))
       .replace('${LUCIDE_ICON_CATALOG}', lucidePromptCatalog())
-      + '\n\n' + canvasSnapshot(canvas);
+      + (includeSnapshot ? '\n\n' + canvasSnapshot(canvas) : '');
   if (!packName) return base;
   return base + '\n\n' + buildDesignSystemPackSection(packName);
 }

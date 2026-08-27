@@ -324,6 +324,10 @@ const SubtreeInputSchema = Type.Object({
     description:
       'The subtree ROOT node as an object (or JSON-encoded string). Accepts every pen_create_node field (fill, text, fontSize, radius, shadow, gradient, autoLayout, icon, …) in legacy or .pen spelling, plus nested `children` — ids are optional (fresh ids are assigned automatically).',
   }),
+  nodes: Type.Optional(Type.Array(SubtreeNodeSchema, {
+    description:
+      'MULTI-ROOT batch (preferred for several screens/sections): an array of root nodes, each with the same fields as `node` (nested `children` allowed). One call creates them ALL — use this instead of repeated pen_create_subtree calls when creating multiple independent trees at once.',
+  })),
   parentId: Type.Optional(Type.String({ description: 'Optional parent frame/group id to insert the subtree under. Omit for a top-level layer.' })),
 });
 
@@ -379,6 +383,12 @@ function walkSubtree(node: RawSubtreeNode, fn: (n: RawSubtreeNode) => void): voi
 /// thousand-node "subtree" would blow the patch, the undo pre-state capture,
 /// and the resolve cache in one shot — fail fast with guidance instead.
 const MAX_SUBTREE_NODES = 150;
+/// Multi-root batch caps (R1 artifact-granularity pattern): several trees in
+/// one call, bounded so a single tool result stays readable.
+const MAX_SUBTREE_ROOTS = 12;
+const MAX_SUBTREE_TOTAL_NODES = 300;
+/// Cap for the id manifest emitted in the pen_create_subtree result text.
+const MAX_SUBTREE_MANIFEST_NODES = 120;
 
 // ---- Resolver-warning delivery (agent-visible degradation reporting) --------
 //
@@ -892,49 +902,99 @@ const createShape = defineTool({
     name: 'pen_create_subtree',
     label: 'Create Subtree (batch)',
     description:
-      'Create an entire NESTED component tree in ONE call — a frame with children, grandchildren, text, icons, auto-layout — instead of one pen_create_node per node. ' +
-      'PREFER this over repeated pen_create_node whenever you can enumerate the structure up front (cards, nav bars, forms, hero sections, whole screens). ' +
-      'Each node accepts every pen_create_node field plus `children`; ids are optional. Returns the root id + node count.',
-    promptSnippet: 'Batch-create a whole nested node tree (frame + children + grandchildren) in one call.',
+      'Create ENTIRE nested component trees in ONE call — one root via `node`, or SEVERAL roots at once via `nodes` (e.g. all three pricing cards, or every section of a screen). ' +
+      'Each node accepts every pen_create_node field plus `children`; ids are optional. ' +
+      'The result lists EVERY generated id (name/type/id tree) plus resolver warnings — no follow-up pen_get_metadata needed.',
+    promptSnippet: 'Batch-create whole nested node trees (single root or multiple roots) in one call.',
     promptGuidelines: [
-      'PREFER pen_create_subtree over N pen_create_node calls whenever the structure is known up front — one call for a whole card row, nav bar, form, or screen.',
-      'Root type defaults to frame when `children` is present. Give the root explicit x/y/width; nested children may omit position under auto-layout parents.',
+      'PREFER pen_create_subtree over N pen_create_node calls whenever the structure is known up front — one call for a whole card row, nav bar, form, screen, or several screens (`nodes: [...]`).',
+      'Root type defaults to frame when `children` is present. Give roots explicit x/y/width; nested children may omit position under auto-layout parents.',
       'Node fields accept BOTH spellings (radius/cornerRadius, text/content, autoLayout/layout) — ids are optional and auto-assigned.',
       'Use autoLayout on container nodes ({direction, gap, padding}) so children flow; combine with width/height "fit_content" to size to content.',
       'SIZING (critical): content-sized containers (cards, panels, forms, settings sections) MUST use height:"fit_content" — a fixed height smaller than the stacked children makes them overflow OUTSIDE the frame background. Reserve fixed heights for chrome (navbar 64, button 40-48, input 48). Text children may omit height entirely (auto-estimated from fontSize).',
-      'Call pen_get_metadata {nodeId: <rootId>} afterwards to see every generated id for targeted updates — and read any resolver warnings (e.g. container_overflow) to catch sizing mistakes in the same turn.',
+      'The result text lists every generated id — reuse those ids directly for updates; only call pen_get_metadata when you need positions/dimensions or a warnings refresh.',
     ],
     parameters: SubtreeInputSchema,
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const root = parseSubtreeNode(params.node);
-      if (!root) {
+      // ---- Input: `nodes` (multi-root batch) > `node` (single root) ---------
+      // R1 research (bolt/v0 artifact-granularity pattern): the model should
+      // be able to enumerate MULTIPLE independent trees (three pricing cards,
+      // every section of a screen) in ONE call instead of one call per tree.
+      // `node` stays the single-root spelling for back-compat.
+      const rawRoots: RawSubtreeNode[] = [];
+      const nodesParam = (params as { nodes?: unknown }).nodes;
+      if (Array.isArray(nodesParam)) {
+        for (const el of nodesParam) {
+          const parsed = parseSubtreeNode(el);
+          if (parsed) rawRoots.push(parsed);
+        }
+        if (rawRoots.length === 0) {
+          return {
+            content: [{ type: 'text', text: 'Error: `nodes` must be a non-empty array of node objects. Example: {"nodes":[{"type":"frame","width":200,"height":100,"children":[{"type":"text","text":"A"}]},{"type":"frame","width":200,"height":100}]}. Alternatively pass a single root via `node`.' }],
+            details: { error: 'subtree_nodes_invalid' },
+            isError: true as any,
+          };
+        }
+      } else {
+        const single = parseSubtreeNode(params.node);
+        if (!single) {
+          return {
+            content: [{ type: 'text', text: 'Error: `node` must be an object (or JSON-encoded object) describing the subtree root. Example: {"type":"frame","width":360,"height":640,"children":[{"type":"text","text":"Hello"}]}.' }],
+            details: { error: 'subtree_node_missing' },
+            isError: true as any,
+          };
+        }
+        rawRoots.push(single);
+      }
+      if (rawRoots.length > MAX_SUBTREE_ROOTS) {
         return {
-          content: [{ type: 'text', text: 'Error: `node` must be an object (or JSON-encoded object) describing the subtree root. Example: {"type":"frame","width":360,"height":640,"children":[{"type":"text","text":"Hello"}]}.' }],
-          details: { error: 'subtree_node_missing' },
+          content: [{ type: 'text', text: `Error: ${rawRoots.length} roots passed (max ${MAX_SUBTREE_ROOTS} per call). Split into multiple pen_create_subtree calls.` }],
+          details: { error: 'subtree_too_many_roots', roots: rawRoots.length },
           isError: true as any,
         };
       }
-      hydrateSubtreeChildren(root);
 
-      // Root defaults: frame when children present, rectangle otherwise.
-      if (!root.type || typeof root.type !== 'string') {
-        root.type = Array.isArray(root.children) && root.children.length > 0 ? 'frame' : 'rectangle';
+      const globalParentId = params.parentId as string | undefined;
+      if (globalParentId && !ctx.getShapes().some((s) => s.id === globalParentId)) {
+        return {
+          content: [{ type: 'text', text: `Error: parentId "${globalParentId}" does not exist. Call pen_get_metadata (no nodeId) for the page list, or pass a valid frame id.` }],
+          details: { error: 'unknown_parent', parentId: globalParentId },
+          isError: true as any,
+        };
       }
 
-      // Node budget + depth, one walk.
-      let nodeCount = 0;
-      let maxDepth = 0;
-      walkSubtree(root, () => { nodeCount++; });
-      const depthOf = (n: RawSubtreeNode, d: number): void => {
-        maxDepth = Math.max(maxDepth, d);
-        const kids = n.children;
-        if (Array.isArray(kids)) for (const k of kids) if (k && typeof k === 'object') depthOf(k as RawSubtreeNode, d + 1);
-      };
-      depthOf(root, 1);
-      if (nodeCount > MAX_SUBTREE_NODES) {
+      // Per-root normalization + budget accounting.
+      const rootStats: Array<{ count: number; depth: number }> = [];
+      let totalCount = 0;
+      for (const root of rawRoots) {
+        hydrateSubtreeChildren(root);
+        // Root defaults: frame when children present, rectangle otherwise.
+        if (!root.type || typeof root.type !== 'string') {
+          root.type = Array.isArray(root.children) && root.children.length > 0 ? 'frame' : 'rectangle';
+        }
+        let nodeCount = 0;
+        walkSubtree(root, () => { nodeCount++; });
+        let maxDepth = 0;
+        const depthOf = (n: RawSubtreeNode, d: number): void => {
+          maxDepth = Math.max(maxDepth, d);
+          const kids = n.children;
+          if (Array.isArray(kids)) for (const k of kids) if (k && typeof k === 'object') depthOf(k as RawSubtreeNode, d + 1);
+        };
+        depthOf(root, 1);
+        if (nodeCount > MAX_SUBTREE_NODES) {
+          return {
+            content: [{ type: 'text', text: `Error: one subtree has ${nodeCount} nodes (max ${MAX_SUBTREE_NODES} per root). Split the design into multiple pen_create_subtree calls — one call per screen or major section.` }],
+            details: { error: 'subtree_too_large', nodeCount },
+            isError: true as any,
+          };
+        }
+        totalCount += nodeCount;
+        rootStats.push({ count: nodeCount, depth: maxDepth });
+      }
+      if (totalCount > MAX_SUBTREE_TOTAL_NODES) {
         return {
-          content: [{ type: 'text', text: `Error: subtree has ${nodeCount} nodes (max ${MAX_SUBTREE_NODES}). Split the design into multiple pen_create_subtree calls — one call per screen or major section.` }],
-          details: { error: 'subtree_too_large', nodeCount },
+          content: [{ type: 'text', text: `Error: ${rawRoots.length} roots total ${totalCount} nodes (max ${MAX_SUBTREE_TOTAL_NODES} per call). Split into multiple pen_create_subtree calls.` }],
+          details: { error: 'subtree_batch_too_large', nodeCount: totalCount },
           isError: true as any,
         };
       }
@@ -945,90 +1005,157 @@ const createShape = defineTool({
       // visible to TS control-flow analysis, which would otherwise narrow the
       // plain `let` to `null` at the read below.
       const iconFailure: { error: { text: string; details: Record<string, unknown> } | null } = { error: null };
-      walkSubtree(root, (n) => {
-        if (iconFailure.error) return;
-        if (n.type !== 'icon') return;
-        const rawName = typeof n.icon === 'string' ? n.icon : (typeof n.iconName === 'string' ? n.iconName : '');
-        if (!rawName) {
-          iconFailure.error = {
-            text: 'Error: icon nodes inside the subtree require the `icon` field (a Lucide name, e.g. "lock"). Call pen_search_icons with a semantic query to find names.',
-            details: { error: 'icon_name_missing' },
-          };
-          return;
-        }
-        const resolved = getLucideIcon(rawName);
-        if (!resolved) {
-          const suggestions = searchLucideIcons(String(rawName).replace(/[-_]+/g, ' '), { limit: 6 })
-            .map((m) => m.name)
-            .join(', ');
-          iconFailure.error = {
-            text: `Error: icon "${rawName}" is not in the Lucide catalog.${suggestions ? ` Closest matches: ${suggestions}.` : ''} Use pen_search_icons {query:"..."} to find the right name.`,
-            details: { error: 'icon_not_found', requested: rawName, suggestions },
-          };
-          return;
-        }
-        n.icon = resolved.name;
-        n.library = 'lucide';
-      });
+      for (const root of rawRoots) {
+        walkSubtree(root, (n) => {
+          if (iconFailure.error) return;
+          if (n.type !== 'icon') return;
+          const rawName = typeof n.icon === 'string' ? n.icon : (typeof n.iconName === 'string' ? n.iconName : '');
+          if (!rawName) {
+            iconFailure.error = {
+              text: 'Error: icon nodes inside the subtree require the `icon` field (a Lucide name, e.g. "lock"). Call pen_search_icons with a semantic query to find names.',
+              details: { error: 'icon_name_missing' },
+            };
+            return;
+          }
+          const resolved = getLucideIcon(rawName);
+          if (!resolved) {
+            const suggestions = searchLucideIcons(String(rawName).replace(/[-_]+/g, ' '), { limit: 6 })
+              .map((m) => m.name)
+              .join(', ');
+            iconFailure.error = {
+              text: `Error: icon "${rawName}" is not in the Lucide catalog.${suggestions ? ` Closest matches: ${suggestions}.` : ''} Use pen_search_icons {query:"..."} to find the right name.`,
+              details: { error: 'icon_not_found', requested: rawName, suggestions },
+            };
+            return;
+          }
+          n.icon = resolved.name;
+          n.library = 'lucide';
+        });
+        if (iconFailure.error) break;
+      }
       if (iconFailure.error) {
         return { content: [{ type: 'text', text: iconFailure.error.text }], details: iconFailure.error.details, isError: true as any };
       }
 
-      // parentId resolution: explicit param > node field. Unknown parent id →
-      // hard error (same contract as pen_insert_html — a silent drop would
-      // strand the tree at root level and confuse every follow-up).
-      const parentId = params.parentId ?? (typeof root.parentId === 'string' && root.parentId.length > 0 ? root.parentId : undefined);
-      if (parentId && !ctx.getShapes().some((s) => s.id === parentId)) {
-        return {
-          content: [{ type: 'text', text: `Error: parentId "${parentId}" does not exist. Call pen_get_metadata (no nodeId) for the page list, or pass a valid frame id.` }],
-          details: { error: 'unknown_parent', parentId },
-          isError: true as any,
+      // Snapshot the pre-existing ids — the post-apply diff is the manifest.
+      const preIds = new Set(ctx.getShapes().map((s) => s.id));
+
+      // Apply each root as its own add_subtree patch (one undo step each;
+      // patches are cheap — the LLM round-trip was the expensive part).
+      const applied: Array<{ id: string; name: string; count: number; depth: number; adjusted: boolean; x: number; y: number }> = [];
+      const patches: CanvasPatch[] = [];
+      for (const root of rawRoots) {
+        // parentId resolution: explicit per-node field > global param. Unknown
+        // per-node parent id → hard error (same contract as pen_insert_html).
+        const parentId = (typeof root.parentId === 'string' && root.parentId.length > 0 ? root.parentId : undefined) ?? globalParentId;
+        if (parentId && !ctx.getShapes().some((s) => s.id === parentId)) {
+          return {
+            content: [{ type: 'text', text: `Error: parentId "${parentId}" does not exist. Call pen_get_metadata (no nodeId) for the page list, or pass a valid frame id.` }],
+            details: { error: 'unknown_parent', parentId },
+            isError: true as any,
+          };
+        }
+
+        // Top-level placement guard for frame-likes (same contract as
+        // pen_create_node — screens never stack on existing screens). Runs
+        // per root, so roots applied earlier in THIS call are already
+        // visible to the guard via ctx.getShapes().
+        let placementAdjusted = false;
+        if (!parentId && TOP_LEVEL_FRAME_TYPES.has(String(root.type))) {
+          const rx = Number(root.x) || 0;
+          const ry = Number(root.y) || 0;
+          const rw = Number(root.width) || 100;
+          const rh = Number(root.height) || 100;
+          const placement = resolveTopLevelFramePlacement(ctx.getShapes(), rx, ry, rw, rh);
+          if (placement.adjusted) {
+            root.x = placement.x;
+            root.y = placement.y;
+            placementAdjusted = true;
+          }
+        }
+
+        const id = crypto.randomUUID();
+        root.id = id;
+        if (parentId) root.parentId = parentId;
+        else delete root.parentId;
+
+        const rootName = typeof root.name === 'string' && root.name.length > 0 ? root.name : String(root.type);
+        const stats = rootStats[applied.length];
+        const patch: CanvasPatch = {
+          op: 'add_subtree',
+          shapeId: id,
+          shape: root as unknown as CanvasPatch['shape'],
+          summary: `Created subtree "${rootName}" — ${stats.count} node(s), depth ${stats.depth}`,
         };
+        ctx.applyPatch(patch);
+        patches.push(patch);
+        applied.push({ id, name: rootName, count: stats.count, depth: stats.depth, adjusted: placementAdjusted, x: Number(root.x) || 0, y: Number(root.y) || 0 });
       }
 
-      // Top-level placement guard for frame-likes (same contract as
-      // pen_create_node — screens never stack on existing screens).
-      let placementAdjusted = false;
-      if (!parentId && TOP_LEVEL_FRAME_TYPES.has(String(root.type))) {
-        const rx = Number(root.x) || 0;
-        const ry = Number(root.y) || 0;
-        const rw = Number(root.width) || 100;
-        const rh = Number(root.height) || 100;
-        const placement = resolveTopLevelFramePlacement(ctx.getShapes(), rx, ry, rw, rh);
-        if (placement.adjusted) {
-          root.x = placement.x;
-          root.y = placement.y;
-          placementAdjusted = true;
+      // ---- ID manifest (the read-back round-trip killer) --------------------
+      // pen_get_metadata was previously MANDATED after every subtree call just
+      // to learn the auto-assigned descendant ids — one extra LLM round-trip
+      // per subtree. The diff of the post-apply flat shape list against the
+      // pre-apply id snapshot IS that information; emit it in the result.
+      const manifestLines: string[] = [];
+      let manifestTruncated = false;
+      const newLayers = ctx.getShapes().filter((s) => !preIds.has(s.id));
+      const byParent = new Map<string, Shape[]>();
+      const byId = new Map<string, Shape>();
+      for (const s of newLayers) {
+        byId.set(s.id, s);
+        const p = s.parentId ?? null;
+        if (p) {
+          const list = byParent.get(p) ?? [];
+          list.push(s);
+          byParent.set(p, list);
         }
       }
-
-      const id = crypto.randomUUID();
-      root.id = id;
-      if (parentId) root.parentId = parentId;
-      else delete root.parentId;
-
-      const rootName = typeof root.name === 'string' && root.name.length > 0 ? root.name : String(root.type);
-      const patch: CanvasPatch = {
-        op: 'add_subtree',
-        shapeId: id,
-        shape: root as unknown as CanvasPatch['shape'],
-        summary: `Created subtree "${rootName}" — ${nodeCount} node(s), depth ${maxDepth}`,
+      const walkManifest = (id: string, depth: number): void => {
+        if (manifestLines.length >= MAX_SUBTREE_MANIFEST_NODES) {
+          manifestTruncated = true;
+          return;
+        }
+        const s = byId.get(id);
+        if (!s) return;
+        manifestLines.push(`${'  '.repeat(depth)}${s.name} (${s.type}) id=${s.id}`);
+        const kids = (byParent.get(id) ?? []).slice().sort((a, b) => a.zIndex - b.zIndex);
+        for (const kid of kids) walkManifest(kid.id, depth + 1);
       };
-      ctx.applyPatch(patch);
-
-      const placementNote = placementAdjusted
-        ? ' NOTE: auto-placed to free space (would have covered an existing screen) — position subsequent layers relative to THESE coordinates.'
+      for (const root of applied) walkManifest(root.id, 0);
+      const manifestText = manifestLines.length > 0
+        ? '\nNEW NODE IDS (reuse these for updates — no pen_get_metadata needed):\n' + manifestLines.join('\n') +
+          (manifestTruncated ? `\n…[manifest truncated at ${MAX_SUBTREE_MANIFEST_NODES} nodes — call pen_get_metadata {nodeId} for the rest]` : '')
         : '';
+
+      // Resolver warnings inline (sizing mistakes surface in the SAME result
+      // instead of on the next pen_get_metadata read).
+      const warningsNote = formatResolverWarnings(collectResolverWarnings(ctx.getDocument?.()));
+
+      const anyAdjusted = applied.some((a) => a.adjusted);
+      const placementNote = anyAdjusted
+        ? ' NOTE: some roots were auto-placed to free space (would have covered an existing screen) — position subsequent layers relative to the coordinates above.'
+        : '';
+      const summaryLine = applied.length === 1
+        ? `Created subtree "${applied[0].name}" with root id ${applied[0].id}: ${applied[0].count} node(s), depth ${applied[0].depth}, root at (${applied[0].x}, ${applied[0].y}).`
+        : `Created ${applied.length} subtrees (${totalCount} node(s) total): ${applied.map((a) => `"${a.name}" root id ${a.id} (${a.count} nodes, at (${a.x}, ${a.y}))`).join('; ')}.`;
       return {
         content: [
           {
             type: 'text',
-            text:
-              `Created subtree "${rootName}" with root id ${id}: ${nodeCount} node(s), depth ${maxDepth}, root at (${Number(root.x) || 0}, ${Number(root.y) || 0}).` +
-              ` All descendant ids were auto-assigned — call pen_get_metadata {nodeId:"${id}"} to see the full tree with every id for targeted updates.${placementNote}`,
+            text: summaryLine + manifestText + warningsNote + placementNote,
           },
         ],
-        details: { shapeId: id, nodeCount, depth: maxDepth, patch },
+        details: {
+          // Back-compat: single-root calls expose the patch as `patch`
+          // (tests + any consumer reading it); multi-root exposes `patches`.
+          shapeId: applied.length === 1 ? applied[0].id : undefined,
+          patch: applied.length === 1 ? patches[0] : undefined,
+          rootIds: applied.map((a) => a.id),
+          rootCount: applied.length,
+          nodeCount: totalCount,
+          patches,
+        },
       };
     },
   });
@@ -1291,41 +1418,52 @@ const createShape = defineTool({
 
   const duplicateShape = defineTool({
     name: 'pen_duplicate_nodes',
-    label: 'Duplicate Nodes',
+    label: 'Duplicate Nodes (batch)',
     description:
-      'Duplicate one or more nodes. Each copy is offset 24px down-right from its original. ' +
-      'Returns the new node ids. Useful for repeating elements (lists, grids).',
-    promptSnippet: 'Duplicate nodes (with new ids).',
+      'Duplicate one or more nodes — optionally N copies arranged in a row or column in ONE call. ' +
+      'count=2 + direction="horizontal" turns one card into a row of three; direction omitted uses the +offsetX/+offsetY diagonal. ' +
+      'Returns the new node ids. This is the batch way to build repeated elements (card grids, list rows, tab strips).',
+    promptSnippet: 'Duplicate nodes — optionally N copies in a row/column (count + direction) — with new ids.',
     promptGuidelines: [
-      'Use this when the user asks to "copy" / "duplicate" / "repeat" a node.',
-      'The duplicate is offset 24px — use pen_align_shapes or pen_update_node to reposition.',
+      'Use this when the user asks to "copy" / "duplicate" / "repeat" a node — and pass count + direction when they want several copies (e.g. "turn this card into three": count=2, direction="horizontal").',
+      'Copies with direction="horizontal" line up to the RIGHT of the source (source width + spacing apart); direction="vertical" stacks DOWNWARD. Adjust texts on the copies afterwards with pen_update_node / pen_bulk_update_by_filter.',
+      'Without direction, each copy lands at +offsetX/+offsetY (default 24,24) from its source — reposition with pen_align_shapes or pen_update_node.',
     ],
     parameters: Type.Object({
       nodeIds: Type.Array(Type.String(), { description: 'Ids of nodes to duplicate (legacy alias: shapeIds)' }),
-      offsetX: Type.Optional(Type.Number({ description: 'Horizontal offset in px (default 24)' })),
-      offsetY: Type.Optional(Type.Number({ description: 'Vertical offset in px (default 24)' })),
+      count: Type.Optional(Type.Number({ description: 'How many copies to make per node (1-12, default 1). Use with direction for rows/columns — e.g. count=2 makes three total with the original.' })),
+      direction: Type.Optional(Type.Union([Type.Literal('horizontal'), Type.Literal('vertical')], { description: 'Layout direction for multiple copies: "horizontal" rows copies to the right, "vertical" stacks them downward. Omit for legacy diagonal offset.' })),
+      spacing: Type.Optional(Type.Number({ description: 'Gap in px between copies when direction is set (default 24).' })),
+      offsetX: Type.Optional(Type.Number({ description: 'Horizontal offset in px per copy when no direction is set (default 24)' })),
+      offsetY: Type.Optional(Type.Number({ description: 'Vertical offset in px per copy when no direction is set (default 24)' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const ox = params.offsetX ?? 24;
-      const oy = params.offsetY ?? 24;
       const p = params as any;
       const nodeIds: string[] = Array.isArray(p?.nodeIds)
         ? p.nodeIds.filter((id: unknown): id is string => typeof id === 'string')
         : (Array.isArray(p?.shapeIds) ? p.shapeIds : []);
+      const rawCount = Math.floor(Number(params.count ?? 1));
+      const count = Math.max(1, Math.min(12, Number.isFinite(rawCount) ? rawCount : 1));
+      const direction = params.direction === 'horizontal' || params.direction === 'vertical' ? params.direction : undefined;
+      const spacing = Number.isFinite(Number(params.spacing)) ? Number(params.spacing) : 24;
       const patch: CanvasPatch = {
         op: 'duplicate',
         shapeIds: nodeIds,
-        summary: `Duplicated ${nodeIds.length} node(s)`,
+        count,
+        direction,
+        spacing,
+        offsetX: params.offsetX,
+        offsetY: params.offsetY,
+        summary: `Duplicated ${nodeIds.length} node(s)${count > 1 ? ` × ${count} copies` : ''}${direction ? ` (${direction})` : ''}`,
       };
-      // The patch ops carry the offset implicitly (see patch.ts duplicate case).
-      // We can't pass per-call offsets through CanvasPatch without extending
-      // the type — so we ignore custom offsets here and apply the default.
-      // (If the user really needs custom offsets, they can update_node after.)
-      void ox; void oy;
+      const preIds = new Set(ctx.getShapes().map((s) => s.id));
       ctx.applyPatch(patch);
+      // Report the new ids (same manifest trick as pen_create_subtree): the
+      // clones are exactly the nodes that appeared during this call.
+      const newIds = ctx.getShapes().filter((s) => !preIds.has(s.id)).map((s) => s.id);
       return {
-        content: [{ type: 'text', text: `Duplicated ${nodeIds.length} node(s) (offset 24px).` }],
-        details: { patch },
+        content: [{ type: 'text', text: `Duplicated ${nodeIds.length} node(s)${count > 1 ? ` × ${count} copies` : ''}${direction ? `, laid out ${direction}` : ' (offset 24px)'}.${newIds.length > 0 ? ` New node ids: ${newIds.join(', ')}.` : ''}` }],
+        details: { patch, newIds },
       };
     },
   });
