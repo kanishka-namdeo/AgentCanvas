@@ -54,8 +54,15 @@ export async function POST(req: NextRequest) {
         thinkingLevel: body.settings.thinkingLevel ?? DEFAULT_SETTINGS.thinkingLevel,
         defaultPalette: body.settings.defaultPalette ?? DEFAULT_SETTINGS.defaultPalette,
         // Destructive-op approval gate ('destructive' gates clear/delete
-        // tools on a human Allow/Deny; 'off' disables gating).
+        // tools on a human Allow/Deny; 'review' lets them run freely with
+        // a per-turn restore action; 'off' disables both).
         approvalMode: body.settings.approvalMode ?? DEFAULT_SETTINGS.approvalMode,
+        // Tools the user has permanently allowed via the approval dialog's
+        // "Always allow this tool" checkbox. Seeded into the gate's
+        // in-memory allow-set at the start of every run.
+        alwaysAllowTools: Array.isArray(body.settings.alwaysAllowTools)
+          ? body.settings.alwaysAllowTools.filter((t: unknown) => typeof t === 'string')
+          : DEFAULT_SETTINGS.alwaysAllowTools,
         skillSelectionMode: body.settings.skillSelectionMode ?? DEFAULT_SETTINGS.skillSelectionMode,
         llmProvider: body.settings.llmProvider ?? DEFAULT_SETTINGS.llmProvider,
         apiKey: typeof body.settings.apiKey === 'string' ? body.settings.apiKey : DEFAULT_SETTINGS.apiKey,

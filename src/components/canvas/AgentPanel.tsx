@@ -24,6 +24,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCanvasStore, type AgentToolCallEntry } from '@/lib/canvas/store';
+import { useSessionStore } from '@/lib/sessions';
 import { useSettings } from '@/lib/settings/store';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -1203,7 +1204,7 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
             {/* Turn diff summary — "what did the agent change" at a glance
                 (Cursor's "Edited N files" / GitHub +/- language). Only on
                 completed turns with tracked mutations. */}
-            {diff && !turn.streaming && !isDiffEmpty(diff) && <DiffSummaryCard diff={diff} />}
+            {diff && !turn.streaming && !isDiffEmpty(diff) && <DiffSummaryCard diff={diff} turn={turn} />}
             {/* Text — rendered as markdown (bold, lists, code blocks) the way
                 Claude / ChatGPT / v0 render assistant messages. */}
             {turn.text && (
@@ -1407,12 +1408,103 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
 // Expanding lists the per-op summary lines (the human-readable patch
 // summaries each tool authored). The card is derived from compact PatchOpRecords
 // tracked by the canvas store during the turn — see lib/agent/turn-diff.ts.
+//
+// Restore action: every turn's snapshot has a `parentSnapshotId` pointing at
+// the snapshot that existed BEFORE this turn's mutations — i.e. the canvas
+// state at the start of the turn. The "Restore from before this turn" button
+// restores that parent snapshot, effectively reverting everything the agent
+// did this turn in a single click (Cursor's "Restore" / v0's "Rewind to here").
+//
+// In 'review' approval mode (settings.approvalMode === 'review'), the agent
+// runs destructive ops freely without per-call gating — so this card is the
+// user's bulk-review affordance. The restore button is surfaced prominently
+// at the top of the card (vs. hidden in the expanded view) when the turn
+// contained any destructive op (delete/clear).
 
-function DiffSummaryCard({ diff }: { diff: import('@/lib/agent/turn-diff').TurnDiffSummary }) {
+function DiffSummaryCard({
+  diff,
+  turn,
+}: {
+  diff: import('@/lib/agent/turn-diff').TurnDiffSummary;
+  turn: ReturnType<typeof useCanvasStore.getState>['turns'][number];
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+
+  // Look up the snapshot captured at the end of THIS turn — its
+  // parentSnapshotId is the "before this turn" state. Snapshots are
+  // append-only and per-session; we use the session-store directly so
+  // React renders stay minimal (re-lookup happens only when the snapshot
+  // map changes or the turn's messageId changes).
+  const ss = useSessionStore.getState();
+  const sessionId = turn.sessionId ?? useCanvasStore.getState().activeSessionId ?? '';
+  const turnSnapshot = sessionId && turn.messageId
+    ? ss.listSnapshots(sessionId).find((s) => s.sourceMessageId === turn.messageId)
+    : undefined;
+  const parentSnapshot = turnSnapshot?.parentSnapshotId
+    ? ss.snapshots[turnSnapshot.parentSnapshotId]
+    : undefined;
+
+  // Whether the diff contains any destructive op (delete / clear). When
+  // true AND approval mode is 'review', the restore button is surfaced at
+  // the top of the card (the user's primary review affordance).
+  const approvalMode = useSettings.getState().approvalMode;
+  const hasDestructive = diff.deleted > 0 || diff.cleared;
+  const reviewMode = approvalMode === 'review';
+  const showRestoreProminent = reviewMode && hasDestructive;
+
+  const canRestore = !!parentSnapshot && !restoring;
+
+  const handleRestore = async () => {
+    if (!parentSnapshot || !sessionId) return;
+    setRestoring(true);
+    try {
+      const restored = useSessionStore.getState().restoreSnapshot(sessionId, parentSnapshot.id);
+      if (restored) {
+        // Load the restored document into the live canvas — same pattern
+        // as RunHistoryPanel's handleRestoreSnapshot (with the document
+        // id preserved so the canvas's own id stays stable).
+        const sess = useSessionStore.getState().sessions[sessionId];
+        useCanvasStore.setState({
+          document: { ...restored.document, id: sess?.documentId ?? restored.document.id },
+          selectedIds: [],
+        });
+        toast.success('Restored from before this turn', {
+          description: `${parentSnapshot.nodeCount} nodes · parent snapshot ${parentSnapshot.id.slice(0, 8)}`,
+        });
+      } else {
+        toast.error('Could not restore', { description: 'The before-this-turn snapshot is missing.' });
+      }
+    } catch (err) {
+      toast.error('Restore failed', { description: err instanceof Error ? err.message : 'unknown error' });
+    } finally {
+      setRestoring(false);
+    }
+  };
 
   return (
     <div className="rounded-md border ac-border-subtle ac-surface-1 overflow-hidden">
+      {/* Review-mode banner — surfaces the restore action prominently when
+          the turn had destructive ops and the user is in 'review' mode. */}
+      {showRestoreProminent && (
+        <div className="px-2 py-1.5 flex items-center gap-2 border-b ac-border-subtle bg-[var(--ac-warning-soft,hsl(38,95%,95%))]">
+          <TriangleAlert className="h-3 w-3 flex-shrink-0" style={{ color: 'var(--ac-warning)' }} />
+          <span className="text-[10px] ac-text-2 flex-1 min-w-0">
+            Agent ran <span className="font-medium">{diff.deleted + (diff.cleared ? 1 : 0)} destructive op{(diff.deleted + (diff.cleared ? 1 : 0)) === 1 ? '' : 's'}</span> this turn.
+            Review and restore if needed.
+          </span>
+          <button
+            onClick={handleRestore}
+            disabled={!canRestore}
+            className="text-[10px] px-2 py-0.5 rounded font-medium ac-surface-0 hover:opacity-90 ac-transition disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ color: 'var(--ac-warning)' }}
+            title={parentSnapshot ? `Restore to snapshot ${parentSnapshot.id.slice(0, 8)} (before this turn)` : 'No before-this-turn snapshot available'}
+          >
+            {restoring ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RotateCcw className="h-2.5 w-2.5 inline mr-0.5" />}
+            Restore from before this turn
+          </button>
+        </div>
+      )}
       <button
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
@@ -1469,6 +1561,28 @@ function DiffSummaryCard({ diff }: { diff: import('@/lib/agent/turn-diff').TurnD
               </div>
             );
           })}
+          {/* Restore action in the expanded view — always available when
+              there's a parent snapshot, regardless of approval mode. This
+              is the "always-works" path for users in 'destructive' /
+              'off' modes (where the prominent banner is hidden). */}
+          {parentSnapshot ? (
+            <button
+              onClick={handleRestore}
+              disabled={!canRestore}
+              className="mt-1 w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded text-[10px] ac-text-2 ac-surface-2 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed border ac-border-subtle"
+              title={`Restore to snapshot ${parentSnapshot.id.slice(0, 8)} — the canvas state before this turn ran`}
+            >
+              {restoring ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RotateCcw className="h-2.5 w-2.5" />}
+              <span>Restore from before this turn</span>
+              <span className="ac-text-4">·</span>
+              <span className="ac-text-4 truncate">{parentSnapshot.nodeCount} nodes</span>
+            </button>
+          ) : (
+            <div className="mt-1 px-2 py-1 text-[9px] ac-text-4 text-center">
+              No before-this-turn snapshot available
+              {turn.messageId ? '' : ' (turn not yet synced to server)'}
+            </div>
+          )}
         </div>
       )}
     </div>

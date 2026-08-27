@@ -48,9 +48,14 @@ export type DefaultPalette = 'slate' | 'warm' | 'forest' | 'mono';
 /// / Cline's Approve-button pattern).
 ///   - 'destructive' (default): pen_clear, pen_delete_shape, figma_delete_page,
 ///     pen_clear_pattern_memory pause the agent until the user Allows/Denies.
-///   - 'off': no gating — the agent runs everything autonomously (the
-///     pre-gate behavior; only disable for trusted automation).
-export type ApprovalMode = 'destructive' | 'off';
+///   - 'review': no per-call gating — the agent runs freely, but the diff
+///     card on the affected turn surfaces a prominent "Restore from before
+///     this turn" action so the user can revert the entire turn as a batch.
+///     Useful when you trust the agent to act but want a single bulk-undo
+///     affordance per turn instead of N interruptive dialogs.
+///   - 'off': no gating AND no review affordance — the agent runs everything
+///     autonomously (the pre-gate behavior; only disable for trusted automation).
+export type ApprovalMode = 'destructive' | 'review' | 'off';
 
 export interface AppSettings {
   // ── Phase 1: Agent behavior ──────────────────────────────────────────────
@@ -72,7 +77,16 @@ export interface AppSettings {
   defaultPalette: DefaultPalette;
   /// Approval gate for destructive agent operations.
   /// 'destructive' gates clear/delete tools on a human Allow/Deny prompt.
+  /// 'review' lets the agent run freely but surfaces a per-turn restore
+  /// action on the diff card (post-hoc batch review).
+  /// 'off' disables both gating and the restore affordance.
   approvalMode: ApprovalMode;
+  /// Tools the user has permanently allowed via the "Always allow this tool"
+  /// checkbox in the approval dialog. The runner seeds the gate's in-memory
+  /// allow-set from this list at the start of every run; the approval
+  /// endpoint adds to it when the user checks the box. Stored in
+  /// localStorage so the preference survives reloads.
+  alwaysAllowTools: string[];
 
   // ── Phase 1: Appearance ───────────────────────────────────────────────────
   /// 'system' follows the OS prefers-color-scheme.
@@ -126,6 +140,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   thinkingLevel: 'high',
   defaultPalette: 'slate',
   approvalMode: 'destructive',
+  alwaysAllowTools: [],
 
   themePreference: 'system',
 
@@ -158,6 +173,10 @@ export interface AgentRunSettings {
   thinkingLevel: ThinkingLevel;
   defaultPalette: DefaultPalette;
   approvalMode: ApprovalMode;
+  /// Tools the user has permanently allowed via the "Always allow this tool"
+  /// checkbox in the approval dialog. Seeded into the gate's in-memory
+  /// allow-set at the start of every run.
+  alwaysAllowTools: string[];
   skillSelectionMode: SkillSelectionMode;
   llmProvider: LLMProvider;
   apiKey: string;
@@ -219,6 +238,7 @@ export function agentRunSettings(s: AppSettings): AgentRunSettings {
     thinkingLevel: s.thinkingLevel,
     defaultPalette: s.defaultPalette,
     approvalMode: s.approvalMode,
+    alwaysAllowTools: Array.isArray(s.alwaysAllowTools) ? s.alwaysAllowTools : [],
     skillSelectionMode: s.skillSelectionMode,
     llmProvider: s.llmProvider,
     apiKey: s.apiKey,

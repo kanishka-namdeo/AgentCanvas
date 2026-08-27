@@ -176,6 +176,161 @@ describe('canvas store: approval gate events', () => {
     useCanvasStore.getState()._onSync({ type: 'agent:approval_resolved', toolCallId: 'tc9', approved: false });
     expect(useCanvasStore.getState().pendingApproval).toBeNull();
   });
+
+  it('submitApproval clears the pending dialog and POSTs the decision', async () => {
+    // Mock fetch so the POST doesn't actually hit the network.
+    const fetchCalls: any[] = [];
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = (async (url: string, init?: any) => {
+      fetchCalls.push({ url, body: JSON.parse(init?.body ?? '{}') });
+      return new Response(JSON.stringify({ ok: true, addedTool: undefined }), { status: 200 });
+    }) as any;
+
+    try {
+      useCanvasStore.getState()._onSync({
+        type: 'agent:approval_request',
+        toolCallId: 'tc-submit', toolName: 'pen_clear', description: 'd', details: [],
+      });
+      expect(useCanvasStore.getState().pendingApproval).not.toBeNull();
+      await useCanvasStore.getState().submitApproval('tc-submit', true, false);
+      expect(useCanvasStore.getState().pendingApproval).toBeNull();
+      expect(fetchCalls).toHaveLength(1);
+      expect(fetchCalls[0].body).toMatchObject({
+        toolCallId: 'tc-submit', approved: true, alwaysAllow: false,
+      });
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it('submitApproval forwards alwaysAllow=true only when approved (deny + always-allow is a contradiction)', async () => {
+    const fetchCalls: any[] = [];
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = (async (url: string, init?: any) => {
+      fetchCalls.push({ url, body: JSON.parse(init?.body ?? '{}') });
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }) as any;
+
+    try {
+      // Deny + alwaysAllow → server should receive alwaysAllow: false.
+      useCanvasStore.getState()._onSync({
+        type: 'agent:approval_request',
+        toolCallId: 'tc-deny', toolName: 'pen_clear', description: 'd', details: [],
+      });
+      await useCanvasStore.getState().submitApproval('tc-deny', false, true);
+      expect(fetchCalls[0].body).toMatchObject({ approved: false, alwaysAllow: false });
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it('submitApproval persists the always-allowed tool to settings when the server returns addedTool', async () => {
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = (async (_url: string, _init?: any) => {
+      return new Response(
+        JSON.stringify({ ok: true, addedTool: 'pen_clear' }),
+        { status: 200 },
+      );
+    }) as any;
+
+    try {
+      const { useSettings } = await import('@/lib/settings/store');
+      useSettings.getState().set('alwaysAllowTools', []);
+      useCanvasStore.getState()._onSync({
+        type: 'agent:approval_request',
+        toolCallId: 'tc-allow', toolName: 'pen_clear', description: 'd', details: [],
+      });
+      await useCanvasStore.getState().submitApproval('tc-allow', true, true);
+      expect(useSettings.getState().alwaysAllowTools).toContain('pen_clear');
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+});
+
+// ---- 4. Restore-from-before-this-turn snapshot chain ------------------------
+
+describe('session store: restore-from-before-this-turn snapshot chain', () => {
+  beforeEach(() => {
+    // Reset both stores so snapshots from prior tests don't leak in.
+    useCanvasStore.setState({
+      document: makeDoc([]), selectedIds: [], agentHighlightIds: [],
+      socket: null, connected: false, viewerCount: 1, turns: [], agentBusy: false,
+      documentId: 'doc1', activeSessionId: null, undoStack: [], redoStack: [],
+      pendingApproval: null,
+    });
+    useSessionStore.setState({
+      sessions: {}, runs: {}, messages: {}, toolCalls: {}, snapshots: {},
+      activeSessionByDoc: {},
+    });
+  });
+
+  it('parentSnapshotId of a turn-end snapshot is the "before this turn" state', () => {
+    const ss = useSessionStore.getState();
+    const sess = ss.createSession('doc1', { title: 't' });
+
+    // Snapshot 1: turn 1 ends, canvas had shapes [A].
+    const snap1 = ss.captureSnapshot(sess.id, makeDoc([makeShape('A')]), {
+      source: 'turn_end',
+      sourceMessageId: 'msg-turn-1',
+    });
+    expect(snap1.parentSnapshotId).toBeNull(); // first snapshot has no parent
+
+    // Snapshot 2: turn 2 ends, canvas had shapes [A, B].
+    const snap2 = ss.captureSnapshot(sess.id, makeDoc([makeShape('A'), makeShape('B')]), {
+      source: 'turn_end',
+      sourceMessageId: 'msg-turn-2',
+    });
+    expect(snap2.parentSnapshotId).toBe(snap1.id); // parent = before this turn
+
+    // "Before this turn" = the parent snapshot of the turn's own snapshot.
+    // Re-read from the LIVE store (captureSnapshot updates state; the
+    // captured `ss` reference is a stale snapshot of the prior state).
+    const live = useSessionStore.getState();
+    const turn2Snapshot = live.listSnapshots(sess.id).find((s) => s.sourceMessageId === 'msg-turn-2');
+    expect(turn2Snapshot?.id).toBe(snap2.id);
+    const beforeTurn2 = turn2Snapshot?.parentSnapshotId
+      ? live.snapshots[turn2Snapshot.parentSnapshotId]
+      : undefined;
+    expect(beforeTurn2?.id).toBe(snap1.id);
+    expect(beforeTurn2?.document.shapes.map((s) => s.id)).toEqual(['A']);
+  });
+
+  it('restoreSnapshot creates a NEW snapshot (append-only) and does NOT destroy the parent', () => {
+    const ss = useSessionStore.getState();
+    const sess = ss.createSession('doc1', { title: 't' });
+    const snap1 = ss.captureSnapshot(sess.id, makeDoc([makeShape('A')]), { source: 'turn_end' });
+    const snap2 = ss.captureSnapshot(sess.id, makeDoc([makeShape('A'), makeShape('B')]), { source: 'turn_end' });
+
+    // Re-read live state — `ss` is stale (zustand state is immutable).
+    const beforeCount = Object.keys(useSessionStore.getState().snapshots).length;
+    const restored = ss.restoreSnapshot(sess.id, snap1.id);
+    const afterCount = Object.keys(useSessionStore.getState().snapshots).length;
+
+    expect(restored).toBeDefined();
+    expect(afterCount).toBe(beforeCount + 1); // append-only — snap2 still exists
+    expect(restored?.document.shapes.map((s) => s.id)).toEqual(['A']); // parent's content
+    expect(restored?.source).toBe('restore');
+    expect(restored?.parentSnapshotId).toBe(snap1.id);
+    // The session's currentSnapshotId now points at the restored snapshot.
+    expect(useSessionStore.getState().sessions[sess.id].currentSnapshotId).toBe(restored!.id);
+    // The original turn-end snapshot is still in the chain (not destroyed).
+    expect(useSessionStore.getState().snapshots[snap2.id]).toBeDefined();
+  });
+
+  it('restoreSnapshot returns undefined for unknown snapshot ids', () => {
+    const ss = useSessionStore.getState();
+    const sess = ss.createSession('doc1', { title: 't' });
+    expect(ss.restoreSnapshot(sess.id, 'never-existed')).toBeUndefined();
+  });
+
+  it('restoreSnapshot returns undefined when the snapshot belongs to a different session', () => {
+    const ss = useSessionStore.getState();
+    const sess1 = ss.createSession('doc1', { title: 't1' });
+    const sess2 = ss.createSession('doc2', { title: 't2' });
+    const snap = ss.captureSnapshot(sess1.id, makeDoc([makeShape('A')]), { source: 'turn_end' });
+    expect(ss.restoreSnapshot(sess2.id, snap.id)).toBeUndefined();
+  });
 });
 
 // ---- 3. Server-message import (cross-device hydration) ------------------------

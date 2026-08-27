@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -153,17 +154,33 @@ function ApprovalDialog() {
   // Local decision guard — the POST is async; disable both buttons until the
   // dialog closes so a double-click can't flip the decision.
   const [decided, setDecided] = useState(false);
+  // "Always allow this tool" — when checked + Allow, the server adds the
+  // tool to its always-allow set and the client persists it in settings so
+  // the preference survives reloads. Resets whenever a NEW approval request
+  // arrives (each gate is its own decision).
+  const [alwaysAllow, setAlwaysAllow] = useState(false);
+  // Track the previous toolCallId so we can reset state when it changes
+  // (React-recommended pattern for "reset state when prop changes" — avoids
+  // a useEffect + setState cascade, which lint correctly flags).
+  // See: https://react.dev/learn/you-might-not-need-an-effect
+  const [prevToolCallId, setPrevToolCallId] = useState<string | undefined>(pending?.toolCallId);
+  if (pending?.toolCallId !== prevToolCallId) {
+    setPrevToolCallId(pending?.toolCallId);
+    setDecided(false);
+    setAlwaysAllow(false);
+  }
 
   if (!pending) {
-    // Reset the guard whenever the dialog closes.
-    if (decided) setDecided(false);
     return null;
   }
 
   const decide = (approved: boolean) => {
     if (decided) return;
     setDecided(true);
-    void submit(pending.toolCallId, approved);
+    // alwaysAllow only applies when approving — denying + always-allow
+    // is a contradiction (you wouldn't permanently allow something you're
+    // about to deny). The server-side endpoint also guards against this.
+    void submit(pending.toolCallId, approved, alwaysAllow && approved);
   };
 
   return (
@@ -204,6 +221,29 @@ function ApprovalDialog() {
               </ul>
             )}
           </div>
+          {/* "Always allow this tool" — mirrors Cline's "Always allow" /
+              Claude Code's "Always" permission option. Persists across the
+              session AND in settings (so reloads preserve it). Only
+              meaningful with Allow; disabled when Deny is the action. */}
+          <label
+            className="flex items-start gap-2 px-1 py-1 cursor-pointer select-none"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <Checkbox
+              checked={alwaysAllow}
+              onCheckedChange={(v) => setAlwaysAllow(v === true)}
+              className="mt-0.5"
+              id="approval-always-allow"
+            />
+            <span className="flex-1 min-w-0">
+              <span className="block text-[11px] font-medium ac-text-1">
+                Always allow <code className="font-mono text-[10px] ac-text-2">{pending.toolName}</code>
+              </span>
+              <span className="block text-[10px] ac-text-4 mt-0.5">
+                Skip this prompt for future calls to the same tool. Manage the list in Settings → Agent behavior.
+              </span>
+            </span>
+          </label>
           <p className="text-[10px] ac-text-4">
             Unattended gates auto-deny after 5 minutes. You can turn the gate off
             in Settings → Agent behavior.
@@ -217,9 +257,9 @@ function ApprovalDialog() {
             onClick={() => decide(true)}
             disabled={decided}
             className="h-8 text-[12px]"
-            title="Allow this operation to run"
+            title={alwaysAllow ? `Allow this and future ${pending.toolName} calls` : 'Allow this operation to run'}
           >
-            Allow
+            {alwaysAllow ? 'Always allow' : 'Allow'}
           </Button>
         </DialogFooter>
       </DialogContent>

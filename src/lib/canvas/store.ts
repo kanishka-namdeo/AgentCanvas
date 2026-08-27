@@ -247,7 +247,11 @@ interface CanvasState {
   /// Resolve a pending destructive-op approval (POST /api/agent/approvals).
   /// `approved` true → the gated tool executes; false → the agent gets a
   /// denial result and adapts without the destructive step.
-  submitApproval: (toolCallId: string, approved: boolean) => Promise<void>;
+  /// `alwaysAllow` true (only valid with `approved: true`) → the server
+  /// adds the tool to its in-memory always-allow set AND the client
+  /// persists the tool in settings.alwaysAllowTools so the preference
+  /// survives across server restarts.
+  submitApproval: (toolCallId: string, approved: boolean, alwaysAllow?: boolean) => Promise<void>;
   /// Clear the todo list (client-side — does NOT affect the server's todo state).
   clearTodos: () => void;
 }
@@ -1317,18 +1321,37 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
   },
 
-  submitApproval: async (toolCallId, approved) => {
+  submitApproval: async (toolCallId, approved, alwaysAllow) => {
     set({ pendingApproval: null });
     try {
       const res = await fetch('/api/agent/approvals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ toolCallId, approved }),
+        body: JSON.stringify({ toolCallId, approved, alwaysAllow: alwaysAllow === true && approved }),
       });
       if (res.ok) {
+        // Persist the always-allow preference locally so it survives
+        // server restarts and is seeded into the next run's gate.
+        const data = await res.json().catch(() => ({}));
+        if (data.addedTool) {
+          try {
+            const { useSettings } = await import('../settings/store');
+            const cur = useSettings.getState().alwaysAllowTools ?? [];
+            if (!cur.includes(data.addedTool)) {
+              useSettings.getState().set('alwaysAllowTools', [...cur, data.addedTool]);
+            }
+          } catch {
+            // settings store not available (SSR) — the server-side
+            // in-memory set is still updated; localStorage will catch
+            // up on the next approval.
+          }
+        }
         import('sonner').then(({ toast }) => {
           if (approved) {
-            toast.success('Approved', { description: 'The agent will run the operation.' });
+            const desc = data.addedTool
+              ? `The agent will run ${data.addedTool} without asking again.`
+              : 'The agent will run the operation.';
+            toast.success('Approved', { description: desc });
           } else {
             toast.message('Denied', { description: 'The agent was told to skip this operation.' });
           }

@@ -307,7 +307,7 @@ function AgentSection() {
 
         <Row
           label="Destructive-op approval"
-          description="'Gate destructive' pauses the agent on clear/delete operations until you Allow or Deny (unattended gates auto-deny after 5 min). 'Off' runs everything autonomously."
+          description="'Gate destructive' pauses the agent on clear/delete operations until you Allow or Deny (unattended gates auto-deny after 5 min). 'Review' lets the agent run freely but adds a 'Restore from before this turn' action on the diff card for any turn that touched destructive tools. 'Off' runs everything autonomously."
         >
           <Select
             value={approvalMode}
@@ -318,6 +318,7 @@ function AgentSection() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="destructive" className="text-[11px]">Gate destructive (recommended)</SelectItem>
+              <SelectItem value="review" className="text-[11px]">Review (post-hoc batch)</SelectItem>
               <SelectItem value="off" className="text-[11px]">Off (autonomous)</SelectItem>
             </SelectContent>
           </Select>

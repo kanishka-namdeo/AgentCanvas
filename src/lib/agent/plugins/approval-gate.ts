@@ -72,18 +72,73 @@ export interface ApprovalDecision {
 
 // ---- Pending approval tracking ----------------------------------------------
 //
-// Map of toolCallId → { resolve, timer }. Mirrors ask-user-question's
+// Map of toolCallId → { resolve, timer, toolName }. Mirrors ask-user-question's
 // pendingQuestions registry. Single agent turn at a time per document, and
 // the SDK executes tool calls sequentially, so a plain map is race-free.
 
 interface PendingApproval {
   resolve: (d: ApprovalDecision) => void;
   timer: ReturnType<typeof setTimeout>;
+  /// Tool name (kept so /api/agent/approvals can add it to the always-allow
+  /// set when the user checks "Always allow this tool" + Allow).
+  toolName: string;
 }
 
 const pendingApprovals = new Map<string, PendingApproval>();
 
 const APPROVAL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+// ---- Always-allow set -------------------------------------------------------
+//
+// Tools the user has permanently allowed via the "Always allow this tool"
+// checkbox. Seeded from `settings.alwaysAllowTools` at the start of every
+// agent run (see runner-native.ts); appended to by /api/agent/approvals when
+// the user opts in. The set is process-scoped — it survives across requests
+// on the same dev sandbox, and is reset on server restart (the localStorage
+// copy in settings is the durable source of truth).
+
+const alwaysAllowSet = new Set<string>();
+
+/// Seed the always-allow set from settings. Called once per agent run start
+/// (the runner does this in runAgentNative()). Idempotent — duplicates are
+/// deduped by the Set. Empty input is fine (just clears nothing).
+/// NOTE: does NOT clear the set first — settings might be a subset of what's
+/// been added during this server lifetime (e.g. user added a tool in session
+/// A, then started session B). To reset, call `resetAlwaysAllowSet()`.
+export function seedAlwaysAllow(tools: string[] | undefined | null): void {
+  if (!tools) return;
+  for (const t of tools) {
+    if (typeof t === 'string' && t.length > 0) alwaysAllowSet.add(t);
+  }
+}
+
+/// Reset the always-allow set to empty. Used by tests; production code
+/// typically doesn't need this — the set is per-process and tools added
+/// during a run are a feature, not a bug.
+export function resetAlwaysAllowSet(): void {
+  alwaysAllowSet.clear();
+}
+
+/// Add a tool to the always-allow set. Called by /api/agent/approvals when
+/// the user checks "Always allow this tool" + Allow. Future requestApproval()
+/// calls for this tool will short-circuit as approved without emitting the
+/// event (so no UI shows up).
+export function addAlwaysAllow(toolName: string): void {
+  if (typeof toolName === 'string' && toolName.length > 0) {
+    alwaysAllowSet.add(toolName);
+  }
+}
+
+/// True when the user has permanently allowed this tool. The approval wrapper
+/// checks this BEFORE calling requestApproval to skip the gate entirely.
+export function isAlwaysAllowed(toolName: string): boolean {
+  return alwaysAllowSet.has(toolName);
+}
+
+/// Snapshot of the always-allow set (for diagnostics / settings sync).
+export function getAlwaysAllowSet(): string[] {
+  return Array.from(alwaysAllowSet).sort();
+}
 
 /// Resolve (or time out) a pending approval. Safe to call for unknown ids
 /// (already resolved / never registered) — it's a no-op.
@@ -104,7 +159,16 @@ export function getPendingApprovals(): string[] {
 /// Timeout resolves as DENIED — an unattended gate never wipes the canvas.
 /// (Tests drive this directly via resolveApproval; the runner wrapper is the
 /// only production caller.)
+///
+/// If the tool is in the always-allow set, short-circuits as approved
+/// WITHOUT emitting the event (no UI is shown for the gate). The caller still
+/// gets a settled decision so its tool runs normally.
 export function requestApproval(req: ApprovalRequest): Promise<ApprovalDecision> {
+  // Short-circuit: user has permanently allowed this tool. No event, no
+  // pending entry, no UI. The tool just runs.
+  if (alwaysAllowSet.has(req.toolName)) {
+    return Promise.resolve({ approved: true, timedOut: false });
+  }
   return new Promise((resolve) => {
     emitEvent({
       type: 'agent:approval_request',
@@ -117,8 +181,15 @@ export function requestApproval(req: ApprovalRequest): Promise<ApprovalDecision>
       pendingApprovals.delete(req.toolCallId);
       resolve({ approved: false, timedOut: true });
     }, APPROVAL_TIMEOUT_MS);
-    pendingApprovals.set(req.toolCallId, { resolve, timer });
+    pendingApprovals.set(req.toolCallId, { resolve, timer, toolName: req.toolName });
   });
+}
+
+/// Look up the toolName for a pending approval (used by /api/agent/approvals
+/// when `alwaysAllow: true` is sent so the endpoint can add the right tool
+/// to the always-allow set). Returns undefined for unknown / resolved ids.
+export function getPendingToolName(toolCallId: string): string | undefined {
+  return pendingApprovals.get(toolCallId)?.toolName;
 }
 
 // ---- Description builder ----------------------------------------------------

@@ -10,6 +10,8 @@
 //   - timeout resolves as denied + timedOut
 //   - resolving an unknown/already-settled id is a no-op
 //   - deniedToolResult guidance copy (no-retry, no-workaround)
+//   - always-allow set: seed / add / isAlwaysAllowed short-circuits
+//   - getPendingToolName lookup for the /api/agent/approvals endpoint
 //
 // No event sink is installed during these tests → emitEvent is a no-op,
 // which is fine: we drive the promises directly via resolveApproval.
@@ -22,6 +24,12 @@ import {
   resolveApproval,
   getPendingApprovals,
   deniedToolResult,
+  seedAlwaysAllow,
+  addAlwaysAllow,
+  isAlwaysAllowed,
+  resetAlwaysAllowSet,
+  getAlwaysAllowSet,
+  getPendingToolName,
 } from '../../src/lib/agent/plugins/approval-gate';
 
 const SHAPES = [
@@ -38,6 +46,8 @@ afterEach(() => {
   vi.useRealTimers();
   // Resolve any strays so later tests start clean.
   for (const id of getPendingApprovals()) resolveApproval(id, false);
+  // Reset the always-allow set so tests don't leak into each other.
+  resetAlwaysAllowSet();
 });
 
 describe('DESTRUCTIVE_TOOLS', () => {
@@ -179,5 +189,107 @@ describe('deniedToolResult', () => {
     const r = deniedToolResult('pen_clear', true);
     expect(r.content[0].text).toContain('did not respond');
     expect(r.content[0].text).toContain('cancelled for safety');
+  });
+});
+
+// ---- Always-allow set -------------------------------------------------------
+
+describe('always-allow set', () => {
+  it('starts empty', () => {
+    resetAlwaysAllowSet();
+    expect(getAlwaysAllowSet()).toEqual([]);
+    expect(isAlwaysAllowed('pen_clear')).toBe(false);
+  });
+
+  it('seedAlwaysAllow populates the set from a string list', () => {
+    resetAlwaysAllowSet();
+    seedAlwaysAllow(['pen_clear', 'pen_delete_shape']);
+    expect(isAlwaysAllowed('pen_clear')).toBe(true);
+    expect(isAlwaysAllowed('pen_delete_shape')).toBe(true);
+    expect(isAlwaysAllowed('figma_delete_page')).toBe(false);
+  });
+
+  it('seedAlwaysAllow is idempotent (dedupes via Set)', () => {
+    resetAlwaysAllowSet();
+    seedAlwaysAllow(['pen_clear', 'pen_clear', 'pen_clear']);
+    expect(getAlwaysAllowSet()).toEqual(['pen_clear']);
+  });
+
+  it('seedAlwaysAllow ignores non-string / empty entries', () => {
+    resetAlwaysAllowSet();
+    seedAlwaysAllow(['pen_clear', '', null as any, undefined as any, 123 as any]);
+    expect(getAlwaysAllowSet()).toEqual(['pen_clear']);
+  });
+
+  it('seedAlwaysAllow is a no-op for null / undefined input', () => {
+    resetAlwaysAllowSet();
+    seedAlwaysAllow(null);
+    seedAlwaysAllow(undefined);
+    expect(getAlwaysAllowSet()).toEqual([]);
+  });
+
+  it('addAlwaysAllow adds a single tool', () => {
+    resetAlwaysAllowSet();
+    addAlwaysAllow('pen_clear');
+    expect(isAlwaysAllowed('pen_clear')).toBe(true);
+    expect(getAlwaysAllowSet()).toEqual(['pen_clear']);
+  });
+
+  it('addAlwaysAllow ignores empty / non-string input', () => {
+    resetAlwaysAllowSet();
+    addAlwaysAllow('');
+    addAlwaysAllow(null as any);
+    expect(getAlwaysAllowSet()).toEqual([]);
+  });
+
+  it('addAlwaysAllow is additive (does NOT clear existing entries)', () => {
+    resetAlwaysAllowSet();
+    seedAlwaysAllow(['pen_clear']);
+    addAlwaysAllow('pen_delete_shape');
+    expect(getAlwaysAllowSet().sort()).toEqual(['pen_clear', 'pen_delete_shape']);
+  });
+
+  it('requestApproval short-circuits as approved when the tool is always-allowed', async () => {
+    addAlwaysAllow('pen_clear');
+    // Should NOT register a pending entry (no event emitted, no timeout).
+    const p = requestApproval({ toolCallId: 'auto-ok', toolName: 'pen_clear', description: 'd', details: [] });
+    expect(getPendingApprovals()).not.toContain('auto-ok');
+    const decision = await p;
+    expect(decision).toEqual({ approved: true, timedOut: false });
+  });
+
+  it('requestApproval still blocks for tools NOT in the always-allow set', async () => {
+    // Pen_clear_pattern_memory is destructive but NOT in the allow-set.
+    const p = requestApproval({ toolCallId: 'wait', toolName: 'pen_clear_pattern_memory', description: 'd', details: [] });
+    expect(getPendingApprovals()).toContain('wait');
+    resolveApproval('wait', true);
+    const decision = await p;
+    expect(decision.approved).toBe(true);
+  });
+
+  it('resetAlwaysAllowSet clears the set', () => {
+    seedAlwaysAllow(['pen_clear', 'pen_delete_shape']);
+    expect(getAlwaysAllowSet().length).toBe(2);
+    resetAlwaysAllowSet();
+    expect(getAlwaysAllowSet()).toEqual([]);
+    expect(isAlwaysAllowed('pen_clear')).toBe(false);
+  });
+});
+
+// ---- getPendingToolName -----------------------------------------------------
+
+describe('getPendingToolName', () => {
+  it('returns the toolName for a pending approval', () => {
+    // Register a pending approval (don't await — it's still pending).
+    void requestApproval({ toolCallId: 'look-me-up', toolName: 'pen_clear', description: 'd', details: [] });
+    expect(getPendingToolName('look-me-up')).toBe('pen_clear');
+    resolveApproval('look-me-up', true);
+  });
+
+  it('returns undefined for unknown / already-resolved ids', () => {
+    expect(getPendingToolName('never-registered')).toBeUndefined();
+    void requestApproval({ toolCallId: 'resolved-soon', toolName: 'pen_clear', description: 'd', details: [] });
+    resolveApproval('resolved-soon', true);
+    expect(getPendingToolName('resolved-soon')).toBeUndefined();
   });
 });

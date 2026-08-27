@@ -95,6 +95,7 @@ import {
   buildApprovalRequest,
   requestApproval,
   deniedToolResult,
+  seedAlwaysAllow,
 } from './plugins/approval-gate';
 import { setActiveSession as setTodoActiveSession } from './plugins/todo';
 import { setActiveSession as setGoalActiveSession } from './plugins/goal-list-loop-audit';
@@ -159,7 +160,18 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const skillSelectionMode = settings?.skillSelectionMode ?? 'auto';
   // Approval gate mode (Cursor/Cline human-in-the-loop pattern for
   // destructive ops). Default 'destructive' — matches DEFAULT_SETTINGS.
+  //   - 'destructive': gate each clear/delete tool with an Allow/Deny dialog.
+  //   - 'review':      no per-call gating; the agent runs freely, but the
+  //                    diff card surfaces a "Restore from before this turn"
+  //                    action for any turn that touched destructive tools
+  //                    (post-hoc batch review).
+  //   - 'off':         no gating AND no review affordance (autonomous).
   const approvalMode = settings?.approvalMode ?? 'destructive';
+  // Seed the gate's in-memory always-allow set from the user's persisted
+  // settings. Tools added during this run (via the approval dialog's
+  // "Always allow" checkbox) persist in the set for the lifetime of this
+  // server process AND in localStorage (so the next run re-seeds them).
+  seedAlwaysAllow(settings?.alwaysAllowTools);
 
   // 1. Normalize canvas + build tool context (identical to legacy runner).
   let canvas: CanvasDocument = normalizeCanvas(initialCanvas);
@@ -350,11 +362,19 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   //   3. Approved → the original tool runs. Denied/timed out → an isError
   //      result is returned so the MODEL adapts (no retry, no workaround).
   //
-  // 'off' (settings.approvalMode) skips the wrap entirely. The wrap composes
-  // AFTER the brief-enforcement wrap (both are plain execute() decorators,
-  // and their gated tool sets are disjoint).
+  // Mode behavior:
+  //   - 'destructive' (default): wrap each destructive tool with the gate.
+  //   - 'review':  do NOT wrap. The agent runs destructive tools freely;
+  //     the diff card on the affected turn surfaces a "Restore from before
+  //     this turn" action so the user can post-hoc revert the entire batch
+  //     (instead of being interrupted per call). Useful when you trust the
+  //     agent but want a single bulk-undo affordance per turn.
+  //   - 'off': no wrap, no review affordance (autonomous).
+  //
+  // The wrap composes AFTER the brief-enforcement wrap (both are plain
+  // execute() decorators, and their gated tool sets are disjoint).
   const approvalWrappedTools: ToolDefinition[] =
-    approvalMode === 'off'
+    approvalMode === 'off' || approvalMode === 'review'
       ? enforcementWrappedTools
       : enforcementWrappedTools.map((t) => {
           if (!DESTRUCTIVE_TOOLS.has(t.name)) return t;
