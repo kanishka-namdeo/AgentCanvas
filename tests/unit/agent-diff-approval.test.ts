@@ -270,16 +270,19 @@ describe('session store: restore-from-before-this-turn snapshot chain', () => {
     const sess = ss.createSession('doc1', { title: 't' });
 
     // Snapshot 1: turn 1 ends, canvas had shapes [A].
-    const snap1 = ss.captureSnapshot(sess.id, makeDoc([makeShape('A')]), {
+    // Shared-canvas model: captureSnapshot takes documentId (not sessionId).
+    const snap1 = ss.captureSnapshot(sess.documentId, makeDoc([makeShape('A')]), {
       source: 'turn_end',
       sourceMessageId: 'msg-turn-1',
+      sessionId: sess.id,
     });
     expect(snap1.parentSnapshotId).toBeNull(); // first snapshot has no parent
 
     // Snapshot 2: turn 2 ends, canvas had shapes [A, B].
-    const snap2 = ss.captureSnapshot(sess.id, makeDoc([makeShape('A'), makeShape('B')]), {
+    const snap2 = ss.captureSnapshot(sess.documentId, makeDoc([makeShape('A'), makeShape('B')]), {
       source: 'turn_end',
       sourceMessageId: 'msg-turn-2',
+      sessionId: sess.id,
     });
     expect(snap2.parentSnapshotId).toBe(snap1.id); // parent = before this turn
 
@@ -287,7 +290,7 @@ describe('session store: restore-from-before-this-turn snapshot chain', () => {
     // Re-read from the LIVE store (captureSnapshot updates state; the
     // captured `ss` reference is a stale snapshot of the prior state).
     const live = useSessionStore.getState();
-    const turn2Snapshot = live.listSnapshots(sess.id).find((s) => s.sourceMessageId === 'msg-turn-2');
+    const turn2Snapshot = live.listSnapshots(sess.documentId).find((s) => s.sourceMessageId === 'msg-turn-2');
     expect(turn2Snapshot?.id).toBe(snap2.id);
     const beforeTurn2 = turn2Snapshot?.parentSnapshotId
       ? live.snapshots[turn2Snapshot.parentSnapshotId]
@@ -299,12 +302,12 @@ describe('session store: restore-from-before-this-turn snapshot chain', () => {
   it('restoreSnapshot creates a NEW snapshot (append-only) and does NOT destroy the parent', () => {
     const ss = useSessionStore.getState();
     const sess = ss.createSession('doc1', { title: 't' });
-    const snap1 = ss.captureSnapshot(sess.id, makeDoc([makeShape('A')]), { source: 'turn_end' });
-    const snap2 = ss.captureSnapshot(sess.id, makeDoc([makeShape('A'), makeShape('B')]), { source: 'turn_end' });
+    const snap1 = ss.captureSnapshot(sess.documentId, makeDoc([makeShape('A')]), { source: 'turn_end' });
+    const snap2 = ss.captureSnapshot(sess.documentId, makeDoc([makeShape('A'), makeShape('B')]), { source: 'turn_end' });
 
     // Re-read live state — `ss` is stale (zustand state is immutable).
     const beforeCount = Object.keys(useSessionStore.getState().snapshots).length;
-    const restored = ss.restoreSnapshot(sess.id, snap1.id);
+    const restored = ss.restoreSnapshot(sess.documentId, snap1.id);
     const afterCount = Object.keys(useSessionStore.getState().snapshots).length;
 
     expect(restored).toBeDefined();
@@ -312,8 +315,6 @@ describe('session store: restore-from-before-this-turn snapshot chain', () => {
     expect(restored?.document.shapes.map((s) => s.id)).toEqual(['A']); // parent's content
     expect(restored?.source).toBe('restore');
     expect(restored?.parentSnapshotId).toBe(snap1.id);
-    // The session's currentSnapshotId now points at the restored snapshot.
-    expect(useSessionStore.getState().sessions[sess.id].currentSnapshotId).toBe(restored!.id);
     // The original turn-end snapshot is still in the chain (not destroyed).
     expect(useSessionStore.getState().snapshots[snap2.id]).toBeDefined();
   });
@@ -321,15 +322,15 @@ describe('session store: restore-from-before-this-turn snapshot chain', () => {
   it('restoreSnapshot returns undefined for unknown snapshot ids', () => {
     const ss = useSessionStore.getState();
     const sess = ss.createSession('doc1', { title: 't' });
-    expect(ss.restoreSnapshot(sess.id, 'never-existed')).toBeUndefined();
+    expect(ss.restoreSnapshot(sess.documentId, 'never-existed')).toBeUndefined();
   });
 
-  it('restoreSnapshot returns undefined when the snapshot belongs to a different session', () => {
+  it('restoreSnapshot returns undefined when the snapshot belongs to a different document', () => {
     const ss = useSessionStore.getState();
     const sess1 = ss.createSession('doc1', { title: 't1' });
     const sess2 = ss.createSession('doc2', { title: 't2' });
-    const snap = ss.captureSnapshot(sess1.id, makeDoc([makeShape('A')]), { source: 'turn_end' });
-    expect(ss.restoreSnapshot(sess2.id, snap.id)).toBeUndefined();
+    const snap = ss.captureSnapshot(sess1.documentId, makeDoc([makeShape('A')]), { source: 'turn_end' });
+    expect(ss.restoreSnapshot(sess2.documentId, snap.id)).toBeUndefined();
   });
 });
 

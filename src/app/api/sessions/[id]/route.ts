@@ -1,6 +1,9 @@
-// GET    /api/sessions/[id]          — get a session with messages + runs + snapshots
+// GET    /api/sessions/[id]          — get a session with messages + runs
 // PATCH  /api/sessions/[id]          — update session (title, status, pinned)
 // DELETE /api/sessions/[id]          — delete a session (cascade)
+//
+// NOTE (shared-canvas model): snapshots are DOCUMENT-scoped — they live at
+// /api/documents/[documentId]/snapshots and are no longer included here.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -19,7 +22,6 @@ export async function GET(
       include: {
         messages: { orderBy: { createdAt: 'asc' } },
         runs: { orderBy: { createdAt: 'asc' } },
-        snapshots: { orderBy: { createdAt: 'desc' } },
       },
     });
 
@@ -40,7 +42,7 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  const { title, status, pinned, runCount, toolCallCount, snapshotCount, lastOpenedAt } = body;
+  const { title, status, pinned, runCount, toolCallCount, lastOpenedAt } = body;
 
   try {
     const session = await db.session.update({
@@ -51,7 +53,6 @@ export async function PATCH(
         ...(pinned !== undefined ? { pinned } : {}),
         ...(runCount !== undefined ? { runCount } : {}),
         ...(toolCallCount !== undefined ? { toolCallCount } : {}),
-        ...(snapshotCount !== undefined ? { snapshotCount } : {}),
         ...(lastOpenedAt !== undefined ? { lastOpenedAt } : {}),
       },
     });

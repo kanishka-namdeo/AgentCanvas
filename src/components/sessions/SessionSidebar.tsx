@@ -53,28 +53,35 @@ export function SessionSidebar() {
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
   const switchSession = useCanvasStore((s) => s.switchSession);
   const newSession = useCanvasStore((s) => s.newSession);
-  // Session switching mid-turn corrupts the streaming agent's target document
-  // (store guard exists too — this disables the affordance and hints why).
+  // Session switching mid-turn corrupts the streaming agent's transcript
+  // recording (the canvas itself is shared — only the chat turns buffer is
+  // per-session; the store guard exists too — this disables the affordance
+  // and hints why).
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const [search, setSearch] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  // Subscribe to sessions map so the list re-renders when sessions change.
+  // Subscribe to sessions + snapshots maps so the list re-renders on change.
   // We use the map + filter approach because listSessions returns a new
   // array each call (which would cause an infinite re-render loop).
   const sessionsMap = useSessionStore((s) => s.sessions);
+  const snapshotsMap = useSessionStore((s) => s.snapshots);
   // Compute stats via useMemo — NEVER call s.getStats() inside a selector
   // because it returns a new object every call (causes infinite re-render).
+  // Snapshots are document-scoped (shared canvas) — counted from the
+  // snapshots registry, not from any session.
   const stats = useMemo(() => {
     const all = Object.values(sessionsMap).filter((s) => s.documentId === documentId);
     return {
       activeSessions: all.filter((s) => s.status === 'active').length,
       totalRuns: all.reduce((n, s) => n + s.runCount, 0),
       totalToolCalls: all.reduce((n, s) => n + s.toolCallCount, 0),
-      totalSnapshots: all.reduce((n, s) => n + s.snapshotIds.length, 0),
+      totalSnapshots: Object.values(snapshotsMap).filter(
+        (snap) => snap.documentId === documentId,
+      ).length,
     };
-  }, [sessionsMap, documentId]);
+  }, [sessionsMap, snapshotsMap, documentId]);
 
   const sessions = useMemo(() => {
     const all = Object.values(sessionsMap).filter((s) => s.documentId === documentId);
@@ -181,7 +188,7 @@ export function SessionSidebar() {
                         {session.title}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] ac-text-4">
+                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] ac-text-3">
                       <span>{relativeTime(session.lastOpenedAt)}</span>
                       <span className="ac-text-5">·</span>
                       <span>{session.messageCount} msg</span>
@@ -363,7 +370,7 @@ export function SessionSidebar() {
       <div className="px-3 py-1.5 border-t ac-border-subtle text-[10px] ac-text-4 flex items-center justify-between ac-surface-1">
         <span>{stats.totalRuns} runs · {stats.totalToolCalls} tools</span>
         <div className="flex items-center gap-2">
-          <span>{stats.totalSnapshots} snapshots</span>
+          <span title="Canvas snapshots (shared across every chat on this canvas)">{stats.totalSnapshots} canvas snapshots</span>
           {/* Server sync indicator — shows sessions are persisted server-side (Phase 3) */}
           <span className="flex items-center gap-0.5 ac-text-success" title="Sessions sync to server automatically">
             <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

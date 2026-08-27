@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       orderBy: { lastOpenedAt: 'desc' },
       take: MAX_SESSIONS_RETURNED,
       include: {
-        _count: { select: { messages: true, runs: true, snapshots: true } },
+        _count: { select: { messages: true, runs: true } },
       },
     });
 

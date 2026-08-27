@@ -4,7 +4,7 @@
 
 **An AI-native collaborative canvas — Figma for AI agents.**
 
-Chat in plain English → the agent reasons, calls tools, and draws the design for you. Live, on an infinite SVG canvas, with real-time multiplayer presence.
+Chat in plain English → the agent reasons, calls tools, and draws the design for you. Live, on an infinite HTML/DOM canvas with inline SVG islands for vector primitives, with real-time multiplayer presence.
 
 [![CI](https://github.com/kanishka-namdeo/co-canvas/actions/workflows/ci.yml/badge.svg)](https://github.com/kanishka-namdeo/co-canvas/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -23,7 +23,7 @@ Chat in plain English → the agent reasons, calls tools, and draws the design f
 
 > *"Design a mobile login screen with social sign-in options, then generate a 3-screen onboarding flow that follows it."*
 
-…and watch the agent plan, call ~50 typed canvas tools, and stream patches onto an infinite SVG canvas in real time. You can jump in any time with the manual toolbar, properties inspector, and layers panel — everything stays in sync.
+…and watch the agent plan, call ~50 typed canvas tools, and stream patches onto an infinite DOM-rendered canvas in real time. You can jump in any time with the manual toolbar, properties inspector, and layers panel — everything stays in sync.
 
 Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
@@ -53,7 +53,7 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 - **Streaming responses** — agent thoughts + tool-call cards stream in live, `.pen` tree mutations happen as you watch.
 
 ### 🎨 Full design tool, not just a toy
-- **Infinite SVG canvas** — pan (middle-mouse / space-drag), zoom (wheel), 8-handle resize, drag-move, delete-to-remove.
+- **Infinite HTML/DOM canvas** — pan (middle-mouse / space-drag), zoom (wheel), 8-handle resize, drag-move, delete-to-remove. Real divs per node, inline `<svg>` islands for vector primitives (path/star/polygon), browser-native CSS for `box-shadow` / `filter: blur()` / `border-radius` / flexbox auto-layout. L4 `content-visibility` culling + L5 mount culling for ≥2k nodes per page.
 - **Manual toolbar** — rectangle, ellipse, text, line, frame, group; select / pan / clear modes.
 - **Properties inspector** — geometry, fill/stroke, radius, opacity, rotation, text, Auto Layout editor, multi-select align/distribute.
 - **Layers panel** — z-order, visibility, lock, component-instance badges, token-binding dots, right-click context menu.
@@ -62,8 +62,8 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ### 🔄 Real-time + persistent
 - **Multi-viewer collaboration** — Socket.IO broadcasts every patch + agent event to all subscribers, with live viewer-count presence.
-- **Session history** — Sessions → Runs → Messages → ToolCallRecords → Snapshots, persisted to `localStorage`.
-- **Fork & restore** — branch a session from any past message, or restore a snapshot (append-only — never destroys history).
+- **Session history** — chats are conversation contexts on ONE shared canvas (Figma/Cursor-style): Sessions → Runs → Messages → ToolCallRecords persisted to `localStorage`, plus document-scoped Snapshots — the canvas's own version history, synced to the server DB.
+- **Fork & restore** — fork a chat from any past message (conversation fork: copies the message prefix, keeps the shared canvas), or restore a snapshot (append-only — never destroys history, and broadcasts to every viewer).
 - **Run lifecycle** — OpenAI-Assistants-style state machine (queued → in_progress → awaiting_tool → completed/failed/cancelled) with a Stop button.
 - **Local-only fallback** — if the Socket.IO service is down, the client POSTs directly to `/api/agent` so the app still works end-to-end.
 
@@ -140,7 +140,9 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 └─────────────────────────────┘
 ```
 
-**The flow in one paragraph:** you submit a prompt → the request goes to `POST /api/agent` (either via the Socket.IO service or as a direct fetch) → `runAgent()` in `src/lib/agent/runner.ts` builds a system prompt containing a textual snapshot of the canvas + a catalog of ~50 tools → the LLM (via pi-ai — by default the custom OpenAI-compatible endpoint, configurable in Settings → LLM provider) returns tool calls → `executeTool()` in `src/lib/agent/tools.ts` runs each one, mutating the Zustand canvas store → patches + chat deltas stream back to the browser as newline-delimited JSON → the Socket.IO service fans every event out to all subscribers → everyone's canvas updates live.
+*The canvas document is the shared artifact: multiple chat sessions (session store) attach to one `documentId` and mutate ONE canvas — switching chats never swaps the canvas. Snapshots are the canvas's version history (document-scoped, append-only, with per-chat provenance).*
+
+**The flow in one paragraph:** you submit a prompt → the request goes to `POST /api/agent` (either via the Socket.IO service or as a direct fetch) → `runAgent()` in `src/lib/agent/runner.ts` builds a system prompt containing a textual snapshot of the canvas + a catalog of ~50 tools → the LLM (via pi-ai — by default the custom OpenAI-compatible endpoint, configurable in Settings → LLM provider) returns tool calls → `executeTool()` in `src/lib/agent/tools.ts` runs each one, mutating the Zustand canvas store → patches + chat deltas stream back to the browser as newline-delimited JSON → the Socket.IO service fans every event out to all subscribers → everyone's canvas updates live. State is organized Figma/Cursor-style around that ONE shared canvas: chat sessions are conversation contexts attached to the document (switching chats never swaps the canvas), and snapshots form the canvas's own version history.
 
 ---
 
@@ -268,7 +270,7 @@ bun run test:ui
 | `tests/unit/patch.test.ts` | Pure patch-application logic (add/update/remove/clear/group/align/tokens/zorder/...) |
 | `tests/unit/store.test.ts` | Zustand canvas store — `SyncEvent` reduction, undo/redo, turn buffering |
 | `tests/unit/tools.test.ts` | The 50+ tool definitions + `executeTool` dispatch |
-| `tests/unit/ShapeRenderer.test.tsx` | SVG shape rendering for every shape type |
+| `tests/unit/dom-node.test.tsx` | DOM shape rendering for every shape type (styleFor.ts + islands.tsx + data-attribute contract) |
 | `tests/integration/runner.test.ts` | `runAgent` with an injected `MockLLM` — verifies event ordering |
 | `tests/integration/pipeline.test.ts` | End-to-end: prompt → agent → patch → canvas mutation → session-store recording |
 | `tests/integration/renderer.test.tsx` | Canvas rendering after patches apply |

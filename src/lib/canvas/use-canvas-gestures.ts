@@ -73,8 +73,8 @@ interface GestureState {
   lastTapY: number;
 }
 
-const MIN_ZOOM = 0.1;
-const MAX_ZOOM = 8;
+export const MIN_ZOOM = 0.1;
+export const MAX_ZOOM = 8;
 const ZOOM_SENSITIVITY_WHEEL = 0.0015;
 const ZOOM_SENSITIVITY_PINCH = 0.015; // per unit of log-distance change
 const DOUBLE_TAP_MS = 300;
@@ -82,7 +82,14 @@ const DOUBLE_TAP_DIST_PX = 30;
 const MOMENTUM_FRICTION = 0.92;
 const MOMENTUM_MIN_VELOCITY = 0.5;
 
-function clampZoom(z: number): number {
+/**
+ * Clamp a zoom factor to the canvas zoom range [MIN_ZOOM, MAX_ZOOM].
+ *
+ * D6: the single shared clamp for EVERY zoom control (gestures here, the
+ * Canvas zoom buttons, and the context-menu zoom items). Previously the
+ * buttons clamped to 0.1–4 while gestures allowed 0.1–8.
+ */
+export function clampZoom(z: number): number {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
 }
 

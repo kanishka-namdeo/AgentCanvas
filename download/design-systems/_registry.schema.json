@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://z.ai/schemas/design-system-registry.json",
+  "title": "Design System Registry Entry",
+  "description": "Schema for a single design-system pack in the agent's design-systems/ registry. Each pack is a self-contained, named, opinionated set of tokens + component snippets that an LLM agent loads before generating UI for a user who picked this pack.",
+  "type": "object",
+  "required": ["name", "version", "description", "palette", "tokens", "dependencies", "importMap", "fontStack", "sampleComponents", "bestFor"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Lowercase kebab-case identifier. Used as the folder name and the AskUserQuestion option value."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "SemVer. Bumped when tokens or component snippets change in a way that affects generated output."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 160,
+      "description": "One-line description shown in AskUserQuestion. Should include the palette hint (e.g. 'Indigo, neutral, editorial')."
+    },
+    "palette": {
+      "type": "object",
+      "description": "Concrete palette hint shown to the user during pack selection. Each value is a hex color.",
+      "required": ["primary", "background", "accent", "text"],
+      "properties": {
+        "primary": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "background": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "accent": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "text": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+      }
+    },
+    "tokens": {
+      "type": "string",
+      "description": "Relative path to the W3C-aligned tokens.css file inside this pack folder. Three layers: primitive (raw values), semantic (role-bound aliases), component (component-scoped).",
+      "pattern": "^tokens\\.css$"
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "npm packages the project must have installed for this pack to work. Agent checks these before generating; if missing, falls back to shadcn-default and warns.",
+      "items": { "type": "object", "required": ["package", "min"], "properties": { "package": { "type": "string" }, "min": { "type": "string" } } }
+    },
+    "importMap": {
+      "type": "object",
+      "description": "Map of component name → module path. Used by the agent to know where to import Button, Input, etc. for THIS pack.",
+      "additionalProperties": { "type": "string" }
+    },
+    "fontStack": {
+      "type": "object",
+      "description": "Font stacks for body, headings, and code. Agent injects these into globals.css / Tailwind config.",
+      "required": ["body", "heading", "mono"],
+      "properties": {
+        "body": { "type": "string" },
+        "heading": { "type": "string" },
+        "mono": { "type": "string" }
+      }
+    },
+    "sampleComponents": {
+      "type": "array",
+      "description": "Inline code snippets for the top 8 components, so the agent can copy-paste instead of inventing. Each entry is { name, code }.",
+      "items": {
+        "type": "object",
+        "required": ["name", "code"],
+        "properties": {
+          "name": { "type": "string", "enum": ["Button", "Input", "Card", "Dialog", "Table", "Toast", "Tabs", "Avatar"] },
+          "code": { "type": "string", "description": "Full TSX source — references var(--...) tokens, never hardcoded values." }
+        }
+      }
+    },
+    "bestFor": {
+      "type": "array",
+      "description": "Tags describing what this pack is best for. Used by the agent to recommend a default if the user is unsure.",
+      "items": { "type": "string", "enum": ["nextjs", "fullstack", "dashboard", "saas", "marketing", "docs", "enterprise", "minimal", "brand"] }
+    }
+  }
+}

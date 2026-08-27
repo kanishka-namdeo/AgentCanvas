@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/j4aprn/how_do_you_add_a_fill_behind_a_block_of_text_i",
+    "name": "How do you add a fill behind a block of text? I read Figma's  - Reddit",
+    "snippet": "Oct 3, 2020 · Use auto layout. Then add the fill color to that. Like making a dynamic button.",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/TextNode",
+    "name": "TextNode | Developer Docs",
+    "snippet": "The text node represents text where both the whole node or individual character ranges can have properties such as color (fills), font size, font name, etc.",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/community/plugin/739517744595900126/substrate-for-text",
+    "name": "Substrate for text - Figma",
+    "snippet": "Highlight text by adding the cool substrate with this simple plugin! ⚒ To create a substrate. 1. Select one or more text nodes;. 2. Click \"Create.\".",
+    "host_name": "www.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=r6Yb6LImhaE&vl=en-US",
+    "name": "How To Add Text Background Color On Figjam - YouTube",
+    "snippet": "Aug 16, 2025 · Learn how to add a custom background color to text in Figjam with this easy, step-by-step tutorial perfect for Figma beginners!",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://imagy.app/how-to-change-the-text-background-color-in-figma",
+    "name": "How to Change the Text Background Color in Figma - imagy.app",
+    "snippet": "Dec 8, 2023 · To change the text background color in Figma, you can convert the text to a frame and change the fill color, add a separate frame behind the ...",
+    "host_name": "imagy.app",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/15alth4/how_to_fill_in_the_color_of_the_background_of_a",
+    "name": "How to fill in the color of the background of a text box? - Reddit",
+    "snippet": "Jul 27, 2023 · I would recommend creating a small button comp set. Grab the text tool, write a placeholder label. Slap it into an auto-layout.",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/community/plugin/1401139854696331711/change-text-field-by-id",
+    "name": "Change Text Field by ID - Figma",
+    "snippet": "A very simple plugin allowing you to set the text of a figma Text element by referencing it's internal node ID. One way you can get the node ID of your text ...",
+    "host_name": "www.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=37RqCfyGDg0",
+    "name": "How To Change Text Background Color in Figma - Quick Tutorial",
+    "snippet": "Jul 22, 2025 · In Figma, customizing the look of your text goes beyond just changing fonts and colors—you can also adjust the background behind the text to ...",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

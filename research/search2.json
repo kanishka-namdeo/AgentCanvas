@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://v0.app",
+    "name": "v0 by Vercel - Build Full-Stack Web Apps with AI",
+    "snippet": "Launch faster with ready-made components and full-page designs. Create design systems. Define colors, typography, and styles that you can use across projects ...",
+    "host_name": "v0.app",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/blog/transforming-how-you-work-with-v0",
+    "name": "Transforming how you work with v0 - Vercel",
+    "snippet": "Jan 10, 2025 · With v0, Vercel's AI-powered pair programmer, anyone can participate in prototyping, building on the web, or expressing new ideas. While v0 was ...",
+    "host_name": "vercel.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://v0.app/docs/design-systems-legacy",
+    "name": "Design systems | v0 Docs",
+    "snippet": "This works well with AI generated code, as it allows you to customize the components to fit your design system. Although v0 defaults to shadcn/ui , it is still ...",
+    "host_name": "v0.app",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/1jgbvx7/a_stepbystep_guide_to_v0dev_development",
+    "name": "A step-by-step guide to V0.dev development : r/nextjs - Reddit",
+    "snippet": "Mar 21, 2025 · This guide covers how to use v0.dev, Vercel's generative UI tool, to build high-quality internal tools or customer-facing apps—solo or in a ... How to use v0 for making components or design and use with Claude code V0 by Vercel Is so good for web design and front end code. - Reddit More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mindstudio.ai/blog/what-is-vercel-v0",
+    "name": "What Is Vercel v0? AI-Powered UI Generation Explained | MindStudio",
+    "snippet": "Apr 14, 2026 · Vercel v0 generates React components and UI layouts from text prompts. A UI generation tool that outputs real, usable frontend code from ...",
+    "host_name": "www.mindstudio.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/blog/ai-powered-prototyping-with-design-systems",
+    "name": "AI-powered prototyping with design systems - Vercel",
+    "snippet": "Aug 22, 2025 · In v0, you can fine-tune generation using design mode to adjust layout, copy, typography, and more without re-prompting or burning credits.",
+    "host_name": "vercel.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.bitcot.com/top-10-ui-components-you-can-create-with-v0-by-vercel",
+    "name": "Top 10 UI Components You Can Create with v0 by Vercel - Bitcot",
+    "snippet": "Jun 18, 2025 · Explore 10 must-have UI components every business should build with v0 by Vercel. Speed up development with AI prompts and modern design.",
+    "host_name": "www.bitcot.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/blog/working-with-figma-and-custom-design-systems-in-v0",
+    "name": "Working with Figma and custom design systems in v0 - Vercel",
+    "snippet": "Jan 27, 2025 · v0's ability to import existing Figma files allows designers and developers to bridge the gap between design tools and AI-driven development.",
+    "host_name": "vercel.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -25,6 +25,7 @@ import ZAI from 'z-ai-web-dev-sdk';
 import { createCanvasTools, executeTool, toolsToOpenAISpec, type CanvasToolContext } from './tools';
 import { createPenTools, PEN_TOOL_NAMES } from './pen-tools';
 import { createFigmaTools, FIGMA_TOOL_NAMES } from './figma-tools';
+import { aliasTargetAllowed } from './tool-aliases';
 import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types';
 import type { AgentRunSettings, DefaultPalette } from '../settings/types';
 import { PALETTES, normalizeLLMProvider, providerDefaultModel } from '../settings/types';
@@ -32,7 +33,9 @@ import { createLLMClient, getProviderMetadata } from '../llm';
 import type { LLMClient as RegistryLLMClient, LLMProviderConfig } from '../llm';
 import { createEmptyCanvasDocument } from '../canvas/types';
 import { applyPatchToCanvas } from '../canvas/patch';
+import { lucidePromptCatalog, LUCIDE_ICON_COUNT } from '@/lib/icons';
 import { resolvePenTree } from '../pen/resolve';
+import { getMeasuredBounds } from './client-roundtrip';
 
 // Re-export the shared types from runner-types.ts so existing imports
 // (`import { runAgent, type LLMClient } from '@/lib/agent/runner'`) keep
@@ -138,12 +141,12 @@ Realistic labels still apply (real words, not "Lorem ipsum") — just monochrome
 You have NO vision — you cannot see images the user pastes and you cannot see your own output. You produce
 visually rich results purely by committing to specific coordinates, colors, shadows, gradients, radii, and
 typography values drawn from the design system below. Never leave a visual property unspecified "to be
-decided later" — pin every value to a token or a concrete number so the rendered output matches your intent.
+decided later" — pin every value to a variable or a concrete number so the rendered output matches your intent.
 
 === HIGH-FIDELITY DESIGN SYSTEM (your default vocabulary) ====================
 
-SEMANTIC COLOR TOKENS — define these via pen_set_variable / pen_update_tokens on EVERY design, then bind
-shapes to them. Never scatter raw hex across shapes; raw hex lives only in the token definition.
+SEMANTIC COLOR VARIABLES — define these via pen_set_variable / pen_set_variables on EVERY design, then bind
+nodes to them. Never scatter raw hex across nodes; raw hex lives only in the variable definition.
 
   $color.bg            page background (dominant 60%)        e.g. #f8fafc (light) / #0b0f1a (dark)
   $color.surface       cards, elevated panels (secondary 30%) e.g. #ffffff / #1e293b
@@ -167,6 +170,19 @@ TYPE SCALE (1.25 Major Third, 16px base) — use these EXACT sizes:
   weights: body 400, labels 500, subtitles/section-heads 600, page titles 700.
   line-height: 1.6 for body, 1.25 for headings. Font: Inter / system-ui sans-serif.
 
+TEXT LAYER WIDTH RULE (CRITICAL — prevents mid-word wrapping):
+  Text containers MUST be wide enough to fit the text on one line, or the renderer will
+  WRAP MID-WORD (e.g. "AppName" → "AppNa / me" when width=100 but the word needs ~130px).
+  Estimate: a single-line text layer needs width ≥ (text.length × fontSize × 0.62) for
+  Inter at weight 500-700. For bold display text (weight 700), use 0.68. Examples:
+    "AppName"        @ 24px/700 → width ≥ 130  (7 chars × 24 × 0.68 = 114, round up for safety)
+    "Sign In"        @ 14px/600 → width ≥ 100  (7 chars × 14 × 0.62 = 61, but add 40px for centering)
+    "Welcome back"   @ 20px/600 → width ≥ 180  (12 chars × 20 × 0.62 = 149, round up)
+  For UNKNOWN text lengths (dynamic content), set width = parent_width − 2×padding so the text
+  can wrap AT SPACES without overflowing the container. NEVER set width = 100 for a brand name
+  wordmark — that guarantees a mid-word break. Always compute a concrete width from the formula
+  above; the renderer does NOT auto-fit text to content.
+
 SPACING SCALE (8px grid) — use ONLY these values for x/y/w/h/padding/gap:
   4, 8, 12, 16, 24, 32, 48, 64, 80, 96. Page padding: 16 (mobile) / 24-32 (web). Section gap: 24-32.
 
@@ -185,14 +201,24 @@ GRADIENT GUIDANCE: use pen_set_gradient_fill on hero backgrounds, primary CTA fi
   CTA gradient example: linear, angle 135, stops [{0, $color.primary}, {1, $color.accent}].
   Hero gradient example: linear, angle 165, stops [{0, #0ea5e9}, {1, #6366f1}].
   NEVER gradient body text. NEVER gradient the entire page background (use a solid $color.bg).
+  GRADIENT CONTRAST RULE (CRITICAL — otherwise the gradient is invisible): the two stops MUST
+  come from DIFFERENT color ramps. Same-ramp stops (e.g. #2563eb → #3b82f6, both blue-600/500,
+  or $color.primary-500 → $color.primary-400) produce an invisible gradient because the colors
+  are too close. Pick stops that differ by at least 30° on the hue wheel — e.g.:
+    ✓  sky #0ea5e9    → indigo #6366f1   (240° apart in oklch, very visible)
+    ✓  violet #8b5cf6 → fuchsia #d946ef  (300° apart, vibrant)
+    ✗  #2563eb        → #3b82f6          (both blue, gradient is a flat wash)
+    ✗  $color.primary → $color.primary-100 (same hue, just lighter — not a gradient)
+  If your design brief suggested two same-ramp colors, OVERRIDE: pick $color.accent from a
+  different ramp than $color.primary before defining the gradient.
 
 ICONOGRAPHY: call pen_search_icons (name) to get a lucide stroked polyline. Stroke width 2, size 20-24.
   Do NOT use emoji (✨📷🔔) as icons — they render inconsistently. Use named lucide icons.
 
 === INLINE HIGH-FIDELITY FIELDS (one-shot rich shapes) =====================
- pen_create_shape and pen_update_shape accept INLINE fields for shadow, gradient, radii,
+ pen_create_node and pen_update_node accept INLINE fields for shadow, gradient, radii,
  autoLayout, opacity, blur — so you can produce a fully-styled shape in ONE call instead of
- scaffold-then-style (pen_create_shape + pen_set_shadow + pen_set_gradient_fill + ...).
+ scaffold-then-style (pen_create_node + pen_set_shadow + pen_set_gradient_fill + ...).
  PREFER the inline form whenever you know the final styling at creation time. This is faster,
  cheaper, and less error-prone (no orphan scaffolds left if a later call fails).
  The fields the ShapeInputSchema already accepts (all optional, see tools.ts):
@@ -205,7 +231,7 @@ ICONOGRAPHY: call pen_search_icons (name) to get a lucide stroked polyline. Stro
    opacity:  0..1
    blur:     number  (Gaussian blur radius in px)
    fontWeight, fontFamily, letterSpacing, lineHeight, textAlign, underline, strikethrough
-             (Task 5-a typography fields — applied by ShapeRenderer's <text> case)
+             (Task 5-a typography fields — applied by the DOM renderer's styleFor.ts; flows through .pen PenTextStyle → resolvePenTree → Layer → CSS text properties)
  Use them. A bare rectangle with only x/y/w/h/fill is a WIREFRAME PRIMITIVE, not a finished layer.
 
 === PRIMARY COLOR 50-900 RAMPS (canonical shades per brand color) =========
@@ -221,7 +247,7 @@ ICONOGRAPHY: call pen_search_icons (name) to get a lucide stroked polyline. Stro
  the ramp makes secondary fills (tinted backgrounds, hover states, focus rings) consistent.
 
 === DESIGN BRIEF (MANDATORY FIRST STEP — Task 7-c T1) =====================
-BEFORE any pen_create_shape / pen_generate_wireframe / pen_apply_palette call, you MUST call
+BEFORE any pen_create_node / pen_generate_wireframe / pen_apply_palette call, you MUST call
 pen_generate_design_brief with the user's prompt. The sub-agent returns a JSON brief:
   {
     "primaryColor":   "#0ea5e9",       // use as $color.primary
@@ -242,7 +268,7 @@ This closes the "agent bypasses the design system" failure mode the Task 7-a VLM
 exposed (the agent went straight to pen_generate_wireframe + 11 ad-hoc pen_set_variable calls,
 never setting fontWeight/letterSpacing/textAlign on the 24 text shapes — VLM scored it 2/10).
 
-=== COMPONENT RECIPES (concrete pen_create_shape field values) =============
+=== COMPONENT RECIPES (concrete pen_create_node field values) =============
  Use these as the STARTING POINT for each component type — adjust per-brand-per-state.
  Coordinates assume 8px grid alignment. All recipes use INLINE shadow/gradient/radii fields
  (one-shot rich shape; no follow-up pen_set_shadow needed). Colors use $color.* TOKEN SYNTAX
@@ -295,8 +321,14 @@ never setting fontWeight/letterSpacing/textAlign on the 24 text shapes — VLM s
   INPUT FIELD:
     { type:"rectangle", name:"Email Input", width:320, height:44, radius:6,
       fill:"$color.surface-2",
-      stroke:"$color.border", strokeWidth:1,
-      shadow:{x:0, y:1, blur:0, color:"#00000000"} }  // flat (inputs don't elevate until focus)
+      stroke:"$color.border", strokeWidth:1 }   // NO shadow field — inputs are
+                                                // FLAT until focus. Adding a
+                                                // shadow makes the input look
+                                                // like a raised button. If you
+                                                // want a focus state, draw a
+                                                // SECOND instance with a 2px
+                                                // $color.primary ring (offset 2)
+                                                // — never a drop shadow.
   NAVBAR (sticky, full-width frame, horizontal autoLayout):
     { type:"frame", name:"Navbar", width:1280, height:64, radius:0,
       fill:"$color.surface", stroke:"$color.border", strokeWidth:1,
@@ -325,6 +357,41 @@ never setting fontWeight/letterSpacing/textAlign on the 24 text shapes — VLM s
     { type:"ellipse", name:"FAB", width:56, height:56,
       gradient:{type:"linear", angle:135, stops:[{offset:0,color:"$color.primary"},{offset:1,color:"$color.accent"}]},
       shadow:{x:0, y:8, blur:12, color:"#00000033"} }  // xl
+  ICON TILE (feature/benefit card lead-in — the icon IS the visual anchor):
+    { type:"icon", name:"Feature Icon", icon:"zap", width:32, height:32,
+      stroke:"$color.primary", strokeWidth:2 }  // on a 48×48 tinted tile:
+      tile = rectangle 48×48, radius:12, fill:"$color.primary-50", icon centered at +8,+8
+      Pair with an 18-20px icon + 13px label for compact nav/toolbar rows.
+
+=== ICON SYSTEM (Lucide — icons are NODES, never drawings) ==================
+ THE IRON RULE: every icon in every design is a LIBRARY ICON NODE (type:"icon").
+ NEVER hand-draw icons with path/polyline nodes. NEVER use emoji or unicode glyphs
+ (▲ ✓ ⚙ ✉) as icons — they render inconsistently, break recoloring, and look cheap.
+ A design with hand-drawn or emoji icons is a FAILED design, full stop.
+
+ HOW TO PLACE AN ICON:
+   pen_create_node { type:"icon", icon:"<name>", x, y, width, height,
+                     stroke:"$color.text", strokeWidth:2 }
+   • \`icon\` MUST be an exact name from the catalog below (or found via
+     pen_search_icons). Never invent a name — unknown names render a visible
+     dashed placeholder, and the tool call fails with suggestions.
+   • Icons are square: width === height. Sizing guide: 16-20px inline with text,
+     24px toolbars/menus, 28-32px feature cards, 48px hero/empty-state.
+   • Recolor via \`stroke\` (NOT fill — lucide glyphs are stroke-painted). Use
+     $color.* tokens so icons recolor with the palette: $color.text for neutral
+     icons, $color.primary for accent icons, $color.text-muted for passive ones.
+   • strokeWidth 2 is the lucide default (use 1.5 for dense UI, 2.5+ for display).
+   • Icon + text rows: icon 18-20px, 8px gap to a 14px/500 label, baseline-aligned,
+     icon stroke matching the label's color.
+   • Icon buttons: 36-40px square hit target, icon 18-20px centered, neutral
+     $color.text-muted stroke; the primary action button may use $color.primary.
+
+ ICON CATALOG (${'${LUCIDE_ICON_COUNT}'} curated Lucide icons — search more with pen_search_icons):
+${'${LUCIDE_ICON_CATALOG}'}
+
+ When no name below fits, call pen_search_icons {query:"<what it should mean>"}
+ (e.g. "password security" → lock, "revenue growth" → trending-up) and use an
+ exact name from the results.
 
 === THE 5 LAWS OF BEAUTIFUL UI (distilled from ClawHub ui-ux-design skill) =
  1. CONTRAST creates hierarchy. Big vs small. Dark vs light. Never low-contrast text on bg.
@@ -399,7 +466,7 @@ LAYER TYPES (the Figma-canonical node union):
     - RECTANGLE, ELLIPSE, LINE, STAR, POLYGON, PATH (SVG geometry), TEXT, SLICE (export region), INSTANCE (a placed component copy).
 
 COMPONENTS & VARIANTS:
-  - A COMPONENT is defined once (via figma_create_component). It can have COMPONENT PROPERTIES:
+  - A COMPONENT is defined once (via pen_create_component). It can have COMPONENT PROPERTIES:
       • Boolean   — toggle (e.g. "showIcon": true/false)
       • Text      — string content (e.g. "label": "Submit")
       • Instance swap — swap to another component (e.g. "icon": <icon component id>)
@@ -415,9 +482,10 @@ COMPONENTS & VARIANTS:
 VARIABLES & STYLES (the design-system layer):
   - VARIABLES: single reusable values, keyed by dotted names ("color.primary", "spacing.md",
     "text.body.size"). 4 types: color, number, string, boolean. Reference via "$name".
-    Can be theme-conditional (one value for mode=light, another for mode=dark).
-  - THEMES: axis → value (e.g. mode=light/dark, spacing=regular/condensed, device=phone/tablet).
-    Apply to a frame via pen_apply_theme; descendants inherit.
+    Can be mode-conditional (one value for mode=light, another for mode=dark).
+  - COLLECTIONS: collection → modes (e.g. mode=light/dark, spacing=regular/condensed, device=phone/tablet).
+    Define with pen_set_variable_modes; set explicit modes on a frame via pen_set_explicit_modes —
+    descendants inherit.
   - The legacy "tokens" concept is collapsed into Variables here. When you see "tokens" in
     the canvas snapshot, treat them as Variables.
 
@@ -439,6 +507,11 @@ HIERARCHY & POSITIONING:
   That means: full color palette, shadows on elevated surfaces, gradients on hero/CTA, real content,
   consistent type scale, 8px spacing grid, radii from the scale. See the FIDELITY POLICY above.
 - Be deliberate about layout: use the 8px grid, align layers, leave breathing room (24-32px section gaps).
+- CONTENT MUST FIT ITS FRAME: before creating a layer inside a screen frame, check that its
+  y + height stays within the frame's bottom edge (frame y + height). Budget the vertical space
+  (mobile 375x812: header ≤ 80px, bottom nav ≤ 80px, content in between). If content overflows,
+  compress heights/spacing or make the frame taller with pen_update_node FIRST — never let layers
+  spill below the frame (frames do not clip; spilled layers render as broken boxes).
 - Pick harmonious colors. Default to a modern, minimal palette unless told otherwise.
   Suggested palettes (the first one is your default — prefer it unless the user asks otherwise):
 ${'${PALETTES_LIST}'}
@@ -451,23 +524,28 @@ ${'${PALETTES_LIST}'}
   EXACT strings in text layers — do not invent replacements.
 - Coordinates are canvas-space pixels. The viewport at zoom 1 shows roughly 0..1200 x 0..800.
   Center of visible area is around (600, 400). Place groups of layers around a focal point.
-- ALWAYS call pen_list_shapes before updating/deleting existing layers so you know the ids.
-  (pen_list_shapes returns the resolved layer tree — same as Figma's layers panel.)
+- ALWAYS call pen_get_metadata before updating/deleting existing layers so you know the ids.
+  (pen_get_metadata returns the resolved layer tree — same as Figma's layers panel.)
 - After creating layers, briefly summarize what you did in 1-2 sentences. Do not narrate every step.
 - If the user asks for something you cannot do with the available tools, say so clearly.
 - GENERATE THEN STYLE. You may use pen_generate_wireframe to scaffold a layout fast, but that is only
-  step 1. You MUST then: (a) define $color.* tokens via pen_set_variable, (b) apply a palette via
+  step 1. You MUST then: (a) define $color.* variables via pen_set_variable, (b) apply a palette via
   pen_apply_palette with bindToTokens=true, (c) add shadows to every card/button/modal via pen_set_shadow,
   (d) add gradients to the hero/CTA/logo via pen_set_gradient_fill, (e) replace placeholder text with
   realistic domain copy via pen_generate_copy, (f) add lucide icons via pen_search_icons. A bare
   generate_wireframe output with no styling pass is NOT a finished design — it is a wireframe.
-- Use pen_bulk_update_by_filter to update many layers at once, NOT individual update_shape calls.
+- Use pen_bulk_update_by_filter to update many layers at once, NOT individual update_node calls.
 - For reusable UI (buttons, cards, inputs): define a COMPONENT once, then create INSTANCES.
   Don't duplicate the same rectangle-stack 5 times — make it a component.
 - For multi-state components (default / hover / disabled / sizes): use a COMPONENT_SET with
   variant axes. Name variants "Size=Large, State=Hover" per Figma convention.
-- For multi-screen flows: create separate PAGES (Home, Dashboard, Settings) rather than cramming
-  everything onto one canvas. Use figma_create_page.
+- MULTI-SCREEN DESIGNS: keep every screen as a separate top-level FRAME on the SAME page, laid
+  out side-by-side (Figma frame-flow style). Position each new screen to the RIGHT of existing
+  screens using the "Next screen placement" line at the end of the canvas snapshot (x = rightmost
+  edge + 80, same y as existing screens). NEVER place a new screen frame on top of existing
+  frames — stacked screens visually destroy the earlier design. Only create a separate PAGE when
+  the user explicitly asks for one ("put it on a new page"); pen_create_page swaps the canvas away
+  from what the user is currently looking at.
 - Bind fills/strokes/text to $variables (color.primary, text.body.size) so the design system
   stays editable. Avoid hardcoded hex values when a variable exists.
 - SELF-CRITIQUE IS MANDATORY for high-fidelity work. After you finish the styling pass, call
@@ -492,21 +570,21 @@ ${'${PALETTES_LIST}'}
 Build the full HIGH-FIDELITY design in this turn. The mandatory sequence is:
 
   1. SCAFFOLD (optional) — if a template matches, call pen_generate_wireframe to lay out the structure.
-     If no template fits, place frames + shapes manually with pen_create_shape using coordinates from
+     If no template fits, place frames + shapes manually with pen_create_node using coordinates from
      the 8px grid. Set type/size/fill/radius on every shape you create — never leave them default.
      COPY RULE: templates ship PLACEHOLDER text. When the user gave exact copy (names, numbers, labels),
      pass it via the generator's 'texts' param in the SAME call (keyed by layer name, e.g.
-     {"Stat 1 value": "$128.4K"}) — or update the text layers with pen_find_replace_text / pen_update_shape
+     {"Stat 1 value": "$128.4K"}) — or update the text layers with pen_find_replace_text / pen_update_node
      immediately after. A design showing template placeholder values ($12.4k, 1,284) instead of the
      user's numbers is a FAILURE, even if the layout is perfect.
-  2. TOKENIZE — define $color.* variables (bg, surface, surface-2, border, text, text-muted, primary,
-     primary-fg, accent, success, danger) via pen_set_variable / pen_update_tokens.
-  3. PALETTE — call pen_apply_palette with bindToTokens=true so shapes bind to the tokens.
+  2. VARIABLES — define $color.* variables (bg, surface, surface-2, border, text, text-muted, primary,
+     primary-fg, accent, success, danger) via pen_set_variable / pen_set_variables.
+  3. PALETTE — call pen_apply_palette with bindToTokens=true so nodes bind to the variables.
   4. ELEVATE — add shadows to every card, button, modal, FAB, dropdown, sticky header via pen_set_shadow.
      A design with zero shadows is a wireframe, not a finished product.
   5. GRADIENTS — add a gradient to the hero area / primary CTA / logo via pen_set_gradient_fill.
   6. CONTENT — replace any "Lorem ipsum" / "Item 1" / "Label" placeholder text with realistic domain
-     copy via pen_generate_copy or pen_update_shape (text field). Use real names, real numbers, real labels.
+     copy via pen_generate_copy or pen_update_node (text field). Use real names, real numbers, real labels.
   7. ICONS — add lucide icons (pen_search_icons) for nav items, buttons, status indicators. Not emoji.
   8. CRITIQUE — call pen_self_critique. Address every [BLOCKER] and [MAJOR] finding with another tool call.
   9. SUMMARIZE — give the user a 1-2 sentence summary of what you designed.
@@ -526,6 +604,36 @@ If a "WEB RESEARCH SUMMARY" section is present in the user's message, the resear
 been done for you by a sub-agent. Use that summary directly — do NOT call web_search or web_fetch
 again. Proceed straight to designing based on the research findings.
 
+=== COMPOSITE CONSTRUCTION: pen_insert_html (PREFERRED for composite UI) =====
+For any composite UI block — a card, form, nav bar, hero section, modal — call pen_insert_html
+ONCE with an HTML fragment (inline styles only) instead of N pen_create_node calls. Containers
+become auto-layout frames, headings/labels become text nodes, <img> becomes an image fill, and
+the whole subtree lands as ONE undoable bulk_add patch. Example — a stat card:
+
+  pen_insert_html({ html:
+    '<div style="display:flex;flex-direction:column;gap:12px;padding:24px;background:#ffffff;' +
+    'border-radius:12px;box-shadow:0 4px 6px #0000001a;width:300px">' +
+      '<span style="font-size:14px;font-weight:500;color:#475569">Monthly revenue</span>' +
+      '<span style="font-size:32px;font-weight:600;color:#0f172a">$128.4K</span>' +
+      '<span style="font-size:13px;color:#10b981">+18.2% vs last month</span>' +
+    '</div>', x: 100, y: 100, namePrefix: 'stat-card' })
+
+Then refine the result surgically with pen_update_node / pen_set_shadow / pen_apply_palette as
+needed. pen_create_node stays the right tool for single surgical shapes — not for assembling
+multi-element blocks. (Class-based CSS and margins are not imported; inline styles only.)
+
+=== READ LADDER (verify before you summarize) ===============================
+Read the canvas through the Figma-MCP-aligned ladder instead of guessing:
+  1. pen_get_metadata (no nodeId) → page list; pass a nodeId → sparse tree
+     (id | name | type | x/y/w/h, one line per node). Use it to navigate and
+     to copy exact node ids.
+  2. pen_get_design_context (nodeId) → 4-part handoff: reference code
+     (html/react/tailwind with data-name + var(--token, fallback)), screenshot,
+     conversion instructions, asset URLs.
+  3. pen_get_variable_defs → token definitions with code syntax for var() binding.
+Verify your work with pen_get_metadata (did the nodes land with the right types, names, and
+geometry?) before declaring the design complete — the metadata read is cheap and pure-model.
+
 === .pen FORMAT ALIGNMENT (pen.dev) =========================================
 This canvas serializes to the pen.dev .pen file format (JSON, version 2.17).
 The .pen format is the runtime source of truth — doc.children: PenChild[] is the layer tree.
@@ -538,28 +646,33 @@ on export. The .pen node types are: frame, section, component, component_set, gr
 boolean_operation, slice, rectangle, ellipse, star, polygon, path, line, text, note, context,
 prompt, icon, script, ref (instance).
 
-VARIABLES: use pen_set_variable to define design tokens keyed by dotted names
+VARIABLES: use pen_set_variable to define variables keyed by dotted names
 ("color.primary", "spacing.md", "text.body.size"). Reference them via "$name".
 
-THEMES: use pen_apply_theme to set a theme axis value (e.g. mode=dark) on a frame;
-descendants inherit it.
+COLLECTIONS & MODES: use pen_set_variable_modes to define a variable collection with its modes
+(e.g. mode=light/dark). Use pen_set_explicit_modes to set explicit modes (e.g. mode=dark) on a
+frame; descendants inherit them.
 
-COMPONENTS & INSTANCES: use figma_create_component to define a reusable component.
+COMPONENTS & INSTANCES: use pen_create_component to define a reusable component.
 Create instances with pen_create_ref. Override component properties via componentProperties
 on the ref (NOT descendants). Use descendants only for deep tree overrides.
 
-COMPONENT SETS & VARIANTS: use figma_create_component_set to create a container for
-variants. Add variants via figma_add_variant (each becomes a COMPONENT child). Define
+COMPONENT SETS & VARIANTS: use pen_create_component_set to create a container for
+variants. Add variants via pen_add_variant (each becomes a COMPONENT child). Define
 variant axes on the set; each variant's name follows "Property=Value, Property=Value".
 
 SLOTS: use pen_mark_slot on a frame inside a component to mark where recommended
 child components can be inserted. Maps to Figma's "preferred instances" concept.
 
-PAGES: use figma_create_page to add a new page to the file. Use figma_set_active_page
-to switch the active page. Use pages for multi-screen designs — one page per screen.
+PAGES: pen_create_page adds a new page and pen_set_active_page switches to it. Create a new page
+ONLY when the user explicitly asks for a separate page — switching pages hides the previous canvas
+from view. For multi-screen designs, keep all screens as side-by-side top-level frames on ONE page
+(the canvas snapshot's "Next screen placement" line gives the exact free coordinates).
 
-FLEXBOX LAYOUT: frames/components/component_sets/sections support flexbox via autoLayout
-(direction, gap, padding, alignX, alignY). Prefer flex layouts over manual x/y for contained UI.
+FLEXBOX LAYOUT: frames/components/component_sets/sections support flexbox via autoLayout —
+legacy {direction, gap, padding, alignX, alignY} or Figma v3 {layoutMode, itemSpacing,
+paddingLeft/Right/Top/Bottom, primaryAxisAlignItems, counterAxisAlignItems} (both accepted).
+Prefer flex layouts over manual x/y for contained UI.
 
 EXPORT: when the user asks to "export as .pen" or "save for pen.dev", call pen_export_pen.
 
@@ -579,9 +692,22 @@ export function round(v: unknown): number {
 /// absolute coords (resolved by `resolvePenTree`) and constraint info shown
 /// inline. This lets the LLM reason about the hierarchy directly instead of
 /// having to mentally reconstruct it from `parent=` annotations on a flat list.
+///
+/// Spec Phase 6 part 2 (D9 closure): the snapshot speaks Figma v3 vocabulary —
+/// `characters=` (text content), `layoutMode=`/`itemSpacing=` (auto layout),
+/// `modes=` (explicit variable modes), `visible=false` — so the system
+/// prompt's "think in FRAMES/COMPONENTS/VARIABLES" instruction finally
+/// matches what the model reads (§9.4). Zero legacy `shape=`/`token`/
+/// `theme axis` substrings (regression-guarded by tests).
 export function canvasSnapshot(canvas: CanvasDocument): string {
   const shapes = canvas.shapes ?? [];
   const tokens = canvas.tokens ?? { colors: [], textStyles: [] };
+
+  // Measured-bounds readback (spec §3.8/§5.5, M2-c): real browser-measured
+  // sizes keyed by layer id, pushed by the DOM renderer (native layout mode)
+  // via canvas:measured_bounds. When present, layers carry ` measured=w×h`
+  // so the agent's mental model stops diverging from pixels.
+  const measured = getMeasuredBounds(canvas.id);
 
   // Index shapes by id and by parent for tree traversal.
   const byId = new Map(shapes.map((s) => [s.id, s] as const));
@@ -598,9 +724,25 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
     const constraintsLabel = s.constraints
       ? ` constraints=${s.constraints.horizontal}/${s.constraints.vertical}`
       : '';
-    const textLabel = s.text ? ` text="${s.text}"` : '';
+    // v3 vocabulary (D9): characters= for text content presence.
+    const charactersLabel = s.characters ?? s.text ? ` characters="${s.characters ?? s.text}"` : '';
     const componentLabel = s.componentId ? ` component=${s.componentId}` : '';
-    const autoLayoutLabel = s.autoLayout ? ` autoLayout=${s.autoLayout.direction}` : '';
+    // v3: layoutMode= (VERTICAL/HORIZONTAL) + itemSpacing= when an auto layout
+    // is set — the Layer's v3 mirrors (M3-a dual-field window) with a legacy
+    // fallback derived from `autoLayout`.
+    const layoutMode = s.layoutMode ?? (s.autoLayout
+      ? (s.autoLayout.direction === 'horizontal' ? 'HORIZONTAL' : 'VERTICAL')
+      : null);
+    const layoutModeLabel = layoutMode ? ` layoutMode=${layoutMode}` : '';
+    const itemSpacingLabel = (s.itemSpacing ?? s.autoLayout?.gap) != null
+      ? ` itemSpacing=${s.itemSpacing ?? s.autoLayout?.gap}`
+      : '';
+    // v3: explicit variable modes on this node (legacy `theme` field).
+    const modesLabel = s.theme && Object.keys(s.theme).length > 0
+      ? ` modes=${JSON.stringify(s.theme)}`
+      : '';
+    // v3: visible=false (not enabled=false) — only surfaced when hidden.
+    const visibleLabel = s.visible === false ? ' visible=false' : '';
     // Figma ontology extension fields:
     const sectionLabel = s.type === 'section' && s.label ? ` label="${s.label}"` : '';
     const variantAxesLabel = s.type === 'component_set' && s.variantPropertyAxes
@@ -620,7 +762,11 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
       : '';
     const starLabel = s.type === 'star' && s.pointCount ? ` points=${s.pointCount}` : '';
     const polygonLabel = s.type === 'polygon' && s.polygonCount ? ` sides=${s.polygonCount}` : '';
-    return `${indent}${bullet} ${s.id} | ${s.type} "${s.name}" | pos=(${round(s.x)},${round(s.y)}) size=${round(s.width)}×${round(s.height)} fill=${s.fill}${textLabel}${parentLabel}${componentLabel}${autoLayoutLabel}${constraintsLabel}${sectionLabel}${variantAxesLabel}${variantValuesLabel}${componentPropsLabel}${instancePropsLabel}${booleanTypeLabel}${starLabel}${polygonLabel}`;
+    const mb = measured[s.id];
+    const measuredLabel = mb && Number.isFinite(mb.width) && Number.isFinite(mb.height)
+      ? ` measured=${Math.round(mb.width)}×${Math.round(mb.height)}`
+      : '';
+    return `${indent}${bullet} ${s.id} | ${s.type} "${s.name}" | pos=(${round(s.x)},${round(s.y)}) size=${round(s.width)}×${round(s.height)}${measuredLabel} fill=${s.fill}${charactersLabel}${parentLabel}${componentLabel}${layoutModeLabel}${itemSpacingLabel}${modesLabel}${visibleLabel}${constraintsLabel}${sectionLabel}${variantAxesLabel}${variantValuesLabel}${componentPropsLabel}${instancePropsLabel}${booleanTypeLabel}${starLabel}${polygonLabel}`;
   };
 
   const renderTree = (parentId: string | null, depth: number): string => {
@@ -630,28 +776,59 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
   };
 
   const treeLines = shapes.length === 0 ? '  (empty)' : renderTree(null, 0).trimEnd();
-  const tokenLines = tokens.colors.length === 0
-    ? '  (no tokens)'
-    : tokens.colors.map((c) => `  • ${c.key} = ${c.value}  (${c.name})`).join('\n');
-  const varLines = !canvas.variables || Object.keys(canvas.variables).length === 0
-    ? '  (no variables)'
-    : Object.entries(canvas.variables).map(([k, v]) => {
-        const val = Array.isArray(v.value) ? `${(v.value as any[]).length} themed value(s)` : String(v.value);
+
+  // Multi-screen placement hint (the "second prompt" contract): report the
+  // bounds of existing TOP-LEVEL screen frames and the exact free position
+  // for the next one. Without this, a follow-up prompt ("now create the
+  // dashboard screen") lands the new screen at the canvas origin or on top
+  // of the first screen, and the two designs stack into visual garbage.
+  // Sections are excluded — enclosing frames is a section's purpose.
+  const screenFrames = shapes.filter(
+    (s) => !s.parentId && (s.type === 'frame' || s.type === 'component_set'),
+  );
+  let placementLine: string;
+  if (screenFrames.length === 0) {
+    placementLine = 'canvas is empty — place the first screen frame around (200, 50)';
+  } else {
+    const minX = Math.min(...screenFrames.map((s) => s.x));
+    const minY = Math.min(...screenFrames.map((s) => s.y));
+    const maxRight = Math.max(...screenFrames.map((s) => s.x + s.width));
+    const maxBottom = Math.max(...screenFrames.map((s) => s.y + s.height));
+    placementLine =
+      `existing screens span (${round(minX)},${round(minY)})→(${round(maxRight)},${round(maxBottom)}); ` +
+      `place the NEXT screen frame at (${round(maxRight + 80)},${round(minY)}) — to the RIGHT of existing screens, never on top of them`;
+  }
+  // v3 vocabulary (D9): Variables / Collections (with modes) / Text styles —
+  // no legacy `token` / `theme axis` substrings anywhere in the snapshot.
+  const variablesMap: Record<string, { type: string; value: unknown }> = canvas.variables ?? {};
+  const varEntries: Array<[string, { type: string; value: unknown }]> = Object.keys(variablesMap).length > 0
+    ? Object.entries(variablesMap)
+    : // Legacy docs may only carry the derived color view — surface it as
+      // variables so the model still sees the palette.
+      tokens.colors.map((c) => [c.key, { type: 'color', value: c.value }]);
+  const varLines = varEntries.length === 0
+    ? '  (none)'
+    : varEntries.map(([k, v]) => {
+        const val = Array.isArray(v.value) ? `${(v.value as any[]).length} mode value(s)` : String(v.value);
         return `  • $${k} (${v.type}) = ${val}`;
       }).join('\n');
-  const themeLines = !canvas.themes || Object.keys(canvas.themes).length === 0
-    ? '  (no theme axes)'
-    : Object.entries(canvas.themes).map(([axis, vals]) => `  • ${axis}: [${vals.join(', ')}]`).join('\n');
+  const collectionLines = !canvas.themes || Object.keys(canvas.themes).length === 0
+    ? '  (none)'
+    : Object.entries(canvas.themes).map(([axis, vals]) => `  • ${axis}: modes=[${vals.join(', ')}]`).join('\n');
+  const textStyleLines = tokens.textStyles.length === 0
+    ? '  (none)'
+    : tokens.textStyles.map((t) => `  • ${t.key} ${t.fontSize}px/${t.fontWeight} ${t.color} (${t.name})`).join('\n');
   return `Current canvas state (.pen v${canvas.version}) — File: "${canvas.name}"${canvas.pages && canvas.pages.length > 0 ? `, Pages: ${canvas.pages.length} (active: "${canvas.pages[canvas.activePageIndex ?? 0]?.name ?? 'Page 1'}")` : ''}:
 - Background: ${canvas.background}
-- Variables (${canvas.variables ? Object.keys(canvas.variables).length : 0}):
+- Variables (${varEntries.length}):
 ${varLines}
-- Theme axes:
-${themeLines}
-- Tokens (derived: ${tokens.colors.length} colors, ${tokens.textStyles.length} text styles):
-${tokenLines}
+- Collections:
+${collectionLines}
+- Text styles (${tokens.textStyles.length}):
+${textStyleLines}
 - Layer tree (${shapes.length} layer(s), indented = nesting):
-${treeLines}`;
+${treeLines}
+- Next screen placement: ${placementLine}`;
 }
 
 /// Build the palettes list string with the user's default palette first.
@@ -685,6 +862,13 @@ Output this plan as a short text message BEFORE your first tool call. This helps
 }
 
 /// Build the full system prompt by filling in the template variables.
+///
+/// When `packName` is supplied, appends a design-system section that tells
+/// the agent the user has pinned a specific design-system pack and lists the
+/// CSS variables to reference (`var(--color-accent)`, `var(--color-text-primary)`,
+/// `var(--radius-card)`, etc.). The Canvas component injects the pack's
+/// tokens.css on the world root so these variables resolve to the pack's
+/// actual values at render time.
 export function buildSystemPrompt(
   skillMetadata: string,
   skillBody: string,
@@ -692,14 +876,127 @@ export function buildSystemPrompt(
   canvas: CanvasDocument,
   defaultPalette: DefaultPalette,
   planFirst: boolean,
+  packName?: string,
 ): string {
-  return SYSTEM_PROMPT_TEMPLATE
-    .replace('${PLAN_FIRST_SECTION}', buildPlanFirstSection(planFirst))
-    .replace('${SKILL_METADATA}', skillMetadata)
-    .replace('${SKILL_BODY}', skillBody || '(No skill-specific instructions — all tools available.)')
-    .replace('${PLAN_SECTION}', planSection)
-    .replace('${PALETTES_LIST}', buildPalettesList(defaultPalette))
-    + '\n\n' + canvasSnapshot(canvas);
+  const base =
+    SYSTEM_PROMPT_TEMPLATE
+      .replace('${PLAN_FIRST_SECTION}', buildPlanFirstSection(planFirst))
+      .replace('${SKILL_METADATA}', skillMetadata)
+      .replace('${SKILL_BODY}', skillBody || '(No skill-specific instructions — all tools available.)')
+      .replace('${PLAN_SECTION}', planSection)
+      .replace('${PALETTES_LIST}', buildPalettesList(defaultPalette))
+      .replace('${LUCIDE_ICON_COUNT}', String(LUCIDE_ICON_COUNT))
+      .replace('${LUCIDE_ICON_CATALOG}', lucidePromptCatalog())
+      + '\n\n' + canvasSnapshot(canvas);
+  if (!packName) return base;
+  return base + '\n\n' + buildDesignSystemPackSection(packName);
+}
+
+/// Build the design-system pack section appended to the system prompt when
+/// the user has pinned a pack via the DesignSystemPicker. Tells the agent:
+///   - the pack name + brief description (palette / radius / fonts),
+///   - the CSS variables to use INSTEAD OF hardcoded hex / `$color.*` refs,
+///   - the iron rule: never hardcode hex / px when a var exists.
+///
+/// This is the runtime counterpart to `DESIGN_SYSTEM_SYSTEM_PROMPT_FRAGMENT`
+/// in `src/lib/design-systems/agent-helper.ts` — that constant is the generic
+/// "the registry exists, you should ask" fragment, while this is the
+/// pack-specific "the user picked X, here are its tokens" fragment.
+function buildDesignSystemPackSection(packName: string): string {
+  // Pack-name → human label + brief tagline + canonical variable set.
+  // The variable list is deliberately the SEMANTIC layer only (not raw
+  // primitives like `--indigo-500`) — agents that stick to semantic
+  // variables produce pack-faithful output (the pack author chose these
+  // aliases to map to the right primitives for the design language).
+  const known: Record<string, { label: string; tagline: string; overrides: string }> = {
+    'shadcn-default': {
+      label: 'shadcn/ui',
+      tagline: 'Indigo accent on neutral slate, 6px button radius, Inter body, JetBrains Mono code. v0/bold founded — best for new Next.js fullstack apps.',
+      overrides: 'Use the standard FIDELITY POLICY color rule (60/30/10 indigo-on-slate). Radii: button 6px, card 8px, input 6px (NOT the 8/12/16 scale from the policy).',
+    },
+    'vercel-geist': {
+      label: 'Vercel Geist',
+      tagline: 'Strict monochrome + zero rounded corners + Geist Sans/Mono. Hyper-minimal, technical, Vercel.com look.',
+      overrides: 'OVERRIDE the FIDELITY POLICY: (a) IGNORE "Full color palette (60/30/10), NOT grayscale" — Vercel Geist IS strict black/white/gray monochrome, no gradients, no accent color tints. (b) IGNORE "Corner radii sm 6 / md 8 / lg 12 / xl 16" — ALL corners are 0px (square) in Geist. (c) IGNORE "Drop shadows on every elevated surface" — Geist uses 1px borders instead of shadows. (d) IGNORE "Gradients on hero areas / primary CTAs" — Geist uses solid black fills only.',
+    },
+    'mantine-default': {
+      label: 'Mantine',
+      tagline: 'Indigo accent on slate gray, 4-8px radii, system font stack. Mantine 7.x runtime — best for data-dense admin tools.',
+      overrides: 'Use the FIDELITY POLICY color rule but with indigo-accent-on-slate. Radii: button 4px, card 8px, input 6px — NOT the 8/12/16 scale from the policy.',
+    },
+    'radix-themes': {
+      label: 'Radix Themes',
+      tagline: 'Indigo accent on cool gray surfaces, soft tinted accent panels, 6px radii, Inter + Roboto Mono. Radix Themes — accessible, themeable components.',
+      overrides: 'Use the FIDELITY POLICY color rule with indigo-accent-on-cool-gray. Radii: button 6px, card 8px, input 6px — NOT the 8/12/16 scale from the policy. For selected/hovered states prefer SOFT TINTED accent surfaces (var(--color-accent-muted)) over heavy shadows — that is the Radix signature. Inputs get a visible border (var(--color-border-strong)) plus an indigo focus ring.',
+    },
+    'tailwind-catalyst': {
+      label: 'Tailwind Catalyst',
+      tagline: 'Zinc neutrals with INK-BLACK primary buttons, 8px radii, Inter, indigo focus rings. Tailwind Labs first-party app UI kit.',
+      overrides: 'OVERRIDE the primary-button rule: primary buttons are INK-BLACK (var(--button-bg-primary) = zinc-950), NOT accent-colored — indigo is ONLY for links, focus rings, and selected states. Radii: button 8px, input 8px, card 12px. Shadows stay subtle (var(--shadow-sm)) — 1px borders do the separation work. Headings use tracking-tight.',
+    },
+  };
+  const info = known[packName];
+  const humanLabel = info?.label ?? packName;
+  const tagline = info?.tagline ?? '';
+  const overrides = info?.overrides ?? '(no overrides - follow the FIDELITY POLICY as-is, but use the pack variables for fills/strokes/text.)';
+
+  return `=== DESIGN-SYSTEM PACK (user-pinned — OVERRIDES the FIDELITY POLICY above) ===
+⚠️  THIS SECTION OVERRIDES THE FIDELITY POLICY SECTION ABOVE. READ THIS FIRST.
+The user has pinned the "${humanLabel}" design-system pack${tagline ? ` — ${tagline}` : ''}.
+
+The pack's tokens.css is ALREADY INJECTED on the canvas world root as a
+<style> tag. Every CSS variable below is therefore live and resolvable
+to the pack's actual values at render time. You MUST reference these
+variables instead of hardcoding hex colors, pixel sizes, or font stacks.
+
+## Semantic color variables (PREFER THESE)
+- Backgrounds: var(--color-bg), var(--color-bg-muted), var(--color-bg-subtle), var(--color-surface), var(--color-surface-raised)
+- Borders:    var(--color-border-default), var(--color-border-subtle), var(--color-border-strong)
+- Text:       var(--color-text-primary), var(--color-text-secondary), var(--color-text-muted), var(--color-text-on-accent)
+- Accent:     var(--color-accent), var(--color-accent-hover), var(--color-accent-active), var(--color-accent-fg), var(--color-accent-muted)
+- Status:     var(--color-success), var(--color-warning), var(--color-error), var(--color-info) (+ their -muted tints)
+
+## Component-scoped variables
+- Button:  var(--button-bg-primary), var(--button-bg-primary-hover), var(--button-fg-primary), var(--button-bg-secondary), var(--button-fg-secondary), var(--button-bg-ghost), var(--button-fg-ghost), var(--button-border)
+- Input:   var(--input-bg), var(--input-fg), var(--input-border), var(--input-padding-x), var(--input-padding-y)
+
+## Radius / spacing / typography
+- Radii:  var(--radius-xs) … var(--radius-2xl), var(--radius-full), var(--radius-button), var(--radius-card), var(--radius-input), var(--radius-pill)
+- Spacing: var(--space-0) … var(--space-20) (4pt grid: 0/4/8/12/16/20/24/32/40/48/64/80px)
+- Fonts:  var(--font-sans), var(--font-mono)
+- Type:   var(--text-xs) (12) · var(--text-sm) (14) · var(--text-base) (16) · var(--text-lg) (18) · var(--text-xl) (20) · var(--text-2xl) (24) · var(--text-3xl) (30) · var(--text-4xl) (36)
+- Shadow: var(--shadow-xs), var(--shadow-sm), var(--shadow-md), var(--shadow-lg)
+
+## FIDELITY POLICY OVERRIDES FOR THIS PACK
+${overrides}
+
+## Iron rule (pack-pinned — applies on EVERY shape you create this turn)
+1. NEVER hardcode a hex color when a var(--color-*) exists. Pass fill: "var(--color-surface)" instead of fill: "#ffffff".
+2. NEVER hardcode a px radius when a var(--radius-*) exists. Pass cornerRadius: "var(--radius-card)" instead of cornerRadius: 8. The pack's --radius-card resolves to the correct value for the design language (8px for shadcn, 0px for Geist, 8px for Mantine).
+3. NEVER hardcode a px size when a var(--space-*) exists.
+4. NEVER hardcode a font family when a var(--font-*) exists.
+5. NEVER hardcode a font size when a var(--text-*) exists.
+6. For fills/strokes/text-color on shapes: pass the variable as the value, e.g. fill: "var(--color-surface)". The DOM renderer accepts var(--*) directly — it does NOT need a $-prefixed .pen variable.
+7. If you need a value not in the pack (e.g. a one-off illustration color), prefer var(--color-text-muted) or another pack token over arbitrary hex. Only fall back to hex when no pack variable fits, and call out the fallback in your message.
+8. Do NOT use $color.* .pen variables this turn — use the pack's CSS variables instead. The pack's tokens.css is already on the canvas root; .pen variables would shadow it.
+
+## Component specs for this pack (inputs / buttons / text)
+- Every input/field: 1px border (stroke: var(--color-border-default), strokeWeight: 1), fill: var(--color-surface-raised), radius: var(--radius-input), padding 10-12px vertical / 12-16px horizontal. Do NOT leave inputs as bare boxes — they MUST have the 1px border.
+- Every primary button: fill: var(--button-bg-primary), text: var(--button-fg-primary), radius: var(--radius-button), padding 10px vertical / 16-20px horizontal, font-weight 500.
+- Text hierarchy in any card/form: heading = var(--text-xl) or var(--text-2xl) weight 600 color var(--color-text-primary); body/labels = var(--text-sm) weight 400-500 color var(--color-text-primary); secondary/help = var(--text-sm) color var(--color-text-muted). NEVER make a decorative "logo"/brand wordmark larger than the heading.
+- Vertical rhythm: use a CONSISTENT gap between stacked form rows (var(--space-4) to var(--space-6)), and a LARGER gap (var(--space-8)) between sections (header vs form vs footer). Do not let one gap dwarf another.
+- Card container: fill: var(--color-surface-raised), border 1px var(--color-border-default) (for Geist) or shadow var(--shadow-sm) (for shadcn/Mantine — use the pack's shadow tokens), radius: var(--radius-card), generous internal padding (var(--space-8) to var(--space-12)).
+
+## LAYOUT ASSEMBLY (hard requirement — read before positioning ANY shape)
+A card/form/screen is ONE container with every child INSIDE its bounds:
+1. Draw the card container FIRST and note its x/y/width/height. Every subsequent element's coordinates must satisfy: card.x ≤ element.x AND element.x + element.width ≤ card.x + card.width. NEVER place a label, input, icon, or button outside the card rect.
+2. Stacked rows share the SAME left edge: all full-width children have identical x (±4px tolerance). Labels sit directly above their input (gap var(--space-1) to var(--space-2)); rows stack with a uniform gap (var(--space-4) to var(--space-6)).
+3. Order top-to-bottom: header block (title + subtitle), then form fields, then primary CTA (full card width minus padding), then footer links. Icons go INSIDE their input's bounds, vertically centered.
+4. BEFORE you finish, verify: does every element belong to exactly one card? Are there exactly as many cards as the design needs (usually ONE for a login/signup/settings form)? If any element's x is more than 8px off its siblings' x, or a heading sits outside the card, FIX the coordinates before ending the turn.
+
+## Final reminder (read this last)
+When you start the next tool call, ask yourself: "Am I using var(--*) for every fill, stroke, radius, and font?" If you find yourself typing a # hex code or a bare number for radius/size, STOP and substitute the corresponding pack variable.
+`.trim();
 }
 
 /// Filter the tool specs to only include the tools for the active skill.
@@ -712,8 +1009,14 @@ export function filterToolSpecs(
 ): ReturnType<typeof toolsToOpenAISpec> {
   const allowedNames = new Set(getToolNamesForCategory(category));
   const penNameSet = new Set<string>([...PEN_TOOL_NAMES, ...FIGMA_TOOL_NAMES]);
+  // Spec Phase 6 part 2: legacy ALIAS specs (appended by toolsToOpenAISpec)
+  // pass whenever their canonical target is allowed.
   return allSpecs.filter(
-    (s) => allowedNames.has(s.function.name) || penNameSet.has(s.function.name),
+    (s) =>
+      allowedNames.has(s.function.name) ||
+      penNameSet.has(s.function.name) ||
+      aliasTargetAllowed(s.function.name, allowedNames) ||
+      aliasTargetAllowed(s.function.name, penNameSet),
   );
 }
 
@@ -850,7 +1153,8 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
   let inCritiqueReprromptLegacy = false;
   const GATED_TOOL_NAMES_LEGACY = new Set<string>([
     'pen_generate_wireframe',
-    'pen_create_shape',
+    'pen_create_node',
+    'pen_create_node',
     'pen_apply_palette',
     'pen_set_variable',
   ]);
@@ -875,7 +1179,7 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
   // The .pen-aligned tools (pen_set_variable, pen_create_ref, …) are always
   // available — they expose pen.dev concepts (variables, themes, refs,
   // slots) that complement the granular pen_* tool surface.
-  // The Figma-aligned tools (figma_create_page, figma_create_component, …)
+  // The Figma-aligned tools (pen_create_page, pen_create_component, …)
   // are also always available — they expose Figma-canonical concepts
   // (Pages, Sections, Components, Component Sets, Variants, Component
   // Properties) that the agent needs to reason like a Figma designer.
@@ -1090,7 +1394,7 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
     // File skills are optional — ignore errors.
   }
 
-  const systemContent = buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst) + fileSkillsSection;
+  const systemContent = buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst, opts.settings?.pack) + fileSkillsSection;
 
   // Build the initial message history.
   const messages: Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_calls?: any[]; tool_call_id?: string }> = [
@@ -1276,15 +1580,15 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
 
 ${defects.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}
 
-You MUST call at least one of: pen_update_shape, pen_create_shape, pen_bulk_update_by_filter, pen_set_shadow, pen_set_gradient_fill, pen_apply_palette — to address these defects.
+You MUST call at least one of: pen_update_node, pen_create_node, pen_bulk_update_by_filter, pen_set_shadow, pen_set_gradient_fill, pen_apply_palette — to address these defects.
 
 Do NOT respond with text only. Do NOT declare done until you have made at least one tool call to fix each defect.
 
 Specifically:
-- If a text shape uses default weight 400, call pen_update_shape with { shapeId, fontWeight: 700 for H1 / 600 for H2 / 500 for labels }.
+- If a text shape uses default weight 400, call pen_update_node with { shapeId, fontWeight: 700 for H1 / 600 for H2 / 500 for labels }.
 - If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:1, blur:2, color:"#0000000d" } (subtle sm shadow; use y:4/blur:6 only for raised states).
-- If a card/sidebar/topbar has no autoLayout, call pen_update_shape with { shapeId, autoLayout: { direction:"vertical", gap:8, padding:24, alignX:"min", alignY:"min" } }.
-- If the canvas has fewer than 5 shapes, call pen_create_shape to add the missing components (KPI cards, chart, table, etc.).
+- If a card/sidebar/topbar has no autoLayout, call pen_update_node with { shapeId, autoLayout: { direction:"vertical", gap:8, padding:24, alignX:"min", alignY:"min" } }.
+- If the canvas has fewer than 5 shapes, call pen_create_node to add the missing components (KPI cards, chart, table, etc.).
 
 Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`,
             });
@@ -1379,7 +1683,7 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`,
 
       // Emit ALL patches the tool produced. Most tools emit exactly one patch
       // (returned as `result.patch`). A few tools emit multiple — e.g.
-      // pen_update_shape, when the LLM passes a `parent` arg, emits BOTH an
+      // pen_update_node, when the LLM passes a `parent` arg, emits BOTH an
       // `update` patch (for the recognized fields) AND a `reparent` patch
       // (for the parent change). The wrapper coalesces these into
       // `result.patches` (plural); we fall back to `result.patch` (singular)
@@ -1419,7 +1723,7 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`,
           // Inject a clear "stop retrying" message + finalize the turn.
           messages.push({
             role: 'user',
-            content: `The tool "${toolName}" has failed ${consecutiveSameToolFailures} times in a row with the same arguments. Stop retrying the same call. Either try a DIFFERENT tool, fix the arguments (the shape ID may not exist — call pen_list_shapes to see valid IDs), or finalize your response with what you have so far. Do NOT call "${toolName}" again with the same arguments.`,
+            content: `The tool "${toolName}" has failed ${consecutiveSameToolFailures} times in a row with the same arguments. Stop retrying the same call. Either try a DIFFERENT tool, fix the arguments (the shape ID may not exist — call pen_get_metadata to see valid IDs), or finalize your response with what you have so far. Do NOT call "${toolName}" again with the same arguments.`,
           });
           // Reset so the next iteration gets a fresh chance (different tool / args).
           consecutiveSameToolFailures = 0;

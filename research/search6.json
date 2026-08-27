@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://uibakery.io/blog/lovable-vs-bolt-vs-v0",
+    "name": "Lovable vs Bolt vs V0: Which AI App Generator Delivers",
+    "snippet": "May 10, 2025 — The UI is extremely developer-friendly, mimicking the look and feel of VS Code with a live preview on the right and editable code on the left.",
+    "host_name": "uibakery.io",
+    "rank": 0,
+    "date": "May 10, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/SaaS/comments/1m1fmgj/i_tried_lovable_v0_and_boltnew_heres_what_id",
+    "name": "I tried Lovable, V0, and Bolt.new — Here's what I'd actually",
+    "snippet": "It's not a site builder — it's a UI generator . Not no-code. You'll need to wire things together yourself. Use V0 when you're ready to build ...",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/boringcoder53/comparing-lovabledev-boltnew-and-v0dev-which-ai-ui-tool-delivers-the-best-results-54d8",
+    "name": "Comparing Lovable.dev, Bolt.new, and v0.dev: Which AI UI",
+    "snippet": "Mar 31, 2025 — Lovable.dev is a great tool for generating UI components quickly . It provides structured results and works well if you give it a clear and ...",
+    "host_name": "dev.to",
+    "rank": 2,
+    "date": "Mar 31, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://addyo.substack.com/p/ai-driven-prototyping-v0-bolt-and",
+    "name": "AI-Driven Prototyping: v0, Bolt, and Lovable Compared",
+    "snippet": "v0 now supports generating not just UI components but also backend services, including integration with databases and API routes, showcasing ...",
+    "host_name": "addyo.substack.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/addyosmani_softwareengineering-programming-ai-activity-7284109355262648320-qOoH",
+    "name": "Addy Osmani's Post - AI-Driven Prototyping",
+    "snippet": "The integration of Supabase across Bolt and Lovable is a big win for backend-heavy projects. I'd love to know your take on how these tools ...",
+    "host_name": "www.linkedin.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://annaarteeva.medium.com/choosing-your-ai-prototyping-stack-lovable-v0-bolt-replit-cursor-magic-patterns-compared-9a5194f163e9",
+    "name": "Choosing your AI prototyping stack: Lovable, v0, Bolt, Replit",
+    "snippet": "By default it tends to generate slightly calmer, more “serious” UI , while Lovable leans to add more shine and sparkles. You can of course steer",
+    "host_name": "annaarteeva.medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://daily.dev/blog/ai-app-builder-cursor-vs-lovable-vs-bolt-vs-v0-which-should-you-pick",
+    "name": "Cursor vs Lovable vs Bolt vs v0: which AI app builder",
+    "snippet": "Aug 7, 2026 — Lovable and Bolt are app generators. v0 is a UI generator first. it generates React components and frontend scaffolding with Next.js, Tailwind, ...",
+    "host_name": "daily.dev",
+    "rank": 6,
+    "date": "Aug 7, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.softr.io/blog/v0-vs-lovable",
+    "name": "v0 vs Lovable: Which AI builder should you choose? [2026]",
+    "snippet": "Feb 2, 2026 — v0 primarily generates UI components : You'll need to integrate the code into your project, set up your own back-end, and handle deployment ...",
+    "host_name": "www.softr.io",
+    "rank": 7,
+    "date": "Feb 2, 2026",
+    "favicon": ""
+  }
+]

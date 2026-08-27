@@ -234,7 +234,7 @@ describe('Fix 3: Clip property', () => {
     expect(clipFrame.clip).toBe(true);
     expect(deepChild.parentId).toBe('clip-frame');
     // The deep child is at 500,500 which is outside the 200x200 clip frame.
-    // The renderer should clip it via SVG clipPath.
+    // The DOM renderer clips it via the parent's overflow: hidden.
     expect(deepChild.x).toBe(500);
   });
 });

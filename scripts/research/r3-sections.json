@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/9771500257687-Organize-your-canvas-with-sections",
+    "name": "Organize your canvas with sections – Figma Learn - Help Center",
+    "snippet": "Sections in Figma Design are a top-level element on the canvas by default. Sections can contain all layer types, including other sections, Create a section · Mark a section as ready for...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/sections/30880632542743-Figma-Design-for-beginners",
+    "name": "Figma Design for beginners – Figma Learn - Help Center",
+    "snippet": "We'll cover the basics like shapes, text, and frames, and tap into more advanced features like auto layout, components, and prototyping. The differences ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040449713-Add-guides-to-the-canvas-or-frames",
+    "name": "Add guides to the canvas or frames – Figma Learn - Help Center",
+    "snippet": "To create a new guide, click and drag on the horizontal or vertical ruler to pull the guide onto the canvas. Dragging a guide from the vertical ruler onto the ... Create a new guide · View distances (redlines)",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15297425105303-Explore-design-files",
+    "name": "Explore design files – Figma Learn - Help Center",
+    "snippet": "The section tool allows you to designate and label a specific region of the canvas. You can use sections to group related concepts and ideas or organize your ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041539473-Frames-in-Figma-Design",
+    "name": "Frames in Figma Design – Figma Learn - Help Center",
+    "snippet": "Frames that sit directly on the canvas are called top-level frames. if your frame is in a section, the section will resize to accommodate the new frame. Layout ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15023124644247-Guide-to-Dev-Mode",
+    "name": "Guide to Dev Mode – Figma Learn - Help Center",
+    "snippet": "In Design Mode, anyone can group related content into sections and mark sections as ready for development. Dev Mode will prioritize content in a section.",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040450513-Create-layout-guides",
+    "name": "Create layout guides – Figma Learn - Help Center",
+    "snippet": "Select a frame in the canvas with the layout guide(s) applied. In the right sidebar, click Apply styles in the Layout guide section. Click Create style.",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/14548865734679-Lesson-3-Build-your-design-system",
+    "name": "Lesson 3: Build your design system - Figma Learn",
+    "snippet": "Layout guides can be made up of rows, columns, or a uniform grid like the 8-point grid.",
+    "host_name": "help.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

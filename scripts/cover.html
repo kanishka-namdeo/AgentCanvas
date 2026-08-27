@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Design Systems for Agentic Workflows — Cover</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    @page { size: 794px 1123px; margin: 0; }
+    :root {
+      /* Cascade palette (cold intent, minimal, analogous) */
+      --c-bg:       #eef0f0;
+      --c-accent:   #246a8d;
+      --c-text:     #161819;
+      --c-muted:    #81878b;
+      --c-mid:      #374d57;
+      --c-surface:  #eceef0;
+      --c-border:   #c0cfd6;
+    }
+    html, body {
+      margin: 0; padding: 0;
+      width: 794px; height: 1123px;
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    @media screen {
+      html { height: auto; display: flex; justify-content: center; min-height: 100vh; background: #d8dde0; }
+      body { transform-origin: top center; scale: min(1, calc(100vw / 794), calc(100vh / 1123)); margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.2); }
+    }
+    .cover {
+      width: 794px; height: 1123px;
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    /* ── Layer 1: Background grid (2% opacity) ── */
+    .layer-bg {
+      position: absolute; inset: 0;
+      overflow: hidden;
+      z-index: 1;
+      background-image:
+        linear-gradient(to right, rgba(36, 106, 141, 0.04) 0.5px, transparent 0.5px),
+        linear-gradient(to bottom, rgba(36, 106, 141, 0.04) 0.5px, transparent 0.5px);
+      background-size: 50px 50px;
+    }
+    /* Watermark "DS" in background (very subtle) */
+    .watermark {
+      position: absolute;
+      right: 30px; bottom: 60px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 320px; font-weight: 700;
+      color: var(--c-mid);
+      opacity: 0.04;
+      letter-spacing: -16px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    /* ── Layer 2: Structure (thick vertical anchor line) ── */
+    .layer-structure {
+      position: absolute; inset: 0;
+      z-index: 2;
+    }
+    .anchor-line {
+      position: absolute;
+      left: 95px;        /* 0.12 * 794 ≈ 95px */
+      top: 112px;        /* 0.10 * 1123 ≈ 112px */
+      bottom: 112px;     /* 0.90 line stops here */
+      width: 6px;
+      background: var(--c-mid);
+    }
+
+    /* ── Layer 3: Content (text + meta) ── */
+    .layer-content {
+      position: absolute; inset: 0;
+      z-index: 3;
+    }
+    /* Content left edge = anchor line + 30px = 125px */
+    .kicker {
+      position: absolute;
+      left: 150px; right: 95px;
+      top: 168px;                       /* 0.15 * 1123 */
+      font-size: 11pt;
+      font-weight: 400;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--c-muted);
+      opacity: 0.85;
+    }
+    .kicker .sep {
+      color: var(--c-accent);
+      margin: 0 10px;
+      font-weight: 700;
+    }
+    .hero-title {
+      position: absolute;
+      left: 150px; right: 95px;
+      top: 305px;                       /* ~0.27 * 1123 */
+      font-size: 50pt;
+      font-weight: 900;
+      line-height: 1.10;
+      letter-spacing: -1.2px;
+      color: var(--c-text);
+      max-width: 560px;
+    }
+    .hero-title .em {
+      color: var(--c-accent);
+    }
+    .summary {
+      position: absolute;
+      left: 150px; right: 95px;
+      top: 580px;                       /* ~0.52 * 1123 */
+      font-size: 13.5pt;
+      font-weight: 400;
+      line-height: 1.65;
+      color: var(--c-text);
+      opacity: 0.88;
+      max-width: 480px;                 /* W * 0.60 ≈ 476 */
+    }
+    .summary .kw {
+      color: var(--c-accent);
+      font-weight: 500;
+    }
+
+    /* Stat row (three small blocks under summary) */
+    .stat-row {
+      position: absolute;
+      left: 150px; right: 95px;
+      top: 770px;                       /* ~0.69 * 1123 */
+      display: flex;
+      gap: 0;
+    }
+    .stat {
+      flex: 1;
+      padding: 0 18px 0 0;
+      border-left: 1px solid var(--c-border);
+      padding-left: 14px;
+    }
+    .stat:first-child { border-left: none; padding-left: 0; }
+    .stat .num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28pt; font-weight: 700;
+      color: var(--c-mid);
+      line-height: 1;
+    }
+    .stat .label {
+      font-size: 9pt;
+      color: var(--c-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    /* Meta block (bottom-left) */
+    .meta {
+      position: absolute;
+      left: 150px; right: 95px;
+      top: 920px;                       /* ~0.82 * 1123 */
+      font-size: 11pt;
+      color: var(--c-text);
+      line-height: 1.7;
+    }
+    .meta .field {
+      display: flex;
+      gap: 12px;
+    }
+    .meta .field .key {
+      color: var(--c-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-size: 9pt;
+      min-width: 110px;
+      padding-top: 2px;
+    }
+    .meta .field .val {
+      color: var(--c-text);
+      font-weight: 500;
+    }
+
+    /* Bottom-right corner mark */
+    .corner-mark {
+      position: absolute;
+      right: 95px;
+      bottom: 75px;
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9pt;
+      color: var(--c-muted);
+      letter-spacing: 1px;
+    }
+    .corner-mark .v {
+      color: var(--c-accent);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <!-- Layer 1: Background -->
+    <div class="layer-bg">
+      <div class="watermark">DS</div>
+    </div>
+
+    <!-- Layer 2: Structure -->
+    <div class="layer-structure">
+      <div class="anchor-line"></div>
+    </div>
+
+    <!-- Layer 3: Content -->
+    <div class="layer-content">
+      <div class="kicker">
+        Strategy Memo <span class="sep">/</span> Engineering Evaluation <span class="sep">/</span> v0 &middot; Lovable &middot; Bolt.new Era
+      </div>
+
+      <div class="hero-title">
+        Design Systems<br>
+        for <span class="em">Agentic</span><br>
+        Workflows
+      </div>
+
+      <div class="summary">
+        How to stop <span class="kw">guessing CSS</span> in agent runs &mdash; by binding every
+        UI-generation turn to a <span class="kw">named, opinionated design-system pack</span> the
+        user picks up-front, instead of letting the model invent a palette, fonts, and spacing on
+        every regeneration.
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <div class="num">84%</div>
+          <div class="label">Design-Token Adoption 2026</div>
+        </div>
+        <div class="stat">
+          <div class="num">5+</div>
+          <div class="label">Systems Evaluated</div>
+        </div>
+        <div class="stat">
+          <div class="num">~3</div>
+          <div class="label">Turns Saved per Build</div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div class="field">
+          <span class="key">Prepared by</span>
+          <span class="val">Z.ai &mdash; Engineering</span>
+        </div>
+        <div class="field">
+          <span class="key">Date</span>
+          <span class="val">August 26, 2026</span>
+        </div>
+        <div class="field">
+          <span class="key">Document</span>
+          <span class="val">Internal Engineering Memo &middot; v1.0</span>
+        </div>
+      </div>
+
+      <div class="corner-mark">
+        MEMO <span class="v">/ 01</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

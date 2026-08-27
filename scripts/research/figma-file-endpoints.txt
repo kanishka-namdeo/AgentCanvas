@@ -1,0 +1,322 @@
+
+
+Endpoints | Developer Docs
+
+Skip to main content
+
+On this page
+
+Endpoints
+Files endpoints allow for a wide range of functionality to get information about files. With a specific file key, you can get the JSON and image representations of the whole file or individual nodes within the file.
+
+GET file​
+
+Returns the document referred to by :key as a JSON object. The file key can be parsed from any Figma file url: https://www.figma.com/:file_type/:file_key/:file_name. The name, lastModified, thumbnailUrl, editorType, linkAccess, and version attributes are all metadata of the retrieved file. The document attribute contains a Node of type DOCUMENT.
+
+The components key contains a mapping from node IDs to component metadata. This is to help you determine which components each instance comes from.
+
+Nodes that support annotations may include an annotations array with notes and pinned properties. See Annotation for details.
+
+info
+
+This is a Tier 1 endpoint and requires the file_content:read scope.
+
+HTTP endpoint​
+
+GET /v1/files/:key
+
+Return value
+
+{
+ "name": String,
+ "role": String,
+ "lastModified": String,
+ "editorType": String,
+ "thumbnailUrl": String,
+ "version": String,
+ "document": Node,
+ "components": Map<String, Component>,
+ "componentSets": Map<String, ComponentSet>,
+ "schemaVersion": 0,
+ "styles": Map<String, Style>
+ "mainFileKey": String,
+ "branches": [
+ {
+ "key": String,
+ "name": String,
+ "thumbnail_url": String,
+ "last_modified": String,
+ "link_access": String,
+ }
+ ]
+}
+
+Path parametersDescription
+ | key | 
+StringFile to export JSON from. This can be a file key or branch key. Use GET /v1/files/:key with the branch_data query param to get the branch key.
+
+Query parametersDescription
+ | version | 
+StringoptionalA specific version ID to get. Omitting this will get the current version of the file.
+ | ids | 
+Stringoptional
+Comma separated list of nodes that you care about in the document. If specified, only a subset of the document will be returned corresponding to the nodes listed, their children, and everything between the root node and the listed nodes.
+Note: There may be other nodes included in the returned JSON that are outside the ancestor chains of the desired nodes. The response may also include dependencies of anything in the nodes' subtrees. For example, if a node subtree contains an instance of a local component that lives elsewhere in that file, that component and its ancestor chain will also be included.
+For historical reasons, top-level canvas nodes are always returned, regardless of whether they are listed in the ids parameter. This quirk may be removed in a future version of the API.
+ | depth | 
+NumberoptionalPositive integer representing how deep into the document tree to traverse. For example, setting this to 1 returns only Pages, setting it to 2 returns Pages and all top level objects on each page. Not setting this parameter returns all nodes.
+ | geometry | 
+StringoptionalSet to paths to export vector data.
+ | plugin_data | 
+StringoptionalA comma separated list of plugin IDs and/or the string shared. Any data present in the document written by those plugins will be included in the result in the pluginData and sharedPluginData properties.
+ | branch_data | 
+Booleanoptionaldefault: falseReturns branch metadata for the requested file. If the file is a branch, the main file's key will be included in the returned response. If the file has branches, their metadata will be included in the returned response.
+
+Error codesDescription
+ | 403 | The developer / OAuth token is invalid or expired
+ | 404 | The specified file was not found
+
+Examples​
+
+To get the JSON for specific nodes, their subtrees, and all the nodes in their ancestor chains:
+
+GET /v1/files/:key?ids=1:2,1:3
+
+To get the JSON for the document tree stopping at the top-level nodes on each page (all pages live at depth 1):
+
+GET /v1/files/:key?depth=2
+
+GET file nodes​
+
+Returns the nodes referenced to by :ids as a JSON object. The nodes are retrieved from the Figma file referenced to by :key.
+
+The node id and file key can be parsed from any Figma node url: https://www.figma.com/:file_type/:file_key/:file_name?node-id=:id.
+
+The name, lastModified, thumbnailUrl, editorType, and version attributes are all metadata of the specified file.
+
+The linkAccess field describes the file link share permission level. There are 5 types of permissions a shared link can have: inherit, view, edit, org_view, and org_edit. inherit is the default permission applied to files created in a team folder, and will inherit the folder's permissions. org_view and org_edit restrict the link to org users.
+
+The document attribute contains a Node of type DOCUMENT.
+
+The components key contains a mapping from node IDs to component metadata. This is to help you determine which components each instance comes from.
+
+By default, no vector data is returned. To return vector data, pass the geometry=paths parameter to the endpoint.
+Each node can also inherit properties from applicable styles. The styles key contains a mapping from style IDs to style metadata.
+
+warning
+
+Important: the nodes map may contain values that are null . This may be due to the node id not existing within the specified file.
+
+info
+
+This is a Tier 1 endpoint and requires the file_content:read scope.
+
+HTTP endpoint​
+
+GET /v1/files/:key/nodes
+
+Return value
+
+{
+ "name": String,
+ "role": String,
+ "lastModified": String,
+ "editorType": String,
+ "thumbnailUrl": String,
+ "err": String,
+ "nodes": {
+ "id": {
+ "document": Node,
+ "components": Map<String, Component>,
+ "componentSets": Map<String, ComponentSet>,
+ "schemaVersion": 0,
+ "styles": Map<String, Style>
+ ...
+ }
+ }
+}
+
+Path parametersDescription
+ | key | 
+StringFile to export JSON from. This can be a file key or branch key. Use GET /v1/files/:key with the branch_data query param to get the branch key.
+
+Query parametersDescription
+ | ids | 
+StringA comma separated list of node IDs to retrieve and convert.
+ | version | 
+StringoptionalA specific version ID to get. Omitting this will get the current version of the file.
+ | depth | 
+NumberoptionalPositive integer representing how deep into the node tree to traverse. For example, setting this to 1 will return only the children directly underneath the desired nodes. Not setting this parameter returns all nodes.
+ | geometry | 
+StringoptionalSet to paths to export vector data.
+ | plugin_data | 
+StringoptionalA comma separated list of plugin IDs and/or the string shared. Any data present in the document written by those plugins will be included in the result in the pluginData and sharedPluginData properties.
+
+Error codesDescription
+ | 400 | Invalid parameter, the err property will indicate which parameter is invalid
+ | 403 | The developer / OAuth token is invalid or expired
+ | 404 | The specified file was not found
+
+Examples​
+
+To get the JSON for specific nodes and their subtrees:
+
+GET /v1/files/:key/nodes?ids=1:2,1:3
+
+To get the JSON for specific nodes and their direct children without any further descendants:
+
+GET /v1/files/:key/nodes?ids=1:2,1:3&depth=1
+
+GET image​
+
+Renders images from a file.
+
+If no error occurs, images will be populated with a map from node IDs to URLs of the rendered images, and status will be omitted. The image assets will expire after 30 days. Images up to 32 megapixels can be exported. Any images that are larger will be scaled down.
+
+warning
+
+Important: the image map may contain values that are null. This indicates that rendering of that specific node has failed. This may be due to the node id not existing, or other reasons such has the node having no renderable components. For example, a node that is invisible or has 0% opacity cannot be rendered. It is guaranteed that any node that was requested for rendering will be represented in this map whether or not the render succeeded.
+
+To render multiple images from the same file, use the ids query parameter to specify multiple node ids.
+
+GET /v1/images/:key?ids=1:2,1:3,1:4
+
+info
+
+This is a Tier 1 endpoint and requires the file_content:read scope.
+
+HTTP endpoint​
+
+GET /v1/images/:key
+
+Return value
+
+{
+ "err": String,
+ "images": Map<String, String>,
+ "status": Number
+}
+
+Path parametersDescription
+ | key | 
+StringFile to export images from. This can be a file key or branch key. Use GET /v1/files/:key with the branch_data query param to get the branch key.
+
+Query parametersDescription
+ | ids | 
+StringA comma separated list of node IDs to render.
+ | scale | 
+NumberoptionalA number between 0.01 and 4, the image scaling factor
+ | format | 
+Stringoptional
+The image output format, as a string enum.
+jpg
+png
+svg
+pdf
+ | svg_outline_text | 
+Booleanoptionaldefault: true
+Whether text elements are rendered as outlines (vector paths) or as <text> elements in SVGs.
+Rendering text elements as outlines guarantees that the text looks exactly the same in the SVG as it does in the browser/inside Figma.
+Exporting as <text> allows text to be selectable inside SVGs and generally makes the SVG easier to read. However, this relies on the browser's rendering engine which can vary between browsers and/or operating systems. As such, visual accuracy is not guaranteed as the result could look different than in Figma.
+ | svg_include_id | 
+Booleanoptionaldefault: falseWhether to include id attributes for all SVG elements. Adds the layer name to the id attribute of an svg element.
+ | svg_include_node_id | 
+Booleanoptionaldefault: falseWhether to include node id attributes for all SVG elements. Adds the node id to a data-node-id attribute of an svg element.
+ | svg_simplify_stroke | 
+Booleanoptionaldefault: trueWhether to simplify inside/outside strokes and use stroke attribute if possible instead of <mask>.
+ | contents_only | 
+Booleanoptionaldefault: trueWhether content that overlaps the node should be excluded from rendering. Passing false (i.e., rendering overlaps) may increase processing time, since more of the document must be included in rendering.
+ | use_absolute_bounds | 
+Booleanoptionaldefault: falseUse the full dimensions of the node regardless of whether or not it is cropped or the space around it is empty. Use this to export text nodes without cropping.
+ | version | 
+StringoptionalA specific version ID to use. Omitting this will use the current version of the file.
+
+Error codesDescription
+ | 400 | Invalid parameter, the err property will indicate which parameter is invalid
+ | 403 | The developer / OAuth token is invalid or expired
+ | 404 | The specified file was not found
+ | 500 | Unexpected rendering error, render could not be completed
+
+GET image fills​
+
+Returns download links for all images present in image fills in a document. Image fills are how Figma represents any user supplied images. When you drag an image into Figma, we create a rectangle with a single fill that represents the image, and the user is able to transform the rectangle (and properties on the fill) as they wish.
+
+This endpoint returns a mapping from image references to the URLs at which the images may be download. Image URLs will expire after no more than 14 days. Image references are located in the output of the GET files endpoint under the imageRef attribute in a Paint.
+
+info
+
+This is a Tier 2 endpoint and requires the file_content:read scope.
+
+HTTP endpoint​
+
+GET /v1/files/:key/images
+
+Return value
+
+{
+ "images": {
+ "$(imageRef)": String,
+ ...
+ },
+}
+
+Path parametersDescription
+ | key | 
+StringFile to export images from. This can be a file key or branch key. Use GET /v1/files/:key with the branch_data query param to get the branch key.
+
+Error codesDescription
+ | 403 | The developer / OAuth token is invalid or expired
+ | 404 | The specified file was not found
+
+GET file metadata​
+
+Returns the metadata for the file referred to by :key. The file key can be parsed from any Figma file url: https://www.figma.com/:file_type/:file_key/:file_name.
+
+info
+
+This is a Tier 3 endpoint and requires the file_metadata:read scope.
+
+HTTP endpoint​
+
+GET /v1/files/:key/meta
+
+Return value
+
+{
+ "file": {
+ "name": String,
+ "folder_name": String,
+ "last_touched_at": String,
+ "creator": User,
+ "last_touched_by": User,
+ "thumbnail_url": String,
+ "editorType": String,
+ "version": String,
+ "role": String,
+ "link_access": String,
+ "url": String,
+ }
+}
+
+Path parametersDescription
+ | key | 
+StringFile to export images from. This can be a file key or branch key. Use GET /v1/files/:key with the branch_data query param to get the branch key.
+
+Error codesDescription
+ | 403 | The developer / OAuth token is invalid or expired
+ | 404 | The specified file was not found
+
+GET file
+GET file nodes
+GET image
+GET image fills
+GET file metadata
+
+Was this page helpful?
+Leave us feedback
+Community Forum
+Discord Server
+GitHub Samples
+
+FigJam·Enterprise·Learn·Education·Careers·Pricing·Developers·Blog·Downloads·Releases·Security·Legal·Contact
+

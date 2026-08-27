@@ -1,0 +1,121 @@
+
+
+layoutSizingHorizontal | Developer Docs
+
+Skip to main content
+
+On this page
+
+layoutSizingHorizontal
+Applicable only on auto-layout frames, their children, and text nodes. This is a shorthand for setting layoutGrow, layoutAlign, primaryAxisSizingMode, and counterAxisSizingMode. This field maps directly to the "Horizontal sizing" dropdown in the Figma UI.
+
+Supported on:
+BooleanOperationNode
+ComponentNode
+ComponentSetNode
+EllipseNode
+FrameNode
+GroupNode
+HighlightNode
+InstanceNode
+LineNode
+PolygonNode
+RectangleNode
+SliceNode
+SlideNode
+SlotNode
+StampNode
+StarNode
+TextNode
+TextPathNode
+TransformGroupNode
+VectorNode
+WashiTapeNode
+
+Signature​
+
+layoutSizingHorizontal: 'FIXED' | 'HUG' | 'FILL'
+
+Remarks​
+
+"HUG" is only valid on auto-layout frames and text nodes. "FILL" is only valid on auto-layout children. Setting these values when they don't apply will throw an error.
+
+Setting layoutSizingHorizontal on an auto-layout frame
+const parentFrame = figma.createFrame()
+const child2 = figma.createFrame()
+parentFrame.appendChild(figma.createFrame())
+parentFrame.appendChild(child2)
+parentFrame.layoutMode = 'VERTICAL'
+// Make the second child twice as wide as the first
+child2.resize(200, 100)
+
+// Parent frame (child 2 is clipped)
+// +-------------+
+// |+-----------+|
+// || ||
+// || Child 1 ||
+// || ||
+// |+-----------+|
+// |+------------|
+// || |
+// || Child 2 |
+// || |
+// |+------------|
+// +-------------+
+
+parentFrame.layoutSizingHorizontal = 'FIXED'
+
+// Parent frame (child 2 is not clipped)
+// +------------------------+
+// |+-----------+ |
+// || | |
+// || Child 1 | |
+// || | |
+// |+-----------+ |
+// |+----------------------+|
+// || ||
+// || Child 2 ||
+// || ||
+// |+----------------------+|
+// +------------------------+
+parentFrame.layoutSizingHorizontal = 'HUG'
+
+Setting layoutSizingHorizontal on an auto-layout child
+const parentFrame = figma.createFrame()
+const child2 = figma.createFrame()
+parentFrame.appendChild(figma.createFrame())
+parentFrame.appendChild(child2)
+parentFrame.layoutMode = 'HORIZONTAL'
+parentFrame.resize(300, 100)
+
+// Parent frame
+// +-------------------------------------+
+// |+-----------++-----------+ |
+// || || | |
+// || Child 1 || Child 2 | |
+// || || | |
+// |+-----------++-----------+ |
+// +-------------------------------------+
+child2.layoutSizingHorizontal = 'FIXED'
+
+// Parent frame
+// +-------------------------------------+
+// |+-----------++----------------------+|
+// || || ||
+// || Child 1 || Child 2 ||
+// || || ||
+// |+-----------++----------------------+|
+// +-------------------------------------+
+child2.layoutSizingHorizontal = 'FILL'
+
+Signature
+Remarks
+
+Was this page helpful?
+Leave us feedback
+Community Forum
+Discord Server
+GitHub Samples
+
+FigJam·Enterprise·Learn·Education·Careers·Pricing·Developers·Blog·Downloads·Releases·Security·Legal·Contact
+

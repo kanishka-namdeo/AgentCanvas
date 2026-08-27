@@ -10,6 +10,7 @@ import {
   matchCommands,
   resolveCommand,
   parseCommandInput,
+  resolvePackName,
   CHAT_COMMANDS,
 } from '../../src/lib/agent/chat-commands';
 import {
@@ -109,6 +110,78 @@ describe('matchCommands', () => {
 
   it('hides the list once the user types arguments', () => {
     expect(matchCommands('/audit my spacing')).toEqual([]);
+  });
+});
+
+// ---- /pick-pack ---------------------------------------------------------------
+
+describe('/pick-pack command registration', () => {
+  it('registers /pick-pack as an instant client-side action with args', () => {
+    const cmd = CHAT_COMMANDS.find((c) => c.cmd === '/pick-pack');
+    expect(cmd).toBeDefined();
+    expect(cmd!.kind).toBe('action');
+    expect(cmd!.run).toBe('pick-pack');
+    expect(cmd!.args).toBe(true);
+  });
+
+  it('parses fully-typed /pick-pack with an argument', () => {
+    const r = parseCommandInput('/pick-pack geist');
+    expect(r.kind).toBe('exact');
+    if (r.kind === 'exact') {
+      expect(r.command.cmd).toBe('/pick-pack');
+      expect(r.args).toBe('geist');
+    }
+  });
+
+  it('autocompletes the /pi prefix to /pick-pack first', () => {
+    const out = matchCommands('/pi');
+    expect(out[0]!.cmd).toBe('/pick-pack');
+  });
+});
+
+// The registry's 5 packs — the same summaries GET /api/design-systems returns.
+const PACK_FIXTURES = [
+  { name: 'shadcn-default' },
+  { name: 'vercel-geist' },
+  { name: 'mantine-default' },
+  { name: 'radix-themes' },
+  { name: 'tailwind-catalyst' },
+];
+
+describe('resolvePackName (fuzzy /pick-pack resolution)', () => {
+  it('resolves exact names case-insensitively', () => {
+    expect(resolvePackName('vercel-geist', PACK_FIXTURES)).toBe('vercel-geist');
+    expect(resolvePackName('Radix-Themes', PACK_FIXTURES)).toBe('radix-themes');
+  });
+
+  it('resolves suffix shortcuts (geist → vercel-geist)', () => {
+    expect(resolvePackName('geist', PACK_FIXTURES)).toBe('vercel-geist');
+  });
+
+  it('resolves substring shortcuts (radix, catalyst)', () => {
+    expect(resolvePackName('radix', PACK_FIXTURES)).toBe('radix-themes');
+    expect(resolvePackName('catalyst', PACK_FIXTURES)).toBe('tailwind-catalyst');
+  });
+
+  it('resolves dash-word synonyms (shadcn, tailwind, mantine)', () => {
+    expect(resolvePackName('shadcn', PACK_FIXTURES)).toBe('shadcn-default');
+    expect(resolvePackName('tailwind', PACK_FIXTURES)).toBe('tailwind-catalyst');
+    expect(resolvePackName('mantine', PACK_FIXTURES)).toBe('mantine-default');
+  });
+
+  it('resolves short prefixes of dash-words (ver → vercel-geist)', () => {
+    // 'ver' is ≥3 chars and prefix-matches the 'vercel' word.
+    expect(resolvePackName('ver', PACK_FIXTURES)).toBe('vercel-geist');
+  });
+
+  it('returns null for unknown or empty args', () => {
+    expect(resolvePackName('', PACK_FIXTURES)).toBeNull();
+    expect(resolvePackName('   ', PACK_FIXTURES)).toBeNull();
+    expect(resolvePackName('windows-95', PACK_FIXTURES)).toBeNull();
+  });
+
+  it('returns null when the pack list is empty (still loading)', () => {
+    expect(resolvePackName('geist', [])).toBeNull();
   });
 });
 

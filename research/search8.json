@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://ui.shadcn.com/docs/directory",
+    "name": "Registry Directory - Shadcn UI",
+    "snippet": "Discover community registries for shadcn/ui components and blocks. Free, production-ready UI blocks for marketing pages and application dashboards, built on ...",
+    "host_name": "ui.shadcn.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/birobirobiro/awesome-shadcn-ui",
+    "name": "birobirobiro/awesome-shadcn-ui",
+    "snippet": "Premium shadcn/ui registry with 1429 blocks, 1189 component variants, 14 templates, Figma kit, themes, and admin dashboard resources.",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wrappixel.com/blog/shadcn-ui-libraries",
+    "name": "Top 11 Shadcn UI Libraries for 2026",
+    "snippet": "Feb 23, 2026 — Explore the top 11 Shadcn UI libraries for 2026 . Discover high-quality blocks and components for dashboards, SaaS, and e-commerce apps built ...",
+    "host_name": "wrappixel.com",
+    "rank": 2,
+    "date": "Feb 23, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/reactjs/comments/1os8qhe/how_to_maintainmake_a_ui_componenttheme_library",
+    "name": "How to maintain/make a UI component,theme library like",
+    "snippet": "We're have a few 100 UI components and things are getting out of hand. What's the. Est way to create a UI library like ShadCN etc ?.",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ui.shadcn.com/docs/changelog",
+    "name": "Changelog - Shadcn UI",
+    "snippet": "July 2026 - Dynamic Search. Registries can now handle search server -side. When you run shadcn search , the CLI forwards the search parameters to your registry ... Read more",
+    "host_name": "ui.shadcn.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/templates/next.js/shadcn-ui-registry-starter",
+    "name": "shadcn/ui Registry Starter",
+    "snippet": "Registry Starter is a free, open-source template built with Next.js and shadcn/ui Registry to accelerate your AI-Native Design System.",
+    "host_name": "vercel.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ui.shadcn.com/docs/registry/examples",
+    "name": "Examples - shadcn/ui",
+    "snippet": "Examples of registry items: styles, components , css vars, etc. Add the login-01 block and calendar component to the project. This block installs the login-01  ...",
+    "host_name": "ui.shadcn.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.openstatus.dev/blog/shadcn-component-registry",
+    "name": "How We Built Our shadcn Component Registry",
+    "snippet": "Feb 15, 2026 — From duplicated components across three apps to a clean registry - our journey to building a shadcn / ui - compatible component library.",
+    "host_name": "www.openstatus.dev",
+    "rank": 7,
+    "date": "Feb 15, 2026",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040451373-Guide-to-auto-layout",
+    "name": "Guide to auto layout – Figma Learn - Help Center",
+    "snippet": "Set minimum or maximum width and height to any auto layout frame and its children. Open the Width dropdown to find Add min width and Add max width; Open the ... Adjust responsiveness with... · Ignore auto layout",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/setting-min-width-to-hug-35737",
+    "name": "Setting min-width to hug - Figma Forum",
+    "snippet": "Aug 13, 2024 · I set all columns to hug, except the last column, which is set to fill, so that the table spans the whole width of its container. Control Auto ...",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/we-really-need-fill-or-100-option-to-set-max-width-and-max-height-39237",
+    "name": "We really need \"fill\" or \"100%\" option to set max-width and max-height!",
+    "snippet": "Apr 4, 2025 · The width's component need to follow their inner content. Figma Design Auto layout design system. When choosing for a 'fill' width, the ...",
+    "host_name": "forum.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=h9g3KUpFCOw",
+    "name": "Figma Tip: Using Auto layout min and max values - YouTube",
+    "snippet": "Jul 13, 2023 · In this two minute tutorial, learn how to use min and max values when working with your designs. Added Bonus, learn how to use the updated ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/new-auto-layout-hug-content-and-fill-container-10200",
+    "name": "New Auto Layout, Hug content and Fill container - Figma Forum",
+    "snippet": "May 10, 2022 · The Pro Layout Panel plugin solves this issue completely. Here is a little video showing. Fit → Fill, but not Fill → Fit. Wrap elements in Auto ...",
+    "host_name": "forum.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/hug-until-container-is-too-small-17024",
+    "name": "Hug until container is too small - Figma Forum",
+    "snippet": "Nov 12, 2024 · You can use the max-width to force a wrap on a container that hugs until it reaches that max-width, however the max-width is a fixed value so ...",
+    "host_name": "forum.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=1odqpkfkDL8",
+    "name": "A Guide to Auto Layout: Best Practices, Tips & Tricks | Figma - YouTube",
+    "snippet": "Dec 4, 2024 · Let's talk about auto layout. Auto layout can be confusing at times so in this video, Designer Advocate Lauren Byrne walks you through when ...",
+    "host_name": "www.youtube.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1kga2na/struggling_to_understand_auto_layout_in_figma",
+    "name": "Struggling to Understand Auto Layout in Figma – Need Help Urgently!",
+    "snippet": "May 6, 2025 · The key to things being responsive to that you can set min and max widths for elements and also when in auto layout you can set them to fill or ...",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -8,9 +8,11 @@
 //
 // === TOOL INVENTORY (research-driven) =====================================
 //
-// Core canvas ops (existing):
-//   pen_create_shape, pen_update_shape, pen_delete_shape,
-//   pen_list_shapes, pen_clear, pen_set_background, pen_select_shape
+// Core canvas ops (existing — renamed to Figma-canonical names in Phase 6,
+// with the legacy names kept as aliases; see tool-aliases.ts / Appendix G §G.3):
+//   pen_create_node, pen_update_node, pen_delete_nodes,
+//   pen_get_metadata (supersedes pen_list_shapes), pen_clear,
+//   pen_set_background, pen_select_nodes
 //
 // Extended scenarios (added based on /research/*.json findings):
 //
@@ -22,7 +24,7 @@
 //      - pen_instantiate_component
 //
 //   3. Layer organization (Figma layers panel + AI plugins)
-//      - pen_duplicate_shape
+//      - pen_duplicate_nodes
 //      - pen_group_shapes
 //      - pen_ungroup_shapes
 //      - pen_align_shapes
@@ -57,6 +59,28 @@
 import { Type, type Static } from '@sinclair/typebox';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { CanvasPatch, Shape, ShapeType, AutoLayout, DesignTokens, ColorToken, TextStyleToken } from '../canvas/types';
+import { parseHtmlFragment, htmlToPenTreeDetailed } from '../canvas/html-import';
+import { serializeNodes } from '../canvas/serialize';
+import { resolvePenTreeDetailed, type ResolvedTreeNode } from '../pen/resolve';
+import type { PenChild } from '../pen/types';
+import { getLucideIcon, searchLucideIcons, lucidePromptCatalog } from '@/lib/icons';
+import { emitEvent, hasSink } from './plugins/event-bus';
+import {
+  aliasToolEntries,
+  deprecationNotice,
+  normalizeAutoLayoutV3,
+  normalizeToolParams,
+  resolveToolName,
+  type AliasToolLike,
+} from './tool-aliases';
+import {
+  awaitClientResponse,
+  getMeasuredBounds,
+  ROUNDTRIP_DEFAULTS,
+  type ComputedResult,
+  type ScreenshotResult,
+  type ExtractedHtmlResult,
+} from './client-roundtrip';
 
 // ---- Tool execution context -------------------------------------------------
 //
@@ -86,6 +110,71 @@ export interface CanvasToolContext {
   getDocument?: () => import('../canvas/types').CanvasDocument;
 }
 
+// ---- Multi-screen collision guard --------------------------------------------
+//
+// The "second prompt" failure mode: the user asks for one screen, then the
+// next screen in a separate prompt. If the agent believes it is drawing on a
+// fresh surface (a new page whose patch never reached the client, or plain
+// coordinate amnesia), it places the new screen frame at the FIRST screen's
+// coordinates and the two designs stack into visual garbage.
+//
+// This guard makes top-level screen frames collision-proof at the tool layer:
+// when a new top-level frame would MUTUALLY majority-overlap (≥50% of BOTH
+// rects) an existing top-level frame, it is placed to the right of all
+// existing screens instead, and the tool result reports the final position so
+// the agent anchors subsequent children correctly. Sections are excluded both
+// ways — enclosing frames is a section's purpose. Small frames nested inside
+// a screen's bounds (component previews, overlays) don't trip the mutual
+// threshold and pass through untouched.
+
+/// Frame types that participate in top-level collision avoidance.
+const TOP_LEVEL_FRAME_TYPES = new Set(['frame', 'component', 'component_set']);
+
+/// Gutter between side-by-side screens (matches the snapshot's placement hint).
+const SCREEN_GUTTER = 80;
+
+/// Resolve the placement for a new top-level frame. Pure function — exported
+/// for unit tests.
+export function resolveTopLevelFramePlacement(
+  existingShapes: Array<Pick<Shape, 'id' | 'type' | 'parentId' | 'x' | 'y' | 'width' | 'height'>>,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): { x: number; y: number; adjusted: boolean } {
+  const obstacles = existingShapes.filter(
+    (s) =>
+      !s.parentId &&
+      TOP_LEVEL_FRAME_TYPES.has(s.type) &&
+      Number.isFinite(s.x) && Number.isFinite(s.y) &&
+      Number.isFinite(s.width) && Number.isFinite(s.height) &&
+      s.width > 0 && s.height > 0,
+  );
+  if (obstacles.length === 0) return { x, y, adjusted: false };
+
+  const w = Number.isFinite(width) && width > 0 ? width : 100;
+  const h = Number.isFinite(height) && height > 0 ? height : 100;
+  const newArea = w * h;
+  let collision = false;
+  for (const o of obstacles) {
+    const ix = Math.max(0, Math.min(x + w, o.x + o.width) - Math.max(x, o.x));
+    const iy = Math.max(0, Math.min(y + h, o.y + o.height) - Math.max(y, o.y));
+    const inter = ix * iy;
+    if (inter <= 0) continue;
+    const oArea = o.width * o.height;
+    // Mutual majority overlap: the new frame covers ≥50% of the existing
+    // frame AND the existing frame covers ≥50% of the new one.
+    if (inter / newArea >= 0.5 && inter / oArea >= 0.5) {
+      collision = true;
+      break;
+    }
+  }
+  if (!collision) return { x, y, adjusted: false };
+
+  const maxRight = Math.max(...obstacles.map((o) => o.x + o.width));
+  return { x: Math.round(maxRight + SCREEN_GUTTER), y: Math.round(y), adjusted: true };
+}
+
 // ---- Parameter schemas ------------------------------------------------------
 
 const ShapeTypeSchema = Type.Union(
@@ -98,8 +187,9 @@ const ShapeTypeSchema = Type.Union(
     Type.Literal('group'),
     Type.Literal('path'),
     Type.Literal('image'),
+    Type.Literal('icon'),
   ],
-  { description: 'Shape kind' },
+  { description: 'Shape kind. Use \'icon\' for library icons (Lucide) — pass the icon name in `icon`' },
 );
 
 const ShapeInputSchema = Type.Object({
@@ -129,6 +219,9 @@ const ShapeInputSchema = Type.Object({
   src: Type.Optional(Type.String({ description: 'Image source URL (data URL or remote) — type=image only' })),
   closed: Type.Optional(Type.Boolean({ description: 'For path shapes: close the path (fill it). Default false.' })),
   blur: Type.Optional(Type.Number({ description: 'Gaussian blur radius in px' })),
+  // ---- Icon fields (type=icon — Lucide library glyphs, docs/lucide-icons.md) ----
+  icon: Type.Optional(Type.String({ description: 'Icon name from the Lucide catalog (type=icon only), e.g. "lock", "arrow-right", "chart-column". Call pen_search_icons to find names by meaning. NEVER invent a name.' })),
+  library: Type.Optional(Type.String({ description: 'Icon library. Only "lucide" is supported (default). Kept for .pen PenIcon spec compatibility.' })),
   // ---- High-fidelity extended fields (so the LLM can create polished shapes in one call) ----
   gradient: Type.Optional(Type.Object({
     type: Type.Union([Type.Literal('linear'), Type.Literal('radial')], { description: 'Gradient type' }),
@@ -153,13 +246,23 @@ const ShapeInputSchema = Type.Object({
     bottomLeft: Type.Number({ description: 'Bottom-left radius in px' }),
   }, { description: 'Per-corner border radii (overrides uniform radius). Use for toast cards, sheets.' })),
   autoLayout: Type.Optional(Type.Object({
-    direction: Type.Union([Type.Literal('horizontal'), Type.Literal('vertical')], { description: 'Layout direction' }),
-    gap: Type.Optional(Type.Number({ description: 'Gap between children in px (default 8)' })),
-    padding: Type.Optional(Type.Number({ description: 'Padding inside frame in px (default 16)' })),
+    direction: Type.Optional(Type.Union([Type.Literal('horizontal'), Type.Literal('vertical')], { description: 'Layout direction (legacy spelling; v3: layoutMode)' })),
+    gap: Type.Optional(Type.Number({ description: 'Gap between children in px (default 8). v3 alias: itemSpacing.' })),
+    padding: Type.Optional(Type.Number({ description: 'Padding inside frame in px (default 16). v3 aliases: paddingLeft/Right/Top/Bottom (uniform during the window).' })),
     alignX: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Horizontal alignment (default center)' })),
     alignY: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Vertical alignment (default center)' })),
-  }, { description: 'Auto Layout (flexbox) for frames. Prefer over manual x/y for contained UI.' })),
-  parentId: Type.Optional(Type.String({ description: 'Parent frame/group ID. If omitted, the shape is a top-level layer. (Note: to MOVE an existing shape into a frame, use pen_reparent_shape instead.)' })),
+    // Figma v3 spellings (spec Phase 6 / G.3 row 1) — normalized to the legacy
+    // fields above by normalizeToolParams before execute runs.
+    layoutMode: Type.Optional(Type.Union([Type.Literal('VERTICAL'), Type.Literal('HORIZONTAL'), Type.Literal('NONE'), Type.Literal('GRID')], { description: 'v3: VERTICAL | HORIZONTAL | NONE' })),
+    itemSpacing: Type.Optional(Type.Number({ description: 'v3: main-axis gap in px' })),
+    paddingLeft: Type.Optional(Type.Number({ description: 'v3: left padding' })),
+    paddingRight: Type.Optional(Type.Number({ description: 'v3: right padding' })),
+    paddingTop: Type.Optional(Type.Number({ description: 'v3: top padding' })),
+    paddingBottom: Type.Optional(Type.Number({ description: 'v3: bottom padding' })),
+    primaryAxisAlignItems: Type.Optional(Type.Union([Type.Literal('MIN'), Type.Literal('CENTER'), Type.Literal('MAX'), Type.Literal('SPACE_BETWEEN'), Type.Literal('SPACE_AROUND')], { description: 'v3: primary-axis alignment' })),
+    counterAxisAlignItems: Type.Optional(Type.Union([Type.Literal('MIN'), Type.Literal('CENTER'), Type.Literal('MAX')], { description: 'v3: counter-axis alignment' })),
+  }, { description: 'Auto Layout (flexbox) for frames — accepts legacy {direction,gap,padding,alignX,alignY} or Figma v3 {layoutMode,itemSpacing,paddingLeft…,primaryAxisAlignItems,counterAxisAlignItems}. Prefer over manual x/y for contained UI.' })),
+  parentId: Type.Optional(Type.String({ description: 'Parent frame/group ID. If omitted, the shape is a top-level layer. (Note: to MOVE an existing node into a frame, use pen_reparent_nodes instead.)' })),
 });
 
 /// LLMs occasionally pass a nested object param as a JSON STRING (observed
@@ -188,6 +291,31 @@ function parseLooseShapeInput(
 }
 
 // ---- Helpers ----------------------------------------------------------------
+
+/// Phase 4 §4.5 node-budget helper: count all descendants (transitive
+/// children) of a node in the flat `shapes` array. Used by pen_audit_design
+/// to flag top-level frames that exceed the 300-descendant budget.
+/// Recursive walk — bounded by the document size; cheap (O(N) per call)
+/// and only invoked once per top-level frame per audit.
+function countDescendants(shapes: Shape[], rootId: string): number {
+  // Build a children-index once: childId → parentId. Then BFS from rootId.
+  const childrenOf = new Map<string, string[]>();
+  for (const s of shapes) {
+    if (s.parentId == null) continue;
+    const list = childrenOf.get(s.parentId);
+    if (list) list.push(s.id);
+    else childrenOf.set(s.parentId, [s.id]);
+  }
+  let count = 0;
+  const queue: string[] = [...(childrenOf.get(rootId) ?? [])];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    count++;
+    const kids = childrenOf.get(id);
+    if (kids) queue.push(...kids);
+  }
+  return count;
+}
 
 /// Task 7-c P3.1 / T4 — design-token enforcement hint.
 ///
@@ -311,9 +439,9 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
     hintTokenSyntaxIfRawHex('textColor', params.textColor);
   }
   // Typography fields (passed through to the .pen node via patch.ts and
-  // applied by the SVG renderer). Without these, the system prompt's
-  // weight/alignment instructions were silently dropped — the AI could
-  // not actually specify a heading weight or a centered title.
+  // applied by the DOM renderer's styleFor.ts). Without these, the system
+  // prompt's weight/alignment instructions were silently dropped — the AI
+  // could not actually specify a heading weight or a centered title.
   if ((params as any).fontWeight !== undefined) out.fontWeight = Number((params as any).fontWeight) || 400;
   if ((params as any).fontFamily !== undefined) out.fontFamily = String((params as any).fontFamily);
   if ((params as any).letterSpacing !== undefined) out.letterSpacing = Number((params as any).letterSpacing) || 0;
@@ -325,6 +453,16 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
   if ((params as any).src !== undefined) out.src = String((params as any).src);
   if ((params as any).closed !== undefined) out.closed = !!(params as any).closed;
   if ((params as any).blur !== undefined) out.blur = Number((params as any).blur) || 0;
+  // Icon fields (type=icon): the library-qualified name flows through to the
+  // .pen PenIcon node (patch.ts passthrough) and is resolved to geometry at
+  // render time (docs/lucide-icons.md).
+  if ((params as any).icon !== undefined) out.iconName = String((params as any).icon);
+  if ((params as any).library !== undefined) out.iconLibrary = String((params as any).library);
+  // Icons default to the lucide 24×24 grid when size is omitted.
+  if (out.type === 'icon') {
+    if (params.width === undefined) out.width = 24;
+    if (params.height === undefined) out.height = 24;
+  }
   if (Array.isArray((params as any).points)) {
     out.points = (params as any).points.map((p: any) => ({ x: Number(p.x) || 0, y: Number(p.y) || 0 }));
   }
@@ -361,7 +499,12 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
   if ((params as any).visible !== undefined) out.visible = (params as any).visible !== false;
   // High-fidelity extended fields:
   if ((params as any).autoLayout) {
-    const al = (params as any).autoLayout;
+    // Accept BOTH spellings (spec Phase 6 / G.3 row 1): legacy
+    // {direction,gap,padding,alignX,alignY} and Figma v3
+    // {layoutMode,itemSpacing,paddingLeft…,primaryAxisAlignItems,counterAxisAlignItems}.
+    // normalizeToolParams folds v3→legacy at the execution boundary; this is
+    // the safety net for direct execute calls.
+    const al = normalizeAutoLayoutV3((params as any).autoLayout);
     out.autoLayout = {
       direction: al.direction === 'horizontal' ? 'horizontal' : 'vertical',
       gap: al.gap !== undefined ? Number(al.gap) : 8,
@@ -415,55 +558,16 @@ function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
-/// Escape a string for safe inclusion in HTML text content.
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 /// Escape a string for use in a RegExp.
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/// A curated subset of Lucide icon path data (24×24 viewBox).
-/// Each icon is an array of {x, y} polyline points. These are simplified
-/// approximations of the real Lucide icons — enough for placeholder use.
-const LUCIDE_ICONS: Record<string, Array<{ x: number; y: number }>> = {
-  check: [{ x: 20, y: 6 }, { x: 9, y: 17 }, { x: 4, y: 12 }],
-  x: [{ x: 18, y: 6 }, { x: 6, y: 18 }, { x: 6, y: 6 }, { x: 18, y: 18 }],
-  plus: [{ x: 12, y: 5 }, { x: 12, y: 19 }, { x: 5, y: 12 }, { x: 19, y: 12 }],
-  minus: [{ x: 5, y: 12 }, { x: 19, y: 12 }],
-  'arrow-right': [{ x: 5, y: 12 }, { x: 19, y: 12 }, { x: 12, y: 5 }, { x: 12, y: 19 }],
-  'arrow-left': [{ x: 19, y: 12 }, { x: 5, y: 12 }, { x: 12, y: 19 }, { x: 12, y: 5 }],
-  'arrow-up': [{ x: 12, y: 19 }, { x: 12, y: 5 }, { x: 5, y: 12 }, { x: 19, y: 12 }],
-  'arrow-down': [{ x: 12, y: 5 }, { x: 12, y: 19 }, { x: 5, y: 12 }, { x: 19, y: 12 }],
-  'chevron-down': [{ x: 6, y: 9 }, { x: 12, y: 15 }, { x: 18, y: 9 }],
-  'chevron-up': [{ x: 18, y: 15 }, { x: 12, y: 9 }, { x: 6, y: 15 }],
-  'chevron-left': [{ x: 15, y: 18 }, { x: 9, y: 12 }, { x: 15, y: 6 }],
-  'chevron-right': [{ x: 9, y: 18 }, { x: 15, y: 12 }, { x: 9, y: 6 }],
-  search: [{ x: 11, y: 11 }, { x: 21, y: 21 }, { x: 11, y: 11 }, { x: 11, y: 8 }, { x: 8, y: 8 }, { x: 8, y: 11 }, { x: 11, y: 11 }],
-  settings: [{ x: 12, y: 12 }, { x: 12, y: 12 }, { x: 19, y: 12 }, { x: 19, y: 12 }, { x: 12, y: 5 }, { x: 12, y: 5 }, { x: 5, y: 12 }, { x: 5, y: 12 }],
-  user: [{ x: 20, y: 21 }, { x: 20, y: 21 }, { x: 16, y: 16 }, { x: 12, y: 12 }, { x: 8, y: 16 }, { x: 4, y: 21 }, { x: 4, y: 21 }],
-  heart: [{ x: 20, y: 8 }, { x: 20, y: 8 }, { x: 12, y: 8 }, { x: 4, y: 8 }, { x: 4, y: 8 }, { x: 12, y: 21 }, { x: 20, y: 8 }],
-  star: [{ x: 12, y: 2 }, { x: 15, y: 8 }, { x: 22, y: 8 }, { x: 17, y: 13 }, { x: 19, y: 20 }, { x: 12, y: 16 }, { x: 5, y: 20 }, { x: 7, y: 13 }, { x: 2, y: 8 }, { x: 9, y: 8 }, { x: 12, y: 2 }],
-  bell: [{ x: 18, y: 8 }, { x: 18, y: 8 }, { x: 6, y: 8 }, { x: 6, y: 8 }, { x: 6, y: 8 }, { x: 18, y: 8 }, { x: 16, y: 16 }, { x: 8, y: 16 }, { x: 18, y: 8 }, { x: 12, y: 2 }, { x: 6, y: 8 }],
-  mail: [{ x: 4, y: 4 }, { x: 20, y: 4 }, { x: 20, y: 20 }, { x: 4, y: 20 }, { x: 4, y: 4 }, { x: 4, y: 4 }, { x: 12, y: 13 }, { x: 20, y: 4 }],
-  phone: [{ x: 22, y: 16 }, { x: 22, y: 16 }, { x: 16, y: 16 }, { x: 13, y: 13 }, { x: 13, y: 13 }, { x: 11, y: 11 }, { x: 11, y: 11 }, { x: 8, y: 8 }, { x: 2, y: 8 }, { x: 2, y: 8 }],
-  calendar: [{ x: 3, y: 4 }, { x: 21, y: 4 }, { x: 21, y: 20 }, { x: 3, y: 20 }, { x: 3, y: 4 }, { x: 3, y: 4 }, { x: 8, y: 2 }, { x: 8, y: 6 }, { x: 16, y: 2 }, { x: 16, y: 6 }],
-  clock: [{ x: 12, y: 12 }, { x: 12, y: 12 }, { x: 12, y: 6 }, { x: 12, y: 6 }, { x: 12, y: 12 }, { x: 16, y: 12 }, { x: 12, y: 12 }],
-  home: [{ x: 3, y: 12 }, { x: 12, y: 3 }, { x: 21, y: 12 }, { x: 5, y: 12 }, { x: 5, y: 21 }, { x: 19, y: 21 }, { x: 19, y: 12 }],
-  menu: [{ x: 3, y: 6 }, { x: 21, y: 6 }, { x: 3, y: 12 }, { x: 21, y: 12 }, { x: 3, y: 18 }, { x: 21, y: 18 }],
-  share: [{ x: 4, y: 12 }, { x: 4, y: 12 }, { x: 12, y: 20 }, { x: 12, y: 20 }, { x: 12, y: 20 }, { x: 20, y: 12 }, { x: 20, y: 12 }, { x: 12, y: 4 }, { x: 12, y: 4 }, { x: 12, y: 4 }, { x: 4, y: 12 }],
-  download: [{ x: 12, y: 3 }, { x: 12, y: 15 }, { x: 7, y: 10 }, { x: 12, y: 15 }, { x: 17, y: 10 }, { x: 4, y: 21 }, { x: 20, y: 21 }],
-  upload: [{ x: 12, y: 21 }, { x: 12, y: 9 }, { x: 7, y: 14 }, { x: 12, y: 9 }, { x: 17, y: 14 }, { x: 4, y: 3 }, { x: 20, y: 3 }],
-  edit: [{ x: 12, y: 20 }, { x: 9, y: 20 }, { x: 9, y: 20 }, { x: 5, y: 16 }, { x: 5, y: 16 }, { x: 16, y: 5 }, { x: 16, y: 5 }, { x: 19, y: 8 }, { x: 19, y: 8 }, { x: 8, y: 19 }],
-  trash: [{ x: 3, y: 6 }, { x: 21, y: 6 }, { x: 8, y: 6 }, { x: 8, y: 6 }, { x: 8, y: 6 }, { x: 16, y: 6 }, { x: 16, y: 6 }, { x: 19, y: 6 }, { x: 19, y: 6 }, { x: 18, y: 20 }, { x: 6, y: 20 }, { x: 6, y: 6 }],
-  copy: [{ x: 9, y: 9 }, { x: 9, y: 9 }, { x: 9, y: 21 }, { x: 9, y: 21 }, { x: 9, y: 21 }, { x: 21, y: 21 }, { x: 21, y: 21 }, { x: 21, y: 9 }, { x: 21, y: 9 }, { x: 9, y: 9 }, { x: 9, y: 9 }, { x: 4, y: 4 }, { x: 4, y: 4 }, { x: 4, y: 16 }],
-  lock: [{ x: 5, y: 11 }, { x: 5, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 5, y: 11 }, { x: 5, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 11 }],
-  unlock: [{ x: 5, y: 11 }, { x: 5, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 11 }, { x: 5, y: 11 }, { x: 5, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 11 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 8, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 7 }, { x: 16, y: 4 }],
-  eye: [{ x: 2, y: 12 }, { x: 12, y: 12 }, { x: 22, y: 12 }, { x: 12, y: 12 }, { x: 2, y: 12 }, { x: 12, y: 5 }, { x: 12, y: 5 }, { x: 19, y: 12 }, { x: 19, y: 12 }, { x: 12, y: 19 }, { x: 12, y: 19 }, { x: 5, y: 12 }],
-  'eye-off': [{ x: 2, y: 2 }, { x: 2, y: 2 }, { x: 22, y: 22 }, { x: 9, y: 9 }, { x: 9, y: 9 }, { x: 15, y: 15 }, { x: 15, y: 15 }, { x: 2, y: 12 }, { x: 12, y: 12 }, { x: 22, y: 12 }],
-};
+/// DEPRECATED polyline icon approximations — REMOVED.
+/// Real Lucide icons now ship as first-class `icon` nodes with geometry from
+/// the generated registry (src/lib/icons, docs/lucide-icons.md). The old
+/// table mangled multi-contour icons into single connected polylines with
+/// degenerate repeated points; every renderer now paints true lucide glyphs.
 
 // ---- Tool factory -----------------------------------------------------------
 
@@ -547,15 +651,16 @@ export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
 
 const createShape = defineTool({
-    name: 'pen_create_shape',
-    label: 'Create Shape',
+    name: 'pen_create_node',
+    label: 'Create Node',
     description:
-      'Create a new shape on the canvas. Use this to add rectangles, ellipses, text, lines, frames (artboards), or groups. ' +
-      'Returns the new shape id. The shape appears immediately on every viewer\'s screen.',
-    promptSnippet: 'Create canvas shapes (rectangle, ellipse, text, line, frame).',
+      'Create a new node on the canvas — the workhorse. Use this to add rectangles, ellipses, text, lines, frames (artboards), groups, or ICONS (Lucide glyphs via type:"icon" + icon:"<name>"). ' +
+      'Returns the new node id. The node appears immediately on every viewer\'s screen.',
+    promptSnippet: 'Create canvas nodes (rectangle, ellipse, text, line, frame, icon).',
     promptGuidelines: [
-      'When the user asks to "add" / "draw" / "create" / "put" a shape, use pen_create_shape.',
-      'Always specify `type`, `x`, `y`, `width`, `height`. For text shapes include `text`, `fontSize`, `textColor`.',
+      'When the user asks to "add" / "draw" / "create" / "put" a node, use pen_create_node.',
+      'Always specify `type`, `x`, `y`, `width`, `height`. For text nodes include `text`, `fontSize`, `textColor`.',
+      'For ICONS use type:"icon" with icon:"<lucide-name>" (find names via pen_search_icons) — never draw icons with path nodes or emoji.',
       'Coordinates are canvas-space pixels; the visible area at zoom 1 is roughly 0..1200 x 0..800.',
     ],
     parameters: ShapeInputSchema,
@@ -564,6 +669,52 @@ const createShape = defineTool({
       const coerced = coerceShapeInput(params);
       // Default type to 'rectangle' if the LLM omitted it.
       if (!coerced.type) coerced.type = 'rectangle';
+      // Icon nodes: validate the name against the Lucide catalog and resolve
+      // tolerant spellings ("Trash 2", "lucide-lock") to canonical names.
+      // A silent unknown name would render a dashed placeholder — surfacing
+      // suggestions here turns the miss into a self-correcting round-trip.
+      if (coerced.type === 'icon') {
+        const rawName = coerced.iconName ?? '';
+        if (!rawName) {
+          return {
+            content: [{ type: 'text', text: 'Error: icon nodes require the `icon` field (a Lucide name, e.g. "lock"). Call pen_search_icons with a semantic query to find names.' }],
+            details: { error: 'icon_name_missing' },
+            isError: true as any,
+          };
+        }
+        const resolved = getLucideIcon(rawName);
+        if (!resolved) {
+          const suggestions = searchLucideIcons(String(rawName).replace(/[-_]+/g, ' '), { limit: 6 })
+            .map((m) => m.name)
+            .join(', ');
+          return {
+            content: [{ type: 'text', text: `Error: icon "${rawName}" is not in the Lucide catalog.${suggestions ? ` Closest matches: ${suggestions}.` : ''} Use pen_search_icons {query:"..."} to find the right name.` }],
+            details: { error: 'icon_not_found', requested: rawName, suggestions },
+            isError: true as any,
+          };
+        }
+        coerced.iconName = resolved.name;
+        coerced.iconLibrary = 'lucide';
+      }
+      // Multi-screen collision guard: a new TOP-LEVEL frame that would stack
+      // on an existing screen is auto-placed to the right of all screens
+      // (see resolveTopLevelFramePlacement). Children (parentId set) and
+      // non-frame nodes pass through untouched.
+      let placementAdjusted = false;
+      if (!coerced.parentId && TOP_LEVEL_FRAME_TYPES.has(coerced.type as string)) {
+        const placement = resolveTopLevelFramePlacement(
+          ctx.getShapes(),
+          coerced.x ?? 0,
+          coerced.y ?? 0,
+          coerced.width ?? 100,
+          coerced.height ?? 100,
+        );
+        if (placement.adjusted) {
+          coerced.x = placement.x;
+          coerced.y = placement.y;
+          placementAdjusted = true;
+        }
+      }
       const patch: CanvasPatch = {
         op: 'add',
         shapeId: id,
@@ -571,11 +722,34 @@ const createShape = defineTool({
         summary: `Created ${coerced.type}${params.name ? ` "${params.name}"` : ''} at (${coerced.x ?? 0}, ${coerced.y ?? 0})`,
       };
       ctx.applyPatch(patch);
+      const iconNote =
+        coerced.type === 'icon' && coerced.iconName
+          ? ` Lucide icon "${coerced.iconName}" — recolor via stroke.`
+          : '';
+      const placementNote = placementAdjusted
+        ? ` NOTE: auto-placed to free space (would have covered an existing screen) — position subsequent child layers relative to THESE coordinates.`
+        : '';
+      // Frame-overflow warning (stress-test finding): the model stacks
+      // vertical sections without checking the frame's bottom edge, and
+      // frames don't clip — spilled layers render as broken boxes below the
+      // screen. Warn at creation time so the model self-corrects.
+      let overflowNote = '';
+      if (coerced.parentId) {
+        const parent = ctx.getShapes().find((s) => s.id === coerced.parentId);
+        if (parent && parent.type === 'frame') {
+          const childBottom = (coerced.y ?? 0) + (coerced.height ?? 0);
+          const frameBottom = parent.y + parent.height;
+          const over = childBottom - frameBottom;
+          if (over > 40) {
+            overflowNote = ` NOTE: this layer's bottom edge is ${Math.round(over)}px BELOW its parent frame "${parent.name}" (${Math.round(parent.height)}px tall). Keep content INSIDE the screen frame — compress the vertical layout (reduce heights/spacing), or if the screen genuinely needs more room, resize the frame deliberately with pen_update_node first.`;
+          }
+        }
+      }
       return {
         content: [
           {
             type: 'text',
-            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.`,
+            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.${iconNote}${placementNote}${overflowNote}`,
           },
         ],
         details: { shapeId: id, patch },
@@ -584,25 +758,28 @@ const createShape = defineTool({
   });
 
   const updateShape = defineTool({
-    name: 'pen_update_shape',
-    label: 'Update Shape',
+    name: 'pen_update_node',
+    label: 'Update Node',
     description:
-      'Update one or more properties of an existing shape. Only the fields you provide are changed; others stay the same. ' +
-      'Use this to move, resize, recolor, or edit text. Returns the patched shape.',
-    promptSnippet: 'Update properties of an existing shape (position, size, fill, text, …).',
+      'Update one or more properties of an existing node. Only the fields you provide are changed; others stay the same. ' +
+      'Use this to move, resize, recolor, or edit text. Returns the patched node.',
+    promptSnippet: 'Update properties of an existing node (position, size, fill, text, …).',
     promptGuidelines: [
-      'Call pen_list_shapes first if you don\'t know the id.',
-      'You may pass any subset of shape properties — only the ones you include are changed.',
+      'Call pen_get_metadata first if you don\'t know the node id.',
+      'You may pass any subset of node properties — only the ones you include are changed.',
       'To change text content, set `text`. To change color, set `fill` (hex like #ff0000).',
     ],
     parameters: Type.Object({
-      shapeId: Type.Optional(Type.String({ description: 'ID of the shape to update (alias: id)' })),
-      id: Type.Optional(Type.String({ description: 'Alias for shapeId' })),
+      nodeId: Type.Optional(Type.String({ description: 'ID of the node to update (aliases: id, shapeId)' })),
+      id: Type.Optional(Type.String({ description: 'Alias for nodeId' })),
+      shapeId: Type.Optional(Type.String({ description: 'Legacy alias for nodeId' })),
       changes: Type.Optional(LooseShapeInputSchema),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      // Tolerate LLMs that pass `id` instead of `shapeId`.
-      const shapeId = params.shapeId ?? (params as any).id;
+      // Tolerate LLMs that pass `id` or the legacy `shapeId` instead of `nodeId`
+      // (normalizeToolParams folds shapeId→nodeId at the execution boundary;
+      // the fallbacks here cover direct execute calls).
+      const shapeId = params.nodeId ?? params.shapeId ?? (params as any).id;
       const existing = ctx.getShapes().find((s) => s.id === shapeId);
       if (!existing) {
         return {
@@ -618,7 +795,7 @@ const createShape = defineTool({
       let rawChanges = parseLooseShapeInput(params.changes);
       if (!rawChanges || Object.keys(rawChanges).length === 0) {
         // Strip metadata fields, keep shape fields.
-        const { shapeId: _s, id: _i, changes: _c, ...rest } = params as any;
+        const { nodeId: _n, shapeId: _s, id: _i, changes: _c, ...rest } = params as any;
         rawChanges = rest;
       }
       // Figma-hierarchy safety net: the LLM may pass `parent` or `parentId`
@@ -626,7 +803,7 @@ const createShape = defineTool({
       // update patch applier silently DROPS this field because ShapeInputSchema
       // doesn't declare it. Detect it here and route to a separate `reparent`
       // patch so the LLM's intent is honored, instead of failing silently.
-      // The response also tells the LLM to use pen_reparent_shape directly
+      // The response also tells the LLM to use pen_reparent_nodes directly
       // next time — turning a silent failure into a successful reparent + an
       // LLM education hint.
       let reparentPatch: CanvasPatch | null = null;
@@ -644,14 +821,14 @@ const createShape = defineTool({
           const newParent = ctx.getShapes().find((s) => s.id === newParentId);
           if (!newParent) {
             return {
-              content: [{ type: 'text', text: `Error: cannot reparent — no shape with id ${newParentId}. Hint: use pen_reparent_shape for moving shapes between parents.` }],
+              content: [{ type: 'text', text: `Error: cannot reparent — no shape with id ${newParentId}. Hint: use pen_reparent_nodes for moving nodes between parents.` }],
               details: { error: 'parent_not_found', newParentId },
               isError: true as any,
             };
           }
           if (newParent.type !== 'frame' && newParent.type !== 'group') {
             return {
-              content: [{ type: 'text', text: `Error: cannot reparent into ${newParent.type} "${newParent.name}" — parent must be a frame or group. Hint: use pen_reparent_shape.` }],
+              content: [{ type: 'text', text: `Error: cannot reparent into ${newParent.type} "${newParent.name}" — parent must be a frame or group. Hint: use pen_reparent_nodes.` }],
               details: { error: 'parent_not_container', parentType: newParent.type },
               isError: true as any,
             };
@@ -670,14 +847,14 @@ const createShape = defineTool({
           shapeId,
           newParentId,
           keepAbsolutePosition: true,
-          summary: `Reparented ${existing.name} → ${newParentId ? 'new parent' : 'root'} (via pen_update_shape parent arg)`,
+          summary: `Reparented ${existing.name} → ${newParentId ? 'new parent' : 'root'} (via pen_update_node parent arg)`,
         };
         // Strip parent/parentId from the changes so the update patch doesn't
         // also try to set them (the update op would silently drop them anyway,
         // but stripping keeps the changes payload clean).
         const { parent: _p, parentId: _pi, ...restChanges } = changesAny;
         rawChanges = restChanges;
-        reparentHint = ` Also reparented to ${newParentId ? `parent ${newParentId}` : 'root'} (TIP: use pen_reparent_shape directly for explicit reparenting).`;
+        reparentHint = ` Also reparented to ${newParentId ? `parent ${newParentId}` : 'root'} (TIP: use pen_reparent_nodes directly for explicit reparenting).`;
       }
       const coerced = coerceShapeInput(rawChanges);
       // If the LLM passed no actual changes (e.g. only `parent`), and we
@@ -713,28 +890,32 @@ const createShape = defineTool({
   });
 
   const deleteShape = defineTool({
-    name: 'pen_delete_shape',
-    label: 'Delete Shape',
-    description: 'Delete one or more shapes from the canvas by id. This is permanent for the current session.',
-    promptSnippet: 'Delete shapes by id.',
+    name: 'pen_delete_nodes',
+    label: 'Delete Nodes',
+    description: 'Delete one or more nodes from the canvas by id. This is permanent for the current session.',
+    promptSnippet: 'Delete nodes by id.',
     promptGuidelines: [
-      'Use pen_list_shapes to find ids before deleting.',
-      'You can delete multiple shapes in one call by passing multiple ids.',
+      'Use pen_get_metadata to find ids before deleting.',
+      'You can delete multiple nodes in one call by passing multiple ids.',
     ],
     parameters: Type.Object({
-      shapeIds: Type.Array(Type.String(), { description: 'Ids of shapes to delete' }),
+      nodeIds: Type.Array(Type.String(), { description: 'Ids of nodes to delete (legacy alias: shapeIds)' }),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      // Defensive against LLM arg-shape errors: the schema says shapeIds is an
-      // array, but LLMs occasionally pass `shapeId` (singular) or omit it
+      // Defensive against LLM arg-shape errors: the schema says nodeIds is an
+      // array, but LLMs occasionally pass `nodeId` (singular) or omit it
       // entirely. Coerce to an empty array so we return a proper "not found"
-      // error instead of crashing inside `params.shapeIds.includes(...)`.
-      // (Cast through `any` because the schema only declares `shapeIds`, but
-      // we intentionally check for the common LLM mistake of passing `shapeId`.)
+      // error instead of crashing inside `params.nodeIds.includes(...)`.
+      // (Cast through `any` because the schema only declares `nodeIds`, but
+      // we intentionally check for the common LLM mistakes of passing the
+      // singular or the legacy spelling.)
       const p = params as any;
-      const shapeIds: string[] = Array.isArray(p?.shapeIds)
-        ? p.shapeIds.filter((id: unknown): id is string => typeof id === 'string')
-        : (typeof p?.shapeId === 'string' ? [p.shapeId] : []);
+      const shapeIds: string[] = Array.isArray(p?.nodeIds)
+        ? p.nodeIds.filter((id: unknown): id is string => typeof id === 'string')
+        : (typeof p?.nodeId === 'string' ? [p.nodeId]
+          : Array.isArray(p?.shapeIds)
+            ? p.shapeIds.filter((id: unknown): id is string => typeof id === 'string')
+            : (typeof p?.shapeId === 'string' ? [p.shapeId] : []));
       const existing = ctx.getShapes().filter((s) => shapeIds.includes(s.id));
       if (existing.length === 0) {
         return {
@@ -756,40 +937,9 @@ const createShape = defineTool({
     },
   });
 
-  const listShapes = defineTool({
-    name: 'pen_list_shapes',
-    label: 'List Shapes',
-    description:
-      'List every shape currently on the canvas. Returns each shape\'s id, name, type, position, size, and key style. ' +
-      'Always call this before mutating existing shapes if you don\'t already know the ids.',
-    promptSnippet: 'List all shapes on the canvas with their ids and properties.',
-    promptGuidelines: [
-      'Call this before update/delete operations to find the right shape id.',
-    ],
-    parameters: Type.Object({}),
-    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const shapes = ctx.getShapes();
-      const r = (v: unknown) => { const n = typeof v === 'number' ? v : Number(v); return Number.isFinite(n) ? Math.round(n) : 0; };
-      const summary = shapes
-        .map(
-          (s) =>
-            `• ${s.id} | ${s.type} "${s.name}" | pos=(${r(s.x)},${r(s.y)}) size=${r(s.width)}×${r(s.height)} fill=${s.fill}${s.text ? ` text="${s.text}"` : ''}`,
-        )
-        .join('\n');
-      // (s.text ? ... : '') guards against undefined — only shows text= when there's actual text.
-      return {
-        content: [
-          {
-            type: 'text',
-            text: shapes.length === 0
-              ? 'Canvas is empty. No shapes yet.'
-              : `${shapes.length} shape(s) on canvas:\n${summary}`,
-          },
-        ],
-        details: { count: shapes.length, shapes },
-      };
-    },
-  });
+  // (pen_list_shapes was superseded by pen_get_metadata — spec Phase 6 / G.3.
+  //  The legacy name stays callable via the alias registry in tool-aliases.ts:
+  //  it resolves to pen_get_metadata and appends a migration notice.)
 
   const clearCanvas = defineTool({
     name: 'pen_clear',
@@ -833,23 +983,27 @@ const createShape = defineTool({
   });
 
   const selectShape = defineTool({
-    name: 'pen_select_shape',
-    label: 'Select Shape',
+    name: 'pen_select_nodes',
+    label: 'Select Nodes',
     description:
-      'Visually highlight one or more shapes on the canvas (a brief flash). Use this to point at a shape you just created or are describing.',
-    promptSnippet: 'Visually highlight shapes on the canvas.',
+      'Visually highlight one or more nodes on the canvas (a brief flash). Use this to point at a node you just created or are describing.',
+    promptSnippet: 'Visually highlight nodes on the canvas.',
     parameters: Type.Object({
-      shapeIds: Type.Array(Type.String(), { description: 'Ids to select' }),
+      nodeIds: Type.Array(Type.String(), { description: 'Node ids to select (legacy alias: shapeIds)' }),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const p = params as any;
+      const nodeIds: string[] = Array.isArray(p?.nodeIds)
+        ? p.nodeIds.filter((id: unknown): id is string => typeof id === 'string')
+        : (Array.isArray(p?.shapeIds) ? p.shapeIds : []);
       const patch: CanvasPatch = {
         op: 'select',
-        shapeIds: params.shapeIds,
-        summary: `Selected ${params.shapeIds.length} shape(s)`,
+        shapeIds: nodeIds,
+        summary: `Selected ${nodeIds.length} node(s)`,
       };
       ctx.applyPatch(patch);
       return {
-        content: [{ type: 'text', text: `Highlighted ${params.shapeIds.length} shape(s).` }],
+        content: [{ type: 'text', text: `Highlighted ${nodeIds.length} node(s).` }],
         details: { patch },
       };
     },
@@ -860,37 +1014,41 @@ const createShape = defineTool({
   // =====================================================================
 
   const duplicateShape = defineTool({
-    name: 'pen_duplicate_shape',
-    label: 'Duplicate Shapes',
+    name: 'pen_duplicate_nodes',
+    label: 'Duplicate Nodes',
     description:
-      'Duplicate one or more shapes. Each copy is offset 24px down-right from its original. ' +
-      'Returns the new shape ids. Useful for repeating elements (lists, grids).',
-    promptSnippet: 'Duplicate shapes (with new ids).',
+      'Duplicate one or more nodes. Each copy is offset 24px down-right from its original. ' +
+      'Returns the new node ids. Useful for repeating elements (lists, grids).',
+    promptSnippet: 'Duplicate nodes (with new ids).',
     promptGuidelines: [
-      'Use this when the user asks to "copy" / "duplicate" / "repeat" a shape.',
-      'The duplicate is offset 24px — use pen_align_shapes or pen_update_shape to reposition.',
+      'Use this when the user asks to "copy" / "duplicate" / "repeat" a node.',
+      'The duplicate is offset 24px — use pen_align_shapes or pen_update_node to reposition.',
     ],
     parameters: Type.Object({
-      shapeIds: Type.Array(Type.String(), { description: 'Ids of shapes to duplicate' }),
+      nodeIds: Type.Array(Type.String(), { description: 'Ids of nodes to duplicate (legacy alias: shapeIds)' }),
       offsetX: Type.Optional(Type.Number({ description: 'Horizontal offset in px (default 24)' })),
       offsetY: Type.Optional(Type.Number({ description: 'Vertical offset in px (default 24)' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const ox = params.offsetX ?? 24;
       const oy = params.offsetY ?? 24;
+      const p = params as any;
+      const nodeIds: string[] = Array.isArray(p?.nodeIds)
+        ? p.nodeIds.filter((id: unknown): id is string => typeof id === 'string')
+        : (Array.isArray(p?.shapeIds) ? p.shapeIds : []);
       const patch: CanvasPatch = {
         op: 'duplicate',
-        shapeIds: params.shapeIds,
-        summary: `Duplicated ${params.shapeIds.length} shape(s)`,
+        shapeIds: nodeIds,
+        summary: `Duplicated ${nodeIds.length} node(s)`,
       };
       // The patch ops carry the offset implicitly (see patch.ts duplicate case).
       // We can't pass per-call offsets through CanvasPatch without extending
       // the type — so we ignore custom offsets here and apply the default.
-      // (If the user really needs custom offsets, they can update_shape after.)
+      // (If the user really needs custom offsets, they can update_node after.)
       void ox; void oy;
       ctx.applyPatch(patch);
       return {
-        content: [{ type: 'text', text: `Duplicated ${params.shapeIds.length} shape(s) (offset 24px).` }],
+        content: [{ type: 'text', text: `Duplicated ${nodeIds.length} node(s) (offset 24px).` }],
         details: { patch },
       };
     },
@@ -950,51 +1108,55 @@ const createShape = defineTool({
   // =====================================================================
 
   const reparentShape = defineTool({
-    name: 'pen_reparent_shape',
-    label: 'Reparent Shape',
+    name: 'pen_reparent_nodes',
+    label: 'Reparent Nodes',
     description:
-      'Move one or more shapes to a new parent (frame or group). Figma-hierarchy semantics: by default each ' +
-      'shape\'s absolute canvas position is preserved by remapping its stored relative x/y to the new parent\'s ' +
+      'Move one or more nodes to a new parent (frame or group). Figma-hierarchy semantics: by default each ' +
+      'node\'s absolute canvas position is preserved by remapping its stored relative x/y to the new parent\'s ' +
       'coordinate frame. Pass keepAbsolutePosition=false to keep the stored x/y verbatim against the new ' +
       'parent. Reparenting into the node itself or one of its descendants is rejected (would create a cycle). ' +
-      'Supports batch mode: pass shapeIds (plural) to reparent multiple shapes into the same new parent in one call.',
-    promptSnippet: 'Move shape(s) to a new parent (frame/group).',
+      'Supports batch mode: pass nodeIds (plural) to reparent multiple nodes into the same new parent in one call.',
+    promptSnippet: 'Move node(s) to a new parent (frame/group).',
     promptGuidelines: [
       'The new parent must be a frame or group (containers only). Use null/empty for root.',
-      'By default each shape\'s absolute position is preserved — pass keepAbsolutePosition=false only when ' +
+      'By default each node\'s absolute position is preserved — pass keepAbsolutePosition=false only when ' +
         'you want the stored relative x/y to be reinterpreted verbatim against the new parent.',
-      'Pass shapeIds (plural array) for batch reparent — all shapes go to the SAME new parent. ' +
-        'Example: shapeIds=["a","b"], newParentId="frame1".',
+      'Pass nodeIds (plural array) for batch reparent — all nodes go to the SAME new parent. ' +
+        'Example: nodeIds=["a","b"], parentId="frame1".',
     ],
     parameters: Type.Object({
-      shapeIds: Type.Optional(Type.Array(Type.String(), { description: 'IDs of nodes to move (batch). All shapes reparent to the SAME new parent in one call.' })),
-      shapeId: Type.Optional(Type.String({ description: 'ID of a single node to move (alias for shapeIds: [shapeId])' })),
-      newParentId: Type.Optional(Type.Union(
+      nodeIds: Type.Optional(Type.Array(Type.String(), { description: 'IDs of nodes to move (batch). All nodes reparent to the SAME new parent in one call. Legacy alias: shapeIds.' })),
+      nodeId: Type.Optional(Type.String({ description: 'ID of a single node to move (alias for nodeIds: [nodeId]). Legacy alias: shapeId.' })),
+      parentId: Type.Optional(Type.Union(
         [Type.String({ description: 'ID of the new parent (frame or group)' }), Type.Null()],
-        { description: 'New parent ID, or null/empty to move to root (top-level). Aliases: parentId, parent.' },
+        { description: 'New parent ID, or null/empty to move to root (top-level). Aliases: newParentId, parent.' },
       )),
-      parentId: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Alias for newParentId (.pen convention)' })),
-      parent: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Alias for newParentId' })),
-      index: Type.Optional(Type.Number({ description: 'Insertion index inside the new parent\'s children. Default = append. Only applies to single-shape reparent.' })),
+      newParentId: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Legacy alias for parentId (.pen 2.17 spelling)' })),
+      parent: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Alias for parentId' })),
+      index: Type.Optional(Type.Number({ description: 'Insertion index inside the new parent\'s children. Default = append. Only applies to single-node reparent.' })),
       keepAbsolutePosition: Type.Optional(Type.Boolean({ description: 'Default true — remap x/y so the node stays put visually. False = keep stored x/y verbatim.' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shapes = ctx.getShapes();
-      // Tolerate argument-shape variations:
-      //   - shapeIds (plural array, batch) — primary.
-      //   - shapeId (singular string) — alias, treat as [shapeId].
-      const ids: string[] = Array.isArray(params.shapeIds)
-        ? params.shapeIds.filter((id: unknown): id is string => typeof id === 'string')
-        : (typeof params.shapeId === 'string' ? [params.shapeId] : []);
+      // Tolerate argument-shape variations (normalizeToolParams folds the
+      // legacy spellings onto the canonical ones at the execution boundary):
+      //   - nodeIds (plural array, batch) — primary.
+      //   - nodeId (singular string) — alias, treat as [nodeId].
+      const ids: string[] = Array.isArray(params.nodeIds)
+        ? params.nodeIds.filter((id: unknown): id is string => typeof id === 'string')
+        : (typeof params.nodeId === 'string' ? [params.nodeId]
+          : Array.isArray((params as any).shapeIds)
+            ? ((params as any).shapeIds as unknown[]).filter((id): id is string => typeof id === 'string')
+            : (typeof (params as any).shapeId === 'string' ? [(params as any).shapeId] : []));
       if (ids.length === 0) {
         return {
-          content: [{ type: 'text', text: 'Error: no shapeId(s) provided. Pass shapeIds (array) or shapeId (string).' }],
+          content: [{ type: 'text', text: 'Error: no nodeId(s) provided. Pass nodeIds (array) or nodeId (string).' }],
           details: { error: 'no_shape_ids' },
           isError: true as any,
         };
       }
-      // Resolve newParentId from any of the aliases.
-      const newParentRaw = params.newParentId ?? params.parentId ?? params.parent ?? null;
+      // Resolve parentId from any of the aliases.
+      const newParentRaw = params.parentId ?? params.newParentId ?? params.parent ?? null;
       const newParentId: string | null =
         newParentRaw === null || newParentRaw === '' || newParentRaw === undefined
           ? null
@@ -1017,7 +1179,7 @@ const createShape = defineTool({
           };
         }
       }
-      // Reparent each shape, collecting patches + per-shape errors.
+      // Reparent each node, collecting patches + per-node errors.
       // Cycle prevention is handled by the patch applier (moveNode uses
       // isDescendant). We collect errors but still apply the valid reparents.
       const patches: CanvasPatch[] = [];
@@ -1025,13 +1187,13 @@ const createShape = defineTool({
       const keepAbsolute = params.keepAbsolutePosition ?? true;
       for (const id of ids) {
         const shape = shapes.find((s) => s.id === id);
-        if (!shape) { errors.push(`no shape with id ${id}`); continue; }
+        if (!shape) { errors.push(`no node with id ${id}`); continue; }
         if (newParentId === id) { errors.push(`cannot reparent "${shape.name}" into itself`); continue; }
         patches.push({
           op: 'reparent',
           shapeId: id,
           newParentId,
-          index: ids.length === 1 ? params.index : undefined, // index only valid for single-shape reparent
+          index: ids.length === 1 ? params.index : undefined, // index only valid for single-node reparent
           keepAbsolutePosition: keepAbsolute,
           summary: `Reparented "${shape.name}" → ${newParentId ? `parent "${shapes.find((s) => s.id === newParentId)?.name ?? newParentId}"` : 'root'}`,
         });
@@ -1041,7 +1203,7 @@ const createShape = defineTool({
       const parentLabel = newParentId ? `parent "${newParentId}"` : 'root';
       const summary = patches.length === 0
         ? `Reparent failed: ${errors.join('; ')}`
-        : `Reparented ${patches.length} shape(s) → ${parentLabel}.${errors.length ? ` Errors: ${errors.join('; ')}` : ''}`;
+        : `Reparented ${patches.length} node(s) → ${parentLabel}.${errors.length ? ` Errors: ${errors.join('; ')}` : ''}`;
       const isError = patches.length === 0;
       return {
         content: [{ type: 'text', text: isError ? `Error: ${summary}` : summary }],
@@ -1198,7 +1360,7 @@ const createShape = defineTool({
       'Only meaningful for `frame` or `group` shapes.',
     promptSnippet: 'Configure Auto Layout on a frame/group (direction, gap, padding, alignment).',
     promptGuidelines: [
-      'The frame must already exist — create it with pen_create_shape first.',
+      'The frame must already exist — create it with pen_create_node first.',
       'Children (shapes whose parentId points at this frame) will be repositioned.',
     ],
     parameters: Type.Object({
@@ -1282,38 +1444,12 @@ const createShape = defineTool({
   // COMPONENTS & VARIANTS (research: Figma components + AI plugins)
   // =====================================================================
 
-  const createComponent = defineTool({
-    name: 'pen_create_component',
-    label: 'Create Component',
-    description:
-      'Mark an existing shape as a reusable component (sets componentId = its own id, so it can be instantiated). ' +
-      'The shape becomes the "main instance" — future calls to pen_instantiate_component create linked copies.',
-    promptSnippet: 'Turn a shape into a reusable component.',
-    parameters: Type.Object({
-      shapeId: Type.String({ description: 'ID of the shape to mark as a component' }),
-    }),
-    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
-      if (!shape) {
-        return {
-          content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }],
-          details: { error: 'not_found' },
-          isError: true as any,
-        };
-      }
-      const patch: CanvasPatch = {
-        op: 'update',
-        shapeId: params.shapeId,
-        shape: { componentId: params.shapeId, name: `Component: ${shape.name}` },
-        summary: `Marked "${shape.name}" as a component`,
-      };
-      ctx.applyPatch(patch);
-      return {
-        content: [{ type: 'text', text: `Shape ${params.shapeId} is now a component.` }],
-        details: { patch, componentId: params.shapeId },
-      };
-    },
-  });
+  // (Spec Phase 6 / G.3: the legacy mark-a-shape-as-component tool that lived
+  //  under `pen_create_component` here was folded away — the canonical
+  //  `pen_create_component` is now the Figma-shaped create-a-new-COMPONENT
+  //  tool in figma-tools.ts (the figma_ spelling is a permanent alias), and
+  //  the mark-an-existing-shape flow is served by pen_convert_to_component,
+  //  which takes the identical shapeId param and produces a proper Component.)
 
   const instantiateComponent = defineTool({
     name: 'pen_instantiate_component',
@@ -1382,10 +1518,10 @@ const createShape = defineTool({
   //   6. pen_combine_as_variants      — wrap components into a ComponentSet
   //   7. pen_swap_variant             — switch which variant the instance shows
   //
-  // The legacy `pen_create_component` + `pen_instantiate_component` tools above
-  // are kept for backward compat — they set `componentId` on a shape / shallow
-  // copy without producing a proper PenRef. New agent code should prefer the
-  // Phase 2 tools below.
+  // The legacy `pen_instantiate_component` tool above is kept for backward
+  // compat — it shallow-copies a shape without producing a proper PenRef.
+  // New agent code should prefer the Phase 2 tools below (and
+  // pen_create_component / figma_create_component for creating components).
   // =====================================================================
 
   const convertToComponent = defineTool({
@@ -1656,16 +1792,16 @@ const createShape = defineTool({
   // =====================================================================
 
   const updateTokens = defineTool({
-    name: 'pen_update_tokens',
-    label: 'Update Design Tokens',
+    name: 'pen_set_variables',
+    label: 'Set Variables',
     description:
-      'Update the document\'s design tokens — named colors and text styles that shapes can bind to. ' +
-      'When a token changes, every shape bound to it (via tokenBinding) is recolored automatically. ' +
-      'Pass only the tokens you want to add or change; existing ones are merged by key.',
-    promptSnippet: 'Update design tokens (color palette, text styles).',
+      'Update the document\'s variables — named colors and text styles that nodes can bind to. ' +
+      'When a variable changes, every node bound to it (via tokenBinding) is recolored automatically. ' +
+      'Pass only the variables you want to add or change; existing ones are merged by key.',
+    promptSnippet: 'Update variables (color palette, text styles).',
     promptGuidelines: [
-      'Token keys use dotted paths: `bg.primary`, `accent`, `text.heading`, etc.',
-      'After updating tokens, use pen_apply_palette to bind shapes to them.',
+      'Variable keys use dotted paths: `bg.primary`, `accent`, `text.heading`, etc.',
+      'After updating variables, use pen_apply_palette to bind nodes to them.',
     ],
     parameters: Type.Object({
       colors: Type.Optional(Type.Array(
@@ -1944,6 +2080,30 @@ const createShape = defineTool({
       if (params.fidelity === 'lofi') {
         applyLofiFidelity(wf.shapes);
       }
+      // Multi-screen collision guard: if the generated screen frame would
+      // stack on an existing top-level screen, shift the WHOLE template
+      // (frame + children + arrows keep their relative layout) to free
+      // space to the right of all existing screens.
+      let placementNote = '';
+      const wfFrame = wf.shapes.find((s: any) => s.id === wf.frameId);
+      if (wfFrame) {
+        const placement = resolveTopLevelFramePlacement(
+          ctx.getShapes(),
+          wfFrame.x ?? x,
+          wfFrame.y ?? y,
+          wfFrame.width ?? 375,
+          wfFrame.height ?? 812,
+        );
+        if (placement.adjusted) {
+          const dx = placement.x - (wfFrame.x ?? x);
+          const dy = placement.y - (wfFrame.y ?? y);
+          for (const s of wf.shapes) {
+            if (typeof s.x === 'number') s.x += dx;
+            if (typeof s.y === 'number') s.y += dy;
+          }
+          placementNote = ` NOTE: auto-placed to free space at (${placement.x}, ${placement.y}) — it would have covered an existing screen. Position follow-up layers relative to the FINAL coordinates.`;
+        }
+      }
       // Apply the caller's text overrides (poka-yoke for copy fidelity: the
       // templates ship placeholder values like "$12.4k" — when the user gave
       // exact copy, the agent passes `texts` and the generated screen carries
@@ -1960,7 +2120,8 @@ const createShape = defineTool({
           {
             type: 'text',
             text:
-              `Generated ${params.template} wireframe at (${x}, ${y}). ${wf.shapes.length} shapes added. Frame id: ${wf.frameId}.` +
+              `Generated ${params.template} wireframe at (${wfFrame?.x ?? x}, ${wfFrame?.y ?? y}). ${wf.shapes.length} shapes added. Frame id: ${wf.frameId}.` +
+              placementNote +
               (appliedTexts > 0
                 ? ` Applied ${appliedTexts} text override(s).`
                 : params.texts && Object.keys(params.texts).length > 0
@@ -2205,10 +2366,82 @@ const createShape = defineTool({
         findings.push(`• Possible alignment near-miss: ${misaligned.length} shape(s) within 4px of an alignment grid line.`);
       }
 
+      // 6. Phase 4 node-budget warnings (spec §4.5). Three structural checks:
+      //    (a) per-frame budget — top-level frames with > 300 descendants
+      //        are hard to navigate + slow to render.
+      //    (b) per-page budget — total node count > 5000 engages L5 mount
+      //        culling (placeholder swap). Flag for the agent to consider
+      //        component_set extraction before that kicks in.
+      //    (c) component_set repeat detection — sibling subtrees with the
+      //        same structural fingerprint (child types + nesting depth)
+      //        appearing ≥ 3 times → recommend pen_combine_as_variants.
+      const doc = ctx.getDocument?.();
+      let nodeBudgetFindings = 0;
+      if (doc) {
+        // (a) Per-frame budget. Walk children of each top-level frame.
+        const topLevelFrames = shapes.filter((s) => s.type === 'frame' && (s.parentId == null));
+        for (const frame of topLevelFrames) {
+          const descendantCount = countDescendants(shapes, frame.id);
+          if (descendantCount > 300) {
+            nodeBudgetFindings++;
+            findings.push(
+              `• Frame "${frame.name ?? frame.id}" has ${descendantCount} descendants (> 300 budget) — consider splitting into sections or extracting component_set.`,
+            );
+          }
+        }
+
+        // (b) Per-page budget.
+        const pageCount = shapes.length;
+        if (pageCount > 4000) {
+          nodeBudgetFindings++;
+          findings.push(
+            `• Page has ${pageCount} nodes — approaching the 5k L5-culling threshold. Consider component_set extraction or splitting into multiple pages.`,
+          );
+        }
+
+        // (c) Component_set repeat detection. Build a structural fingerprint
+        // of each top-level frame's children: sorted tuple of (child type, child
+        // own-children-count). Frames with the same fingerprint are likely
+        // the same pattern repeated — recommend combining into a component_set.
+        const fingerprints = new Map<string, { frameIds: string[]; sample: string }>();
+        for (const frame of topLevelFrames) {
+          const children = shapes.filter((s) => s.parentId === frame.id);
+          if (children.length === 0) continue;
+          const sig = children
+            .map((c) => `${c.type}:${countDescendants(shapes, c.id)}`)
+            .sort()
+            .join('|');
+          if (sig.length === 0) continue;
+          const existing = fingerprints.get(sig);
+          if (existing) {
+            existing.frameIds.push(frame.id);
+          } else {
+            fingerprints.set(sig, { frameIds: [frame.id], sample: sig });
+          }
+        }
+        for (const { frameIds, sample } of fingerprints.values()) {
+          if (frameIds.length >= 3) {
+            nodeBudgetFindings++;
+            findings.push(
+              `• Pattern repeat: ${frameIds.length} top-level frames share the same child structure (${sample.slice(0, 60)}${sample.length > 60 ? '…' : ''}). Consider combining into a component_set via pen_combine_as_variants.`,
+            );
+          }
+        }
+      }
+      if (nodeBudgetFindings === 0 && doc) {
+        findings.push('• Node budget: all frames within 300-descendant budget; page total under L5 threshold; no ≥3× pattern repeats (good).');
+      }
+
       const report = `Design audit (${shapes.length} shapes, ${tokens.colors.length} tokens):\n${findings.join('\n')}`;
       return {
         content: [{ type: 'text', text: report }],
-        details: { findings, colorCount: colors.size, fontSizeCount: fontSizes.size, lowContrastCount: lowContrast },
+        details: {
+          findings,
+          colorCount: colors.size,
+          fontSizeCount: fontSizes.size,
+          lowContrastCount: lowContrast,
+          nodeBudgetFindings,
+        },
       };
     },
   });
@@ -2221,85 +2454,90 @@ const createShape = defineTool({
   // =====================================================================
 
   const bindShapeToToken = defineTool({
-    name: 'pen_bind_shape_to_token',
-    label: 'Bind Shape to Token',
+    name: 'pen_bind_variable',
+    label: 'Bind Variable',
     description:
-      'Bind a shape property (fill, stroke, or textColor) to a named design token. ' +
-      'When the token value changes, the bound property auto-updates. ' +
-      'Use this after pen_update_tokens or pen_apply_palette to create a live link.',
-    promptSnippet: 'Bind a shape property to a design token (live link).',
+      'Bind a node property (fill, stroke, or textColor) to a named variable. ' +
+      'When the variable\'s value changes, the bound property auto-updates. ' +
+      'Use this after pen_set_variables or pen_apply_palette to create a live link.',
+    promptSnippet: 'Bind a node property to a variable (live link).',
     promptGuidelines: [
-      'The tokenKey must match a key in the document\'s color tokens. Call pen_list_tokens to see available keys.',
-      'Binding fill: the shape\'s fill is set to the token value immediately and re-computed on token changes.',
+      'The variableId must match a key in the document\'s color variables. Call pen_list_variables to see available keys.',
+      'Binding fill: the node\'s fill is set to the variable value immediately and re-computed on variable changes.',
     ],
     parameters: Type.Object({
-      shapeId: Type.String({ description: 'ID of the shape to bind' }),
-      tokenKey: Type.String({ description: 'Token key (e.g. "bg.primary", "accent")' }),
+      nodeId: Type.String({ description: 'ID of the node to bind (legacy alias: shapeId)' }),
+      variableId: Type.String({ description: 'Variable key (e.g. "bg.primary", "accent") — legacy alias: tokenKey' }),
       property: Type.Union(
         [Type.Literal('fill'), Type.Literal('stroke'), Type.Literal('textColor')],
-        { description: 'Which property to bind' },
+        { description: 'Which property to bind (Figma scopes: fills, strokes, characters)' },
       ),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      const p = params as any;
+      const nodeId: string = params.nodeId ?? p.shapeId;
+      const variableId: string = params.variableId ?? p.tokenKey;
+      const shape = ctx.getShapes().find((s) => s.id === nodeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found', shapeId: params.shapeId }, isError: true as any };
+        return { content: [{ type: 'text', text: `Error: no shape with id ${nodeId}` }], details: { error: 'not_found', shapeId: nodeId }, isError: true as any };
       }
-      const token = ctx.getTokens().colors.find((c) => c.key === params.tokenKey);
+      const token = ctx.getTokens().colors.find((c) => c.key === variableId);
       if (!token) {
-        return { content: [{ type: 'text', text: `Error: no color token with key "${params.tokenKey}"` }], details: { error: 'token_not_found', tokenKey: params.tokenKey }, isError: true as any };
+        return { content: [{ type: 'text', text: `Error: no color variable with key "${variableId}"` }], details: { error: 'token_not_found', tokenKey: variableId }, isError: true as any };
       }
       const binding = { ...(shape.tokenBinding ?? {}) };
-      if (params.property === 'fill') { binding.fillToken = params.tokenKey; }
-      else if (params.property === 'stroke') { binding.strokeToken = params.tokenKey; }
-      else { binding.textToken = params.tokenKey; }
+      if (params.property === 'fill') { binding.fillToken = variableId; }
+      else if (params.property === 'stroke') { binding.strokeToken = variableId; }
+      else { binding.textToken = variableId; }
       const changes: Partial<Shape> = { tokenBinding: binding };
       if (params.property === 'fill') changes.fill = token.value;
       else if (params.property === 'stroke') changes.stroke = token.value;
       else changes.textColor = token.value;
-      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: changes, summary: `Bound ${params.property} to token "${params.tokenKey}"` };
+      const patch: CanvasPatch = { op: 'update', shapeId: nodeId, shape: changes, summary: `Bound ${params.property} to variable "${variableId}"` };
       ctx.applyPatch(patch);
-      return { content: [{ type: 'text', text: `Bound ${shape.name}.${params.property} to token "${params.tokenKey}" (${token.value}).` }], details: { shapeId: params.shapeId, tokenKey: params.tokenKey, property: params.property, patch } };
+      return { content: [{ type: 'text', text: `Bound ${shape.name}.${params.property} to variable "${variableId}" (${token.value}).` }], details: { shapeId: nodeId, tokenKey: variableId, property: params.property, patch } };
     },
   });
 
   const unbindShape = defineTool({
-    name: 'pen_unbind_shape',
-    label: 'Unbind Shape from Token',
-    description: 'Remove a token binding from a shape property. The shape keeps its current color value but will no longer auto-update when the token changes.',
-    promptSnippet: 'Remove a token binding from a shape.',
+    name: 'pen_unbind_variable',
+    label: 'Unbind Variable',
+    description: 'Remove a variable binding from a node property. The node keeps its current color value but will no longer auto-update when the variable changes.',
+    promptSnippet: 'Remove a variable binding from a node.',
     parameters: Type.Object({
-      shapeId: Type.String({ description: 'ID of the shape to unbind' }),
+      nodeId: Type.String({ description: 'ID of the node to unbind (legacy alias: shapeId)' }),
       property: Type.Union(
         [Type.Literal('fill'), Type.Literal('stroke'), Type.Literal('textColor')],
-        { description: 'Which property to unbind' },
+        { description: 'Which property to unbind (Figma scopes: fills, strokes, characters)' },
       ),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
+      const p = params as any;
+      const nodeId: string = params.nodeId ?? p.shapeId;
+      const shape = ctx.getShapes().find((s) => s.id === nodeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+        return { content: [{ type: 'text', text: `Error: no shape with id ${nodeId}` }], details: { error: 'not_found' }, isError: true as any };
       }
       const binding = { ...(shape.tokenBinding ?? {}) };
       // Bake in the current resolved value before removing the binding, so the
-      // shape retains its last-themed appearance (doesn't revert to the
+      // node retains its last-themed appearance (doesn't revert to the
       // pre-binding fill).
       const changes: Partial<Shape> = {};
       if (params.property === 'fill') { delete binding.fillToken; changes.fill = shape.fill; }
       else if (params.property === 'stroke') { delete binding.strokeToken; changes.stroke = shape.stroke; }
       else { delete binding.textToken; changes.textColor = shape.textColor; }
       changes.tokenBinding = Object.keys(binding).length === 0 ? null : binding;
-      const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: changes, summary: `Unbound ${params.property} from token` };
+      const patch: CanvasPatch = { op: 'update', shapeId: nodeId, shape: changes, summary: `Unbound ${params.property} from variable` };
       ctx.applyPatch(patch);
-      return { content: [{ type: 'text', text: `Unbound ${shape.name}.${params.property}.` }], details: { shapeId: params.shapeId, property: params.property, patch } };
+      return { content: [{ type: 'text', text: `Unbound ${shape.name}.${params.property}.` }], details: { shapeId: nodeId, property: params.property, patch } };
     },
   });
 
   const listTokens = defineTool({
-    name: 'pen_list_tokens',
-    label: 'List Design Tokens',
-    description: 'List all design tokens (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before pen_bind_shape_to_token to see available token keys.',
-    promptSnippet: 'List all design tokens (colors + text styles).',
+    name: 'pen_list_variables',
+    label: 'List Variables',
+    description: 'List all variables (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before pen_bind_variable to see available variable keys.',
+    promptSnippet: 'List all variables (colors + text styles).',
     parameters: Type.Object({}),
     async execute(toolCallId) {
       const tokens = ctx.getTokens();
@@ -2311,27 +2549,32 @@ const createShape = defineTool({
   });
 
   const applyToken = defineTool({
-    name: 'pen_apply_token',
-    label: 'Apply Token to Shapes',
-    description: 'Apply a design token\'s value to one or more shapes. Optionally also bind the shapes to the token (live link). ' +
-      'This is the batch version of pen_bind_shape_to_token.',
-    promptSnippet: 'Apply a token value to multiple shapes at once.',
+    name: 'pen_apply_variable',
+    label: 'Apply Variable to Nodes',
+    description: 'Apply a variable\'s value to one or more nodes. Optionally also bind the nodes to the variable (live link). ' +
+      'This is the batch version of pen_bind_variable.',
+    promptSnippet: 'Apply a variable value to multiple nodes at once.',
     parameters: Type.Object({
-      shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to apply the token to' }),
-      tokenKey: Type.String({ description: 'Token key to apply' }),
+      nodeIds: Type.Array(Type.String(), { description: 'Node IDs to apply the variable to (legacy alias: shapeIds)' }),
+      variableId: Type.String({ description: 'Variable key to apply — legacy alias: tokenKey' }),
       property: Type.Union(
         [Type.Literal('fill'), Type.Literal('stroke'), Type.Literal('textColor')],
-        { description: 'Which property to set' },
+        { description: 'Which property to set (Figma scopes: fills, strokes, characters)' },
       ),
       bind: Type.Optional(Type.Boolean({ description: 'If true, also create a live binding (default false)' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const token = ctx.getTokens().colors.find((c) => c.key === params.tokenKey);
+      const p = params as any;
+      const variableId: string = params.variableId ?? p.tokenKey;
+      const nodeIds: string[] = Array.isArray(params.nodeIds)
+        ? params.nodeIds
+        : (Array.isArray(p.shapeIds) ? p.shapeIds : []);
+      const token = ctx.getTokens().colors.find((c) => c.key === variableId);
       if (!token) {
-        return { content: [{ type: 'text', text: `Error: no color token with key "${params.tokenKey}"` }], details: { error: 'token_not_found' }, isError: true as any };
+        return { content: [{ type: 'text', text: `Error: no color variable with key "${variableId}"` }], details: { error: 'token_not_found' }, isError: true as any };
       }
       const shapes = ctx.getShapes();
-      const updates = params.shapeIds
+      const updates = nodeIds
         .map((id) => shapes.find((s) => s.id === id))
         .filter((s): s is Shape => !!s)
         .map((s) => {
@@ -2341,9 +2584,9 @@ const createShape = defineTool({
           else changes.textColor = token.value;
           if (params.bind) {
             const binding = { ...(s.tokenBinding ?? {}) };
-            if (params.property === 'fill') binding.fillToken = params.tokenKey;
-            else if (params.property === 'stroke') binding.strokeToken = params.tokenKey;
-            else binding.textToken = params.tokenKey;
+            if (params.property === 'fill') binding.fillToken = variableId;
+            else if (params.property === 'stroke') binding.strokeToken = variableId;
+            else binding.textToken = variableId;
             changes.tokenBinding = binding;
           }
           return { id: s.id, changes };
@@ -2351,9 +2594,9 @@ const createShape = defineTool({
       if (updates.length === 0) {
         return { content: [{ type: 'text', text: 'No matching shapes found.' }], details: { error: 'not_found' }, isError: true as any };
       }
-      const patch: CanvasPatch = { op: 'update_many', updates, summary: `Applied token "${params.tokenKey}" to ${updates.length} shape(s)${params.bind ? ' (bound)' : ''}` };
+      const patch: CanvasPatch = { op: 'update_many', updates, summary: `Applied variable "${variableId}" to ${updates.length} node(s)${params.bind ? ' (bound)' : ''}` };
       ctx.applyPatch(patch);
-      return { content: [{ type: 'text', text: `Applied token "${params.tokenKey}" (${token.value}) to ${updates.length} shape(s).` }], details: { count: updates.length, tokenKey: params.tokenKey, patch } };
+      return { content: [{ type: 'text', text: `Applied variable "${variableId}" (${token.value}) to ${updates.length} node(s).` }], details: { count: updates.length, tokenKey: variableId, patch } };
     },
   });
 
@@ -2560,9 +2803,12 @@ const createShape = defineTool({
   const exportPng = defineTool({
     name: 'pen_export_png',
     label: 'Export as PNG (data URL)',
-    description: 'Export the canvas as an SVG data URL that can be used in <img> tags or downloaded. ' +
-      'True PNG rasterization requires a browser; this tool returns an SVG data URL which any browser can render and convert to PNG.',
-    promptSnippet: 'Export the canvas as an image data URL.',
+    description: 'Export the canvas as a PNG (or SVG-fallback) data URL the agent can embed in <img> tags or pass to other tools. ' +
+      'Spec Phase 5 §5.4 contract: tries the client DOM-capture round-trip first (real DOM-rendered canvas — fonts, images, measured native-layout geometry, drop-shadows, gradients), ' +
+      'falls back to the server-side resvg SVG→PNG rasterizer (full-fidelity SVG projection with gradients/shadows/polygons/stars), ' +
+      'and finally to a lossy inline SVG emitter (rect/ellipse/line/text only — last resort when resvg is unavailable). ' +
+      'For on-screen inspection use pen_get_screenshot (same capture path, different framing).',
+    promptSnippet: 'Export the canvas as a PNG/SVG image data URL.',
     parameters: Type.Object({
       frameId: Type.Optional(Type.String({ description: 'If provided, export only shapes inside this frame' })),
     }),
@@ -2587,8 +2833,46 @@ const createShape = defineTool({
       const minY = Math.min(...shapes.map((s) => s.y));
       const maxX = Math.max(...shapes.map((s) => s.x + s.width));
       const maxY = Math.max(...shapes.map((s) => s.y + s.height));
-      const w = maxX - minX;
-      const h = maxY - minY;
+      const w = Math.max(1, Math.round(maxX - minX));
+      const h = Math.max(1, Math.round(maxY - minY));
+
+      // ---- Primary path: client DOM-capture round-trip (spec §5.4) ----
+      // Same path as pen_get_screenshot — captures the live DOM-rendered
+      // world via html-to-image. Returns a real PNG data URL when the
+      // client answers. hasSink() short-circuits when no agent turn is
+      // active (headless runs, tests).
+      if (hasSink()) {
+        const shot = await requestClientScreenshot(
+          toolCallId,
+          params.frameId,
+          2,
+          ROUNDTRIP_DEFAULTS.screenshotTimeoutMs,
+        );
+        if (shot?.dataUrl) {
+          return {
+            content: [{ type: 'text', text: `Exported as PNG data URL (${w}×${h}, ${shapes.length} shapes, real DOM-rendered capture @2x). Length: ${shot.dataUrl.length} chars. Use in an <img src="..."> tag.` }],
+            details: { dataUrl: shot.dataUrl, width: w, height: h, shapeCount: shapes.length, source: 'client-dom-capture' as const, measured: true },
+          };
+        }
+      }
+
+      // ---- Fallback 1: server-side resvg SVG→PNG rasterizer (full fidelity) ----
+      try {
+        const shifted = shapes.map((s) => ({ ...s, x: s.x - minX, y: s.y - minY }));
+        const { renderCanvasToPng } = await import('../canvas/render-to-png');
+        const png = await renderCanvasToPng(shifted, w, h);
+        const dataUrl = `data:image/png;base64,${png.toString('base64')}`;
+        return {
+          content: [{ type: 'text', text: `Exported as PNG data URL (${w}×${h}, ${shapes.length} shapes, server-side resvg rasterization @2x — no client responded). Length: ${dataUrl.length} chars. Use in an <img src="..."> tag.` }],
+          details: { dataUrl, width: w, height: h, shapeCount: shapes.length, source: 'server-resvg' as const, measured: false },
+        };
+      } catch {
+        // resvg unavailable or render failed — fall through to the lossy emitter.
+      }
+
+      // ---- Fallback 2: lossy inline SVG emitter (last resort) ----
+      // Drops gradients/shadows/polygons/stars/text-decoration. Only used
+      // when both the client round-trip AND resvg are unavailable.
       const els = shapes.map((s) => {
         const rx = s.x - minX;
         const ry = s.y - minY;
@@ -2607,17 +2891,94 @@ const createShape = defineTool({
       }).join('');
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${els}</svg>`;
       const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-      return { content: [{ type: 'text', text: `Exported as SVG data URL (${w}×${h}, ${shapes.length} shapes). Length: ${dataUrl.length} chars. Use in an <img src="..."> tag.` }], details: { dataUrl, width: w, height: h, shapeCount: shapes.length } };
+      return {
+        content: [{ type: 'text', text: `Exported as SVG data URL (${w}×${h}, ${shapes.length} shapes, lossy inline emitter — resvg + client DOM capture both unavailable; gradients/shadows/polygons/stars dropped). Length: ${dataUrl.length} chars. Use in an <img src="..."> tag.` }],
+        details: { dataUrl, width: w, height: h, shapeCount: shapes.length, source: 'lossy-inline-svg' as const, measured: false },
+      };
     },
   });
 
+  // ---- Shared helpers for the Figma-MCP-aligned read/serialize tools -------
+
+  /// Find a subtree by node id in the resolver's tree (pre-order).
+  function findTreeNode(tree: ResolvedTreeNode[], id: string): ResolvedTreeNode | null {
+    for (const n of tree) {
+      if (n.layer.id === id) return n;
+      const found = findTreeNode(n.children, id);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  /// Flatten a resolved tree (root included, depth-first).
+  function flattenTree(tree: ResolvedTreeNode[]): Shape[] {
+    const out: Shape[] = [];
+    const walk = (nodes: ResolvedTreeNode[]) => {
+      for (const n of nodes) {
+        out.push(n.layer);
+        walk(n.children);
+      }
+    };
+    walk(tree);
+    return out;
+  }
+
+  /// Recursively count nodes in a .pen children array.
+  function countTreeNodes(children: PenChild[]): number {
+    let count = 0;
+    const walk = (nodes: PenChild[]) => {
+      for (const n of nodes) {
+        count++;
+        const kids = (n as { children?: PenChild[] }).children;
+        if (Array.isArray(kids)) walk(kids);
+      }
+    };
+    walk(children);
+    return count;
+  }
+
+  /// Collect a node + its strict descendants from a flat layer list.
+  function subtreeLayers(layers: Shape[], rootId: string): Shape[] {
+    const root = layers.find((s) => s.id === rootId);
+    if (!root) return [];
+    const byParent = new Map<string, Shape[]>();
+    for (const s of layers) {
+      const p = s.parentId ?? null;
+      if (p) {
+        const list = byParent.get(p) ?? [];
+        list.push(s);
+        byParent.set(p, list);
+      }
+    }
+    const out: Shape[] = [root];
+    const queue = [rootId];
+    const seen = new Set([rootId]);
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      for (const child of byParent.get(id) ?? []) {
+        if (seen.has(child.id)) continue;
+        seen.add(child.id);
+        out.push(child);
+        queue.push(child.id);
+      }
+    }
+    return out;
+  }
+
+  /// Sanitize a variable key into a CSS custom-property identifier fragment.
+  function varKey(key: string): string {
+    return key.replace(/[^a-zA-Z0-9-]/g, '-');
+  }
+
   const copyAsCode = defineTool({
     name: 'pen_copy_as_code',
-    label: 'Copy as Code',
+    label: 'Copy as Code (v2 — tree serializer)',
     description: 'Generate HTML + Tailwind CSS code from the canvas shapes. Useful for handoff to developers. ' +
-      'Each shape becomes a positioned div; text shapes become <span> elements. ' +
+      'v2 (spec §5.3): consumes the .pen tree — auto-layout containers become REAL nested flexbox ' +
+      '(not flat absolutes); layout:none containers become relative containers with absolutely-positioned ' +
+      'children; every element carries data-name/data-node-id; token-bound fills emit var(--acv-key, fallback). ' +
       'Supports: html (standalone HTML), react (JSX component), tailwind (Tailwind classes).',
-    promptSnippet: 'Generate HTML/React/Tailwind code from the canvas.',
+    promptSnippet: 'Generate HTML/React/Tailwind code from the canvas (nested flex output).',
     parameters: Type.Object({
       frameId: Type.Optional(Type.String({ description: 'If provided, export only shapes inside this frame' })),
       framework: Type.Union(
@@ -2626,58 +2987,706 @@ const createShape = defineTool({
       ),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const allShapes = ctx.getShapes();
-      let shapes = allShapes;
-      if (params.frameId) {
-        const frame = allShapes.find((s) => s.id === params.frameId);
-        if (frame) {
-          shapes = allShapes.filter((s) => s.id !== params.frameId && s.x >= frame.x && s.y >= frame.y && s.x + s.width <= frame.x + frame.width && s.y + s.height <= frame.y + frame.height);
+      const doc = ctx.getDocument?.();
+      let input: ResolvedTreeNode[] | Shape[];
+      if (doc) {
+        const { tree, layers } = resolvePenTreeDetailed(doc);
+        if (params.frameId) {
+          const subtree = findTreeNode(tree, params.frameId);
+          if (subtree) {
+            input = [subtree];
+          } else {
+            // Fallback: subtree collection from the flat layers (matches the
+            // legacy export filter semantics).
+            const scoped = subtreeLayers(layers, params.frameId);
+            if (scoped.length === 0) {
+              return { content: [{ type: 'text', text: 'No shapes to export.' }], details: { error: 'empty' } };
+            }
+            input = scoped;
+          }
+        } else {
+          input = tree;
         }
+      } else {
+        // No document snapshot — degrade to the flat layer view.
+        const layers = ctx.getShapes();
+        input = params.frameId ? subtreeLayers(layers, params.frameId) : layers;
       }
-      if (shapes.length === 0) {
+      const shapeCount = input.length;
+      if (shapeCount === 0) {
         return { content: [{ type: 'text', text: 'No shapes to export.' }], details: { error: 'empty' } };
       }
-      const minX = Math.min(...shapes.map((s) => s.x));
-      const minY = Math.min(...shapes.map((s) => s.y));
-      const els = shapes.map((s) => {
-        const x = Math.round(s.x - minX);
-        const y = Math.round(s.y - minY);
-        const w = Math.round(s.width);
-        const h = Math.round(s.height);
-        if (s.type === 'text') {
-          const fs = Math.round(s.fontSize);
-          return `    <span style="position:absolute;left:${x}px;top:${y}px;font-size:${fs}px;color:${s.textColor};font-family:Inter,sans-serif">${escapeHtml(s.text ?? '')}</span>`;
-        }
-        const r = Math.round(s.radius);
-        const radius = r > 0 ? `;border-radius:${r}px` : '';
-        const stroke = s.strokeWidth > 0 ? `;border:${s.strokeWidth}px solid ${s.stroke}` : '';
-        return `    <div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${s.fill}${radius}${stroke}"></div>`;
-      }).join('\n');
-      const totalW = Math.max(...shapes.map((s) => s.x + s.width)) - minX;
-      const totalH = Math.max(...shapes.map((s) => s.y + s.height)) - minY;
-      let code: string;
-      if (params.framework === 'react') {
-        code = `export function CanvasExport() {\n  return (\n    <div style={{ position: 'relative', width: ${Math.round(totalW)}, height: ${Math.round(totalH)} }}>\n${els}\n    </div>\n  );\n}`;
-      } else {
-        code = `<div style="position:relative;width:${Math.round(totalW)}px;height:${Math.round(totalH)}px">\n${els}\n</div>`;
+      const code = serializeNodes(input, { framework: params.framework, rootName: 'CanvasExport' });
+      return { content: [{ type: 'text', text: `Generated ${params.framework} code (${shapeCount} nodes, nested-flex serializer v2):\n\`\`\`${params.framework === 'react' ? 'tsx' : 'html'}\n${code}\n\`\`\`` }], details: { code, framework: params.framework, shapeCount } };
+    },
+  });
+
+  // =====================================================================
+  // PHASE 3 (spec §5.2): FIGMA-MCP-ALIGNED TOOLS
+  //
+  // Read-side tools adopt the exact verb names of Figma's Dev Mode MCP
+  // Server (get_metadata / get_design_context / get_variable_defs) under
+  // our existing pen_ namespace, plus the code→canvas construction
+  // primitive pen_insert_html (Figma analog: generate_figma_design) and the
+  // measured-bounds writeback pen_bake_layout.
+  //
+  // pen_get_computed / pen_get_screenshot (M2-c) are CLIENT ROUND-TRIP
+  // tools: they emit a SyncEvent through the per-turn plugin event sink,
+  // block on the client-roundtrip pending map (≤2s), and FALL BACK to
+  // resolver data / server-side rendering when no client answers — the
+  // agent loop can never hang. `hasSink()` short-circuits the wait when
+  // we're not even inside an agent turn (tests, headless calls).
+  // =====================================================================
+
+  /// Build a resolver-data ComputedResult for one shape (fallback when the
+  /// client is offline / a node is unmounted). Values are the resolver's
+  /// predictions, not real layout — flagged measured:false.
+  function resolverComputedFallback(s: Shape, properties?: string[]): ComputedResult {
+    const computed: Record<string, string> = {
+      display: s.autoLayout ? 'flex' : 'block',
+      position: 'absolute',
+      width: `${Math.round(s.width)}px`,
+      height: `${Math.round(s.height)}px`,
+      backgroundColor: s.fill ?? 'rgba(0, 0, 0, 0)',
+      color: (s as Shape & { textColor?: string }).textColor ?? s.fill ?? 'inherit',
+      fontFamily: (s as Shape & { fontFamily?: string }).fontFamily ?? 'Inter, system-ui, sans-serif',
+      fontSize: `${(s as Shape & { fontSize?: number }).fontSize ?? 16}px`,
+      fontWeight: String((s as Shape & { fontWeight?: number }).fontWeight ?? 400),
+      opacity: String(s.opacity ?? 1),
+      zIndex: String(s.zIndex ?? 0),
+      overflow: (s as Shape & { clip?: boolean }).clip ? 'hidden' : 'visible',
+      visibility: s.visible === false ? 'hidden' : 'visible',
+    };
+    if (s.autoLayout) {
+      computed.flexDirection = s.autoLayout.direction === 'vertical' ? 'column' : 'row';
+      computed.gap = `${s.autoLayout.gap ?? 0}px`;
+      computed.alignItems = s.autoLayout.alignY ?? 'start';
+      computed.justifyContent = s.autoLayout.alignX ?? 'start';
+    }
+    if (s.radius != null) computed.borderRadius = `${s.radius}px`;
+    if (properties && properties.length > 0) {
+      const keep = new Set(properties);
+      for (const k of Object.keys(computed)) if (!keep.has(k)) delete computed[k];
+    }
+    return {
+      id: s.id,
+      rect: { x: Math.round(s.x), y: Math.round(s.y), width: Math.round(s.width), height: Math.round(s.height) },
+      canvasRect: { x: Math.round(s.x), y: Math.round(s.y), width: Math.round(s.width), height: Math.round(s.height) },
+      computed,
+      measured: false as const,
+    };
+  }
+
+  /// Ask the connected client for a real screenshot (agent:screenshot_request
+  /// round-trip). Null when no sink / no client answered in time.
+  async function requestClientScreenshot(
+    toolCallId: string,
+    nodeId: string | undefined,
+    scale: number | undefined,
+    timeoutMs: number,
+  ): Promise<ScreenshotResult | null> {
+    if (!hasSink()) return null; // outside an agent turn — no client can answer
+    return awaitClientResponse<ScreenshotResult>(
+      toolCallId,
+      () => emitEvent({ type: 'agent:screenshot_request', toolCallId, ...(nodeId ? { nodeId } : {}), ...(scale ? { scale } : {}) }),
+      timeoutMs,
+    );
+  }
+
+  const insertHtml = defineTool({
+    name: 'pen_insert_html',
+    label: 'Insert HTML as Design Nodes',
+    description: 'Insert an HTML fragment as design nodes under a parent. ' +
+      'Block containers become frames (auto-layout when the style is flex); headings/paragraphs/spans ' +
+      'become text nodes; img becomes image fills. Sanitized server-side (whitelisted tags/attributes, ' +
+      'URL schemes). Prefer this over repeated pen_create_node for composite UI — one call builds a ' +
+      'whole card, form, or nav bar. Emits ONE bulk_add patch. ' +
+      'mode="v2" requests full-fidelity mounted-iframe extraction (browser-side sandboxed iframe, ' +
+      'getComputedStyle + getBoundingClientRect walk, full cascade resolution, measured geometry). ' +
+      'On timeout / no client connected / extraction error, v2 falls back to v1 with an explicit note ' +
+      'so the agent loop can never hang.',
+    promptSnippet: 'Insert an HTML fragment as a .pen subtree (one call, composite UI).',
+    parameters: Type.Object({
+      html: Type.String({ description: 'HTML fragment. v1: inline styles only (class-based CSS is not parsed). v2: full cascade resolution via mounted-iframe extraction. v1 whitelisted tags: div span p h1-h6 ul ol li img button label input textarea form a section header footer nav main hr br strong em' }),
+      parentId: Type.Optional(Type.String({ description: 'Parent node id (frame/group/page). Default: canvas root' })),
+      x: Type.Optional(Type.Number({ description: 'X position of the fragment root (default 0)' })),
+      y: Type.Optional(Type.Number({ description: 'Y position of the fragment root (default 0)' })),
+      namePrefix: Type.Optional(Type.String({ description: 'Prefix for generated layer names (default "html"). v2 ignores — names are derived from the source DOM.' })),
+      mode: Type.Optional(Type.Union(
+        [Type.Literal('v1'), Type.Literal('v2')],
+        { description: 'Extraction mode. v1 (default): server-side hand-rolled tokenizer, inline styles only. v2: mounted-iframe browser extraction with full cascade resolution + measured geometry (sandbox="allow-same-origin" only — NO allow-scripts, so XSS scripts in the imported HTML cannot execute; falls back to v1 on timeout/error/no-client).' },
+      )),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const html = (params.html ?? '').trim();
+      if (!html) {
+        return { content: [{ type: 'text', text: 'Error: html parameter is empty.' }], details: { error: 'empty_html' }, isError: true as any };
       }
-      return { content: [{ type: 'text', text: `Generated ${params.framework} code (${shapes.length} shapes, ${Math.round(totalW)}×${Math.round(totalH)}):\n\`\`\`${params.framework === 'react' ? 'tsx' : 'html'}\n${code}\n\`\`\`` }], details: { code, framework: params.framework, shapeCount: shapes.length } };
+      const mode = params.mode === 'v2' ? 'v2' : 'v1';
+      // Verify the parent exists (default root) — page ids count too. The
+      // resolved layer list already covers every tree node (the resolver
+      // flattens the whole .pen tree), so `inLayers` subsumes a tree search.
+      const parentId = params.parentId ?? null;
+      if (parentId) {
+        const doc = ctx.getDocument?.();
+        const inLayers = ctx.getShapes().some((s) => s.id === parentId);
+        const pageMatch = (doc?.pages ?? []).some((p) => p.id === parentId);
+        if (!inLayers && !pageMatch) {
+          return {
+            content: [{ type: 'text', text: `Error: no node with id "${parentId}" — cannot insert. Call pen_get_metadata (no nodeId) to see the page list, then pass a nodeId for the sparse tree.` }],
+            details: { error: 'unknown_parent', parentId },
+            isError: true as any,
+          };
+        }
+      }
+      const x = typeof params.x === 'number' ? params.x : 0;
+      const y = typeof params.y === 'number' ? params.y : 0;
+
+      // ---- v2 path: ask the connected client to extract via iframe ----
+      // Spec Phase 3 v2. The client mounts a sandboxed iframe
+      // (allow-same-origin only — NO allow-scripts, so XSS scripts in the
+      // imported HTML cannot execute), writes the HTML, walks the parsed
+      // DOM with getComputedStyle + getBoundingClientRect, and POSTs the
+      // extracted .pen tree back. Mirrors the agent:computed_request /
+      // agent:screenshot_request round-trip pattern in client-roundtrip.ts.
+      // NEVER hangs — awaitClientResponse resolves null on timeout; we fall
+      // back to v1 below. hasSink() short-circuits the wait when no agent
+      // turn is active (no client can answer).
+      if (mode === 'v2' && hasSink()) {
+        const extracted = await awaitClientResponse<ExtractedHtmlResult>(
+          toolCallId,
+          () => emitEvent({ type: 'agent:extract_html_request', toolCallId, html }),
+          ROUNDTRIP_DEFAULTS.extractHtmlTimeoutMs,
+        );
+        if (extracted && !extracted.error && Array.isArray(extracted.children) && extracted.children.length > 0) {
+          // The extracted children arrive as plain JSON (no class
+          // instances) — they're already .pen-shaped nodes from
+          // walkDomForPenTree. Cast back to PenChild[] for the patch.
+          const extractedNodes = extracted.children as unknown as PenChild[];
+          const shapes = extractedNodes.map((node, i) => ({
+            ...node,
+            x: x + i * 300,
+            y,
+            parentId,
+          })) as Array<Partial<Shape> & { id: string }>;
+          const patch: CanvasPatch = {
+            op: 'bulk_add',
+            shapes,
+            summary: `pen_insert_html v2: ${extracted.nodeCount ?? extractedNodes.length} node(s) from a ${html.length}-char fragment under ${parentId ?? 'canvas root'} (mounted-iframe extraction)`,
+          };
+          ctx.applyPatch(patch);
+          const ids: string[] = [];
+          const walk = (ns: PenChild[]) => {
+            for (const n of ns) {
+              ids.push(n.id);
+              const kids = (n as { children?: PenChild[] }).children;
+              if (Array.isArray(kids)) walk(kids);
+            }
+          };
+          walk(extractedNodes);
+          const warnNote = extracted.warnings && extracted.warnings.length > 0
+            ? `\nWarnings: ${extracted.warnings.join('; ')}`
+            : '';
+          return {
+            content: [{ type: 'text', text: `Inserted ${extractedNodes.length} node(s) under ${parentId ?? 'canvas root'} via mounted-iframe v2 extraction (full cascade + measured geometry).\nRoot node ids: ${extractedNodes.map((n) => n.id).join(', ')}${warnNote}` }],
+            details: { patch, nodeIds: ids, rootIds: extractedNodes.map((n) => n.id), mode, v2Fallback: false, v2Extraction: true, warnings: extracted.warnings ?? [], nodeCount: extractedNodes.length },
+          };
+        }
+        // else: fall through to v1 with a v2-fallback note.
+      }
+
+      // ---- v1 path (default, and v2 fallback) ----
+      const v2Fallback = mode === 'v2';
+      const fragment = parseHtmlFragment(html);
+      const prefix = (params.namePrefix ?? '').trim() || 'html';
+      const { nodes, stats } = htmlToPenTreeDetailed(fragment, { namePrefix: prefix });
+      if (nodes.length === 0) {
+        return { content: [{ type: 'text', text: 'Nothing to insert — the fragment produced no nodes (all content was dropped by the sanitizer, e.g. a bare <svg> subtree).' }], details: { error: 'no_nodes', stats } };
+      }
+      // Root nodes are placed at x/y (multiple roots get a 300px column
+      // stride); children keep their relative 0-flow coords — auto-layout
+      // computes real placement. Children ride along NESTED inside each
+      // root's children array (bulk_add carries nested .pen subtrees).
+      const shapes = nodes.map((node, i) => ({
+        ...node,
+        x: x + i * 300,
+        y,
+        parentId,
+      })) as Array<Partial<Shape> & { id: string }>;
+      const patch: CanvasPatch = {
+        op: 'bulk_add',
+        shapes,
+        summary: `pen_insert_html: ${stats.nodeCount} node(s) from a ${html.length}-char fragment under ${parentId ?? 'canvas root'}`,
+      };
+      ctx.applyPatch(patch);
+      // Collect created ids (roots + descendants) for the result payload.
+      const ids: string[] = [];
+      const walk = (ns: PenChild[]) => {
+        for (const n of ns) {
+          ids.push(n.id);
+          const kids = (n as { children?: PenChild[] }).children;
+          if (Array.isArray(kids)) walk(kids);
+        }
+      };
+      walk(nodes);
+      const typeLines = Object.entries(stats.typeCounts).map(([t, c]) => `${t}×${c}`).join(', ');
+      const skippedNote = stats.skippedSvg > 0 ? ` Skipped ${stats.skippedSvg} svg/path element(s) (vector import lands with the mounted-iframe phase).` : '';
+      const v2Note = v2Fallback
+        ? ` [v2 mounted-iframe extraction unavailable (no client responded within ${ROUNDTRIP_DEFAULTS.extractHtmlTimeoutMs}ms, or no agent turn active) — using v1 fallback. Margins and class-based CSS are not imported (v1 — inline styles only).]`
+        : '';
+      return {
+        content: [{ type: 'text', text: `Inserted ${stats.nodeCount} node(s) under ${parentId ?? 'canvas root'}: ${typeLines}.${skippedNote}\nRoot node ids: ${nodes.map((n) => n.id).join(', ')}\nMargins and class-based CSS are not imported (v1 — inline styles only); text sizes are estimates until measured bounds land.${v2Note}` }],
+        details: { patch, nodeIds: ids, rootIds: nodes.map((n) => n.id), typeCounts: stats.typeCounts, skipped: stats.skippedSvg, nodeCount: stats.nodeCount, mode, v2Fallback },
+      };
+    },
+  });
+
+  const getMetadata = defineTool({
+    name: 'pen_get_metadata',
+    label: 'Get Canvas Metadata (sparse tree)',
+    description: 'Read canvas structure. With nodeId: sparse tree of that subtree — ' +
+      'one line per node: id, name, type, x, y, width, height. Without nodeId (or unknown id): ' +
+      'the page list (id + name). Always call this before heavier reads.',
+    promptSnippet: 'Navigate the canvas: page list by default, sparse subtree tree with a nodeId.',
+    parameters: Type.Object({
+      nodeId: Type.Optional(Type.String({ description: 'Node id (or page id) to read. Omit for the page list.' })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const doc = ctx.getDocument?.();
+      const layers = ctx.getShapes();
+      const pages = doc?.pages ?? null;
+
+      const pageListLines = (note?: string): string => {
+        const lines: string[] = [];
+        if (pages && pages.length > 0) {
+          pages.forEach((p, i) => {
+            const active = i === (doc?.activePageIndex ?? -1) ? ' *active*' : '';
+            lines.push(`page ${i}: ${p.id} — "${p.name}" (${countTreeNodes(p.children ?? [])} nodes)${active}`);
+          });
+        } else {
+          lines.push(`page 0: ${doc?.id ?? 'page-1'} — "${doc?.name ?? 'Page 1'}" (${countTreeNodes(doc?.children ?? [])} nodes)`);
+        }
+        return (note ? `${note}\n` : '') + lines.join('\n') + '\nPass a nodeId (or page id) for the sparse tree.';
+      };
+
+      if (!params.nodeId) {
+        return { content: [{ type: 'text', text: pageListLines() }], details: { mode: 'page_list' } };
+      }
+
+      // Page id? Active page → tree of roots; inactive page → page list + hint.
+      const pageIdx = pages ? pages.findIndex((p) => p.id === params.nodeId) : -1;
+      if (pageIdx !== -1) {
+        if (pageIdx === (doc?.activePageIndex ?? -1)) {
+          // Fall through to the tree walk below using roots (parentId null).
+        } else {
+          return { content: [{ type: 'text', text: pageListLines(`page "${pages![pageIdx].name}" is not the active page — switch to it first (pen_set_active_page).`) }], details: { mode: 'page_list', note: 'inactive_page' } };
+        }
+      }
+
+      const target = layers.find((s) => s.id === params.nodeId);
+      if (!target) {
+        // Figma MCP recovery behavior: unknown id → page list, never an error dead-end.
+        return { content: [{ type: 'text', text: pageListLines(`nodeId "${params.nodeId}" not found — showing the page list.`) }], details: { mode: 'page_list', note: 'unknown_node_id' } };
+      }
+
+      // Sparse indented tree — ONE LINE PER NODE, capped at 400 lines.
+      const byParent = new Map<string, Shape[]>();
+      const byId = new Map<string, Shape>();
+      for (const s of layers) {
+        byId.set(s.id, s);
+        const p = s.parentId ?? null;
+        if (p) {
+          const list = byParent.get(p) ?? [];
+          list.push(s);
+          byParent.set(p, list);
+        }
+      }
+      const lines: string[] = [];
+      let truncated = false;
+      const MAX_LINES = 400;
+      const walk = (id: string, depth: number) => {
+        if (lines.length >= MAX_LINES) {
+          truncated = true;
+          return;
+        }
+        const s = byId.get(id);
+        if (!s) return;
+        lines.push(`${'  '.repeat(depth)}${s.id} | ${s.name} | ${s.type} | x=${Math.round(s.x)} y=${Math.round(s.y)} w=${Math.round(s.width)} h=${Math.round(s.height)}`);
+        const kids = (byParent.get(id) ?? []).slice().sort((a, b) => a.zIndex - b.zIndex);
+        for (const kid of kids) walk(kid.id, depth + 1);
+      };
+      walk(params.nodeId, 0);
+      const treeText = lines.join('\n') + (truncated ? `\n…[truncated at ${MAX_LINES} lines — pass a deeper nodeId to see the rest]` : '');
+      return {
+        content: [{ type: 'text', text: treeText }],
+        details: { mode: 'tree', nodeId: params.nodeId, lineCount: lines.length, truncated },
+      };
+    },
+  });
+
+  const getVariableDefs = defineTool({
+    name: 'pen_get_variable_defs',
+    label: 'Get Variable Definitions',
+    description: 'Read the document variable (design token) definitions: names, types, values (or themed values), ' +
+      'and CSS code syntax — so generated code binds tokens (var(--acv-<name>)) instead of raw hex. ' +
+      'Also lists the derived text styles. v1: definitions are document-level (nodeId accepted for future scoping).',
+    promptSnippet: 'Read design-token variable definitions with code syntax for var() binding.',
+    parameters: Type.Object({
+      nodeId: Type.Optional(Type.String({ description: 'Selection node id (v1: definitions are document-level; reserved for scoped reads)' })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const doc = ctx.getDocument?.();
+      const variables = doc?.variables ?? {};
+      const tokens = ctx.getTokens();
+      const variablesOut = Object.entries(variables).map(([name, def]) => {
+        const isThemed = Array.isArray(def.value);
+        return {
+          name,
+          type: def.type,
+          ...(isThemed
+            ? { themedValues: (def.value as Array<{ value: unknown; theme?: unknown }>).map((tv) => ({ value: tv.value, theme: tv.theme })) }
+            : { value: (def as { value: unknown }).value }),
+          codeSyntax: `var(--acv-${varKey(name)})`,
+        };
+      });
+      const textStylesOut = (tokens.textStyles ?? []).map((t) => ({
+        name: t.name,
+        type: 'textStyle' as const,
+        fontSize: t.fontSize,
+        fontWeight: t.fontWeight,
+        lineHeight: t.lineHeight,
+        color: t.color,
+        codeSyntax: `var(--acv-${varKey(t.key)})`,
+      }));
+      const varLines = variablesOut.length > 0
+        ? variablesOut.map((v) => `  ${v.name} | ${v.type} | ${'value' in v ? String(v.value) : `${(v as { themedValues: unknown[] }).themedValues.length} themed values`} | ${v.codeSyntax}`)
+        : ['  (none — define tokens with pen_set_variable)'];
+      const styleLines = textStylesOut.length > 0
+        ? textStylesOut.map((t) => `  ${t.name} | fontSize=${t.fontSize} fontWeight=${t.fontWeight} lineHeight=${t.lineHeight} color=${t.color} | ${t.codeSyntax}`)
+        : ['  (none)'];
+      const text = `VARIABLES (${variablesOut.length}):\n${varLines.join('\n')}\n\nTEXT STYLES (${textStylesOut.length}):\n${styleLines.join('\n')}\n\nBind these in code as var(--acv-<name>) — the serializer emits var(--acv-key, fallback) for token-bound fills.`;
+      return { content: [{ type: 'text', text }], details: { variables: variablesOut, textStyles: textStylesOut, nodeId: params.nodeId ?? null, scope: 'document' } };
+    },
+  });
+
+  const getDesignContext = defineTool({
+    name: 'pen_get_design_context',
+    label: 'Get Design Context (4-part handoff)',
+    description: 'Full design context for a selection: (1) reference code (html/react/tailwind, ' +
+      'data-name/data-node-id attrs, var(--token, fallback) values), (2) screenshot, ' +
+      '(3) conversion instructions, (4) asset URLs. Scoped to a nodeId — no whole-canvas dumps.',
+    promptSnippet: 'Get the 4-part design handoff payload (code + screenshot + instructions + assets) for a node.',
+    parameters: Type.Object({
+      nodeId: Type.String({ description: 'Node id to read (use pen_get_metadata to find ids)' }),
+      framework: Type.Optional(Type.Union(
+        [Type.Literal('html'), Type.Literal('react'), Type.Literal('tailwind')],
+        { description: 'Code-part flavor (default react)' },
+      )),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const doc = ctx.getDocument?.();
+      if (!doc) {
+        return { content: [{ type: 'text', text: 'Error: document snapshot unavailable in this context.' }], details: { error: 'no_document' }, isError: true as any };
+      }
+      const { tree } = resolvePenTreeDetailed(doc);
+      const subtree = findTreeNode(tree, params.nodeId);
+      if (!subtree) {
+        return {
+          content: [{ type: 'text', text: `Error: nodeId "${params.nodeId}" not found. Call pen_get_metadata (no nodeId) for the page list, then pass a nodeId for the sparse tree.` }],
+          details: { error: 'unknown_node', nodeId: params.nodeId },
+          isError: true as any,
+        };
+      }
+      const framework = params.framework ?? 'react';
+      const code = serializeNodes([subtree], { framework, rootName: subtree.layer.name || 'Selection' });
+
+      // Part 2 — screenshot: prefer the REAL client capture (round-trip,
+      // ≤2s — html-to-image on the live world element, spec §5.4); fall back
+      // to the server-side resvg render (images dropped, D8 discipline).
+      let screenshotNote = '[screenshot unavailable — no client answered and the server render failed]';
+      let screenshotDataUrl: string | undefined;
+      let screenshotSize: { width: number; height: number } | undefined;
+      const shot = await requestClientScreenshot(
+        toolCallId,
+        params.nodeId,
+        undefined,
+        ROUNDTRIP_DEFAULTS.screenshotTimeoutMs,
+      );
+      if (shot?.dataUrl) {
+        screenshotDataUrl = shot.dataUrl;
+        screenshotNote = `[real client screenshot (DOM renderer capture @2x) — data URL in details.screenshotDataUrl (${Math.round(screenshotDataUrl.length / 1024)} KB); measured: true]`;
+      } else {
+        try {
+          const layers = flattenTree([subtree]);
+          if (layers.length > 0) {
+            const minX = Math.min(...layers.map((s) => s.x));
+            const minY = Math.min(...layers.map((s) => s.y));
+            const maxX = Math.max(...layers.map((s) => s.x + s.width));
+            const maxY = Math.max(...layers.map((s) => s.y + s.height));
+            const w = Math.max(1, Math.round(maxX - minX));
+            const h = Math.max(1, Math.round(maxY - minY));
+            const shifted = layers.map((s) => ({ ...s, x: s.x - minX, y: s.y - minY }));
+            const { renderCanvasToPng } = await import('../canvas/render-to-png');
+            const png = await renderCanvasToPng(shifted, w, h);
+            screenshotDataUrl = `data:image/png;base64,${png.toString('base64')}`;
+            screenshotSize = { width: w, height: h };
+            screenshotNote = `[server-side PNG render ${w}×${h} @2x — data URL in details.screenshotDataUrl (${Math.round(screenshotDataUrl.length / 1024)} KB); measured: false (no client responded)]`;
+          }
+        } catch {
+          // resvg unavailable or render failed — keep the fallback note.
+        }
+      }
+
+      // Part 3 — conversion instructions (static guidance, Figma-shaped).
+      const instructions = [
+        'Retarget this reference code to the user\'s stack; it is a structural guide, not a drop-in.',
+        'Keep the data-name attributes — they map generated DOM back to design layers for future edits.',
+        'Bind tokens, not values: replace raw colors with var(--acv-<name>) where a token binding is shown.',
+        'Preserve the flex structure — auto-layout containers are intentional responsive intent.',
+        'Absolutely-positioned children (layout:none containers) are pixel placements; keep them absolute.',
+      ].join('\n  ');
+
+      // Part 4 — assets: image src URLs in the subtree.
+      const assets = flattenTree([subtree])
+        .filter((s) => (s.type === 'image' || s.src) && s.src)
+        .map((s) => s.src as string);
+      const assetLines = assets.length > 0 ? assets.map((a) => `  ${a}`).join('\n') : '  (none)';
+
+      const text =
+        `=== 1. REFERENCE CODE (${framework}) ===\n${code}\n\n` +
+        `=== 2. SCREENSHOT ===\n${screenshotNote}\n\n` +
+        `=== 3. CONVERSION INSTRUCTIONS ===\n  ${instructions}\n\n` +
+        `=== 4. ASSETS ===\n${assetLines}`;
+      return {
+        content: [{ type: 'text', text }],
+        details: { nodeId: params.nodeId, framework, code, screenshotDataUrl, screenshotSize, assets },
+      };
+    },
+  });
+
+  const bakeLayout = defineTool({
+    name: 'pen_bake_layout',
+    label: 'Bake Measured Layout',
+    description: 'Write browser-measured node sizes back into the model as fixed sizes (spec §3.8). ' +
+      'Reads the measured-bounds runtime cache the DOM renderer pushes (native layout mode) and emits ONE ' +
+      'update_many patch with real width/height. Nodes whose .pen sizing is dynamic (fit_content / ' +
+      'fill_container) are skipped — baking would fight the layout engine. ' +
+      'Without measured data (no client push yet, or parity mode) nothing changes.',
+    promptSnippet: 'Bake measured bounds into node sizes (requires measured data from a connected client).',
+    parameters: Type.Object({
+      nodeIds: Type.Optional(Type.Array(Type.String({ description: 'Node ids to bake' }))),
+      all: Type.Optional(Type.Boolean({ description: 'Bake every node with measured bounds' })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const doc = ctx.getDocument?.();
+      const documentId = doc?.id ?? '';
+      const bounds = documentId ? getMeasuredBounds(documentId) : {};
+      const measuredIds = Object.keys(bounds).filter((id) => {
+        const b = bounds[id];
+        return b && Number.isFinite(b.width) && Number.isFinite(b.height) && (b.width > 0 || b.height > 0);
+      });
+
+      if (measuredIds.length === 0) {
+        const requested = params.all ? 'all nodes' : (params.nodeIds ?? []).join(', ') || '(none specified)';
+        const text = `no measured bounds available (parity mode, or no client push yet); no changes made\n` +
+          `Requested: ${requested}\n` +
+          `Tip: measured bounds flow when the DOM renderer runs in native layout mode (settings → renderer 'dom').`;
+        return { content: [{ type: 'text', text }], details: { measured: false, requested: { nodeIds: params.nodeIds ?? null, all: params.all ?? false }, patch: null } };
+      }
+
+      // Candidate ids: explicit list intersected with the measured map, or
+      // every measured id when `all`.
+      const requestedIds = params.all ? measuredIds : (params.nodeIds ?? []).filter((id) => measuredIds.includes(id));
+      if (requestedIds.length === 0) {
+        const text = `none of the requested node ids have measured bounds (${measuredIds.length} measured id(s) available); no changes made`;
+        return { content: [{ type: 'text', text }], details: { measured: false, requested: { nodeIds: params.nodeIds ?? null, all: params.all ?? false }, patch: null, measuredIds } };
+      }
+
+      // Dynamic-sizing guard (spec: never bake fit_content / fill_container).
+      const { tree } = doc ? resolvePenTreeDetailed(doc) : { tree: [] as ResolvedTreeNode[] };
+      const skipped: Array<{ id: string; reason: string }> = [];
+      const updates: Array<{ id: string; changes: Record<string, number> }> = [];
+      for (const id of requestedIds) {
+        const tn = findTreeNode(tree, id);
+        const pen = tn?.pen as Partial<PenChild> | undefined;
+        const wDyn = pen && typeof (pen as { width?: unknown }).width === 'string';
+        const hDyn = pen && typeof (pen as { height?: unknown }).height === 'string';
+        if (wDyn || hDyn) {
+          skipped.push({
+            id,
+            reason: `dynamic sizing (width=${wDyn ? String((pen as { width?: unknown }).width) : 'fixed'}, height=${hDyn ? String((pen as { height?: unknown }).height) : 'fixed'}) — skipped, the layout engine owns this size`,
+          });
+          continue;
+        }
+        const b = bounds[id];
+        updates.push({ id, changes: { width: Math.round(b.width), height: Math.round(b.height) } });
+      }
+
+      if (updates.length === 0) {
+        const text = `all requested nodes use dynamic sizing (fit_content / fill_container) — nothing baked\n` +
+          skipped.map((s) => `  ${s.id}: ${s.reason}`).join('\n');
+        return { content: [{ type: 'text', text }], details: { measured: true, baked: 0, skipped, patch: null } };
+      }
+
+      const patch: CanvasPatch = {
+        op: 'update_many',
+        updates,
+        summary: `Baked measured layout into ${updates.length} node(s)`,
+      };
+      ctx.applyPatch(patch);
+      const lines = [
+        `Baked measured sizes into ${updates.length} node(s):`,
+        ...updates.map((u) => `  ${u.id}: ${u.changes.width}×${u.changes.height}`),
+      ];
+      if (skipped.length > 0) {
+        lines.push(`Skipped ${skipped.length} dynamic-sizing node(s):`);
+        lines.push(...skipped.map((s) => `  ${s.id}: ${s.reason}`));
+      }
+      return { content: [{ type: 'text', text: lines.join('\n') }], details: { measured: true, baked: updates.length, skipped, patch } };
+    },
+  });
+
+  const getComputed = defineTool({
+    name: 'pen_get_computed',
+    label: 'Get Computed Styles (live DOM readback)',
+    description: 'Read REAL browser-computed styles + measured rects for specific nodes (getComputedStyle + ' +
+      'getBoundingClientRect on the live DOM renderer). No Figma analog — the DOM-renderer dividend. ' +
+      'Use it to verify your own work after patches: actual widths, contrast, computed colors post-variable-resolution, ' +
+      'flex gap/padding reality. Falls back to resolver-predicted data (measured:false) when no client ' +
+      'is connected — never hangs.',
+    promptSnippet: 'Read real computed styles + measured rects for nodes (live DOM readback).',
+    parameters: Type.Object({
+      nodeIds: Type.Array(Type.String({ description: 'Node ids to read (use pen_get_metadata to find ids)' }), { minItems: 1, maxItems: 20 }),
+      properties: Type.Optional(Type.Array(Type.String({
+        description: 'Optional computed-style property filter (camelCase: backgroundColor, fontSize, gap, …). Default: curated ~33-prop subset',
+      }))),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      if (!params.nodeIds || params.nodeIds.length === 0) {
+        return {
+          content: [{ type: 'text', text: 'Error: nodeIds must be a non-empty array. Call pen_get_metadata (no nodeId) for the page list, then pass nodeIds for the sparse tree.' }],
+          details: { error: 'no_node_ids' },
+          isError: true as any,
+        };
+      }
+      const shapes = ctx.getShapes();
+      const byId = new Map(shapes.map((s) => [s.id, s] as const));
+
+      // Round-trip first (≤2s). No sink (outside a turn) → straight fallback.
+      let clientResults: ComputedResult[] | null = null;
+      if (hasSink()) {
+        clientResults = await awaitClientResponse<ComputedResult[]>(
+          toolCallId,
+          () => emitEvent({ type: 'agent:computed_request', toolCallId, nodeIds: params.nodeIds, properties: params.properties }),
+          ROUNDTRIP_DEFAULTS.computedTimeoutMs,
+        );
+      }
+      const byClient = new Map((clientResults ?? []).map((r) => [r.id, r] as const));
+
+      const results: ComputedResult[] = params.nodeIds.map((id) => {
+        const live = byClient.get(id);
+        if (live) return { ...live, measured: true };
+        const s = byId.get(id);
+        if (s) return resolverComputedFallback(s, params.properties);
+        return {
+          id,
+          rect: { x: 0, y: 0, width: 0, height: 0 },
+          computed: {},
+          measured: false,
+        };
+      });
+
+      const liveCount = results.filter((r) => r.measured).length;
+      const summaryLine = liveCount === params.nodeIds.length
+        ? `All ${results.length} node(s) read from the LIVE DOM (measured: true).`
+        : liveCount > 0
+          ? `${liveCount}/${results.length} node(s) read from the live DOM; the rest fell back to resolver data (measured: false).`
+          : `client offline — resolver fallback (measured: false for all ${results.length} node(s))`;
+
+      const blocks = results.map((r) => {
+        const rect = r.canvasRect ?? r.rect;
+        const propLines = Object.entries(r.computed).map(([k, v]) => `    ${k}: ${v}`);
+        return [
+          `node ${r.id}${byId.get(r.id) ? ` (${byId.get(r.id)!.type} "${byId.get(r.id)!.name}")` : ' (unknown id)'} — measured: ${r.measured === true}`,
+          `    rect (canvas space): x=${rect.x} y=${rect.y} w=${rect.width} h=${rect.height}`,
+          ...(propLines.length > 0 ? propLines : ['    (no computed properties available)']),
+        ].join('\n');
+      });
+
+      const unknown = results.filter((r) => !byId.get(r.id) && !byClient.get(r.id));
+      const text = [summaryLine, ...blocks].join('\n\n') +
+        (unknown.length > 0 ? `\n\nUnknown node id(s) (not in canvas or DOM): ${unknown.map((u) => u.id).join(', ')}` : '');
+      return { content: [{ type: 'text', text }], details: { measured: liveCount > 0, liveCount, results } };
+    },
+  });
+
+  const getScreenshot = defineTool({
+    name: 'pen_get_screenshot',
+    label: 'Get Screenshot (real canvas)',
+    description: 'Capture a PNG screenshot of the REAL rendered canvas — the DOM renderer captured via ' +
+      'html-to-image at the requested scale (default 2). Figma MCP analog: get_screenshot. Use for ' +
+      'self-verification after building UI. Falls back to the server-side resvg render (measured:false, ' +
+      'images dropped) when no client responds within 2s — never hangs. The data URL lands in ' +
+      'details.screenshotDataUrl; the text carries dimensions + KB only (tool-result size caps).',
+    promptSnippet: 'Screenshot the real rendered canvas (client capture, server fallback).',
+    parameters: Type.Object({
+      nodeId: Type.Optional(Type.String({ description: 'Optional node id — informational scope hint; the capture covers the visible canvas' })),
+      scale: Type.Optional(Type.Number({ description: 'Pixel ratio for the capture (default 2)' })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const shot = await requestClientScreenshot(toolCallId, params.nodeId, params.scale, ROUNDTRIP_DEFAULTS.screenshotTimeoutMs);
+      if (shot?.dataUrl) {
+        const kb = Math.round(shot.dataUrl.length / 1024);
+        const text = `Real client screenshot captured${params.nodeId ? ` (scope hint: node ${params.nodeId}; capture covers the visible canvas)` : ''} — ` +
+          `PNG data URL in details.screenshotDataUrl (${kb} KB), measured: true.`;
+        return { content: [{ type: 'text', text }], details: { screenshotDataUrl: shot.dataUrl, measured: true, scale: params.scale ?? 2 } };
+      }
+
+      // Fallback — server-side resvg render of the full document bbox.
+      const shapes = ctx.getShapes();
+      if (shapes.length === 0) {
+        return { content: [{ type: 'text', text: 'Canvas is empty — nothing to screenshot.' }], details: { measured: false } };
+      }
+      try {
+        const minX = Math.min(...shapes.map((s) => s.x));
+        const minY = Math.min(...shapes.map((s) => s.y));
+        const maxX = Math.max(...shapes.map((s) => s.x + s.width));
+        const maxY = Math.max(...shapes.map((s) => s.y + s.height));
+        const w = Math.max(1, Math.round(maxX - minX));
+        const h = Math.max(1, Math.round(maxY - minY));
+        const shifted = shapes.map((s) => ({ ...s, x: s.x - minX, y: s.y - minY }));
+        const { renderCanvasToPng } = await import('../canvas/render-to-png');
+        const png = await renderCanvasToPng(shifted, w, h);
+        const dataUrl = `data:image/png;base64,${png.toString('base64')}`;
+        const kb = Math.round(dataUrl.length / 1024);
+        const reason = shot?.error ? `client reported: ${shot.error}` : 'no client responded within the timeout';
+        const text = `client offline — resolver fallback (${reason}); server-side PNG render ${w}×${h} @2x, ` +
+          `data URL in details.screenshotDataUrl (${kb} KB), measured: false (server approximation — images may be dropped).`;
+        return { content: [{ type: 'text', text }], details: { screenshotDataUrl: dataUrl, measured: false, width: w, height: h, scale: 2 } };
+      } catch (err) {
+        const reason = shot?.error ? `client: ${shot.error}` : 'no client + server render failed';
+        return {
+          content: [{ type: 'text', text: `screenshot unavailable (${reason}): ${err instanceof Error ? err.message : String(err)}` }],
+          details: { measured: false, error: err instanceof Error ? err.message : String(err), clientError: shot?.error },
+          isError: true as any,
+        };
+      }
     },
   });
 
   // =====================================================================
   // PHASE 2c: FIND & FILTER (3 tools)
-  // Lets the agent query and bulk-transform shapes without first calling
-  // pen_list_shapes and filtering client-side.
+  // Lets the agent query and bulk-transform nodes without first calling
+  // pen_get_metadata and filtering client-side.
   // =====================================================================
 
   const findShapes = defineTool({
-    name: 'pen_find_shapes',
-    label: 'Find Shapes',
-    description: 'Find shapes matching a filter. Returns shape IDs and a summary. Read-only. ' +
-      'Use this to bulk-select shapes by type, color, name, or parent. ' +
-      'Example: find all ellipses, find all shapes with fill #ff0000, find all children of a frame.',
-    promptSnippet: 'Find shapes by type/color/name/parent.',
+    name: 'pen_find_nodes',
+    label: 'Find Nodes',
+    description: 'Find nodes matching a filter. Returns node IDs and a summary. Read-only. ' +
+      'Use this to bulk-select nodes by type, color, name, or parent. ' +
+      'Example: find all ellipses, find all nodes with fill #ff0000, find all children of a frame.',
+    promptSnippet: 'Find nodes by type/color/name/parent.',
     parameters: Type.Object({
       type: Type.Optional(ShapeTypeSchema),
       fill: Type.Optional(Type.String({ description: 'Filter by exact fill color' })),
@@ -2699,7 +3708,7 @@ const createShape = defineTool({
   const bulkUpdateByFilter = defineTool({
     name: 'pen_bulk_update_by_filter',
     label: 'Bulk Update by Filter',
-    description: 'Update all shapes matching a filter. Combines pen_find_shapes + pen_update_shape into one call. ' +
+    description: 'Update all nodes matching a filter. Combines pen_find_nodes + pen_update_node into one call. ' +
       'Example: "make all ellipses red" → filter type=ellipse, changes fill=#ff0000.',
     promptSnippet: 'Update all shapes matching a filter in one call.',
     parameters: Type.Object({
@@ -2853,7 +3862,7 @@ const createShape = defineTool({
     name: 'pen_mask_with',
     label: 'Mask with Shape',
     description: 'Clip a shape using another shape as a mask. The mask shape\'s geometry defines the visible region of the target. ' +
-      'To remove a mask, call this with maskId=null (or use pen_update_shape to clear maskId).',
+      'To remove a mask, call this with maskId=null (or use pen_update_node to clear maskId).',
     promptSnippet: 'Mask one shape with another.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape to be masked (clipped)' }),
@@ -2920,7 +3929,7 @@ const createShape = defineTool({
     name: 'pen_set_shadow',
     label: 'Set Drop Shadow',
     description: 'Apply a drop shadow to a shape. Set blur=0 and color=transparent to remove. ' +
-      'The shadow is rendered via an SVG filter on the client.',
+      'The shadow is rendered via CSS box-shadow (text layers use text-shadow).',
     promptSnippet: 'Apply a drop shadow to a shape.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape ID' }),
@@ -2953,7 +3962,7 @@ const createShape = defineTool({
   const setBlur = defineTool({
     name: 'pen_set_blur',
     label: 'Set Blur',
-    description: 'Apply a Gaussian blur to a shape. Set radius to 0 to remove. Rendered via an SVG filter.',
+    description: 'Apply a Gaussian blur to a shape. Set radius to 0 to remove. Rendered via CSS filter: blur().',
     promptSnippet: 'Apply a Gaussian blur to a shape.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape ID' }),
@@ -3013,7 +4022,7 @@ const createShape = defineTool({
     name: 'pen_upload_image',
     label: 'Place Image',
     description: 'Place an image on the canvas from a data URL or remote URL. ' +
-      'Use this for logos, photos, or any raster image. The image is rendered via an SVG <image> element. ' +
+      'Use this for logos, photos, or any raster image. The image is rendered as a CSS-styled <img> element. ' +
       'Data URLs (base64) are preferred for persistence; remote URLs may break if the host goes down.',
     promptSnippet: 'Place an image on the canvas.',
     parameters: Type.Object({
@@ -3053,56 +4062,121 @@ const createShape = defineTool({
 
   const searchIcons = defineTool({
     name: 'pen_search_icons',
-    label: 'Place Icon',
-    description: 'Place a Lucide icon on the canvas as a path shape. ' +
-      'Renders the icon as a stroked polyline path. ' +
-      'Available icons: check, x, plus, minus, arrow-right, arrow-left, arrow-up, arrow-down, ' +
-      'chevron-down, chevron-up, chevron-left, chevron-right, search, settings, user, heart, ' +
-      'star, bell, mail, phone, calendar, clock, home, menu, share, download, upload, ' +
-      'edit, trash, copy, lock, unlock, eye, eye-off.',
-    promptSnippet: 'Place a Lucide icon on the canvas.',
+    label: 'Search & Place Icon',
+    description:
+      'Search the Lucide icon catalog by MEANING and optionally place an icon on the canvas as a first-class icon node. ' +
+      'Two modes: (1) SEARCH — pass `query` (e.g. "password security", "analytics chart") to get ranked icon names with categories; ' +
+      '(2) PLACE — pass `icon` (an exact name) plus `x`/`y` to place it. Combine both (`query` + `x`/`y`) to place the best match. ' +
+      'Icons render as true Lucide glyphs, recolorable via `stroke`, and are the ONLY correct way to add icons — ' +
+      'never hand-draw icons with path nodes and never use emoji as icons.',
+    promptSnippet: 'Search the Lucide icon catalog by meaning; place real icon nodes (never hand-drawn icons).',
+    promptGuidelines: [
+      'ALWAYS find icon names through this tool (or the ICON CATALOG in the system prompt) — never invent names.',
+      'Place icons with icon nodes (type:"icon"); recolor with `stroke`, resize via width/height.',
+      'Typical icon sizes: 16-20px inline with text, 24px toolbars, 32-48px feature cards.',
+    ],
     parameters: Type.Object({
-      icon: Type.String({ description: 'Icon name (see description for list)' }),
-      x: Type.Number({ description: 'Canvas-space X' }),
-      y: Type.Number({ description: 'Canvas-space Y' }),
-      size: Type.Optional(Type.Number({ description: 'Icon size in px (default 24)' })),
-      stroke: Type.Optional(Type.String({ description: 'Stroke color (default #0f172a)' })),
-      strokeWidth: Type.Optional(Type.Number({ description: 'Stroke width (default 2)' })),
+      query: Type.Optional(Type.String({ description: 'Semantic search: what the icon should MEAN, e.g. "password security", "payment", "upload file". Returns ranked matches.' })),
+      icon: Type.Optional(Type.String({ description: 'Exact icon name to place (e.g. "lock"). Tolerates case/spacing ("Trash 2" → trash-2).' })),
+      category: Type.Optional(Type.String({ description: 'Optional category filter: navigation, actions, communication, media, files, commerce, users, security, status, weather-nature, tech-dev, time, layout, essentials' })),
+      limit: Type.Optional(Type.Number({ description: 'Max search results (default 12, max 24)' })),
+      x: Type.Optional(Type.Number({ description: 'Canvas-space X — provide to PLACE the icon (with `icon`, or the top `query` match)' })),
+      y: Type.Optional(Type.Number({ description: 'Canvas-space Y — provide to PLACE the icon' })),
+      size: Type.Optional(Type.Number({ description: 'Icon size in px (default 24, square)' })),
+      stroke: Type.Optional(Type.String({ description: 'Icon stroke color hex or $color.* token (default #0f172a)' })),
+      strokeWidth: Type.Optional(Type.Number({ description: 'Stroke width in lucide units (default 2)' })),
+      parentId: Type.Optional(Type.String({ description: 'Parent frame/group ID to place the icon inside' })),
+      name: Type.Optional(Type.String({ description: 'Layer name (default "Icon: <name>")' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
-      const iconData = LUCIDE_ICONS[params.icon.toLowerCase()];
-      if (!iconData) {
-        const available = Object.keys(LUCIDE_ICONS).join(', ');
-        return { content: [{ type: 'text', text: `Icon "${params.icon}" not found. Available: ${available}` }], details: { error: 'icon_not_found', requested: params.icon, available: Object.keys(LUCIDE_ICONS) }, isError: true as any };
+      // ---- Resolve what to place (if anything) -------------------------------
+      let toPlace: string | null = null;
+      if (params.icon) {
+        const resolved = getLucideIcon(params.icon);
+        if (!resolved) {
+          const suggestions = searchLucideIcons(params.icon, { limit: 8 })
+            .map((m) => m.name)
+            .join(', ');
+          return {
+            content: [{ type: 'text', text: `Icon "${params.icon}" not found in the Lucide catalog.${suggestions ? ` Closest matches: ${suggestions}.` : ''} Call pen_search_icons with a semantic \`query\` to find the right name.` }],
+            details: { error: 'icon_not_found', requested: params.icon, suggestions },
+            isError: true as any,
+          };
+        }
+        toPlace = resolved.name;
+      } else if (params.query && params.x !== undefined && params.y !== undefined) {
+        const top = searchLucideIcons(params.query, { category: params.category, limit: 1 })[0];
+        if (top) toPlace = top.name;
       }
-      const id = crypto.randomUUID();
-      const sz = Number(params.size) || 24;
-      const sw = params.strokeWidth ?? 2;
-      const sc = params.stroke ?? '#0f172a';
-      // Lucide icons are 24×24 viewBox. Scale to requested size.
-      const scale = sz / 24;
-      const points = iconData.map((p: { x: number; y: number }) => ({ x: (params.x || 0) + p.x * scale, y: (params.y || 0) + p.y * scale }));
-      const shape: Partial<Shape> = {
-        id,
-        type: 'path',
-        name: `Icon: ${params.icon}`,
-        x: params.x || 0,
-        y: params.y || 0,
-        width: sz,
-        height: sz,
-        fill: 'transparent',
-        stroke: sc,
-        strokeWidth: sw,
-        radius: 0,
-        fontSize: 16,
-        textColor: '#0f172a',
-        points,
-        closed: false,
-        zIndex: ctx.getShapes().length,
+
+      // ---- Placement ----------------------------------------------------------
+      if (toPlace && params.x !== undefined && params.y !== undefined) {
+        const id = crypto.randomUUID();
+        const sz = Number(params.size) || 24;
+        const shape: Partial<Shape> = {
+          id,
+          type: 'icon',
+          name: params.name || `Icon: ${toPlace}`,
+          x: Number(params.x) || 0,
+          y: Number(params.y) || 0,
+          width: sz,
+          height: sz,
+          fill: 'transparent',
+          stroke: params.stroke ?? '#0f172a',
+          strokeWidth: params.strokeWidth ?? 2,
+          radius: 0,
+          fontSize: 16,
+          textColor: '#0f172a',
+          iconName: toPlace,
+          iconLibrary: 'lucide',
+          zIndex: ctx.getShapes().length,
+          ...(params.parentId ? { parentId: params.parentId } : {}),
+        };
+        const patch: CanvasPatch = {
+          op: 'add',
+          shapeId: id,
+          shape,
+          summary: `Placed lucide icon "${toPlace}" at (${params.x}, ${params.y})`,
+        };
+        ctx.applyPatch(patch);
+        const placedMsg = `Placed lucide icon "${toPlace}" (id ${id}) at (${params.x}, ${params.y}), size ${sz}px. Recolor via pen_update_node {stroke}, resize via {width,height}.`;
+        // Also surface a few related names so the model can vary without
+        // another search round-trip.
+        const related = searchLucideIcons(toPlace.replace(/-/g, ' '), { limit: 5 })
+          .map((m) => m.name)
+          .filter((n) => n !== toPlace)
+          .slice(0, 4);
+        return {
+          content: [{ type: 'text', text: related.length > 0 ? `${placedMsg} Related icons: ${related.join(', ')}.` : placedMsg }],
+          details: { shapeId: id, icon: toPlace, patch },
+        };
+      }
+
+      // ---- Search-only ----------------------------------------------------------
+      const query = params.query ?? params.icon ?? '';
+      if (!query) {
+        return {
+          content: [{ type: 'text', text: 'Pass `query` (what the icon should mean) to search, and optional `icon` + `x`/`y` to place. Example: {"query":"password security"} or {"icon":"lock","x":100,"y":50}.' }],
+          details: { error: 'missing_query' },
+          isError: true as any,
+        };
+      }
+      const matches = searchLucideIcons(query, {
+        category: params.category,
+        limit: Math.max(1, Math.min(24, params.limit ?? 12)),
+      });
+      if (matches.length === 0) {
+        return {
+          content: [{ type: 'text', text: `No icons matched "${query}". Try a broader, shorter query (single words work best: "lock", "chart", "user"), or browse a category via {"query":"","category":"actions"}.` }],
+          details: { error: 'no_matches', query },
+          isError: true as any,
+        };
+      }
+      const lines = matches.map((m) => `  ${m.name}${m.category ? ` (${m.category})` : ''}`);
+      return {
+        content: [{ type: 'text', text: `Lucide icons matching "${query}" (${matches.length}):\n${lines.join('\n')}\n\nPlace with pen_search_icons {icon:"<name>", x, y, size, stroke} or pen_create_node {type:"icon", icon:"<name>", x, y}.` }],
+        details: { query, matches: matches.map((m) => m.name) },
       };
-      const patch: CanvasPatch = { op: 'add', shapeId: id, shape, summary: `Placed icon "${params.icon}" at (${params.x}, ${params.y})` };
-      ctx.applyPatch(patch);
-      return { content: [{ type: 'text', text: `Placed icon "${params.icon}" with id ${id} at (${params.x}, ${params.y}), size ${sz}px.` }], details: { shapeId: id, icon: params.icon, patch } };
     },
   });
 
@@ -3364,13 +4438,13 @@ const createShape = defineTool({
     name: 'pen_generate_design_brief',
     label: 'Generate Design Brief (Pre-Generation)',
     description:
-      'Dispatch the design-brief sub-agent to produce a JSON design brief from the user prompt BEFORE any pen_create_shape / pen_generate_wireframe call. ' +
+      'Dispatch the design-brief sub-agent to produce a JSON design brief from the user prompt BEFORE any pen_create_node / pen_generate_wireframe call. ' +
       'Returns: primaryColor, accentColor, neutralPalette, typography (fontFamily, headingScale, bodySize), componentCount, layoutGrid (cols, rows), informationArchitecture (ordered section list). ' +
       'Implements v0\'s GenerateDesignInspiration pattern (think-before-draw). ' +
       'MANDATORY FIRST STEP for any high-fidelity design request — the brief drives all subsequent palette / typography / layout decisions.',
     promptSnippet: 'Produce a JSON design brief from the prompt before drawing anything.',
     promptGuidelines: [
-      'Call this FIRST — before pen_create_shape / pen_generate_wireframe / pen_apply_palette.',
+      'Call this FIRST — before pen_create_node / pen_generate_wireframe / pen_apply_palette.',
       'Use the returned primaryColor + accentColor as the $color.primary + $color.accent tokens in pen_set_variable / pen_apply_palette.',
       'Use the neutralPalette (5-7 hex codes) as $color.bg / surface / surface-2 / border / text / text-muted / text-subtle.',
       'Use informationArchitecture as the ordered checklist of components to scaffold (every entry → at least one shape).',
@@ -3693,7 +4767,8 @@ const createShape = defineTool({
     createShape,
     updateShape,
     deleteShape,
-    listShapes,
+    // (pen_list_shapes folded into getMetadata — G.3 supersede row; legacy
+    //  name resolves via the alias registry with a migration notice.)
     clearCanvas,
     setBackground,
     selectShape,
@@ -3706,8 +4781,8 @@ const createShape = defineTool({
     organizeLayers,
     // Auto layout
     applyAutoLayout,
-    // Components
-    createComponent,
+    // Components (pen_create_component itself now lives in figma-tools.ts —
+    // the Figma-shaped fold target per G.3; see the comment above.)
     instantiateComponent,
     // Component System (Phase 2 — Figma-aligned components & design systems)
     convertToComponent,
@@ -3752,6 +4827,14 @@ const createShape = defineTool({
     exportSvg,
     exportPng,
     copyAsCode,
+    // Phase 3 (spec §5.2): Figma-MCP-aligned tools
+    insertHtml,
+    getMetadata,
+    getVariableDefs,
+    getDesignContext,
+    bakeLayout,
+    getComputed,
+    getScreenshot,
     // Phase 2c: Find & filter
     findShapes,
     bulkUpdateByFilter,
@@ -3805,8 +4888,8 @@ export interface OpenAIToolSpec {
 }
 
 export function toolsToOpenAISpec(tools: ReturnType<typeof createCanvasTools>): OpenAIToolSpec[] {
-  return tools.map((t) => ({
-    type: 'function',
+  const canonical = tools.map((t) => ({
+    type: 'function' as const,
     function: {
       name: t.name,
       description: t.description,
@@ -3815,6 +4898,18 @@ export function toolsToOpenAISpec(tools: ReturnType<typeof createCanvasTools>): 
       parameters: Value.Clean(t.parameters, {}) as object,
     },
   }));
+  // Spec Phase 6 part 2 (§9.3 #4): expose BOTH vocabularies during the
+  // deprecation window — the LLM sees the canonical tools plus the legacy
+  // aliases (deprecated-prefixed), so old-vocabulary calls still land.
+  const aliases = aliasToolEntries(tools as unknown as AliasToolLike[]).map((t) => ({
+    type: 'function' as const,
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: Value.Clean((t as any).parameters, {}) as object,
+    },
+  }));
+  return [...canonical, ...aliases];
 }
 
 // ---- Execute a tool by name -------------------------------------------------
@@ -3833,7 +4928,11 @@ export async function executeTool(
   toolName: string,
   args: any,
 ): Promise<{ content: string; patch?: CanvasPatch; patches?: CanvasPatch[]; isError?: boolean }> {
-  const tool = tools.find((t) => t.name === toolName);
+  // Spec Phase 6 part 2 (§9.3 #4): resolve legacy tool names to their
+  // canonical successors. Unknown names still error exactly as before
+  // (resolveToolName passes them through — never silently resolve).
+  const { name: canonicalName, aliasOf } = resolveToolName(toolName);
+  const tool = tools.find((t) => t.name === canonicalName);
   if (!tool) {
     return { content: `Unknown tool: ${toolName}`, isError: true };
   }
@@ -3844,7 +4943,9 @@ export async function executeTool(
   // a known failure mode with large tool registries (see worklog.md
   // assess-skills task). We detect and repair it here so the tool doesn't
   // crash with "Cannot read properties of undefined (reading 'includes')".
-  const repairedArgs = repairArrayArgs(args);
+  // (normalizeToolParams folds legacy param spellings — shapeIds etc. — onto
+  // the canonical names FIRST, so the repair lists cover both vocabularies.)
+  const repairedArgs = repairArrayArgs(normalizeToolParams(canonicalName, args));
 
   try {
     const result = await tool.execute(
@@ -3867,6 +4968,13 @@ export async function executeTool(
       const truncated = text.slice(0, MAX_TOOL_RESULT_CHARS);
       const remainingLines = text.slice(MAX_TOOL_RESULT_CHARS).split('\n').length;
       text = truncated + `\n\n…[truncated: ${remainingLines} more lines omitted. Refine your query or use a filter to see specific results.]`;
+    }
+
+    // Spec Phase 6 part 2: a legacy-name call appends the one-line migration
+    // notice AFTER truncation so it always survives — the model learns the
+    // canonical spelling mid-session.
+    if (aliasOf) {
+      text += `\n${deprecationNotice(toolName, aliasOf)}`;
     }
 
     return { content: text, patch, patches, isError };
@@ -3894,7 +5002,7 @@ function repairArrayArgs(args: any): any {
   // True array params — accept either a real array OR a stringified JSON array.
   // The LLM occasionally passes `palette="[\"#fff\",\"#000\"]"` instead of
   // `palette=["#fff","#000"]`. Detect + parse.
-  const arrayParams = ['palette', 'shapeIds', 'nodes', 'updates', 'stops', 'points', 'axes', 'componentIds', 'parameters'];
+  const arrayParams = ['palette', 'shapeIds', 'nodeIds', 'nodes', 'updates', 'stops', 'points', 'axes', 'componentIds', 'parameters', 'modes'];
   for (const param of arrayParams) {
     const val = (repaired as any)[param];
     if (typeof val === 'string' && val.trim().startsWith('[')) {
@@ -3914,7 +5022,7 @@ function repairArrayArgs(args: any): any {
   // tools take `shapeIds` plural). Unwrap to the first element.
   // This was the root cause of the "no shape with id [\"abc\"]" loop where
   // the agent retried the same failing call 16+ times.
-  const stringParams = ['shapeId', 'instanceId', 'variantComponentId', 'parentId', 'groupId', 'newParentId', 'maskId'];
+  const stringParams = ['shapeId', 'nodeId', 'instanceId', 'variantComponentId', 'parentId', 'groupId', 'newParentId', 'maskId', 'variableId', 'collectionId'];
   for (const param of stringParams) {
     const val = (repaired as any)[param];
     if (typeof val === 'string' && val.trim().startsWith('[')) {
@@ -4013,9 +5121,9 @@ function applyHighFidelityStyling(
     //   - Input placeholder/label:    weight 400, letterSpacing 0, left
     //   - Sidebar nav item:           weight 500, letterSpacing 0, left
     //   - Caption / overline:         weight 500, letterSpacing +0.4-0.8
-    // The renderer (Canvas.tsx ShapeRenderer case 'text') honors fontWeight,
+    // The renderer (DOM renderer's styleFor.ts) honors fontWeight,
     // letterSpacing, lineHeight, textAlign, fontFamily — so these fields flow
-    // through .pen PenTextStyle → resolvePenTree → Layer → SVG <text>.
+    // through .pen PenTextStyle → resolvePenTree → Layer → CSS text properties.
     if (s.type === 'text') {
       applyTypographyByName(s, name);
     }
@@ -4153,7 +5261,7 @@ function applyHighFidelityStyling(
 ///
 /// Honors the system prompt's LETTER SPACING RULES table. The shape is mutated
 /// in place — only fields not already set by the template are filled, so the
-/// agent's follow-up `pen_update_shape` calls (e.g. to change the brand name's
+/// agent's follow-up `pen_update_node` calls (e.g. to change the brand name's
 /// text) won't be overwritten.
 ///
 /// Naming patterns cover every text shape the wireframe templates emit:

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039957534-Boolean-operations",
+    "name": "Boolean operations – Figma Learn - Help Center",
+    "snippet": "There are four boolean operations: union, subtract, intersect, and exclude. ... Union selection keyboard shortcut: Mac: Option Shift U; Windows: Alt Shift U.",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/shortcuts-for-boolean-operations-36191",
+    "name": "Shortcuts for boolean operations - Figma Forum",
+    "snippet": "Apr 30, 2024 · Operations such as Mask and Flatten have keyboard shortcuts, but ... Keyboard shortcuts for union, subtract, intersect, exclude selection.",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=wQdUIwRYuA4",
+    "name": "Figma Course 10: Boolean Operations - YouTube",
+    "snippet": "Feb 15, 2021 · Exploring Types of Boolean Operations Union: Union combines the selected shapes into a Boolean group. If the objects overlap, ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://d-libro.com/topic/masking-and-boolean-operations-in-figma",
+    "name": "Figma Masking & Boolean Operations Guide - Topic - D-Libro",
+    "snippet": "Figma How To Access Boolean Operations. Choose an Operation: Select from Union, Subtract, Intersect, or Exclude to apply the desired effect. Flatten Boolean ...",
+    "host_name": "d-libro.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/keyboard-shortcuts-for-union-subtract-intersect-exclude-selection-14341",
+    "name": "Keyboard shortcuts for union, subtract, intersect, exclude selection",
+    "snippet": "Dec 19, 2023 · Keyboard shortcuts for union, subtract, intersect, exclude selection. The video tutorial is helpful to understand how to use it. Figma Tutorial ...",
+    "host_name": "forum.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://x.com/figma/status/1894872682665254934",
+    "name": "New keyboard shortcuts for all Boolean operations → Union",
+    "snippet": "Feb 26, 2025 · ... Subtract selection ⌥ + Shift + S → Intersect selection ⌥ + Shift + I → Exclude selection ⌥ + Shift + E → Flatten selection ⌘ + E.",
+    "host_name": "x.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=8ZaX6qEcUCU",
+    "name": "Figma Tutorial: Boolean Operations - YouTube",
+    "snippet": "Feb 27, 2018 · the four Boolean Operations: Union, Subtract, Intersect, and Exclude ... Selection #Figma #FigmaDesign #FigmaTutorial #Boolean #Operations ...",
+    "host_name": "www.youtube.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/where-in-ui3-are-the-boolean-operations-i-e-union-subtract-intersect-exclude-29050",
+    "name": "Where in UI3 are the Boolean operations? i.e. Union, Subtract",
+    "snippet": "Aug 12, 2024 · Keyboard shortcuts for union, subtract, intersect, exclude selection · Suggest a Feature · Shortcuts for boolean operations · Suggest a Feature ...",
+    "host_name": "forum.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

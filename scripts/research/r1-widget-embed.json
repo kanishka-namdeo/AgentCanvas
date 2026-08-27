@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/nodes",
+    "name": "Node Types | Developer Docs",
+    "snippet": "In Figma, the Node is the basis for representing layers. There are many different types of nodes, each with their own set of properties.",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/issues-with-updating-node-properties-via-figma-api-20279",
+    "name": "Issues with Updating Node Properties via Figma API",
+    "snippet": "Nov 29, 2024 · Hi! I am currently developing an application that interacts with Figma files (updating some nodes) through the Figma API.",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api",
+    "name": "Introduction | Developer Docs",
+    "snippet": "The Figma API is based on the REST structure. Every layer or object in a file will be represented within the file by a node (subtree). any properties ...",
+    "host_name": "developers.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/StampNode",
+    "name": "StampNode | Developer Docs",
+    "snippet": "Stamps are nodes that are inserted by users into the canvas via the Stamp Wheel. Use the stamp's name property to tell what type of stamp it is.",
+    "host_name": "developers.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.postman.com/figma-dev/figma-public-workspace/documentation/ugq9mj8/figma-api",
+    "name": "Figma API | Documentation | Postman API Network",
+    "snippet": "The components property contains a mapping from node IDs to component metadata. This is to help you determine which components each instance comes from.",
+    "host_name": "www.postman.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api/file-endpoints",
+    "name": "Endpoints | Developer Docs",
+    "snippet": "The components key contains a mapping from node IDs to component metadata. This is to help you determine which components each instance comes from. Nodes that ...",
+    "host_name": "developers.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://rollout.com/integration-guides/figma/api-essentials",
+    "name": "Figma API Essential Guide - Rollout",
+    "snippet": "Aug 3, 2024 · Figma offers a REST API for developers to interact with Figma data and functionality. Familiarize yourself with the shared node properties that ...",
+    "host_name": "rollout.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=t15BZZ1giGo",
+    "name": "Figma + No Code + Rest API = NATIVE APP?! -- Bravo Studio",
+    "snippet": "Mar 5, 2020 · Visit http://linode.com/designcourse for a $20 credit on your new linode account. https://designcourse.com - Learn UI/UX from Scratch with ...",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

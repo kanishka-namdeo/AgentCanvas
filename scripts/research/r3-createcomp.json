@@ -1,0 +1,38 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038663154-Create-components-to-reuse-in-designs",
+    "name": "Create components to reuse in designs - Figma Learn",
+    "snippet": "To create a component: Select the layers you'd like to be included in the ... Mac: Option Command K; Windows: Ctrl Alt K. Figma will nest the layers ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/38231200344599-Use-slots-to-build-flexible-components-in-Figma",
+    "name": "Use slots to build flexible components in Figma",
+    "snippet": "When you create a component with slots, you can add as many repeating items ... Use the keyboard shortcut ⌘ Command ⇧ Shift S (Mac) or ⌃ Control ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/18770195788951-Create-a-reusable-icon-grid",
+    "name": "Create a reusable icon grid – Figma Learn - Help Center",
+    "snippet": "Mac: ⌘ Command Option C; Windows: Windows: Control Alt C. Select the ... Create a component. Our icon grid is complete! Because we want this to be a ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15343816063383-Modes-for-variables",
+    "name": "Modes for variables – Figma Learn - Help Center",
+    "snippet": "Ctrl K. Sign up · Figma Design. Design and prototype in one place · Figma Make ... Create a component with a nested instance of another component. Create a ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  }
+]

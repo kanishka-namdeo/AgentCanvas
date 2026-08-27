@@ -15,6 +15,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from '../../src/lib/canvas/types';
 import { applyPatchToCanvas } from '../../src/lib/canvas/patch';
+import { setMeasuredBounds } from '../../src/lib/agent/client-roundtrip';
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -104,14 +105,43 @@ io.on('connection', (socket) => {
         socket.emit('sync', { type: 'canvas:full', document: state.document } satisfies SyncEvent);
         break;
       }
+      case 'document:restore': {
+        // Shared-canvas restore: a viewer swapped the document back to a
+        // snapshot. Replace the in-memory state and rebroadcast the full
+        // document to EVERY subscriber (including the sender — idempotent).
+        // Standalone flavor: no DB seed here (memory-only by design — the
+        // in-process twin that wins the port owns the authoritative state).
+        const state = ensureDocument(event.documentId);
+        state.document = event.document;
+        broadcast(state, { type: 'canvas:full', document: state.document } satisfies SyncEvent);
+        console.log(`[canvas-sync] document:restore on ${event.documentId} broadcast to ${state.subscribers.size} viewers`);
+        break;
+      }
       case 'agent:prompt': {
         // The frontend asks the WS service to drive the agent. We forward
         // this to the Next.js API route via fetch, then stream the API's
-        // SSE response back out as `sync` events.
+        // SSE response back out as `sync` events. Images + selection ride
+        // along — dropping them here silently stripped attachments for
+        // every WS-connected viewer (the in-process twin forwards them).
         console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${event.prompt.slice(0, 80)}…`);
-        driveAgent(event.documentId, event.prompt, socket.id, event.settings).catch((err) => {
+        driveAgent(event.documentId, event.prompt, socket.id, event.settings, event.images, event.selection).catch((err) => {
           console.error('[canvas-sync] agent drive failed:', err);
         });
+        break;
+      }
+      case 'canvas:measured_bounds': {
+        // Measured-bounds digest push (spec §3.8). In the standalone
+        // mini-service process this only warms a LOCAL copy — the
+        // authoritative server-side map lives in the Next.js process and is
+        // refreshed by the client's POST to /api/agent/client-responses.
+        setMeasuredBounds(event.documentId, event.bounds);
+        break;
+      }
+      case 'canvas:computed_response':
+      case 'canvas:screenshot_response':
+      case 'agent:steer': {
+        // Round-trip answers resolve via the HTTP route (same-process map);
+        // steer is handled by the in-process service. Accepted, no-op here.
         break;
       }
     }
@@ -142,7 +172,14 @@ io.on('connection', (socket) => {
 // bridges the Server-Sent-Events stream back into socket.io `sync` events
 // so every subscribed viewer sees the agent work in real time.
 
-async function driveAgent(documentId: string, prompt: string, originatorSocketId: string, settings?: any) {
+async function driveAgent(
+  documentId: string,
+  prompt: string,
+  originatorSocketId: string,
+  settings?: any,
+  images?: Array<{ id?: string; name?: string; dataUrl: string }>,
+  selection?: { count: number; names: string[] },
+) {
   const state = ensureDocument(documentId);
 
   // Helper that fans an event out to every viewer (including the originator).
@@ -158,7 +195,7 @@ async function driveAgent(documentId: string, prompt: string, originatorSocketId
   const res = await fetch(gatewayUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings }),
+    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings, images, selection }),
   });
 
   if (!res.ok || !res.body) {

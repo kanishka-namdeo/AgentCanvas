@@ -1,0 +1,1250 @@
+
+
+ 
+ 
+
+ Modes for variables – Figma Learn - Help Center
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ Figma Learn
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+
+ enterto select
+ ↑↓to navigate
+ escto close
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+Figma Design
+ 
+Design and prototype in one place
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Make
+ 
+ 
+Prompt to code anything you can imagine
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Dev Mode
+ 
+Translate designs into code
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Weave
+ New
+ 
+ 
+AI workflows for imagery, video, and audio
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Motion
+ New
+ 
+ 
+Create precise, production-ready animations
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+FigJam
+ 
+Collaborate with a digital whiteboard
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Draw
+ 
+ 
+Illustrate with advanced vector tools
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Figma Slides
+ 
+Co-create presentations
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Sites
+ Beta
+ 
+ 
+Publish fully responsive websites
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+Figma Buzz
+ Beta
+ 
+ 
+Produce on-brand assets at scale
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+AI
+ 
+Explore all Figma AI features
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Developer docs
+ 
+Work with APIs, embeds, and more
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+For everyone
+ 
+
+ 
+
+ Account
+ 
+ 
+Manage settings
+ 
+Change preferences
+ 
+ 
+ 
+
+ Files and projects
+ 
+ 
+Use the file browser
+ 
+Manage files and projects
+ 
+ 
+ 
+ 
+ 
+
+ 
+For administration
+ 
+
+ 
+
+ Billing
+ 
+ 
+Overview
+ 
+Manage seats
+ 
+Manage your plan
+ 
+Pay for Figma
+ 
+ 
+ 
+ 
+
+ Teams
+ 
+ 
+Manage a team
+ 
+ 
+ 
+
+ Organizations
+ 
+ 
+Overview
+ 
+Login and authentication
+ 
+Deploy Figma
+ 
+Members and guests
+ 
+Teams
+ 
+Libraries and resources
+ 
+ 
+ 
+
+ Enterprise
+ 
+ 
+Billing groups
+ 
+Workspaces
+ 
+Security features
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Find out more
+ 
+
+ 
+ 
+
+ 
+ 
+
+ 
+Courses and collections
+ New
+ 
+ 
+ 
+Level up your Figma skills with these comprehensive skill-based courses.
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+Projects
+ 
+ 
+ 
+Get hands-on experience in Figma with these practical bite-sized projects.
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+Tutorials
+ 
+ 
+ 
+Explore tools and features by watching and following along with these expert-led video tutorials.
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+Get solutions
+ 
+
+ 
+ 
+
+ 
+
+ 
+Troubleshoot
+ 
+ 
+ 
+Get help with common issues and troubleshoot unexpected behavior.
+ 
+ 
+ 
+
+ 
+
+ 
+Work with support
+ 
+ 
+ 
+Submit a bug report, get help collecting log files, and find your system information.
+ 
+ 
+ 
+
+ 
+
+ 
+Common questions
+ 
+ 
+ 
+Get answers to frequently asked questions.
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+Figma Community Forum
+ 
+ 
+Ask the community, share ideas, and connect with other Figma users.
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ Modes for variables
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+Before you Start
+ 
+Who can use this feature
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ Anyone on
+ Education, Professional, Organization, and Enterprise plans
+ can create and use modes for variables
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ The number of modes you can create per variable collection
+ depends on your plan
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ Looking for more resources on variables?
+ Check out our guide to variables.
+ 
+ 
+ 
+ 
+Variables allow us to store reusable values that can be applied to various design properties—such as color, spacing values, and dimensions.
+Variable modes allow us to represent different contexts of our designs without needing to create multiple frames for every context that we need. This is because variables can contain multiple values, organized by way of variable modes, where each mode stores one value per variable.
+For example, let's say we need to create light and dark mode versions for a design:
+
+Without variable modes, we could create designs for light mode (our default), then duplicate those designs and update every color fill necessary for dark mode.
+
+If we use variable modes, we would create a collection of variables with two sets of values—or modes—one for light mode as our default and one for dark mode. We would apply the variables to one set of designs. Then, we could quickly switch designs between light and dark modes.
+
+If we need a third color theme, all we need to do is create a new mode and input values for that theme. We wouldn't need to apply the values to our designs all over again.
+
+There are many contexts that variable modes can help support. Here are a few ideas to get you started:
+
+Create accessible color themes, like high contrast mode or different themes for color blindness, using color variables
+
+Localize UI copy to see how copy flows in designs using string variables
+
+Account for multiple device sizes, like watch, mobile, and desktop, to see how elements respond to varying spacing and padding sizes using number variables
+
+Create a mode
+
+Click Variables from the navigation bar on the left to open the variables view.
+
+Open the collection you want to create a new mode in.
+
+From an existing variable, click New variable mode to the right of the column headers. Figma duplicates values from the first column to the new one.
+
+You can also duplicate a mode by right-clicking the mode header and selecting Duplicate mode.
+Change the default mode of a collection
+From the variables view, the default mode of a variable collection is the left-most column.
+When an object is using a variable or when a page contains objects using variables, the object or page will use the default mode's values until you explicitly set a specific mode to the object or page.
+
+To change the default mode of a collection to a different one:
+
+From the Variables view, open the variable collection where the variable mode lives.
+
+Find the mode and either:
+
+Right-click and select Set as default,
+
+Or click and drag the variable mode to the left-most column.
+
+If an object's or page's variable mode was set to "Auto" or "Default" instead of a specified mode, they will inherit whatever the new default mode is.
+If an object or page was explicitly set to a mode that happened to be the default, they will stay linked to that mode even when it is no longer the default.
+
+Note: On the Enterprise plan, you can set a default mode for the team if the library contains a variable collection with at least two modes.
+
+For example, you might have a variable collection that contains spacing values for different screen sizes. The variable collection might have three modes: desktop, tablet, and mobile.
+
+If your workspace is dedicated to mobile apps, you could set the default mode to mobile. When someone creates a new file in the workspace, the page level default mode is set to mobile and applies to all variables used on the page. People can always switch to another mode if they need to.
+
+Learn how to set a default mode at the team or workspace level.
+
+Reorder modes
+To reorder modes in a variable collection, you can either:
+
+Right-click and select Move column right or Move column left
+
+Or, click and drag the column left or right
+
+If you move a column all the way to the left in a variable collection, this column becomes the default mode.
+Import modes
+You can import design tokens directly into Figma Design.
+Format requirements
+Design tokens must be in a JSON file and follow the Design Tokens Community Group (DTCG) format.
+
+Example
+
+The following example demonstrates how design tokens should be formatted.
+{
+"red": {
+"$type": "color",
+"$value": {
+"colorSpace": "srgb",
+"components": [
+0.8886906504631042,
+0.15790081024169922,
+0.15790081024169922
+],
+"alpha": 1,
+"hex": "#E32828"
+}
+},
+"danger": {
+"$type": "color",
+"$value": "{red}"
+},
+"border-radius-default": {
+"$type": "number",
+"$value": 5
+},
+"button-text": {
+"$type": "string",
+"$value": "Click here"
+},
+"visibility": {
+"$type": "number",
+"$value": 0,
+"$extensions": {
+"com.figma.type": "boolean"
+}
+},
+"padding-default": {
+"$type": "dimension",
+"$value": {
+"value": 16,
+"unit": "px"
+}
+},
+"heading-font": {
+"$type": "fontFamily",
+"$value": "Inter"
+},
+"transition-duration": {
+"$type": "duration",
+"$value": {
+"value": 0.3,
+"unit": "s"
+}
+}
+}
+
+Note: Tokens can contain an optional $extensions property where the value is a JSON object with arbitrary key-value pairs. Keys in the $extensions object are name-spaced, and any Figma extension keys will be prefixed with com.figma. For example, com.figma.type
+Supported token types
+The following token types are supported for import:
+
+ | DTCG token type
+ | Figma variable type
+ | Notes
+
+ | Color
+ | Color
+ | 
+
+The following color spaces are supported:
+
+HSL
+
+sRGB
+
+ | Dimension
+ | Number
+ | The token’s unit value must be set to px. Other values are not supported.
+
+ | Font family
+ | String
+ | The token’s value must be a string containing a single font name. Tokens with an array value are not supported.
+
+ | Duration
+ | Number
+ | The token’s unit value must be set to s. Other values are not supported.
+
+ | Number
+ | Number or boolean
+ | If the token contains com.figma.type: “boolean” in its $extensions value, it is treated as a boolean (where 0 is treated as false and any other number is treated as true). Otherwise, it is treated as a number.
+
+ | -
+ | String
+ | String is not an officially defined DTCG token type, but is accepted on import.
+
+Cross-collection references
+You can reference variables from other collections using the com.figma.aliasData extension with the following properties. If Figma is able to locate a variable in another collection you have access to matching the provided data, the value will be set to an alias referencing that variable.
+
+ | Property
+ | Data
+ | Notes
+
+ | targetVariableID
+ | ID of the target variable
+ | On import, we will first try to link a variable alias to a variable with an ID matching variableID.
+
+ | targetVariableSetID
+ | ID of the target variable’s collection
+ | If no variable with variableId exists, we will look for a variable with a name matching variableName within a variable collection with an ID matching variableSetId.
+
+ | targetVariableSetName
+ | Name of the target variable collection
+ | If no variable set with an ID matching variableSetId exists, we will look for a variable with a name matching variableName in a variable set with a name matching variableSetName.
+
+ | targetVariableName
+ | Name of the target variable
+ | Used to find a target variable when there’s no variable with an ID matching variableId.
+
+Token naming
+When importing tokens, Figma will normalize the names of tokens in nested groups using forward slashes. For example, color.accent.light becomes color/accent/light. If two tokens end up with the same normalized name, only the first one encountered will be imported. The duplicate will be ignored.
+Import design tokens into a new collection
+
+Open the Variables view.
+
+Create a new collection, then drag-and-drop one or more eligible file types into the Variables view.
+
+A new mode will be created for each file you import. Variables will only be created for tokens that meet the following criteria:
+
+Are present in all imported files
+
+Have a supported $type with a supported value
+
+Have the same $type across all imported files
+
+Import design tokens to update existing modes
+
+Open the Variables view.
+
+Select an existing collection, then right-click on the mode you want to update and choose Import mode.
+
+Select the file you want to import, and click Open.
+
+Any variables that match the token names and types will be updated.
+Export modes
+You can export variable modes to a JSON file.
+To export a variable mode:
+
+Open the Variables view.
+
+Do one of the following:
+
+To export a single mode: Open the collection, then right-click on the mode you want to export and choose Export mode.
+
+To export all modes in a collection: Right-click on the collection and choose Export modes.
+
+Switch between modes
+Switch the mode on an object or page so the designs use the variable values you want. You can switch modes on:
+
+Layers
+
+Frames
+
+Components and component sets
+
+Sections
+
+Groups
+
+Pages
+
+Tip: Want to change variable modes while prototyping? Learn how to use the Set variable mode prototyping action.
+Switch modes on an object
+For layers: You can switch their modes if there is at least one variable applied and the variable has multiple modes.
+For groups, frames, components, component sets, and sections: You can switch their modes if nested layers have at least one variable applied and the variable has multiple modes.
+To switch the mode on an object:
+
+Select the layer, group, or container object.
+
+From the Appearance section of the right sidebar, click Apply variable mode.
+
+Hover over a variable collection and choose a mode. 
+
+Once you specify a mode on an object, a tag with the mode icon and mode name will appear next to the layer name in the Layers panel of the left sidebar. If there are multiple modes, hover over the tag to see a list of modes.
+
+Switch modes on a page
+You can switch modes on pages if any local collection of variables contains multiple modes.
+
+Deselect everything on the canvas.
+
+From the Page section of the right sidebar, click Apply variable mode.
+
+Hover over a variable collection and choose a mode.
+
+Set to auto mode (objects only)
+Objects with variables have their modes set to Auto by default. This means they take on the mode of their parent container.
+
+If their parent container is also set to Auto, objects continue up their layer hierarchy until they reach a container with a specified mode.
+
+If no parent containers have a mode specified, then the objects fallback to the collection’s default mode, shown in parentheses.
+
+Use with variant instances
+Boolean, number, and string variables can be assigned to component instances with variant properties.
+String and number variables
+String and number variables can be mapped to variant instances so it switches to a different variant when its mode changes. To do this, the variable’s value must match the variant property’s values.
+
+Create a string or number variable with multiple values (or modes).
+
+Set the variable’s values to match the variant property’s values.
+
+Grab a component instance of the variant, and hover over the variant property in the right sidebar.
+
+Click Assign variable and choose the variable.
+
+Now, the instance will switch to a different variant whenever the mode switches.
+Boolean variables
+Boolean variables can be mapped to variant properties with true and false values.
+
+Note: Currently, boolean variables cannot be applied to boolean properties. You’ll need to add a variant property to a component with two values: true and false. Then, add apply the boolean variable to the instance’s variant property.
+
+Create a boolean variable with multiple values (or modes).
+
+Create two variant instances within the same component set.
+
+Set one variant’s value to True and the other one to False.
+
+Grab a component instance of one of the variants, and hover over the variant property in the right sidebar.
+
+Click Assign variable and choose the boolean variable.
+
+Learn how to use variants and variables in prototypes.
+Nested instances
+You can also bind variables to variant properties on nested instances.
+
+Create a component with a nested instance of another component.
+
+Create a string, number, or boolean variable with multiple values (or modes).
+
+Set the variable’s values to match the values of the nested instance component properties.
+
+Create a instance of the component.
+
+Assign the variable to the nested instance’s variant property.
+
+Now, the nested instance will switch to a different variant whenever the mode switches.
+Mode conflicts
+Any modes with conflicts will show an information icon next to it in the mode switcher. Conflicts occur when objects in a file use different versions of the same variable.
+If you select a mode with a conflict, the mode is only applied to layers that can render it. The layer must be using a version of the variable that contains that mode.
+
+To resolve conflicting modes:
+
+Open the file where the main variable lives and publish it to team libraries. 
+
+Review and accept the updates from the library modal from the file where the conflicts are happening.
+
+Keep in mind that only those with can edit access to a file can make edits, publish, and review and accept library updates to the file. 
+Prevent mode conflicts
+Mode conflicts can happen if a mode is deleted from or added to the variable, and the updates haven’t made their way to a file or object. 
+Here are a couple of ways these conflicts can happen and what you can do about them.
+
+Scenario 1
+
+Say you publish a variable collection with two modes—Light and Dark. You use them in a design file called Brand.
+
+Later, a third mode is added to the collection—Superdark. In the file where the variable lives, you set a component to Superdark mode and insert it into the Brand file.
+
+This creates a conflict in the Brand file with the Superdark mode. Even though layers in the Brand file use the same variable, layers using the older version don’t have access to Superdark. Even when you try to apply Superdark to them, they will only be able to render Light and Dark.
+
+As a solution, make sure that updates to the variable are published, and accept the updates from the file containing conflicts.
+
+Scenario 2
+
+In some cases, there's a chain of files with connected assets that are experiencing conflicting modes.
+
+For example, let's say you created a variable in File 1 and publish it to team libraries. In File 2, you use the variable on Main Component A. In File 3, an instance of Component A is inserted into Main Component B. Lastly, an instance of Component B is inserted into File 4. This chain looks like this:
+
+File 1: Variable (version 1)
+File 2: Main Component A (uses variable version 1)
+File 3: Main Component B (uses instance of Component A)
+File 4: Instance of Component B
+
+One day, someone adds a new mode to the variable in File 1. You grab an asset from File 1 and insert it into File 4. You start seeing an information icon next to one of the modes in the mode switcher. So now, the chain looks like this (changes are bolded):
+
+File 1: Variable (version 2)
+File 2: Main Component A (uses variable version 1)
+File 3: Main Component B (uses instance of Component A)
+File 4: Instance of component B (you spot a conflict)
+
+In this case, reviewing and accepting updates in File 4 will not resolve the issue if Files 2 and 3 haven't received and accepted updates yet. 
+
+As a solution, you will need to publish and accept updates to all files involved in the order of the chain.
+
+File 1: Publish variable
+File 2: Accept variable update; Then publish Main Component A
+File 3: Accept updates to variable and Component A; Then publish Component B
+File 4: Accept updates to variable, Component A, and Component B
+
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Was this article helpful?
+ 
+
+ Yes
+ No
+ 
+ 
+ 
+ 
+
+ 
+ 
+ Help Center feedback
+ 
+ Got a second? Tell us what we’re doing well.
+ 
+ 
+ 
+ 
+ Submit article feedback
+ 
+Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form.
+ 
+ 
+ 
+ Help Center feedback
+ 
+ Thanks for letting us know! What was the issue?
+ 
+ 
+ 
+ 
+ -- Please choose an option --
+ Incorrect or missing information
+ Hard to understand
+ There are typos or broken links
+ Issues with images, GIFs, or videos
+ I wish the feature worked a different way
+ Something else
+ 
+ 
+ Submit article feedback
+ 
+Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form.
+ 
+ 
+ 
+ 
+
+ 
+Thank you for helping us improve Figma’s Help Center!
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 
+ 한국어
+ 
+ 
+ 
+ Nederlands (Nederland)
+ 
+ 
+ 
+ Polski (Polska)
+ 
+ 
+ 
+ Português do Brasil
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Use cases
+ 
+ 
+
+ UI design
+ 
+ 
+
+ UX design
+ 
+ 
+
+ Prototyping
+ 
+ 
+
+ Graphic design
+ 
+ 
+
+ Wireframing
+ 
+ 
+
+ Brainstorming
+ 
+ 
+
+ Templates
+ 
+ 
+
+ Remote design
+ 
+ 
+ 
+ 
+
+ Explore
+ 
+ 
+
+ Design features
+ 
+ 
+
+ Prototyping features
+ 
+ 
+
+ Design systems features
+ 
+ 
+
+ Collaboration features
+ 
+ 
+
+ FigJam
+ 
+ 
+
+ Pricing
+ 
+ 
+
+ Enterprise
+ 
+ 
+
+ Students and educators
+ 
+ 
+
+ Customers
+ 
+ 
+
+ Security
+ 
+ 
+
+ Integrations
+ 
+ 
+
+ Contact
+ 
+ 
+ 
+ 
+
+ Resources
+ 
+ 
+
+ Blog
+ 
+ 
+
+ Best practices
+ 
+ 
+
+ Support
+ 
+ 
+
+ Developers
+ 
+ 
+
+ Learn design
+ 
+ 
+
+ Downloads
+ 
+ 
+
+ What's new
+ 
+ 
+
+ Releases
+ 
+ 
+
+ Careers
+ 
+ 
+
+ About us
+ 
+ 
+
+ Agency partners
+ 
+ 
+
+ Privacy
+ 
+ 
+
+ Status
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+

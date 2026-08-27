@@ -20,7 +20,7 @@
 import { useState } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
-import type { CanvasPatch, AutoLayout } from '@/lib/canvas/types';
+import type { CanvasPatch, AutoLayout, Shape } from '@/lib/canvas/types';
 import type { PenTheme } from '@/lib/pen/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,6 +53,9 @@ import {
   AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
   AlignHorizontalDistributeStart, AlignVerticalDistributeCenter, Palette,
   ChevronDown, Component, SquareDashedBottom,
+  AlignHorizontalJustifyCenter as AlignHCentersIcon,
+  AlignVerticalJustifyCenter as AlignVCentersIcon,
+  FlipHorizontal, FlipVertical,
 } from 'lucide-react';
 
 export function PropertiesPanel() {
@@ -129,6 +132,43 @@ export function PropertiesPanel() {
   const alignSelection = (kind: CanvasPatch['alignKind']) => {
     if (selected.length < 2 || !kind) return;
     sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: kind, summary: `Aligned ${selected.length} node(s) ${kind}` });
+  };
+
+  // ---- Hug/Fill/Fixed sizing (spec Phase 7 — Appendix H §H.1 right sidebar) --
+  // Reading: the resolved Layer's v3 mirrors (layoutSizingHorizontal/Vertical,
+  // derived by resolvePenTree from the .pen width/height sizing strings).
+  // Writing: an `update` patch that sets the .pen width/height to the sizing
+  // STRING ('fit_content' / 'fill_container') or — for Fixed — keeps the
+  // current numeric size. The patch applier preserves the sizing strings
+  // verbatim (patch.ts sizeValue) and the resolver re-derives the mirrors.
+  const setSizing = (axis: 'horizontal' | 'vertical', value: 'FIXED' | 'HUG' | 'FILL') => {
+    if (selected.length === 0) return;
+    const label = value === 'HUG' ? 'Hug contents' : value === 'FILL' ? 'Fill container' : 'Fixed';
+    for (const s of selected) {
+      const sizeField = axis === 'horizontal' ? 'width' : 'height';
+      const currentSize = axis === 'horizontal' ? s.width : s.height;
+      const patchValue: number | string =
+        value === 'HUG' ? 'fit_content' : value === 'FILL' ? 'fill_container' : currentSize;
+      sendPatch({
+        op: 'update',
+        shapeId: s.id,
+        shape: { [sizeField]: patchValue } as Partial<Shape>,
+        summary: `${axis === 'horizontal' ? 'Horizontal' : 'Vertical'} sizing → ${label}`,
+      });
+    }
+  };
+
+  // Flip (⇧H/⇧V companions) — writes the .pen flipX/flipY flag. Same
+  // deviation note as page.tsx: renderers don't visually apply flip yet.
+  const flipSelection = (axis: 'flipX' | 'flipY') => {
+    for (const s of selected) {
+      sendPatch({
+        op: 'update',
+        shapeId: s.id,
+        shape: { [axis]: true } as Partial<Shape>,
+        summary: `${axis === 'flipX' ? 'Flipped horizontally' : 'Flipped vertically'}: ${s.name}`,
+      });
+    }
   };
 
   // ---- Auto-layout helpers (for selected frame/group) ----------------------
@@ -221,16 +261,16 @@ export function PropertiesPanel() {
 
           <Separator />
 
-          {/* Design tokens panel */}
+          {/* Variables panel (Figma "Variables" — was "Design Tokens") */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Palette className="h-3 w-3 ac-text-4" />
-              <Label className="text-[11px] ac-text-3">Design Tokens</Label>
+              <Label className="text-[11px] ac-text-3">Variables</Label>
               <span className="text-[10px] ac-text-4 ml-auto">{(document.tokens?.colors ?? []).length} color(s)</span>
             </div>
             {(document.tokens?.colors ?? []).length === 0 ? (
               <div className="text-[10px] ac-text-4 px-2 py-3 border border-dashed ac-border-subtle rounded text-center">
-                No tokens yet. Ask the agent: <em>&quot;Generate a triadic palette from #0ea5e9&quot;</em>
+                No variables yet. Ask the agent: <em>&quot;Generate a triadic palette from #0ea5e9&quot;</em>
               </div>
             ) : (
               <div className="space-y-1">
@@ -265,7 +305,7 @@ export function PropertiesPanel() {
               <span className="font-mono ac-text-3">
                 {document.themes ? Object.keys(document.themes).length : 0}
               </span>{' '}
-              theme axis{(document.themes ? Object.keys(document.themes).length : 0) === 1 ? '' : 'es'}
+              collection{(document.themes ? Object.keys(document.themes).length : 0) === 1 ? '' : 's'}
             </span>
           </div>
 
@@ -298,49 +338,62 @@ export function PropertiesPanel() {
         {!isMulti && isComponentInstance && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal ac-status-warning border-[var(--ac-warning-border)]">Instance</Badge>}
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-3 ac-hide-scrollbar">
+        {/* Alignment row (spec Phase 7 — Appendix H §H.1: alignment sits at the
+            TOP of the right sidebar, Figma-style). 6 align + 2 distribute
+            buttons emitting CANONICAL alignKind values (Appendix G §G.2 — the
+            patch applier accepts them post-Phase-6). Needs ≥ 2 selected. */}
+        <div data-ac-align-row className="flex items-center gap-0.5 flex-wrap">
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align left (⌥A)" aria-label="Align left" disabled={selected.length < 2} onClick={() => alignSelection('LEFT')}>
+            <AlignLeft className="h-3 w-3" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align horizontal centers (⌥H)" aria-label="Align horizontal centers" disabled={selected.length < 2} onClick={() => alignSelection('HCENTER')}>
+            <AlignHCentersIcon className="h-3 w-3" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align right (⌥D)" aria-label="Align right" disabled={selected.length < 2} onClick={() => alignSelection('RIGHT')}>
+            <AlignRight className="h-3 w-3" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align top (⌥W)" aria-label="Align top" disabled={selected.length < 2} onClick={() => alignSelection('TOP')}>
+            <AlignVerticalJustifyStart className="h-3 w-3" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align vertical centers (⌥V)" aria-label="Align vertical centers" disabled={selected.length < 2} onClick={() => alignSelection('VCENTER')}>
+            <AlignVCentersIcon className="h-3 w-3" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align bottom (⌥S)" aria-label="Align bottom" disabled={selected.length < 2} onClick={() => alignSelection('BOTTOM')}>
+            <AlignVerticalJustifyEnd className="h-3 w-3" />
+          </Button>
+          <span className="w-px h-4 ac-border-subtle bg-current mx-1 opacity-30" aria-hidden />
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Distribute horizontally" aria-label="Distribute horizontally" disabled={selected.length < 3} onClick={() => alignSelection('DISTRIBUTE_H')}>
+            <AlignHorizontalDistributeStart className="h-3 w-3" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Distribute vertically" aria-label="Distribute vertically" disabled={selected.length < 3} onClick={() => alignSelection('DISTRIBUTE_V')}>
+            <AlignVerticalDistributeCenter className="h-3 w-3" />
+          </Button>
+          {/* Flip (⇧H / ⇧V) — writes the .pen flip flags; see page.tsx note on
+              the visual-mirroring deviation. */}
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0 ml-auto" title="Flip horizontal (⇧H)" aria-label="Flip horizontal" disabled={selected.length === 0} onClick={() => flipSelection('flipX')}>
+            <FlipHorizontal className="h-3 w-3" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Flip vertical (⇧V)" aria-label="Flip vertical" disabled={selected.length === 0} onClick={() => flipSelection('flipY')}>
+            <FlipVertical className="h-3 w-3" />
+          </Button>
+        </div>
+
         {/* Multi-selection quick actions */}
         {isMulti && (
           <>
             <div>
               <Label className="text-[11px] ac-text-3">Quick Actions</Label>
-              <div className="grid grid-cols-2 gap-1 mt-1">
+              <div className="grid grid-cols-3 gap-1 mt-1">
                 <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={duplicateSelection}>
                   <Copy className="h-3 w-3 mr-1" /> Duplicate
                 </Button>
                 <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={groupSelection}>
                   <Group className="h-3 w-3 mr-1" /> Group
                 </Button>
-              </div>
-              <div className="grid grid-cols-3 gap-1 mt-1">
-                <Button variant="outline" size="sm" className="h-7 px-0" title="Align left" onClick={() => alignSelection('left')}>
-                  <AlignLeft className="h-3 w-3" />
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 px-0" title="Align center H" onClick={() => alignSelection('center_h')}>
-                  <AlignCenterHorizontal className="h-3 w-3" />
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 px-0" title="Align right" onClick={() => alignSelection('right')}>
-                  <AlignRight className="h-3 w-3" />
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 px-0" title="Align top" onClick={() => alignSelection('top')}>
-                  <AlignVerticalJustifyStart className="h-3 w-3" />
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 px-0" title="Align center V" onClick={() => alignSelection('center_v')}>
-                  <AlignVerticalJustifyCenter className="h-3 w-3" />
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 px-0" title="Align bottom" onClick={() => alignSelection('bottom')}>
-                  <AlignVerticalJustifyEnd className="h-3 w-3" />
+                <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={ungroupSelection}>
+                  <Ungroup className="h-3 w-3 mr-1" /> Ungroup
                 </Button>
               </div>
-              {selected.length >= 3 && (
-                <div className="grid grid-cols-2 gap-1 mt-1">
-                  <Button variant="outline" size="sm" className="h-7 text-[11px]" title="Distribute horizontally" onClick={() => alignSelection('distribute_h')}>
-                    <AlignHorizontalDistributeStart className="h-3 w-3 mr-1" /> H
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-7 text-[11px]" title="Distribute vertically" onClick={() => alignSelection('distribute_v')}>
-                    <AlignVerticalDistributeCenter className="h-3 w-3 mr-1" /> V
-                  </Button>
-                </div>
-              )}
             </div>
             <Separator />
           </>
@@ -506,7 +559,12 @@ export function PropertiesPanel() {
           </ContextMenu>
         </div>
 
-        {/* Size — P1-16: wrap Width/Height in ContextMenu */}
+        {/* Dimensions (spec Phase 7 — Appendix H §H.1: Figma's "dimensions"
+            section with per-axis Fixed / Hug contents / Fill container
+            dropdowns writing the .pen sizing strings). */}
+        <div>
+          <Label className="text-[11px] ac-text-3">Dimensions</Label>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <ContextMenu>
             <ContextMenuTrigger asChild>
@@ -546,6 +604,42 @@ export function PropertiesPanel() {
               <ContextMenuItem onClick={() => update({ height: 100 })}>Reset to 100</ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
+        </div>
+        {/* Per-axis sizing dropdowns — read the v3 layoutSizing* mirrors,
+            write .pen 'fit_content' / 'fill_container' / current numeric. */}
+        <div className="grid grid-cols-2 gap-2" data-ac-sizing-row>
+          <div>
+            <Label className="text-[11px] ac-text-3">Horizontal</Label>
+            <Select
+              value={shape.layoutSizingHorizontal ?? 'FIXED'}
+              onValueChange={(v) => setSizing('horizontal', v as 'FIXED' | 'HUG' | 'FILL')}
+            >
+              <SelectTrigger className="h-7 mt-1 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="FIXED">Fixed</SelectItem>
+                <SelectItem value="HUG">Hug contents</SelectItem>
+                <SelectItem value="FILL">Fill container</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-[11px] ac-text-3">Vertical</Label>
+            <Select
+              value={shape.layoutSizingVertical ?? 'FIXED'}
+              onValueChange={(v) => setSizing('vertical', v as 'FIXED' | 'HUG' | 'FILL')}
+            >
+              <SelectTrigger className="h-7 mt-1 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="FIXED">Fixed</SelectItem>
+                <SelectItem value="HUG">Hug contents</SelectItem>
+                <SelectItem value="FILL">Fill container</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Constraints — Figma-style layout constraints (left/right/center/scale
@@ -683,7 +777,7 @@ export function PropertiesPanel() {
                   <ContextMenuItem onClick={() => copyColorHex(shape.fill)}>Copy as rgba</ContextMenuItem>
                   <ContextMenuItem onClick={() => copyColorHex(shape.fill)}>Copy as hsl</ContextMenuItem>
                   <ContextMenuSeparator />
-                  <ContextMenuItem onClick={() => toast.message('Save as token — not yet implemented')}>Save as token…</ContextMenuItem>
+                  <ContextMenuItem onClick={() => toast.message('Save as variable — not yet implemented')}>Save as variable…</ContextMenuItem>
                 </ContextMenuContent>
               </ContextMenu>
             </div>
@@ -784,7 +878,7 @@ export function PropertiesPanel() {
                   <>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <div>
-                        <Label className="text-[10px] ac-text-3">Gap: {shape.autoLayout!.gap}px</Label>
+                        <Label className="text-[10px] ac-text-3">Gap (itemSpacing): {shape.autoLayout!.gap}px</Label>
                         <Slider
                           value={[shape.autoLayout!.gap]}
                           onValueChange={(v) => setAutoLayout({ gap: v[0] })}
@@ -849,7 +943,7 @@ export function PropertiesPanel() {
           </>
         )}
 
-        {/* Theme — edit the node's effective theme (set_node_theme patch) */}
+        {/* Variables · Modes — edit the node's explicit variable modes (set_node_theme patch) */}
         {!isMulti && (
           <>
             <Separator />
@@ -857,7 +951,7 @@ export function PropertiesPanel() {
               <CollapsibleTrigger asChild>
                 <button type="button" className="group flex items-center gap-1.5 w-full text-left">
                   <ChevronDown className="h-3 w-3 ac-text-4 transition-transform group-data-[state=closed]:-rotate-90" />
-                  <Label className="text-[11px] ac-text-3">Theme</Label>
+                  <Label className="text-[11px] ac-text-3">Variables · Modes</Label>
                   {Object.keys(effectiveTheme).length > 0 && (
                     <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal ac-text-3 ac-border-subtle">
                       {Object.entries(effectiveTheme).map(([k, v]) => `${k}:${v}`).join(' · ')}
@@ -868,7 +962,7 @@ export function PropertiesPanel() {
               <CollapsibleContent className="space-y-2 pt-2">
                 {themeAxisKeys.length === 0 ? (
                   <p className="text-[10px] ac-text-4 px-2 py-2 border border-dashed ac-border-subtle rounded">
-                    No theme axes defined. Use <em>pen_set_theme_axis</em> to define one (e.g. mode: light/dark).
+                    No collections defined. Use <em>pen_set_variable_modes</em> to define one (e.g. mode: light/dark).
                   </p>
                 ) : (
                   <>
@@ -903,7 +997,7 @@ export function PropertiesPanel() {
                         className="h-6 text-[10px] w-full"
                         onClick={clearNodeTheme}
                       >
-                        Clear node theme
+                        Clear node modes
                       </Button>
                     )}
                   </>

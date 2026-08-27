@@ -13,9 +13,16 @@
 // the layers/properties panels consume. It carries absolute positions,
 // resolved variable values, expanded ref subtrees, and a depth-first zIndex.
 
-import type { PenChild, PenDocument, PenVariableDef, PenTheme } from '../pen/types';
+import type { PenChild, PenDocument, PenVariableDef, PenTheme, FigmaPaint, FigmaEffect } from '../pen/types';
 import { PEN_FORMAT_VERSION } from '../pen/types';
 import type { AgentRunSettings } from '../settings/types';
+import type {
+  FigmaLayoutMode,
+  FigmaAxisAlign,
+  FigmaLayoutSizing,
+  FigmaLayoutPositioning,
+  FigmaTextAutoResize,
+} from '../pen/figma-ontology';
 
 // ---- Resolved render layer (what the renderer sees) -----------------------
 //
@@ -44,7 +51,10 @@ export type LayerType =
   | 'boolean_operation'
   | 'slice'
   | 'star'
-  | 'polygon';
+  | 'polygon'
+  // Library icon node (.pen PenIcon — lucide by default; geometry resolves
+  // at render time from src/lib/icons, see docs/lucide-icons.md):
+  | 'icon';
 
 /// DEPRECATED alias — use `LayerType` in new code.
 export type ShapeType = LayerType;
@@ -91,9 +101,14 @@ export interface ShadowEffect {
 /// the equivalent vertical set). Stored on the .pen node as an opaque
 /// property; the renderer does not yet enforce these, but the agent and the
 /// Properties panel can read and edit them.
+///
+/// The union carries BOTH spellings during the Phase 6 dual-field window:
+/// legacy lowercase (the stored form legacy readers match on) + canonical
+/// SCREAMING (accepted at every parse boundary via pen/normalize.ts; the
+/// v3 migration writes it into serialized files).
 export interface Constraints {
-  horizontal: 'left' | 'right' | 'center' | 'scale' | 'left_right';
-  vertical: 'top' | 'bottom' | 'center' | 'scale' | 'top_bottom';
+  horizontal: 'left' | 'right' | 'center' | 'scale' | 'left_right' | 'LEFT' | 'RIGHT' | 'CENTER' | 'SCALE' | 'LEFT_RIGHT';
+  vertical: 'top' | 'bottom' | 'center' | 'scale' | 'top_bottom' | 'TOP' | 'BOTTOM' | 'CENTER' | 'SCALE' | 'TOP_BOTTOM';
 }
 
 /// A resolved render layer — the flattened, absolutely-positioned view of a
@@ -119,13 +134,13 @@ export interface Layer {
   fontSize: number;
   textColor: string;
   /// Typography fields surfaced from .pen PenText.PenTextStyle.
-  /// Previously dropped by resolve.ts → the SVG <text> renderer had no way
+  /// Previously dropped by resolve.ts → the legacy SVG renderer had no way
   /// to apply weight / spacing / alignment, so every AI-generated text layer
   /// rendered at default 400 weight, left-aligned, with no letter-spacing —
   /// regardless of what the system prompt told the AI to specify. Adding
-  /// them on the resolved Layer (and applying them in ShapeRenderer) closes
-  /// the loop end-to-end. All optional for backward compat with shapes that
-  /// don't specify them.
+  /// them on the resolved Layer (and applying them in the DOM renderer's
+  /// styleFor.ts) closes the loop end-to-end. All optional for backward
+  /// compat with shapes that don't specify them.
   fontWeight?: number;
   fontFamily?: string;
   letterSpacing?: number;
@@ -143,6 +158,12 @@ export interface Layer {
   points?: { x: number; y: number }[] | null;
   closed?: boolean;
   src?: string | null;
+  /// Icon node: the library-qualified icon name ('lock', 'arrow-right', …).
+  /// Resolved to geometry at render time from src/lib/icons (lucide).
+  iconName?: string | null;
+  /// Icon node: the source library ('lucide' — others map to lucide
+  /// equivalents for now, matching the .pen PenIcon spec).
+  iconLibrary?: string | null;
   radii?: CornerRadii | null;
   gradient?: GradientFill | null;
   shadow?: ShadowEffect | null;
@@ -167,6 +188,38 @@ export interface Layer {
   innerRadiusRatio?: number | null;
   polygonCount?: number | null;
   exportSettings?: Array<{ format: 'png' | 'svg' | 'pdf' | 'jpg'; suffix?: string; scale?: number }> | null;
+  // ---- Figma ontology v3 mirrors (spec Phase 6 part 1 — dual-field window) ----
+  // Populated by resolvePenTree ALONGSIDE the legacy fields above (single
+  // source, two projections — spec §9.3 #3). Legacy fields are unchanged;
+  // consumers migrate one-by-one to the v3 mirrors in part 2.
+  /// v3: NONE | VERTICAL | HORIZONTAL — mirrors `autoLayout.direction` (null layout → NONE).
+  layoutMode?: FigmaLayoutMode | null;
+  /// v3: main-axis gap. Mirrors `autoLayout.gap`.
+  itemSpacing?: number | null;
+  /// v3: per-side padding. Mirrors the expanded `autoLayout.padding`.
+  paddingLeft?: number | null;
+  paddingRight?: number | null;
+  paddingTop?: number | null;
+  paddingBottom?: number | null;
+  /// v3: primary-axis alignment. Mirrors `autoLayout.alignX`.
+  primaryAxisAlignItems?: FigmaAxisAlign | null;
+  /// v3: counter-axis alignment. Mirrors `autoLayout.alignY`.
+  counterAxisAlignItems?: FigmaAxisAlign | null;
+  /// v3: per-axis sizing mode (HUG ← fit_content, FILL ← fill_container, FIXED ← number).
+  layoutSizingHorizontal?: FigmaLayoutSizing | null;
+  layoutSizingVertical?: FigmaLayoutSizing | null;
+  /// v3: AUTO | ABSOLUTE. Mirrors the .pen node's `layoutPosition`.
+  layoutPositioning?: FigmaLayoutPositioning | null;
+  /// v3: text content. Mirrors `text` (Figma TextNode.characters).
+  characters?: string | null;
+  /// v3: NONE | HEIGHT | WIDTH_AND_HEIGHT. Mirrors the .pen node's `textGrowth`.
+  textAutoResize?: FigmaTextAutoResize | null;
+  /// v3: [TL, TR, BR, BL]. Mirrors the `radii` object.
+  rectangleCornerRadii?: [number, number, number, number] | null;
+  /// v3: the resolved paint array. Mirrors `fill` / `gradient` (SOLID or typed gradient).
+  fills?: FigmaPaint[] | null;
+  /// v3: resolved typed effect entries. Mirrors `shadow` / `blur`.
+  effects?: FigmaEffect[] | null;
 }
 
 /// DEPRECATED alias — use `Layer` in new code. The resolved render node type.
@@ -176,6 +229,33 @@ export interface Viewport {
   zoom: number;
   panX: number;
   panY: number;
+}
+
+// ---- Guide lines (spec Phase 7 §H.1 / §H.2 — drag-out guides from rulers) -----
+//
+// User-authored horizontal/vertical guide lines that live in the screen-space
+// chrome overlay (NOT in the .pen document — they are chrome state, parallel
+// to the rulers themselves). Drag out from a ruler onto the canvas to create;
+// right-click a guide to delete. PERSISTED across session reloads via a
+// dedicated localStorage key (parallel to how `document` is persisted through
+// session snapshots). NOT part of undo snapshots for canvas mutations —
+// `addGuide`/`removeGuide`/`clearGuides` push the prior `guideLines` array
+// onto the undo stack instead, so guides have their OWN undo semantics
+// (separate from the document undo stack — see store.ts undo/redo).
+export interface GuideLine {
+  id: string;
+  /// 'horizontal' = a y-line (drag from the TOP ruler); 'vertical' = an
+  /// x-line (drag from the LEFT ruler). Naming matches Figma's UI: a
+  /// "horizontal guide" is a horizontal line that you drag down from the
+  /// top ruler.
+  axis: 'horizontal' | 'vertical';
+  /// Canvas-space coordinate (y for horizontal guides, x for vertical).
+  /// Stored in canvas space (NOT screen space) so the guide stays put as
+  /// the user pans/zooms — the renderer projects to screen each frame.
+  position: number;
+  /// Stroke color. Default '#f24822' (Figma's guide red). Optional so
+  /// themes / future drag-time color pickers can override.
+  color?: string;
 }
 
 // ---- Derived token view (for the tokens panel) ---------------------------
@@ -344,7 +424,12 @@ export interface CanvasPatch {
   viewport?: Viewport;
   tokens?: Partial<DesignTokens>;
   groupId?: string;
-  alignKind?: 'left' | 'center_h' | 'right' | 'top' | 'center_v' | 'bottom' | 'distribute_h' | 'distribute_v';
+  alignKind?:
+    | 'left' | 'center_h' | 'right' | 'top' | 'center_v' | 'bottom' | 'distribute_h' | 'distribute_v'
+    // Figma-canonical values (spec Phase 6 / Appendix G §G.2) — accepted at
+    // the patch boundary via pen/normalize.ts; legacy values stay valid
+    // during the dual-field window.
+    | 'LEFT' | 'RIGHT' | 'HCENTER' | 'TOP' | 'BOTTOM' | 'VCENTER' | 'DISTRIBUTE_H' | 'DISTRIBUTE_V' | 'TIDY';
   zorderKind?: 'front' | 'back' | 'forward' | 'backward';
   zIndex?: number;
   // New .pen-aligned fields:
@@ -352,7 +437,7 @@ export interface CanvasPatch {
   themeValues?: string[];                // for set_theme_axis
   theme?: PenTheme;                      // for set_node_theme
   variableKey?: string;                  // for set_variable
-  variableType?: 'color' | 'number' | 'string' | 'boolean';
+  variableType?: 'color' | 'number' | 'string' | 'boolean' | 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
   variableValue?: string | number | boolean | Array<{ value: string | number | boolean; theme?: PenTheme }>;
   slotComponents?: string[];             // for mark_slot
   // Figma-hierarchy fields:
@@ -448,6 +533,22 @@ export type SyncEvent =
   // Fan-out only (the deciding client's POST resolves the server-side gate;
   // this event tells the OTHER viewers the gate closed).
   | { type: 'agent:approval_resolved'; toolCallId: string; approved: boolean }
+  // ---- Client round-trip requests (spec §5.2 / Phase 3, M2-c) -------------
+  // Emitted by pen_get_computed: asks the connected client for real
+  // getComputedStyle + getBoundingClientRect data on live DOM nodes. The
+  // client POSTs results to /api/agent/client-responses which resolves the
+  // pending tool call. Same pending-map pattern as ask_user_question.
+  | { type: 'agent:computed_request'; toolCallId: string; nodeIds: string[]; properties?: string[] }
+  // Emitted by pen_get_screenshot: asks the connected client to capture the
+  // real rendered canvas (html-to-image) and return a PNG data URL. The
+  // client POSTs the data URL (or an error) to /api/agent/client-responses.
+  | { type: 'agent:screenshot_request'; toolCallId: string; nodeId?: string; scale?: number }
+  // Emitted by pen_insert_html (mode='v2'): asks the connected client to
+  // mount a sandboxed iframe, write the HTML, walk the parsed DOM with
+  // getComputedStyle + getBoundingClientRect, and return the extracted .pen
+  // tree. The client POSTs the extracted children (or an error) to
+  // /api/agent/client-responses — same pending-map pattern as the others.
+  | { type: 'agent:extract_html_request'; toolCallId: string; html: string }
   // Emitted by the todo tool: a structured task list overlay that survives
   // compaction. The frontend renders the live list in the AgentPanel.
   | { type: 'agent:todo_update'; todos: Array<{
@@ -474,5 +575,25 @@ export type ClientEvent =
   | { type: 'subscribe'; documentId: string }
   | { type: 'canvas:patch'; patch: CanvasPatch }
   | { type: 'canvas:request_full'; documentId: string }
+  // Shared-canvas restore: the client swapped the document back to a snapshot
+  // and pushes the new state so every viewer + the in-memory WS doc follow.
+  | { type: 'document:restore'; documentId: string; document: CanvasDocument }
   | { type: 'agent:prompt'; documentId: string; prompt: string; settings?: AgentRunSettings; images?: Array<{ id?: string; name?: string; dataUrl: string }>; selection?: { count: number; names: string[] } }
-  | { type: 'agent:steer'; documentId: string; text: string };
+  | { type: 'agent:steer'; documentId: string; text: string }
+  // ---- Client round-trip responses (spec §5.2 / Phase 3, M2-c) ------------
+  // Client answers an agent:computed_request (results also reach the server's
+  // pending map via POST /api/agent/client-responses; the socket copy keeps
+  // the in-process canvas-sync's measured-bounds cache warm for tools).
+  | { type: 'canvas:computed_response'; toolCallId: string; results: Array<{ id: string; rect: { x: number; y: number; width: number; height: number }; canvasRect?: { x: number; y: number; width?: number; height?: number }; computed: Record<string, string> }> }
+  // Client answers an agent:screenshot_request with a PNG data URL (or an
+  // error string when capture failed / no DOM renderer is mounted).
+  | { type: 'canvas:screenshot_response'; toolCallId: string; dataUrl?: string; error?: string }
+  // Client answers an agent:extract_html_request with the extracted .pen
+  // tree children (or an error string when the iframe mount failed / no
+  // DOM renderer mounted). `warnings` carries the cap-hit / unwrap notices
+  // from `walkDomForPenTree` so the agent can surface them in the result.
+  | { type: 'canvas:extract_html_response'; toolCallId: string; children?: Array<Record<string, unknown>>; warnings?: string[]; error?: string }
+  // Push of the DOM renderer's measured-bounds runtime cache (spec §3.8) so
+  // the SERVER-side map stays fresh between round-trips — consumed by
+  // canvasSnapshot enrichment (§5.5) and pen_bake_layout.
+  | { type: 'canvas:measured_bounds'; documentId: string; bounds: Record<string, { width: number; height: number }> };

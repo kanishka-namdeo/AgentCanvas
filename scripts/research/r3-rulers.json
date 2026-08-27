@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5665442977431-Select-keyboard-layout",
+    "name": "Select keyboard layout – Figma Learn - Help Center",
+    "snippet": "Figma's default keyboard shortcuts are based on the layout of a US QWERTY keyboard. Preferences > Keyboard layout. Layout guides ⇧Shift G Shift G Show outlines ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041539473-Frames-in-Figma-Design",
+    "name": "Frames in Figma Design – Figma Learn - Help Center",
+    "snippet": "Use the keyboard shortcut: Command R Windows: Alt Shift Control R Click in the Layout section of the right sidebar. Command Shift G or ⌘ Command Delete Windows ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard – Figma Learn - Help Center",
+    "snippet": "Use the keyboard shortcut: Mac: Control Shift ? Windows: Ctrl Shift ? The shortcuts. Use the tabs to explore shortcuts by category, or select the Layout tab to ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/37998629035799-Work-with-the-Figma-agent-in-design-files",
+    "name": "Work with the Figma agent in design files – Figma Learn - Help Center",
+    "snippet": "Access the agent. Select any layer on the canvas and click Agents to open the on-canvas prompt box, or use the keyboard shortcut Cmd or Ctrl + Enter .",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us",
+    "name": "Figma Learn",
+    "snippet": "Guides that will help you get familiar with Figma and FigJam quickly so you can start collaborating with your team to build better products. View the guides.",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

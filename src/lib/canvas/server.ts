@@ -15,6 +15,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from './types';
 import { applyPatchToCanvas } from './patch';
+import { setMeasuredBounds } from '../agent/client-roundtrip';
 
 const PORT = 3003;
 
@@ -49,6 +50,28 @@ function ensureDocument(documentId: string): DocState {
   return doc;
 }
 
+/// Shared-canvas cold-start seed: when the FIRST subscriber arrives for a
+/// document this process has no in-memory state for, load the newest
+/// DocumentSnapshot from the server DB so a service restart does not reset
+/// every viewer's canvas to empty (the client's `canvas:full` empty-guard is
+/// the backstop; this makes the healthy path seamless). Any failure (db
+/// unavailable, corrupt JSON, missing model) falls back to the empty default.
+async function seedDocumentFromDb(documentId: string): Promise<CanvasDocument | null> {
+  try {
+    const { db } = await import('../db');
+    const row = await db.documentSnapshot.findFirst({
+      where: { documentId },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!row) return null;
+    const parsed = JSON.parse(row.document) as CanvasDocument;
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
+    return { ...parsed, id: documentId };
+  } catch {
+    return null;
+  }
+}
+
 function broadcast(state: DocState, event: SyncEvent, except?: string) {
   for (const sid of state.subscribers) {
     if (sid === except) continue;
@@ -72,10 +95,20 @@ export function startCanvasSyncService() {
   io.on('connection', (socket) => {
     console.log(`[canvas-sync] connected: ${socket.id}`);
 
-    socket.on('client', (event: ClientEvent) => {
+    socket.on('client', async (event: ClientEvent) => {
       switch (event.type) {
         case 'subscribe': {
-          const state = ensureDocument(event.documentId);
+          // Cold-start seed: before creating an empty in-memory doc, try the
+          // DB's newest snapshot for this document (shared-canvas model).
+          let state = documents.get(event.documentId);
+          if (!state) {
+            const seeded = await seedDocumentFromDb(event.documentId);
+            state = ensureDocument(event.documentId);
+            if (seeded) {
+              state.document = seeded;
+              console.log(`[canvas-sync] seeded ${event.documentId} from latest DocumentSnapshot`);
+            }
+          }
           state.subscribers.add(socket.id);
           socket.emit('sync', { type: 'canvas:full', document: state.document } satisfies SyncEvent);
           broadcast(state, { type: 'presence', viewerCount: state.subscribers.size });
@@ -98,6 +131,17 @@ export function startCanvasSyncService() {
           socket.emit('sync', { type: 'canvas:full', document: state.document } satisfies SyncEvent);
           break;
         }
+        case 'document:restore': {
+          // Shared-canvas restore: a viewer swapped the document back to a
+          // snapshot. Replace the in-memory state and rebroadcast the full
+          // document to EVERY subscriber (including the sender — the replace
+          // is idempotent) so all viewers + the WS doc stay in sync.
+          const state = ensureDocument(event.documentId);
+          state.document = event.document;
+          broadcast(state, { type: 'canvas:full', document: state.document } satisfies SyncEvent);
+          console.log(`[canvas-sync] document:restore on ${event.documentId} broadcast to ${state.subscribers.size} viewers`);
+          break;
+        }
         case 'agent:prompt': {
           console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${event.prompt.slice(0, 80)}… (images: ${event.images?.length ?? 0})`);
           driveAgent(event.documentId, event.prompt, event.settings, event.images, event.selection).catch((err) => {
@@ -116,6 +160,24 @@ export function startCanvasSyncService() {
             type: 'agent:message_delta',
             text: `\n\n_[Steer: ${event.text}]_`,
           } satisfies SyncEvent);
+          break;
+        }
+        case 'canvas:measured_bounds': {
+          // Measured-bounds digest push from a DOM renderer (spec §3.8):
+          // refresh the SERVER-side runtime cache consumed by canvasSnapshot
+          // enrichment (§5.5) + pen_bake_layout. Client→server only — NOT
+          // rebroadcast (every viewer measures its own local copy).
+          setMeasuredBounds(event.documentId, event.bounds);
+          break;
+        }
+        case 'canvas:computed_response':
+        case 'canvas:screenshot_response':
+        case 'canvas:extract_html_response': {
+          // Round-trip answers normally arrive via POST /api/agent/answers'
+          // sibling route (/api/agent/client-responses) — the HTTP path is
+          // authoritative because it resolves the pending map in the SAME
+          // process as the agent tools. The socket copies are accepted but
+          // intentionally ignored here (no broadcast, no state change).
           break;
         }
       }

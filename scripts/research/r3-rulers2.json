@@ -1,0 +1,38 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039956914-Adjust-alignment-rotation-position-and-dimensions",
+    "name": "Adjust alignment, rotation, position, and dimensions - Figma Learn",
+    "snippet": "Use the keyboard shortcut to reveal the rotation. Option R Windows: Alt R Click and drag the target to move the rotation origin. Windows: Ctrl Shift ]",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041539473-Frames-in-Figma-Design",
+    "name": "Frames in Figma Design – Figma Learn - Help Center",
+    "snippet": "Use the keyboard shortcut: Option Shift ⌘ Command R Windows: Alt Shift Control R Click in the Layout section of the right sidebar",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard – Figma Learn - Help Center",
+    "snippet": "Enable the desired tool using its keyboard shortcut, the actions menu, or press F6 (Mac) or Ctrl F6 (Windows) until the toolbar is focused, then use the arrow ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040450173-Arc-tool-create-arcs-semi-circles-and-rings",
+    "name": "Arc tool: create arcs, semi-circles, and rings – Figma Learn - Help Center",
+    "snippet": "You can use the arc tool to create shapes like pie charts, rings and broken rings. Click and drag the Arc handle up or down to change the sweep. The user ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  }
+]

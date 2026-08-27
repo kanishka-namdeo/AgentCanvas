@@ -14,8 +14,8 @@ Settings UI: the `SettingsDialog` component — a modal dialog with a left verti
 
 1. **Agent** — temperature slider, maxIterations slider, thinkingLevel select, planFirst toggle, defaultPalette select, skillSelectionMode select.
 2. **LLM provider** — provider select (dynamic list from `listProviders()` in `src/lib/llm` — 28 providers; legacy `zai-auto` values normalized via `normalizeLLMProvider`), API key, model name, base URL. Contextual: shows fields only relevant to the selected provider.
-3. **Sessions** — snapshotCadence select, maxSnapshotsPerSession input, maxSessionsRetained input, autoArchiveIdleAfter select.
-4. **Appearance** — theme select (system / light / dark), density select (comfortable / compact). Applies theme immediately via `.dark` class toggle.
+3. **Sessions** — snapshotCadence select, maxSnapshotsPerCanvas input (per-document snapshot cap, shared-canvas model), maxSessionsRetained input, autoArchiveIdleAfter select.
+4. **Appearance** — theme select (system / light / dark), density select (comfortable / compact), canvas renderer select (DOM (default) / SVG (compat) — the `renderer` settings flag consumed by `Canvas.tsx`, spec Phase 5: DOM is the default after the flip; SVG kept as compat/export-only mode). Applies theme immediately via `.dark` class toggle; renderer switch applies live. Also includes the DOM Culling Switch toggle (Phase 4 L4+L5 culling).
 5. **Data** — storage usage display (sessions/settings/theme bytes), Export all data (JSON download), Delete non-bookmarked snapshots, Clear ALL chats (danger zone).
 6. **Shortcuts** — read-only reference list of all keyboard shortcuts.
 7. **Plugins** — toggle list of agent plugins fetched from `GET /api/plugins`, merged with the user's `enabledPlugins` setting (Phase 5).

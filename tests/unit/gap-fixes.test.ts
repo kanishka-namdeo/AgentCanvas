@@ -1,8 +1,9 @@
 // Renderer + converter + resolver — spec compliance regression tests.
 //
 // These cover the gaps found in research/gap-analysis-2.md:
-//   - Canvas.tsx SVG switch now handles 7 new node types (section, component,
-//     component_set, instance, boolean_operation, slice, star, polygon).
+//   - The DOM renderer (via styleFor.ts + islands.tsx + DomNode.tsx) handles
+//     7 new node types (section, component, component_set, instance,
+//     boolean_operation, slice, star, polygon).
 //   - converters.ts now round-trips pages + activePageIndex.
 //   - resolveEffects now handles 'background_blur' (was silently dropped).
 
@@ -130,10 +131,10 @@ describe('resolveEffects — background_blur support', () => {
   });
 });
 
-describe('Canvas SVG renderer — 7 new node types', () => {
+describe('Canvas DOM renderer — 7 new node types', () => {
   // Verify the renderer doesn't return null for the new node types. We don't
-  // need to assert specific SVG markup — just that the cases are handled
-  // (not falling through to default → null).
+  // need to assert specific markup — just that the cases are handled (not
+  // falling through to default → null).
   // We use the existing test fixtures from the integration tests.
 
   it('renders section type without crashing', () => {

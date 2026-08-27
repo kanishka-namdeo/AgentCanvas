@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040451373-Guide-to-auto-layout",
+    "name": "Guide to auto layout – Figma Learn - Help Center",
+    "snippet": "Note: If any child objects within an auto layout frame are set to Fill container, the parent frame will no longer hug contents and become Fixed for the axis.",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/31289464393751-Use-the-horizontal-and-vertical-flows-in-auto-layout",
+    "name": "Use the horizontal and vertical flows in auto layout - Figma Learn",
+    "snippet": "If a frame is set to hug contents or a fixed size smaller than its padding, the frame will size up to fit the padding. Learn more about the resizing … hug ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039956914-Adjust-alignment-rotation-position-and-dimensions",
+    "name": "Adjust alignment, rotation, position, and dimensions - Figma Learn",
+    "snippet": "Alignment tools allow you to arrange layers on the canvas in relation to one another. Figma will determine your layer's alignment based on your specific ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/31351261703063-FD4B-Auto-layout-fundamentals",
+    "name": "FD4B: Auto layout fundamentals – Figma Learn - Help Center",
+    "snippet": "To make sure the notification frame stays a consistent width while you can set its width to Fixed and its height to Hug contents.",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/31289469907863-Use-the-grid-auto-layout-flow",
+    "name": "Use the grid auto layout flow – Figma Learn - Help Center",
+    "snippet": "Fixed dimensions Fill container Hug contents Minimum/Maximum. Hug contents The track or grid frame will keep the smallest possible dimensions around its child ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/18894664907287-Create-a-responsive-card-with-auto-layout-and-constraints",
+    "name": "Create a responsive card with auto layout and constraints - Figma Learn",
+    "snippet": "Set Horizontal resizing to “Fill container”, and Vertical resizing to “Fixed height”. You may be wondering why the vertical resizing options are set ...",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5731482952599-Toggle-on-auto-layout-in-designs",
+    "name": "Toggle on auto layout in designs - Figma Learn",
+    "snippet": "This article covers just one aspect of working auto layout. Auto layout is only supported on frames. create an auto layout frame around them.",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/42031586813719-Use-auto-layout-with-CSS-Flexbox-in-mind",
+    "name": "Use auto layout with CSS Flexbox in mind – Figma Learn - Help Center",
+    "snippet": "This article covers changes coming to auto layout as part of an update that brings it closer in line with how CSS flexbox behaves.",
+    "host_name": "help.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

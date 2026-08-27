@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version",
+    "name": "Design Tokens specification reaches first stable version",
+    "snippet": "Oct 28, 2025 — Developed by the Design Tokens Community Group, the specification reflects real-world use cases from design systems teams at companies of all ...",
+    "host_name": "www.w3.org",
+    "rank": 0,
+    "date": "Oct 28, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://mohitphogat.medium.com/your-design-system-isnt-ai-readable-yet-168aca6d2e13",
+    "name": "Your Design System Isn't AI-Readable Yet - Mohit Phogat",
+    "snippet": "AI tools can't use design systems without proper tokenization . Here's why semantic tokens, Figma variables, and W3C spec compliance matter ...",
+    "host_name": "mohitphogat.medium.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/DesignSystems/comments/1uqmpq1/has_anyone_tried_using_design_tokens_as_a_source",
+    "name": "Has anyone tried using design tokens as a source of truth",
+    "snippet": "Tokens provide the design decisions as code, coding standards tell the agents your acceptable patterns for authoring components,",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.knapsack.cloud/blog/ai-respects-your-design-system-heres-how",
+    "name": "AI respects your design system. Here's how.",
+    "snippet": "6 days ago — The Design Tokens specification (v2025.10) provides a vendor-neutral way to define tokens so machines can consume and enforce them. Not just ...",
+    "host_name": "www.knapsack.cloud",
+    "rank": 3,
+    "date": "Aug 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.w3.org/community/design-tokens",
+    "name": "Design Tokens Community Group",
+    "snippet": "Feb 5, 2022 — Developed by the Design Tokens Community Group, the specification reflects real-world use cases from design systems teams at companies of all ...",
+    "host_name": "www.w3.org",
+    "rank": 4,
+    "date": "Feb 5, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.digitalapplied.com/blog/design-systems-2026-scale-ui-without-chaos-methodology",
+    "name": "Design Systems in 2026: Scale UI Without the Chaos",
+    "snippet": "Jun 15, 2026 — Design token adoption hit 84% and the DTCG shipped its first stable spec . A 2026 method for scaling UI with tokens, a Figma-to-code pipeline ...",
+    "host_name": "www.digitalapplied.com",
+    "rank": 5,
+    "date": "Jun 15, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.uxpin.com/studio/blog/what-are-design-tokens",
+    "name": "What Are Design Tokens? A Complete Guide (2026)",
+    "snippet": "May 25, 2026 — Design tokens are the atomic building blocks of a design system's visual language . They store decisions — not hard-coded values — for colors, ...",
+    "host_name": "www.uxpin.com",
+    "rank": 6,
+    "date": "May 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/chakra-ui/panda/discussions/2366",
+    "name": "Tokens using W3C Design Token spec format #2366",
+    "snippet": "On the design side, we're going to start using Figma variables. A nice feature of using variables, is that you can export them in WC3 Design Token spec format, ...",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

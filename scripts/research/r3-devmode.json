@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15023124644247-Guide-to-Dev-Mode",
+    "name": "Guide to Dev Mode – Figma Learn - Help Center",
+    "snippet": "Dev Mode will prioritize content in a section. Any content outside of a section is still visible in the left sidebar, but is collapsed by default.",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/make-dev-mode-annotations-visible-to-all-12739/index8.html",
+    "name": "Make Dev Mode Annotations Visible to All - Figma Forum",
+    "snippet": "Jul 16, 2024 · Annotations should be visible to viewing stakeholders, just like comments. which only paid accounts can comment on.",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/19fif9b/whats_next_for_dev_mode_annotations_compare",
+    "name": "What's next for Dev Mode: Annotations, Compare Changes, Plugins, and",
+    "snippet": "Jan 25, 2024 · Alternatively, you can use (or together with) comments to note \"in case user selected product X, go to page Z instead of Y\". there are great ...",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=a7vr6z0MVYw",
+    "name": "Figma Dev Mode - YouTube",
+    "snippet": "Feb 14, 2024 · In this YouTube video, we explore Figma's Dev Mode and how it can enhance design-to-development workflows. We cover the basics of inspecting ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1o7wau4/built_a_free_annotation_plugin_that_rivals_dev",
+    "name": "Built a free annotation plugin that rivals dev mode annotation - Reddit",
+    "snippet": "Oct 16, 2025 · What value does your plugin offer over figma's own feature? Also polluting the canvas with overlaid frames for connectors is not scalable and ...",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/20774752502935-Add-measurements-and-annotate-designs",
+    "name": "Add measurements and annotate designs – Figma Learn - Help Center",
+    "snippet": "Click the zoom dropdown in the Dev Mode right sidebar. · Hover over Annotations. · Select which category you want to filter by, or select All categories.",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/suggest-a-feature-11/make-dev-mode-annotations-visible-to-all-12739/index5.html",
+    "name": "Make Dev Mode Annotations Visible to All - Figma Forum",
+    "snippet": "Jul 16, 2024 · Please make Dev Mode Annotations visible by all roles, not just Full Dev Mode seats. This can become costly for users needing context but ...",
+    "host_name": "forum.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=GSpW8wtqgmY",
+    "name": "Bridging the Gap: Designing with Annotations | Figma - YouTube",
+    "snippet": "Jan 7, 2025 · At Figma, we believe that collaboration is a key aspect of building great products. For designers and developers, this can mean a lot of ...",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

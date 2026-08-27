@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/properties/nodes-relativetransform",
+    "name": "relativeTransform | Developer Docs",
+    "snippet": "relativeTransform. The position of a node relative to its containing parent as a Transform matrix. Not used for scaling, see width and height instead.",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/properties/nodes-rotation",
+    "name": "rotation | Developer Docs",
+    "snippet": "The rotation of the node in degrees. Returns values from -180 to 180. Identical to Math.atan2(-m10, m00) in the relativeTransform matrix.",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.latenode.com/t/extract-node-rotation-angle-from-figma-api-json-response/21730",
+    "name": "Extract node rotation angle from Figma API JSON response",
+    "snippet": "Jun 8, 2025 · The rotation data in Figma API responses is typically found within the relativeTransform matrix property of each node. This is a 2x3 ...",
+    "host_name": "community.latenode.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/Transform",
+    "name": "Transform | Developer Docs",
+    "snippet": "A transformation matrix is standard way in computer graphics to represent translation and rotation. These are the top two rows of a 3x3 matrix.",
+    "host_name": "developers.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://story.vjy.me/coding-transformations-for-figma-plugins-32",
+    "name": "Coding Transformations for Figma Plugins | realvjy's story",
+    "snippet": "The matrix uses sine and cosine functions to handle the rotation. The resulting matrix can be directly applied to a Figma node's relativeTransform property.",
+    "host_name": "story.vjy.me",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/how-to-create-a-correct-relativetransform-for-objects-19894",
+    "name": "How to create a correct relativeTransform for objects?",
+    "snippet": "May 20, 2023 · On the Figma side, I use the transform if it's an object and .x and .y if it's a point. This way the points arrive correctly transformed and I ...",
+    "host_name": "forum.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/figma-plugin-property-to-differentiate-between-rotated-and-flipped-items-35470",
+    "name": "Figma plugin - Property to differentiate between rotated and flipped items",
+    "snippet": "Sep 22, 2022 · Besides the rotation property, you need to check the transformation matrix (absoluteTransform, relativeTransform).",
+    "host_name": "forum.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://grida.co/docs/@designto-code/figma-rotation",
+    "name": "Figma rotation | Grida",
+    "snippet": "[Note] The rotation value needs to be inverted on the client side.​. to rotate something to the clockwise direction,. figma: -n; client: +n (css).",
+    "host_name": "grida.co",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

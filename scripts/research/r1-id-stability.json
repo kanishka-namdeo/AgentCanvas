@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/creating-copy-of-node-without-affecting-the-original-29379",
+    "name": "Creating copy of node without affecting the original - Figma Forum",
+    "snippet": "Sep 21, 2023 · Are you sure you cloned the object? Changing the properties of a clone will not affect the original object in any way.",
+    "host_name": "forum.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/is-it-possible-to-get-an-image-for-a-specific-node-id-with-the-rest-api-36894",
+    "name": "Is it possible to get an image for a specific node id with the rest api?",
+    "snippet": "Jan 23, 2025 · I'm able to get an image with the image rest api (GET https://api.figma.com/v1/images/:key?ids=:node_id), but it doesn't crop the result to ...",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/has-figma-changed-or-restricted-its-clone-function-api-43505",
+    "name": "Has Figma changed or restricted its clone function API?",
+    "snippet": "Aug 1, 2025 · cloning nodes allowed connector nodes to be created in Figma Design. This is unsupported, and therefore carried risk of unexpected behavior or ...",
+    "host_name": "forum.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/report-a-problem-6/figma-mcp-get-design-context-and-get-screenshot-fail-with-invalid-node-id-for-valid-nodes-52736",
+    "name": "Figma MCP get_design_context and get_screenshot fail with \"invalid",
+    "snippet": "Apr 8, 2026 · The message The node ID provided was invalid usually means that something changed in the file and the node ID no longer exists or has changed.",
+    "host_name": "forum.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/report-a-problem-6/node-id-is-not-unique-32258",
+    "name": "Node Id is not unique - Figma Forum",
+    "snippet": "Jan 17, 2024 · Every node has an id property, which is unique within the document. If the id is invalid, or the node cannot be found (e.g. removed), returns ...",
+    "host_name": "forum.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/getting-node-id-from-figma-desktop-app-30509",
+    "name": "Getting node id from figma desktop app",
+    "snippet": "Feb 26, 2024 · I was trying to use the rest api from Figma in order to get data/document of a design file. I am able to successfully get the entire document.",
+    "host_name": "forum.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://youtrack.jetbrains.com/projects/WEB/issues/WEB-78951/Figma-Layers-panel-drag-a-node-to-the-terminal-should-insert-its-node-id",
+    "name": "Figma Layers panel: drag a node to the terminal should insert its node id",
+    "snippet": "Jul 23, 2026 · Today the Layers panel offers no way to get a node reference out of it — copying a layer is not handled at all, which early feedback called out ...",
+    "host_name": "youtrack.jetbrains.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/issues-with-updating-node-properties-via-figma-api-20279",
+    "name": "Issues with Updating Node Properties via Figma API",
+    "snippet": "Nov 29, 2024 · Hi! I am currently developing an application that interacts with Figma files (updating some nodes) through the Figma API.",
+    "host_name": "forum.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

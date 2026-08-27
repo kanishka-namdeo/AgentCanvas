@@ -57,6 +57,28 @@ export type DefaultPalette = 'slate' | 'warm' | 'forest' | 'mono';
 ///     autonomously (the pre-gate behavior; only disable for trusted automation).
 export type ApprovalMode = 'destructive' | 'review' | 'off';
 
+/// Canvas renderer backend (spec docs/html-dom-renderer.md). DOM is the only
+/// live renderer as of the SVG-renderer-removal sweep — real divs per node +
+/// inline SVG islands for vector primitives + screen-space chrome overlay +
+/// native CSS layout + L4/L5 culling. The 'svg' option was removed in the
+/// post-Phase-5 cleanup (the classic single-<svg> renderer is gone; the
+/// SVG-as-export-format path in `src/lib/canvas/export.ts` is unaffected and
+/// remains the user-facing Export-as-SVG feature). The field is kept on
+/// AppSettings for forward compatibility — old persisted blobs with
+/// `renderer: 'svg'` are silently coerced to 'dom' at the call site.
+export type RendererMode = 'dom';
+
+/// DOM renderer layout strategy (spec §3.4 dual layout mode, Phase 2).
+/// 'parity' = every node absolutely positioned from the resolver's computed
+/// geometry (default — the DOM tree is a projection of the resolver's
+/// numbers; layout authority lives in the resolver).
+/// 'native' = containers with `layout ≠ 'none'` render as real CSS flexbox
+/// and the browser is the layout authority (measured-bounds readback feeds
+/// real sizes back to the resolver as hints). Optional field: absent
+/// (pre-Phase-2 settings blob) resolves to 'parity' at the call site, so no
+/// migrate bump is needed.
+export type CanvasLayoutMode = 'parity' | 'native';
+
 export interface AppSettings {
   // ── Phase 1: Agent behavior ──────────────────────────────────────────────
   /// LLM sampling temperature. 0.0 = deterministic, 1.0 = very creative.
@@ -91,6 +113,26 @@ export interface AppSettings {
   // ── Phase 1: Appearance ───────────────────────────────────────────────────
   /// 'system' follows the OS prefers-color-scheme.
   themePreference: ThemePreference;
+  /// Canvas renderer backend. Always 'dom' — the SVG renderer was removed
+  /// in the post-Phase-5 cleanup sweep. Optional because pre-cleanup
+  /// settings blobs may carry the legacy 'svg' value; consumers coerce to
+  /// 'dom' at the call site. Kept on the type so persisted settings don't
+  /// break on load.
+  renderer?: RendererMode;
+  /// DOM renderer layout strategy — 'parity' (resolver geometry, default) or
+  /// 'native' (browser CSS flexbox layout, spec Phase 2).
+  /// Optional because pre-Phase-2 settings blobs lack it; consumers default to 'parity'.
+  canvasLayoutMode?: CanvasLayoutMode;
+  /// Phase 4 L4 + L5 culling (spec §4.2). When true, the DOM renderer emits
+  /// `content-visibility: auto` + `contain` on container subtrees (L4) and
+  /// the L5 CullingCoordinator swaps far-offscreen top-level frames for
+  /// placeholder divs above ~2k nodes per page. The flag exists so power
+  /// users can disable culling for debugging or for measurement-sensitive
+  /// workflows (e.g., measuring an offscreen subtree via
+  /// `pen_get_computed` while the rest of the page is culled). Optional —
+  /// pre-Phase-4 settings blobs lack it; consumers default to true (culling
+  /// is on by default).
+  domCulling?: boolean;
 
   // ── Phase 2: LLM provider ────────────────────────────────────────────────
   /// Which LLM client to construct in the runner.
@@ -112,8 +154,9 @@ export interface AppSettings {
   snapshotCadence: SnapshotCadence;
   /// Max sessions retained in localStorage. Older sessions auto-archived.
   maxSessionsRetained: number;
-  /// Max snapshots per session. Older snapshots auto-deleted.
-  maxSnapshotsPerSession: number;
+  /// Max snapshots per canvas (per document — shared canvas model). Oldest
+  /// non-bookmarked snapshots auto-deleted.
+  maxSnapshotsPerCanvas: number;
 
   // ── Phase 3: Power-user ──────────────────────────────────────────────────
   /// 'auto' = classifier picks skill; 'manual' = user pins a skill.
@@ -143,6 +186,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
   alwaysAllowTools: [],
 
   themePreference: 'system',
+  // DOM is the only live renderer (post-Phase-5 cleanup). The Settings UI
+  // no longer surfaces a renderer picker. Persisted blobs from before the
+  // cleanup that still carry the legacy 'svg' value are silently coerced
+  // to 'dom' by the store's migrate function (see src/lib/settings/store.ts).
+  renderer: 'dom' as RendererMode,
+  // Phase 4: culling defaults to ON — only active when the document
+  // exceeds the budget thresholds (L5: ≥2k nodes per page; L4 is always on
+  // for container types).
+  domCulling: true,
 
   llmProvider: 'custom',
   apiKey: '123456',
@@ -156,7 +208,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   snapshotCadence: 'every-turn',
   maxSessionsRetained: 100,
-  maxSnapshotsPerSession: 50,
+  maxSnapshotsPerCanvas: 50,
 
   skillSelectionMode: 'auto',
   autoArchiveIdleAfter: 'never',
@@ -204,6 +256,20 @@ export interface AgentRunSettings {
   /// Set to 0 to disable the mandatory loop (reverts to the pre-7-c
   /// behavior where pen_self_critique was opt-in).
   maxDesignCritiqueIterations?: number;
+  /// Design-System Registry pack name (e.g. 'shadcn-default',
+  /// 'vercel-geist', 'mantine-default'). When set, the runner:
+  ///   1. Appends the design-system prompt fragment to the system prompt,
+  ///      telling the agent which pack is in scope and which CSS variables
+  ///      to reference (`var(--color-accent)`, `var(--color-text-primary)`,
+  ///      `var(--radius-card)`, etc.).
+  ///   2. The Canvas component (client-side) injects the pack's tokens.css
+  ///      as a `<style>` tag on the world root, so any `var(--*)` the agent
+  ///      emits resolves to the pack's actual values.
+  /// When undefined, the agent runs as before (no pack context, agent
+  /// invents palette / spacing from the legacy `$color.*` variable space).
+  /// Sourced from the active-pack localStorage entry set by the
+  /// `DesignSystemPicker` (see `src/hooks/use-design-systems.ts`).
+  pack?: string;
 }
 
 /// Configuration for an MCP server connection (used by the mcp-adapter plugin).

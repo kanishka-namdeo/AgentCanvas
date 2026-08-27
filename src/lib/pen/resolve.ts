@@ -27,9 +27,47 @@ import type {
   PenVariableDef,
   PenThemedValue,
   PenRef,
+  FigmaPaint,
+  FigmaEffect,
 } from './types';
 import type { Shape, Layer, CanvasDocument, AutoLayout, GradientFill, ShadowEffect, CornerRadii } from '../canvas/types';
 import { collectComponents, expandRef, walkTree } from './document';
+import {
+  normalizeLayoutMode,
+  normalizeAxisAlign,
+  normalizeLayoutSizing,
+  normalizeLayoutPositioning,
+  normalizeTextAutoResize,
+  gradientAngleToHandles,
+} from './normalize';
+
+// ---- Native-layout tree export (spec Phase 2, §3.2/§3.4) -----------------
+
+/// One node of the resolver's pre-flattening tree: the emitted flat `Shape`
+/// (absolute geometry, resolved styles) paired with its SOURCE .pen node
+/// (layout vocabulary: layout/gap/padding/justifyContent/alignItems, sizing
+/// modes width/height: number | 'fit_content' | 'fill_container',
+/// layoutPosition) plus the resolved children.
+///
+/// Consumed by the DOM renderer's NATIVE layout mode (dom/DomCanvas.tsx),
+/// which lets the browser lay out `layout ≠ 'none'` containers via CSS
+/// flexbox instead of using the resolver's predicted absolute geometry.
+export interface ResolvedTreeNode {
+  layer: Shape;
+  pen: PenChild;
+  children: ResolvedTreeNode[];
+}
+
+/// Optional inputs shared by both resolve entry points.
+export interface ResolveOpts {
+  /// Measured bounds readback (spec §3.8): REAL browser-measured sizes keyed
+  /// by node id, produced by the DOM renderer's ResizeObserver pool in native
+  /// layout mode. Used as an intrinsic-size HINT for `fit_content` nodes that
+  /// have no intrinsic content size (the resolver cannot measure text) —
+  /// instead of falling back to the 100×100 placeholder. Purely advisory:
+  /// absent/unknown ids keep today's behavior.
+  measuredBounds?: Record<string, { width: number; height: number }>;
+}
 
 // ---- Container node predicate (Figma-canonical) --------------------------
 //
@@ -74,8 +112,11 @@ function resolveValue<T extends string | number | boolean>(
   return themed as T;
 }
 
-/** Pick the winning value from a variable def given the effective theme. */
-function resolveThemedValue(def: PenVariableDef, theme: PenTheme): string | number | boolean {
+/** Pick the winning value from a variable def given the effective theme.
+ *  Exported for the DOM renderer's variable publishing (dom/variables.ts),
+ *  which resolves document variables to CSS custom properties under the
+ *  document-default theme (spec §3.6). */
+export function resolveThemedValue(def: PenVariableDef, theme: PenTheme): string | number | boolean {
   const value = def.value as PenVariableDef['value'];
   if (!Array.isArray(value)) {
     // Single value — resolve nested $refs one level.
@@ -242,12 +283,16 @@ function nodeHeight(node: PenChild): unknown {
 /** Compute the intrinsic size of a node, given its (already-sized) children.
  *  Uses a two-phase approach for fill_container children: first sizes
  *  non-fill children to determine the parent's fit_content size, then
- *  resolves fill_container children against the now-known parent size. */
+ *  resolves fill_container children against the now-known parent size.
+ *  `measured` (spec §3.8 readback) supplies real browser-measured sizes for
+ *  fit_content nodes with no intrinsic content — consulted before the
+ *  100×100 placeholder fallback. */
 function computeIntrinsicSize(
   node: PenChild,
   children: ResolvedNode[],
   parentContentW: number,
   parentContentH: number,
+  measured?: Record<string, { width: number; height: number }>,
 ): { width: number; height: number } {
   let width: number;
   let height: number;
@@ -264,11 +309,11 @@ function computeIntrinsicSize(
 
   if (isFillContainer(w)) width = parentContentW;
   else if (isFitContent(w) || implicitFitW) width = 0; // computed from children below
-  else width = num(w, 100);
+  else width = num(w, node.type === 'icon' ? 24 : 100); // icons default to the lucide 24×24 grid
 
   if (isFillContainer(h)) height = parentContentH;
   else if (isFitContent(h) || implicitFitH) height = 0;
-  else height = num(h, 100);
+  else height = num(h, node.type === 'icon' ? 24 : 100);
 
   // fit_content: derive from children.
   const layout = (node as PenLayout).layout;
@@ -314,11 +359,17 @@ function computeIntrinsicSize(
 
     // Fallback if still 0 after sizing: 0×0 for groups/sections (invisible containers),
     // 100×100 for other types (frames, components) which need a minimum visible size.
+    // Spec §3.8 measured-bounds readback: when the DOM renderer has measured
+    // this node for real (native layout mode), prefer the measured size over
+    // the 100×100 prediction placeholder.
+    const measuredFor = measured?.[node.id];
     if ((isFitContent(w) || implicitFitW) && width === 0) {
-      width = (node.type === 'group' || node.type === 'section') ? 0 : 100;
+      if (measuredFor && Number.isFinite(measuredFor.width) && measuredFor.width > 0) width = measuredFor.width;
+      else width = (node.type === 'group' || node.type === 'section') ? 0 : 100;
     }
     if ((isFitContent(h) || implicitFitH) && height === 0) {
-      height = (node.type === 'group' || node.type === 'section') ? 0 : 100;
+      if (measuredFor && Number.isFinite(measuredFor.height) && measuredFor.height > 0) height = measuredFor.height;
+      else height = (node.type === 'group' || node.type === 'section') ? 0 : 100;
     }
   }
 
@@ -366,7 +417,11 @@ function resolvePadding(pad: PenLayout['padding']): Padding {
 //   left_right — child stretches to fill (x = 0, width = contentW)
 
 function applyConstraintH(mode: string, storedX: number, childW: number, contentW: number): number {
-  switch (mode) {
+  // Phase 6 dual-field window: constraints may be stored in EITHER casing
+  // (legacy lowercase from patches; SCREAMING from the v3 migration) —
+  // normalize to lowercase so both spellings hit identical behavior.
+  const m = typeof mode === 'string' ? mode.toLowerCase() : mode;
+  switch (m) {
     case 'right': return contentW - childW - storedX;
     case 'center': return (contentW - childW) / 2;
     case 'scale': return storedX * contentW;
@@ -377,7 +432,9 @@ function applyConstraintH(mode: string, storedX: number, childW: number, content
 }
 
 function applyConstraintV(mode: string, storedY: number, childH: number, contentH: number): number {
-  switch (mode) {
+  // See applyConstraintH — both spellings behave identically.
+  const m = typeof mode === 'string' ? mode.toLowerCase() : mode;
+  switch (m) {
     case 'bottom': return contentH - childH - storedY;
     case 'center': return (contentH - childH) / 2;
     case 'scale': return storedY * contentH;
@@ -493,8 +550,25 @@ function layoutChildren(
 /**
  * Resolve a .pen document tree into a flat list of `Shape` render nodes
  * with absolute positions, expanded refs, and resolved variables/themes.
+ * Thin wrapper over `resolvePenTreeDetailed` — identical behavior.
  */
-export function resolvePenTree(doc: CanvasDocument): Shape[] {
+export function resolvePenTree(doc: CanvasDocument, opts?: ResolveOpts): Shape[] {
+  return resolvePenTreeDetailed(doc, opts).layers;
+}
+
+/**
+ * Resolve a .pen document tree into BOTH representations the renderers need
+ * (spec Phase 2):
+ *   - `layers`: the flat, depth-first `Shape[]` (identical to
+ *     `resolvePenTree`'s output — the SVG renderer + parity-mode DOM
+ *     renderer + panels consume this).
+ *   - `tree`: the pre-flattening tree (`ResolvedTreeNode[]`) pairing each
+ *     emitted Shape with its source .pen node and resolved children — the
+ *     DOM renderer's NATIVE layout mode consumes this so it can emit real
+ *     CSS flexbox for `layout ≠ 'none'` containers.
+ */
+export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts): { layers: Shape[]; tree: ResolvedTreeNode[] } {
+  const measured = opts?.measuredBounds;
   const variables = doc.variables;
   const components = collectComponents(doc.children);
   const out: Shape[] = [];
@@ -545,12 +619,12 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
 
       if (isContainerNode(n) && (n.children?.length ?? 0) > 0) {
         const kids = resolve(n.children!, rn, rn.theme);
-        const { width, height } = computeIntrinsicSize(n, kids, parentContentW, parentContentH);
+        const { width, height } = computeIntrinsicSize(n, kids, parentContentW, parentContentH, measured);
         rn.width = width;
         rn.height = height;
         rn._kids = kids;
       } else {
-        const { width, height } = computeIntrinsicSize(n, [], parentContentW, parentContentH);
+        const { width, height } = computeIntrinsicSize(n, [], parentContentW, parentContentH, measured);
         rn.width = width;
         rn.height = height;
       }
@@ -596,8 +670,12 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
   // are laid out.
   layoutTree(resolved);
 
-  // Flatten depth-first, emitting Shape for each node.
-  function emit(nodes: (ResolvedNode & { _kids?: ResolvedNode[] })[], parentId: string | null) {
+  // Flatten depth-first, emitting Shape for each node. The walk builds BOTH
+  // the flat list (`out` — parent pushed before its children, matching the
+  // original emit order exactly) and the pre-flattening tree consumed by the
+  // DOM renderer's native layout mode.
+  function emit(nodes: (ResolvedNode & { _kids?: ResolvedNode[] })[], parentId: string | null): ResolvedTreeNode[] {
+    const treeNodes: ResolvedTreeNode[] = [];
     for (const rn of nodes) {
       const n = rn.node;
       const vars = variables;
@@ -648,7 +726,7 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
         // nodes). Previously dropped here, so the SVG renderer couldn't apply
         // weight / spacing / alignment even when the AI specified them via
         // pen_create_shape. Pass them through verbatim (with safe coercion)
-        // so ShapeRenderer can apply them.
+        // so the DOM renderer's styleFor.ts can apply them.
         fontWeight: (n as any).fontWeight !== undefined ? num((n as any).fontWeight, 400) : undefined,
         fontFamily: (n as any).fontFamily !== undefined ? String((n as any).fontFamily) : undefined,
         letterSpacing: (n as any).letterSpacing !== undefined ? num((n as any).letterSpacing, 0) : undefined,
@@ -666,6 +744,10 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
         points: (n as any).points ?? null,
         closed: (n as any).closed ?? false,
         src: (n as any).src ?? null,
+        // Icon nodes (.pen PenIcon): library-qualified name, resolved to
+        // geometry at render time from src/lib/icons (see docs/lucide-icons.md).
+        iconName: n.type === 'icon' ? String((n as any).icon ?? '') || null : null,
+        iconLibrary: n.type === 'icon' ? String((n as any).library ?? 'lucide') : null,
         gradient: resolveGradient(fills, vars, theme) ?? ((n as any).gradient ?? null),
         shadow,
         blur,
@@ -709,18 +791,200 @@ export function resolvePenTree(doc: CanvasDocument): Shape[] {
         }
       }
 
+      // ---- Icon paint normalization (docs/lucide-icons.md) ----------------------
+      // Lucide glyphs are STROKE-painted on a 24-unit grid. The .pen PenIcon
+      // carries its paint in `fill` (per spec) — normalize so every renderer
+      // can simply use layer.stroke / layer.strokeWidth:
+      //   • explicit node.stroke + strokeWidth win (the agent's tool params)
+      //   • else the icon's fill (PenIcon.paint) becomes the stroke color
+      //   • width defaults to 2 (the lucide profile) when unspecified
+      if (n.type === 'icon') {
+        const nStroke = (n as any).stroke;
+        const hasPaint = (n as any).fill !== undefined && (n as any).fill !== null;
+        // Width: explicit strokeWidth wins, else the lucide profile (2).
+        const iconStrokeWidth = stroke.width > 0 ? stroke.width : 2;
+        if (nStroke) {
+          // Explicit stroke color (the agent's `stroke` tool param): keep it.
+          shape.stroke = stroke.color;
+          shape.strokeWidth = iconStrokeWidth;
+        } else if (hasPaint) {
+          // PenIcon.paint lives in `fill` per the .pen spec — promote it.
+          shape.stroke = shape.fill;
+          shape.strokeWidth = iconStrokeWidth;
+        } else {
+          shape.stroke = '#0f172a';
+          shape.strokeWidth = iconStrokeWidth;
+        }
+        if (shape.stroke === '#e2e8f0' && !hasPaint && !nStroke) {
+          shape.stroke = '#0f172a'; // generic resolver default is a light gray — wrong for icons
+        }
+      }
+
       // Map .pen-specific fields onto Shape extensions.
       mapNodeExtras(shape, n, vars, theme);
 
+      // ---- Figma ontology v3 mirrors (spec Phase 6 part 1 — dual-field) ----
+      // Same source, two projections: the legacy fields above are UNCHANGED;
+      // the v3 mirrors below let new consumers read canonical vocabulary
+      // without a flag day (spec §9.3 #3).
+      applyV3Mirrors(shape, n);
+
       out.push(shape);
-      if (rn._kids && rn._kids.length > 0) {
-        emit(rn._kids as (ResolvedNode & { _kids?: ResolvedNode[] })[], n.id);
-      }
+      const kids =
+        rn._kids && rn._kids.length > 0
+          ? emit(rn._kids as (ResolvedNode & { _kids?: ResolvedNode[] })[], n.id)
+          : [];
+      treeNodes.push({ layer: shape, pen: n, children: kids });
     }
+    return treeNodes;
   }
 
-  emit(resolved, null);
-  return out;
+  const tree = emit(resolved, null);
+  return { layers: out, tree };
+}
+
+// ---- Figma ontology v3 mirrors (spec Phase 6 part 1 — dual-field window) ---
+//
+// Populates the v3 projection on each emitted Shape from the SAME sources
+// the legacy fields above use (or from already-normalized v3 fields when the
+// node carries them — migrated .pen imports and normalized patch inserts do).
+// Purely additive: legacy fields keep their exact pre-Phase-6 values.
+
+function applyV3Mirrors(shape: Shape, node: PenChild): void {
+  const n = node as any;
+  const al = shape.autoLayout;
+
+  // layoutMode: v3 field > autoLayout direction > legacy `layout`.
+  if (n.layoutMode !== undefined) {
+    shape.layoutMode = normalizeLayoutMode(n.layoutMode) as Shape['layoutMode'];
+  } else if (al) {
+    shape.layoutMode = al.direction === 'horizontal' ? 'HORIZONTAL' : 'VERTICAL';
+  } else if (n.layout !== undefined) {
+    shape.layoutMode = normalizeLayoutMode(n.layout) as Shape['layoutMode'];
+  }
+
+  // itemSpacing: v3 field > legacy gap (same source autoLayout.gap uses).
+  if (n.itemSpacing !== undefined) {
+    shape.itemSpacing = typeof n.itemSpacing === 'number' ? n.itemSpacing : num(n.itemSpacing, 0);
+  } else if (al) {
+    shape.itemSpacing = al.gap;
+  } else if (n.gap !== undefined) {
+    shape.itemSpacing = num(n.gap, 0);
+  }
+
+  // Per-side padding: v3 sides > legacy `padding` scalar/tuple expansion
+  // (resolvePadding is the exact function the layout engine uses).
+  const hasV3Pad =
+    n.paddingLeft !== undefined || n.paddingRight !== undefined ||
+    n.paddingTop !== undefined || n.paddingBottom !== undefined;
+  if (hasV3Pad || n.padding !== undefined) {
+    const pad = resolvePadding(n.padding);
+    shape.paddingLeft = n.paddingLeft !== undefined ? num(n.paddingLeft, 0) : pad.left;
+    shape.paddingRight = n.paddingRight !== undefined ? num(n.paddingRight, 0) : pad.right;
+    shape.paddingTop = n.paddingTop !== undefined ? num(n.paddingTop, 0) : pad.top;
+    shape.paddingBottom = n.paddingBottom !== undefined ? num(n.paddingBottom, 0) : pad.bottom;
+  }
+
+  // primaryAxisAlignItems: v3 field > justifyContent > alignX mapping.
+  if (n.primaryAxisAlignItems !== undefined) {
+    shape.primaryAxisAlignItems = normalizeAxisAlign(n.primaryAxisAlignItems) as Shape['primaryAxisAlignItems'];
+  } else if (n.justifyContent !== undefined) {
+    shape.primaryAxisAlignItems = normalizeAxisAlign(n.justifyContent) as Shape['primaryAxisAlignItems'];
+  } else if (al) {
+    shape.primaryAxisAlignItems = al.alignX === 'center' ? 'CENTER' : al.alignX === 'max' ? 'MAX' : 'MIN';
+  }
+
+  // counterAxisAlignItems: v3 field > alignItems > alignY mapping.
+  if (n.counterAxisAlignItems !== undefined) {
+    shape.counterAxisAlignItems = normalizeAxisAlign(n.counterAxisAlignItems) as Shape['counterAxisAlignItems'];
+  } else if (n.alignItems !== undefined) {
+    shape.counterAxisAlignItems = normalizeAxisAlign(n.alignItems) as Shape['counterAxisAlignItems'];
+  } else if (al) {
+    shape.counterAxisAlignItems = al.alignY === 'center' ? 'CENTER' : al.alignY === 'max' ? 'MAX' : 'MIN';
+  }
+
+  // layoutSizing*: v3 field > derived from the sizing strings/numbers.
+  const sizingOf = (v: unknown, v3: unknown): Shape['layoutSizingHorizontal'] => {
+    if (v3 !== undefined) return normalizeLayoutSizing(v3) as Shape['layoutSizingHorizontal'];
+    if (typeof v === 'string') {
+      if (v.startsWith('fit_content')) return 'HUG';
+      if (v.startsWith('fill_container')) return 'FILL';
+      return undefined;
+    }
+    if (typeof v === 'number') return 'FIXED';
+    return undefined;
+  };
+  const sizingH = sizingOf(n.width, n.layoutSizingHorizontal);
+  if (sizingH) shape.layoutSizingHorizontal = sizingH;
+  const sizingV = sizingOf(n.height, n.layoutSizingVertical);
+  if (sizingV) shape.layoutSizingVertical = sizingV;
+
+  // layoutPositioning: v3 field > legacy layoutPosition.
+  if (n.layoutPositioning !== undefined) {
+    shape.layoutPositioning = normalizeLayoutPositioning(n.layoutPositioning) as Shape['layoutPositioning'];
+  } else if (n.layoutPosition !== undefined) {
+    shape.layoutPositioning = normalizeLayoutPositioning(n.layoutPosition) as Shape['layoutPositioning'];
+  }
+
+  // characters: the same content mapTextContent produced for `text`.
+  if (shape.text !== undefined) {
+    shape.characters = shape.text;
+  }
+
+  // textAutoResize: v3 field > legacy textGrowth.
+  if (n.textAutoResize !== undefined) {
+    shape.textAutoResize = normalizeTextAutoResize(n.textAutoResize) as Shape['textAutoResize'];
+  } else if (n.textGrowth !== undefined) {
+    shape.textAutoResize = normalizeTextAutoResize(n.textGrowth) as Shape['textAutoResize'];
+  }
+
+  // rectangleCornerRadii: v3 field > the radii object derived from the tuple.
+  if (Array.isArray(n.rectangleCornerRadii) && n.rectangleCornerRadii.length === 4) {
+    shape.rectangleCornerRadii = [
+      num(n.rectangleCornerRadii[0], 0),
+      num(n.rectangleCornerRadii[1], 0),
+      num(n.rectangleCornerRadii[2], 0),
+      num(n.rectangleCornerRadii[3], 0),
+    ];
+  } else if (shape.radii) {
+    shape.rectangleCornerRadii = [
+      shape.radii.topLeft,
+      shape.radii.topRight,
+      shape.radii.bottomRight,
+      shape.radii.bottomLeft,
+    ];
+  }
+
+  // fills: the single resolved paint array (SOLID from `fill`, or the typed
+  // gradient entry carrying the resolved stops + angle-derived handles).
+  if (shape.gradient) {
+    const g = shape.gradient;
+    const paint: FigmaPaint = {
+      type: g.type === 'radial' ? 'GRADIENT_RADIAL' : 'GRADIENT_LINEAR',
+      gradientStops: g.stops.map((s) => ({ position: s.offset, color: s.color })),
+      gradientHandlePositions: gradientAngleToHandles(g.angle),
+    };
+    shape.fills = [paint];
+  } else {
+    shape.fills = [{ type: 'SOLID', color: shape.fill }];
+  }
+
+  // effects: the resolved shadow/blur as typed entries.
+  const effects: FigmaEffect[] = [];
+  if (shape.shadow) {
+    const s = shape.shadow;
+    effects.push({
+      type: s.inset ? 'INNER_SHADOW' : 'DROP_SHADOW',
+      offset: { x: s.x, y: s.y },
+      radius: s.blur,
+      spread: s.spread ?? 0,
+      color: s.color,
+    });
+  }
+  if (shape.blur && shape.blur > 0) {
+    effects.push({ type: 'LAYER_BLUR', radius: shape.blur });
+  }
+  if (effects.length > 0) shape.effects = effects;
 }
 
 /** Map a .pen node type to our renderer's Layer type. */
@@ -737,7 +1001,7 @@ function mapNodeType(node: PenChild): Layer['type'] {
     case 'context':
     case 'prompt': return 'text';
     case 'path': return 'path';
-    case 'icon': return 'text';
+    case 'icon': return 'icon';
     case 'polygon': return 'polygon';
     case 'star': return 'star';
     case 'line': return 'line';
@@ -759,7 +1023,9 @@ function mapTextContent(node: PenChild): string | undefined {
     return c === undefined ? undefined : String(c);
   }
   if (node.type === 'icon') {
-    return `[icon:${(node as any).icon ?? ''}]`;
+    // Icons are geometric library glyphs, not text — no text content to map.
+    // (The name lives in `iconName` on the resolved Layer.)
+    return undefined;
   }
   return undefined;
 }

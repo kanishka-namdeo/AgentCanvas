@@ -15,11 +15,13 @@ import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
 import { AgentPanel } from '@/components/canvas/AgentPanel';
 import { CommandPalette } from '@/components/canvas/CommandPalette';
 import { KeyboardShortcutsDialog } from '@/components/canvas/KeyboardShortcutsDialog';
+import { DesignSystemPicker } from '@/components/design-systems/DesignSystemPicker';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useSettings } from '@/lib/settings/store';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
-import type { CanvasPatch, Shape } from '@/lib/canvas/types';
+import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types';
+import { SHORTCUTS_BY_ACTION, matchShortcut } from '@/lib/canvas/shortcuts';
 import { SessionSidebar } from '@/components/sessions/SessionSidebar';
 import { SessionHeader } from '@/components/sessions/SessionHeader';
 import { RunHistoryPanel } from '@/components/sessions/RunHistoryPanel';
@@ -95,6 +97,10 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   // ⌘/ keyboard shortcuts modal visibility.
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // Design-System Registry picker visibility — opens a modal where the
+  // user picks which pack the agent should use for subsequent UI
+  // generation. Mounted via View → "Design Systems…".
+  const [designSystemsOpen, setDesignSystemsOpen] = useState(false);
 
   // Auto-archive idle sessions on app mount, per the user's setting.
   // Also enforce the max-sessions-retained cap. Runs once after hydration.
@@ -122,6 +128,53 @@ export default function Home() {
   useEffect(() => {
     (window as any).__openCommandPalette = () => setPaletteOpen(true);
     return () => { delete (window as any).__openCommandPalette; };
+  }, []);
+
+  // Phase 4 — DOM-renderer bench test hooks (spec Appendix F).
+  //
+  // Dev-only: never registered in production builds (`process.env.NODE_ENV !==
+  // 'production'` guard). The bench runner (scripts/dom-renderer-bench/run.ts)
+  // uses these to inject synthetic documents and drive patches from outside
+  // the React tree; when the hooks are absent (production CI), the runner
+  // falls back to driving `__canvasStore` directly (always exposed in
+  // store.ts:1920). Keeping these as named hooks documents the bench's surface
+  // area so the canvas app and the runner don't drift.
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    if (typeof window === 'undefined') return;
+    const w = window as any;
+    w.__agentcanvas_test_inject_document = (doc: CanvasDocument) => {
+      // Swap in the synthetic doc; reset undo/redo so the bench's `update`
+      // patches start from a clean slate. Preserves viewport — the runner
+      // drives its own viewport via __canvasStore anyway.
+      const cur = useCanvasStore.getState();
+      useCanvasStore.setState({
+        document: { ...cur.document, ...doc, viewport: doc.viewport ?? cur.document.viewport },
+        undoStack: [],
+        redoStack: [],
+      });
+    };
+    w.__agentcanvas_test_get_world_element = (): HTMLElement | null => {
+      // Prefer the store's registered worldElement (DomCanvas registers it on
+      // mount — see store.ts:892); fall back to a DOM query so the hook still
+      // works if the renderer hasn't registered yet (race during reload).
+      // NOTE: `window.document` (not bare `document`) — the enclosing
+      // component shadows the global with the store's `document` field at
+      // line 50 (`const document = useCanvasStore((s) => s.document)`).
+      const fromStore = useCanvasStore.getState().worldElement;
+      return fromStore || window.document.querySelector('[data-ac-world]');
+    };
+    w.__agentcanvas_test_apply_patch = (patch: CanvasPatch) => {
+      // Routes through sendPatch so the patch-coalescing queue + undo semantics
+      // match the production patch path exactly (no bypass — same code path
+      // the agent + drag gestures use).
+      useCanvasStore.getState().sendPatch(patch);
+    };
+    return () => {
+      delete w.__agentcanvas_test_inject_document;
+      delete w.__agentcanvas_test_get_world_element;
+      delete w.__agentcanvas_test_apply_patch;
+    };
   }, []);
 
   // The AgentPanel's model badge (and any other decoupled component) can
@@ -205,19 +258,92 @@ export default function Home() {
     }
   }, [isZenMode, leftCollapsed, rightCollapsed]);
 
-  // Keyboard shortcuts — full matrix (P0 tier):
-  //   ⌘1 left column, ⌘2 right column, ⌘K palette, ⌘, settings, ⌘\ zen,
-  //   ⌘Z undo, ⌘⇧Z redo, V select, H pan (existing).
-  //   NEW (P0-03): ⌘C copy, ⌘V paste (+24 offset), ⌘⇧V paste in place,
-  //                ⌘X cut, ⌘A select all.
-  //   NEW (P0-05): ⌘G group, ⌘⇧G ungroup.
-  //   NEW (P0-06): ⌘D duplicate.
-  //   NEW (P0-07): ⌘] bring forward, ⌘[ send backward, ⌘⇧] bring to front,
-  //                ⌘⇧[ send to back.
-  //   NEW (P0-08): R rectangle, O ellipse, T text, L line, F frame.
-  //                Drops the shape at viewport center + selects it.
+  // Keyboard shortcuts — registry-driven (spec Phase 7 / Appendix H §H.2).
+  //   The single registry (lib/canvas/shortcuts.ts) drives BOTH this keymap
+  //   and the KeyboardShortcutsDialog, so they can never drift. This handler
+  //   owns app/layers/structure chords; the Canvas shell owns canvas-scope
+  //   view/zoom/navigation chords (they need shell-local viewport state).
+  //
+  //   Legacy P0 matrix still live here: ⌘1/⌘2 + ⌘⇧1/⌘⇧2 panels, ⌘K palette,
+  //   ⌘, settings, ⌘\ zen, ⌘/ shortcuts, ⌘Z/⌘⇧Z undo/redo, ⌘C/⌘X/⌘V/⌘⇧V/⌘A
+  //   clipboard, ⌘]/⌘[ z-order, arrows nudge, A auto-layout, P pen toast.
+  //   Phase 7 adds (via the registry): ⌘G/⌘⇧G/⌥⌘G structure, ⌘D duplicate,
+  //   ⌘⇧L/⌘⇧H lock/hide (rebound from ⌘L/⌘; — legacy chords kept as aliases),
+  //   ⌘R rename, ⌥A/W/S/D + ⌥H/⌥V align, ⇧H/⇧V flip, ⌥⌘K create component
+  //   (rebound from ⌘⇧C), ⌥⌘B detach instance, K scale tool, ⇧S section,
+  //   S slice tool.
   const clipboard = useClipboard();
   useEffect(() => {
+    // Registry dispatch helper — matches the FIRST allowlisted action whose
+    // chord fits the event (exact modifier matching, platform-aware).
+    const dispatch = (e: KeyboardEvent, actions: readonly string[]): string | null => {
+      for (const action of actions) {
+        const def = SHORTCUTS_BY_ACTION.get(action);
+        if (def && matchShortcut(e, def)) return action;
+      }
+      return null;
+    };
+    // P0-08 helper — drop a shape at the viewport center + select it (the
+    // shared payload behind the R/O/T/L/F/⇧S/S tool chords).
+    const dropShapeAtCenter = (type: Shape['type'], w: number, h: number) => {
+      const state = useCanvasStore.getState();
+      const vp = state.document.viewport;
+      const cx = (-vp.panX + (typeof window !== 'undefined' ? window.innerWidth / 2 : 600)) / vp.zoom;
+      const cy = (-vp.panY + (typeof window !== 'undefined' ? window.innerHeight / 2 : 400)) / vp.zoom;
+      const newId = `shape-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const patch: CanvasPatch = {
+        op: 'add',
+        shape: {
+          id: newId,
+          type,
+          name: type.charAt(0).toUpperCase() + type.slice(1),
+          x: cx - w / 2,
+          y: cy - h / 2,
+          width: w,
+          height: h,
+          fill: type === 'line' ? '#0f172a' : '#e2e8f0',
+          stroke: '#0f172a',
+          strokeWidth: type === 'line' ? 2 : 0,
+          text: type === 'text' ? 'Text' : undefined,
+          fontSize: 16,
+          textColor: '#0f172a',
+          radius: 0,
+        },
+        summary: `Added ${type}`,
+      };
+      state.sendPatch(patch);
+      state.select([newId]);
+    };
+    // Phase 7 align helper — canonical alignKind values (Appendix G §G.2;
+    // the patch applier normalizes + accepts both spellings).
+    const alignSelection = (kind: CanvasPatch['alignKind'], label: string) => {
+      const state = useCanvasStore.getState();
+      if (state.selectedIds.length < 2 || !kind) return;
+      state.sendPatch({
+        op: 'align',
+        shapeIds: state.selectedIds,
+        alignKind: kind,
+        summary: `Aligned ${state.selectedIds.length} node(s) ${label}`,
+      });
+    };
+    // Phase 7 flip helper — writes the .pen flipX/flipY flag (H.2 ⇧H/⇧V).
+    // NOTE (deviation): the renderers do not yet APPLY flip flags visually;
+    // the data-level write keeps the model Figma-aligned until path/gradient
+    // mirroring lands with the deferred SVG-fidelity work.
+    const flipSelection = (axis: 'flipX' | 'flipY') => {
+      const state = useCanvasStore.getState();
+      for (const id of state.selectedIds) {
+        const s = findShape(state.document, id);
+        if (!s) continue;
+        const penNode = (s as unknown as Record<string, unknown>)[axis];
+        state.sendPatch({
+          op: 'update',
+          shapeId: id,
+          shape: { [axis]: !penNode } as Partial<Shape>,
+          summary: `${axis === 'flipX' ? 'Flipped horizontally' : 'Flipped vertically'}: ${s.name}`,
+        });
+      }
+    };
     const onKey = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
       const state = useCanvasStore.getState();
@@ -263,6 +389,95 @@ export default function Home() {
           return;
         }
 
+        // ---- Phase 7 registry chords (meta family — spec Appendix H §H.2) ----
+        // Runs BEFORE the ad-hoc clipboard/letter checks so rebound chords
+        // (⌘⇧C create-component alias, ⌘⇧L lock, ⌘⇧H hide) win over the
+        // legacy single-letter handlers below.
+        if (isEditable) return; // structure chords never hijack text inputs
+        const metaAction = dispatch(e, [
+          'group', 'ungroup', 'frame-selection', 'duplicate',
+          'lock', 'hide', 'rename', 'create-component', 'detach-instance',
+          'save-checkpoint',
+        ]);
+        if (metaAction) {
+          e.preventDefault();
+          const sel = state.selectedIds
+            .map((id) => findShape(state.document, id))
+            .filter((s): s is Shape => !!s);
+          switch (metaAction) {
+            case 'group':
+              if (state.selectedIds.length >= 2) {
+                state.sendPatch({ op: 'group', shapeIds: state.selectedIds, summary: `Grouped ${state.selectedIds.length} shape(s)` });
+              }
+              break;
+            case 'ungroup': {
+              const groups = state.document.shapes.filter((s) => s.type === 'group' && state.selectedIds.includes(s.id));
+              if (groups.length > 0) {
+                state.sendPatch({ op: 'ungroup', shapeIds: groups.map((g) => g.id), summary: `Ungrouped ${groups.length} group(s)` });
+              }
+              break;
+            }
+            case 'frame-selection':
+              if (state.selectedIds.length >= 1) {
+                // Wrap the selection in a FRAME (not a group): reuse the
+                // well-tested group op (bbox + coordinate remap, explicit
+                // groupId so we can address it) then flip the wrapper's type
+                // to 'frame' (Figma ⌥⌘G semantics).
+                const frameId = `frame-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                state.sendPatch({ op: 'group', groupId: frameId, shapeIds: state.selectedIds, summary: `Framed ${state.selectedIds.length} shape(s)` });
+                state.sendPatch({ op: 'update', shapeId: frameId, shape: { type: 'frame', name: 'Frame' } as Partial<Shape>, summary: 'Frame selection' });
+              }
+              break;
+            case 'duplicate':
+              if (state.selectedIds.length > 0) {
+                state.sendPatch({ op: 'duplicate', shapeIds: state.selectedIds, summary: `Duplicated ${state.selectedIds.length} shape(s)` });
+              }
+              break;
+            case 'lock':
+              for (const s of sel) {
+                state.sendPatch({ op: 'update', shapeId: s.id, shape: { locked: !s.locked }, summary: `${s.locked ? 'Unlocked' : 'Locked'} ${s.name}` });
+              }
+              break;
+            case 'hide':
+              for (const s of sel) {
+                state.sendPatch({ op: 'update', shapeId: s.id, shape: { visible: !s.visible }, summary: `${s.visible ? 'Hid' : 'Showed'} ${s.name}` });
+              }
+              break;
+            case 'rename':
+              // Focus the selected layer's inline rename input in the Layers
+              // panel (⌘R — spec Phase 7). CustomEvent keeps the store clean.
+              window.dispatchEvent(new CustomEvent('ac:layers-rename'));
+              break;
+            case 'create-component': {
+              if (sel.length === 1 && (sel[0].type === 'frame' || sel[0].type === 'group')) {
+                state.sendPatch({ op: 'convert_to_component', shapeId: sel[0].id, summary: `Promoted ${sel[0].name} to reusable Component` });
+              } else if (sel.length === 1) {
+                state.sendPatch({ op: 'update', shapeId: sel[0].id, shape: { componentId: sel[0].id } as Partial<Shape>, summary: `Marked ${sel[0].name} as component master` });
+              } else {
+                toast.message('Select a single frame or group to create a component');
+              }
+              break;
+            }
+            case 'detach-instance': {
+              const inst = sel.find((s) => !!s.componentId && s.componentId !== s.id);
+              if (inst) {
+                state.sendPatch({ op: 'detach_instance', shapeId: inst.id, summary: `Detached instance ${inst.name}` });
+              }
+              break;
+            }
+            case 'save-checkpoint': {
+              // Phase 7 group C (D14): manual version-history checkpoint
+              // (⌘⌥S / Ctrl+Alt+S — registry action 'save-checkpoint').
+              const name = window.prompt('Checkpoint name:', 'Manual save') ?? 'Manual save';
+              const saved = state.addCheckpoint(name, false);
+              if (saved) toast.success('Checkpoint saved', { description: name });
+              else toast.message('No changes since the last checkpoint');
+              break;
+            }
+          }
+          return;
+        }
+
         // P0-03: Clipboard.
         if (e.key === 'c' || e.key === 'C') {
           if (isEditable) return; // don't hijack copy-in-input
@@ -296,47 +511,9 @@ export default function Home() {
           return;
         }
 
-        // P0-05: Group / Ungroup. Canvas mutation — no-op while typing in an
-        // input (⌘G from a textarea should never regroup the canvas).
-        if (e.key === 'g' || e.key === 'G') {
-          if (isEditable) return;
-          e.preventDefault();
-          if (e.shiftKey) {
-            // ⌘⇧G = ungroup
-            const groups = state.document.shapes.filter((s) => s.type === 'group' && state.selectedIds.includes(s.id));
-            if (groups.length > 0) {
-              state.sendPatch({
-                op: 'ungroup',
-                shapeIds: groups.map((g) => g.id),
-                summary: `Ungrouped ${groups.length} group(s)`,
-              });
-            }
-          } else {
-            // ⌘G = group
-            if (state.selectedIds.length >= 2) {
-              state.sendPatch({
-                op: 'group',
-                shapeIds: state.selectedIds,
-                summary: `Grouped ${state.selectedIds.length} shape(s)`,
-              });
-            }
-          }
-          return;
-        }
-
-        // P0-06: Duplicate. Same input guard.
-        if (e.key === 'd' || e.key === 'D') {
-          if (isEditable) return;
-          e.preventDefault();
-          if (state.selectedIds.length > 0) {
-            state.sendPatch({
-              op: 'duplicate',
-              shapeIds: state.selectedIds,
-              summary: `Duplicated ${state.selectedIds.length} shape(s)`,
-            });
-          }
-          return;
-        }
+        // (P0-05 Group/Ungroup and P0-06 Duplicate now dispatch through the
+        // Phase 7 registry block above — ⌘G / ⌘⇧G / ⌘D — keeping the exact
+        // same patch payloads.)
 
         // P0-07: Z-order (⌘] / [ / ⌘⇧] / [). Same input guard.
         if (e.key === ']' || e.key === '[') {
@@ -360,9 +537,88 @@ export default function Home() {
       // --- Non-meta shortcuts — only fire when not typing in an input ---
       if (isEditable) return;
 
-      // Existing tool shortcuts.
-      if (e.key === 'v' || e.key === 'V') { state.setToolMode('select'); return; }
-      if (e.key === 'h' || e.key === 'H') { state.setToolMode('pan'); return; }
+      // ---- Phase 7 registry chords (non-meta family) -----------------------
+      // Tools (V/H/K/F/⇧S/S/R/O/L/T), align (⌥A/W/S/D, ⌥H/⌥V) and flip
+      // (⇧H/⇧V). Exact modifier matching means plain 'h' still switches the
+      // hand tool while ⇧H flips — no ad-hoc shift guards needed. Also
+      // covers the sidebar tab-selectors ⌥1 / ⌥2 (Appendix H §H.3 #1).
+      const plainAction = dispatch(e, [
+        'tool.move', 'tool.hand', 'tool.scale', 'tool.frame', 'tool.section',
+        'tool.slice', 'tool.rectangle', 'tool.ellipse', 'tool.line', 'tool.text',
+        'align.left', 'align.top', 'align.bottom', 'align.right',
+        'align.hcenter', 'align.vcenter', 'flip.h', 'flip.v',
+        'panel.layers-tab', 'panel.assets-tab',
+      ]);
+      if (plainAction) {
+        e.preventDefault();
+        switch (plainAction) {
+          case 'tool.move':
+            state.setToolMode('select');
+            break;
+          case 'tool.hand':
+            state.setToolMode('pan');
+            break;
+          case 'tool.scale':
+            state.setToolMode('scale');
+            break;
+          case 'tool.frame':
+            dropShapeAtCenter('frame', 200, 200);
+            break;
+          case 'tool.section':
+            dropShapeAtCenter('section', 480, 320);
+            break;
+          case 'tool.slice':
+            dropShapeAtCenter('slice', 200, 120);
+            break;
+          case 'tool.rectangle':
+            dropShapeAtCenter('rectangle', 100, 100);
+            break;
+          case 'tool.ellipse':
+            dropShapeAtCenter('ellipse', 100, 100);
+            break;
+          case 'tool.line':
+            dropShapeAtCenter('line', 100, 0);
+            break;
+          case 'tool.text':
+            dropShapeAtCenter('text', 200, 24);
+            break;
+          case 'align.left':
+            alignSelection('LEFT', 'left');
+            break;
+          case 'align.top':
+            alignSelection('TOP', 'top');
+            break;
+          case 'align.bottom':
+            alignSelection('BOTTOM', 'bottom');
+            break;
+          case 'align.right':
+            alignSelection('RIGHT', 'right');
+            break;
+          case 'align.hcenter':
+            alignSelection('HCENTER', 'horizontal centers');
+            break;
+          case 'align.vcenter':
+            alignSelection('VCENTER', 'vertical centers');
+            break;
+          case 'flip.h':
+            flipSelection('flipX');
+            break;
+          case 'flip.v':
+            flipSelection('flipY');
+            break;
+          case 'panel.layers-tab':
+            // ⌥1 — switch left sidebar to Layers tab. Dispatched via
+            // CustomEvent so the LayersPanel can own its tab state
+            // locally (no store round-trip); same pattern as ⌘R rename.
+            window.dispatchEvent(new CustomEvent('ac:layers-set-tab', { detail: 'layers' }));
+            break;
+          case 'panel.assets-tab':
+            // ⌥2 — switch left sidebar to Assets tab (component grid).
+            window.dispatchEvent(new CustomEvent('ac:layers-set-tab', { detail: 'assets' }));
+            break;
+        }
+        return;
+      }
 
       // P1-24: Nudge shortcuts — arrows move selection by 1px, ⇧+arrows by 10px.
       // Emits an op:'update' patch per selected shape with the new x/y.
@@ -390,33 +646,18 @@ export default function Home() {
         return;
       }
 
-      // P2-46: Tab to focus next shape in z-order.
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        const all = [...state.document.shapes].sort((a, b) => a.zIndex - b.zIndex);
-        if (all.length === 0) return;
-        const currentIdx = state.selectedIds.length > 0
-          ? all.findIndex((s) => s.id === state.selectedIds[state.selectedIds.length - 1])
-          : -1;
-        const nextIdx = e.shiftKey
-          ? (currentIdx <= 0 ? all.length - 1 : currentIdx - 1)
-          : (currentIdx + 1) % all.length;
-        state.select([all[nextIdx].id]);
-        return;
-      }
+      // (P2-46 Tab z-order navigation REPLACED by the Phase 7 hierarchy
+      // navigation: Tab/⇧Tab now cycles SIBLINGS and Enter/⇧Enter descends /
+      // ascends — handled registry-driven in Canvas.tsx, which owns the
+      // canvas-scope chords.)
 
-      // P0-08: Shape-tool shortcuts — drop at viewport center + select.
-      // R rectangle, O ellipse, T text, L line, F frame.
+      // P0-08 shape-drop shortcuts (R/O/T/L/F) now dispatch through the
+      // Phase 7 registry block above — same drop-at-viewport-center payloads
+      // via dropShapeAtCenter(), plus the new ⇧S section and S slice tools.
       const shapeKey = e.key.toLowerCase();
-      const shapeDefs: Record<string, { type: Shape['type']; w: number; h: number; fill?: string }> = {
-        r: { type: 'rectangle', w: 100, h: 100 },
-        o: { type: 'ellipse', w: 100, h: 100 },
-        t: { type: 'text', w: 200, h: 24 },
-        l: { type: 'line', w: 100, h: 0 },
-        f: { type: 'frame', w: 200, h: 200 },
-      };
-      const def = shapeDefs[shapeKey];
       // P1-23: A key applies auto-layout to the currently selected frame.
+      // (⌥A align-left is consumed earlier by the registry block, so this
+      // only fires for the unmodified key.)
       if (shapeKey === 'a') {
         e.preventDefault();
         if (state.selectedIds.length === 1) {
@@ -436,37 +677,6 @@ export default function Home() {
       if (shapeKey === 'p') {
         e.preventDefault();
         toast.message('Pen tool — use the chat panel: "draw a path through points (10,10) (50,40) (90,10)"');
-        return;
-      }
-      if (def) {
-        e.preventDefault();
-        const vp = state.document.viewport;
-        // Compute the canvas-space center of the current viewport.
-        const cx = (-vp.panX + (typeof window !== 'undefined' ? window.innerWidth / 2 : 600)) / vp.zoom;
-        const cy = (-vp.panY + (typeof window !== 'undefined' ? window.innerHeight / 2 : 400)) / vp.zoom;
-        const newId = `shape-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const patch: CanvasPatch = {
-          op: 'add',
-          shape: {
-            id: newId,
-            type: def.type,
-            name: def.type.charAt(0).toUpperCase() + def.type.slice(1),
-            x: cx - def.w / 2,
-            y: cy - def.h / 2,
-            width: def.w,
-            height: def.h,
-            fill: def.type === 'line' ? '#0f172a' : '#e2e8f0',
-            stroke: '#0f172a',
-            strokeWidth: def.type === 'line' ? 2 : 0,
-            text: def.type === 'text' ? 'Text' : undefined,
-            fontSize: 16,
-            textColor: '#0f172a',
-            radius: 0,
-          },
-          summary: `Added ${def.type}`,
-        };
-        state.sendPatch(patch);
-        state.select([newId]);
         return;
       }
     };
@@ -494,6 +704,7 @@ export default function Home() {
             onExportPen={() => toast.message('Use the .pen file menu in the header to export.')}
             onImportPen={() => toast.message('Use the .pen file menu in the header to import.')}
             onOpenShortcuts={() => setShortcutsOpen(true)}
+            onOpenDesignSystems={() => setDesignSystemsOpen(true)}
           />
         )}
         {/* ───────────────────────── Top bar ───────────────────────── */}
@@ -692,6 +903,17 @@ export default function Home() {
       {/* Settings dialog — agent behavior, LLM provider, sessions, appearance, data, shortcuts */}
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
+      {/* Design-System Registry picker — View → "Design Systems…" */}
+      <DesignSystemPicker
+        open={designSystemsOpen}
+        onOpenChange={setDesignSystemsOpen}
+        onPick={(name) => {
+          toast.success(`Design system set to ${name}`, {
+            description: 'The agent will use this pack for all UI generation this session.',
+          });
+        }}
+      />
     </TooltipProvider>
   );
 }

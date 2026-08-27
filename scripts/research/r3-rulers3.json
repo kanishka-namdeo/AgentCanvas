@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040449713-Add-guides-to-the-canvas-or-frames",
+    "name": "Add guides to the canvas or frames",
+    "snippet": "Enable rulers. Before you can add guides to your file, you must enable rulers on the canvas. Open the Main menu. Hover over View and select Rulers.",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040450513-Create-layout-guides",
+    "name": "Create layout guides",
+    "snippet": "From the Layout guide section of the right sidebar, find the layout guide you want to toggle, and click / to show/hide it. Create and apply layout guide styles.",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/23570416033943-Use-the-actions-menu-in-Figma-Design",
+    "name": "Use the actions menu in Figma Design",
+    "snippet": "View and navigation. Show or hide layout guide: Show or hide layout guides in frames; Show or hide rulers: Show or hide rulers on the canvas; Use dark mode ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15023124644247-Guide-to-Dev-Mode",
+    "name": "Guide to Dev Mode",
+    "snippet": "You can access layout guides, rulers, and layer outlines in Dev Mode. illustrating annotation and measurement capabilities … additional context, specs, and ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/31441443713047-Combine-vertical-horizontal-and-grid-auto-layout-flows",
+    "name": "Combine vertical, horizontal, and grid auto layout flows",
+    "snippet": "This article covers just one aspect of working auto layout. Check out these other articles to learn more about working with auto layout in Figma Design.",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041539473-Frames-in-Figma-Design",
+    "name": "Frames in Figma Design",
+    "snippet": "Layout Guides: Apply transparent uniform grids, columns, and/or rows to frames to provide visual structure",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

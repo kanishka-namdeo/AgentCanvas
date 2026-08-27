@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/rest-api/file-endpoints",
+    "name": "Endpoints | Developer Docs",
+    "snippet": "Returns the nodes referenced to by :ids as a JSON object. The nodes are retrieved from the Figma file referenced to by :key . The node id and file key can be ...",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api",
+    "name": "Introduction | Developer Docs",
+    "snippet": "The Figma API is based on the REST structure. Requests are made via HTTP endpoints with clear functions and appropriate response codes. you will be able to GET ...",
+    "host_name": "developers.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/where-can-i-find-the-rest-api-schema-27604",
+    "name": "Where can I find the REST API Schema? - Figma Forum",
+    "snippet": "Feb 26, 2021 · I'm not entirely sure what schema is but the documentation with interactive examples can be found here: https://www.figma.com/developers/api ...",
+    "host_name": "forum.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pedropark99.github.io/figma/reference/get_figma_page.html",
+    "name": "Get data of a specific canvas/page in a Figma File from the API",
+    "snippet": "This function uses the /v1/files/ endpoint of Figma API to get the data of an specific canvas/page (or a set of canvas/pages) from a Figma file, and fit it ...",
+    "host_name": "pedropark99.github.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.postman.com/figma-dev/figma-public-workspace/documentation/ugq9mj8/figma-api",
+    "name": "Figma API | Documentation | Postman API Network",
+    "snippet": "Use GET /v1/files/:key with the branch_data query param to get the branch key. Example. Response from the GET /v1/files/{file_key}/nodes endpoint. Request.",
+    "host_name": "www.postman.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://search.r-project.org/CRAN/refmans/figma/html/get_figma_page.html",
+    "name": "Get data of a specific canvas/page in a Figma File from the API",
+    "snippet": "This function uses the /v1/files/ endpoint of Figma API to get the data of an specific canvas/page (or a set of canvas/pages) from a Figma file, and fit it ...",
+    "host_name": "search.r-project.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/bug-of-figma-rest-api-23504",
+    "name": "Bug of Figma Rest Api",
+    "snippet": "Jan 31, 2023 · Hello! Using the rest api, when i am trying to use the endpoint GET/v1/files/:key/nodes and adding as id an instance node with id: I1:7347 ...",
+    "host_name": "forum.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.rdocumentation.org/packages/figma/versions/0.2.0/topics/get_figma_file",
+    "name": "get_figma_file: Get data of a Figma File from the API - RDocumentation",
+    "snippet": "This function uses the /v1/files/ endpoint of Figma API to get all of the data of a particular Figma file, and fit it into a R object.",
+    "host_name": "www.rdocumentation.org",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

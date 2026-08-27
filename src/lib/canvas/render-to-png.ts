@@ -6,9 +6,10 @@
 // can't see: alignment, whitespace distribution, the "generic AI look",
 // contrast issues that don't show up in a property dump.
 //
-// Implementation: build an SVG string from the shapes (mirroring the
-// ShapeRenderer JSX in Canvas.tsx, but emitting raw SVG markup), then
-// rasterize via `@resvg/resvg-js` at 2x scale for crisp text.
+// Implementation: build an SVG string from the shapes (mirroring the DOM
+// renderer's styleFor.ts vocabulary but emitting raw SVG markup — a server-
+// side fallback for when no live client DOM is mounted), then rasterize
+// via `@resvg/resvg-js` at 2x scale for crisp text.
 //
 // We mirror only the shapes the renderer needs (rectangle / ellipse / text /
 // line / path / frame). Per-corner radii, gradients, shadows, opacity,
@@ -18,8 +19,16 @@
 
 import type { Layer } from '../canvas/types';
 import { Resvg } from '@resvg/resvg-js';
+import { lucideIconGroupSvg } from '@/lib/icons';
 
 // ---- Public API ------------------------------------------------------------
+
+/// Measured-bounds readback (spec §3.8): real browser-measured node sizes
+/// keyed by layer id, from the DOM renderer's ResizeObserver pool (native
+/// layout mode). When a shape id is present here, its measured w/h is
+/// PREFERRED over the resolver-predicted geometry — server-side screenshots
+/// stop drifting from what the user sees.
+export type MeasuredBoundsMap = Record<string, { width: number; height: number }>;
 
 /**
  * Render an array of resolved layers to a PNG buffer.
@@ -27,14 +36,16 @@ import { Resvg } from '@resvg/resvg-js';
  * @param shapes  the canvas shapes (already resolved by resolvePenTree)
  * @param width   viewport width in px (e.g. 1440 for desktop)
  * @param height  viewport height in px (e.g. 900)
+ * @param measuredBounds  optional real-measured sizes keyed by shape id
  * @returns PNG buffer suitable for base64-encoding into a vision LLM call
  */
 export async function renderCanvasToPng(
   shapes: Layer[],
   width: number,
   height: number,
+  measuredBounds?: MeasuredBoundsMap,
 ): Promise<Buffer> {
-  const svg = renderCanvasToSvg(shapes, width, height);
+  const svg = renderCanvasToSvg(shapes, width, height, measuredBounds);
   // 2x scale → 2880×1800 PNG. Crisp text, sharp edges, the VLM sees
   // the design as a senior designer would on a Retina display.
   // Task 8-c fix: resvg's default font resolution fell back to a SERIF face
@@ -62,8 +73,11 @@ export async function renderCanvasToPng(
  *
  * Exported so the VLM critic can also save the raw SVG for debugging /
  * for the worklog (the "after" measurement snapshot).
+ *
+ * @param measuredBounds  optional real-measured sizes keyed by shape id
+ *   (spec §3.8) — preferred over the predicted geometry when present.
  */
-export function renderCanvasToSvg(shapes: Layer[], width: number, height: number): string {
+export function renderCanvasToSvg(shapes: Layer[], width: number, height: number, measuredBounds?: MeasuredBoundsMap): string {
   // Task 8-c fix: collect shadow filters up-front. The old renderer silently
   // dropped the `shadow` field, so every clean-render VLM critique saw FLAT
   // cards and demanded "add shadows" — a measurement artifact, not a design
@@ -77,7 +91,7 @@ export function renderCanvasToSvg(shapes: Layer[], width: number, height: number
     if (!shadowFilters.has(cfg.key)) shadowFilters.set(cfg.key, cfg.filter);
   }
   const body = visibleShapes
-    .map((s) => renderShapeToSvg(s))
+    .map((s) => renderShapeToSvg(s, measuredBounds))
     .join('\n');
   const defs = shadowFilters.size
     ? `  <defs>\n${[...shadowFilters.values()].map((f) => `    ${f}`).join('\n')}\n  </defs>\n`
@@ -132,11 +146,16 @@ function shadowFilterAttr(s: Layer): string {
 
 // ---- Per-shape SVG emission ----------------------------------------------
 
-function renderShapeToSvg(s: Layer): string {
+function renderShapeToSvg(s: Layer, measuredBounds?: MeasuredBoundsMap): string {
   // Skip invisible shapes entirely.
   if (s.visible === false) return '';
+  // Spec §3.8: prefer the browser-measured size over the resolver-predicted
+  // one when the DOM renderer has measured this node (native layout mode).
+  const m = measuredBounds?.[s.id];
+  const W = m && Number.isFinite(m.width) && m.width > 0 ? m.width : s.width;
+  const H = m && Number.isFinite(m.height) && m.height > 0 ? m.height : s.height;
   // Shapes with 0 area are no-ops.
-  if (s.width <= 0 || s.height <= 0) return '';
+  if (W <= 0 || H <= 0) return '';
 
   const opacityAttr = s.opacity !== undefined && s.opacity < 1 ? ` opacity="${s.opacity}"` : '';
   const transformAttr = s.rotation ? ` transform="rotate(${s.rotation} ${s.x + s.width / 2} ${s.y + s.height / 2})"` : '';
@@ -164,29 +183,29 @@ function renderShapeToSvg(s: Layer): string {
       const strokeAttr = s.stroke && s.stroke !== 'transparent' && s.strokeWidth > 0
         ? ` stroke="${s.stroke}" stroke-width="${s.strokeWidth}"`
         : '';
-      return `  <rect x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" fill="${fillValue}"${strokeAttr}${rxAttr}${opacityAttr}${transformAttr}${shadowFilterAttr(s)}/>`;
+      return `  <rect x="${s.x}" y="${s.y}" width="${W}" height="${H}" fill="${fillValue}"${strokeAttr}${rxAttr}${opacityAttr}${transformAttr}${shadowFilterAttr(s)}/>`;
     }
     case 'ellipse': {
-      const cx = s.x + s.width / 2;
-      const cy = s.y + s.height / 2;
+      const cx = s.x + W / 2;
+      const cy = s.y + H / 2;
       const strokeAttr = s.stroke && s.stroke !== 'transparent' && s.strokeWidth > 0
         ? ` stroke="${s.stroke}" stroke-width="${s.strokeWidth}"`
         : '';
-      return `  <ellipse cx="${cx}" cy="${cy}" rx="${s.width / 2}" ry="${s.height / 2}" fill="${fillValue}"${strokeAttr}${opacityAttr}${transformAttr}${shadowFilterAttr(s)}/>`;
+      return `  <ellipse cx="${cx}" cy="${cy}" rx="${W / 2}" ry="${H / 2}" fill="${fillValue}"${strokeAttr}${opacityAttr}${transformAttr}${shadowFilterAttr(s)}/>`;
     }
     case 'line': {
       const stroke = s.fill === 'transparent' || !s.fill ? '#000000' : s.fill;
       const sw = Math.max(2, s.strokeWidth || 2);
-      return `  <line x1="${s.x}" y1="${s.y}" x2="${s.x + s.width}" y2="${s.y + s.height}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round"${opacityAttr}${transformAttr}/>`;
+      return `  <line x1="${s.x}" y1="${s.y}" x2="${s.x + W}" y2="${s.y + H}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round"${opacityAttr}${transformAttr}/>`;
     }
     case 'text': {
-      // Apply typography fields exactly like ShapeRenderer's <text> case in
-      // Canvas.tsx — fontWeight / letterSpacing / lineHeight / textAlign /
+      // Apply typography fields exactly like the DOM renderer's styleFor.ts
+      // — fontWeight / letterSpacing / lineHeight / textAlign /
       // fontFamily / underline / strikethrough.
       const ta = s.textAlign ?? 'left';
       const anchor = ta === 'center' ? 'middle' : ta === 'right' ? 'end' : 'start';
-      const tx = ta === 'center' ? s.x + s.width / 2
-                : ta === 'right'  ? s.x + s.width
+      const tx = ta === 'center' ? s.x + W / 2
+                : ta === 'right'  ? s.x + W
                 : s.x;
       const fontFamily = s.fontFamily
         ? `${s.fontFamily}, system-ui, sans-serif`
@@ -225,9 +244,9 @@ function renderShapeToSvg(s: Layer): string {
     case 'star':
     case 'polygon': {
       // Approximate as a polygon with N points around the center.
-      const cx = s.x + s.width / 2;
-      const cy = s.y + s.height / 2;
-      const r = Math.min(s.width, s.height) / 2;
+      const cx = s.x + W / 2;
+      const cy = s.y + H / 2;
+      const r = Math.min(W, H) / 2;
       const sides = s.polygonCount ?? (s.type === 'star' ? 5 : 6);
       const pts: string[] = [];
       for (let i = 0; i < sides; i++) {
@@ -236,9 +255,32 @@ function renderShapeToSvg(s: Layer): string {
       }
       return `  <polygon points="${pts.join(' ')}" fill="${fillValue}"${opacityAttr}${transformAttr}/>`;
     }
+    case 'icon': {
+      // Lucide glyph — stroke-painted <g> translate/scale'd from the 24-grid
+      // (docs/lucide-icons.md). resvg renders plain <g transform> + path data
+      // reliably, so this is the same emission the SVG export uses.
+      if (!s.iconName) return '';
+      const color =
+        s.stroke && s.stroke !== 'transparent' ? s.stroke
+        : s.textColor && s.textColor !== 'transparent' ? s.textColor
+        : s.fill && s.fill !== 'transparent' ? s.fill
+        : '#0f172a';
+      let g = lucideIconGroupSvg(s.iconName, s.x, s.y, Math.min(W, H) || 24, {
+        stroke: color,
+        strokeWidth: s.strokeWidth > 0 ? s.strokeWidth : undefined,
+      });
+      if (!g) return '';
+      if (transformAttr) {
+        g = `<g${transformAttr}>${g}</g>`;
+      }
+      if (opacityAttr) {
+        g = `<g${opacityAttr}>${g}</g>`;
+      }
+      return `  ${g}`;
+    }
     default: {
       // Group / section / component / instance / boolean_operation /
-      // slice / context / note / prompt / icon / script / ref — render as
+      // slice / context / note / prompt / script / ref — render as
       // a no-op bounding box (the children render separately as siblings).
       return '';
     }

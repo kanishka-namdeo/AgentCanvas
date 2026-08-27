@@ -314,9 +314,11 @@ describe('conversation: multi-run flow — run 2 sees run 1 output', () => {
     expect(runs).toHaveLength(2);
     expect(runs.every((r) => r.status === 'completed')).toBe(true);
 
-    // Two snapshots captured (one per turn_end).
-    const snaps = ss.listSnapshots(sessionId);
+    // Two snapshots captured (one per turn_end) — document-scoped (shared
+    // canvas: the timeline is keyed by documentId, with sessionId provenance).
+    const snaps = ss.listSnapshots('test-doc');
     expect(snaps.length).toBeGreaterThanOrEqual(2);
+    expect(snaps.every((s) => s.sessionId === sessionId || s.sessionId === null)).toBe(true);
   });
 });
 
@@ -506,7 +508,8 @@ describe('conversation: snapshot accumulation across runs', () => {
 
     const ss = useSessionStore.getState();
     const sessionId = useCanvasStore.getState().activeSessionId!;
-    const snaps = ss.listSnapshots(sessionId);
+    // Document-scoped timeline (shared canvas model).
+    const snaps = ss.listSnapshots('test-doc');
 
     // 3 runs → 3 snapshots (one per turn_end).
     expect(snaps).toHaveLength(3);

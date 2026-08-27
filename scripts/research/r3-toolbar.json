@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041064174-Access-design-tools-from-the-toolbar",
+    "name": "Access design tools from the toolbar – Figma Learn - Help Center",
+    "snippet": "Move tools. When you open a design file, the Move tool is enabled by default. Open the Move tools menu to access the Hand and Scale tools:.",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard – Figma Learn - Help Center",
+    "snippet": "Enable the desired tool using its keyboard shortcut, the actions menu, or press F6 (Mac) or Ctrl F6 (Windows) until the toolbar is focused, then use the arrow ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040450133-Shape-tools",
+    "name": "Shape tools – Figma Learn - Help Center",
+    "snippet": "Hold down Option / Alt to create and resize shapes from their center. Hold down Shift and Option / Alt at the same time to do both actions.",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040675194-Crop-an-image",
+    "name": "Crop an image – Figma Learn - Help Center",
+    "snippet": "To crop your image into a circle or ellipse shape, you can either increase the layer's corner radius, use the image as a layer fill, or create a mask.",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040450173-Arc-tool-create-arcs-semi-circles-and-rings",
+    "name": "Arc tool: create arcs, semi-circles, and rings – Figma Learn - Help Center",
+    "snippet": "You can use the arc tool to create shapes like pie charts, rings and broken rings. select ellipse tool from bottom. Click and drag the Arc handle up or down to ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040451453-Scale-layers-while-maintaining-proportions",
+    "name": "Scale layers while maintaining proportions - Figma Learn",
+    "snippet": "To resize an object using the scale tool: Activate the scale tool by pressing K , or by clicking in the toolbar and selecting Scale. Select an object ...",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/5665442977431-Select-keyboard-layout",
+    "name": "Select keyboard layout – Figma Learn - Help Center",
+    "snippet": "Figma's default keyboard shortcuts are based on the layout of a US QWERTY keyboard. Select the tab for your keyboard layout to view the updated shortcuts. ...",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

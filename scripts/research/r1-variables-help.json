@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/14506821864087-Overview-of-variables-collections-and-modes",
+    "name": "Overview of variables, collections, and modes – Figma Learn - Help Center",
+    "snippet": "Variables are raw values—like color, numbers, and strings—that can change in value depending on the context of a design, such as light and dark modes, ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15339657135383-Guide-to-variables-in-Figma",
+    "name": "Guide to variables in Figma – Figma Learn - Help Center",
+    "snippet": "This video tutorial covers the foundations of variables, how to use them to represent design tokens, and how to use color and number variables to account for ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15343816063383-Modes-for-variables",
+    "name": "Modes for variables – Figma Learn - Help Center",
+    "snippet": "Variable modes allow us to represent different contexts of our designs without needing to create multiple frames for every context that we need.",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@joeyabanks/how-i-organize-variables-in-figma-8debf7c06f26",
+    "name": "How I Organize Variables in Figma | by Joey Banks - Medium",
+    "snippet": "Oct 17, 2024 · Collections within variables refer to specific sets of both variables and modes, and we can use them to organize and separate the variables we ...",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15145852043927-Create-and-manage-variables-and-collections",
+    "name": "Create and manage variables and collections - Figma Learn",
+    "snippet": "A collection is a set of variables and modes. Collections can be used to organize related variables together. For example, use one collection to localize ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.prototypr.io/figma-variables-ultimate-guide-47cef3dc3ce7",
+    "name": "Figma Variables — Ultimate Guide - Prototypr",
+    "snippet": "Jun 29, 2023 · Variables modes, groups & collections — what are these? Variable modes allow you to define alternative values applied to a different mode.",
+    "host_name": "blog.prototypr.io",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.supernova.io/blog/what-are-figma-variables-modes-collections",
+    "name": "What Are Figma Variables, Modes, and Collections? - Supernova.io",
+    "snippet": "Jul 8, 2024 · Modes in Figma variables refer to different states or versions of a variable that can be switched based on specific conditions or contexts.",
+    "host_name": "www.supernova.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/15871097384471-The-difference-between-variables-and-styles",
+    "name": "The difference between variables and styles – Figma Learn - Help Center",
+    "snippet": "Even though modes are built for variables, Figma allows us to apply them to styles. Say we have a number variable for a default font size. The variable has ...",
+    "host_name": "help.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

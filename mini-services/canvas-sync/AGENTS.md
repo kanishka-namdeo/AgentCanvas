@@ -26,6 +26,8 @@ The service speaks the same `ClientEvent` / `SyncEvent` unions defined in `src/l
 - `canvas:patch` `{ patch }` — apply a canvas patch. The service finds the sender's subscribed document, applies it via `applyPatchToCanvas`, and broadcasts to other subscribers.
 - `canvas:request_full` `{ documentId }` — request a full document snapshot. The service responds with `canvas:full`.
 - `agent:prompt` `{ documentId, prompt, settings? }` — start an agent run. The service calls `/api/agent` via HTTP fetch (NDJSON stream) and fans out every event to all subscribers.
+- `canvas:measured_bounds` `{ documentId, bounds }` (M2-c, spec §3.8) — the DOM renderer's measured-bounds digest. In this standalone process it only warms a LOCAL copy (`setMeasuredBounds` from `../../src/lib/agent/client-roundtrip.ts`); the authoritative server-side map lives in the Next.js process and is refreshed by the client's POST to `/api/agent/client-responses`.
+- `canvas:computed_response` / `canvas:screenshot_response` (M2-c) — round-trip answers; accepted but intentionally no-op here (they resolve via the HTTP route, same-process as the agent tools).
 
 **Server → client (`SyncEvent`)**:
 - `canvas:patch` `{ patch, toolCallId? }` — a canvas mutation was applied.

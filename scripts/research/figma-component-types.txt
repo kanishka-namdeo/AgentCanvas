@@ -1,0 +1,86 @@
+
+
+Components and styles | Developer Docs
+
+Skip to main content
+
+On this page
+
+Components and styles
+Figma provides a way to fetch metadata on published components and styles in a team library.
+
+These endpoints are specifically for assets published in a team library. To get metadata for local and subscribed components and styles, use GET /v1/files/:key.
+
+Types​
+
+TypeProperties
+ | 
+Component​
+An arrangement of published UI elements that can be instantiated across figma files. | 
+keyStringThe unique identifier of the component.
+file_keyStringThe unique identifier of the figma file which contains the component.
+node_idStringID of the component node within the figma file.
+thumbnail_urlStringURL link to the component's thumbnail image.
+nameStringName of the component.
+descriptionStringThe description of the component as entered by the publisher.
+created_atStringThe UTC ISO 8601 time at which the component was created.
+updated_atStringThe UTC ISO 8601 time at which the component was updated.
+userUserThe user who last updated the component.
+containing_frameFrameInfodefault: {}Data on component's containing frame, if component resides within a frame.
+ | 
+ComponentSet​
+A node containing a set of variants of a component. | 
+keyStringThe unique identifier of the component set.
+file_keyStringThe unique identifier of the figma file which contains the component set.
+node_idStringID of the component set node within the figma file.
+thumbnail_urlStringURL link to the component set's thumbnail image.
+nameStringName of the component set.
+descriptionStringThe description of the component set as entered by the publisher.
+created_atStringThe UTC ISO 8601 time at which the component set was created.
+updated_atStringThe UTC ISO 8601 time at which the component set was updated.
+userUserThe user who last updated the component set.
+containing_frameFrameInfodefault: {}Data on component set's containing frame, if component set resides within a frame.
+ | 
+Style​
+A set of properties that can be applied to nodes. | 
+keyStringThe unique identifier of the style.
+file_keyStringThe unique identifier of the figma file which contains the style.
+node_idStringID of the style node within the figma file.
+style_typeString
+The type of style, as a string enum.
+FILL
+TEXT
+EFFECT
+GRID
+thumbnail_urlStringURL link to the style's thumbnail image.
+nameStringName of the style.
+descriptionStringThe description of the style as entered by the publisher.
+created_atStringThe UTC ISO 8601 time at which the style was created.
+updated_atStringThe UTC ISO 8601 time at which the style was updated.
+userUserThe user who last updated the style.
+containing_frameFrameInfodefault: {}Data on style's containing frame, if style resides within a frame.
+ | 
+FrameInfo​
+Data on the frame a component resides in. | 
+node_idStringID of the frame node within the file.
+nameStringName of the frame.
+backgroundColorStringBackground color of the frame.
+pageIdStringID of the frame's residing page.
+pageNameStringName of the frame's residing page.
+containingStateGroupStringdeprecatedDeprecated, use containingComponentSet instead.
+containingComponentSetStringThe component set node that contains the frame node.
+
+Types
+Component
+ComponentSet
+Style
+FrameInfo
+
+Was this page helpful?
+Leave us feedback
+Community Forum
+Discord Server
+GitHub Samples
+
+FigJam·Enterprise·Learn·Education·Careers·Pricing·Developers·Blog·Downloads·Releases·Security·Legal·Contact
+

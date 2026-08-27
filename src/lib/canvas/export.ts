@@ -9,13 +9,11 @@
 // a string (or data URL). The caller handles the download / clipboard copy.
 
 import type { Shape } from '@/lib/canvas/types';
+import { serializeNodes } from './serialize';
+import { lucideIconGroupSvg } from '@/lib/icons';
 
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export interface ExportOptions {
@@ -206,6 +204,32 @@ function shapeToSvg(s: Shape, uid: string): { el: string; defs: string[] } {
       return { el: `  <polygon points="${polygonPoints(s)}"${base}/>`, defs };
     case 'image':
       return { el: `  <image x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" href="${s.src ?? ''}"${attrs}/>`, defs };
+    case 'icon': {
+      // Lucide glyph: stroke-painted <g> positioned + scaled from the 24-grid
+      // (docs/lucide-icons.md). Stroke falls back through stroke → textColor →
+      // fill so token-bound icons recolor like any other node. Opacity/rotation
+      // wrap the glyph in outer <g> elements (the inner g already transforms).
+      if (!s.iconName) return { el: '', defs };
+      const color =
+        s.stroke && s.stroke !== 'transparent' ? s.stroke
+        : s.textColor && s.textColor !== 'transparent' ? s.textColor
+        : s.fill && s.fill !== 'transparent' ? s.fill
+        : '#0f172a';
+      let g = lucideIconGroupSvg(s.iconName, s.x, s.y, Math.min(s.width, s.height) || 24, {
+        stroke: color,
+        strokeWidth: s.strokeWidth > 0 ? s.strokeWidth : undefined,
+      });
+      if (!g) return { el: '', defs };
+      if (s.rotation) {
+        const cx = s.x + s.width / 2;
+        const cy = s.y + s.height / 2;
+        g = `<g transform="rotate(${s.rotation} ${cx} ${cy})">${g}</g>`;
+      }
+      if (s.opacity !== undefined && s.opacity < 1) {
+        g = `<g opacity="${s.opacity}">${g}</g>`;
+      }
+      return { el: `  ${g}`, defs };
+    }
     default:
       return { el: '', defs };
   }
@@ -239,15 +263,95 @@ export function exportSvgWithSize(allShapes: Shape[], opts: ExportOptions = {}):
   };
 }
 
-/// Export the canvas as a REAL PNG data URL (rasterized at `opts.scale`, default 2x).
+/// Export the canvas as a REAL PNG data URL.
 ///
-/// Previously this returned the SVG data URL unchanged — the UI said "Exported
-/// PNG" but the user never received an actual PNG. Now the SVG is drawn into an
-/// offscreen canvas and rasterized. Must run in a browser (Image + canvas).
-export async function exportPngDataUrl(allShapes: Shape[], opts: ExportOptions = {}): Promise<string | null> {
+/// After spec Phase 5 (DOM default flip + §5.4 ground-truth seam), the primary
+/// path captures the LIVE DOM-rendered world element via `html-to-image` —
+/// same contract as the agent's `agent:screenshot_request` round-trip. This
+/// guarantees the exported PNG matches what the user sees on screen
+/// (fonts, images, measured native-layout geometry, drop-shadows, gradients
+/// — all the things the SVG projection drops).
+///
+/// Options:
+///   - `opts.worldElement` (HTMLElement | null): the live DOM world element.
+///     When provided AND mounted, the DOM-capture path is used. When null /
+///     not provided OR the dynamic import fails, falls back to the SVG
+///     projection (`exportSvgWithSize` + Image + canvas) — same lossy path
+///     that pre-Phase-5 export used, kept as the explicit fallback so the
+///     function never throws in environments without `html-to-image`
+///     (jsdom tests, SSR, private mode, etc.).
+///   - `opts.scale` (number, default 2): pixel ratio for rasterization.
+///   - `opts.backgroundColor` (string, optional): passed to html-to-image
+///     `toPng` to fill transparent areas (default: the canvas background).
+///   - `opts.frameId` (string, optional): export only shapes inside this
+///     frame. When the DOM capture path is active AND `opts.worldElement` is
+///     set, the function locates the DOM node with `[data-node-id="<frameId>"]`
+///     inside the world element and captures that subtree instead of the
+///     whole world — so frame exports also see the real DOM. Falls back to
+///     SVG-projection filtering when no DOM node matches (SVG renderer,
+///     jsdom tests, unknown frame id).
+export async function exportPngDataUrl(
+  allShapes: Shape[],
+  opts: ExportOptions & { worldElement?: HTMLElement | null; backgroundColor?: string } = {},
+): Promise<string | null> {
   const withSize = exportSvgWithSize(allShapes, opts);
   if (!withSize) return null;
   const scale = opts.scale ?? 2;
+
+  // ---- Primary path: capture the live DOM world element via html-to-image.
+  // Spec §5.4 — the DOM renderer is the source of truth after Phase 5.
+  // The world element is the same one the agent's `agent:screenshot_request`
+  // round-trip captures, so exports match the agent's view.
+  const worldEl = opts.worldElement ?? null;
+  if (worldEl && typeof window !== 'undefined') {
+    // For frame exports, locate the frame's DOM node inside the world.
+    // Falls through to whole-world capture when not found.
+    let captureTarget: HTMLElement = worldEl;
+    if (opts.frameId) {
+      const frameEl = worldEl.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(opts.frameId)}"]`);
+      if (frameEl) captureTarget = frameEl;
+    } else {
+      // The world element is a transform container with no explicit width/height
+      // (its children are absolutely positioned, so they don't contribute to
+      // its content box). html-to-image captures the element's own box, so a
+      // 0x0 world produces an empty image. Fall back to the world's PARENT
+      // (the visible canvas surface — has `right:0; bottom:0` so it fills
+      // the canvas viewport). This is what users actually want exported:
+      // what's visible on their screen, including the canvas background.
+      const r = captureTarget.getBoundingClientRect();
+      if ((r.width === 0 || r.height === 0) && captureTarget.parentElement) {
+        captureTarget = captureTarget.parentElement;
+      }
+    }
+    try {
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(captureTarget, {
+        pixelRatio: scale,
+        backgroundColor: opts.backgroundColor,
+        // Skip the ruler/guides/measure chrome overlays — they're screen-space,
+        // not part of the canvas content.
+        filter: (node) => {
+          if (!(node instanceof HTMLElement)) return true;
+          // Drop the chrome overlay + rulers + guides + measure overlay.
+          if (node.dataset?.acChrome !== undefined) return false;
+          if (node.dataset?.acRulers !== undefined) return false;
+          if (node.dataset?.acGuides !== undefined) return false;
+          if (node.dataset?.acMeasure !== undefined) return false;
+          // Drop the drop-target affordance border if present.
+          if (node.dataset?.acDropTarget !== undefined) return false;
+          return true;
+        },
+      });
+      return dataUrl;
+    } catch {
+      // html-to-image unavailable or capture failed — fall through to the
+      // SVG-projection fallback. Common in tests / tainted-canvas / no-DOM.
+    }
+  }
+
+  // ---- Fallback path: SVG projection + Image + canvas rasterization.
+  // Lossy: drops gradients/shadows/polygons/stars/text-decoration/measured
+  // geometry. Kept for compat-only environments (jsdom, SSR, no html-to-image).
   try {
     const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(withSize.svg)}`;
     const img = new Image();
@@ -277,43 +381,22 @@ export function exportJson(doc: unknown): string {
 }
 
 /// Generate HTML / React / Tailwind code from the canvas shapes.
+///
+/// v2 (spec §5.3 — copy-as-code v2): delegates to the shared tree serializer
+/// (`serializeNodes`) so the client-side export and the agent-side
+/// `pen_copy_as_code` / `pen_get_design_context` tools emit IDENTICAL code.
+/// The parent/child map is rebuilt from the resolved layers' parentId links;
+/// auto-layout containers serialize as real nested flexbox, layout:none
+/// containers as relative containers with absolutely-positioned children,
+/// and every element carries data-name/data-node-id.
 export function exportCode(
   allShapes: Shape[],
   framework: 'html' | 'react' | 'tailwind',
   opts: ExportOptions = {},
 ): string | null {
   let shapes = opts.frameId ? filterByFrame(allShapes, opts.frameId) : allShapes;
-  const norm = normalizeBounds(shapes);
-  if (!norm) return null;
-  const els = norm.shapes.map((s) => {
-    const x = Math.round(s.x);
-    const y = Math.round(s.y);
-    const w = Math.round(s.width);
-    const h = Math.round(s.height);
-    if (s.type === 'text') {
-      const fs = Math.round(s.fontSize);
-      const text = escapeHtml(s.text ?? '');
-      if (framework === 'tailwind') {
-        return `    <span className="absolute" style={{ left: ${x}, top: ${y}, fontSize: ${fs}, color: '${s.textColor}', fontFamily: 'Inter,sans-serif' }}>${text}</span>`;
-      }
-      return `    <span style="position:absolute;left:${x}px;top:${y}px;font-size:${fs}px;color:${s.textColor};font-family:Inter,sans-serif">${text}</span>`;
-    }
-    const r = Math.round(s.radius);
-    if (framework === 'tailwind') {
-      const radiusCls = r > 0 ? ` rounded-[${r}px]` : '';
-      const strokeCls = s.strokeWidth > 0 ? ` border-[${s.strokeWidth}px] border-[${s.stroke}]` : '';
-      return `    <div className="absolute${radiusCls}${strokeCls}" style={{ left: ${x}, top: ${y}, width: ${w}, height: ${h}, background: '${s.fill}' }} />`;
-    }
-    const radius = r > 0 ? `;border-radius:${r}px` : '';
-    const stroke = s.strokeWidth > 0 ? `;border:${s.strokeWidth}px solid ${s.stroke}` : '';
-    return `    <div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${s.fill}${radius}${stroke}"></div>`;
-  }).join('\n');
-  const totalW = Math.round(norm.w);
-  const totalH = Math.round(norm.h);
-  if (framework === 'react') {
-    return `export function CanvasExport() {\n  return (\n    <div style={{ position: 'relative', width: ${totalW}, height: ${totalH} }}>\n${els}\n    </div>\n  );\n}`;
-  }
-  return `<div style="position:relative;width:${totalW}px;height:${totalH}px">\n${els}\n</div>`;
+  if (shapes.length === 0) return null;
+  return serializeNodes(shapes, { framework, rootName: 'CanvasExport' });
 }
 
 /// Trigger a browser download of the given content.

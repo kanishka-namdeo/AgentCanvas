@@ -22,8 +22,8 @@
 //   - Analysis (copy, audit, organize)
 // Each prompt is a one-click example that exercises a specific tool.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useCanvasStore, type AgentToolCallEntry } from '@/lib/canvas/store';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { useCanvasStore, type AgentToolCallEntry, type ChatTurn } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
 import { useSettings } from '@/lib/settings/store';
 import { Button } from '@/components/ui/button';
@@ -43,9 +43,11 @@ import { MarkdownMessage } from './Markdown';
 import { ModelSwitcher } from './ModelSwitcher';
 import { suggestFollowUps } from '@/lib/agent/followups';
 import {
-  matchCommands, resolveCommand, parseCommandInput, COMMAND_MENU_LIMIT,
+  matchCommands, resolveCommand, parseCommandInput, COMMAND_MENU_LIMIT, resolvePackName,
   type ChatCommand,
 } from '@/lib/agent/chat-commands';
+import { useDesignSystems, setActivePack } from '@/hooks/use-design-systems';
+import { humanifyPackName } from '@/hooks/use-active-pack';
 import { pushPromptHistory, navigateHistory } from '@/lib/agent/prompt-history';
 import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl } from '@/lib/canvas/export';
 import { useModelCatalog } from '@/hooks/use-model-catalog';
@@ -70,7 +72,14 @@ import {
   Smartphone, LayoutDashboard, GitBranch, Palette, Activity, Layers, Square,
   ChevronRight, Clock, CornerDownLeft, Cpu, Paperclip, X, ArrowDown,
   RotateCcw, TriangleAlert, Copy, Camera, BoxSelect, GitCompareArrows,
+  ThumbsUp, ThumbsDown, Pencil, Brain, ListChecks, AtSign, ListPlus, Circle,
+  BadgeCheck, Bot as BotIcon,
 } from 'lucide-react';
+import {
+  activeMentionToken, applyMention, matchMentions, extractMentionedLayerIds,
+  mentionableLayers,
+} from '@/lib/agent/chat-mentions';
+import { saveDraft, loadDraft, clearDraft } from '@/lib/agent/draft-store';
 
 /// Format a token count for compact display: 45200 → "45.2K".
 /// Inlined (rather than imported from lib/agent/context-manager) because that
@@ -79,6 +88,33 @@ import {
 function formatTokens(tokens: number): string {
   if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}K`;
   return String(tokens);
+}
+
+/// Compact duration formatter for tool-call / thinking chips: 940 → "940ms",
+/// 4200 → "4.2s", 75000 → "1m 15s".
+function formatMs(ms: number): string {
+  if (ms < 1000) return `${Math.max(1, Math.round(ms))}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  const s = Math.round(ms / 1000);
+  return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`;
+}
+
+/// Ticking elapsed-time label ("0:07", "1:23") — powers the live activity
+/// row while the agent works and the "Thinking…" header while reasoning
+/// streams (Cursor shows elapsed time next to live activity; ChatGPT's
+/// thinking header does the same). One interval per mounted instance.
+function ElapsedTimer({ since, className }: { since: number; className?: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const s = Math.max(0, Math.round((now - since) / 1000));
+  const label =
+    s < 3600
+      ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+      : `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  return <span className={`tabular-nums ${className ?? ''}`}>{label}</span>;
 }
 
 // Note: the document variables + token counts previously shown in a status
@@ -280,6 +316,327 @@ function ModelContextStatus({
   );
 }
 
+// ==== pi-agent turn surfaces (thinking / plan / skill / subagents / critique) =
+//
+// The pi-agent pipeline already EMITS all of these (agent:thinking_delta,
+// agent:plan, agent:skill_selected, agent:subagent_*, agent:critique) and the
+// store reducer accumulates them onto the ChatTurn — but the panel never
+// rendered them. These components close that loop; each follows the
+// progressive-disclosure pattern of the tool-call cluster (collapsed by
+// default once idle, live-expanded while the turn is streaming).
+
+/// Thinking block — Cursor "thought bubble" / Claude thinking pattern.
+/// Auto-EXPANDED while reasoning streams (with a live elapsed timer in the
+/// header), auto-COLLAPSES to "Thought for Ns" the moment the answer text or
+/// the first tool call starts (the reducer stamps `thinkingEndedAt`). The
+/// chevron gives the user the manual pin/toggle Cursor users asked for.
+function ThinkingBlock({ turn }: { turn: ChatTurn }) {
+  const active = !!turn.thinking && !turn.thinkingEndedAt && turn.streaming;
+  const [override, setOverride] = useState<boolean | null>(null);
+  const expanded = override ?? active;
+  const ms =
+    turn.thinkingStartedAt !== undefined && turn.thinkingEndedAt !== undefined
+      ? turn.thinkingEndedAt - turn.thinkingStartedAt
+      : null;
+  if (!turn.thinking) return null;
+  return (
+    <div className="rounded-md border ac-border-subtle ac-surface-1 overflow-hidden">
+      <button
+        onClick={() => setOverride(!expanded)}
+        aria-expanded={expanded}
+        title={expanded ? 'Collapse reasoning' : 'Show the reasoning the model streamed before answering'}
+        className="w-full flex items-center gap-1.5 px-2 py-1 text-[10px] ac-text-3 hover:ac-surface-1 ac-transition ac-focus-ring"
+      >
+        <Brain className={`h-3 w-3 flex-shrink-0 ${active ? 'ac-text-info' : 'ac-text-4'}`} />
+        <span className="font-medium flex-shrink-0">
+          {active ? 'Thinking…' : 'Thought'}
+          {!active && ms !== null && <span className="ac-text-4 font-normal"> for {formatMs(ms)}</span>}
+        </span>
+        {active && turn.thinkingStartedAt !== undefined && (
+          <ElapsedTimer since={turn.thinkingStartedAt} className="ac-text-4 flex-shrink-0" />
+        )}
+        <ChevronRight
+          className={`h-3 w-3 ac-text-4 ml-auto flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+        />
+      </button>
+      {expanded && (
+        <div className="px-2 pb-1.5 pt-1 text-[10px] ac-text-4 italic whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto ac-hide-scrollbar border-t ac-border-subtle">
+          {turn.thinking}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/// Plan card — Claude Code / Cursor 1.2 "Agent To-dos" pattern. The intent
+/// classifier's numbered plan, live-updated as steps complete. Expanded while
+/// the turn streams (progress legibility on multi-step tasks), collapsible
+/// after — the completed card stays in the transcript as the record of what
+/// was done.
+const PLAN_STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  pending: Circle,
+  in_progress: Loader2,
+  completed: CheckCircle2,
+  failed: XCircle,
+};
+const PLAN_STATUS_COLOR: Record<string, string> = {
+  pending: 'ac-text-4',
+  in_progress: 'ac-text-info',
+  completed: 'ac-text-success',
+  failed: 'ac-text-danger',
+};
+
+function PlanCard({ plan }: { plan: NonNullable<ChatTurn['plan']> }) {
+  const done = plan.filter((p) => p.status === 'completed').length;
+  const streaming = plan.some((p) => p.status === 'in_progress' || p.status === 'pending');
+  const [override, setOverride] = useState<boolean | null>(null);
+  const expanded = override ?? streaming;
+  return (
+    <div className="rounded-md border ac-border-subtle ac-surface-1 overflow-hidden">
+      <button
+        onClick={() => setOverride(!expanded)}
+        aria-expanded={expanded}
+        title={expanded ? 'Collapse plan' : 'Show the plan the agent is following'}
+        className="w-full flex items-center gap-1.5 px-2 py-1 text-[10px] ac-text-3 hover:ac-surface-1 ac-transition ac-focus-ring"
+      >
+        <ListChecks className="h-3 w-3 ac-text-4 flex-shrink-0" />
+        <span className="font-medium flex-shrink-0">
+          Plan <span className="ac-text-4 font-normal">{done}/{plan.length}</span>
+        </span>
+        {streaming && <Loader2 className="h-2.5 w-2.5 animate-spin ac-text-4 flex-shrink-0" />}
+        <ChevronRight
+          className={`h-3 w-3 ac-text-4 ml-auto flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+        />
+      </button>
+      {expanded && (
+        <div className="px-2 pb-1.5 pt-1 space-y-1 border-t ac-border-subtle">
+          {plan.map((p) => {
+            const Icon = PLAN_STATUS_ICON[p.status] ?? Circle;
+            const color = PLAN_STATUS_COLOR[p.status] ?? 'ac-text-4';
+            return (
+              <div key={p.step} className="flex items-start gap-1.5">
+                <Icon
+                  className={`h-3 w-3 mt-px flex-shrink-0 ${color} ${p.status === 'in_progress' ? 'animate-spin' : ''}`}
+                />
+                <span className={`text-[10px] leading-snug ${p.status === 'completed' ? 'line-through ac-text-4' : 'ac-text-2'}`}>
+                  {p.description}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/// Sub-agent card — the pi-agent pipeline dispatches focused sub-agents
+/// (e.g. a "designer" for layout passes). One row per dispatch with live
+/// status; completed rows carry the summary + tool-call count.
+function SubAgentsCard({ subAgents }: { subAgents: NonNullable<ChatTurn['subAgents']> }) {
+  const anyRunning = subAgents.some((sa) => sa.status === 'running');
+  const [override, setOverride] = useState<boolean | null>(null);
+  const expanded = override ?? anyRunning;
+  return (
+    <div className="rounded-md border ac-border-subtle ac-surface-1 overflow-hidden">
+      <button
+        onClick={() => setOverride(!expanded)}
+        aria-expanded={expanded}
+        className="w-full flex items-center gap-1.5 px-2 py-1 text-[10px] ac-text-3 hover:ac-surface-1 ac-transition ac-focus-ring"
+      >
+        <BotIcon className="h-3 w-3 ac-text-4 flex-shrink-0" />
+        <span className="font-medium flex-shrink-0">
+          Sub-agents <span className="ac-text-4 font-normal">{subAgents.length}</span>
+        </span>
+        {anyRunning && <Loader2 className="h-2.5 w-2.5 animate-spin ac-text-4 flex-shrink-0" />}
+        <ChevronRight
+          className={`h-3 w-3 ac-text-4 ml-auto flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+        />
+      </button>
+      {expanded && (
+        <div className="px-2 pb-1.5 pt-1 space-y-1 border-t ac-border-subtle">
+          {subAgents.map((sa, i) => (
+            <div key={`${sa.type}-${i}`} className="flex items-start gap-1.5">
+              {sa.status === 'running' ? (
+                <Loader2 className="h-3 w-3 mt-px flex-shrink-0 ac-text-info animate-spin" />
+              ) : sa.status === 'completed' ? (
+                <CheckCircle2 className="h-3 w-3 mt-px flex-shrink-0 ac-text-success" />
+              ) : (
+                <XCircle className="h-3 w-3 mt-px flex-shrink-0 ac-text-danger" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] ac-text-2">
+                  <span className="font-medium">{sa.type}</span>
+                  <span className="ac-text-4"> — {sa.task}</span>
+                </div>
+                {sa.summary && (
+                  <div className="text-[9px] ac-text-4 mt-0.5">
+                    {sa.summary}
+                    {sa.toolCalls !== undefined ? ` · ${sa.toolCalls} tool calls` : ''}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/// Self-review row — surfaces the runner's mandatory critique loop
+/// (pi-agent `agent:critique`): iteration number, defect list, VLM score.
+/// Shown on completed turns only (while streaming it would churn).
+function CritiqueRow({ critique }: { critique: NonNullable<ChatTurn['critique']> }) {
+  const [expanded, setExpanded] = useState(false);
+  const scoreCls =
+    critique.vlmScore === undefined
+      ? 'ac-text-3'
+      : critique.vlmScore >= 8
+        ? 'ac-text-success'
+        : critique.vlmScore >= 6
+          ? 'ac-text-warning'
+          : 'ac-text-danger';
+  const clean = critique.defects.length === 0;
+  return (
+    <div className="rounded-md border ac-border-subtle ac-surface-1 overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        title="The agent reviewed its own output before finishing (mandatory critique loop)"
+        className="w-full flex items-center gap-1.5 px-2 py-1 text-[10px] ac-text-3 hover:ac-surface-1 ac-transition ac-focus-ring"
+      >
+        <BadgeCheck className={`h-3 w-3 flex-shrink-0 ${clean ? 'ac-text-success' : 'ac-text-warning'}`} />
+        <span className="font-medium flex-shrink-0">Self-review</span>
+        {critique.iteration > 1 && (
+          <span className="ac-text-4 flex-shrink-0">iter {critique.iteration}</span>
+        )}
+        <span className="ac-text-4 truncate flex-1 min-w-0 text-left">
+          {clean ? 'no defects found' : `${critique.defects.length} defect${critique.defects.length === 1 ? '' : 's'} fixed`}
+        </span>
+        {critique.vlmScore !== undefined && (
+          <span className={`font-medium flex-shrink-0 ${scoreCls}`} title="Vision-model score of the rendered canvas">
+            VLM {critique.vlmScore}/10
+          </span>
+        )}
+        <ChevronRight
+          className={`h-3 w-3 ac-text-4 flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+        />
+      </button>
+      {expanded && critique.defects.length > 0 && (
+        <ul className="px-2 pb-1.5 pt-1 space-y-0.5 border-t ac-border-subtle">
+          {critique.defects.map((d, i) => (
+            <li key={i} className="flex items-start gap-1.5 text-[10px] ac-text-3 leading-snug">
+              <span className="ac-text-warning flex-shrink-0">·</span>
+              {d}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/// Skill chip — which intent-classifier skill the turn routed to
+/// (category · confidence · tool budget). One quiet line above the plan.
+function SkillChip({ skillInfo }: { skillInfo: NonNullable<ChatTurn['skillInfo']> }) {
+  const pct = Math.round(skillInfo.confidence * 100);
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] ac-text-3 ac-surface-1 border ac-border-subtle"
+      title={`Intent classification routed this prompt to the "${skillInfo.category}" skill (${skillInfo.method}, ${pct}% confidence). Tool budget: ${skillInfo.toolCount} calls.`}
+    >
+      <Sparkles className="h-2.5 w-2.5" style={{ color: 'var(--ac-accent)' }} />
+      {skillInfo.category}
+      <span className="ac-text-4">{pct}%</span>
+    </span>
+  );
+}
+
+/// Live busy row — replaces the static "agent is working…" with WHAT the
+/// agent is doing right now + HOW LONG it's been going (Cursor 1.3 pattern:
+/// per-row spinners + an aggregate status line with elapsed time).
+function BusyRow({ onStop }: { onStop: () => void }) {
+  const turns = useCanvasStore((s) => s.turns);
+  const last = turns[turns.length - 1];
+  const activity = useMemo(() => {
+    if (!last || last.role !== 'assistant') return 'agent is working…';
+    if (last.thinking && !last.thinkingEndedAt) return 'Thinking…';
+    const running = [...last.toolCalls].reverse().find((tc) => tc.success === undefined);
+    if (running) return `Running ${running.name}…`;
+    const lastSummary = [...last.toolCalls].reverse().find((tc) => tc.summary)?.summary;
+    if (lastSummary) return lastSummary;
+    if (last.toolCalls.length > 0) return 'Writing response…';
+    return 'agent is working…';
+  }, [last]);
+  const startedAt = last?.startedAt;
+  return (
+    <div className="flex items-center justify-between gap-2 text-xs ac-text-4 px-1 py-1">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />
+        <span className="truncate" aria-live="polite">{activity}</span>
+        {startedAt !== undefined && (
+          <>
+            <span className="flex-shrink-0">·</span>
+            <ElapsedTimer since={startedAt} className="flex-shrink-0" />
+          </>
+        )}
+      </div>
+      {/* P0-09: Inline Stop button — lets the user stop without moving the
+          cursor to the top header. Mirrors the header's RunStopButton but
+          appears next to the streaming response. */}
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={onStop}
+        title="Stop the agent (Esc also works)"
+        aria-label="Stop agent"
+        className="h-6 text-[10px] px-2 py-0 gap-1 flex-shrink-0"
+      >
+        <Square className="h-2.5 w-2.5 fill-current" />
+        Stop
+      </Button>
+    </div>
+  );
+}
+
+/// Queued-prompt chips — messages typed while the agent was busy (Cursor 3's
+/// default queueing). The store flushes them one-per-turn automatically;
+/// these rows make the queue VISIBLE and removable before it fires.
+function QueueChips() {
+  const queuedPrompts = useCanvasStore((s) => s.queuedPrompts);
+  const removeQueuedPrompt = useCanvasStore((s) => s.removeQueuedPrompt);
+  if (queuedPrompts.length === 0) return null;
+  return (
+    <div className="mb-1.5 space-y-1" aria-label={`${queuedPrompts.length} queued prompt${queuedPrompts.length === 1 ? '' : 's'}`}>
+      {queuedPrompts.map((q, i) => (
+        <div
+          key={q.id}
+          className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-dashed ac-border-default ac-surface-1"
+          title={`${q.text}${q.selection ? `\nTargeting ${q.selection.count} layer(s)` : ''}`}
+        >
+          <ListPlus className="h-3 w-3 flex-shrink-0 ac-text-info" />
+          <span className="text-[9px] font-medium ac-text-4 flex-shrink-0">
+            {i === 0 ? 'Next' : `#${i + 1}`}
+          </span>
+          <span className="flex-1 text-[10px] ac-text-2 truncate min-w-0">{q.text}</span>
+          {q.selection && q.selection.count > 0 && (
+            <span className="text-[9px] ac-text-4 flex-shrink-0">@{q.selection.count}</span>
+          )}
+          <button
+            onClick={() => removeQueuedPrompt(q.id)}
+            aria-label={`Remove queued prompt: ${q.text.slice(0, 40)}`}
+            title="Remove from queue"
+            className="p-0.5 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring flex-shrink-0"
+          >
+            <X className="h-2.5 w-2.5" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const turns = useCanvasStore((s) => s.turns);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
@@ -308,6 +665,10 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   // "Jump to latest" pill — visible while the user has scrolled away from
   // the bottom (ChatGPT/Claude pattern; auto-follow pauses so they can read).
   const [showJump, setShowJump] = useState(false);
+  // @-mention autocomplete (Cursor @file pattern, canvas-layer domain — see
+  // chat-mentions.ts): selected index + dismissed flag (Escape).
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [mentionDismissed, setMentionDismissed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -318,11 +679,57 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const redo = useCanvasStore((s) => s.redo);
   const newSession = useCanvasStore((s) => s.newSession);
   const select = useCanvasStore((s) => s.select);
+  // Design-system pack list — feeds `/pick-pack` resolution. Module-level
+  // shared fetch (same as the picker), so the first AgentPanel mount warms
+  // the cache for the TopMenuBar badge too.
+  const { packs: packList } = useDesignSystems();
   // Canvas selection — drives the "N layers selected" context chip above the
   // input (progressive disclosure: the chip TELLS the user what context the
   // next prompt will carry, and can be cleared in place).
   const selectedIds = useCanvasStore((s) => s.selectedIds);
   const selectionCount = selectedIds.length;
+  const queuePrompt = useCanvasStore((s) => s.queuePrompt);
+  const documentId = useCanvasStore((s) => s.documentId);
+
+  // ==== @-mentions (Cursor @file/@docs pattern, canvas-layer domain) ======
+  //
+  // Typing `@` opens a fuzzy-matched list of layer names; picking one
+  // inserts `@Name` into the prompt. At submit time every resolvable
+  // `@Name` is union-ed with the canvas selection into the turn's targeting
+  // payload — "make @Header sticky" needs no manual selection.
+  const mentionLayers = useMemo(
+    () => mentionableLayers(document.shapes),
+    [document.shapes],
+  );
+  const mentionToken = useMemo(
+    // Slash commands take precedence over mentions (input starting with '/').
+    () => (input.trim().startsWith('/') ? null : activeMentionToken(input)),
+    [input],
+  );
+  const mentionMatches = useMemo(
+    () => (mentionToken === null || mentionDismissed ? [] : matchMentions(mentionToken, mentionLayers)),
+    [mentionToken, mentionDismissed, mentionLayers],
+  );
+  const mentionMenuOpen = mentionMatches.length > 0;
+  // Layers resolvable from @tokens in the CURRENT input — drives the merged
+  // targeting chip above the input and the submit-time selection union.
+  const mentionedIds = useMemo(
+    () => extractMentionedLayerIds(input, document.shapes),
+    [input, document.shapes],
+  );
+  const targetingCount = new Set([...selectedIds, ...mentionedIds]).size;
+
+  // ==== Draft persistence (Cursor keeps unsent input across reloads) =======
+  //
+  // Load once per document; save debounced (400ms); clear on send/queue.
+  // Best-effort localStorage — see lib/agent/draft-store.ts.
+  useEffect(() => {
+    setInput(loadDraft(documentId));
+  }, [documentId]);
+  useEffect(() => {
+    const t = setTimeout(() => saveDraft(documentId, input), 400);
+    return () => clearTimeout(t);
+  }, [input, documentId]);
 
   const matchingCommands = useMemo(
     // Cap = rendered window, so navigation can never outrun the highlight.
@@ -337,20 +744,50 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
 
   /// Execute a resolved slash command.
   const executeCommand = (cmd: ChatCommand, args: string) => {
-    // Guard: the textarea is disabled while the agent runs, but a menu click
-    // can still land mid-turn — refuse instead of mutating under the agent.
-    if (agentBusy) {
-      toast.error('Agent is busy', { description: 'Wait for the current turn to finish.' });
-      return;
-    }
     if (cmd.kind === 'prompt') {
       const prompt = args ? `${cmd.run} ${args}` : cmd.run;
+      if (agentBusy) {
+        // Prompt commands QUEUE while the agent runs (Cursor 3's default
+        // behavior — the input is never blocked, see submit() below).
+        queuePrompt(prompt);
+        toast.message('Queued', { description: 'Runs when the current turn finishes.' });
+        return;
+      }
       pushPromptHistory(prompt);
       promptAgent(prompt);
       return;
     }
+    // Guard: action commands mutate canvas/app state — refuse mid-turn
+    // instead of racing the agent's own patches.
+    if (agentBusy) {
+      toast.error('Agent is busy', { description: 'Wait for the current turn to finish.' });
+      return;
+    }
     const docName = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
     switch (cmd.run) {
+      case 'pick-pack': {
+        // /pick-pack <name> — fuzzy-resolve + pin the design-system pack.
+        // Matches: exact name ('vercel-geist'), suffix ('geist'), substring
+        // ('radix', 'catalyst'), or dash-word ('tailwind', 'shadcn').
+        if (!args.trim()) {
+          toast.error('Usage: /pick-pack <name>', {
+            description: `Available packs: ${packList.map((p) => p.name).join(', ') || 'loading…'}`,
+          });
+          break;
+        }
+        const resolved = resolvePackName(args, packList);
+        if (!resolved) {
+          toast.error(`Unknown pack "${args.trim()}"`, {
+            description: `Available packs: ${packList.map((p) => p.name).join(', ')}`,
+          });
+          break;
+        }
+        setActivePack(resolved);
+        toast.success(`Pinned ${humanifyPackName(resolved)}`, {
+          description: 'Applies to every agent generation this session. View → Design system to change.',
+        });
+        break;
+      }
       case 'clear':
         sendPatch({ op: 'clear', summary: 'Cleared canvas' });
         toast.success('Canvas cleared', { description: 'Undoable — /undo restores it.' });
@@ -363,7 +800,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
         break;
       case 'new-chat': {
         const id = newSession();
-        if (id) toast.success('Started a new chat');
+        if (id) toast.success('Started a new chat', { description: 'The canvas is shared — it keeps its current state.' });
         break;
       }
       case 'select-all':
@@ -378,7 +815,14 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
         break;
       }
       case 'export-png':
-        void exportPngDataUrl(document.shapes).then((dataUrl) => {
+        // Phase 5 §5.4 contract: capture the LIVE DOM world via html-to-image
+        // (same path as the agent's agent:screenshot_request round-trip); fall
+        // back to the SVG projection when no DOM world is mounted.
+        void exportPngDataUrl(document.shapes, {
+          worldElement: useCanvasStore.getState().worldElement,
+          backgroundColor: document.background,
+          scale: 2,
+        }).then((dataUrl) => {
           if (!dataUrl) { toast.error('Nothing to export'); return; }
           if (dataUrl.startsWith('data:image/png')) {
             downloadDataUrl(dataUrl, `${docName}.png`);
@@ -418,10 +862,12 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   // (endpoint-only model id or listing not loaded yet) — never nag on unknown.
   const modelAcceptsImages = guardModelEntry ? modelSupportsImages(guardModelEntry.input) : null;
 
-  /// Stage image files from ANY source (paperclip, paste, drop).
+  /// Stage image files from ANY source (paperclip, paste, drop). Staging is
+  /// client-side only, so it stays available while the agent runs (the
+  /// staged images ride the NEXT prompt — or the queued one).
   /// Rejections toast once, compactly.
   const addFiles = async (files: File[]) => {
-    if (files.length === 0 || agentBusy) return;
+    if (files.length === 0) return;
     const { staged, rejections } = await stageImageFiles(files, attachments.length);
     if (staged.length > 0) setAttachments((a) => [...a, ...staged]);
     if (rejections.length > 0) {
@@ -437,8 +883,14 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
 
   /// Attach a PNG snapshot of the current canvas (v0/Figma-Make pattern: give
   /// the agent — especially a vision model — a visual reference of exactly
-  /// what you're looking at). Renders via the existing client-side exporter,
-  /// then guarantees the attachment size cap through the downscale pipeline.
+  /// what you're looking at). Spec Phase 5 §5.4 contract: capture the LIVE
+  /// DOM-rendered world element via html-to-image — the SAME path the agent's
+  /// `agent:screenshot_request` round-trip uses — so the agent sees the
+  /// actual canvas (fonts, images, measured native-layout geometry,
+  /// drop-shadows, gradients) instead of the lossy SVG projection. Falls
+  /// back to the SVG-projection path when no DOM world is mounted
+  /// (SVG-compat renderer / tainted canvas / no html-to-image).
+  /// Guarantees the attachment size cap through the downscale pipeline.
   const [snapshotBusy, setSnapshotBusy] = useState(false);
   const attachCanvasSnapshot = async () => {
     if (agentBusy || snapshotBusy) return;
@@ -454,7 +906,14 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     setSnapshotBusy(true);
     try {
       // scale 1 — a chat reference doesn't need @2x; keeps the payload small.
-      let dataUrl = await exportPngDataUrl(shapes, { scale: 1 });
+      // worldElement from the store — the same one the agent's screenshot
+      // round-trip captures. When null (SVG-compat renderer / unmounted),
+      // exportPngDataUrl falls back to the SVG-projection path automatically.
+      let dataUrl = await exportPngDataUrl(shapes, {
+        scale: 1,
+        worldElement: useCanvasStore.getState().worldElement,
+        backgroundColor: document.background,
+      });
       if (!dataUrl) throw new Error('rasterization failed');
       if (dataUrl.length > MAX_DATAURL_LENGTH) {
         // Huge canvas — re-encode through the downscale pipeline (1280px edge).
@@ -542,15 +1001,17 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     const text = input.trim();
     const images = attachments;
     // Sendable with text OR images alone ("what's in this image?" prompts).
-    if ((!text && images.length === 0) || agentBusy) return;
-    // Selection context: capture the CURRENT canvas selection (names, capped)
-    // so "these/those" prompts carry concrete layer targeting. Only when the
-    // user has something selected — the chip above the input discloses this.
+    if (!text && images.length === 0) return;
+    // Selection context: the CURRENT canvas selection UNION-ed with every
+    // resolvable @mention in the text, so "these" AND "@Header" both carry
+    // concrete layer targeting. Only when something is targeted — the chip
+    // above the input discloses this.
+    const mergedTargetIds = new Set([...selectedIds, ...extractMentionedLayerIds(text, document.shapes)]);
     const selection =
-      selectedIds.length > 0
+      mergedTargetIds.size > 0
         ? {
-            count: selectedIds.length,
-            names: selectedIds
+            count: mergedTargetIds.size,
+            names: [...mergedTargetIds]
               .map((id) => document.shapes.find((s) => s.id === id)?.name)
               .filter((n): n is string => typeof n === 'string')
               .slice(0, 8),
@@ -568,6 +1029,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
         setHistoryCursor(-1);
         setCmdIndex(0);
         setCmdDismissed(false);
+        clearDraft(documentId);
       };
       switch (parsed.kind) {
         case 'none':
@@ -600,15 +1062,28 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     // A prompt with ONLY images (no text) still needs a non-empty prompt for
     // the runner — fall back to a minimal ask.
     const promptText = text || 'What do you see in this image? Describe it in detail.';
-    pushPromptHistory(promptText);
-    // Submitting re-engages follow-the-bottom (the user acted at the bottom).
-    stickToBottomRef.current = true;
-    promptAgent(promptText, images.length > 0 ? images : undefined, selection);
+    // Reset the composer regardless of where the prompt goes.
     setInput('');
     setAttachments([]);
     setHistoryCursor(-1);
     setCmdIndex(0);
     setCmdDismissed(false);
+    setMentionIndex(0);
+    setMentionDismissed(false);
+    clearDraft(documentId);
+    // Cursor 3's DEFAULT behavior: typing while the agent runs QUEUES the
+    // message (the input is never disabled); it auto-sends when the current
+    // turn finishes. The queue is visible + removable (QueueChips above the
+    // composer), and Stop suppresses the auto-flush so an interrupted queue
+    // never surprises the user.
+    if (agentBusy) {
+      queuePrompt(promptText, images.length > 0 ? images : undefined, selection);
+      return;
+    }
+    pushPromptHistory(promptText);
+    // Submitting re-engages follow-the-bottom (the user acted at the bottom).
+    stickToBottomRef.current = true;
+    promptAgent(promptText, images.length > 0 ? images : undefined, selection);
   };
 
   const activePrompts = PROMPT_GROUPS.find((g) => g.id === activeGroup)?.prompts ?? [];
@@ -698,10 +1173,11 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
       {/* Plugin UI (todo overlay, background tasks, ask-user-question dialog) */}
       <PluginUI />
 
-      {/* Conversation */}
+      {/* Conversation — aria-live so screen readers announce streaming
+          assistant output (a11y pattern from the chat-UI anatomy research). */}
       <div className="relative flex-1 min-h-0">
         <ScrollArea ref={scrollRef} className="h-full ac-hide-scrollbar">
-          <div className="p-3 space-y-3">
+          <div className="p-3 space-y-3" role="log" aria-live="polite" aria-label="Agent conversation">
           {turns.length === 0 && (
             <div className="space-y-3">
               <div className="rounded-lg border ac-border-subtle ac-surface-1 p-3 text-xs ac-text-2">
@@ -717,7 +1193,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                   instances, slots, copy, and audits. You can also draw manually — the
                   agent will see your edits.
                 </p>
-                <p className="mt-2 leading-relaxed ac-text-3">
+                <p className="mt-2 leading-relaxed ac-text-2">
                   Attach reference images with the paperclip, by pasting, or by dropping
                   them here — vision-capable models (look for the Eye icon next to a model)
                   will use them as visual context.
@@ -783,28 +1259,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             !turns[turns.length - 1].error && (
             <FollowUps turn={turns[turns.length - 1]} />
           )}
-          {agentBusy && (
-            <div className="flex items-center justify-between gap-2 text-xs ac-text-4 px-1 py-1">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                agent is working…
-              </div>
-              {/* P0-09: Inline Stop button — lets the user stop without moving
-                  the cursor to the top header. Mirrors the header's
-                  RunStopButton but appears next to the streaming response. */}
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => stopAgent()}
-                title="Stop the agent (Esc also works)"
-                aria-label="Stop agent"
-                className="h-6 text-[10px] px-2 py-0 gap-1"
-              >
-                <Square className="h-2.5 w-2.5 fill-current" />
-                Stop
-              </Button>
-            </div>
-          )}
+          {agentBusy && <BusyRow onStop={() => stopAgent()} />}
           {agentBusy && <SteerInput />}
           </div>
         </ScrollArea>
@@ -826,28 +1281,35 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
       </div>
 
       {/* Input — minimal chrome. Paperclip (image attach) always visible;
-          Send appears when there's text OR staged attachments. */}
+          Send/Queue appears when there's text OR staged attachments. The
+          composer STAYS ENABLED while the agent runs — Enter queues the
+          message (Cursor 3 default) instead of dead-ending. */}
       <div className="border-t ac-border-subtle p-2 ac-surface-0">
-        {/* Selection context chip (progressive disclosure) — only appears
-            when layers are selected. Shows WHAT context the next prompt will
+        {/* Queued prompts (typed while busy) — visible + removable; the store
+            auto-flushes one per completed turn. */}
+        <QueueChips />
+        {/* Targeting context chip (progressive disclosure) — canvas selection
+            ∪ resolvable @mentions. Shows WHAT context the next prompt will
             carry; × clears the canvas selection in place. */}
-        {selectionCount > 0 && !agentBusy && (
+        {targetingCount > 0 && (
           <div
             className="flex items-center gap-1.5 mb-1.5 px-2 py-1 rounded-md border ac-border-subtle ac-surface-1"
-            title={`The agent will target your ${selectionCount} selected layer${selectionCount === 1 ? '' : 's'} ("these"/"those" in your prompt refers to them).`}
+            title={`The agent will target ${targetingCount} layer${targetingCount === 1 ? '' : 's'} (canvas selection + @mentions — "these"/"those" in your prompt refers to them).`}
           >
             <BoxSelect className="h-3 w-3 flex-shrink-0 ac-text-info" />
             <span className="text-[10px] ac-text-2 truncate flex-1">
-              {selectionCount} layer{selectionCount === 1 ? '' : 's'} selected — agent will target them
+              {targetingCount} layer{targetingCount === 1 ? '' : 's'} targeted{mentionedIds.length > 0 ? ' (incl. @mentions)' : ''} — agent will focus on them
             </span>
-            <button
-              onClick={() => select([])}
-              aria-label="Clear selection context"
-              title="Clear selection (the prompt will apply to the whole canvas)"
-              className="p-0.5 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring flex-shrink-0"
-            >
-              <X className="h-2.5 w-2.5" />
-            </button>
+            {selectionCount > 0 && (
+              <button
+                onClick={() => select([])}
+                aria-label="Clear selection context"
+                title="Clear selection (@mentions in the text stay active)"
+                className="p-0.5 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring flex-shrink-0"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            )}
           </div>
         )}
         {/* Slash-command autocomplete — floats above the textarea. */}
@@ -885,6 +1347,38 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                 >
                   <code className={`text-[11px] font-mono px-1 py-0.5 rounded ac-surface-2 ${isSel ? 'ac-text-1' : 'ac-text-2'}`}>{c.cmd}</code>
                   <span className="flex-1 text-[10px] ac-text-3 truncate">{c.hint}</span>
+                  {isSel && <CornerDownLeft className="h-2.5 w-2.5 ac-text-4 flex-shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {/* @-mention autocomplete — same listbox pattern as the slash menu.
+            Open while an @token is active (Cursor @file pattern); picks insert
+            `@Name` and merge into the prompt's targeting at submit. */}
+        {mentionMenuOpen && (
+          <div className="mb-1.5 rounded-lg border ac-border-default ac-surface-0 shadow-lg overflow-hidden" role="listbox" aria-label="Mention a layer">
+            {mentionMatches.map((m, i) => {
+              const isSel = i === Math.min(mentionIndex, mentionMatches.length - 1);
+              return (
+                <button
+                  key={m.id}
+                  role="option"
+                  aria-selected={isSel}
+                  onClick={() => {
+                    setInput(applyMention(input, m));
+                    setMentionIndex(0);
+                    setMentionDismissed(false);
+                    inputRef.current?.focus();
+                  }}
+                  onMouseEnter={() => setMentionIndex(i)}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left ac-transition border-l-2 ${
+                    isSel ? 'ac-surface-1 ac-border-l-[color:var(--ac-accent)]' : 'ac-border-transparent'
+                  }`}
+                >
+                  <AtSign className="h-3 w-3 ac-text-4 flex-shrink-0" />
+                  <span className="text-[11px] ac-text-1 truncate flex-1 min-w-0">{m.name}</span>
+                  <span className="text-[9px] ac-text-4 font-mono flex-shrink-0">{m.type}</span>
                   {isSel && <CornerDownLeft className="h-2.5 w-2.5 ac-text-4 flex-shrink-0" />}
                 </button>
               );
@@ -939,6 +1433,8 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               setInput(e.target.value);
               // Reopen the command menu if the user edits back to a command.
               if (cmdDismissed && !e.target.value.trim().startsWith('/')) setCmdDismissed(false);
+              // Reopen the mention menu after Escape once '@' is gone.
+              if (mentionDismissed && !e.target.value.includes('@')) setMentionDismissed(false);
               // Editing text manually exits history-navigation mode.
               if (historyCursor !== -1) setHistoryCursor(-1);
             }}
@@ -951,10 +1447,36 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                 void addFiles(files);
               }
             }}
-            placeholder="Ask the agent to design something…  (⌘K for prompts · paste images to attach)"
+            placeholder={agentBusy
+              ? 'Queue a follow-up message… it sends when this turn finishes'
+              : 'Ask the agent to design something…  (@ mention layers · / commands · paste images)'}
             className="text-xs resize-none min-h-[44px] max-h-[120px] border-0 shadow-none focus-visible:ring-0 ac-text-2 placeholder:ac-text-4 bg-transparent"
-            disabled={agentBusy}
             onKeyDown={(e) => {
+              // --- @-mention autocomplete keys (menu open) — same pattern as
+              //     the slash menu: arrows navigate, Tab/Enter apply, Esc dismisses.
+              if (mentionMenuOpen) {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setMentionIndex((i) => (i + 1) % mentionMatches.length);
+                  return;
+                }
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setMentionIndex((i) => (i - 1 + mentionMatches.length) % mentionMatches.length);
+                  return;
+                }
+                if (e.key === 'Tab' || e.key === 'Enter') {
+                  e.preventDefault();
+                  setInput(applyMention(input, mentionMatches[Math.min(mentionIndex, mentionMatches.length - 1)]));
+                  setMentionIndex(0);
+                  return;
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setMentionDismissed(true);
+                  return;
+                }
+              }
               // --- Slash-command autocomplete keys (menu open) ---
               if (cmdMenuOpen) {
                 if (e.key === 'ArrowDown') {
@@ -1009,7 +1531,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             }}
           />
           {/* Action row — always visible: paperclip (image attach) on the
-              left, Send on the right once there's text OR staged
+              left, Send/Queue on the right once there's text OR staged
               attachments. ChatGPT keeps the attach button permanently
               available so images can be staged before typing. */}
           <div className="flex items-center justify-between px-2 pb-1.5 pt-0.5 border-t ac-border-subtle">
@@ -1028,19 +1550,23 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             />
             <div className="flex items-center gap-0.5">
               {/* Canvas snapshot attach (v0/Figma-Make pattern) — renders the
-                  current canvas to a PNG and stages it as an image attachment. */}
+                  current canvas to a PNG and stages it as an image attachment.
+                  Disabled while the agent runs: the canvas is mid-mutation,
+                  a snapshot would capture a half-applied state. */}
               <button
                 onClick={() => void attachCanvasSnapshot()}
-                disabled={agentBusy || snapshotBusy || attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
+                disabled={snapshotBusy || attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
                 title="Attach a snapshot of the canvas as an image reference"
                 aria-label="Attach canvas snapshot"
                 className="p-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {snapshotBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
+              {/* File attach — available even while the agent runs (staging is
+                  client-side; images ride the next or queued prompt). */}
               <button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={agentBusy || attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
+                disabled={attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
                 title={`Attach images (${attachments.length}/${MAX_ATTACHMENTS_PER_MESSAGE}) — paste or drop works too`}
                 aria-label="Attach images"
                 className="p-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1048,16 +1574,31 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                 <Paperclip className="h-3.5 w-3.5" />
               </button>
             </div>
+            {/* Keyboard semantics hint — the input's behavior CHANGES while
+                the agent runs (send vs queue), so the affordance is stated
+                instead of assumed (docs/chat-parity.md item 9). */}
+            <span className="text-[9px] ac-text-4 hidden sm:block truncate px-1">
+              {agentBusy ? '⏎ queues after this turn' : '⏎ send · ⇧⏎ newline'}
+            </span>
             {(input.trim() || attachments.length > 0) && (
               <Button
                 size="sm"
                 onClick={submit}
-                disabled={agentBusy}
-                className="h-6 text-[11px] text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                title={agentBusy ? 'Queue this message — it sends automatically when the current turn finishes' : 'Send to the agent'}
+                className="h-6 text-[11px] text-white flex-shrink-0"
                 style={{ backgroundColor: 'var(--ac-accent)' }}
               >
-                <Send className="h-3 w-3 mr-1" />
-                Send
+                {agentBusy ? (
+                  <>
+                    <ListPlus className="h-3 w-3 mr-1" />
+                    Queue
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3 w-3 mr-1" />
+                    Send
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -1067,14 +1608,36 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   );
 }
 
-function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>['turns'][number] }) {
+// Memoized: the reducer replaces turn objects immutably, so unchanged turns
+// keep their reference and bail out — only the actively-streaming turn
+// re-renders per delta (the full-thread re-parse was a measurable jank
+// source on long conversations).
+const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
   const forkActiveSession = useCanvasStore((s) => s.forkActiveSession);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
+  const editUserTurn = useCanvasStore((s) => s.editUserTurn);
+  const setTurnFeedback = useCanvasStore((s) => s.setTurnFeedback);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const diff = useMemo(
     () => (turn.patchOps && turn.patchOps.length > 0 ? summarizeTurnDiff(turn.patchOps) : null),
     [turn.patchOps],
   );
+  // Inline edit state (Cursor edit-message pattern): the user bubble swaps
+  // to a composer; Save & resend truncates the thread after this message
+  // and re-sends (editUserTurn), Esc/Cancel restores the bubble.
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState('');
+  const startEditing = () => {
+    if (!turn.text || agentBusy) return;
+    setEditText(turn.text);
+    setEditing(true);
+  };
+  const commitEdit = () => {
+    if (!editText.trim() || agentBusy) return;
+    setEditing(false);
+    editUserTurn(turn.id, editText);
+    toast.message('Edited — regenerating from here');
+  };
   if (turn.role === 'user') {
     return (
       <ContextMenu>
@@ -1083,6 +1646,47 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
             <div className="w-6 h-6 rounded-full ac-surface-2 flex items-center justify-center flex-shrink-0">
               <User className="h-3 w-3 ac-text-3" />
             </div>
+            {editing ? (
+              /* Inline edit composer — ChatGPT/Claude edit-message pattern.
+                 Enter saves & resends, Shift+Enter newlines, Esc cancels. */
+              <div className="flex-1 rounded-lg border ac-border-default ac-surface-0 p-2" style={{ borderColor: 'var(--ac-accent)' }}>
+                <Textarea
+                  autoFocus
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      commitEdit();
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      setEditing(false);
+                    }
+                  }}
+                  className="text-xs resize-none min-h-[44px] max-h-[160px] border-0 shadow-none focus-visible:ring-0 ac-text-2 p-0 bg-transparent"
+                />
+                <div className="flex items-center justify-end gap-1 mt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditing(false)}
+                    className="h-6 text-[10px] px-2"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={commitEdit}
+                    disabled={!editText.trim()}
+                    className="h-6 text-[10px] px-2 text-white"
+                    style={{ backgroundColor: 'var(--ac-accent)' }}
+                  >
+                    <CornerDownLeft className="h-3 w-3 mr-1" />
+                    Save & resend
+                  </Button>
+                </div>
+              </div>
+            ) : (
             <div
               className="flex-1 text-xs ac-text-1 ac-surface-1 rounded-lg rounded-tl-sm p-2"
               // Absolute timestamp on hover (progressive disclosure — no
@@ -1121,10 +1725,12 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                 </div>
               )}
             </div>
+            )}
             {/* Hover actions (progressive disclosure — icons replace the
                 hidden right-click menu as the primary affordance): copy +
-                fork. Fade in on hover/focus; always keyboard-reachable. */}
-            {turn.text && (
+                edit + fork. Fade in on hover/focus; always
+                keyboard-reachable. */}
+            {!editing && turn.text && (
               <button
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -1138,7 +1744,18 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                 <Copy className="h-3 w-3" />
               </button>
             )}
-            {turn.messageId && (
+            {!editing && turn.text && (
+              <button
+                onClick={startEditing}
+                disabled={agentBusy}
+                className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring disabled:opacity-30 disabled:cursor-not-allowed"
+                title={agentBusy ? 'Edit is available when the agent is idle' : 'Edit and resend from here (discards what follows)'}
+                aria-label="Edit and resend"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            )}
+            {!editing && turn.messageId && (
               <button
                 onClick={() => forkActiveSession(turn.messageId)}
                 className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
@@ -1161,17 +1778,7 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
           </ContextMenuItem>
           <ContextMenuItem
             disabled={agentBusy || !turn.text}
-            onClick={() => {
-              if (!turn.text || agentBusy) return;
-              // Re-send the same prompt — the agent will generate a fresh response.
-              // Images + selection ride along so vision/targeted prompts re-send intact.
-              promptAgent(
-                turn.text,
-                turn.images && turn.images.length > 0 ? turn.images : undefined,
-                turn.selection,
-              );
-              toast.message('Regenerating…');
-            }}
+            onClick={startEditing}
           >
             Edit & resend
           </ContextMenuItem>
@@ -1196,6 +1803,15 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
             <Bot className="h-3 w-3 text-white" />
           </div>
           <div className="flex-1 space-y-2">
+            {/* Reasoning stream (pi-agent thinking_delta) — Cursor
+                thought-bubble pattern, above everything else. */}
+            {turn.thinking && <ThinkingBlock turn={turn} />}
+            {/* Intent-classifier skill routing — one quiet chip. */}
+            {turn.skillInfo && <div><SkillChip skillInfo={turn.skillInfo} /></div>}
+            {/* Execution plan (Claude Code to-dos pattern) — live checklist. */}
+            {turn.plan && turn.plan.length > 0 && <PlanCard plan={turn.plan} />}
+            {/* Sub-agent dispatches — one card per turn, expandable rows. */}
+            {turn.subAgents && turn.subAgents.length > 0 && <SubAgentsCard subAgents={turn.subAgents} />}
             {/* Tool calls — collapsed to ONE summary row per completed turn
                 (ChatGPT "Used N tools" pattern); expands for the details.
                 While any call is pending the cluster stays open so the user
@@ -1206,13 +1822,14 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                 completed turns with tracked mutations. */}
             {diff && !turn.streaming && !isDiffEmpty(diff) && <DiffSummaryCard diff={diff} turn={turn} />}
             {/* Text — rendered as markdown (bold, lists, code blocks) the way
-                Claude / ChatGPT / v0 render assistant messages. */}
+                Claude / ChatGPT / v0 render assistant messages. The `streaming`
+                flag drives the blinking caret at the end of the last block. */}
             {turn.text && (
-              <MarkdownMessage text={turn.text} />
+              <MarkdownMessage text={turn.text} streaming={turn.streaming} />
             )}
-            {/* Hover actions (ChatGPT/Claude pattern): copy + regenerate.
-                Fade in on hover/focus — the right-click menu keeps the
-                extended actions for power users. */}
+            {/* Hover actions (ChatGPT/Claude/Cursor pattern): copy + 👍/👎
+                feedback + regenerate. Fade in on hover/focus — the
+                right-click menu keeps the extended actions for power users. */}
             {!turn.streaming && turn.text && (
               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity -ml-1">
                 <button
@@ -1226,6 +1843,24 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                   aria-label="Copy message"
                 >
                   <Copy className="h-2.5 w-2.5" />
+                </button>
+                <button
+                  onClick={() => setTurnFeedback(turn.id, 'up')}
+                  className={`p-1 rounded ac-transition ac-focus-ring ${turn.feedback === 'up' ? 'ac-text-success' : 'ac-text-4 hover:ac-text-1 hover:ac-surface-2'}`}
+                  title={turn.feedback === 'up' ? 'Rated good (click to undo)' : 'Rate this response'}
+                  aria-label="Good response"
+                  aria-pressed={turn.feedback === 'up'}
+                >
+                  <ThumbsUp className={`h-2.5 w-2.5 ${turn.feedback === 'up' ? 'fill-current' : ''}`} />
+                </button>
+                <button
+                  onClick={() => setTurnFeedback(turn.id, 'down')}
+                  className={`p-1 rounded ac-transition ac-focus-ring ${turn.feedback === 'down' ? 'ac-text-danger' : 'ac-text-4 hover:ac-text-1 hover:ac-surface-2'}`}
+                  title={turn.feedback === 'down' ? 'Rated bad (click to undo)' : 'Rate this response'}
+                  aria-label="Bad response"
+                  aria-pressed={turn.feedback === 'down'}
+                >
+                  <ThumbsDown className={`h-2.5 w-2.5 ${turn.feedback === 'down' ? 'fill-current' : ''}`} />
                 </button>
                 <button
                   disabled={agentBusy}
@@ -1286,41 +1921,49 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
                 )}
               </div>
             )}
-            {/* Failed turn — inline Retry affordance. The error text itself
-                is already appended to the message by the store reducer; this
-                adds the missing one-click recovery (ChatGPT's "Regenerate"
-                on error bubbles). Re-sends the preceding user prompt WITH
-                its attachments. */}
+            {/* Self-review (pi-agent critique loop) — iteration + defects +
+                VLM score. After the footer so it reads as the turn's closing
+                quality gate. */}
+            {turn.critique && !turn.streaming && <CritiqueRow critique={turn.critique} />}
+            {/* Failed turn — inline Retry affordance. The error message lives
+                on the turn (NOT spliced into the markdown text anymore); this
+                row is its surface, with the full message (wrapped, not
+                truncated — errors name the problem so the user can act). */}
             {turn.error && !turn.streaming && (
-              <div className="flex items-center justify-between gap-2 rounded-md border ac-border-subtle ac-surface-1 px-2 py-1.5">
-                <span className="flex items-center gap-1.5 text-[10px] ac-text-danger min-w-0">
-                  <TriangleAlert className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate" title={turn.error}>Turn failed</span>
-                </span>
-                <button
-                  disabled={agentBusy}
-                  onClick={() => {
-                    if (agentBusy) return;
-                    const turns = useCanvasStore.getState().turns;
-                    const idx = turns.findIndex((t) => t.id === turn.id);
-                    const userTurn = idx > 0 ? turns[idx - 1] : null;
-                    if (userTurn?.role === 'user' && userTurn.text) {
-                      promptAgent(
-                        userTurn.text,
-                        userTurn.images && userTurn.images.length > 0 ? userTurn.images : undefined,
-                        userTurn.selection,
-                      );
-                      toast.message('Retrying…');
-                    } else {
-                      toast.message('No preceding prompt to retry from');
-                    }
-                  }}
-                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ac-text-2 ac-surface-2 hover:ac-text-1 ac-transition ac-focus-ring disabled:opacity-40 flex-shrink-0"
-                  title="Re-send the previous prompt (with its attachments)"
-                >
-                  <RotateCcw className="h-2.5 w-2.5" />
-                  Retry
-                </button>
+              <div className="rounded-md border ac-border-subtle ac-surface-1 px-2 py-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-[10px] font-medium ac-text-danger flex-shrink-0">
+                    <TriangleAlert className="h-3 w-3 flex-shrink-0" />
+                    Turn failed
+                  </span>
+                  <button
+                    disabled={agentBusy}
+                    onClick={() => {
+                      if (agentBusy) return;
+                      const turns = useCanvasStore.getState().turns;
+                      const idx = turns.findIndex((t) => t.id === turn.id);
+                      const userTurn = idx > 0 ? turns[idx - 1] : null;
+                      if (userTurn?.role === 'user' && userTurn.text) {
+                        promptAgent(
+                          userTurn.text,
+                          userTurn.images && userTurn.images.length > 0 ? userTurn.images : undefined,
+                          userTurn.selection,
+                        );
+                        toast.message('Retrying…');
+                      } else {
+                        toast.message('No preceding prompt to retry from');
+                      }
+                    }}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ac-text-2 ac-surface-2 hover:ac-text-1 ac-transition ac-focus-ring disabled:opacity-40 flex-shrink-0"
+                    title="Re-send the previous prompt (with its attachments)"
+                  >
+                    <RotateCcw className="h-2.5 w-2.5" />
+                    Retry
+                  </button>
+                </div>
+                <div className="mt-1 text-[10px] ac-text-danger/90 break-words leading-snug opacity-80">
+                  {turn.error}
+                </div>
               </div>
             )}
           </div>
@@ -1374,7 +2017,7 @@ function TurnBubble({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>
       </ContextMenuContent>
     </ContextMenu>
   );
-}
+});
 
 // ==== Tool-call cards (progressive disclosure) ================================
 //
@@ -1433,13 +2076,20 @@ function DiffSummaryCard({
 
   // Look up the snapshot captured at the end of THIS turn — its
   // parentSnapshotId is the "before this turn" state. Snapshots are
-  // append-only and per-session; we use the session-store directly so
-  // React renders stay minimal (re-lookup happens only when the snapshot
-  // map changes or the turn's messageId changes).
+  // append-only and document-scoped (shared-canvas model); we use the
+  // session-store directly so React renders stay minimal (re-lookup
+  // happens only when the snapshot map changes or the turn's messageId
+  // changes).
   const ss = useSessionStore.getState();
   const sessionId = turn.sessionId ?? useCanvasStore.getState().activeSessionId ?? '';
-  const turnSnapshot = sessionId && turn.messageId
-    ? ss.listSnapshots(sessionId).find((s) => s.sourceMessageId === turn.messageId)
+  // The session's documentId is the snapshot lookup key under the
+  // shared-canvas model (sessions are chat transcripts; documents own
+  // the snapshot timeline). Fall back to the canvas's documentId for
+  // sessions that haven't synced yet.
+  const sess = sessionId ? useSessionStore.getState().sessions[sessionId] : undefined;
+  const documentId = sess?.documentId ?? useCanvasStore.getState().documentId;
+  const turnSnapshot = documentId && turn.messageId
+    ? ss.listSnapshots(documentId).find((s) => s.sourceMessageId === turn.messageId)
     : undefined;
   const parentSnapshot = turnSnapshot?.parentSnapshotId
     ? ss.snapshots[turnSnapshot.parentSnapshotId]
@@ -1456,17 +2106,16 @@ function DiffSummaryCard({
   const canRestore = !!parentSnapshot && !restoring;
 
   const handleRestore = async () => {
-    if (!parentSnapshot || !sessionId) return;
+    if (!parentSnapshot || !documentId) return;
     setRestoring(true);
     try {
-      const restored = useSessionStore.getState().restoreSnapshot(sessionId, parentSnapshot.id);
+      const restored = useSessionStore.getState().restoreSnapshot(documentId, parentSnapshot.id);
       if (restored) {
         // Load the restored document into the live canvas — same pattern
         // as RunHistoryPanel's handleRestoreSnapshot (with the document
         // id preserved so the canvas's own id stays stable).
-        const sess = useSessionStore.getState().sessions[sessionId];
         useCanvasStore.setState({
-          document: { ...restored.document, id: sess?.documentId ?? restored.document.id },
+          document: { ...restored.document, id: documentId },
           selectedIds: [],
         });
         toast.success('Restored from before this turn', {
@@ -1649,6 +2298,19 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
   // on click. Pending calls stay open (live feedback while executing).
   const [override, setOverride] = useState<boolean | null>(null);
   const expanded = override ?? pending;
+  // Pretty-print args when the preview is complete JSON (the translator now
+  // sends up to 2K chars — most tool args fit; truncated ones fall back to
+  // the raw string). Cursor-style tool cards show real, readable arguments.
+  const prettyArgs = useMemo(() => {
+    if (!tc.argsPreview) return '';
+    try {
+      return JSON.stringify(JSON.parse(tc.argsPreview), null, 2);
+    } catch {
+      return tc.argsPreview;
+    }
+  }, [tc.argsPreview]);
+  // Per-call duration (Cursor/Cline show elapsed time per command).
+  const durationMs = tc.startedAt !== undefined && tc.endedAt !== undefined ? tc.endedAt - tc.startedAt : null;
 
   return (
     <ContextMenu>
@@ -1669,9 +2331,16 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
             {!expanded && tc.summary && (
               <span className="text-[10px] ac-text-4 font-normal truncate flex-1 min-w-0">{tc.summary}</span>
             )}
-            {pending && <Loader2 className="h-3 w-3 animate-spin ac-text-4 ml-auto flex-shrink-0" />}
-            {success === true && <CheckCircle2 className="h-3 w-3 ac-text-success ml-auto flex-shrink-0" />}
-            {success === false && <XCircle className="h-3 w-3 ac-text-danger ml-auto flex-shrink-0" />}
+            <span className="ml-auto flex items-center gap-1 flex-shrink-0">
+              {durationMs !== null && (
+                <span className="text-[9px] ac-text-4 tabular-nums" title="Tool call duration">
+                  {formatMs(durationMs)}
+                </span>
+              )}
+              {pending && <Loader2 className="h-3 w-3 animate-spin ac-text-4" />}
+              {success === true && <CheckCircle2 className="h-3 w-3 ac-text-success" />}
+              {success === false && <XCircle className="h-3 w-3 ac-text-danger" />}
+            </span>
             <ChevronRight
               className={`h-2.5 w-2.5 ac-text-4 flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
             />
@@ -1683,9 +2352,9 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
                   {category.label}
                 </Badge>
               )}
-              {tc.argsPreview && (
+              {prettyArgs && (
                 <pre className="mt-1 text-[10px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all">
-                  {tc.argsPreview}
+                  {prettyArgs}
                 </pre>
               )}
               {tc.summary && (
@@ -1725,11 +2394,11 @@ function toolCategory(name: string): { label: string; cls: string } | null {
   // meaning to the hue) — info for core, warning for layers, success for
   // auto-layout, danger for analysis, etc.
   // Core canvas ops
-  if (name.startsWith('pen_create') || name.startsWith('pen_update') || name.startsWith('pen_delete') || name === 'pen_list_shapes' || name === 'pen_clear' || name === 'pen_set_background' || name === 'pen_select_shape') {
+  if (name.startsWith('pen_create') || name.startsWith('pen_update') || name.startsWith('pen_delete') || name === 'pen_get_metadata' || name === 'pen_list_shapes' || name === 'pen_clear' || name === 'pen_set_background' || name === 'pen_select_nodes' || name === 'pen_select_shape') {
     return { label: 'core', cls: 'ac-status-neutral' };
   }
-  // .pen design-system tools: variables, themes
-  if (name.startsWith('pen_set_variable') || name.startsWith('pen_apply_theme') || name.startsWith('pen_set_theme') || name.startsWith('pen_list_themes')) {
+  // .pen design-system tools: variables, collections, modes
+  if (name.startsWith('pen_set_variable') || name.startsWith('pen_apply_theme') || name.startsWith('pen_set_theme') || name.startsWith('pen_list_themes') || name.startsWith('pen_set_explicit') || name.startsWith('pen_list_collections') || name.startsWith('pen_list_variables') || name.startsWith('pen_bind_variable') || name.startsWith('pen_unbind_variable') || name.startsWith('pen_apply_variable')) {
     return { label: 'design-system', cls: 'ac-status-info' };
   }
   // .pen component-instance tools: refs + descendants + slots

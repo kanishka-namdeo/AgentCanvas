@@ -22,6 +22,8 @@ import type { SubAgentResult, SubAgentParams } from '../skills/types';
 import type { LLMClientLike as LLMClient } from '../llm-retry';
 import { callLLMWithRetry } from '../llm-retry';
 import { renderCanvasToPng } from '../../canvas/render-to-png';
+import { emitEvent, hasSink } from '../plugins/event-bus';
+import { awaitClientResponse, ROUNDTRIP_DEFAULTS } from '../client-roundtrip';
 
 // ---- Public types ----------------------------------------------------------
 
@@ -102,8 +104,8 @@ Respond with ONLY the JSON object — no markdown fences, no commentary.`;
  * and feeds them back to the agent as a re-prompt.
  */
 export async function dispatchDesignCriticVlmSubAgent(
-  params: SubAgentParams & { originalPrompt?: string },
-): Promise<SubAgentResult & { critique?: VlmCritique }> {
+  params: SubAgentParams & { originalPrompt?: string; priorShapeIds?: string[] },
+): Promise<SubAgentResult & { critique?: VlmCritique; screenshotSource?: 'client' | 'server' }> {
   let toolCallCount = 0;
 
   try {
@@ -120,9 +122,45 @@ export async function dispatchDesignCriticVlmSubAgent(
       };
     }
 
-    const png = await renderCanvasToPng(shapes, 1440, 900);
-    const base64 = png.toString('base64');
+    // Ground-truth first (spec §5.4, M2-c): ask the connected client for a
+    // REAL screenshot of the rendered canvas (html-to-image on the live
+    // world element). 3s budget; on timeout / no sink fall back to the
+    // server-side resvg render — the D8 fallback discipline (the critic
+    // must still run, just on the approximate picture).
+    let base64: string;
+    let screenshotSource: 'client' | 'server' = 'server';
+    const roundtripId = `vlm-critic-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const shot = hasSink()
+      ? await awaitClientResponse<{ dataUrl?: string; error?: string }>(
+          roundtripId,
+          () => emitEvent({ type: 'agent:screenshot_request', toolCallId: roundtripId, scale: 2 }),
+          ROUNDTRIP_DEFAULTS.criticScreenshotTimeoutMs,
+        )
+      : null;
+    if (shot?.dataUrl) {
+      // Strip the data: URL prefix — the multimodal message below wants raw base64.
+      base64 = shot.dataUrl.slice(shot.dataUrl.indexOf(',') + 1);
+      screenshotSource = 'client';
+      console.log('[design-critic-vlm] VLM critic using real client screenshot');
+    } else {
+      // TODO(spec §3.8 / Phase 2): thread the browser's `measuredBounds` map
+      // (canvas store runtime slice, client-side) through the runner's tool
+      // context so this render prefers real measured geometry over the
+      // resolver's predictions. The renderCanvasToPng `measuredBounds` param
+      // can now read the server-side map — wired below when a document id is
+      // available in SubAgentParams.
+      const png = await renderCanvasToPng(shapes, 1440, 900);
+      base64 = png.toString('base64');
+    }
     toolCallCount++;
+
+    // Prior-content scope note (multi-screen stress-test fix): the rendered
+    // screenshot shows the WHOLE canvas — earlier screens included. Tell the
+    // VLM critic which screens are prior deliverables so it doesn't flag
+    // (and "fix") the user's earlier work.
+    const priorScopeNote = (params.priorShapeIds ?? []).length > 0
+      ? `\n\nSCOPE: the screenshot may show screens from EARLIER requests (e.g. a previously created login screen). Those are the user's prior deliverables — NOT defects. Do NOT flag them or recommend deleting/replacing/restyling them. Critique ONLY the newest screen, the one created for the current request: "${params.originalPrompt ?? params.task}".`
+      : '';
 
     // Build the multimodal user message (text + image_url).
     // The ZAI client's chat.completions.create accepts the OpenAI-shape
@@ -133,7 +171,7 @@ export async function dispatchDesignCriticVlmSubAgent(
         {
           type: 'text',
           text: `Original user request (for context, do not let it bias your evaluation):
-${params.originalPrompt ?? params.task}
+${params.originalPrompt ?? params.task}${priorScopeNote}
 
 Critique this rendered canvas screenshot. Return ONLY the JSON per the system prompt.`,
         },
@@ -198,6 +236,9 @@ Critique this rendered canvas screenshot. Return ONLY the JSON per the system pr
       toolCalls: toolCallCount,
       success: true,
       critique,
+      // Telemetry: which picture the critic actually judged ('client' = real
+      // DOM-renderer capture, 'server' = resvg approximation, spec §5.4).
+      screenshotSource,
     };
   } catch (err) {
     return {

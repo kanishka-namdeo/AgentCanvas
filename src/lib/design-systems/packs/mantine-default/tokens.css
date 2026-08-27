@@ -1,0 +1,139 @@
+/* ───────────────────────────────────────────────────────────────
+ * mantine-default / tokens.css
+ * Warm gray, dense, feature-rich. Mantine 7.x runtime theme.
+ * Uses Mantine's CSS variables (theme.colorScheme = light).
+ * ─────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── 1. PRIMITIVE ───────────────────────────────────────────── */
+  --m-blue-0:   #e7f5ff;
+  --m-blue-1:   #d0ebff;
+  --m-blue-2:   #a5d8ff;
+  --m-blue-3:   #74c0fc;
+  --m-blue-4:   #4dabf7;
+  --m-blue-5:   #339af0;
+  --m-blue-6:   #228be6;   /* Accent */
+  --m-blue-7:   #1c7ed6;
+  --m-blue-8:   #1971c2;
+  --m-blue-9:   #1864ab;
+
+  --m-gray-0:   #f8f9fa;
+  --m-gray-1:   #f1f3f5;
+  --m-gray-2:   #e9ecef;
+  --m-gray-3:   #dee2e6;
+  --m-gray-4:   #ced4da;
+  --m-gray-5:   #adb5bd;
+  --m-gray-6:   #868e96;
+  --m-gray-7:   #495057;
+  --m-gray-8:   #343a40;
+  --m-gray-9:   #212529;
+  --m-gray-10:  #1a1b1e;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --font-sans:  'Inter', system-ui, sans-serif;
+  --font-mono:   'JetBrains Mono', ui-monospace, monospace;
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+
+  --shadow-xs: 0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+}
+
+:root {
+  /* ── 2. SEMANTIC ─────────────────────────────────────────────── */
+  --color-bg:              var(--m-gray-0);
+  --color-bg-muted:        var(--m-gray-1);
+  --color-bg-subtle:       var(--m-gray-2);
+  --color-surface:         var(--m-gray-0);
+  --color-surface-raised:  #ffffff;
+
+  --color-border-default:    var(--m-gray-3);
+  --color-border-subtle:     var(--m-gray-2);
+  --color-border-strong:     var(--m-gray-5);
+
+  --color-text-primary:    var(--m-gray-10);
+  --color-text-secondary:  var(--m-gray-7);
+  --color-text-muted:      var(--m-gray-6);
+  --color-text-on-accent:  #ffffff;
+
+  --color-accent:        var(--m-blue-6);
+  --color-accent-hover:  var(--m-blue-7);
+  --color-accent-active: var(--m-blue-8);
+  --color-accent-fg:     #ffffff;
+  --color-accent-muted:  var(--m-blue-0);
+
+  --color-success:       #2f9e44;
+  --color-warning:       #f08c00;
+  --color-error:         #e03131;
+  --color-info:          var(--m-blue-7);
+
+  --radius-button: var(--radius-sm);
+  --radius-card:   var(--radius-md);
+  --radius-input:  var(--radius-sm);
+  --radius-pill:   9999px;
+}
+
+:root {
+  /* ── 3. COMPONENT ───────────────────────────────────────────── */
+  --button-bg-primary:       var(--color-accent);
+  --button-bg-primary-hover: var(--color-accent-hover);
+  --button-fg-primary:       var(--color-accent-fg);
+  --button-bg-secondary:     var(--color-surface-raised);
+  --button-fg-secondary:     var(--color-text-primary);
+  --button-bg-ghost:         transparent;
+  --button-fg-ghost:         var(--color-text-primary);
+  --button-border:           var(--color-border-default);
+  --button-padding-x:        var(--space-4);
+  --button-padding-y:        var(--space-1);
+  --button-font-size:        var(--text-sm);
+  --button-font-weight:      600;
+
+  --input-bg:              var(--color-surface-raised);
+  --input-fg:              var(--color-text-primary);
+  --input-border:          var(--color-border-default);
+  --input-border-focus:    var(--color-accent);
+  --input-padding-x:       var(--space-3);
+  --input-padding-y:       var(--space-1);
+  --input-radius:          var(--radius-input);
+
+  --card-bg:               var(--color-surface-raised);
+  --card-border:           var(--color-border-default);
+  --card-radius:           var(--radius-card);
+  --card-padding:          var(--space-5);
+  --card-shadow:           var(--shadow-sm);
+
+  --table-header-bg:      var(--color-bg-subtle);
+  --table-header-fg:      var(--color-text-secondary);
+  --table-row-bg-even:    var(--color-bg);
+  --table-row-bg-odd:     var(--color-surface-raised);
+  --table-border:         var(--color-border-subtle);
+
+  --dialog-overlay-bg:    rgba(0,0,0,0.5);
+  --dialog-bg:            var(--color-surface-raised);
+  --dialog-border:        var(--color-border-default);
+  --dialog-radius:        var(--radius-lg);
+}

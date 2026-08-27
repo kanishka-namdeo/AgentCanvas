@@ -1,10 +1,12 @@
 'use client';
 
-// KeyboardShortcutsDialog — modal that lists every wired keyboard shortcut,
-// grouped by tier. Searchable. Opens via ⌘/ (mirrors Figma's Ctrl+Shift+?
-// cheat sheet).
+// KeyboardShortcutsDialog — modal that lists every wired keyboard shortcut.
 //
-// P1-30 item from the UI Audit.
+// REGENERATED FROM THE REGISTRY (spec Phase 7): the table is gone; the dialog
+// renders `SHORTCUTS` from lib/canvas/shortcuts.ts — the same module the
+// keymap dispatchers (page.tsx + Canvas.tsx) match against — so the help can
+// never drift from reality. Grouping comes from `groupShortcutsForDialog()`
+// (canvas / layers / application scopes); the search filter stays.
 
 import { useState, useMemo } from 'react';
 import {
@@ -13,99 +15,38 @@ import {
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search } from 'lucide-react';
+import {
+  SHORTCUTS,
+  chordFor,
+  currentPlatform,
+  groupShortcutsForDialog,
+  type ShortcutDef,
+} from '@/lib/canvas/shortcuts';
 
-interface ShortcutEntry {
-  keys: string;
-  action: string;
-  tier: 'P0' | 'P1' | 'P2' | 'Existing';
-  category: string;
-}
-
-const SHORTCUTS: ShortcutEntry[] = [
-  // === Existing (pre-P0) ===
-  { keys: '⌘1', action: 'Toggle left panel', tier: 'Existing', category: 'Panels' },
-  { keys: '⌘2', action: 'Toggle right panel', tier: 'Existing', category: 'Panels' },
-  { keys: '⌘K', action: 'Open command palette', tier: 'Existing', category: 'Navigation' },
-  { keys: '⌘,', action: 'Open settings', tier: 'Existing', category: 'Navigation' },
-  { keys: '⌘\\', action: 'Toggle zen / UI mode', tier: 'Existing', category: 'Panels' },
-  { keys: '⌘Z', action: 'Undo', tier: 'Existing', category: 'Edit' },
-  { keys: '⌘⇧Z', action: 'Redo', tier: 'Existing', category: 'Edit' },
-  { keys: 'V', action: 'Select tool', tier: 'Existing', category: 'Tools' },
-  { keys: 'H', action: 'Pan tool', tier: 'Existing', category: 'Tools' },
-  { keys: 'Space (hold)', action: 'Temporary pan', tier: 'Existing', category: 'Tools' },
-  { keys: '⌫ / Delete', action: 'Delete selection', tier: 'Existing', category: 'Edit' },
-  { keys: '⎋ (Escape)', action: 'Clear selection / cancel rename', tier: 'Existing', category: 'Edit' },
-  { keys: 'Enter', action: 'Send prompt / commit rename', tier: 'Existing', category: 'Chat' },
-  { keys: '⇧+Enter', action: 'Newline in chat input', tier: 'Existing', category: 'Chat' },
-
-  // === P0 (must-have — implemented) ===
-  { keys: '⌘C', action: 'Copy selected shape(s)', tier: 'P0', category: 'Clipboard' },
-  { keys: '⌘V', action: 'Paste with +24 offset', tier: 'P0', category: 'Clipboard' },
-  { keys: '⌘⇧V', action: 'Paste in place (0 offset)', tier: 'P0', category: 'Clipboard' },
-  { keys: '⌘X', action: 'Cut selected shape(s)', tier: 'P0', category: 'Clipboard' },
-  { keys: '⌘A', action: 'Select all shapes', tier: 'P0', category: 'Edit' },
-  { keys: '⌘G', action: 'Group selection', tier: 'P0', category: 'Structure' },
-  { keys: '⌘⇧G', action: 'Ungroup', tier: 'P0', category: 'Structure' },
-  { keys: '⌘D', action: 'Duplicate selection', tier: 'P0', category: 'Edit' },
-  { keys: '⌘]', action: 'Bring forward', tier: 'P0', category: 'Z-order' },
-  { keys: '⌘⇧]', action: 'Bring to front', tier: 'P0', category: 'Z-order' },
-  { keys: '⌘[', action: 'Send backward', tier: 'P0', category: 'Z-order' },
-  { keys: '⌘⇧[', action: 'Send to back', tier: 'P0', category: 'Z-order' },
-  { keys: 'R', action: 'Rectangle tool (drop at viewport center)', tier: 'P0', category: 'Tools' },
-  { keys: 'O', action: 'Ellipse tool', tier: 'P0', category: 'Tools' },
-  { keys: 'T', action: 'Text tool', tier: 'P0', category: 'Tools' },
-  { keys: 'L', action: 'Line tool', tier: 'P0', category: 'Tools' },
-  { keys: 'F', action: 'Frame tool', tier: 'P0', category: 'Tools' },
-
-  // === P1 (high-value — implemented) ===
-  { keys: '⌘/', action: 'Open this keyboard shortcuts cheat sheet', tier: 'P1', category: 'Navigation' },
-  { keys: '↑ ↓ ← →', action: 'Nudge selection by 1px', tier: 'P1', category: 'Edit' },
-  { keys: '⇧+arrow', action: 'Nudge selection by 10px', tier: 'P1', category: 'Edit' },
-  { keys: '⇧+drag (resize)', action: 'Constrain aspect ratio during resize', tier: 'P1', category: 'Canvas' },
-  { keys: 'Drag on number', action: 'Scrub numeric value (⇧ = 10× speed)', tier: 'P1', category: 'Properties' },
-  { keys: 'P', action: 'Pen / path tool (chat-driven)', tier: 'P1', category: 'Tools' },
-  { keys: 'A', action: 'Apply auto-layout to selected frame', tier: 'P1', category: 'Tools' },
-
-  // === P2 (nice-to-have) ===
-  { keys: '⌥+drag (move)', action: 'Duplicate shape while dragging', tier: 'P2', category: 'Canvas' },
-  { keys: '⌘L', action: 'Lock selection', tier: 'P2', category: 'Edit' },
-  { keys: '⌘;', action: 'Hide selection', tier: 'P2', category: 'Edit' },
-  { keys: '⌘E', action: 'Export as .pen', tier: 'P2', category: 'File' },
-  { keys: 'C', action: 'Comment mode (P2 — not yet implemented)', tier: 'P2', category: 'Tools' },
-  { keys: 'Tab', action: 'Focus next shape in z-order', tier: 'P2', category: 'Navigation' },
-  { keys: '⌘↑ / ⌘↓', action: 'Navigate chat messages', tier: 'P2', category: 'Chat' },
-];
-
-const TIER_COLORS: Record<ShortcutEntry['tier'], string> = {
-  P0: 'ac-status-danger',
-  P1: 'ac-status-warning',
-  P2: 'ac-status-info',
-  Existing: 'ac-status-neutral',
+const SCOPE_COLORS: Record<ShortcutDef['scope'], string> = {
+  canvas: 'ac-status-info',
+  layers: 'ac-status-warning',
+  app: 'ac-status-neutral',
 };
 
 export function KeyboardShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const [query, setQuery] = useState('');
+  const platform = currentPlatform();
 
   const filtered = useMemo(() => {
     if (!query.trim()) return SHORTCUTS;
     const q = query.toLowerCase();
     return SHORTCUTS.filter((s) =>
       s.action.toLowerCase().includes(q) ||
-      s.keys.toLowerCase().includes(q) ||
-      s.category.toLowerCase().includes(q) ||
-      s.tier.toLowerCase().includes(q)
+      s.label.toLowerCase().includes(q) ||
+      s.mac.toLowerCase().includes(q) ||
+      s.win.toLowerCase().includes(q) ||
+      s.scope.toLowerCase().includes(q)
     );
   }, [query]);
 
-  // Group by category for display.
-  const byCategory = useMemo(() => {
-    const m = new Map<string, ShortcutEntry[]>();
-    for (const s of filtered) {
-      if (!m.has(s.category)) m.set(s.category, []);
-      m.get(s.category)!.push(s);
-    }
-    return [...m.entries()];
-  }, [filtered]);
+  // Group by scope for display (registry order preserved within groups).
+  const groups = useMemo(() => groupShortcutsForDialog(filtered), [filtered]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -113,7 +54,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: { open: boolean;
         <DialogHeader>
           <DialogTitle>Keyboard shortcuts</DialogTitle>
           <DialogDescription>
-            Every wired keyboard shortcut, grouped by category. Type to filter.
+            Every wired keyboard shortcut, straight from the shortcut registry. Type to filter.
             Press ⌘/ to toggle this dialog.
           </DialogDescription>
         </DialogHeader>
@@ -129,22 +70,27 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: { open: boolean;
           />
         </div>
         <div className="overflow-y-auto flex-1 -mx-1 px-1">
-          {byCategory.length === 0 ? (
+          {groups.length === 0 ? (
             <div className="text-center py-8 ac-text-4 text-xs">No shortcuts match "{query}".</div>
           ) : (
-            byCategory.map(([cat, entries]) => (
-              <div key={cat} className="mb-4">
-                <div className="text-[10px] uppercase tracking-wide ac-text-4 font-semibold mb-1.5">{cat}</div>
+            groups.map((group) => (
+              <div key={group.scope} className="mb-4">
+                <div className="text-[10px] uppercase tracking-wide ac-text-4 font-semibold mb-1.5">{group.title}</div>
                 <div className="space-y-0.5">
-                  {entries.map((s, i) => (
-                    <div key={`${cat}-${i}`} className="flex items-center justify-between text-xs px-2 py-1 rounded hover:ac-surface-1">
-                      <div className="flex items-center gap-2">
-                        <span className="ac-text-2">{s.action}</span>
-                        <Badge variant="outline" className={`text-[9px] h-3.5 px-1 py-0 font-normal ${TIER_COLORS[s.tier]}`}>
-                          {s.tier}
+                  {group.entries.map((s) => (
+                    <div key={s.action} className="flex items-center justify-between text-xs px-2 py-1 rounded hover:ac-surface-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="ac-text-2 truncate" title={s.description ?? s.label}>{s.label}</span>
+                        <Badge variant="outline" className={`text-[9px] h-3.5 px-1 py-0 font-normal flex-shrink-0 ${SCOPE_COLORS[s.scope]}`}>
+                          {s.scope}
                         </Badge>
+                        {s.also && s.also.length > 0 && (
+                          <span className="text-[9px] ac-text-4 font-mono flex-shrink-0">also {s.also.join(' / ')}</span>
+                        )}
                       </div>
-                      <kbd className="font-mono text-[10px] ac-text-3 ac-surface-2 px-1.5 py-0.5 rounded">{s.keys}</kbd>
+                      <kbd className="font-mono text-[10px] ac-text-3 ac-surface-2 px-1.5 py-0.5 rounded flex-shrink-0">
+                        {chordFor(s, platform)}
+                      </kbd>
                     </div>
                   ))}
                 </div>

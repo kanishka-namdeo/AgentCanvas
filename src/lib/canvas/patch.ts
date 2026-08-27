@@ -14,6 +14,7 @@
 import type { CanvasDocument, CanvasPatch, Shape, DesignTokens, ColorToken, TextStyleToken, Constraints } from './types';
 import type { PenChild, PenVariableDef, PenTheme, PenRef, PenComponent, PenComponentSet, PenFrame } from '../pen/types';
 import { resolvePenTree } from '../pen/resolve';
+import { normalizePatchPayload, normalizePenNode } from '../pen/normalize';
 import { findNode, findNodeArray, insertNode, removeNode, updateNode, moveNode, deepCloneNode, newId, collectComponents, walkTree, getAncestorOffset, getAbsolutePosition, isDescendant, expandRef } from '../pen/document';
 
 // ---- Helpers --------------------------------------------------------------
@@ -41,11 +42,26 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
   // (locked, tokenBinding, maskId, points, closed, componentId) — these are
   // carried as opaque node properties so they survive the tree round-trip
   // and are surfaced on resolved Shapes by resolvePenTree.
-  for (const k of ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'opacity', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'strokeAlignment', 'effect', 'reusable', 'theme', 'enabled', 'flipX', 'flipY', 'layoutPosition', 'metadata', 'layout', 'gap', 'padding', 'justifyContent', 'alignItems', 'layoutIncludeStroke', 'clip', 'placeholder', 'slot', 'content', 'fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'fontStyle', 'underline', 'lineHeight', 'textAlign', 'textAlignVertical', 'strikethrough', 'href', 'textGrowth', 'children', 'geometry', 'viewBox', 'fillRule', 'polygonCount', 'cornerRadius', 'innerRadius', 'startAngle', 'sweepAngle', 'library', 'icon', 'weight', 'scriptUri', 'inputs', 'ref', 'descendants', 'context', 'locked', 'tokenBinding', 'maskId', 'points', 'closed', 'componentId', 'src', 'constraints', 'label', 'collapsed', 'pointCount', 'booleanOperationType', 'exportSettings', 'componentPropertyDefinitions', 'componentProperties', 'variantPropertyAxes', 'variantPropertyValues', 'variantLayout']) {
+  for (const k of ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'opacity', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'strokeAlignment', 'effect', 'reusable', 'theme', 'enabled', 'flipX', 'flipY', 'layoutPosition', 'metadata', 'layout', 'gap', 'padding', 'justifyContent', 'alignItems', 'layoutIncludeStroke', 'clip', 'placeholder', 'slot', 'content', 'fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'fontStyle', 'underline', 'lineHeight', 'textAlign', 'textAlignVertical', 'strikethrough', 'href', 'textGrowth', 'children', 'geometry', 'viewBox', 'fillRule', 'polygonCount', 'cornerRadius', 'innerRadius', 'startAngle', 'sweepAngle', 'library', 'icon', 'weight', 'scriptUri', 'inputs', 'ref', 'descendants', 'context', 'locked', 'tokenBinding', 'maskId', 'points', 'closed', 'componentId', 'src', 'constraints', 'label', 'collapsed', 'pointCount', 'booleanOperationType', 'exportSettings', 'componentPropertyDefinitions', 'componentProperties', 'variantPropertyAxes', 'variantPropertyValues', 'variantLayout',
+    // Figma ontology v3 fields (spec Phase 6 part 1) — passed through so
+    // imported/migrated .pen trees survive the patch round-trip; the
+    // dual-carry normalizer (normalizePenNode) keeps them in sync with the
+    // legacy spellings above.
+    'layoutMode', 'itemSpacing', 'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'primaryAxisAlignItems', 'counterAxisAlignItems', 'layoutSizingHorizontal', 'layoutSizingVertical', 'layoutPositioning', 'fills', 'strokes', 'strokeWeight', 'effects', 'rectangleCornerRadii', 'characters', 'textAutoResize', 'visible', 'explicitVariableModes', 'boundVariables', 'blendMode']) {
     if (input[k] !== undefined) out[k] = input[k];
   }
 
   // Legacy → .pen field mappings.
+  // Icon nodes: the tool-side/Shape spelling (iconName/iconLibrary — the
+  // resolved Layer fields) maps onto the .pen PenIcon spelling (icon/library).
+  // Both spellings are accepted so pen_create_node, pen_update_node, and the
+  // generators all round-trip icon identity (docs/lucide-icons.md).
+  if (input.iconName !== undefined && out.icon === undefined) {
+    out.icon = String(input.iconName);
+  }
+  if (input.iconLibrary !== undefined && out.library === undefined) {
+    out.library = String(input.iconLibrary);
+  }
   // visible → enabled (legacy Shape.visible maps to .pen Entity.enabled)
   if (input.visible !== undefined && input.enabled === undefined) {
     out.enabled = input.visible;
@@ -142,11 +158,19 @@ function backgroundFromVariables(variables: { [key: string]: PenVariableDef } | 
   return typeof raw === 'string' ? raw : '#f8fafc';
 }
 
-/** Recompute the derived caches (shapes + tokens + background) after a tree mutation. */
-function recomputeDerived(doc: CanvasDocument): CanvasDocument {
+/** Recompute the derived caches (shapes + tokens + background) after a tree mutation.
+ *  `measuredBounds` (spec §3.8 readback) is an optional HINT map of real
+ *  browser-measured node sizes — passed by the canvas store so `fit_content`
+ *  nodes with no intrinsic content size use measured sizes instead of the
+ *  100×100 placeholder. Server-side / jsdom callers omit it (unchanged
+ *  behavior). */
+function recomputeDerived(
+  doc: CanvasDocument,
+  measuredBounds?: Record<string, { width: number; height: number }>,
+): CanvasDocument {
   return {
     ...doc,
-    shapes: resolvePenTree(doc),
+    shapes: resolvePenTree(doc, measuredBounds ? { measuredBounds } : undefined),
     tokens: variablesToTokens(doc.variables),
     background: backgroundFromVariables(doc.variables),
   };
@@ -154,7 +178,26 @@ function recomputeDerived(doc: CanvasDocument): CanvasDocument {
 
 // ---- The patch applier ----------------------------------------------------
 
-export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): CanvasDocument {
+/** Optional inputs for `applyPatchToCanvas` (spec Phase 2). */
+export interface ApplyPatchOpts {
+  /// Measured-bounds readback (spec §3.8): real browser-measured node sizes
+  /// from the DOM renderer's ResizeObserver pool. Threaded into
+  /// `recomputeDerived` → `resolvePenTree` as intrinsic-size hints for
+  /// `fit_content` nodes. Omitted by server-side / jsdom callers.
+  measuredBounds?: Record<string, { width: number; height: number }>;
+}
+
+export function applyPatchToCanvas(
+  canvas: CanvasDocument,
+  patch: CanvasPatch,
+  opts?: ApplyPatchOpts,
+): CanvasDocument {
+  // Parse-boundary normalization (spec §9.3 #1 / Appendix G §G.4): patch op
+  // names and payload FIELD names are frozen (§5.1) — only enum VALUES
+  // canonicalize (alignKind spelling, constraints casing, variableType
+  // spelling). Pure + total: unknown values pass through unchanged.
+  patch = normalizePatchPayload(patch as unknown as Record<string, unknown>) as CanvasPatch;
+
   // Clone the tree + variables immutably; derived caches recomputed at the end.
   // Defensive: legacy docs / test fixtures may omit `children` — treat as empty tree.
   const next: CanvasDocument = {
@@ -335,14 +378,16 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
       if (targets.length < 2) break;
       const kind = patch.alignKind ?? 'left';
       const updates: Array<{ id: string; newX?: number; newY?: number }> = [];
+      // Canonical (Figma) spellings normalize to the same behavior as their
+      // legacy aliases (Appendix G §G.2) — both cases handled explicitly.
       switch (kind) {
-        case 'left': { const m = Math.min(...targets.map((s) => s.x)); for (const t of targets) updates.push({ id: t.id, newX: m }); break; }
-        case 'right': { const m = Math.max(...targets.map((s) => s.x + s.width)); for (const t of targets) updates.push({ id: t.id, newX: m - t.width }); break; }
-        case 'center_h': { const m = targets.reduce((a, s) => a + s.x + s.width / 2, 0) / targets.length; for (const t of targets) updates.push({ id: t.id, newX: m - t.width / 2 }); break; }
-        case 'top': { const m = Math.min(...targets.map((s) => s.y)); for (const t of targets) updates.push({ id: t.id, newY: m }); break; }
-        case 'bottom': { const m = Math.max(...targets.map((s) => s.y + s.height)); for (const t of targets) updates.push({ id: t.id, newY: m - t.height }); break; }
-        case 'center_v': { const m = targets.reduce((a, s) => a + s.y + s.height / 2, 0) / targets.length; for (const t of targets) updates.push({ id: t.id, newY: m - t.height / 2 }); break; }
-        case 'distribute_h': {
+        case 'left': case 'LEFT': { const m = Math.min(...targets.map((s) => s.x)); for (const t of targets) updates.push({ id: t.id, newX: m }); break; }
+        case 'right': case 'RIGHT': { const m = Math.max(...targets.map((s) => s.x + s.width)); for (const t of targets) updates.push({ id: t.id, newX: m - t.width }); break; }
+        case 'center_h': case 'HCENTER': { const m = targets.reduce((a, s) => a + s.x + s.width / 2, 0) / targets.length; for (const t of targets) updates.push({ id: t.id, newX: m - t.width / 2 }); break; }
+        case 'top': case 'TOP': { const m = Math.min(...targets.map((s) => s.y)); for (const t of targets) updates.push({ id: t.id, newY: m }); break; }
+        case 'bottom': case 'BOTTOM': { const m = Math.max(...targets.map((s) => s.y + s.height)); for (const t of targets) updates.push({ id: t.id, newY: m - t.height }); break; }
+        case 'center_v': case 'VCENTER': { const m = targets.reduce((a, s) => a + s.y + s.height / 2, 0) / targets.length; for (const t of targets) updates.push({ id: t.id, newY: m - t.height / 2 }); break; }
+        case 'distribute_h': case 'DISTRIBUTE_H': {
           const sorted = [...targets].sort((a, b) => a.x - b.x);
           if (sorted.length < 3) break;
           const first = sorted[0], last = sorted[sorted.length - 1];
@@ -353,7 +398,7 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
           for (const s of sorted) { updates.push({ id: s.id, newX: cur }); cur += s.width + gap; }
           break;
         }
-        case 'distribute_v': {
+        case 'distribute_v': case 'DISTRIBUTE_V': {
           const sorted = [...targets].sort((a, b) => a.y - b.y);
           if (sorted.length < 3) break;
           const first = sorted[0], last = sorted[sorted.length - 1];
@@ -362,6 +407,21 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
           const gap = (span - totalH) / (sorted.length - 1);
           let cur = first.y;
           for (const s of sorted) { updates.push({ id: s.id, newY: cur }); cur += s.height + gap; }
+          break;
+        }
+        case 'TIDY': {
+          // Figma "Tidy up" — v1 approximation: behaves as DISTRIBUTE_H on the
+          // selection bbox (same math as distribute_h above).
+          // TODO(spec Phase 7): real tidy semantics — grid re-flow (rows+
+          // columns) when the selection spans multiple visual rows.
+          const sorted = [...targets].sort((a, b) => a.x - b.x);
+          if (sorted.length < 3) break;
+          const first = sorted[0], last = sorted[sorted.length - 1];
+          const span = (last.x + last.width) - first.x;
+          const totalW = sorted.reduce((a, s) => a + s.width, 0);
+          const gap = (span - totalW) / (sorted.length - 1);
+          let cur = first.x;
+          for (const s of sorted) { updates.push({ id: s.id, newX: cur }); cur += s.width + gap; }
           break;
         }
       }
@@ -562,6 +622,21 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
     case 'add_page': {
       const pageName = patch.pageName ?? `Page ${(next.pages?.length ?? 1) + 1}`;
       const pageId = crypto.randomUUID();
+      // Legacy single-page doc (no `pages` array yet) WITH existing content:
+      // migrate the current children into an implicit "Page 1" BEFORE
+      // appending. Without this, `next.pages = [newPage]` + `next.children
+      // = []` orphaned the entire existing layer tree — the first screen of
+      // a multi-screen design was silently destroyed the moment a second
+      // page was added. Empty legacy docs skip the implicit page (the new
+      // page simply becomes the first page — pinned by figma-ontology tests).
+      if ((!next.pages || next.pages.length === 0) && next.children.length > 0) {
+        next.pages = [{
+          id: `${next.id}-page-1`,
+          name: 'Page 1',
+          children: next.children,
+          viewport: { ...next.viewport },
+        }];
+      }
       const newPage = {
         id: pageId,
         name: pageName,
@@ -853,7 +928,57 @@ export function applyPatchToCanvas(canvas: CanvasDocument, patch: CanvasPatch): 
     }
   }
 
-  return recomputeDerived(next);
+  // D1: keep the active page's children in sync with the tree we just mutated.
+  // `doc.children` is the source of truth for the ACTIVE page and is expected
+  // to mirror `pages[activePageIndex].children` (see types.ts) — without this
+  // write-back, switching pages (`set_active_page` loads `active.children`)
+  // would reload the STALE pre-patch tree. Guarded: legacy docs without
+  // `pages`, or an out-of-range `activePageIndex`, skip the write-back.
+  // Immutable: the pages array + the active page object are copied, never
+  // mutated in place (the input document's pages stay untouched).
+  const activeIndex = next.activePageIndex;
+  if (next.pages && activeIndex !== undefined && activeIndex >= 0 && activeIndex < next.pages.length) {
+    next.pages = next.pages.map((p, i) => (i === activeIndex ? { ...p, children: next.children } : p));
+  }
+
+  return recomputeDerived(next, opts?.measuredBounds);
+}
+
+/**
+ * Apply a SEQUENCE of patches to one document state (spec §4.4 patch
+ * coalescing). Order-preserving serial application — each patch is applied
+ * to the running result of the previous one.
+ *
+ * The win this function delivers is at the STORE level, not at the patch
+ * level: the store collapses N React commits into ONE `set()` call by
+ * queueing incoming `canvas:patch` events for ≤ 1 animation frame and
+ * applying the batched sequence via this function. Per-patch
+ * `applyPatchToCanvas` (clone + apply + recompute derived) is still N times
+ * — what's saved is N × `set()` (which triggers N React reconciliations +
+ * N DOM mutations) → 1 × `set()`. That's the "≤ 3 commits for 500-node
+ * bulk_add" acceptance criterion.
+ *
+ * Semantics are identical to looping `applyPatchToCanvas` externally and
+ * threading the result through — that equivalence is what the Phase 4
+ * property test (tests/unit/patch-coalesce.test.ts) pins. Undo semantics
+ * are NOT changed by this function: the store-side caller pushes one
+ * undo entry per mutating patch (matching the unbatched path's behavior)
+ * but performs only ONE `set()` call.
+ *
+ * Empty patches array is a no-op — returns the input document unchanged
+ * (cheap reference equality for the no-work case).
+ */
+export function applyPatchesToCanvas(
+  canvas: CanvasDocument,
+  patches: CanvasPatch[],
+  opts?: ApplyPatchOpts,
+): CanvasDocument {
+  if (patches.length === 0) return canvas;
+  let next = canvas;
+  for (const patch of patches) {
+    next = applyPatchToCanvas(next, patch, opts);
+  }
+  return next;
 }
 
 /// Find a page's index by id or name (case-insensitive partial match).
@@ -909,6 +1034,19 @@ function insertUnderParent(children: PenChild[], node: PenChild, parentId: strin
 
 // ---- Helpers for tree sibling replacement --------------------------------
 
+/// Coerce a width/height value: .pen sizing-behavior STRINGS
+/// ('fit_content', 'fit_content(100)', 'fill_container') must survive
+/// normalization verbatim (the resolver interprets them); everything else
+/// goes through the numeric coercion. Previously `num()` clobbered them to
+/// the 100 default, so bulk_add/add patches from the HTML importer lost
+/// fit_content sizing (spec Phase 3, pen_insert_html pipeline).
+function sizeValue(v: unknown, def: number): number | string {
+  if (typeof v === 'string' && (v.startsWith('fit_content') || v.startsWith('fill_container'))) {
+    return v;
+  }
+  return num(v, def);
+}
+
 /** Replace one specific children array (found by reference) with a new one. */
 function replaceSiblings(children: PenChild[], oldArr: PenChild[], newArr: PenChild[]): PenChild[] {
   if (children === oldArr) return newArr;
@@ -939,8 +1077,8 @@ function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, i
     name: partial.name ?? 'Shape',
     x: num(partial.x, 0),
     y: num(partial.y, 0),
-    width: num(partial.width, 100),
-    height: num(partial.height, 100),
+    width: sizeValue(partial.width, 100),
+    height: sizeValue(partial.height, 100),
     rotation: num(partial.rotation, 0),
     opacity: num(partial.opacity, 1),
     enabled: partial.enabled ?? true,
@@ -954,7 +1092,10 @@ function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, i
       type === 'component_set' || type === 'section' || type === 'boolean_operation') {
     if (!Array.isArray(base.children)) base.children = [];
   }
-  return base as PenChild;
+  // Dual-carry normalization (spec Phase 6 part 1): populate canonical v3
+  // fields (layoutMode/itemSpacing/fills/…) from any legacy spellings on the
+  // payload. Pure + idempotent; legacy fields untouched.
+  return normalizePenNode(base as PenChild);
 }
 
 // ---- Phase 2 component-system helpers -------------------------------------

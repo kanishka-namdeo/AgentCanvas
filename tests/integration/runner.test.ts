@@ -398,7 +398,9 @@ describe('runner: multi-iteration tool-result feedback', () => {
     const iter2Messages = llm.capturedCalls[1].messages;
     const toolMessages = iter2Messages.filter((m: any) => m.role === 'tool');
     expect(toolMessages).toHaveLength(1);
-    expect(toolMessages[0].content).toMatch(/no shapes|empty|0 shapes/i);
+    // pen_list_shapes now resolves to pen_get_metadata (Phase 6 alias) — the
+    // empty-canvas read is the page list with a 0-node count.
+    expect(toolMessages[0].content).toMatch(/no shapes|empty|0 shapes|0 nodes/i);
 
     // The 3rd LLM call (iteration 3) must have received a tool message from
     // the create_shape call in iteration 2. That message should mention the
@@ -742,7 +744,9 @@ describe('runner: tool catalog + spec passthrough', () => {
     // The exact count depends on the classifier's pick for "hi", so we
     // assert it's a non-empty subset of the full spec, with unique names.
     expect(tools.length).toBeGreaterThan(0);
-    expect(tools.length).toBeLessThanOrEqual(78); // 55 canvas_* + 8 pen_* + 8 figma_* + 8 .pen-aligned tools + core tools
+    // 95 canonical + 26 legacy alias specs (Phase 6 dual-vocabulary window) +
+    // skill filtering keeps it well under the full surface.
+    expect(tools.length).toBeLessThanOrEqual(121);
     const names = tools.map((t: any) => t.function.name);
     expect(new Set(names).size).toBe(names.length);
     // tool_choice is 'auto'.

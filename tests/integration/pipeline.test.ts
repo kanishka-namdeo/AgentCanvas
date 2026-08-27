@@ -410,9 +410,11 @@ describe('integration: simulated agent turn through _onSync', () => {
     expect(messages).toHaveLength(2);
     expect(messages[1].status).toBe('complete');
 
-    const snapshots = ss.listSnapshots(sessionId);
+    // Document-scoped snapshot (shared canvas model), newest first.
+    const snapshots = ss.listSnapshots('test-doc');
     expect(snapshots.length).toBeGreaterThanOrEqual(1);
-    expect(snapshots[snapshots.length - 1].source).toBe('turn_end');
+    expect(snapshots[0].source).toBe('turn_end');
+    expect(snapshots[0].sessionId).toBe(sessionId);
   });
 
   it('a turn with an error leaves the run failed + assistant message erroring', async () => {

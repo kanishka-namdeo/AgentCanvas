@@ -1,0 +1,175 @@
+/* ───────────────────────────────────────────────────────────────
+ * shadcn-default / tokens.css
+ * W3C Design Tokens spec v2025.10-aligned. Three layers:
+ *   1. Primitive  — raw values (no semantic meaning)
+ *   2. Semantic   — role-bound aliases (button-bg, border-default)
+ *   3. Component  — component-scoped (button-primary-bg)
+ *
+ * Iron rule (per kaelig.fr agent-team pattern):
+ *   "No hardcoded colors, spacing, or typography —
+ *    everything goes through CSS custom properties."
+ *
+ * The agent MUST only ever reference var(--*) — never hex values.
+ * ─────────────────────────────────────────────────────────────── */
+
+/* ── 1. PRIMITIVE (raw) ────────────────────────────────────────── */
+:root {
+  /* Indigo scale (raw) */
+  --indigo-50:  #eef4ff;
+  --indigo-100: #d9e6ff;
+  --indigo-200: #bcd3ff;
+  --indigo-300: #8eb4ff;
+  --indigo-400: #598aff;
+  --indigo-500: #3b82f6;  /* Accent blue */
+  --indigo-600: #2563eb;
+  --indigo-700: #1d4ed8;
+  --indigo-800: #1e40af;
+  --indigo-900: #1e3a5f;  /* Deep navy — headings */
+  --indigo-950: #172554;
+
+  /* Neutral scale (slate) */
+  --neutral-0:   #ffffff;
+  --neutral-50:   #fafafa;
+  --neutral-100:  #f4f4f5;
+  --neutral-200:  #e4e4e7;
+  --neutral-300:  #d4d4d8;
+  --neutral-400:  #a1a1aa;
+  --neutral-500:  #71717a;
+  --neutral-600:  #52525b;
+  --neutral-700:  #3f3f46;
+  --neutral-800:  #27272a;
+  --neutral-900:  #18181b;
+  --neutral-950:  #09090b;
+
+  /* Radii */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* Spacing (4pt grid) */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Type scale */
+  --font-sans:   Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif:   'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+}
+
+/* ── 2. SEMANTIC (role-bound aliases) ────────────────────────── */
+:root {
+  /* Surfaces */
+  --color-bg:              var(--neutral-0);
+  --color-bg-muted:        var(--neutral-50);
+  --color-bg-subtle:       var(--neutral-100);
+  --color-surface:         var(--neutral-50);
+  --color-surface-raised:  var(--neutral-0);
+
+  /* Borders & dividers */
+  --color-border-default:    var(--neutral-200);
+  --color-border-subtle:     var(--neutral-100);
+  --color-border-strong:     var(--neutral-300);
+
+  /* Text */
+  --color-text-primary:    var(--neutral-950);
+  --color-text-secondary:  var(--neutral-700);
+  --color-text-muted:      var(--neutral-500);
+  --color-text-on-accent:  var(--neutral-0);
+
+  /* Brand */
+  --color-accent:        var(--indigo-500);
+  --color-accent-hover:  var(--indigo-600);
+  --color-accent-active: var(--indigo-700);
+  --color-accent-fg:     var(--neutral-0);
+  --color-accent-muted:  var(--indigo-100);
+
+  /* Semantic colors (low-sat, accessible) */
+  --color-success:       #4a7d5b;
+  --color-success-muted: #e8f5ec;
+  --color-warning:       #977d4b;
+  --color-warning-muted: #fbf3e3;
+  --color-error:         #a15852;
+  --color-error-muted:   #fce8e6;
+  --color-info:          #5c7ea1;
+  --color-info-muted:    #e8eef5;
+
+  /* Radii (semantic) */
+  --radius-button: var(--radius-md);
+  --radius-card:   var(--radius-lg);
+  --radius-input:  var(--radius-md);
+  --radius-pill:   var(--radius-full);
+}
+
+/* ── 3. COMPONENT (component-scoped) ────────────────────────── */
+:root {
+  /* Button */
+  --button-bg-primary:          var(--color-accent);
+  --button-bg-primary-hover:    var(--color-accent-hover);
+  --button-fg-primary:          var(--color-accent-fg);
+  --button-bg-secondary:        var(--color-surface);
+  --button-fg-secondary:        var(--color-text-primary);
+  --button-bg-ghost:            transparent;
+  --button-fg-ghost:            var(--color-text-primary);
+  --button-border:              var(--color-border-default);
+  --button-padding-x:           var(--space-4);
+  --button-padding-y:           var(--space-2);
+  --button-font-size:           var(--text-sm);
+  --button-font-weight:         500;
+
+  /* Input */
+  --input-bg:                   var(--color-bg);
+  --input-fg:                   var(--color-text-primary);
+  --input-border:               var(--color-border-default);
+  --input-border-focus:         var(--color-accent);
+  --input-padding-x:            var(--space-3);
+  --input-padding-y:            var(--space-2);
+  --input-radius:               var(--radius-input);
+
+  /* Card */
+  --card-bg:                    var(--color-surface-raised);
+  --card-border:                var(--color-border-default);
+  --card-radius:                var(--radius-card);
+  --card-padding:               var(--space-6);
+  --card-shadow:                var(--shadow-sm);
+
+  /* Table */
+  --table-header-bg:           var(--color-bg-subtle);
+  --table-header-fg:           var(--color-text-secondary);
+  --table-row-bg-even:         var(--color-bg);
+  --table-row-bg-odd:          var(--color-bg-muted);
+  --table-border:              var(--color-border-subtle);
+
+  /* Dialog */
+  --dialog-overlay-bg:         rgba(0, 0, 0, 0.5);
+  --dialog-bg:                 var(--color-surface-raised);
+  --dialog-border:             var(--color-border-default);
+  --dialog-radius:             var(--radius-xl);
+}

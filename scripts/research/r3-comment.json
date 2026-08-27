@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041068574-Add-comments-to-files",
+    "name": "Add comments to files – Figma Learn - Help Center",
+    "snippet": "Click in the toolbar, or press C to enter comment mode. Type your message in the field. Add a comment · Add a mention to a comment",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039825314-Guide-to-comments-in-Figma",
+    "name": "Guide to comments in Figma – Figma Learn - Help Center",
+    "snippet": "Click in the toolbar, or press C to enter comment mode. long-press any area of the canvas to add a comment. select Add a comment from the menu. Press Esc or ... Browser and desktop app · View comments",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360041547593-View-and-manage-comments",
+    "name": "View and manage comments – Figma Learn - Help Center",
+    "snippet": "To hide comments, use the keyboard shortcut ⇧ Shift C to toggle them on or off. Press to show and hide comments in the Figma mobile app.",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/4403130802199-Use-cursor-chat-in-Figma-Design",
+    "name": "Use cursor chat in Figma Design",
+    "snippet": "Use keyboard shortcut /; Right-click the canvas and select Cursor chat. An empty speech bubble will appear next to your cursor. Your chat bubble is anchored ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/1500004290941-Comments-in-FigJam",
+    "name": "Comments in FigJam – Figma Learn - Help Center",
+    "snippet": "Click in the toolbar or press C to enter commenting mode. press C to enter comment mode. To hide comments, use the keyboard shortcut ⇧ Shift C to toggle them ...",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/38701587731735-Add-comments-in-Figma-Make",
+    "name": "Add comments in Figma Make",
+    "snippet": "To add a comment: Navigate to the Comment tool in the toolbar and press Enter . Press F6 , or use Tab or Shift Tab until focus reaches the Comment Cursor.",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

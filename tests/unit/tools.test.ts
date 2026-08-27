@@ -463,16 +463,27 @@ describe('tools: pen_export_svg', () => {
 });
 
 describe('tools: pen_export_png', () => {
-  it('returns an SVG data URL', async () => {
+  it('returns an image data URL (PNG if resvg available, SVG as lossy last resort)', async () => {
     h.addShape({ id: 's1', type: 'rectangle', x: 0, y: 0, width: 100, height: 50 });
     // Call the tool directly so we can inspect `details.dataUrl` (executeTool
     // only surfaces the text content + patch).
+    //
+    // Phase 5 §5.4 contract: tool tries (1) client DOM-capture round-trip,
+    // (2) server-side resvg SVG→PNG rasterizer, (3) lossy inline SVG emitter
+    // as last resort. In the test env there's no agent sink → path (1) is
+    // skipped; path (2) succeeds if @resvg/resvg-js is installed (returns
+    // a PNG data URL); path (3) is the lossy SVG fallback.
     const tool = tools(h).find((t) => t.name === 'pen_export_png')!;
     const result: any = await tool.execute('call-1', {}, undefined, undefined, undefined as any);
     const dataUrl = result.details?.dataUrl as string | undefined;
     expect(dataUrl).toBeTruthy();
-    expect(dataUrl).toMatch(/^data:image\/svg\+xml;base64,/);
-    expect(result.content[0].text).toContain('Exported as SVG data URL');
+    // Either PNG (resvg path) or SVG (lossy emitter path) is acceptable —
+    // the contract is "an image data URL", not a specific format.
+    expect(dataUrl).toMatch(/^data:image\/(png|svg\+xml);base64,/);
+    expect(result.content[0].text).toContain('Exported as');
+    expect(result.content[0].text).toContain('data URL');
+    // Source telemetry — one of the three documented sources.
+    expect(['client-dom-capture', 'server-resvg', 'lossy-inline-svg']).toContain(result.details?.source);
   });
 
   it('returns empty when there are no shapes', async () => {
@@ -902,16 +913,15 @@ describe('tools: pen_upload_image', () => {
 });
 
 describe('tools: pen_search_icons', () => {
-  it('places a known icon as a path', async () => {
+  it('places a known icon as a first-class icon node', async () => {
     const r = await run(h, 'pen_search_icons', {
       icon: 'check', x: 100, y: 100, size: 24,
     });
     expect(r.isError).toBeFalsy();
     const s = h.doc.shapes[0];
-    expect(s.type).toBe('path');
+    expect(s.type).toBe('icon');
     expect(s.name).toBe('Icon: check');
-    expect(s.points!.length).toBeGreaterThan(0);
-    expect(s.closed).toBe(false);
+    expect(s.iconName).toBe('check');
     expect(s.width).toBe(24);
     expect(s.height).toBe(24);
   });
@@ -921,11 +931,12 @@ describe('tools: pen_search_icons', () => {
       icon: 'check', x: 0, y: 0, size: 48,
     });
     const s = h.doc.shapes[0];
+    expect(s.type).toBe('icon');
     expect(s.width).toBe(48);
     expect(s.height).toBe(48);
-    // The check icon's first point at 24px is at (20, 6).
-    // At 48px (2x scale) it should be at (40, 12).
-    expect(s.points![0]).toEqual({ x: 40, y: 12 });
+    // Geometry resolves from the registry at render time (docs/lucide-icons.md)
+    // — the stored node stays symbolic (icon name), no baked points.
+    expect(s.points).toBeFalsy();
   });
 
   it('uses default stroke color and width', async () => {
@@ -935,16 +946,75 @@ describe('tools: pen_search_icons', () => {
     expect(s.strokeWidth).toBe(2);
   });
 
+  it('searches by meaning and returns ranked names', async () => {
+    const r = await run(h, 'pen_search_icons', { query: 'password security' });
+    expect(r.isError).toBeFalsy();
+    expect(r.content).toContain('lock');
+    expect(h.doc.shapes.length).toBe(0); // search-only: nothing placed
+  });
+
+  it('places the top query match when x/y are given', async () => {
+    const r = await run(h, 'pen_search_icons', { query: 'revenue growth', x: 40, y: 40 });
+    expect(r.isError).toBeFalsy();
+    const s = h.doc.shapes[0];
+    expect(s.type).toBe('icon');
+    expect(['trending-up', 'chart-column', 'chart-pie']).toContain(s.iconName);
+  });
+
+  it('resolves tolerant icon spellings ("Trash 2")', async () => {
+    const r = await run(h, 'pen_search_icons', { icon: 'Trash 2', x: 0, y: 0 });
+    expect(r.isError).toBeFalsy();
+    const s = h.doc.shapes[0];
+    expect(s.type).toBe('icon');
+    expect(s.iconName).toBe('trash-2');
+  });
+
   it('returns isError when the icon name is unknown', async () => {
     const r = await run(h, 'pen_search_icons', { icon: 'definitely-not-real', x: 0, y: 0 });
     expect(r.isError).toBe(true);
     expect(r.content).toContain('not found');
-    expect(r.content).toContain('check'); // lists available icons
   });
 
   it('matches icon names case-insensitively', async () => {
     const r = await run(h, 'pen_search_icons', { icon: 'CHECK', x: 0, y: 0 });
     expect(r.isError).toBeFalsy();
+    expect(h.doc.shapes[0].iconName).toBe('check');
+  });
+});
+
+describe('tools: pen_create_node (icon type)', () => {
+  it('creates an icon node with a catalog name', async () => {
+    const r = await run(h, 'pen_create_node', {
+      type: 'icon', icon: 'lock', x: 20, y: 20, width: 24, height: 24, stroke: '#0ea5e9',
+    });
+    expect(r.isError).toBeFalsy();
+    const s = h.doc.shapes[0];
+    expect(s.type).toBe('icon');
+    expect(s.iconName).toBe('lock');
+    expect(s.stroke).toBe('#0ea5e9');
+    expect(r.content).toContain('lock');
+  });
+
+  it('defaults icon size to the lucide 24×24 grid when omitted', async () => {
+    await run(h, 'pen_create_node', { type: 'icon', icon: 'star', x: 0, y: 0 });
+    const s = h.doc.shapes[0];
+    expect(s.width).toBe(24);
+    expect(s.height).toBe(24);
+  });
+
+  it('fails with suggestions for an unknown icon name', async () => {
+    const r = await run(h, 'pen_create_node', {
+      type: 'icon', icon: 'made-up-glyph', x: 0, y: 0,
+    });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('not in the Lucide catalog');
+    expect(h.doc.shapes.length).toBe(0);
+  });
+
+  it('fails when an icon node omits the icon name', async () => {
+    const r = await run(h, 'pen_create_node', { type: 'icon', x: 0, y: 0 });
+    expect(r.isError).toBe(true);
+    expect(r.content).toContain('icon');
   });
 });
 
@@ -1010,8 +1080,8 @@ describe('tools: pen_update_shape routes `parent` arg to a reparent patch (safet
     expect(r.patches?.[1].op).toBe('reparent');
     expect(r.patches?.[1].newParentId).toBe('frame');
     expect(r.patches?.[1].keepAbsolutePosition).toBe(true);
-    // Response text educates the LLM about pen_reparent_shape.
-    expect(r.content).toContain('pen_reparent_shape');
+    // Response text educates the LLM about pen_reparent_nodes.
+    expect(r.content).toContain('pen_reparent_nodes');
     // After applying both patches, rect should be inside frame with absolute pos preserved.
     const updated = h.doc.shapes.find((s) => s.id === 'rect');
     expect(updated?.parentId).toBe('frame');
@@ -1253,7 +1323,7 @@ describe('tools: pen_reparent_shape', () => {
       newParentId: 'frame',
     });
     expect(r.isError).toBe(true);
-    expect(r.content).toContain('no shapeId');
+    expect(r.content).toContain('no nodeId');
   });
 });
 
@@ -1295,9 +1365,9 @@ describe('tools: pen_set_constraints', () => {
 // ---- Tool registration sanity ------------------------------------------------
 
 describe('tools: registration sanity', () => {
-  it('returns 72 tools total (57 base + 7 Phase 2 component-system + 6 Phase 3 agentic-workflow + 2 Task 7-c UI-quality-enforcement tools)', () => {
+  it('returns 77 tools total (79 pre-Phase-6 minus the pen_list_shapes supersede and the legacy mark-as-component pen_create_component fold — spec Phase 6 / G.3)', () => {
     const tools = createCanvasTools(h.ctx);
-    expect(tools).toHaveLength(72);
+    expect(tools).toHaveLength(77);
   });
 
   it('every tool has a unique name', () => {

@@ -9,7 +9,7 @@
 // Sections:
 //   1. Agent behavior   — temperature, maxIterations, thinkingLevel, planFirst, defaultPalette, skillSelectionMode
 //   2. LLM provider     — provider (registry list), apiKey, modelName, apiBaseUrl
-//   3. Sessions         — snapshotCadence, maxSessionsRetained, maxSnapshotsPerSession, autoArchiveIdleAfter
+//   3. Sessions         — snapshotCadence, maxSessionsRetained, maxSnapshotsPerCanvas (per-document), autoArchiveIdleAfter
 //   4. Appearance       — theme, density
 //   5. Data & privacy   — storage usage, export all, clear all
 //   6. Shortcuts        — read-only reference list
@@ -44,6 +44,7 @@ import {
   type LLMProvider, type SnapshotCadence, type SkillSelectionMode,
   type AutoArchiveIdleAfter, type Density, type ThemePreference,
   type DefaultPalette, type ThinkingLevel, type McpServerConfig, type ApprovalMode,
+  type CanvasLayoutMode,
   normalizeLLMProvider,
   providerRequiresApiKey,
   providerDefaultModel,
@@ -601,7 +602,7 @@ function LLMSection() {
 function SessionsSection() {
   const snapshotCadence = useSettings((s) => s.snapshotCadence);
   const maxSessionsRetained = useSettings((s) => s.maxSessionsRetained);
-  const maxSnapshotsPerSession = useSettings((s) => s.maxSnapshotsPerSession);
+  const maxSnapshotsPerCanvas = useSettings((s) => s.maxSnapshotsPerCanvas);
   const autoArchiveIdleAfter = useSettings((s) => s.autoArchiveIdleAfter);
   const set = useSettings((s) => s.set);
 
@@ -635,13 +636,13 @@ function SessionsSection() {
         </Row>
 
         <Row
-          label="Max snapshots per session"
-          description="Oldest non-bookmarked snapshots auto-deleted when exceeded."
+          label="Max canvas snapshots"
+          description="Oldest non-bookmarked canvas snapshots auto-deleted when exceeded. Snapshots are shared across every chat on the canvas."
         >
           <Input
             type="number"
-            value={maxSnapshotsPerSession}
-            onChange={(e) => set('maxSnapshotsPerSession', Math.max(5, Math.min(200, parseInt(e.target.value) || 50)))}
+            value={maxSnapshotsPerCanvas}
+            onChange={(e) => set('maxSnapshotsPerCanvas', Math.max(5, Math.min(200, parseInt(e.target.value) || 50)))}
             min={5}
             max={200}
             className="h-7 w-20 text-[11px]"
@@ -689,6 +690,8 @@ function SessionsSection() {
 function AppearanceSection() {
   const themePreference = useSettings((s) => s.themePreference);
   const density = useSettings((s) => s.density);
+  const layoutMode = useSettings((s) => s.canvasLayoutMode) ?? 'parity';
+  const domCulling = useSettings((s) => s.domCulling) ?? true;
   const set = useSettings((s) => s.set);
 
   // Apply theme preference immediately via the same .dark class toggle that
@@ -715,7 +718,7 @@ function AppearanceSection() {
     <>
       <h2 className="text-[13px] font-semibold ac-text-1 mb-1">Appearance</h2>
       <p className="text-[11px] ac-text-4 mb-4 leading-relaxed">
-        Theme + UI density. Applies immediately.
+        Theme + UI density + canvas renderer. Applies immediately.
       </p>
 
       <div className="space-y-4">
@@ -763,6 +766,34 @@ function AppearanceSection() {
               <SelectItem value="compact" className="text-[11px]">Compact</SelectItem>
             </SelectContent>
           </Select>
+        </Row>
+
+        <Row
+          label="Canvas layout mode"
+          description="Native uses browser CSS flexbox layout (spec Phase 2); Parity uses resolver-computed absolute geometry. Applies immediately and persists."
+        >
+          <Select
+            value={layoutMode}
+            onValueChange={(v) => set('canvasLayoutMode', v as CanvasLayoutMode)}
+          >
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="parity" className="text-[11px]">Parity (resolver)</SelectItem>
+              <SelectItem value="native" className="text-[11px]">Native (CSS flex)</SelectItem>
+            </SelectContent>
+          </Select>
+        </Row>
+
+        <Row
+          label="DOM culling"
+          description="Phase 4 (spec §4.2). On = container subtrees get content-visibility:auto (L4) + far-offscreen top-level frames swap to placeholder divs above 2k nodes (L5). Disable for measurement-sensitive workflows."
+        >
+          <Switch
+            checked={domCulling}
+            onCheckedChange={(v) => set('domCulling', v)}
+          />
         </Row>
       </div>
 
@@ -831,16 +862,17 @@ function DataSection() {
   };
 
   const handleClearSnapshots = () => {
-    if (!confirm('Delete all non-bookmarked snapshots across all sessions?')) return;
+    if (!confirm('Delete all non-bookmarked canvas snapshots? The snapshot timeline is shared across every chat on this canvas.')) return;
     const store = useSessionStore.getState();
+    const docId = useCanvasStore.getState().documentId;
     let count = 0;
     for (const snap of Object.values(store.snapshots)) {
-      if (!snap.bookmarked) {
+      if (snap.documentId === docId && !snap.bookmarked) {
         store.deleteSnapshot(snap.id);
         count++;
       }
     }
-    toast.success(`Deleted ${count} snapshot${count === 1 ? '' : 's'}`);
+    toast.success(`Deleted ${count} canvas snapshot${count === 1 ? '' : 's'}`);
     refresh();
   };
 

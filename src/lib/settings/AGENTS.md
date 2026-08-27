@@ -8,7 +8,7 @@ This is the single source of truth for every setting the user can change in the 
 
 ## Ownership
 
-- `types.ts` — `AppSettings`, `AgentRunSettings`, `DEFAULT_SETTINGS`, `PALETTES`, `McpServerConfig`, `ThinkingLevel`, all union types (`LLMProvider`, `SnapshotCadence`, `SkillSelectionMode`, `AutoArchiveIdleAfter`, `Density`, `ThemePreference`, `DefaultPalette`), plus provider helpers (`normalizeLLMProvider`, `providerRequiresApiKey`, `providerDefaultModel`, `providerDefaultBaseURL`). Owned by this folder.
+- `types.ts` — `AppSettings`, `AgentRunSettings`, `DEFAULT_SETTINGS`, `PALETTES`, `McpServerConfig`, `ThinkingLevel`, all union types (`LLMProvider`, `SnapshotCadence`, `SkillSelectionMode`, `AutoArchiveIdleAfter`, `Density`, `ThemePreference`, `DefaultPalette`, `RendererMode`), plus provider helpers (`normalizeLLMProvider`, `providerRequiresApiKey`, `providerDefaultModel`, `providerDefaultBaseURL`). Owned by this folder.
 - `store.ts` — Zustand store with `persist` (localStorage key `agentcanvas.settings.v1`). Exposes `useSettings()` hook, `useAgentRunSettings()` convenience selector (returns all data fields + setters, scoped to avoid re-renders from unrelated store changes), and `set()` / `patch()` / `reset()` / `replaceAll()` mutators.
 
 ## Local Contracts
@@ -25,18 +25,23 @@ This is the single source of truth for every setting the user can change in the 
 | `enabledPlugins` | `string[]` (plugin ids) | (14 default-enabled tools' plugins) | 5 — Plugins |
 | `mcpServers` | `McpServerConfig[]` | `[]` | 5 — MCP |
 | `themePreference` | `'system' \| 'light' \| 'dark'` | `'system'` | 1 — Appearance |
+| `renderer` | `'dom'` (optional — only `'dom'` is a live value; legacy persisted `'svg'` is silently coerced to `'dom'` by the store's migrate function) | `'dom'` | 1 — Appearance (post-Phase-5 cleanup: the SVG renderer was deleted; the Settings UI no longer exposes a renderer picker. Kept on the type for forward compat with persisted blobs.) |
+| `canvasLayoutMode` | `'parity' \| 'native'` (optional — absent = `'parity'`) | `'parity'` | 1 — Appearance (DOM renderer layout strategy, spec Phase 2: `parity` uses resolver geometry; `native` uses browser CSS flexbox layout + measured-bounds readback) |
+| `domCulling` | `boolean` (optional — absent = `true`) | `true` | 1 — Appearance (Phase 4 scale hardening: L4 CSS containment + L5 mount culling when ≥2k nodes; toggle in Settings → Appearance → “DOM Culling Switch”) |
 | `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'custom'` | 2 — LLM provider |
 | `apiKey` | `string` | `'123456'` | 2 |
 | `modelName` | `string` | `'kimi-k2-5'` | 2 |
 | `apiBaseUrl` | `string` | `'https://irhnglwoxe.a.pinggy.link/v1'` | 2 |
 | `snapshotCadence` | `'every-turn' \| 'every-3-turns' \| 'every-5-turns' \| 'manual'` | `'every-turn'` | 2 — Sessions |
 | `maxSessionsRetained` | `number` | `100` | 2 |
-| `maxSnapshotsPerSession` | `number` | `50` | 2 |
+| `maxSnapshotsPerCanvas` | `number` | `50` | 2 |
 | `skillSelectionMode` | `'auto' \| 'manual'` | `'auto'` | 3 — Power-user |
 | `autoArchiveIdleAfter` | `'never' \| '7d' \| '30d'` | `'never'` | 3 |
 | `density` | `'comfortable' \| 'compact'` | `'comfortable'` | 3 |
 
 `normalizeLLMProvider()` migrates legacy `zai-auto` / `zai-key` / `openai-compatible` values to current registry ids.
+
+`maxSnapshotsPerCanvas` (persist v4 rename of `maxSnapshotsPerSession`) is the per-document snapshot cap under the shared-canvas model — snapshots are document-scoped, and the oldest non-bookmarked ones are auto-deleted when the cap is exceeded.
 
 **Default LLM (testing)**: `llmProvider='custom'` + `modelName='kimi-k2-5'` + `apiBaseUrl='https://irhnglwoxe.a.pinggy.link/v1'` + `apiKey='123456'` — a custom OpenAI-compatible endpoint. `pi-ai-model-resolver.ts` builds a synthetic `openai-completions` Model for it (pi-ai's catalog doesn't know custom endpoints). An empty `modelName` falls back to the registry default (empty for `custom`). Legacy `glm-4.6` settings map to `glm-4.7` (zai catalog path).
 
@@ -51,7 +56,7 @@ The canvas store's `promptAgent()` calls `agentRunSettings(useSettings.getState(
 
 ### Persistence
 - `persist` middleware with `localStorage` key `agentcanvas.settings.v1`.
-- Schema version is `2`. v1 → v2 (endpoint migration): stored blobs that still look like the OLD first-run defaults (`zai` + `glm-5.3` + no key + no base URL) are migrated to the new default endpoint; anything user-customized is preserved untouched. Bump + add `migrate` if the shape changes again.
+- Schema version is `4`. v1 → v2 (endpoint migration): stored blobs that still look like the OLD first-run defaults (`zai` + `glm-5.3` + no key + no base URL) are migrated to the new default endpoint; anything user-customized is preserved untouched. v3 → v4: `maxSnapshotsPerSession` → `maxSnapshotsPerCanvas` (shared-canvas rename — value preserved, old key deleted). Bump + add `migrate` if the shape changes again.
 - `partialize` strips the setter functions (`set`, `patch`, `reset`, `replaceAll`) so only data is persisted.
 - The `apiKey` field is stored in localStorage (client-side only). It is NEVER written to disk on the server. For production multi-user deployments, swap the storage adapter to a server-side secrets manager.
 

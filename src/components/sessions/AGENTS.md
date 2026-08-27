@@ -4,13 +4,15 @@
 
 Session management UI: the sidebar (session list + new/search/fork/archive), the header (title + status + fork button), the run history panel (runs + snapshots tabs), the run/stop button, and the status badge component.
 
-These components read from `useSessionStore` (the persisted Zustand store in `src/lib/sessions/`) and dispatch actions to either the session store (CRUD) or the canvas store (fork/restore).
+These components read from `useSessionStore` (the persisted Zustand store in `src/lib/sessions/`) and dispatch actions to either the session store (CRUD) or the canvas store (restore).
+
+Shared-canvas model: the sidebar lists CONVERSATION CONTEXTS on one canvas ("Chats in this canvas") — switching chats never swaps the canvas. The Snapshots tab shows the CANVAS's version history (document-scoped, with per-chat provenance labels), not a per-chat history.
 
 ## Ownership
 
-- `SessionSidebar.tsx` — left panel tab (Chats): search, New button, pinned-first sorting, archived section, footer stats (runs/tools/snapshots counts), rich context menu. "Fork this chat" calls `forkSession(session.id, null)` directly (NOT `forkActiveSession`). Toasts on Archive/Delete/Fork/Duplicate/Export/Copy-prompt.
+- `SessionSidebar.tsx` — left panel tab (Chats — conversation contexts on the shared canvas): search, New button, pinned-first sorting, archived section, footer stats (runs/tools + the document-scoped canvas-snapshot count), rich context menu. "Fork this chat" calls `forkSession(session.id, null)` directly (NOT `forkActiveSession`) — a CONVERSATION fork (message-prefix copy; the canvas is shared and untouched). Toasts on Archive/Delete/Fork/Duplicate/Export/Copy-prompt.
 - `SessionHeader.tsx` — top of the right panel. Two variants: `compact` (single-row for the 44px header — small avatar + inline-editable title + StatusBadge + Fork button) and default/full (avatar + title + meta row with status, fork indicator, relative time, model + Fork button). Inline-editable title, branded bot avatar.
-- `RunHistoryPanel.tsx` — right panel tab (History): tabbed (Runs / Snapshots). Expandable run cards with tool-call timeline. Snapshot cards with Restore / Fork / Bookmark. "Capture current state" button. Accepts `hideHeader` prop (compact tab strip when inside the right tabbed panel). Context menus on both run cards and snapshot cards. Toasts on Restore/Fork/Capture (Bookmark does not toast).
+- `RunHistoryPanel.tsx` — right panel tab (History): tabbed (Runs / Snapshots). Expandable run cards with tool-call timeline. Snapshot cards (document-scoped list with per-chat provenance labels) with Restore / Bookmark — the "Fork from this snapshot" action was REMOVED (superseded by Restore). "Capture current state" button. Accepts `hideHeader` prop (compact tab strip when inside the right tabbed panel). Context menus on both run cards and snapshot cards. Toasts on Restore/Capture (Bookmark does not toast).
 - `RunStopButton.tsx` — header button. When idle: shows "Ask" button that opens the Command Palette via `onAsk` prop. When busy: shows "Stop" button with pulsing white dot.
 - `StatusBadge.tsx` — color-coded status pill for runs / tool-calls / sessions. Three status maps (Run, ToolCall, Session). Includes a `StatusDot` variant.
 
@@ -27,7 +29,7 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
 - "New chat" button is a solid violet primary CTA (the brand accent), visually distinct from secondary actions.
 - Active session row uses `.ac-active-row` (2px left accent bar + soft violet bg).
 - Pinned sessions sort first; archived sessions collapse into a disclosure section at the bottom.
-- Footer stats bar: shows total runs + tools count (left) and snapshots count (right).
+- Footer stats bar: shows total runs + tools count (left) and the document-scoped canvas-snapshots count (right).
 - Context menu (`DropdownMenuContent`):
   - `min-w-[180px]` for consistent width.
   - Opens with a `DropdownMenuLabel` showing the session title (uppercase, `ac-text-4`, truncated).
@@ -51,16 +53,18 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
 - Title is inline-editable (click to edit, Enter to save, Esc to cancel).
 - Branded bot avatar: violet-to-fuchsia gradient + Bot icon.
 - Metadata row uses consistent `·` dot separators.
-- Fork button is outline style (secondary action).
+- Fork button is outline style (secondary action). It calls `forkActiveSession` — a conversation fork (copies the chat's message prefix; the canvas stays shared).
 
 #### `RunHistoryPanel.tsx`
 - Two tabs: **Runs** and **Snapshots**.
 - Tab styling is unified: selected = `ac-surface-0 ac-text-1 shadow-sm`, unselected = `ac-text-3` (token-based, not hardcoded white/gray).
 - Run cards are expandable (Collapsible): collapsed shows prompt + status + duration + tool-call count; expanded shows the full tool-call timeline with status badges and per-call duration.
 - Run card context menu (right-click): Expand/Collapse, Restore run (stub), Fork from here (stub), Copy prompt, Copy all tool calls as JSON, Export run as Markdown (stub — P2-37), Delete run (stub).
-- Snapshot cards: Camera icon, label, source badge (color-coded by source: turn_end/fork/restore/manual), node count, timestamp, Restore / Fork / Bookmark buttons. Active snapshot highlighted with emerald border.
-- Snapshot card context menu (right-click): Restore, Fork from here, Bookmark toggle, Rename snapshot (stub — P2-38), Delete snapshot (stub), Copy as JSON, Export as .pen (stub), Set as current (stub — P2-45).
-- "Capture current state" button at bottom of Snapshots tab.
+- Snapshot list is DOCUMENT-scoped (`listSnapshots(documentId)`, newest first) — the canvas's version history. Each card shows the provenance chat's title (`snap.sessionId` → session title, "Deleted chat" fallback).
+- Snapshot cards: Camera icon, label, source badge (color-coded by source: turn_end/fork/restore/manual), node count, timestamp, Restore / Bookmark buttons. Active snapshot highlighted with emerald border (compared against the document's NEWEST snapshot id).
+- Restore goes through the canvas store's `restoreSnapshot(snap.id)` action (async — remote placeholders fetch their document JSON on demand; appends an append-only 'restore' snapshot and broadcasts `document:restore` so all viewers follow).
+- Snapshot card context menu (right-click): Restore, Bookmark toggle, Rename snapshot (stub — P2-38), Delete snapshot (WIRED — `deleteSnapshot(snap.id)`), Copy as JSON, Export as .pen (stub), Set as current (stub — P2-45). ("Fork from here" was REMOVED — superseded by Restore.)
+- "Capture current state" button at bottom of Snapshots tab — captures a document-scoped manual snapshot (`captureSnapshot(documentId, document, { sessionId: activeSessionId, source: 'manual', createdBy: 'user' })`).
 - Action buttons use consistent outline styling.
 - Empty states for both tabs.
 
@@ -87,7 +91,7 @@ These components read from `useSessionStore` (the persisted Zustand store in `sr
 
 - `bunx tsc --noEmit` — typecheck.
 - `bun run lint` — ESLint.
-- Manual: create a session, run the agent, reload (session persists), switch sessions (canvas + chat + tool calls restore), fork (inherits canvas, fresh chat), restore a snapshot (new snapshot appears in the list).
+- Manual: create a chat, run the agent, reload (chat persists), switch chats (chat + tool calls restore; the shared canvas is untouched), fork (copies the message prefix onto the same canvas), restore a snapshot (new 'restore' snapshot appears in the canvas timeline).
 - `bunx tsx scripts/screenshot-ui-after.ts` — captures the runs-expanded and snapshots-tab states.
 
 ## Child DOX Index

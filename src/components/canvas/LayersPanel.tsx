@@ -21,11 +21,14 @@
 //     layer).
 //   - Right-click menu: Delete, Rename, Duplicate.
 
-import { useState, useMemo, type ReactNode, type ComponentType } from 'react';
+import { useState, useEffect, useMemo, type ReactNode, type ComponentType } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape, LayerType } from '@/lib/canvas/types';
 import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, downloadDataUrl, copyToClipboard } from '@/lib/canvas/export';
+import { collectComponents } from '@/lib/pen/document';
+import { COMPONENT_DRAG_MIME } from '@/lib/canvas/assets-drag';
+import type { PenChild } from '@/lib/pen/types';
 import {
   Eye, EyeOff, Lock, Unlock, Trash2, Layers, Copy, Scissors, ClipboardPaste, Search,
   Frame, Group, Square, Circle, Type, Slash, Spline, Image as ImageIcon, Braces,
@@ -40,13 +43,20 @@ import {
   Star as StarIcon,        // star
   Hexagon,                 // polygon
   CornerDownRight,         // instance (component instance)
+  Gem,                     // icon (library glyph node — lucide)
   // Phase 2 component-system icons (instance actions):
   Unlink,                  // detach instance
   RotateCcw,               // reset overrides
+  // Phase 7 Pages column icons:
+  Plus,                    // add page
+  Files,                   // page chip
+  // Phase 7 §H.1 Assets tab icon:
+  Package,                 // assets grid empty state
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
   ContextMenu,
@@ -80,6 +90,7 @@ const TYPE_ICON: Record<LayerType, ComponentType<{ className?: string }>> = {
   polygon: Hexagon,
   slice: Crop,
   image: ImageIcon,
+  icon: Gem,
 };
 
 /**
@@ -99,6 +110,58 @@ function themeLabel(theme: Record<string, string> | undefined | null): string | 
     return `${emoji} ${v}`;
   }
   return entries.map(([k, v]) => `${k}:${v}`).join(' · ');
+}
+
+// ---- Assets tab thumbnail (spec Phase 7 §H.1) ----------------------------
+//
+// The Assets grid cards show a small visual preview of each reusable
+// component. We can't run the full DOM renderer recursively inside a 64px
+// card (perf + layout cost), so we render a tinted box whose color is the
+// first concrete paint we can find on the component (or any descendant).
+// This is the same "color swatch" Figma shows in the Assets panel for
+// components that don't carry a baked preview image — it's enough for the
+// user to recognize the component; the full preview appears on hover/canvas
+// after the instance is placed.
+const NEUTRAL_THUMBNAIL = 'var(--ac-surface-2)';
+
+function nodeFill(node: PenChild): string | null {
+  // Prefer the explicit .pen v3 `fills` array (Figma REST-aligned); fall
+  // back to the legacy `fill` string. Either may be unset on a frame with
+  // only child graphics (common for icon-style components).
+  const anyNode = node as unknown as {
+    fill?: string | null;
+    fills?: Array<{ color?: string; type?: string; opacity?: number }>;
+  };
+  if (Array.isArray(anyNode.fills) && anyNode.fills.length > 0) {
+    const solid = anyNode.fills.find((p) => p && p.color && (!p.type || p.type === 'SOLID'));
+    if (solid?.color) return solid.color;
+  }
+  if (typeof anyNode.fill === 'string' && anyNode.fill) return anyNode.fill;
+  return null;
+}
+
+/// Find a representative paint color for a component card thumbnail.
+/// 1. The component's own fill.
+/// 2. The first descendant (BFS) with a fill — components typically wrap
+///    a colored rect or text node; we surface that color so "Button"
+///    components look blue, "Card" components look white, etc.
+/// 3. Fallback neutral surface token.
+function componentThumbnailColor(node: PenChild): string {
+  const direct = nodeFill(node);
+  if (direct) return direct;
+  // BFS one level deep into the component's children — covers the common
+  // "frame with a colored rect inside" shape without a full tree walk.
+  const children = (node as { children?: PenChild[] }).children ?? [];
+  for (const child of children) {
+    const c = nodeFill(child);
+    if (c) return c;
+    const grandChildren = (child as { children?: PenChild[] }).children ?? [];
+    for (const gc of grandChildren) {
+      const g = nodeFill(gc);
+      if (g) return g;
+    }
+  }
+  return NEUTRAL_THUMBNAIL;
 }
 
 // ---- Expand/collapse state (persisted per-document in localStorage) -------
@@ -136,6 +199,36 @@ export function LayersPanel() {
   const [collapsed, setCollapsed] = useState<Set<string>>(() => loadCollapsed(document.id));
   const [searchQuery, setSearchQuery] = useState('');
 
+  // ---- ⌘R rename (spec Phase 7) ----------------------------------------------
+  // page.tsx's registry dispatch for 'rename' fires this CustomEvent; we
+  // focus the first selected layer's inline rename input.
+  useEffect(() => {
+    const onRenameRequest = () => {
+      const sel = useCanvasStore.getState().selectedIds;
+      if (sel.length > 0) setEditingId(sel[0]);
+    };
+    window.addEventListener('ac:layers-rename', onRenameRequest);
+    return () => window.removeEventListener('ac:layers-rename', onRenameRequest);
+  }, []);
+
+  // ---- ⌥1 / ⌥2 tab switching (spec Phase 7 §H.1, Appendix H §H.3 #1) --------
+  // page.tsx dispatches `ac:layers-set-tab` when the registry matches the
+  // 'panel.layers-tab' (⌥1) or 'panel.assets-tab' (⌥2) action. We keep the
+  // tab state LOCAL to the panel session (no store field) — Figma tracks it
+  // per-session too; on reload it resets to Layers (the default).
+  const [activeTab, setActiveTab] = useState<'layers' | 'assets'>('layers');
+  useEffect(() => {
+    const onSetTab = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      if (detail === 'layers' || detail === 'assets') setActiveTab(detail);
+    };
+    window.addEventListener('ac:layers-set-tab', onSetTab);
+    return () => window.removeEventListener('ac:layers-set-tab', onSetTab);
+  }, []);
+
+  // ---- Pages column state (spec Phase 7 — Appendix H §H.1 left sidebar) ------
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
+
   // Persist the collapsed set whenever it changes.
   const updateCollapsed = (next: Set<string>) => {
     setCollapsed(next);
@@ -145,6 +238,20 @@ export function LayersPanel() {
   // Build a tree: top-level shapes (parentId null) first, with children
   // indented under their parent. Render top-to-bottom = highest z-index first.
   const shapes = document.shapes ?? [];
+
+  // Phase 7 §H.1 Assets tab — index every reusable Component node in the
+  // active page's .pen tree. Memoized against the tree so tab switches and
+  // unrelated re-renders don't re-walk. The map is keyed by component id;
+  // entries are the live PenChild nodes (so card previews read the same
+  // fills array the renderer reads).
+  const componentsMap = useMemo(
+    () => collectComponents(document.children ?? []),
+    [document.children],
+  );
+  const componentEntries = useMemo(
+    () => Array.from(componentsMap.entries()),
+    [componentsMap],
+  );
 
   // P0-12: search filter — a shape matches if its name contains the query
   // (case-insensitive), OR any descendant matches. Matching shapes and their
@@ -252,6 +359,19 @@ export function LayersPanel() {
     sendPatch(patch);
   };
 
+  // ---- Assets tab drag-to-canvas (spec Phase 7 §H.1) ------------------------
+  // HTML5 DnD: the card sets a custom MIME payload carrying the component id;
+  // Canvas.tsx's onDrop reads it (via readComponentIdFromDrop) and builds a
+  // `place_instance` patch — the same op the agent uses. We also stash a
+  // text/plain copy so external drop targets (the chat panel, third-party
+  // apps) get a sensible fallback. effectAllowed='copy' tells the browser
+  // this is a copy gesture, not a move (the component isn't consumed).
+  const onAssetDragStart = (e: React.DragEvent, componentId: string, name: string) => {
+    e.dataTransfer.setData(COMPONENT_DRAG_MIME, componentId);
+    e.dataTransfer.setData('text/plain', `${name} (#${componentId})`);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
   const renderShape = (shape: Shape, depth: number): ReactNode => {
     const selected = selectedIds.includes(shape.id);
     const children = childrenOf(shape.id);
@@ -340,8 +460,8 @@ export function LayersPanel() {
               if (isComponentMaster) all.push({ label: 'Master', node: <span className="text-[9px] px-1 py-0 rounded ac-status-info font-medium">M</span> });
               if (isComponentInstance) all.push({ label: 'Instance (ref)', node: <span className="text-[9px] px-1 py-0 rounded ac-status-warning font-medium">◆</span> });
               if (hasAutoLayout) all.push({ label: 'Auto Layout', node: <span className="text-[9px] px-1 py-0 rounded ac-status-success font-medium">AL</span> });
-              if (themeStr) all.push({ label: `theme: ${themeStr}`, node: <span className="text-[9px] px-1 py-0 rounded ac-surface-2 ac-text-3 font-medium">{themeStr}</span> });
-              if (hasTokenBinding) all.push({ label: 'Bound to design token', node: <span className="w-1.5 h-1.5 rounded-full ac-dot-info" /> });
+              if (themeStr) all.push({ label: `modes: ${themeStr}`, node: <span className="text-[9px] px-1 py-0 rounded ac-surface-2 ac-text-3 font-medium">{themeStr}</span> });
+              if (hasTokenBinding) all.push({ label: 'Bound to variable', node: <span className="w-1.5 h-1.5 rounded-full ac-dot-info" /> });
               // Constraints badge (small "C" pill) — surfaces that the node has
               // Figma-style layout constraints set.
               if (shape.constraints) {
@@ -440,11 +560,13 @@ export function LayersPanel() {
             </ContextMenuItem>
           )}
           {/* ── Group 4: Visibility ──────────────────────────────────── */}
+          {/* Phase 7: Lock/Hide rebound to Figma chords ⌘⇧L / ⌘⇧H (legacy
+              ⌘L / ⌘; kept as registry aliases — Appendix H §H.3 #3). */}
           <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: shape.id, shape: { locked: !shape.locked }, summary: `${shape.locked ? 'Unlocked' : 'Locked'} ${shape.name}` })}>
-            <Lock className="h-3.5 w-3.5 mr-2" /> {shape.locked ? 'Unlock' : 'Lock'} <span className="ml-auto text-[10px] ac-text-4">⌘L</span>
+            <Lock className="h-3.5 w-3.5 mr-2" /> {shape.locked ? 'Unlock' : 'Lock'} <span className="ml-auto text-[10px] ac-text-4">⌘⇧L</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: shape.id, shape: { visible: !shape.visible }, summary: `${shape.visible ? 'Hid' : 'Showed'} ${shape.name}` })}>
-            <Eye className="h-3.5 w-3.5 mr-2" /> {shape.visible ? 'Hide' : 'Show'} <span className="ml-auto text-[10px] ac-text-4">⌘;</span>
+            <Eye className="h-3.5 w-3.5 mr-2" /> {shape.visible ? 'Hide' : 'Show'} <span className="ml-auto text-[10px] ac-text-4">⌘⇧H</span>
           </ContextMenuItem>
           <ContextMenuSeparator />
           {/* ── Group 5: Components ──────────────────────────────────── */}
@@ -454,7 +576,7 @@ export function LayersPanel() {
               componentId — keep it only for non-frame/group shapes. */}
           {(shape.type === 'frame' || shape.type === 'group') && (
             <ContextMenuItem onClick={() => sendPatch({ op: 'convert_to_component', shapeId: shape.id, summary: `Promoted ${shape.name} to reusable Component` })}>
-              <ComponentIcon className="h-3.5 w-3.5 mr-2" /> Create component <span className="ml-auto text-[10px] ac-text-4">⌘⇧C</span>
+              <ComponentIcon className="h-3.5 w-3.5 mr-2" /> Create component <span className="ml-auto text-[10px] ac-text-4">⌥⌘K</span>
             </ContextMenuItem>
           )}
           {shape.type !== 'frame' && shape.type !== 'group' && (
@@ -528,7 +650,14 @@ export function LayersPanel() {
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
               <ContextMenuItem onClick={async () => {
-                const dataUrl = await exportPngDataUrl(shapes, { frameId: isContainerNode ? shape.id : undefined });
+                // Phase 5 §5.4: DOM-capture path captures the frame's DOM
+                // subtree via html-to-image (located by [data-node-id]).
+                // Falls back to SVG projection when no DOM world is mounted.
+                const dataUrl = await exportPngDataUrl(shapes, {
+                  frameId: isContainerNode ? shape.id : undefined,
+                  worldElement: useCanvasStore.getState().worldElement,
+                  backgroundColor: document.background,
+                });
                 if (!dataUrl) { toast.error('Nothing to export'); return; }
                 const safeName = shape.name.replace(/[^a-z0-9-_]+/gi, '-');
                 if (dataUrl.startsWith('data:image/png')) {
@@ -631,7 +760,7 @@ export function LayersPanel() {
           <ContextMenuSeparator />
           {/* ── Group 8: Existing items (Rename / Delete / Duplicate) ── */}
           <ContextMenuItem onClick={() => setEditingId(shape.id)}>
-            <Edit2 className="h-3.5 w-3.5 mr-2" /> Rename
+            <Edit2 className="h-3.5 w-3.5 mr-2" /> Rename <span className="ml-auto text-[10px] ac-text-4">⌘R</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => sendPatch({ op: 'duplicate', shapeIds: [shape.id], summary: `Duplicated ${shape.name}` })}>
             <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate
@@ -659,89 +788,272 @@ export function LayersPanel() {
   const nodeCount = shapes.length;
   const variableCount = document.variables ? Object.keys(document.variables).length : 0;
   const themeAxisCount = document.themes ? Object.keys(document.themes).length : 0;
+  const pages = document.pages ?? [];
 
   return (
-    <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
-      <div className="flex items-center justify-between px-3 py-2 border-b ac-border-subtle">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide ac-text-2 min-w-0">
-          <Layers className="h-3.5 w-3.5 ac-text-3 flex-shrink-0" />
-          <span className="truncate">Layers</span>
-          <span className="text-[10px] ac-text-4 font-normal normal-case tracking-normal">{nodeCount}</span>
+    <div className="flex h-full ac-surface-0 ac-hide-scrollbar" data-ac-layers-panel>
+      {/* ---- Pages column (spec Phase 7 — Appendix H §H.1) --------------------
+          Left-edge vertical strip, rendered only when the document carries a
+          pages array. Chip = click activates (set_active_page patch),
+          double-click renames inline, + adds a page (add_page patch), and the
+          chip context menu duplicates / deletes. NOTE (v1): duplicate creates
+          a same-named EMPTY page — copying a page's layer tree needs a
+          page-children patch op that doesn't exist yet. */}
+      {pages.length > 0 && (
+        <div className="w-24 flex-shrink-0 border-r ac-border-subtle flex flex-col" data-ac-pages-column>
+          <div className="px-2 py-2 border-b ac-border-subtle text-[9px] font-semibold uppercase tracking-wide ac-text-4">
+            Pages
+          </div>
+          <div className="flex-1 overflow-y-auto py-1 ac-hide-scrollbar">
+            {pages.map((page, idx) => (
+              <ContextMenu key={page.id}>
+                <ContextMenuTrigger asChild>
+                  <div
+                    data-ac-page={page.id}
+                    className={`mx-1 mb-0.5 px-1.5 py-1 rounded text-[10px] cursor-pointer ac-transition flex items-center gap-1 ${
+                      idx === (document.activePageIndex ?? 0)
+                        ? 'bg-[var(--ac-accent-soft)] ac-text-1 font-medium'
+                        : 'ac-text-3 hover:ac-surface-1'
+                    }`}
+                    title={`${page.name} (${page.children?.length ?? 0} nodes)`}
+                    onClick={() =>
+                      sendPatch({ op: 'set_active_page', pageId: page.id, summary: `Switched to page "${page.name}"` })
+                    }
+                    onDoubleClick={() => setEditingPageId(page.id)}
+                  >
+                    <Files className="h-3 w-3 flex-shrink-0 ac-text-4" />
+                    {editingPageId === page.id ? (
+                      <Input
+                        autoFocus
+                        defaultValue={page.name}
+                        className="h-4 text-[10px] px-1 py-0 flex-1 min-w-0"
+                        onBlur={(e) => {
+                          const name = e.target.value.trim() || page.name;
+                          sendPatch({ op: 'rename_page', pageId: page.id, pageName: name, summary: `Renamed page to "${name}"` });
+                          setEditingPageId(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                          if (e.key === 'Escape') setEditingPageId(null);
+                        }}
+                      />
+                    ) : (
+                      <span className="truncate">{page.name}</span>
+                    )}
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-44">
+                  <ContextMenuItem onClick={() => setEditingPageId(page.id)}>
+                    <Edit2 className="h-3.5 w-3.5 mr-2" /> Rename page
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    onClick={() =>
+                      sendPatch({ op: 'add_page', pageName: `${page.name} copy`, summary: `Duplicated page "${page.name}" (empty v1)` })
+                    }
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate page <span className="ml-auto text-[9px] ac-text-4">empty</span>
+                  </ContextMenuItem>
+                  {pages.length > 1 && (
+                    <ContextMenuItem
+                      className="ac-text-danger"
+                      onClick={() => sendPatch({ op: 'delete_page', pageId: page.id, summary: `Deleted page "${page.name}"` })}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete page
+                    </ContextMenuItem>
+                  )}
+                </ContextMenuContent>
+              </ContextMenu>
+            ))}
+          </div>
+          <div className="p-1 border-t ac-border-subtle">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-6 text-[10px] ac-text-3 hover:ac-text-1"
+              title="Add a page"
+              aria-label="Add page"
+              onClick={() => sendPatch({ op: 'add_page', summary: 'Added a page' })}
+            >
+              <Plus className="h-3 w-3 mr-1" /> Page
+            </Button>
+          </div>
         </div>
-        {/* P0-12: Expand-all / Collapse-all buttons in the header. */}
-        <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={expandAll}
-            title="Expand all containers"
-            aria-label="Expand all"
-            className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1"
-          >
-            <ChevronsUpDown className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={collapseAll}
-            title="Collapse all containers"
-            aria-label="Collapse all"
-            className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1"
-          >
-            <ChevronsDownUp className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
-      {/* P0-12: Search-by-name input. Filters layers in real time. */}
-      <div className="px-2 py-1.5 border-b ac-border-subtle">
-        <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 ac-text-4" />
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search layers…"
-            className="h-6 text-[11px] pl-7 pr-2 ac-text-2 ac-surface-1 ac-border-subtle"
-          />
-        </div>
-      </div>
-      <ScrollArea className="flex-1 min-h-0 ac-hide-scrollbar">
-        {/* The scroll area's inner div is the drop target for "move to root".
-            We attach onDrop here so that dropping into the empty area below
-            the list (or between rows) promotes the dragged node to root. */}
-        <div
-          className="p-1 min-h-full"
-          onDragOver={(e) => {
-            // Allow drop only if the drag wasn't already handled by a row.
-            // We always preventDefault so the drop fires here when no row
-            // caught it.
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-          }}
-          onDrop={(e) => {
-            // Only handle if no row consumed the drop first. Rows call
-            // stopPropagation, so this only fires when dropping on empty area.
-            onRowDrop(e, null);
-          }}
+      )}
+
+      {/* ---- Layers column — tabs (Layers tree / Assets grid) -------------------
+          Phase 7 §H.1 — the left sidebar's Layers/Assets tabs. Tab state lives
+          in the panel (see `activeTab` above) so the cheat-sheet ⌥1/⌥2 chords
+          can drive it via the `ac:layers-set-tab` CustomEvent without a store
+          round-trip. Radix Tabs unmounts the inactive content so the grid
+          never pays for tree reconciliation while the user is on Layers, and
+          vice-versa. */}
+      <div className="flex flex-col flex-1 min-w-0 ac-hide-scrollbar">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v === 'assets' ? 'assets' : 'layers')}
+          className="flex-1 flex flex-col min-h-0 gap-0"
+          data-ac-layers-tabs=""
         >
-          {sortedTop.length === 0 ? (
-            <div className="px-3 py-8 text-center">
-              <p className="text-[11px] font-medium ac-text-3 mb-1">No nodes yet</p>
-              <p className="text-[11px] ac-text-4">Ask the agent to create something, or use the toolbar.</p>
+          <div className="flex items-center justify-between px-2 py-1.5 border-b ac-border-subtle gap-1">
+            <TabsList className="h-7" data-ac-tabs-list="">
+              <TabsTrigger value="layers" data-ac-tab-trigger="layers" className="text-[11px] gap-1 px-2">
+                <Layers className="h-3 w-3" />
+                Layers
+                <span className="text-[9px] ac-text-4 font-normal">{nodeCount}</span>
+              </TabsTrigger>
+              <TabsTrigger value="assets" data-ac-tab-trigger="assets" className="text-[11px] gap-1 px-2">
+                <Boxes className="h-3 w-3" />
+                Assets
+                <span className="text-[9px] ac-text-4 font-normal">{componentEntries.length}</span>
+              </TabsTrigger>
+            </TabsList>
+            {/* Expand-all / Collapse-all buttons in the header — Layers only. */}
+            {activeTab === 'layers' && (
+              <div className="flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={expandAll}
+                  title="Expand all containers"
+                  aria-label="Expand all"
+                  className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1"
+                >
+                  <ChevronsUpDown className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={collapseAll}
+                  title="Collapse all containers"
+                  aria-label="Collapse all"
+                  className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1"
+                >
+                  <ChevronsDownUp className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <TabsContent value="layers" className="flex-1 flex flex-col min-h-0 outline-none" data-ac-layers-tab="">
+            {/* P0-12: Search-by-name input. Filters layers in real time. */}
+            <div className="px-2 py-1.5 border-b ac-border-subtle">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 ac-text-4" />
+                <Input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search layers…"
+                  className="h-6 text-[11px] pl-7 pr-2 ac-text-2 ac-surface-1 ac-border-subtle"
+                />
+              </div>
             </div>
-          ) : (
-            sortedTop.map((shape) => renderShape(shape, 0))
-          )}
-        </div>
-      </ScrollArea>
-      {/* .pen design-system summary footer */}
-      <div className="border-t ac-border-subtle px-3 py-1.5 flex items-center gap-1.5 text-[10px] ac-text-4">
-        <Braces className="h-3 w-3 ac-text-4" aria-hidden />
-        <span>
-          {variableCount} variable{variableCount === 1 ? '' : 's'}
-          {' · '}
-          {themeAxisCount} theme axis{themeAxisCount === 1 ? '' : 'es'}
-        </span>
+            <ScrollArea className="flex-1 min-h-0 ac-hide-scrollbar">
+              {/* The scroll area's inner div is the drop target for "move to
+                  root". We attach onDrop here so that dropping into the empty
+                  area below the list (or between rows) promotes the dragged
+                  node to root. */}
+              <div
+                className="p-1 min-h-full"
+                onDragOver={(e) => {
+                  // Allow drop only if the drag wasn't already handled by a
+                  // row. We always preventDefault so the drop fires here when
+                  // no row caught it.
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                }}
+                onDrop={(e) => {
+                  // Only handle if no row consumed the drop first. Rows call
+                  // stopPropagation, so this only fires when dropping on
+                  // empty area.
+                  onRowDrop(e, null);
+                }}
+              >
+                {sortedTop.length === 0 ? (
+                  <div className="px-3 py-8 text-center">
+                    <p className="text-[11px] font-medium ac-text-3 mb-1">No nodes yet</p>
+                    <p className="text-[11px] ac-text-4">Ask the agent to create something, or use the toolbar.</p>
+                  </div>
+                ) : (
+                  sortedTop.map((shape) => renderShape(shape, 0))
+                )}
+              </div>
+            </ScrollArea>
+            {/* .pen design-system summary footer */}
+            <div className="border-t ac-border-subtle px-3 py-1.5 flex items-center gap-1.5 text-[10px] ac-text-4">
+              <Braces className="h-3 w-3 ac-text-4" aria-hidden />
+              <span>
+                {variableCount} variable{variableCount === 1 ? '' : 's'}
+                {' · '}
+                {themeAxisCount} theme axis{themeAxisCount === 1 ? '' : 'es'}
+                {pages.length > 0 ? ` · ${pages.length} page${pages.length === 1 ? '' : 's'}` : ''}
+              </span>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="assets" className="flex-1 min-h-0 outline-none" data-ac-assets-tab="">
+            {/* Assets grid — Phase 7 §H.1. Each card is an HTML5-draggable
+                component master; dropping on the canvas places an instance
+                (PenRef) at the cursor via the `place_instance` patch. */}
+            <ScrollArea className="h-full min-h-0 ac-hide-scrollbar">
+              {componentEntries.length === 0 ? (
+                <div className="px-4 py-10 text-center" data-ac-assets-empty="">
+                  <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-md ac-surface-2 ac-text-4">
+                    <Package className="h-4 w-4" />
+                  </div>
+                  <p className="text-[11px] font-medium ac-text-3 mb-1">No components yet</p>
+                  <p className="text-[11px] ac-text-4 leading-relaxed">
+                    Create a component via the agent (<kbd className="text-[9px] px-1 rounded ac-surface-2">⌥⌘K</kbd>)
+                    or the <code className="text-[10px] px-1 rounded ac-surface-2">pen_create_component</code> tool,
+                    then drag a card onto the canvas to place an instance.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className="p-2 grid grid-cols-2 gap-2"
+                  data-ac-assets-grid=""
+                >
+                  {componentEntries.map(([id, node]) => {
+                    const name = (node as { name?: string }).name ?? 'Component';
+                    const color = componentThumbnailColor(node);
+                    return (
+                      <div
+                        key={id}
+                        data-ac-asset-card=""
+                        data-ac-asset-id={id}
+                        draggable
+                        onDragStart={(e) => onAssetDragStart(e, id, name)}
+                        title={`${name} — drag onto the canvas to place an instance`}
+                        aria-label={`Component: ${name}`}
+                        className="group rounded-md border ac-border-subtle ac-surface-1 hover:ac-surface-2 hover:border-[var(--ac-accent-border)] cursor-grab active:cursor-grabbing ac-transition overflow-hidden flex flex-col"
+                      >
+                        <div
+                          className="aspect-[4/3] w-full flex items-center justify-center"
+                          style={{
+                            backgroundColor: 'color-mix(in oklch, var(--ac-surface-0) 65%, transparent)',
+                            backgroundImage:
+                              'radial-gradient(circle, color-mix(in oklch, var(--ac-text-primary) 8%, transparent) 1px, transparent 1px)',
+                            backgroundSize: '8px 8px',
+                          }}
+                        >
+                          <div
+                            className="h-10 w-10 rounded shadow-sm"
+                            style={{ backgroundColor: color }}
+                            aria-hidden
+                          />
+                        </div>
+                        <div className="px-1.5 py-1 text-[10px] ac-text-2 truncate flex items-center gap-1">
+                          <ComponentIcon className="h-2.5 w-2.5 ac-text-4 flex-shrink-0" />
+                          <span className="truncate" data-ac-asset-name={id}>{name}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

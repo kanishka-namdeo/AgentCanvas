@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://christinevallaure.substack.com/p/agentic-ai-design-systems-and-figma",
+    "name": "Agentic AI, Design Systems & Figma: A Practical Guide.",
+    "snippet": "Mar 31, 2026 · Tools like Tokens Studio and Style Dictionary exist to help close that gap, transforming your tokens into CSS classes automatically, but the ...",
+    "host_name": "christinevallaure.substack.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=axoDn0QT4Xg",
+    "name": "Why Your Design System Needs an AI Strategy - YouTube",
+    "snippet": "Jun 16, 2026 · Why \"mostly right\" output causes rework and brand drift · The five stages of design system maturity, from ad hoc to fully agentic · Our agent- ...",
+    "host_name": "www.youtube.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.intodesignsystems.com/agentic-design-systems",
+    "name": "Agentic Design Systems: The Complete Guide",
+    "snippet": "An agentic design system is infrastructure that lets AI agents autonomously read, reason over and build with your components, tokens and guidelines.",
+    "host_name": "www.intodesignsystems.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.kaelig.fr/design-system-components-with-ai-agent-teams",
+    "name": "Building design system components with agent teams",
+    "snippet": "Apr 22, 2026 · The Code Writer has strict rules about tokens. No hardcoded colors, spacing, or typography – everything goes through CSS custom properties from ...",
+    "host_name": "www.kaelig.fr",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/keerthi-design_3b82f6-3b82f6-agenticdesignsystems-activity-7490368469784326145-jNmX",
+    "name": "AI-Readable Design Tokens for Agentic Design Systems - LinkedIn",
+    "snippet": "Aug 4, 2026 · Everything we do in modern design tokens stems from the foundational logic of cascading styles (CSS). AI is excellent for accelerating ...",
+    "host_name": "www.linkedin.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://builder.aws.com/content/2qlet7NAUR02ygnurN1O74CIwTN/agentic-ai-framework-on-aws-the-design-patterns-and-considerations",
+    "name": "Agentic AI on AWS, the design patterns and considerations",
+    "snippet": "Dec 26, 2024 · In this article, we will discuss Agentic AI, Its key components and AWS services mapping, common design patterns and the considerations. What is ...",
+    "host_name": "builder.aws.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://shreyasprakash.com/my-agentic-engineering-workflow",
+    "name": "My agentic engineering workflow (step by step) - Shreyas Prakash",
+    "snippet": "May 26, 2026 · Audit this project and make the design system LLM-readable. Step 1: Audit Scan every CSS/SCSS file. Create a tokens.css file with three layers: ...",
+    "host_name": "shreyasprakash.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.supernova.io/for-ai",
+    "name": "For AI agents | Supernova.io",
+    "snippet": "Supernova.io is the agentic design system platform that turns your tokens, components, documentation, and code patterns into connected intelligence",
+    "host_name": "www.supernova.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040451373-Guide-to-auto-layout",
+    "name": "Guide to auto layout – Figma Learn - Help Center",
+    "snippet": "To start using auto layout on designs, select one or more layers and press ⇧ Shift A or click Add auto layout from the right sidebar. you can apply constraints ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=1odqpkfkDL8",
+    "name": "A Guide to Auto Layout: Best Practices, Tips & Tricks | Figma - YouTube",
+    "snippet": "Dec 4, 2024 · Let's talk about auto layout. Auto layout can be confusing at times so in this video, Designer Advocate Lauren Byrne walks you through when ...",
+    "host_name": "www.youtube.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039832014-Design-prototype-and-explore-layer-properties-in-the-right-sidebar",
+    "name": "Design, prototype, and explore layer properties in the right sidebar",
+    "snippet": "Constraints · Layout guides · Component properties · Instance · Auto layout · Blend Modes · Text · Fill · Stroke · Effects · Export settings. Prototype.",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxcel.com/lessons/figma-right-left-sidebars-390",
+    "name": "Figma Right & Left Sidebars Interactive Lesson - Uxcel",
+    "snippet": "When you select an element on the canvas, the right sidebar shows its properties, like size, position, color, and effects, which you can adjust directly.",
+    "host_name": "uxcel.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/tf87cv/why_my_auto_layout_menu_doesnt_allow_me_to_choose",
+    "name": "Why my auto layout menu doesn't allow me to choose \"left and right",
+    "snippet": "Mar 16, 2022 · Why my auto layout menu doesn't allow me to choose \"left and right\" in the \"constraints and resize\" panel? feedback.",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=1dRhdiLVLV0",
+    "name": "Figma Sidebar Build: Power User Tips & Tricks! - YouTube",
+    "snippet": "Jan 22, 2025 · The Figma sidebar component is a powerful tool for streamlining your design portfolio or design system. Using Figma variables and basic UI ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/animaapp/posts/3968391593252291",
+    "name": "Why does Figma design export have layout issues? - Facebook",
+    "snippet": "May 27, 2021 · Is it possible you've marked “use Figma constraints”? Tried the “auto layout” feature as well. Set resizing rules early Hug / Fill / Fixed. ...",
+    "host_name": "www.facebook.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://designcode.io/figma-handbook-sections",
+    "name": "Figma Sections - Figma Handbook - Design+Code",
+    "snippet": "Create a section by dragging it onto the objects, then resize it by clicking on a corner of the section and dragging it to the desired size Figma Sections image ...",
+    "host_name": "designcode.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

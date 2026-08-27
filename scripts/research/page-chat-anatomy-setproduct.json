@@ -1,0 +1,46 @@
+{
+  "code": 200,
+  "data": {
+    "description": "The requested page does not exist.",
+    "external": {
+      "apple-touch-icon": {
+        "https://www.setproduct.com/images/fav-256.webp": {}
+      },
+      "icon": {
+        "https://www.setproduct.com/images/fav-32.webp": {
+          "type": "image/x-icon"
+        }
+      },
+      "prefetch": {
+        "https://www.setproduct.com/_next/static/chunks/08x0xhlpnyg-d.js": {
+          "as": "script"
+        }
+      },
+      "preload": {
+        "https://www.setproduct.com/_next/static/chunks/11w.cdjw3g1lk.css": {
+          "as": "style"
+        }
+      }
+    },
+    "html": "<html lang=\"en\" data-scroll-behavior=\"smooth\"><head><meta charset=\"utf-8\" data-next-head=\"\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" data-next-head=\"\"><title data-next-head=\"\">Page Not Found | Setproduct</title><meta content=\"The requested page does not exist.\" name=\"description\" data-next-head=\"\"><link href=\"/images/fav-32.webp\" rel=\"shortcut icon\" type=\"image/x-icon\"><link href=\"/images/fav-256.webp\" rel=\"apple-touch-icon\"><link rel=\"preload\" href=\"/_next/static/chunks/11w.cdjw3g1lk.css\" as=\"style\"><link href=\"/css/normalize.css\" rel=\"stylesheet\"><link href=\"/css/webflow.css\" rel=\"stylesheet\"><link href=\"/css/setproduct.webflow.shared.css\" rel=\"stylesheet\"><link href=\"https://cdn.jsdelivr.net/npm/@splidejs/splide@3.2.2/dist/css/splide-core.min.css\" rel=\"stylesheet\"><link rel=\"stylesheet\" href=\"/_next/static/chunks/11w.cdjw3g1lk.css\" data-n-g=\"\"><noscript data-n-css=\"\"></noscript><script type=\"text/javascript\" async=\"\" src=\"https://www.googletagmanager.com/gtag/js?id=G-QNZTV1KZQP&amp;cx=c&amp;gtm=4e68o1\"></script><script src=\"/_next/static/chunks/0qzp_2l760upv.js\" defer=\"\"></script><script src=\"/_next/static/chunks/0uw~ov22uo1v0.js\" defer=\"\"></script><script src=\"/_next/static/chunks/13bbaij9wfa8o.js\" defer=\"\"></script><script src=\"/_next/static/chunks/0d.q8nx00yzc-.js\" defer=\"\"></script><script src=\"/_next/static/chunks/turbopack-0k2s75a.6tlta.js\" defer=\"\"></script><script src=\"/_next/static/chunks/0w2gwmu-hzy7h.js\" defer=\"\"></script><script src=\"/_next/static/chunks/turbopack-0d_x6g~ww5yu0.js\" defer=\"\"></script><script src=\"/_next/static/tbUbjOrsnvbDl1ySz2Dqf/_buildManifest.js\" defer=\"\"></script><script src=\"/_next/static/tbUbjOrsnvbDl1ySz2Dqf/_ssgManifest.js\" defer=\"\"></script><script src=\"/_next/static/tbUbjOrsnvbDl1ySz2Dqf/_clientMiddlewareManifest.js\" defer=\"\"></script><link as=\"script\" rel=\"prefetch\" href=\"/_next/static/chunks/08x0xhlpnyg-d.js\"><script src=\"/_next/static/chunks/15epspcpnq~mp.js\"></script><script src=\"/_next/static/chunks/01j1cnzk_xtvt.js\"></script><script src=\"/_next/static/chunks/0~6l601g35ku..js\"></script><link rel=\"stylesheet\" href=\"/_next/static/chunks/13pqw0j7.gaen.css\"><script src=\"/_next/static/chunks/turbopack-16nj.o0u7fbow.js\"></script><script src=\"https://assets.gumroad.com/js/gumroad-bundle.js\" charset=\"utf-8\"></script><link rel=\"stylesheet\" href=\"https://assets.gumroad.com/vite/assets/entrypoints/overlay-vBlYRChe.css\"><script type=\"text/javascript\" async=\"\" src=\"https://googleads.g.doubleclick.net/pagead/viewthroughconversion/951975411/?random=1787745827020&amp;cv=11&amp;fst=1787745827020&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=gtag.config&amp;gtm=45je68o1v9101792516z8832230540za20gzb832230540zd832230540xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=115616985~115938466~115938469~118897920~118897930~119259605~119367802~119367810~120213116~120385422&amp;u_w=1280&amp;u_h=1280&amp;url=https%3A%2F%2Fwww.setproduct.com%2Fblog%2Fai-chat-interface-design&amp;rcb=14&amp;frm=0&amp;tiba=Page%20Not%20Found%20%7C%20Setproduct&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1833142042.1787745827&amp;uaa=x86&amp;uab=64&amp;uafvl=Not%253DA%253FBrand%3B99.0.0.0%7CGoogle%2520Chrome%3B151.0.7922.173%7CChromium%3B151.0.7922.173&amp;uamb=0&amp;uam=&amp;uap=Linux&amp;uapv=&amp;uaw=0&amp;data=event%3Dgtag.config&amp;ept=9&amp;rfmt=3&amp;fmt=4\"></script></head><body><div id=\"__next\"><main style=\"align-items:center;display:flex;flex-direction:column;gap:12px;justify-content:center;min-height:100vh;padding:24px;text-align:center\"><h1>404</h1><p>This page does not exist.</p><a href=\"/\">Go to homepage</a></main></div><script id=\"__NEXT_DATA__\" type=\"application/json\">{\"props\":{\"pageProps\":{}},\"page\":\"/404\",\"query\":{},\"buildId\":\"tbUbjOrsnvbDl1ySz2Dqf\",\"nextExport\":true,\"autoExport\":true,\"isFallback\":false,\"scriptLoader\":[]}</script><script src=\"https://www.googletagmanager.com/gtag/js?id=GTM-WF2T8PJ\" data-nscript=\"afterInteractive\"></script><script id=\"ga-init\" data-nscript=\"afterInteractive\">\n              window.dataLayer = window.dataLayer || [];\n              function gtag(){dataLayer.push(arguments);}\n              gtag('js', new Date());\n              gtag('config', 'GTM-WF2T8PJ', {\n                send_page_view: false,\n                page_path: window.location.pathname,\n              });\n            </script><script src=\"https://gumroad.com/js/gumroad.js\" data-nscript=\"afterInteractive\" data-styles-url=\"https://assets.gumroad.com/vite/assets/entrypoints/design-Bc226Pbk.css\"></script><next-route-announcer><p aria-live=\"assertive\" id=\"__next-route-announcer__\" role=\"alert\" style=\"border: 0px; clip: rect(0px, 0px, 0px, 0px); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; top: 0px; width: 1px; white-space: nowrap; overflow-wrap: normal;\"></p></next-route-announcer><script src=\"/_next/static/chunks/08x0xhlpnyg-d.js\"></script><div style=\"z-index: 999999; position: absolute;\"></div></body></html>",
+    "httpStatus": 404,
+    "httpStatusText": "",
+    "metadata": {
+      "description": "The requested page does not exist.",
+      "lang": "en",
+      "viewport": "width=device-width, initial-scale=1"
+    },
+    "title": "Page Not Found | Setproduct",
+    "url": "https://www.setproduct.com/blog/ai-chat-interface-design/",
+    "usage": {
+      "tokens": 1643
+    },
+    "warning": "Target URL returned error 404: Not Found"
+  },
+  "meta": {
+    "usage": {
+      "tokens": 1643
+    }
+  },
+  "status": 20000
+}

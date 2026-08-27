@@ -71,6 +71,13 @@ export async function POST(req: NextRequest) {
         // Plugin configuration (Phase 5).
         enabledPlugins: Array.isArray(body.settings.enabledPlugins) ? body.settings.enabledPlugins : undefined,
         mcpServers: Array.isArray(body.settings.mcpServers) ? body.settings.mcpServers : undefined,
+        // Design-System Registry pack (e.g. 'shadcn-default', 'vercel-geist',
+        // 'mantine-default'). Forwarded as-is; the runner uses it to append
+        // the design-system prompt fragment so the agent references
+        // `var(--color-accent)` etc. from the chosen pack. The Canvas
+        // component injects the pack's tokens.css on the world root so
+        // those variables resolve at render time.
+        pack: typeof body.settings.pack === 'string' ? body.settings.pack : undefined,
       }
     : undefined;
 

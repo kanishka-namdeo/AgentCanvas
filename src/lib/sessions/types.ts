@@ -1,9 +1,12 @@
 // Agent session management types.
 //
-// Models the agent-driven canvas workflow as: a Session contains many Runs;
-// each Run is one user prompt → agent execution; each Run emits Messages and
-// ToolCallRecords; at the end of each Run we capture a Snapshot of the canvas
-// document so we can restore / fork / undo.
+// Models the agent-driven canvas workflow under the SHARED-CANVAS model:
+// the canvas Document is the single shared artifact; every Session is a
+// conversation context attached to it. A Session contains Runs; each Run is
+// one user prompt → agent execution; each Run emits Messages and
+// ToolCallRecords. Snapshots are DOCUMENT-scoped (the canvas timeline),
+// carrying sessionId/runId/messageId provenance so the History panel can
+// show which chat produced each entry.
 //
 // Design references (see research notes):
 //   - OpenAI Assistants Run lifecycle (queued → in_progress → awaiting_tool
@@ -23,11 +26,12 @@ import type { CanvasDocument } from '@/lib/canvas/types';
 
 export type SessionStatus = 'active' | 'archived';
 
-/** A single conversation/workspace scoped to one canvas document. */
+/** A single conversation scoped to one shared canvas document. */
 export interface Session {
   id: string;
-  /// Stable document id this session belongs to. Multiple sessions can
-  /// share the same documentId (the user creates new chats inside one doc).
+  /// Stable document id this conversation is attached to. Multiple sessions
+  /// share one document (the canvas is the shared artifact — switching chats
+  /// never swaps it).
   documentId: string;
   /// LLM-generated or user-edited title. Auto-set from the first user
   /// message; user can rename at any time.
@@ -38,14 +42,13 @@ export interface Session {
   pinned: boolean;
   starred: boolean;
 
-  // Branching (v0 fork model)
+  // Branching (v0 fork model — conversation forks share the canvas)
   parentId: string | null;
   forkedFromMessageId: string | null;
   forkedFromSnapshotId: string | null;
   isRoot: boolean;
 
   // Active pointers
-  currentSnapshotId: string | null;
   currentRunId: string | null;
   lastRunId: string | null;
 
@@ -60,7 +63,6 @@ export interface Session {
   // Relations (denormalized ids; objects joined at read time)
   messageIds: string[];
   runIds: string[];
-  snapshotIds: string[];
 
   // Timestamps (ISO strings)
   createdAt: string;
@@ -150,6 +152,10 @@ export interface Message {
   toolCalls: ToolCallRecord[];
   status: MessageStatus;
   error?: string;
+  /// User feedback on an assistant message (Cursor thumbs up/down pattern).
+  /// Optional + client-local: absent = not rated; toggling back to the same
+  /// value clears it.
+  feedback?: 'up' | 'down';
   /// Snapshot captured at the end of this message's turn (assistant only).
   snapshotId: string | null;
 
@@ -193,12 +199,18 @@ export type SnapshotSource =
   | 'manual';
 
 /**
- * A captured canvas state. Stored inline (small enough for a demo; in
- * production this would be a compressed blob in object storage).
+ * A captured canvas state. DOCUMENT-scoped (shared canvas model): the
+ * snapshot timeline belongs to the canvas, not to any one chat. Stored
+ * inline (small enough for a demo; in production this would be a compressed
+ * blob in object storage).
  */
 export interface Snapshot {
   id: string;
-  sessionId: string;
+  /// Owning document — all chats on this canvas share the timeline.
+  documentId: string;
+  /// Provenance: the chat whose turn produced this snapshot. Informational
+  /// only — the session may since have been deleted. Null for system captures.
+  sessionId: string | null;
   parentSnapshotId: string | null;
   source: SnapshotSource;
   sourceRunId: string | null;
@@ -206,6 +218,11 @@ export interface Snapshot {
 
   /// Deep copy of the canvas document at capture time.
   document: CanvasDocument;
+
+  /// True when hydrated from the server LIST endpoint (which omits the heavy
+  /// document JSON) — a metadata placeholder until fetchDocumentSnapshot
+  /// fills it in on restore. Boot-time hydration skips remote entries.
+  remote?: boolean;
 
   /// Number of shapes (for quick display in the snapshot list).
   nodeCount: number;

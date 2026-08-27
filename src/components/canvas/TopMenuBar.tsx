@@ -22,6 +22,8 @@ import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape } from '@/lib/canvas/types';
 import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, downloadDataUrl, copyToClipboard } from '@/lib/canvas/export';
+import { chordFor, SHORTCUTS_BY_ACTION, currentPlatform } from '@/lib/canvas/shortcuts';
+import { VersionHistoryDialog } from '@/components/canvas/VersionHistoryDialog';
 import {
   Menubar, MenubarMenu, MenubarTrigger, MenubarContent, MenubarItem,
   MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubTrigger,
@@ -40,6 +42,7 @@ interface TopMenuBarProps {
   onExportPen?: () => void;
   onImportPen?: () => void;
   onOpenShortcuts?: () => void;
+  onOpenDesignSystems?: () => void;
 }
 
 export function TopMenuBar(props: TopMenuBarProps) {
@@ -52,7 +55,24 @@ export function TopMenuBar(props: TopMenuBarProps) {
   const setToolMode = useCanvasStore((s) => s.setToolMode);
   const connected = useCanvasStore((s) => s.connected);
   const viewerCount = useCanvasStore((s) => s.viewerCount);
+  // Phase 7 view flags (⌘' pixel grid / ⌘⇧' snap / ⌘⇧O outline / View-menu rulers).
+  const pixelGridVisible = useCanvasStore((s) => s.pixelGridVisible);
+  const snapToPixel = useCanvasStore((s) => s.snapToPixel);
+  const outlineMode = useCanvasStore((s) => s.outlineMode);
+  const rulersVisible = useCanvasStore((s) => s.rulersVisible);
+  const toggleViewFlag = useCanvasStore((s) => s.toggleViewFlag);
   const clipboard = useClipboard();
+  // Version-history dialog (Phase 7 group C — D14): File → "Version history…".
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const platform = currentPlatform();
+  const chord = (action: string) => {
+    const def = SHORTCUTS_BY_ACTION.get(action);
+    return def ? chordFor(def, platform) : undefined;
+  };
+  // Zoom menu items route through the Canvas shell (viewport state is
+  // shell-local) via the 'ac:canvas-zoom' CustomEvent.
+  const zoomTo = (kind: 'fit' | 'selection' | '100' | 'in' | 'out') =>
+    window.dispatchEvent(new CustomEvent('ac:canvas-zoom', { detail: { kind } }));
 
   // Helper to drop a shape at viewport center (mirrors page.tsx logic).
   const dropShape = (type: Shape['type'], w: number, h: number) => {
@@ -97,6 +117,15 @@ export function TopMenuBar(props: TopMenuBarProps) {
       sendPatch({ op: 'ungroup', shapeIds: groups.map((g) => g.id), summary: `Ungrouped ${groups.length} group(s)` });
     }
   };
+  // Phase 7: Frame selection (⌥⌘G) — wrap the selection in a FRAME. Reuses
+  // the well-tested `group` op (bbox + coordinate remap, explicit groupId so
+  // we can address the wrapper) and then flips the wrapper's type to 'frame'.
+  const frameSelection = () => {
+    if (selectedIds.length === 0) return;
+    const frameId = `frame-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    sendPatch({ op: 'group', groupId: frameId, shapeIds: selectedIds, summary: `Framed ${selectedIds.length} shape(s)` });
+    sendPatch({ op: 'update', shapeId: frameId, shape: { type: 'frame', name: 'Frame' } as Partial<Shape>, summary: 'Frame selection' });
+  };
 
   return (
     <div className="flex items-center h-7 px-2 border-b ac-border-subtle ac-surface-0 text-[11px] flex-shrink-0">
@@ -130,10 +159,13 @@ export function TopMenuBar(props: TopMenuBarProps) {
               Export as SVG
             </MenubarItem>
             <MenubarItem onClick={async () => {
-              // Rasterizes via offscreen canvas (2x) — produces a REAL .png
-              // download. Previously this opened an SVG data URL in a tab and
-              // claimed it was a PNG export.
-              const dataUrl = await exportPngDataUrl(document.shapes);
+              // Phase 5 contract (spec §5.4): primary path captures the LIVE
+              // DOM-rendered world via html-to-image (matches what the agent
+              // sees via agent:screenshot_request); falls back to the SVG
+              // projection when no DOM world is mounted (SVG-compat renderer,
+              // tainted canvas, etc.).
+              const worldElement = useCanvasStore.getState().worldElement;
+              const dataUrl = await exportPngDataUrl(document.shapes, { worldElement, backgroundColor: document.background, scale: 2 });
               if (!dataUrl) { toast.error('Nothing to export', { description: 'Draw something first.' }); return; }
               const name = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
               if (dataUrl.startsWith('data:image/png')) {
@@ -184,6 +216,9 @@ export function TopMenuBar(props: TopMenuBarProps) {
               </MenubarSubContent>
             </MenubarSub>
             <MenubarSeparator />
+            <MenubarItem onClick={() => setVersionHistoryOpen(true)}>
+              Version history… <MenubarShortcut>{chord('save-checkpoint')}</MenubarShortcut>
+            </MenubarItem>
             <MenubarItem onClick={props.onOpenSettings}>
               Settings… <MenubarShortcut>⌘,</MenubarShortcut>
             </MenubarItem>
@@ -246,30 +281,64 @@ export function TopMenuBar(props: TopMenuBarProps) {
           </MenubarContent>
         </MenubarMenu>
 
-        {/* === View === */}
+        {/* === View === (Phase 7 — Appendix H §H.1 View items) */}
         <MenubarMenu>
           <MenubarTrigger className="h-7 px-2 text-[11px] ac-text-2 hover:ac-surface-1 ac-transition cursor-default rounded-sm">
             View
           </MenubarTrigger>
           <MenubarContent>
             <MenubarItem onClick={props.onToggleLeftPanel}>
-              Toggle layers panel <MenubarShortcut>⌘⇧1</MenubarShortcut>
+              Toggle layers panel <MenubarShortcut>{chord('toggle-left-panel')}</MenubarShortcut>
             </MenubarItem>
             <MenubarItem onClick={props.onToggleRightPanel}>
-              Toggle chat panel <MenubarShortcut>⌘⇧2</MenubarShortcut>
+              Toggle chat panel <MenubarShortcut>{chord('toggle-right-panel')}</MenubarShortcut>
             </MenubarItem>
             <MenubarItem onClick={props.onToggleZen}>
-              Toggle zen / UI <MenubarShortcut>⌘\</MenubarShortcut>
+              Toggle zen / UI <MenubarShortcut>{chord('zen')}</MenubarShortcut>
             </MenubarItem>
             <MenubarItem onClick={props.onToggleTheme}>
-              Toggle dark mode <MenubarShortcut>⌘⇧L</MenubarShortcut>
+              Toggle dark mode
             </MenubarItem>
             <MenubarSeparator />
-            <MenubarItem onClick={() => toast.message('Show grid — toggle not yet wired')}>
-              Show grid
+            <MenubarItem onClick={() => zoomTo('in')}>
+              Zoom in <MenubarShortcut>{chord('zoom.in')}</MenubarShortcut>
             </MenubarItem>
-            <MenubarItem onClick={() => toast.message('Snap to grid — toggle not yet wired')}>
-              Snap to grid
+            <MenubarItem onClick={() => zoomTo('out')}>
+              Zoom out <MenubarShortcut>{chord('zoom.out')}</MenubarShortcut>
+            </MenubarItem>
+            <MenubarItem onClick={() => zoomTo('fit')}>
+              Zoom to fit <MenubarShortcut>{chord('zoom.fit')}</MenubarShortcut>
+            </MenubarItem>
+            <MenubarItem onClick={() => zoomTo('selection')}>
+              Zoom to selection <MenubarShortcut>{chord('zoom.selection')}</MenubarShortcut>
+            </MenubarItem>
+            <MenubarItem onClick={() => zoomTo('100')}>
+              100% <MenubarShortcut>{chord('zoom.100')}</MenubarShortcut>
+            </MenubarItem>
+            <MenubarSeparator />
+            {/* Phase 7 §H.2 rulers — top + left pixel rulers showing
+                canvas-space coordinates with adaptive tick marks.
+                DOM-renderer-only; toggled via View menu (Figma ⌘R is
+                rename, so we don't steal that chord — View menu only). */}
+            <MenubarItem onClick={() => toggleViewFlag('rulersVisible')}>
+              {rulersVisible ? '✓ ' : ''}Rulers
+            </MenubarItem>
+            <MenubarItem onClick={() => toggleViewFlag('pixelGridVisible')}>
+              {pixelGridVisible ? '✓ ' : ''}Pixel grid <MenubarShortcut>{chord('pixel-grid')}</MenubarShortcut>
+            </MenubarItem>
+            <MenubarItem onClick={() => toggleViewFlag('snapToPixel')}>
+              {snapToPixel ? '✓ ' : ''}Snap to pixel grid <MenubarShortcut>{chord('snap-to-pixel')}</MenubarShortcut>
+            </MenubarItem>
+            <MenubarItem onClick={() => toggleViewFlag('outlineMode')}>
+              {outlineMode ? '✓ ' : ''}Outline mode <MenubarShortcut>{chord('outline-mode')}</MenubarShortcut>
+            </MenubarItem>
+            <MenubarSeparator />
+            {/* Design-System Registry picker — opens a modal where the
+                user picks which pack the agent should use for subsequent
+                UI generation. Replaces per-turn ad-hoc palette/font
+                decisions with a single deliberate choice. */}
+            <MenubarItem onClick={props.onOpenDesignSystems}>
+              Design Systems…
             </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
@@ -302,8 +371,8 @@ export function TopMenuBar(props: TopMenuBarProps) {
             <MenubarItem onClick={() => toast.message('Image upload — use the chat panel or drag-and-drop')}>
               Image… <MenubarShortcut>⌘⇧I</MenubarShortcut>
             </MenubarItem>
-            <MenubarItem onClick={() => toast.message('Create component — use the chat panel or Layers right-click')}>
-              Component… <MenubarShortcut>⌘⇧C</MenubarShortcut>
+            <MenubarItem onClick={() => toast.message('Create component — select a frame/group and press ⌥⌘K, or use the Layers right-click')}>
+              Component… <MenubarShortcut>{chord('create-component')}</MenubarShortcut>
             </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
@@ -334,23 +403,29 @@ export function TopMenuBar(props: TopMenuBarProps) {
               Send to back <MenubarShortcut>⌘⇧[</MenubarShortcut>
             </MenubarItem>
             <MenubarSeparator />
+            {/* Phase 7: Frame selection (⌥⌘G) — wraps in a real FRAME. */}
+            <MenubarItem onClick={frameSelection}>
+              Frame selection <MenubarShortcut>{chord('frame-selection')}</MenubarShortcut>
+            </MenubarItem>
             <MenubarSub>
               <MenubarSubTrigger>Align</MenubarSubTrigger>
               <MenubarSubContent>
-                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'left', summary: 'Align left' })}>Left</MenubarItem>
-                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'center_h', summary: 'Align center H' })}>Center horizontally</MenubarItem>
-                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'right', summary: 'Align right' })}>Right</MenubarItem>
+                {/* Phase 7: Figma-canonical labels + canonical alignKind values
+                    (Appendix G §G.2 — the patch applier normalizes them). */}
+                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'LEFT', summary: 'Align left' })}>Align left <MenubarShortcut>{chord('align.left')}</MenubarShortcut></MenubarItem>
+                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'HCENTER', summary: 'Align horizontal centers' })}>Align horizontal centers <MenubarShortcut>{chord('align.hcenter')}</MenubarShortcut></MenubarItem>
+                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'RIGHT', summary: 'Align right' })}>Align right <MenubarShortcut>{chord('align.right')}</MenubarShortcut></MenubarItem>
                 <MenubarSeparator />
-                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'top', summary: 'Align top' })}>Top</MenubarItem>
-                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'center_v', summary: 'Align center V' })}>Center vertically</MenubarItem>
-                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'bottom', summary: 'Align bottom' })}>Bottom</MenubarItem>
+                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'TOP', summary: 'Align top' })}>Align top <MenubarShortcut>{chord('align.top')}</MenubarShortcut></MenubarItem>
+                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'VCENTER', summary: 'Align vertical centers' })}>Align vertical centers <MenubarShortcut>{chord('align.vcenter')}</MenubarShortcut></MenubarItem>
+                <MenubarItem onClick={() => selectedIds.length >= 2 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'BOTTOM', summary: 'Align bottom' })}>Align bottom <MenubarShortcut>{chord('align.bottom')}</MenubarShortcut></MenubarItem>
               </MenubarSubContent>
             </MenubarSub>
             <MenubarSub>
               <MenubarSubTrigger>Distribute</MenubarSubTrigger>
               <MenubarSubContent>
-                <MenubarItem onClick={() => selectedIds.length >= 3 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'distribute_h', summary: 'Distribute horizontally' })}>Horizontally</MenubarItem>
-                <MenubarItem onClick={() => selectedIds.length >= 3 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'distribute_v', summary: 'Distribute vertically' })}>Vertically</MenubarItem>
+                <MenubarItem onClick={() => selectedIds.length >= 3 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'DISTRIBUTE_H', summary: 'Distribute horizontally' })}>Horizontally</MenubarItem>
+                <MenubarItem onClick={() => selectedIds.length >= 3 && sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: 'DISTRIBUTE_V', summary: 'Distribute vertically' })}>Vertically</MenubarItem>
               </MenubarSubContent>
             </MenubarSub>
             <MenubarSeparator />
@@ -360,7 +435,7 @@ export function TopMenuBar(props: TopMenuBarProps) {
                 if (s) sendPatch({ op: 'update', shapeId: s.id, shape: { locked: !s.locked }, summary: `${s.locked ? 'Unlocked' : 'Locked'} ${s.name}` });
               }
             }}>
-              Lock <MenubarShortcut>⌘L</MenubarShortcut>
+              Lock <MenubarShortcut>{chord('lock')}</MenubarShortcut>
             </MenubarItem>
             <MenubarItem onClick={() => {
               if (selectedIds.length === 1) {
@@ -368,7 +443,7 @@ export function TopMenuBar(props: TopMenuBarProps) {
                 if (s) sendPatch({ op: 'update', shapeId: s.id, shape: { visible: !s.visible }, summary: `${s.visible ? 'Hid' : 'Showed'} ${s.name}` });
               }
             }}>
-              Hide <MenubarShortcut>⌘;</MenubarShortcut>
+              Hide <MenubarShortcut>{chord('hide')}</MenubarShortcut>
             </MenubarItem>
             <MenubarSeparator />
             <MenubarItem onClick={() => toast.message('Reparent to… — use the Layers panel drag-and-drop or right-click')}>
@@ -402,6 +477,9 @@ export function TopMenuBar(props: TopMenuBarProps) {
           </MenubarContent>
         </MenubarMenu>
       </Menubar>
+
+      {/* Version history (Phase 7 group C — defect D14) */}
+      <VersionHistoryDialog open={versionHistoryOpen} onOpenChange={setVersionHistoryOpen} />
 
       {/* Connection + viewer indicators — always visible (right-aligned). */}
       <div className="ml-auto flex items-center gap-2 pr-1">

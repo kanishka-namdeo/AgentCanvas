@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360038511293-Create-and-manage-pages",
+    "name": "Create and manage pages – Figma Learn - Help Center",
+    "snippet": "Anyone with can edit access to a file can create and manage pages. Design files can contain multiple pages, giving you more space to explore. You can view, ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/24005082123159-Create-and-manage-pages-in-FigJam",
+    "name": "Create and manage pages in FigJam - Figma Learn",
+    "snippet": "FigJam files can contain multiple pages, giving you more space to explore. Each page has a board where you arrange your sections and objects like stickies ...",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/1500005554982-Guide-to-files-and-folders",
+    "name": "Guide to files and folders – Figma Learn - Help Center",
+    "snippet": "Browse the following resources to learn more about creating and managing files: Create a new file File. Create and manage pages Files. Figma dynamically loads ...",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.captain-design.com/blog/figma-file-management-for-beginners-a-comprehensive-guide",
+    "name": "Figma File Management for Beginners: A Comprehensive Guide",
+    "snippet": "In this guide, we'll cover all the essential aspects of Figma file management — from creating new files to organizing, sharing, and even restoring deleted ...",
+    "host_name": "www.captain-design.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.quora.com/How-do-I-create-pages-in-a-Figma-file",
+    "name": "How do I create pages in a Figma file? - Quora",
+    "snippet": "Jan 12, 2023 · From the Layers sidebar -> select Page 1 in the top-right corner to add a page to your document. · In order to add a new page, click the + icon.",
+    "host_name": "www.quora.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=4QoDHMX0k6M&vl=en",
+    "name": "How to use Pages in Figma - YouTube",
+    "snippet": "Apr 15, 2022 · Figma pages Join the Bring Your ... manage your own UX projects. I will be setting assignments through the course which will help develop your ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/30925881896727-FD4B-Navigate-Figma-Design-files",
+    "name": "FD4B: Navigate Figma Design files",
+    "snippet": "The File tab gives you access to the pages and layers in your file. Use the Pages section to move between pages or add new ones.",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.digidop.com/blog/create-manage-figma-pages",
+    "name": "Create and Manage Your Pages in Figma - Digidop",
+    "snippet": "Mar 20, 2023 · Figma allows you to create multiple pages within a single file to structure your web design projects more effectively.",
+    "host_name": "www.digidop.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

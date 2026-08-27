@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/properties/nodes-id",
+    "name": "id | Developer Docs",
+    "snippet": "However, for use with the API, node ids must use colons. For example, if a Figma file URL has the node id 1-3 , you must convert it to 1:3 .",
+    "host_name": "developers.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/getting-node-id-from-figma-desktop-app-30509",
+    "name": "Getting node id from figma desktop app",
+    "snippet": "Feb 26, 2024 · I was trying to use the rest api from Figma in order to get data/document of a design file. I am able to successfully get the entire document.",
+    "host_name": "forum.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/report-a-problem-6/node-id-is-not-unique-32258",
+    "name": "Node Id is not unique - Figma Forum",
+    "snippet": "Jan 17, 2024 · Every node has an id property, which is unique within the document. If the id is invalid, or the node cannot be found (e.g. removed), returns ...",
+    "host_name": "forum.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/eonist/conduit/issues/196",
+    "name": "Issue #196 · eonist/conduit - Node-id assert - GitHub",
+    "snippet": "May 13, 2025 · Node IDs typically appear as numbers separated by colons (like 1:3 ) in the API context, or with hyphens (like 1-3 ) in URLs. For API format ( ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/community/plugin/1541403938438022694/copy-node-ids",
+    "name": "Copy Node IDs - Figma",
+    "snippet": "Aug 24, 2025 · A Figma plugin that extracts node information from selected layers in AI-friendly hierarchical JSON format. Optimized for design system analysis ...",
+    "host_name": "www.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/rest-api/file-endpoints",
+    "name": "Endpoints | Developer Docs",
+    "snippet": "The nodes are retrieved from the Figma file referenced to by :key . The node id and file key can be parsed from any Figma node url: https://www.figma.com ...",
+    "host_name": "developers.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.latenode.com/t/validate-figma-url-and-extract-file-node-ids-using-regex/20893",
+    "name": "Validate Figma URL and extract file/node IDs using regex",
+    "snippet": "Jun 4, 2025 · I'm working on a Node.js application that integrates with Figma's API. I need to validate URLs that users provide to make sure they're ...",
+    "host_name": "community.latenode.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.figma.com/docs/plugins/api/ComponentNode",
+    "name": "ComponentNode | Developer Docs",
+    "snippet": "The unique identifier of a node. For example, 1:3 . The node id can be used with methods such as figma.getNodeByIdAsync. This is a private API only available ...",
+    "host_name": "developers.figma.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,992 @@
+
+
+Property types | Developer Docs
+
+Skip to main content
+
+On this page
+
+Property types
+Some of the properties mentioned in the Node types section are custom Figma types. We've outlined the specifics of each of these property types below.
+
+Property typeDescription
+ | 
+Color​
+An RGBA color. | 
+An RGBA color.
+rNumberRed channel value, between 0 and 1
+gNumberGreen channel value, between 0 and 1
+bNumberBlue channel value, between 0 and 1
+aNumberAlpha channel value, between 0 and 1
+ | 
+RGBColor​
+An RGB color. | 
+An RGB color.
+rNumberRed channel value, between 0 and 1
+gNumberGreen channel value, between 0 and 1
+bNumberBlue channel value, between 0 and 1
+ | 
+ExportSetting​
+Format and size to export an asset at. | 
+suffixStringFile suffix to append to all filenames
+formatString
+Image type, as a string enum.
+JPG
+PNG
+SVG
+constraintConstraintConstraint that determines sizing of exported asset
+ | 
+Constraint​
+Sizing constraint for exports. | 
+typeString
+Constraint type, as a string enum.
+SCALE: Scale by value.
+WIDTH: Scale proportionally and set width to value.
+HEIGHT: Scale proportionally and set height to value.
+valueNumberSee type property for effect of this field.
+ | 
+Rectangle​
+A rectangle that expresses a bounding box in absolute coordinates. | 
+xNumberX coordinate of top left corner of the rectangle.
+yNumberY coordinate of top left corner of the rectangle.
+widthNumberWidth of the rectangle.
+heightNumberHeight of the rectangle.
+ | 
+ArcData​
+Information about the arc properties of an ellipse. 0° is the x axis and increasing angles rotate clockwise. | 
+startingAngleNumberStart of the sweep in radians.
+endingAngleNumberEnd of the sweep in radians.
+innerRadiusNumberInner radius value between 0 and 1.
+ | 
+BlendMode​
+Enum describing how layer blends with layers below. | 
+
+This type is a string enum with the following possible values.
+Normal blends:
+
+PASS_THROUGH (only applicable to objects with children)
+NORMAL
+Darken:
+DARKEN
+MULTIPLY
+LINEAR_BURN ("Plus darker" in Figma)
+COLOR_BURN
+Lighten:
+LIGHTEN
+SCREEN
+LINEAR_DODGE ("Plus lighter" in Figma)
+COLOR_DODGE
+Contrast:
+OVERLAY
+SOFT_LIGHT
+HARD_LIGHT
+Inversion:
+DIFFERENCE
+EXCLUSION
+Component:
+HUE
+SATURATION
+COLOR
+LUMINOSITY
+ | 
+MaskType​
+Enum describing how mask layer operates on the pixels of the layers it masks. | 
+This type is a string enum with the following possible values:
+ALPHA: The mask node's alpha channel will be used to determine the opacity of each pixel in the masked result.
+VECTOR: If the mask node has visible fill paints, every pixel inside the node's fill regions will be fully visible in the masked result. If the mask has visible stroke paints, every pixel inside the node's stroke regions will be fully visible in the masked result.
+LUMINANCE: The luminance value of each pixel of the mask node will be used to determine the opacity of that pixel in the masked result.
+ | 
+EasingType​
+Enum describing animation easing curves. | 
+This type is a string enum with the following possible values:
+EASE_IN: Ease in with an animation curve similar to CSS ease-in.
+EASE_OUT: Ease out with an animation curve similar to CSS ease-out.
+EASE_IN_AND_OUT: Ease in and then out with an animation curve similar to CSS ease-in-out.
+LINEAR: No easing, similar to CSS linear.
+GENTLE_SPRING: Gentle spring animation similar to react-spring.
+ | 
+FlowStartingPoint​
+A flow starting point used when launching a prototype to enter Presentation view. | 
+nodeIdStringUnique identifier specifying the frame.
+nameStringName of flow.
+ | 
+LayoutConstraint​
+Layout constraint relative to containing Frame. | 
+verticalString
+Vertical constraint, as a string enum.
+TOP: Node is laid out relative to top of the containing frame.
+BOTTOM: Node is laid out relative to bottom of the containing frame.
+CENTER: Node is vertically centered relative to containing frame.
+TOP_BOTTOM: Both top and bottom of node are constrained relative to containing frame (node stretches with frame).
+SCALE: Node scales vertically with containing frame.
+horizontalString
+Horizontal constraint, as a string enum.
+LEFT: Node is laid out relative to left of the containing frame.
+RIGHT: Node is laid out relative to right of the containing frame.
+CENTER: Node is horizontally centered relative to containing frame.
+LEFT_RIGHT: Both left and right of node are constrained relative to containing frame (node stretches with frame).
+SCALE: Node scales horizontally with containing frame.
+ | 
+LayoutGrid​
+Guides to align and place objects within a frame. | 
+patternString
+Orientation of the grid, as a string enum.
+COLUMNS: Vertical grid.
+ROWS: Horizontal grid.
+GRID: Square grid.
+sectionSizeNumberWidth of column grid or height of row grid or square grid spacing.
+visibleBooleanIs the grid currently visible?
+colorColorColor of the grid.
+The following properties are only meaningful for directional grids (COLUMNS or ROWS)
+alignmentString
+Positioning of grid, as a string enum.
+MIN: Grid starts at the left or top of the frame.
+STRETCH: Grid is stretched to fit the frame.
+CENTER: Grid is center aligned.
+gutterSizeNumberSpacing in between columns and rows.
+offsetNumberSpacing before the first column or row.
+countNumberNumber of columns or rows.
+boundVariablesMap<String, VariableAlias>A mapping of field to the VariableAlias of the bound variable.
+ | 
+Effect​
+A visual effect such as a shadow, blur, texture, or noise | 
+typeString
+Effect type, as a string enum.
+INNER_SHADOW
+DROP_SHADOW
+LAYER_BLUR
+BACKGROUND_BLUR
+TEXTURE
+NOISE
+visibleBooleanIs the effect active?
+radiusNumberRadius of the blur, shadow, or texture effect. For progressive blurs, this is the end radius of the blur.
+blendModeBlendModeBlend mode of the shadow or noise effect.
+The following properties are for blur effects only:
+blurTypeStringbeta
+Blur type, as a string enum.
+NORMAL
+PROGRESSIVE
+The following properties are for progressive blur effects only:
+startRadiusNumberbetaRadius of the starting point of the progressive blur.
+startOffsetVectorbetaPosition of the starting point of the progressive blur. The position is in normalized object space (top left corner of the bounding box of the object is (0, 0) and the bottom right is (1,1)).
+endOffsetVectorbetaPosition of the ending point of the progressive blur. The position is in normalized object space (top left corner of the bounding box of the object is (0, 0) and the bottom right is (1,1)).
+The following properties are for shadows only:
+colorColorThe color of the shadow.
+offsetVectorHow far the shadow is projected in the x and y directions.
+spreadNumberdefault: 0How far the shadow spreads.
+showShadowBehindNodeBooleanWhether to show the shadow behind translucent or transparent pixels (applies only to drop shadows).
+boundVariablesMap<String, VariableAlias>A mapping of field to the VariableAlias of the bound variable.
+The following properties are for texture and noise effects only:
+noiseSizeNumberbetaSize of the noise effect.
+noiseTypeStringbeta
+Type of noise effect, as a string enum.
+MONOTONE
+DUOTONE
+MULTITONE
+densityNumberbetaDensity of the noise effect.
+For duotone noise effects:
+secondaryColorColorbetaSecondary color of the noise effect.
+For multitone noise effects:
+opacityNumberbetaOpacity of the noise effect.
+The following properties are for texture effects only:
+clipToShapeBooleanbetaWhether the texture is clipped to the shape.
+ | 
+Hyperlink​
+A link to either a URL or another frame (node) in the document. | 
+typeString
+Type of hyperlink, as a string enum.
+URL
+NODE
+urlStringURL being linked to, if type is URL.
+nodeIDStringID of frame hyperlink points to, if type is NODE.
+ | 
+DocumentationLink​
+A link to documentation for a component. | 
+uriStringShould be a valid URI (e.g. https://www.figma.com).
+ | 
+Paint​
+A solid color, gradient, image, or pattern that can be applied as fills or strokes. | 
+typeString
+Type of paint, as a string enum.
+SOLID
+GRADIENT_LINEAR
+GRADIENT_RADIAL
+GRADIENT_ANGULAR
+GRADIENT_DIAMOND
+IMAGE
+EMOJI
+VIDEO
+PATTERN
+visibleBooleandefault: trueIs the paint enabled?
+opacityNumberdefault: 1Overall opacity of paint (colors within the paint can also have opacity values which would blend with this).
+blendModeBlendModeHow this node blends with nodes behind it in the scene (see blend mode section for more details).
+For solid paints:
+colorColorSolid color of the paint.
+boundVariablesMap<String, VariableAlias>A mapping of field to the VariableAlias of the bound variable.
+For gradient paints:
+gradientHandlePositionsVector[]
+This field contains three vectors, each of which are a position in normalized object space (normalized object space is if the top left corner of the bounding box of the object is (0, 0) and the bottom right is (1,1)). The first position corresponds to the start of the gradient (value 0 for the purposes of calculating gradient stops), the second position is the end of the gradient (value 1), and the third handle position determines the width of the gradient. See image examples below:
+
+gradientStopsColorStop[]Positions of key points along the gradient axis with the colors anchored there. Colors along the gradient are interpolated smoothly between neighboring gradient stops.
+For image paints:
+scaleModeString
+Image scaling mode, as a string enum.
+FILL
+FIT
+TILE
+STRETCH
+imageTransformTransformAffine transform applied to the image, only present if scaleMode is STRETCH.
+scalingFactorNumberAmount image is scaled by in tiling, only present if scaleMode is TILE.
+rotationNumberImage rotation, in degrees.
+imageRefStringA reference to an image embedded in this node. To download the image using this reference, use the GET file images endpoint to retrieve the mapping from image references to image URLs.
+filtersImageFiltersdefault: {}Defines what image filters have been applied to this paint, if any. If this property is not defined, no filters have been applied.
+gifRefStringA reference to an animated GIF embedded in this node. To download the image using this reference, use the GET file images endpoint to retrieve the mapping from image references to image URLs.
+For pattern paints:
+sourceNodeIdStringbetaNode ID of the source node for the pattern.
+tileTypeStringbeta
+The way the pattern is tiled, as a string enum.
+RECTANGULAR
+HORIZONTAL_HEXAGONAL
+VERTICAL_HEXAGONAL
+scalingFactorNumberbetaScaling factor of the pattern.
+spacingVectorbetaSpacing of the pattern.
+horizontalAlignmentStringbeta
+Horizontal alignment of the pattern, as a string enum.
+START
+CENTER
+END
+verticalAlignmentStringbeta
+Vertical alignment of the pattern, as a string enum.
+START
+CENTER
+END
+ | 
+Path​
+Defines a single path. | 
+pathStringA series of path commands that encodes how to draw the path.
+windingRuleStringThe winding rule for the path (same as in SVGs). This determines whether a given point in space is inside or outside the path.
+overrideIDNumberIf there is a per-region fill, this refers to an ID in the fillOverrideTable.
+ | 
+Vector​
+A 2d vector. | 
+xNumberX coordinate of the vector.
+yNumberY coordinate of the vector.
+ | 
+Size​
+A width and a height. | 
+widthNumberWidth of the size.
+heightNumberHeight of the size.
+ | 
+Transform​
+A 2x3 affine transformation matrix. | 
+A 2D affine transformation matrix that can be used to calculate the affine transforms applied to a layer, including scaling, rotation, shearing, and translation.
+The form of the matrix is given as an array of 2 arrays of 3 numbers each. E.g. the identity matrix would be [[1, 0, 0], [0, 1, 0]].
+ | 
+ImageFilters​
+Defines the image filters applied to an image paint. All values are from -1 to 1. | 
+exposureNumberdefault: 0
+contrastNumberdefault: 0
+saturationNumberdefault: 0
+temperatureNumberdefault: 0
+tintNumberdefault: 0
+highlightsNumberdefault: 0
+shadowsNumberdefault: 0
+ | 
+ColorStop​
+A stop in a gradient paint that contains information about the stop position, color, and bound variables. | 
+positionNumberValue between 0 and 1 representing position along gradient axis.
+colorColorColor attached to corresponding position.
+boundVariablesMap<String, VariableAlias>Color variable that is attached to the stop, if any.
+ | 
+PaintOverride​
+Paint metadata to override default paints. | 
+fillsPaint[]Paints applied to characters.
+inheritFillStyleIdStringID of style node, if any, that this inherits fill data from.
+ | 
+TypeStyle​
+Metadata for character formatting. | 
+fontFamilyStringFont family of text (standard name).
+fontPostScriptNameStringPostScript font name.
+fontStyleStringDescribes visual weight or emphasis, such as Bold or Italic.
+paragraphSpacingNumberdefault: 0Space between paragraphs in px.
+paragraphIndentNumberdefault: 0Paragraph indentation in px.
+listSpacingNumberdefault: 0Space between list items in px.
+italicBooleanWhether or not text is italicized.
+fontWeightNumberNumeric font weight.
+fontSizeNumberFont size in px.
+textCaseStringdefault: ORIGINAL
+Text casing applied to the node, as a string enum.
+ORIGINAL
+UPPER
+LOWER
+TITLE
+SMALL_CAPS
+SMALL_CAPS_FORCED
+textDecorationStringdefault: NONE
+Text decoration applied to the node, as a string enum.
+NONE
+UNDERLINE
+STRIKETHROUGH
+textAutoResizeStringdefault: NONE
+Dimensions along which text will auto resize, default is that the text does not auto-resize. TRUNCATE means that the text will be shortened and trailing text will be replaced with "…" if the text contents is larger than the bounds. TRUNCATE as a return value is deprecated and will be removed in a future version. Read from textTruncation instead.
+NONE
+HEIGHT
+WIDTH_AND_HEIGHT
+TRUNCATE (deprecated)
+textTruncationStringdefault: DISABLED
+Whether this text node will truncate with an ellipsis when the text contents is larger than the text node.
+DISABLED
+ENDING
+maxLinesNumberdefault: nullThe maximum number of lines a text node can reach before it truncates. Only applicable when textTruncation is ENDING.
+textAlignHorizontalString
+Horizontal text alignment, as string enum.
+LEFT
+RIGHT
+CENTER
+JUSTIFIED
+textAlignVerticalString
+Vertical text alignment, as string enum.
+TOP
+CENTER
+BOTTOM
+letterSpacingNumberSpace between characters in px.
+fillsPaint[]Paints applied to characters.
+hyperlinkHyperlinkLink to a URL or frame.
+openTypeFlagsMap<String, Number>default: {}A map of OpenType feature flags to 1 or 0, 1 if it is enabled and 0 if it is disabled. Note that some flags aren't reflected here. For example, SMCP (small caps) is still represented by the textCase field.
+lineHeightPxNumberLine height in px.
+lineHeightPercentNumberdeprecateddefault: 100Line height as a percentage of normal line height. This is deprecated; in a future version of the API only lineHeightPx and lineHeightPercentFontSize will be returned.
+lineHeightPercentFontSizeNumberLine height as a percentage of the font size. Only returned when lineHeightPercent is not 100.
+lineHeightUnitString
+The unit of the line height value specified by the user.
+PIXELS
+FONT_SIZE_%
+INTRINSIC_%
+isOverrideOverTextStyleBooleanWhether or not there are overrides over a text style. The possible fields to override are semanticWeight, semanticItalic, hyperlink, and textDecoration. If this is true, then those fields are overrides if present.
+semanticWeightString
+Indicates how the font weight was overridden when there is a text style override.
+BOLD
+NORMAL
+semanticItalicString
+Indicates how the font style was overridden when there is a text style override.
+ITALIC
+NORMAL
+boundVariablesMap<String, VariableAlias>A mapping of field to the VariableAlias of the bound variable.
+ | 
+TextPathTypeStyle​
+[Available in beta, API is subject to change] Metadata for character formatting for text on a path. | 
+Has all the properties of TypeStyle except: paragraphSpacing, paragraphIndent, listSpacing, textDecoration, textAutoResize, textTruncation, maxLines, lineHeightPx, lineHeightPercent, lineHeightPercentFontSize, and lineHeightUnit.
+ | 
+Component​
+A description of a main component. Helps you identify which component instances are attached to. | 
+keyStringThe key of the component.
+nameStringThe name of the component.
+descriptionStringThe description of the component as entered in the editor.
+componentSetId?StringThe ID of the component set if the component belongs to one.
+documentationLinksDocumentationLink[]The documentation links for this component.
+remoteBooleanWhether this component is a remote component that doesn't live in this file.
+ | 
+ComponentSet​
+A description of a component set, which is a node containing a set of variants of a component. | 
+keyStringThe key of the component set.
+nameStringThe name of the component set.
+descriptionStringThe description of the component set as entered in the editor.
+documentationLinksDocumentationLink[]The documentation links for this component set.
+remoteBooleanWhether this component set is a remote component set that doesn't live in this file.
+ | 
+Style​
+A set of properties that can be applied to nodes and published. Styles for a property can be created in the corresponding properties panel while editing a file. | 
+keyStringThe key of the style.
+nameStringThe name of the style.
+descriptionStringThe description of the style.
+remoteBooleanWhether this style is a remote style that doesn't live in this file.
+styleTypeString
+The type of style, as a string enum.
+FILL
+TEXT
+EFFECT
+GRID
+ | 
+ShapeType​
+Geometric shape type. Most shape types have the same name as their tooltip but there are a few exceptions:
+ENG_DATABASE is a Cylinder
+ENG_QUEUE is a Horizontal cylinder
+ENG_FILE is a File
+ENG_FOLDER is a Folder | 
+SQUAREString
+ELLIPSEString
+ROUNDED_RECTANGLEString
+DIAMONDString
+TRIANGLE_DOWNString
+PARALLELOGRAM_RIGHTString
+PARALLELOGRAM_LEFTString
+ENG_DATABASEString
+ENG_QUEUEString
+ENG_FILEString
+ENG_FOLDERString
+TRAPEZOIDString
+PREDEFINED_PROCESSString
+SHIELDString
+DOCUMENT_SINGLEString
+DOCUMENT_MULTIPLEString
+MANUAL_INPUTString
+HEXAGONString
+CHEVRONString
+PENTAGONString
+OCTAGONString
+STARString
+PLUSString
+ARROW_LEFTString
+ARROW_RIGHTString
+SUMMING_JUNCTIONString
+ORString
+SPEECH_BUBBLEString
+INTERNAL_STORAGEString
+ | 
+ConnectorEndpoint​
+Stores canvas location for a connector start/end point. | 
+ConnectorEndpoint with endpointNodeId and position only:
+endpointNodeIdStringNode ID that this endpoint attaches to.
+positionVectorCanvas location as x & y coordinate.
+ConnectorEndpoint with endpointNodeId and magnet only:
+endpointNodeIdStringNode ID that this endpoint attaches to.
+magnetConnectorMagnet
+The magnet type, as a string enum.
+AUTO
+TOP
+BOTTOM
+LEFT
+RIGHT
+ | 
+ConnectorLineType​ | 
+ELBOWEDString
+CURVEDString
+STRAIGHTString
+ | 
+ConnectorTextBackground​ | 
+cornerRadiusNumberRadius of each corner of the rectangle if a single radius is set for all corners.
+fillsPaint[]An array of fill paints applied to the node.
+ | 
+ComponentPropertyDefinition​ | 
+typeComponentPropertyTypeType of this component property.
+defaultValueBoolean | StringInitial value of this property for instances.
+variantOptions?String[]All possible values for this property. Only exists on VARIANT properties.
+preferredValues?InstanceSwapPreferredValue[]List of user-defined preferred values for this property. Only exists on INSTANCE_SWAP properties.
+ | 
+ComponentProperty​ | 
+typeComponentPropertyTypeType of this component property.
+valueBoolean | StringValue of this property set on this instance.
+preferredValues?InstanceSwapPreferredValue[]List of user-defined preferred values for this property. Only exists on INSTANCE_SWAP properties.
+boundVariablesMap<String, VariableAlias>A mapping of field to the VariableAlias of the bound variable.
+ | 
+ComponentPropertyType​ | 
+BOOLEANString
+INSTANCE_SWAPString
+TEXTString
+VARIANTString
+ | 
+InstanceSwapPreferredValue​ | 
+typeString
+Type of node for this preferred value, as a string enum.
+COMPONENT
+COMPONENT_SET
+keyStringKey of this component or component set.
+ | 
+PrototypeDevice​ | 
+typeString
+The type of the device, as a string enum.
+NONE
+PRESET
+CUSTOM
+PRESENTATION
+sizeSize
+presetIdentifierString
+rotationString
+Rotation of the device, as a string enum.
+NONE
+CCW_90
+ | 
+Annotation​
+A note and pinned properties left on a node. | 
+labelString
+propertiesAnnotationProperty[]
+ | 
+AnnotationProperty​
+A pinned property in an Annotation. | 
+typeString
+The type of the property, as a string enum.
+width
+height
+maxWidth
+minWidth
+maxHeight
+minHeight
+fills
+strokes
+effects
+strokeWeight
+cornerRadius
+textStyleId
+textAlignHorizontal
+fontFamily
+fontStyle
+fontSize
+fontWeight
+lineHeight
+letterSpacing
+itemSpacing
+padding
+layoutMode
+alignItems
+opacity
+mainComponent
+ | 
+Measurement​
+A pinned distance between two nodes in Dev Mode. | 
+idString
+startMeasurementStartEnd
+endMeasurementStartEnd
+offset0
+freeTextStringWhen manually overridden, the displayed value of the measurement.
+ | 
+MeasurementStartEnd​
+The node and side a measurement is pinned to. | 
+nodeIdString
+sideString
+The side of the node the measurement is pinned to, as a string enum.
+TOP
+RIGHT
+BOTTOM
+LEFT
+ | 
+MeasurementOffsetInner​
+Measurement offset relative to the inside of the start node. | 
+typeString
+The type of the offset, as a string enum.
+INNER
+relativeNumber
+ | 
+MeasurementOffsetOuter​
+Measurement offset relative to the outside of the start node. | 
+typeString
+The type of the offset, as a string enum.
+OUTER
+fixedNumber
+ | 
+StrokeWeights​
+Individual stroke weights. | 
+topNumber
+rightNumber
+bottomNumber
+leftNumber
+ | 
+Overrides​
+Fields directly overridden on an instance. Inherited overrides are not included. | 
+idStringA unique ID for a node.
+overriddenFieldsString[]An array of properties.
+ | 
+VariableAlias​
+Contains a variable alias. | 
+typeString
+The type of the alias, as a string enum.
+VARIABLE_ALIAS
+idStringThe id of the variable that the current variable is aliased to. This variable can be a local or remote variable, and both can be retrieved via the Variables endpoints.
+ | 
+DevStatus​
+Represents a handoff (or dev) status applied to a node. | 
+typeString
+The type of the status, as a string enum.
+READY_FOR_DEV
+COMPLETED
+descriptionStringAn optional field where the designer can add more information about the design and what has changed.
+ | 
+Interaction​
+An interaction in the Figma viewer, containing a trigger and one or more actions. | 
+trigger0The user event that initiates the interaction.
+actionsAction[]The actions that are performed when the trigger is activated.
+ | 
+Trigger​
+A prototyping Trigger describes the user input needed to cause an interaction to happen.
+The ON_HOVER and ON_PRESS trigger types revert the navigation when the trigger is finished (the result is temporary).
+MOUSE_ENTER, MOUSE_LEAVE, MOUSE_UP and MOUSE_DOWN are permanent, one-way navigation. The delay parameter requires the trigger to be held for a certain duration of time before the action occurs. Both timeout and delay values are in milliseconds.
+The ON_MEDIA_HIT and ON_MEDIA_END trigger types can only trigger from a video. They fire when a video reaches a certain time or ends. The timestamp value is in seconds. | 
+typeString
+The type of the trigger, as a string enum.
+ON_CLICK
+ON_HOVER
+ON_PRESS
+ON_DRAG
+AFTER_TIMEOUT
+MOUSE_ENTER
+MOUSE_LEAVE
+MOUSE_UP
+MOUSE_DOWN
+ON_MEDIA_END
+ON_KEY_DOWN
+ON_KEY_UP
+For AFTER_TIMEOUT events:
+timeoutNumber
+For MOUSE_ENTER, MOUSE_LEAVE, MOUSE_UP, and MOUSE_DOWN events:
+delayNumber
+deprecatedVersionBooleanWhether this is a deprecated version of the trigger that was left unchanged for backwards compatibility. If not present, the trigger is the latest version.
+For ON_KEY_DOWN events:
+deviceString
+The device that the key was pressed on, as a string enum.
+KEYBOARD
+XBOX_ONE
+PS4
+SWITCH_PRO
+UNKNOWN_CONTROLLER
+keyCodesNumber[]
+For ON_MEDIA_HIT events:
+mediaHitTimeNumber
+ | 
+Action​
+An action that is performed when a trigger is activated. | 
+An action can be one of the following types:
+BackAction
+CloseAction
+OpenURLAction
+UpdateMediaRuntimeAction
+NodeAction
+SetVariableAction
+SetVariableModeAction
+ConditionalAction
+ | 
+BackAction​
+An action that navigates to the previously viewed frame. | 
+typeString
+The type of the action, as a string enum.
+BACK
+ | 
+CloseAction​
+An action that closes the current topmost overlay (applicable only on overlays). | 
+typeString
+The type of the action, as a string enum.
+CLOSE
+ | 
+OpenURLAction​
+An action that opens a URL. | 
+typeString
+The type of the action, as a string enum.
+URL
+urlString
+ | 
+UpdateMediaRuntimeAction​
+An action that affects a video node in the Figma viewer. For example, to play, pause, or skip. | 
+typeString
+The type of the action, as a string enum.
+UPDATE_MEDIA_RUNTIME
+destinationIdString | nullThe node ID of the media node to update. If destinationId is null, the action will update the media node that contains the action.
+mediaActionString
+The action to perform on the media node, as a string enum.
+PLAY
+PAUSE
+TOGGLE_PLAY_PAUSE
+MUTE
+UNMUTE
+TOGGLE_MUTE_UNMUTE
+SKIP_FORWARD
+SKIP_BACKWARD
+SKIP_TO
+For SKIP_FORWARD and SKIP_BACKWARD actions:
+amountToSkipNumberThe amount of time to skip in seconds.
+For SKIP_TO actions:
+newTimestampNumberThe new time to skip to in seconds.
+ | 
+NodeAction​
+An action that navigates to a specific node in the Figma viewer. | 
+typeString
+The type of the action, as a string enum.
+NODE
+destinationIdString | null
+navigationNavigation
+transitionSimpleTransition | DirectionTransition | null
+preserveScrollPositionBooleanWhether the scroll offsets of any scrollable elements in the current screen or overlay are preserved when navigating to the destination. This is applicable only if the layout of both the current frame and its destination are the same.
+overlayRelativePositionVectorApplicable only when navigation is OVERLAY and the destination is a frame with overlayPosition equal to MANUAL. This value represents the offset by which the overlay is opened relative to this node.
+resetVideoPositionBooleanWhen true, all videos within the destination frame will reset their memorized playback position to 00:00 before starting to play.
+resetScrollPositionBooleanWhether the scroll offsets of any scrollable elements in the current screen or overlay reset when navigating to the destination. This is applicable only if the layout of both the current frame and its destination are the same.
+resetInteractiveComponentsBooleanWhether the state of any interactive components in the current screen or overlay reset when navigating to the destination. This is applicable if there are interactive components in the destination frame.
+ | 
+Navigation​ | 
+typeString
+The method of navigation, as a string enum.
+NAVIGATE: Replaces the current screen with the destination, also closing all overlays.
+OVERLAY: Opens the destination as an overlay on the current screen.
+SWAP: On an overlay, replaces the current (topmost) overlay with the destination. On a top-level frame, behaves the same as NAVIGATE except that no entry is added to the navigation history.
+SCROLL_TO: Scrolls to the destination on the current screen.
+CHANGE_TO: Changes the closest ancestor instance of source node to the specified variant.
+ | 
+SimpleTransition​
+Describes an animation used when navigating in a prototype. | 
+typeString
+The type of the transition, as a string enum.
+DISSOLVE
+SMART_ANIMATE
+SCROLL_ANIMATE
+durationNumberThe duration of the transition in milliseconds.
+easingEasingThe easing curve of the transition.
+ | 
+DirectionTransition​
+Describes an animation used when navigating in a prototype. | 
+typeString
+The type of the transition, as a string enum.
+MOVE_IN
+MOVE_OUT
+PUSH
+SLIDE_IN
+SLIDE_OUT
+directionString
+The direction of the transition, as a string enum.
+LEFT
+RIGHT
+TOP
+BOTTOM
+durationNumberThe duration of the transition in milliseconds.
+easingEasingThe easing curve of the transition.
+matchLayersBooleanWhen the transition type is SMART_ANIMATE or when matchLayers is true, then the transition will be performed using smart animate, which attempts to match corresponding layers and interpolate other properties during the animation.
+ | 
+Easing​
+Describes an easing curve. | 
+typeEasingTypeThe type of easing curve.
+easingFunctionCubicBezierEasingFunctionCubicBezierA cubic bezier curve that defines the easing.
+easingFunctionSpringEasingFunctionSpringA spring function that defines the easing.
+ | 
+EasingFunctionCubicBezier​
+A cubic bezier curve that defines the easing. | 
+x1NumberThe x component of the first control point.
+y1NumberThe y component of the first control point.
+x2NumberThe x component of the second control point.
+y2NumberThe y component of the second control point.
+ | 
+EasingFunctionSpring​
+A spring function that defines the easing. | 
+massNumber
+stiffnessNumber
+dampingNumber
+ | 
+SetVariableAction​
+An action that sets a variable to a specific value. | 
+typeString
+The type of the action, as a string enum.
+SET_VARIABLE
+variableIdString | null
+variableValueVariableData
+ | 
+SetVariableModeAction​
+An action that sets a variable to a specific mode. | 
+typeString
+The type of the action, as a string enum.
+SET_VARIABLE_MODE
+variableCollectionIdString | null
+variableModeIdString | null
+ | 
+ConditionalAction​
+An action that checks if a condition is met before performing certain actions by using an if/else conditional statement. | 
+typeString
+The type of the action, as a string enum.
+CONDITIONAL
+conditionalBlocksConditionalBlock[]
+ | 
+VariableData​
+A value to set a variable to during prototyping. | 
+typeVariableDataType
+resolvedTypeVariableResolvedDataType
+valueBoolean | Number | String | Color | RGBColor | VariableAlias | Expression
+ | 
+VariableDataType​
+Defines the types of data a VariableData object can hold. | 
+typeString
+The type of the variable data, as a string enum.
+BOOLEAN
+FLOAT
+STRING
+COLOR
+VARIABLE_ALIAS
+EXPRESSION
+ | 
+VariableResolvedDataType​
+Defines the types of data a VariableData object can eventually equal. | 
+typeString
+The type of the variable when resolved, as a string enum.
+BOOLEAN
+FLOAT
+STRING
+COLOR
+ | 
+Expression​
+Defines the Expression object, which contains a list of VariableData objects strung together by operators. | 
+expressionFunctionExpressionFunction
+expressionArgumentsVariableData[]
+ | 
+ExpressionFunction​
+Defines the list of operators available to use in an Expression. | 
+typeString
+The type of the function, as a string enum.
+ADDITION
+SUBTRACTION
+MULTIPLICATION
+DIVISION
+EQUALS
+NOT_EQUAL
+LESS_THAN
+LESS_THAN_OR_EQUAL
+GREATER_THAN
+GREATER_THAN_OR_EQUAL
+AND
+OR
+VAR_MODE_LOOKUP
+NEGATE
+NOT
+ | 
+ConditionalBlock​
+Either the if or else conditional blocks. The if block contains a condition to check. If that condition is met then it will run those list of actions, else it will run the actions in the else block. | 
+conditionVariableData
+actionsAction[]
+ | 
+TransformModifier​
+Data describing the transform applied to nodes within a TRANSFORM_GROUP node. | 
+typeREPEATThe type of transform modifier. Currently, the only supported type is REPEAT, which creates repeated copies of the child node.
+unitType"PIXELS" | "RELATIVE"The unit used for the offset value of the transform modifier. RELATIVE is a percentage of the child node size.
+offsetNumberThe offset value for the transform modifier, in the specified unitType.
+countNumberThe number of times to repeat the child node (REPEAT type only).
+repeatType"LINEAR" | "RADIAL"The type of repeat to apply (REPEAT type only).
+axis"HORIZONTAL" | "VERTICAL"The axis along which to repeat the child node (LINEAR REPEAT type only).
+ | 
+ComplexStrokeProperties​
+Properties for brush and dynamic strokes. | 
+BasicStrokeProperties | BrushStrokeProperties | DynamicStrokeProperties
+ | 
+BasicStrokeProperties​
+Properties for basic strokes. | 
+strokeType"BASIC"The type of stroke.
+ | 
+DynamicStrokeProperties​
+Properties for dynamic strokes. | 
+strokeType"DYNAMIC"The type of stroke.
+frequencyNumberFrequency of the dynamic stroke pattern.
+wiggleNumberWiggle amount of the dynamic stroke pattern.
+smoothenNumberSmoothness of the dynamic stroke pattern.
+ | 
+BrushStrokeProperties​
+Properties for brush strokes. | 
+ScatterBrushStrokeProperties | StretchBrushStrokeProperties
+ | 
+ScatterBrushStrokeProperties​
+Properties for scatter brush strokes. | 
+strokeType"BRUSH"
+brushType"SCATTER"
+brushNodeIdStringThe node ID of the brush node used for the scatter brush stroke.
+brushNameStringThe name of the brush used for the scatter brush stroke.
+gapNumberThe gap between brush instances along the stroke.
+wiggleNumberThe wiggle amount for brush instances along the stroke.
+rotationNumberThe rotation applied to brush instances along the stroke.
+sizeJitterNumberThe size jitter applied to brush instances along the stroke.
+angularJitterNumberThe angular jitter applied to brush instances along the stroke.
+ | 
+StretchBrushStrokeProperties​
+Properties for stretch brush strokes. | 
+strokeType"BRUSH"
+brushType"STRETCH"
+brushNodeIdStringThe node ID of the brush node used for the stretch brush stroke.
+brushNameStringThe name of the brush used for the stretch brush stroke.
+direction"FORWARD" | "REVERSE"The direction in which to stretch the brush along the stroke.
+ | 
+VariableWidthPoint​
+Data describing the width of a certain point in a variable width stroke. | 
+segmentNumberThe index of the segment that the variable width point is on.
+positionNumberThe position of the variable width point along the segment, between 0 (start) and 1 (end). Note that this parameter represents the Bezier curve parameterization, so for curved segments the position may not align with the visual position of the point -- a position of 0.5 may not be the midpoint of the segment's arc length.
+widthNumberThe width multiplier at this point. The final width at this point is 2 * strokeWeight * this value.
+ | 
+TextPathStartData​
+Data describing the starting position of text in TEXT_PATH nodes. | 
+segmentNumberThe index of the segment that the text path start is on.
+positionNumberThe position along the segment where the text begins. 0 is the start of the segment, 1 is the end.
+
+Color
+RGBColor
+ExportSetting
+Constraint
+Rectangle
+ArcData
+BlendMode
+MaskType
+EasingType
+FlowStartingPoint
+LayoutConstraint
+LayoutGrid
+Effect
+Hyperlink
+DocumentationLink
+Paint
+Path
+Vector
+Size
+Transform
+ImageFilters
+ColorStop
+PaintOverride
+TypeStyle
+TextPathTypeStyle
+Component
+ComponentSet
+Style
+ShapeType
+ConnectorEndpoint
+ConnectorLineType
+ConnectorTextBackground
+ComponentPropertyDefinition
+ComponentProperty
+ComponentPropertyType
+InstanceSwapPreferredValue
+PrototypeDevice
+Annotation
+AnnotationProperty
+Measurement
+MeasurementStartEnd
+MeasurementOffsetInner
+MeasurementOffsetOuter
+StrokeWeights
+Overrides
+VariableAlias
+DevStatus
+Interaction
+Trigger
+Action
+BackAction
+CloseAction
+OpenURLAction
+UpdateMediaRuntimeAction
+NodeAction
+Navigation
+SimpleTransition
+DirectionTransition
+Easing
+EasingFunctionCubicBezier
+EasingFunctionSpring
+SetVariableAction
+SetVariableModeAction
+ConditionalAction
+VariableData
+VariableDataType
+VariableResolvedDataType
+Expression
+ExpressionFunction
+ConditionalBlock
+TransformModifier
+ComplexStrokeProperties
+BasicStrokeProperties
+DynamicStrokeProperties
+BrushStrokeProperties
+ScatterBrushStrokeProperties
+StretchBrushStrokeProperties
+VariableWidthPoint
+TextPathStartData
+
+Was this page helpful?
+Leave us feedback
+Community Forum
+Discord Server
+GitHub Samples
+
+FigJam·Enterprise·Learn·Education·Careers·Pricing·Developers·Blog·Downloads·Releases·Security·Legal·Contact
+

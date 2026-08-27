@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360039957734-Apply-constraints-to-define-how-layers-resize",
+    "name": "Apply constraints to define how layers resize – Figma Learn - Help Center",
+    "snippet": "Constraints tell Figma how layers should respond when you resize their frames. This helps you to control how designs look across different screen sizes and ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=PwcT8g4gNKs",
+    "name": "Resizing frames in Figma Design - YouTube",
+    "snippet": "May 25, 2021 · Learn how to master resizing frames in Figma Design, while using constraints and ignoring constraints.",
+    "host_name": "www.youtube.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://newsletter.baselinedesign.com/baseline-23-using-constraints-in-figma",
+    "name": "Baseline #23 – Using Constraints in Figma",
+    "snippet": "Oct 24, 2024 · Figma lets us pin objects to the left, top, right, bottom, center, left + right, or top + bottom. we can let the object scale and adjust its ...",
+    "host_name": "newsletter.baselinedesign.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040451453-Scale-layers-while-maintaining-proportions",
+    "name": "Scale layers while maintaining proportions - Figma Learn",
+    "snippet": "Use the scale tool to proportionally resize layers and objects. This tool preserves aspect ratios and ignores constraints of any nested layers in order to ...",
+    "host_name": "help.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/10bykev/how_do_you_precisely_resize_a_frame_with",
+    "name": "How do you precisely resize a frame (with width/height coordinates or by",
+    "snippet": "Jan 14, 2023 · Holding the shift key will change the width or height by the `big nudge` value. Even with custom constraints or auto layout applied, these ...",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.captain-design.com/blog/learn-figma-basics-part-3-frame-constraints",
+    "name": "Learn Figma Basics, Part 3: Frame Constraints. - Captain Design",
+    "snippet": "Constraints tell Figma how objects should respond as you resize their Frames. This helps you to control how designs look across different screen sizes and ...",
+    "host_name": "www.captain-design.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.figma.com/ask-the-community-7/resizing-frame-with-elements-constraints-set-to-scale-without-stretching-them-32547",
+    "name": "Resizing frame with elements' constraints set to \"scale\", without",
+    "snippet": "Nov 9, 2023 · I'm making a slider that has four positions. I would like the slider “dots” and blue slider bar to scale with the width of the frame, ...",
+    "host_name": "forum.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.logrocket.com/ux-design/applying-constraints-figma-layouts-resizing",
+    "name": "Applying constraints to Figma layouts for resizing - LogRocket Blog",
+    "snippet": "May 5, 2023 · Figma constraints allow designers to control the position and size of any layer, across multiple screen sizes, relative to its parent frame.",
+    "host_name": "blog.logrocket.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]
