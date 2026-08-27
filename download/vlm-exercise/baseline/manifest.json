@@ -135,14 +135,41 @@
     "scenarioId": "ms-settings",
     "turn": 1,
     "prompt": "Create an 'Account Settings' panel with two labeled input fields: Display Name and Email Address.",
-    "startMs": 1787838146630,
+    "startMs": 1787838510596,
     "screenshot": "/home/z/my-project/download/vlm-exercise/baseline/ms-settings-t1.png",
     "tapFile": "/home/z/my-project/download/vlm-exercise/baseline/tap-events/ms-settings-t1.jsonl",
-    "redone": 1,
-    "endMs": 1787838164075,
-    "durationMs": 17445,
-    "toolCalls": 0,
+    "redone": 2,
+    "endMs": 1787838806590,
+    "durationMs": 295994,
+    "toolCalls": 18,
     "timedOut": false,
-    "empty": true
+    "empty": false
+  },
+  {
+    "scenarioId": "ms-settings",
+    "turn": 2,
+    "prompt": "Add a primary 'Save Changes' button and a ghost-style 'Cancel' button below the fields.",
+    "startMs": 1787839112559,
+    "screenshot": "/home/z/my-project/download/vlm-exercise/baseline/ms-settings-t2.png",
+    "tapFile": "/home/z/my-project/download/vlm-exercise/baseline/tap-events/ms-settings-t2.jsonl",
+    "redone": 2,
+    "endMs": 1787839158932,
+    "durationMs": 46373,
+    "toolCalls": 5,
+    "timedOut": false,
+    "empty": false
+  },
+  {
+    "scenarioId": "ms-settings",
+    "turn": 3,
+    "prompt": "Add a 'Notifications' section below with two toggle rows - 'Email updates' and 'Product news' - both shown switched on.",
+    "startMs": 1787839167443,
+    "screenshot": "/home/z/my-project/download/vlm-exercise/baseline/ms-settings-t3.png",
+    "tapFile": "/home/z/my-project/download/vlm-exercise/baseline/tap-events/ms-settings-t3.jsonl",
+    "endMs": 1787839389670,
+    "durationMs": 222227,
+    "toolCalls": 10,
+    "timedOut": false,
+    "empty": false
   }
 ]

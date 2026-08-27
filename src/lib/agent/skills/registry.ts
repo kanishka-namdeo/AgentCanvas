@@ -257,6 +257,12 @@ to a different approach (do NOT loop on the same failing call).`,
       'diagram', 'flowchart', 'mindmap', 'mind map',
       'high fidelity', 'hifi', 'high-fi', 'polished', 'production-ready',
       'beautiful', 'modern', 'redesign', 'skin', 'theme',
+      // VLM-exercise Fix 4c: core UI creation verbs/nouns. Prompts like
+      // "Add a primary 'Save Changes' button below the fields" or "Add a
+      // 'Notifications' section with two toggle rows" are CREATE ops —
+      // without these the classifier routed them to styling/inspect.
+      'add', 'button', 'input', 'field', 'panel', 'card', 'toggle',
+      'section', 'chart', 'navbar', 'navigation bar', 'sidebar',
     ],
   },
 

@@ -94,11 +94,27 @@ export const DomNode = memo(function DomNode({
     parentDirection != null &&
     (penNode as { layoutPosition?: string } | undefined)?.layoutPosition !== 'absolute';
 
+  // VLM-exercise Fix 1: does any DIRECT child's absolute rect extend beyond
+  // this container's rect? (0.5px tolerance for float rounding.) When it
+  // does and the container doesn't clip, styleFor must NOT emit
+  // content-visibility:auto — its inherent paint containment would clip the
+  // overflowing children out of the render (Figma keeps overflow visible).
+  const childOverflows =
+    childLayers.length > 0 &&
+    childLayers.some(
+      (c) =>
+        c.x < layer.x - 0.5 ||
+        c.y < layer.y - 0.5 ||
+        c.x + c.width > layer.x + layer.width + 0.5 ||
+        c.y + c.height > layer.y + layer.height + 0.5,
+    );
+
   const style = styleFor(layer, {
     relX: layer.x - parentX,
     relY: layer.y - parentY,
     nativeLayout: ownLayoutOpts ?? undefined,
     l4Culling: l4Culling ? true : undefined,
+    childOverflows,
     flowChild: isFlowChild
       ? {
           penWidth: (penNode as { width?: unknown } | undefined)?.width,

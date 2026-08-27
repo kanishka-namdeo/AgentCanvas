@@ -1,0 +1,116 @@
+{
+  "scoredCount": 13,
+  "totalTurns": 13,
+  "overallMean": 5.4423076923076925,
+  "dimMeans": {
+    "prompt_fidelity": 5.769230769230769,
+    "layout_structure": 5.538461538461538,
+    "spacing_consistency": 5.923076923076923,
+    "typography": 6.384615384615385,
+    "color_cohesion": 7.615384615384615,
+    "component_polish": 5.076923076923077,
+    "cleanliness": 6.6923076923076925,
+    "overall_polish": 4.769230769230769
+  },
+  "totalDefects": 42,
+  "totalMissing": 26,
+  "totalRegressions": 6,
+  "severity": {
+    "high": 19,
+    "medium": 15,
+    "low": 8
+  },
+  "turns": [
+    {
+      "scenarioId": "os-hero",
+      "turn": 1,
+      "overall": 5.75,
+      "toolCalls": 45,
+      "durationS": 441
+    },
+    {
+      "scenarioId": "os-profile",
+      "turn": 1,
+      "overall": 9,
+      "toolCalls": 30,
+      "durationS": 321
+    },
+    {
+      "scenarioId": "os-kanban",
+      "turn": 1,
+      "overall": 3,
+      "toolCalls": 82,
+      "durationS": 1139
+    },
+    {
+      "scenarioId": "os-barchart",
+      "turn": 1,
+      "overall": 3,
+      "toolCalls": 14,
+      "durationS": 769
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 1,
+      "overall": 8,
+      "toolCalls": 22,
+      "durationS": 405
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 2,
+      "overall": 3,
+      "toolCalls": 10,
+      "durationS": 201
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 3,
+      "overall": 6,
+      "toolCalls": 9,
+      "durationS": 51
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 1,
+      "overall": 2,
+      "toolCalls": 17,
+      "durationS": 264
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 2,
+      "overall": 6,
+      "toolCalls": 55,
+      "durationS": 436
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 3,
+      "overall": 6,
+      "toolCalls": 45,
+      "durationS": 93
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 1,
+      "overall": 7,
+      "toolCalls": 66,
+      "durationS": 538
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 2,
+      "overall": 6,
+      "toolCalls": 5,
+      "durationS": 37
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 3,
+      "overall": 6,
+      "toolCalls": 15,
+      "durationS": 256
+    }
+  ]
+}

@@ -951,20 +951,40 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       providerId !== 'zai' &&
       !sawActivity;
 
-    if (!shouldFallback) break;
+    // VLM-exercise Fix 5: the FALLBACK ITSELF can return an empty body
+    // (observed 3× during the exercise: pinggy primary down → preflight
+    // swaps to glm-5.3 → glm-5.3 transiently rate-limited → empty 200 →
+    // turn dies with a user-facing error and 0 tool calls). When the current
+    // model is ALREADY the sandbox fallback (or the configured provider is
+    // zai), retry the SAME model once after a backoff — bounded by the same
+    // didFallback flag, so the total stays at one extra attempt per turn.
+    const shouldRetrySameModel =
+      attempt === 0 &&
+      !didFallback &&
+      !sawActivity &&
+      (currentModel.usedFallback === true || providerId === 'zai');
 
-    // Try to resolve a z.ai-sandbox fallback model. If ZAI.create() throws
-    // (not in the z.ai sandbox / no creds), log and skip — the silent-failure
-    // guard below will surface an error to the user.
-    const fallbackModel = await resolveZaiSandboxFallback();
-    if (!fallbackModel) break;
+    if (!shouldFallback && !shouldRetrySameModel) break;
 
-    console.warn(
-      `[llm-fallback] primary endpoint ${currentModel.label} produced no output (zero message_delta + zero tool_call events); retrying turn with z.ai sandbox / glm-5.3`,
-    );
-    currentModel = fallbackModel;
+    if (shouldFallback) {
+      // Try to resolve a z.ai-sandbox fallback model. If ZAI.create() throws
+      // (not in the z.ai sandbox / no creds), log and skip — the silent-failure
+      // guard below will surface an error to the user.
+      const fallbackModel = await resolveZaiSandboxFallback();
+      if (!fallbackModel) break;
+
+      console.warn(
+        `[llm-fallback] primary endpoint ${currentModel.label} produced no output (zero message_delta + zero tool_call events); retrying turn with z.ai sandbox / glm-5.3`,
+      );
+      currentModel = fallbackModel;
+    } else {
+      console.warn(
+        `[llm-fallback] ${currentModel.label} (already the fallback) produced no output — rate-limit backoff 8s, then one retry on the same model`,
+      );
+      await new Promise((r) => setTimeout(r, 8_000));
+    }
     didFallback = true;
-    // Loop continues to attempt 1 with the fallback model.
+    // Loop continues to attempt 1 with the fallback (or same) model.
   }
 
   // Task 7-c P1.3 / T2 + P1.4 / T10 — MANDATORY self-critique loop with

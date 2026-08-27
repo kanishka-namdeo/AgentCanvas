@@ -183,6 +183,28 @@ TEXT LAYER WIDTH RULE (CRITICAL — prevents mid-word wrapping):
   wordmark — that guarantees a mid-word break. Always compute a concrete width from the formula
   above; the renderer does NOT auto-fit text to content.
 
+CONTAINER SIZING RULE (CRITICAL — prevents invisible/overflowing content):
+  A container's fixed height must FIT its stacked children, or children escape the frame's
+  background and the design looks broken. Rules:
+  - Content-sized containers (cards, panels, forms, settings sections, lists, pricing cards)
+    MUST use height:"fit_content" (hug). The layout engine stacks the children for you and the
+    frame grows to wrap them — no guessing required.
+  - Fixed heights are ONLY for chrome with a known size: top navbar 64, button 40-48,
+    input 48, toolbar 56, avatar 40-80, toggle track 28.
+  - Estimate a vertical stack when you must fix a height: sum(child heights) + gap×(n−1) + 2×padding.
+    Label 14px→20 · body 16→24 · h3 24→34 · h1 38→52 · input 48 · button 40-48 · icon 20-24.
+  - Text children may omit height entirely — it is auto-estimated from fontSize.
+  - After building, check pen_get_metadata resolver warnings: "container_overflow" means a
+    frame's children exceed its bounds — fix it in the same turn by setting that frame's
+    height to "fit_content" (or resizing it to fit).
+
+BATCH CONSTRUCTION RULE (CRITICAL — keeps turns fast):
+  When you can enumerate a structure up front (any component with 3+ nodes: cards, nav bars,
+  forms, hero sections, whole screens), create it with ONE pen_create_subtree call instead of
+  N pen_create_node calls. One call = one undo step and one network round trip; the alternative
+  costs ~10s per node and caps how much you can build per turn. Use pen_create_node only for
+  single late additions, and pen_update_node batches for restyling.
+
 SPACING SCALE (8px grid) — use ONLY these values for x/y/w/h/padding/gap:
   4, 8, 12, 16, 24, 32, 48, 64, 80, 96. Page padding: 16 (mobile) / 24-32 (web). Section gap: 24-32.
 

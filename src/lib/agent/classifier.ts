@@ -45,8 +45,15 @@ export interface ClassifyOptions {
 export async function classifyIntent(opts: ClassifyOptions): Promise<ClassificationResult> {
   // Normalize apostrophes: 'what's new' → "what's new" so both match.
   // The user may type either ASCII apostrophe, typographic ', or none at all.
+  //
+  // VLM-exercise Fix 4a: strip QUOTED substrings before matching. Quoted
+  // text is copy the design must contain (button labels like 'Save Changes',
+  // brand names like 'Acme') — NOT intent words. Quoted labels were matching
+  // export's 'save' keyword and styling's 'style' inside "ghost-style",
+  // routing create-ops to the wrong skill category.
   const prompt = opts.prompt
     .replace(/[\u2019\u2018`]/g, "'") // typographic apostrophes → ASCII
+    .replace(/"[^"]*"|'[^']*'/g, ' ') // quoted labels / brand names → space
     .toLowerCase()
     .trim();
 
@@ -109,10 +116,17 @@ function classifyByKeywords(prompt: string, canvasShapeCount: number): Classific
       // Bug fix (A): Short keywords (≤3 chars) cause substring false-positives
       // (e.g. "app" in "apply", "ui" in "build", "web" in "webpage"). Use
       // word-boundary matching for short keywords; substring for longer ones.
-      const isShort = kwLower.length <= 3;
-      const matches = isShort
-        ? new RegExp(`\\b${escapeRegex(kwLower)}\\b`).test(prompt)
-        : prompt.includes(kwLower);
+      //
+      // VLM-exercise Fix 4b: single-word keywords of ANY length now match on
+      // a START word boundary ("\bcount" no longer matches "Account",
+      // "\blist" no longer matches "realistic"). Only the start is anchored
+      // so plurals still match ("\bcard" matches "cards"). Multi-word
+      // keywords ("auto layout") are specific enough to stay substring.
+      const singleWord = !kwLower.includes(' ');
+      const pattern = singleWord
+        ? `\\b${escapeRegex(kwLower)}`
+        : escapeRegex(kwLower);
+      const matches = new RegExp(pattern).test(prompt);
       if (matches) {
         matched.push(kw);
         // Longer keywords get higher weight (more specific).

@@ -1,0 +1,558 @@
+{
+  "dimMeans": {
+    "prompt_fidelity": 7.3076923076923075,
+    "layout_structure": 7.076923076923077,
+    "spacing_consistency": 6.6923076923076925,
+    "typography": 6.076923076923077,
+    "color_cohesion": 7.538461538461538,
+    "component_polish": 6.230769230769231,
+    "cleanliness": 6.923076923076923,
+    "overall_polish": 6.076923076923077
+  },
+  "overallMean": 6.461538461538462,
+  "totalDefects": 45,
+  "defectCounts": {
+    "prompt_fidelity": {
+      "high": 8,
+      "medium": 1,
+      "low": 0
+    },
+    "typography": {
+      "high": 4,
+      "medium": 5,
+      "low": 2
+    },
+    "layout_structure": {
+      "high": 0,
+      "medium": 1,
+      "low": 1
+    },
+    "cleanliness": {
+      "high": 2,
+      "medium": 2,
+      "low": 1
+    },
+    "spacing_consistency": {
+      "high": 0,
+      "medium": 3,
+      "low": 2
+    },
+    "component_polish": {
+      "high": 0,
+      "medium": 3,
+      "low": 8
+    },
+    "missing_elements": {
+      "high": 0,
+      "medium": 1,
+      "low": 0
+    },
+    "color_cohesion": {
+      "high": 0,
+      "medium": 0,
+      "low": 1
+    }
+  },
+  "scenarioSummaries": [
+    {
+      "scenarioId": "os-hero",
+      "turns": 1,
+      "overall": 2,
+      "finalOverall": 2,
+      "toolCalls": 47,
+      "durationS": 610.977,
+      "missing_elements": [
+        "Headline: 'Design at the speed of thought'",
+        "Subheadline text about prompts to UI",
+        "'Get Started' primary button",
+        "'Watch Demo' secondary button"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing headline 'Design at the speed of thought'",
+          "location": "Canvas center"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing subheadline about turning prompts into polished UI",
+          "location": "Canvas center"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing primary 'Get Started' button",
+          "location": "Canvas lower area"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing secondary 'Watch Demo' button",
+          "location": "Canvas lower area"
+        },
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "No text content is visible on the canvas at all",
+          "location": "Entire canvas"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "medium",
+          "description": "The canvas only contains a small placeholder card with color swatches instead of a full hero section layout",
+          "location": "Upper-left quadrant of canvas"
+        }
+      ]
+    },
+    {
+      "scenarioId": "os-profile",
+      "turns": 1,
+      "overall": 7,
+      "finalOverall": 7,
+      "toolCalls": 54,
+      "durationS": 477.078,
+      "missing_elements": [],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "Name 'Maya Chen' is awkwardly split across two lines with poor line height",
+          "location": "Center of card, below avatar"
+        },
+        {
+          "dimension": "cleanliness",
+          "severity": "medium",
+          "description": "Stray text fragments 'M', 'O' appear floating below the stats row",
+          "location": "Bottom center of the card content area"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "low",
+          "description": "Stats row labels (Followers/Following/Posts) are slightly cramped relative to the numbers above them",
+          "location": "Stats row at bottom of card"
+        }
+      ]
+    },
+    {
+      "scenarioId": "os-kanban",
+      "turns": 1,
+      "overall": 8,
+      "finalOverall": 8,
+      "toolCalls": 51,
+      "durationS": 532.833,
+      "missing_elements": [],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "typography",
+          "severity": "low",
+          "description": "Text 'Design system documentation' and 'Review API endpoints' appears slightly clipped or tightly fitted within the card container",
+          "location": "To Do column cards"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "low",
+          "description": "Vertical spacing between the two task cards in each column could be slightly more generous for better visual breathing room",
+          "location": "All three columns"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "The 'New Task' button in the header is a bit small relative to the search input field next to it",
+          "location": "Top header bar"
+        }
+      ]
+    },
+    {
+      "scenarioId": "os-barchart",
+      "turns": 1,
+      "overall": 6,
+      "finalOverall": 6,
+      "toolCalls": 44,
+      "durationS": 367.586,
+      "missing_elements": [
+        "Correct value labels: 12k, 18k, 15k, 24k, 29k, 33k above respective bars"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Value labels above bars show percentages (1%, 18%, 10%, 23%, 33%, 38%) instead of the requested absolute values (12k, 18k, 15k, 24k, 29k, 33k)",
+          "location": "Above each bar in the chart"
+        },
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "Value label text is extremely small and difficult to read, especially for lower values like '1%'",
+          "location": "Above bars"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "Card lacks visible border or shadow definition to clearly separate it from canvas background",
+          "location": "Card container"
+        }
+      ]
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turns": 3,
+      "overall": 7,
+      "finalOverall": 7,
+      "toolCalls": 67,
+      "durationS": 768.1500000000001,
+      "missing_elements": [
+        "None of the explicitly requested elements are missing, though an unrequested 'Log In' link was added."
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "Navigation link text (Home, Products, Pricing, About) is severely truncated/clipped vertically, showing only the top half of the characters",
+          "location": "Center of navigation bar"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "'Sign Up' button lacks proper padding and appears as a flat colored rectangle without clear affordance or border radius",
+          "location": "Right side of navigation bar"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "low",
+          "description": "Navigation bar is not centered horizontally on canvas; left-aligned with excessive whitespace to the right",
+          "location": "Entire navigation bar container"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "Shopping cart icon is a generic outline without fill or proper visual weight; red badge is a raw circle with no padding around the number",
+          "location": "Right side of nav bar, between 'Log In' and 'Sign Up'"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "medium",
+          "description": "Nav links are extremely cramped with almost no horizontal spacing between them",
+          "location": "Center of navigation bar (Home, Products, Pricing, About)"
+        },
+        {
+          "dimension": "typography",
+          "severity": "low",
+          "description": "'Log In' text link appears to have been added but was not requested in either prompt; all nav text is very small and tightly packed",
+          "location": "Between 'About' link and 'Sign Up' button"
+        },
+        {
+          "dimension": "cleanliness",
+          "severity": "medium",
+          "description": "Text elements (links, logo) appear to overlap or be extremely cramped within the navbar container, making them look messy and slightly illegible.",
+          "location": "Entire navbar text row"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "The 'Sign Up' button lacks visible padding and border-radius, appearing as a flat blue rectangle rather than a polished button component.",
+          "location": "Sign Up button"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "The shopping cart icon is very small and the red badge looks like a raw dot rather than a properly styled notification badge with padding.",
+          "location": "Shopping cart icon area"
+        },
+        {
+          "dimension": "missing_elements",
+          "severity": "medium",
+          "description": "A 'Log In' text link is present between the cart icon and Sign Up button, which was not requested by the user in any of the prompts.",
+          "location": "Between cart icon and Sign Up button"
+        }
+      ]
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turns": 3,
+      "overall": 6,
+      "finalOverall": 5,
+      "toolCalls": 53,
+      "durationS": 790.969,
+      "missing_elements": [
+        "Correct price value ($12 shown as $1) for Pro plan",
+        "Correct price values for Starter ($0 shown as $) and Team ($49 shown as $4)",
+        "'Choose Pro' exact button label on Pro card",
+        "'Team' exact plan name on third card",
+        "Correct price values ($0, $12, $49)",
+        "Full 'Choose Pro' button text",
+        "'Team' plan name (shows 'Tea')"
+      ],
+      "regressions": [
+        "Pro card price changed from $12 to $1 (missing digit)",
+        "Pro card button text shortened from 'Choose Pro' to 'Choose'",
+        "Added gray background boxes behind all feature list items that weren't present before",
+        "Third card name changed from 'Tea' to 'Team' then reverted back to 'Tea' — actually the BEFORE image had 'Tea' and AFTER still has 'Tea', so this was never fixed; no new regressions introduced but the fix requested ('Team') is missing"
+      ],
+      "defects": [
+        {
+          "dimension": "cleanliness",
+          "severity": "high",
+          "description": "Price text '$1' and '/month' is awkwardly split across two lines with a large grey background box that looks like an unstyled or broken container, creating visual clutter and poor readability",
+          "location": "Center of card, price area"
+        },
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "'/month' text is broken into two lines ('/mont' and 'h') with poor line height, making it look like a layout error",
+          "location": "Price area, right of $1"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "medium",
+          "description": "The '30-day money-back guarantee' text at the bottom appears to have inconsistent spacing from the button above it compared to other internal gaps in the card",
+          "location": "Bottom of card, below Choose Pro button"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "The 'Most' badge at the top has very light contrast against the white background, reducing its visibility as a callout element",
+          "location": "Top of card, above 'Pro' heading"
+        },
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "Price text '$1' is missing the '2' in '12', and '/month' is awkwardly broken into two lines ('/mont' and 'h') on all three cards",
+          "location": "All three pricing cards - price area"
+        },
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "Third card plan name shows as 'Tea' instead of 'Team'",
+          "location": "Rightmost card header"
+        },
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "Pro card button text reads 'Choose' instead of 'Choose Pro'; Starter button says 'Get Started Free' (acceptable but verbose)",
+          "location": "Pro card button area"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "medium",
+          "description": "Feature list items have inconsistent vertical spacing; some items appear cramped or unevenly distributed within each card",
+          "location": "Feature lists inside all three cards"
+        },
+        {
+          "dimension": "cleanliness",
+          "severity": "low",
+          "description": "Light gray background rectangles behind feature text look like unintended artifacts or selection highlights rather than intentional design elements",
+          "location": "Behind feature text in all three cards"
+        },
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "Price text is broken into multiple lines with awkward wrapping: '$' on one line, '1' or '4' large on next line, '/month' split below. Should be single-line or properly formatted.",
+          "location": "Price area of all three cards (Starter $0, Pro $1, Team $4)"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Prices are completely wrong: Starter shows ~$0 as '$', Pro shows $1 instead of $12, Team shows $4 instead of $49.",
+          "location": "All three card price sections"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Third card plan name is 'Tea' instead of 'Team'.",
+          "location": "Third card header"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "medium",
+          "description": "Pro button text is truncated to 'Choose' instead of 'Choose Pro'.",
+          "location": "Pro card CTA button"
+        },
+        {
+          "dimension": "color_cohesion",
+          "severity": "low",
+          "description": "Feature list items have a light blue/grey background fill that looks like a selection highlight or unintended background rather than clean list styling.",
+          "location": "Feature lists in all three cards"
+        }
+      ]
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turns": 3,
+      "overall": 7.333333333333333,
+      "finalOverall": 5,
+      "toolCalls": 66,
+      "durationS": 893.8549999999999,
+      "missing_elements": [
+        "Toggle row for 'Email updates' (switched on)",
+        "Toggle row for 'Product news' (switched on)"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "Input fields lack visible border or background container definition, appearing as floating text with icons",
+          "location": "Display Name and Email Address input areas"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "Cancel button lacks visible border or background styling to distinguish it from the primary action button",
+          "location": "Cancel button next to Save Changes"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "Cancel button border is very faint and might lack sufficient contrast against the white background for some accessibility standards",
+          "location": "Cancel button in Account Settings panel"
+        },
+        {
+          "dimension": "cleanliness",
+          "severity": "high",
+          "description": "A stray blue circle artifact overlaps the 'Notifications' heading text, appearing like a broken or misplaced icon",
+          "location": "Top-left of the 'Notifications' section header"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "The two requested toggle rows ('Email updates', 'Product news') are completely missing from the Notifications section; only an empty white container is visible",
+          "location": "Inside the Notifications card below the header"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "The 'Notifications' card appears as a plain empty rectangle with no internal structure, padding, or content, looking unfinished compared to the Account Settings card above it",
+          "location": "Notifications section container"
+        }
+      ]
+    }
+  ],
+  "scoredCount": 13,
+  "rowCount": 13,
+  "rows": [
+    {
+      "scenarioId": "os-hero",
+      "turn": 1,
+      "prompt": "Create a landing page hero section for a design tool called 'PixelForge': a bold headline 'Design at the speed of thought', a subheadline saying it turns prompts into polished UI in minutes, a primary 'Get Started' button and a secondary 'Watch Demo' button.",
+      "toolCalls": 47,
+      "durationS": 610.977,
+      "screenshot": "os-hero-t1.png",
+      "overall": 2
+    },
+    {
+      "scenarioId": "os-profile",
+      "turn": 1,
+      "prompt": "Create a user profile card: a circular avatar placeholder, the name 'Maya Chen', the job title 'Product Designer', and a row of three stats - 128 Followers, 342 Following, 56 Posts.",
+      "toolCalls": 54,
+      "durationS": 477.078,
+      "screenshot": "os-profile-t1.png",
+      "overall": 7
+    },
+    {
+      "scenarioId": "os-kanban",
+      "turn": 1,
+      "prompt": "Create a kanban board with three columns - To Do, In Progress, Done - each column containing two task cards with a short realistic title and a small colored tag.",
+      "toolCalls": 51,
+      "durationS": 532.833,
+      "screenshot": "os-kanban-t1.png",
+      "overall": 8
+    },
+    {
+      "scenarioId": "os-barchart",
+      "turn": 1,
+      "prompt": "Create a card containing a bar chart titled 'Monthly Revenue' with six bars for Jan to Jun showing 12k, 18k, 15k, 24k, 29k and 33k, with value labels above each bar.",
+      "toolCalls": 44,
+      "durationS": 367.586,
+      "screenshot": "os-barchart-t1.png",
+      "overall": 6
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 1,
+      "prompt": "Create a website top navigation bar for a site called 'Acme': the logo text 'Acme' on the left, the links Home, Products, Pricing and About in the middle, and a 'Sign Up' button on the right.",
+      "toolCalls": 45,
+      "durationS": 514.975,
+      "screenshot": "ms-navbar-t1.png",
+      "overall": 7
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 2,
+      "prompt": "Add a shopping cart icon with a small red badge showing '3' between the links and the Sign Up button.",
+      "toolCalls": 11,
+      "durationS": 204.883,
+      "screenshot": "ms-navbar-t2.png",
+      "overall": 7
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 3,
+      "prompt": "Give the navbar a dark background, make the Home link highlighted in blue, and vertically center everything.",
+      "toolCalls": 11,
+      "durationS": 48.292,
+      "screenshot": "ms-navbar-t3.png",
+      "overall": 7
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 1,
+      "prompt": "Create a pricing card for the 'Pro' plan at $12 per month: the plan name, the price, a list of 4 realistic features, and a 'Choose Pro' button.",
+      "toolCalls": 30,
+      "durationS": 409.181,
+      "screenshot": "ms-pricing-t1.png",
+      "overall": 7
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 2,
+      "prompt": "Turn it into a row of three pricing cards side by side: Starter at $0, Pro at $12 with a 'Popular' badge and a highlighted border, and Team at $49.",
+      "toolCalls": 17,
+      "durationS": 349.914,
+      "screenshot": "ms-pricing-t2.png",
+      "overall": 6
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 3,
+      "prompt": "Make all three cards the same height with consistent padding, and center the plan names.",
+      "toolCalls": 6,
+      "durationS": 31.874,
+      "screenshot": "ms-pricing-t3.png",
+      "overall": 5
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 1,
+      "prompt": "Create an 'Account Settings' panel with two labeled input fields: Display Name and Email Address.",
+      "toolCalls": 53,
+      "durationS": 667.121,
+      "screenshot": "ms-settings-t1.png",
+      "overall": 8
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 2,
+      "prompt": "Add a primary 'Save Changes' button and a ghost-style 'Cancel' button below the fields.",
+      "toolCalls": 5,
+      "durationS": 42.425,
+      "screenshot": "ms-settings-t2.png",
+      "overall": 9
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 3,
+      "prompt": "Add a 'Notifications' section below with two toggle rows - 'Email updates' and 'Product news' - both shown switched on.",
+      "toolCalls": 8,
+      "durationS": 184.309,
+      "screenshot": "ms-settings-t3.png",
+      "overall": 5
+    }
+  ]
+}

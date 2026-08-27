@@ -1,0 +1,2649 @@
+{
+  "passDir": "download/vlm-exercise/baseline",
+  "generatedAt": "2026-08-27T14:05:07.998Z",
+  "turns": [
+    {
+      "scenarioId": "os-hero",
+      "turn": 1,
+      "prompt": "Create a landing page hero section for a design tool called 'PixelForge': a bold headline 'Design at the speed of thought', a subheadline saying it turns prompts into polished UI in minutes, a primary 'Get Started' button and a secondary 'Watch Demo' button.",
+      "skill": {
+        "category": "wireframe",
+        "confidence": 0.9090909090909091,
+        "method": "keyword",
+        "toolCount": 107
+      },
+      "toolCalls": [
+        {
+          "name": "pen_generate_design_brief",
+          "success": true,
+          "durMs": 6043,
+          "summary": "{\n  \"primaryColor\": \"#0ea5e9\",\n  \"accentColor\": \"#6366f1\",\n  \"neutralPalette\": [\n    \"#f8fafc\",\n    \"#f1f5f9\",\n    \"#e2e8f0\",\n    \"#94a3b8\",\n    \"#475569\",\n    "
+        },
+        {
+          "name": "pen_set_variables",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated 12 color(s), 0 text style(s)"
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created subtree \"PixelForge Hero\" — 11 node(s), depth 6"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on PixelForge Hero"
+        },
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "3cc10a6c-176b-4eda-bfaa-d442c1b3c0b4 | PixelForge Hero | frame | x=200 y=50 w=1280 h=600\n  3cc10a6c-176b-4eda-bfaa-d442c1b3c0b4-1 | Hero Content | frame | x=200"
+        },
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "3cc10a6c-176b-4eda-bfaa-d442c1b3c0b4-1-3 | CTA Buttons | frame | x=200 y=50 w=160 h=52\n  3cc10a6c-176b-4eda-bfaa-d442c1b3c0b4-1-3-1 | Primary Button | rectangle"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on Primary Button"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Primary Button"
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created subtree \"Visual Preview\" — 8 node(s), depth 4"
+        },
+        {
+          "name": "pen_bind_variable",
+          "success": true,
+          "durMs": 0,
+          "summary": "Bound textColor to variable \"text\""
+        },
+        {
+          "name": "pen_bind_variable",
+          "success": true,
+          "durMs": 1,
+          "summary": "Bound textColor to variable \"text-muted\""
+        },
+        {
+          "name": "pen_bind_variable",
+          "success": true,
+          "durMs": 1,
+          "summary": "Bound stroke to variable \"border\""
+        },
+        {
+          "name": "pen_self_critique",
+          "success": true,
+          "durMs": 8360,
+          "summary": "CRITIQUE:\n- [BLOCKER] Subheadline text is truncated: \"PixelForge turns your prompts into polis\" — complete the text to \"PixelForge turns your prompts into polis"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Subheadline: width, height"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Headline: fontSize"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Visual Preview"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Secondary Button"
+        },
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "e7c8607f-8d0c-408b-8175-12bfb3221ec6 | Visual Preview | frame | x=920 y=120 w=480 h=360\n  e7c8607f-8d0c-408b-8175-12bfb3221ec6-1 | Preview Header | rectangle | "
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Mock Card 2: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Mock Card 3: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Mock Input: fill"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Logo\" at (240, 70)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created icon \"Logo Icon\" at (240, 70)"
+        }
+      ],
+      "toolCallCount": 23,
+      "failedCalls": 0,
+      "patchCount": 18,
+      "errors": [],
+      "durationS": 695,
+      "warnings": []
+    },
+    {
+      "scenarioId": "os-profile",
+      "turn": 1,
+      "prompt": "Create a user profile card: a circular avatar placeholder, the name 'Maya Chen', the job title 'Product Designer', and a row of three stats - 128 Followers, 342 Following, 56 Posts.",
+      "skill": {
+        "category": "wireframe",
+        "confidence": 0.9,
+        "method": "keyword",
+        "toolCount": 107
+      },
+      "toolCalls": [
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "ERROR: You must call pen_generate_design_brief FIRST to establish the design brief (color palette, typography scale, information architecture) before any shape-"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "ERROR: You must call pen_generate_design_brief FIRST to establish the design brief (color palette, typography scale, information architecture) before any shape-"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "ERROR: You must call pen_generate_design_brief FIRST to establish the design brief (color palette, typography scale, information architecture) before any shape-"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "ERROR: You must call pen_generate_design_brief FIRST to establish the design brief (color palette, typography scale, information architecture) before any shape-"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "ERROR: You must call pen_generate_design_brief FIRST to establish the design brief (color palette, typography scale, information architecture) before any shape-"
+        },
+        {
+          "name": "pen_generate_design_brief",
+          "success": true,
+          "durMs": 7742,
+          "summary": "{\n  \"primaryColor\": \"#0ea5e9\",\n  \"accentColor\": \"#6366f1\",\n  \"neutralPalette\": [\n    \"#f8fafc\",\n    \"#f1f5f9\",\n    \"#e2e8f0\",\n    \"#94a3b8\",\n    \"#475569\",\n    "
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Profile Card\" at (200, 100)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created ellipse \"Avatar\" at (112, 32)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Name\" at (60, 144)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Job Title\" at (60, 180)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Stats Row\" at (32, 232)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Followers Stat\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created frame \"Following Stat\" at (85, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created frame \"Posts Stat\" at (171, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Followers Value\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Followers Label\" at (0, 32)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Following Value\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Following Label\" at (0, 32)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Posts Value\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Posts Label\" at (0, 32)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created line \"Divider 1\" at (85, 10)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created line \"Divider 2\" at (171, 10)"
+        },
+        {
+          "name": "pen_search_icons",
+          "success": true,
+          "durMs": 1,
+          "summary": "Placed lucide icon \"user\" at (148, 68)"
+        },
+        {
+          "name": "pen_self_critique",
+          "success": true,
+          "durMs": 6738,
+          "summary": "CRITIQUE:\n- [BLOCKER] Design is low-fidelity — only 1/17 shapes has a shadow, and there are zero gradients. The \"Stats Row\" and individual stat containers shoul"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on Avatar"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Icon: user: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Avatar: stroke, strokeWidth, shadow"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Profile Card: stroke, strokeWidth, shadow"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Job Title: fontWeight, letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Icon: user: x, y, stroke, strokeWidth"
+        },
+        {
+          "name": "pen_set_background",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set background to #f8fafc"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Stats Row: autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Job Title: y"
+        }
+      ],
+      "toolCallCount": 33,
+      "failedCalls": 0,
+      "patchCount": 26,
+      "errors": [],
+      "durationS": 326.04,
+      "warnings": []
+    },
+    {
+      "scenarioId": "os-kanban",
+      "turn": 1,
+      "prompt": "Create a kanban board with three columns - To Do, In Progress, Done - each column containing two task cards with a short realistic title and a small colored tag.",
+      "skill": {
+        "category": "styling",
+        "confidence": 0.5,
+        "method": "keyword",
+        "toolCount": 79
+      },
+      "toolCalls": [
+        {
+          "name": "pen_set_variables",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated 23 color(s), 0 text style(s)"
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created subtree \"Kanban Board\" — 37 node(s), depth 5"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Column Title: fontSize, letterSpacing, textAlign"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Column Title: fontSize, letterSpacing, textAlign"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Column Title: fontSize, letterSpacing, textAlign"
+        },
+        {
+          "name": "pen_bulk_update_by_filter",
+          "success": true,
+          "durMs": 1,
+          "summary": "Bulk-updated 6 shape(s): letterSpacing"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created frame \"Card Footer\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created ellipse \"Avatar\" at (220, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created icon \"Due Date Icon\" at (16, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Due Date\" at (34, 86)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created ellipse \"Avatar\" at (220, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created icon \"Due Date Icon\" at (16, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Due Date\" at (34, 86)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created ellipse \"Avatar\" at (220, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created icon \"Due Date Icon\" at (16, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Due Date\" at (34, 86)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created ellipse \"Avatar\" at (220, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created icon \"Due Date Icon\" at (16, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Due Date\" at (34, 86)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created ellipse \"Avatar\" at (220, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created icon \"Check Icon\" at (16, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Completed\" at (34, 86)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created ellipse \"Avatar\" at (220, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created icon \"Check Icon\" at (16, 88)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Completed\" at (34, 86)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Count Badge\" at (80, 8)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Count\" at (88, 10)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Count Badge\" at (110, 8)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Count\" at (118, 10)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Count Badge\" at (70, 8)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Count\" at (78, 10)"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Task Card 1"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Task Card 2"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Task Card 1"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Task Card 2"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Task Card 1"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Task Card 2"
+        }
+      ],
+      "toolCallCount": 37,
+      "failedCalls": 0,
+      "patchCount": 37,
+      "errors": [],
+      "durationS": 377.89,
+      "warnings": []
+    },
+    {
+      "scenarioId": "os-barchart",
+      "turn": 1,
+      "prompt": "Create a card containing a bar chart titled 'Monthly Revenue' with six bars for Jan to Jun showing 12k, 18k, 15k, 24k, 29k and 33k, with value labels above each bar.",
+      "skill": {
+        "category": "wireframe",
+        "confidence": 0.6666666666666666,
+        "method": "keyword",
+        "toolCount": 107
+      },
+      "toolCalls": [
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "ERROR: You must call pen_generate_design_brief FIRST to establish the design brief (color palette, typography scale, information architecture) before any shape-"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "ERROR: You must call pen_generate_design_brief FIRST to establish the design brief (color palette, typography scale, information architecture) before any shape-"
+        },
+        {
+          "name": "pen_generate_design_brief",
+          "success": true,
+          "durMs": 13000,
+          "summary": "{\n  \"primaryColor\": \"#0ea5e9\",\n  \"accentColor\": \"#6366f1\",\n  \"neutralPalette\": [\n    \"#f8fafc\",\n    \"#f1f5f9\",\n    \"#e2e8f0\",\n    \"#94a3b8\",\n    \"#475569\",\n    "
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 5,
+          "summary": "Created frame \"Revenue Card\" at (200, 100)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 6,
+          "summary": "Created text \"Card Title\" at (224, 124)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created frame \"Chart Container\" at (224, 172)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created rectangle \"Jan Bar\" at (240, 252)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Jan Value\" at (240, 228)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Jan Label\" at (240, 336)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created rectangle \"Feb Bar\" at (320, 220)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Feb Value\" at (320, 196)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Feb Label\" at (320, 336)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created rectangle \"Mar Bar\" at (400, 236)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Mar Value\" at (400, 212)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Mar Label\" at (400, 336)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created rectangle \"Apr Bar\" at (480, 188)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Apr Value\" at (480, 164)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Apr Label\" at (480, 336)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 2,
+          "summary": "Created rectangle \"May Bar\" at (560, 172)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 2,
+          "summary": "Created text \"May Value\" at (560, 148)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 2,
+          "summary": "Created text \"May Label\" at (560, 336)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 2,
+          "summary": "Created rectangle \"Jun Bar\" at (640, 156)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Jun Value\" at (640, 132)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created text \"Jun Label\" at (640, 336)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created line \"Baseline\" at (224, 332)"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on Jan Bar"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on Feb Bar"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on Mar Bar"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on Apr Bar"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on May Bar"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on Jun Bar"
+        },
+        {
+          "name": "pen_delete_nodes",
+          "success": true,
+          "durMs": 0,
+          "summary": "Deleted 19 shapes: Jan Bar, Jan Value, Jan Label, Feb Bar, Feb Value, Feb Label, Mar Bar, Mar Value, Mar Label, Apr Bar, Apr Value, Apr Label, May Bar, May Valu"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Revenue Card: height, autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Chart Container: height, autoLayout"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Jan Group\" at (240, 172)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Feb Group\" at (320, 172)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Mar Group\" at (400, 172)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Apr Group\" at (480, 172)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"May Group\" at (560, 172)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created frame \"Jun Group\" at (640, 172)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Jan Value\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created rectangle \"Jan Bar\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Jan Label\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Feb Value\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created rectangle \"Feb Bar\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Feb Label\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Mar Value\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created rectangle \"Mar Bar\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Mar Label\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Apr Value\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created rectangle \"Apr Bar\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Apr Label\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"May Value\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created rectangle \"May Bar\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"May Label\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Jun Value\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created rectangle \"Jun Bar\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Jun Label\" at (0, 0)"
+        },
+        {
+          "name": "pen_reparent_nodes",
+          "success": true,
+          "durMs": 1,
+          "summary": "Reparented \"Card Title\" → parent \"Revenue Card\""
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created line \"Baseline\" at (224, 452)"
+        }
+      ],
+      "toolCallCount": 60,
+      "failedCalls": 0,
+      "patchCount": 57,
+      "errors": [],
+      "durationS": 382.432,
+      "warnings": []
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 1,
+      "prompt": "Create a website top navigation bar for a site called 'Acme': the logo text 'Acme' on the left, the links Home, Products, Pricing and About in the middle, and a 'Sign Up' button on the right.",
+      "skill": {
+        "category": "wireframe",
+        "confidence": 0.5714285714285714,
+        "method": "keyword",
+        "toolCount": 107
+      },
+      "toolCalls": [
+        {
+          "name": "pen_insert_html",
+          "success": true,
+          "durMs": 0,
+          "summary": "pen_insert_html: 12 node(s) from a 1440-char fragment under canvas root"
+        },
+        {
+          "name": "pen_delete_nodes",
+          "success": true,
+          "durMs": 1,
+          "summary": "Deleted 12 shapes: navbar-nav-acme-home, navbar-a-acme, navbar-ul-home-products-pr, navbar-li-home, navbar-a-home, navbar-li-products, navbar-a-products, navbar"
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created subtree \"Navbar\" — 9 node(s), depth 3"
+        },
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "d2ca39cd-0aa4-4871-bed5-fb33b1bd7fce | Navbar | frame | x=100 y=100 w=1280 h=64\n  d2ca39cd-0aa4-4871-bed5-fb33b1bd7fce-1 | Logo | text | x=116 y=82 w=100 h=100\n"
+        }
+      ],
+      "toolCallCount": 4,
+      "failedCalls": 0,
+      "patchCount": 3,
+      "errors": [],
+      "durationS": 239.64,
+      "warnings": []
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 2,
+      "prompt": "Add a shopping cart icon with a small red badge showing '3' between the links and the Sign Up button.",
+      "skill": {
+        "category": "layout",
+        "confidence": 0.5,
+        "method": "keyword",
+        "toolCount": 79
+      },
+      "toolCalls": [
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "d2ca39cd-0aa4-4871-bed5-fb33b1bd7fce | Navbar | frame | x=100 y=100 w=1280 h=64\n  d2ca39cd-0aa4-4871-bed5-fb33b1bd7fce-1 | Logo | text | x=116 y=82 w=100 h=100\n"
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created subtree \"Cart Button\" — 4 node(s), depth 3"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Cart Button: x"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Cart Icon: stroke, strokeWidth"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Cart Badge: width, height, fill, shadow, autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Badge Count: width, height, fontSize"
+        }
+      ],
+      "toolCallCount": 6,
+      "failedCalls": 0,
+      "patchCount": 5,
+      "errors": [],
+      "durationS": 158.791,
+      "warnings": []
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 3,
+      "prompt": "Give the navbar a dark background, make the Home link highlighted in blue, and vertically center everything.",
+      "skill": {
+        "category": "layout",
+        "confidence": 0.5,
+        "method": "keyword",
+        "toolCount": 79
+      },
+      "toolCalls": [
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "d2ca39cd-0aa4-4871-bed5-fb33b1bd7fce | Navbar | frame | x=100 y=100 w=1280 h=64\n  d2ca39cd-0aa4-4871-bed5-fb33b1bd7fce-1 | Logo | text | x=116 y=82 w=100 h=100\n"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Navbar: fill, autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Home Link: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Logo: textColor"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 2,
+          "summary": "Updated Nav Links Container: autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Products Link: textColor"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pricing Link: textColor"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated About Link: textColor"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Cart Icon: stroke"
+        }
+      ],
+      "toolCallCount": 9,
+      "failedCalls": 0,
+      "patchCount": 8,
+      "errors": [],
+      "durationS": 52.891,
+      "warnings": []
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 1,
+      "prompt": "Create a pricing card for the 'Pro' plan at $12 per month: the plan name, the price, a list of 4 realistic features, and a 'Choose Pro' button.",
+      "skill": {
+        "category": "wireframe",
+        "confidence": 0.8,
+        "method": "keyword",
+        "toolCount": 107
+      },
+      "toolCalls": [
+        {
+          "name": "pen_generate_design_brief",
+          "success": true,
+          "durMs": 15497,
+          "summary": "{\n  \"primaryColor\": \"#0ea5e9\",\n  \"accentColor\": \"#6366f1\",\n  \"neutralPalette\": [\n    \"#f8fafc\",\n    \"#f1f5f9\",\n    \"#e2e8f0\",\n    \"#94a3b8\",\n    \"#475569\",\n    "
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created subtree \"Pro Pricing Card\" — 21 node(s), depth 4"
+        },
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "e33156d2-75e1-4061-966a-258c162c7e01 | Pro Pricing Card | frame | x=200 y=100 w=320 h=420\n  e33156d2-75e1-4061-966a-258c162c7e01-1 | Plan Name | text | x=232 y="
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Price: width"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Period: width"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on CTA Button"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created rectangle \"Popular Badge\" at (320, 90)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Popular Text\" at (320, 94)"
+        },
+        {
+          "name": "pen_self_critique",
+          "success": true,
+          "durMs": 9008,
+          "summary": "CRITIQUE:\n- [BLOCKER] Only 2/22 shapes have shadows, violating high-fidelity requirements — add pen_set_shadow (0,4,6,#0000001a) to all elevated components: \"Pr"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Popular Badge: x, y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Popular Text: x, y, fontSize"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on CTA Button"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Features List: autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Price Row: autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro Pricing Card: height"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Feature 1 Text: width"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Feature 2 Text: width"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Feature 3 Text: width"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Feature 4 Text: width"
+        },
+        {
+          "name": "pen_self_critique",
+          "success": true,
+          "durMs": 6030,
+          "summary": "CRITIQUE:\n- [BLOCKER] Only 2 out of 22 shapes have shadows — most components lack elevation, making the design feel flat. Add pen_set_shadow (0,4,6,#0000001a) t"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Popular Badge: x, y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Popular Text: x, y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Period: fontSize"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro Pricing Card: height, autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Plan Name: fontWeight, textAlign"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Period: fontSize, fontWeight"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on CTA Button"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Features List: autoLayout"
+        },
+        {
+          "name": "pen_reparent_nodes",
+          "success": true,
+          "durMs": 0,
+          "summary": "Reparented \"Popular Text\" → parent \"Pro Pricing Card\""
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Popular Badge: x, y, width, height, fill, radius"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Popular Text: x, y, width, height, textColor, fontWeight, textAlign"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Check 1: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Check 2: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Check 3: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Check 4: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Pro Pricing Card: stroke, strokeWidth, radius, shadow"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated CTA Button: shadow"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Feature 1: autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Feature 2: autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Feature 3: autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Feature 4: autoLayout"
+        }
+      ],
+      "toolCallCount": 41,
+      "failedCalls": 0,
+      "patchCount": 38,
+      "errors": [],
+      "durationS": 357.272,
+      "warnings": []
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 2,
+      "prompt": "Turn it into a row of three pricing cards side by side: Starter at $0, Pro at $12 with a 'Popular' badge and a highlighted border, and Team at $49.",
+      "skill": {
+        "category": "wireframe",
+        "confidence": 0.6666666666666666,
+        "method": "keyword",
+        "toolCount": 107
+      },
+      "toolCalls": [
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "e33156d2-75e1-4061-966a-258c162c7e01 | Pro Pricing Card | frame | x=200 y=100 w=320 h=480\n  e33156d2-75e1-4061-966a-258c162c7e01-1 | Plan Name | text | x=224 y="
+        },
+        {
+          "name": "todo_create",
+          "success": true,
+          "durMs": 1,
+          "summary": "Created 5-item todo list:\n1. [1] Create Starter pricing card ($0)\n2. [2] Update Pro card with highlighted border and Popular badge positioning\n3. [3] Create Tea"
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created subtree \"Pricing Cards Row\" — 67 node(s), depth 5"
+        },
+        {
+          "name": "pen_delete_nodes",
+          "success": true,
+          "durMs": 0,
+          "summary": "Deleted 1 shape: Pro Pricing Card"
+        },
+        {
+          "name": "todo_update",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated \"Create Starter pricing card ($0)\" → completed"
+        },
+        {
+          "name": "todo_update",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated \"Update Pro card with highlighted border and Popular badge positioning\" → completed"
+        },
+        {
+          "name": "todo_update",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated \"Create Team pricing card ($49)\" → completed"
+        },
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "41a2224b-dda9-402d-bd29-b4d14941a082 | Pricing Cards Row | frame | x=100 y=100 w=1040 h=520\n  41a2224b-dda9-402d-bd29-b4d14941a082-1 | Starter Card | frame | x="
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Popular Text: x, textAlign"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Starter Button Text\" at (170, 513)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Pro Button Text\" at (502, 535)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Team Button Text\" at (834, 513)"
+        },
+        {
+          "name": "todo_update",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated \"Add proper shadows and styling to all cards\" → completed"
+        },
+        {
+          "name": "pen_self_critique",
+          "success": true,
+          "durMs": 14791,
+          "summary": "CRITIQUE:\n- [BLOCKER] Design lacks gradients — zero shapes have gradient fills, which is required for high-fidelity. Add a gradient to the \"Popular Badge\" using"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Starter Card"
+        },
+        {
+          "name": "pen_set_shadow",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set shadow on Team Card"
+        },
+        {
+          "name": "pen_set_gradient_fill",
+          "success": true,
+          "durMs": 0,
+          "summary": "Set linear gradient on Popular Badge"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter CTA: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Team CTA: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Error: no shape with id 6b8407bd-039b-43ce-9195-cd6aef1c2eee"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Error: no shape with id ec51fb70-fa1e-4194-9048-8f628adf07fb"
+        },
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "41a2224b-dda9-402d-bd29-b4d14941a082 | Pricing Cards Row | frame | x=100 y=100 w=1040 h=520\n  41a2224b-dda9-402d-bd29-b4d14941a082-1 | Starter Card | frame | x="
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Starter CTA Label\" at (0, 0)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Team CTA Label\" at (0, 0)"
+        },
+        {
+          "name": "todo_update",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated \"Self-critique and finalize\" → completed"
+        },
+        {
+          "name": "pen_bulk_update_by_filter",
+          "success": true,
+          "durMs": 1,
+          "summary": "Bulk-updated 22 shape(s): fontWeight, letterSpacing, textAlign"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter Price Row: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter Features: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SF1: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SF2: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SF3: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SF4: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Popular Badge Container: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Pro Price Row: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Pro Features: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PF1: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PF2: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PF3: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PF4: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Team Price Row: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Team Features: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF1: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF2: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF3: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF4: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Popular Badge: fill"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter Price: fontSize, textColor"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Team Price: fontSize, textColor"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SF1 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SF2 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SF3 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SF4 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PF1 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PF2 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PF3 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PF4 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF1 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF2 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF3 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF4 Text: textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Pro Price: fontSize, textColor"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Starter Plan Name: fontSize, letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Pro Plan Name: fontSize, letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Team Plan Name: fontSize, letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SCheck1: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SCheck2: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SCheck3: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SCheck4: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PCheck1: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PCheck2: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PCheck3: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated PCheck4: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TCheck1: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TCheck2: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated TCheck3: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated TCheck4: stroke"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Popular Badge Container: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro Plan Name: y"
+        }
+      ],
+      "toolCallCount": 78,
+      "failedCalls": 0,
+      "patchCount": 66,
+      "errors": [],
+      "durationS": 496.843,
+      "warnings": []
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 3,
+      "prompt": "Make all three cards the same height with consistent padding, and center the plan names.",
+      "skill": {
+        "category": "layout",
+        "confidence": 0.6666666666666666,
+        "method": "keyword",
+        "toolCount": 79
+      },
+      "toolCalls": [
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "41a2224b-dda9-402d-bd29-b4d14941a082 | Pricing Cards Row | frame | x=100 y=100 w=1040 h=520\n  41a2224b-dda9-402d-bd29-b4d14941a082-1 | Starter Card | frame | x="
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter Plan Name: x, width, textAlign"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro Plan Name: x, width, textAlign"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Team Plan Name: x, width, textAlign"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Popular Badge Container: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Pro Plan Name: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Pro Price Row: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro Divider: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro Features: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro CTA: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Popular Badge Container: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro Plan Name: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro Price Row: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro Divider: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Pro Features: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Pro CTA: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter Plan Name: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter Price Row: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter Divider: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter Features: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter CTA: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Team Plan Name: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Team Price Row: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Team Divider: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Team Features: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Team CTA: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter Price: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Starter Period: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Team Price: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Team Period: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SF1: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SCheck1: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SF1 Text: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SF2: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SCheck2: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SF2 Text: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SF3: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SCheck3: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SF3 Text: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SF4: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated SCheck4: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated SF4 Text: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF1: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TCheck1: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF1 Text: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF2: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TCheck2: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF2 Text: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF3: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TCheck3: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF3 Text: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF4: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TCheck4: y"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated TF4 Text: y"
+        }
+      ],
+      "toolCallCount": 54,
+      "failedCalls": 0,
+      "patchCount": 53,
+      "errors": [],
+      "durationS": 118.949,
+      "warnings": []
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 1,
+      "prompt": "Create an 'Account Settings' panel with two labeled input fields: Display Name and Email Address.",
+      "skill": {
+        "category": "inspect",
+        "confidence": 0.5,
+        "method": "keyword",
+        "toolCount": 70
+      },
+      "toolCalls": [
+        {
+          "name": "pen_generate_design_brief",
+          "success": true,
+          "durMs": 4022,
+          "summary": "{\n  \"primaryColor\": \"#0ea5e9\",\n  \"accentColor\": \"#6366f1\",\n  \"neutralPalette\": [\n    \"#f8fafc\",\n    \"#f1f5f9\",\n    \"#e2e8f0\",\n    \"#94a3b8\",\n    \"#475569\",\n    "
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created subtree \"Account Settings Panel\" — 13 node(s), depth 3"
+        },
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "1a33566d-e36f-4a60-b1df-37e4b5abc384 | Account Settings Panel | frame | x=200 y=50 w=480 h=320\n  1a33566d-e36f-4a60-b1df-37e4b5abc384-1 | Panel Title | text | x"
+        },
+        {
+          "name": "pen_delete_nodes",
+          "success": true,
+          "durMs": 0,
+          "summary": "Deleted 4 shapes: Cancel Button, Cancel Text, Save Button, Save Text"
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created subtree \"Cancel Button\" — 2 node(s), depth 2"
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created subtree \"Save Button\" — 2 node(s), depth 2"
+        },
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "1a33566d-e36f-4a60-b1df-37e4b5abc384 | Account Settings Panel | frame | x=200 y=50 w=480 h=320\n  1a33566d-e36f-4a60-b1df-37e4b5abc384-1 | Panel Title | text | x"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Account Settings Panel: height"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Display Name Input: height, fill, stroke, strokeWidth"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Email Address Input: height, fill, stroke, strokeWidth"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Panel Title: fontWeight, letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Display Name Label: textColor, letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Email Address Label: textColor, letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Cancel Button: fill, stroke, strokeWidth"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Cancel Text: letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Updated Save Text: letterSpacing"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Display Name Placeholder\" at (248, 322)"
+        },
+        {
+          "name": "pen_create_node",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created text \"Email Placeholder\" at (248, 398)"
+        }
+      ],
+      "toolCallCount": 18,
+      "failedCalls": 0,
+      "patchCount": 15,
+      "errors": [],
+      "durationS": 295.994,
+      "warnings": []
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 2,
+      "prompt": "Add a primary 'Save Changes' button and a ghost-style 'Cancel' button below the fields.",
+      "skill": {
+        "category": "styling",
+        "confidence": 0.6666666666666666,
+        "method": "keyword",
+        "toolCount": 79
+      },
+      "toolCalls": [
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "1a33566d-e36f-4a60-b1df-37e4b5abc384 | Account Settings Panel | frame | x=200 y=50 w=480 h=420\n  1a33566d-e36f-4a60-b1df-37e4b5abc384-1 | Panel Title | text | x"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Save Button: name, width, fill, radius, shadow, autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Save Text: width, text, fontSize, textColor, fontWeight"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Cancel Button: name, width, fill, stroke, strokeWidth, radius, autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Cancel Text: width, text, fontSize, textColor, fontWeight"
+        }
+      ],
+      "toolCallCount": 5,
+      "failedCalls": 0,
+      "patchCount": 4,
+      "errors": [],
+      "durationS": 46.373,
+      "warnings": []
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 3,
+      "prompt": "Add a 'Notifications' section below with two toggle rows - 'Email updates' and 'Product news' - both shown switched on.",
+      "skill": {
+        "category": "layout",
+        "confidence": 0.5,
+        "method": "keyword",
+        "toolCount": 79
+      },
+      "toolCalls": [
+        {
+          "name": "pen_get_metadata",
+          "success": true,
+          "durMs": 0,
+          "summary": "1a33566d-e36f-4a60-b1df-37e4b5abc384 | Account Settings Panel | frame | x=200 y=50 w=480 h=420\n  1a33566d-e36f-4a60-b1df-37e4b5abc384-1 | Panel Title | text | x"
+        },
+        {
+          "name": "pen_create_subtree",
+          "success": true,
+          "durMs": 0,
+          "summary": "Created subtree \"Notifications Section\" — 10 node(s), depth 4"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Notifications Title: fontWeight, letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Email Updates Label: fontWeight, letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Product News Label: fontWeight, letterSpacing"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Notifications Section: fill, stroke, strokeWidth, shadow, autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Email Updates Row: fill, autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Product News Row: fill, autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Email Toggle: autoLayout"
+        },
+        {
+          "name": "pen_update_node",
+          "success": true,
+          "durMs": 1,
+          "summary": "Updated Product Toggle: autoLayout"
+        }
+      ],
+      "toolCallCount": 10,
+      "failedCalls": 0,
+      "patchCount": 9,
+      "errors": [],
+      "durationS": 222.227,
+      "warnings": []
+    }
+  ],
+  "toolFrequency": [
+    {
+      "name": "pen_update_node",
+      "count": 190,
+      "failures": 0,
+      "totalMs": 95,
+      "meanMs": 1
+    },
+    {
+      "name": "pen_create_node",
+      "count": 106,
+      "failures": 0,
+      "totalMs": 54,
+      "meanMs": 1
+    },
+    {
+      "name": "pen_get_metadata",
+      "count": 15,
+      "failures": 0,
+      "totalMs": 0,
+      "meanMs": 0
+    },
+    {
+      "name": "pen_set_gradient_fill",
+      "count": 12,
+      "failures": 0,
+      "totalMs": 0,
+      "meanMs": 0
+    },
+    {
+      "name": "pen_set_shadow",
+      "count": 12,
+      "failures": 0,
+      "totalMs": 0,
+      "meanMs": 0
+    },
+    {
+      "name": "pen_create_subtree",
+      "count": 11,
+      "failures": 0,
+      "totalMs": 2,
+      "meanMs": 0
+    },
+    {
+      "name": "pen_generate_design_brief",
+      "count": 5,
+      "failures": 0,
+      "totalMs": 46304,
+      "meanMs": 9261
+    },
+    {
+      "name": "pen_self_critique",
+      "count": 5,
+      "failures": 0,
+      "totalMs": 44927,
+      "meanMs": 8985
+    },
+    {
+      "name": "todo_update",
+      "count": 5,
+      "failures": 0,
+      "totalMs": 0,
+      "meanMs": 0
+    },
+    {
+      "name": "pen_delete_nodes",
+      "count": 4,
+      "failures": 0,
+      "totalMs": 1,
+      "meanMs": 0
+    },
+    {
+      "name": "pen_bind_variable",
+      "count": 3,
+      "failures": 0,
+      "totalMs": 2,
+      "meanMs": 1
+    },
+    {
+      "name": "pen_set_variables",
+      "count": 2,
+      "failures": 0,
+      "totalMs": 1,
+      "meanMs": 1
+    },
+    {
+      "name": "pen_bulk_update_by_filter",
+      "count": 2,
+      "failures": 0,
+      "totalMs": 2,
+      "meanMs": 1
+    },
+    {
+      "name": "pen_reparent_nodes",
+      "count": 2,
+      "failures": 0,
+      "totalMs": 1,
+      "meanMs": 1
+    },
+    {
+      "name": "pen_search_icons",
+      "count": 1,
+      "failures": 0,
+      "totalMs": 1,
+      "meanMs": 1
+    },
+    {
+      "name": "pen_set_background",
+      "count": 1,
+      "failures": 0,
+      "totalMs": 0,
+      "meanMs": 0
+    },
+    {
+      "name": "pen_insert_html",
+      "count": 1,
+      "failures": 0,
+      "totalMs": 0,
+      "meanMs": 0
+    },
+    {
+      "name": "todo_create",
+      "count": 1,
+      "failures": 0,
+      "totalMs": 1,
+      "meanMs": 1
+    }
+  ]
+}

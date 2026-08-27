@@ -108,7 +108,12 @@ export type ResolverWarningKind =
   | 'path_geometry_dropped'
   /// More than one enabled shadow or blur — the resolved Layer model carries
   /// a single shadow + single blur, so extras were dropped.
-  | 'effects_dropped';
+  | 'effects_dropped'
+  /// VLM-exercise Fix 3: a container's children extend beyond its declared
+  /// bounds (fixed height/width too small for the flow content). The overflow
+  /// now RENDERS (culling gate), but it escapes the frame's background —
+  /// switch the container to height:'fit_content' or size it to its content.
+  | 'container_overflow';
 
 export interface ResolverWarning {
   nodeId: string;
@@ -299,6 +304,22 @@ function isFillContainer(v: unknown): boolean {
   return typeof v === 'string' && v.startsWith('fill_container');
 }
 
+/**
+ * VLM-exercise Fix 7: normalize layout-direction spellings. Models send
+ * 'VERTICAL'/'Vertical'/'row'/'column' (observed: 'VERTICAL' in an
+ * add_subtree payload) — the strict `=== 'vertical'` checks silently fell
+ * those to the absolute-positioning branch, stacking every child at the
+ * parent origin (entire pricing cards rendered as overlapping piles).
+ */
+function normalizeLayoutDir(v: unknown): 'horizontal' | 'vertical' | 'none' | string {
+  if (typeof v !== 'string') return 'none';
+  const s = v.trim().toLowerCase();
+  if (s === 'horizontal' || s === 'row') return 'horizontal';
+  if (s === 'vertical' || s === 'column') return 'vertical';
+  if (s === 'none' || s === '') return 'none';
+  return s;
+}
+
 // ---- Layout (simplified flexbox) -----------------------------------------
 //
 // Two-pass:
@@ -333,6 +354,35 @@ function nodeHeight(node: PenChild): unknown {
   return (node as { height?: unknown }).height;
 }
 
+/**
+ * VLM-exercise Fix 2: fontSize-based size ESTIMATE for text nodes with no
+ * explicit width/height. Previously every such text fell to the generic
+ * 100×100 placeholder — inflating auto-layout stacks (100px gaps between
+ * labels), pushing children past container bounds, and (before the culling
+ * gate fix) getting whole sections paint-clipped out of the render.
+ *
+ * Heuristic: average glyph advance ≈ 0.62 × fontSize (matches the system
+ * prompt's TEXT LAYER WIDTH RULE — 0.55 proved too tight for digit- and
+ * cap-heavy strings: "$12" rendered "$1", "Team" rendered "Tea") plus 6px
+ * slack; line height ≈ 1.35 × fontSize (DomCanvas uses ~1.4 with paddingTop
+ * 0). Slight over-estimation is safe (text left-aligns in its box); clipping
+ * is not. The DOM renderer's measured-bounds readback replaces these with
+ * real sizes in native mode.
+ */
+function estimateTextSize(node: PenChild): { width: number; height: number } | null {
+  if (node.type !== 'text') return null;
+  const content = (node as { content?: unknown; text?: unknown }).content ??
+    (node as { text?: unknown }).text;
+  if (content === undefined || content === null) return null;
+  const str = String(content);
+  const fontSize = num((node as { fontSize?: unknown }).fontSize, 16);
+  const lines = str.split('\n');
+  const longest = lines.reduce((acc, l) => Math.max(acc, l.length), 0);
+  const estWidth = Math.max(1, Math.round(longest * fontSize * 0.62) + 6);
+  const estHeight = Math.max(1, Math.round(lines.length * fontSize * 1.35));
+  return { width: estWidth, height: estHeight };
+}
+
 /** Compute the intrinsic size of a node, given its (already-sized) children.
  *  Uses a two-phase approach for fill_container children: first sizes
  *  non-fill children to determine the parent's fit_content size, then
@@ -362,16 +412,20 @@ function computeIntrinsicSize(
   const implicitFitW = !hasExplicitW && (node.type === 'group' || node.type === 'section');
   const implicitFitH = !hasExplicitH && (node.type === 'group' || node.type === 'section');
 
+  // VLM-exercise Fix 2: text nodes without explicit dimensions get a
+  // fontSize-based estimate instead of the generic 100×100 placeholder.
+  const textEstimate = estimateTextSize(node);
+
   if (isFillContainer(w)) width = parentContentW;
   else if (isFitContent(w) || implicitFitW) width = 0; // computed from children below
-  else width = num(w, node.type === 'icon' ? 24 : 100); // icons default to the lucide 24×24 grid
+  else width = num(w, node.type === 'icon' ? 24 : textEstimate?.width ?? 100); // icons default to the lucide 24×24 grid
 
   if (isFillContainer(h)) height = parentContentH;
   else if (isFitContent(h) || implicitFitH) height = 0;
-  else height = num(h, node.type === 'icon' ? 24 : 100);
+  else height = num(h, node.type === 'icon' ? 24 : textEstimate?.height ?? 100);
 
   // fit_content: derive from children.
-  const layout = (node as PenLayout).layout;
+  const layout = normalizeLayoutDir((node as PenLayout).layout);
   const gap = num((node as PenLayout).gap, 0);
   const pad = resolvePadding((node as PenLayout).padding);
 
@@ -416,11 +470,13 @@ function computeIntrinsicSize(
     // 100×100 for other types (frames, components) which need a minimum visible size.
     // Spec §3.8 measured-bounds readback: when the DOM renderer has measured
     // this node for real (native layout mode), prefer the measured size over
-    // the 100×100 prediction placeholder.
+    // the 100×100 prediction placeholder. VLM-exercise Fix 2: text nodes use
+    // the fontSize-based estimate before falling to the generic placeholder.
     const measuredFor = measured?.[node.id];
     const isIntentionalInvisible = node.type === 'group' || node.type === 'section';
     if ((isFitContent(w) || implicitFitW) && width === 0) {
       if (measuredFor && Number.isFinite(measuredFor.width) && measuredFor.width > 0) width = measuredFor.width;
+      else if (textEstimate) width = textEstimate.width;
       else if (isIntentionalInvisible) width = 0;
       else {
         width = 100;
@@ -429,6 +485,7 @@ function computeIntrinsicSize(
     }
     if ((isFitContent(h) || implicitFitH) && height === 0) {
       if (measuredFor && Number.isFinite(measuredFor.height) && measuredFor.height > 0) height = measuredFor.height;
+      else if (textEstimate) height = textEstimate.height;
       else if (isIntentionalInvisible) height = 0;
       else {
         height = 100;
@@ -740,10 +797,43 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
     for (const rn of nodes) {
       const kids = rn._kids;
       if (kids && kids.length > 0) {
-        const layout = (rn.node as PenLayout).layout;
+        const layout = normalizeLayoutDir((rn.node as PenLayout).layout);
         // Both flex and absolute-positioning paths go through layoutChildren
         // (which handles constraints in the 'none' branch).
         layoutChildren(rn, kids, layout ?? 'none');
+
+        // VLM-exercise Fix 3: agent-visible container_overflow warning. After
+        // final positioning, does any direct child escape the container's
+        // box? (1px tolerance for rounding.) Overflow now RENDERS (the L4
+        // culling gate skips paint-clipping containers), but it escapes the
+        // frame's background/fill — the design looks broken. This is almost
+        // always a fixed height/width smaller than the flow content; the fix
+        // is height:'fit_content' (hug). Warn only for containers with
+        // EXPLICIT numeric dimensions — fit_content/implicit containers wrap
+        // their children by construction and cannot overflow.
+        const hasExplicitW = nodeWidth(rn.node) !== undefined && nodeWidth(rn.node) !== null && !isFitContent(nodeWidth(rn.node)) && !isFillContainer(nodeWidth(rn.node));
+        const hasExplicitH = nodeHeight(rn.node) !== undefined && nodeHeight(rn.node) !== null && !isFitContent(nodeHeight(rn.node)) && !isFillContainer(nodeHeight(rn.node));
+        if (hasExplicitW || hasExplicitH) {
+          const escapee = kids.find(
+            (k) =>
+              k.absX < rn.absX - 1 ||
+              k.absY < rn.absY - 1 ||
+              k.absX + k.width > rn.absX + rn.width + 1 ||
+              k.absY + k.height > rn.absY + rn.height + 1,
+          );
+          if (escapee) {
+            const overBy = Math.max(
+              0,
+              Math.round(Math.max(escapee.absY + escapee.height - (rn.absY + rn.height), escapee.absX + escapee.width - (rn.absX + rn.width))),
+            );
+            warn(
+              rn.node,
+              'container_overflow',
+              `"${String((rn.node as { name?: unknown }).name ?? 'container')}" has fixed dimensions but its children extend ~${overBy}px beyond its bounds (first escapee: "${String((escapee.node as { name?: unknown }).name ?? escapee.node.type)}") — the overflow renders OUTSIDE the frame's background. Set the container's height (and/or width) to "fit_content" so it hugs its content, or size it explicitly to fit.`,
+            );
+          }
+        }
+
         layoutTree(kids as (ResolvedNode & { _kids?: ResolvedNode[] })[]);
       }
     }
@@ -793,7 +883,7 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
         radii = { topLeft: cr[0], topRight: cr[1], bottomRight: cr[2], bottomLeft: cr[3] };
       }
 
-      const layout = (n as PenLayout).layout;
+      const layout = normalizeLayoutDir((n as PenLayout).layout);
       let autoLayout: AutoLayout | null = null;
       if (layout && layout !== 'none') {
         autoLayout = {

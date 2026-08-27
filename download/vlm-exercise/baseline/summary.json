@@ -1,0 +1,598 @@
+{
+  "dimMeans": {
+    "prompt_fidelity": 5,
+    "layout_structure": 5.384615384615385,
+    "spacing_consistency": 5,
+    "typography": 4.538461538461538,
+    "color_cohesion": 6.384615384615385,
+    "component_polish": 4.384615384615385,
+    "cleanliness": 6.769230769230769,
+    "overall_polish": 4.3076923076923075
+  },
+  "overallMean": 4.923076923076923,
+  "totalDefects": 50,
+  "defectCounts": {
+    "cleanliness": {
+      "high": 2,
+      "medium": 0,
+      "low": 0
+    },
+    "typography": {
+      "high": 6,
+      "medium": 6,
+      "low": 3
+    },
+    "component_polish": {
+      "high": 2,
+      "medium": 7,
+      "low": 4
+    },
+    "layout_structure": {
+      "high": 0,
+      "medium": 2,
+      "low": 2
+    },
+    "spacing_consistency": {
+      "high": 0,
+      "medium": 2,
+      "low": 1
+    },
+    "prompt_fidelity": {
+      "high": 12,
+      "medium": 0,
+      "low": 0
+    },
+    "color_cohesion": {
+      "high": 0,
+      "medium": 1,
+      "low": 0
+    }
+  },
+  "scenarioSummaries": [
+    {
+      "scenarioId": "os-hero",
+      "turns": 1,
+      "overall": 3,
+      "finalOverall": 3,
+      "toolCalls": 45,
+      "durationS": 695,
+      "missing_elements": [
+        "Primary 'Get Started' button is not visible",
+        "Secondary 'Watch Demo' button is not visible",
+        "Complete readable headline text is missing (truncated)"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "cleanliness",
+          "severity": "high",
+          "description": "A large white rectangular artifact (appearing to be a tooltip or unstyled popover) is obscuring the center of the hero section content.",
+          "location": "Center of the canvas, overlapping the headline and buttons"
+        },
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "The main headline 'Design at the speed of thought' is severely truncated and cut off on the right side, rendering it unreadable.",
+          "location": "Main headline text block"
+        },
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "Subheadline text is extremely small and faint, lacking proper hierarchy and readability against the background.",
+          "location": "Below the main headline"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "The primary and secondary CTA buttons are either missing or completely hidden behind the central white artifact; no visible button components exist in the hero area.",
+          "location": "Below the subheadline area"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "low",
+          "description": "The small 'PixelForge' logo/brand mark appears to be floating awkwardly in the lower-left quadrant rather than being anchored to a navigation bar or properly aligned with the text block.",
+          "location": "Lower left of the canvas content"
+        }
+      ]
+    },
+    {
+      "scenarioId": "os-profile",
+      "turns": 1,
+      "overall": 6,
+      "finalOverall": 6,
+      "toolCalls": 33,
+      "durationS": 326.04,
+      "missing_elements": [
+        "Clear labels for stats (Followers, Following, Posts) are missing or too small to read",
+        "Job title 'Product Designer' is present but poorly styled/weighted"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "Stats row text is extremely small and nearly illegible, lacking clear labels for the numbers",
+          "location": "Bottom of the profile card"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "medium",
+          "description": "The stats row is cramped and lacks adequate padding from the name/title above it",
+          "location": "Lower section of profile card"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "The card container is very plain, missing subtle shadows or borders that would give it depth",
+          "location": "Profile card background"
+        }
+      ]
+    },
+    {
+      "scenarioId": "os-kanban",
+      "turns": 1,
+      "overall": 8,
+      "finalOverall": 8,
+      "toolCalls": 37,
+      "durationS": 377.89,
+      "missing_elements": [],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "Task cards lack subtle shadows or borders to clearly separate them from the column background",
+          "location": "All six task cards"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "low",
+          "description": "Column headers (To Do, In Progress, Done) are small and could use more visual weight or a clearer separation from the card area",
+          "location": "Top of each kanban column"
+        }
+      ]
+    },
+    {
+      "scenarioId": "os-barchart",
+      "turns": 1,
+      "overall": 5,
+      "finalOverall": 5,
+      "toolCalls": 60,
+      "durationS": 382.432,
+      "missing_elements": [
+        "Value labels above each bar showing: 12k, 18k, 15k, 24k, 29k, 33k"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Value labels above bars are missing (12k, 18k, 15k, 24k, 29k, 33k not present)",
+          "location": "Above each bar in the chart"
+        },
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "X-axis labels are extremely small and nearly illegible (Jan-Jun labels)",
+          "location": "Below the bars on x-axis"
+        },
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "Y-axis label '2k' is visible but other scale values are missing or unclear",
+          "location": "Left side of chart area"
+        },
+        {
+          "dimension": "color_cohesion",
+          "severity": "medium",
+          "description": "Last bar (June) is a different color (teal/green) than the first five bars (blue), creating visual inconsistency without clear reason",
+          "location": "Sixth bar (rightmost)"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "Chart lacks gridlines, axis lines, or baseline reference, making it look incomplete",
+          "location": "Chart interior"
+        }
+      ]
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turns": 3,
+      "overall": 3,
+      "finalOverall": 3,
+      "toolCalls": 19,
+      "durationS": 451.322,
+      "missing_elements": [
+        "Navigation links: Home, Products, Pricing, About",
+        "Text label 'Sign Up' on the button",
+        "Home link",
+        "Products link",
+        "Pricing link",
+        "About link",
+        "Proper shopping cart icon (currently a blue rectangle)",
+        "Navigation links: Home, Products, Pricing, About",
+        "Text label on the Sign Up button"
+      ],
+      "regressions": [
+        "No regressions from previous turn; previous turn also lacked navigation links",
+        "Lost visibility of all navigation link text (Home, Products, Pricing, About) which were present in the BEFORE image",
+        "Lost the 'Sign Up' text label on the button, leaving only an empty white rectangle"
+      ],
+      "defects": [
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing navigation links (Home, Products, Pricing, About) in the center of the navbar",
+          "location": "Center area of the navigation bar"
+        },
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "'Sign Up' button text is missing; the button is just a blue rectangle with no label",
+          "location": "Right side of the navigation bar"
+        },
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "Logo text 'Acme' is present but appears to be in a very small, light blue font that lacks visual weight for a brand logo",
+          "location": "Left side of the navigation bar"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Navigation links (Home, Products, Pricing, About) are completely missing from the canvas",
+          "location": "Center of navbar"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "high",
+          "description": "Shopping cart icon is represented by a blue rectangle instead of an actual cart icon",
+          "location": "Right side of navbar"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "Cart badge is a red circle with '3' but it's positioned awkwardly overlapping/next to the blue rectangle rather than being a proper badge overlay",
+          "location": "Right of blue rectangle"
+        },
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "'Acme' logo text is very small, faint, and lacks visual hierarchy for a brand mark",
+          "location": "Left of navbar"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "medium",
+          "description": "Elements are not properly distributed - huge empty space in center where links should be",
+          "location": "Entire navbar area"
+        },
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "Navigation links (Home, Products, Pricing, About) are completely missing/invisible",
+          "location": "Center of navbar"
+        },
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "'Sign Up' button text is missing; only a white rectangle is visible",
+          "location": "Right side of navbar"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "Cart icon is represented by a generic emoji (🛒) rather than a proper SVG/vector icon",
+          "location": "Between center and right sections of navbar"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "medium",
+          "description": "Random white rectangular box placed in the middle of the navbar with no apparent purpose or label",
+          "location": "Center of navbar"
+        }
+      ]
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turns": 3,
+      "overall": 6.333333333333333,
+      "finalOverall": 8,
+      "toolCalls": 173,
+      "durationS": 973.064,
+      "missing_elements": [
+        "Plan name 'Pro'",
+        "Price '$12 per month'",
+        "'Choose Pro' call-to-action button",
+        "The 'Choose Pro' button was not explicitly labeled as such; all buttons are generic blue CTAs without specific action text.",
+        "Button text labels (e.g., 'Choose Starter', 'Choose Pro', 'Contact Sales' or similar CTAs)"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing the plan name 'Pro' and the price '$12 per month' at the top of the card",
+          "location": "Top area of the pricing card"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing the 'Choose Pro' button at the bottom of the card",
+          "location": "Bottom area of the pricing card"
+        },
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "Text is extremely small, low contrast (light gray on light blue), and lacks any hierarchy or weight variation",
+          "location": "All text within the card"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "high",
+          "description": "The design looks like a bare wireframe with no visual polish: no shadows, no distinct background surface, no button styling, and faint selection handles visible on the left side of list items",
+          "location": "Entire card component"
+        },
+        {
+          "dimension": "typography",
+          "severity": "medium",
+          "description": "Price text uses inconsistent font weights; '$0' and '$49' appear lighter/thinner than '$12', breaking visual hierarchy across the row.",
+          "location": "Price lines in all three cards"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "medium",
+          "description": "Vertical spacing between feature list items is slightly loose; the gap between the last feature and the CTA button is larger than the gap between the plan name and price.",
+          "location": "Interior of all three pricing cards"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "The 'Popular' badge on the Pro card is a simple rounded rectangle without a label or icon, making its purpose ambiguous without context.",
+          "location": "Top border of center (Pro) card"
+        },
+        {
+          "dimension": "typography",
+          "severity": "low",
+          "description": "Feature list text size appears small relative to the price, potentially impacting readability at actual scale.",
+          "location": "Feature lists in all three cards"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "Buttons lack visible text labels (e.g., 'Choose Pro', 'Get Started')",
+          "location": "Bottom of all three pricing cards"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "low",
+          "description": "Vertical spacing between feature list items could be slightly more generous for better readability",
+          "location": "Feature lists inside all three cards"
+        }
+      ]
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turns": 3,
+      "overall": 4.666666666666667,
+      "finalOverall": 4,
+      "toolCalls": 33,
+      "durationS": 564.594,
+      "missing_elements": [
+        "Email Address input field",
+        "Email Address labeled input field",
+        "Save Changes primary button",
+        "Cancel ghost-style button",
+        "Email Address labeled input field",
+        "Save Changes primary button",
+        "Cancel ghost button",
+        "Notifications section heading",
+        "Email updates toggle row (switched on)",
+        "Product news toggle row (switched on)"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "cleanliness",
+          "severity": "high",
+          "description": "Placeholder text 'Enter your display name' is overlapping with the bottom border of the input field container, creating a visual collision and clipping.",
+          "location": "Bottom area of the first (Display Name) input field"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "The second requested input field for 'Email Address' is completely missing from the canvas.",
+          "location": "Below the Display Name input field"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "Input fields lack standard UI affordances such as a visible bottom border or background container to clearly define the interaction area.",
+          "location": "Display Name input field"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing 'Email Address' input field and its label entirely from the canvas.",
+          "location": "Account Settings panel body"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing 'Save Changes' primary button below the input fields.",
+          "location": "Account Settings panel bottom area"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing 'Cancel' ghost-style button below the input fields.",
+          "location": "Account Settings panel bottom area"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "Input field has no visible border or container definition, making it look like a raw background rectangle rather than a functional input component.",
+          "location": "Display Name input field"
+        },
+        {
+          "dimension": "typography",
+          "severity": "low",
+          "description": "Placeholder text 'Enter your display name' is very faint with low contrast against the light blue input background.",
+          "location": "Display Name input field"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing 'Email Address' input field entirely; only one field is present.",
+          "location": "Account Settings card body"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing 'Save Changes' primary button and 'Cancel' ghost button below the fields.",
+          "location": "Below the Display Name input"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Missing 'Notifications' section with 'Email updates' and 'Product news' toggle rows.",
+          "location": "Below the buttons area (which doesn't exist)"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "Input field has no visible border, shadow, or clear container definition; looks like a plain gray rectangle.",
+          "location": "Display Name input field"
+        },
+        {
+          "dimension": "typography",
+          "severity": "low",
+          "description": "Placeholder text 'Enter your display name' is very faint/low contrast against the gray background.",
+          "location": "Inside the Display Name input"
+        }
+      ]
+    }
+  ],
+  "scoredCount": 13,
+  "rowCount": 13,
+  "rows": [
+    {
+      "scenarioId": "os-hero",
+      "turn": 1,
+      "prompt": "Create a landing page hero section for a design tool called 'PixelForge': a bold headline 'Design at the speed of thought', a subheadline saying it turns prompts into polished UI in minutes, a primary 'Get Started' button and a secondary 'Watch Demo' button.",
+      "toolCalls": 45,
+      "durationS": 695,
+      "screenshot": "os-hero-t1.png",
+      "overall": 3
+    },
+    {
+      "scenarioId": "os-profile",
+      "turn": 1,
+      "prompt": "Create a user profile card: a circular avatar placeholder, the name 'Maya Chen', the job title 'Product Designer', and a row of three stats - 128 Followers, 342 Following, 56 Posts.",
+      "toolCalls": 33,
+      "durationS": 326.04,
+      "screenshot": "os-profile-t1.png",
+      "overall": 6
+    },
+    {
+      "scenarioId": "os-kanban",
+      "turn": 1,
+      "prompt": "Create a kanban board with three columns - To Do, In Progress, Done - each column containing two task cards with a short realistic title and a small colored tag.",
+      "toolCalls": 37,
+      "durationS": 377.89,
+      "screenshot": "os-kanban-t1.png",
+      "overall": 8
+    },
+    {
+      "scenarioId": "os-barchart",
+      "turn": 1,
+      "prompt": "Create a card containing a bar chart titled 'Monthly Revenue' with six bars for Jan to Jun showing 12k, 18k, 15k, 24k, 29k and 33k, with value labels above each bar.",
+      "toolCalls": 60,
+      "durationS": 382.432,
+      "screenshot": "os-barchart-t1.png",
+      "overall": 5
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 1,
+      "prompt": "Create a website top navigation bar for a site called 'Acme': the logo text 'Acme' on the left, the links Home, Products, Pricing and About in the middle, and a 'Sign Up' button on the right.",
+      "toolCalls": 4,
+      "durationS": 239.64,
+      "screenshot": "ms-navbar-t1.png",
+      "overall": 3
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 2,
+      "prompt": "Add a shopping cart icon with a small red badge showing '3' between the links and the Sign Up button.",
+      "toolCalls": 6,
+      "durationS": 158.791,
+      "screenshot": "ms-navbar-t2.png",
+      "overall": 3
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 3,
+      "prompt": "Give the navbar a dark background, make the Home link highlighted in blue, and vertically center everything.",
+      "toolCalls": 9,
+      "durationS": 52.891,
+      "screenshot": "ms-navbar-t3.png",
+      "overall": 3
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 1,
+      "prompt": "Create a pricing card for the 'Pro' plan at $12 per month: the plan name, the price, a list of 4 realistic features, and a 'Choose Pro' button.",
+      "toolCalls": 41,
+      "durationS": 357.272,
+      "screenshot": "ms-pricing-t1.png",
+      "overall": 4
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 2,
+      "prompt": "Turn it into a row of three pricing cards side by side: Starter at $0, Pro at $12 with a 'Popular' badge and a highlighted border, and Team at $49.",
+      "toolCalls": 78,
+      "durationS": 496.843,
+      "screenshot": "ms-pricing-t2.png",
+      "overall": 7
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 3,
+      "prompt": "Make all three cards the same height with consistent padding, and center the plan names.",
+      "toolCalls": 54,
+      "durationS": 118.949,
+      "screenshot": "ms-pricing-t3.png",
+      "overall": 8
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 1,
+      "prompt": "Create an 'Account Settings' panel with two labeled input fields: Display Name and Email Address.",
+      "toolCalls": 18,
+      "durationS": 295.994,
+      "screenshot": "ms-settings-t1.png",
+      "overall": 5
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 2,
+      "prompt": "Add a primary 'Save Changes' button and a ghost-style 'Cancel' button below the fields.",
+      "toolCalls": 5,
+      "durationS": 46.373,
+      "screenshot": "ms-settings-t2.png",
+      "overall": 5
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 3,
+      "prompt": "Add a 'Notifications' section below with two toggle rows - 'Email updates' and 'Product news' - both shown switched on.",
+      "toolCalls": 10,
+      "durationS": 222.227,
+      "screenshot": "ms-settings-t3.png",
+      "overall": 4
+    }
+  ]
+}

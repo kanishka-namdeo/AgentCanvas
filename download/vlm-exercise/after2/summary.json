@@ -1,0 +1,405 @@
+{
+  "dimMeans": {
+    "prompt_fidelity": 4.875,
+    "layout_structure": 4.625,
+    "spacing_consistency": 5.625,
+    "typography": 5.875,
+    "color_cohesion": 7,
+    "component_polish": 5,
+    "cleanliness": 8.25,
+    "overall_polish": 4.25
+  },
+  "overallMean": 4.96875,
+  "totalDefects": 23,
+  "defectCounts": {
+    "component_polish": {
+      "high": 2,
+      "medium": 3,
+      "low": 2
+    },
+    "layout_structure": {
+      "high": 2,
+      "medium": 3,
+      "low": 0
+    },
+    "color_cohesion": {
+      "high": 0,
+      "medium": 0,
+      "low": 1
+    },
+    "spacing_consistency": {
+      "high": 0,
+      "medium": 1,
+      "low": 2
+    },
+    "prompt_fidelity": {
+      "high": 4,
+      "medium": 0,
+      "low": 0
+    },
+    "typography": {
+      "high": 3,
+      "medium": 0,
+      "low": 0
+    }
+  },
+  "scenarioSummaries": [
+    {
+      "scenarioId": "os-hero",
+      "turns": 1,
+      "overall": 5.75,
+      "finalOverall": 5.75,
+      "toolCalls": 45,
+      "durationS": 440.88,
+      "missing_elements": [
+        "Primary 'Get Started' button text/label"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "component_polish",
+          "severity": "high",
+          "description": "Primary 'Get Started' button is missing; only a solid blue rectangle with no text label is present",
+          "location": "Center of canvas, below subheadline"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "'Watch Demo' secondary button appears as plain text with an arrow inside a white box with thin border, lacking proper button styling (padding, hover state appearance)",
+          "location": "Below the blue rectangle"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "medium",
+          "description": "Buttons are stacked vertically instead of being arranged horizontally side-by-side as is standard for hero CTAs",
+          "location": "Center lower portion of design"
+        },
+        {
+          "dimension": "color_cohesion",
+          "severity": "low",
+          "description": "Subheadline text color is very light gray, reducing readability against the white background",
+          "location": "Below main headline"
+        }
+      ]
+    },
+    {
+      "scenarioId": "os-profile",
+      "turns": 1,
+      "overall": 9,
+      "finalOverall": 9,
+      "toolCalls": 30,
+      "durationS": 321.03,
+      "missing_elements": [],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "The card container lacks a visible border or shadow definition, making it blend slightly into the white canvas background",
+          "location": "Main card container"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "low",
+          "description": "Vertical spacing between the job title and the stats row could be slightly increased for better visual breathing room",
+          "location": "Between 'Product Designer' and the stats row"
+        }
+      ]
+    },
+    {
+      "scenarioId": "os-kanban",
+      "turns": 1,
+      "overall": 3,
+      "finalOverall": 3,
+      "toolCalls": 82,
+      "durationS": 1139.218,
+      "missing_elements": [
+        "Kanban board container",
+        "Three columns (To Do, In Progress, Done)",
+        "Column headers",
+        "Six task cards (two per column)",
+        "Task card titles",
+        "Colored tags on task cards"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "The canvas is completely empty/blank behind the modal dialog. No kanban board, columns, or task cards are visible.",
+          "location": "Entire canvas area"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "high",
+          "description": "No design content is present on the canvas; only a system dialog overlay is visible.",
+          "location": "Canvas center"
+        }
+      ]
+    },
+    {
+      "scenarioId": "os-barchart",
+      "turns": 1,
+      "overall": 3,
+      "finalOverall": 3,
+      "toolCalls": 14,
+      "durationS": 769.124,
+      "missing_elements": [
+        "Card container",
+        "Title 'Monthly Revenue'",
+        "Bar chart with six bars (Jan-Jun)",
+        "Value labels: 12k, 18k, 15k, 24k, 29k, 33k"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "The canvas is completely empty and shows the default 'Empty canvas' placeholder state instead of the requested bar chart card.",
+          "location": "Entire canvas area"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "high",
+          "description": "No layout structure exists; no card, chart, axes, or data visualization elements are present on the canvas.",
+          "location": "Entire canvas area"
+        }
+      ]
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turns": 3,
+      "overall": 5.666666666666667,
+      "finalOverall": 6,
+      "toolCalls": 41,
+      "durationS": 656.845,
+      "missing_elements": [
+        "Shopping cart icon",
+        "Red badge showing '3'"
+      ],
+      "regressions": [
+        "Sign Up button is now severely clipped on the right edge (was fully visible in BEFORE image)",
+        "Overall element scaling appears reduced making everything harder to read",
+        "Logo color changed from dark/black to white (this is actually correct per the latest prompt request for dark background, but represents a visual change from the previous state)."
+      ],
+      "defects": [
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "The 'Sign Up' button lacks visible border-radius (appears fully square), which looks slightly unfinished compared to modern UI standards",
+          "location": "Right side of the navigation bar"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "low",
+          "description": "Horizontal spacing between the nav links (Home, Products, Pricing, About) appears slightly tight; could benefit from a bit more breathing room",
+          "location": "Center of the navigation bar"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Shopping cart icon and red badge with '3' are completely missing from the canvas",
+          "location": "Between navigation links and Sign Up button"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "high",
+          "description": "Sign Up button is severely clipped on the right side, showing only a sliver of its right edge",
+          "location": "Right side of the nav bar"
+        },
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "All text elements (logo, links, button) are extremely small and nearly illegible due to low zoom/rendering scale",
+          "location": "Entire nav bar"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "medium",
+          "description": "Navigation links appear cramped and poorly spaced relative to each other and the logo/button",
+          "location": "Center of nav bar"
+        },
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "Text elements (logo, links, button) are extremely small and pixelated, making them nearly illegible at the current zoom level.",
+          "location": "Entire navbar content"
+        },
+        {
+          "dimension": "layout_structure",
+          "severity": "medium",
+          "description": "The navbar element is positioned in the upper-middle area of the canvas rather than being anchored to the top edge as implied by 'top navigation bar'.",
+          "location": "Navbar container"
+        },
+        {
+          "dimension": "spacing_consistency",
+          "severity": "medium",
+          "description": "The spacing between navigation links and between the cart icon and Sign Up button appears very tight relative to the tiny text size.",
+          "location": "Center-right section of navbar"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "low",
+          "description": "The Sign Up button lacks visible border or background definition, appearing only as text.",
+          "location": "Right side of navbar"
+        }
+      ]
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turns": 1,
+      "overall": 2,
+      "finalOverall": 2,
+      "toolCalls": 17,
+      "durationS": 263.684,
+      "missing_elements": [
+        "Readable plan name 'Pro'",
+        "Readable price '$12 per month'",
+        "Readable list of 4 realistic features",
+        "Readable 'Choose Pro' button text"
+      ],
+      "regressions": [],
+      "defects": [
+        {
+          "dimension": "typography",
+          "severity": "high",
+          "description": "All text is illegible/unreadable due to extremely small scale (appears as tiny gray lines or blocks)",
+          "location": "Entire pricing card on canvas"
+        },
+        {
+          "dimension": "prompt_fidelity",
+          "severity": "high",
+          "description": "Plan name 'Pro', price '$12 per month', feature list text, and button label 'Choose Pro' are not visible or readable",
+          "location": "Pricing card content"
+        },
+        {
+          "dimension": "component_polish",
+          "severity": "medium",
+          "description": "Button appears as a solid blue rectangle without visible border radius, shadow, or text label",
+          "location": "Bottom of pricing card"
+        }
+      ]
+    }
+  ],
+  "scoredCount": 8,
+  "rowCount": 13,
+  "rows": [
+    {
+      "scenarioId": "os-hero",
+      "turn": 1,
+      "prompt": "Create a landing page hero section for a design tool called 'PixelForge': a bold headline 'Design at the speed of thought', a subheadline saying it turns prompts into polished UI in minutes, a primary 'Get Started' button and a secondary 'Watch Demo' button.",
+      "toolCalls": 45,
+      "durationS": 440.88,
+      "screenshot": "os-hero-t1.png",
+      "overall": 5.75
+    },
+    {
+      "scenarioId": "os-profile",
+      "turn": 1,
+      "prompt": "Create a user profile card: a circular avatar placeholder, the name 'Maya Chen', the job title 'Product Designer', and a row of three stats - 128 Followers, 342 Following, 56 Posts.",
+      "toolCalls": 30,
+      "durationS": 321.03,
+      "screenshot": "os-profile-t1.png",
+      "overall": 9
+    },
+    {
+      "scenarioId": "os-kanban",
+      "turn": 1,
+      "prompt": "Create a kanban board with three columns - To Do, In Progress, Done - each column containing two task cards with a short realistic title and a small colored tag.",
+      "toolCalls": 82,
+      "durationS": 1139.218,
+      "screenshot": "os-kanban-t1.png",
+      "overall": 3
+    },
+    {
+      "scenarioId": "os-barchart",
+      "turn": 1,
+      "prompt": "Create a card containing a bar chart titled 'Monthly Revenue' with six bars for Jan to Jun showing 12k, 18k, 15k, 24k, 29k and 33k, with value labels above each bar.",
+      "toolCalls": 14,
+      "durationS": 769.124,
+      "screenshot": "os-barchart-t1.png",
+      "overall": 3
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 1,
+      "prompt": "Create a website top navigation bar for a site called 'Acme': the logo text 'Acme' on the left, the links Home, Products, Pricing and About in the middle, and a 'Sign Up' button on the right.",
+      "toolCalls": 22,
+      "durationS": 405.404,
+      "screenshot": "ms-navbar-t1.png",
+      "overall": 8
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 2,
+      "prompt": "Add a shopping cart icon with a small red badge showing '3' between the links and the Sign Up button.",
+      "toolCalls": 10,
+      "durationS": 200.625,
+      "screenshot": "ms-navbar-t2.png",
+      "overall": 3
+    },
+    {
+      "scenarioId": "ms-navbar",
+      "turn": 3,
+      "prompt": "Give the navbar a dark background, make the Home link highlighted in blue, and vertically center everything.",
+      "toolCalls": 9,
+      "durationS": 50.816,
+      "screenshot": "ms-navbar-t3.png",
+      "overall": 6
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 1,
+      "prompt": "Create a pricing card for the 'Pro' plan at $12 per month: the plan name, the price, a list of 4 realistic features, and a 'Choose Pro' button.",
+      "toolCalls": 17,
+      "durationS": 263.684,
+      "screenshot": "ms-pricing-t1.png",
+      "overall": 2
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 2,
+      "prompt": "Turn it into a row of three pricing cards side by side: Starter at $0, Pro at $12 with a 'Popular' badge and a highlighted border, and Team at $49.",
+      "toolCalls": 55,
+      "durationS": 435.568,
+      "screenshot": "ms-pricing-t2.png",
+      "overall": null
+    },
+    {
+      "scenarioId": "ms-pricing",
+      "turn": 3,
+      "prompt": "Make all three cards the same height with consistent padding, and center the plan names.",
+      "toolCalls": 45,
+      "durationS": 93.472,
+      "screenshot": "ms-pricing-t3.png",
+      "overall": null
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 1,
+      "prompt": "Create an 'Account Settings' panel with two labeled input fields: Display Name and Email Address.",
+      "toolCalls": 66,
+      "durationS": 538.26,
+      "screenshot": "ms-settings-t1.png",
+      "overall": null
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 2,
+      "prompt": "Add a primary 'Save Changes' button and a ghost-style 'Cancel' button below the fields.",
+      "toolCalls": 5,
+      "durationS": 36.901,
+      "screenshot": "ms-settings-t2.png",
+      "overall": null
+    },
+    {
+      "scenarioId": "ms-settings",
+      "turn": 3,
+      "prompt": "Add a 'Notifications' section below with two toggle rows - 'Email updates' and 'Product news' - both shown switched on.",
+      "toolCalls": 15,
+      "durationS": 255.88,
+      "screenshot": "ms-settings-t3.png",
+      "overall": null
+    }
+  ]
+}

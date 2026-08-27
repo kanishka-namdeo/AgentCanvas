@@ -96,7 +96,13 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
   if (input.autoLayout !== undefined && input.layout === undefined) {
     const al = input.autoLayout as any;
     if (al) {
-      out.layout = al.direction;
+      // VLM-exercise Fix 7: normalize the direction spelling. Models send
+      // 'VERTICAL'/'Vertical'/'row'/'column'; the resolver's layout checks
+      // are lowercase-exact and an unrecognized spelling silently disabled
+      // auto-layout (children stacked at the parent origin).
+      const dir = String(al.direction ?? '').trim().toLowerCase();
+      const normDir = dir === 'row' ? 'horizontal' : dir === 'column' ? 'vertical' : dir;
+      out.layout = normDir;
       out.gap = num(al.gap, 0);
       out.padding = num(al.padding, 0);
       out.justifyContent = al.alignX === 'max' ? 'end' : al.alignX === 'center' ? 'center' : 'start';
@@ -1091,8 +1097,14 @@ function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, i
     name: partial.name ?? 'Shape',
     x: num(partial.x, 0),
     y: num(partial.y, 0),
-    width: sizeValue(partial.width, 100),
-    height: sizeValue(partial.height, 100),
+    // VLM-exercise Fix 2 (patch-side): text nodes without an explicit size
+    // must NOT inherit the generic 100×100 default — the resolver
+    // (estimateTextSize) sizes them from fontSize × text length, which keeps
+    // auto-layout stacks compact and children inside their containers. The
+    // 100px placeholder on every label inflated layouts and (combined with
+    // the pre-fix paint clipping) hid whole sections of agent-built UI.
+    width: type === 'text' && partial.width == null ? undefined : sizeValue(partial.width, 100),
+    height: type === 'text' && partial.height == null ? undefined : sizeValue(partial.height, 100),
     rotation: num(partial.rotation, 0),
     opacity: num(partial.opacity, 1),
     enabled: partial.enabled ?? true,

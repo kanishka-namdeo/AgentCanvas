@@ -314,7 +314,7 @@ function renderMarkdown(rows: TurnRow[], agg: ReturnType<typeof aggregate>): str
 // ---- main -------------------------------------------------------------------------
 
 async function main() {
-  const manifestPath = join(passDir, 'manifest.jsonl');
+  const manifestPath = join(passDir, 'manifest.json');
   if (!existsSync(manifestPath)) {
     console.error(`manifest not found: ${manifestPath}`);
     process.exit(2);

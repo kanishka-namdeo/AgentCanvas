@@ -56,6 +56,16 @@ export interface StyleForOpts {
   /// large enough to warrant culling (spec §4.2 budget guidance: ≥ 2k
   /// nodes per page).
   l4Culling?: boolean;
+  /// VLM-exercise Fix 1: true when at least one DIRECT child layer's absolute
+  /// rect extends beyond this container's rect. `content-visibility: auto`
+  /// inherently applies paint containment — every descendant is clipped to
+  /// the container's box. For frames without `clip: true` that breaks Figma's
+  /// overflow-visible semantics and, combined with the resolver's 100px text
+  /// placeholders, silently hid whole sections of agent-built UI (verified:
+  /// nav links / labels / buttons present in DOM + document but painting
+  /// nothing). When children overflow and the container does not clip, the
+  /// caller must NOT enable culling for this subtree.
+  childOverflows?: boolean;
 }
 
 /// Flex-container emission options derived from a .pen node's layout fields
@@ -485,7 +495,15 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
   // `contain-intrinsic-size: <w>px <h>px` preserves scrollbar / scroll-height
   // math while the subtree is skipped, so the world div's overall geometry
   // stays stable (pan/zoom math relies on the resolver-declared sizes).
-  if (opts.l4Culling && CLIPPABLE_TYPES.has(layer.type) && layer.width > 0 && layer.height > 0) {
+  //
+  // VLM-exercise Fix 1: cv:auto's paint containment CLIPS every descendant to
+  // the container's box. When children overflow a non-clipping frame (which
+  // the resolver's text placeholders make common), that hid real content —
+  // so culling is skipped for overflowing, non-clip containers (Figma
+  // semantics: overflow stays visible unless clipsContent).
+  const cullingSafe =
+    layer.clip === true || !opts.childOverflows;
+  if (opts.l4Culling && cullingSafe && CLIPPABLE_TYPES.has(layer.type) && layer.width > 0 && layer.height > 0) {
     style.contentVisibility = 'auto';
     style.contain = 'layout style paint';
     style.containIntrinsicSize = `${layer.width}px ${layer.height}px`;

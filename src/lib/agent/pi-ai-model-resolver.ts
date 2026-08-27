@@ -99,25 +99,18 @@ export interface ResolvedModel {
 // z.ai sandbox / no creds), the fallback is skipped with a warn.
 
 /// Module-level preflight cache. Keyed by `${baseUrl}::${apiKeyPrefix}`.
-/// TTL: 60 seconds — a dead tunnel doesn't come back in 60s, and a healthy
-/// one doesn't go down in 60s, so we don't need to re-probe every turn.
+/// TTL: 60 seconds when healthy, 20 seconds when down — a flapping tunnel
+/// (cold-connect > 4s on the first attempt, fine afterwards) recovers fast,
+/// so a 'down' verdict must not poison the next turn for a full minute
+/// (observed during the VLM exercise: probes succeeded while the app kept
+/// serving cached 'down' → glm-5.3 fallback → rate-limited empty turns).
 const PREFLIGHT_CACHE_TTL_MS = 60_000;
+const PREFLIGHT_CACHE_DOWN_TTL_MS = 20_000;
 const preflightCache = new Map<string, { result: 'ok' | 'down'; expiresAt: number }>();
 
-/// Probe the configured OpenAI-compatible endpoint with a 4s GET against
-/// `${baseUrl}/models`. Returns 'ok' on HTTP 2xx, 'down' on network error
-/// or any non-2xx status (5xx, 429, 401, 403, etc.). Cached per
-/// (baseUrl, apiKeyPrefix) for 60s.
-async function preflightEndpoint(baseUrl: string, apiKey: string): Promise<'ok' | 'down'> {
-  const cacheKey = `${baseUrl}::${apiKey.slice(0, 12)}`;
-  const cached = preflightCache.get(cacheKey);
-  if (cached && Date.now() < cached.expiresAt) {
-    return cached.result;
-  }
-
+async function fetchModels(baseUrl: string, apiKey: string, timeoutMs: number): Promise<boolean> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4000);
-  let result: 'ok' | 'down' = 'down';
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const url = `${baseUrl.replace(/\/+$/, '')}/models`;
     const res = await fetch(url, {
@@ -125,17 +118,42 @@ async function preflightEndpoint(baseUrl: string, apiKey: string): Promise<'ok' 
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: controller.signal,
     });
-    result = res.ok ? 'ok' : 'down';
+    return res.ok;
   } catch {
     // Network error, TLS reset, DNS failure, abort timeout — all map to 'down'.
-    result = 'down';
+    return false;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/// Probe the configured OpenAI-compatible endpoint with a GET against
+/// `${baseUrl}/models`. Returns 'ok' on HTTP 2xx, 'down' on network error
+/// or any non-2xx status (5xx, 429, 401, 403, etc.). Cached per
+/// (baseUrl, apiKeyPrefix): 60s for 'ok', 20s for 'down'.
+///
+/// VLM-exercise Fix 6: the first attempt uses a 4s timeout; on failure it
+/// RETRIES once with 8s after a 500ms pause. Cold tunnels (pinggy) commonly
+/// take >4s for the first TLS handshake and connect fine immediately after —
+/// a single-attempt preflight declared them dead and forced the sandbox
+/// fallback (which was itself rate-limited) for turns that would have worked.
+async function preflightEndpoint(baseUrl: string, apiKey: string): Promise<'ok' | 'down'> {
+  const cacheKey = `${baseUrl}::${apiKey.slice(0, 12)}`;
+  const cached = preflightCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.result;
+  }
+
+  let ok = await fetchModels(baseUrl, apiKey, 4_000);
+  if (!ok) {
+    await new Promise((r) => setTimeout(r, 500));
+    ok = await fetchModels(baseUrl, apiKey, 8_000);
+  }
+  const result: 'ok' | 'down' = ok ? 'ok' : 'down';
 
   preflightCache.set(cacheKey, {
     result,
-    expiresAt: Date.now() + PREFLIGHT_CACHE_TTL_MS,
+    expiresAt: Date.now() + (result === 'ok' ? PREFLIGHT_CACHE_TTL_MS : PREFLIGHT_CACHE_DOWN_TTL_MS),
   });
   return result;
 }

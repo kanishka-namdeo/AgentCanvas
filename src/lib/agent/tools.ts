@@ -780,9 +780,10 @@ const createShape = defineTool({
     promptSnippet: 'Create canvas nodes (rectangle, ellipse, text, line, frame, icon).',
     promptGuidelines: [
       'When the user asks to "add" / "draw" / "create" / "put" a node, use pen_create_node.',
-      'Always specify `type`, `x`, `y`, `width`, `height`. For text nodes include `text`, `fontSize`, `textColor`.',
+      'Always specify `type`, `x`, `y`, `width`. For text nodes include `text`, `fontSize`, `textColor` — you may OMIT `height` on text (auto-estimated from fontSize and line count).',
       'For ICONS use type:"icon" with icon:"<lucide-name>" (find names via pen_search_icons) — never draw icons with path nodes or emoji.',
       'Coordinates are canvas-space pixels; the visible area at zoom 1 is roughly 0..1200 x 0..800.',
+      'SIZING: for containers whose size depends on their content (cards, panels, forms, lists), set height to "fit_content" instead of guessing a fixed number — a fixed height that is too small makes children overflow OUTSIDE the frame background (broken-looking design). Fixed sizes are only for chrome (navbars ~64px, buttons ~40px, inputs ~48px).',
     ],
     parameters: ShapeInputSchema,
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
@@ -897,10 +898,11 @@ const createShape = defineTool({
     promptSnippet: 'Batch-create a whole nested node tree (frame + children + grandchildren) in one call.',
     promptGuidelines: [
       'PREFER pen_create_subtree over N pen_create_node calls whenever the structure is known up front — one call for a whole card row, nav bar, form, or screen.',
-      'Root type defaults to frame when `children` is present. Give the root explicit x/y/width/height; nested children may omit position under auto-layout parents.',
+      'Root type defaults to frame when `children` is present. Give the root explicit x/y/width; nested children may omit position under auto-layout parents.',
       'Node fields accept BOTH spellings (radius/cornerRadius, text/content, autoLayout/layout) — ids are optional and auto-assigned.',
       'Use autoLayout on container nodes ({direction, gap, padding}) so children flow; combine with width/height "fit_content" to size to content.',
-      'Call pen_get_metadata {nodeId: <rootId>} afterwards to see every generated id for targeted updates.',
+      'SIZING (critical): content-sized containers (cards, panels, forms, settings sections) MUST use height:"fit_content" — a fixed height smaller than the stacked children makes them overflow OUTSIDE the frame background. Reserve fixed heights for chrome (navbar 64, button 40-48, input 48). Text children may omit height entirely (auto-estimated from fontSize).',
+      'Call pen_get_metadata {nodeId: <rootId>} afterwards to see every generated id for targeted updates — and read any resolver warnings (e.g. container_overflow) to catch sizing mistakes in the same turn.',
     ],
     parameters: SubtreeInputSchema,
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
