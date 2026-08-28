@@ -1,0 +1,201 @@
+Title: Error: Page Not Found
+
+URL Source: https://www.figma.com/blog/how-figma-scaled-multiplayer/
+
+Warning: Target URL returned error 404: Not Found
+
+Markdown Content:
+[Skip to main content](https://www.figma.com/blog/how-figma-scaled-multiplayer/#main)
+
+[](https://www.figma.com/)
+*   Products 
+*   
+## What you can do in figma
+
+    *   [Design and explore ![Image 1](https://cdn.sanity.io/images/599r6htc/regionalized/4b9ade839f38291c91b76608d22e7c7a9ad525fd-542x305.png?w=542&h=305&q=75&fit=max&auto=format)](https://www.figma.com/design-explore/)
+    *   [Build and ship products ![Image 2](https://cdn.sanity.io/images/599r6htc/regionalized/7e39b983c6ad865e0a7a5243d914020e69a23f70-542x305.png?w=542&h=305&q=75&fit=max&auto=format)](https://www.figma.com/build-ship/)
+
+## Explore all products
+
+    
+
+    *   [Figma Design Design and prototype in one place](https://www.figma.com/design/)
+    *   [Figma Make Prompt to code anything you can imagine](https://www.figma.com/make/)
+    *   [Figma Weave AI workflows for imagery, video, audio, and more](https://weave.figma.com/?utm_source=figma&utm_medium=web&utm_campaign=nav)
+    *   [Dev Mode Translate designs into code](https://www.figma.com/dev-mode/)
+    *   [Figma Motion New Animate your designs](https://www.figma.com/motion/)
+
+    
+
+    *   [FigJam Collaborate with a digital whiteboard](https://www.figma.com/figjam/)
+    *   [Figma Slides Co-create presentations](https://www.figma.com/slides/)
+    *   [Figma Draw Illustrate with advanced vector tools](https://www.figma.com/draw/)
+    *   [Figma Sites Beta Publish fully responsive websites](https://www.figma.com/sites/)
+    *   [Figma Buzz Beta Produce on-brand assets at scale](https://www.figma.com/buzz/)
+
+## Additional product resources
+
+    *   [AI workflows](https://www.figma.com/ai/)
+    *   [Release notes](https://www.figma.com/release-notes/)
+    *   [Downloads](https://www.figma.com/downloads/)
+
+*   Solutions 
+*   
+## Use cases
+
+    *   [Design systems](https://www.figma.com/design-systems/)
+    *   [Prototyping](https://www.figma.com/prototyping/)
+    *   [UX design](https://www.figma.com/ux-design-tool/)
+    *   [Web design](https://www.figma.com/web-design/)
+    *   [Wireframing](https://www.figma.com/wireframe-tool/)
+    *   [Online whiteboard](https://www.figma.com/figjam/online-whiteboard/)
+    *   [Agile](https://www.figma.com/figjam/agile-workflows/)
+    *   [Strategic planning](https://www.figma.com/figjam/strategic-planning/)
+    *   [Brainstorming](https://www.figma.com/figjam/brainstorming-tool/)
+    *   [Diagramming](https://www.figma.com/figjam/diagramming-tool/)
+    *   [Product development](https://www.figma.com/product-development/)
+    *   [Web development](https://www.figma.com/web-development/)
+    *   [Design handoff](https://www.figma.com/design-handoff/)
+    *   [See all solutions](https://www.figma.com/solutions/)
+
+## Roles
+
+    *   [Design](https://www.figma.com/designers/)
+    *   [Engineering](https://www.figma.com/engineers/)
+    *   [Product managers](https://www.figma.com/product-managers/)
+
+## Organizations
+
+    *   [Enterprise](https://www.figma.com/enterprise/)
+    *   [Education](https://www.figma.com/education/)
+    *   [Government](https://www.figma.com/government/)
+
+*   Community 
+*   
+    *   [Events Learn best practices at virtual events](https://www.figma.com/events-and-webinars/#upcoming-events)
+    *   [User groups Join a local Friends of Figma group](https://friends.figma.com/)
+    *   [Customer stories Read about leading product teams](https://www.figma.com/customers/)
+
+*   Resources 
+*   
+    *   [Shortcut: The Figma blog Stories about how products take shape—and shape our world ![Image 3](https://cdn.sanity.io/images/599r6htc/regionalized/1883a9ebc4ce697b718301ad247c0fff45c572c1-540x304.png?w=540&h=304&q=75&fit=max&auto=format)](https://www.figma.com/blog/)
+
+## Get started
+
+    *   [Plugins](https://www.figma.com/community/plugins)
+    *   [UI kits](https://www.figma.com/community/category/ui-kits)
+    *   [Icons](https://www.figma.com/community/category/icons)
+    *   [Widgets](https://www.figma.com/community/widgets)
+    *   [Templates](https://www.figma.com/templates/)
+    *   [Tools](https://www.figma.com/tools/)
+    *   [Partners](https://www.figma.com/partners/)
+    *   [See all](https://www.figma.com/community)
+
+## Learn
+
+    *   [Best practices](https://www.figma.com/best-practices/)
+    *   [Reports & insights](https://www.figma.com/reports/)
+    *   [Resource library](https://www.figma.com/resource-library/)
+    *   [Demos](https://www.figma.com/demo/)
+    *   [Webinars](https://www.figma.com/events-and-webinars/#on-demand)
+    *   [Help center](https://help.figma.com/hc/en-us)
+    *   [Figma Support](https://help.figma.com/hc/en-us/requests/new)
+
+*   [Pricing](https://www.figma.com/pricing/)
+
+*   [Log in](https://www.figma.com/login?locale=en-us)
+*   [Contact sales](https://www.figma.com/contact/)
+*   [Get started](https://www.figma.com/signup?locale=en-us)[Get started for free](https://www.figma.com/signup?locale=en-us)
+
+[](https://www.figma.com/)
+
+*   [Log in](https://www.figma.com/login?locale=en-us)
+*   [Contact sales](https://www.figma.com/contact/)
+*   [Get started](https://www.figma.com/signup?locale=en-us)[Get started for free](https://www.figma.com/signup?locale=en-us)
+
+# The page you are looking for can’t be found.
+
+[](https://www.figma.com/)
+
+## Figma Socials
+
+*   [](https://x.com/figma "X")
+*   [](https://www.youtube.com/figmadesign "YouTube")
+*   [](https://www.instagram.com/figma "Instagram")
+*   [](https://www.facebook.com/figmadesign "Facebook")
+
+## Product
+
+*   [Figma Design](https://www.figma.com/design/)
+*   [Figma Make](https://www.figma.com/make/)
+*   [Figma Weave New](https://weave.figma.com/)
+*   [Dev Mode](https://www.figma.com/dev-mode/)
+*   [Figma Motion New](https://www.figma.com/motion/)
+*   [FigJam](https://www.figma.com/figjam/)
+*   [Figma Slides](https://www.figma.com/slides/)
+*   [Figma Draw](https://www.figma.com/draw/)
+*   [Figma Sites Beta](https://www.figma.com/sites/)
+*   [Figma Buzz Beta](https://www.figma.com/buzz/)
+*   [Design and explore](https://www.figma.com/design-explore/)
+*   [Build and ship products](https://www.figma.com/build-ship/)
+*   [AI workflows](https://www.figma.com/ai/)
+*   [Release notes](https://www.figma.com/release-notes/)
+*   [Downloads](https://www.figma.com/downloads/)
+
+## Plans
+
+*   [Pricing](https://www.figma.com/pricing/)
+*   [Enterprise](https://www.figma.com/enterprise/)
+*   [Organization](https://www.figma.com/organization/)
+*   [Professional](https://www.figma.com/professional/)
+
+## Use cases
+
+*   [UI design](https://www.figma.com/ui-design-tool/)
+*   [UX design](https://www.figma.com/ux-design-tool/)
+*   [Wireframing](https://www.figma.com/wireframe-tool/)
+*   [Diagramming](https://www.figma.com/figjam/diagramming-tool/)
+*   [Prototyping](https://www.figma.com/prototyping/)
+*   [Brainstorming](https://www.figma.com/figjam/brainstorming-tool/)
+*   [Presentation Maker](https://www.figma.com/presentation-maker/)
+*   [Online whiteboard](https://www.figma.com/figjam/online-whiteboard/)
+*   [Strategic planning](https://www.figma.com/figjam/strategic-planning/)
+*   [Mind mapping](https://www.figma.com/figjam/mind-map/)
+*   [AI website generator](https://www.figma.com/solutions/ai-website-generator/)
+*   [AI design generator](https://www.figma.com/solutions/ai-design-generator/)
+*   [AI app builder](https://www.figma.com/solutions/ai-app-builder/)
+*   [AI UI generator](https://www.figma.com/solutions/ai-ui-generator/)
+*   [Weave AI tool](https://www.figma.com/solutions/figma-ai-tool-weave/)
+*   [AI design agent](https://www.figma.com/solutions/ai-design-agent/)
+
+## Resources
+
+*   [Blog](https://www.figma.com/blog/)
+*   [Best practices](https://www.figma.com/best-practices/)
+*   [Gradient Library](https://www.figma.com/gradients/)
+*   [Gradient Generator](https://www.figma.com/gradient-generator/)
+*   [GIF maker](https://www.figma.com/gif-maker/)
+*   [Color wheel](https://www.figma.com/color-wheel/)
+*   [Colors](https://www.figma.com/colors/)
+*   [Color picker](https://www.figma.com/color-picker/)
+*   [Font Library](https://www.figma.com/fonts/)
+*   [Templates](https://www.figma.com/templates/)
+*   [Developers](https://www.figma.com/developers)
+*   [Integrations](https://www.figma.com/product-integrations/)
+*   [Affiliate program](https://www.figma.com/affiliate-program/)
+*   [Resource library](https://www.figma.com/resource-library/)
+*   [Reports and insights](https://www.figma.com/reports/)
+*   [Support](https://help.figma.com/hc/en-us)
+*   [Status](https://status.figma.com/)
+*   [Legal and privacy](https://www.figma.com/legal/)
+*   [Modern slavery statement](https://static.figma.com/uploads/35bc6db4415269cfeace41c8c4637945a85732b2.pdf)
+*   [Climate disclosure statement](https://static.figma.com/uploads/d2a204b5cc4d64ff539fcd445d0ddedab7dc00f6)
+*   [Impressum](https://www.figma.com/legal/impressum/)
+
+## Company
+
+*   [Events](https://www.figma.com/events/)
+*   [Customers](https://www.figma.com/customers/)
+*   [Careers](https://www.figma.com/careers/)
+*   [Newsroom](https://www.figma.com/newsroom/)
+*   [Brand assets](https://www.figma.com/using-the-figma-brand/)
