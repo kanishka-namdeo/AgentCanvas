@@ -65,7 +65,7 @@ export function StatusBadge({ status, size = 'sm', className = '', description }
 
   if (!cfg) return null;
   const Icon = cfg.icon;
-  const sizeCls = size === 'sm' ? 'text-[9px] h-3.5 px-1 py-0' : 'text-[10px] h-5 px-1.5';
+  const sizeCls = size === 'sm' ? 'text-[10px] h-4 px-1 py-0.5' : 'text-[11px] h-5 px-1.5';
   const iconCls = size === 'sm' ? 'h-2.5 w-2.5' : 'h-3 w-3';
 
   // Task 4d — compose the screen-reader announcement. The visible badge

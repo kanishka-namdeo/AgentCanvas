@@ -356,7 +356,7 @@ export function SessionSidebar() {
                               e.stopPropagation();
                               setTagFilter(tagFilter === t ? null : t);
                             }}
-                            className="text-[8px] px-1 py-0 rounded ac-surface-2 ac-text-3 hover:ac-text-1 ac-transition"
+                            className="text-[10px] px-1.5 py-0.5 rounded ac-surface-2 ac-text-3 hover:ac-text-1 ac-transition"
                             title={`Filter by "${t}"`}
                           >
                             {t}
@@ -373,7 +373,7 @@ export function SessionSidebar() {
                         {highlight(hit.snippet, search.trim())}
                       </div>
                     )}
-                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] ac-text-3">
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5 text-[10px] ac-text-3">
                       <span>{relativeTime(session.lastOpenedAt)}</span>
                       <span className="ac-text-5">·</span>
                       <span>{session.messageCount} msg</span>
@@ -563,10 +563,10 @@ export function SessionSidebar() {
       </ScrollArea>
 
       {/* Footer stats + server sync indicator */}
-      <div className="px-3 py-1.5 border-t ac-border-subtle text-[10px] ac-text-4 flex items-center justify-between ac-surface-1">
-        <span>{stats.totalRuns} runs · {stats.totalToolCalls} tools</span>
-        <div className="flex items-center gap-2">
-          <span title="Canvas snapshots (shared across every chat on this canvas)">{stats.totalSnapshots} canvas snapshots</span>
+      <div className="px-3 py-1.5 border-t ac-border-subtle text-[11px] ac-text-4 flex flex-wrap items-center justify-between gap-y-1 ac-surface-1">
+        <span className="whitespace-nowrap">{stats.totalRuns} runs · {stats.totalToolCalls} tools</span>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <span className="whitespace-nowrap" title="Canvas snapshots (shared across every chat on this canvas)">{stats.totalSnapshots} canvas snapshots</span>
           {/* Server sync indicator — shows sessions are persisted server-side (Phase 3) */}
           <span className="flex items-center gap-0.5 ac-text-success" title="Sessions sync to server automatically">
             <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

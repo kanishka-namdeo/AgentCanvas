@@ -52,6 +52,30 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
     if (session) setTitle(session.title);
   }, [session?.id, session?.title]);
 
+  // Per-session cost roll-up (P3-7): sum inputTokens/outputTokens/costUsd
+  // across every run in this session. useMemo'd so it only recomputes when
+  // the session's run list or the runs map changes. The totals render as a
+  // small chip in the session meta row (only when non-zero — matching the
+  // per-run cost badge pattern in RunHistoryPanel).
+  // NOTE: useMemo must run unconditionally on every render to satisfy the
+  // Rules of Hooks — the early return below would otherwise skip it when
+  // `session` is briefly undefined during state transitions, causing
+  // hook-order mismatch errors. Guard the body instead.
+  const sessionCost = useMemo(() => {
+    if (!session) return { inputTokens: 0, outputTokens: 0, costUsd: 0 };
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let costUsd = 0;
+    for (const rid of session.runIds) {
+      const r = runsMap[rid];
+      if (!r) continue;
+      inputTokens += r.inputTokens || 0;
+      outputTokens += r.outputTokens || 0;
+      costUsd += r.costUsd || 0;
+    }
+    return { inputTokens, outputTokens, costUsd };
+  }, [session?.runIds, runsMap]);
+
   if (!session) {
     if (compact) {
       return (
@@ -68,25 +92,6 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
   const currentRun = session.currentRunId ? runsMap[session.currentRunId] : null;
   const lastRun = session.lastRunId ? runsMap[session.lastRunId] : null;
   const status = currentRun?.status ?? (lastRun?.status ?? 'completed');
-
-  // Per-session cost roll-up (P3-7): sum inputTokens/outputTokens/costUsd
-  // across every run in this session. useMemo'd so it only recomputes when
-  // the session's run list or the runs map changes. The totals render as a
-  // small chip in the session meta row (only when non-zero — matching the
-  // per-run cost badge pattern in RunHistoryPanel).
-  const sessionCost = useMemo(() => {
-    let inputTokens = 0;
-    let outputTokens = 0;
-    let costUsd = 0;
-    for (const rid of session.runIds) {
-      const r = runsMap[rid];
-      if (!r) continue;
-      inputTokens += r.inputTokens || 0;
-      outputTokens += r.outputTokens || 0;
-      costUsd += r.costUsd || 0;
-    }
-    return { inputTokens, outputTokens, costUsd };
-  }, [session.runIds, runsMap]);
 
   const commitTitle = () => {
     const t = title.trim();
@@ -123,13 +128,13 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
                 setEditing(false);
               }
             }}
-            className="h-6 text-[12px] px-1.5 font-medium ac-border-default max-w-[180px]"
+            className="h-6 text-[12px] px-1.5 font-medium ac-border-default max-w-[140px] sm:max-w-[200px] md:max-w-[280px]"
             autoFocus
           />
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="text-[12px] font-medium ac-text-1 truncate hover:ac-surface-1 rounded px-1.5 py-0.5 -mx-1.5 ac-transition ac-focus-ring max-w-[180px]"
+            className="text-[12px] font-medium ac-text-1 truncate hover:ac-surface-1 rounded px-1.5 py-0.5 -mx-1.5 ac-transition ac-focus-ring max-w-[140px] sm:max-w-[200px] md:max-w-[280px]"
             title="Click to rename"
           >
             {session.title}
@@ -191,7 +196,7 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
               {session.title}
             </button>
           )}
-          <div className="flex items-center gap-1.5 mt-1 px-0.5 text-[10px] ac-text-4">
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 px-0.5 text-[10px] ac-text-4">
             <StatusBadge status={status} />
             {!session.isRoot && (
               <span className="flex items-center gap-0.5" style={{ color: 'var(--ac-accent)' }}>

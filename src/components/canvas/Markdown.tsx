@@ -30,12 +30,12 @@ function CodeBlock({ children }: { children: ReactNode }) {
         }}
         title="Copy code"
         aria-label="Copy code"
-        className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium ac-text-3 ac-surface-1 border ac-border-subtle opacity-0 group-hover/code:opacity-100 transition-opacity ac-focus-ring"
+        className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ac-text-3 ac-surface-1 border ac-border-subtle opacity-100 sm:opacity-0 sm:group-hover/code:opacity-100 sm:focus-within:opacity-100 transition-opacity ac-focus-ring"
       >
         {copied ? <Check className="h-2.5 w-2.5 ac-text-success" /> : <Copy className="h-2.5 w-2.5" />}
         {copied ? 'Copied' : 'Copy'}
       </button>
-      <pre className="overflow-x-auto p-2 pr-12 text-[10px] leading-relaxed font-mono ac-text-2">
+      <pre className="max-h-64 overflow-y-auto ac-hide-scrollbar overflow-x-auto p-2 pr-12 text-[11px] leading-relaxed font-mono ac-text-2 whitespace-pre-wrap break-all">
         <code>{text}</code>
       </pre>
     </div>

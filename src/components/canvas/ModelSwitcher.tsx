@@ -246,7 +246,7 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
           }`}
         >
           <Cpu className="h-3 w-3 flex-shrink-0" />
-          <span className="max-w-[110px] truncate">{modelId}</span>
+          <span className="max-w-[110px] sm:max-w-[160px] lg:max-w-[200px] truncate">{modelId}</span>
           {/* Vision indicator — Eye when the current model accepts image
               input (signals that the attach button / paste will work). */}
           {currentModelVision && (
@@ -268,7 +268,7 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
       <PopoverContent
         align="end"
         side="bottom"
-        className="w-72 p-2 ac-surface-0 ac-border-default shadow-lg"
+        className="w-72 max-w-[calc(100vw-1rem)] p-2 ac-surface-0 ac-border-default shadow-lg"
         onOpenAutoFocus={(e) => e.preventDefault()} // keep focus out of the popover shell
       >
         {/* Header: provider + source + refresh */}

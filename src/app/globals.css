@@ -433,20 +433,25 @@
 [data-density="compact"] {
   font-size: 13px; /* base — was 14px in browser default */
 }
-[data-density="compact"] .text-xs { font-size: 11px; }
-[data-density="compact"] .text-\[11px\] { font-size: 10px; }
-[data-density="compact"] .text-\[12px\] { font-size: 11px; }
-[data-density="compact"] .text-\[13px\] { font-size: 12px; }
+/* Compact density text + padding remaps are gated to ≥ md (768px) viewport.
+   On mobile, always use comfortable density regardless of the user's setting
+   so that already-small chat text (9–11px) doesn't shrink further. */
+@media (min-width: 768px) {
+  [data-density="compact"] .text-xs { font-size: 11px; }
+  [data-density="compact"] .text-\[11px\] { font-size: 10px; }
+  [data-density="compact"] .text-\[12px\] { font-size: 11px; }
+  [data-density="compact"] .text-\[13px\] { font-size: 12px; }
 
-/* Tighter padding on common panel sections */
-[data-density="compact"] .p-3 { padding: 0.5rem; }
-[data-density="compact"] .p-2 { padding: 0.375rem; }
-[data-density="compact"] .px-3 { padding-left: 0.5rem; padding-right: 0.5rem; }
-[data-density="compact"] .py-2 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+  /* Tighter padding on common panel sections */
+  [data-density="compact"] .p-3 { padding: 0.5rem; }
+  [data-density="compact"] .p-2 { padding: 0.375rem; }
+  [data-density="compact"] .px-3 { padding-left: 0.5rem; padding-right: 0.5rem; }
+  [data-density="compact"] .py-2 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
 
-/* Tighter gap in space-y-3 (used by PropertiesPanel + AgentPanel bodies) */
-[data-density="compact"] .space-y-3 > * + * { margin-top: 0.5rem; }
-[data-density="compact"] .space-y-2 > * + * { margin-top: 0.375rem; }
+  /* Tighter gap in space-y-3 (used by PropertiesPanel + AgentPanel bodies) */
+  [data-density="compact"] .space-y-3 > * + * { margin-top: 0.5rem; }
+  [data-density="compact"] .space-y-2 > * + * { margin-top: 0.375rem; }
+}
 
 /* ─── Outline mode (spec Phase 7, ⌘⇧O — DOM renderer only) ────────────────
    The world container carries [data-ac-outline] when outline mode is on.

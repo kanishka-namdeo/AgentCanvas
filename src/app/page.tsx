@@ -745,7 +745,7 @@ export default function Home() {
           />
         )}
         {/* ───────────────────────── Top bar ───────────────────────── */}
-        <header className="flex items-center justify-between px-3 h-11 border-b ac-border-default ac-surface-0 flex-shrink-0 gap-3">
+        <header className="flex flex-wrap items-center justify-between px-3 h-11 border-b ac-border-default ac-surface-0 flex-shrink-0 gap-2 sm:gap-3">
           {/* Left: brand + doc name */}
           <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
             <div className="flex items-center gap-2">
@@ -768,7 +768,7 @@ export default function Home() {
           </div>
 
           {/* Right: ⌘K palette + Run/Stop + connection status + zen + theme + file */}
-          <div className="flex items-center gap-1.5 text-[11px] flex-shrink-0">
+          <div className="flex items-center gap-2 text-[11px] flex-shrink-0 flex-wrap justify-end">
             {/* ⌘K command palette trigger — styled like a search box for discoverability */}
             <Button
               variant="ghost"
@@ -858,7 +858,7 @@ export default function Home() {
           <ResizablePanel
             panelRef={leftPanelRef}
             defaultSize={isMobile ? '85%' : '20%'}
-            minSize={isMobile ? '70%' : '14%'}
+            minSize={isMobile ? '70%' : '16%'}
             maxSize={isMobile ? '95%' : '32%'}
             collapsible
             collapsedSize="0%"
@@ -888,7 +888,7 @@ export default function Home() {
           <ResizablePanel
             panelRef={rightPanelRef}
             defaultSize={isMobile ? '85%' : '28%'}
-            minSize={isMobile ? '70%' : '20%'}
+            minSize={isMobile ? '70%' : '22%'}
             maxSize={isMobile ? '95%' : '42%'}
             collapsible
             collapsedSize="0%"

@@ -742,7 +742,7 @@ function ToolCallCard({ tc }: { tc: ToolCallRecord }) {
         <div className="mt-1 text-[10px] ac-text-3">{tc.summary}</div>
       )}
       {expanded && tc.argsPreview && (
-        <pre className="mt-1 text-[9px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all ac-surface-0 border ac-border-subtle rounded p-1.5">
+        <pre className="mt-1 max-h-48 overflow-y-auto ac-hide-scrollbar text-[10px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all ac-surface-0 border ac-border-subtle rounded p-1.5">
           {tc.argsPreview}
         </pre>
       )}

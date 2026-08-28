@@ -302,10 +302,11 @@ function ModelContextStatus({
       )}
 
       {/* Session cumulative usage — total tokens across all LLM calls this
-          session (input + output), shown once any usage was reported. */}
+          session (input + output), shown once any usage was reported. Hidden
+          on narrow panels; the tooltip on the model badge already covers this. */}
       {usageTotals.llmCalls > 0 && (
         <span
-          className="hidden lg:flex items-center gap-0.5"
+          className="hidden xl:flex items-center gap-0.5 flex-shrink-0"
           title={`Session usage: ${usageTotals.llmCalls} LLM calls, ${usageTotals.inputTokens + usageTotals.outputTokens} tokens total${usageTotals.cost > 0 ? `, $${usageTotals.cost.toFixed(4)}` : ''}`}
         >
           <Clock className="h-2.5 w-2.5" />
@@ -543,10 +544,10 @@ function SkillChip({ skillInfo }: { skillInfo: NonNullable<ChatTurn['skillInfo']
   const pct = Math.round(skillInfo.confidence * 100);
   return (
     <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] ac-text-3 ac-surface-1 border ac-border-subtle"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ac-text-3 ac-surface-1 border ac-border-subtle"
       title={`Intent classification routed this prompt to the "${skillInfo.category}" skill (${skillInfo.method}, ${pct}% confidence). Tool budget: ${skillInfo.toolCount} calls.`}
     >
-      <Sparkles className="h-2.5 w-2.5" style={{ color: 'var(--ac-accent)' }} />
+      <Sparkles className="h-3 w-3" style={{ color: 'var(--ac-accent)' }} />
       {skillInfo.category}
       <span className="ac-text-4">{pct}%</span>
     </span>
@@ -1124,8 +1125,8 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
       )}
       {/* Header (optional — hidden when used inside a panel that already has SessionHeader) */}
       {!hideHeader && (
-      <div className="flex items-center justify-between px-3 py-2 border-b ac-border-subtle">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-y-1.5 px-3 py-2 border-b ac-border-subtle">
+        <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
           <div className="relative">
             <Bot className="h-4 w-4 ac-text-2" />
             {agentBusy && (
@@ -1133,11 +1134,11 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             )}
           </div>
           <span className="text-xs font-medium ac-text-2">Agent</span>
-          <Badge variant="outline" className="text-[10px] h-4 px-1 py-0 font-normal ac-text-3 ac-border-default">
-            .pen · 60+ tools
+          <Badge variant="outline" className="text-[11px] h-5 px-1.5 py-0 font-normal ac-text-3 ac-border-default" title=".pen protocol · 60+ tools available">
+            .pen
           </Badge>
         </div>
-        <div className="flex items-center gap-2 text-[10px] ac-text-3">
+        <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[11px] ac-text-3 min-w-0">
           <ModelContextStatus
             activeModel={activeModel}
             usageTotals={usageTotals}
@@ -1154,15 +1155,15 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               setSetting('thinkingLevel', next);
             }}
             title={`Thinking: ${thinkingLevel} (click to cycle)\nHigher = better reasoning on complex tasks, but slower. Off = fastest.`}
-            className={`flex items-center gap-0.5 px-1 py-0.5 rounded ac-transition hover:ac-surface-1 ${thinkingLevel !== 'off' ? 'ac-text-info' : 'ac-text-4'}`}
+            className={`flex items-center gap-0.5 h-6 px-1.5 py-0.5 rounded ac-transition hover:ac-surface-1 flex-shrink-0 ${thinkingLevel !== 'off' ? 'ac-text-info' : 'ac-text-4'}`}
           >
             <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
-            <span className="text-[9px]">{thinkingLevel}</span>
+            <span className="text-[11px]">{thinkingLevel}</span>
           </button>
           {/* Connection status */}
-          <span className={`flex items-center gap-0.5 ${connected ? '' : 'ac-text-danger'}`}>
+          <span className={`flex items-center gap-0.5 flex-shrink-0 ${connected ? '' : 'ac-text-danger'}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'ac-dot-success' : 'ac-dot-danger'}`} />
             {connected ? 'live' : 'offline'}
           </span>
@@ -1405,7 +1406,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                   >
                     <X className="h-2.5 w-2.5" />
                   </button>
-                  <div className="absolute bottom-0 inset-x-0 px-1 py-px bg-black/70 text-white text-[8px] font-mono truncate">
+                  <div className="absolute bottom-0 inset-x-0 px-1 py-px bg-black/70 text-white text-[10px] font-mono truncate">
                     {formatDataUrlSize(att.dataUrl)}
                   </div>
                 </div>
@@ -1534,7 +1535,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               left, Send/Queue on the right once there's text OR staged
               attachments. ChatGPT keeps the attach button permanently
               available so images can be staged before typing. */}
-          <div className="flex items-center justify-between px-2 pb-1.5 pt-0.5 border-t ac-border-subtle">
+          <div className="flex flex-wrap items-center justify-between gap-y-1 gap-x-2 px-2 pb-1.5 pt-0.5 border-t ac-border-subtle">
             {/* Hidden file input + paperclip trigger (ChatGPT pattern). */}
             <input
               ref={fileInputRef}
@@ -1548,7 +1549,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                 void addFiles(files);
               }}
             />
-            <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-1">
               {/* Canvas snapshot attach (v0/Figma-Make pattern) — renders the
                   current canvas to a PNG and stages it as an image attachment.
                   Disabled while the agent runs: the canvas is mid-mutation,
@@ -1688,7 +1689,7 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
               </div>
             ) : (
             <div
-              className="flex-1 text-xs ac-text-1 ac-surface-1 rounded-lg rounded-tl-sm p-2"
+              className="flex-1 min-w-0 text-xs ac-text-1 ac-surface-1 rounded-lg rounded-tl-sm p-2 break-words [overflow-wrap:anywhere]"
               // Absolute timestamp on hover (progressive disclosure — no
               // visible chrome, but the info is one hover away).
               title={turn.startedAt ? new Date(turn.startedAt).toLocaleString() : undefined}
@@ -1717,7 +1718,7 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
                       className="relative rounded-md border ac-border-default overflow-hidden ac-focus-ring cursor-zoom-in"
                     >
                                   <img src={img.dataUrl} alt={img.name} className="h-20 w-20 object-cover" />
-                      <span className="absolute bottom-0 inset-x-0 px-1 py-px bg-black/70 text-white text-[8px] font-mono truncate">
+                      <span className="absolute bottom-0 inset-x-0 px-1 py-px bg-black/70 text-white text-[10px] font-mono truncate">
                         {img.name}
                       </span>
                     </button>
@@ -1737,31 +1738,31 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
                     navigator.clipboard.writeText(turn.text ?? '').then(() => toast.message('Prompt copied to clipboard'));
                   }
                 }}
-                className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
+                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity self-start mt-0.5 h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
                 title="Copy prompt"
                 aria-label="Copy prompt"
               >
-                <Copy className="h-3 w-3" />
+                <Copy className="h-3.5 w-3.5" />
               </button>
             )}
             {!editing && turn.text && (
               <button
                 onClick={startEditing}
                 disabled={agentBusy}
-                className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring disabled:opacity-30 disabled:cursor-not-allowed"
+                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity self-start mt-0.5 h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring disabled:opacity-30 disabled:cursor-not-allowed"
                 title={agentBusy ? 'Edit is available when the agent is idle' : 'Edit and resend from here (discards what follows)'}
                 aria-label="Edit and resend"
               >
-                <Pencil className="h-3 w-3" />
+                <Pencil className="h-3.5 w-3.5" />
               </button>
             )}
             {!editing && turn.messageId && (
               <button
                 onClick={() => forkActiveSession(turn.messageId)}
-                className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity self-start mt-0.5 p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
+                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity self-start mt-0.5 h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
                 title="Fork chat from this message"
               >
-                <GitBranch className="h-3 w-3" />
+                <GitBranch className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
@@ -1802,7 +1803,7 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
           <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0 shadow-sm">
             <Bot className="h-3 w-3 text-white" />
           </div>
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 min-w-0 space-y-2">
             {/* Reasoning stream (pi-agent thinking_delta) — Cursor
                 thought-bubble pattern, above everything else. */}
             {turn.thinking && <ThinkingBlock turn={turn} />}
@@ -1831,36 +1832,36 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
                 feedback + regenerate. Fade in on hover/focus — the
                 right-click menu keeps the extended actions for power users. */}
             {!turn.streaming && turn.text && (
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity -ml-1">
+              <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity -ml-1">
                 <button
                   onClick={() => {
                     if (typeof navigator !== 'undefined' && navigator.clipboard) {
                       navigator.clipboard.writeText(turn.text ?? '').then(() => toast.message('Message copied to clipboard'));
                     }
                   }}
-                  className="p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
                   title="Copy message"
                   aria-label="Copy message"
                 >
-                  <Copy className="h-2.5 w-2.5" />
+                  <Copy className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => setTurnFeedback(turn.id, 'up')}
-                  className={`p-1 rounded ac-transition ac-focus-ring ${turn.feedback === 'up' ? 'ac-text-success' : 'ac-text-4 hover:ac-text-1 hover:ac-surface-2'}`}
+                  className={`h-7 w-7 inline-flex items-center justify-center rounded ac-transition ac-focus-ring ${turn.feedback === 'up' ? 'ac-text-success' : 'ac-text-4 hover:ac-text-1 hover:ac-surface-2'}`}
                   title={turn.feedback === 'up' ? 'Rated good (click to undo)' : 'Rate this response'}
                   aria-label="Good response"
                   aria-pressed={turn.feedback === 'up'}
                 >
-                  <ThumbsUp className={`h-2.5 w-2.5 ${turn.feedback === 'up' ? 'fill-current' : ''}`} />
+                  <ThumbsUp className={`h-3.5 w-3.5 ${turn.feedback === 'up' ? 'fill-current' : ''}`} />
                 </button>
                 <button
                   onClick={() => setTurnFeedback(turn.id, 'down')}
-                  className={`p-1 rounded ac-transition ac-focus-ring ${turn.feedback === 'down' ? 'ac-text-danger' : 'ac-text-4 hover:ac-text-1 hover:ac-surface-2'}`}
+                  className={`h-7 w-7 inline-flex items-center justify-center rounded ac-transition ac-focus-ring ${turn.feedback === 'down' ? 'ac-text-danger' : 'ac-text-4 hover:ac-text-1 hover:ac-surface-2'}`}
                   title={turn.feedback === 'down' ? 'Rated bad (click to undo)' : 'Rate this response'}
                   aria-label="Bad response"
                   aria-pressed={turn.feedback === 'down'}
                 >
-                  <ThumbsDown className={`h-2.5 w-2.5 ${turn.feedback === 'down' ? 'fill-current' : ''}`} />
+                  <ThumbsDown className={`h-3.5 w-3.5 ${turn.feedback === 'down' ? 'fill-current' : ''}`} />
                 </button>
                 <button
                   disabled={agentBusy}
@@ -1880,11 +1881,11 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
                       toast.message('No preceding prompt to regenerate from');
                     }
                   }}
-                  className="p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Regenerate response"
                   aria-label="Regenerate response"
                 >
-                  <RotateCcw className="h-2.5 w-2.5" />
+                  <RotateCcw className="h-3.5 w-3.5" />
                 </button>
               </div>
             )}
@@ -1897,25 +1898,25 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
             {/* Turn meta footer — tool count + duration + token usage +
                 relative time. Shown on completed turns (not while streaming). */}
             {!turn.streaming && (turn.toolCalls.length > 0 || turn.startedAt) && (
-              <div className="flex items-center gap-2 text-[9px] ac-text-4">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] ac-text-4">
                 {turn.toolCalls.length > 0 && (
-                  <span className="flex items-center gap-0.5" title={`${turn.toolCalls.length} tool calls`}>
-                    <Wrench className="h-2.5 w-2.5" />
+                  <span className="flex items-center gap-0.5 flex-shrink-0" title={`${turn.toolCalls.length} tool calls`}>
+                    <Wrench className="h-3 w-3" />
                     {turn.toolCalls.length} tools
                   </span>
                 )}
                 {turn.startedAt && (
-                  <span className="flex items-center gap-0.5" title="Turn duration">
-                    <Clock className="h-2.5 w-2.5" />
+                  <span className="flex items-center gap-0.5 flex-shrink-0" title="Turn duration">
+                    <Clock className="h-3 w-3" />
                     {formatDuration(turn.endedAt ?? Date.now(), turn.startedAt)}
                   </span>
                 )}
                 {turn.tokenUsage && (turn.tokenUsage.input > 0 || turn.tokenUsage.output > 0) && (
                   <span
-                    className="flex items-center gap-0.5"
+                    className="flex items-center gap-0.5 flex-shrink-0"
                     title={`Turn token usage: ${turn.tokenUsage.input.toLocaleString()} input + ${turn.tokenUsage.output.toLocaleString()} output (all LLM calls in this turn)`}
                   >
-                    <Cpu className="h-2.5 w-2.5" />
+                    <Cpu className="h-3 w-3" />
                     {formatTokens(turn.tokenUsage.input + turn.tokenUsage.output)} tok
                   </span>
                 )}
@@ -2254,7 +2255,7 @@ function ToolCallsCluster({ toolCalls }: { toolCalls: AgentToolCallEntry[] }) {
         onClick={() => setOverride(!expanded)}
         aria-expanded={expanded}
         title={expanded ? 'Collapse tool activity' : 'Expand tool activity'}
-        className="w-full flex items-center gap-1.5 px-1.5 py-1 rounded-md text-[10px] ac-text-3 hover:ac-surface-1 ac-transition ac-focus-ring"
+        className="w-full flex flex-wrap items-center gap-x-1.5 gap-y-1 px-1.5 py-1 rounded-md text-[10px] ac-text-3 hover:ac-surface-1 ac-transition ac-focus-ring"
       >
         <Wrench className="h-3 w-3 ac-text-4 flex-shrink-0" />
         <span className="font-medium ac-text-2 flex-shrink-0">
@@ -2353,7 +2354,7 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
                 </Badge>
               )}
               {prettyArgs && (
-                <pre className="mt-1 text-[10px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all">
+                <pre className="mt-1 max-h-48 overflow-y-auto ac-hide-scrollbar text-[11px] ac-text-3 font-mono overflow-x-auto whitespace-pre-wrap break-all rounded ac-surface-1 border ac-border-subtle p-1.5">
                   {prettyArgs}
                 </pre>
               )}
@@ -2499,8 +2500,8 @@ function FollowUps({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>[
 
   return (
     <div className="pt-1 space-y-1">
-      <div className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wide ac-text-4 px-0.5">
-        <ChevronRight className="h-2.5 w-2.5" />
+      <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide ac-text-4 px-0.5">
+        <ChevronRight className="h-3 w-3" />
         What next?
       </div>
       <div className="flex flex-col gap-1">
