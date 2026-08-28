@@ -512,6 +512,32 @@ export interface CanvasPatch {
 
 export type SyncEvent =
   | { type: 'canvas:patch'; patch: CanvasPatch; toolCallId?: string }
+  // ---- Mutation ack (R1 / Phase B replication core) -------------------------
+  // Per-patch exactly-once acknowledgement, sent ONLY to the emitting socket
+  // right after the relay decides the mutation's fate. `accepted` = journaled
+  // + applied + broadcast; `duplicate` = clientMutationId <= the client's
+  // lastMutationId (a retried outbox entry — the server state already has
+  // the effect; nothing was re-applied or re-broadcast); `rejected` = gap or
+  // invalid id (out-of-order flush — the client re-anchors its counter from
+  // `lastMutationId`, drops stale outbox entries, and surfaces the loss).
+  // Never journaled, never broadcast to other viewers.
+  | { type: 'mutation:ack'; clientId: string; clientMutationId: number; status: 'accepted' | 'duplicate' | 'rejected'; lastMutationId: number }
+  // ---- Turn lifecycle with identity + content (R3) ---------------------------
+  // `agent:user_message` is journaled at run start and broadcast to every
+  // viewer (the prompting client already created the row locally and skips
+  // it by messageId — idempotent). It gives OTHER viewers and reconnecting
+  // catch-up replay the user half of a turn, which previously only existed
+  // on the originating client.
+  | { type: 'agent:user_message'; text: string; sessionId?: string; runId?: string; messageId?: string }
+  // `agent:turn_final` is journaled + sent at run teardown carrying the FULL
+  // final assistant text (deltas are deliberately ephemeral — bolt.diy rule),
+  // the honest terminal status, and the client-threaded message/run identity.
+  // Live viewers use it to HEAL a turn whose delta stream dropped chunks;
+  // reconnecting catch-up replay uses it to reconstruct whole missed turns
+  // with content (OpenHands `agent_final_response` / LibreChat
+  // `aggregatedContent` pattern). Idempotent by messageId: the text REPLACES
+  // (never appends), so a double delivery is a no-op.
+  | { type: 'agent:turn_final'; text: string; status: 'complete' | 'error' | 'cancelled' | 'stuck'; sessionId?: string; runId?: string; messageId?: string; stopReason?: string; error?: string }
   // `reason` disambiguates merge semantics on the client (R6):
   //   - 'sync'    (subscribe reply / request_full): the client RECONCILES the
   //                incoming document against its local one (per-element
@@ -658,7 +684,11 @@ export type ClientEvent =
   // ALL its patches routed to whichever doc was inserted first. Optional for
   // backward compatibility with in-flight old clients; the server falls
   // back to the legacy scan when absent.
-  | { type: 'canvas:patch'; documentId?: string; patch: CanvasPatch }
+  // `clientId` + `clientMutationId` (R1) make the user patch EXACTLY-ONCE on
+  // the server: the relay journals it as a `user_patch` row and bumps the
+  // per-client MutationClock, then answers a `mutation:ack`. Old clients omit
+  // both fields and keep the legacy fire-and-relay semantics.
+  | { type: 'canvas:patch'; documentId?: string; patch: CanvasPatch; clientId?: string; clientMutationId?: number }
   // Volatile presence push (R7): one participant's cursor/selection/idle.
   // Throttled client-side (~33ms for cursors); the server relays to the
   // document's OTHER subscribers and keeps the participant in the roster
@@ -668,7 +698,13 @@ export type ClientEvent =
   // Shared-canvas restore: the client swapped the document back to a snapshot
   // and pushes the new state so every viewer + the in-memory WS doc follow.
   | { type: 'document:restore'; documentId: string; document: CanvasDocument }
-  | { type: 'agent:prompt'; documentId: string; prompt: string; settings?: AgentRunSettings; images?: Array<{ id?: string; name?: string; dataUrl: string }>; selection?: { count: number; names: string[] } }
+  // Turn identity (R3): the client-generated session/run/message ids ride
+  // the prompt so the server can journal `agent:user_message` /
+  // `agent:turn_final` rows that reconnecting catch-up replay adopts
+  // IDEMPOTENTLY by id (the prompting client already created these rows
+  // locally). All optional — legacy senders keep working, the rows simply
+  // lose identity linkage.
+  | { type: 'agent:prompt'; documentId: string; prompt: string; settings?: AgentRunSettings; images?: Array<{ id?: string; name?: string; dataUrl: string }>; selection?: { count: number; names: string[] }; sessionId?: string; runId?: string; userMessageId?: string; assistantMessageId?: string }
   | { type: 'agent:steer'; documentId: string; text: string }
   // Server-visible Stop (durability fix): the client asks the canvas-sync
   // service to abort the in-flight agent run for the document. The service

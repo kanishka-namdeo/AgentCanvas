@@ -19,6 +19,7 @@ import { applyPatchToCanvas } from './patch';
 import { patchDedupeKey, createBoundedDedupSet, type BoundedDedupSet } from './patch-dedupe';
 import { setMeasuredBounds } from '../agent/client-roundtrip';
 import { steerActiveSession } from '../agent/active-sessions';
+import { acceptUserMutation } from './user-patch-journal';
 
 const PORT = 3003;
 
@@ -156,19 +157,53 @@ export function startCanvasSyncService() {
           // first-match subscriber scan remains as a fallback for old clients
           // — under it, a socket subscribed to several documents had ALL its
           // patches land in whichever doc was created first.
-          let state = event.documentId ? documents.get(event.documentId) : undefined;
+          let docId = event.documentId;
+          let state = docId ? documents.get(docId) : undefined;
           if (!state) {
-            for (const [, docState] of documents) {
+            for (const [id, docState] of documents) {
               if (docState.subscribers.has(socket.id)) {
+                docId = id;
                 state = docState;
                 break;
               }
             }
           }
-          if (state) {
-            state.document = applyPatchToCanvas(state.document, event.patch);
-            broadcast(state, { type: 'canvas:patch', patch: event.patch }, socket.id);
+          if (!state || !docId) break;
+
+          // R1 exactly-once path: mutations carrying identity are journaled
+          // (`user_patch` row + MutationClock bump) before apply/broadcast,
+          // and the sender gets a per-mutation ack. `select` ops are UI
+          // state — apply + broadcast with NO journaling and NO ack (stamping
+          // them would burn a clientMutationId the clock never sees and
+          // manufacture a gap). Legacy clients (no identity) keep the old
+          // fire-and-relay semantics.
+          if (
+            event.clientId &&
+            typeof event.clientMutationId === 'number' &&
+            event.patch?.op !== 'select'
+          ) {
+            const decision = await acceptUserMutation(
+              docId,
+              event.clientId,
+              event.clientMutationId,
+              event.patch,
+            );
+            socket.emit('sync', {
+              type: 'mutation:ack',
+              clientId: event.clientId,
+              clientMutationId: event.clientMutationId,
+              status: decision.status,
+              lastMutationId: decision.lastMutationId,
+            } satisfies SyncEvent);
+            if (decision.status !== 'accepted') {
+              // duplicate: the effect is already server-side (a retried outbox
+              // entry — no re-apply, no re-broadcast). rejected: a gap — the
+              // client re-anchors and surfaces from the ack payload.
+              break;
+            }
           }
+          state.document = applyPatchToCanvas(state.document, event.patch);
+          broadcast(state, { type: 'canvas:patch', patch: event.patch }, socket.id);
           break;
         }
         case 'canvas:request_full': {
@@ -203,7 +238,14 @@ export function startCanvasSyncService() {
         }
         case 'agent:prompt': {
           console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${event.prompt.slice(0, 80)}… (images: ${event.images?.length ?? 0})`);
-          driveAgent(event.documentId, event.prompt, event.settings, event.images, event.selection).catch((err) => {
+          driveAgent(
+            event.documentId,
+            event.prompt,
+            event.settings,
+            event.images,
+            event.selection,
+            { sessionId: event.sessionId, runId: event.runId, userMessageId: event.userMessageId, assistantMessageId: event.assistantMessageId },
+          ).catch((err) => {
             console.error('[canvas-sync] agent drive failed:', err);
           });
           break;
@@ -325,6 +367,12 @@ async function driveAgent(
   settings?: import('../settings/types').AgentRunSettings,
   images?: Array<{ id?: string; name?: string; dataUrl: string }>,
   selection?: { count: number; names: string[] },
+  identity?: {
+    sessionId?: string;
+    runId?: string;
+    userMessageId?: string;
+    assistantMessageId?: string;
+  },
 ) {
   const state = ensureDocument(documentId);
 
@@ -333,6 +381,21 @@ async function driveAgent(
       io?.to(sid).emit('sync', event);
     }
   };
+
+  // Turn identity on the wire (R3): broadcast the user's prompt message to
+  // every viewer BEFORE the run's first event. The prompting client created
+  // the row locally at promptAgent and skips it by messageId (idempotent);
+  // OTHER viewers previously saw the assistant stream with NO user turn —
+  // now the shared transcript converges, and reconnecting catch-up replay
+  // rebuilds the same event from the journal. (The ROUTE journals the durable
+  // copy; this is the live fanout only — no double journal write.)
+  directFanout({
+    type: 'agent:user_message',
+    text: prompt,
+    ...(identity?.sessionId ? { sessionId: identity.sessionId } : {}),
+    ...(identity?.runId ? { runId: identity.runId } : {}),
+    ...(identity?.userMessageId ? { messageId: identity.userMessageId } : {}),
+  });
 
   // ---- Server-side patch-event batching (efficiency fix) ----------------
   //
@@ -392,8 +455,21 @@ async function driveAgent(
       signal: abortController.signal,
       // `images` rides along in the body — compact data URLs produced by the
       // client's downscale pipeline (lib/agent/attachments.ts). `selection`
-      // is the canvas-selection targeting context.
-      body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings, images, selection }),
+      // is the canvas-selection targeting context. Turn identity (R3) rides
+      // along so the route can journal id-linked user_message / turn_final
+      // rows for reconnect catch-up replay.
+      body: JSON.stringify({
+        documentId,
+        prompt,
+        canvasState: state.document,
+        settings,
+        images,
+        selection,
+        ...(identity?.sessionId ? { sessionId: identity.sessionId } : {}),
+        ...(identity?.runId ? { runId: identity.runId } : {}),
+        ...(identity?.userMessageId ? { userMessageId: identity.userMessageId } : {}),
+        ...(identity?.assistantMessageId ? { assistantMessageId: identity.assistantMessageId } : {}),
+      }),
     });
 
     if (!res.ok || !res.body) {

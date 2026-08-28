@@ -3,18 +3,18 @@
 // The server journals every significant agent event (AgentEvent table, per-
 // document monotonic `seq`) and exposes it at
 // GET /api/documents/[documentId]/events?afterSeq=N. This module is the
-// missing CONSUMER: it turns that read API into reconnect recovery.
+// CONSUMER: it turns that read API into reconnect recovery.
 //
 // WHAT IT FIXES
 // -------------
 // A socket.io disconnect (network blip, laptop sleep, page reload) during an
 // agent turn means the client misses live sync events. The canvas itself is
 // already covered — canvas-sync re-sends `canvas:full` to every (re)subscriber.
-// What was NOT covered: the agent turn's CLOSURE. A client that missed
-// `agent:turn_end` / `turn_cancelled` / `agent:error` / `agent:stuck` stays
-// `agentBusy` with a forever-streaming message and an 'in_progress' run —
-// until the 10-minute zombie sweep. With catch-up, the missed terminal event
-// is replayed within one reconnect (~1-2s) and the turn finalizes honestly.
+// The journal covers agent state: the turn's CLOSURE (turn_end / error) for
+// the client that held the turn open, and — since Phase B — whole MISSED
+// turns, reconstructed with content from `agent:user_message` +
+// `agent:turn_final` rows (the OpenHands "events are the transcript" /
+// LibreChat `aggregatedContent` patterns).
 //
 // WATERMARK MODEL
 // ---------------
@@ -24,38 +24,48 @@
 //   1. When a terminal agent event is processed LIVE (_onSync →
 //      scheduleWatermarkAdvance, debounced) — so a clean session keeps the
 //      watermark at the last closed turn's boundary.
-//   2. After a catch-up run completes (replayed or skipped-and-skipped).
+//   2. After a catch-up run completes (replayed or skipped-and-advanced).
 // Live deltas/streaming events do NOT advance it: they carry no seq (journal
 // writes are deliberately fire-and-forget server-side), and a watermark that
 // moved mid-turn would hide the very gap we want to replay.
 //
-// REPLAY SAFETY (why the guards below exist)
-// ------------------------------------------
-// `_onSync` agent handlers are POSITION-based ("the last turn"), not
-// id-based. Replaying arbitrary historical events onto a DIFFERENT turn
-// would corrupt it. Three guards make replay safe:
-//   a) Only replays when the client holds an OPEN last turn (streaming /
-//      agentBusy) — i.e. the events in the window belong to THAT turn.
-//      A closed last turn means the window belongs to foreign/older turns:
-//      skip everything, just advance the watermark.
-//   b) Stops at the FIRST terminal event — the closure is the payload we
-//      want; anything after it belongs to later turns we never saw.
-//   c) Patches are NEVER replayed: `canvas:full` on resubscribe already
-//      brings the canvas current, and re-applying the same patches against
-//      the refreshed document would double-apply (the C1 dedup set cannot
-//      catch patches the client never applied). Canvas state ≠ journal's job.
+// REPLAY SAFETY (Phase B: identity-based, unbounded)
+// ---------------------------------------------------
+// Phase A replayed ONLY onto an open last turn and stopped at the first
+// terminal (position-based guards — the handlers were "last turn"-attributed
+// and historical events could corrupt an unrelated turn). Phase B makes
+// replay identity-idempotent instead, so the ENTIRE gap window replays:
+//   a) `agent:user_message` / `agent:turn_final` rows carry the client
+//      session/run/message ids (R3) — the _onSync handlers adopt them BY ID,
+//      so a row whose effect already exists locally is a no-op, and a row
+//      for a turn never seen CREATES the turn (message_start synthesizes the
+//      assistant placeholder when the last turn isn't one).
+//   b) Terminal rows dispatch too — in journal order they attribute to the
+//      turn their own user_message/message_start rows just created, and the
+//      handlers' own guards (terminal-state checks, id-deduped tool calls)
+//      absorb duplicates.
+//   c) Patches are STILL never replayed: `canvas:full` on resubscribe owns
+//      canvas state, and re-applying patches against the refreshed document
+//      would double-apply (the C1 dedup set cannot catch patches the client
+//      never applied). Same for `user_patch` rows (they exist for durability
+//      + audit; canvas state arrives via the relay's document, not the log).
+//   d) The first-connect baseline stays: a client with NO watermark is new
+//      to this document — it baselines to the journal head instead of
+//      importing history its sessions never knew.
 //
-// KNOWN LIMITATION (documented, deliberate): a disconnect spanning MULTIPLE
-// turns replays only the first turn's closure; turns the client never saw
-// are not reconstructed (their canvas effects arrive via `canvas:full` /
-// snapshots, their chat rows never existed client-side).
+// LIMITATIONS (documented, deliberate): tool-call detail inside replayed
+// turns attaches to the turn but does not create session-store ToolCall
+// records (those are keyed by the originating client's run ids); patch-op
+// diff summaries for missed turns are not reconstructed (canvas effects
+// arrive via canvas:full / snapshots).
 
 import type { SyncEvent } from './types';
 
 const WATERMARK_STORAGE_KEY = 'agentcanvas.journal-watermark.v1';
 
-/// Terminal journal rows — replay stops after the first one (the turn
-/// closure is what a reconnecting client needs).
+/// Terminal journal rows — replayed like any other row now (their handlers'
+/// own guards make them idempotent); kept as a set for watermark-advance
+/// triggers and consumers that care about closure boundaries.
 const TERMINAL_JOURNAL_TYPES = new Set([
   'agent:turn_end',
   'agent:turn_cancelled',
@@ -66,6 +76,10 @@ const TERMINAL_JOURNAL_TYPES = new Set([
 /// Synthetic (non-SyncEvent) journal row types — audit records, never
 /// dispatchable to _onSync.
 const SYNTHETIC_JOURNAL_TYPES = new Set(['agent:tool_call_interrupted', 'patch_dropped']);
+
+/// Journal row types that are NEVER dispatched — canvas state belongs to
+/// the relay's document + `canvas:full`, not the event log.
+const UNDISPATCHED_JOURNAL_TYPES = new Set(['patch', 'user_patch']);
 
 /// Debounce window for the live-terminal watermark advance (trailing).
 const WATERMARK_ADVANCE_DEBOUNCE_MS = 600;
@@ -86,16 +100,20 @@ interface EventsResponse {
   lastSeq: number;
   count: number;
   truncated: boolean;
+  /// Replicache-style per-client mutation clocks (R1, additive): the outbox
+  /// prunes every entry with id <= its client's entry here.
+  lastMutationIDChanges?: Record<string, number>;
 }
 
 /// Adapter the host store provides — keeps this module testable without
 /// importing the zustand store (no circular import: store → catchup only).
 export interface CatchUpAdapter {
-  /// Whether the client currently holds an OPEN last turn (streaming /
-  /// agentBusy) — replay is only positionally safe then.
-  isTurnOpen: () => boolean;
   /// Dispatch a replayed SyncEvent (the store routes it through _onSync).
   dispatch: (ev: SyncEvent) => void;
+  /// Optional: receive the server's per-client mutation clocks with the
+  /// catch-up response — the host prunes its offline outbox by the
+  /// Replicache `id <= lastMutationID` rule.
+  onMutationClock?: (changes: Record<string, number>) => void;
 }
 
 // ---- watermark persistence (localStorage) ------------------------------------
@@ -196,9 +214,10 @@ export function __clearPendingWatermarkAdvances(): void {
 // ---- catch-up ----------------------------------------------------------------
 
 /// Replay one journal row through the adapter. Returns true when the row was
-/// terminal (caller stops replaying after dispatching it).
+/// terminal (informational since Phase B — replay no longer stops, but
+/// callers/tests use it for closure-boundary assertions).
 function replayRow(row: JournalRowWire, adapter: CatchUpAdapter): boolean {
-  if (row.type === 'patch') return false; // canvas:full owns canvas state
+  if (UNDISPATCHED_JOURNAL_TYPES.has(row.type)) return false; // canvas:full owns canvas state
   if (SYNTHETIC_JOURNAL_TYPES.has(row.type)) return false; // audit rows
   if (!row.type.startsWith('agent:')) return false;
   const ev = row.payload as SyncEvent | undefined;
@@ -211,7 +230,9 @@ function replayRow(row: JournalRowWire, adapter: CatchUpAdapter): boolean {
 }
 
 /// Run the reconnect catch-up for a document. Called on every socket
-/// (re)connect — first connect included (it establishes the baseline).
+/// (re)connect (first connect included — it establishes the baseline) and,
+/// REST-first (R4), once on mount BEFORE the socket attaches when the status
+/// endpoint reports a live run.
 export async function runJournalCatchUp(
   documentId: string,
   adapter: CatchUpAdapter,
@@ -221,41 +242,51 @@ export async function runJournalCatchUp(
   if (watermark === 0) {
     // First-ever connect on this browser (no persisted watermark): establish
     // the baseline WITHOUT replaying — historical events belong to turns this
-    // client never had, and position-based replay onto a stale/empty turn
-    // list would corrupt it. Fresh loads hydrate from snapshots + canvas:full.
+    // client never had. Fresh loads hydrate from snapshots + canvas:full.
+    // (Identity-idempotent replay would be SAFE here, but importing a foreign
+    // history into a fresh session's transcript is wrong, not unsafe.)
     const page = await fetchEventsPage(documentId, Number.MAX_SAFE_INTEGER);
-    if (page) saveWatermark(documentId, page.lastSeq);
+    if (page) {
+      saveWatermark(documentId, page.lastSeq);
+      reportMutationClock(page, adapter);
+    }
     return;
   }
 
   // Fetch the gap window (paged until the server says we're current).
   const rows: JournalRowWire[] = [];
   let lastSeq = watermark;
+  let lastMutationIDChanges: Record<string, number> | undefined;
   for (let page = 0; page < 20; page++) {
     const res = await fetchEventsPage(documentId, watermark);
     if (!res) break; // fetch failed — keep the old watermark, retry next reconnect
     rows.push(...res.events);
     lastSeq = res.lastSeq;
+    lastMutationIDChanges = res.lastMutationIDChanges ?? lastMutationIDChanges;
     watermark = res.events.length > 0 ? res.events[res.events.length - 1].seq : watermark;
     if (!res.truncated) break;
   }
 
-  if (!adapter.isTurnOpen()) {
-    // No open turn: the window belongs to foreign/older turns — nothing is
-    // positionally safe (or needed). Square the watermark and leave.
-    if (lastSeq > loadWatermark(documentId)) saveWatermark(documentId, lastSeq);
-    return;
+  // Unbounded replay (R3): the whole window, in journal order. Every row's
+  // effect is identity-idempotent in the _onSync handlers (messageId adoption,
+  // terminal-state guards, id-deduped tool calls), so rows whose turn the
+  // client already holds partially are no-ops and rows for turns it never
+  // saw create them with content.
+  for (const row of rows) {
+    replayRow(row, adapter);
   }
 
-  // Open turn: replay the window's agent events onto it, stopping at the
-  // first terminal closure.
-  for (const row of rows) {
-    const wasTerminal = replayRow(row, adapter);
-    if (wasTerminal) break;
+  if (lastMutationIDChanges) {
+    reportMutationClock({ lastMutationIDChanges } as EventsResponse, adapter);
   }
 
   // Advance to the probed lastSeq (not just the last replayed row): rows we
   // deliberately skipped (patches, post-terminal foreign turns) are accounted
   // for — the next reconnect window starts cleanly at "now".
   if (lastSeq > loadWatermark(documentId)) saveWatermark(documentId, lastSeq);
+}
+
+function reportMutationClock(page: EventsResponse, adapter: CatchUpAdapter): void {
+  if (!page.lastMutationIDChanges || typeof page.lastMutationIDChanges !== 'object') return;
+  adapter.onMutationClock?.(page.lastMutationIDChanges);
 }

@@ -45,8 +45,8 @@ import { recomputeDerived } from './patch';
 /// Does the LOCAL element win the per-element conflict resolution against
 /// the incoming (server) copy? Exported for unit tests.
 export function elementWins(
-  local: { version?: unknown; versionNonce?: unknown },
-  remote: { version?: unknown; versionNonce?: unknown },
+  local: { id?: unknown; version?: unknown; versionNonce?: unknown },
+  remote: { id?: unknown; version?: unknown; versionNonce?: unknown },
 ): boolean {
   const lv = local.version;
   const rv = remote.version;
@@ -90,7 +90,11 @@ function reconcileLevel(incoming: PenChild[], local: PenChild[]): PenChild[] {
     const ikids = childrenOf(ik);
     const lkids = childrenOf(lk);
     if (ikids && lkids) {
-      result.push({ ...winner, children: reconcileLevel(ikids, lkids) });
+      // The spread of a PenChild union + `children` exceeds what TS can prove
+      // for every member (e.g. PenRectangle carries no children) — but the
+      // container members that reach here accept them, and the runtime only
+      // ever takes this branch for containers (childrenOf returned non-null).
+      result.push({ ...winner, children: reconcileLevel(ikids, lkids) } as PenChild);
     } else {
       result.push(winner);
     }

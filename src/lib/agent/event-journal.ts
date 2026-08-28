@@ -38,6 +38,12 @@ const JOURNALED_AGENT_EVENT_TYPES = new Set<string>([
   'agent:turn_cancelled',
   'agent:error',
   'agent:stuck',
+  // Turn lifecycle with identity + content (Phase B R3). Today these are
+  // written by the NDJSON route via appendSyntheticJournalEvent; keeping them
+  // on the allow-list makes journalAgentEvent forward-compatible if the
+  // translator starts emitting them directly.
+  'agent:user_message',
+  'agent:turn_final',
   'agent:skill_selected',
   'agent:model_info',
   'agent:plan',
@@ -197,6 +203,17 @@ export async function getJournalEvents(
 
 /// Latest seq written for a document (0 when the journal is empty).
 export async function getJournalLastSeq(documentId: string): Promise<number> {
+  const { db } = await import('../db');
+  const last = await db.agentEvent.findFirst({
+    where: { documentId },
+    orderBy: { seq: 'desc' },
+    select: { seq: true },
+  });
+  return last?.seq ?? 0;
+}
+
+/// DEBUG CLONE — exact body copy of getJournalLastSeq.
+export async function getJournalLastSeq2(documentId: string): Promise<number> {
   const { db } = await import('../db');
   const last = await db.agentEvent.findFirst({
     where: { documentId },

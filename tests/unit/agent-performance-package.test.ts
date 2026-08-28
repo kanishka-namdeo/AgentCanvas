@@ -241,7 +241,7 @@ describe('pen_duplicate_nodes: batch duplication', () => {
 
 describe('applyExecutionModes (order-preserving batch execution)', () => {
   it('marks canvas MUTATIONS sequential, leaves reads and plugins untouched', () => {
-    const tools = [
+    const tools: Array<{ name: string; executionMode?: 'sequential' | 'parallel' }> = [
       { name: 'pen_create_node' },
       { name: 'pen_create_subtree' },
       { name: 'pen_update_node' },

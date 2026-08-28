@@ -150,6 +150,27 @@ model AgentEvent {
   @@index([type, createdAt])
 }
 
+/// Phase B replication core (R1): per-(document, client) exactly-once clock
+/// for USER canvas patches — Replicache's `lastMutationID` rule. Every user
+/// patch the relay accepts is journaled as a `user_patch` AgentEvent row AND
+/// stamped here; a retried/replayed mutation with `clientMutationId <=
+/// lastMutationId` is answered `duplicate` instead of double-applying, and a
+/// gap (`> lastMutationId + 1`) is rejected so out-of-order flushes surface
+/// instead of silently reordering the append-only canvas. Served read-side
+/// by the events API (`lastMutationIDChanges`) and the agent status route so
+/// reconnecting clients can prune their offline outbox and re-anchor their
+/// mutation counter.
+model MutationClock {
+  id             String   @id @default(cuid())
+  documentId     String
+  clientId       String
+  lastMutationId Int
+  updatedAt      DateTime @updatedAt
+
+  @@unique([documentId, clientId])
+  @@index([documentId])
+}
+
 // ---- Phase 3: Server-side session persistence -------------------------------
 //
 // These models store chat sessions, messages, runs, and snapshots server-side

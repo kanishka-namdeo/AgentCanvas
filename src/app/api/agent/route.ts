@@ -26,6 +26,7 @@ import { applyPatchToCanvas } from '@/lib/canvas/patch';
 import type { CanvasDocument } from '@/lib/canvas/types';
 import type { AgentRunSettings } from '@/lib/settings/types';
 import { DEFAULT_SETTINGS } from '@/lib/settings/types';
+import { registerActiveRun, unregisterActiveRun } from '@/lib/canvas/run-registry';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -142,6 +143,43 @@ export async function POST(req: NextRequest) {
         try { controller.close(); } catch { /* already closed */ }
       };
 
+      // ---- Turn identity (R3) + active-run registry (R4) --------------------
+      //
+      // The client threads its session/run/message ids on the prompt so the
+      // journaled user_message / turn_final rows can be adopted IDEMPOTENTLY
+      // by reconnect catch-up replay. Registration in the run registry makes
+      // the run visible to GET /api/documents/[id]/agent/status for every
+      // OTHER viewer (and the returning client) while it is live — this route
+      // is the single choke point for WS-driven AND HTTP-fallback runs.
+      const sessionId: string | undefined =
+        typeof body.sessionId === 'string' && body.sessionId ? body.sessionId : undefined;
+      const runId: string | undefined =
+        typeof body.runId === 'string' && body.runId ? body.runId : undefined;
+      const userMessageId: string | undefined =
+        typeof body.userMessageId === 'string' && body.userMessageId ? body.userMessageId : undefined;
+      const assistantMessageId: string | undefined =
+        typeof body.assistantMessageId === 'string' && body.assistantMessageId
+          ? body.assistantMessageId
+          : undefined;
+      const runToken = registerActiveRun(documentId, {
+        sessionId,
+        runId,
+        promptPreview: prompt.slice(0, 120),
+      });
+
+      // Journal the user's prompt message at run start (R1: the journal
+      // becomes a true replication log — user half AND agent half of every
+      // turn). The payload IS the SyncEvent so catch-up replayRow can
+      // dispatch it verbatim; the live fanout is canvas-sync's
+      // agent:user_message broadcast (single journal writer stays here).
+      appendSyntheticJournalEvent(documentId, 'agent:user_message', undefined, {
+        type: 'agent:user_message',
+        text: prompt,
+        ...(sessionId ? { sessionId } : {}),
+        ...(runId ? { runId } : {}),
+        ...(userMessageId ? { messageId: userMessageId } : {}),
+      });
+
       // ---- Server-side Stop + watchdog wiring (durability fixes) ----------
       //
       // One AbortController governs the whole run: the runner receives its
@@ -180,6 +218,7 @@ export async function POST(req: NextRequest) {
           // journal never did).
           journalAgentEvent(documentId, { kind: 'agent_event', event });
           sawTerminalOnWire = true;
+          sawErrorOnWire = true;
           close();
         }
       }, 15_000);
@@ -195,6 +234,19 @@ export async function POST(req: NextRequest) {
       // The finally block synthesizes one in the journal when a hard
       // teardown bypassed the runner's tail emissions.
       let sawTerminalOnWire = false;
+
+      // ---- Turn-final content accumulation (R3) -----------------------------
+      //
+      // Deltas are deliberately ephemeral on the wire, but the FINAL text is
+      // durable: turn_final carries it so a client that missed the stream
+      // (or only part of it) reconstructs the turn WITH content — the
+      // OpenHands `agent_final_response` / LibreChat `aggregatedContent`
+      // pattern. Accumulated across LLM iterations (the client appends every
+      // delta to the same turn), capped well under the journal's row limit.
+      let finalText = '';
+      const FINAL_TEXT_CAP = 20_000;
+      let sawErrorOnWire = false;
+      let sawCancelledOnWire = false;
 
       const iterator = runAgent({
         documentId,
@@ -244,6 +296,14 @@ export async function POST(req: NextRequest) {
           } else {
             send({ type: 'agent_event', event: ev.event });
             journalAgentEvent(documentId, ev);
+            if (ev.event.type === 'agent:message_delta') {
+              // Accumulate for turn_final (R3). Never resets on message_start:
+              // a turn's transcript text spans every LLM iteration, matching
+              // the client's append-every-delta behavior.
+              if (finalText.length < FINAL_TEXT_CAP) {
+                finalText = (finalText + ev.event.text).slice(0, FINAL_TEXT_CAP);
+              }
+            }
             if (
               ev.event.type === 'agent:turn_end' ||
               ev.event.type === 'agent:turn_cancelled' ||
@@ -251,6 +311,8 @@ export async function POST(req: NextRequest) {
               ev.event.type === 'agent:stuck'
             ) {
               sawTerminalOnWire = true;
+              if (ev.event.type === 'agent:error' || ev.event.type === 'agent:stuck') sawErrorOnWire = true;
+              if (ev.event.type === 'agent:turn_cancelled') sawCancelledOnWire = true;
             }
           }
           lastActivity = Date.now();
@@ -267,12 +329,37 @@ export async function POST(req: NextRequest) {
         send({ type: 'agent_event', event });
         journalAgentEvent(documentId, { kind: 'agent_event', event });
         sawTerminalOnWire = true;
+        sawErrorOnWire = true;
       } finally {
         clearInterval(watchdog);
         req.signal.removeEventListener('abort', onClientAbort);
         // Terminate the generator (runs its finally blocks → session dispose)
         // even when we exited the loop early (watchdog / client disconnect).
-        try { await iterator.return?.(); } catch { /* already finished */ }
+        try { await iterator.return?.(undefined); } catch { /* already finished */ }
+        // ---- Turn-final content event (R3) ----------------------------------
+        //
+        // ONE row per turn with the full final assistant text + the honest
+        // terminal status + the client-threaded identity. Sent on the wire
+        // TOO (before any synthetic terminal below): live viewers use it to
+        // HEAL a turn whose delta stream dropped chunks (the text REPLACES,
+        // so a fully-caught-up viewer is unaffected); reconnecting catch-up
+        // replay uses it to reconstruct the whole turn. Bounded by the
+        // journal's 65K row cap regardless.
+        const finalStatus = runAbort.signal.aborted || sawCancelledOnWire
+          ? 'cancelled'
+          : sawErrorOnWire
+            ? 'error'
+            : 'complete';
+        const turnFinalEvent = {
+          type: 'agent:turn_final' as const,
+          text: finalText,
+          status: finalStatus,
+          ...(sessionId ? { sessionId } : {}),
+          ...(runId ? { runId } : {}),
+          ...(assistantMessageId ? { messageId: assistantMessageId } : {}),
+        };
+        send({ type: 'agent_event', event: turnFinalEvent });
+        appendSyntheticJournalEvent(documentId, 'agent:turn_final', undefined, turnFinalEvent);
         // Journal-closure guarantee: the runner's tail emits a terminal
         // event, but a HARD generator termination (iterator.return above —
         // client disconnect / canvas-sync agent:stop while a tool call is
@@ -294,6 +381,9 @@ export async function POST(req: NextRequest) {
             },
           );
         }
+        // Status-route visibility: the run is over (identity-checked — an
+        // aborted older run never unregisters a newer one).
+        unregisterActiveRun(documentId, runToken);
         close();
       }
     },

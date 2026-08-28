@@ -21,7 +21,20 @@ import { reconcileDocuments } from '@/lib/canvas/reconcile';
 import type { PresenceParticipant } from '@/lib/canvas/types';
 import { patchDedupeKey, createBoundedDedupSet } from '@/lib/canvas/patch-dedupe';
 import { classifyAgentError, agentErrorClassForCode } from '@/lib/agent-error';
-import { runJournalCatchUp, scheduleWatermarkAdvance } from '@/lib/canvas/journal-catchup';
+import { runJournalCatchUp, scheduleWatermarkAdvance, loadWatermark, saveWatermark, type CatchUpAdapter } from '@/lib/canvas/journal-catchup';
+import {
+  getClientId,
+  nextMutationId,
+  persistMutationClock,
+  anchorMutationCounter,
+  resetMutationCounter,
+  enqueueOutboxPatch,
+  outboxEntries,
+  outboxSize,
+  pruneOutboxUpTo,
+  clearOutbox,
+  isMutationBearingPatch,
+} from '@/lib/canvas/client-mutations';
 import { checkpointSignature, newCheckpointId, MAX_CHECKPOINTS, type Checkpoint } from '@/lib/canvas/version-history';
 import { resolvePenTree } from '@/lib/pen/resolve';
 import { useSessionStore, hydrateSessionStore } from '@/lib/sessions';
@@ -656,6 +669,55 @@ function scheduleAssistantDeltaFlush() {
 /// Test hook: synchronously land any buffered streaming text.
 export function __flushAssistantDeltasForTests(): void {
   flushAssistantDeltas();
+}
+
+// ---- Offline outbox flush (R5: Figma's fresh-copy + reapply contract) --------
+//
+// While the socket is down, sendPatch queues wire-bound mutations in
+// localStorage (the optimistic local apply always runs). The flush happens
+// ONLY after the reconnected client has taken the server's state — i.e. at
+// the END of a non-restore `canvas:full` (the subscribe reply, whose merge
+// keeps unsynced local edits alive via version+nonce reconcile). Emits are
+// a SYNCHRONOUS loop in ascending clientMutationId order so socket.io's
+// per-connection ordering holds (an await between emits could interleave a
+// fresh drag patch ahead of older queued ones → a server-side gap).
+//
+// Entries are pruned ONLY by mutation:ack / catch-up clocks (never by the
+// flush itself — an ack can be lost); a re-flush therefore re-sends unacked
+// entries, which the server's MutationClock answers `duplicate` — the
+// exactly-once rule makes re-sending free. When an ack lands and newer
+// entries arrived meanwhile (sendPatch enqueues while the queue is non-empty
+// to preserve order), the ack handler re-flushes them — the chain drains.
+function flushOutboxNow(get: () => CanvasState): void {
+  const { socket, connected, documentId } = get();
+  if (!socket || !connected) return;
+  const entries = outboxEntries(documentId);
+  if (entries.length === 0) return;
+  const clientId = getClientId();
+  for (const entry of entries) {
+    socket.emit('client', {
+      type: 'canvas:patch',
+      documentId,
+      patch: entry.patch,
+      clientId,
+      clientMutationId: entry.clientMutationId,
+    } satisfies ClientEvent);
+  }
+}
+
+/// Test hook — flush the outbox as if a canvas:full had just landed (the
+/// socket 'connect' + canvas:full wiring lives inside init(), which tests
+/// never execute).
+export function __flushOutboxForTests(): void {
+  flushOutboxNow(useCanvasStore.getState);
+}
+
+/// visibilitychange listener for the mutation-clock flush (R5) — shared
+/// reference so init's cleanup can remove it.
+function onVisibilityForClock(): void {
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    persistMutationClock();
+  }
 }
 
 /// Flush the pending outbound presence state to the wire (merged over the
@@ -1308,6 +1370,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       reconnectionDelayMax: 30000,
       randomizationFactor: 0.5,
       timeout: 10000,
+      // REST-first hydration (R4): the socket attaches only AFTER the
+      // status/anchor fetch below settles (or times out) — the OpenHands
+      // mount flow (REST tail first, WebSocket second). A dead REST layer
+      // never blocks the socket: the fetch is bounded by STATUS_FETCH_MS.
+      autoConnect: false,
     });
 
     set({ socket, documentId });
@@ -1350,6 +1417,61 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
     get()._syncTurnsFromSession();
 
+    // ---- REST-first hydration (R4) + mutation-clock anchor (R1) --------------
+    //
+    // Fetch the agent status BEFORE the socket attaches (autoConnect:false
+    // above): (a) the mutation counter is anchored from the server's durable
+    // clock, so a crash that lost the un-persisted counter tail can never
+    // reuse an accepted id (which the server would silently drop as a
+    // duplicate = a lost edit); (b) a live server-side run (page reloaded
+    // mid-turn) replays the journal tail NOW, so the open turn materializes
+    // before the first socket event; (c) a missing watermark baselines from
+    // lastSeq. The fetch is bounded — offline/failed starts fall through to
+    // the plain socket path (whose own catch-up covers everything else).
+    const makeCatchUpAdapter = (): CatchUpAdapter => ({
+      dispatch: (ev) => get()._onSync(ev),
+      onMutationClock: (changes) => {
+        const mine = changes[getClientId()];
+        if (mine !== undefined) {
+          pruneOutboxUpTo(documentId, mine);
+        }
+      },
+    });
+    void (async () => {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 3500);
+        try {
+          const res = await fetch(
+            `/api/documents/${encodeURIComponent(documentId)}/agent/status`,
+            { signal: controller.signal, cache: 'no-store', headers: { accept: 'application/json' } },
+          );
+          if (res.ok) {
+            const status = (await res.json()) as {
+              active?: unknown;
+              lastSeq?: number;
+              lastMutationIDChanges?: Record<string, number>;
+            };
+            anchorMutationCounter(status?.lastMutationIDChanges?.[getClientId()]);
+            if (status?.active) {
+              // A run is live server-side — replay the journal tail through
+              // the same identity-idempotent path the reconnect uses.
+              await runJournalCatchUp(documentId, makeCatchUpAdapter());
+            } else if (typeof status?.lastSeq === 'number' && loadWatermark(documentId) === 0) {
+              saveWatermark(documentId, status.lastSeq);
+            }
+          }
+        } finally {
+          clearTimeout(timer);
+        }
+      } catch {
+        // Offline start / status route unavailable — the socket path's own
+        // catch-up + canvas:full handle everything; only the counter anchor
+        // is deferred (it re-anchors on the first ack).
+      }
+      socket.connect();
+    })();
+
     socket.on('connect', () => {
       set({ connected: true });
       socket.emit('client', { type: 'subscribe', documentId } satisfies ClientEvent);
@@ -1360,22 +1482,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       presenceLastSent = {};
       emitPendingPresence(get);
       // Reconnect catch-up (journal consumer): pull everything journaled
-      // since our watermark and replay the missed agent events — most
-      // importantly the turn CLOSURE (turn_end / turn_cancelled / error /
-      // stuck). Without this, a disconnect during a turn strands the client
-      // (agentBusy + streaming message + in_progress run) until the 10-minute
-      // zombie sweep. canvas:full (sent by the server right after subscribe)
-      // covers canvas state; the journal covers agent state. socket.io fires
-      // 'connect' on every REconnect, which is exactly when a gap exists.
-      void runJournalCatchUp(documentId, {
-        isTurnOpen: () => {
-          const s = get();
-          if (s.agentBusy) return true;
-          const last = s.turns[s.turns.length - 1];
-          return last?.role === 'assistant' && last.streaming === true;
-        },
-        dispatch: (ev) => get()._onSync(ev),
-      });
+      // since our watermark and replay the missed agent events — turn
+      // closures for the open turn, whole missed turns with content via
+      // user_message/turn_final rows (R3). Without this, a disconnect during
+      // a turn strands the client (agentBusy + streaming message +
+      // in_progress run) until the 10-minute zombie sweep. canvas:full (sent
+      // by the server right after subscribe) covers canvas state + triggers
+      // the outbox flush (R5); the journal covers agent state. socket.io
+      // fires 'connect' on every REconnect, which is exactly when a gap
+      // exists. Idempotent with the REST-first replay above (the advanced
+      // watermark empties the window).
+      void runJournalCatchUp(documentId, makeCatchUpAdapter());
     });
     socket.on('disconnect', () => {
       // Presence lane: while offline we know nothing about other viewers —
@@ -1395,10 +1512,21 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
     // Tab-wake nudge: laptop sleep pauses reconnect timers; an explicit
     // connect() on 'online' shortens the gap after the network returns.
+    // Also flush the mutation counter on pagehide/hidden (R5): the counter
+    // persists on outbox enqueues, but an ONLINE editing session with an
+    // empty outbox would otherwise lose its tail to a crash — persistMutationClock
+    // is a single tiny key write, safe at pagehide frequency.
+    let onOnline: (() => void) | null = null;
+    let onPersistClock: (() => void) | null = null;
     if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => {
+      onOnline = () => {
         if (!socket.connected) socket.connect();
-      });
+      };
+      window.addEventListener('online', onOnline);
+      onPersistClock = () => persistMutationClock();
+      window.addEventListener('pagehide', onPersistClock);
+      window.addEventListener('beforeunload', onPersistClock);
+      document.addEventListener('visibilitychange', onVisibilityForClock);
     }
     socket.on('sync', (event: SyncEvent) => {
       get()._onSync(event);
@@ -1406,16 +1534,45 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
     return () => {
       socket.disconnect();
+      if (onOnline) window.removeEventListener('online', onOnline);
+      if (onPersistClock) {
+        window.removeEventListener('pagehide', onPersistClock);
+        window.removeEventListener('beforeunload', onPersistClock);
+        document.removeEventListener('visibilitychange', onVisibilityForClock);
+      }
+      persistMutationClock();
     };
   },
 
   sendPatch: (patch) => {
     const { socket, connected, documentId } = get();
-    if (socket && connected) {
+    // Mutation identity (R1): every canvas-MUTATING patch is stamped with the
+    // stable clientId + a contiguous clientMutationId so the server journals
+    // it exactly-once. `select` ops are UI state (presence-like) — never
+    // stamped, never journaled, never queued (a stamped select would burn an
+    // id the server's clock never sees and manufacture a gap).
+    const stamped = isMutationBearingPatch(patch);
+    const clientId = stamped ? getClientId() : undefined;
+    const clientMutationId = stamped ? nextMutationId() : undefined;
+    // Outbox ordering gate (R5): while entries are still queued (offline, or
+    // in flight awaiting acks), NEW mutations enqueue behind them — emitting
+    // direct would overtake the queue and create a server-side gap.
+    const queueBusy = stamped && outboxSize(documentId) > 0;
+    if (socket && connected && !queueBusy) {
       // `documentId` rides the envelope (R8a) so the server routes the patch
       // directly instead of scanning subscriber sets first-match (which
       // misroutes sockets subscribed to several documents).
-      socket.emit('client', { type: 'canvas:patch', documentId, patch } satisfies ClientEvent);
+      socket.emit('client', {
+        type: 'canvas:patch',
+        documentId,
+        patch,
+        ...(clientId ? { clientId } : {}),
+        ...(clientMutationId !== undefined ? { clientMutationId } : {}),
+      } satisfies ClientEvent);
+    } else if (stamped) {
+      // Offline (or draining): queue the wire-bound mutation. The optimistic
+      // local apply below still runs — the canvas NEVER blocks on the wire.
+      enqueueOutboxPatch(documentId, clientMutationId!, patch);
     }
     // Phase 4 §4.4 item 3: route the local apply through the same rAF queue
     // as _onSync-driven patches. Drag-side `update` ops get last-write-wins
@@ -1548,6 +1705,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         ...(images && images.length > 0 ? { images } : {}),
         // Canvas selection — targeting context for "these/those" prompts.
         ...(selection ? { selection } : {}),
+        // Turn identity (R3): the server journals id-linked user_message /
+        // turn_final rows so reconnect catch-up replay adopts them by id.
+        sessionId,
+        runId: run.id,
+        userMessageId: userMsg.id,
+        assistantMessageId: assistantMsg.id,
       } satisfies ClientEvent);
       return;
     }
@@ -1568,6 +1731,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             settings,
             ...(images && images.length > 0 ? { images } : {}),
             ...(selection ? { selection } : {}),
+            // Turn identity (R3) — same rows the WS path threads.
+            sessionId,
+            runId: run.id,
+            userMessageId: userMsg.id,
+            assistantMessageId: assistantMsg.id,
           }),
           signal,
         });
@@ -2048,7 +2216,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       event.type === 'agent:turn_end' ||
       event.type === 'agent:turn_cancelled' ||
       event.type === 'agent:error' ||
-      event.type === 'agent:stuck'
+      event.type === 'agent:stuck' ||
+      event.type === 'agent:turn_final'
     ) {
       scheduleWatermarkAdvance(state.documentId);
     }
@@ -2068,6 +2237,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // land; a merge would resurrect post-snapshot edits).
         if (event.reason === 'restore') {
           set({ document: doc, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
+          // The outbox's queued edits were made against the PRE-restore
+          // document — re-applying them would silently undo the restore.
+          // Figma's reconnect contract explicitly re-orders intent around a
+          // fresh copy; a restore is the user's explicit re-order.
+          clearOutbox(get().documentId);
           break;
         }
         // Empty-incoming guard (shared canvas): a restarted WS service can
@@ -2078,6 +2252,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // in flight. (The in-process service seeds itself from the DB latest
         // DocumentSnapshot, so a healthy path never trips this guard.)
         if (incomingEmpty && !localEmpty && !get().agentBusy) {
+          // Server state taken (trivially) — the reconnect contract's
+          // "fresh copy first" half is satisfied; re-apply queued edits.
+          flushOutboxNow(get);
           break;
         }
         // Empty server doc DURING an agent turn: the agent cleared the
@@ -2085,11 +2262,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // rebuild from a clean slate (its re-adds arrive as patches).
         if (incomingEmpty && !localEmpty) {
           set({ document: doc, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
+          flushOutboxNow(get);
           break;
         }
         if (localEmpty) {
           // Nothing local to protect — adopt the server document directly.
           set({ document: doc, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
+          flushOutboxNow(get);
           break;
         }
         // Sync merge (R6): a non-empty full sync (subscribe reply /
@@ -2104,6 +2283,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           checkpoints: [],
           lastCheckpointSignature: null,
         });
+        // Figma reconnect contract (R5): the fresh copy has landed (merged) —
+        // NOW re-apply the offline outbox. Ordering vs journal catch-up is
+        // safe: catch-up skips patches (canvas state is ours), and our own
+        // journaled user_patch rows echo back as duplicate-verdict acks.
+        flushOutboxNow(get);
         break;
       }
       case 'canvas:patch': {
@@ -2182,8 +2366,192 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         enqueuePatch(event.patch);
         break;
       }
+      case 'mutation:ack': {
+        // Exactly-once verdict for one of OUR mutations (R1/R5). Accepted or
+        // duplicate → the effect is durably server-side: prune every queued
+        // entry with id <= lastMutationId (the Replicache rule) and, if newer
+        // entries queued themselves while these were in flight, re-flush them
+        // (the drain chain — see flushOutboxNow).
+        if (event.status === 'accepted' || event.status === 'duplicate') {
+          pruneOutboxUpTo(get().documentId, event.lastMutationId);
+          if (outboxSize(get().documentId) > 0) {
+            flushOutboxNow(get);
+          }
+          break;
+        }
+        // Rejected (gap / invalid id): the counter desynced from the server
+        // clock (crash without a counter persist, both writes lost). The
+        // queued entries are unappliable in order — Permanently drop them
+        // with a VISIBLE toast (never a silent loss — the Replicache
+        // permanent-error rule) and RESET the counter to server truth so
+        // subsequent edits sync cleanly (nothing is in flight after the
+        // drop, so restarting at lastMutationId is safe — a max()-only
+        // anchor would leave the counter ahead forever and every later id
+        // would gap-reject).
+        resetMutationCounter(event.lastMutationId);
+        const dropped = clearOutbox(get().documentId);
+        if (dropped > 0) {
+          toast.error('Offline canvas edits could not be synced', {
+            description:
+              `${dropped} queued edit${dropped === 1 ? '' : 's'} arrived out of order and ` +
+              'were dropped to keep the canvas consistent.',
+          });
+        }
+        break;
+      }
+      case 'agent:user_message': {
+        // Turn's user half with identity (R3). The PROMPTING client created
+        // the row locally at promptAgent — the messageId check makes its own
+        // broadcast a no-op (idempotent). OTHER viewers and catch-up replay
+        // of missed turns adopt it here: turn always (the shared transcript
+        // is document-scoped), session-store row only when the session is
+        // known locally (foreign viewers' transcripts are turns-only).
+        if (event.messageId) {
+          const known =
+            get().turns.some((t) => t.messageId === event.messageId) ||
+            !!useSessionStore.getState().messages[event.messageId];
+          if (known) break;
+        }
+        const userTurn: ChatTurn = {
+          id: event.messageId ?? `replay-user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          role: 'user',
+          text: event.text,
+          toolCalls: [],
+          streaming: false,
+          ...(event.sessionId ? { sessionId: event.sessionId } : {}),
+          ...(event.runId ? { runId: event.runId } : {}),
+          ...(event.messageId ? { messageId: event.messageId } : {}),
+          startedAt: Date.now(),
+        };
+        set((s) => ({ turns: [...s.turns, userTurn] }));
+        if (event.sessionId && event.messageId) {
+          useSessionStore.getState().adoptUserMessage(event.sessionId, {
+            messageId: event.messageId,
+            runId: event.runId,
+            text: event.text,
+          });
+        }
+        break;
+      }
+      case 'agent:turn_final': {
+        // Turn's assistant half with FULL final content + honest status (R3).
+        // Sent live at run teardown AND replayed by catch-up. The text
+        // REPLACES the turn's accumulated text — a live viewer heals a
+        // dropped-delta gap, a reconnecting client that saw a partial stream
+        // heals to the complete text, and a fully-missed turn is filled from
+        // empty. Idempotent: target by messageId first; the placeholder the
+        // replayed message_start created (empty text) is the fallback; only
+        // when neither exists does a fresh turn appear.
+        const turns = get().turns;
+        let targetIdx = -1;
+        if (event.messageId) {
+          for (let i = turns.length - 1; i >= 0; i--) {
+            if (turns[i].messageId === event.messageId && turns[i].role === 'assistant') {
+              targetIdx = i;
+              break;
+            }
+          }
+        }
+        if (targetIdx === -1) {
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant' && (!last.endedAt || last.text === '')) {
+            targetIdx = turns.length - 1;
+          }
+        }
+        const messageStatus =
+          event.status === 'error' || event.status === 'stuck'
+            ? 'error'
+            : event.status === 'cancelled'
+              ? 'cancelled'
+              : 'complete';
+        const runStatus =
+          event.status === 'stuck' ? 'stuck' : event.status === 'error' ? 'failed' : event.status === 'cancelled' ? 'cancelled' : 'completed';
+        const isLastTurn = targetIdx === turns.length - 1;
+        if (targetIdx === -1) {
+          const fresh: ChatTurn = {
+            id: event.messageId ?? `replay-final-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            role: 'assistant',
+            text: event.text,
+            toolCalls: [],
+            streaming: false,
+            endedAt: Date.now(),
+            ...(event.status === 'error' || event.status === 'stuck'
+              ? { error: event.error ?? 'Run failed' }
+              : {}),
+            ...(event.sessionId ? { sessionId: event.sessionId } : {}),
+            ...(event.runId ? { runId: event.runId } : {}),
+            ...(event.messageId ? { messageId: event.messageId } : {}),
+            startedAt: Date.now(),
+          };
+          set((s) => ({ turns: [...s.turns, fresh] }));
+        } else {
+          set((s) => {
+            const next = [...s.turns];
+            const t = next[targetIdx];
+            next[targetIdx] = {
+              ...t,
+              text: event.text,
+              streaming: false,
+              endedAt: Date.now(),
+              ...(event.status === 'error' || event.status === 'stuck'
+                ? { error: event.error ?? t.error ?? 'Run failed' }
+                : {}),
+              ...(event.messageId ? { messageId: event.messageId } : {}),
+              ...(event.runId ? { runId: event.runId } : {}),
+              ...(event.sessionId ? { sessionId: event.sessionId } : {}),
+            };
+            return { turns: next };
+          });
+        }
+        // Session-store adoption (originating client / any client that knows
+        // the ids): replace text + flip the honest terminal status. The
+        // upsert inside also heals the SERVER row when the originating
+        // client vanished before its finalize POST (LibreChat terminal
+        // reconciliation).
+        if (event.messageId) {
+          useSessionStore.getState().adoptAssistantFinal(
+            event.messageId,
+            event.text,
+            messageStatus,
+            event.status === 'error' || event.status === 'stuck' ? (event.error ?? 'Run failed') : undefined,
+          );
+        }
+        // Run finalization for locally-known runs (foreign runs have no row —
+        // endRun no-ops). endRun's terminal-state guard absorbs duplicates.
+        if (event.runId) {
+          useSessionStore.getState().endRun(event.runId, runStatus);
+        }
+        // agentBusy only clears when the finalized turn is the LAST turn —
+        // a foreign viewer replaying old turns must not unbusy its own state.
+        if (isLastTurn) {
+          set((s) => (s.agentBusy ? { agentBusy: false } : s));
+        }
+        break;
+      }
       case 'agent:message_start': {
-        // Already created the placeholder assistant turn on promptAgent.
+        // Placeholder creation (R3): the PROMPTING client created the
+        // assistant turn at promptAgent (last turn is already assistant —
+        // no-op for it). But OTHER viewers, and reconnect catch-up replay of
+        // a fully-missed turn, arrive here with the user turn as `last` and
+        // no assistant turn to stream into — without a placeholder their
+        // deltas/tool calls had nowhere to land (text appended onto a stale
+        // unrelated turn, or dropped). Create the streaming placeholder
+        // exactly when the last turn is NOT an assistant turn. Per-LLM-
+        // iteration message_start events no-op: the placeholder from the
+        // first iteration is still the last turn (message_end flips
+        // `streaming` but never appends a turn).
+        const lastStart = get().turns[get().turns.length - 1];
+        if (!lastStart || lastStart.role !== 'assistant') {
+          const placeholder: ChatTurn = {
+            id: `replay-turn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            role: 'assistant',
+            text: '',
+            toolCalls: [],
+            streaming: true,
+            startedAt: Date.now(),
+          };
+          set((s) => ({ turns: [...s.turns, placeholder] }));
+        }
         break;
       }
       case 'agent:message_delta': {
@@ -2292,9 +2660,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           }
           return { turns };
         });
-        // Mirror to session store.
+        // Mirror to session store. Foreign/replayed runs have no local Run
+        // row (turn_final stamps the runId onto a replayed turn) — the
+        // mirror is a BEST-EFFORT record for the run's ToolCall timeline,
+        // so a missing run skips it instead of throwing out of _onSync.
         const last = get().turns[get().turns.length - 1];
-        if (last?.runId) {
+        if (last?.runId && useSessionStore.getState().runs[last.runId]) {
           useSessionStore.getState().startToolCall(
             last.runId,
             event.toolCallId,

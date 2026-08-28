@@ -1,8 +1,13 @@
 // Unit tests — client-side reconnect catch-up (src/lib/canvas/journal-catchup.ts).
 //
 // The module consumes GET /api/documents/[id]/events (the AgentEvent journal
-// read API) and replays missed agent events after a socket reconnect. These
-// tests pin the three replay-safety guards, the watermark model, and paging.
+// read API) and replays missed agent events after a socket reconnect.
+//
+// Phase B semantics: replay is UNBOUNDED and identity-idempotent — the whole
+// gap window dispatches (terminals included, in journal order); patches and
+// user_patch rows never dispatch (canvas:full owns canvas state); the
+// first-connect baseline still skips history; lastMutationIDChanges feeds
+// the adapter's outbox prune hook.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
@@ -23,7 +28,12 @@ function row(seq: number, type: string, payload: unknown, toolCallId: string | n
 
 /// Queue of canned API responses keyed by the afterSeq the request carried.
 function mockEventsApi(
-  pagesByAfterSeq: Record<number, { events: JournalRowWire[]; lastSeq: number; truncated?: boolean }>,
+  pagesByAfterSeq: Record<number, {
+    events: JournalRowWire[];
+    lastSeq: number;
+    truncated?: boolean;
+    lastMutationIDChanges?: Record<string, number>;
+  }>,
 ): { calls: string[] } {
   const calls: string[] = [];
   vi.stubGlobal(
@@ -45,6 +55,7 @@ function mockEventsApi(
           lastSeq: key.lastSeq,
           count: key.events.length,
           truncated: key.truncated ?? false,
+          lastMutationIDChanges: key.lastMutationIDChanges ?? {},
         }),
         { status: 200 },
       );
@@ -53,12 +64,14 @@ function mockEventsApi(
   return { calls };
 }
 
-function recordingAdapter(open = true): CatchUpAdapter & { dispatched: string[] } {
+function recordingAdapter(): CatchUpAdapter & { dispatched: string[]; clocks: Array<Record<string, number>> } {
   const dispatched: string[] = [];
+  const clocks: Array<Record<string, number>> = [];
   return {
     dispatched,
-    isTurnOpen: () => open,
+    clocks,
     dispatch: (ev) => dispatched.push(ev.type),
+    onMutationClock: (changes) => clocks.push(changes),
   };
 }
 
@@ -91,7 +104,7 @@ describe('journal-catchup: first connect (no watermark)', () => {
     const { calls } = mockEventsApi({
       [Number.MAX_SAFE_INTEGER]: { events: [], lastSeq: 57 },
     });
-    const adapter = recordingAdapter(true);
+    const adapter = recordingAdapter();
 
     await runJournalCatchUp(DOC, adapter);
 
@@ -99,44 +112,69 @@ describe('journal-catchup: first connect (no watermark)', () => {
     expect(loadWatermark(DOC)).toBe(57);
     expect(calls[0]).toContain(`afterSeq=${Number.MAX_SAFE_INTEGER}`);
   });
+
+  it('reports lastMutationIDChanges from the baseline probe (outbox prune)', async () => {
+    mockEventsApi({
+      [Number.MAX_SAFE_INTEGER]: {
+        events: [],
+        lastSeq: 9,
+        lastMutationIDChanges: { 'client-a': 4 },
+      },
+    });
+    const adapter = recordingAdapter();
+
+    await runJournalCatchUp(DOC, adapter);
+
+    expect(adapter.clocks).toEqual([{ 'client-a': 4 }]);
+  });
 });
 
-describe('journal-catchup: gap replay with an open turn', () => {
+describe('journal-catchup: unbounded gap replay (R3)', () => {
   beforeEach(() => {
     localStorage.clear();
     __clearPendingWatermarkAdvances();
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('replays missed agent events and STOPS at the first terminal event', async () => {
+  it('replays the WHOLE window — multiple turns, terminals included', async () => {
     saveWatermark(DOC, 100);
     mockEventsApi({
       100: {
         events: [
-          row(101, 'agent:message_start', { type: 'agent:message_start', role: 'assistant' }),
-          row(102, 'patch', { patch: { op: 'add' }, toolCallId: 'tc-1' }, 'tc-1'),
+          // Turn 1 (missed entirely)
+          row(101, 'agent:user_message', { type: 'agent:user_message', text: 'hi' }),
+          row(102, 'agent:message_start', { type: 'agent:message_start', role: 'assistant' }),
           row(103, 'agent:tool_call_start', { type: 'agent:tool_call_start', toolCallId: 'tc-1', toolName: 'pen_create_shape', argsPreview: '{}' }, 'tc-1'),
           row(104, 'agent:tool_call_end', { type: 'agent:tool_call_end', toolCallId: 'tc-1', success: true, summary: 'ok' }, 'tc-1'),
           row(105, 'agent:turn_end', { type: 'agent:turn_end' }),
-          // Post-terminal rows belong to later turns — must NOT be replayed.
-          row(106, 'agent:message_start', { type: 'agent:message_start', role: 'assistant' }),
-          row(107, 'agent:turn_end', { type: 'agent:turn_end' }),
+          row(106, 'agent:turn_final', { type: 'agent:turn_final', text: 'done', status: 'complete' }),
+          // Turn 2 (missed entirely) — previously NOT reconstructed
+          row(107, 'agent:user_message', { type: 'agent:user_message', text: 'again' }),
+          row(108, 'agent:message_start', { type: 'agent:message_start', role: 'assistant' }),
+          row(109, 'agent:turn_end', { type: 'agent:turn_end' }),
+          row(110, 'agent:turn_final', { type: 'agent:turn_final', text: 'done twice', status: 'complete' }),
         ],
-        lastSeq: 107,
+        lastSeq: 110,
       },
     });
-    const adapter = recordingAdapter(true);
+    const adapter = recordingAdapter();
 
     await runJournalCatchUp(DOC, adapter);
 
-    // Patch skipped (canvas:full owns canvas state), replay stops at 105.
+    // Everything dispatched — replay no longer stops at the first terminal.
     expect(adapter.dispatched).toEqual([
+      'agent:user_message',
       'agent:message_start',
       'agent:tool_call_start',
       'agent:tool_call_end',
       'agent:turn_end',
+      'agent:turn_final',
+      'agent:user_message',
+      'agent:message_start',
+      'agent:turn_end',
+      'agent:turn_final',
     ]);
-    expect(loadWatermark(DOC)).toBe(107); // advanced to the probed head
+    expect(loadWatermark(DOC)).toBe(110);
   });
 
   it('replays a missed turn_cancelled closure (the stranded-turn money case)', async () => {
@@ -146,31 +184,38 @@ describe('journal-catchup: gap replay with an open turn', () => {
         events: [
           row(11, 'agent:tool_call_start', { type: 'agent:tool_call_start', toolCallId: 'tc-x', toolName: 'pen_generate_variants', argsPreview: '' }, 'tc-x'),
           row(12, 'agent:turn_cancelled', { type: 'agent:turn_cancelled' }),
+          row(13, 'agent:turn_final', { type: 'agent:turn_final', text: '', status: 'cancelled' }),
         ],
-        lastSeq: 12,
+        lastSeq: 13,
       },
     });
-    const adapter = recordingAdapter(true);
+    const adapter = recordingAdapter();
 
     await runJournalCatchUp(DOC, adapter);
 
-    expect(adapter.dispatched).toEqual(['agent:tool_call_start', 'agent:turn_cancelled']);
-    expect(loadWatermark(DOC)).toBe(12);
+    expect(adapter.dispatched).toEqual([
+      'agent:tool_call_start',
+      'agent:turn_cancelled',
+      'agent:turn_final',
+    ]);
+    expect(loadWatermark(DOC)).toBe(13);
   });
 
-  it('skips synthetic audit rows (agent:tool_call_interrupted, patch_dropped)', async () => {
+  it('skips synthetic audit rows AND canvas-state rows (patch, user_patch)', async () => {
     saveWatermark(DOC, 200);
     mockEventsApi({
       200: {
         events: [
           row(201, 'agent:tool_call_interrupted', { note: 'interrupted' }, 'tc-orphan'),
           row(202, 'patch_dropped', { reason: ['duplicate id'] }, 'tc-2'),
-          row(203, 'agent:turn_end', { type: 'agent:turn_end' }),
+          row(203, 'patch', { patch: { op: 'add' }, toolCallId: 'tc-3' }, 'tc-3'),
+          row(204, 'user_patch', { clientId: 'client-a', clientMutationId: 1, patch: { op: 'update' } }),
+          row(205, 'agent:turn_end', { type: 'agent:turn_end' }),
         ],
-        lastSeq: 203,
+        lastSeq: 205,
       },
     });
-    const adapter = recordingAdapter(true);
+    const adapter = recordingAdapter();
 
     await runJournalCatchUp(DOC, adapter);
 
@@ -188,11 +233,53 @@ describe('journal-catchup: gap replay with an open turn', () => {
         lastSeq: 302,
       },
     });
-    const adapter = recordingAdapter(true);
+    const adapter = recordingAdapter();
 
     await runJournalCatchUp(DOC, adapter);
 
     expect(adapter.dispatched).toEqual(['agent:turn_end']);
+  });
+
+  it('dispatches even when no turn is open (guard removed — identity-idempotent replay)', async () => {
+    saveWatermark(DOC, 500);
+    mockEventsApi({
+      500: {
+        events: [
+          row(501, 'agent:user_message', { type: 'agent:user_message', text: 'foreign turn' }),
+          row(502, 'agent:message_start', { type: 'agent:message_start', role: 'assistant' }),
+          row(503, 'agent:turn_final', { type: 'agent:turn_final', text: 'late', status: 'complete' }),
+        ],
+        lastSeq: 503,
+      },
+    });
+    const adapter = recordingAdapter();
+
+    await runJournalCatchUp(DOC, adapter);
+
+    // The old closed-turn guard skipped everything; Phase B reconstructs the
+    // missed turn (the handlers adopt by identity, position is irrelevant).
+    expect(adapter.dispatched).toEqual([
+      'agent:user_message',
+      'agent:message_start',
+      'agent:turn_final',
+    ]);
+    expect(loadWatermark(DOC)).toBe(503);
+  });
+
+  it('reports lastMutationIDChanges with the replay (outbox prune hook)', async () => {
+    saveWatermark(DOC, 60);
+    mockEventsApi({
+      60: {
+        events: [row(61, 'agent:turn_end', { type: 'agent:turn_end' })],
+        lastSeq: 61,
+        lastMutationIDChanges: { 'client-a': 12 },
+      },
+    });
+    const adapter = recordingAdapter();
+
+    await runJournalCatchUp(DOC, adapter);
+
+    expect(adapter.clocks).toEqual([{ 'client-a': 12 }]);
   });
 
   it('pages through a truncated window until current', async () => {
@@ -209,7 +296,7 @@ describe('journal-catchup: gap replay with an open turn', () => {
         lastSeq: 400,
       },
     });
-    const adapter = recordingAdapter(true);
+    const adapter = recordingAdapter();
 
     await runJournalCatchUp(DOC, adapter);
 
@@ -227,42 +314,12 @@ describe('journal-catchup: gap replay with an open turn', () => {
         throw new Error('network down');
       }),
     );
-    const adapter = recordingAdapter(true);
+    const adapter = recordingAdapter();
 
     await runJournalCatchUp(DOC, adapter);
 
     expect(adapter.dispatched).toEqual([]);
     expect(loadWatermark(DOC)).toBe(77); // untouched — retried on next reconnect
-  });
-});
-
-describe('journal-catchup: closed-turn guard', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    __clearPendingWatermarkAdvances();
-  });
-  afterEach(() => vi.unstubAllGlobals());
-
-  it('advances the watermark but dispatches NOTHING when the last turn is closed', async () => {
-    saveWatermark(DOC, 500);
-    mockEventsApi({
-      500: {
-        events: [
-          row(501, 'agent:message_start', { type: 'agent:message_start', role: 'assistant' }),
-          row(502, 'agent:tool_call_start', { type: 'agent:tool_call_start', toolCallId: 'tc-f', toolName: 'x', argsPreview: '' }, 'tc-f'),
-          row(503, 'agent:turn_end', { type: 'agent:turn_end' }),
-        ],
-        lastSeq: 503,
-      },
-    });
-    const adapter = recordingAdapter(false); // no open turn
-
-    await runJournalCatchUp(DOC, adapter);
-
-    // The window belongs to foreign/older turns — position-based replay onto
-    // a closed/different turn would corrupt it. Skip + square the watermark.
-    expect(adapter.dispatched).toEqual([]);
-    expect(loadWatermark(DOC)).toBe(503);
   });
 });
 

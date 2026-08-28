@@ -188,6 +188,24 @@ interface SessionStoreState {
     images?: import('../agent/attachments').AttachedImage[];
     patchOps?: import('../agent/turn-diff').PatchOpRecord[];
   }>) => number;
+  /// Journal-replay adoption (Phase B R3): create a USER message row under
+  /// an id the JOURNAL carried (id-adopting, no server POST — the row came
+  /// FROM the server). Used by catch-up replay of `agent:user_message` for
+  /// a turn this client never saw locally. No-ops when the session is
+  /// unknown locally (a foreign viewer's transcript is turns-array only) or
+  /// the message id already exists.
+  adoptUserMessage: (sessionId: string, msg: {
+    messageId: string; runId?: string; text: string;
+  }) => void;
+  /// Journal-replay adoption (Phase B R3): set an assistant message's FINAL
+  /// text + honest terminal status, id-adopted from `agent:turn_final`.
+  /// REPLACES the text (turn_final carries the full final text — a partial
+  /// stream accumulated before a disconnect heals to the complete one).
+  /// Unlike the local finalize path, the server row sync still fires: the
+  /// originating client may have gone offline before ITS finalize POST, and
+  /// the upsert-by-messageId is idempotent — the LibreChat terminal
+  /// reconciliation pattern.
+  adoptAssistantFinal: (messageId: string, text: string, status: 'complete' | 'error' | 'cancelled', error?: string) => void;
   /// Remove every message AFTER `afterMessageId` (exclusive) in the session.
   /// Used by the chat's inline edit-and-resend (Cursor semantics: editing a
   /// user message discards the branch that followed it in the live thread).
@@ -1075,6 +1093,81 @@ export const useSessionStore = create<SessionStoreState>()(
           };
         });
         return imported;
+      },
+
+      adoptUserMessage: (sessionId, msg) => {
+        const session = get().sessions[sessionId];
+        if (!session) return; // foreign session — turns-array only
+        if (get().messages[msg.messageId]) return; // already adopted
+        const m: Message = {
+          id: msg.messageId,
+          sessionId,
+          runId: msg.runId ?? null,
+          role: 'user',
+          text: msg.text,
+          toolCalls: [],
+          status: 'complete',
+          snapshotId: null,
+          createdAt: nowISO(),
+          completedAt: nowISO(),
+        };
+        set((s) => ({
+          messages: { ...s.messages, [m.id]: m },
+          sessions: {
+            ...s.sessions,
+            [sessionId]: {
+              ...session,
+              messageIds: [...session.messageIds, m.id],
+              messageCount: session.messageCount + 1,
+              updatedAt: m.createdAt,
+            },
+          },
+        }));
+      },
+
+      adoptAssistantFinal: (messageId, text, status, error) => {
+        set((s) => {
+          const msg = s.messages[messageId];
+          if (!msg) return s; // foreign message — turns-array only
+          return {
+            messages: {
+              ...s.messages,
+              [messageId]: {
+                ...msg,
+                // REPLACES: turn_final carries the full final text, healing a
+                // partial stream accumulated before a disconnect.
+                text,
+                status,
+                error,
+                completedAt: msg.completedAt ?? nowISO(),
+              },
+            },
+          };
+        });
+        // Terminal reconciliation (LibreChat): the server's message row may
+        // still be 'streaming' if the originating client vanished before its
+        // finalize POST — the idempotent upsert heals it from here.
+        if (typeof window !== 'undefined') {
+          const msg = get().messages[messageId];
+          if (msg) {
+            import('./server-sync').then(({ appendServerMessage }) => {
+              appendServerMessage(
+                msg.sessionId,
+                {
+                  role: 'assistant',
+                  content: msg.text,
+                  status,
+                  error,
+                  runId: msg.runId ?? undefined,
+                  messageId: msg.id,
+                },
+                get().sessions[msg.sessionId]?.documentId,
+              );
+            }).catch(() => {
+              // fire-and-forget by contract
+            });
+          }
+        }
       },
 
       truncateMessagesAfter: (sessionId, afterMessageId) => {

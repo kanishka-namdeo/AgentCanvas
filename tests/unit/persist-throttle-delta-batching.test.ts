@@ -67,7 +67,7 @@ function resetStores() {
 
 describe('throttled sessions persist (R9b)', () => {
   const originalSetItem = Storage.prototype.setItem;
-  let setItemSpy: ReturnType<typeof vi.fn>;
+  let setItemSpy: ReturnType<typeof vi.fn<(k: string, v: string) => void>>;
 
   beforeEach(() => {
     localStorage.clear();

@@ -155,7 +155,7 @@ describe('boot-recovery: orphaned tool-call scan (agent: prefix regression guard
   });
 
   it('records an interrupted observation for a tool_call_start with no matching end', async () => {
-    seedJournal('doc-a', 1, 'agent:tool_call_start', 'tc-orphan', null);
+    seedJournal('doc-a', 1, 'agent:tool_call_start', 'tc-orphan');
     seedJournal('doc-a', 2, 'agent:message_start', null);
 
     const report = await runBootRecovery();
@@ -169,8 +169,8 @@ describe('boot-recovery: orphaned tool-call scan (agent: prefix regression guard
   });
 
   it('skips tool calls that DID complete and starts without a toolCallId', async () => {
-    seedJournal('doc-b', 1, 'agent:tool_call_start', 'tc-ok', null);
-    seedJournal('doc-b', 2, 'agent:tool_call_end', 'tc-ok', null);
+    seedJournal('doc-b', 1, 'agent:tool_call_start', 'tc-ok');
+    seedJournal('doc-b', 2, 'agent:tool_call_end', 'tc-ok');
     seedJournal('doc-b', 3, 'agent:tool_call_start', null);
 
     const report = await runBootRecovery();

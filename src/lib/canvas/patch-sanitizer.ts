@@ -183,7 +183,7 @@ export function sanitizeAgentPatch(patch: CanvasPatch, canvas: CanvasDocument): 
       if (!existingIds.has(patch.shapeId)) {
         return { patch: null, warnings: [`update: target "${patch.shapeId}" not on canvas`] };
       }
-      clampShapePartial(asRecord(patch.shape), warnings);
+      clampShapePartial(asRecord(patch.shape) ?? undefined, warnings);
       return { patch, warnings };
     }
 
@@ -199,7 +199,7 @@ export function sanitizeAgentPatch(patch: CanvasPatch, canvas: CanvasDocument): 
           warnings.push(`update_many: dropped missing target "${String(id)}"`);
           return false;
         }
-        clampShapePartial(asRecord(rec?.changes), warnings);
+        clampShapePartial(asRecord(rec?.changes) ?? undefined, warnings);
         return true;
       });
       if (kept.length === 0) {
