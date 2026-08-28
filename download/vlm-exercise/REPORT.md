@@ -1,6 +1,6 @@
 # VLM-Driven Agent Tools & Prompts Optimization — Exercise Report
 
-Date: 2026-08-27 · Harness: `scripts/vlm-inspect/` · Results: `download/vlm-exercise/{baseline,after,after2}/`
+Date: 2026-08-27 → 2026-08-28 · Harness: `scripts/vlm-inspect/` · Results: `download/vlm-exercise/{baseline,after,after2,perf-pass,final}/`
 
 ## 1. Methodology
 
@@ -55,9 +55,24 @@ All 1623 unit tests pass; typecheck clean.
 | baseline | **4.92**/10 | 50 | 12 high-severity prompt_fidelity (missing elements) |
 | after1 (fixes 1–5) | **6.46**/10 | 45 | Clipping-bug scenarios transformed (navbar 3→7 ×3) |
 | after2 (fixes 1–7) | **5.44**/10 | 42 | Full re-run incl. late fixes; see variance note |
+| **final (perf + todo-batch + variants, 14 turns)** | **6.02**/10 | 47 | All 3 optimization tasks shipped; per-scenario table below |
 
-**Dimension means (baseline → after2):** prompt_fidelity 5.00 → 5.77 · typography 4.54 → 6.38 ·
-color_cohesion 6.38 → 7.62 · spacing 5.00 → 5.92 · component_polish 4.38 → 5.08.
+**Dimension means (baseline → after2 → final):** prompt_fidelity 5.00 → 5.77 → **6.86** · typography
+4.54 → 6.38 → **6.71** · color_cohesion 6.38 → 7.62 → **7.07** · spacing 5.00 → 5.92 → **5.64** ·
+component_polish 4.38 → 5.08 → **5.93**.
+
+**Per-scenario comparison (mean overall where multi-turn):**
+
+| scenario | baseline | after1 | after2 | final |
+|----------|---------:|-------:|-------:|------:|
+| os-hero | 3 | 2 | 5.75 | **6** |
+| os-profile | 6 | 7 | 9 | 7.75 |
+| os-kanban | 8 | 8 | 3 | **2** ← regression (oversized board → 26% zoom → illegible text) |
+| os-barchart | 5 | 6 | 3 | **8** |
+| ms-navbar (3 turns) | 3 | 5.7 | — | **5.8** |
+| ms-pricing (3 turns) | 6.3 | 6 | 2 | 5.0 (t1 **8**; t2/t3 row-overflow regression) |
+| ms-settings (3 turns) | 4.7 | 7.3 | — | 6.7 |
+| smoke-variants | — | — | — | **8** (variant generator, 0 missing elements) |
 
 **Deterministic verifications (not subject to LLM variance):**
 - Navbar repro: nav links went from DOM-present-but-invisible to **pixel-verified visible** (0 → 437 dark pixels).
@@ -72,27 +87,68 @@ the per-defect-class analysis above and the deterministic verifications are the 
 This mirrors the earlier eval-methodology critique: repeat-run variance reporting is required for any
 future scoring (the harness now supports this via `--repeats`).
 
-**Round-trip tax:** total tool calls baseline 400 → after1 381 → after2 415 across 13 turns. Not a
-consistent improvement: batching works when the model uses it (os-barchart 60→14, ms-pricing t2
-78→55) but per-run model behavior dominates. The batch tool + prompt rules give the agent the means;
-they do not compel it.
+**Round-trip tax:** total tool calls baseline 400 → after1 381 → after2 415 → **final 348** across 13
+comparable turns (13% below baseline) — and the composition is healthier: `pen_get_metadata` read-backs
+down to 22 total, batch tools (`pen_bulk_update_by_filter`, `pen_update_node` multi-patch) carrying more
+of the load. The batch tool + prompt rules give the agent the means; they do not compel it.
+
+### 4.1 Optimization task 1 — todo-plugin bookkeeping noise (target: <15% of calls)
+
+**Result: 0.9% (3 todo calls of 348)** vs 1.5% baseline / 3.7% after1. The todo plugin now fires only
+for gated tasks (5+ steps, 10+ calls), accepts a BATCH of status transitions in one call, auto-advances
+WIP=1, and returns the full list on every mutation (no read-backs). Edit turns are dramatically leaner:
+ms-navbar t2 7 tools/129s, t3 6 tools/48s (baseline t2 78→497s-class behavior lives on in ms-pricing t2
+at 34 tools — still model-dependent, but the bookkeeping tax is gone).
+
+### 4.2 Optimization task 2 — multi-variant parallel generation (R1 pattern 9)
+
+Deployed as `pen_generate_variants` (runner-native detection → 3 staggered-parallel spec generations →
+off-canvas renders → VLM judge → winner applied with id-manifest). Fired in **6 of 14 turns** (all the
+ambiguous-creation ones: hero, profile, barchart, pricing t1, settings t1, smoke-variants — and correctly
+NOT for kanban/navbar where the prompt pins structure). smoke-variants scored **8/10 with 0 missing
+elements** — the best first-shot pricing-page result of any pass.
+
+Live-fire findings that shaped the implementation (kimi-k2-5 through a single SSH tunnel):
+- **Schema non-adherence**: the model invents its own JSON ontology despite a strict example — fixed by
+  a 3-layer defense: prompt few-shot + `coerceNodeTree` salvage (wraps `ui_components`/`sections`
+  arrays, degrades invented node types, drops descriptor fields) + a bounded format-repair round-trip
+  (the model reliably converts existing content to a given format).
+- **Transport starvation**: un-staggered parallel big generations starve each other past ~110s — fixed
+  by 15s staggered launches + a sequential retry wave on the empty wire.
+- **Retry multiplication**: per-call 300s client timeout × callLLMWithRetry attempts × retry wave ×
+  repairs stalled ONE tool call past **19 minutes** (canvas silently empty, UI spinning). Fixed with a
+  **300s wall-clock budget** across the whole dispatch — every phase (generation waves, repair, judge)
+  races the deadline; exhaustion degrades to heuristic judging or the pen_create_subtree fallback.
+  Unit-tested with hanging-LLM mocks: dispatch now returns in 1.20s against a 1.2s budget.
+- **Stale server module**: a dev-server restart was required — the dynamic `import()` of the variant
+  module was cached from before the fix (operational note, not a code bug).
 
 ## 5. Remaining weaknesses (future work)
 
-1. **Zoom-to-fit vs oversized empty frames** — when the agent creates a huge frame with small content, reveal fits the frame and shrinks the content to illegibility. Candidate: fit to NON-EMPTY content bounds, or teach the agent fit_content on hero/screen frames.
-2. **Re-create instead of update** — the agent sometimes rebuilds a component ("Pro Pricing Card New") leaving duplicates. Candidate: patch-op diffing or stronger prompt guidance on targeted updates.
-3. **Self-critique loop runtime** — the mandatory loop can double turn duration (os-kanban 19 min); worth bounding by wall clock.
-4. **Eval noise** — adopt `--repeats=N` with variance reporting as the default acceptance gate.
+1. **Oversized-canvas zoom regression (os-kanban 8→2)** — the agent built the board at dimensions so
+   large the viewport fit at **26% zoom**, making every label illegible to the VLM (correctly
+   penalized). Same family as the old zoom-to-fit finding, now the dominant kanban failure mode.
+   Candidate: reveal fits NON-EMPTY content bounds; agent prompt rule capping screen-frame dimensions.
+2. **Row-of-cards overflow (ms-pricing t2/t3)** — "three cards side by side" produced a row wider than
+   the canvas: Team card clipped off-screen, no Popular badge, truncated feature text. Candidate:
+   resolver warning when a subtree exceeds viewport width; prompt rule to compute card width from
+   count and canvas width.
+3. **Zoom-to-fit vs oversized empty frames** — when the agent creates a huge frame with small content, reveal fits the frame and shrinks the content to illegibility. Candidate: fit to NON-EMPTY content bounds, or teach the agent fit_content on hero/screen frames.
+4. **Re-create instead of update** — the agent sometimes rebuilds a component ("Pro Pricing Card New") leaving duplicates. Candidate: patch-op diffing or stronger prompt guidance on targeted updates.
+5. **Self-critique loop runtime** — the mandatory loop can double turn duration (os-kanban 19 min); worth bounding by wall clock.
+6. **Eval noise** — adopt `--repeats=N` with variance reporting as the default acceptance gate.
 
 ## 6. Reproduction
 
 ```bash
 # scenario matrix (one turn per invocation; resumable)
 bun scripts/vlm-inspect/run-scenarios.ts download/vlm-exercise/<pass> [--scenario=<id>|--redo=<id>:<n>]
-# VLM critique (external; needs z.ai sandbox)
+# VLM critique (external; needs z.ai sandbox; --only=<id> retries rate-limited turns,
+# then merge from disk: bun scripts/vlm-inspect/merge-critiques.ts <pass>)
 bun scripts/vlm-inspect/vlm-critique.ts download/vlm-exercise/<pass>
-# transcript analysis (tool-call histograms, skill routing)
+# transcript analysis (tool-call histograms, todo-call share, cross-run comparison)
 bun scripts/vlm-inspect/analyze-transcripts.ts download/vlm-exercise/<pass>
+bun scripts/vlm-inspect/analyze-final.ts
 # deterministic unit checks
 bun scripts/vlm-inspect/test-classifier.ts && bun scripts/vlm-inspect/test-overflow-warning.ts
 ```

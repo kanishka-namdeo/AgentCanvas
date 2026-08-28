@@ -126,9 +126,26 @@ function submitPrompt(prompt: string): void {
 
 interface TapEvent { t: number; event: Record<string, unknown> }
 
-function startTap(): { socket: Socket; events: TapEvent[]; lastPatchMs: number } {
+interface Tap { socket: Socket; events: TapEvent[]; lastPatchMs: number; flush: () => void }
+
+function startTap(tapFile: string): Tap {
   const events: TapEvent[] = [];
-  const tap = { socket: null as unknown as Socket, events, lastPatchMs: Date.now() };
+  const tap: Tap = { socket: null as unknown as Socket, events, lastPatchMs: Date.now(), flush: () => {} };
+  let flushed = 0;
+  // Periodic incremental flush: if the bash timeout kills this process before
+  // the final flush, the events captured so far are already on disk and the
+  // inFlight manifest entry still points at the same file (the FINISH phase
+  // merges by toolCallId dedupe). Live finding: a killed RUN phase used to
+  // lose its ENTIRE tap — the turn was then indistinguishable from a hang.
+  const flush = () => {
+    if (events.length > flushed) {
+      appendFileSync(tapFile, events.slice(flushed).map((e) => JSON.stringify(e)).join('\n') + '\n');
+      flushed = events.length;
+    }
+  };
+  tap.flush = flush;
+  const flushTimer = setInterval(flush, 10_000);
+  flushTimer.unref?.();
   const socket = io(`http://localhost:${SYNC_PORT}`, {
     path: '/',
     transports: ['websocket', 'polling'],
@@ -161,11 +178,6 @@ function startTap(): { socket: Socket; events: TapEvent[]; lastPatchMs: number }
 
 function countToolCalls(events: TapEvent[]): number {
   return events.filter((e) => e.event.type === 'agent:tool_call_start').length;
-}
-
-function flushTap(tapFile: string, events: TapEvent[]): void {
-  if (!events.length) return;
-  appendFileSync(tapFile, events.map((e) => JSON.stringify(e)).join('\n') + '\n');
 }
 
 /// Definitive turn end: agent:turn_end seen on the tap AFTER submission.
@@ -225,13 +237,13 @@ async function main() {
   if (inFlightIdx >= 0 && !REDO_ARG) {
     const entry = manifest[inFlightIdx];
     console.log(`↻ FINISH in-flight turn: ${entry.scenarioId} t${entry.turn} (started ${new Date(entry.startMs!).toISOString()})`);
-    const tap = startTap();
+    const tap = startTap(entry.tapFile);
     await sleep(2500);
     const { ended, via } = await waitTurnEnd(tap, entry.startMs ?? Date.now() - 60_000);
     await sleep(4000);
     const shot = join(OUT_DIR, `${entry.scenarioId}-t${entry.turn}.png`);
     abQuiet(['screenshot', shot]);
-    flushTap(entry.tapFile, tap.events);
+    tap.flush();
     try { tap.socket.disconnect(); } catch { /* already gone */ }
 
     // Merge tool calls across tap parts (dedupe by toolCallId).
@@ -345,7 +357,7 @@ async function main() {
   }
 
   // ---- run the turn with the tap listening ----
-  const tap = startTap();
+  const tap = startTap(tapFile);
   await sleep(2500); // let the tap subscribe before the prompt fires
 
   const startMs = Date.now();
@@ -374,7 +386,7 @@ async function main() {
   const endMs = Date.now();
 
   abQuiet(['screenshot', shot]);
-  flushTap(tapFile, tap.events);
+  tap.flush();
   try { tap.socket.disconnect(); } catch { /* already gone */ }
 
   const toolCalls = countToolCalls(tap.events);

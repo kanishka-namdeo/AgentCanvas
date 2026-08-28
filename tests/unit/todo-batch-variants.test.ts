@@ -13,6 +13,7 @@ import {
   extractJsonBlock,
   DEFAULT_VARIANT_DIRECTIONS,
   compositeVariantPngs,
+  dispatchVariantGeneration,
 } from '@/lib/agent/subagents/variant-generator';
 
 // ---- helpers ----------------------------------------------------------------
@@ -297,5 +298,104 @@ describe('variant-generator — composite judge image', () => {
     const meta = await sharp(composite).metadata();
     expect(meta.format).toBe('png');
     expect(meta.width).toBe(2 * 760 + 1 * 24 + 2 * 16);
+  });
+});
+
+// ---- variant generator: wall-clock budget ---------------------------------------
+//
+// Live finding: retry multiplication (300s client timeout x callLLMWithRetry
+// attempts x sequential retry wave x repairs) stalled ONE tool call past 19
+// minutes. The dispatch must now resolve within its budget no matter what the
+// endpoint does.
+
+describe('variant-generator — wall-clock budget', () => {
+  const GOOD_SPEC_JSON = JSON.stringify({
+    direction: 'Minimal Light',
+    spec: {
+      type: 'frame',
+      name: 'Pricing',
+      children: [
+        { type: 'text', text: 'Pro plan' },
+        { type: 'text', text: '$12/mo' },
+        { type: 'frame', children: [{ type: 'text', text: 'Choose' }] },
+      ],
+    },
+  });
+
+  const NEVER = new Promise<never>(() => {}); // hangs forever
+
+  function hangAll(): any {
+    return { chat: { completions: { create: () => NEVER } } };
+  }
+
+  it('a fully-hanging endpoint returns within the budget (fallback error), never hangs', async () => {
+    const t0 = Date.now();
+    const result = await dispatchVariantGeneration({
+      request: 'a pricing page',
+      llm: hangAll(),
+      budgetMs: 1_200,
+    });
+    const elapsed = Date.now() - t0;
+    // Budget 1.2s + scheduling slop — the pre-fix code would still be running.
+    expect(elapsed).toBeLessThan(5_000);
+    expect(result.variants).toHaveLength(0);
+    expect(result.error).toBeTruthy();
+    expect(result.notes.some((n: string) => n.includes('generation failed'))).toBe(true);
+  });
+
+  it('one fast variant + two hanging calls → single-candidate result within budget', async () => {
+    let call = 0;
+    const llm = {
+      chat: {
+        completions: {
+          create: async () => {
+            call++;
+            if (call === 1) {
+              return { choices: [{ message: { content: GOOD_SPEC_JSON } }] };
+            }
+            return NEVER; // variants 2 and 3 starve
+          },
+        },
+      },
+    } as any;
+    const t0 = Date.now();
+    const result = await dispatchVariantGeneration({
+      request: 'a pricing page',
+      llm,
+      budgetMs: 1_500,
+    });
+    expect(Date.now() - t0).toBeLessThan(6_000);
+    expect(result.variants).toHaveLength(1);
+    expect(result.judge?.method).toBe('single-candidate');
+    expect(result.judge?.winnerIndex).toBe(0);
+    expect(result.error).toBeFalsy();
+  });
+
+  it('judge timeout → heuristic fallback, still within budget', async () => {
+    const sharp = (await import('sharp')).default;
+    const png = await sharp({ create: { width: 60, height: 40, channels: 3, background: '#abcdef' } }).png().toBuffer();
+    const llm = {
+      chat: {
+        completions: {
+          create: (req: any) => {
+            const sys = req?.messages?.[0]?.content ?? '';
+            if (typeof sys === 'string' && sys.includes('design lead')) return NEVER; // judge hangs
+            return Promise.resolve({ choices: [{ message: { content: GOOD_SPEC_JSON } }] });
+          },
+        },
+      },
+    } as any;
+    const t0 = Date.now();
+    const result = await dispatchVariantGeneration({
+      request: 'a pricing page',
+      llm,
+      budgetMs: 2_500,
+      renderVariant: async () => ({ png, warningCount: 0, nodeCount: 5 }),
+    });
+    expect(Date.now() - t0).toBeLessThan(8_000);
+    // All 3 specs parse; the judge hangs and is raced → heuristic pick.
+    expect(result.variants.length).toBeGreaterThanOrEqual(2);
+    expect(result.judge?.method).toBe('heuristic');
+    expect(result.notes.some((n: string) => n.includes('heuristic'))).toBe(true);
   });
 });

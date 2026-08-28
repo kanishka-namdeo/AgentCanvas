@@ -221,6 +221,15 @@ export interface VariantDispatchParams {
   /** LLM client override (defaults to the runner-armed active LLM, then ZAI). */
   llm?: LLMClient;
   /**
+   * Hard wall-clock budget for the WHOLE dispatch (generation waves + repair
+   * + judge). Default 300s. Live finding: retry multiplication (per-call
+   * 300s client timeout x callLLMWithRetry attempts x the sequential retry
+   * wave x repair round-trips) once stalled a single tool call past 19
+   * minutes. Every phase now checks the remaining budget; exhaustion skips
+   * to judging/fallback with whatever parsed.
+   */
+  budgetMs?: number;
+  /**
    * Render callback: applies a spec to a throwaway doc clone and returns
    * {png, warningCount, nodeCount}. Injected by the tool so this module
    * stays free of canvas imports (testable in isolation).
@@ -228,10 +237,39 @@ export interface VariantDispatchParams {
   renderVariant?: (spec: Record<string, unknown>) => Promise<{ png: Buffer; warningCount: number; nodeCount: number } | null>;
 }
 
+// ---- Wall-clock budget ---------------------------------------------------------
+
+const DEFAULT_BUDGET_MS = 300_000;
+/** Per-generation hard race. Healthy kimi spec generations run 45-90s; 150s
+ *  cuts starvation without killing healthy slow calls. */
+const GEN_TIMEOUT_MS = 150_000;
+/** Repair round-trip cap — conversions are cheaper than generations. */
+const REPAIR_TIMEOUT_MS = 90_000;
+/** VLM judge cap — one image + short JSON verdict. */
+const JUDGE_TIMEOUT_MS = 75_000;
+/** Reserve kept for the judge when scheduling generation/repair work. */
+const JUDGE_RESERVE_MS = 45_000;
+
+/** Race a promise against a timeout — settled either way, never hangs. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} exceeded ${Math.round(Math.max(ms, 0) / 1000)}s deadline`)),
+      Math.max(ms, 1),
+    );
+    p.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
 export async function dispatchVariantGeneration(
   params: VariantDispatchParams,
 ): Promise<VariantGenerationResult> {
   const startTime = Date.now();
+  const deadline = startTime + (params.budgetMs ?? DEFAULT_BUDGET_MS);
+  const remaining = () => deadline - Date.now();
   const notes: string[] = [];
   const count = Math.max(2, Math.min(3, params.variantCount ?? 3));
 
@@ -280,26 +318,30 @@ export async function dispatchVariantGeneration(
   // calls through one pinggy tunnel — 1 completed at ~80s, 2 died at
   // ~110s). Callers that fail the first wave get ONE sequential retry in
   // step 1b (empty wire, no contention).
-  const generateOne = async (label: string, seed: string) => {
-    const completion = await callLLMWithRetry(
-      llm as any,
-      {
-        messages: [
-          { role: 'system', content: SPEC_SYSTEM_PROMPT },
-          {
-            role: 'user',
-            content:
-              `Design request:\n${params.request}\n\n` +
-              `Design direction for THIS variant (follow it decisively):\n${seed}\n\n` +
-              `This is a FORMAT task, not a design brief: TRANSLATE the request + direction into ` +
-              `the node-tree JSON from the system prompt (frames/text/icons with type+children — ` +
-              `NOT ui_components / sections / content plans). Return the JSON now — ` +
-              `{"direction": "${label}", "spec": {...}} — spec root at x:0, y:0.`,
-          },
-        ] as any,
-        temperature: 0.8, // DIVERSE directions are the point — lean into it.
-      },
-      { maxRetries: 2, baseDelayMs: 2500 },
+  const generateOne = async (label: string, seed: string, timeoutMs = GEN_TIMEOUT_MS) => {
+    const completion = await withTimeout(
+      callLLMWithRetry(
+        llm as any,
+        {
+          messages: [
+            { role: 'system', content: SPEC_SYSTEM_PROMPT },
+            {
+              role: 'user',
+              content:
+                `Design request:\n${params.request}\n\n` +
+                `Design direction for THIS variant (follow it decisively):\n${seed}\n\n` +
+                `This is a FORMAT task, not a design brief: TRANSLATE the request + direction into ` +
+                `the node-tree JSON from the system prompt (frames/text/icons with type+children — ` +
+                `NOT ui_components / sections / content plans). Return the JSON now — ` +
+                `{"direction": "${label}", "spec": {...}} — spec root at x:0, y:0.`,
+            },
+          ] as any,
+          temperature: 0.8, // DIVERSE directions are the point — lean into it.
+        },
+        { maxRetries: 2, baseDelayMs: 2500 },
+      ),
+      Math.min(timeoutMs, Math.max(1, remaining())),
+      `variant "${label}" generation`,
     );
     return completion?.choices?.[0]?.message?.content?.trim() || '';
   };
@@ -308,7 +350,10 @@ export async function dispatchVariantGeneration(
   const generation = await Promise.all(
     directionPairs.map(async ({ label, seed }, i) => {
       try {
-        if (i > 0) await new Promise((r) => setTimeout(r, STAGGER_MS * i));
+        // Stagger only while the budget has room — a tight budget (test or
+        // degraded endpoint) launches back-to-back instead.
+        const delayMs = remaining() > 3 * STAGGER_MS ? STAGGER_MS * i : Math.min(2_000, Math.max(0, Math.floor(remaining() / 4)));
+        if (i > 0) await new Promise((r) => setTimeout(r, delayMs));
         const content = await generateOne(label, seed);
         return { label, seed, content };
       } catch (err) {
@@ -329,6 +374,12 @@ export async function dispatchVariantGeneration(
   // per failed variant.
   for (const g of generation) {
     if (g.content || !('error' in g)) continue;
+    // Only start a retry that can actually finish: a generation needs
+    // ~90s on a healthy endpoint; keep the judge's reserve on top.
+    if (remaining() < GEN_TIMEOUT_MS * 0.6 + JUDGE_RESERVE_MS) {
+      notes.push(`variant "${g.label}": sequential retry skipped (budget)`);
+      continue;
+    }
     try {
       const content = await generateOne(g.label, g.seed);
       if (content) {
@@ -359,8 +410,9 @@ export async function dispatchVariantGeneration(
     let spec = extractSpecJson(g.content);
     let repaired = false;
     if (!spec && g.content.length > 40) {
+      if (remaining() > REPAIR_TIMEOUT_MS * 0.7 + JUDGE_RESERVE_MS) {
       try {
-        const repair = await callLLMWithRetry(
+        const repair = await withTimeout(callLLMWithRetry(
           llm as any,
           {
             messages: [
@@ -377,7 +429,7 @@ export async function dispatchVariantGeneration(
             temperature: 0.1, // faithful conversion, not re-design
           },
           { maxRetries: 1, baseDelayMs: 2000 },
-        );
+        ), Math.min(REPAIR_TIMEOUT_MS, Math.max(1, remaining())), `variant "${g.label}" format repair`);
         const repairedContent = repair?.choices?.[0]?.message?.content?.trim() || '';
         const repairedSpec = extractSpecJson(repairedContent);
         if (repairedSpec) {
@@ -387,9 +439,12 @@ export async function dispatchVariantGeneration(
       } catch {
         // repair is best-effort — fall through to the skip below
       }
+      } else {
+        notes.push(`variant "${g.label}": format repair skipped (budget)`);
+      }
     }
     if (!spec) {
-      notes.push(`variant "${g.label}": no parseable JSON spec (repair failed)`);
+      notes.push(`variant "${g.label}": no parseable JSON spec${repaired ? '' : ' (repair failed)'}`);
       continue;
     }
     if (repaired) notes.push(`variant "${g.label}": needed one format-repair round-trip`);
@@ -439,9 +494,14 @@ export async function dispatchVariantGeneration(
   }
 
   // ---- 4. Judge: VLM pick → heuristic fallback ------------------------------
-  const judge = await judgeVariants({ request: params.request, variants: parsed, llm });
+  const judgeBudgetMs = Math.min(JUDGE_TIMEOUT_MS, Math.max(1, remaining()));
+  const judge = await judgeVariants({ request: params.request, variants: parsed, llm, judgeTimeoutMs: judgeBudgetMs });
   if (judge.method === 'heuristic') {
-    notes.push('VLM judge unavailable — winner picked by heuristic (fewest resolver warnings).');
+    notes.push(
+      remaining() <= 0
+        ? 'VLM judge skipped (budget exhausted) — winner picked by heuristic.'
+        : 'VLM judge unavailable — winner picked by heuristic (fewest resolver warnings).',
+    );
   }
 
   return {
@@ -458,8 +518,10 @@ async function judgeVariants(args: {
   request: string;
   variants: VariantSpec[];
   llm?: LLMClient;
+  /** Wall-clock cap for the VLM judge call (ms). Exhausted → heuristic. */
+  judgeTimeoutMs?: number;
 }): Promise<VariantJudgeResult> {
-  const { request, variants } = args;
+  const { request, variants, judgeTimeoutMs } = args;
 
   // Single candidate: no judging needed.
   if (variants.length === 1) {
@@ -479,7 +541,8 @@ async function judgeVariants(args: {
         variants.map((v) => ({ label: v.direction, png: v.png! })),
       );
       const labels = variants.map((_, i) => String.fromCharCode(65 + i)).join('/');
-      const completion = await callLLMWithRetry(
+      const completion = await withTimeout(
+        callLLMWithRetry(
         (args.llm ?? (await ZAI.create())) as any,
         {
           messages: [
@@ -504,6 +567,9 @@ async function judgeVariants(args: {
           temperature: 0.2,
         },
         { maxRetries: 1, baseDelayMs: 2000 },
+        ),
+        judgeTimeoutMs ?? JUDGE_TIMEOUT_MS,
+        'VLM judge',
       );
       const content = completion?.choices?.[0]?.message?.content?.trim() || '';
       const verdict = extractJsonBlock(content);
