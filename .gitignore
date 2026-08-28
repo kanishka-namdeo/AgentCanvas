@@ -91,3 +91,6 @@ server.log
 
 # Session artifacts (transient)
 /TEST_RESULTS_WORKLOG.md
+
+# Third-party research clones (agent-durability research 2026-08-28)
+/research-scan/
