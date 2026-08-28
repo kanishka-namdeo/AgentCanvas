@@ -93,6 +93,7 @@ function makeSession(documentId: string, partial?: Partial<Session>): Session {
     messageCount: 0,
     runCount: 0,
     toolCallCount: 0,
+    tags: [] as string[],
     messageIds: [],
     runIds: [],
     createdAt: ts,
@@ -143,6 +144,9 @@ interface SessionStoreState {
   autoTitleFromPrompt: (sessionId: string, prompt: string) => void;
   togglePin: (id: string) => void;
   toggleStar: (id: string) => void;
+  /// Replace the session's `tags` array (full replacement — the PATCH API
+  /// sends the whole array, not a delta). Syncs to server fire-and-forget.
+  setSessionTags: (id: string, tags: string[]) => void;
   archiveSession: (id: string) => void;
   unarchiveSession: (id: string) => void;
   deleteSession: (id: string) => void;
@@ -152,6 +156,15 @@ interface SessionStoreState {
   // ---- Mutations: Runs ----
   startRun: (sessionId: string, prompt: string, trigger?: RunTrigger, model?: string) => Run;
   endRun: (runId: string, status: RunStatus, errorMessage?: string) => void;
+  /// Patch arbitrary Run fields (cost, tokens, model). Used by the canvas
+  /// store's per-run cost accumulator (agent:context_update handler). Only
+  /// touches the supplied fields — never rewrites status/error/dates.
+  updateRun: (runId: string, patch: Partial<Pick<Run, 'inputTokens' | 'outputTokens' | 'costUsd' | 'model'>>) => void;
+  /// Delete a single run + its tool-call records + drop it from the parent
+  /// session's runIds. Does NOT cascade to messages (the run's user/assistant
+  /// messages remain in the transcript as historical context). The server row
+  /// is also deleted via DELETE /api/sessions/[id]/runs/[runId] if it exists.
+  deleteRun: (runId: string) => void;
   /// Boot-time zombie sweep (durability fix): finalize runs/messages that a
   /// crash or reload left in a live-looking state ('in_progress' /
   /// 'streaming'). Only touches records older than `maxAgeMs` so a run that
@@ -493,6 +506,7 @@ export const useSessionStore = create<SessionStoreState>()(
               documentId: session.documentId,
               title: session.title,
               parentId: session.parentId,
+              tags: session.tags,
             });
           });
         }
@@ -592,6 +606,34 @@ export const useSessionStore = create<SessionStoreState>()(
         });
       },
 
+      setSessionTags: (id, tags) => {
+        // Normalize: dedupe, trim, drop empties, cap at 20 tags / 30 chars each.
+        const seen = new Set<string>();
+        const normalized: string[] = [];
+        for (const t of tags) {
+          const trimmed = (t ?? '').trim().slice(0, 30);
+          if (!trimmed || seen.has(trimmed) || normalized.length >= 20) continue;
+          seen.add(trimmed);
+          normalized.push(trimmed);
+        }
+        set((s) => {
+          const session = s.sessions[id];
+          if (!session) return s;
+          return {
+            sessions: {
+              ...s.sessions,
+              [id]: { ...session, tags: normalized, updatedAt: nowISO() },
+            },
+          };
+        });
+        // Sync to server (full replacement — PATCH sends the whole array).
+        if (typeof window !== 'undefined') {
+          import('./server-sync').then(({ updateServerSession }) => {
+            updateServerSession(id, { tags: normalized });
+          });
+        }
+      },
+
       archiveSession: (id) => {
         set((s) => {
           const session = s.sessions[id];
@@ -666,6 +708,10 @@ export const useSessionStore = create<SessionStoreState>()(
           forkedFromSnapshotId: null,
           isRoot: false,
           model: parent.model,
+          // Carry tags over so the fork stays grouped under the same
+          // filter chips as the parent (matches v0 "Connections preserved
+          // when forking a chat" pattern).
+          tags: [...parent.tags],
         });
         // Copy the conversation prefix.
         const msgs = get().listMessages(parentId);
@@ -741,6 +787,9 @@ export const useSessionStore = create<SessionStoreState>()(
           stepCount: 0,
           errorMessage: null,
           resultMessageId: null,
+          inputTokens: 0,
+          outputTokens: 0,
+          costUsd: 0,
           createdAt: ts,
           startedAt: ts,
           completedAt: null,
@@ -827,6 +876,86 @@ export const useSessionStore = create<SessionStoreState>()(
               documentId: s?.documentId,
             });
           });
+        }
+      },
+
+      // Patch a run with arbitrary updates (used by per-run cost accumulation
+      // from agent:context_update events). ONLY touches the supplied fields —
+      // never rewrites status/error/dates. Syncs to server fire-and-forget.
+      updateRun: (runId, patch) => {
+        const run = get().runs[runId];
+        if (!run) return;
+        const updated: Run = {
+          ...run,
+          ...patch,
+        };
+        set((s) => ({
+          runs: { ...s.runs, [runId]: updated },
+        }));
+        // Sync cost fields (if patched) to the server.
+        if (typeof window !== 'undefined' && (patch.inputTokens !== undefined || patch.outputTokens !== undefined || patch.costUsd !== undefined)) {
+          import('./server-sync').then(({ syncServerRun }) => {
+            const s = get().sessions[run.sessionId];
+            syncServerRun(run.sessionId, {
+              runId,
+              prompt: updated.prompt,
+              inputTokens: updated.inputTokens,
+              outputTokens: updated.outputTokens,
+              costUsd: updated.costUsd,
+              documentId: s?.documentId,
+            });
+          });
+        }
+      },
+
+      // Delete a single run + its tool-call records + drop from parent
+      // session's runIds. Messages stay (the transcript is still readable;
+      // the run reference on each message becomes orphaned but the message
+      // text is preserved). Server row is deleted via DELETE on the runs
+      // route (the route itself doesn't exist yet — silently 404s, which
+      // the call treats as success since the local cache is authoritative).
+      deleteRun: (runId) => {
+        const run = get().runs[runId];
+        if (!run) return;
+        // Collect tool-call ids to remove from the toolCalls map.
+        const tcIds = [...run.toolCallIds];
+        set((s) => {
+          const session = s.sessions[run.sessionId];
+          if (!session) {
+            // No parent — just drop the run + its tool calls.
+            const runs = { ...s.runs };
+            delete runs[runId];
+            const toolCalls = { ...s.toolCalls };
+            for (const id of tcIds) delete toolCalls[id];
+            return { runs, toolCalls };
+          }
+          const runs = { ...s.runs };
+          delete runs[runId];
+          const toolCalls = { ...s.toolCalls };
+          for (const id of tcIds) delete toolCalls[id];
+          return {
+            runs,
+            toolCalls,
+            sessions: {
+              ...s.sessions,
+              [run.sessionId]: {
+                ...session,
+                runIds: session.runIds.filter((id) => id !== runId),
+                runCount: Math.max(0, session.runCount - 1),
+                // Re-point lastRunId if we just deleted it (null = no last run).
+                lastRunId: session.lastRunId === runId ? null : session.lastRunId,
+                // Re-point currentRunId if the agent is mid-run (shouldn't be —
+                // deleteRun is user-initiated, not mid-flight, but defensive).
+                currentRunId: session.currentRunId === runId ? null : session.currentRunId,
+                updatedAt: nowISO(),
+              },
+            },
+          };
+        });
+        // Server sync — fire-and-forget; the route may not exist (silently
+        // 404s, treated as success).
+        if (typeof window !== 'undefined') {
+          fetch(`/api/sessions/${run.sessionId}/runs/${runId}`, { method: 'DELETE' }).catch(() => {});
         }
       },
       reconcileStaleActivity: (maxAgeMs = 10 * 60 * 1000) => {
@@ -1593,11 +1722,24 @@ export function hydrateSessionStore() {
           const hasContent = (counts?.messages ?? 0) > 0 || (counts?.runs ?? 0) > 0;
           if (!hasContent) continue;
           const ts = nowISO();
+          // Parse the server's tags JSON (defensive — bad JSON or empty array
+          // both yield [] so the client cache shape stays consistent).
+          let serverTags: string[] = [];
+          try {
+            const parsed = JSON.parse((ss as { tags?: string }).tags ?? '[]');
+            if (Array.isArray(parsed)) {
+              serverTags = parsed.filter((t: unknown) => typeof t === 'string');
+            }
+          } catch {
+            // Corrupt JSON column — fall back to empty; the PATCH will repair
+            // it on the next tag mutation.
+          }
           incoming.push({
             ...makeSession(ss.documentId, {
               title: ss.title,
               status: ss.status as 'active' | 'archived',
               pinned: ss.pinned,
+              tags: serverTags,
             }),
             // Adopt the SERVER id so future child syncs reference a row that
             // exists — no FK violations, no duplicate adoption on next reload.

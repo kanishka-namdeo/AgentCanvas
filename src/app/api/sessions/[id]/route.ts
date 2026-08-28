@@ -42,7 +42,21 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  const { title, status, pinned, runCount, toolCallCount, lastOpenedAt } = body;
+  const { title, status, pinned, runCount, toolCallCount, lastOpenedAt, tags } = body;
+
+  // Validate `tags` if provided: must be an array of strings (we serialize
+  // to JSON for the String column). Reject malformed payloads instead of
+  // writing "[object Object]" or similar into the column.
+  let tagsJson: string | undefined;
+  if (tags !== undefined) {
+    if (!Array.isArray(tags) || !tags.every((t: unknown) => typeof t === 'string')) {
+      return NextResponse.json(
+        { error: 'tags must be an array of strings' },
+        { status: 400 },
+      );
+    }
+    tagsJson = JSON.stringify(tags);
+  }
 
   try {
     const session = await db.session.update({
@@ -54,6 +68,7 @@ export async function PATCH(
         ...(runCount !== undefined ? { runCount } : {}),
         ...(toolCallCount !== undefined ? { toolCallCount } : {}),
         ...(lastOpenedAt !== undefined ? { lastOpenedAt } : {}),
+        ...(tagsJson !== undefined ? { tags: tagsJson } : {}),
       },
     });
 

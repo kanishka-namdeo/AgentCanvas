@@ -60,6 +60,11 @@ export interface Session {
   runCount: number;
   toolCallCount: number;
 
+  /// Free-form tags applied to this session (document-scoped suggestions
+  /// are aggregated by GET /api/sessions/[id]/tags). Empty array by
+  /// default. Mirrored to the server Session.tags column as a JSON array.
+  tags: string[];
+
   // Relations (denormalized ids; objects joined at read time)
   messageIds: string[];
   runIds: string[];
@@ -131,6 +136,15 @@ export interface Run {
 
   errorMessage: string | null;
   resultMessageId: string | null;
+
+  /// Per-run token usage accumulated from agent:context_update events.
+  /// Summed across all turns of this run. Mirrored to SessionRun
+  /// inputTokens/outputTokens columns via PATCH /api/sessions/[id]/runs.
+  inputTokens: number;
+  outputTokens: number;
+  /// Per-run estimated cost in USD. Summed alongside token counts.
+  /// Mirrored to SessionRun.costUsd.
+  costUsd: number;
 
   /// ISO strings. `durationMs` is computed on completion.
   createdAt: string;

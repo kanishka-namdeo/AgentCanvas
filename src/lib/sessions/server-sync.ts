@@ -25,6 +25,10 @@ interface ServerSession {
   toolCallCount: number;
   lastOpenedAt: string;
   parentSessionId: string | null;
+  /// JSON-encoded string array of tags. Parsed defensively by the client merge
+  /// in store.ts (bad JSON / non-array → []). See api/sessions POST/PATCH
+  /// for the server-side serialization.
+  tags?: string;
   createdAt: string;
   updatedAt: string;
   /// Relation counts returned by GET /api/sessions (Prisma `_count` include).
@@ -46,6 +50,42 @@ export interface ServerDocSnapshot {
   bookmarked: boolean;
   createdAt: string;
   document?: unknown;
+}
+
+/// A server-side document row returned by GET /api/documents.
+/// `viewport` and `background` are NOT returned by the list endpoint
+/// (the switcher only needs id + name + timestamps + counts).
+export interface ServerDocument {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { shapes: number; actions: number };
+  viewport?: string;
+  background?: string;
+}
+
+/// A search hit from GET /api/sessions/search — a session with at least one
+/// match in title, message body, or tool-call args. `snippet` is a short
+/// excerpt around the first match for the sidebar to highlight.
+export interface ServerSessionSearchHit {
+  sessionId: string;
+  documentId: string;
+  title: string;
+  status: string;
+  pinned: boolean;
+  lastOpenedAt: string;
+  messageCount: number;
+  runCount: number;
+  matchIn: Array<'title' | 'message' | 'tool_calls'>;
+  snippet: string | null;
+}
+
+/// Tag suggestion returned by GET /api/sessions/[id]/tags — distinct tag
+/// strings used across all sessions in the same document, with counts.
+export interface ServerTagSuggestion {
+  tag: string;
+  count: number;
 }
 
 /// Fetch sessions from the server for a given document.
@@ -85,6 +125,7 @@ export async function createServerSession(session: {
   documentId: string;
   title: string;
   parentId?: string | null;
+  tags?: string[];
 }): Promise<ServerSession | null> {
   try {
     const res = await fetch('/api/sessions', {
@@ -95,6 +136,7 @@ export async function createServerSession(session: {
         documentId: session.documentId,
         title: session.title,
         parentSessionId: session.parentId ?? undefined,
+        tags: session.tags,
       }),
     });
     if (!res.ok) return null;
@@ -105,10 +147,10 @@ export async function createServerSession(session: {
   }
 }
 
-/// Update a session on the server (title, status, pinned, counts).
+/// Update a session on the server (title, status, pinned, tags, counts).
 export async function updateServerSession(
   id: string,
-  updates: Partial<Pick<ServerSession, 'title' | 'status' | 'pinned' | 'runCount' | 'toolCallCount' | 'lastOpenedAt'>>,
+  updates: Partial<Pick<ServerSession, 'title' | 'status' | 'pinned' | 'runCount' | 'toolCallCount' | 'lastOpenedAt'>> & { tags?: string[] },
 ): Promise<void> {
   try {
     await fetch(`/api/sessions/${id}`, {
@@ -237,7 +279,7 @@ function safeParsePatchOps(raw: string): Array<{ op: string; count: number; summ
 /// `documentId` lets the route auto-create a missing session shell.
 export async function syncServerRun(
   sessionId: string,
-  run: { prompt: string; status?: string; runId?: string; errorMessage?: string; toolCallCount?: number; toolCalls?: any[]; documentId?: string },
+  run: { prompt: string; status?: string; runId?: string; errorMessage?: string; toolCallCount?: number; toolCalls?: any[]; documentId?: string; inputTokens?: number; outputTokens?: number; costUsd?: number },
 ): Promise<string | null> {
   try {
     const res = await fetch(`/api/sessions/${sessionId}/runs`, {
@@ -383,6 +425,329 @@ export async function exportSessionJSONL(sessionId: string): Promise<string | nu
         runId: msg.runId,
         createdAt: msg.createdAt,
       }));
+    }
+    return lines.join('\n');
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Multi-document CRUD (P3-1) — the page used to hard-code `documentId='demo'`;
+// these functions power the document switcher in SessionHeader.
+// ---------------------------------------------------------------------------
+
+/// List all documents (most recent first). Returns [] when the server is
+/// unreachable so the client can fall back to its localStorage document list.
+export async function fetchServerDocuments(): Promise<ServerDocument[]> {
+  try {
+    const res = await fetch('/api/documents');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.documents ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/// Create a new document. Idempotent by `id` (returns the existing row if
+/// already present). `id` is validated server-side against `^[A-Za-z0-9_-]{1,64}$`.
+export async function createServerDocument(payload: {
+  id?: string;
+  name?: string;
+  background?: string;
+}): Promise<ServerDocument | null> {
+  try {
+    const res = await fetch('/api/documents', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.document ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/// Update a document (rename / viewport / background).
+export async function updateServerDocument(
+  id: string,
+  updates: { name?: string; viewport?: unknown; background?: string },
+): Promise<ServerDocument | null> {
+  try {
+    const res = await fetch(`/api/documents/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.document ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/// Delete a document (cascade: shapes, actions, sessions, snapshots, events).
+export async function deleteServerDocument(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/documents/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Content search (P3-2) — title-only search closed; this hits message body
+// + tool-call args too. Mirrors v0 / ChatGPT / Claude consensus.
+// ---------------------------------------------------------------------------
+
+/// Search sessions by content (title + message body + tool-call args).
+/// Returns null if the server is unreachable so the caller can fall back
+/// to the in-memory title filter.
+export async function searchServerSessions(payload: {
+  q: string;
+  documentId?: string;
+  sessionId?: string;
+  scope?: 'all' | 'document' | 'session';
+}): Promise<ServerSessionSearchHit[] | null> {
+  try {
+    const params = new URLSearchParams({ q: payload.q });
+    if (payload.scope) params.set('scope', payload.scope);
+    if (payload.documentId) params.set('documentId', payload.documentId);
+    if (payload.sessionId) params.set('sessionId', payload.sessionId);
+    const res = await fetch(`/api/sessions/search?${params.toString()}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.hits ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tag suggestions (P3-3) — aggregated tag list for a session's document.
+// ---------------------------------------------------------------------------
+
+/// List distinct tags used across every session in the same document as
+/// `sessionId`, with counts. Used by the sidebar's tag-combobox to offer
+/// already-used tag strings. Returns [] when the server is unreachable.
+export async function fetchServerTagSuggestions(sessionId: string): Promise<ServerTagSuggestion[]> {
+  try {
+    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/tags`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.tags ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Markdown export (P2-37) — chat transcript as Markdown, replacing the
+// long-standing P2-37 stub in SessionSidebar and RunHistoryPanel.
+// ---------------------------------------------------------------------------
+
+/// Render a server session (with messages + runs) as a Markdown transcript.
+/// Each message is an `## role` heading; tool-call records (if present on
+/// runs) are folded under the assistant message that produced them as a
+/// bulleted timeline. The header carries session id, document id, created
+/// date, and tag list. Mirrors the Markdown export pattern in Cursor's
+/// composer and Devin's "Copy Thread" feature.
+export function renderSessionMarkdown(payload: {
+  id: string;
+  documentId: string;
+  title: string;
+  createdAt: string;
+  tags?: string[];
+  messages: Array<{
+    id: string;
+    role: string;
+    content: string;
+    status?: string;
+    error?: string | null;
+    runId?: string | null;
+    createdAt: string;
+    diffSummary?: string | null;
+  }>;
+  runs?: Array<{
+    id: string;
+    prompt: string;
+    status: string;
+    toolCallCount?: number;
+    toolCalls?: string;
+    inputTokens?: number;
+    outputTokens?: number;
+    costUsd?: number;
+  }>;
+}): string {
+  const lines: string[] = [];
+  const title = payload.title || 'Untitled chat';
+  lines.push(`# ${title}`);
+  lines.push('');
+  lines.push(`> **Session ID:** \`${payload.id}\`  `);
+  lines.push(`> **Document:** \`${payload.documentId}\`  `);
+  lines.push(`> **Created:** ${new Date(payload.createdAt).toLocaleString()}  `);
+  if (payload.tags && payload.tags.length > 0) {
+    lines.push(`> **Tags:** ${payload.tags.map((t) => `\`${t}\``).join(' ')}  `);
+  }
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+
+  // Index runs by id for tool-call timeline lookup.
+  const runsById = new Map<string, NonNullable<typeof payload.runs>[number]>();
+  for (const r of payload.runs ?? []) runsById.set(r.id, r);
+
+  for (const msg of payload.messages) {
+    const role = msg.role === 'user' ? '🧑 User' : msg.role === 'assistant' ? '🤖 Assistant' : msg.role;
+    lines.push(`## ${role}`);
+    lines.push('');
+    if (msg.content) {
+      lines.push(msg.content);
+      lines.push('');
+    }
+    if (msg.error) {
+      lines.push(`> ⚠️ **Error:** ${msg.error}`);
+      lines.push('');
+    }
+    if (msg.status === 'cancelled') {
+      lines.push('_Cancelled._');
+      lines.push('');
+    }
+    // Tool-call timeline for assistant messages that belong to a run.
+    if (msg.runId) {
+      const run = runsById.get(msg.runId);
+      if (run) {
+        let toolCalls: Array<{ name?: string; args?: unknown; success?: boolean; durationMs?: number }> = [];
+        try {
+          const parsed = JSON.parse(run.toolCalls || '[]');
+          if (Array.isArray(parsed)) toolCalls = parsed;
+        } catch {
+          // Bad JSON — leave the timeline empty.
+        }
+        if (toolCalls.length > 0) {
+          lines.push(`<details><summary>Tool calls (${toolCalls.length})</summary>`);
+          lines.push('');
+          for (const tc of toolCalls) {
+            const mark = tc.success === false ? '✗' : '✓';
+            const dur = typeof tc.durationMs === 'number' ? ` · ${tc.durationMs}ms` : '';
+            lines.push(`- ${mark} \`${tc.name ?? 'unknown'}\`${dur}`);
+          }
+          lines.push('');
+          lines.push('</details>');
+          lines.push('');
+        }
+        // Cost line — show tokens + USD when non-zero.
+        if ((run.inputTokens ?? 0) > 0 || (run.outputTokens ?? 0) > 0) {
+          const cost = (run.costUsd ?? 0) > 0 ? ` · $${(run.costUsd ?? 0).toFixed(4)}` : '';
+          lines.push(`_tokens: ${run.inputTokens ?? 0} in / ${run.outputTokens ?? 0} out${cost}_`);
+          lines.push('');
+        }
+      }
+    }
+    lines.push('---');
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+/// Export a session as Markdown by fetching its full record from the server.
+/// Returns null when the server is unreachable (caller falls back to the
+/// local-only JSON export path that already existed).
+export async function exportSessionMarkdown(sessionId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/sessions/${sessionId}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const session = data.session;
+    if (!session) return null;
+    // Parse tags defensively (server stores JSON; bad column → empty array).
+    let tags: string[] = [];
+    try {
+      const parsed = JSON.parse(session.tags ?? '[]');
+      if (Array.isArray(parsed)) tags = parsed.filter((t: unknown) => typeof t === 'string');
+    } catch {
+      // fall through
+    }
+    return renderSessionMarkdown({
+      id: session.id,
+      documentId: session.documentId,
+      title: session.title,
+      createdAt: session.createdAt,
+      tags,
+      messages: session.messages ?? [],
+      runs: session.runs ?? [],
+    });
+  } catch {
+    return null;
+  }
+}
+
+/// Export a SINGLE run as Markdown — used by the RunHistoryPanel context menu.
+/// Includes the run's prompt, status, tool-call timeline, cost, and the
+/// assistant message that this run produced.
+export async function exportRunMarkdown(sessionId: string, runId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/sessions/${sessionId}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const session = data.session;
+    if (!session) return null;
+    const run = (session.runs ?? []).find((r: { id: string }) => r.id === runId);
+    if (!run) return null;
+    // Filter messages to those attached to this run (typically a user prompt
+    // + one assistant reply).
+    const runMessages = (session.messages ?? []).filter(
+      (m: { runId?: string | null }) => m.runId === runId,
+    );
+    const lines: string[] = [];
+    lines.push(`# Run · ${run.prompt.slice(0, 60)}${run.prompt.length > 60 ? '…' : ''}`);
+    lines.push('');
+    lines.push(`> **Run ID:** \`${run.id}\`  `);
+    lines.push(`> **Session:** \`${sessionId}\`  `);
+    lines.push(`> **Status:** ${run.status}  `);
+    if (run.errorMessage) lines.push(`> **Error:** ${run.errorMessage}  `);
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+    for (const msg of runMessages) {
+      const role = msg.role === 'user' ? '🧑 User' : msg.role === 'assistant' ? '🤖 Assistant' : msg.role;
+      lines.push(`## ${role}`);
+      lines.push('');
+      if (msg.content) {
+        lines.push(msg.content);
+        lines.push('');
+      }
+      lines.push('---');
+      lines.push('');
+    }
+    // Tool-call timeline.
+    let toolCalls: Array<{ name?: string; args?: unknown; success?: boolean; durationMs?: number }> = [];
+    try {
+      const parsed = JSON.parse(run.toolCalls || '[]');
+      if (Array.isArray(parsed)) toolCalls = parsed;
+    } catch {
+      // ignore
+    }
+    if (toolCalls.length > 0) {
+      lines.push(`## Tool calls (${toolCalls.length})`);
+      lines.push('');
+      for (const tc of toolCalls) {
+        const mark = tc.success === false ? '✗' : '✓';
+        const dur = typeof tc.durationMs === 'number' ? ` · ${tc.durationMs}ms` : '';
+        lines.push(`- ${mark} \`${tc.name ?? 'unknown'}\`${dur}`);
+      }
+      lines.push('');
+    }
+    if ((run.inputTokens ?? 0) > 0 || (run.outputTokens ?? 0) > 0) {
+      const cost = (run.costUsd ?? 0) > 0 ? ` · $${(run.costUsd ?? 0).toFixed(4)}` : '';
+      lines.push(`_tokens: ${run.inputTokens ?? 0} in / ${run.outputTokens ?? 0} out${cost}_`);
+      lines.push('');
     }
     return lines.join('\n');
   } catch {

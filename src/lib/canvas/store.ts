@@ -3122,6 +3122,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // message_end), also accumulate session-wide totals and the
         // per-turn token footer, and store the last call's breakdown for
         // the tooltip.
+        //
+        // Per-run accumulation (P3-6): mirror the same delta into the
+        // active Run row so the RunHistoryPanel can show "in/out/$" per
+        // run, not just at the session level. The Run lives in the
+        // SESSION store (not the canvas store), so we update it via
+        // useSessionStore.getState() — same pattern as forkActiveSession.
         const prevTotals = get().usageTotals;
         const usage = event.usage;
         const nextTotals = usage
@@ -3153,6 +3159,39 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               )
             : s.turns,
         }));
+        // Per-run accumulation: push the delta into the active Run row
+        // (which lives in the session store). Fire-and-forget server sync
+        // follows so the new totals persist server-side on SessionRun.
+        if (usage) {
+          const { activeSessionId } = get();
+          if (activeSessionId) {
+            const sessStore = useSessionStore.getState();
+            const activeSession = sessStore.sessions[activeSessionId];
+            const currentRunId = activeSession?.currentRunId;
+            const activeRun = currentRunId ? sessStore.runs[currentRunId] : undefined;
+            if (activeRun) {
+              sessStore.updateRun(currentRunId!, {
+                inputTokens: activeRun.inputTokens + usage.input,
+                outputTokens: activeRun.outputTokens + usage.output,
+                costUsd: activeRun.costUsd + usage.cost,
+              });
+              // Server sync — fire-and-forget; the localStorage cache is
+              // authoritative for the live UI when the server is unreachable.
+              if (typeof window !== 'undefined') {
+                import('@/lib/sessions/server-sync').then(({ syncServerRun }) => {
+                  syncServerRun(activeSessionId, {
+                    runId: activeRun.id,
+                    prompt: activeRun.prompt,
+                    inputTokens: activeRun.inputTokens + usage.input,
+                    outputTokens: activeRun.outputTokens + usage.output,
+                    costUsd: activeRun.costUsd + usage.cost,
+                    documentId: activeSession.documentId,
+                  });
+                });
+              }
+            }
+          }
+        }
         break;
       }
       // ---- Plugin events (Phase 5) ------------------------------------------

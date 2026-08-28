@@ -1,4 +1,17 @@
 // POST /api/sessions/[id]/runs — create a run (or update when runId is passed)
+//
+// The POST body supports the following fields (all optional except where
+// noted):
+//   - prompt (string)             — the user prompt that triggered this run
+//   - status (string)             — 'queued'|'in_progress'|'completed'|'failed'|'cancelled'
+//   - runId (string)              — client-supplied run id (upsert)
+//   - documentId (string)         — auto-heal: pre-fix localStorage sessions
+//   - errorMessage (string?)
+//   - toolCallCount (number)
+//   - toolCalls (any[])           — JSON-serialized server-side
+//   - inputTokens (number)        — per-run input token count
+//   - outputTokens (number)      — per-run output token count
+//   - costUsd (number)            — per-run estimated cost in USD
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -27,6 +40,9 @@ export async function POST(
           ...(body.errorMessage !== undefined ? { errorMessage: body.errorMessage } : {}),
           ...(body.toolCallCount !== undefined ? { toolCallCount: body.toolCallCount } : {}),
           ...(body.toolCalls !== undefined ? { toolCalls: JSON.stringify(body.toolCalls) } : {}),
+          ...(body.inputTokens !== undefined ? { inputTokens: body.inputTokens } : {}),
+          ...(body.outputTokens !== undefined ? { outputTokens: body.outputTokens } : {}),
+          ...(body.costUsd !== undefined ? { costUsd: body.costUsd } : {}),
         },
         create: {
           id: runId,
@@ -36,6 +52,9 @@ export async function POST(
           ...(body.errorMessage !== undefined ? { errorMessage: body.errorMessage } : {}),
           ...(body.toolCallCount !== undefined ? { toolCallCount: body.toolCallCount } : {}),
           ...(body.toolCalls !== undefined ? { toolCalls: JSON.stringify(body.toolCalls) } : {}),
+          ...(body.inputTokens !== undefined ? { inputTokens: body.inputTokens } : {}),
+          ...(body.outputTokens !== undefined ? { outputTokens: body.outputTokens } : {}),
+          ...(body.costUsd !== undefined ? { costUsd: body.costUsd } : {}),
         },
       });
       return NextResponse.json({ run });
@@ -53,6 +72,9 @@ export async function POST(
         sessionId: id,
         prompt: prompt || '',
         status: status || 'in_progress',
+        ...(body.inputTokens !== undefined ? { inputTokens: body.inputTokens } : {}),
+        ...(body.outputTokens !== undefined ? { outputTokens: body.outputTokens } : {}),
+        ...(body.costUsd !== undefined ? { costUsd: body.costUsd } : {}),
       },
     });
 

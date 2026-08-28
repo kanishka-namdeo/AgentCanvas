@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GitFork, Bot, Clock } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
+import { DocumentSwitcher } from './DocumentSwitcher';
 import { useEffect, useState } from 'react';
 
 function relativeTime(iso: string): string {
@@ -80,6 +81,8 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
       <div className="flex items-center gap-2 min-w-0 flex-1">
+        {/* Document switcher — lets the user create/switch documents from the top bar. */}
+        <DocumentSwitcher />
         <div className="relative flex-shrink-0">
           <div className="w-5 h-5 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-sm">
             <Bot className="h-3 w-3 text-white" />
@@ -139,6 +142,11 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
           )}
         </div>
         <div className="flex-1 min-w-0">
+          {/* Document switcher row — above the session title. Mirrors v0's
+              project-picker-above-chat-title layout. */}
+          <div className="mb-1">
+            <DocumentSwitcher />
+          </div>
           {editing ? (
             <Input
               value={title}

@@ -44,7 +44,20 @@ type RightTab = 'chat' | 'design' | 'history';
 type LeftTab = 'chats' | 'layers';
 
 export default function Home() {
-  const documentId = 'demo';
+  // Multi-document support (P3-1): the page used to hard-code `documentId =
+  // 'demo'` so no UI ever created new documents. We now read it from the URL
+  // (?doc=ID) on first load — falling back to 'demo' for legacy compatibility
+  // (existing localStorage caches and the shared-canvas hydration flow expect
+  // 'demo' to be the seed id). The document switcher in SessionHeader calls
+  // the canvas store's init(docId) to swap the live document; this hook only
+  // seeds the FIRST init from the URL (subsequent switches don't touch the
+  // URL, mirroring how v0 / ChatGPT / Cursor behave — the doc id is a session
+  // state, not a route).
+  const [documentId] = useState(() => {
+    if (typeof window === 'undefined') return 'demo';
+    const fromUrl = new URLSearchParams(window.location.search).get('doc');
+    return fromUrl && /^[a-zA-Z0-9_-]{1,64}$/.test(fromUrl) ? fromUrl : 'demo';
+  });
   const init = useCanvasStore((s) => s.init);
   const connected = useCanvasStore((s) => s.connected);
   const viewerCount = useCanvasStore((s) => s.viewerCount);

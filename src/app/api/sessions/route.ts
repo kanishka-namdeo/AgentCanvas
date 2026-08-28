@@ -45,10 +45,22 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const { documentId, title, parentSessionId, id } = body;
+  const { documentId, title, parentSessionId, id, tags } = body;
 
   if (!documentId) {
     return NextResponse.json({ error: 'documentId is required' }, { status: 400 });
+  }
+
+  // Validate `tags` if provided: must be an array of strings.
+  let tagsJson: string | undefined;
+  if (tags !== undefined) {
+    if (!Array.isArray(tags) || !tags.every((t: unknown) => typeof t === 'string')) {
+      return NextResponse.json(
+        { error: 'tags must be an array of strings' },
+        { status: 400 },
+      );
+    }
+    tagsJson = JSON.stringify(tags);
   }
 
   try {
@@ -72,6 +84,7 @@ export async function POST(req: NextRequest) {
         title: title || 'Untitled',
         parentSessionId: parentSessionId || null,
         lastOpenedAt: new Date().toISOString(),
+        ...(tagsJson !== undefined ? { tags: tagsJson } : {}),
       },
     });
 

@@ -3,18 +3,21 @@
 // Left sidebar: lists all sessions for the current document.
 //
 // Features:
-//   - Search by title
+//   - Debounced content search (title + message body + tool-call args via
+//     GET /api/sessions/search) — replaces the previous title-only local filter
+//   - Tag chips per session row + tag filter bar (P3-3)
 //   - "New chat" button (creates + activates a new session)
 //   - Pinned sessions float to the top
 //   - Each item shows: title, relative time, status dot, message count,
 //     tool-call count, and a hover-revealed context menu (⋯)
-//   - Context menu actions: Rename, Pin/Unpin, Fork, Archive, Delete
+//   - Context menu actions: Rename, Pin/Unpin, Fork, Archive, Delete,
+//     Export as JSONL, Export as Markdown (P2-37 — implemented)
 //   - Active session is highlighted
 //
 // Mirrors the sidebar patterns used by v0, Bolt.new, Lovable, and Cursor
 // Composer (see research notes §6).
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSessionStore } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { Button } from '@/components/ui/button';
@@ -22,7 +25,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
-  Plus, Search, MoreHorizontal, Pin, PinOff, GitFork, Archive, Trash2, Pencil, MessageSquare, Wrench, Star,
+  Plus, Search, MoreHorizontal, Pin, PinOff, GitFork, Archive, Trash2, Pencil, MessageSquare, Wrench, Star, Tag as TagIcon, X,
   Copy, FileJson, FileText,
 } from 'lucide-react';
 import { StatusDot } from './StatusBadge';
@@ -32,6 +35,7 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { searchServerSessions, exportSessionMarkdown, type ServerSessionSearchHit } from '@/lib/sessions/server-sync';
 
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -48,6 +52,23 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
+/// Highlight matched substring `q` inside `text` with a strong chip background.
+function highlight(text: string, q: string): React.ReactNode {
+  if (!q) return text;
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(q.toLowerCase());
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-[var(--ac-warning-soft)] ac-text-1 rounded px-0.5">
+        {text.slice(idx, idx + q.length)}
+      </mark>
+      {text.slice(idx + q.length)}
+    </>
+  );
+}
+
 export function SessionSidebar() {
   const documentId = useCanvasStore((s) => s.documentId);
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
@@ -62,11 +83,21 @@ export function SessionSidebar() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
+  // Content-search state — populated by the debounced server fetch.
+  // When `hits` is non-null, we render server hits; when null (server
+  // unreachable or empty q), we render the local filtered list.
+  const [hits, setHits] = useState<ServerSessionSearchHit[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  // Tag-filter state — when non-null, only sessions containing this tag are shown.
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+
   // Subscribe to sessions + snapshots maps so the list re-renders on change.
   // We use the map + filter approach because listSessions returns a new
   // array each call (which would cause an infinite re-render loop).
   const sessionsMap = useSessionStore((s) => s.sessions);
   const snapshotsMap = useSessionStore((s) => s.snapshots);
+  const setSessionTags = useSessionStore((s) => s.setSessionTags);
   // Compute stats via useMemo — NEVER call s.getStats() inside a selector
   // because it returns a new object every call (causes infinite re-render).
   // Snapshots are document-scoped (shared canvas) — counted from the
@@ -83,17 +114,81 @@ export function SessionSidebar() {
     };
   }, [sessionsMap, snapshotsMap, documentId]);
 
+  // Document-scoped tag suggestions — derived locally from the in-memory
+  // sessions map (instant); the server-side suggestions endpoint is the
+  // authoritative source but the local computation is good enough for the
+  // sidebar filter chips and matches the documentId scope.
+  const allTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of Object.values(sessionsMap)) {
+      if (s.documentId !== documentId) continue;
+      for (const t of s.tags ?? []) {
+        counts.set(t, (counts.get(t) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()].map(([tag, count]) => ({ tag, count })).sort(
+      (a, b) => b.count - a.count || a.tag.localeCompare(b.tag),
+    ).slice(0, 12);
+  }, [sessionsMap, documentId]);
+
+  // Debounced server content search — fires 350ms after the last keystroke.
+  // Empty q (< 2 chars) clears the hits and reverts to local-only filtering.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const q = search.trim();
+    if (q.length < 2) {
+      setHits(null);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      const serverHits = await searchServerSessions({ q, documentId, scope: 'document' });
+      setHits(serverHits);
+      setSearchLoading(false);
+    }, 350);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [search, documentId]);
+
+  // When server search is active (hits !== null), render hits. Otherwise
+  // fall back to the local title-filtered list (preserves instant UX).
   const sessions = useMemo(() => {
     const all = Object.values(sessionsMap).filter((s) => s.documentId === documentId);
     const filtered = all.filter((s) => s.status === 'active');
+    const tagFiltered = tagFilter
+      ? filtered.filter((s) => (s.tags ?? []).includes(tagFilter))
+      : filtered;
+    if (hits !== null) {
+      // Server content search — render only sessions that returned a hit.
+      const hitIds = new Set(hits.map((h) => h.sessionId));
+      return tagFiltered
+        .filter((s) => hitIds.has(s.id))
+        .sort((a, b) => {
+          if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+          return b.lastOpenedAt.localeCompare(a.lastOpenedAt);
+        });
+    }
     const searched = search.trim()
       ? filtered.filter((s) => s.title.toLowerCase().includes(search.toLowerCase()))
       : filtered;
-    return [...searched].sort((a, b) => {
+    const tagFinal = tagFilter
+      ? searched.filter((s) => (s.tags ?? []).includes(tagFilter))
+      : searched;
+    return [...tagFinal].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return b.lastOpenedAt.localeCompare(a.lastOpenedAt);
     });
-  }, [sessionsMap, documentId, search]);
+  }, [sessionsMap, documentId, search, hits, tagFilter]);
+
+  // Search-hit lookup by sessionId (for snippet + matchIn chip).
+  const hitBySession = useMemo(() => {
+    const m = new Map<string, ServerSessionSearchHit>();
+    if (hits) for (const h of hits) m.set(h.sessionId, h);
+    return m;
+  }, [hits]);
 
   const archivedSessions = useMemo(() => {
     return Object.values(sessionsMap).filter(
@@ -112,6 +207,26 @@ export function SessionSidebar() {
     setRenamingId(null);
     setRenameValue('');
   };
+
+  const triggerMarkdownExport = useCallback(async (sessionId: string, title: string) => {
+    try {
+      const md = await exportSessionMarkdown(sessionId);
+      if (!md) {
+        toast.error('Export failed', { description: 'Server returned no transcript.' });
+        return;
+      }
+      const blob = new Blob([md], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title.replace(/[^a-z0-9-_]+/gi, '-')}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Exported as Markdown', { description: `${title}.md` });
+    } catch (e) {
+      toast.error('Export failed', { description: String(e).slice(0, 100) });
+    }
+  }, []);
 
   return (
     <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
@@ -135,16 +250,58 @@ export function SessionSidebar() {
           <Plus className="h-3.5 w-3.5" />
           New chat
         </button>
-        {/* Search */}
+        {/* Search — debounced content search (title + body + tool args) */}
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 ac-text-4" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search chats…"
-            className="h-7 pl-7 text-[11px] ac-border-subtle ac-surface-1 focus-visible:ac-border-default ac-text-2"
+            placeholder="Search title, messages, tool calls…"
+            className="h-7 pl-7 pr-7 text-[11px] ac-border-subtle ac-surface-1 focus-visible:ac-border-default ac-text-2"
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 ac-text-4 hover:ac-text-1 ac-transition"
+              aria-label="Clear search"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
+        {searchLoading && (
+          <div className="text-[9px] ac-text-4 mt-1 px-0.5">searching…</div>
+        )}
+        {/* Tag filter chips */}
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {tagFilter && (
+              <button
+                onClick={() => setTagFilter(null)}
+                className="text-[9px] px-1.5 py-0.5 rounded ac-surface-2 ac-text-1 ac-transition flex items-center gap-0.5"
+                title="Clear tag filter"
+              >
+                <X className="h-2 w-2" /> clear
+              </button>
+            )}
+            {allTags.map(({ tag, count }) => (
+              <button
+                key={tag}
+                onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+                className={`text-[9px] px-1.5 py-0.5 rounded ac-transition flex items-center gap-0.5 ${
+                  tagFilter === tag
+                    ? 'text-white'
+                    : 'ac-surface-2 ac-text-2 hover:ac-text-1'
+                }`}
+                style={tagFilter === tag ? { backgroundColor: 'var(--ac-accent)' } : undefined}
+              >
+                <TagIcon className="h-2 w-2" />
+                {tag}
+                <span className="opacity-60 ml-0.5">{count}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Sessions list */}
@@ -162,6 +319,7 @@ export function SessionSidebar() {
           )}
           {sessions.map((session) => {
             const isActive = session.id === activeSessionId;
+            const hit = hitBySession.get(session.id);
             return (
               <div
                 key={session.id}
@@ -185,9 +343,36 @@ export function SessionSidebar() {
                       {session.starred && <Star className="h-2.5 w-2.5 ac-text-warning flex-shrink-0" style={{ fill: 'var(--ac-warning)' }} />}
                       {!session.isRoot && <GitFork className="h-2.5 w-2.5 ac-text-4 flex-shrink-0" />}
                       <span className={`text-[12px] font-medium truncate ${isActive ? 'ac-text-1' : 'ac-text-2'}`}>
-                        {session.title}
+                        {hit ? highlight(session.title, search.trim()) : session.title}
                       </span>
                     </div>
+                    {/* Tag chips per session row */}
+                    {(session.tags ?? []).length > 0 && (
+                      <div className="flex flex-wrap gap-0.5 mt-0.5">
+                        {(session.tags ?? []).slice(0, 3).map((t) => (
+                          <button
+                            key={t}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTagFilter(tagFilter === t ? null : t);
+                            }}
+                            className="text-[8px] px-1 py-0 rounded ac-surface-2 ac-text-3 hover:ac-text-1 ac-transition"
+                            title={`Filter by "${t}"`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                        {(session.tags ?? []).length > 3 && (
+                          <span className="text-[8px] ac-text-4">+{session.tags.length - 3}</span>
+                        )}
+                      </div>
+                    )}
+                    {/* Search-hit snippet — first message-body or tool-args match */}
+                    {hit?.snippet && (
+                      <div className="mt-0.5 text-[10px] ac-text-3 ac-surface-1 px-1 py-0.5 rounded truncate">
+                        {highlight(hit.snippet, search.trim())}
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5 mt-0.5 text-[10px] ac-text-3">
                       <span>{relativeTime(session.lastOpenedAt)}</span>
                       <span className="ac-text-5">·</span>
@@ -197,6 +382,16 @@ export function SessionSidebar() {
                         <Wrench className="h-2.5 w-2.5" />
                         {session.toolCallCount}
                       </span>
+                      {hit && (
+                        <>
+                          <span className="ac-text-5">·</span>
+                          <span className="ac-text-4 flex items-center gap-0.5">
+                            {hit.matchIn.includes('title') && <span>title</span>}
+                            {hit.matchIn.includes('message') && <span>msg</span>}
+                            {hit.matchIn.includes('tool_calls') && <span>tool</span>}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   {/* Context menu */}
@@ -210,7 +405,7 @@ export function SessionSidebar() {
                           <MoreHorizontal className="h-3.5 w-3.5" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="text-[11px] min-w-[180px]" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuContent align="end" className="text-[11px] min-w-[200px]" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4 truncate">
                           {session.title}
                         </DropdownMenuLabel>
@@ -225,6 +420,10 @@ export function SessionSidebar() {
                         <DropdownMenuItem className="py-1.5" onClick={() => useSessionStore.getState().toggleStar(session.id)}>
                           <Star className="h-3 w-3 mr-2" /> {session.starred ? 'Unstar' : 'Star'}
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {/* Tag editor inline — quick add/remove */}
+                        <TagEditorInline sessionId={session.id} tags={session.tags ?? []} onSet={(tags) => setSessionTags(session.id, tags)} />
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem className="py-1.5" onClick={() => {
                           // Fork the session whose row this menu was opened on,
                           // NOT the currently-active session. Then switch to the fork.
@@ -274,9 +473,9 @@ export function SessionSidebar() {
                             toast.error('Export failed', { description: String(e).slice(0, 100) });
                           }
                         }}>
-                          <FileJson className="h-3 w-3 mr-2" /> Export session
+                          <FileJson className="h-3 w-3 mr-2" /> Export as JSONL
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="py-1.5" onClick={() => toast.message('Export as Markdown — not yet implemented (P2-37)')}>
+                        <DropdownMenuItem className="py-1.5" onClick={() => triggerMarkdownExport(session.id, session.title)}>
                           <FileText className="h-3 w-3 mr-2" /> Export as Markdown
                         </DropdownMenuItem>
                         <DropdownMenuItem className="py-1.5" onClick={() => {
@@ -295,9 +494,6 @@ export function SessionSidebar() {
                           }
                         }}>
                           <Copy className="h-3 w-3 mr-2" /> Copy prompt summary
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="py-1.5" onClick={() => toast.message('Mark as template — not yet implemented (P2-41)')}>
-                          <Star className="h-3 w-3 mr-2" /> Mark as template
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="py-1.5" onClick={() => {
@@ -423,6 +619,77 @@ export function SessionSidebar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+/// Inline tag editor rendered inside the session-row context menu.
+/// A small combobox: shows existing tags as removable chips, plus a text
+/// input that adds a new tag on Enter. Submitting calls onSet with the
+/// full new array (full replacement — the store's setSessionTags sends
+/// the whole array to the server, not a delta).
+function TagEditorInline({
+  sessionId, tags, onSet,
+}: {
+  sessionId: string;
+  tags: string[];
+  onSet: (tags: string[]) => void;
+}) {
+  const [newTag, setNewTag] = useState('');
+  // Reset the input whenever this editor re-mounts (the dropdown menu item
+  // re-renders per session row).
+  useEffect(() => { setNewTag(''); }, [sessionId]);
+
+  const addTag = () => {
+    const v = newTag.trim();
+    if (!v) return;
+    if (tags.includes(v)) {
+      setNewTag('');
+      return;
+    }
+    onSet([...tags, v]);
+    setNewTag('');
+  };
+  const removeTag = (t: string) => {
+    onSet(tags.filter((x) => x !== t));
+  };
+
+  return (
+    <div className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
+      <div className="text-[9px] font-semibold uppercase tracking-wide ac-text-4 mb-1 flex items-center gap-1">
+        <TagIcon className="h-2.5 w-2.5" /> Tags
+      </div>
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-0.5 mb-1">
+          {tags.map((t) => (
+            <span key={t} className="text-[9px] px-1 py-0.5 rounded ac-surface-2 ac-text-2 flex items-center gap-0.5">
+              {t}
+              <button
+                onClick={() => removeTag(t)}
+                className="ac-text-4 hover:ac-text-danger ac-transition"
+                aria-label={`Remove tag ${t}`}
+              >
+                <X className="h-2 w-2" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <Input
+        value={newTag}
+        onChange={(e) => setNewTag(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            addTag();
+          }
+          if (e.key === 'Backspace' && !newTag && tags.length > 0) {
+            removeTag(tags[tags.length - 1]);
+          }
+        }}
+        placeholder="Add tag, Enter to save"
+        className="h-6 text-[11px] ac-border-subtle"
+      />
     </div>
   );
 }

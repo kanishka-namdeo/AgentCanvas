@@ -4,16 +4,27 @@
 //
 // Shows:
 //   - Timeline of Runs in the ACTIVE CHAT (newest first)
-//   - Per-run: prompt, status badge, tool-call count, duration
+//   - Per-run: prompt, status badge, tool-call count, duration, per-run
+//     cost badge (input/output tokens + USD — accumulated from
+//     agent:context_update events).
 //   - Expandable tool-call list with status + args preview + summary
 //   - Snapshot list for the SHARED CANVAS (document-scoped timeline with
 //     per-chat provenance — every chat on this canvas contributes entries)
 //     with restore / bookmark / delete actions
 //
+// Replaced stubs (P3-5 / P3-6):
+//   - "Restore run" → "Re-run from here": forks the session at this run's
+//     user prompt and auto-sends the same prompt so the new chat diverges
+//     from the same starting point. (v0 / Cursor consensus: re-running
+//     creates a sibling conversation, not an in-place retry that destroys
+//     the original transcript.)
+//   - "Export run as Markdown" (P2-37): exports a single-run transcript
+//     via GET /api/sessions/[id] + renderRunMarkdown.
+//
 // Mirrors patterns from Bolt.new's workbench, Cursor's agent log,
 // and Replit's checkpoint timeline (see research notes §4 + §9).
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useSessionStore } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
 import type { Run, ToolCallRecord, Snapshot } from '@/lib/sessions';
@@ -31,15 +42,22 @@ import {
 } from '@/components/ui/context-menu';
 import { toast } from 'sonner';
 import {
-  ChevronRight, Wrench, Clock, History, Bookmark, BookmarkCheck, RotateCcw, Camera, MessageSquare,
+  ChevronRight, Wrench, Clock, History, Bookmark, BookmarkCheck, RotateCcw, Camera, MessageSquare, PlayCircle, FileText, Trash2,
 } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
+import { exportRunMarkdown } from '@/lib/sessions/server-sync';
 
 function formatDuration(ms: number | null): string {
   if (ms == null) return '—';
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
   return `${Math.floor(ms / 60_000)}m ${Math.floor((ms % 60_000) / 1000)}s`;
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
 }
 
 function relativeTime(iso: string): string {
@@ -261,6 +279,70 @@ function RunCard({ run }: { run: Run }) {
       .sort((a, b) => a.stepIndex - b.stepIndex);
   }, [run.toolCallIds, toolCallsMap]);
 
+  const handleRerun = useCallback(async () => {
+    // Re-run from here (P3-5): forks the active session at this run's user
+    // message, switches to the fork, and prompts the agent with the SAME
+    // prompt. The original transcript stays untouched — the user can compare
+    // the new attempt against the original. Mirrors v0 / Cursor consensus.
+    const canvasStore = useCanvasStore.getState();
+    const sessStore = useSessionStore.getState();
+    // Find the user message that owns this run — the message whose runId
+    // matches and role === 'user'.
+    const parent = sessStore.sessions[run.sessionId];
+    if (!parent) {
+      toast.error('Cannot re-run — parent session missing');
+      return;
+    }
+    const userMsg = parent.messageIds
+      .map((id) => sessStore.messages[id])
+      .find((m) => m && m.role === 'user' && m.runId === run.id);
+    if (!userMsg) {
+      toast.error('Cannot re-run — original user message not found', {
+        description: 'The transcript may have been pruned.',
+      });
+      return;
+    }
+    // Fork at the user message (preserves its prefix as context).
+    const fork = sessStore.forkSession(run.sessionId, userMsg.id);
+    if (!fork) {
+      toast.error('Fork failed');
+      return;
+    }
+    canvasStore.switchSession(fork.id);
+    // Prompt the agent with the same text. Don't include image attachments —
+    // they may have expired from the localStorage cache and re-sending them
+    // risks confusion if the user explicitly meant "retry without images".
+    setTimeout(() => {
+      canvasStore.promptAgent(userMsg.text).catch((e) => {
+        toast.error('Re-run failed to start', { description: String(e).slice(0, 120) });
+      });
+    }, 200);
+    toast.success(`Re-running in "${fork.title}"`, {
+      description: 'Original transcript is preserved — switch back to compare.',
+    });
+  }, [run.id, run.sessionId]);
+
+  const handleExportMarkdown = useCallback(async () => {
+    try {
+      const md = await exportRunMarkdown(run.sessionId, run.id);
+      if (!md) {
+        toast.error('Export failed', { description: 'Server returned no transcript.' });
+        return;
+      }
+      const blob = new Blob([md], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const fname = run.prompt.slice(0, 40).replace(/[^a-z0-9-_]+/gi, '-').replace(/^-+|-+$/g, '') || 'run';
+      a.download = `run-${fname}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Exported run as Markdown');
+    } catch (e) {
+      toast.error('Export failed', { description: String(e).slice(0, 100) });
+    }
+  }, [run.id, run.sessionId, run.prompt]);
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -273,7 +355,7 @@ function RunCard({ run }: { run: Run }) {
                 <ChevronRight className={`h-3 w-3 mt-0.5 ac-text-4 transition-transform ${open ? 'rotate-90' : ''}`} />
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] font-medium ac-text-1 line-clamp-1">{run.prompt}</div>
-                  <div className="flex items-center gap-1.5 mt-1 text-[10px] ac-text-4">
+                  <div className="flex items-center gap-1.5 mt-1 text-[10px] ac-text-4 flex-wrap">
                     <StatusBadge status={run.status} />
                     <span className="flex items-center gap-0.5">
                       <Clock className="h-2.5 w-2.5" />
@@ -284,6 +366,21 @@ function RunCard({ run }: { run: Run }) {
                       <Wrench className="h-2.5 w-2.5" />
                       {toolCalls.length}
                     </span>
+                    {/* Per-run cost badge (P3-6): only render if non-zero. */}
+                    {(run.inputTokens > 0 || run.outputTokens > 0) && (
+                      <>
+                        <span className="ac-text-5">·</span>
+                        <span
+                          className="font-mono ac-text-3"
+                          title={`Per-run tokens: ${run.inputTokens.toLocaleString()} input + ${run.outputTokens.toLocaleString()} output${run.costUsd > 0 ? ` · $${run.costUsd.toFixed(4)}` : ''}`}
+                        >
+                          {formatTokens(run.inputTokens + run.outputTokens)} tok
+                          {run.costUsd > 0 && (
+                            <span className="ac-text-4 ml-0.5">${run.costUsd.toFixed(4)}</span>
+                          )}
+                        </span>
+                      </>
+                    )}
                     <span className="ac-text-5 ml-auto">{relativeTime(run.createdAt)}</span>
                   </div>
                 </div>
@@ -302,16 +399,39 @@ function RunCard({ run }: { run: Run }) {
           </CollapsibleContent>
         </Collapsible>
       </ContextMenuTrigger>
-      {/* P1-21: Run card right-click — Expand/Collapse, Restore run, Fork
-          from here, Copy prompt, Copy tool calls JSON, Export MD, Delete run. */}
+      {/* Run card right-click — Expand/Collapse, Re-run from here (P3-5),
+          Fork from here, Copy prompt, Copy tool calls JSON, Export MD (P2-37),
+          Delete run. */}
       <ContextMenuContent>
         <ContextMenuItem onClick={() => setOpen((v) => !v)}>
           {open ? 'Collapse' : 'Expand'}
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => toast.message('Restore run — not yet implemented (re-run agent from this prompt)')}>
-          Restore run
+        <ContextMenuItem onClick={handleRerun}>
+          <PlayCircle className="h-3 w-3 mr-2" />
+          Re-run from here
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => toast.message('Fork from here — use the chat panel Fork button')}>
+        <ContextMenuItem onClick={() => {
+          // Fork from this run — fork at the run's user message so the new
+          // chat has the prefix up to & including the prompt (no auto-send).
+          const sessStore = useSessionStore.getState();
+          const canvasStore = useCanvasStore.getState();
+          const parent = sessStore.sessions[run.sessionId];
+          if (!parent) return;
+          const userMsg = parent.messageIds
+            .map((id) => sessStore.messages[id])
+            .find((m) => m && m.role === 'user' && m.runId === run.id);
+          if (!userMsg) {
+            toast.message('Original user message not found');
+            return;
+          }
+          const fork = sessStore.forkSession(run.sessionId, userMsg.id);
+          if (fork) {
+            canvasStore.switchSession(fork.id);
+            toast.success(`Forked chat: ${fork.title}`, {
+              description: 'Same prefix as the original — diverge freely.',
+            });
+          }
+        }}>
           Fork from here
         </ContextMenuItem>
         <ContextMenuSeparator />
@@ -330,11 +450,21 @@ function RunCard({ run }: { run: Run }) {
         }}>
           Copy all tool calls as JSON
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => toast.message('Export run as Markdown — not yet implemented (P2-37)')}>
+        <ContextMenuItem onClick={handleExportMarkdown}>
+          <FileText className="h-3 w-3 mr-2" />
           Export run as Markdown
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => toast.message('Delete run — not yet implemented')} className="ac-text-danger">
+        <ContextMenuItem
+          onClick={() => {
+            if (confirm('Delete this run? Messages and tool-call records are removed; snapshots stay (document-scoped).')) {
+              useSessionStore.getState().deleteRun?.(run.id);
+              toast.success('Run deleted');
+            }
+          }}
+          className="ac-text-danger"
+        >
+          <Trash2 className="h-3 w-3 mr-2" />
           Delete run
         </ContextMenuItem>
       </ContextMenuContent>
