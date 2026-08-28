@@ -19,6 +19,7 @@ import { createEmptyCanvasDocument } from '@/lib/canvas/types';
 import { applyPatchToCanvas, applyPatchesToCanvas } from '@/lib/canvas/patch';
 import { patchDedupeKey, createBoundedDedupSet } from '@/lib/canvas/patch-dedupe';
 import { classifyAgentError, agentErrorClassForCode } from '@/lib/agent-error';
+import { runJournalCatchUp, scheduleWatermarkAdvance } from '@/lib/canvas/journal-catchup';
 import { checkpointSignature, newCheckpointId, MAX_CHECKPOINTS, type Checkpoint } from '@/lib/canvas/version-history';
 import { resolvePenTree } from '@/lib/pen/resolve';
 import { useSessionStore, hydrateSessionStore } from '@/lib/sessions';
@@ -1189,6 +1190,23 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     socket.on('connect', () => {
       set({ connected: true });
       socket.emit('client', { type: 'subscribe', documentId } satisfies ClientEvent);
+      // Reconnect catch-up (journal consumer): pull everything journaled
+      // since our watermark and replay the missed agent events — most
+      // importantly the turn CLOSURE (turn_end / turn_cancelled / error /
+      // stuck). Without this, a disconnect during a turn strands the client
+      // (agentBusy + streaming message + in_progress run) until the 10-minute
+      // zombie sweep. canvas:full (sent by the server right after subscribe)
+      // covers canvas state; the journal covers agent state. socket.io fires
+      // 'connect' on every REconnect, which is exactly when a gap exists.
+      void runJournalCatchUp(documentId, {
+        isTurnOpen: () => {
+          const s = get();
+          if (s.agentBusy) return true;
+          const last = s.turns[s.turns.length - 1];
+          return last?.role === 'assistant' && last.streaming === true;
+        },
+        dispatch: (ev) => get()._onSync(ev),
+      });
     });
     socket.on('disconnect', () => set({ connected: false }));
     socket.on('sync', (event: SyncEvent) => {
@@ -1782,6 +1800,20 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   _onSync: (event) => {
     const state = get();
+    // Live-terminal watermark advance (journal catch-up bookkeeping): when
+    // the client processes a turn-closing event LIVE it has, by definition,
+    // seen every journal row up to the journal's head — advance the persisted
+    // watermark (debounced probe) so the NEXT reconnect's replay window
+    // starts at this turn's boundary instead of re-replaying turns onto a
+    // different open turn (the position-based handler hazard).
+    if (
+      event.type === 'agent:turn_end' ||
+      event.type === 'agent:turn_cancelled' ||
+      event.type === 'agent:error' ||
+      event.type === 'agent:stuck'
+    ) {
+      scheduleWatermarkAdvance(state.documentId);
+    }
     switch (event.type) {
       case 'canvas:full': {
         // Normalize — older server builds may omit the derived caches.
@@ -1976,6 +2008,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
           if (last && last.role === 'assistant') {
+            // Id-guard: skip a tool call entry the turn already has. A
+            // socket.io event in flight at disconnect time can be received
+            // AND land in the journal-catchup replay window — without the
+            // guard the entry duplicates in the toolCalls list.
+            if (last.toolCalls.some((tc) => tc.id === event.toolCallId)) {
+              return { turns };
+            }
             turns[turns.length - 1] = {
               ...last,
               // A tool call also closes the thinking phase (models think →

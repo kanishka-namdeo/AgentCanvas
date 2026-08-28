@@ -161,16 +161,25 @@ export async function POST(req: NextRequest) {
         if (closed || runAbort.signal.aborted) return;
         if (Date.now() - lastActivity > WATCHDOG_MS) {
           runAbort.abort();
-          send({
-            type: 'agent_event',
-            event: {
-              type: 'agent:error',
-              message:
-                'Agent stream stalled — no output for 2 minutes. The run was closed to avoid hanging; resend the prompt to retry.',
-              code: 'timeout',
-              retryable: true,
-            },
-          });
+          const event = {
+            type: 'agent:error' as const,
+            message:
+              'Agent stream stalled — no output for 2 minutes. The run was closed to avoid hanging; resend the prompt to retry.',
+            code: 'timeout',
+            retryable: true,
+          };
+          send({ type: 'agent_event', event });
+          // JOURNAL the terminal event HERE, not just on the wire: the
+          // finally-block closure guarantee below only runs when the main
+          // loop's `await iterator.next()` resolves — but the very reason
+          // the watchdog fired is that the generator is suspended (e.g. a
+          // tool call hanging past every abort signal). Without this write
+          // the journal ends at the last tool_call_start forever, and a
+          // client that reconnects replays an unterminated turn (found by
+          // live verification: watchdog closed the run, wire got the error,
+          // journal never did).
+          journalAgentEvent(documentId, { kind: 'agent_event', event });
+          sawTerminalOnWire = true;
           close();
         }
       }, 15_000);
