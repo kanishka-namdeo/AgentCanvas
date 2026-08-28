@@ -174,6 +174,14 @@ export function setActiveLLM(llm: LLMClientLike | null): void {
   activeLLM = llm;
 }
 
+/// Provider-aware LLM client the runner armed for this turn (setActiveLLM
+/// before the main loop). Pen tools that need sub-agent completions
+/// (pen_generate_variants) read it through here — falls back to null and
+/// the caller degrades to ZAI.create() sandbox credentials.
+export function getActiveLLM(): LLMClientLike | null {
+  return activeLLM;
+}
+
 // ---- Tools ----------------------------------------------------------------
 
 const reviewerTool = defineTool({

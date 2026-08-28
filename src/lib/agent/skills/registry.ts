@@ -236,6 +236,11 @@ to a different approach (do NOT loop on the same failing call).`,
       // the agent enumerates a whole nested tree (card rows, nav bars, forms)
       // in ONE call. Core-loaded, listed here for the skill-body narrative.
       'pen_create_subtree',
+      // pen_generate_variants: ambiguous creation ("a pricing page", no
+      // direction pinned) — explores 2-3 whole-design directions in
+      // parallel, a vision judge picks the best render, only the winner is
+      // applied. R1 pattern 9 (Figma "go wide" / tldraw Fairies).
+      'pen_generate_variants',
       'pen_insert_html',
       'pen_get_metadata',
       // Figma-hierarchy: post-generation refinement often involves moving
@@ -731,7 +736,7 @@ export function getToolNamesForCategory(category: SkillCategory): string[] {
 
 export const ALL_TOOL_NAMES = [
   // Core
-  'pen_create_node', 'pen_create_subtree', 'pen_update_node', 'pen_delete_nodes',
+  'pen_create_node', 'pen_create_subtree', 'pen_generate_variants', 'pen_update_node', 'pen_delete_nodes',
   'pen_get_metadata', 'pen_clear', 'pen_set_background', 'pen_select_nodes',
   // Layout
   'pen_duplicate_nodes', 'pen_group_shapes', 'pen_ungroup_shapes',

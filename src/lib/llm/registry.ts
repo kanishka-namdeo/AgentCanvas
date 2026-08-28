@@ -55,7 +55,7 @@ function openAICompatibleFactory(meta: LLMProviderMetadata): LLMClientFactory {
       );
     }
 
-    const inner = createOpenAICompatible({ apiKey: apiKey ?? '', baseURL, model });
+    const inner = createOpenAICompatible({ apiKey: apiKey ?? '', baseURL, model, timeoutMs: config.timeoutMs });
     if (meta.capabilities.supportsToolCalling) {
       return inner;
     }

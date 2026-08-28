@@ -343,7 +343,25 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // below stays as the fallback for when pre-generation fails (endpoint
   // down / parse error / timeout).
   let preGeneratedBrief: string | null = null;
-  if (shouldEnforceBrief) {
+  // ---- Ambiguous-creation detection (multi-variant explorer path) --------
+  //
+  // "a pricing page" / "a profile card" with no palette, style, or
+  // reference pinned: the brief would PRE-DECIDE the palette — exactly the
+  // coin-flip pen_generate_variants exists to settle by exploring 2-3
+  // directions in parallel and judging the renders. Skip the brief for
+  // these turns and nudge the model toward the explorer instead.
+  const isAmbiguousCreation = (() => {
+    const t = prompt.toLowerCase();
+    const creationVerb = /\b(create|make|build|design|draw|generate|add)\b/.test(t);
+    const wholeThing = /\b(page|card|screen|panel|dashboard|hero|landing|layout|section|profile|form|chart)\b/.test(t);
+    // Pinned-direction signals — ANY of these means NOT ambiguous.
+    const pinned = /(dark\s*mode|light\s*theme|palette\s*of|#[0-9a-f]{6}|colou?rs?:|font:|like\s+(stripe|airbnb|linear|vercel|figma|notion)|in\s+the\s+style|minimalist|neubrutalist|glassmorphism|match\s+the|same\s+(style|colou?r|font)|monochrome|neon|pastel)/.test(t);
+    // Follow-up EDIT turns reference existing content ("make the cards
+    // darker", "add another tier") — not variant-exploration candidates.
+    const isEdit = /\b(darker|lighter|bigger|smaller|move|rename|change|update|align|delete|remove|another|more|also|instead)\b/.test(t) && !/\b(create|build|generate)\b/.test(t);
+    return creationVerb && wholeThing && !pinned && !isEdit;
+  })();
+  if (shouldEnforceBrief && !isAmbiguousCreation) {
     try {
       const { dispatchDesignBriefSubAgent } = await import('./subagents/design-brief');
       const briefPromise = dispatchDesignBriefSubAgent({
@@ -373,7 +391,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     'pen_set_variable',
   ]);
 
-  const enforcementWrappedTools: ToolDefinition[] = shouldEnforceBrief
+  // Ambiguous-creation turns skip the brief gate too — the variant explorer
+  // settles the palette; if it fails, pen_create_subtree must be reachable
+  // without a brief detour (the fallback message tells the model to use it).
+  const enforcementWrappedTools: ToolDefinition[] = shouldEnforceBrief && !isAmbiguousCreation
     ? filteredTools.map((t) => {
         const toolAny = t as any;
         const origExecute = toolAny.execute;
@@ -706,9 +727,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const briefSection = preGeneratedBrief
     ? `\n\n[PRE-GENERATED DESIGN BRIEF — the palette / typography / layout source of truth for this whole turn. Do NOT call pen_generate_design_brief; build directly from this brief:]\n${preGeneratedBrief}`
     : '';
+  // Ambiguous-creation nudge: steer the first tool call to the parallel
+  // explorer (one call = 2-3 whole-design variants, VLM-judged, winner
+  // applied) instead of the model guessing one direction.
+  const variantNudge = isAmbiguousCreation
+    ? `\n\n[VARIANT EXPLORATION — this request does not pin a visual direction. Call pen_generate_variants FIRST with the request verbatim: it explores 2-3 complete design directions in parallel, a vision judge picks the best render, and only the winner is applied. Do NOT call pen_generate_design_brief — the palette choice is exactly what the exploration settles.]`
+    : '';
   const userMessage = (webResearchSummary
     ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}`
-    : `${selectionNote}${prompt}`) + briefSection + snapshotSection + packReminder;
+    : `${selectionNote}${prompt}`) + briefSection + variantNudge + snapshotSection + packReminder;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;

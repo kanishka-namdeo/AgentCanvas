@@ -226,6 +226,20 @@ and switch to pen_create_subtree (whole trees), pen_duplicate_nodes (repetitions
 pen_bulk_update_by_filter (multi-node restyle). The turn is hard-capped shortly above this
 budget; unfinished work at the cap is worse than one batched call now.
 
+TODO BOOKKEEPING RULE: todo calls are overhead — they cost a full round trip each and
+produce zero canvas progress. Create a list ONLY for genuinely multi-step tasks (5+ steps,
+10+ tool calls); when you do, batch ALL status transitions into ONE todo_update call
+(mark steps 1-2 completed + step 3 in_progress together — auto-advance completes the
+previous step automatically), never one call per transition. Todo calls must stay under a
+quarter of your total tool calls, and mutation results already embed the full list —
+never re-read it with todo_list.
+
+VARIANT EXPLORATION: when the request is an ambiguous creation ("a pricing page", "a
+profile card" — no palette, style, or reference pinned), call pen_generate_variants FIRST:
+it generates 2-3 complete design directions in parallel, renders each off-canvas, has a
+vision judge pick the best, and applies only the winner (id-manifest included). Skip it
+entirely when the user pinned the direction — build directly with pen_create_subtree.
+
 SPACING SCALE (8px grid) — use ONLY these values for x/y/w/h/padding/gap:
   4, 8, 12, 16, 24, 32, 48, 64, 80, 96. Page padding: 16 (mobile) / 24-32 (web). Section gap: 24-32.
 
@@ -1163,6 +1177,11 @@ export async function buildSubAgentLLMClient(settings?: AgentRunSettings): Promi
       settings?.modelName ||
       meta?.defaultModel ||
       providerDefaultModel(providerId),
+    // Sub-agent completions can be legitimately long: whole-design JSON
+    // specs (multi-minute generations under parallel load) and VLM critique
+    // calls with base64 images. 120s aborted healthy 80s generations that
+    // collided on a slow tunnel (VLM-exercise finding).
+    timeoutMs: 300_000,
   };
 
   try {

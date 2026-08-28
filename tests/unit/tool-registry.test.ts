@@ -98,7 +98,7 @@ describe('tool-registry: alias targets exist + snapshot', () => {
     }
   });
 
-  it('snapshots the sorted canonical names (freeze guard — 96 registered tools)', () => {
+  it('snapshots the sorted canonical names (freeze guard — 97 registered tools)', () => {
     const names = allTools().map((t) => (t as any).name).sort();
     expect(names).toEqual([
       'pen_add_variant', 'pen_align_shapes', 'pen_apply_auto_layout', 'pen_apply_palette',
@@ -112,7 +112,7 @@ describe('tool-registry: alias targets exist + snapshot', () => {
       'pen_export_json', 'pen_export_pen', 'pen_export_png', 'pen_export_svg', 'pen_find_nodes',
       'pen_find_replace_text', 'pen_generate_copy', 'pen_generate_design_brief',
       'pen_generate_diagram', 'pen_generate_image', 'pen_generate_palette',
-      'pen_generate_user_flow', 'pen_generate_wireframe', 'pen_get_computed',
+      'pen_generate_user_flow', 'pen_generate_variants', 'pen_generate_wireframe', 'pen_get_computed',
       'pen_get_design_context', 'pen_get_metadata', 'pen_get_screenshot',
       'pen_get_variable_defs', 'pen_group_shapes', 'pen_insert_html',
       'pen_instantiate_component', 'pen_list_collections', 'pen_list_variables', 'pen_mark_slot',

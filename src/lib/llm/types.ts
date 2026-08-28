@@ -166,6 +166,10 @@ export interface LLMProviderConfig {
   model: string;
   /// Custom base URL override. Empty = provider default.
   baseURL: string;
+  /// Per-request timeout in ms for the built client (sub-agent completions
+  /// can be big JSON / VLM-image calls that legitimately run minutes).
+  /// Default: 120_000.
+  timeoutMs?: number;
 }
 
 /// A registered provider = metadata + factory.

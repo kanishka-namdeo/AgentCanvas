@@ -62,6 +62,8 @@ import type { CanvasPatch, Shape, ShapeType, AutoLayout, DesignTokens, ColorToke
 import { parseHtmlFragment, htmlToPenTreeDetailed } from '../canvas/html-import';
 import { serializeNodes } from '../canvas/serialize';
 import { resolvePenTreeDetailed, type ResolvedTreeNode, type ResolverWarning } from '../pen/resolve';
+import { applyPatchToCanvas } from '../canvas/patch';
+import { renderCanvasToPng } from '../canvas/render-to-png';
 import type { PenChild } from '../pen/types';
 import { getLucideIcon, searchLucideIcons, lucidePromptCatalog } from '@/lib/icons';
 import { emitEvent, hasSink } from './plugins/event-bus';
@@ -1155,6 +1157,181 @@ const createShape = defineTool({
           rootCount: applied.length,
           nodeCount: totalCount,
           patches,
+        },
+      };
+    },
+  });
+
+  const generateVariants = defineTool({
+    name: 'pen_generate_variants',
+    label: 'Generate Design Variants (parallel + judged)',
+    description:
+      'For AMBIGUOUS or under-specified creation requests ("a pricing page", "a profile card", "a settings panel" — no palette/style/layout pinned): ' +
+      'generates 2-3 COMPLETE design variants in PARALLEL (each a whole styled subtree in a different direction, e.g. Minimal Light / Bold Vibrant / Dark Premium), ' +
+      'renders them off-canvas, has a vision-LLM judge pick the best one, and applies ONLY the winner to the canvas. ' +
+      'Returns the winner with its full id-manifest + all variant scores. ' +
+      'Do NOT use this when the user pinned the visual direction (named palette, style, or reference) — use pen_create_subtree directly. ' +
+      'ONE call = whole explored-then-judged screen; follow-up tweaks use the returned ids.',
+    promptSnippet: 'Explore 2-3 whole-design variants in parallel; a vision judge applies only the best.',
+    promptGuidelines: [
+      'Use for ambiguous creation prompts where visual direction is NOT specified (no palette, style, or reference given).',
+      'Do NOT use when the user pinned a direction — build it directly with pen_create_subtree.',
+      'The result embeds the winner\'s id-manifest and resolver warnings — no pen_get_metadata read-back needed.',
+      'Mention the winning direction (and runner-up scores) in your reply so the user knows what was explored.',
+    ],
+    parameters: Type.Object({
+      request: Type.String({
+        description: 'The design request, verbatim from the user (what to build — content, sections, components).',
+      }),
+      directions: Type.Optional(Type.Array(Type.String(), {
+        minItems: 1, maxItems: 3,
+        description: 'Optional 2-3 design-direction descriptions to explore (e.g. "minimal light SaaS", "bold colorful startup"). Default: Minimal Light / Bold Vibrant / Dark Premium.',
+      })),
+      variantCount: Type.Optional(Type.Union([Type.Literal(2), Type.Literal(3)], {
+        description: 'How many variants to generate (default 3).',
+      })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      const { dispatchVariantGeneration } = await import('./subagents/variant-generator');
+      const typed = params as {
+        request: string;
+        directions?: string[];
+        variantCount?: 2 | 3;
+      };
+
+      // ---- Throwaway render callback ----------------------------------------
+      // Clone the document, WIPE its children (the judge must see ONLY the
+      // variant), apply the spec at (0,0), resolve, render. The real canvas
+      // is untouched during exploration.
+      const renderVariant = async (
+        spec: Record<string, unknown>,
+      ): Promise<{ png: Buffer; warningCount: number; nodeCount: number } | null> => {
+        const doc = ctx.getDocument?.();
+        if (!doc) return null;
+        const clone = structuredClone(doc) as typeof doc;
+        clone.children = [];
+        (clone as any).shapes = [];
+        const root = structuredClone(spec) as RawSubtreeNode;
+        hydrateSubtreeChildren(root);
+        root.x = 0;
+        root.y = 0;
+        const renderRootId = crypto.randomUUID();
+        root.id = renderRootId;
+        delete root.parentId;
+        const patched = applyPatchToCanvas(clone, {
+          op: 'add_subtree',
+          shapeId: renderRootId,
+          shape: root as unknown as CanvasPatch['shape'],
+          summary: `Variant render "${typeof root.name === 'string' ? root.name : 'variant'}"`,
+        });
+        const { layers, warnings } = resolvePenTreeDetailed(patched);
+        if (layers.length === 0) return null;
+        // Fit the viewport to the variant's bounds (clamped) so the judge
+        // sees the design, not a tiny sliver of an oversized viewport.
+        const maxW = layers.reduce((m, l) => Math.max(m, l.x + l.width), 0);
+        const maxH = layers.reduce((m, l) => Math.max(m, l.y + l.height), 0);
+        const vw = Math.max(320, Math.min(1440, Math.ceil(maxW) + 64));
+        const vh = Math.max(320, Math.min(1440, Math.ceil(maxH) + 64));
+        const png = await renderCanvasToPng(layers, vw, vh);
+        return { png, warningCount: warnings.length, nodeCount: layers.length };
+      };
+
+      const result = await dispatchVariantGeneration({
+        request: typed.request,
+        ...(typed.directions ? { directions: typed.directions } : {}),
+        ...(typed.variantCount ? { variantCount: typed.variantCount } : {}),
+        renderVariant,
+      });
+
+      // Fatal: all variants failed — tell the agent to fall back.
+      if (result.error || result.variants.length === 0 || !result.judge) {
+        return {
+          content: [{
+            type: 'text',
+            text:
+              `Variant generation failed: ${result.error ?? 'no variants parsed'}.\n` +
+              `Fall back to pen_create_subtree and build the design directly.\n` +
+              `Notes: ${result.notes.join(' | ') || '(none)'}`,
+          }],
+          details: { error: result.error ?? 'no_variants', notes: result.notes, generationMs: result.generationMs },
+        };
+      }
+
+      const winner = result.variants[result.judge.winnerIndex];
+
+      // ---- Apply the winner (same contract as pen_create_subtree) ----------
+      const preIds = new Set(ctx.getShapes().map((s) => s.id));
+      const root = structuredClone(winner.spec) as RawSubtreeNode;
+      hydrateSubtreeChildren(root);
+      root.x = Number(root.x) || 0;
+      root.y = Number(root.y) || 0;
+      const winnerRootId = crypto.randomUUID();
+      root.id = winnerRootId;
+      delete root.parentId;
+      const patch: CanvasPatch = {
+        op: 'add_subtree',
+        shapeId: winnerRootId,
+        shape: root as unknown as CanvasPatch['shape'],
+        summary: `Applied winning variant "${winner.direction}" — ${winner.nodeCount} node(s)`,
+      };
+      ctx.applyPatch(patch);
+
+      // ID manifest (read-back round-trip killer — same as pen_create_subtree).
+      const manifestLines: string[] = [];
+      let manifestTruncated = false;
+      const newLayers = ctx.getShapes().filter((s) => !preIds.has(s.id));
+      const byParent = new Map<string, Shape[]>();
+      const byId = new Map<string, Shape>();
+      for (const s of newLayers) {
+        byId.set(s.id, s);
+        const p = s.parentId ?? null;
+        if (p) {
+          const list = byParent.get(p) ?? [];
+          list.push(s);
+          byParent.set(p, list);
+        }
+      }
+      const walkManifest = (id: string, depth: number): void => {
+        if (manifestLines.length >= MAX_SUBTREE_MANIFEST_NODES) {
+          manifestTruncated = true;
+          return;
+        }
+        const s = byId.get(id);
+        if (!s) return;
+        manifestLines.push(`${'  '.repeat(depth)}${s.name} (${s.type}) id=${s.id}`);
+        const kids = (byParent.get(id) ?? []).slice().sort((a, b) => a.zIndex - b.zIndex);
+        for (const kid of kids) walkManifest(kid.id, depth + 1);
+      };
+      walkManifest(winnerRootId, 0);
+      const manifestText = manifestLines.length > 0
+        ? '\nNEW NODE IDS (reuse these for updates — no pen_get_metadata needed):\n' + manifestLines.join('\n') +
+          (manifestTruncated ? `\n…[manifest truncated at ${MAX_SUBTREE_MANIFEST_NODES} nodes — call pen_get_metadata {nodeId} for the rest]` : '')
+        : '';
+
+      const warningsNote = formatResolverWarnings(collectResolverWarnings(ctx.getDocument?.()));
+      const scoreLines = result.variants
+        .map((v, i) => `  ${String.fromCharCode(65 + i)}. ${v.direction} — ${result.judge!.scores[i] ?? '?'}/10${i === result.judge!.winnerIndex ? '  ← WINNER (applied)' : ''}`)
+        .join('\n');
+      const notesText = result.notes.length > 0 ? `\nNotes: ${result.notes.join('; ')}` : '';
+
+      return {
+        content: [{
+          type: 'text',
+          text:
+            `Explored ${result.variants.length} design variant(s) in parallel (${result.generationMs}ms); judge (${result.judge.method}) picked "${winner.direction}".\n` +
+            `Reason: ${result.judge.reason}\n\nAll variants:\n${scoreLines}\n\n` +
+            `Applied the winner (${winner.nodeCount} node(s), root id ${winnerRootId}).${manifestText}${warningsNote}${notesText}`,
+        }],
+        details: {
+          winnerIndex: result.judge.winnerIndex,
+          winnerDirection: winner.direction,
+          winnerRootId,
+          scores: result.judge.scores,
+          judgeMethod: result.judge.method,
+          variantCount: result.variants.length,
+          generationMs: result.generationMs,
+          notes: result.notes,
+          patch,
         },
       };
     },
@@ -5185,6 +5362,7 @@ const createShape = defineTool({
     // Core
     createShape,
     createSubtree,
+    generateVariants,
     updateShape,
     deleteShape,
     // (pen_list_shapes folded into getMetadata — G.3 supersede row; legacy
