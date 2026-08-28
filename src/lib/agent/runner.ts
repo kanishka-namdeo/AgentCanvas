@@ -34,6 +34,7 @@ export {
   buildPlanFirstSection,
   buildPalettesList,
   canvasSnapshot,
+  canvasSnapshotDelta,
   normalizeCanvas,
   filterToolSpecs,
   SYSTEM_PROMPT_TEMPLATE,

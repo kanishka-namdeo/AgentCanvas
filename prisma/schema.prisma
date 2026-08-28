@@ -302,7 +302,7 @@ model DocumentSnapshot {
   runId      String?
   /// JSON-serialized CanvasDocument at capture time.
   document   String
-  /// 'turn_end' | 'manual' | 'fork' | 'restore'
+  /// 'turn_end' | 'manual' | 'fork' | 'restore' | 'server'
   source     String   @default("turn_end")
   /// Node count for quick display in the history panel.
   nodeCount  Int      @default(0)
@@ -310,8 +310,24 @@ model DocumentSnapshot {
   label      String?
   /// Whether the user marked this snapshot as a keeper.
   bookmarked Boolean  @default(false)
+  /// Phase C (R2) FOLD CHECKPOINT marker: when set, this row is a
+  /// SERVER-WRITTEN checkpoint whose document is the fold of every journal
+  /// mutation with seq ≤ lastSeq (source='server'). Rows with NULL lastSeq
+  /// are client timeline captures (turn_end/manual/fork/restore) — display
+  /// + restore targets only, never fold anchors. The journal-fold
+  /// hydrator treats the newest non-null lastSeq as its base and folds
+  /// AgentEvent rows above it; compaction may prune rows ≤ lastSeq.
+  lastSeq    Int?
+  /// Phase C (R2) tombstone set at checkpoint time: JSON array of node ids
+  /// deleted (and not re-added) as of lastSeq — bounded, FIFO. The fold
+  /// seeds its tombstone set from here so a delete that happened BELOW the
+  /// compaction line still suppresses resurrection on canvas:full
+  /// reconcile (the Phase-A known limitation). Client timeline rows leave
+  /// this NULL.
+  tombstones String?
   createdAt  DateTime @default(now())
 
   @@index([documentId])
   @@index([sessionId])
+  @@index([documentId, lastSeq])
 }

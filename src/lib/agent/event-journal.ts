@@ -17,7 +17,9 @@
 //     low-value deltas (message_delta, thinking_delta, presence) are NOT
 //     journaled — bolt.diy's "deltas are ephemeral, events are durable" rule.
 //   - Per-document monotonic `seq` — resume/replay reads are
-//     `WHERE seq > ? ORDER BY seq` (the OpenHands EventLog pattern).
+//     `WHERE seq > ? ORDER BY seq` (the OpenHands EventLog pattern). Seq is
+//     allocated from a fresh DB head read per write (multi-bundle safe —
+//     see insertRowAtFreshSeq).
 //   - Writes are chained (serialized) + fire-and-forget: a journal failure
 //     NEVER breaks the agent stream, and SQLite never sees interleaved
 //     transactions from one process.
@@ -71,44 +73,51 @@ export interface JournalRow {
 }
 
 // ---- seq management ---------------------------------------------------------
-
-const seqCounters = new Map<string, number>();
-const seqInitPromises = new Map<string, Promise<void>>();
-
-function ensureSeqInit(documentId: string): Promise<void> {
-  let init = seqInitPromises.get(documentId);
-  if (!init) {
-    init = (async () => {
-      try {
-        const { db } = await import('../db');
-        const last = await db.agentEvent.findFirst({
-          where: { documentId },
-          orderBy: { seq: 'desc' },
-          select: { seq: true },
-        });
-        seqCounters.set(documentId, (last?.seq ?? 0) + 1);
-      } catch {
-        // DB unavailable at init — start from 1; journal writes will also
-        // fail and be swallowed (never break the stream).
-        seqCounters.set(documentId, 1);
-      }
-    })();
-    seqInitPromises.set(documentId, init);
-  }
-  return init;
-}
+//
+// NOTE (Phase C, R2 prerequisite): there is NO in-memory seq counter anymore.
+// `insertRowAtFreshSeq` below allocates every row's seq from a fresh DB head
+// read (with collision retry) because this module exists in MULTIPLE runtime
+// instances (instrumentation bundle vs route-handler bundles) whose cached
+// counters would otherwise collide on @@unique([documentId, seq]) and
+// silently drop rows. See the comment on insertRowAtFreshSeq.
 
 // ---- serialized write chain ---------------------------------------------------
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function enqueueWrite(documentId: string, type: string, toolCallId: string | undefined, payload: string): void {
-  writeChain = writeChain
-    .then(async () => {
-      await ensureSeqInit(documentId);
-      const seq = seqCounters.get(documentId) ?? 1;
-      seqCounters.set(documentId, seq + 1);
-      const { db } = await import('../db');
+/// Insert one row, allocating its seq from the CURRENT journal head on
+/// every attempt. The head is re-read per write (not cached across writes)
+/// because this module has MULTIPLE runtime instances: Next.js compiles
+/// instrumentation.ts (socket service) and each route handler into separate
+/// module graphs, so `seqCounters` here is per-bundle and a cached counter
+/// silently collides on the `@@unique([documentId, seq])` index — the losing
+/// write used to vanish into the writeChain's `.catch` with no error and no
+/// gap in the seq sequence. Re-reading the head + retrying on unique
+/// violations makes cross-bundle interleavings correct regardless of module
+/// duplication; the writeChain below still serializes writes WITHIN one
+/// instance so per-instance enqueue order is preserved.
+async function insertRowAtFreshSeq(
+  documentId: string,
+  type: string,
+  toolCallId: string | undefined,
+  payload: string,
+): Promise<void> {
+  const { db } = await import('../db');
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    let seq: number;
+    try {
+      const last = await db.agentEvent.findFirst({
+        where: { documentId },
+        orderBy: { seq: 'desc' },
+        select: { seq: true },
+      });
+      seq = (last?.seq ?? 0) + 1;
+    } catch (err) {
+      // Head read failed (db unavailable) — surface to the chain's catch.
+      throw err;
+    }
+    try {
       await db.agentEvent.create({
         data: {
           documentId,
@@ -118,7 +127,22 @@ function enqueueWrite(documentId: string, type: string, toolCallId: string | und
           payload,
         },
       });
-    })
+      return;
+    } catch (err) {
+      // Unique violation on (documentId, seq) — another writer instance won
+      // the race for this seq. Retry with a freshly re-read head.
+      lastError = err;
+      continue;
+    }
+  }
+  // Exhausted retries (extreme contention) — rethrow so the chain's catch
+  // swallows it exactly like every other journal failure.
+  throw lastError ?? new Error('journal insert exhausted retries');
+}
+
+function enqueueWrite(documentId: string, type: string, toolCallId: string | undefined, payload: string): void {
+  writeChain = writeChain
+    .then(() => insertRowAtFreshSeq(documentId, type, toolCallId, payload))
     .catch(() => {
       // Journal failures are silently swallowed by design: the live NDJSON
       // stream is the primary path; the journal is a durability backstop.
@@ -212,6 +236,21 @@ export async function getJournalLastSeq(documentId: string): Promise<number> {
   return last?.seq ?? 0;
 }
 
+/// Oldest seq STILL PRESENT for a document (null when the journal is empty).
+/// After Phase C compaction prunes rows folded into a server checkpoint,
+/// this is the floor a client's watermark must be ≥ to replay a contiguous
+/// window — anything older gets the Replicache "bad cookie" full-refetch
+/// treatment (re-baseline + canvas:full) instead of a partial replay.
+export async function getJournalOldestSeq(documentId: string): Promise<number | null> {
+  const { db } = await import('../db');
+  const first = await db.agentEvent.findFirst({
+    where: { documentId },
+    orderBy: { seq: 'asc' },
+    select: { seq: true },
+  });
+  return first?.seq ?? null;
+}
+
 /// DEBUG CLONE — exact body copy of getJournalLastSeq.
 export async function getJournalLastSeq2(documentId: string): Promise<number> {
   const { db } = await import('../db');
@@ -221,6 +260,20 @@ export async function getJournalLastSeq2(documentId: string): Promise<number> {
     select: { seq: true },
   });
   return last?.seq ?? 0;
+}
+
+/// Compaction (Phase C, R2): delete every row with seq ≤ upToSeq for a
+/// document. Called ONLY by journal-fold.ts after a server checkpoint whose
+/// lastSeq covers those rows — the folded DocumentSnapshot is the durable
+/// truth for them. Returns the number of rows pruned. Transcript rows go
+/// too (their window is past; stale clients re-baseline via the events
+/// API's oldestSeq + canvas:full — the Replicache bad-cookie rule).
+export async function deleteJournalRowsUpTo(documentId: string, upToSeq: number): Promise<number> {
+  const { db } = await import('../db');
+  const res = await db.agentEvent.deleteMany({
+    where: { documentId, seq: { lte: upToSeq } },
+  });
+  return res.count;
 }
 
 function safeParse(text: string): unknown {

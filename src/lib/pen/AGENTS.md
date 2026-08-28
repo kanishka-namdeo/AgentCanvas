@@ -57,6 +57,20 @@ The .pen format layer: canonical TypeScript schema for the pen.dev .pen file for
 - `isPenDocument(value)` — validates top-level shape (version string + children array of PenNodes).
 - `isContainerNode(node)` — type guard for nodes with `children` (frame, group, section, component, component_set, boolean_operation).
 
+### Incremental resolve caches (Phase C, R9c — read before touching resolve.ts)
+
+`resolvePenTreeDetailed` runs on EVERY document mutation (recomputeDerived at the tail of every `applyPatchToCanvas`, DomCanvas native-mode useMemo, canvasSnapshot per agent turn, the journal fold per row). Two module-level WeakMap caches key on PEN NODE OBJECT identity and reuse previous results:
+
+1. **Expansion cache** (`expandTree`): while a container's children ARRAY keeps its identity, the previous expansion result is reused — same expanded array, same cached container clone, same ref-expansion subtrees (instance-descendant ids are STABLE across resolves now; they used to regenerate per call). Unchanged containers are returned AS-IS, so `ResolvedTreeNode.pen` IS the source node.
+2. **Emit cache**: per node, the emitted `Shape` + resolved subtree + emit-time warnings are reused when every emit input is unchanged, stamped by: an order-sensitive subtree hash (node id + version + post-layout geometry, mixed with the kids' hashes recursively), a content-stamped theme chain (`themeStamp`), a memoized serialization of `doc.variables`, `parentId`, and the node's own `zIndex`. measuredBounds is deliberately NOT a stamp field — hints influence the emit only THROUGH phase-2 geometry, which IS stamped, so measuring one node invalidates exactly its ancestors and subtree.
+
+HARD RULES:
+- The pen tree is IMMUTABLE (path-copy on update). In-place mutation of a node or its children array goes UNNOTICED by these caches — always go through the applier's pure helpers (`insertNode`/`updateNode`/`removeNode`).
+- The emit reads EXACTLY: node fields, `rn.absX/absY/width/height/theme`, `doc.variables`, `parentId`, the DFS `zIndex` counter. If you add a new external input to the emit, ADD IT TO THE STAMP or you will serve stale shapes.
+- Emitted `Shape` objects are shared across resolves on cache hits — nothing may mutate a Shape after emit.
+- `applyPatchToCanvas` shallow-clones every TOP-LEVEL child per patch, so top-level emit entries never hit across patches — that churn stops at depth 1 (where the node count lives); do not "fix" the defensive clone without proving no op mutates in place.
+- Test hook: `__clearResolveCachesForTests()` + `resolveCacheStats` (emitHits/emitMisses). Identity-reuse contract is pinned by `tests/unit/resolve-cache.test.ts`.
+
 ## Work Guidance
 
 - When pen.dev releases a schema update: update `types.ts` (add/remove fields, bump `PEN_FORMAT_VERSION`), then check `resolve.ts` (mapping logic), `document.ts` (if new container types), `converters.ts` (usually no change — near-identity), and `src/lib/canvas/types.ts` (Shape extensions).

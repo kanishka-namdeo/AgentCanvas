@@ -29,11 +29,13 @@
 // surviving elements reconcile recursively, so a locally-edited container
 // never swallows elements another user added inside it.
 //
-// Known Phase-A limitation (documented in the research roadmap): without
-// tombstones, an element deleted on the server but untouched locally is
-// indistinguishable from a local-only add and is kept — deletions converge
-// via the patch stream, not via reconcile. Tombstones + server-owned fold
-// are Phase C (R2).
+// Known Phase-A limitation, CLOSED in Phase C (R2): tombstones. The server
+// folds deletions into a bounded tombstone set (persisted in checkpoints,
+// maintained live by the socket relay) and rides it on every canvas:full as
+// `deletedIds`. A local-only element whose id is tombstoned was deleted
+// server-side while we were away — it is DROPPED, not kept as a "local-only
+// add". The membership union stays additive for ids the server simply never
+// saw (unsynced local adds).
 //
 // The module is PURE (no store, no socket) so it tests like
 // `dedupeLocalUpdates` — the repo's export-pure-logic-for-testability pattern.
@@ -68,9 +70,18 @@ function childrenOf(node: PenChild): PenChild[] | undefined {
 }
 
 /// Merge one level of the tree. `incoming` provides the base order/placement;
-/// local winners replace values in place; local-only elements are appended.
-function reconcileLevel(incoming: PenChild[], local: PenChild[]): PenChild[] {
-  if (incoming.length === 0) return local; // server has nothing here → keep local subtree (restart rollback guard)
+/// local winners replace values in place; local-only elements are appended
+/// UNLESS tombstoned (deleted server-side — Phase C R2).
+function reconcileLevel(incoming: PenChild[], local: PenChild[], deletedIds?: ReadonlySet<string>): PenChild[] {
+  if (incoming.length === 0) {
+    // Server has nothing here. Pre-R2 this kept the whole local level (a
+    // restart-rollback guard). With tombstones we can do better: keep only
+    // the elements the server did not explicitly delete.
+    if (deletedIds && deletedIds.size > 0) {
+      return local.filter((lk) => !deletedIds.has(lk.id));
+    }
+    return local; // restart rollback guard (no tombstone info)
+  }
   if (local.length === 0) return incoming; // nothing to merge → adopt server order
   const localById = new Map<string, PenChild>();
   for (const lk of local) localById.set(lk.id, lk);
@@ -86,7 +97,7 @@ function reconcileLevel(incoming: PenChild[], local: PenChild[]): PenChild[] {
     const winner = elementWins(lk, ik) ? lk : ik;
     // Recurse so a locally-edited container doesn't drop elements another
     // user added inside it (values may come from local, membership is the
-    // union — additive by design until tombstones land in Phase C).
+    // union — additive by design; deletions ride the tombstone lane).
     const ikids = childrenOf(ik);
     const lkids = childrenOf(lk);
     if (ikids && lkids) {
@@ -94,13 +105,17 @@ function reconcileLevel(incoming: PenChild[], local: PenChild[]): PenChild[] {
       // for every member (e.g. PenRectangle carries no children) — but the
       // container members that reach here accept them, and the runtime only
       // ever takes this branch for containers (childrenOf returned non-null).
-      result.push({ ...winner, children: reconcileLevel(ikids, lkids) } as PenChild);
+      result.push({ ...winner, children: reconcileLevel(ikids, lkids, deletedIds) } as PenChild);
     } else {
       result.push(winner);
     }
   }
   for (const lk of local) {
-    if (!consumed.has(lk.id)) result.push(lk); // local-only → keep (unsynced add)
+    if (consumed.has(lk.id)) continue;
+    // Local-only: an unsynced local add — UNLESS the server tombstoned the
+    // id (it was deleted server-side while we were disconnected).
+    if (deletedIds && deletedIds.has(lk.id)) continue;
+    result.push(lk);
   }
   return result;
 }
@@ -109,14 +124,20 @@ function reconcileLevel(incoming: PenChild[], local: PenChild[]): PenChild[] {
 /// (inputs untouched). Doc-level fields (name/background/variables/themes/
 /// viewport/pages) come from `incoming` — the same authority the old
 /// wholesale-replace gave them; only the ELEMENT tree merges.
+///
+/// `deletedIds` (Phase C R2): server tombstones — node ids deleted on the
+/// server. Local-only elements with a tombstoned id are dropped instead of
+/// resurrecting (see module doc).
 export function reconcileDocuments(
   local: CanvasDocument,
   incoming: CanvasDocument,
   measuredBounds?: Record<string, { width: number; height: number }>,
+  deletedIds?: ReadonlySet<string> | string[],
 ): CanvasDocument {
+  const tombstones = deletedIds instanceof Set ? deletedIds : deletedIds ? new Set(deletedIds) : undefined;
   const localChildren = local.children ?? [];
   const incomingChildren = incoming.children ?? [];
-  const children = reconcileLevel(incomingChildren, localChildren);
+  const children = reconcileLevel(incomingChildren, localChildren, tombstones);
 
   let merged: CanvasDocument = {
     ...incoming,

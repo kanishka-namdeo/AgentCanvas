@@ -20,8 +20,19 @@ import { patchDedupeKey, createBoundedDedupSet, type BoundedDedupSet } from './p
 import { setMeasuredBounds } from '../agent/client-roundtrip';
 import { steerActiveSession } from '../agent/active-sessions';
 import { acceptUserMutation } from './user-patch-journal';
+import {
+  hydrateDocumentFromJournal,
+  writeServerCheckpoint,
+  journalDocumentRestore,
+  trackPatchTombstones,
+  computeChangedNodeIdsSince,
+} from './journal-fold';
 
 const PORT = 3003;
+
+// How often the dirty-checkpoint tick runs (Figma writes checkpoints every
+// 30-60s; agent turns checkpoint at their own boundary).
+const CHECKPOINT_TICK_MS = 30_000;
 
 // In-memory document store.
 interface DocState {
@@ -35,6 +46,18 @@ interface DocState {
   /// client-generated participantId (stable across socket reconnects, unlike
   /// socket.id). Entries are REMOVED when their owning socket disconnects.
   participants: Map<string, PresenceParticipant & { socketId: string }>;
+  /// Phase C (R2): node ids deleted server-side (and not re-added). Rides
+  /// every canvas:full as `deletedIds` so client reconcile drops them instead
+  /// of resurrecting them as "local-only adds". Seeded by the journal fold,
+  /// maintained by applyAndTrack, persisted inside checkpoints.
+  tombstones: Set<string>;
+  /// True when the in-memory document has mutations not yet covered by a
+  /// server checkpoint — the interval tick checkpoints dirty docs.
+  dirty: boolean;
+  /// Per-turn canvas watermark (R9a): the journal seq this document's state
+  /// was last "settled" at (post-hydration / post-checkpoint). The NEXT
+  /// agent turn's prompt delta is computed from here.
+  lastTurnSeq: number;
 }
 
 const documents = new Map<string, DocState>();
@@ -65,33 +88,56 @@ function ensureDocument(documentId: string): DocState {
       subscribers: new Set(),
       appliedPatches: createBoundedDedupSet(),
       participants: new Map(),
+      tombstones: new Set(),
+      dirty: false,
+      lastTurnSeq: 0,
     };
     documents.set(documentId, doc);
   }
   return doc;
 }
 
-/// Shared-canvas cold-start seed: when the FIRST subscriber arrives for a
-/// document this process has no in-memory state for, load the newest
-/// DocumentSnapshot from the server DB so a service restart does not reset
-/// every viewer's canvas to empty (the client's `canvas:full` empty-guard is
-/// the backstop; this makes the healthy path seamless). Any failure (db
-/// unavailable, corrupt JSON, missing model) falls back to the empty default.
-async function seedDocumentFromDb(documentId: string): Promise<CanvasDocument | null> {
-  try {
-    const { db } = await import('../db');
-    const row = await db.documentSnapshot.findFirst({
-      where: { documentId },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (!row) return null;
-    const parsed = JSON.parse(row.document) as CanvasDocument;
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
-    return { ...parsed, id: documentId };
-  } catch {
-    return null;
-  }
+/// Apply a patch to the in-memory document while maintaining the tombstone
+/// lane + dirty flag (Phase C R2). Every apply site in this file goes through
+/// here so live state and fold state can never diverge on tombstones.
+function applyAndTrack(state: DocState, patch: CanvasPatch): void {
+  trackPatchTombstones(state.document, patch, state.tombstones);
+  state.document = applyPatchToCanvas(state.document, patch);
+  state.dirty = true;
 }
+
+/// Tombstone payload for canvas:full events (bounded — the set itself is
+/// FIFO-capped at TOMBSTONE_CAP).
+function deletedIdsFor(state: DocState): { deletedIds: string[] } {
+  return { deletedIds: [...state.tombstones] };
+}
+
+/// Server-authoritative cold-start hydration (Phase C, R2): fold the newest
+/// server checkpoint + journal tail instead of seeding from the newest
+/// client-POSTed snapshot. This is what makes user edits + agent patches
+/// survive a service restart END-TO-END (they were journaled in Phase A/B;
+/// before this they only survived into a NEW checkpoint if a client POSTed
+/// a snapshot). Falls back internally to the legacy newest-snapshot base
+/// for pre-Phase-C documents, then bootstraps a real checkpoint.
+async function hydrateDocumentState(documentId: string): Promise<DocState> {
+  const state = ensureDocument(documentId);
+  try {
+    const hydration = await hydrateDocumentFromJournal(documentId);
+    state.document = hydration.document;
+    state.tombstones = hydration.tombstones;
+    state.lastTurnSeq = hydration.foldedThroughSeq;
+    state.dirty = false;
+  } catch {
+    // Fold failure — keep the empty default; canvas:full empty-guard +
+    // client snapshots remain the backstop (same as the old seed failure).
+  }
+  return state;
+}
+
+/// Shared-canvas cold-start seed: SUPERSEDED in Phase C by
+/// hydrateDocumentState (journal fold). Kept ONLY as the documented history
+/// of what changed — the old newest-DocumentSnapshot seed lost every
+/// journaled mutation above the snapshot on restart.
 
 function broadcast(state: DocState, event: SyncEvent, except?: string) {
   for (const sid of state.subscribers) {
@@ -131,19 +177,21 @@ export function startCanvasSyncService() {
     socket.on('client', async (event: ClientEvent) => {
       switch (event.type) {
         case 'subscribe': {
-          // Cold-start seed: before creating an empty in-memory doc, try the
-          // DB's newest snapshot for this document (shared-canvas model).
+          // Cold-start hydration (Phase C R2): fold checkpoint + journal tail
+          // so a restart does not roll the canvas back to the last client
+          // POSTed snapshot (user edits + agent patches live in the journal).
           let state = documents.get(event.documentId);
           if (!state) {
-            const seeded = await seedDocumentFromDb(event.documentId);
-            state = ensureDocument(event.documentId);
-            if (seeded) {
-              state.document = seeded;
-              console.log(`[canvas-sync] seeded ${event.documentId} from latest DocumentSnapshot`);
-            }
+            state = await hydrateDocumentState(event.documentId);
+            console.log(`[canvas-sync] hydrated ${event.documentId} from journal fold (seq ≤ ${state.lastTurnSeq}, ${state.tombstones.size} tombstones)`);
           }
           state.subscribers.add(socket.id);
-          socket.emit('sync', { type: 'canvas:full', document: state.document, reason: 'sync' } satisfies SyncEvent);
+          socket.emit('sync', {
+            type: 'canvas:full',
+            document: state.document,
+            reason: 'sync',
+            ...deletedIdsFor(state),
+          } satisfies SyncEvent);
           broadcast(state, { type: 'presence', viewerCount: state.subscribers.size });
           // Late joiner gets the current roster (other viewers' cursors) so
           // presence works immediately; the newcomer announces itself with
@@ -202,13 +250,18 @@ export function startCanvasSyncService() {
               break;
             }
           }
-          state.document = applyPatchToCanvas(state.document, event.patch);
+          applyAndTrack(state, event.patch);
           broadcast(state, { type: 'canvas:patch', patch: event.patch }, socket.id);
           break;
         }
         case 'canvas:request_full': {
           const state = ensureDocument(event.documentId);
-          socket.emit('sync', { type: 'canvas:full', document: state.document, reason: 'sync' } satisfies SyncEvent);
+          socket.emit('sync', {
+            type: 'canvas:full',
+            document: state.document,
+            reason: 'sync',
+            ...deletedIdsFor(state),
+          } satisfies SyncEvent);
           break;
         }
         case 'presence:update': {
@@ -232,6 +285,17 @@ export function startCanvasSyncService() {
           // is idempotent) so all viewers + the WS doc stay in sync.
           const state = ensureDocument(event.documentId);
           state.document = event.document;
+          // A restore voids prior deletions (the restored snapshot may bring
+          // deleted nodes back) — reset the tombstone lane rather than
+          // resurrect-suppressing the restore itself.
+          state.tombstones.clear();
+          state.dirty = true;
+          // Journal the restore (Phase C R2): snapshot row + document_restore
+          // event, so the fold replays it after a restart instead of seeding
+          // from "newest snapshot" (which a restore never created).
+          await journalDocumentRestore(event.documentId, event.document);
+          // Next agent turn gets a FULL canvas snapshot — everything changed.
+          state.lastTurnSeq = 0;
           broadcast(state, { type: 'canvas:full', document: state.document, reason: 'restore' } satisfies SyncEvent);
           console.log(`[canvas-sync] document:restore on ${event.documentId} broadcast to ${state.subscribers.size} viewers`);
           break;
@@ -354,6 +418,29 @@ export function startCanvasSyncService() {
   httpServer.listen(PORT, () => {
     console.log(`[canvas-sync] WebSocket server listening on port ${PORT}`);
   });
+
+  // ---- Dirty-checkpoint tick (Phase C, R2) ---------------------------------
+  //
+  // Turn boundaries checkpoint agent runs, but USER edits (drag/move/edit
+  // patches) arrive outside turns. This tick folds any document whose state
+  // changed since its last checkpoint into a server checkpoint every 30s
+  // (Figma writes checkpoints every 30-60s). Documents with a live agent run
+  // are skipped — the run's own turn-boundary checkpoint covers them, and a
+  // moving journal head would only burn the quiescence budget.
+  setInterval(() => {
+    for (const [documentId, state] of documents) {
+      if (!state.dirty) continue;
+      if (activeRuns.has(documentId)) continue;
+      void writeServerCheckpoint(documentId, state.document, state.tombstones)
+        .then((res) => {
+          if (res) {
+            state.lastTurnSeq = res.lastSeq;
+            state.dirty = false;
+          }
+        })
+        .catch(() => {});
+    }
+  }, CHECKPOINT_TICK_MS).unref?.();
 }
 
 // ---- Agent driver -----------------------------------------------------------
@@ -381,7 +468,6 @@ async function driveAgent(
       io?.to(sid).emit('sync', event);
     }
   };
-
   // Turn identity on the wire (R3): broadcast the user's prompt message to
   // every viewer BEFORE the run's first event. The prompting client created
   // the row locally at promptAgent and skips it by messageId (idempotent);
@@ -439,6 +525,21 @@ async function driveAgent(
   const abortController = new AbortController();
   activeRuns.set(documentId, abortController);
 
+  // ---- Delta LLM context (Phase C, R9a) ---------------------------------
+  //
+  // Per-turn canvas watermark: instead of serializing the WHOLE canvas into
+  // the prompt every turn, tell the runner which nodes changed since the
+  // last settled turn (folded journal state — R2). The runner's
+  // canvasSnapshot emits a compact digest + the changed nodes' details;
+  // pen_get_metadata hydrates anything else on demand (tldraw
+  // getChangesSince + Linear late-enrichment). null = full snapshot (first
+  // turn after boot, restore, or any global op since the last turn).
+  let canvasDelta: { sinceSeq: number; nodeIds: string[] | null } | undefined;
+  if (state.lastTurnSeq > 0) {
+    const delta = await computeChangedNodeIdsSince(documentId, state.lastTurnSeq);
+    canvasDelta = { sinceSeq: state.lastTurnSeq, nodeIds: delta.nodeIds };
+  }
+
   // Call the Next.js API route on port 3000. We use 127.0.0.1 directly
   // because we're in the same process as Next.js — no need to go through
   // the Caddy gateway.
@@ -462,6 +563,7 @@ async function driveAgent(
         documentId,
         prompt,
         canvasState: state.document,
+        ...(canvasDelta ? { canvasDelta } : {}),
         settings,
         images,
         selection,
@@ -503,7 +605,7 @@ async function driveAgent(
               continue;
             }
             if (dedupeKey) state.appliedPatches.add(dedupeKey);
-            state.document = applyPatchToCanvas(state.document, evt.patch);
+            applyAndTrack(state, evt.patch);
             fanout({ type: 'canvas:patch', patch: evt.patch, toolCallId: evt.toolCallId });
           } else if (evt.type === 'agent_event') {
             if (evt.event?.type === 'agent:turn_end') sawTurnEnd = true;
@@ -540,5 +642,23 @@ async function driveAgent(
     if (activeRuns.get(documentId) === abortController) {
       activeRuns.delete(documentId);
     }
+    // ---- Turn-boundary checkpoint (Phase C, R2) ---------------------------
+    //
+    // The run's mutations are journaled (route bundle) and applied live
+    // (here). Persist the folded state as a server checkpoint so (a) a
+    // restart rehydrates from checkpoint + tail instead of a stale client
+    // snapshot, and (b) compaction can prune the covered journal rows.
+    // Quiescence happens INSIDE writeServerCheckpoint (the route bundle's
+    // writeChain isn't awaitable from this module instance — the head is
+    // probed until stable). Fire-and-forget: a failure never affects the
+    // completed turn; the 30s dirty tick retries.
+    void writeServerCheckpoint(documentId, state.document, state.tombstones)
+      .then((res) => {
+        if (res) {
+          state.lastTurnSeq = res.lastSeq;
+          state.dirty = false;
+        }
+      })
+      .catch(() => {});
   }
 }

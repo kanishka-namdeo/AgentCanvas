@@ -36,6 +36,7 @@ import { applyPatchToCanvas } from '../canvas/patch';
 import { lucidePromptCatalog, LUCIDE_ICON_COUNT } from '@/lib/icons';
 import { resolvePenTree, resolvePenTreeDetailed, type ResolverWarning } from '../pen/resolve';
 import { getMeasuredBounds } from './client-roundtrip';
+import { formatShapeLine, formatShapeCollapsed } from './shape-line';
 
 // Re-export the shared types from runner-types.ts so existing imports
 // (`import { runAgent, type LLMClient } from '@/lib/agent/runner'`) keep
@@ -110,7 +111,7 @@ export interface AgentRunHandle {
 /// runner stamps it on the first user message of every turn (never the
 /// system prompt — that would break the byte-stable cacheable prefix), so
 /// runs / evals / journal entries are attributable to an exact prompt rev.
-export const PROMPT_VERSION = '2026-08-28.1';
+export const PROMPT_VERSION = '2026-08-29.1';
 
 export const SYSTEM_PROMPT_TEMPLATE = `You are an AI design agent operating a Figma-aligned canvas. You think and act like a senior product designer at a top studio: you reason in terms of FRAMES, LAYERS, COMPONENTS, VARIANTS, VARIABLES, STYLES, AUTO LAYOUT, and PAGES — never in terms of generic "shapes" or "tokens".
 
@@ -785,58 +786,10 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
       // of the snapshot and making runs non-reproducible.
       .sort((a, b) => (b.zIndex - a.zIndex) || a.id.localeCompare(b.id));
 
-  const formatNode = (s: Shape, depth: number): string => {
-    const indent = '  '.repeat(depth + 1);
-    const bullet = depth === 0 ? '•' : '◦';
-    const parent = s.parentId ? byId.get(s.parentId) : null;
-    const parentLabel = parent ? ` (in ${parent.type} "${parent.name}")` : '';
-    const constraintsLabel = s.constraints
-      ? ` constraints=${s.constraints.horizontal}/${s.constraints.vertical}`
-      : '';
-    // v3 vocabulary (D9): characters= for text content presence.
-    const charactersLabel = s.characters ?? s.text ? ` characters="${s.characters ?? s.text}"` : '';
-    const componentLabel = s.componentId ? ` component=${s.componentId}` : '';
-    // v3: layoutMode= (VERTICAL/HORIZONTAL) + itemSpacing= when an auto layout
-    // is set — the Layer's v3 mirrors (M3-a dual-field window) with a legacy
-    // fallback derived from `autoLayout`.
-    const layoutMode = s.layoutMode ?? (s.autoLayout
-      ? (s.autoLayout.direction === 'horizontal' ? 'HORIZONTAL' : 'VERTICAL')
-      : null);
-    const layoutModeLabel = layoutMode ? ` layoutMode=${layoutMode}` : '';
-    const itemSpacingLabel = (s.itemSpacing ?? s.autoLayout?.gap) != null
-      ? ` itemSpacing=${s.itemSpacing ?? s.autoLayout?.gap}`
-      : '';
-    // v3: explicit variable modes on this node (legacy `theme` field).
-    const modesLabel = s.theme && Object.keys(s.theme).length > 0
-      ? ` modes=${JSON.stringify(s.theme)}`
-      : '';
-    // v3: visible=false (not enabled=false) — only surfaced when hidden.
-    const visibleLabel = s.visible === false ? ' visible=false' : '';
-    // Figma ontology extension fields:
-    const sectionLabel = s.type === 'section' && s.label ? ` label="${s.label}"` : '';
-    const variantAxesLabel = s.type === 'component_set' && s.variantPropertyAxes
-      ? ` variantAxes=[${s.variantPropertyAxes.join(',')}]`
-      : '';
-    const variantValuesLabel = s.variantPropertyValues
-      ? ` variant=${Object.entries(s.variantPropertyValues).map(([k, v]) => `${k}=${v}`).join(',')}`
-      : '';
-    const componentPropsLabel = s.componentPropertyDefinitions
-      ? ` componentProps=[${Object.keys(s.componentPropertyDefinitions).join(',')}]`
-      : '';
-    const instancePropsLabel = s.componentProperties
-      ? ` instanceProps=${JSON.stringify(s.componentProperties)}`
-      : '';
-    const booleanTypeLabel = s.booleanOperationType
-      ? ` boolean=${s.booleanOperationType}`
-      : '';
-    const starLabel = s.type === 'star' && s.pointCount ? ` points=${s.pointCount}` : '';
-    const polygonLabel = s.type === 'polygon' && s.polygonCount ? ` sides=${s.polygonCount}` : '';
-    const mb = measured[s.id];
-    const measuredLabel = mb && Number.isFinite(mb.width) && Number.isFinite(mb.height)
-      ? ` measured=${Math.round(mb.width)}×${Math.round(mb.height)}`
-      : '';
-    return `${indent}${bullet} ${s.id} | ${s.type} "${s.name}" | pos=(${round(s.x)},${round(s.y)}) size=${round(s.width)}×${round(s.height)}${measuredLabel} fill=${s.fill}${charactersLabel}${parentLabel}${componentLabel}${layoutModeLabel}${itemSpacingLabel}${modesLabel}${visibleLabel}${constraintsLabel}${sectionLabel}${variantAxesLabel}${variantValuesLabel}${componentPropsLabel}${instancePropsLabel}${booleanTypeLabel}${starLabel}${polygonLabel}`;
-  };
+  // Full-detail line — shared with the delta digest and pen_get_metadata's
+  // detail mode (shape-line.ts, extracted verbatim in Phase C R9a).
+  const formatNode = (s: Shape, depth: number): string =>
+    formatShapeLine(s, depth, { byId, measured });
 
   const renderTree = (parentId: string | null, depth: number): string => {
     const kids = childrenOf(parentId);
@@ -852,41 +805,10 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
   // dashboard screen") lands the new screen at the canvas origin or on top
   // of the first screen, and the two designs stack into visual garbage.
   // Sections are excluded — enclosing frames is a section's purpose.
-  const screenFrames = shapes.filter(
-    (s) => !s.parentId && (s.type === 'frame' || s.type === 'component_set'),
-  );
-  let placementLine: string;
-  if (screenFrames.length === 0) {
-    placementLine = 'canvas is empty — place the first screen frame around (200, 50)';
-  } else {
-    const minX = Math.min(...screenFrames.map((s) => s.x));
-    const minY = Math.min(...screenFrames.map((s) => s.y));
-    const maxRight = Math.max(...screenFrames.map((s) => s.x + s.width));
-    const maxBottom = Math.max(...screenFrames.map((s) => s.y + s.height));
-    placementLine =
-      `existing screens span (${round(minX)},${round(minY)})→(${round(maxRight)},${round(maxBottom)}); ` +
-      `place the NEXT screen frame at (${round(maxRight + 80)},${round(minY)}) — to the RIGHT of existing screens, never on top of them`;
-  }
+  const placementLine = placementLineFor(shapes);
   // v3 vocabulary (D9): Variables / Collections (with modes) / Text styles —
   // no legacy `token` / `theme axis` substrings anywhere in the snapshot.
-  const variablesMap: Record<string, { type: string; value: unknown }> = canvas.variables ?? {};
-  const varEntries: Array<[string, { type: string; value: unknown }]> = Object.keys(variablesMap).length > 0
-    ? Object.entries(variablesMap)
-    : // Legacy docs may only carry the derived color view — surface it as
-      // variables so the model still sees the palette.
-      tokens.colors.map((c) => [c.key, { type: 'color', value: c.value }]);
-  const varLines = varEntries.length === 0
-    ? '  (none)'
-    : varEntries.map(([k, v]) => {
-        const val = Array.isArray(v.value) ? `${(v.value as any[]).length} mode value(s)` : String(v.value);
-        return `  • $${k} (${v.type}) = ${val}`;
-      }).join('\n');
-  const collectionLines = !canvas.themes || Object.keys(canvas.themes).length === 0
-    ? '  (none)'
-    : Object.entries(canvas.themes).map(([axis, vals]) => `  • ${axis}: modes=[${vals.join(', ')}]`).join('\n');
-  const textStyleLines = tokens.textStyles.length === 0
-    ? '  (none)'
-    : tokens.textStyles.map((t) => `  • ${t.key} ${t.fontSize}px/${t.fontWeight} ${t.color} (${t.name})`).join('\n');
+  const varSections = globalVarSections(canvas, tokens);
 
   // Resolver degradation warnings (agent-visible): dropped refs, fit_content
   // placeholder sizes, unresolved $variables, dropped effects. Re-resolve the
@@ -905,15 +827,187 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
 
   return `Current canvas state (.pen v${canvas.version}) — File: "${canvas.name}"${canvas.pages && canvas.pages.length > 0 ? `, Pages: ${canvas.pages.length} (active: "${canvas.pages[canvas.activePageIndex ?? 0]?.name ?? 'Page 1'}")` : ''}:
 - Background: ${canvas.background}
-- Variables (${varEntries.length}):
-${varLines}
+- Variables (${varSections.varCount}):
+${varSections.varLines}
 - Collections:
-${collectionLines}
+${varSections.collectionLines}
 - Text styles (${tokens.textStyles.length}):
-${textStyleLines}
+${varSections.textStyleLines}
 - Layer tree (${shapes.length} layer(s), indented = nesting):
 ${treeLines}
 ${warningsSection}- Next screen placement: ${placementLine}`;
+}
+
+/// Multi-screen placement hint shared by the full snapshot and the delta
+/// digest (R9a) — the "second prompt" contract line. Extracted verbatim
+/// from canvasSnapshot in Phase C.
+function placementLineFor(shapes: Shape[]): string {
+  const screenFrames = shapes.filter(
+    (s) => !s.parentId && (s.type === 'frame' || s.type === 'component_set'),
+  );
+  if (screenFrames.length === 0) {
+    return 'canvas is empty — place the first screen frame around (200, 50)';
+  }
+  const minX = Math.min(...screenFrames.map((s) => s.x));
+  const minY = Math.min(...screenFrames.map((s) => s.y));
+  const maxRight = Math.max(...screenFrames.map((s) => s.x + s.width));
+  const maxBottom = Math.max(...screenFrames.map((s) => s.y + s.height));
+  return (
+    `existing screens span (${round(minX)},${round(minY)})→(${round(maxRight)},${round(maxBottom)}); ` +
+    `place the NEXT screen frame at (${round(maxRight + 80)},${round(minY)}) — to the RIGHT of existing screens, never on top of them`
+  );
+}
+
+interface GlobalVarSections {
+  varCount: number;
+  varLines: string;
+  collectionLines: string;
+  textStyleLines: string;
+}
+
+/// Variables / Collections / Text-styles sections shared by the full snapshot
+/// and the delta digest (R9a). Extracted verbatim from canvasSnapshot —
+/// byte-identical output (prompt-cache contract).
+function globalVarSections(
+  canvas: CanvasDocument,
+  tokens: { colors: Array<{ key: string; value: string }>; textStyles: Array<{ key: string; fontSize: number; fontWeight: number | string; color: string; name: string }> },
+): GlobalVarSections {
+  const variablesMap: Record<string, { type: string; value: unknown }> = canvas.variables ?? {};
+  const varEntries: Array<[string, { type: string; value: unknown }]> = Object.keys(variablesMap).length > 0
+    ? Object.entries(variablesMap)
+    : // Legacy docs may only carry the derived color view — surface it as
+      // variables so the model still sees the palette.
+      tokens.colors.map((c) => [c.key, { type: 'color', value: c.value }]);
+  const varLines = varEntries.length === 0
+    ? '  (none)'
+    : varEntries.map(([k, v]) => {
+        const val = Array.isArray(v.value) ? `${(v.value as any[]).length} mode value(s)` : String(v.value);
+        return `  • $${k} (${v.type}) = ${val}`;
+      }).join('\n');
+  const collectionLines = !canvas.themes || Object.keys(canvas.themes).length === 0
+    ? '  (none)'
+    : Object.entries(canvas.themes).map(([axis, vals]) => `  • ${axis}: modes=[${vals.join(', ')}]`).join('\n');
+  const textStyleLines = tokens.textStyles.length === 0
+    ? '  (none)'
+    : tokens.textStyles.map((t) => `  • ${t.key} ${t.fontSize}px/${t.fontWeight} ${t.color} (${t.name})`).join('\n');
+  return { varCount: varEntries.length, varLines, collectionLines, textStyleLines };
+}
+
+/// Delta LLM context (Phase C, R9a — tldraw getChangesSince + Linear
+/// late-enrichment): the per-turn digest the server requests when it can
+/// compute which nodes changed since the last settled turn. Everything the
+/// model needs to KEEP doing its job is global and always present (palette,
+/// collections, text styles, screen-frame placement, page list); only the
+/// LAYER TREE collapses — changed nodes keep their full formatShapeLine
+/// detail, unchanged subtrees collapse to one navigation line with an
+/// explicit pen_get_metadata expansion pointer. Deleted ids in `changedIds`
+/// (changed then removed) simply don't resolve and are skipped.
+///
+/// Warnings are scoped to changed ids: an unchanged node's degradation
+/// status cannot change without either the node itself changing (→ it would
+/// be in changedIds) or a global op (→ the server sends nodeIds:null and the
+/// caller falls back to the FULL snapshot, which reports everything).
+export function canvasSnapshotDelta(
+  canvas: CanvasDocument,
+  changedIds: ReadonlySet<string> | string[],
+): string {
+  const changed = changedIds instanceof Set ? changedIds : new Set(changedIds);
+  const shapes = canvas.shapes ?? [];
+  const tokens = canvas.tokens ?? { colors: [], textStyles: [] };
+  const measured = getMeasuredBounds(canvas.id);
+
+  const byId = new Map(shapes.map((s) => [s.id, s] as const));
+  // Children index built ONCE (same ordering as the full snapshot: top-most
+  // paint layer first, canonical id tiebreak — determinism contract).
+  const kidsByParent = new Map<string, Shape[]>();
+  for (const s of shapes) {
+    const key = s.parentId ?? '';
+    const list = kidsByParent.get(key);
+    if (list) list.push(s);
+    else kidsByParent.set(key, [s]);
+  }
+  for (const list of kidsByParent.values()) {
+    list.sort((a, b) => (b.zIndex - a.zIndex) || a.id.localeCompare(b.id));
+  }
+  const kidsOf = (parentId: string | null): Shape[] => kidsByParent.get(parentId ?? '') ?? [];
+
+  // Bottom-up pass: descendants count + does-the-subtree-contain-changes.
+  // Visited guard makes malformed input (cycles) degrade to a flat render
+  // instead of a stack overflow.
+  const descendants = new Map<string, number>();
+  const changedBelow = new Map<string, boolean>();
+  const seen = new Set<string>();
+  const walkUp = (s: Shape): { count: number; any: boolean } => {
+    if (seen.has(s.id)) return { count: 0, any: false };
+    seen.add(s.id);
+    let count = 0;
+    let any = changed.has(s.id);
+    for (const kid of kidsOf(s.id)) {
+      const sub = walkUp(kid);
+      count += 1 + sub.count;
+      if (sub.any) any = true;
+    }
+    descendants.set(s.id, count);
+    changedBelow.set(s.id, any);
+    return { count, any };
+  };
+  for (const s of kidsOf(null)) walkUp(s);
+
+  // Render: changed → full line + recurse; unchanged with changed below →
+  // collapsed line + recurse; unchanged leaf-subtree → collapsed line with
+  // the hidden-descendants pointer.
+  const renderDelta = (parentId: string | null, depth: number): string => {
+    const kids = kidsOf(parentId);
+    if (kids.length === 0) return '';
+    const parts: string[] = [];
+    for (const s of kids) {
+      if (changed.has(s.id)) {
+        parts.push(formatShapeLine(s, depth, { byId, measured }));
+        const below = renderDelta(s.id, depth + 1);
+        if (below) parts.push(below);
+      } else if (changedBelow.get(s.id)) {
+        parts.push(formatShapeCollapsed(s, depth, 0));
+        const below = renderDelta(s.id, depth + 1);
+        if (below) parts.push(below);
+      } else {
+        parts.push(formatShapeCollapsed(s, depth, descendants.get(s.id) ?? 0));
+      }
+    }
+    return parts.join('\n') + '\n';
+  };
+
+  const changedInCanvas = shapes.filter((s) => changed.has(s.id));
+  const treeLines = shapes.length === 0
+    ? '  (empty)'
+    : renderDelta(null, 0).trimEnd();
+
+  const measuredHint = measured && Object.keys(measured).length > 0 ? { measuredBounds: measured } : undefined;
+  const resolveWarnings = resolvePenTreeDetailed(canvas, measuredHint).warnings
+    .filter((w) => changed.has(w.nodeId));
+  const warnLines = resolveWarnings.length === 0
+    ? ''
+    : resolveWarnings.slice(0, 15).map((w) => `  - [${w.kind}] ${w.nodeId}${w.nodeType ? ` (${w.nodeType})` : ''}: ${w.message}`).join('\n') +
+      (resolveWarnings.length > 15 ? `\n  … ${resolveWarnings.length - 15} more` : '') + '\n';
+  const warningsSection = warnLines
+    ? `- Resolve warnings (${resolveWarnings.length}, changed nodes only) — these layers render DEGRADED; fix them (explicit sizes, defined variables, valid refs) before finishing:\n${warnLines}`
+    : '';
+
+  const varSections = globalVarSections(canvas, tokens);
+  const placementLine = placementLineFor(shapes);
+
+  return `Current canvas state — DELTA MODE (unchanged subtrees are collapsed; expand any node on demand) (.pen v${canvas.version}) — File: "${canvas.name}"${canvas.pages && canvas.pages.length > 0 ? `, Pages: ${canvas.pages.length} (active: "${canvas.pages[canvas.activePageIndex ?? 0]?.name ?? 'Page 1'}")` : ''}:
+- Background: ${canvas.background}
+- Variables (${varSections.varCount}):
+${varSections.varLines}
+- Collections:
+${varSections.collectionLines}
+- Text styles (${tokens.textStyles.length}):
+${varSections.textStyleLines}
+- Changed since the last turn: ${changedInCanvas.length} node(s) (full detail below; everything else is collapsed)
+- Layer tree (${shapes.length} layer(s); collapsed lines = UNCHANGED since the last turn):
+${treeLines}
+${warningsSection}- Next screen placement: ${placementLine}
+- Unchanged nodes are collapsed to save context — call pen_get_metadata with a nodeId (detail:true for the full field line) whenever you need an unchanged node's exact details.`;
 }
 
 /// Build the palettes list string with the user's default palette first.

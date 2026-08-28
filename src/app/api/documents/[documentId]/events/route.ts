@@ -11,8 +11,13 @@
 // deltas were never journaled, so responses stay compact.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getJournalEvents, getJournalLastSeq } from '@/lib/agent/event-journal';
+import {
+  getJournalEvents,
+  getJournalLastSeq,
+  getJournalOldestSeq,
+} from '@/lib/agent/event-journal';
 import { getMutationClocks } from '@/lib/canvas/user-patch-journal';
+import { getCheckpointSeq } from '@/lib/canvas/journal-fold';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,10 +37,12 @@ export async function GET(
     : DEFAULT_LIMIT;
 
   try {
-    const [events, lastSeq, lastMutationIDChanges] = await Promise.all([
+    const [events, lastSeq, lastMutationIDChanges, snapshotSeq, oldestSeq] = await Promise.all([
       getJournalEvents(documentId, afterSeq, limit),
       getJournalLastSeq(documentId),
       getMutationClocks(documentId),
+      getCheckpointSeq(documentId),
+      getJournalOldestSeq(documentId),
     ]);
     return NextResponse.json({
       events,
@@ -46,6 +53,13 @@ export async function GET(
       // offline outbox) treats any mutation with id <= its entry here as
       // durably applied server-side. Additive — old consumers ignore it.
       lastMutationIDChanges,
+      // Phase C (R2) compaction awareness: `snapshotSeq` = the seq covered by
+      // the newest server-written fold checkpoint; `oldestSeq` = the minimum
+      // seq still present. A client whose watermark < oldestSeq cannot
+      // replay a contiguous window and must re-baseline (full refetch via
+      // canvas:full — the Replicache bad-cookie rule), never error.
+      snapshotSeq,
+      oldestSeq,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown database error';

@@ -33,6 +33,8 @@ function mockEventsApi(
     lastSeq: number;
     truncated?: boolean;
     lastMutationIDChanges?: Record<string, number>;
+    oldestSeq?: number | null;
+    snapshotSeq?: number | null;
   }>,
 ): { calls: string[] } {
   const calls: string[] = [];
@@ -56,6 +58,8 @@ function mockEventsApi(
           count: key.events.length,
           truncated: key.truncated ?? false,
           lastMutationIDChanges: key.lastMutationIDChanges ?? {},
+          oldestSeq: key.oldestSeq ?? null,
+          snapshotSeq: key.snapshotSeq ?? null,
         }),
         { status: 200 },
       );
@@ -320,6 +324,67 @@ describe('journal-catchup: unbounded gap replay (R3)', () => {
 
     expect(adapter.dispatched).toEqual([]);
     expect(loadWatermark(DOC)).toBe(77); // untouched — retried on next reconnect
+  });
+});
+
+describe('journal-catchup: too-old watermark re-baseline (R2 compaction)', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('re-baselines WITHOUT replay when rows below the watermark were compacted away', async () => {
+    saveWatermark(DOC, 5);
+    // Server compacted: the oldest surviving row is 120, head 200. Watermark
+    // 5 < 120 → the window is NOT contiguous — replaying the surviving
+    // fragment would surface a partial history. Replicache bad-cookie rule:
+    // full refetch (canvas via canvas:full, transcript via the sessions
+    // store), never an error, never a partial replay.
+    mockEventsApi({
+      5: {
+        events: [row(120, 'agent:message_start', { type: 'agent:message_start' })],
+        lastSeq: 200,
+        oldestSeq: 120,
+        snapshotSeq: 118,
+      },
+    });
+    const adapter = recordingAdapter();
+    await runJournalCatchUp(DOC, adapter);
+
+    expect(loadWatermark(DOC)).toBe(200); // re-baselined to the head
+    expect(adapter.dispatched).toEqual([]); // NO replay of the surviving fragment
+    expect(adapter.clocks).toEqual([{}]); // mutation clocks still reported (outbox prune)
+  });
+
+  it('replays normally when the watermark sits inside the surviving window', async () => {
+    saveWatermark(DOC, 119);
+    mockEventsApi({
+      119: { events: [row(120, 'agent:message_end', { type: 'agent:message_end' })], lastSeq: 121, oldestSeq: 120 },
+    });
+    const adapter = recordingAdapter();
+    await runJournalCatchUp(DOC, adapter);
+
+    expect(loadWatermark(DOC)).toBe(121);
+    expect(adapter.dispatched).toEqual(['agent:message_end']);
+  });
+
+  it('replays normally when oldestSeq is absent (pre-Phase-C server)', async () => {
+    saveWatermark(DOC, 7);
+    mockEventsApi({
+      7: { events: [row(8, 'agent:turn_end', { type: 'agent:turn_end' })], lastSeq: 8 },
+    });
+    const adapter = recordingAdapter();
+    await runJournalCatchUp(DOC, adapter);
+
+    expect(loadWatermark(DOC)).toBe(8);
+    expect(adapter.dispatched).toEqual(['agent:turn_end']);
+  });
+
+  it('keeps the old watermark when the probe fails (offline — same as the gap path)', async () => {
+    saveWatermark(DOC, 5);
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new Error('offline');
+    }));
+    const adapter = recordingAdapter();
+    await runJournalCatchUp(DOC, adapter);
+    expect(loadWatermark(DOC)).toBe(5);
   });
 });
 

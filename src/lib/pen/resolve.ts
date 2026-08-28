@@ -339,6 +339,10 @@ interface ResolvedNode {
   height: number;
   // Effective theme (inherited):
   theme: PenTheme;
+  // Content stamp of the inherited-theme chain at this node (R9c — emit-cache
+  // key; mergeTheme mints fresh merged objects per call for themed nodes, so
+  // identity cannot key the cache).
+  themeStamp?: string;
   // Resolved children (populated during bottom-up pass).
   _kids?: ResolvedNode[];
 }
@@ -679,6 +683,135 @@ export function resolvePenTree(doc: CanvasDocument, opts?: ResolveOpts): Shape[]
   return resolvePenTreeDetailed(doc, opts).layers;
 }
 
+// ---- Incremental resolve caches (Phase C, R9c) ---------------------------------
+//
+// tldraw structural-sharing + createComputedCache pattern: resolvePenTreeDetailed
+// runs on EVERY document mutation (recomputeDerived at the tail of every
+// applyPatchToCanvas, DomCanvas's native-mode useMemo, canvasSnapshot per
+// turn, the journal fold per row). Before R9c every call deep-cloned every
+// container during ref expansion (regenerating instance-descendant UUIDs),
+// re-ran the full emit (~45-field Shape literal per node), and minted
+// brand-new objects — so the DomNode React.memo could NEVER hit and the whole
+// world tree re-rendered on every patch.
+//
+// Two caches fix that, both keyed on PEN NODE OBJECT IDENTITY (WeakMap —
+// entries die with their nodes):
+//
+//   1. Expansion cache (expandTree): while a container's children ARRAY keeps
+//      its identity (the appliers' path-copy discipline), the previous
+//      expansion RESULT is reused — same expanded array, same container clone
+//      object, same ref-expansion subtrees. Unchanged containers are returned
+//      AS-IS (identity preserved into ResolvedTreeNode.pen); containers whose
+//      subtree actually changed get a CACHED clone (stable identity while the
+//      structure is stable).
+//
+//   2. Emit cache: per node, the emitted Shape + resolved subtree are reused
+//      when EVERY input the emit reads is unchanged. The stamp covers:
+//        - `sub`  — an order-sensitive hash of the subtree: node id, version,
+//          post-layout geometry (absX/absY/width/height), and the kids' hashes
+//          recursively (so any descendant content OR geometry change
+//          invalidates its ancestors, while a fixed-size ancestor whose
+//          geometry did not move still hits);
+//        - themeStamp — content-stamped effective theme chain (mergeTheme
+//          returns the inherited identity only when the node has no own
+//          theme, so identity alone is not enough);
+//        - varsStamp — memoized serialization of doc.variables (patch.ts
+//          shallow-copies it per patch, identity churns);
+//        - parentId + zIndex — emit-context (a reparent or an insertion
+//          before this node in DFS order shifts both).
+//
+//      measuredBounds is deliberately NOT a stamp field: hints only influence
+//      the emit THROUGH phase-2 geometry, which IS stamped — so a measurement
+//      of one node invalidates exactly that node's ancestors and subtree,
+//      nothing else.
+//
+// Correctness contract: the pen tree is treated as immutable (path-copy on
+// update — the same discipline Phase A's reconcile relies on). In-place
+// mutation of a node or its children array would go unnoticed by these
+// caches. The emit-cache slots are per-node and stamp-matched, so the
+// with-hints (recomputeDerived) and no-hints (DomCanvas native) resolve
+// flavors coexist without cross-contamination.
+
+interface EmitCacheEntry {
+  /// Order-sensitive subtree content/geometry hash (see module doc).
+  sub: number;
+  /// Content stamp of the effective theme chain.
+  themeStamp: string;
+  /// Content stamp of doc.variables.
+  varsStamp: string;
+  /// Parent id at emit time.
+  parentId: string | null;
+  /// This node's own zIndex (the DFS counter value when it was emitted).
+  zIndex: number;
+  /// DFS-flat Shape slice for the whole subtree (own shape at [0]).
+  flat: Shape[];
+  /// The subtree's ResolvedTreeNode (layer + pen + children).
+  treeNode: ResolvedTreeNode;
+  /// The DFS counter value AFTER this subtree was emitted.
+  zIndexEnd: number;
+  /// Warnings emitted inside this subtree during the storing call — replayed
+  /// (with per-call dedupe) whenever the entry hits, so cached subtrees keep
+  /// reporting their degradation.
+  warnings: ResolverWarning[];
+}
+
+/// Slots per node: recomputeDerived-with-hints, DomCanvas-no-hints, and one
+/// spare for a measured-flush transition. FIFO beyond that.
+const EMIT_CACHE_SLOTS = 3;
+
+let emitCache = new WeakMap<PenChild, EmitCacheEntry[]>();
+let containerExpansionCache = new WeakMap<PenChild, { kids: PenChild[]; expandedKids: PenChild[]; outChild: PenChild }>();
+let containerCloneCache = new WeakMap<PenChild, { kids: PenChild[]; clone: PenChild }>();
+let refExpansionCache = new WeakMap<PenRef, { target: PenChild | null; expanded: PenChild | null }>();
+const themeSerializedMemo = new WeakMap<object, string>();
+const varsStampMemo = new WeakMap<object, string>();
+
+/// Cache stats (test/diagnostic visibility only).
+export const resolveCacheStats = { emitHits: 0, emitMisses: 0 };
+
+/// Test hook: wipe every incremental-resolve cache + stats.
+export function __clearResolveCachesForTests(): void {
+  emitCache = new WeakMap();
+  containerExpansionCache = new WeakMap();
+  containerCloneCache = new WeakMap();
+  refExpansionCache = new WeakMap();
+  resolveCacheStats.emitHits = 0;
+  resolveCacheStats.emitMisses = 0;
+}
+
+function varsStampOf(vars: unknown): string {
+  if (!vars || typeof vars !== 'object') return '';
+  const obj = vars as Record<string, unknown>;
+  let s = varsStampMemo.get(obj);
+  if (s === undefined) {
+    try {
+      s = JSON.stringify(obj);
+    } catch {
+      s = `unserializable-${Math.random()}`;
+    }
+    varsStampMemo.set(obj, s);
+  }
+  return s;
+}
+
+/// Content stamp for one link of the inherited-theme chain: the inherited
+/// stamp plus this node's own theme (memoized serialization — the own-theme
+/// OBJECT identity is stable across calls because it is a field of the pen
+/// node, but mergeTheme mints a fresh merged object per call for themed
+/// nodes, so identity cannot key it).
+function stampTheme(inheritedStamp: string, own: unknown): string {
+  if (!own || typeof own !== 'object') return inheritedStamp;
+  const keys = Object.keys(own as Record<string, unknown>);
+  if (keys.length === 0) return inheritedStamp;
+  const obj = own as object;
+  let s = themeSerializedMemo.get(obj);
+  if (s === undefined) {
+    s = JSON.stringify(own);
+    themeSerializedMemo.set(obj, s);
+  }
+  return inheritedStamp + '|' + s;
+}
+
 /**
  * Resolve a .pen document tree into BOTH representations the renderers need
  * (spec Phase 2):
@@ -714,24 +847,74 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
   };
 
   // First, expand all refs into a working tree (refs become their resolved
-  // subtrees). We do this recursively.
+  // subtrees) — IDENTITY-PRESERVING (R9c): a container whose subtree has no
+  // refs and unchanged children is returned AS-IS; containers that did change
+  // get a CACHED clone (stable identity while the structure is stable); ref
+  // expansions are cached per (ref node, target) so instance-descendant ids
+  // stop regenerating on every resolve. The children ARRAY identity is the
+  // validity key (path-copy discipline — see the R9c module doc).
   function expandTree(children: PenChild[], inheritedTheme: PenTheme): PenChild[] {
-    return (children ?? []).flatMap((child) => {
+    const src = children ?? [];
+    if (src.length === 0) return src;
+    let anyChanged = false;
+    const result: PenChild[] = [];
+    for (const child of src) {
       if (child.type === 'ref') {
-        const expanded = expandRef(child as PenRef, components);
+        const expanded = expandRefCached(child as PenRef);
         if (!expanded) {
           // Missing target (unknown id / not reusable) — the node is DROPPED
           // entirely. This is the agent's most likely ref mistake, so the
           // warning names the target id.
           warn(child, 'dropped_ref', `ref target "${(child as PenRef).ref}" not found (unknown id, or the target node is not reusable:true) — the instance was DROPPED and renders nothing`);
+          anyChanged = true;
+          continue;
         }
-        return expanded ? [expanded] : [];
+        result.push(expanded);
+        anyChanged = true; // a ref is always replaced by its expansion
+        continue;
       }
       if (isContainerNode(child) && child.children) {
-        return [{ ...child, children: expandTree(child.children, inheritedTheme) }];
+        let expandedKids: PenChild[];
+        let outChild: PenChild;
+        const cached = containerExpansionCache.get(child);
+        if (cached && cached.kids === child.children) {
+          expandedKids = cached.expandedKids;
+          outChild = cached.outChild;
+        } else {
+          expandedKids = expandTree(child.children, inheritedTheme);
+          outChild = expandedKids === child.children ? child : cloneContainerCached(child, expandedKids);
+          containerExpansionCache.set(child, { kids: child.children, expandedKids, outChild });
+        }
+        result.push(outChild);
+        if (outChild !== child) anyChanged = true;
+        continue;
       }
-      return [child];
-    });
+      result.push(child);
+    }
+    return anyChanged ? result : src;
+  }
+
+  /// Ref expansion through the (ref-node, target) cache. Same ref node + same
+  /// component target ⇒ the SAME expanded subtree object across resolves
+  /// (stable instance-descendant ids — they previously regenerated per call,
+  /// churning React keys + WeakMap keys for every instance descendant).
+  function expandRefCached(ref: PenRef): PenChild | null {
+    const target = components.get(ref.ref) ?? null;
+    const cached = refExpansionCache.get(ref);
+    if (cached && cached.target === target) return cached.expanded;
+    const expanded = expandRef(ref, components);
+    refExpansionCache.set(ref, { target, expanded });
+    return expanded;
+  }
+
+  /// Container clone with a stable identity while the (container, kids) pair
+  /// is unchanged.
+  function cloneContainerCached(child: PenChild, kids: PenChild[]): PenChild {
+    const cached = containerCloneCache.get(child);
+    if (cached && cached.kids === kids) return cached.clone;
+    const clone = { ...child, children: kids } as PenChild;
+    containerCloneCache.set(child, { kids, clone });
+    return clone;
   }
 
   // Defensive: if doc.children is missing (e.g. legacy test fixtures), treat as empty.
@@ -752,6 +935,7 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
       width: 0,
       height: 0,
       theme: mergeTheme(inheritedTheme, (node as any).theme),
+      themeStamp: stampTheme(parent ? parent.themeStamp ?? '' : '', (node as any).theme),
     }));
 
     // For leaf nodes (no children), compute size now.
@@ -852,9 +1036,85 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
   // the flat list (`out` — parent pushed before its children, matching the
   // original emit order exactly) and the pre-flattening tree consumed by the
   // DOM renderer's native layout mode.
+  // ---- R9c stamp machinery (per call) ------------------------------------
+  const varsStamp = varsStampOf(doc.variables);
+  const stampMemo = new Map<ResolvedNode, number>();
+  const hashString = (s: string): number => {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  };
+  const mixNum = (h: number, v: number) => (Math.imul(h, 31) + v) | 0;
+  const quant = (v: number) => Math.round((Number.isFinite(v) ? v : 0) * 256);
+
+  /// Order-sensitive subtree stamp: node id + version + post-layout geometry,
+  /// mixed with the kids' stamps recursively. Any descendant content or
+  /// geometry change (including reorder — the mix is sequential) changes the
+  /// value, invalidating every ancestor's cached emit.
+  function stampOf(rn: ResolvedNode): number {
+    const memo = stampMemo.get(rn);
+    if (memo !== undefined) return memo;
+    let h = 2166136261;
+    h = mixNum(h, hashString(String((rn.node as { id?: unknown }).id ?? '')));
+    const version = (rn.node as { version?: unknown }).version;
+    h = mixNum(h, typeof version === 'number' ? version : 0);
+    h = mixNum(h, quant(rn.width));
+    h = mixNum(h, quant(rn.height));
+    h = mixNum(h, quant(rn.absX));
+    h = mixNum(h, quant(rn.absY));
+    const kids = (rn as { _kids?: ResolvedNode[] })._kids;
+    if (kids) for (const k of kids) h = mixNum(h, stampOf(k));
+    stampMemo.set(rn, h);
+    return h;
+  }
+
   function emit(nodes: (ResolvedNode & { _kids?: ResolvedNode[] })[], parentId: string | null): ResolvedTreeNode[] {
     const treeNodes: ResolvedTreeNode[] = [];
     for (const rn of nodes) {
+      // ---- R9c emit-cache lookup -------------------------------------------
+      // Every input the emit reads is stamped (see the R9c module doc); on a
+      // hit the whole subtree — flat Shape slice, tree node, and emit-time
+      // warnings — is reused with ORIGINAL object identities, which is what
+      // finally lets the DomNode React.memo hit on document changes.
+      const ownZ = zIndex;
+      const sub = stampOf(rn);
+      const themeStamp = rn.themeStamp ?? '';
+      const slots = emitCache.get(rn.node);
+      let hit: EmitCacheEntry | undefined;
+      if (slots) {
+        for (const slot of slots) {
+          if (
+            slot.sub === sub &&
+            slot.zIndex === ownZ &&
+            slot.parentId === parentId &&
+            slot.themeStamp === themeStamp &&
+            slot.varsStamp === varsStamp
+          ) {
+            hit = slot;
+            break;
+          }
+        }
+      }
+      if (hit) {
+        resolveCacheStats.emitHits++;
+        for (const w of hit.warnings) {
+          const key = `${w.nodeId}::${w.kind}`;
+          if (warnSeen.has(key)) continue;
+          warnSeen.add(key);
+          warnings.push(w);
+          opts?.warnings?.push(w);
+        }
+        out.push(...hit.flat);
+        treeNodes.push(hit.treeNode);
+        zIndex = hit.zIndexEnd;
+        continue;
+      }
+      resolveCacheStats.emitMisses++;
+      const outStart = out.length;
+      const warnStart = warnings.length;
       const n = rn.node;
       const vars = variables;
       const theme = rn.theme;
@@ -1046,9 +1306,59 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
         rn._kids && rn._kids.length > 0
           ? emit(rn._kids as (ResolvedNode & { _kids?: ResolvedNode[] })[], n.id)
           : [];
-      treeNodes.push({ layer: shape, pen: n, children: kids });
+      const treeNode: ResolvedTreeNode = { layer: shape, pen: n, children: kids };
+      treeNodes.push(treeNode);
+      // ---- R9c emit-cache store ---------------------------------------------
+      // The entry covers this whole subtree: flat slice + tree node + the
+      // warnings emitted below `warnStart` (nested cache hits replay into
+      // `warnings` mid-subtree, so the slice is complete either way).
+      storeEmitEntry(rn, parentId, ownZ, sub, themeStamp, outStart, warnStart, treeNode);
     }
     return treeNodes;
+  }
+
+  /// Persist one subtree's emit result into the R9c cache.
+  function storeEmitEntry(
+    rn: ResolvedNode,
+    parentId: string | null,
+    ownZ: number,
+    sub: number,
+    themeStamp: string,
+    outStart: number,
+    warnStart: number,
+    treeNode: ResolvedTreeNode,
+  ): void {
+    const entry: EmitCacheEntry = {
+      sub,
+      themeStamp,
+      varsStamp,
+      parentId,
+      zIndex: ownZ,
+      zIndexEnd: zIndex,
+      flat: out.slice(outStart),
+      treeNode,
+      warnings: warnings.slice(warnStart),
+    };
+    let slots = emitCache.get(rn.node);
+    if (!slots) {
+      slots = [];
+      emitCache.set(rn.node, slots);
+    }
+    // Replace the slot with the same stamp (re-emit settling back) or
+    // FIFO-evict beyond the flavor budget.
+    const staleIdx = slots.findIndex(
+      (s) =>
+        s.sub === entry.sub &&
+        s.themeStamp === entry.themeStamp &&
+        s.varsStamp === entry.varsStamp &&
+        s.parentId === entry.parentId &&
+        s.zIndex === entry.zIndex,
+    );
+    if (staleIdx >= 0) slots[staleIdx] = entry;
+    else {
+      slots.push(entry);
+      if (slots.length > EMIT_CACHE_SLOTS) slots.shift();
+    }
   }
 
   const tree = emit(resolved, null);

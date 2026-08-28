@@ -66,6 +66,7 @@ import { applyPatchToCanvas } from '../canvas/patch';
 import { renderCanvasToPng } from '../canvas/render-to-png';
 import type { PenChild } from '../pen/types';
 import { getLucideIcon, searchLucideIcons, lucidePromptCatalog } from '@/lib/icons';
+import { formatShapeLine } from './shape-line';
 import { emitEvent, hasSink } from './plugins/event-bus';
 import {
   aliasToolEntries,
@@ -3836,11 +3837,17 @@ const createShape = defineTool({
     name: 'pen_get_metadata',
     label: 'Get Canvas Metadata (sparse tree)',
     description: 'Read canvas structure. With nodeId: sparse tree of that subtree — ' +
-      'one line per node: id, name, type, x, y, width, height. Without nodeId (or unknown id): ' +
-      'the page list (id + name). Always call this before heavier reads.',
-    promptSnippet: 'Navigate the canvas: page list by default, sparse subtree tree with a nodeId.',
+      'one line per node: id, name, type, x, y, width, height. With detail:true AND a nodeId: ' +
+      'the FULL field line for that one node (fill, characters, layoutMode, itemSpacing, modes, ' +
+      'constraints, component/variant fields — the same vocabulary as the canvas snapshot) plus ' +
+      'its direct children sparse — use it to expand a node the delta snapshot collapsed. ' +
+      'Without nodeId (or unknown id): the page list (id + name). Always call this before heavier reads.',
+    promptSnippet: 'Navigate the canvas: page list by default, sparse subtree tree with a nodeId, full field line with detail:true.',
     parameters: Type.Object({
       nodeId: Type.Optional(Type.String({ description: 'Node id (or page id) to read. Omit for the page list.' })),
+      detail: Type.Optional(Type.Boolean({
+        description: 'With nodeId: return the FULL field line for that node (the canvas-snapshot vocabulary) + its direct children sparse, instead of the whole-subtree sparse tree. Expands nodes the delta snapshot collapsed.',
+      })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const doc = ctx.getDocument?.();
@@ -3883,6 +3890,30 @@ const createShape = defineTool({
       if (!target) {
         // Figma MCP recovery behavior: unknown id → page list, never an error dead-end.
         return { content: [{ type: 'text', text: pageListLines(`nodeId "${params.nodeId}" not found — showing the page list.`) }], details: { mode: 'page_list', note: 'unknown_node_id' } };
+      }
+
+      // Detail mode (Phase C, R9a): the FULL field line for exactly this node
+      // (identical vocabulary to the canvas snapshot's layer lines — extracted
+      // to shape-line.ts so the delta digest's collapsed lines and this
+      // hydration path can never drift) plus one sparse line per direct child
+      // so the model knows what's inside without a second call.
+      if (params.detail) {
+        const byIdDetail = new Map(layers.map((s) => [s.id, s] as const));
+        const measuredDetail = doc ? getMeasuredBounds(doc.id) : undefined;
+        const fullLine = formatShapeLine(target, 0, { byId: byIdDetail, measured: measuredDetail });
+        const kidLines = layers
+          .filter((s) => (s.parentId ?? null) === target.id)
+          .sort((a, b) => a.zIndex - b.zIndex)
+          .map((s) => `  ◦ ${s.id} | ${s.name} | ${s.type} | x=${Math.round(s.x)} y=${Math.round(s.y)} w=${Math.round(s.width)} h=${Math.round(s.height)}`);
+        const text = `FULL DETAIL for "${target.id}":\n${fullLine}\n${
+          kidLines.length > 0
+            ? `Direct children (${kidLines.length}) — pass any id back (with detail:true) for its full line:\n${kidLines.join('\n')}`
+            : 'No direct children.'
+        }${warningsNote}`;
+        return {
+          content: [{ type: 'text', text }],
+          details: { mode: 'detail', nodeId: params.nodeId, childCount: kidLines.length },
+        };
       }
 
       // Sparse indented tree — ONE LINE PER NODE, capped at 400 lines.

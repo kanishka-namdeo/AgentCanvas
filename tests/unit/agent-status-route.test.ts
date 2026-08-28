@@ -19,10 +19,15 @@ const state = vi.hoisted(() => ({
   journalRows: [] as Array<{ seq: number; type: string; toolCallId: string | null; payload: unknown; createdAt: string }>,
   clocks: {} as Record<string, number>,
   lastSeq: 0,
+  oldestSeq: null as number | null,
+  snapshotSeq: null as number | null,
 }));
 
 vi.mock('@/lib/agent/event-journal', () => ({
   getJournalLastSeq: vi.fn(async (documentId: string) => (documentId === DOC ? state.lastSeq : 0)),
+  getJournalOldestSeq: vi.fn(
+    async (documentId: string) => (documentId === DOC ? state.oldestSeq : null),
+  ),
   getJournalEvents: vi.fn(async (documentId: string, afterSeq: number, limit: number) =>
     documentId === DOC
       ? state.journalRows
@@ -36,6 +41,11 @@ vi.mock('@/lib/agent/event-journal', () => ({
 
 vi.mock('@/lib/canvas/user-patch-journal', () => ({
   getMutationClocks: vi.fn(async (documentId: string) => (documentId === DOC ? { ...state.clocks } : {})),
+}));
+
+// Phase C (R2): the events route also reads the fold-checkpoint watermark.
+vi.mock('@/lib/canvas/journal-fold', () => ({
+  getCheckpointSeq: vi.fn(async (documentId: string) => (documentId === DOC ? state.snapshotSeq : null)),
 }));
 
 import { GET as statusGET } from '@/app/api/documents/[documentId]/agent/status/route';
@@ -74,6 +84,8 @@ beforeEach(() => {
   state.journalRows.length = 0;
   state.clocks = {};
   state.lastSeq = 0;
+  state.oldestSeq = null;
+  state.snapshotSeq = null;
   __clearRunRegistryForTests();
 });
 
@@ -174,5 +186,31 @@ describe('GET /api/documents/[documentId]/events — lastMutationIDChanges (R1)'
     const res = await eventsGET(eventsRequest(), params());
     const body = await res.json();
     expect(body.lastMutationIDChanges).toEqual({});
+  });
+
+  it('carries the Phase C compaction fields: snapshotSeq + oldestSeq (R2)', async () => {
+    // A server checkpoint covers seq ≤ 40; compaction pruned everything
+    // below 10 (KEEP_TAIL under the checkpoint). Both ride the envelope so
+    // clients can detect a too-old watermark and re-baseline.
+    state.snapshotSeq = 40;
+    state.oldestSeq = 10;
+    state.lastSeq = 42;
+    seedJournalRow(41, 'agent:message_start', { type: 'agent:message_start', role: 'assistant' });
+    seedJournalRow(42, 'agent:turn_end', { type: 'agent:turn_end' });
+
+    const res = await eventsGET(eventsRequest(), params());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    expect(body.snapshotSeq).toBe(40);
+    expect(body.oldestSeq).toBe(10);
+    expect(body.lastSeq).toBe(42);
+  });
+
+  it('reports null snapshotSeq/oldestSeq for a fresh document (no checkpoint, nothing pruned)', async () => {
+    const res = await eventsGET(eventsRequest(), params());
+    const body = await res.json();
+    expect(body.snapshotSeq).toBeNull();
+    expect(body.oldestSeq).toBeNull();
   });
 });

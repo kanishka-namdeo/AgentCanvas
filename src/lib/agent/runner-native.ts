@@ -89,6 +89,7 @@ import {
   buildSystemPrompt,
   buildSubAgentLLMClient,
   canvasSnapshot,
+  canvasSnapshotDelta,
   PROMPT_VERSION,
 } from './runner-legacy';
 // Plugin integration.
@@ -738,7 +739,19 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // byte-stable. Also injects the pre-generated design brief (change 9)
   // directly into the first user message so the main loop needs no brief
   // round-trip.
-  const snapshotSection = `\n\nCURRENT CANVAS SNAPSHOT (at turn start — call pen_get_metadata for live state):\n${canvasSnapshot(canvas)}`;
+  //
+  // Phase C (R9a) delta mode: when the server could compute WHICH nodes
+  // changed since the last settled turn (journal-fold watermark — a
+  // non-null nodeIds array), the digest replaces the full tree: unchanged
+  // subtrees collapse to navigation lines, globals (palette, collections,
+  // text styles, screen placement) stay, and pen_get_metadata(detail:true)
+  // re-hydrates any collapsed node on demand (tldraw getChangesSince +
+  // Linear late-enrichment). nodeIds:null (global op / oversized window)
+  // and absent canvasDelta (HTTP fallback) both keep the full snapshot.
+  const delta = opts.canvasDelta?.nodeIds;
+  const snapshotSection = delta
+    ? `\n\nCURRENT CANVAS SNAPSHOT — DELTA since the last turn (unchanged subtrees are collapsed; call pen_get_metadata with a nodeId — detail:true — to expand any node's full fields):\n${canvasSnapshotDelta(canvas, delta)}`
+    : `\n\nCURRENT CANVAS SNAPSHOT (at turn start — call pen_get_metadata for live state):\n${canvasSnapshot(canvas)}`;
   // Prompt versioning (make-real MIGRATION_VERSION pattern): stamped on the
   // first user message (NOT the system prompt — that would invalidate the
   // byte-stable cacheable prefix) so every run record / eval log / journal

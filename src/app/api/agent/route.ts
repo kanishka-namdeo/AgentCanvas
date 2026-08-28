@@ -122,6 +122,25 @@ export async function POST(req: NextRequest) {
         }
       : undefined;
 
+  // Delta LLM context (Phase C, R9a) — the socket service's driveAgent
+  // computes which nodes changed since the last settled turn (journal fold
+  // watermark) and threads it here. `nodeIds: null` (global op / too big to
+  // enumerate) and absent (HTTP-fallback direct fetch) both mean FULL
+  // snapshot; the runner treats them identically. Same defensive-validation
+  // idiom as `selection` above.
+  const canvasDelta: { sinceSeq: number; nodeIds: string[] | null } | undefined =
+    body.canvasDelta && typeof body.canvasDelta.sinceSeq === 'number'
+      && (body.canvasDelta.nodeIds === null || Array.isArray(body.canvasDelta.nodeIds))
+      ? {
+          sinceSeq: body.canvasDelta.sinceSeq,
+          nodeIds: body.canvasDelta.nodeIds === null
+            ? null
+            : body.canvasDelta.nodeIds
+                .filter((id: unknown): id is string => typeof id === 'string')
+                .slice(0, 3000),
+        }
+      : undefined;
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -255,6 +274,7 @@ export async function POST(req: NextRequest) {
         settings,
         images,
         selection,
+        ...(canvasDelta ? { canvasDelta } : {}),
         signal: runAbort.signal,
       })[Symbol.asyncIterator]();
 

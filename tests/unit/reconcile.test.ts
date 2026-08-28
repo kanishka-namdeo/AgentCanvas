@@ -220,3 +220,68 @@ describe('version stamping (pen/document.ts)', () => {
     expect(findShapeById(server, 'n1')?.version).toBe(findShapeById(client, 'n1')?.version);
   });
 });
+
+// ---- Tombstones (Phase C, R2 — the Phase-A "server delete resurrects on
+// reconnect" limitation's closure) -----------------------------------------------
+//
+// The server folds deletions into a bounded tombstone set and rides it on
+// every canvas:full as `deletedIds`. A local-only element whose id is
+// tombstoned was deleted server-side while we were away — DROPPED, not kept
+// as a "local-only add". Membership stays additive for ids the server never
+// saw (unsynced local adds).
+
+describe('reconcileDocuments — tombstones (R2)', () => {
+  it('drops local-only elements whose id the server tombstoned', () => {
+    const local = makeDoc([makeShape('a', '#111', 1, 1), makeShape('deleted-remotely', '#f00', 1, 2)]);
+    const incoming = makeDoc([makeShape('a', '#111', 1, 1)]);
+    const merged = reconcileDocuments(local, incoming, undefined, ['deleted-remotely']);
+    expect(merged.children).toHaveLength(1);
+    expect(findShapeById(merged, 'deleted-remotely')).toBeUndefined();
+  });
+
+  it('keeps unsynced local adds the server NEVER saw (no tombstone)', () => {
+    const local = makeDoc([makeShape('a', '#111', 1, 1), makeShape('mine', '#0f0', 1, 5)]);
+    const incoming = makeDoc([makeShape('a', '#111', 1, 1)]);
+    const merged = reconcileDocuments(local, incoming, undefined, ['something-else']);
+    expect(findShapeById(merged, 'mine')?.fill).toBe('#0f0');
+  });
+
+  it('keeps local-only elements when no tombstone info rides the event (legacy server)', () => {
+    const local = makeDoc([makeShape('a', '#111', 1, 1), makeShape('b', '#222', 1, 2)]);
+    const incoming = makeDoc([makeShape('a', '#111', 1, 1)]);
+    const merged = reconcileDocuments(local, incoming, undefined, undefined);
+    expect(merged.children).toHaveLength(2);
+  });
+
+  it('filters tombstoned ids out of an EMPTY incoming tree (delete + server rollback together)', () => {
+    const local = makeDoc([makeShape('a', '#111', 1, 1), makeShape('b', '#222', 1, 2)]);
+    const incoming = makeDoc([]);
+    const merged = reconcileDocuments(local, incoming, undefined, ['a']);
+    expect(merged.children).toHaveLength(1);
+    expect(findShapeById(merged, 'a')).toBeUndefined();
+    expect(findShapeById(merged, 'b')?.fill).toBe('#222');
+  });
+
+  it('accepts deletedIds as a Set as well as an array', () => {
+    const local = makeDoc([makeShape('a', '#111', 1, 1), makeShape('dead', '#f00', 1, 2)]);
+    const incoming = makeDoc([makeShape('a', '#111', 1, 1)]);
+    const asSet = reconcileDocuments(local, incoming, undefined, new Set(['dead']));
+    const asArray = reconcileDocuments(local, incoming, undefined, ['dead']);
+    expect(asSet.children.map((c) => (c as { id: string }).id)).toEqual(
+      asArray.children.map((c) => (c as { id: string }).id),
+    );
+    expect(findShapeById(asSet, 'dead')).toBeUndefined();
+  });
+
+  it('drops tombstoned NESTED children inside kept containers', () => {
+    const container = { ...makeShape('frame', '#fff', 1, 1), children: [makeShape('kid-kept', '#111', 1, 1), makeShape('kid-dead', '#f00', 1, 2)] };
+    const local = makeDoc([container as unknown as Shape]);
+    // Real canvas:full documents always serialize the children ARRAY (empty
+    // when the server deleted everything inside) — only then does the merge
+    // recurse into the container's level.
+    const incoming = makeDoc([{ ...makeShape('frame', '#fff', 1, 1), children: [] } as unknown as Shape]);
+    const merged = reconcileDocuments(local, incoming, undefined, ['kid-dead']);
+    const frame = merged.children.find((c) => (c as { id: string }).id === 'frame') as unknown as { children: Array<{ id: string }> };
+    expect(frame.children.map((c) => c.id).sort()).toEqual(['kid-kept']);
+  });
+});

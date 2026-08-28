@@ -159,6 +159,63 @@ describe('tools-mcp: pen_get_metadata', () => {
     expect(r.content).toMatch(/^nodeId "does-not-exist" not found/);
     expect(r.content).toContain('page 0:');
   });
+
+  it('detail:true returns the FULL field line (snapshot vocabulary) + direct children sparse', async () => {
+    h.addPenNode({
+      id: 'card',
+      type: 'frame',
+      name: 'Card',
+      x: 100,
+      y: 80,
+      width: 300,
+      height: 200,
+      layout: 'vertical',
+      gap: 8,
+      fill: '#e2e8f0',
+      children: [
+        { id: 'title', type: 'text', name: 'Title', content: 'Hi', x: 0, y: 0, width: 100, height: 20 } as PenChild,
+      ],
+    } as PenChild);
+    const raw = await runRaw('pen_get_metadata', { nodeId: 'card', detail: true });
+    const text = (raw.content as Array<{ type: string; text: string }>)[0].text;
+    // The full line carries the canvas-snapshot vocabulary: fill + the
+    // v3 layout mirrors — the exact fields the delta digest collapses away.
+    expect(text).toContain('FULL DETAIL for "card"');
+    expect(text).toMatch(/card \| frame "Card" \| pos=\(\d+,\d+\) size=\d+×\d+/);
+    expect(text).toContain('fill=#e2e8f0');
+    expect(text).toContain('layoutMode=VERTICAL');
+    expect(text).toContain('itemSpacing=8');
+    // Direct children ride along as sparse lines (one level, not the subtree).
+    expect(text).toContain('Direct children (1)');
+    expect(text).toMatch(/title \| Title \| text \| x=\d+ y=\d+ w=\d+ h=\d+/);
+    expect(raw.details).toMatchObject({ mode: 'detail', nodeId: 'card', childCount: 1 });
+  });
+
+  it('detail:true on a TEXT node carries characters= (the model re-hydrates collapsed text)', async () => {
+    h.addPenNode({
+      id: 'card',
+      type: 'frame',
+      name: 'Card',
+      x: 0,
+      y: 0,
+      width: 300,
+      height: 200,
+      children: [
+        { id: 'title', type: 'text', name: 'Title', content: 'Welcome back', x: 0, y: 0, width: 100, height: 20 } as PenChild,
+      ],
+    } as PenChild);
+    const raw = await runRaw('pen_get_metadata', { nodeId: 'title', detail: true });
+    const text = (raw.content as Array<{ type: string; text: string }>)[0].text;
+    expect(text).toContain('characters="Welcome back"');
+    expect(text).toContain('(in frame "Card")');
+    expect(text).toContain('No direct children.');
+  });
+
+  it('detail:true WITHOUT a nodeId still returns the page list (detail is a nodeId modifier)', async () => {
+    const r = await run('pen_get_metadata', { detail: true });
+    expect(r.isError).toBeFalsy();
+    expect(r.content).toMatch(/^page 0: /);
+  });
 });
 
 // ---- pen_get_variable_defs --------------------------------------------------------

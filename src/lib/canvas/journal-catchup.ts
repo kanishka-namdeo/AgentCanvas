@@ -103,6 +103,12 @@ interface EventsResponse {
   /// Replicache-style per-client mutation clocks (R1, additive): the outbox
   /// prunes every entry with id <= its client's entry here.
   lastMutationIDChanges?: Record<string, number>;
+  /// Phase C (R2) compaction awareness: seq covered by the newest server
+  /// fold checkpoint (null = none yet).
+  snapshotSeq?: number | null;
+  /// Phase C (R2): minimum seq still present in the journal (null = empty).
+  /// A watermark below this cannot replay a contiguous window.
+  oldestSeq?: number | null;
 }
 
 /// Adapter the host store provides — keeps this module testable without
@@ -254,17 +260,38 @@ export async function runJournalCatchUp(
   }
 
   // Fetch the gap window (paged until the server says we're current).
+  //
+  // Too-old watermark (Phase C R2): compaction prunes journal rows a server
+  // checkpoint already covers. If rows below our watermark are gone, the
+  // window is not contiguous — replaying the surviving fragment would
+  // surface a PARTIAL history (missing turns mid-gap). Replicache's bad-cookie
+  // rule: full refetch, never an error. Here that means: re-baseline to the
+  // journal head WITHOUT replay (canvas state arrives via canvas:full, the
+  // transcript via the sessions store hydration) and let the mutation clocks
+  // prune the outbox.
+  const firstPage = await fetchEventsPage(documentId, watermark);
+  // Contiguity: the replay needs rows (watermark, head] with no hole at the
+  // start — the oldest surviving row may sit AT watermark+1 (already-
+  // consumed row at the watermark itself is fine); only a row MISSING at
+  // watermark+1 (oldestSeq beyond it) is a bad cookie.
+  if (firstPage && typeof firstPage.oldestSeq === 'number' && watermark + 1 < firstPage.oldestSeq) {
+    saveWatermark(documentId, firstPage.lastSeq);
+    reportMutationClock(firstPage, adapter);
+    return;
+  }
+
   const rows: JournalRowWire[] = [];
   let lastSeq = watermark;
   let lastMutationIDChanges: Record<string, number> | undefined;
+  let res: EventsResponse | null = firstPage;
   for (let page = 0; page < 20; page++) {
-    const res = await fetchEventsPage(documentId, watermark);
     if (!res) break; // fetch failed — keep the old watermark, retry next reconnect
     rows.push(...res.events);
     lastSeq = res.lastSeq;
     lastMutationIDChanges = res.lastMutationIDChanges ?? lastMutationIDChanges;
     watermark = res.events.length > 0 ? res.events[res.events.length - 1].seq : watermark;
     if (!res.truncated) break;
+    res = await fetchEventsPage(documentId, watermark);
   }
 
   // Unbounded replay (R3): the whole window, in journal order. Every row's

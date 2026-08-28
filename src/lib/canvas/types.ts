@@ -547,7 +547,16 @@ export type SyncEvent =
   //                swap — the client REPLACES its document wholesale.
   // Additive field: old clients ignore it and keep replacing (previous
   // behavior); the server always sets it.
-  | { type: 'canvas:full'; document: CanvasDocument; reason?: 'sync' | 'restore' }
+  | {
+      type: 'canvas:full';
+      document: CanvasDocument;
+      reason?: 'sync' | 'restore';
+      /// Phase C (R2) tombstone lane: node ids the SERVER has deleted (and
+      /// not re-added) as of this document state. Reconcile drops local-only
+      /// nodes whose id is here, closing the Phase-A "server delete
+      /// resurrects on reconnect" limitation. Additive — old clients ignore.
+      deletedIds?: string[];
+    }
   | { type: 'agent:message_start'; role: 'assistant' }
   | { type: 'agent:message_delta'; text: string }
   | { type: 'agent:message_end'; stopReason?: string }

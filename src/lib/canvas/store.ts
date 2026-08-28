@@ -2278,8 +2278,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // to live here. Server-only elements arrive, local-only elements
         // stay, conflicts resolve deterministically. measuredBounds are
         // kept as derivation hints (they re-measure on the next flush).
+        // Tombstones (Phase C R2): the server's deletedIds ride every
+        // canvas:full — local-only ids in that set were deleted server-side
+        // while we were away and are dropped instead of resurrecting.
         set({
-          document: reconcileDocuments(local, doc, get().measuredBounds),
+          document: reconcileDocuments(local, doc, get().measuredBounds, event.deletedIds),
           checkpoints: [],
           lastCheckpointSignature: null,
         });

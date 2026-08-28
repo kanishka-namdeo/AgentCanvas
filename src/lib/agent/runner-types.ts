@@ -86,6 +86,15 @@ export interface AgentRunOptions {
   /// Canvas layers the user had selected when sending the prompt — injected
   /// as targeting context so "these/those/the selection" resolves.
   selection?: { count: number; names: string[] };
+  /// Delta LLM context (Phase C, R9a): which nodes changed since the last
+  /// settled agent turn, per the server's journal-derived watermark. When
+  /// present with a non-null `nodeIds`, the runner's first user message
+  /// carries the compact delta digest (canvasSnapshotDelta) instead of the
+  /// full canvasSnapshot — unchanged subtrees collapse to navigation lines,
+  /// hydration on demand via pen_get_metadata. `nodeIds: null` means "global
+  /// change / too big to enumerate" and MUST fall back to the full snapshot;
+  /// absent (HTTP-fallback path, tests) means full snapshot too.
+  canvasDelta?: { sinceSeq: number; nodeIds: string[] | null };
 }
 
 // Type-only re-exports to avoid runtime circular imports. These are imported
