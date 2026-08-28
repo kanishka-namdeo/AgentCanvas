@@ -275,7 +275,9 @@ describe('session bridge: stopAgent finalizes as cancelled', () => {
     expect(s.turns[1].streaming).toBe(false);
 
     const ss = useSessionStore.getState();
-    expect(ss.getMessage(assistantMessageId)?.status).toBe('complete');
+    // Durability change: a STOPPED turn finalizes its message as 'cancelled'
+    // (previously 'complete' — history lied about how the turn ended).
+    expect(ss.getMessage(assistantMessageId)?.status).toBe('cancelled');
     expect(ss.getRun(runId)?.status).toBe('cancelled');
 
     // Document-scoped snapshot (shared canvas), newest first.

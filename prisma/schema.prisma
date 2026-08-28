@@ -82,6 +82,12 @@ model Shape {
 
 /// Audit log of every tool call the agent made against a document.
 /// Useful for replay, undo, and showing the user what the agent did.
+///
+/// DEPRECATED 2026-08-28: this model has had zero writers since it was added
+/// (its required Document relation has no writers either — creating a row
+/// would require materializing a Document first). The live journal is
+/// `AgentEvent` below, written server-side from the NDJSON route. Kept for
+/// schema archaeology; do not add new writers.
 model AgentAction {
   id         String   @id @default(cuid())
   documentId String
@@ -101,6 +107,47 @@ model AgentAction {
   createdAt  DateTime @default(now())
 
   @@index([documentId])
+}
+
+/// Append-only AGENT EVENT JOURNAL (OpenHands-style event sourcing) — the
+/// server-side source of truth for what the agent did on a document.
+///
+/// Written from the NDJSON route (src/app/api/agent/route.ts) for EVERY
+/// significant agent event: patches (with toolCallId), tool_call_start/end,
+/// message_start/end, turn_end / turn_cancelled, agent:error / agent:stuck,
+/// model_info, skill_selected, plan, critique. High-frequency deltas
+/// (message_delta / thinking_delta / presence) are deliberately NOT
+/// journaled — they are ephemeral UX, not durable state.
+///
+/// `seq` is monotonic PER DOCUMENT (assigned by lib/agent/event-journal.ts);
+/// replay/resume reads are `WHERE seq > ? ORDER BY seq`. The read API is
+/// GET /api/documents/[documentId]/events?afterSeq=N. Boot-time recovery
+/// (lib/agent/boot-recovery.ts) scans for tool_call_start events without a
+/// matching tool_call_end and appends synthetic `tool_call_interrupted`
+/// observations so a future resume has an honest context.
+model AgentEvent {
+  id         String   @id @default(cuid())
+  /// The shared document this event belongs to.
+  documentId String
+  /// Monotonic per-document sequence number (journal watermark).
+  seq        Int
+  /// Event discriminator: 'patch' | 'agent:tool_call_start' |
+  /// 'agent:tool_call_end' | 'agent:turn_end' | 'agent:turn_cancelled' |
+  /// 'agent:error' | 'agent:stuck' | … (mirrors the SyncEvent type union
+  /// VERBATIM — lifecycle types carry the 'agent:' prefix — plus 'patch' for
+  /// canvas mutations and synthetic 'agent:tool_call_interrupted' /
+  /// 'patch_dropped' audit rows).
+  type       String
+  /// Tool-call correlation id (patches + tool lifecycle events).
+  toolCallId String?
+  /// JSON-serialized event payload (patch + toolCallId, or the SyncEvent).
+  payload    String
+  createdAt  DateTime @default(now())
+
+  @@unique([documentId, seq])
+  @@index([documentId, createdAt])
+  @@index([documentId, type])
+  @@index([type, createdAt])
 }
 
 // ---- Phase 3: Server-side session persistence -------------------------------

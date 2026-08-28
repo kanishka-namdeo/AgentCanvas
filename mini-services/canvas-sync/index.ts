@@ -15,6 +15,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from '../../src/lib/canvas/types';
 import { applyPatchToCanvas } from '../../src/lib/canvas/patch';
+import { patchDedupeKey, createBoundedDedupSet, type BoundedDedupSet } from '../../src/lib/canvas/patch-dedupe';
 import { setMeasuredBounds } from '../../src/lib/agent/client-roundtrip';
 
 const httpServer = createServer();
@@ -31,9 +32,16 @@ const io = new Server(httpServer, {
 interface DocState {
   document: CanvasDocument;
   subscribers: Set<string>; // socket ids
+  /// toolCallId+content dedup for agent patches (idempotent apply — mirrors
+  /// the in-process twin in src/lib/canvas/server.ts).
+  appliedPatches: BoundedDedupSet;
 }
 
 const documents = new Map<string, DocState>();
+
+/// In-flight agent runs keyed by documentId — the server-visible Stop handle
+/// (mirrors src/lib/canvas/server.ts).
+const activeRuns = new Map<string, AbortController>();
 
 function ensureDocument(documentId: string): DocState {
   let doc = documents.get(documentId);
@@ -50,6 +58,7 @@ function ensureDocument(documentId: string): DocState {
         tokens: { colors: [], textStyles: [] },
       },
       subscribers: new Set(),
+      appliedPatches: createBoundedDedupSet(),
     };
     documents.set(documentId, doc);
   }
@@ -129,6 +138,19 @@ io.on('connection', (socket) => {
         });
         break;
       }
+      case 'agent:stop': {
+        // Server-visible Stop (durability fix — mirrors the in-process twin):
+        // abort the document's in-flight run so the runner's pi session is
+        // aborted server-side instead of burning tokens to completion.
+        const controller = activeRuns.get(event.documentId);
+        if (controller) {
+          console.log(`[canvas-sync] agent stop on ${event.documentId} — aborting in-flight run`);
+          controller.abort();
+        } else {
+          console.log(`[canvas-sync] agent stop on ${event.documentId} — no in-flight run`);
+        }
+        break;
+      }
       case 'canvas:measured_bounds': {
         // Measured-bounds digest push (spec §3.8). In the standalone
         // mini-service process this only warms a LOCAL copy — the
@@ -183,56 +205,126 @@ async function driveAgent(
   const state = ensureDocument(documentId);
 
   // Helper that fans an event out to every viewer (including the originator).
-  const fanout = (event: SyncEvent) => {
+  const directFanout = (event: SyncEvent) => {
     for (const sid of state.subscribers) {
       io.to(sid).emit('sync', event);
     }
   };
 
+  // 16ms wire batching + immediate terminal events (mirrors the in-process
+  // twin — see the full rationale in src/lib/canvas/server.ts).
+  const IMMEDIATE_EVENT_TYPES = new Set([
+    'agent:turn_end',
+    'agent:turn_cancelled',
+    'agent:error',
+    'canvas:full',
+    'presence',
+  ]);
+  let pendingFanout: SyncEvent[] = [];
+  let fanoutTimer: ReturnType<typeof setTimeout> | null = null;
+  const flushFanout = () => {
+    fanoutTimer = null;
+    if (pendingFanout.length === 0) return;
+    const batch = pendingFanout;
+    pendingFanout = [];
+    for (const event of batch) directFanout(event);
+  };
+  const fanout = (event: SyncEvent) => {
+    if (IMMEDIATE_EVENT_TYPES.has(event.type)) {
+      if (fanoutTimer) {
+        clearTimeout(fanoutTimer);
+        fanoutTimer = null;
+      }
+      flushFanout();
+      directFanout(event);
+      return;
+    }
+    pendingFanout.push(event);
+    if (!fanoutTimer) fanoutTimer = setTimeout(flushFanout, 16);
+  };
+
+  const abortController = new AbortController();
+  activeRuns.set(documentId, abortController);
+
   // Call the Next.js /api/agent route. We use the gateway's XTransformPort
   // mechanism: port 3000 is the Next.js dev server.
   const gatewayUrl = 'http://localhost:3000/api/agent?XTransformPort=3000';
-  const res = await fetch(gatewayUrl, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings, images, selection }),
-  });
+  let aborted = false;
+  let sawTurnEnd = false;
+  try {
+    const res = await fetch(gatewayUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      signal: abortController.signal,
+      body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings, images, selection }),
+    });
 
-  if (!res.ok || !res.body) {
-    fanout({ type: 'agent:error', message: `Agent HTTP ${res.status}` });
-    return;
-  }
+    if (!res.ok || !res.body) {
+      fanout({ type: 'agent:error', message: `Agent HTTP ${res.status}` });
+      return;
+    }
 
-  // The API streams newline-delimited JSON events (NDJSON).
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = '';
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    let nl: number;
-    while ((nl = buf.indexOf('\n')) >= 0) {
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      if (!line) continue;
-      try {
-        const evt = JSON.parse(line) as
-          | { type: 'patch'; patch: CanvasPatch; toolCallId?: string }
-          | { type: 'agent_event'; event: SyncEvent };
-        if (evt.type === 'patch') {
-          // Apply + broadcast the canvas mutation.
-          applyPatch(state, evt.patch);
-          fanout({ type: 'canvas:patch', patch: evt.patch, toolCallId: evt.toolCallId });
-        } else if (evt.type === 'agent_event') {
-          fanout(evt.event);
+    // The API streams newline-delimited JSON events (NDJSON).
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl: number;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        try {
+          const evt = JSON.parse(line) as
+            | { type: 'patch'; patch: CanvasPatch; toolCallId?: string }
+            | { type: 'agent_event'; event: SyncEvent };
+          if (evt.type === 'patch') {
+            // Idempotent apply (toolCallId + content dedup — mirrors the
+            // in-process twin).
+            const dedupeKey = patchDedupeKey(evt.toolCallId, evt.patch);
+            if (dedupeKey && state.appliedPatches.has(dedupeKey)) {
+              continue;
+            }
+            if (dedupeKey) state.appliedPatches.add(dedupeKey);
+            // Apply + broadcast the canvas mutation.
+            applyPatch(state, evt.patch);
+            fanout({ type: 'canvas:patch', patch: evt.patch, toolCallId: evt.toolCallId });
+          } else if (evt.type === 'agent_event') {
+            if (evt.event?.type === 'agent:turn_end') sawTurnEnd = true;
+            fanout(evt.event);
+          }
+        } catch (err) {
+          console.error('[canvas-sync] failed to parse NDJSON line:', line, err);
         }
-      } catch (err) {
-        console.error('[canvas-sync] failed to parse NDJSON line:', line, err);
       }
     }
+  } catch (err: any) {
+    if (err?.name === 'AbortError' || abortController.signal.aborted) {
+      aborted = true;
+    } else {
+      fanout({ type: 'agent:error', message: `Agent stream failed: ${err?.message ?? String(err)}` });
+    }
+  } finally {
+    if (fanoutTimer) {
+      clearTimeout(fanoutTimer);
+      fanoutTimer = null;
+    }
+    flushFanout();
+    if (aborted) {
+      directFanout({ type: 'agent:turn_cancelled' });
+    } else if (!sawTurnEnd) {
+      // Only synthesize a turn_end when the stream carried none (the runner
+      // already emits exactly one authoritative turn_end — the old
+      // unconditional emit here DOUBLED it for every viewer).
+      directFanout({ type: 'agent:turn_end' });
+    }
+    if (activeRuns.get(documentId) === abortController) {
+      activeRuns.delete(documentId);
+    }
   }
-  fanout({ type: 'agent:turn_end' });
 }
 
 const PORT = 3003;

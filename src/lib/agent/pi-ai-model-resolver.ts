@@ -99,14 +99,28 @@ export interface ResolvedModel {
 // z.ai sandbox / no creds), the fallback is skipped with a warn.
 
 /// Module-level preflight cache. Keyed by `${baseUrl}::${apiKeyPrefix}`.
-/// TTL: 60 seconds when healthy, 20 seconds when down — a flapping tunnel
+/// TTL: 300 seconds when healthy (efficiency fix — a healthy endpoint's
+/// /models probe result doesn't change in 5 minutes, and the 4s cold-probe
+/// latency was paid on every turn), 20 seconds when down — a flapping tunnel
 /// (cold-connect > 4s on the first attempt, fine afterwards) recovers fast,
 /// so a 'down' verdict must not poison the next turn for a full minute
 /// (observed during the VLM exercise: probes succeeded while the app kept
 /// serving cached 'down' → glm-5.3 fallback → rate-limited empty turns).
-const PREFLIGHT_CACHE_TTL_MS = 60_000;
+const PREFLIGHT_CACHE_TTL_MS = 300_000;
 const PREFLIGHT_CACHE_DOWN_TTL_MS = 20_000;
 const preflightCache = new Map<string, { result: 'ok' | 'down'; expiresAt: number }>();
+
+/// Module-level resolved-model cache (efficiency fix): resolveModel used to
+/// construct a FRESH ModelRuntime + register the custom provider + push the
+/// runtime API key on EVERY turn. The runtime construction is disk I/O (the
+/// built-in catalog) and the registration is pure waste for identical
+/// configs. Cached per (baseUrl, modelId, apiKeyPrefix) — the key includes
+/// every input the cached value depends on, so a settings change (new key,
+/// new endpoint, new model) always misses and rebuilds. Expiry bounds staleness;
+/// the runner's reactive z.ai fallback still covers an endpoint that dies
+/// mid-cache-window (empty-response guard).
+const MODEL_CACHE_TTL_MS = 300_000;
+const resolvedModelCache = new Map<string, { resolved: ResolvedModel; expiresAt: number }>();
 
 async function fetchModels(baseUrl: string, apiKey: string, timeoutMs: number): Promise<boolean> {
   const controller = new AbortController();
@@ -433,12 +447,18 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
     // configured provider is already 'zai' (no point falling back to itself)
     // or when ZAI.create() reports no sandbox creds.
     //
-    // The probe is cached for 60s per (baseUrl, apiKeyPrefix) so we don't pay
-    // the 4s latency on every turn. A dead tunnel doesn't come back in 60s,
-    // and a healthy endpoint doesn't go down in 60s — the cache TTL is safe.
+    // The probe is cached for 300s per (baseUrl, apiKeyPrefix) so we don't pay
+    // the cold-probe latency on every turn. A dead tunnel doesn't come back in
+    // 5 minutes, and a healthy endpoint doesn't go down in 5 minutes — the
+    // cache TTL is safe (and the reactive empty-response guard backstops it).
     if (providerId !== 'zai') {
       const probe = await preflightEndpoint(customBaseUrl, effectiveApiKey);
       if (probe === 'down') {
+        // Invalidate any cached resolved model for this endpoint — the probe
+        // just said the endpoint is dead; a cached entry would keep serving it.
+        for (const key of resolvedModelCache.keys()) {
+          if (key.startsWith(`${customBaseUrl}::`)) resolvedModelCache.delete(key);
+        }
         console.warn(
           `[llm-fallback] primary endpoint ${customBaseUrl} unreachable (network error or non-2xx on /models); retrying turn with z.ai sandbox / glm-5.3`,
         );
@@ -453,6 +473,14 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
           '[llm-fallback] z.ai sandbox fallback unavailable — proceeding against the configured endpoint',
         );
       }
+    }
+
+    // Resolved-model cache hit: identical (baseUrl, model, key) within the
+    // TTL window reuses the runtime + registered provider + pushed API key.
+    const modelCacheKey = `${customBaseUrl}::${modelId}::${effectiveApiKey.slice(0, 12)}`;
+    const cachedResolved = resolvedModelCache.get(modelCacheKey);
+    if (cachedResolved && Date.now() < cachedResolved.expiresAt) {
+      return cachedResolved.resolved;
     }
 
     const customModel = buildCustomEndpointModel(customBaseUrl, modelId);
@@ -479,11 +507,16 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
     // with `Authorization: Bearer <key>` to the custom baseUrl.
     await modelRuntime.setRuntimeApiKey(CUSTOM_PROVIDER_ID, effectiveApiKey);
 
-    return {
+    const resolved: ResolvedModel = {
       model: customModel,
       modelRuntime,
       label: `${CUSTOM_PROVIDER_ID}/${customModel.id}`,
     };
+    resolvedModelCache.set(modelCacheKey, {
+      resolved,
+      expiresAt: Date.now() + MODEL_CACHE_TTL_MS,
+    });
+    return resolved;
   }
 
   if (providerId === CUSTOM_PROVIDER_ID) {

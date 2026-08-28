@@ -17,9 +17,12 @@ import { toast } from 'sonner';
 import type { CanvasDocument, CanvasPatch, ClientEvent, Shape, SyncEvent, GuideLine } from '@/lib/canvas/types';
 import { createEmptyCanvasDocument } from '@/lib/canvas/types';
 import { applyPatchToCanvas, applyPatchesToCanvas } from '@/lib/canvas/patch';
+import { patchDedupeKey, createBoundedDedupSet } from '@/lib/canvas/patch-dedupe';
+import { classifyAgentError, agentErrorClassForCode } from '@/lib/agent-error';
 import { checkpointSignature, newCheckpointId, MAX_CHECKPOINTS, type Checkpoint } from '@/lib/canvas/version-history';
 import { resolvePenTree } from '@/lib/pen/resolve';
 import { useSessionStore, hydrateSessionStore } from '@/lib/sessions';
+import { TERMINAL_RUN_STATUSES } from '@/lib/sessions/types';
 import { useSettings } from '@/lib/settings/store';
 import { agentRunSettings } from '@/lib/settings/types';
 import { patchToOpRecord } from '@/lib/agent/turn-diff';
@@ -471,6 +474,14 @@ let agentAbort: AbortController | null = null;
 /// survive untouched (the chips stay visible with a Send button). Consumed
 /// by the queue-flush sites in _onSync.
 let suppressQueueFlush = false;
+
+/// Idempotent agent-patch application (client side of the C1 dedup): every
+/// agent patch is keyed by toolCallId + content hash; a verbatim duplicate
+/// delivery (socket.io at-least-once redelivery, NDJSON replay) is skipped.
+/// User edits (no toolCallId) are never deduped. Module-scoped like the other
+/// per-connection singletons — resets on reload/HMR, which matches socket
+/// connection semantics.
+const processedAgentPatches = createBoundedDedupSet();
 
 // ---- Phase 4 patch coalescing (spec §4.4) -----------------------------------
 //
@@ -1110,6 +1121,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // This is a no-op on the server.
     hydrateSessionStore();
 
+    // Zombie sweep (durability fix): a page crash / browser kill mid-run
+    // leaves runs at 'in_progress' and messages at 'streaming' in the
+    // localStorage cache forever — the UI shows an eternal spinner after
+    // reload. Runs/messages older than 10 minutes with no live activity are
+    // finalized honestly; anything younger is left alone because a live
+    // server-side run (page reloaded mid-turn, socket reconnected) still
+    // delivers its closing events and finalizes normally.
+    try {
+      useSessionStore.getState().reconcileStaleActivity();
+    } catch {
+      // Non-fatal — a reconcile failure must never block boot.
+    }
+
     // Connect to the WebSocket mini-service on port 3003.
     // Per the gateway rules we MUST use the XTransformPort query param
     // and the path MUST be '/'.
@@ -1337,10 +1361,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         get()._onSync({ type: 'agent:turn_end' });
       } catch (err: any) {
         if (err?.name === 'AbortError') {
-          // User clicked Stop — finalize as cancelled. Don't surface an error.
-          get()._onSync({ type: 'agent:turn_end' });
+          // User clicked Stop — finalize as CANCELLED (not completed: the old
+          // synthetic turn_end here marked stopped runs 'completed' in the
+          // session store). The server side also aborts (the request signal
+          // propagates into the runner), so no further events will arrive.
+          get()._onSync({ type: 'agent:turn_cancelled' });
         } else {
-          get()._onSync({ type: 'agent:error', message: err?.message ?? 'unknown error' });
+          const message = err?.message ?? 'unknown error';
+          const cls = classifyAgentError(message);
+          get()._onSync({ type: 'agent:error', message, code: cls.code, retryable: cls.retryable });
         }
       } finally {
         agentAbort = null;
@@ -1349,22 +1378,34 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   stopAgent: () => {
-    const { agentBusy, documentId } = get();
+    const { agentBusy, documentId, socket, connected } = get();
     if (!agentBusy) return;
     // Stop ≠ turn end for the QUEUE: don't auto-send the next queued prompt
-    // when the synthetic turn_end lands (see suppressQueueFlush above).
+    // when the synthetic turn_cancelled lands (see suppressQueueFlush above).
     suppressQueueFlush = true;
-    // Abort the in-flight HTTP fetch (if any).
+    // Server-visible Stop: tell the canvas-sync service to abort the run so
+    // the runner's pi session is aborted SERVER-side (token spend stops, all
+    // viewers get agent:turn_cancelled). Previously the server kept running
+    // to completion and its late patches kept applying after "Stop".
+    if (socket && connected) {
+      socket.emit('client', { type: 'agent:stop', documentId } satisfies ClientEvent);
+    }
+    // Abort the in-flight HTTP fetch (if any) — its request signal propagates
+    // the stop into the runner server-side; the AbortError branch of
+    // promptAgent's fetch loop synthesizes the local turn_cancelled.
     if (agentAbort) {
       agentAbort.abort();
       agentAbort = null;
-    } else {
-      // WebSocket path — server will keep running but we finalize locally.
-      // The synthetic turn_end below mirrors the closeout that _onSync does
-      // for the natural-completion path.
+      return;
+    }
+    // Local finalization (WS path belt-and-braces — if the server-side
+    // turn_cancelled is delayed or the socket dropped, the UI still unblocks
+    // immediately; the handler + endRun's terminal guard make the eventual
+    // duplicate finalization a no-op).
+    {
       const last = get().turns[get().turns.length - 1];
       if (last?.messageId) {
-        useSessionStore.getState().finalizeAssistantMessage(last.messageId, 'complete');
+        useSessionStore.getState().finalizeAssistantMessage(last.messageId, 'cancelled');
       }
       if (last?.runId) {
         const ss = useSessionStore.getState();
@@ -1778,6 +1819,20 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           get().redo();
           break;
         }
+        // Idempotent agent-patch application (C1): skip a verbatim duplicate
+        // delivery of a patch we already applied (same toolCallId + content).
+        // User edits carry no toolCallId and are never deduped. A duplicate
+        // `add` would create a second node with the same id — append-only
+        // canvas state can never undo that noiselessly.
+        if (event.toolCallId) {
+          const dedupeKey = patchDedupeKey(event.toolCallId, event.patch);
+          if (dedupeKey) {
+            if (processedAgentPatches.has(dedupeKey)) {
+              break;
+            }
+            processedAgentPatches.add(dedupeKey);
+          }
+        }
         // All other patches go through the rAF coalescer (Phase 4 §4.4).
         // Multiple patches in the same tick collapse into ONE React commit;
         // per-patch pre-states are captured at flush time for the undo stack,
@@ -1990,13 +2045,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         });
         // Capture a snapshot of the canvas at end of turn, and finalize the
         // run in the session store. Guard against duplicate turn_end events
-        // (the runner emits one on normal exit AND one at generator end).
+        // (the runner emits one on normal exit AND one at generator end) AND
+        // against terminal states set by earlier events (turn_cancelled →
+        // 'cancelled', agent:error → 'failed', agent:stuck → 'stuck'): a
+        // trailing turn_end after those used to overwrite the honest status
+        // back to 'completed' and double-capture a snapshot.
         const last = get().turns[get().turns.length - 1];
         if (last?.runId) {
           const run = useSessionStore.getState().getRun(last.runId);
-          if (run && run.status === 'completed') {
+          if (run && TERMINAL_RUN_STATUSES.has(run.status)) {
             // Already finalized — but the critique loop may have appended
-            // more patches since the LAST turn_end: re-sync the diff
+            // more patches since the LAST closing event: re-sync the diff
             // records (idempotent upsert) before skipping.
             if (last.messageId) {
               useSessionStore.getState().resyncMessageDiff(last.messageId);
@@ -2100,6 +2159,85 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         }
         break;
       }
+      case 'agent:turn_cancelled': {
+        // Server-side Stop landed (agent:stop → canvas-sync aborts the run →
+        // runner emits turn_cancelled). Finalize the turn + run as CANCELLED
+        // for every viewer. Idempotent: endRun's terminal guard + the
+        // turn_end terminal guard make a trailing turn_end / a duplicate
+        // turn_cancelled a no-op.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant') {
+            turns[turns.length - 1] = { ...last, streaming: false, endedAt: Date.now() };
+          }
+          return { turns, agentBusy: false };
+        });
+        const last = get().turns[get().turns.length - 1];
+        if (last?.messageId) {
+          useSessionStore.getState().finalizeAssistantMessage(last.messageId, 'cancelled');
+        }
+        if (last?.runId) {
+          const ss = useSessionStore.getState();
+          const run = ss.getRun(last.runId);
+          if (run && !TERMINAL_RUN_STATUSES.has(run.status)) {
+            ss.endRun(last.runId, 'cancelled');
+          }
+        }
+        if (last?.sessionId) {
+          useSessionStore.getState().captureSnapshot(
+            get().documentId,
+            get().document,
+            {
+              sessionId: last.sessionId,
+              source: 'turn_end',
+              sourceRunId: last.runId ?? undefined,
+              sourceMessageId: last.messageId ?? undefined,
+              createdBy: 'user',
+            },
+          );
+        }
+        // Consume the queue-flush suppression armed by stopAgent (the queue
+        // survives a stop for manual send — same semantics as turn_end).
+        suppressQueueFlush = false;
+        break;
+      }
+      case 'agent:stuck': {
+        // Stuck detector (C4): the same tool call failed identically N times
+        // and the runner stopped the loop. Mark the message/run honestly —
+        // 'stuck' is a distinct terminal status so history shows WHY the turn
+        // produced what it did. Do NOT auto-flush queued prompts: the next
+        // prompt would likely hit the same wall and needs a human look.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant') {
+            turns[turns.length - 1] = {
+              ...last,
+              streaming: false,
+              error: event.message,
+              endedAt: Date.now(),
+            };
+          }
+          return { turns, agentBusy: false };
+        });
+        const last = get().turns[get().turns.length - 1];
+        if (last?.messageId) {
+          useSessionStore.getState().finalizeAssistantMessage(last.messageId, 'error', event.message);
+        }
+        if (last?.runId) {
+          const ss = useSessionStore.getState();
+          const run = ss.getRun(last.runId);
+          if (run && !TERMINAL_RUN_STATUSES.has(run.status)) {
+            ss.endRun(last.runId, 'stuck', event.message);
+          }
+        }
+        toast.warning('Agent stuck', {
+          description: event.message?.slice(0, 200) ?? 'Repeated identical tool failures.',
+        });
+        suppressQueueFlush = false;
+        break;
+      }
       case 'agent:error': {
         set((s) => {
           const turns = [...s.turns];
@@ -2127,9 +2265,21 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         if (last?.runId) {
           useSessionStore.getState().endRun(last.runId, 'failed', event.message);
         }
-        // Surface a toast so users who aren't watching the chat panel notice the failure.
-        toast.error('Agent error', {
-          description: event.message?.slice(0, 200) ?? 'Unknown error',
+        // Classified error surfacing (D4): the server attaches code/retryable
+        // when it can (typed error envelope); the client classifier covers
+        // raw HTTP failures where only the message exists. Distinct toast per
+        // class so auth vs rate-limit vs network failures are distinguishable
+        // at a glance instead of everything reading "Agent error".
+        const errClass = classifyAgentError(event.message);
+        const wireClass = agentErrorClassForCode(event.code);
+        const effectiveClass =
+          event.code && event.code !== 'unknown'
+            ? { code: wireClass.code, retryable: event.retryable ?? wireClass.retryable, title: wireClass.title, hint: wireClass.hint }
+            : errClass;
+        toast.error(effectiveClass.title, {
+          description:
+            (event.message?.slice(0, 180) ?? 'Unknown error') +
+            (effectiveClass.retryable ? ' — you can retry.' : ''),
         });
         // A failed turn still frees the agent — flush the next queued
         // prompt (Cursor queues survive a failed turn and retry in order).

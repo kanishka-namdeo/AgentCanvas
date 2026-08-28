@@ -299,10 +299,16 @@ describe('session store: restore-from-before-this-turn snapshot chain', () => {
     expect(beforeTurn2?.document.shapes.map((s) => s.id)).toEqual(['A']);
   });
 
-  it('restoreSnapshot creates a NEW snapshot (append-only) and does NOT destroy the parent', () => {
+  it('restoreSnapshot creates a NEW snapshot (append-only) and does NOT destroy the parent', async () => {
     const ss = useSessionStore.getState();
     const sess = ss.createSession('doc1', { title: 't' });
     const snap1 = ss.captureSnapshot(sess.documentId, makeDoc([makeShape('A')]), { source: 'turn_end' });
+    // Force distinct createdAt stamps. Snapshots sort by createdAt DESC with
+    // a STABLE sort, so a same-millisecond tie leaves "newest" resolved by
+    // insertion order — which made the parent assertion below racy under
+    // suite load (the two back-to-back captures usually share a millisecond,
+    // but straddling a ms boundary flips the head from snap1 to snap2).
+    await new Promise((r) => setTimeout(r, 3));
     const snap2 = ss.captureSnapshot(sess.documentId, makeDoc([makeShape('A'), makeShape('B')]), { source: 'turn_end' });
 
     // Re-read live state — `ss` is stale (zustand state is immutable).
@@ -312,9 +318,14 @@ describe('session store: restore-from-before-this-turn snapshot chain', () => {
 
     expect(restored).toBeDefined();
     expect(afterCount).toBe(beforeCount + 1); // append-only — snap2 still exists
-    expect(restored?.document.shapes.map((s) => s.id)).toEqual(['A']); // parent's content
+    expect(restored?.document.shapes.map((s) => s.id)).toEqual(['A']); // restored content
     expect(restored?.source).toBe('restore');
-    expect(restored?.parentSnapshotId).toBe(snap1.id);
+    // Restore-snapshot parent = the PREVIOUS NEWEST head (linear-chain
+    // semantics — the documented contract in shared-canvas.test.ts
+    // "parent = previous newest"; AgentPanel's restore-from-before-this-turn
+    // relies on the same parent-pointing rule). The restore takes its CONTENT
+    // from snap1 but hangs off the timeline HEAD, which is snap2 here.
+    expect(restored?.parentSnapshotId).toBe(snap2.id);
     // The original turn-end snapshot is still in the chain (not destroyed).
     expect(useSessionStore.getState().snapshots[snap2.id]).toBeDefined();
   });

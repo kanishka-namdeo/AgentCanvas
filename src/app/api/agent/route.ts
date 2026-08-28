@@ -19,6 +19,10 @@
 
 import { NextRequest } from 'next/server';
 import { runAgent } from '@/lib/agent/runner';
+import { journalAgentEvent, appendSyntheticJournalEvent } from '@/lib/agent/event-journal';
+import { classifyAgentError, agentErrorMessage } from '@/lib/agent-error';
+import { sanitizeAgentPatch } from '@/lib/canvas/patch-sanitizer';
+import { applyPatchToCanvas } from '@/lib/canvas/patch';
 import type { CanvasDocument } from '@/lib/canvas/types';
 import type { AgentRunSettings } from '@/lib/settings/types';
 import { DEFAULT_SETTINGS } from '@/lib/settings/types';
@@ -120,22 +124,168 @@ export async function POST(req: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      let closed = false;
       const send = (obj: unknown) => {
-        controller.enqueue(encoder.encode(JSON.stringify(obj) + '\n'));
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(JSON.stringify(obj) + '\n'));
+        } catch {
+          // Consumer disconnected (client Stop / network drop) — the run's
+          // abort propagation below tears the generator down; enqueue failures
+          // are expected and harmless.
+          closed = true;
+        }
+      };
+      const close = () => {
+        if (closed) return;
+        closed = true;
+        try { controller.close(); } catch { /* already closed */ }
       };
 
+      // ---- Server-side Stop + watchdog wiring (durability fixes) ----------
+      //
+      // One AbortController governs the whole run: the runner receives its
+      // signal (AgentRunOptions.signal) and aborts the pi session when it
+      // fires — so a client disconnect (HTTP fallback Stop, canvas-sync
+      // agent:stop aborting its fetch) actually STOPS token spend server-side
+      // instead of burning to completion. The watchdog fires the same
+      // controller after WATCHDOG_MS of zero stream output (bolt.diy
+      // StreamRecoveryManager pattern), bounding a hung provider stream.
+      const runAbort = new AbortController();
+      const onClientAbort = () => runAbort.abort();
+      req.signal.addEventListener('abort', onClientAbort, { once: true });
+
+      const WATCHDOG_MS = 120_000;
+      let lastActivity = Date.now();
+      const watchdog = setInterval(() => {
+        if (closed || runAbort.signal.aborted) return;
+        if (Date.now() - lastActivity > WATCHDOG_MS) {
+          runAbort.abort();
+          send({
+            type: 'agent_event',
+            event: {
+              type: 'agent:error',
+              message:
+                'Agent stream stalled — no output for 2 minutes. The run was closed to avoid hanging; resend the prompt to retry.',
+              code: 'timeout',
+              retryable: true,
+            },
+          });
+          close();
+        }
+      }, 15_000);
+
+      // Evolving canvas copy: the sanitizer validates agent patches against
+      // the canvas state the PRECEDING patches produced (a create-then-update
+      // sequence must not have its update dropped because the initial canvas
+      // didn't know the new id yet).
+      let liveCanvas = canvas;
+
+      // Whether a terminal agent event (turn_end / turn_cancelled /
+      // agent:error / agent:stuck) reached the wire from the runner itself.
+      // The finally block synthesizes one in the journal when a hard
+      // teardown bypassed the runner's tail emissions.
+      let sawTerminalOnWire = false;
+
+      const iterator = runAgent({
+        documentId,
+        prompt,
+        canvas,
+        settings,
+        images,
+        selection,
+        signal: runAbort.signal,
+      })[Symbol.asyncIterator]();
+
       try {
-        for await (const ev of runAgent({ documentId, prompt, canvas, settings, images, selection })) {
+        while (true) {
+          const result = await iterator.next();
+          if (result.done) break;
+          const ev = result.value;
+
           if (ev.kind === 'patch') {
-            send({ type: 'patch', patch: ev.patch, toolCallId: ev.toolCallId });
+            // Validate → sanitize → apply (tldraw's action-sanitization layer):
+            // the append-only canvas model can never edit a bad patch out, so
+            // malformed patches are caught HERE, before they reach any client.
+            const { patch: sanitized, warnings } = sanitizeAgentPatch(ev.patch, liveCanvas);
+            if (warnings.length > 0) {
+              console.warn(`[agent-route] sanitized patch on ${documentId}: ${warnings.join('; ')}`);
+            }
+            if (!sanitized) {
+              // Dropped (unknown op / missing target / duplicate id) — journal
+              // the drop for auditability, never stream it.
+              appendSyntheticJournalEvent(documentId, 'patch_dropped', ev.toolCallId, {
+                reason: warnings,
+                patch: ev.patch,
+              });
+              continue;
+            }
+            try {
+              liveCanvas = applyPatchToCanvas(liveCanvas, sanitized);
+            } catch {
+              // Applier rejected it after all — treat as a dropped patch.
+              appendSyntheticJournalEvent(documentId, 'patch_dropped', ev.toolCallId, {
+                reason: ['applier threw'],
+                patch: sanitized,
+              });
+              continue;
+            }
+            send({ type: 'patch', patch: sanitized, toolCallId: ev.toolCallId });
+            journalAgentEvent(documentId, { kind: 'patch', patch: sanitized, toolCallId: ev.toolCallId });
           } else {
             send({ type: 'agent_event', event: ev.event });
+            journalAgentEvent(documentId, ev);
+            if (
+              ev.event.type === 'agent:turn_end' ||
+              ev.event.type === 'agent:turn_cancelled' ||
+              ev.event.type === 'agent:error' ||
+              ev.event.type === 'agent:stuck'
+            ) {
+              sawTerminalOnWire = true;
+            }
           }
+          lastActivity = Date.now();
         }
       } catch (err: any) {
-        send({ type: 'agent_event', event: { type: 'agent:error', message: err?.message ?? 'unknown error' } });
+        const message = agentErrorMessage(err);
+        const cls = classifyAgentError(message);
+        const event = {
+          type: 'agent:error' as const,
+          message,
+          code: cls.code,
+          retryable: cls.retryable,
+        };
+        send({ type: 'agent_event', event });
+        journalAgentEvent(documentId, { kind: 'agent_event', event });
+        sawTerminalOnWire = true;
       } finally {
-        controller.close();
+        clearInterval(watchdog);
+        req.signal.removeEventListener('abort', onClientAbort);
+        // Terminate the generator (runs its finally blocks → session dispose)
+        // even when we exited the loop early (watchdog / client disconnect).
+        try { await iterator.return?.(); } catch { /* already finished */ }
+        // Journal-closure guarantee: the runner's tail emits a terminal
+        // event, but a HARD generator termination (iterator.return above —
+        // client disconnect / canvas-sync agent:stop while a tool call is
+        // mid-execution) unwinds at the suspension point and the tail never
+        // runs. Without this backstop the journal ends at the last
+        // tool_call_start forever — replay consumers would see an
+        // unterminated turn. Synthesize the honest terminal event instead.
+        if (!sawTerminalOnWire) {
+          appendSyntheticJournalEvent(
+            documentId,
+            runAbort.signal.aborted ? 'agent:turn_cancelled' : 'agent:turn_end',
+            undefined,
+            {
+              type: runAbort.signal.aborted ? 'agent:turn_cancelled' : 'agent:turn_end',
+              synthetic: true,
+              note: runAbort.signal.aborted
+                ? 'Run aborted (client Stop / disconnect / stream watchdog) — terminal event synthesized at stream teardown.'
+                : 'Run ended without a terminal event — synthesized at stream teardown.',
+            },
+          );
+        }
+        close();
       }
     },
   });

@@ -179,8 +179,20 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
         });
       }
       // Suppress duplicate closes: only emit when a message is actually open.
+      // stopReason rides along (additive, optional) so the runner can detect
+      // token-limit truncation ('length') and auto-continue the turn.
       if (!state || state.messageOpen) {
-        out.push({ kind: 'agent_event', event: { type: 'agent:message_end' } });
+        const stopReason =
+          typeof (event as any).message?.stopReason === 'string'
+            ? (event as any).message.stopReason as string
+            : undefined;
+        out.push({
+          kind: 'agent_event',
+          event: {
+            type: 'agent:message_end',
+            ...(stopReason ? { stopReason } : {}),
+          },
+        });
         if (state) state.messageOpen = false;
       }
       break;

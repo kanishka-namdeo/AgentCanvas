@@ -15,6 +15,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from './types';
 import { applyPatchToCanvas } from './patch';
+import { patchDedupeKey, createBoundedDedupSet, type BoundedDedupSet } from './patch-dedupe';
 import { setMeasuredBounds } from '../agent/client-roundtrip';
 
 const PORT = 3003;
@@ -23,9 +24,20 @@ const PORT = 3003;
 interface DocState {
   document: CanvasDocument;
   subscribers: Set<string>;
+  /// toolCallId+content dedup set for agent patches (idempotent apply —
+  /// a replayed/double-delivered patch is skipped instead of double-applied;
+  /// the canvas is append-only so a double-apply could never be undone).
+  appliedPatches: BoundedDedupSet;
 }
 
 const documents = new Map<string, DocState>();
+
+/// In-flight agent runs, keyed by documentId — the handle behind the
+/// server-visible Stop (`agent:stop` client event). Aborting the fetch also
+/// aborts the /api/agent request server-side, whose request signal
+/// propagates into the runner (session.abort()) — Stop now actually stops
+/// token spend instead of just hiding the output.
+const activeRuns = new Map<string, AbortController>();
 
 function ensureDocument(documentId: string): DocState {
   let doc = documents.get(documentId);
@@ -44,6 +56,7 @@ function ensureDocument(documentId: string): DocState {
         tokens: { colors: [], textStyles: [] },
       },
       subscribers: new Set(),
+      appliedPatches: createBoundedDedupSet(),
     };
     documents.set(documentId, doc);
   }
@@ -149,6 +162,24 @@ export function startCanvasSyncService() {
           });
           break;
         }
+        case 'agent:stop': {
+          // Server-visible Stop (durability fix): abort the document's
+          // in-flight run. driveAgent's fetch aborts → the /api/agent route
+          // sees its request signal fire → the runner aborts the pi session
+          // → the stream closes → driveAgent fans agent:turn_cancelled to
+          // every viewer. Previously the server kept running to completion
+          // and late patches kept mutating the canvas after "Stop".
+          const controller = activeRuns.get(event.documentId);
+          if (controller) {
+            console.log(`[canvas-sync] agent stop on ${event.documentId} — aborting in-flight run`);
+            controller.abort();
+            // The map entry is removed by driveAgent's finally (identity-
+            // checked, so aborting an old run never unregisters a newer one).
+          } else {
+            console.log(`[canvas-sync] agent stop on ${event.documentId} — no in-flight run`);
+          }
+          break;
+        }
         case 'agent:steer': {
           // Steer: inject a user message into the running agent's context.
           // The agent will see this after its current tool batch, before the
@@ -216,56 +247,141 @@ async function driveAgent(
 ) {
   const state = ensureDocument(documentId);
 
-  const fanout = (event: SyncEvent) => {
+  const directFanout = (event: SyncEvent) => {
     for (const sid of state.subscribers) {
       io?.to(sid).emit('sync', event);
     }
   };
 
+  // ---- Server-side patch-event batching (efficiency fix) ----------------
+  //
+  // The agent emits one socket event per NDJSON line; a bulk_add burst means
+  // N socket.io frames + N client handler invocations within a few ms. The
+  // client renderer already coalesces applies to one rAF — the WIRE should
+  // too. Events buffer for ≤16ms and flush as a burst; terminal events
+  // (turn_end / turn_cancelled / error / full / presence) flush immediately
+  // so turn lifecycle timing is never delayed.
+  const IMMEDIATE_EVENT_TYPES = new Set([
+    'agent:turn_end',
+    'agent:turn_cancelled',
+    'agent:error',
+    'canvas:full',
+    'presence',
+  ]);
+  let pendingFanout: SyncEvent[] = [];
+  let fanoutTimer: ReturnType<typeof setTimeout> | null = null;
+  const flushFanout = () => {
+    fanoutTimer = null;
+    if (pendingFanout.length === 0) return;
+    const batch = pendingFanout;
+    pendingFanout = [];
+    for (const event of batch) directFanout(event);
+  };
+  const fanout = (event: SyncEvent) => {
+    if (IMMEDIATE_EVENT_TYPES.has(event.type)) {
+      if (fanoutTimer) {
+        clearTimeout(fanoutTimer);
+        fanoutTimer = null;
+      }
+      flushFanout();
+      directFanout(event);
+      return;
+    }
+    pendingFanout.push(event);
+    if (!fanoutTimer) fanoutTimer = setTimeout(flushFanout, 16);
+  };
+
+  // Register this run as the document's active one (see agent:stop).
+  const abortController = new AbortController();
+  activeRuns.set(documentId, abortController);
+
   // Call the Next.js API route on port 3000. We use 127.0.0.1 directly
   // because we're in the same process as Next.js — no need to go through
   // the Caddy gateway.
   const url = `http://127.0.0.1:3000/api/agent`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    // `images` rides along in the body — compact data URLs produced by the
-    // client's downscale pipeline (lib/agent/attachments.ts). `selection`
-    // is the canvas-selection targeting context.
-    body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings, images, selection }),
-  });
+  let aborted = false;
+  let sawTurnEnd = false;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      // The signal is the server-visible Stop handle: agent:stop aborts this
+      // fetch, the route's request signal fires, and the runner aborts the
+      // pi session server-side.
+      signal: abortController.signal,
+      // `images` rides along in the body — compact data URLs produced by the
+      // client's downscale pipeline (lib/agent/attachments.ts). `selection`
+      // is the canvas-selection targeting context.
+      body: JSON.stringify({ documentId, prompt, canvasState: state.document, settings, images, selection }),
+    });
 
-  if (!res.ok || !res.body) {
-    fanout({ type: 'agent:error', message: `Agent HTTP ${res.status}` });
-    return;
-  }
+    if (!res.ok || !res.body) {
+      fanout({ type: 'agent:error', message: `Agent HTTP ${res.status}` });
+      return;
+    }
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = '';
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    let nl: number;
-    while ((nl = buf.indexOf('\n')) >= 0) {
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      if (!line) continue;
-      try {
-        const evt = JSON.parse(line) as
-          | { type: 'patch'; patch: CanvasPatch; toolCallId?: string }
-          | { type: 'agent_event'; event: SyncEvent };
-        if (evt.type === 'patch') {
-          state.document = applyPatchToCanvas(state.document, evt.patch);
-          fanout({ type: 'canvas:patch', patch: evt.patch, toolCallId: evt.toolCallId });
-        } else if (evt.type === 'agent_event') {
-          fanout(evt.event);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl: number;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        try {
+          const evt = JSON.parse(line) as
+            | { type: 'patch'; patch: CanvasPatch; toolCallId?: string }
+            | { type: 'agent_event'; event: SyncEvent };
+          if (evt.type === 'patch') {
+            // Idempotent apply: skip a verbatim duplicate delivery of a patch
+            // we already applied (same toolCallId + same content). One tool
+            // call MAY legitimately emit several different patches — those
+            // have different content hashes and still apply.
+            const dedupeKey = patchDedupeKey(evt.toolCallId, evt.patch);
+            if (dedupeKey && state.appliedPatches.has(dedupeKey)) {
+              continue;
+            }
+            if (dedupeKey) state.appliedPatches.add(dedupeKey);
+            state.document = applyPatchToCanvas(state.document, evt.patch);
+            fanout({ type: 'canvas:patch', patch: evt.patch, toolCallId: evt.toolCallId });
+          } else if (evt.type === 'agent_event') {
+            if (evt.event?.type === 'agent:turn_end') sawTurnEnd = true;
+            fanout(evt.event);
+          }
+        } catch (err) {
+          console.error('[canvas-sync] failed to parse NDJSON line:', line, err);
         }
-      } catch (err) {
-        console.error('[canvas-sync] failed to parse NDJSON line:', line, err);
       }
     }
+  } catch (err: any) {
+    if (err?.name === 'AbortError' || abortController.signal.aborted) {
+      aborted = true;
+    } else {
+      fanout({ type: 'agent:error', message: `Agent stream failed: ${err?.message ?? String(err)}` });
+    }
+  } finally {
+    // Flush any batched events FIRST so ordering is preserved (terminal
+    // event fans out after everything that preceded it).
+    if (fanoutTimer) {
+      clearTimeout(fanoutTimer);
+      fanoutTimer = null;
+    }
+    flushFanout();
+    if (aborted) {
+      // The run was stopped server-side: every viewer finalizes the turn as
+      // cancelled (a trailing turn_cancelled replaces the turn_end).
+      directFanout({ type: 'agent:turn_cancelled' });
+    } else if (!sawTurnEnd) {
+      // The stream already carried an authoritative turn_end from the runner
+      // — only synthesize one when none arrived (stream died mid-turn).
+      directFanout({ type: 'agent:turn_end' });
+    }
+    if (activeRuns.get(documentId) === abortController) {
+      activeRuns.delete(documentId);
+    }
   }
-  fanout({ type: 'agent:turn_end' });
 }

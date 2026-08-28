@@ -78,9 +78,13 @@ export interface Session {
  *
  *   queued → in_progress
  *   in_progress → awaiting_tool → in_progress (loop per tool)
- *   in_progress → completed | failed | incomplete | cancelling
+ *   in_progress → completed | failed | incomplete | stuck | cancelling
  *   awaiting_tool → cancelling
  *   cancelling → cancelled
+ *
+ * 'stuck' (agent-durability change): the runner's stuck detector fired —
+ * the same tool call failed identically 3× and the loop was stopped before
+ * burning the whole iteration budget. Terminal, like failed/cancelled.
  */
 export type RunStatus =
   | 'queued'
@@ -90,7 +94,20 @@ export type RunStatus =
   | 'cancelled'
   | 'completed'
   | 'failed'
+  | 'stuck'
   | 'incomplete';
+
+/// Terminal run statuses — once a run is in one of these, later closing
+/// events (a trailing turn_end after a turn_cancelled, a duplicate turn_end
+/// after agent:error) must NOT overwrite it. Shared by the canvas store's
+/// event guards and endRun's own guard so the honest status survives.
+export const TERMINAL_RUN_STATUSES: ReadonlySet<RunStatus> = new Set<RunStatus>([
+  'cancelled',
+  'completed',
+  'failed',
+  'stuck',
+  'incomplete',
+]);
 
 export type RunTrigger =
   | 'user_message'

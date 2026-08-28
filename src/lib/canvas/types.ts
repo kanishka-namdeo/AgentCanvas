@@ -515,12 +515,26 @@ export type SyncEvent =
   | { type: 'canvas:full'; document: CanvasDocument }
   | { type: 'agent:message_start'; role: 'assistant' }
   | { type: 'agent:message_delta'; text: string }
-  | { type: 'agent:message_end' }
+  | { type: 'agent:message_end'; stopReason?: string }
   | { type: 'agent:thinking_delta'; text: string }
   | { type: 'agent:tool_call_start'; toolCallId: string; toolName: string; argsPreview: string }
   | { type: 'agent:tool_call_end'; toolCallId: string; success: boolean; summary: string }
   | { type: 'agent:turn_end' }
-  | { type: 'agent:error'; message: string }
+  // Emitted when the run was cancelled server-side (agent:stop client event
+  // or an aborted HTTP request): the pi session was aborted, token spend
+  // stopped, and the client must finalize the turn + run as 'cancelled'.
+  // Terminal for the turn — a trailing agent:turn_end (if any) must not
+  // overwrite the cancelled status.
+  | { type: 'agent:turn_cancelled' }
+  // Emitted by the runner's stuck detector: the same tool call failed
+  // identically N consecutive times (OpenHands stuck-detector pattern). The
+  // loop is stopped at the next turn boundary instead of burning the whole
+  // iteration budget on a doomed repetition.
+  | { type: 'agent:stuck'; message: string; toolName?: string; streak?: number }
+  // Typed error envelope (bolt.diy pattern): `message` stays the full
+  // human-readable text; `code` / `retryable` are ADDITIVE classification
+  // fields (old clients ignore them) produced by classifyAgentError().
+  | { type: 'agent:error'; message: string; code?: string; retryable?: boolean }
   | { type: 'agent:skill_selected'; category: string; confidence: number; method: string; toolCount: number }
   | { type: 'agent:plan'; steps: Array<{ step: number; description: string; skill: string; status: string }> }
   | { type: 'agent:plan_step_update'; step: number; status: string }
@@ -603,6 +617,13 @@ export type ClientEvent =
   | { type: 'document:restore'; documentId: string; document: CanvasDocument }
   | { type: 'agent:prompt'; documentId: string; prompt: string; settings?: AgentRunSettings; images?: Array<{ id?: string; name?: string; dataUrl: string }>; selection?: { count: number; names: string[] } }
   | { type: 'agent:steer'; documentId: string; text: string }
+  // Server-visible Stop (durability fix): the client asks the canvas-sync
+  // service to abort the in-flight agent run for the document. The service
+  // aborts its /api/agent fetch (whose request signal propagates into the
+  // runner → session.abort()) and fans out agent:turn_cancelled to every
+  // viewer. Previously Stop only aborted the client's own view — the server
+  // kept burning tokens to completion and its late patches kept applying.
+  | { type: 'agent:stop'; documentId: string }
   // ---- Client round-trip responses (spec §5.2 / Phase 3, M2-c) ------------
   // Client answers an agent:computed_request (results also reach the server's
   // pending map via POST /api/agent/client-responses; the socket copy keeps

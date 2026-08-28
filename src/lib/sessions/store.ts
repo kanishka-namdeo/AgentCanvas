@@ -41,6 +41,7 @@ import type {
   SessionFilter, SessionStats, SessionStatus,
   RunStatus, RunTrigger, ToolCallStatus, SnapshotSource,
 } from './types';
+import { TERMINAL_RUN_STATUSES } from './types';
 
 // ---- ID + time helpers ------------------------------------------------------
 
@@ -151,6 +152,13 @@ interface SessionStoreState {
   // ---- Mutations: Runs ----
   startRun: (sessionId: string, prompt: string, trigger?: RunTrigger, model?: string) => Run;
   endRun: (runId: string, status: RunStatus, errorMessage?: string) => void;
+  /// Boot-time zombie sweep (durability fix): finalize runs/messages that a
+  /// crash or reload left in a live-looking state ('in_progress' /
+  /// 'streaming'). Only touches records older than `maxAgeMs` so a run that
+  /// is genuinely still streaming server-side (page reloaded mid-run, socket
+  /// reconnected, remaining events will arrive and finalize normally) is
+  /// never touched. Called once from the canvas store's init().
+  reconcileStaleActivity: (maxAgeMs?: number) => { runs: number; messages: number };
 
   // ---- Mutations: Messages ----
   appendUserMessage: (
@@ -635,6 +643,17 @@ export const useSessionStore = create<SessionStoreState>()(
       endRun: (runId, status, errorMessage) => {
         const run = get().runs[runId];
         if (!run) return;
+        // Terminal-state guard (durability fix): once a run reached a
+        // terminal status ('cancelled' via turn_cancelled, 'failed' via
+        // agent:error, 'stuck', 'completed', 'incomplete'), later closing
+        // events must not rewrite history — a trailing turn_end after a
+        // Stop used to flip 'cancelled' runs to 'completed' in both the
+        // local cache and the server DB. Re-finalizing with the SAME status
+        // (e.g. a duplicate turn_end after 'completed') stays allowed so the
+        // existing idempotent-resync flows keep working.
+        if (TERMINAL_RUN_STATUSES.has(run.status) && run.status !== status) {
+          return;
+        }
         const ts = nowISO();
         const durationMs = run.startedAt
           ? new Date(ts).getTime() - new Date(run.startedAt).getTime()
@@ -678,6 +697,43 @@ export const useSessionStore = create<SessionStoreState>()(
           });
         }
       },
+      reconcileStaleActivity: (maxAgeMs = 10 * 60 * 1000) => {
+        const cutoff = Date.now() - maxAgeMs;
+        const report = { runs: 0, messages: 0 };
+        const state = get();
+        // Runs stuck in a live-looking state whose last activity predates
+        // the cutoff → 'incomplete' (resumable, honest).
+        for (const run of Object.values(state.runs)) {
+          if (
+            (run.status === 'in_progress' || run.status === 'awaiting_tool' ||
+             run.status === 'queued' || run.status === 'cancelling') &&
+            new Date(run.createdAt).getTime() < cutoff
+          ) {
+            get().endRun(run.id, 'incomplete', 'Interrupted — no agent activity for 10+ minutes');
+            report.runs++;
+          }
+        }
+        // Assistant messages stuck 'streaming' past the cutoff → 'error'
+        // with a note (the eternal-spinner fix: _syncTurnsFromSession maps
+        // 'streaming' back to a spinner forever otherwise).
+        for (const message of Object.values(get().messages)) {
+          if (
+            message.role === 'assistant' &&
+            message.status === 'streaming' &&
+            new Date(message.createdAt).getTime() < cutoff
+          ) {
+            get().finalizeAssistantMessage(message.id, 'error', 'Interrupted — stream ended unexpectedly');
+            report.messages++;
+          }
+        }
+        if (report.runs > 0 || report.messages > 0) {
+          console.log(
+            `[sessions] reconciled ${report.runs} stale run(s) + ${report.messages} stale streaming message(s)`,
+          );
+        }
+        return report;
+      },
+
       appendUserMessage: (sessionId, runId, text, images, selection) => {
         const session = get().sessions[sessionId];
         if (!session) throw new Error(`session ${sessionId} not found`);

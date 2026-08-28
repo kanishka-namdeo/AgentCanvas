@@ -30,6 +30,9 @@ const RUN_STATUS_CONFIG: Record<RunStatus, StatusConfig> = {
   cancelled:     { label: 'cancelled',     cls: 'ac-status-neutral',  dotCls: 'ac-dot-neutral',  icon: Ban },
   completed:     { label: 'completed',    cls: 'ac-status-success',  dotCls: 'ac-dot-success',  icon: CheckCircle2 },
   failed:        { label: 'failed',        cls: 'ac-status-danger',   dotCls: 'ac-dot-danger',   icon: XCircle },
+  // Stuck-detector terminal status: the agent repeated the same failing tool
+  // call and the loop was stopped before burning the iteration budget.
+  stuck:         { label: 'stuck',        cls: 'ac-status-warning',  dotCls: 'ac-dot-warning',  icon: AlertTriangle },
   incomplete:    { label: 'incomplete',    cls: 'ac-status-warning',  dotCls: 'ac-dot-warning',  icon: AlertTriangle },
 };
 

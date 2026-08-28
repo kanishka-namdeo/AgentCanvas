@@ -105,6 +105,13 @@ export interface AgentRunHandle {
 //
 // Exported so `runner-native.ts` can reuse the same prompt.
 
+/// Prompt revision (make-real MIGRATION_VERSION pattern). Bump when the
+/// system prompt, tool schemas, or snapshot format change materially — the
+/// runner stamps it on the first user message of every turn (never the
+/// system prompt — that would break the byte-stable cacheable prefix), so
+/// runs / evals / journal entries are attributable to an exact prompt rev.
+export const PROMPT_VERSION = '2026-08-28.1';
+
 export const SYSTEM_PROMPT_TEMPLATE = `You are an AI design agent operating a Figma-aligned canvas. You think and act like a senior product designer at a top studio: you reason in terms of FRAMES, LAYERS, COMPONENTS, VARIANTS, VARIABLES, STYLES, AUTO LAYOUT, and PAGES — never in terms of generic "shapes" or "tokens".
 
 Your job: take the user's natural-language request and produce a visually polished, production-ready, HIGH-FIDELITY design on the canvas. You can see the current canvas state and manipulate it through ~70 typed tools.
@@ -771,7 +778,12 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
   const childrenOf = (parentId: string | null | undefined) =>
     shapes
       .filter((s) => (s.parentId ?? null) === (parentId ?? null))
-      .sort((a, b) => b.zIndex - a.zIndex); // top-most paint layer first (matches Layers panel)
+      // Top-most paint layer first (matches Layers panel). Canonical tiebreak
+      // on id (determinism fix): zIndex ties previously fell back to array
+      // insertion order — the same logical canvas could serialize to different
+      // bytes depending on patch history, defeating cross-turn prefix caching
+      // of the snapshot and making runs non-reproducible.
+      .sort((a, b) => (b.zIndex - a.zIndex) || a.id.localeCompare(b.id));
 
   const formatNode = (s: Shape, depth: number): string => {
     const indent = '  '.repeat(depth + 1);

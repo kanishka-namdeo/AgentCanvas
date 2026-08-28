@@ -81,12 +81,14 @@ import {
 import { resolveModel, resolveZaiSandboxFallback } from './pi-ai-model-resolver';
 import { subscribeAndTranslate } from './agent-session-translator';
 import { dataUrlToImageContent } from './attachments';
+import { classifyAgentError, agentErrorMessage } from '../agent-error';
 import type { AgentStreamEvent, AgentRunOptions } from './runner-types';
 import {
   normalizeCanvas,
   buildSystemPrompt,
   buildSubAgentLLMClient,
   canvasSnapshot,
+  PROMPT_VERSION,
 } from './runner-legacy';
 // Plugin integration.
 import {
@@ -498,7 +500,17 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // marking canvas MUTATIONS executionMode:'sequential' guarantees they
   // still apply in emission order (create-then-style etc.), while read-only
   // tools (metadata/search/export/critique sub-agents) stay concurrent.
-  const orderedTools: ToolDefinition[] = applyExecutionModes(approvalWrappedTools);
+  //
+  // Deterministic registration order (Vercel AI SDK toolOrder pattern): the
+  // ~80 tool definitions are sorted alphabetically so the tool-schema bytes
+  // sent to the provider are IDENTICAL every turn — provider-side prompt
+  // caching keys on stable tool-definition order, and this is the single
+  // registry both `customTools` and the `tools` allowlist are built from.
+  // Sorted AFTER all wrapper layers (aliases → skill filter → brief gate →
+  // approval gate → execution modes) so wrapping never reorders it.
+  const orderedTools: ToolDefinition[] = [...applyExecutionModes(approvalWrappedTools)].sort(
+    (a, b) => a.name.localeCompare(b.name),
+  );
 
   // Emit skill selection event (UI parity with legacy runner).
   yield {
@@ -659,9 +671,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   try {
     model = await resolveModel(settings);
   } catch (err: any) {
+    const message = `Model resolution failed: ${agentErrorMessage(err)}`;
+    const cls = classifyAgentError(message);
     yield {
       kind: 'agent_event',
-      event: { type: 'agent:error', message: `Model resolution failed: ${err.message}` },
+      event: { type: 'agent:error', message, code: cls.code, retryable: cls.retryable },
     };
     yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
     return;
@@ -724,6 +738,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // directly into the first user message so the main loop needs no brief
   // round-trip.
   const snapshotSection = `\n\nCURRENT CANVAS SNAPSHOT (at turn start — call pen_get_metadata for live state):\n${canvasSnapshot(canvas)}`;
+  // Prompt versioning (make-real MIGRATION_VERSION pattern): stamped on the
+  // first user message (NOT the system prompt — that would invalidate the
+  // byte-stable cacheable prefix) so every run record / eval log / journal
+  // entry is attributable to the exact prompt revision that produced it.
+  const promptVersionSection = `\n\n[SYSTEM META: prompt v${PROMPT_VERSION}]`;
   const briefSection = preGeneratedBrief
     ? `\n\n[PRE-GENERATED DESIGN BRIEF — the palette / typography / layout source of truth for this whole turn. Do NOT call pen_generate_design_brief; build directly from this brief:]\n${preGeneratedBrief}`
     : '';
@@ -735,7 +754,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     : '';
   const userMessage = (webResearchSummary
     ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}`
-    : `${selectionNote}${prompt}`) + briefSection + variantNudge + snapshotSection + packReminder;
+    : `${selectionNote}${prompt}`) + briefSection + variantNudge + snapshotSection + promptVersionSection + packReminder;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;
@@ -773,12 +792,74 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   let lastSawErrorEvent = false;
   let lastPromptError: any = undefined;
   let currentModel = model;
+  // finishReason of the LAST assistant message across attempts ('length' =
+  // truncated by the token limit) — drives the auto-continue block after the
+  // attempt loop (bolt.diy SwitchableStream pattern).
+  let lastStopReason: string | undefined;
+
+  // ---- Stuck detector (OpenHands conversation/stuck_detector pattern) -----
+  //
+  // Tracks consecutive failures of the SAME tool call signature
+  // (toolName + args preview). At STUCK_STREAK identical consecutive failures
+  // the loop is stopped at the next turn boundary (via shouldStopAfterTurn)
+  // and a terminal `agent:stuck` event tells the client to mark the run
+  // honestly instead of burning the whole iteration budget on a doomed
+  // repetition (observed live: a model re-calling a failing pen_* tool 30×).
+  const STUCK_STREAK = 3;
+  const stuckTracker = {
+    lastSignature: '',
+    streak: 0,
+    stuck: false,
+    lastToolName: '',
+    pendingSignatures: new Map<string, string>(),
+    onStart(toolCallId: string, toolName: string, argsPreview: string) {
+      if (toolCallId) this.pendingSignatures.set(toolCallId, `${toolName}|${argsPreview.slice(0, 400)}`);
+    },
+    onEnd(toolCallId: string, success: boolean) {
+      const signature = this.pendingSignatures.get(toolCallId) ?? '';
+      if (toolCallId) this.pendingSignatures.delete(toolCallId);
+      if (success) {
+        this.streak = 0;
+        this.lastSignature = '';
+        return;
+      }
+      if (signature && signature === this.lastSignature) {
+        this.streak++;
+      } else {
+        this.lastSignature = signature;
+        this.streak = 1;
+      }
+    },
+  };
+
+  // ---- Abort wiring (server-side Stop) -------------------------------------
+  //
+  // The route passes the request's AbortSignal. When it fires (client
+  // disconnect / canvas-sync agent:stop / stream watchdog) we abort the LIVE
+  // pi session — prompt() unblocks, drain loops end, and the runner emits a
+  // terminal agent:turn_cancelled. Without this, Stop only hid the output
+  // while the server kept spending tokens to completion.
+  let session: AgentSession | undefined;
+  const onAbort = () => {
+    try {
+      void session?.abort?.();
+    } catch {
+      // Session already disposed — nothing to abort.
+    }
+  };
+  if (signal) {
+    signal.addEventListener('abort', onAbort);
+    // Already aborted before we subscribed (e.g. watchdog fired during model
+    // resolution) — the checks below short-circuit the run.
+  }
+  const wasAborted = () => signal?.aborted === true;
 
   // Task 7-e Fix 3: Lift `session` to the outer scope so the critique loop
   // can REUSE it for the fix-message re-prompt. Declared here, assigned in
   // the attempt loop, disposed in the outer finally at the end of the
   // function (or at the top of the next attempt on the fallback path).
-  let session: AgentSession | undefined;
+  // (NOTE: `session` is now declared above, next to the abort wiring, so the
+  // abort listener can reference it.)
 
   // Up to 2 attempts: primary, then (conditionally) one z.ai sandbox retry.
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -872,16 +953,21 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           }) => {
             const toolCalls = turnCtx?.message?.content?.filter?.((c: { type?: string }) => c?.type === 'toolCall') ?? [];
             toolCallBudget -= toolCalls.length;
-            return toolCallBudget <= 0;
+            // Stuck detector: once the SAME tool call failed identically
+            // STUCK_STREAK times, stop the loop at this turn boundary — the
+            // agent:stuck event has already been emitted in the drain loop.
+            return toolCallBudget <= 0 || stuckTracker.stuck;
           };
         }
       } catch {
         // Capability probe failed — loop stays unbounded (pre-existing behavior).
       }
     } catch (err: any) {
+      const message = `Failed to create agent session: ${agentErrorMessage(err)}`;
+      const cls = classifyAgentError(message);
       yield {
         kind: 'agent_event',
-        event: { type: 'agent:error', message: `Failed to create agent session: ${err.message}` },
+        event: { type: 'agent:error', message, code: cls.code, retryable: cls.retryable },
       };
       lastSawErrorEvent = true;
       // Session-creation failures are usually model-resolution issues (already
@@ -995,7 +1081,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       // the finally block).
       for await (const ev of queue.drain()) {
         if (ev.kind === 'agent_event') {
-          if (ev.event.type === 'agent:message_end') sawMessageEnd = true;
+          if (ev.event.type === 'agent:message_end') {
+            sawMessageEnd = true;
+            if (ev.event.stopReason) lastStopReason = ev.event.stopReason;
+          }
           if (ev.event.type === 'agent:turn_end') {
             sawTurnEnd = true;
             // WITHHOLD the per-attempt turn_end from the client stream: the
@@ -1009,6 +1098,35 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
             continue;
           }
           if (ev.event.type === 'agent:error') sawErrorEvent = true;
+          // ---- Stuck detector feed (C4) -----------------------------------
+          if (ev.event.type === 'agent:tool_call_start') {
+            stuckTracker.onStart(ev.event.toolCallId, ev.event.toolName, ev.event.argsPreview);
+          }
+          if (ev.event.type === 'agent:tool_call_end') {
+            stuckTracker.onEnd(ev.event.toolCallId, ev.event.success);
+            if (
+              !stuckTracker.stuck &&
+              stuckTracker.streak >= STUCK_STREAK &&
+              stuckTracker.lastSignature
+            ) {
+              stuckTracker.stuck = true;
+              stuckTracker.lastToolName = stuckTracker.lastSignature.split('|')[0] ?? '';
+              yield {
+                kind: 'agent_event',
+                event: {
+                  type: 'agent:stuck',
+                  message:
+                    `The tool "${stuckTracker.lastToolName}" failed identically ${stuckTracker.streak} times in a row ` +
+                    `(same arguments, same error). Stopping the loop instead of burning the remaining iteration budget — ` +
+                    `change the approach or check the tool arguments, then resend.`,
+                  toolName: stuckTracker.lastToolName,
+                  streak: stuckTracker.streak,
+                },
+              };
+              // shouldStopAfterTurn now returns true → the SDK loop ends at
+              // this turn boundary and the tail closes the turn honestly.
+            }
+          }
           // "Activity" = USER-VISIBLE output only (text or tool calls). Thinking
           // deltas deliberately do NOT count: a 429'd attempt can emit partial
           // thinking before failing, and a turn with only thinking, no text, and
@@ -1021,11 +1139,19 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           }
         }
         yield ev;
+        // Server-side Stop: the abort listener already called session.abort()
+        // — the SDK is unwinding. Stop translating and let the tail emit the
+        // terminal turn_cancelled.
+        if (wasAborted()) {
+          break;
+        }
         if (promptError) {
           // prompt() threw — surface the error and stop.
+          const message = `Agent prompt failed: ${agentErrorMessage(promptError)}`;
+          const cls = classifyAgentError(message);
           yield {
             kind: 'agent_event',
-            event: { type: 'agent:error', message: `Agent prompt failed: ${promptError.message ?? String(promptError)}` },
+            event: { type: 'agent:error', message, code: cls.code, retryable: cls.retryable },
           };
           sawErrorEvent = true;
           break;
@@ -1040,9 +1166,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         try {
           await promptPromise;
         } catch (err: any) {
+          const message = `Agent prompt failed: ${agentErrorMessage(err)}`;
+          const cls = classifyAgentError(message);
           yield {
             kind: 'agent_event',
-            event: { type: 'agent:error', message: `Agent prompt failed: ${err.message ?? String(err)}` },
+            event: { type: 'agent:error', message, code: cls.code, retryable: cls.retryable },
           };
           sawErrorEvent = true;
           promptError = err;
@@ -1067,6 +1195,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     lastSawActivity = sawActivity;
     lastSawErrorEvent = sawErrorEvent;
     lastPromptError = promptError;
+
+    // Skip the z.ai fallback retry entirely when the run was aborted —
+    // a stopped run must not kick off a SECOND LLM attempt.
+    if (wasAborted()) break;
 
     // Decide whether to fall back to the z.ai sandbox for a second attempt.
     // Bounded: at most ONE retry per turn (attempt === 0 only), and only if
@@ -1119,6 +1251,98 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // Loop continues to attempt 1 with the fallback (or same) model.
   }
 
+  // ---- Auto-continue past truncation (bolt.diy SwitchableStream pattern) --
+  //
+  // When the model's output is cut by the token limit (stopReason 'length'),
+  // the SDK already fails any truncated tool calls and keeps its internal
+  // loop going. But when the FINAL message of the turn is truncated — prose
+  // cut mid-sentence, no tool calls left to fail — the turn used to just end
+  // mid-air. Re-prompt the SAME session (context preserved) with a synthetic
+  // continue instruction, bounded to 2 continuation segments. The continued
+  // text streams into the same assistant turn on the client (message deltas
+  // append to the open turn).
+  if (session && !wasAborted() && !lastPromptError && lastStopReason === 'length') {
+    let continueSegments = 0;
+    try {
+      while (
+        lastStopReason === 'length' &&
+        continueSegments < 2 &&
+        session &&
+        !wasAborted()
+      ) {
+        continueSegments++;
+        lastStopReason = undefined;
+        yield {
+          kind: 'agent_event',
+          event: {
+            type: 'agent:message_delta',
+            text: '\n\n_[continuing — the previous message was truncated by the token limit]_\n',
+          } as any,
+        };
+        const { queue: contQueue, unsubscribe: contUnsubscribe } = subscribeAndTranslate(
+          (listener) => session!.subscribe(listener),
+          { contextWindow: currentModel.model.contextWindow },
+        );
+        const contRestoreSink = setEventSink((event: any) => {
+          contQueue.push([{ kind: 'agent_event', event }]);
+        });
+        let contError: any;
+        try {
+          const contMessage =
+            'Your previous message was truncated mid-output because it hit the model token limit (finish reason: length). ' +
+            'Continue EXACTLY where you stopped — do not repeat content you already produced, do not restart, do not re-emit tool calls that already ran. ' +
+            'Finish the sentence/section you were writing, then end your turn with a one-sentence summary.';
+          const contPromptPromise = session!.prompt(contMessage, { expandPromptTemplates: false });
+          contPromptPromise.catch((err: any) => {
+            contError = err;
+            contQueue.close();
+          });
+          let contSettled = false;
+          void contPromptPromise.then(() => {
+            contSettled = true;
+            setTimeout(() => contQueue.close(), 0);
+          });
+          for await (const ev of contQueue.drain()) {
+            if (ev.kind === 'agent_event') {
+              if (ev.event.type === 'agent:turn_end') {
+                withheldTurnEnd = true;
+                continue;
+              }
+              if (ev.event.type === 'agent:message_end' && ev.event.stopReason) {
+                lastStopReason = ev.event.stopReason;
+              }
+            }
+            yield ev;
+            if (wasAborted() || contError) break;
+          }
+          if (!contSettled && !contError) {
+            try { await contPromptPromise; } catch (err: any) { contError = err; }
+          }
+          if (contError) {
+            const message = `Continuation prompt failed: ${agentErrorMessage(contError)}`;
+            const cls = classifyAgentError(message);
+            yield {
+              kind: 'agent_event',
+              event: { type: 'agent:error', message, code: cls.code, retryable: cls.retryable },
+            };
+            break;
+          }
+        } finally {
+          contQueue.close();
+          contUnsubscribe();
+          contRestoreSink();
+        }
+      }
+    } catch (err: any) {
+      // Auto-continue is strictly best-effort: any unexpected failure here
+      // must never kill the turn — the truncated-but-delivered output stands.
+      console.warn(
+        '[runner-native] auto-continue failed (non-fatal):',
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  }
+
   // Task 7-c P1.3 / T2 + P1.4 / T10 — MANDATORY self-critique loop with
   // pre-complete validation gate.
   //
@@ -1167,8 +1391,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const maxCritiqueIterations = settings?.maxDesignCritiqueIterations ?? 2;
   let noOpFixAttempts = 0;
   try {
-  if (maxCritiqueIterations > 0 && session) {
+  if (maxCritiqueIterations > 0 && session && !wasAborted()) {
     for (let critiqueIteration = 0; critiqueIteration < maxCritiqueIterations; critiqueIteration++) {
+      // A stopped run never enters (or continues) the critique loop — critics
+      // and fix-turns would spend more tokens after the user said Stop.
+      if (wasAborted()) break;
       // Sync the local canvas with whatever patches the agent emitted.
       // (canvas is updated by ctx.applyPatch above as patches flow through.)
       const shapesForCritique = canvas.shapes ?? [];
@@ -1508,6 +1735,12 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
       try { session.dispose(); } catch {}
       session = undefined;
     }
+    // Unhook the abort listener — the request-scoped signal outlives this
+    // generator (the route's watchdog / client disconnect can fire later)
+    // and a stale listener would call abort() on a disposed session.
+    if (signal) {
+      try { signal.removeEventListener('abort', onAbort); } catch {}
+    }
   }
 
   // Defensive: if the translator never emitted closing events (e.g. the SDK
@@ -1521,20 +1754,27 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
   // prompt() without throwing, so we must emit the error here or the user
   // sees an empty bubble with no clue.
   // Emitted BEFORE the closing events so the UI records it on the run.
-  if (!lastPromptError && !lastSawErrorEvent && !lastSawActivity) {
+  if (!lastPromptError && !lastSawErrorEvent && !lastSawActivity && !wasAborted()) {
+    const emptyMessage =
+      'The model returned an empty response (no text and no tool calls). ' +
+      'This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. ' +
+      'Wait about a minute and resend your prompt; if it keeps happening, try a different model in Settings.';
+    const cls = classifyAgentError(emptyMessage);
     yield {
       kind: 'agent_event',
-      event: {
-        type: 'agent:error',
-        message:
-          'The model returned an empty response (no text and no tool calls). ' +
-          'This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. ' +
-          'Wait about a minute and resend your prompt; if it keeps happening, try a different model in Settings.',
-      },
+      event: { type: 'agent:error', message: emptyMessage, code: cls.code, retryable: cls.retryable },
     };
   }
   if (!everSawMessageEnd) {
     yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
+  }
+  // A run stopped server-side (agent:stop / client disconnect / watchdog)
+  // ends with turn_cancelled so every viewer finalizes the turn + run as
+  // 'cancelled' instead of 'completed'. Emitted BEFORE the turn_end tail so
+  // clients that only understand turn_end still close the turn (their
+  // terminal-status guard prevents overwriting the cancelled state).
+  if (wasAborted()) {
+    yield { kind: 'agent_event', event: { type: 'agent:turn_cancelled' } };
   }
   // Exactly ONE turn_end reaches the client: either the translator's (when
   // none were withheld) or the authoritative tail emission below (when they
