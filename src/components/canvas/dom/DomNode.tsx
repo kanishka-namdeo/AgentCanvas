@@ -65,6 +65,36 @@ export interface DomNodeProps {
   /// because every container is a candidate — the caller (DomCanvas)
   /// computes it once from settings + renderer mode + document size budget.
   l4Culling?: boolean;
+
+  // ---- Keyboard accessibility (Task 4d) -----------------------------------
+  /// True when this node is a top-level shape (parentId == null). Only
+  /// top-level shapes get `tabIndex={0}` so the browser's Tab order is the
+  /// z-order of the canvas's roots (nested children inherit their parent's
+  /// focus — putting every descendant in the tab order would overwhelm the
+  /// keyboard user). Default false (recursed children always pass false).
+  isTopLevel?: boolean;
+  /// aria-busy="true" when the agent is mutating this shape. Composed by
+  /// DomCanvas from the canvas store's `agentHighlightIds` set (the ids the
+  /// agent most recently selected via canvas_select_shape — the closest
+  /// per-shape "agent is working on this" signal we have without reading
+  /// store.ts). `undefined` leaves the attribute off entirely.
+  ariaBusy?: boolean;
+  /// Optional screen-reader label override. Defaults to
+  /// `${layer.name} (${layer.type})` when not supplied.
+  ariaLabel?: string;
+  /// Focus handlers — when a top-level shape receives focus (via Tab or
+  /// programmatic .focus()), it becomes the active selection. The Canvas
+  /// shell wires `onShapeFocus` to its `select()` action and tracks the
+  /// focused id for the dashed focus-ring chrome overlay.
+  onShapeFocus?: (id: string) => void;
+  onShapeBlur?: (id: string) => void;
+  /// Keydown handler attached to the shape's div. Used by Canvas.tsx to
+  /// dispatch the Enter-to-edit-text flow on text shapes. Other keys (Tab,
+  /// arrows, Escape) are handled by the window-level listeners (existing
+  /// Phase 7 chords in Canvas.tsx + the nudge handler in page.tsx); we
+  /// intentionally do NOT stopPropagation on those so the window listeners
+  /// still see them.
+  onShapeKeyDown?: (e: React.KeyboardEvent, shape: Layer) => void;
 }
 
 export const DomNode = memo(function DomNode({
@@ -81,6 +111,12 @@ export const DomNode = memo(function DomNode({
   getPenNode,
   registerEl,
   l4Culling,
+  isTopLevel = false,
+  ariaBusy = false,
+  ariaLabel,
+  onShapeFocus,
+  onShapeBlur,
+  onShapeKeyDown,
 }: DomNodeProps) {
   // ---- Native layout mode decisions (spec §3.4) ----------------------------
   // A node is a flex CONTAINER when its own .pen layout is vertical/horizontal;
@@ -132,6 +168,22 @@ export const DomNode = memo(function DomNode({
       data-node-type={layer.type}
       data-instance-of={isInstance ? layer.componentId : undefined}
       style={style}
+      // Task 4d — keyboard accessibility. Top-level shapes (parentId == null)
+      // are the only ones in the browser's Tab order; nested children
+      // inherit their parent's focus context (otherwise the Tab sequence
+      // would balloon past every group/frame descendant). role="img" + a
+      // composed aria-label give screen readers a stable description;
+      // aria-busy flips true while the agent is mutating this shape (sourced
+      // from the store's agentHighlightIds set in DomCanvas). The focus
+      // handler syncs the active selection so keyboard + click selection
+      // are equivalent.
+      tabIndex={isTopLevel ? 0 : undefined}
+      role="img"
+      aria-label={ariaLabel ?? `${layer.name ?? layer.type} (${layer.type})`}
+      aria-busy={ariaBusy || undefined}
+      onFocus={onShapeFocus ? (e) => onShapeFocus(layer.id) : undefined}
+      onBlur={onShapeBlur ? () => onShapeBlur(layer.id) : undefined}
+      onKeyDown={onShapeKeyDown ? (e) => onShapeKeyDown(e, layer) : undefined}
       // The shell's handler stopPropagation()s — nodes never bubble clicks
       // to the empty-canvas deselect path.
       onMouseDown={(e) => onShapeMouseDown(e, layer)}
@@ -191,7 +243,11 @@ export const DomNode = memo(function DomNode({
       {/* (3) recursive children — DOM order + zIndex CSS mirror the SVG
               renderer's flat zIndex sort. In native mode children also carry
               the flex context: parentDirection tells each child whether it
-              flows (flex item) or positions absolutely. */}
+              flows (flex item) or positions absolutely. Children are NEVER
+              `isTopLevel` (only root shapes go in the browser Tab order), but
+              they DO inherit the aria-busy flag + focus/keydown handlers so
+              the agent's per-shape busy state + the Enter-to-edit-text flow
+              work uniformly across the tree. */}
       {childLayers.map((child) => (
         <DomNode
           key={child.id}
@@ -206,6 +262,11 @@ export const DomNode = memo(function DomNode({
           getPenNode={getPenNode}
           registerEl={registerEl}
           l4Culling={l4Culling}
+          isTopLevel={false}
+          ariaBusy={ariaBusy}
+          onShapeFocus={onShapeFocus}
+          onShapeBlur={onShapeBlur}
+          onShapeKeyDown={onShapeKeyDown}
           onShapeMouseDown={onShapeMouseDown}
           onHover={onHover}
         />

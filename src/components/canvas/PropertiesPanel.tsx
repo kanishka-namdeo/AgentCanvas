@@ -777,7 +777,27 @@ export function PropertiesPanel() {
                   <ContextMenuItem onClick={() => copyColorHex(shape.fill)}>Copy as rgba</ContextMenuItem>
                   <ContextMenuItem onClick={() => copyColorHex(shape.fill)}>Copy as hsl</ContextMenuItem>
                   <ContextMenuSeparator />
-                  <ContextMenuItem onClick={() => toast.message('Save as variable — not yet implemented')}>Save as variable…</ContextMenuItem>
+                  {/* Save color as a .pen variable (color token) — emits a
+                      `set_variable` patch so the agent and other viewers see
+                      the new token in the variables tree. The variable name is
+                      auto-suggested from the shape's name + a numeric suffix
+                      so the user can quickly confirm or rename. */}
+                  <ContextMenuItem
+                    onClick={() => {
+                      const base = (shape.name || shape.type || 'color').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'color';
+                      const key = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+                      sendPatch({
+                        op: 'set_variable',
+                        variableKey: key,
+                        variableType: 'color',
+                        variableValue: shape.fill,
+                        summary: `Saved color as variable "${key}"`,
+                      });
+                      toast.success('Saved as variable', { description: `${key} = ${shape.fill}` });
+                    }}
+                  >
+                    Save as variable…
+                  </ContextMenuItem>
                 </ContextMenuContent>
               </ContextMenu>
             </div>

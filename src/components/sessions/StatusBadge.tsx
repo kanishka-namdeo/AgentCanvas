@@ -7,6 +7,12 @@ interface StatusBadgeProps {
   status: RunStatus | ToolCallStatus | SessionStatus;
   size?: 'sm' | 'md';
   className?: string;
+  /// Task 4d — optional screen-reader-only description appended after the
+  /// status label in the aria-live region. Use for richer context the bare
+  /// label can't carry (e.g. "running, 3 of 5 tool calls complete"). When
+  /// omitted, the badge announces just the label ("running", "completed",
+  /// etc.) — still useful, just less specific.
+  description?: string;
 }
 
 interface StatusConfig {
@@ -49,7 +55,7 @@ const SESSION_STATUS_CONFIG: Record<SessionStatus, StatusConfig> = {
   archived: { label: 'archived',  cls: 'ac-status-neutral',  dotCls: 'ac-dot-neutral',  icon: null },
 };
 
-export function StatusBadge({ status, size = 'sm', className = '' }: StatusBadgeProps) {
+export function StatusBadge({ status, size = 'sm', className = '', description }: StatusBadgeProps) {
   const cfg =
     status in RUN_STATUS_CONFIG
       ? RUN_STATUS_CONFIG[status as RunStatus]
@@ -62,12 +68,28 @@ export function StatusBadge({ status, size = 'sm', className = '' }: StatusBadge
   const sizeCls = size === 'sm' ? 'text-[9px] h-3.5 px-1 py-0' : 'text-[10px] h-5 px-1.5';
   const iconCls = size === 'sm' ? 'h-2.5 w-2.5' : 'h-3 w-3';
 
+  // Task 4d — compose the screen-reader announcement. The visible badge
+  // already shows cfg.label, but screen readers wouldn't announce the
+  // change when the status flips (e.g. queued → running → completed) because
+  // the badge's <span> isn't an aria-live region. Wrapping the badge in an
+  // aria-live="polite" span + a sr-only text node makes NVDA / VoiceOver /
+  // JAWS announce every status change (e.g. "running" then "completed")
+  // without interrupting the user. The optional `description` prop appends
+  // richer context after the label — pass e.g. "3 of 5 tool calls complete"
+  // for the run panel, or omit for the bare label.
+  const announcement = description
+    ? `${cfg.label}, ${description}`
+    : cfg.label;
+
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded border font-medium ${cfg.cls} ${sizeCls} ${className}`}
-    >
-      {Icon && <Icon className={`${iconCls} ${cfg.pulse ? 'animate-spin' : ''}`} />}
-      {cfg.label}
+    <span aria-live="polite" aria-atomic="true" className="inline-flex">
+      <span
+        className={`inline-flex items-center gap-1 rounded border font-medium ${cfg.cls} ${sizeCls} ${className}`}
+      >
+        {Icon && <Icon className={`${iconCls} ${cfg.pulse ? 'animate-spin' : ''}`} />}
+        {cfg.label}
+      </span>
+      <span className="sr-only">{announcement}</span>
     </span>
   );
 }

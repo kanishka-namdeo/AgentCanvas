@@ -32,6 +32,14 @@ export interface DomChromeProps {
   /// Canvas shell sets this transiently via the store's setMeasureMode on
   /// keydown/keyup.
   measureMode?: boolean;
+  /// Task 4d — id of the shape that currently has DOM focus (set by the
+  /// shell via onFocus on the shape div). When the focused shape is NOT in
+  /// `selectedIds`, a dashed focus ring is rendered so keyboard-only users
+  /// see where their Tab moved focus even when no shape is selected. When
+  /// the focused shape IS in the multi-selection set, the solid selection
+  /// outline already covers it — we skip the dashed ring to avoid clutter.
+  /// Default null = no focus ring.
+  focusedId?: string | null;
   onResizeHandleMouseDown: (e: React.MouseEvent, shape: Shape, handle: ResizeHandle) => void;
 }
 
@@ -47,6 +55,7 @@ export function DomChrome({
   viewport,
   pointerCanvas,
   measureMode,
+  focusedId,
   onResizeHandleMouseDown,
 }: DomChromeProps) {
   const { zoom, panX, panY } = viewport;
@@ -65,6 +74,15 @@ export function DomChrome({
     .map((id) => byId.get(id))
     .filter((l): l is Layer => !!l);
   const highlightSet = new Set(highlightIds);
+
+  // Task 4d — focused layer (only when the focus moved to a shape the
+  // selection set doesn't already cover, so the existing selection outline
+  // stays the primary indicator and the dashed ring is reserved for the
+  // "focused but not (yet) selected" state that keyboard-only users hit
+  // on first Tab into the canvas).
+  const focusedLayer = focusedId && !selectedSet.has(focusedId)
+    ? byId.get(focusedId) ?? null
+    : null;
 
   return (
     <div
@@ -95,6 +113,29 @@ export function DomChrome({
           }}
         />
       ))}
+
+      {/* 1b. Task 4d — keyboard focus ring (dashed accent, distinct from the
+              solid selection outline above). Rendered ONLY when the focused
+              shape isn't already in the selection set — when it IS, the solid
+              outline is the primary indicator (we don't want two overlapping
+              rings). The ring uses --ac-accent (brand violet) at a slightly
+              larger offset so it reads as the keyboard affordance, mirroring
+              the existing selection ring pattern but with a different stroke. */}
+      {focusedLayer && (
+        <div
+          data-chrome-focus={focusedLayer.id}
+          style={{
+            position: 'absolute',
+            left: sx(focusedLayer.x) - 3,
+            top: sy(focusedLayer.y) - 3,
+            width: focusedLayer.width * zoom + 6,
+            height: focusedLayer.height * zoom + 6,
+            border: '2px dashed var(--ac-accent)',
+            borderRadius: 2,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
 
       {/* 2. Resize handles — handlePosition ported to screen space. */}
       {selectedLayers.map((l) =>

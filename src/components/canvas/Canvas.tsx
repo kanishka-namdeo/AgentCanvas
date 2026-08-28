@@ -151,6 +151,17 @@ export function Canvas() {
   const [pointerCanvas, setPointerCanvas] = useState<{ x: number; y: number } | null>(null);
   const pointerCanvasRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Task 4d — keyboard navigation state. `focusedShapeId` is the shape that
+  // currently has DOM focus (tracked via onFocus/onBlur on the shape divs,
+  // threaded through DomCanvas → DomNode). It's distinct from `selectedIds`
+  // (multi-selection set): when a shape receives focus, it ALSO becomes the
+  // single active selection (audit requirement — see `onShapeFocus`), but
+  // the focused-id stays tracked so DomChrome can render a dashed focus ring
+  // even when the focused shape isn't in the selection set (rare edge case —
+  // programmatic .focus() before select() lands, or Tab into the canvas when
+  // nothing was selected).
+  const [focusedShapeId, setFocusedShapeId] = useState<string | null>(null);
+
   // Track container size for responsive rendering.
   useEffect(() => {
     const el = containerRef.current;
@@ -235,6 +246,65 @@ export function Canvas() {
     [selectedIds, document, select],
   );
 
+  // Task 4d — keyboard-nav focus handlers. When a shape's DOM node receives
+  // focus (Tab or click), it becomes the single active selection — UNLESS
+  // it's already in the multi-selection set, so shift-click-driven multi-
+  // selection survives the focus event (Tab still collapses multi-selection
+  // to single, the desired behavior). The focus effect below then keeps DOM
+  // focus in sync with subsequent selection changes driven by the Phase 7
+  // Tab/Enter/⇧Enter chords (so the dashed focus ring + screen-reader
+  // position follow navigateHierarchy's select()).
+  const onShapeFocus = useCallback((id: string) => {
+    setFocusedShapeId(id);
+    const state = useCanvasStore.getState();
+    if (!state.selectedIds.includes(id)) {
+      state.select([id]);
+    }
+  }, []);
+  const onShapeBlur = useCallback((_id: string) => {
+    // Clear the tracked focused id on blur. We don't check whether focus
+    // moved to another shape (the next onFocus handler will overwrite the
+    // null with the new id) — keeping this effect simple avoids races with
+    // React's focus/blur ordering. The dashed focus ring is cheap to drop
+    // for one frame between two adjacent shape focuses.
+    setFocusedShapeId(null);
+  }, []);
+
+  // Task 4d — focus-sync effect. When the selection changes via the
+  // Phase 7 hierarchy chords (Tab/⇧Tab/Enter/⇧Enter, all dispatched from
+  // the window keydown handler below), the store's `selectedIds` updates
+  // but DOM focus stays on the previously-focused shape. This effect moves
+  // DOM focus to the newly selected shape SO LONG AS the user is already
+  // keyboard-navigating shapes (a shape div currently has focus). We do
+  // NOT move focus when the chat input or another surface has focus —
+  // the user is interacting elsewhere, and stealing focus would break
+  // their typing.
+  // NOTE: `document` in this scope is the store's CanvasDocument — reach
+  // the DOM through `window.document` (same pattern as the presence
+  // lane effect below).
+  useEffect(() => {
+    if (selectedIds.length !== 1) return;
+    const container = containerRef.current;
+    if (!container) return;
+    if (typeof window === 'undefined') return;
+    const activeEl = window.document.activeElement as HTMLElement | null;
+    if (!activeEl) return;
+    // Only sync when a shape is already focused (keyboard-nav in progress).
+    // closest('[data-node-type]') matches both the shape's own div AND any
+    // descendant island SVG (so a text-shape's content node with DOM focus
+    // still counts).
+    if (!activeEl.closest?.('[data-node-type]')) return;
+    const id = selectedIds[0];
+    // CSS.escape guards against ids with special chars (none in the
+    // current shape-id generators, but defensive — the data-* contract
+    // doesn't promise it).
+    const escapedId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id;
+    const target = container.querySelector(`[data-node-id="${escapedId}"]`) as HTMLElement | null;
+    if (target && target !== activeEl) {
+      target.focus({ preventScroll: true });
+    }
+  }, [selectedIds]);
+
   // Keyboard: space to pan, delete to remove selection, escape to clear,
   // plus the Phase 7 canvas-scope registry chords (zoom / view options /
   // hierarchy navigation). App-scope chords live in page.tsx.
@@ -271,6 +341,36 @@ export function Canvas() {
         select([]);
       } else {
         if (isEditableTarget(e.target)) return;
+        // Task 4d — Enter on a single-selected text shape enters edit mode
+        // (window.prompt for the new text content). Done BEFORE the
+        // registry chords so a text shape doesn't fall through to the
+        // otherwise-no-op nav.child path (text shapes have no children).
+        // Plain Enter only — ⇧Enter is nav.parent (registry chord below),
+        // ⌘/⌥/⌃Enter would conflict with structure shortcuts. Uses
+        // window.prompt (an accessible modal dialog: keyboard-traversable,
+        // announced by screen readers) since the DOM renderer has no
+        // in-place text content editor on the canvas (the Properties panel's
+        // Text Content textarea is the long-form editor; this is the quick
+        // keyboard path).
+        if (
+          e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey &&
+          selectedIds.length === 1
+        ) {
+          const sel = findShape(document, selectedIds[0]);
+          if (sel && sel.type === 'text') {
+            e.preventDefault();
+            const newText = window.prompt('Edit text:', sel.text ?? '');
+            if (newText !== null) {
+              sendPatch({
+                op: 'update',
+                shapeId: sel.id,
+                shape: { text: newText } as Partial<Shape>,
+                summary: `Edited text of ${sel.name}`,
+              });
+            }
+            return;
+          }
+        }
         // ---- Registry-driven canvas chords (spec Phase 7 / Appendix H) ----
         const match = (action: string) => {
           const def = SHORTCUTS_BY_ACTION.get(action);
@@ -312,7 +412,7 @@ export function Canvas() {
       // Reset on unmount — the store slice outlives this component.
       setMeasureMode(false);
     };
-  }, [selectedIds, sendPatch, select, applyZoom, navigateHierarchy, toggleViewFlag, setMeasureMode]);
+  }, [selectedIds, document, sendPatch, select, applyZoom, navigateHierarchy, toggleViewFlag, setMeasureMode]);
 
   // Phase 7 §H.2 — clear the tracked pointer when Alt releases (so the
   // overlay disappears the instant the key does, regardless of when the
@@ -794,7 +894,13 @@ export function Canvas() {
   // ---- Render ---------------------------------------------------------------
   const { zoom, panX, panY } = viewport;
   const selectedSet = new Set(selectedIds);
-  const highlightSet = new Set(agentHighlightIds);
+  // Task 4d — `agentHighlightIds` is the per-shape set the agent most
+  // recently selected via canvas_select_shape; we reuse it as the "agent is
+  // mutating this shape" set for aria-busy (the closest per-shape busy
+  // signal we have without re-reading the store from DomCanvas — the
+  // global `agentBusy` boolean would over-broadcast to every shape at
+  // once).
+  const agentHighlightSet = new Set(agentHighlightIds);
 
   // P0-01/02: onContextMenu — track the right-click position + the shape
   // under the cursor so the menu items can choose between variants.
@@ -1105,6 +1211,19 @@ export function Canvas() {
         measureMode={measureMode}
         onShapeMouseDown={onShapeMouseDown}
         onResizeHandleMouseDown={onResizeHandleMouseDown}
+        // Task 4d — keyboard accessibility. `agentHighlightIds` doubles as
+        // the "agent is mutating this shape" set (closest per-shape busy
+        // signal we have without reading store.ts from DomCanvas); it flips
+        // `aria-busy="true"` on each match. `onShapeFocus` collapses
+        // selection to the focused shape (audit: focus == active
+        // selection); `onShapeBlur` clears the tracked focus id so DomChrome
+        // drops the dashed focus ring. `focusedId` threads the tracked id
+        // back in so DomChrome renders the dashed ring when the focused
+        // shape isn't already in the selection set.
+        agentBusyIds={agentHighlightSet}
+        onShapeFocus={onShapeFocus}
+        onShapeBlur={onShapeBlur}
+        focusedId={focusedShapeId}
       />
 
       {/* Phase 7 §H.2 rulers — top + left pixel rulers showing canvas-space

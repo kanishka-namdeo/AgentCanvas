@@ -16,10 +16,11 @@ import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { GitFork, Bot, Clock } from 'lucide-react';
+import { GitFork, Bot, Clock, Coins } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 import { DocumentSwitcher } from './DocumentSwitcher';
-import { useEffect, useState } from 'react';
+import { formatCost } from '@/lib/sessions/format';
+import { useEffect, useState, useMemo } from 'react';
 
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -67,6 +68,25 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
   const currentRun = session.currentRunId ? runsMap[session.currentRunId] : null;
   const lastRun = session.lastRunId ? runsMap[session.lastRunId] : null;
   const status = currentRun?.status ?? (lastRun?.status ?? 'completed');
+
+  // Per-session cost roll-up (P3-7): sum inputTokens/outputTokens/costUsd
+  // across every run in this session. useMemo'd so it only recomputes when
+  // the session's run list or the runs map changes. The totals render as a
+  // small chip in the session meta row (only when non-zero — matching the
+  // per-run cost badge pattern in RunHistoryPanel).
+  const sessionCost = useMemo(() => {
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let costUsd = 0;
+    for (const rid of session.runIds) {
+      const r = runsMap[rid];
+      if (!r) continue;
+      inputTokens += r.inputTokens || 0;
+      outputTokens += r.outputTokens || 0;
+      costUsd += r.costUsd || 0;
+    }
+    return { inputTokens, outputTokens, costUsd };
+  }, [session.runIds, runsMap]);
 
   const commitTitle = () => {
     const t = title.trim();
@@ -193,6 +213,22 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
                 <span className="ac-text-5">·</span>
                 <span className="font-mono ac-text-4" title="Resolved model for this session (set on the first agent turn)">
                   {session.model}
+                </span>
+              </>
+            )}
+            {/* Per-session cost roll-up (P3-7) — only render when non-zero. */}
+            {(sessionCost.inputTokens > 0 || sessionCost.outputTokens > 0) && (
+              <>
+                <span className="ac-text-5">·</span>
+                <span
+                  className="flex items-center gap-0.5 font-mono ac-text-3"
+                  title={`Session totals: ${sessionCost.inputTokens.toLocaleString()} input + ${sessionCost.outputTokens.toLocaleString()} output across ${session.runIds.length} run(s)${sessionCost.costUsd > 0 ? ` · ${formatCost(sessionCost.costUsd)}` : ''}`}
+                >
+                  <Coins className="h-2.5 w-2.5 ac-text-4" />
+                  {(sessionCost.inputTokens + sessionCost.outputTokens).toLocaleString()} tok
+                  {sessionCost.costUsd > 0 && (
+                    <span className="ac-text-4 ml-0.5">{formatCost(sessionCost.costUsd)}</span>
+                  )}
                 </span>
               </>
             )}

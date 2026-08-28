@@ -81,6 +81,36 @@ export interface DomCanvasProps {
   measureMode?: boolean;
   onShapeMouseDown: (e: React.MouseEvent, shape: Shape) => void;
   onResizeHandleMouseDown: (e: React.MouseEvent, shape: Shape, handle: ResizeHandle) => void;
+
+  // ---- Keyboard accessibility (Task 4d) -----------------------------------
+  /// Set of ids the agent is currently mutating (sourced by the Canvas
+  /// shell from `useCanvasStore(s => s.agentHighlightIds)`). Each match
+  /// flips `aria-busy="true"` on the corresponding shape's DOM node so
+  /// screen readers announce "busy" before the agent's patch lands.
+  /// `agentHighlightIds` is the closest per-shape "agent is working on
+  /// this" signal available without reading the store from this module —
+  /// it's the ids the agent just selected via canvas_select_shape.
+  agentBusyIds?: ReadonlySet<string>;
+  /// Optional aria-label override per shape id. When absent, DomNode
+  /// composes `${layer.name} (${layer.type})` from the layer itself — the
+  /// common case.
+  ariaLabelById?: Map<string, string>;
+  /// Focus / blur / keydown handlers attached to every shape's DOM node.
+  /// The Canvas shell wires `onShapeFocus` to its `select()` action so a
+  /// keyboard-focused shape becomes the active selection (mirroring the
+  /// click-to-select path), and `onShapeKeyDown` to the Enter-to-edit-text
+  /// flow. Tab/Shift+Tab and Escape still flow through the window-level
+  /// listeners (existing Phase 7 chords in Canvas.tsx) — we do NOT
+  /// stopPropagation in onShapeKeyDown so those listeners still see them.
+  onShapeFocus?: (id: string) => void;
+  onShapeBlur?: (id: string) => void;
+  onShapeKeyDown?: (e: React.KeyboardEvent, shape: Shape) => void;
+  /// The id of the shape that currently has DOM focus (tracked by the
+  /// Canvas shell via onFocus/onBlur). When set, DomChrome renders a
+  /// dashed focus ring overlay that's visually distinct from the solid
+  /// selection outline (so keyboard focus ≠ mouse selection in screen
+  /// reader + keyboard-only flows). Default null = no focus ring.
+  focusedId?: string | null;
 }
 
 interface WorldTree {
@@ -207,6 +237,12 @@ export function DomCanvas({
   measureMode,
   onShapeMouseDown,
   onResizeHandleMouseDown,
+  agentBusyIds,
+  ariaLabelById,
+  onShapeFocus,
+  onShapeBlur,
+  onShapeKeyDown,
+  focusedId,
 }: DomCanvasProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -458,6 +494,17 @@ export function DomCanvas({
               getPenNode={getPenNode}
               registerEl={registerEl}
               l4Culling={l4Culling}
+              // Task 4d — every root shape is keyboard-reachable (tabIndex=0
+              // is set in DomNode only when isTopLevel=true; nested children
+              // stay out of the tab order). The agent's per-shape busy
+              // signal, the focus/blur/keydown cbs, and an optional aria
+              // label override are passed through unchanged.
+              isTopLevel
+              ariaBusy={agentBusyIds?.has(layer.id) ?? false}
+              ariaLabel={ariaLabelById?.get(layer.id)}
+              onShapeFocus={onShapeFocus}
+              onShapeBlur={onShapeBlur}
+              onShapeKeyDown={onShapeKeyDown}
               onShapeMouseDown={onShapeMouseDown}
               onHover={onHover}
             />
@@ -473,6 +520,7 @@ export function DomCanvas({
         viewport={viewport}
         pointerCanvas={pointerCanvas}
         measureMode={measureMode}
+        focusedId={focusedId}
         onResizeHandleMouseDown={onResizeHandleMouseDown}
       />
     </div>

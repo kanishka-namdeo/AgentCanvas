@@ -28,11 +28,13 @@ import { useState, useMemo, useCallback } from 'react';
 import { useSessionStore } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
 import type { Run, ToolCallRecord, Snapshot } from '@/lib/sessions';
+import type { CanvasDocument } from '@/lib/canvas/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -40,12 +42,20 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
   ChevronRight, Wrench, Clock, History, Bookmark, BookmarkCheck, RotateCcw, Camera, MessageSquare, PlayCircle, FileText, Trash2,
+  Pencil, FileDown, CheckCircle2, AlertTriangle,
 } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
-import { exportRunMarkdown } from '@/lib/sessions/server-sync';
+import {
+  exportRunMarkdown, updateDocumentSnapshot, fetchDocumentSnapshot,
+} from '@/lib/sessions/server-sync';
+import { classifyRunError } from '@/lib/sessions/error-classify';
+import { formatCost } from '@/lib/sessions/format';
 
 function formatDuration(ms: number | null): string {
   if (ms == null) return '—';
@@ -109,6 +119,118 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
   };
 
   const [tab, setTab] = useState<'runs' | 'snapshots'>('runs');
+
+  // Rename-snapshot dialog state (P2-38). Lifted to RunHistoryPanel so a single
+  // Dialog instance serves every SnapshotCard in the list — same pattern as
+  // SessionSidebar's "Rename chat" dialog.
+  const [renameSnap, setRenameSnap] = useState<Snapshot | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameBusy, setRenameBusy] = useState(false);
+
+  const openRenameSnapshot = useCallback((snap: Snapshot) => {
+    setRenameSnap(snap);
+    setRenameValue(snap.label ?? snap.id.slice(0, 12));
+  }, []);
+
+  const cancelRenameSnapshot = useCallback(() => {
+    setRenameSnap(null);
+    setRenameValue('');
+    setRenameBusy(false);
+  }, []);
+
+  const commitRenameSnapshot = useCallback(async () => {
+    if (!renameSnap) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed) return;
+    const snapId = renameSnap.id;
+    const docId = renameSnap.documentId;
+    setRenameBusy(true);
+    // Optimistic local update — mirrors renameSession's local-first pattern.
+    useSessionStore.setState((s) => ({
+      snapshots: {
+        ...s.snapshots,
+        [snapId]: { ...s.snapshots[snapId], label: trimmed },
+      },
+    }));
+    // Fire-and-forget server sync (PATCH /api/documents/[id]/snapshots/[snapId]
+    // already supports { label }).
+    let ok = false;
+    try {
+      ok = await updateDocumentSnapshot(docId, snapId, { label: trimmed });
+    } catch {
+      ok = false;
+    }
+    setRenameBusy(false);
+    setRenameSnap(null);
+    setRenameValue('');
+    if (ok) {
+      toast.success('Snapshot renamed');
+    } else {
+      toast.error('Snapshot label did not sync', {
+        description: 'Saved locally — will retry on next server sync.',
+      });
+    }
+  }, [renameSnap, renameValue]);
+
+  // Export snapshot as .pen — reuses POST /api/pen/export (the same converter
+  // path PenFileMenu uses) with the snapshot's stored document. Remote
+  // (metadata-only) entries are hydrated via fetchDocumentSnapshot first.
+  const handleExportSnapshotPen = useCallback(async (snap: Snapshot) => {
+    let doc: CanvasDocument | undefined = snap.document;
+    const needsFetch =
+      snap.remote ||
+      !doc ||
+      !Array.isArray(doc.shapes) ||
+      doc.shapes.length === 0 ||
+      doc.id === 'remote-placeholder';
+    if (needsFetch) {
+      try {
+        const fetched = await fetchDocumentSnapshot(snap.documentId, snap.id);
+        if (fetched && fetched.document) {
+          doc = fetched.document as CanvasDocument;
+        }
+      } catch {
+        // fallthrough to the empty-check below
+      }
+    }
+    if (!doc || !Array.isArray(doc.shapes) || doc.shapes.length === 0) {
+      toast.error('Snapshot has no canvas data');
+      return;
+    }
+    const baseName =
+      (snap.label ?? snap.id.slice(0, 12))
+        .replace(/[^a-z0-9-_]+/gi, '-')
+        .replace(/^-+|-+$/g, '') || 'snapshot';
+    try {
+      const res = await fetch('/api/pen/export', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ document: doc, filename: baseName }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error ?? `HTTP ${res.status}`);
+      }
+      const text = await res.text();
+      const blob = new Blob([text], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      // Use globalThis.document — the component's outer scope has a
+      // `document` (the CanvasDocument from useCanvasStore) that shadows
+      // the browser global here.
+      const a = globalThis.document.createElement('a');
+      a.href = url;
+      a.download = `${baseName}.pen`;
+      globalThis.document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${baseName}.pen`, {
+        description: `${doc.shapes.length} nodes → .pen format`,
+      });
+    } catch (e: any) {
+      toast.error('Export failed', { description: e?.message ?? 'Unknown error' });
+    }
+  }, []);
 
   if (!session) {
     return (
@@ -234,12 +356,58 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
                   onRestore={() => handleRestoreSnapshot(snap)}
                   onDelete={() => handleDeleteSnapshot(snap)}
                   onBookmark={() => useSessionStore.getState().bookmarkSnapshot(snap.id)}
+                  onRename={() => openRenameSnapshot(snap)}
+                  onExportPen={() => handleExportSnapshotPen(snap)}
                 />
               ))}
             </>
           )}
         </div>
       </ScrollArea>
+
+      {/* Rename-snapshot dialog (P2-38) — mirrors SessionSidebar's Rename-chat dialog. */}
+      <Dialog open={renameSnap !== null} onOpenChange={(open) => !open && cancelRenameSnapshot()}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm ac-text-1">Rename snapshot</DialogTitle>
+            <DialogDescription className="text-[11px] ac-text-3">
+              This label appears in the snapshot timeline. You can change it any time.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5 py-1">
+            <label htmlFor="snap-rename-input" className="text-[10px] font-medium uppercase tracking-wide ac-text-4">
+              Label
+            </label>
+            <Input
+              id="snap-rename-input"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder="Snapshot label"
+              autoFocus
+              disabled={renameBusy}
+              className="h-8 text-[12px] ac-border-default focus-visible:ac-border-strong"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRenameSnapshot();
+                if (e.key === 'Escape') cancelRenameSnapshot();
+              }}
+            />
+          </div>
+          <DialogFooter className="gap-1.5">
+            <Button size="sm" variant="ghost" className="ac-text-2 hover:ac-text-1" onClick={cancelRenameSnapshot} disabled={renameBusy}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="text-white border-0"
+              style={{ backgroundColor: 'var(--ac-accent)' }}
+              disabled={!renameValue.trim() || renameBusy}
+              onClick={commitRenameSnapshot}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Capture manual snapshot — document-scoped (shared canvas) */}
       {tab === 'snapshots' && (
@@ -272,6 +440,10 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
 function RunCard({ run }: { run: Run }) {
   const [open, setOpen] = useState(false);
   const toolCallsMap = useSessionStore((s) => s.toolCalls);
+  // agentBusy — read from the canvas store so we can DISABLE the Retry
+  // button while another run is mid-flight (avoids stacking retries on
+  // top of an in-progress turn — mirrors v0's "agent is busy" guard).
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
   const toolCalls: ToolCallRecord[] = useMemo(() => {
     return run.toolCallIds
       .map((id) => toolCallsMap[id])
@@ -343,6 +515,24 @@ function RunCard({ run }: { run: Run }) {
     }
   }, [run.id, run.sessionId, run.prompt]);
 
+  // Retry button visibility (Task 4b-retry-turn): show only when the run is
+  // in a terminal FAILURE state (failed / incomplete / stuck) AND no other
+  // run is in flight (agentBusy guard — avoids stacking retries on top of
+  // a still-running turn). Reuses `handleRerun` so the semantics match the
+  // existing "Re-run from here" context-menu action (fork + auto-prompt).
+  const canRetry =
+    (run.status === 'failed' || run.status === 'incomplete' || run.status === 'stuck') &&
+    !agentBusy;
+
+  // Error classification (Task 4b-retry-turn): when the run carries an
+  // `errorMessage`, classify it as transient / permanent / unknown so the
+  // chip can hint whether retry is plausible. Pure helper — see
+  // src/lib/sessions/error-classify.ts.
+  const errorClass = useMemo(
+    () => classifyRunError(run.errorMessage),
+    [run.errorMessage],
+  );
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -355,8 +545,67 @@ function RunCard({ run }: { run: Run }) {
                 <ChevronRight className={`h-3 w-3 mt-0.5 ac-text-4 transition-transform ${open ? 'rotate-90' : ''}`} />
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] font-medium ac-text-1 line-clamp-1">{run.prompt}</div>
+                  {/* Error display (Task 4b-retry-turn): when the run carries
+                      an `errorMessage`, show the raw text (truncated) + a
+                      small classification chip so the user knows whether a
+                      retry is likely to succeed. Mirrors bolt.diy / v0
+                      inline-error patterns. */}
+                  {run.errorMessage && (
+                    <div className="flex items-center gap-1 mt-0.5 text-[10px] ac-text-danger min-w-0">
+                      <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                      <span className="truncate" title={run.errorMessage}>
+                        {run.errorMessage}
+                      </span>
+                      {errorClass.kind !== 'unknown' && (
+                        <span
+                          className={`inline-flex items-center text-[9px] px-1 py-0 rounded border font-medium shrink-0 ${
+                            errorClass.kind === 'transient'
+                              ? 'ac-status-warning'
+                              : 'ac-status-danger'
+                          }`}
+                          title={errorClass.hint}
+                        >
+                          {errorClass.kind === 'transient' ? 'Transient' : 'Config'}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5 mt-1 text-[10px] ac-text-4 flex-wrap">
                     <StatusBadge status={run.status} />
+                    {/* Retry button (Task 4b-retry-turn): small accent-filled
+                        button next to the StatusBadge. Rendered via
+                        `<Button asChild>` + a span so we don't nest a <button>
+                        inside the CollapsibleTrigger's outer <button> (invalid
+                        HTML). Reuses `handleRerun` — same fork+re-prompt flow
+                        as the "Re-run from here" context-menu item. */}
+                    {canRetry && (
+                      <Button
+                        asChild
+                        size="sm"
+                        className="h-5 px-1.5 text-[9px] border-0 text-white hover:opacity-90 ac-transition"
+                        style={{ backgroundColor: 'var(--ac-accent)' }}
+                      >
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          title="Retry this turn in a new chat"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRerun();
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleRerun();
+                            }
+                          }}
+                        >
+                          <RotateCcw className="h-2.5 w-2.5 mr-0.5" />
+                          Retry
+                        </span>
+                      </Button>
+                    )}
                     <span className="flex items-center gap-0.5">
                       <Clock className="h-2.5 w-2.5" />
                       {formatDuration(run.durationMs)}
@@ -372,11 +621,11 @@ function RunCard({ run }: { run: Run }) {
                         <span className="ac-text-5">·</span>
                         <span
                           className="font-mono ac-text-3"
-                          title={`Per-run tokens: ${run.inputTokens.toLocaleString()} input + ${run.outputTokens.toLocaleString()} output${run.costUsd > 0 ? ` · $${run.costUsd.toFixed(4)}` : ''}`}
+                          title={`Per-run tokens: ${run.inputTokens.toLocaleString()} input + ${run.outputTokens.toLocaleString()} output${run.costUsd > 0 ? ` · ${formatCost(run.costUsd)}` : ''}`}
                         >
                           {formatTokens(run.inputTokens + run.outputTokens)} tok
                           {run.costUsd > 0 && (
-                            <span className="ac-text-4 ml-0.5">${run.costUsd.toFixed(4)}</span>
+                            <span className="ac-text-4 ml-0.5">{formatCost(run.costUsd)}</span>
                           )}
                         </span>
                       </>
@@ -502,7 +751,7 @@ function ToolCallCard({ tc }: { tc: ToolCallRecord }) {
 }
 
 function SnapshotCard({
-  snapshot, isActive, sourceLabel, onRestore, onDelete, onBookmark,
+  snapshot, isActive, sourceLabel, onRestore, onDelete, onBookmark, onRename, onExportPen,
 }: {
   snapshot: Snapshot;
   isActive: boolean;
@@ -510,6 +759,8 @@ function SnapshotCard({
   onRestore: () => void;
   onDelete: () => void;
   onBookmark: () => void;
+  onRename: () => void;
+  onExportPen: () => void;
 }) {
   const sourceColor: Record<Snapshot['source'], string> = {
     turn_end: 'ac-text-3 ac-surface-2',
@@ -579,17 +830,37 @@ function SnapshotCard({
           </div>
         </div>
       </ContextMenuTrigger>
-      {/* P1-22: Snapshot card right-click — Restore, Bookmark, Rename,
-          Delete, Export .pen, Copy JSON. (Fork-from-snapshot was removed in
-          the shared-canvas model — restore covers the semantics.) */}
+      {/* P1-22: Snapshot card right-click — Set as current (P2-45), Restore,
+          Bookmark, Rename (P2-38), Delete, Export .pen, Copy JSON.
+          (Fork-from-snapshot was removed in the shared-canvas model — restore
+          covers the semantics. "Set as current" is a one-click restore alias
+          surfaced as a separate menu verb for parity with v0 / Linear.) */}
       <ContextMenuContent>
-        <ContextMenuItem onClick={onRestore} disabled={isActive}>Restore</ContextMenuItem>
-        <ContextMenuItem onClick={onBookmark}>{snapshot.bookmarked ? 'Remove bookmark' : 'Bookmark'}</ContextMenuItem>
+        <ContextMenuItem onClick={onRestore} disabled={isActive}>
+          <CheckCircle2 className="h-3 w-3 mr-2" />
+          Set as current
+        </ContextMenuItem>
+        <ContextMenuItem onClick={onRestore} disabled={isActive}>
+          <RotateCcw className="h-3 w-3 mr-2" />
+          Restore
+        </ContextMenuItem>
+        <ContextMenuItem onClick={onBookmark}>
+          {snapshot.bookmarked
+            ? <BookmarkCheck className="h-3 w-3 mr-2" />
+            : <Bookmark className="h-3 w-3 mr-2" />}
+          {snapshot.bookmarked ? 'Remove bookmark' : 'Bookmark'}
+        </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => toast.message('Rename snapshot — not yet implemented (P2-38)')}>
+        <ContextMenuItem onClick={onRename}>
+          <Pencil className="h-3 w-3 mr-2" />
           Rename snapshot
         </ContextMenuItem>
+        <ContextMenuItem onClick={onExportPen}>
+          <FileDown className="h-3 w-3 mr-2" />
+          Export as .pen
+        </ContextMenuItem>
         <ContextMenuItem onClick={onDelete} className="ac-text-danger">
+          <Trash2 className="h-3 w-3 mr-2" />
           Delete snapshot
         </ContextMenuItem>
         <ContextMenuSeparator />
@@ -599,9 +870,6 @@ function SnapshotCard({
           }
         }}>
           Copy as JSON
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => toast.message('Export as .pen — not yet implemented')}>
-          Export as .pen
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

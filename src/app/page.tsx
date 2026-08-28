@@ -20,6 +20,7 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useSettings } from '@/lib/settings/store';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
+import { useIsMobile } from '@/lib/canvas/use-is-mobile';
 import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types';
 import { SHORTCUTS_BY_ACTION, matchShortcut } from '@/lib/canvas/shortcuts';
 import { SessionSidebar } from '@/components/sessions/SessionSidebar';
@@ -115,6 +116,11 @@ export default function Home() {
   // generation. Mounted via View → "Design Systems…".
   const [designSystemsOpen, setDesignSystemsOpen] = useState(false);
 
+  // Mobile detection (P3-8) — drives auto-collapse + wider panel sizes on
+  // touch devices. SSR-safe (returns false during SSR; the effect syncs to
+  // the real media-query match on mount).
+  const isMobile = useIsMobile();
+
   // Auto-archive idle sessions on app mount, per the user's setting.
   // Also enforce the max-sessions-retained cap. Runs once after hydration.
   const density = useSettings((s) => s.density);
@@ -142,6 +148,24 @@ export default function Home() {
     (window as any).__openCommandPalette = () => setPaletteOpen(true);
     return () => { delete (window as any).__openCommandPalette; };
   }, []);
+
+  // Mobile auto-collapse (P3-8) — when transitioning to mobile width, force
+  // both side panels collapsed so the canvas gets full width. The user can
+  // still open them via the edge buttons; the panel min/max sizes below
+  // ensure an opened panel takes ~85% of the screen on mobile (vs. 14-32%
+  // on desktop). Does NOT auto-expand when transitioning back to desktop —
+  // the user's last layout is preserved.
+  useEffect(() => {
+    if (!isMobile) return;
+    if (leftPanelRef.current && !leftPanelRef.current.isCollapsed?.()) {
+      leftPanelRef.current.collapse();
+      setLeftCollapsed(true);
+    }
+    if (rightPanelRef.current && !rightPanelRef.current.isCollapsed?.()) {
+      rightPanelRef.current.collapse();
+      setRightCollapsed(true);
+    }
+  }, [isMobile]);
 
   // Phase 4 — DOM-renderer bench test hooks (spec Appendix F).
   //
@@ -827,12 +851,15 @@ export default function Home() {
         >
           {/* Col 1 — Left: single tabbed panel (Chats / Layers) */}
           {/* v4 API note: numeric sizes are PIXELS in v4 (was % in v3).
-              We want percentages, so use strings like "20%". */}
+              We want percentages, so use strings like "20%".
+              Mobile (P3-8): widen the min/max so an opened panel covers ~85%
+              of the screen — otherwise the panel would be unusably narrow at
+              375px viewport width. */}
           <ResizablePanel
             panelRef={leftPanelRef}
-            defaultSize="20%"
-            minSize="14%"
-            maxSize="32%"
+            defaultSize={isMobile ? '85%' : '20%'}
+            minSize={isMobile ? '70%' : '14%'}
+            maxSize={isMobile ? '95%' : '32%'}
             collapsible
             collapsedSize="0%"
             onResize={(size) => setLeftCollapsed(size.inPixels === 0)}
@@ -848,7 +875,7 @@ export default function Home() {
           <ResizableHandle />
 
           {/* Col 2 — Center: canvas (toolbar floats over it, bottom-center) */}
-          <ResizablePanel defaultSize="52%" minSize="36%">
+          <ResizablePanel defaultSize={isMobile ? '100%' : '52%'} minSize={isMobile ? '40%' : '36%'}>
             <div className="relative h-full">
               <Canvas />
               <Toolbar />
@@ -860,9 +887,9 @@ export default function Home() {
           {/* Col 3 — Right: single tabbed panel (Chat / Design / History) */}
           <ResizablePanel
             panelRef={rightPanelRef}
-            defaultSize="28%"
-            minSize="20%"
-            maxSize="42%"
+            defaultSize={isMobile ? '85%' : '28%'}
+            minSize={isMobile ? '70%' : '20%'}
+            maxSize={isMobile ? '95%' : '42%'}
             collapsible
             collapsedSize="0%"
             onResize={(size) => setRightCollapsed(size.inPixels === 0)}

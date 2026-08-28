@@ -4,6 +4,12 @@
 //
 // NOTE (shared-canvas model): snapshots are DOCUMENT-scoped — they live at
 // /api/documents/[documentId]/snapshots and are no longer included here.
+//
+// Security (Task 4c bug-fixes — Fix 2): the path `id` parameter is validated
+// against `^[a-zA-Z0-9_-]{1,64}$` defensively. Next.js URL routing already
+// constrains the path segment (no slashes), but a path like
+// `/api/sessions/;%20drop%20table` would still arrive here — reject it
+// before the Prisma call rather than letting Prisma surface it as a 500.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -11,11 +17,29 @@ import { db } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/// Regex for client-supplied identifiers — matches the documents route's
+/// guard. Allows letters, digits, `_`, `-`; length 1..64.
+const ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
+
+/// Validate that `id` matches ID_PATTERN; returns a 400-ready NextResponse
+/// when invalid, or `null` when valid.
+function validateId(id: string): NextResponse | null {
+  if (!ID_PATTERN.test(id)) {
+    return NextResponse.json(
+      { error: 'id must match ^[a-zA-Z0-9_-]{1,64}$' },
+      { status: 400 },
+    );
+  }
+  return null;
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const idErr = validateId(id);
+  if (idErr) return idErr;
   try {
     const session = await db.session.findUnique({
       where: { id },
@@ -41,6 +65,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const idErr = validateId(id);
+  if (idErr) return idErr;
   const body = await req.json().catch(() => ({}));
   const { title, status, pinned, runCount, toolCallCount, lastOpenedAt, tags } = body;
 
@@ -90,6 +116,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const idErr = validateId(id);
+  if (idErr) return idErr;
   try {
     await db.session.delete({ where: { id } });
     return NextResponse.json({ success: true });
