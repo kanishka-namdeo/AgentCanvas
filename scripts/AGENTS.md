@@ -8,8 +8,6 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 
 - `start-dev.sh` — detached Next.js dev server launcher, sandbox-safe. Kills any existing `next-server` / `next dev` / `bun run dev` process, truncates `dev.log`, starts fresh via a double-fork `( setsid … & )` so the server is reparented to PID 1 and survives the end of the agent tool call (the sandbox host kills all other descendants), waits up to 45s for `http://127.0.0.1:3000/` to respond.
 - `setup-zai-sandbox.sh` — one-shot z.ai sandbox bring-up: forces the absolute `DATABASE_URL`, `bun install`, `bun run db:generate` + `db:push`, starts the dev server via `start-dev.sh` (skipped if `:3000` already serves), runs the health-check suite, and refreshes the persistence archive `/home/sync/repo.tar`. Subcommands: `--verify`, `--archive`, `--no-start`. The full runbook is `docs/zai-sandbox-setup.md`.
-- `start-canvas-sync.sh` — launcher for the `mini-services/canvas-sync/` Socket.IO service on port 3003.
-- `canvas-sync-watchdog.sh` — monitors the canvas-sync service and restarts it if it dies.
 - `screenshot-ui-after.ts` — Playwright script. Captures 5 UI states (initial, hover-session, input-focused, snapshots-tab, runs-expanded) to `download/ui-polish-after/`. Viewport 1600×1000. Run via `bunx tsx scripts/screenshot-ui-after.ts`.
 - `screenshot-polish-pass2.ts` — Playwright script. Captures 8 states covering the three pass-2 deliverables: empty-canvas drop zone, "New chat" hover, session row hover, dropdown menu open, rename dialog, dark-mode empty, dark-mode dropdown, dark-mode rename dialog. Output to `download/polish-pass2/`. Run via `bunx tsx scripts/screenshot-polish-pass2.ts`.
 - `eval-agent.ts` — Evaluation harness for the agent's intent classifier. Runs the keyword classifier against 20 hand-labeled prompts across 7 skill categories + multi-step prompts. Exit 0 if accuracy >= 80%, exit 1 otherwise. Run via `bun run scripts/eval-agent.ts`.
@@ -37,7 +35,7 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 - On failure: edit the saved script in place via the `Edit` tool, re-run — do not regenerate from scratch.
 
 ### Shell script rules
-- `set -e` (or `set -euo pipefail` for stricter) at the top — EXCEPT watchdog-style respawn loops (e.g. `canvas-sync-watchdog.sh`) that must survive non-zero child exits.
+- `set -e` (or `set -euo pipefail` for stricter) at the top — EXCEPT watchdog-style respawn loops that must survive non-zero child exits.
 - `cd "$(dirname "$0")/.."` explicitly — do not rely on the caller's CWD.
 - Quote all paths with spaces (none currently, but be defensive).
 - Kill commands use `pkill -9 -f "..." 2>/dev/null || true` — never fail the script if the process isn't running.
@@ -59,7 +57,6 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 - `bash scripts/start-dev.sh` — should print "Dev server ready after Ns" and exit 0, and the server must still respond in a later tool call (survival is the point of the script).
 - `bun run scripts/setup-zai-sandbox.sh --verify` — should print 5 PASS lines and exit 0 (page, `/api/sessions`, `:3003` handshake, gateway `:81`, clean `dev.log`).
 - `bun run scripts/verify-default-llm.ts` — should print the resolver label `custom/kimi-k2-5`, a completion via `createAgentSession`, the custom-endpoint check, and `ALL CHECKS PASSED`.
-- `bash scripts/start-canvas-sync.sh` — should leave the canvas-sync service running on port 3003.
 - `bunx tsx scripts/screenshot-ui-after.ts` — should produce 5 PNGs in `download/ui-polish-after/`.
 
 > **Windows note**: These shell scripts use Linux-only utilities (`setsid`, `ss`, `pkill`, `tail`) and won't run on Windows PowerShell. On Windows, use `bun run dev` directly.

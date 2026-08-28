@@ -104,10 +104,10 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - `SyncEvent` includes the extended agent events (skill/plan/subagent/thinking/ask-user/todo/background-task/mcp) — see `../agent/AGENTS.md` for the full list.
 
 ### WebSocket service (`server.ts`)
-- `server.ts` is the in-process Socket.IO service. It runs on port 3003 and broadcasts canvas patches + agent events to connected viewers. (The standalone twin lives at `mini-services/canvas-sync/index.ts`.)
+- `server.ts` is the in-process Socket.IO service. It runs on port 3003 and broadcasts canvas patches + agent events to connected viewers. (The old standalone `mini-services/canvas-sync` twin was deleted — it could never win the port race and silently dropped `agent:steer` / DB seeding.)
 - It maintains per-document state in memory (`Map<documentId, DocState>`).
 - On `subscribe`: when the map has NO entry for the documentId, it SEEDS the document from the DB before replying — dynamic `import('@/lib/db')` → `db.documentSnapshot.findFirst({ where: { documentId }, orderBy: { createdAt: 'desc' } })` → `JSON.parse(row.document)` (falls back to the current empty doc on any error) — then emits `canvas:full` with the seeded doc. The handler is async.
-- NEW `document:restore` client-event case: `ensureDocument(event.documentId)`; set `state.document = event.document`; broadcast `canvas:full` to ALL subscribers of that document. The standalone `mini-services/canvas-sync/index.ts` mini-service handles `document:restore` the same way but WITHOUT the DB seed (no Prisma access in that flavor).
+- NEW `document:restore` client-event case: `ensureDocument(event.documentId)`; set `state.document = event.document`; broadcast `canvas:full` (reason `restore`) to ALL subscribers of that document.
 - On `prompt`: calls the agent runner and fans out events to all subscribers.
 - Patches are applied via `applyPatchToCanvas` from `patch.ts`.
 - The API route (`/api/agent`) uses the request's `canvasState` field directly — no DB lookup; server-side document seeding lives in `server.ts`'s subscribe handler.
@@ -116,7 +116,7 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 ## Work Guidance
 
 - When changing the `Shape` type: update `prisma/schema.prisma` (the `Shape` model), `types.ts`, `patch.ts` (default values), `tools.ts` (tool schemas), and `PropertiesPanel.tsx` (form fields). All five are coupled.
-- When adding a new `SyncEvent` kind: add the type, add the `_onSync` case in `store.ts`, add the API route forwarding case in `app/api/agent/route.ts`, add the mini-service broadcast case in `mini-services/canvas-sync/index.ts`. (Exception: server→client round-trip REQUEST events need no route/service wiring — every SyncEvent passes through the NDJSON stream + fan-out unfiltered.)
+- When adding a new `SyncEvent` kind: add the type, add the `_onSync` case in `store.ts`, and add the API route forwarding case in `app/api/agent/route.ts`. (Exception: server→client round-trip REQUEST events need no route wiring — every SyncEvent passes through the NDJSON stream + fan-out unfiltered.)
 - When debugging "the canvas didn't update": check `window.__canvasStore.getState()` in the browser console — the store is the source of truth, not the DOM.
 - When debugging infinite re-renders: check all Zustand selectors for `?? {}` / `?? []` patterns. Replace with stable constants.
 

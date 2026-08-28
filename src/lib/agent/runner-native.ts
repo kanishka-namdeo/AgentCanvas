@@ -80,6 +80,7 @@ import {
 } from './skills';
 import { resolveModel, resolveZaiSandboxFallback } from './pi-ai-model-resolver';
 import { subscribeAndTranslate } from './agent-session-translator';
+import { registerActiveSession } from './active-sessions';
 import { dataUrlToImageContent } from './attachments';
 import { classifyAgentError, agentErrorMessage } from '../agent-error';
 import type { AgentStreamEvent, AgentRunOptions } from './runner-types';
@@ -840,6 +841,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // terminal agent:turn_cancelled. Without this, Stop only hid the output
   // while the server kept spending tokens to completion.
   let session: AgentSession | undefined;
+  // Real-steer registration (R8c): the live session's entry in the
+  // active-sessions registry. `steerActiveSession` (canvas-sync's
+  // agent:steer handler) looks the document's session up there — identity-
+  // checked unregister so a retry attempt's cleanup never evicts the newer
+  // session. Declared next to `session` because they share the exact same
+  // lifecycle (assign on create, clear on dispose).
+  let unregisterSteer: (() => void) | undefined;
   const onAbort = () => {
     try {
       void session?.abort?.();
@@ -909,6 +917,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       // undefined, so this is a no-op the first time through).
       try { session.dispose(); } catch {}
       session = undefined;
+      if (unregisterSteer) { unregisterSteer(); unregisterSteer = undefined; }
     }
     try {
       const result = await createAgentSession({
@@ -932,6 +941,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         } as any),
       });
       session = result.session;
+      // Register for real steer (R8c): makes session.steer() reachable from
+      // the canvas-sync socket handler while this turn is live. The
+      // identity-checked unregister handles the retry/dispose paths.
+      unregisterSteer = registerActiveSession(documentId, session);
 
       // ---- Agent Performance Package change 7: wire maxIterations -----------
       //
@@ -1734,6 +1747,10 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
     if (session) {
       try { session.dispose(); } catch {}
       session = undefined;
+    }
+    if (unregisterSteer) {
+      unregisterSteer();
+      unregisterSteer = undefined;
     }
     // Unhook the abort listener — the request-scoped signal outlives this
     // generator (the route's watchdog / client disconnect can fire later)

@@ -41,8 +41,9 @@ Companion scripts:
 
 5. **Container boot auto-starts the app via `.zscripts/dev.sh`.** If that file
    exists at boot, `/start.sh` runs it as user `z`: `bun install` →
-   `bun run db:push` → `bun run dev` (port 3000) → start mini-services
-   (canvas-sync on 3003). No manual babysitting needed after a restart.
+   `bun run db:push` → `bun run dev` (port 3000; canvas-sync boots in-process
+   on 3003 via `instrumentation.ts`). No manual babysitting needed after a
+   restart.
 
 6. **The project directory is ephemeral; `/home/sync/repo.tar` is the
    persistence layer.** `/home/sync` is an OSS-mounted volume that survives
@@ -61,12 +62,13 @@ Companion scripts:
    user-visible route is `/`**; users preview via the sandbox Preview Panel,
    never via localhost links.
 
-8. **canvas-sync runs in two flavors; the standalone one loses gracefully.**
-   `next dev` boots canvas-sync in-process via `instrumentation.ts`, and
-   `.zscripts/dev.sh` also launches `mini-services/canvas-sync` standalone.
-   Whoever binds `:3003` second exits with `EADDRINUSE` (exit 0 by design);
-   the in-process instance serves the port. A crash in
-   `.zscripts/mini-service-canvas-sync.log` is expected and benign.
+8. **canvas-sync runs in-process only.** `next dev` boots it via
+   `instrumentation.ts` and it owns `:3003` directly. (A standalone
+   `mini-services/canvas-sync` twin used to race for the port and lose with
+   `EADDRINUSE`; it was deleted — it could never win, and its semantics
+   silently differed: no DB seed, dropped `agent:steer`, dead measured-bounds
+   cache.) If a standalone relay is ever needed again, extract a shared core
+   from `src/lib/canvas/server.ts` instead of forking it.
 
 Bonus: the app's default LLM is now a custom OpenAI-compatible endpoint
 (`custom` / `kimi-k2-5` / `https://irhnglwoxe.a.pinggy.link/v1`, key `123456`
@@ -183,7 +185,6 @@ set and checks `dev.log` for compile failures.
 | DB created in an unexpected directory | relative `file:./db/custom.db` resolved against CWD | set absolute `DATABASE_URL`; `setup-zai-sandbox.sh` fixes it |
 | `curl :3000` fails while processes are alive | server still compiling (Turbopack cold start) | wait and re-check; `start-dev.sh` waits up to 45s |
 | Port 3000 already in use | previous instance survived (that is the point) | `start-dev.sh` kills stale instances first |
-| `.zscripts/mini-service-canvas-sync.log` shows EADDRINUSE | in-process canvas-sync owns `:3003` | expected, benign — do not "fix" |
 | Project reverted after container restart | `repo.tar` not refreshed after changes | run `setup-zai-sandbox.sh --archive`, restart again |
 | `bun run build`/`next start` hangs or 404s behind the gateway | boot flow only supports dev server on 3000 | use the dev server |
 

@@ -99,6 +99,11 @@ function applyBatched(doc: CanvasDocument, patches: CanvasPatch[]): CanvasDocume
 /// are plain JSON-serializable trees.
 function stableDoc(doc: CanvasDocument): string {
   return JSON.stringify(doc, (key, value) => {
+    // versionNonce is re-rolled randomly on every mutation (R6 reconcile
+    // tiebreak) — batched and unbatched application are equivalent in every
+    // observable way except this random nonce, so it is excluded from the
+    // comparison. `version` (the deterministic counter) IS compared.
+    if (key === 'versionNonce') return undefined;
     if (typeof value === 'function' || typeof value === 'symbol') return undefined;
     if (value === undefined) return undefined;
     if (value && typeof value === 'object' && !Array.isArray(value)) {

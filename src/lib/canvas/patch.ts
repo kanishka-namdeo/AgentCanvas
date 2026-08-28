@@ -169,8 +169,10 @@ function backgroundFromVariables(variables: { [key: string]: PenVariableDef } | 
  *  browser-measured node sizes — passed by the canvas store so `fit_content`
  *  nodes with no intrinsic content size use measured sizes instead of the
  *  100×100 placeholder. Server-side / jsdom callers omit it (unchanged
- *  behavior). */
-function recomputeDerived(
+ *  behavior).
+ *  Exported for `reconcile.ts` (R6), which produces merged trees the same
+ *  way a patch does and needs identical derivation semantics. */
+export function recomputeDerived(
   doc: CanvasDocument,
   measuredBounds?: Record<string, { width: number; height: number }>,
 ): CanvasDocument {

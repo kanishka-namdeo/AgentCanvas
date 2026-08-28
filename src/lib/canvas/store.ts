@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 import type { CanvasDocument, CanvasPatch, ClientEvent, Shape, SyncEvent, GuideLine } from '@/lib/canvas/types';
 import { createEmptyCanvasDocument } from '@/lib/canvas/types';
 import { applyPatchToCanvas, applyPatchesToCanvas } from '@/lib/canvas/patch';
+import { reconcileDocuments } from '@/lib/canvas/reconcile';
+import type { PresenceParticipant } from '@/lib/canvas/types';
 import { patchDedupeKey, createBoundedDedupSet } from '@/lib/canvas/patch-dedupe';
 import { classifyAgentError, agentErrorClassForCode } from '@/lib/agent-error';
 import { runJournalCatchUp, scheduleWatermarkAdvance } from '@/lib/canvas/journal-catchup';
@@ -181,6 +183,14 @@ interface CanvasState {
   socket: Socket | null;
   connected: boolean;
   viewerCount: number;
+  /// Presence lane (R7): OTHER viewers' volatile state — cursors, selection
+  /// outlines, idle flags — keyed by their client-generated participantId.
+  /// Never persisted, never journaled; rebuilt from `presence:roster` on
+  /// every (re)connect.
+  remotePresence: Record<string, PresenceParticipant>;
+  /// This tab's presence identity (stable per page load; regenerated on
+  /// reload — good enough for a demo, avoids localStorage juggling).
+  localParticipant: { participantId: string; name: string; color: string };
   turns: ChatTurn[];
   agentBusy: boolean;
   /// Prompts submitted while the agent was busy — sent automatically, one
@@ -378,6 +388,10 @@ interface CanvasState {
   // Actions ---------------------------------------------------------------
   init: (documentId: string) => () => void;
   sendPatch: (patch: CanvasPatch) => void;
+  /// Push this viewer's volatile presence state (cursor / selection / idle)
+  /// to the server's presence lane (R7). Throttled internally — callers
+  /// (Canvas mousemove, selection changes) fire freely.
+  sendPresence: (patch: Partial<Pick<PresenceParticipant, 'cursor' | 'selection' | 'idle'>>) => void;
   select: (ids: string[]) => void;
   promptAgent: (
     text: string,
@@ -525,6 +539,145 @@ let patchQueueFlushTimer: ReturnType<typeof setTimeout> | null = null;
 /// the turn's content landed outside the visible rect (multi-screen designs
 /// grow rightward — without the reveal the user never sees screen 3+).
 let agentAddedShapesThisTurn = false;
+
+// ---- Presence lane (R7) -------------------------------------------------------
+//
+// This tab's collaboration identity + the outbound presence throttle.
+// Identity: participantId is random per page load (stable across socket
+// reconnects within the session — the server keys the roster by it, so a
+// reconnecting tab keeps its cursor instead of duplicating). Color comes
+// from a fixed readable palette; the name is a short stable suffix so the
+// cursor label stays recognizable between reconnects.
+const PRESENCE_COLORS = [
+  '#f97316', '#8b5cf6', '#06b6d4', '#84cc16', '#ec4899', '#14b8a6', '#f59e0b', '#6366f1',
+];
+function makeLocalParticipant(): { participantId: string; name: string; color: string } {
+  const rand =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).slice(2, 10);
+  return {
+    participantId: `p-${rand}`,
+    name: `Guest ${rand.slice(0, 4).toUpperCase()}`,
+    color: PRESENCE_COLORS[Math.floor(Math.random() * PRESENCE_COLORS.length)],
+  };
+}
+let localParticipantIdentity = makeLocalParticipant();
+
+/// Outbound presence state (last sent) + the throttle. Cursor moves are
+/// throttled to one wire event per PRESENCE_CURSOR_INTERVAL (33ms —
+/// Excalidraw's volatile-cursor cadence); selection/idle changes bypass the
+/// throttle (they're rare and users notice their lag). A trailing flush
+/// guarantees the LAST cursor position always reaches the wire.
+const PRESENCE_CURSOR_INTERVAL = 33;
+let presenceLastSentAt = 0;
+let presenceTimer: ReturnType<typeof setTimeout> | null = null;
+let presencePending: {
+  cursor?: { x: number; y: number } | null;
+  selection?: string[];
+  idle?: boolean;
+} | null = null;
+let presenceLastSent: {
+  cursor?: { x: number; y: number } | null;
+  selection?: string[];
+  idle?: boolean;
+} = {};
+
+/// Test hook: reset the presence throttle + identity between tests.
+export function __resetPresenceForTests(): void {
+  presenceLastSentAt = 0;
+  if (presenceTimer) {
+    clearTimeout(presenceTimer);
+    presenceTimer = null;
+  }
+  presencePending = null;
+  presenceLastSent = {};
+  localParticipantIdentity = makeLocalParticipant();
+}
+
+// ---- Streaming delta batching (R9b) -------------------------------------------
+//
+// `agent:message_delta` fires once per token chunk — dozens per second. The
+// old handler ran TWO set() calls per delta (canvas turns + session-store
+// message), each triggering: a `turns` array copy (AgentPanel re-render +
+// ReactMarkdown re-parse of the ENTIRE accumulated text — O(text) per token)
+// and a zustand-persist serialization of the WHOLE sessions dataset. The
+// server already batches the WIRE at 16ms; this is the client-side mirror:
+// deltas accumulate in a module buffer and land as ONE set() per flush
+// window (~32ms — two frames; imperceptible next to token latency).
+//
+// Ordering safety: the buffer is flushed synchronously at the start of every
+// non-delta `_onSync` event, at promptAgent start, and at turn terminal
+// events — a terminal (message_end / turn_end / error) can never run before
+// the text it terminates, and buffered text can never attach to a newer
+// turn. Under NODE_ENV==='test' the flush is synchronous (the
+// enqueuePatch precedent) so existing store tests keep their
+// dispatch-then-assert contract.
+let pendingAssistantDeltas = '';
+let assistantDeltaTimer: ReturnType<typeof setTimeout> | null = null;
+const ASSISTANT_DELTA_FLUSH_MS = 32;
+
+function flushAssistantDeltas() {
+  if (assistantDeltaTimer) {
+    clearTimeout(assistantDeltaTimer);
+    assistantDeltaTimer = null;
+  }
+  if (!pendingAssistantDeltas) return;
+  const text = pendingAssistantDeltas;
+  pendingAssistantDeltas = '';
+  useCanvasStore.setState((s) => {
+    const turns = [...s.turns];
+    const last = turns[turns.length - 1];
+    if (last && last.role === 'assistant') {
+      turns[turns.length - 1] = {
+        ...last,
+        text: last.text + text,
+        // First answer text after thinking → close the thinking phase
+        // (the UI collapses "Thinking…" into "Thought for Ns").
+        ...(last.thinking && !last.thinkingEndedAt
+          ? { thinkingEndedAt: Date.now() }
+          : {}),
+      };
+    }
+    return { turns };
+  });
+  // Mirror to session store — ONE append per flush instead of one per token.
+  const last = useCanvasStore.getState().turns[useCanvasStore.getState().turns.length - 1];
+  if (last?.messageId) {
+    useSessionStore.getState().appendAssistantText(last.messageId, text);
+  }
+}
+
+function scheduleAssistantDeltaFlush() {
+  if (assistantDeltaTimer) return;
+  assistantDeltaTimer = setTimeout(flushAssistantDeltas, ASSISTANT_DELTA_FLUSH_MS);
+}
+
+/// Test hook: synchronously land any buffered streaming text.
+export function __flushAssistantDeltasForTests(): void {
+  flushAssistantDeltas();
+}
+
+/// Flush the pending outbound presence state to the wire (merged over the
+/// last sent snapshot — presence updates are cumulative, not deltas).
+/// No-ops when disconnected or when there is nothing new to say.
+function emitPendingPresence(get: () => CanvasState) {
+  const pending = presencePending;
+  presencePending = null;
+  if (!pending) return;
+  const merged = { ...presenceLastSent, ...pending };
+  presenceLastSent = merged;
+  presenceLastSentAt = Date.now();
+  const { socket, connected, documentId } = get();
+  if (!socket || !connected) return;
+  const participant: PresenceParticipant = {
+    participantId: localParticipantIdentity.participantId,
+    name: localParticipantIdentity.name,
+    color: localParticipantIdentity.color,
+    ...merged,
+  };
+  socket.emit('client', { type: 'presence:update', documentId, participant } satisfies ClientEvent);
+}
 
 /// Drain the patch queue: replay all queued patches serially against the
 /// current document, capturing each patch's pre-state for the undo stack.
@@ -932,6 +1085,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   socket: null,
   connected: false,
   viewerCount: 1,
+  remotePresence: {},
+  localParticipant: localParticipantIdentity,
   turns: [],
   agentBusy: false,
   queuedPrompts: [],
@@ -1142,8 +1297,16 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       transports: ['websocket', 'polling'],
       forceNew: true,
       reconnection: true,
-      reconnectionAttempts: 10,
+      // Reliability micro-adopts (research R8/roadmap): never give up
+      // (the old 10-attempt cap left `connected:false` forever after ~1min
+      // of outage — every sendPatch silently dropped), cap the backoff at
+      // 30s (OpenHands' ceiling; the 5s default hammers a struggling
+      // server), and pin socket.io's default 0.5 jitter explicitly so the
+      // intent is documented rather than implicit.
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 30000,
+      randomizationFactor: 0.5,
       timeout: 10000,
     });
 
@@ -1190,6 +1353,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     socket.on('connect', () => {
       set({ connected: true });
       socket.emit('client', { type: 'subscribe', documentId } satisfies ClientEvent);
+      // Presence lane: (re)announce this tab's identity on every connect —
+      // the server keys the roster by participantId, so a reconnecting tab
+      // reclaims its entry instead of duplicating. The state snapshot is
+      // reset so name/color/idle re-land even after a long sleep.
+      presenceLastSent = {};
+      emitPendingPresence(get);
       // Reconnect catch-up (journal consumer): pull everything journaled
       // since our watermark and replay the missed agent events — most
       // importantly the turn CLOSURE (turn_end / turn_cancelled / error /
@@ -1208,7 +1377,29 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         dispatch: (ev) => get()._onSync(ev),
       });
     });
-    socket.on('disconnect', () => set({ connected: false }));
+    socket.on('disconnect', () => {
+      // Presence lane: while offline we know nothing about other viewers —
+      // drop their cursors instead of rendering stale ghosts (the roster
+      // re-lands from the server on the next connect).
+      if (presenceTimer) {
+        clearTimeout(presenceTimer);
+        presenceTimer = null;
+      }
+      presencePending = null;
+      set({ connected: false, remotePresence: {} });
+    });
+    // Observability (micro-adopt): log transport-level failures so a dead
+    // gateway is visible in the console instead of a silent spinner.
+    socket.on('connect_error', (err: Error) => {
+      console.warn(`[canvas-sync] connect error: ${err.message}`);
+    });
+    // Tab-wake nudge: laptop sleep pauses reconnect timers; an explicit
+    // connect() on 'online' shortens the gap after the network returns.
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        if (!socket.connected) socket.connect();
+      });
+    }
     socket.on('sync', (event: SyncEvent) => {
       get()._onSync(event);
     });
@@ -1219,9 +1410,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   sendPatch: (patch) => {
-    const { socket, connected } = get();
+    const { socket, connected, documentId } = get();
     if (socket && connected) {
-      socket.emit('client', { type: 'canvas:patch', patch } satisfies ClientEvent);
+      // `documentId` rides the envelope (R8a) so the server routes the patch
+      // directly instead of scanning subscriber sets first-match (which
+      // misroutes sockets subscribed to several documents).
+      socket.emit('client', { type: 'canvas:patch', documentId, patch } satisfies ClientEvent);
     }
     // Phase 4 §4.4 item 3: route the local apply through the same rAF queue
     // as _onSync-driven patches. Drag-side `update` ops get last-write-wins
@@ -1234,9 +1428,40 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     enqueuePatch(patch, true);
   },
 
+  sendPresence: (patch) => {
+    // Merge the patch into the pending outbound presence, then decide whether
+    // to emit now or defer to the trailing throttle window. Selection/idle
+    // changes are rare and lag-sensitive → always immediate; cursor moves
+    // ride the 33ms throttle.
+    presencePending = { ...(presencePending ?? {}), ...patch };
+    const hasCursorOnly =
+      Object.keys(patch).length === 1 && 'cursor' in patch;
+    const now = Date.now();
+    const due = now - presenceLastSentAt >= PRESENCE_CURSOR_INTERVAL;
+    if (!hasCursorOnly || due) {
+      if (presenceTimer) {
+        clearTimeout(presenceTimer);
+        presenceTimer = null;
+      }
+      emitPendingPresence(get);
+      return;
+    }
+    if (!presenceTimer) {
+      const wait = Math.max(0, PRESENCE_CURSOR_INTERVAL - (now - presenceLastSentAt));
+      presenceTimer = setTimeout(() => {
+        presenceTimer = null;
+        emitPendingPresence(get);
+      }, wait);
+    }
+  },
+
   select: (ids) => set({ selectedIds: ids }),
 
   promptAgent: (text, images, selection) => {
+    // Delta-batching ordering guard (R9b): land any text still buffered from
+    // the previous turn BEFORE the new user turn is appended — otherwise the
+    // flush would find a user turn as `last` and drop the tail.
+    flushAssistantDeltas();
     const { socket, connected, documentId, activeSessionId, document } = get();
 
     // Ensure we have an active session.
@@ -1463,6 +1688,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // request is already in flight and can't be amended. Previously this
     // toasted "Steer sent" even when the socket was down (silent drop + a
     // lying toast). Now the fallback mode says so.
+    // R8c: the server now routes the steer into the RUNNING pi session
+    // (session.steer) — the model sees the text after its current tool
+    // batch. When no run is live the server replies agent:steer_rejected
+    // (toast), so the optimistic "Steer sent" below is only informational.
     if (socket && connected) {
       socket.emit('client', {
         type: 'agent:steer',
@@ -1800,6 +2029,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   _onSync: (event) => {
     const state = get();
+    // Delta-batching ordering guard (R9b): every non-delta event first lands
+    // any buffered streaming text — terminal events (message_end /
+    // turn_end / error) must never run ahead of the text they terminate, and
+    // a new turn must never receive the previous turn's buffered tail. In
+    // test mode the buffer is always empty (synchronous flush), so this is a
+    // cheap string check.
+    if (event.type !== 'agent:message_delta') {
+      flushAssistantDeltas();
+    }
     // Live-terminal watermark advance (journal catch-up bookkeeping): when
     // the client processes a turn-closing event LIVE it has, by definition,
     // seen every journal row up to the journal's head — advance the persisted
@@ -1822,6 +2060,16 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         if (!doc.shapes) doc.shapes = resolvePenTree(doc);
         if (!doc.tokens) doc.tokens = { colors: [], textStyles: [] };
         if (!doc.viewport) doc.viewport = { zoom: 1, panX: 120, panY: 80 };
+        const local = get().document;
+        const incomingEmpty = doc.children.length === 0 && doc.shapes.length === 0;
+        const localEmpty = (local.children?.length ?? 0) === 0 && local.shapes.length === 0;
+        // Authoritative snapshot swap (document:restore): the user asked to
+        // roll the shared canvas back — REPLACE wholesale (deletions must
+        // land; a merge would resurrect post-snapshot edits).
+        if (event.reason === 'restore') {
+          set({ document: doc, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
+          break;
+        }
         // Empty-incoming guard (shared canvas): a restarted WS service can
         // reply to `subscribe` with a fresh empty in-memory document while
         // this client just hydrated real content from the document's latest
@@ -1829,13 +2077,33 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // Skip empty replaces when local content exists and no agent turn is
         // in flight. (The in-process service seeds itself from the DB latest
         // DocumentSnapshot, so a healthy path never trips this guard.)
-        const incomingEmpty = doc.children.length === 0 && doc.shapes.length === 0;
-        const local = get().document;
-        const localEmpty = (local.children?.length ?? 0) === 0 && local.shapes.length === 0;
         if (incomingEmpty && !localEmpty && !get().agentBusy) {
           break;
         }
-        set({ document: doc, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
+        // Empty server doc DURING an agent turn: the agent cleared the
+        // canvas server-side (pen_clear) and is rebuilding — follow the
+        // rebuild from a clean slate (its re-adds arrive as patches).
+        if (incomingEmpty && !localEmpty) {
+          set({ document: doc, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
+          break;
+        }
+        if (localEmpty) {
+          // Nothing local to protect — adopt the server document directly.
+          set({ document: doc, measuredBounds: {}, checkpoints: [], lastCheckpointSignature: null });
+          break;
+        }
+        // Sync merge (R6): a non-empty full sync (subscribe reply /
+        // request_full) MERGES per element — version+nonce rules — so
+        // unsynced local edits (offline blip, server restart, reconnect
+        // race) survive instead of being clobbered by the replace that used
+        // to live here. Server-only elements arrive, local-only elements
+        // stay, conflicts resolve deterministically. measuredBounds are
+        // kept as derivation hints (they re-measure on the next flush).
+        set({
+          document: reconcileDocuments(local, doc, get().measuredBounds),
+          checkpoints: [],
+          lastCheckpointSignature: null,
+        });
         break;
       }
       case 'canvas:patch': {
@@ -1919,26 +2187,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'agent:message_delta': {
-        set((s) => {
-          const turns = [...s.turns];
-          const last = turns[turns.length - 1];
-          if (last && last.role === 'assistant') {
-            turns[turns.length - 1] = {
-              ...last,
-              text: last.text + event.text,
-              // First answer text after thinking → close the thinking phase
-              // (the UI collapses "Thinking…" into "Thought for Ns").
-              ...(last.thinking && !last.thinkingEndedAt
-                ? { thinkingEndedAt: Date.now() }
-                : {}),
-            };
-          }
-          return { turns };
-        });
-        // Mirror to session store.
-        const last = get().turns[get().turns.length - 1];
-        if (last?.messageId) {
-          useSessionStore.getState().appendAssistantText(last.messageId, event.text);
+        // Batched (R9b): accumulate the chunk and land it in ONE set() per
+        // ~32ms window (see the module-level buffer docs). In test mode the
+        // flush is synchronous, preserving the dispatch-then-assert
+        // contract used across the store/bridge suites.
+        pendingAssistantDeltas += event.text;
+        if (process.env.NODE_ENV === 'test') {
+          flushAssistantDeltas();
+        } else {
+          scheduleAssistantDeltaFlush();
         }
         break;
       }
@@ -2338,6 +2595,26 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
       case 'presence': {
         set({ viewerCount: event.viewerCount });
+        break;
+      }
+      case 'presence:roster': {
+        // Full roster snapshot (subscribe reply / participant leave): replace
+        // the whole remote-presence map — idempotent, churn-proof.
+        const next: Record<string, PresenceParticipant> = {};
+        for (const p of event.roster) next[p.participantId] = p;
+        set({ remotePresence: next });
+        break;
+      }
+      case 'presence:update': {
+        // One participant's volatile state (cursor/selection/idle).
+        const p = event.participant;
+        set((s) => ({ remotePresence: { ...s.remotePresence, [p.participantId]: p } }));
+        break;
+      }
+      case 'agent:steer_rejected': {
+        // Real-steer feedback (R8c): no live agent run accepted the message.
+        // Ephemeral toast only — turn/run state must stay untouched.
+        toast.warning(event.reason || 'Steer was not delivered — no agent run is active.');
         break;
       }
       case 'agent:skill_selected': {

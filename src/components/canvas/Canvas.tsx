@@ -86,6 +86,12 @@ export function Canvas() {
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const select = useCanvasStore((s) => s.select);
   const toolMode = useCanvasStore((s) => s.toolMode);
+  // Presence lane (R7): remote cursors/selections to render + this tab's
+  // outbound presence emitter. `connected` gates the overlay (cursors are
+  // dropped from the store on disconnect, but the gate keeps the render
+  // honest during the teardown tick).
+  const remotePresence = useCanvasStore((s) => s.remotePresence);
+  const sendPresence = useCanvasStore((s) => s.sendPresence);
   // Phase 7 view flags (ephemeral store slice — see store.ts).
   const pixelGridVisible = useCanvasStore((s) => s.pixelGridVisible);
   const snapToPixel = useCanvasStore((s) => s.snapToPixel);
@@ -312,18 +318,14 @@ export function Canvas() {
   // overlay disappears the instant the key does, regardless of when the
   // next mousemove fires). Also clears when entering a drag (the overlay
   // would be visually noisy + incorrect during drag — Figma hides it).
-  /* eslint-disable react-hooks/set-state-in-effect -- Alt-hold is a
-     window-scope keyboard gesture; the only way to observe its release
-     is via the store flag it writes. The setState call only fires when
-     the flag transitions from on → off (rare — once per Alt-hold), so
-     cascading renders are bounded to one per release. */
+  
   useEffect(() => {
     if (!measureMode && pointerCanvasRef.current !== null) {
       pointerCanvasRef.current = null;
       setPointerCanvas(null);
     }
   }, [measureMode]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  
 
   // ---- Coordinate conversion -------------------------------------------------
   const screenToCanvas = useCallback(
@@ -407,6 +409,18 @@ export function Canvas() {
 
   const onMouseMove = useCallback(
     (e: React.MouseEvent) => {
+      // Presence lane (R7): broadcast the cursor in canvas space — every
+      // mousemove, including during drags (that's the interesting part to
+      // watch). sendPresence throttles wire events to 33ms internally.
+      const presenceRect = containerRef.current?.getBoundingClientRect();
+      if (presenceRect) {
+        sendPresence({
+          cursor: {
+            x: (e.clientX - presenceRect.left - viewport.panX) / viewport.zoom,
+            y: (e.clientY - presenceRect.top - viewport.panY) / viewport.zoom,
+          },
+        });
+      }
       if (!dragState) {
         // Phase 7 §H.2 idle-hover path — track the pointer in canvas
         // space so the measure overlay can compute distance redlines to
@@ -587,8 +601,46 @@ export function Canvas() {
         sendPatch(patch);
       }
     },
-    [dragState, viewport, measureMode, sendPatch, document, toolMode, snapToPixel],
+    [dragState, viewport, measureMode, sendPatch, document, toolMode, snapToPixel, sendPresence],
   );
+
+  // Presence lane (R7) — idle + selection broadcast:
+  //  - idle flips true after 60s without a pointer move, or when the tab is
+  //    hidden (Excalidraw semantics — the remote cursor dims with an "idle"
+  //    tag instead of disappearing);
+  //  - the local selection is pushed whenever it changes so remote viewers
+  //    see what this tab has selected (outline in this tab's color).
+  const lastMouseMoveAtRef = useRef(Date.now());
+  useEffect(() => {
+    // NOTE: `document` in this component scope is the CANVAS document from
+    // the store — reach the DOM one through `window.document`.
+    const domDocument = window.document;
+    const markActive = () => {
+      lastMouseMoveAtRef.current = Date.now();
+    };
+    const interval = setInterval(() => {
+      const idleFor = Date.now() - lastMouseMoveAtRef.current > 60_000;
+      const hidden = domDocument.visibilityState === 'hidden';
+      sendPresence({ idle: idleFor || hidden });
+    }, 15_000);
+    const onVisibility = () => {
+      sendPresence({ idle: domDocument.visibilityState === 'hidden' });
+    };
+    window.addEventListener('mousemove', markActive, { passive: true });
+    domDocument.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('mousemove', markActive);
+      domDocument.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [sendPresence]);
+  const presenceSelectionRef = useRef<string>('');
+  useEffect(() => {
+    const key = selectedIds.join(',');
+    if (key === presenceSelectionRef.current) return;
+    presenceSelectionRef.current = key;
+    sendPresence({ selection: selectedIds });
+  }, [selectedIds, sendPresence]);
 
   const onMouseUp = useCallback(() => {
     // Marquee (spec Phase 7): select every layer whose bbox intersects the
@@ -833,7 +885,12 @@ export function Canvas() {
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
-          onMouseLeave={onMouseUp}
+          onMouseLeave={() => {
+            onMouseUp();
+            // Presence lane (R7): the pointer left the canvas — clear the
+            // broadcast cursor so remote viewers don't see a frozen ghost.
+            sendPresence({ cursor: null });
+          }}
           onContextMenu={onContextMenu}
           onDragOver={onCanvasDragOver}
           onDragLeave={onCanvasDragLeave}
@@ -899,6 +956,82 @@ export function Canvas() {
             }}
           />
         );
+      })()}
+
+      {/* Presence lane overlay (R7) — remote cursors + selection outlines.
+          Screen-space siblings of the marquee (pointer-events:none). Cursors
+          arrive in CANVAS space and are transformed with the live pan/zoom so
+          they track the viewport exactly like a local pointer. data-ac-remote-cursor
+          is the test/automation selector. */}
+      {(() => {
+        const remoteShapeById = new Map(document.shapes.map((s) => [s.id, s]));
+        return Object.values(remotePresence).map((p) => {
+        return (
+          <div key={p.participantId} data-ac-remote-presence="">
+            {/* Remote selection outlines (this participant's selected shapes) */}
+            {(p.selection ?? []).map((id) => {
+              const s = remoteShapeById.get(id);
+              if (!s) return null;
+              return (
+                <div
+                  key={id}
+                  data-ac-remote-selection=""
+                  style={{
+                    position: 'absolute',
+                    left: s.x * viewport.zoom + viewport.panX,
+                    top: s.y * viewport.zoom + viewport.panY,
+                    width: Math.max(1, s.width * viewport.zoom),
+                    height: Math.max(1, s.height * viewport.zoom),
+                    border: `1.5px solid ${p.color}`,
+                    pointerEvents: 'none',
+                    zIndex: 4,
+                    opacity: p.idle ? 0.35 : 0.9,
+                    borderRadius: 2,
+                  }}
+                />
+              );
+            })}
+            {/* Remote cursor with name label */}
+            {p.cursor && (
+              <div
+                data-ac-remote-cursor=""
+                style={{
+                  position: 'absolute',
+                  left: p.cursor.x * viewport.zoom + viewport.panX,
+                  top: p.cursor.y * viewport.zoom + viewport.panY,
+                  pointerEvents: 'none',
+                  zIndex: 6,
+                  opacity: p.idle ? 0.45 : 1,
+                  transition: 'opacity 300ms ease',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" style={{ display: 'block', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.35))' }}>
+                  <path d="M1 1 L1 13 L4.4 9.7 L6.6 15 L8.9 14 L6.7 8.8 L11.5 8.6 Z" fill={p.color} stroke="white" strokeWidth="1" strokeLinejoin="round" />
+                </svg>
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 12,
+                    top: 14,
+                    padding: '1px 6px',
+                    borderRadius: 4,
+                    backgroundColor: p.color,
+                    color: 'white',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    lineHeight: '16px',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  {p.name}
+                  {p.idle ? ' · idle' : ''}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+        });
       })()}
 
       {/* Empty-canvas drop zone — subtle, screen-centered, fades out when shapes exist. */}

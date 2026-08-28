@@ -6,17 +6,19 @@
 //   2. Broadcasts every canvas patch to every subscribed viewer.
 //   3. Drives the agent by calling /api/agent and streaming the NDJSON
 //      response back out as `sync` events.
+//   4. Relays the volatile presence lane (roster / cursors / selection / idle)
+//      — never journaled, never replayed.
 //
-// This is the same logic as `mini-services/canvas-sync/index.ts` but
-// refactored as an importable module so it can run inside the Next.js
-// process.
+// This used to have a standalone twin (mini-services/canvas-sync) that raced
+// for the port and lost on purpose; it was deleted — see docs/zai-sandbox-setup.md #8.
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch } from './types';
+import type { ClientEvent, SyncEvent, CanvasDocument, CanvasPatch, PresenceParticipant } from './types';
 import { applyPatchToCanvas } from './patch';
 import { patchDedupeKey, createBoundedDedupSet, type BoundedDedupSet } from './patch-dedupe';
 import { setMeasuredBounds } from '../agent/client-roundtrip';
+import { steerActiveSession } from '../agent/active-sessions';
 
 const PORT = 3003;
 
@@ -28,6 +30,10 @@ interface DocState {
   /// a replayed/double-delivered patch is skipped instead of double-applied;
   /// the canvas is append-only so a double-apply could never be undone).
   appliedPatches: BoundedDedupSet;
+  /// Presence lane (R7): the document's known participants, keyed by the
+  /// client-generated participantId (stable across socket reconnects, unlike
+  /// socket.id). Entries are REMOVED when their owning socket disconnects.
+  participants: Map<string, PresenceParticipant & { socketId: string }>;
 }
 
 const documents = new Map<string, DocState>();
@@ -57,6 +63,7 @@ function ensureDocument(documentId: string): DocState {
       },
       subscribers: new Set(),
       appliedPatches: createBoundedDedupSet(),
+      participants: new Map(),
     };
     documents.set(documentId, doc);
   }
@@ -92,6 +99,18 @@ function broadcast(state: DocState, event: SyncEvent, except?: string) {
   }
 }
 
+/// Full roster snapshot of a document's presence lane (minus the socket's
+/// own entry — a client never needs its own cursor echoed back).
+function rosterFor(state: DocState, exceptSocketId?: string): PresenceParticipant[] {
+  const roster: PresenceParticipant[] = [];
+  for (const p of state.participants.values()) {
+    if (exceptSocketId && p.socketId === exceptSocketId) continue;
+    const { socketId: _drop, ...participant } = p;
+    roster.push(participant);
+  }
+  return roster;
+}
+
 let io: Server | null = null;
 
 export function startCanvasSyncService() {
@@ -123,25 +142,52 @@ export function startCanvasSyncService() {
             }
           }
           state.subscribers.add(socket.id);
-          socket.emit('sync', { type: 'canvas:full', document: state.document } satisfies SyncEvent);
+          socket.emit('sync', { type: 'canvas:full', document: state.document, reason: 'sync' } satisfies SyncEvent);
           broadcast(state, { type: 'presence', viewerCount: state.subscribers.size });
+          // Late joiner gets the current roster (other viewers' cursors) so
+          // presence works immediately; the newcomer announces itself with
+          // its first presence:update.
+          socket.emit('sync', { type: 'presence:roster', roster: rosterFor(state, socket.id) } satisfies SyncEvent);
           console.log(`[canvas-sync] ${socket.id} subscribed to ${event.documentId} (${state.subscribers.size} viewers)`);
           break;
         }
         case 'canvas:patch': {
-          // Find which document this socket is subscribed to.
-          for (const [, docState] of documents) {
-            if (docState.subscribers.has(socket.id)) {
-              docState.document = applyPatchToCanvas(docState.document, event.patch);
-              broadcast(docState, { type: 'canvas:patch', patch: event.patch }, socket.id);
-              break;
+          // Route by documentId when the client provides it (R8a). The legacy
+          // first-match subscriber scan remains as a fallback for old clients
+          // — under it, a socket subscribed to several documents had ALL its
+          // patches land in whichever doc was created first.
+          let state = event.documentId ? documents.get(event.documentId) : undefined;
+          if (!state) {
+            for (const [, docState] of documents) {
+              if (docState.subscribers.has(socket.id)) {
+                state = docState;
+                break;
+              }
             }
+          }
+          if (state) {
+            state.document = applyPatchToCanvas(state.document, event.patch);
+            broadcast(state, { type: 'canvas:patch', patch: event.patch }, socket.id);
           }
           break;
         }
         case 'canvas:request_full': {
           const state = ensureDocument(event.documentId);
-          socket.emit('sync', { type: 'canvas:full', document: state.document } satisfies SyncEvent);
+          socket.emit('sync', { type: 'canvas:full', document: state.document, reason: 'sync' } satisfies SyncEvent);
+          break;
+        }
+        case 'presence:update': {
+          // Presence lane relay (R7): record the participant, rebroadcast to
+          // the document's OTHER subscribers. Volatile by design — never
+          // journaled, never replayed by the journal catch-up, never fanned
+          // to the agent. A participant whose socket disconnects is evicted
+          // by the disconnect handler below.
+          const state = documents.get(event.documentId);
+          const p = event.participant;
+          if (!state || !p || typeof p.participantId !== 'string') break;
+          const { socketId: _drop, ...participant } = p as PresenceParticipant & { socketId?: string };
+          state.participants.set(participant.participantId, { ...participant, socketId: socket.id });
+          broadcast(state, { type: 'presence:update', participant }, socket.id);
           break;
         }
         case 'document:restore': {
@@ -151,7 +197,7 @@ export function startCanvasSyncService() {
           // is idempotent) so all viewers + the WS doc stay in sync.
           const state = ensureDocument(event.documentId);
           state.document = event.document;
-          broadcast(state, { type: 'canvas:full', document: state.document } satisfies SyncEvent);
+          broadcast(state, { type: 'canvas:full', document: state.document, reason: 'restore' } satisfies SyncEvent);
           console.log(`[canvas-sync] document:restore on ${event.documentId} broadcast to ${state.subscribers.size} viewers`);
           break;
         }
@@ -181,16 +227,20 @@ export function startCanvasSyncService() {
           break;
         }
         case 'agent:steer': {
-          // Steer: inject a user message into the running agent's context.
-          // The agent will see this after its current tool batch, before the
-          // next LLM call. We broadcast it as an agent:message_delta so the
-          // UI shows the steer message.
+          // REAL steer (R8c): inject the user's message into the running
+          // agent session via the pi SDK's native session.steer() — the model
+          // sees it after the current tool batch, before the next LLM call,
+          // and its response streams through the normal event fan-out so
+          // every viewer sees it. Previously this broadcast a fake
+          // "[Steer: …]" delta while NOTHING reached the model.
           console.log(`[canvas-sync] steer on ${event.documentId}: ${event.text.slice(0, 80)}…`);
-          const state = ensureDocument(event.documentId);
-          broadcast(state, {
-            type: 'agent:message_delta',
-            text: `\n\n_[Steer: ${event.text}]_`,
-          } satisfies SyncEvent);
+          const steered = await steerActiveSession(event.documentId, event.text);
+          if (!steered) {
+            // No live run — tell just the sender. Ephemeral feedback event,
+            // deliberately NOT agent:error (that would finalize the streaming
+            // turn / run on every viewer).
+            socket.emit('sync', { type: 'agent:steer_rejected', reason: 'No agent run is active on this canvas.' } satisfies SyncEvent);
+          }
           break;
         }
         case 'canvas:measured_bounds': {
@@ -217,8 +267,29 @@ export function startCanvasSyncService() {
     socket.on('disconnect', () => {
       console.log(`[canvas-sync] disconnected: ${socket.id}`);
       for (const [, state] of documents) {
-        if (state.subscribers.delete(socket.id)) {
+        let touched = state.subscribers.delete(socket.id);
+        if (touched) {
           broadcast(state, { type: 'presence', viewerCount: state.subscribers.size });
+        }
+        // Presence lane cleanup: evict every participant owned by this
+        // socket (normally one; a buggy client could register several) and
+        // broadcast the shrunk roster. The roster is sent PER RECIPIENT with
+        // that recipient's own entries excluded — a shared broadcast would
+        // echo everyone their own cursor (live-verified bug).
+        let removed = false;
+        for (const [participantId, p] of state.participants) {
+          if (p.socketId === socket.id) {
+            state.participants.delete(participantId);
+            removed = true;
+          }
+        }
+        if (removed || touched) {
+          for (const sid of state.subscribers) {
+            io?.to(sid).emit('sync', {
+              type: 'presence:roster',
+              roster: rosterFor(state, sid),
+            } satisfies SyncEvent);
+          }
         }
       }
     });
@@ -228,6 +299,16 @@ export function startCanvasSyncService() {
     });
   });
 
+  httpServer.on('error', (err: NodeJS.ErrnoException) => {
+    // Reverse-race guard: if something else already owns :3003 (e.g. a
+    // manually-launched relay), a raw EADDRINUSE here would take down the
+    // WHOLE Next.js process. Log and keep serving HTTP instead.
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[canvas-sync] port ${PORT} already in use — in-process relay NOT started (another service owns it). Live canvas sync will use that service's semantics.`);
+    } else {
+      console.error('[canvas-sync] http server error:', err);
+    }
+  });
   httpServer.listen(PORT, () => {
     console.log(`[canvas-sync] WebSocket server listening on port ${PORT}`);
   });

@@ -33,7 +33,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, type PersistStorage } from 'zustand/middleware';
 import { v4 as uuid } from 'uuid';
 import type { CanvasDocument } from '@/lib/canvas/types';
 import type {
@@ -243,6 +243,120 @@ interface SessionStoreState {
 }
 
 // ---- Store implementation ---------------------------------------------------
+
+// ---- Throttled persist storage (R9b) -------------------------------------------
+//
+// Zustand v5 persist has NO write throttle: every setState (including the
+// per-token-chunk `appendAssistantText` during streaming) runs
+// partialize → JSON.stringify(ENTIRE dataset: sessions + runs + messages +
+// toolCalls + snapshots — routinely multi-MB) → localStorage.setItem,
+// synchronously. That is O(dataset) main-thread work dozens of times per
+// second (research round-2 gap 9).
+//
+// This PersistStorage coalesces writes: the first write after an idle gap
+// lands immediately (fresh disk early), writes inside a 300ms window merge
+// into one trailing flush (last-wins — the state object already IS the
+// latest). Excalidraw's 300ms debounce number. pagehide / visibilitychange
+// / beforeunload force a flush so closing the tab can't lose the window's
+// writes. getItem stays a plain disk read (rehydrate runs once at boot,
+// before any write exists).
+//
+// The partialize slice is deliberately unchanged (full dataset, no
+// streaming-text blanking): the dominant cost was the WRITE RATE, and
+// blanking in-flight text would trade away mid-stream crash recovery of
+// partial answers (deltas are not journaled) for a size win that doesn't
+// exist — snapshots dominate the payload, not the streaming text.
+const PERSIST_WRITE_INTERVAL_MS = 300;
+
+interface ThrottledWrite {
+  name: string;
+  value: unknown;
+}
+let throttledPending: ThrottledWrite | null = null;
+let throttledTimer: ReturnType<typeof setTimeout> | null = null;
+let throttledLastWriteAt = 0;
+
+function throttledFlush(): void {
+  if (throttledTimer) {
+    clearTimeout(throttledTimer);
+    throttledTimer = null;
+  }
+  const pending = throttledPending;
+  throttledPending = null;
+  if (!pending || typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(pending.name, JSON.stringify(pending.value));
+    throttledLastWriteAt = Date.now();
+  } catch {
+    // Quota / privacy-mode failures were silently swallowed by the previous
+    // createJSONStorage path too — persisting must never break the app.
+  }
+}
+
+/// Test hook: synchronously land any pending throttled write.
+export function __flushThrottledSessionPersist(): void {
+  throttledFlush();
+}
+
+if (typeof window !== 'undefined') {
+  // The "tab close loses the last 300ms" hole: flush on pagehide (covers
+  // mobile tab swipe), beforeunload (desktop close), and visibilitychange
+  // hidden (backgrounding — may never come back).
+  window.addEventListener('pagehide', throttledFlush);
+  window.addEventListener('beforeunload', throttledFlush);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') throttledFlush();
+  });
+}
+
+function createThrottledJSONStorage(): PersistStorage<unknown> {
+  if (typeof window === 'undefined') {
+    // SSR-safe no-op storage (same stub createJSONStorage produced).
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    };
+  }
+  return {
+    getItem: (name: string) => {
+      // Plain disk read (same semantics as the createJSONStorage path).
+      // Deliberately NOT shadowed by a pending throttled write: rehydrate
+      // runs once at boot before any writes exist, and tests that stage a
+      // fixture through localStorage expect to read their own bytes back.
+      try {
+        const raw = window.localStorage.getItem(name);
+        return raw ? (JSON.parse(raw) as { state: unknown; version?: number }) : null;
+      } catch {
+        return null;
+      }
+    },
+    setItem: (name: string, value: unknown) => {
+      throttledPending = { name, value };
+      const elapsed = Date.now() - throttledLastWriteAt;
+      if (elapsed >= PERSIST_WRITE_INTERVAL_MS) {
+        // Leading edge: write now, which also resets the window.
+        throttledFlush();
+        return;
+      }
+      if (!throttledTimer) {
+        throttledTimer = setTimeout(throttledFlush, PERSIST_WRITE_INTERVAL_MS - elapsed);
+      }
+    },
+    removeItem: (name: string) => {
+      throttledPending = null;
+      if (throttledTimer) {
+        clearTimeout(throttledTimer);
+        throttledTimer = null;
+      }
+      try {
+        window.localStorage.removeItem(name);
+      } catch {
+        // ignore
+      }
+    },
+  };
+}
 
 export const useSessionStore = create<SessionStoreState>()(
   persist(
@@ -1282,17 +1396,10 @@ export const useSessionStore = create<SessionStoreState>()(
     }),
     {
       name: 'agentcanvas.sessions.v1',
-      storage: createJSONStorage(() => {
-        if (typeof window === 'undefined') {
-          // SSR-safe no-op storage (returns a stub).
-          return {
-            getItem: () => null,
-            setItem: () => {},
-            removeItem: () => {},
-          };
-        }
-        return window.localStorage;
-      }),
+      // Throttled localStorage adapter (R9b — see the module docs above the
+      // store): coalesces the per-token-chunk persist writes into one per
+      // 300ms window with pagehide/beforeunload/visibilitychange flushes.
+      storage: createThrottledJSONStorage(),
       // Persist everything; this is a small dataset (snapshots may grow but
       // for a demo this is fine — a real app would shard snapshots to a
       // separate key or move them to IndexedDB).

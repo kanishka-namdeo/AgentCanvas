@@ -371,6 +371,19 @@ export interface PenEntity extends PenPosition {
   /** Degrees CCW around top-left corner. */
   rotation?: PenNumberOrVariable;
 
+  // ---- Sync reconcile (R6, Excalidraw pattern) -----------------------------
+  // Monotonic per-element mutation counter. Every property-changing
+  // `updateNode` bumps it (+1) and re-rolls `versionNonce`; `insertNode`
+  // initializes both. Used by `reconcileDocuments` to resolve per-element
+  // conflicts when a `canvas:full` (reconnect / resync) merges server state
+  // against local state: higher version wins; equal versions break the tie
+  // by the LOWER nonce (deterministic on both sides).
+  // Optional: elements from pre-R6 documents / fixtures carry no version —
+  // reconcile treats them as "remote wins" (previous replace semantics).
+  version?: number;
+  /** Random per-bump tiebreaker; only meaningful when versions are equal. */
+  versionNonce?: number;
+
   // ---- v3 mirrors (Figma REST names) ----
   /** v3: visibility. Mirrors `enabled` (same boolean semantics). */
   visible?: PenBooleanOrVariable;

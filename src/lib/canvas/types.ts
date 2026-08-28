@@ -512,7 +512,16 @@ export interface CanvasPatch {
 
 export type SyncEvent =
   | { type: 'canvas:patch'; patch: CanvasPatch; toolCallId?: string }
-  | { type: 'canvas:full'; document: CanvasDocument }
+  // `reason` disambiguates merge semantics on the client (R6):
+  //   - 'sync'    (subscribe reply / request_full): the client RECONCILES the
+  //                incoming document against its local one (per-element
+  //                version+nonce rules) so unsynced local edits survive a
+  //                reconnect/resync instead of being clobbered.
+  //   - 'restore' (document:restore broadcast): an authoritative snapshot
+  //                swap — the client REPLACES its document wholesale.
+  // Additive field: old clients ignore it and keep replacing (previous
+  // behavior); the server always sets it.
+  | { type: 'canvas:full'; document: CanvasDocument; reason?: 'sync' | 'restore' }
   | { type: 'agent:message_start'; role: 'assistant' }
   | { type: 'agent:message_delta'; text: string }
   | { type: 'agent:message_end'; stopReason?: string }
@@ -606,11 +615,55 @@ export type SyncEvent =
   // and the VLM overall_score. The frontend can render a "Critic iteration
   // N/M" badge + the defect list as a collapsible panel.
   | { type: 'agent:critique'; iteration: number; defects: string[]; validation: { totalShapes: number; textShapes: number; cardShapes: number; textShapesWithWeight: number; cardShapesWithShadow: number; autoLayoutContainers: number }; textSeverity: 'low' | 'medium' | 'high'; vlmSeverity: 'low' | 'medium' | 'high'; vlmScore?: number }
-  | { type: 'presence'; viewerCount: number };
+  | { type: 'presence'; viewerCount: number }
+  // ---- Presence lane (R7) --------------------------------------------------
+  // Volatile collaboration awareness: cursors, selection and idle state of
+  // OTHER viewers, plus the roster that carries them. NEVER journaled (the
+  // journal's allow-list excludes these kinds by construction — journaling
+  // lives only in /api/agent/route.ts) and never replayed by catch-up.
+  // Follows the tldraw/Excalidraw pattern: ephemeral socket.io traffic on the
+  // existing per-document subscriber sets, throttled client-side (~33ms for
+  // cursor moves — Excalidraw's number).
+  | { type: 'presence:roster'; roster: PresenceParticipant[] }
+  | { type: 'presence:update'; participant: PresenceParticipant }
+  // Real-steer rejection (R8c): the client asked to steer a document with no
+  // live agent run. Ephemeral UI feedback only — never journaled, never
+  // touches turn/run state (unlike agent:error, which would finalize the
+  // streaming turn).
+  | { type: 'agent:steer_rejected'; reason: string };
+
+/// One collaborator's volatile presence state. `participantId` is a
+/// client-generated stable-per-tab id (survives socket reconnects, unlike
+/// socket.id); `color` is the cursor's identity color chosen by the client.
+export interface PresenceParticipant {
+  participantId: string;
+  name: string;
+  color: string;
+  /// Canvas-space cursor position (the sender transformed screen→canvas, so
+  /// receivers apply zoom/pan). null = cursor left the canvas.
+  cursor?: { x: number; y: number } | null;
+  /// Shape ids the participant currently has selected (remote selection
+  /// outlines). Never the agent's tool-driven selection — user UI only.
+  selection?: string[];
+  /// True when the participant hasn't moved the pointer for a while / the tab
+  /// is backgrounded (Excalidraw idle semantics).
+  idle?: boolean;
+}
 
 export type ClientEvent =
   | { type: 'subscribe'; documentId: string }
-  | { type: 'canvas:patch'; patch: CanvasPatch }
+  // `documentId` routes the patch directly (R8a): the server resolves
+  // `documents.get(event.documentId)` instead of scanning subscriber sets
+  // first-match — a socket subscribed to multiple documents previously had
+  // ALL its patches routed to whichever doc was inserted first. Optional for
+  // backward compatibility with in-flight old clients; the server falls
+  // back to the legacy scan when absent.
+  | { type: 'canvas:patch'; documentId?: string; patch: CanvasPatch }
+  // Volatile presence push (R7): one participant's cursor/selection/idle.
+  // Throttled client-side (~33ms for cursors); the server relays to the
+  // document's OTHER subscribers and keeps the participant in the roster
+  // until its socket disconnects. Never journaled, never fanned to the agent.
+  | { type: 'presence:update'; documentId: string; participant: PresenceParticipant }
   | { type: 'canvas:request_full'; documentId: string }
   // Shared-canvas restore: the client swapped the document back to a snapshot
   // and pushes the new state so every viewer + the in-memory WS doc follow.

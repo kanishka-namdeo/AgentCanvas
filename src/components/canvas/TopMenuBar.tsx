@@ -55,6 +55,9 @@ export function TopMenuBar(props: TopMenuBarProps) {
   const setToolMode = useCanvasStore((s) => s.setToolMode);
   const connected = useCanvasStore((s) => s.connected);
   const viewerCount = useCanvasStore((s) => s.viewerCount);
+  // Presence lane (R7): named roster — feeds the viewer chip's tooltip so
+  // "3" becomes "Guest A4F2, Guest B7C1 + you".
+  const remotePresence = useCanvasStore((s) => s.remotePresence);
   // Phase 7 view flags (⌘' pixel grid / ⌘⇧' snap / ⌘⇧O outline / View-menu rulers).
   const pixelGridVisible = useCanvasStore((s) => s.pixelGridVisible);
   const snapToPixel = useCanvasStore((s) => s.snapToPixel);
@@ -483,20 +486,24 @@ export function TopMenuBar(props: TopMenuBarProps) {
 
       {/* Connection + viewer indicators — always visible (right-aligned). */}
       <div className="ml-auto flex items-center gap-2 pr-1">
-        {viewerCount > 1 && (
-          <span
-            className="flex items-center gap-1 text-[10px] ac-text-3"
-            title={`${viewerCount} viewers on this canvas`}
-          >
-            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            {viewerCount}
-          </span>
-        )}
+        {viewerCount > 1 && (() => {
+          const names = Object.values(remotePresence).map((p) => p.name);
+          const roster = names.length > 0 ? `${names.join(', ')} + you` : `${viewerCount} viewers`;
+          return (
+            <span
+              className="flex items-center gap-1 text-[10px] ac-text-3"
+              title={`${viewerCount} viewers on this canvas — ${roster}`}
+            >
+              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              {viewerCount}
+            </span>
+          );
+        })()}
         <span
           className={`flex items-center gap-1 text-[10px] ${connected ? 'ac-text-3' : 'ac-text-danger'}`}
           title={connected ? 'Connected — changes sync live to all viewers' : 'Offline — changes are local only'}

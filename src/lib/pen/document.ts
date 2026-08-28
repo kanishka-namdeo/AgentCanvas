@@ -112,28 +112,41 @@ export function deepCloneNode(node: PenChild, newIds = true): PenChild {
   return clone as PenChild;
 }
 
-/** Insert a node as a child of the given parent (or at root if parentId is null). */
+/** Random per-bump version tiebreaker (R6 reconcile). Fits in a JS integer
+ * and needs no crypto — collisions merely fall through to "identical". */
+function freshVersionNonce(): number {
+  return Math.floor(Math.random() * 2 ** 31);
+}
+
+/** Insert a node as a child of the given parent (or at root if parentId is null).
+ * Stamps the node's sync version (1) + nonce (R6) unless it already carries
+ * them (a re-inserted / moved node keeps its lineage — move is structural,
+ * not a content mutation). */
 export function insertNode(
   children: PenChild[],
   node: PenChild,
   parentId: string | null | undefined,
   index?: number,
 ): PenChild[] {
+  const stamped: PenChild =
+    (node as { version?: number }).version === undefined
+      ? { ...node, version: 1, versionNonce: freshVersionNonce() }
+      : node;
   if (!parentId) {
     const next = [...children];
-    if (index === undefined || index < 0 || index > next.length) next.push(node);
-    else next.splice(index, 0, node);
+    if (index === undefined || index < 0 || index > next.length) next.push(stamped);
+    else next.splice(index, 0, stamped);
     return next;
   }
   return children.map((c) => {
     if (c.id === parentId && isContainer(c)) {
       const kids = [...((c as { children?: PenChild[] }).children ?? [])];
-      if (index === undefined || index < 0 || index > kids.length) kids.push(node);
-      else kids.splice(index, 0, node);
+      if (index === undefined || index < 0 || index > kids.length) kids.push(stamped);
+      else kids.splice(index, 0, stamped);
       return { ...c, children: kids };
     }
     if (isContainer(c) && 'children' in c && Array.isArray(c.children)) {
-      return { ...c, children: insertNode(c.children, node, parentId, index) };
+      return { ...c, children: insertNode(c.children, stamped, parentId, index) };
     }
     return c;
   });
@@ -233,14 +246,29 @@ export function getAbsolutePosition(
   };
 }
 
-/** Update a node's properties by id (immutable). */
+/** Update a node's properties by id (immutable).
+ * Bumps the node's sync version + re-rolls its nonce (R6) — every
+ * property change advances the element's reconcile lineage. Nodes from
+ * pre-R6 documents (no version) gain one on their first update, which also
+ * makes them start winning reconciles against stale versionless copies. */
 export function updateNode(
   children: PenChild[],
   id: string,
   changes: Partial<PenChild>,
 ): PenChild[] {
+  const bump = Object.keys(changes).length > 0;
   return children.map((c) => {
-    if (c.id === id) return { ...c, ...changes, id: c.id } as PenChild;
+    if (c.id === id) {
+      if (!bump) return c;
+      const prevVersion = typeof c.version === 'number' ? c.version : 0;
+      return {
+        ...c,
+        ...changes,
+        id: c.id,
+        version: prevVersion + 1,
+        versionNonce: freshVersionNonce(),
+      } as PenChild;
+    }
     // Descend into ALL container types (section, component, component_set,
     // boolean_operation — matching walkTree/findNode/insertNode/removeNode).
     // Previously only frame/group descended, so update patches (fills,
