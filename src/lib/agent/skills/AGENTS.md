@@ -24,7 +24,7 @@ Every skill MUST have:
 - `name` — human-readable
 - `description` — Level 1 metadata (~100 tokens, always loaded). Must say WHAT + WHEN.
 - `body` — Level 2 instructions (loaded on activation, <5k tokens). Tool selection guide, argument rules, completion criteria.
-- `allowedTools` — which of the 78 canvas tools this skill exposes
+- `allowedTools` — which of the 87 LLM-visible canvas/web tools this skill exposes (from `ALL_TOOL_NAMES`)
 - `keywords` — for the intent classifier (case-insensitive match)
 
 ### Progressive disclosure levels
@@ -33,12 +33,11 @@ Every skill MUST have:
 - Level 3 (on demand): not used at our scale (7 skills, each self-contained)
 
 ### Core tools (always loaded)
-9 tools are included in EVERY skill: create_shape, update_shape, delete_shape,
-list_shapes, clear, set_background, select_shape, undo, redo.
+10 tools are included in EVERY skill: pen_create_node, pen_create_subtree, pen_update_node, pen_delete_nodes, pen_get_metadata, pen_clear, pen_set_background, pen_select_nodes, pen_undo, pen_redo (`CORE_TOOL_NAMES` — node-era names; shape-era spellings still dispatch via `../tool-aliases.ts` but are not advertised).
 
 ### Tool subset loading
 `getToolNamesForCategory(category)` returns core tools + skill-specific tools.
-For 'multi', returns ALL_TOOL_NAMES (the full 78-tool flat list — fallback; excludes the 10 always-loaded figma tools).
+For 'multi', returns ALL_TOOL_NAMES (the full 87-tool flat list — fallback; excludes the 10 always-loaded figma tools).
 
 ### Adding a new skill
 1. Add the category to `SkillCategory` in `types.ts`

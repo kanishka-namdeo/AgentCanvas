@@ -280,3 +280,13 @@ Agent:
 - [Galileo AI → Google Stitch](https://stitch.withgoogle.com/)
 - [The Rise of Multi-Agent Orchestration (KPMG 2025)](https://kpmg.com/...)
 - [Agentic AI Trends 2025: From Assistants to Agents](https://www.analyticsinsight.net/...)
+
+---
+
+## 8. Addendum (2026-08-28) — status of §6 future work
+
+Superseded notes appended per the docs contract; decisions above are not rewritten.
+
+- **"Critic in the runner" — IMPLEMENTED** (Task 7-c, before the perf package): the runner wraps a MANDATORY bounded self-critique loop (text critic + VLM screenshot critic + free validation gate; default 2 iterations) after the agent's final message. `pen_self_critique` remains as the opt-in tool. The Agent Performance Package later made the loop cheaper: free validation gate first, VLM critic skipped for small clean edits, critics run concurrently (see `docs/agent-performance.md` §2 change 8).
+- **Pattern memory in system prompt / vector embeddings / cross-session memory / critic persona variants / pattern expiry** — still future work, unchanged.
+- **New sibling capability (this phase)**: multi-variant parallel generation — the "go wide" exploration pattern (K=3 seeded directions, VLM judge, winner applied) extends this doc's reflection/memory triad with a fourth agentic pattern. Design + measurements: `docs/agent-performance.md` §4. The sub-agent family grew to 5 (web-research, design-critic, design-critic-vlm, design-brief, variant-generator) — contracts in `src/lib/agent/subagents/AGENTS.md`.

@@ -132,8 +132,9 @@ When the user requests a durable behavior change, record it here or in the relev
 | `src/components/settings/AGENTS.md` | Settings dialog: 8-section modal (agent, LLM provider, sessions, appearance, data, shortcuts, plugins, MCP servers) |
 | `src/components/ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers, 48-component inventory |
 | `src/lib/AGENTS.md` | Lib tree root: Prisma client singleton (`db.ts`), `cn()` utility; indexes the seven lib child docs |
-| `src/lib/agent/AGENTS.md` | Agent layer: 90-tool surface (72 tools.ts + 8 pen + 10 figma) + 32 plugin tools, native Pi-SDK runner + legacy test runner, client round-trip registry, classifier/planner, sub-agents |
+| `src/lib/agent/AGENTS.md` | Agent layer: 97-tool base surface (79 tools.ts + 8 pen + 10 figma) + 32 plugin tools, native Pi-SDK runner + legacy test runner, client round-trip registry, classifier/planner, tool-execution-mode + alias policy, UI-quality enforcement loop |
 | `src/lib/agent/skills/AGENTS.md` | Skill system: types, registry (7 skills), progressive disclosure levels, eval harness |
+| `src/lib/agent/subagents/AGENTS.md` | 5 isolated-context sub-agents (web-research, design-critic, design-critic-vlm, design-brief, variant-generator) + dispatch/timeout/wall-clock-budget contracts |
 | `src/lib/agent/plugins/AGENTS.md` | Plugin registry + 8 ported plugins (32 tools, gated by `settings.enabledPlugins`): ask-user-question, todo, memory, mega-compact, goal-list, background-tasks, mcp-adapter, subagents |
 | `src/lib/canvas/AGENTS.md` | Canvas state: Zustand store (toolMode, undo/redo, settings injection), types, patches, clipboard + export helpers, gestures hook, Socket.IO service |
 | `src/lib/llm/AGENTS.md` | LLM provider abstraction: 28 providers (26 OpenAI-compatible + 2 native), unified `LLMClient` interface, registry + factories |
@@ -142,12 +143,12 @@ When the user requests a durable behavior change, record it here or in the relev
 | `src/lib/sessions/AGENTS.md` | Session persistence: Zustand localStorage store + server-sync bridge (`/api/sessions*`), fork/restore, sweep/enforce helpers |
 | `src/lib/web/AGENTS.md` | Web search + fetch: 4-provider search chain (z.ai → DDG → Startpage → Jina), 3-backend fetch pipeline (readability → z.ai page_reader → Jina), quality gates |
 | `.zscripts/AGENTS.md` | Sandbox boot/build runtime: `dev.sh` boot flow (auto-run at container start), deploy artifact pipeline, `start.sh` production entrypoint |
-| `docs/AGENTS.md` | Durable docs: z.ai sandbox runbook, phase design docs (design-systems, agentic-workflows, html-dom-renderer spec), menu-specs P0–P2 trackers |
+| `docs/AGENTS.md` | Durable docs: z.ai sandbox runbook, phase design docs (design-systems, agentic-workflows, agent-performance, html-dom-renderer spec), menu-specs P0–P2 trackers |
 | `examples/websocket/AGENTS.md` | Reference Socket.IO demo (gateway routing pattern; port-collision warning) |
 | `mini-services/canvas-sync/AGENTS.md` | Socket.IO service for live multi-viewer canvas sync (EADDRINUSE-exit-0 twin contract) |
 | `prisma/AGENTS.md` | Prisma schema: Document, Shape, AgentAction + session models (Session, SessionMessage, SessionRun) + DocumentSnapshot (document-scoped canvas timeline, shared-canvas model) |
-| `scripts/AGENTS.md` | Dev scripts: dev-server + sandbox one-shot bring-up launchers, screenshot automation, intent classifier eval, token cost measurement, DOM-renderer bench corpus generator |
-| `tests/AGENTS.md` | Test suite: Vitest unit/integration tests (47 files), shell smoke tests, CI notes |
+| `scripts/AGENTS.md` | Dev scripts: dev-server + sandbox one-shot bring-up launchers, screenshot automation, intent classifier eval, token cost measurement, DOM-renderer bench corpus generator, agent-eval scenario suite, VLM output-inspection harness (vlm-inspect) |
+| `tests/AGENTS.md` | Test suite: Vitest unit/integration tests (72 files / 1775 tests), shell smoke tests, CI notes |
 | `research/AGENTS.md` | Read-only research: 7 web-research JSON surveys, gap-analysis + spec-compliance reports, `specs/` API snapshot cache (~74 refs) + `specs/llm-providers/` (28 provider snapshots) |
 
 - Root-owned files: `README.md`, `LICENSE`, root tool/config files (`package.json`, `bun.lock`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `vitest.config.ts`, `prisma.config.ts`, `components.json`, `instrumentation.ts`, `Caddyfile`, `.env.example`, `.gitignore`), `public/` static assets (logo.svg, robots.txt), and root-level project documentation. Session artifacts (`worklog.md`, `TEST_RESULTS_WORKLOG.md`, `test-results-*.json`, `tool-results/`) are transient and gitignored — do not commit them.

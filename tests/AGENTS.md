@@ -43,6 +43,8 @@ Two kinds of tests live here:
 | `resolve-v3.test.ts` | Resolver dual-field output (spec Phase 6 part 1, §9.3 #3): auto-layout + text + shadow + gradient + per-corner-radii doc → Layer carries BOTH legacy fields EXACTLY as before (autoLayout incl. the tuple→0 padding collapse regression) AND v3 mirrors (`layoutMode`, `itemSpacing`, per-side paddings, axis alignments, `layoutSizing*` HUG/FILL/FIXED, `characters`, `textAutoResize`, `rectangleCornerRadii`, `fills` SOLID/GRADIENT_LINEAR with angle-derived handles, `effects` DROP_SHADOW); mirrors stay absent on plain nodes; v3-source nodes resolve to the same mirrors; patch-inserted (`add`) nodes dual-carry from creation; canonical alignKind (HCENTER) ≡ legacy (center_h), TIDY ≡ DISTRIBUTE_H (v1), set_constraints accepts SCREAMING input; export→import round-trip preserves geometry + mirrors. |
 | `llm-providers.test.ts` | LLM provider registry — tests `getProvider()`, `listProviders()`, `createLLMClient()` for the provider registry. Verifies factory creation, capability flags, metadata completeness, and OpenAI-compatible factory behavior. |
 | `zoom-clamp.test.ts` | Zoom clamp unification (spec defect D6): the shared `clampZoom` helper + `MIN_ZOOM`/`MAX_ZOOM` constants exported from `src/lib/canvas/use-canvas-gestures.ts` — canonical range 0.1–8 for every zoom control (gestures, Canvas zoom buttons, context-menu items), plus a source-level guard that `Canvas.tsx` consumes the shared clamp instead of inline caps. |
+| `agent-performance-package.test.ts` | The Agent Performance Package (10 changes): `pen_create_subtree` multi-root `nodes[]` batches + full id-manifest + inline resolver warnings (kills the read-back round trip), `pen_duplicate_nodes` count/direction/spacing batches + the previously-silently-ignored offsetX/offsetY, `tool-execution-mode.ts` sequential-vs-parallel policy (`PARALLEL_SAFE_TOOL_NAMES`), legacy-alias filtering out of the LLM-visible catalog, `shouldStopAfterTurn` maxIterations wiring (mock-stream Agent probe), prompt-cache usage fields, canvas-snapshot placement, and the system-prompt emission/budget rules. |
+| `todo-batch-variants.test.ts` | Todo-batch semantics + the variant generator: `todo_update` BATCH transitions (multi-transition one call, WIP=1 auto-advance, full-list returns, single-step shim compatibility, prompt gating), variant-spec coercion (`extractSpecJson` parse-whole fast path, `coerceNodeTree` near-miss→node-tree salvage, invented types→KNOWN_TYPES, `stripDescriptorFields`), composite image assembly, `dispatchVariantGeneration` WALL-CLOCK BUDGET races against eternally-hanging LLM mocks (a 1.2s budget must return in ~1.2s), judge-timeout→heuristic degradation, and exhaustion→fallback-ladder notes. 26 tests. |
 
 ### Vitest integration tests (`tests/integration/`)
 
@@ -121,7 +123,7 @@ Each prints a "passed" message on success and exits non-zero on failure.
 
 ## Verification
 
-- `bun run test` — should print "Test Files 18 passed (18)" and "Tests 417 passed (417)" (or higher as tests are added).
+- `bun run test` — should print "Test Files 72 passed (72)" and "Tests 1775 passed | 2 skipped" (verified 2026-08-28; grows as tests are added).
 - `bash tests/python-runtime-build.sh` — should print "python runtime build tests passed".
 - `bash tests/database-runtime-build.sh` — should print the corresponding pass message.
 - `bunx tsc --noEmit` — typecheck (currently clean; `skills/` is excluded in tsconfig because the z.ai sandbox extracts sandbox-owned skill sources there).

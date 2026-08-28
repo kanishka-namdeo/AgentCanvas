@@ -9,13 +9,13 @@ The agent plugin subsystem: a registry of 8 ported pi-agent plugins exposing up 
 - `index.ts` — plugin registry: `ALL_PLUGINS` manifest (pluginId, pluginName, description, category, defaultEnabled, tools) + `getEnabledPlugins` / `getEnabledPluginTools` / `getEnabledPluginToolNames` / `getPlugin` / `getAllPlugins`, all gated by `settings.enabledPlugins`. `/api/plugins` serves these manifests.
 - `event-bus.ts` — module-level per-turn `SyncEvent` sink installed by `runAgentNative`; `setEventSink` / `emitEvent` / `hasSink` let plugin tools fire UI events mid-turn. NON-plugin consumers too (M2-c): `tools.ts`'s round-trip tools (`pen_get_computed` / `pen_get_screenshot`) and the VLM critic emit `agent:computed_request` / `agent:screenshot_request` through this sink — same mechanism as ask-user-question, answers resolve via `/api/agent/client-responses` + `agent/client-roundtrip.ts`.
 - `ask-user-question.ts` — `ask_user_question` tool: emits `agent:ask_user_question`, blocks for answers resolved via `/api/agent/answers` (5-minute timeout); also backs `/api/agent/pending`.
-- `todo.ts` — 5 `todo_*` tools maintaining a per-session todo list; each mutation emits `agent:todo_update`.
+- `todo.ts` — 5 `todo_*` tools maintaining a per-session todo list; each mutation emits `agent:todo_update`. BATCH semantics (todo-batch noise fix, 2026-08-28): `todo_update` accepts a BATCH of status transitions (1-20 in ONE call — never one call per transition); WIP=1 auto-advance (marking a step in_progress implicitly completes the previous one, so no separate "completed" call is needed); every mutation returns the FULL list state (no `todo_list` read-backs); prompt gating nudges the model to use todos only on 5+ step / 10+ call tasks (<1/4 of total calls). Measured: todo share dropped to 0.9% of tool calls (was ~13/31 bookkeeping calls). The single-step schema is still accepted (normalized into a 1-element batch) so old tests + stale transcripts keep working.
 - `memory.ts` — 5 `memory_*` + `scratchpad` tools over file-backed long-term memory in `~/.pi/agent/memory/` (MEMORY.md, SCRATCHPAD.md, daily log).
 - `mega-compact.ts` — 3 `compact_*` tools: TF-IDF-indexed compaction summaries with deduped recall.
 - `goal-list-loop-audit.ts` — 5 `goal_*` tools: goal interview + audited task queue for long-running design jobs (in-memory state).
 - `background-tasks.ts` — 5 `background_*` tools: durable background task execution with status polling via `/api/agent/background/[id]`.
 - `mcp-adapter.ts` — 5 `mcp_*` tools: MCP server registry/connections configured via `settings.mcpServers` and controlled through `/api/mcp/[id]` (placeholder connection — real MCP SDK wiring is a tracked TODO).
-- `subagents.ts` — 3 `subagent_*` tools (reviewer/oracle/worker profiles) delegating via the provider-aware LLM client.
+- `subagents.ts` — 3 `subagent_*` tools (reviewer/oracle/worker profiles) delegating via the provider-aware LLM client. Also exports `getActiveLLM()` — the runner-armed per-turn client that pen tools with sub-agent needs (`pen_generate_variants`) read; falls back to `ZAI.create()` sandbox credentials when unset.
 
 ## Local Contracts
 

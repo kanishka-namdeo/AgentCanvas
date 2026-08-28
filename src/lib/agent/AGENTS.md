@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The agent layer: defines the 98-tool surface the AI agent can call against the canvas (78 in `tools.ts` + 8 .pen-aligned in `pen-tools.ts` + 10 Figma-canonical in `figma-tools.ts`, plus up to 32 plugin tools), and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events.
+The agent layer: defines the 97-tool base surface the AI agent can call against the canvas (79 in `tools.ts` + 8 .pen-aligned in `pen-tools.ts` + 10 Figma-canonical in `figma-tools.ts`, plus up to 32 plugin tools), and runs the skill-aware agent loop that turns a natural-language prompt into a stream of canvas patches + chat events. The per-turn LLM-visible catalog is the skill-filtered subset of `ALL_TOOL_NAMES` (88 entries / 87 unique) — legacy alias entries are dispatchable for stale transcripts but NOT advertised.
 
 This is the contract layer between the LLM and the canvas. Tool names, parameter schemas, skill definitions, and the system prompt's tool catalog are the public surface — changing them is a breaking change for prior session replays.
 
@@ -26,8 +26,8 @@ User prompt
     └────┬────┘
          │
     ┌────┴────────┐
-    │ Sub-agent?  │  Tier 2: web_research / design-critic dispatch
-    │ (subagents/ │  isolated LLM context, returns SubAgentResult summary
+    │ Sub-agent?  │  Tier 2: web-research / design-critic / design-brief /
+    │ (subagents/ │  variant-generator dispatch (5 — see subagents/AGENTS.md)
     └────┬────────┘
          │
          ▼
@@ -46,7 +46,7 @@ User prompt
 
 ## Ownership
 
-- `tools.ts` — 79 `defineTool()` definitions (70 canvas tools + 7 Phase 3 Figma-MCP-aligned tools + web_search + web_fetch) + `executeTool` dispatcher (response cap `MAX_TOOL_RESULT_CHARS = 25_000` + `repairArrayArgs()` argument repair). Owned by this folder. The Phase 3 set (spec §5.2/Appendix D): `pen_insert_html` (sanitized HTML → ONE `bulk_add` patch with nested .pen children — the preferred composite-UI construction primitive), `pen_get_metadata` (page-list default / sparse `id | name | type | x/y/w/h` tree — pure model read), `pen_get_variable_defs` (variables + text styles with `var(--acv-…)` codeSyntax), `pen_get_design_context` (4-part handoff: code + screenshot + instructions + assets), `pen_get_computed` / `pen_get_screenshot` (M2-c client round-trips — live `getComputedStyle`/`getBoundingClientRect` readback + real html-to-image canvas capture; ≤2s pending map in `client-roundtrip.ts`, ALWAYS fall back to resolver data / server resvg with `measured:false`, never hang), `pen_bake_layout` (writes the server-side measured-bounds map into .pen sizes via ONE `update_many`; skips dynamic fit_content/fill_container sizing). `pen_copy_as_code` v2 delegates to `src/lib/canvas/serialize.ts`. ICON SYSTEM (docs/lucide-icons.md): `pen_create_node` accepts `type:"icon"` + `icon:"<lucide-name>"` (validated against the registry in `src/lib/icons` — unknown names fail with suggestions; icons default to 24×24; recolor via `stroke`); `pen_search_icons` is a real semantic SEARCH over the curated catalog (word-level keyword scoring — "password security" → lock) that ALSO places when `icon`/`x`/`y` are given. The system prompt's ICON SYSTEM section + catalog is injected from `lucidePromptCatalog()`.
+- `tools.ts` — 79 `defineTool()` definitions (node-era names after the pen-v3 vocabulary unification; includes the Agent Performance Package's `pen_generate_variants` + `pen_duplicate_nodes`) + `executeTool` dispatcher (response cap `MAX_TOOL_RESULT_CHARS = 25_000` + `repairArrayArgs()` argument repair). Owned by this folder. The Phase 3 set (spec §5.2/Appendix D): `pen_insert_html` (sanitized HTML → ONE `bulk_add` patch with nested .pen children — the preferred composite-UI construction primitive), `pen_get_metadata` (page-list default / sparse `id | name | type | x/y/w/h` tree — pure model read), `pen_get_variable_defs` (variables + text styles with `var(--acv-…)` codeSyntax), `pen_get_design_context` (4-part handoff: code + screenshot + instructions + assets), `pen_get_computed` / `pen_get_screenshot` (M2-c client round-trips — live `getComputedStyle`/`getBoundingClientRect` readback + real html-to-image canvas capture; ≤2s pending map in `client-roundtrip.ts`, ALWAYS fall back to resolver data / server resvg with `measured:false`, never hang), `pen_bake_layout` (writes the server-side measured-bounds map into .pen sizes via ONE `update_many`; skips dynamic fit_content/fill_container sizing). `pen_copy_as_code` v2 delegates to `src/lib/canvas/serialize.ts`. ICON SYSTEM (docs/lucide-icons.md): `pen_create_node` accepts `type:"icon"` + `icon:"<lucide-name>"` (validated against the registry in `src/lib/icons` — unknown names fail with suggestions; icons default to 24×24; recolor via `stroke`); `pen_search_icons` is a real semantic SEARCH over the curated catalog (word-level keyword scoring — "password security" → lock) that ALSO places when `icon`/`x`/`y` are given. The system prompt's ICON SYSTEM section + catalog is injected from `lucidePromptCatalog()`.
 - `pen-tools.ts` — 8 additional .pen-aligned tools (pen_set_variable, pen_apply_theme, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_theme_axis, pen_list_themes). These expose pen.dev concepts (variables, themes, refs, slots) that complement the granular pen_* tool surface.
 - `figma-tools.ts` — 10 Figma-canonical tools: figma_create_page, figma_set_active_page, figma_rename_page, figma_delete_page, figma_create_section, figma_create_component, figma_create_component_set, figma_add_variant, figma_set_component_property, figma_set_instance_property. Exports `createFigmaTools(ctx)` + `FIGMA_TOOL_NAMES`. Always loaded (not skill-gated).
 - `runner.ts` — public entry point + thin delegator: routes to `runAgentNative` (production) or `runAgentLegacy` (injected MockLLM tests); re-exports shared types/helpers.
@@ -64,32 +64,36 @@ User prompt
 - `file-skills.ts` — loads Agent-Skills-standard + legacy `.md` skills from `.pi/skills/` and merges them into the system prompt.
 - `skills/` — skill system (types, registry, metadata formatters). See `skills/AGENTS.md`.
 - `plugins/` — plugin registry + 8 ported plugins (32 tools, gated by `settings.enabledPlugins`). See `plugins/AGENTS.md`.
-- `subagents/` — isolated-context sub-agents: web-research (search+fetch synthesis) and design-critic (reflection critique); both return `SubAgentResult`.
+- `tool-execution-mode.ts` — PURE execution-mode policy: every canvas-mutating pen_/figma_ tool is marked `executionMode: 'sequential'` so pi-agent-core applies multi-tool batches in emission order (create-then-style ordering survives batching); read-only tools (`PARALLEL_SAFE_TOOL_NAMES`) stay concurrent.
+- `tool-aliases.ts` — `TOOL_ALIASES` legacy-name map (shape-era → node-era) + `applyToolAliases()`. Alias entries ride along for SDK dispatch (stale transcripts still resolve) but are filtered OUT of the LLM-visible catalog (~28KB saved per call).
+- `subagents/` — 5 isolated-context sub-agents: web-research, design-critic, design-critic-vlm, design-brief, variant-generator. See `subagents/AGENTS.md` (child doc).
 
 ## Local Contracts
 
-### Tool surface (98 registered in production — do not rename/remove without parent-level decision)
-All canvas tools are prefixed with `pen_` (e.g., `pen_create_shape`, `pen_update_shape`). The web tools (`web_search`, `web_fetch`) have no prefix. Figma tools use `figma_` prefix. Plugin tools (up to 32, from `plugins/`) are added when their plugin is enabled.
+### Tool surface (97 base tools registered in production — do not rename/remove without parent-level decision)
+All canvas tools are prefixed with `pen_` (e.g., `pen_create_node`, `pen_update_node`). The web tools (`web_search`, `web_fetch`) have no prefix. Figma tools use `figma_` prefix. Plugin tools (up to 32, from `plugins/`) are added when their plugin is enabled.
 
-Per-skill `allowedTools` views (tools appear in multiple categories — these are the skill groupings from `skills/registry.ts`):
-- **Core (10)**: pen_create_shape, pen_create_subtree, pen_update_shape, pen_delete_shape, pen_list_shapes, pen_clear, pen_set_background, pen_select_shape, pen_undo, pen_redo
-- **Wireframe (15)**: pen_generate_wireframe, pen_generate_user_flow, pen_generate_diagram, pen_generate_copy, pen_create_shape, pen_update_shape, pen_upload_image, pen_search_icons, pen_generate_image, pen_update_tokens, pen_apply_palette, pen_generate_palette, pen_reparent_shape, pen_insert_html, pen_get_metadata
-- **Layout (17)**: pen_align_shapes, pen_group_shapes, pen_ungroup_shapes, pen_duplicate_shape, pen_organize_layers, pen_apply_auto_layout, pen_bring_to_front, pen_send_to_back, pen_move_forward, pen_move_backward, pen_reorder_shape, pen_set_locked, pen_set_visible, pen_reparent_shape, pen_set_constraints, pen_insert_html, pen_get_metadata
-- **Styling (13)**: pen_apply_palette, pen_generate_palette, pen_update_tokens, pen_apply_token, pen_bind_shape_to_token, pen_unbind_shape, pen_list_tokens, pen_set_gradient_fill, pen_set_shadow, pen_set_blur, pen_set_corner_radius_per_corner, pen_find_replace_text, pen_bulk_update_by_filter
-- **Inspect (9)**: pen_list_shapes, pen_find_shapes, pen_audit_design, pen_list_tokens, pen_get_metadata, pen_get_design_context, pen_get_variable_defs, pen_get_computed, pen_get_screenshot
-- **Export (5)**: pen_export_json, pen_export_svg, pen_export_png, pen_copy_as_code, pen_bake_layout
-- **Vector (5)**: pen_create_path, pen_boolean_op, pen_mask_with, pen_create_shape, pen_update_shape
-- **Web (2)**: web_search, web_fetch
-- **Components (2 legacy)**: pen_create_component, pen_instantiate_component
-- **Component System (7 — Phase 2, Figma-aligned)**: pen_convert_to_component, pen_place_component_instance, pen_override_instance, pen_reset_instance, pen_detach_instance, pen_combine_as_variants, pen_swap_variant
-- **Agentic Workflows (6 — Phase 3, emerging patterns)**: pen_self_critique (reflection sub-agent), pen_recommend_components (canvas audit), pen_search_design_patterns (RAG retrieval), pen_save_design_pattern (RAG store), pen_clear_pattern_memory, pen_pattern_stats
-- **Pen-aligned (8)**: pen_set_variable, pen_apply_theme, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_theme_axis, pen_list_themes
+Per-skill `allowedTools` views (tools appear in multiple categories — counts verified against `skills/registry.ts` 2026-08-28):
+- **Core (10, loaded for EVERY skill)**: pen_create_node, pen_create_subtree, pen_update_node, pen_delete_nodes, pen_get_metadata, pen_clear, pen_set_background, pen_select_nodes, pen_undo, pen_redo
+- **Wireframe (46)** — the big generation skill: generators (pen_generate_wireframe / user_flow / diagram / copy), pen_create_subtree, pen_generate_variants, pen_insert_html, icon/image tools, styling + variable/token tools, layout tools, component-system tools, pen_self_critique
+- **Layout (18)**: align / group / ungroup / pen_duplicate_nodes (count/direction/spacing batches) / organize_layers / auto_layout / reparent / constraints / z-order / lock / visible / insert_html / get_metadata
+- **Styling (14)**: palettes, variables (set/bind/unbind/list/apply), gradient / shadow / blur / per-corner radii, find&replace, bulk_update_by_filter
+- **Inspect (10)**: find_nodes, audit_design, get_metadata, get_design_context, get_variable_defs, get_computed, get_screenshot, …
+- **Export (6)**: pen_export_json, pen_export_svg, pen_export_png, pen_copy_as_code, pen_bake_layout
+- **Vector (6)**: pen_create_path, pen_boolean_op, pen_mask_with, pen_create_node, pen_update_node
+- **Web (3)**: web_search, web_fetch (+ web-research sub-agent dispatch)
+- **Component System (Figma-aligned)**: pen_convert_to_component, pen_place_component_instance, pen_override_instance, pen_reset_instance, pen_detach_instance, pen_combine_as_variants, pen_swap_variant (+ legacy pen_create_component / pen_instantiate_component)
+- **Agentic Workflows (Phase 3 + follow-ons)**: pen_self_critique, pen_recommend_components, pen_search_design_patterns, pen_save_design_pattern, pen_clear_pattern_memory, pen_pattern_stats (+ runner-dispatched pen_generate_design_brief, pen_generate_variants)
+- **Pen-aligned (8)**: pen_set_variable, pen_set_explicit_modes, pen_create_ref, pen_override_descendant, pen_mark_slot, pen_export_pen, pen_set_variable_modes, pen_list_collections
 - **Figma-canonical (10)**: figma_create_page, figma_set_active_page, figma_rename_page, figma_delete_page, figma_create_section, figma_create_component, figma_create_component_set, figma_add_variant, figma_set_component_property, figma_set_instance_property
 
-Registry views: `ALL_TOOL_NAMES` in `skills/registry.ts` = 81 (excludes the 10 always-loaded figma tools). `runner-native.ts` registers all 91 base tools plus enabled plugin tools.
+Registry views: `ALL_TOOL_NAMES` in `skills/registry.ts` = 88 entries / 87 unique (excludes the 10 always-loaded figma tools). `runner-native.ts` registers all 97 base tools (canonical + alias entries so stale transcripts still dispatch), then filters the LLM-visible catalog to the skill's allowedTools MINUS `TOOL_ALIASES` keys, plus enabled plugin tools.
 
 ### Batch construction (`pen_create_subtree` + the `add_subtree` patch op)
-One call = one whole NESTED component tree (the round-trip-tax killer: hi-fi evals previously spent 28-29 calls assembling primitive stacks). The tool emits a single `add_subtree` patch — one undo step, one broadcast — and `patch.ts`'s `normalizeSubtree` RECURSIVELY maps legacy spellings, fills defaults, and assigns deterministic ids (`rootId-<index>` for id-less descendants, so patch replay is idempotent). Schema is deliberately LOOSE (Type.Recursive + object∪JSON-string unions): pi-ai validates TypeBox BEFORE execute, so strict schemas would hard-fail the stringified params models actually send (the LooseShapeInputSchema gotcha, applied recursively). Guards: 150-node budget, atomic icon-name validation (whole call fails before any patch), unknown-parentId hard error, top-level frame placement guard reused from pen_create_node. Registered as a CORE tool (always loaded) + the wireframe skill narrative.
+One call = one or MANY whole NESTED component trees (`nodes[]` multi-root batches — Agent Performance Package change 1; the round-trip-tax killer: hi-fi evals previously spent 28-29 calls assembling primitive stacks). Each root emits one `add_subtree` patch — one undo step, one broadcast — and `patch.ts`'s `normalizeSubtree` RECURSIVELY maps legacy spellings, fills defaults, and assigns deterministic ids (`rootId-<index>` for id-less descendants, so patch replay is idempotent). The result embeds the FULL id-manifest + inline resolver warnings — the mandatory `pen_get_metadata` read-back round trip is gone. Schema is deliberately LOOSE (Type.Recursive + object∪JSON-string unions): pi-ai validates TypeBox BEFORE execute, so strict schemas would hard-fail the stringified params models actually send (the LooseShapeInputSchema gotcha, applied recursively). Guards: 150-node budget, atomic icon-name validation (whole call fails before any patch), unknown-parentId hard error, top-level frame placement guard reused from pen_create_node. Registered as a CORE tool (always loaded) + the wireframe skill narrative.
+
+### Batch duplication (`pen_duplicate_nodes`)
+`count` / `direction` / `spacing` batch duplication — the 78-call "turn one card into three" case is now ONE call (Agent Performance Package change 2); also fixes the silently-ignored `offsetX`/`offsetY` (offsets apply in the given direction with the given spacing). Registered in the layout skill ("duplicate this" → 24px offsets).
 
 ### Resolver-warning delivery (agent-visible degradation reporting)
 The pen resolver degrades silently no more: `resolvePenTreeDetailed` returns `warnings: ResolverWarning[]` (placeholder_size, dropped_ref, ref_unexpanded, unknown_node_type, unresolved_variable, path_geometry_dropped, effects_dropped — deduped by nodeId+kind, mirrored into `ResolveOpts.warnings`). Two delivery layers feed the LLM: `pen_get_metadata` appends a `RESOLVE WARNINGS` section on every read (`collectResolverWarnings`/`formatResolverWarnings` in tools.ts, threaded with `getMeasuredBounds` so browser-measured nodes don't produce placeholder false-positives), and `canvasSnapshot` (runner-legacy.ts) carries the same section into the per-turn system prompt. Degradation checks live in the resolver's per-node hot path — keep them O(1) (Set lookups, presence guards) or the 4k-node audit test times out.
@@ -100,7 +104,7 @@ wireframe, layout, styling, inspect, export, web_research, vector, multi
 ### executeTool enhancements (Tier 1)
 - **Response token cap**: `MAX_TOOL_RESULT_CHARS = 25_000` — tool results are truncated to prevent context bloat
 - **Argument repair (poka-yoke)**: `repairArrayArgs()` detects and fixes array params passed as stringified JSON strings (e.g. `palette="[\"#fff\"]"` → `palette=["#fff"]`). Known-affected params: palette, shapeIds, nodes, updates, stops, points, shapeId, descendants
-- **Loose nested-object params**: `pen_update_shape.changes` accepts an object OR a JSON-encoded string (`LooseShapeInputSchema` + `parseLooseShapeInput()`). pi-ai validates args against the TypeBox schema BEFORE `execute()` runs, so a stringified `changes` used to fail with `Validation failed for tool "pen_update_shape"` and trigger an identical retry. Observed with GLM in the agent-eval `login-hifi` scenario.
+- **Loose nested-object params**: `pen_update_node.changes` (legacy spelling `pen_update_shape`, still dispatched via the alias map) accepts an object OR a JSON-encoded string (`LooseShapeInputSchema` + `parseLooseShapeInput()`). pi-ai validates args against the TypeBox schema BEFORE `execute()` runs, so a stringified `changes` used to fail with `Validation failed for tool "pen_update_shape"` and trigger an identical retry. Observed with GLM in the agent-eval `login-hifi` scenario.
 - **Generator fidelity params**: `pen_generate_wireframe` / `pen_generate_user_flow` accept `fidelity: 'hifi'|'lofi'` (lofi = grayscale downgrade via `applyLofiFidelity`) and `pen_generate_wireframe` additionally accepts `texts: Record<string,string>` — text-layer-name → replacement text, applied via `applyTextOverrides()` (case/whitespace-insensitive name match). The `texts` param is the copy-fidelity poka-yoke: templates ship placeholder values (e.g. web_dashboard stats "$12.4k", "1,284"), and the agent-eval `dashboard-hifi` scenario caught the model generating a dashboard whose KPI text was still the template placeholders instead of the user's numbers. The tool description + TURN FLOW COPY RULE steer the model to pass `texts` in the same generate call; the result content reports how many overrides matched (and warns when a key matched nothing).
 
 ### System prompt (Tier 0)
@@ -112,11 +116,11 @@ wireframe, layout, styling, inspect, export, web_research, vector, multi
 - **BRAND FIDELITY rule** (DESIGN PRINCIPLES): when the user names a product/brand/app, that exact name MUST appear as real text (wordmark or screen title); concrete copy strings the user provides are used verbatim. Added after the agent-eval `login-hifi` scenario caught the agent omitting the brand name.
 - Explicitly states skill names are NOT tools
 - Includes ".pen FORMAT ALIGNMENT" section documenting pen.dev concepts (variables, themes, components, slots, flexbox, node types, hierarchy, constraints, export)
-- Canvas snapshot is rendered as a tree (indented by depth) showing the hierarchy, not a flat list
+- Canvas snapshot is rendered as a tree (indented by depth) showing the hierarchy, not a flat list. It rides in the FIRST USER MESSAGE (moved off the system-prompt tail — Agent Performance Package change 5) so the system prompt stays byte-stable and prefix-cacheable. The prompt also carries the PARALLEL TOOL EMISSION RULE (independent calls emitted together; canvas mutations apply in emission order via `tool-execution-mode.ts`) and the CALL BUDGET RULE (≤12 calls/turn).
 - `file-skills.ts` appends Agent-Skills-standard + legacy `.md` skills from `.pi/skills/` to the system prompt
 
 ### LLM runner policy
-- **Production (`runner-native.ts`)**: `createAgentSession` from `@earendil-works/pi-coding-agent` with the pi-ai `Model` resolved by `pi-ai-model-resolver.ts` (explicit API key / z.ai sandbox auto-credentials / clear error). This was the "LLM shim swap point" — it has been executed; do not re-add a second driver.
+- **Production (`runner-native.ts`)**: `createAgentSession` from `@earendil-works/pi-coding-agent` with the pi-ai `Model` resolved by `pi-ai-model-resolver.ts` (explicit API key / z.ai sandbox auto-credentials / clear error). This was the "LLM shim swap point" — it has been executed; do not re-add a second driver. Prompt caching is enabled for custom OpenAI-compatible endpoints (`supportsLongCacheRetention` + `PI_CACHE_RETENTION=long`) — the system prompt is byte-stable across turns (canvas snapshot rides in the first user message instead), so the ~45K-token static prefix hits the provider cache ~90-99%.
 - **Default LLM**: `custom` / `kimi-k2-5` / `https://irhnglwoxe.a.pinggy.link/v1` (key `123456`; see `src/lib/settings/AGENTS.md`). Whenever `settings.apiBaseUrl` is set on an OpenAI-compatible provider, the resolver builds a SYNTHETIC pi-ai `Model` (`api: 'openai-completions'`, provider id `custom`, neutral compat profile — no z.ai thinking/tool_stream params) and registers a minimal dispatch provider on the per-turn `ModelRuntime`, because pi-ai's static catalog doesn't know user-supplied endpoints. The z.ai sandbox auto-detection (`ZAI.create()` → `https://internal-api.z.ai/v1` + OAuth headers) still runs for provider `zai` with no API key and wins over the custom path; legacy `glm-4.6` settings map to `glm-4.7`. Verify with `bun run scripts/verify-default-llm.ts`.
 - **Automatic z.ai sandbox fallback** (`pi-ai-model-resolver.ts` + `runner-native.ts`): when the configured endpoint is unreachable, the runner retries the SAME turn ONCE using the z.ai sandbox client (`ZAI.create()` from `z-ai-web-dev-sdk`) with model `glm-5.3`. The user effectively gets resilient LLM access via z.ai sandbox as the default fallback — agent turns SUCCEED even when the custom pinggy tunnel is dead. Two layers cooperate:
   1. **Preflight** (`pi-ai-model-resolver.ts → preflightEndpoint()`): a 4s GET against `${baseUrl}/models` with `Authorization: Bearer ${apiKey}`, called when `useCustomEndpoint && providerId !== 'zai'`. Cached 60s per `(baseUrl, apiKeyPrefix)` so we don't pay the 4s latency on every turn. Returns `'ok'` on HTTP 2xx, `'down'` on network error / TLS reset / DNS failure / abort timeout / any non-2xx status (5xx, 429, 401, 403). On `'down'`, the resolver returns a z.ai-sandbox-resolved `glm-5.3` Model (`resolveZaiSandboxFallback()`) with `usedFallback=true` INSTEAD of the synthetic custom Model — the runner then creates the AgentSession against the z.ai sandbox model directly, so there's no double `turn_end` / streaming weirdness.
@@ -127,7 +131,7 @@ wireframe, layout, styling, inspect, export, web_research, vector, multi
 - **Tests (`runner-legacy.ts`)**: hand-rolled loop driven by an injected `LLMClient` (MockLLM). The `LLMClient` interface is the minimal contract: `chat.completions.create({ messages, tools, tool_choice, temperature })`.
 - The provider registry (`src/lib/llm`) supplies `createLLMClient` + `normalizeLLMProvider` for the legacy path and sub-agent clients; legacy `zai-auto`/`zai-key`/`openai-compatible` values are migrated by `normalizeLLMProvider` (see `src/lib/settings/types.ts`).
 - **Settings integration**: `AgentRunOptions` accepts `settings?: AgentRunSettings`:
-  - `settings.temperature` (default 0.6) and `settings.maxIterations` (default 30) are honored by the legacy/test loop. **Known gap**: in the native production path both are read but not yet passed to `createAgentSession`.
+  - `settings.temperature` (default 0.6) and `settings.maxIterations` (default 30) are honored by the legacy/test loop; the native path enforces `maxIterations` via `session.agent.shouldStopAfterTurn` (Agent Performance Package change 7 — wired + probe-verified; previously read but never used).
   - `settings.planFirst` (default true) — controls the "PLAN FIRST" system-prompt section.
   - `settings.defaultPalette` (default 'slate') — reorders the suggested palettes list in the system prompt.
   - `settings.skillSelectionMode` (default 'auto') — when 'manual', skips the classifier and uses the 'multi' category (all core tools).
@@ -135,7 +139,7 @@ wireframe, layout, styling, inspect, export, web_research, vector, multi
 
 ### Intent classifier
 - Primary: keyword/regex pass (instant, zero cost). Short keywords (≤3 chars) use word-boundary matching to avoid false positives (e.g. "ui" in "build").
-- Fallback: lightweight LLM call seeing only 7 skill descriptions (not the 78-tool list). Only used when keyword confidence < 0.7 AND not a multi-step prompt.
+- Fallback: lightweight LLM call seeing only 7 skill descriptions (not the 87-tool list). Only used when keyword confidence < 0.7 AND not a multi-step prompt.
 - Multi-step detection: requires a connective word (then/and/after/next) + multiple skill matches. For multi-step, the LAST skill in the prompt (final deliverable) becomes the primary category.
 - Eval: `bun run scripts/eval-agent.ts` — 20 prompts; gate is ≥ 80% accuracy (currently passing at 95%).
 
@@ -146,11 +150,8 @@ wireframe, layout, styling, inspect, export, web_research, vector, multi
 - Plan is injected into the system prompt as an XML-tagged `<plan>` block
 - Step status updated as execution proceeds (pending → in_progress → completed)
 
-### Sub-agents (`subagents/`)
-- **web-research**: triggered when `web_research` is in secondary categories AND `recommendPlan` is true. Runs in its own LLM context with ONLY web_search + web_fetch tools; does 1-3 searches + 1-3 fetches (capped at 6 iterations); returns a synthesized SUMMARY (not raw page content) — keeps 50K+ tokens of page content out of the main agent's context. If the primary task IS web research, the summary IS the answer.
-- **design-critic**: reflection critique sub-agent (`dispatchDesignCriticSubAgent`) behind the `pen_self_critique` tool — reviews the canvas and returns improvement suggestions as a `SubAgentResult`.
-- Both emit `agent:subagent_dispatch` / `agent:subagent_result` events and run through `llm-retry.ts`.
-- Only 2 sub-agents + barrel — a third sub-agent justifies a child doc.
+### Sub-agents (`subagents/` — see `subagents/AGENTS.md`)
+Five isolated-context sub-agents: **web-research** (search+fetch synthesis — triggered when `web_research` is a secondary category AND `recommendPlan`; runs with ONLY web_search + web_fetch, 1-3 searches + 1-3 fetches capped at 6 iterations, returns a synthesized SUMMARY so 50K+ tokens of page content stay out of the main context), **design-critic** (text reflection behind `pen_self_critique`), **design-critic-vlm** (screenshot critique — client capture primary, resvg fallback), **design-brief** (strict-JSON palette/typography/IA brief — PRE-GENERATED by the runner and injected into the first user message; the tool gate remains as fallback; skipped on ambiguous-creation turns), and **variant-generator** (K=3 parallel whole-design exploration behind `pen_generate_variants` — staggered seeded generations, throwaway off-canvas renders, one VLM-judge call on the composite image, only the winner applied; 300s wall-clock budget with per-phase races; degrades to heuristic judging then to the `pen_create_subtree` fallback ladder). All emit `agent:subagent_dispatch` / `agent:subagent_result` events, run through `llm-retry.ts` with a 300s client timeout, and launch staggered for constrained single-connection transports. Full contracts live in the child doc.
 
 ### Event stream shape
 ```ts
@@ -217,7 +218,7 @@ The new `pen_generate_design_brief` tool dispatches the design-brief sub-agent, 
 { primaryColor, accentColor, neutralPalette: string[], typography: {fontFamily, headingScale, bodySize},
   componentCount, layoutGrid: {cols, rows}, informationArchitecture: string[] }
 ```
-The brief is bound to 50-900 brand ramps (Sky/Violet/Emerald/Amber/Rose/Indigo) so it matches the system prompt's PRIMARY COLOR 50-900 RAMPS section. The system prompt's new "DESIGN BRIEF (MANDATORY FIRST STEP)" section tells the agent to call `pen_generate_design_brief` BEFORE any `pen_create_shape` / `pen_generate_wireframe` / `pen_apply_palette` call and use the brief's palette/typography/IA list for ALL subsequent shape creation. This is the v0 `GenerateDesignInspiration` pattern — think-before-draw.
+The brief is bound to 50-900 brand ramps (Sky/Violet/Emerald/Amber/Rose/Indigo) so it matches the system prompt's PRIMARY COLOR 50-900 RAMPS section. The system prompt's new "DESIGN BRIEF (MANDATORY FIRST STEP)" section tells the agent to call `pen_generate_design_brief` BEFORE any `pen_create_node` / `pen_generate_wireframe` / `pen_apply_palette` call and use the brief's palette/typography/IA list for ALL subsequent shape creation. This is the v0 `GenerateDesignInspiration` pattern — think-before-draw. UPDATE (Agent Performance Package change 9): the runner PRE-GENERATES the brief in a small sub-agent before the main loop and injects it into the first user message (40s timeout race) — the guaranteed brief round trip is deleted; the tool-layer gate remains as fallback. On ambiguous-creation turns the brief is SKIPPED: it would pre-decide the palette the variant exploration exists to settle.
 
 ### P1.3 / T2 — Mandatory self-critique loop with MAX_ITERATIONS=2 (`runner-native.ts` + `runner-legacy.ts` + `AgentRunSettings.maxDesignCritiqueIterations`)
 After the agent emits its final message, the runner wraps a bounded outer loop:
@@ -231,7 +232,7 @@ for (let critiqueIteration = 0; critiqueIteration < maxCritiqueIterations; criti
   //    with the defect list via a new pi SDK session.
 }
 ```
-Default `maxDesignCritiqueIterations = 2` — agent gets 1 chance to self-correct after the critic. The legacy runner mirrors a simplified version (text critic only, no VLM — gated on `!injectedLlm` so tests using MockLLM don't trip the loop). The existing `pen_self_critique` tool remains OPT-IN but the architectural enforcement makes the loop MANDATORY regardless.
+Default `maxDesignCritiqueIterations = 2` — agent gets 1 chance to self-correct after the critic. The legacy runner mirrors a simplified version (text critic only, no VLM — gated on `!injectedLlm` so tests using MockLLM don't trip the loop). The existing `pen_self_critique` tool remains OPT-IN but the architectural enforcement makes the loop MANDATORY regardless. UPDATE (Agent Performance Package change 8): the loop runs the FREE validation gate (`validateCanvasBeforeComplete`) FIRST, SKIPS the VLM critic for small clean edits, and runs the text + VLM critics CONCURRENTLY before merging defects.
 
 ### P1.4 / T10 — Pre-complete validation gate (`validators.ts` `validateCanvasBeforeComplete`)
 `validateCanvasBeforeComplete(shapes)` runs BEFORE the agent's final message is committed. Rules (each produces a specific failure reason):
@@ -271,7 +272,7 @@ This `AGENTS.md` "UI QUALITY ENFORCEMENT" section is the spec for the architectu
 
 - `bunx tsc --noEmit` — typecheck
 - `bun run lint` — ESLint
-- `bun run test` — the suite includes runner (MockLLM), tools registration (70), agentic-workflow, component-system, and translator dedup coverage (`tests/unit/agent-eval-fixes.test.ts`)
+- `bun run test` — 72 files / 1775 passed + 2 skipped (2026-08-28). Includes runner (MockLLM), tools registration (79), agentic-workflow, component-system, translator dedup (`tests/unit/agent-eval-fixes.test.ts`), and the perf-package + todo-batch/variants suites (`tests/unit/agent-performance-package.test.ts`, `tests/unit/todo-batch-variants.test.ts`)
 - `bun scripts/agent-eval/run-eval.ts` — prompt-vs-output scenario suite (8 scenarios; see `scripts/agent-eval/`) — determinism + trajectory + fidelity assertions against the live `/api/agent` route
 - `bash scripts/agent-eval/visual-test.sh` — browser-driven visual verification with screenshots to `download/agent-eval/`
 - `bun run scripts/eval-agent.ts` — intent classifier eval (20 prompts, ≥ 80% accuracy gate)
@@ -283,5 +284,6 @@ This `AGENTS.md` "UI QUALITY ENFORCEMENT" section is the spec for the architectu
 
 | Path | Scope |
 |------|-------|
+| `subagents/AGENTS.md` | 5 isolated-context sub-agents (web-research, design-critic, design-critic-vlm, design-brief, variant-generator) + shared dispatch/timeout/budget contracts. |
 | `skills/AGENTS.md` | Skill system: types, registry (7 skills), progressive disclosure levels, eval harness. |
 | `plugins/AGENTS.md` | Plugin registry + 8 ported plugins (32 tools, gated by `settings.enabledPlugins`): ask-user-question, todo, memory, mega-compact, goal-list, background-tasks, mcp-adapter, subagents. |
