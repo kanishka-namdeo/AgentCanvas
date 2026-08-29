@@ -563,6 +563,13 @@ export type SyncEvent =
   | { type: 'agent:thinking_delta'; text: string }
   | { type: 'agent:tool_call_start'; toolCallId: string; toolName: string; argsPreview: string }
   | { type: 'agent:tool_call_end'; toolCallId: string; success: boolean; summary: string }
+  // Live progress from a long-running tool (variant explorer, design audit):
+  // the tool's onUpdate callback → SDK tool_execution_update → translated
+  // here. Feeds the route's stream watchdog (any wire event resets the
+  // 120s silence timer, so a legitimately slow tool is never killed) and
+  // updates the pending tool card in the chat. Additive — old clients that
+  // switch-past unknown agent events ignore it safely.
+  | { type: 'agent:tool_progress'; toolCallId: string; text: string }
   | { type: 'agent:turn_end' }
   // Emitted when the run was cancelled server-side (agent:stop client event
   // or an aborted HTTP request): the pi session was aborted, token spend

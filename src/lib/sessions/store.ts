@@ -1344,6 +1344,14 @@ export const useSessionStore = create<SessionStoreState>()(
       startToolCall: (runId, toolCallId, name, argsPreview) => {
         const run = get().runs[runId];
         if (!run) throw new Error(`run ${runId} not found`);
+        // Idempotency guard — the same toolCallId can arrive twice (a socket.io
+        // event in flight at disconnect time AND the journal-catchup replay
+        // both delivering agent:tool_call_start). Appending twice duplicated
+        // the id in run.toolCallIds → React "two children with the same key"
+        // in the run timeline + inflated toolCallCount. Return the existing
+        // record instead (the canvas-store turn guard mirrors this).
+        const existing = run.toolCallIds.includes(toolCallId) ? get().toolCalls[toolCallId] : undefined;
+        if (existing) return existing;
         const ts = nowISO();
         const tc: ToolCallRecord = {
           id: toolCallId,

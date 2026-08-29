@@ -1188,17 +1188,34 @@ const createShape = defineTool({
         minItems: 1, maxItems: 3,
         description: 'Optional 2-3 design-direction descriptions to explore (e.g. "minimal light SaaS", "bold colorful startup"). Default: Minimal Light / Bold Vibrant / Dark Premium.',
       })),
-      variantCount: Type.Optional(Type.Union([Type.Literal(2), Type.Literal(3)], {
+      // Type.Number (NOT Literal(2)|Literal(3)): models routinely stringify
+      // numbers ("variantCount": "3" was observed live from kimi-k2-5), and
+      // the SDK's TypeBox validation only coerces strings for schemas that
+      // declare a primitive "type" — a literal union has none, so the call
+      // failed validation 2 turns in a row before the model guessed a bare
+      // number. min/max keep the constraint; execute() clamps defensively.
+      variantCount: Type.Optional(Type.Number({
+        minimum: 2,
+        maximum: 3,
         description: 'How many variants to generate (default 3).',
       })),
     }),
-    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+    async execute(toolCallId, params, signal, onUpdate, _ctx) {
       const { dispatchVariantGeneration } = await import('./subagents/variant-generator');
       const typed = params as {
         request: string;
         directions?: string[];
-        variantCount?: 2 | 3;
+        variantCount?: number;
       };
+
+      // Defensive coercion — models stringify numbers, and pi-ai's schema
+      // validation rejects type-mismatched args before execute() runs for
+      // schemas without a primitive type (fixed above, but clamp anyway:
+      // 2.0-3.9 round-trips into range, garbage falls back to the default).
+      const rawCount = typed.variantCount == null ? NaN : Number(typed.variantCount);
+      const variantCount = Number.isFinite(rawCount)
+        ? Math.max(2, Math.min(3, Math.round(rawCount)))
+        : undefined;
 
       // ---- Throwaway render callback ----------------------------------------
       // Clone the document, WIPE its children (the judge must see ONLY the
@@ -1237,12 +1254,51 @@ const createShape = defineTool({
         return { png, warningCount: warnings.length, nodeCount: layers.length };
       };
 
-      const result = await dispatchVariantGeneration({
-        request: typed.request,
-        ...(typed.directions ? { directions: typed.directions } : {}),
-        ...(typed.variantCount ? { variantCount: typed.variantCount } : {}),
-        renderVariant,
-      });
+      // ---- Live progress + watchdog heartbeat --------------------------------
+      // The dispatch legitimately runs 2-5 minutes (staggered parallel spec
+      // generation + format repair + render + VLM judge — every phase an LLM
+      // round-trip). The route's stream watchdog kills the turn after 120s
+      // of wire silence, which ORPHANED a finished design: the tool kept
+      // running, its add_subtree patch was journaled server-side AFTER the
+      // client stream closed, and the browser never received it. Two
+      // defenses:
+      //   1. Phase progress via onUpdate → SDK tool_execution_update →
+      //      agent:tool_progress (translator) — feeds the watchdog AND the
+      //      pending tool card in the chat.
+      //   2. A 20s heartbeat covering silent phases (renders, judging).
+      //   3. The abort signal rides into the dispatcher so a stopped run
+      //      cancels remaining phases instead of burning zombie LLM calls.
+      let heartbeat: ReturnType<typeof setInterval> | undefined;
+      const dispatchStartedAt = Date.now();
+      let result: import('./subagents/variant-generator').VariantGenerationResult;
+      try {
+        const report = (text: string) => {
+          try {
+            onUpdate?.({
+              content: [{ type: 'text', text }],
+              details: { phase: 'variants', elapsedMs: Date.now() - dispatchStartedAt },
+            });
+          } catch {
+            // Update delivery is best-effort — never fail the tool over it.
+          }
+        };
+        heartbeat = setInterval(() => {
+          report(
+            `variant explorer still running — ${Math.round((Date.now() - dispatchStartedAt) / 1000)}s elapsed`,
+          );
+        }, 20_000);
+
+        result = await dispatchVariantGeneration({
+          request: typed.request,
+          ...(typed.directions ? { directions: typed.directions } : {}),
+          ...(variantCount !== undefined ? { variantCount } : {}),
+          renderVariant,
+          signal: signal ?? undefined,
+          onProgress: report,
+        });
+      } finally {
+        if (heartbeat) clearInterval(heartbeat);
+      }
 
       // Fatal: all variants failed — tell the agent to fall back.
       if (result.error || result.variants.length === 0 || !result.judge) {

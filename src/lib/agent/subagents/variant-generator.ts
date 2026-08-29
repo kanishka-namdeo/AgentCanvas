@@ -235,6 +235,23 @@ export interface VariantDispatchParams {
    * stays free of canvas imports (testable in isolation).
    */
   renderVariant?: (spec: Record<string, unknown>) => Promise<{ png: Buffer; warningCount: number; nodeCount: number } | null>;
+  /**
+   * Abort signal from the calling tool (the run's AbortController). Checked
+   * at phase boundaries so a stopped run cancels remaining phases instead
+   * of burning the rest of the budget on zombie LLM calls. Per-phase
+   * withTimeout races already bound each phase; this bounds the WHOLE
+   * dispatch when the run dies mid-flight.
+   */
+  signal?: AbortSignal;
+  /**
+   * Progress sink — phase transitions + per-variant status lines. Rides the
+   * SDK tool-update channel to the client (agent:tool_progress) AND feeds
+   * the route's stream watchdog: a 2-5 minute dispatch that emits updates
+   * never trips the 120s wire-silence kill switch (live finding: the
+   * watchdog closed the stream mid-dispatch and orphaned the finished
+   * design — patches journaled after the client stream was already closed).
+   */
+  onProgress?: (text: string) => void;
 }
 
 // ---- Wall-clock budget ---------------------------------------------------------
@@ -273,6 +290,20 @@ export async function dispatchVariantGeneration(
   const notes: string[] = [];
   const count = Math.max(2, Math.min(3, params.variantCount ?? 3));
 
+  // Abort + progress plumbing (see VariantDispatchParams docs).
+  const throwIfAborted = () => {
+    if (params.signal?.aborted) {
+      throw new Error('variant dispatch aborted — run was stopped');
+    }
+  };
+  const progress = (text: string) => {
+    try {
+      params.onProgress?.(text);
+    } catch {
+      // Progress is best-effort — never fail the dispatch over it.
+    }
+  };
+
   let llm: LLMClient | undefined = params.llm ?? undefined;
   if (!llm) {
     const active = getActiveLLM();
@@ -308,6 +339,10 @@ export async function dispatchVariantGeneration(
     // One custom direction + two defaults — keeps diversity.
     directionPairs[0] = { label: provided[0].trim().slice(0, 40), seed: provided[0].trim() };
   }
+
+  progress(
+    `Generating ${count} design variant${count === 1 ? '' : 's'} in parallel (${directionPairs.map((d) => d.label).join(' · ')}) — this runs 1-3 minutes…`,
+  );
 
   // ---- 1. Parallel spec generation (staggered; wall-clock ~= 1-2 completions)
   //
@@ -372,7 +407,14 @@ export async function dispatchVariantGeneration(
   // By now the staggered wave is done — the wire is empty. Retry each
   // failed call ONE at a time (no contention). Bounded: one extra attempt
   // per failed variant.
+  const waveOk = generation.filter((g) => g.content).length;
+  progress(
+    waveOk === generation.length
+      ? `All ${waveOk} variant specs generated — parsing…`
+      : `${waveOk}/${generation.length} specs generated — retrying the failures sequentially…`,
+  );
   for (const g of generation) {
+    throwIfAborted();
     if (g.content || !('error' in g)) continue;
     // Only start a retry that can actually finish: a generation needs
     // ~90s on a healthy endpoint; keep the judge's reserve on top.
@@ -401,6 +443,7 @@ export async function dispatchVariantGeneration(
   // node trees via pen_create_subtree tool calls all day). So: on parse
   // failure, ONE bounded repair call that converts the failed output —
   // content preserved, format fixed.
+  throwIfAborted();
   const parsed: VariantSpec[] = [];
   for (const g of generation) {
     if (!g.content) {
@@ -476,7 +519,9 @@ export async function dispatchVariantGeneration(
   }
 
   // ---- 3. Render each variant on the throwaway canvas ----------------------
+  throwIfAborted();
   if (params.renderVariant) {
+    progress(`Rendering ${parsed.length} variant spec${parsed.length === 1 ? '' : 's'} for the judge…`);
     await Promise.all(
       parsed.map(async (v) => {
         try {
@@ -494,6 +539,13 @@ export async function dispatchVariantGeneration(
   }
 
   // ---- 4. Judge: VLM pick → heuristic fallback ------------------------------
+  throwIfAborted();
+  const renderableCount = parsed.filter((v) => v.png).length;
+  progress(
+    renderableCount > 0
+      ? `VLM judge scoring ${renderableCount} rendered variant${renderableCount === 1 ? '' : 's'}…`
+      : 'Judging variant specs (no renders available — heuristic scoring)…',
+  );
   const judgeBudgetMs = Math.min(JUDGE_TIMEOUT_MS, Math.max(1, remaining()));
   const judge = await judgeVariants({ request: params.request, variants: parsed, llm, judgeTimeoutMs: judgeBudgetMs });
   if (judge.method === 'heuristic') {

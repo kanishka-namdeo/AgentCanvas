@@ -145,6 +145,11 @@ export interface AgentToolCallEntry {
   argsPreview: string;
   success?: boolean;
   summary?: string;
+  /// Latest agent:tool_progress text from a long-running tool (variant
+  /// explorer, design audit) — rendered live on the pending tool card so a
+  /// 1-3 minute dispatch no longer looks hung. Cleared visually once the
+  /// call ends (terminal cards show summary instead).
+  progress?: string;
   /// Epoch-ms timestamps for the per-call duration chip ("1.2s") on the
   /// tool card — Cursor/Cline render elapsed time per terminal command.
   startedAt?: number;
@@ -2701,6 +2706,28 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           event.summary,
           event.summary,
         );
+        break;
+      }
+      case 'agent:tool_progress': {
+        // Live progress from a long-running tool (variant explorer, design
+        // audit). Update the matching tool-call entry's progress text — the
+        // pending tool card renders it so the user sees the tool working
+        // instead of a silent spinner for minutes.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant') {
+            const entry = last.toolCalls.find((tc) => tc.id === event.toolCallId);
+            if (!entry || entry.progress === event.text) return { turns };
+            turns[turns.length - 1] = {
+              ...last,
+              toolCalls: last.toolCalls.map((tc) =>
+                tc.id === event.toolCallId ? { ...tc, progress: event.text } : tc,
+              ),
+            };
+          }
+          return { turns };
+        });
         break;
       }
       case 'agent:turn_end': {

@@ -2345,6 +2345,19 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
             {!expanded && tc.summary && (
               <span className="text-[10px] ac-text-4 font-normal truncate flex-1 min-w-0">{tc.summary}</span>
             )}
+            {/* Live progress from long-running tools (variant explorer, design
+                audit) — replaces the silent-spinner-for-minutes experience: the
+                card shows what phase the tool is in, streamed via
+                agent:tool_progress. Suppressed while collapsed-with-summary
+                (the summary already occupies the line). */}
+            {!expanded && !tc.summary && pending && tc.progress && (
+              <span
+                className="text-[10px] ac-text-3 font-normal truncate flex-1 min-w-0"
+                title={tc.progress}
+              >
+                {tc.progress}
+              </span>
+            )}
             <span className="ml-auto flex items-center gap-1 flex-shrink-0">
               {durationMs !== null && (
                 <span className="text-[9px] ac-text-4 tabular-nums" title="Tool call duration">

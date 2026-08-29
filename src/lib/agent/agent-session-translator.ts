@@ -254,6 +254,39 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
       break;
     }
 
+    case 'tool_execution_update': {
+      // Long-running tools (variant explorer, design audit) stream partial
+      // results through the SDK's onUpdate callback. Translate to a
+      // lightweight agent:tool_progress — it feeds the route's stream
+      // watchdog (any wire event resets the 120s silence timer, so a
+      // legitimately slow tool is never killed mid-flight) and updates the
+      // pending tool card in the chat. Text extracted from the partial
+      // result's text content parts; empty/whitespace updates are dropped.
+      const e = event as any;
+      const updateToolCallId: string = e.toolCallId ?? '';
+      let text = '';
+      try {
+        const content = (e.partialResult as any)?.content;
+        if (Array.isArray(content)) {
+          text = content
+            .map((c: any) => (c?.type === 'text' && typeof c.text === 'string' ? c.text : ''))
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 200);
+        }
+      } catch {
+        text = '';
+      }
+      if (updateToolCallId && text) {
+        out.push({
+          kind: 'agent_event',
+          event: { type: 'agent:tool_progress', toolCallId: updateToolCallId, text },
+        });
+      }
+      break;
+    }
+
     // ---- Turn / agent lifecycle ----
     case 'turn_end': {
       // Don't emit agent:turn_end here — we emit it from agent_end instead,
