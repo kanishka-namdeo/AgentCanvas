@@ -391,20 +391,38 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
     style.borderRadius = `${layer.radius}px`;
   }
 
-  // ---- Effects -------------------------------------------------------------------
-  if (layer.shadow) {
-    if (isText) {
+  // ---- Effects (audit 4 C4: multi-shadow + backdrop-filter) ------------------
+  // Multi-shadow: when the resolver collected 2+ shadows, compose the CSS
+  // comma-list (Figma/box-shadow parity). Single-shadow keeps the legacy path.
+  if (isText) {
+    if (layer.shadow) {
       // Follow the glyphs, not the box (SVG parity: filter applies to the
       // <text> element itself).
       style.textShadow = `${layer.shadow.x}px ${layer.shadow.y}px ${layer.shadow.blur}px ${layer.shadow.color}`;
-    } else {
-      const spread = layer.shadow.spread ?? 0;
-      const inset = layer.shadow.inset ? ' inset' : '';
-      style.boxShadow = `${layer.shadow.x}px ${layer.shadow.y}px ${layer.shadow.blur}px ${spread}px ${layer.shadow.color}${inset}`;
     }
+  } else if (layer.shadows && layer.shadows.length > 1) {
+    style.boxShadow = layer.shadows
+      .slice(0, 3)
+      .map((s) => `${s.x}px ${s.y}px ${s.blur}px ${s.spread ?? 0}px ${s.color}${s.inset ? ' inset' : ''}`)
+      .join(', ');
+  } else if (layer.shadow) {
+    const spread = layer.shadow.spread ?? 0;
+    const inset = layer.shadow.inset ? ' inset' : '';
+    style.boxShadow = `${layer.shadow.x}px ${layer.shadow.y}px ${layer.shadow.blur}px ${spread}px ${layer.shadow.color}${inset}`;
+  }
+  // Background blur → backdrop-filter (the Figma glass effect). Distinct
+  // from layer blur: backdrop-filter blurs whatever is BEHIND the node.
+  if ((layer.backgroundBlur ?? 0) > 0) {
+    style.backdropFilter = `blur(${layer.backgroundBlur}px)`;
+    (style as any).WebkitBackdropFilter = `blur(${layer.backgroundBlur}px)`;
   }
   if ((layer.blur ?? 0) > 0) {
     style.filter = `blur(${layer.blur}px)`;
+  }
+  // Blend mode (audit 4 C4): Figma's enum maps 1:1 onto CSS mix-blend-mode
+  // for the standard modes; PASS_THROUGH and unknown values render normal.
+  if (layer.blendMode && layer.blendMode !== 'normal' && layer.blendMode !== 'pass_through' && layer.blendMode !== 'PASS_THROUGH') {
+    style.mixBlendMode = layer.blendMode as any;
   }
   if (layer.opacity !== 1) {
     style.opacity = layer.opacity;
@@ -414,6 +432,12 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
   // Both export paths always honored `rotation`; the SVG renderer ignored it.
   // The DOM renderer makes rotation canonical on-screen: transform-origin at
   // the top-left corner matches the .pen/export rotate-around-origin math.
+  // Audit 4 C6: flipX/flipY now COMPOSE into the same transform (they used to
+  // be user-settable but never rendered — the Properties panel's Flip buttons
+  // wrote flags nothing read).
+  const flips =
+    (layer.flipX ? ' scaleX(-1)' : '') +
+    (layer.flipY ? ' scaleY(-1)' : '');
   if (layer.type === 'line') {
     // The pill's own angle composes with the layer rotation.
     const len = Math.hypot(layer.width, layer.height);
@@ -422,10 +446,10 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
     style.height = `${Math.max(2, layer.strokeWidth)}px`; // SVG parity: Math.max(2, strokeWidth)
     style.borderRadius = '9999px'; // round line caps
     style.background = fillCss; // SVG <line> strokes with shape.fill
-    style.transform = `rotate(${angle + (layer.rotation || 0)}deg)`;
+    style.transform = `rotate(${angle + (layer.rotation || 0)}deg)${flips}`;
     style.transformOrigin = '0 0';
-  } else if (layer.rotation) {
-    style.transform = `rotate(${layer.rotation}deg)`;
+  } else if (layer.rotation || layer.flipX || layer.flipY) {
+    style.transform = `rotate(${layer.rotation || 0}deg)${flips}`;
     style.transformOrigin = '0 0';
   }
 
@@ -496,16 +520,17 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
   // math while the subtree is skipped, so the world div's overall geometry
   // stays stable (pan/zoom math relies on the resolver-declared sizes).
   //
-  // VLM-exercise Fix 1: cv:auto's paint containment CLIPS every descendant to
-  // the container's box. When children overflow a non-clipping frame (which
-  // the resolver's text placeholders make common), that hid real content —
-  // so culling is skipped for overflowing, non-clip containers (Figma
-  // semantics: overflow stays visible unless clipsContent).
-  const cullingSafe =
-    layer.clip === true || !opts.childOverflows;
-  if (opts.l4Culling && cullingSafe && CLIPPABLE_TYPES.has(layer.type) && layer.width > 0 && layer.height > 0) {
+  // VLM-exercise Fix 1 + audit 4 C10a: cv:auto's paint containment CLIPS every
+  // descendant to the container's box. When children overflow a non-clipping
+  // frame, we used to skip culling entirely — which disabled L4 on exactly the
+  // frames agent output produces (overflowing non-clip containers). Instead we
+  // KEEP content-visibility:auto (the off-screen skip — the perf win) but drop
+  // only the paint containment while the element is on-screen, so overflowing
+  // children stay visible (Figma semantics). Clipping frames keep full
+  // containment.
+  if (opts.l4Culling && CLIPPABLE_TYPES.has(layer.type) && layer.width > 0 && layer.height > 0) {
     style.contentVisibility = 'auto';
-    style.contain = 'layout style paint';
+    style.contain = layer.clip === true || !opts.childOverflows ? 'layout style paint' : 'layout style';
     style.containIntrinsicSize = `${layer.width}px ${layer.height}px`;
   }
 

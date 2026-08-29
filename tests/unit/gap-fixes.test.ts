@@ -106,8 +106,11 @@ describe('resolveEffects — background_blur support', () => {
     const next = applyPatchToCanvas(canvas, patch);
     const layer = next.shapes.find((s) => s.id === 'frame-with-blur');
     expect(layer).toBeDefined();
-    // The blur should be 8 (was 0 before the fix).
-    expect(layer!.blur).toBe(8);
+    // Audit 4 C4: background_blur now surfaces as its OWN field (renders as
+    // CSS backdrop-filter — the Figma glass effect) instead of collapsing
+    // into layer `blur` (which blurred the node itself — wrong semantics).
+    expect(layer!.backgroundBlur).toBe(8);
+    expect(layer!.blur).toBe(0);
   });
 
   it('layer blur (type=blur) still works', () => {

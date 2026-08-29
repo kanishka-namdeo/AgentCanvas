@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://eclipsesource.com/blogs/2026/01/22/mcp-context-overload",
+    "name": "MCP and Context Overload: Why More Tools Make Your AI",
+    "snippet": "Jan 22, 2026 — As a rule of thumb, you want to stay below 40% total context usage. MCP servers are typically not built by the people who design agents . less ...",
+    "host_name": "eclipsesource.com",
+    "rank": 0,
+    "date": "Jan 22, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/aws-heroes/mcp-tool-design-why-your-ai-agent-is-failing-and-how-to-fix-it-40fc",
+    "name": "MCP Tool Design: Why Your AI Agent Is Failing (And How",
+    "snippet": "Mar 18, 2026 — If completion is below 80%, you're either exposing too many tools (confusion) or the wrong tools (coverage gap).",
+    "host_name": "dev.to",
+    "rank": 1,
+    "date": "Mar 18, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.itential.com/resource/blog/context-as-the-new-currency-designing-effective-mcp-servers-for-ai",
+    "name": "The Crucial Role of MCP in Optimizing LLM Context and",
+    "snippet": "Discover how MCP transforms LLM integration by standardizing tool interactions, reducing context overload, and enabling persona-driven multi- agent design ...",
+    "host_name": "www.itential.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/mcp/comments/1jimv3u/whatll_hapen_if_there_has_a_lots_of_tool_in_mcp",
+    "name": "what'll hapen if there has a lots of `tool` in mcp server?",
+    "snippet": "In traditional function calling, the descriptions, parameters, etc., of the tools are passed to the LLM as a prompt. However, when there are too many tools, ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2602.14878v1",
+    "name": "Model Context Protocol (MCP) Tool Descriptions Are",
+    "snippet": "Feb 16, 2026 — The results of RQ- 2 demonstrate that fully augmented tool descriptions improve agent performance but incur substantial execution overhead ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 4,
+    "date": "Feb 16, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.lunar.dev/post/why-is-there-mcp-tool-overload-and-how-to-solve-it-for-your-ai-agents",
+    "name": "How to Prevent MCP Tool Overload and Build Faster, Safer",
+    "snippet": "AI agents fail when they are exposed to too many MCP tools , which bloats prompts, slows reasoning, and increases the chance of incorrect or unsafe tool use. Read more",
+    "host_name": "www.lunar.dev",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

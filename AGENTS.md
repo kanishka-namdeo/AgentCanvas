@@ -132,7 +132,7 @@ When the user requests a durable behavior change, record it here or in the relev
 | `src/components/settings/AGENTS.md` | Settings dialog: 8-section modal (agent, LLM provider, sessions, appearance, data, shortcuts, plugins, MCP servers) |
 | `src/components/ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers, 48-component inventory |
 | `src/lib/AGENTS.md` | Lib tree root: Prisma client singleton (`db.ts`), `cn()` utility; indexes the seven lib child docs |
-| `src/lib/agent/AGENTS.md` | Agent layer: 97-tool base surface (79 tools.ts + 8 pen + 10 figma) + 32 plugin tools, native Pi-SDK runner + legacy test runner, client round-trip registry, classifier/planner, tool-execution-mode + alias policy, UI-quality enforcement loop |
+| `src/lib/agent/AGENTS.md` | Agent layer: 100-tool base surface (82 tools.ts + 8 pen + 10 figma, incl. 3 composite tools) + 32 plugin tools (subagents default-off), native Pi-SDK runner + legacy test runner, client round-trip registry, classifier/planner, tool-execution-mode + alias policy, UI-quality enforcement loop with real-client-screenshot VLM critique + conversation-history replay |
 | `src/lib/agent/skills/AGENTS.md` | Skill system: types, registry (7 skills), progressive disclosure levels, eval harness |
 | `src/lib/agent/subagents/AGENTS.md` | 5 isolated-context sub-agents (web-research, design-critic, design-critic-vlm, design-brief, variant-generator) + dispatch/timeout/wall-clock-budget contracts |
 | `src/lib/agent/plugins/AGENTS.md` | Plugin registry + 8 ported plugins (32 tools, gated by `settings.enabledPlugins`): ask-user-question, todo, memory, mega-compact, goal-list, background-tasks, mcp-adapter, subagents |

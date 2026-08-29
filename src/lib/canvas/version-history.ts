@@ -37,8 +37,24 @@ export const MAX_CHECKPOINTS = 50;
 /// addCheckpoint uses it only to skip redundant captures of an unchanged
 /// document; anything that changes node COUNT or the variables map (the
 /// shapes of writes agents make between turns) invalidates it.
+///
+/// Audit 4 C16: the signature used to count nodes + variables LENGTH only —
+/// a pure restyle turn (recolor 40 shapes, same counts) produced an identical
+/// signature, so the auto-checkpoint at turn end was SKIPPED despite real
+/// changes. A light content stamp (fills + text of the first 40 root nodes,
+/// hashed into a number) catches property-only turns while staying O(roots).
 export function checkpointSignature(doc: CanvasDocument): string {
-  return `${doc.children?.length ?? 0}:${doc.shapes?.length ?? 0}:${JSON.stringify(doc.variables ?? {}).length}`;
+  let stamp = 0;
+  const roots = (doc.children ?? []).slice(0, 40);
+  for (let i = 0; i < roots.length; i++) {
+    const n = roots[i] as any;
+    // Mix the properties turns actually restyle: fill, text, name, effects.
+    const frag = `${n?.fill ?? ''}|${typeof n?.content === 'string' ? n.content.slice(0, 40) : ''}|${n?.name ?? ''}|${n?.effect ? 'e' : ''}`;
+    for (let j = 0; j < frag.length; j++) {
+      stamp = (stamp * 31 + frag.charCodeAt(j)) | 0;
+    }
+  }
+  return `${doc.children?.length ?? 0}:${doc.shapes?.length ?? 0}:${JSON.stringify(doc.variables ?? {}).length}:${stamp}`;
 }
 
 /// New checkpoint id. crypto.randomUUID when available, fallback elsewhere

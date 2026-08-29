@@ -220,6 +220,22 @@ export interface Layer {
   fills?: FigmaPaint[] | null;
   /// v3: resolved typed effect entries. Mirrors `shadow` / `blur`.
   effects?: FigmaEffect[] | null;
+  // ---- Audit 4 C4/C5/C6 fidelity fields (DOM renderer supports these) ----
+  /// ALL enabled shadow effects (v0..n). `shadow` above mirrors the FIRST one
+  /// for backward compat; styleFor composes multi-shadow CSS from this array
+  /// when it has 2+ entries.
+  shadows?: ShadowEffect[] | null;
+  /// BACKGROUND blur radius (px) — renders as CSS backdrop-filter (the
+  /// Figma-style glass effect). Distinct from `blur` (layer blur = filter:
+  /// blur on the node itself).
+  backgroundBlur?: number | null;
+  /// CSS mix-blend-mode ('multiply' | 'screen' | 'overlay' | ... | 'normal').
+  /// Mirrors the .pen node's blendMode; styleFor maps it to mix-blend-mode.
+  blendMode?: string | null;
+  /// Horizontal flip — composes scaleX(-1) into the render transform.
+  flipX?: boolean | null;
+  /// Vertical flip — composes scaleY(-1) into the render transform.
+  flipY?: boolean | null;
 }
 
 /// DEPRECATED alias — use `Layer` in new code. The resolved render node type.

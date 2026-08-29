@@ -284,19 +284,40 @@ describe('resolvePenTreeDetailed — resolver warnings', () => {
     expect(kinds.some((w) => w.message!.includes('$primary'))).toBe(true);
   });
 
-  it('effects_dropped: fires when more than one shadow is enabled on one node', () => {
+  it('effects_dropped: fires when more than 3 shadows are enabled on one node (audit 4 C4: 2-3 now render)', () => {
     const doc = createEmptyCanvasDocument('test');
     const rect: PenChild = {
       id: 'shadowed', type: 'rectangle', x: 0, y: 0, width: 50, height: 50,
       effect: [
         { type: 'shadow', offset: { x: 0, y: 2 }, blur: 4, color: '#0000001a' },
         { type: 'shadow', offset: { x: 0, y: 8 }, blur: 12, color: '#00000033' },
+        { type: 'shadow', offset: { x: 0, y: 16 }, blur: 24, color: '#00000044' },
+        { type: 'shadow', offset: { x: 0, y: 32 }, blur: 48, color: '#00000055' },
       ],
     };
-    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [rect] });
+    const { warnings, layers } = resolvePenTreeDetailed({ ...doc, children: [rect] });
     const w = warnings.find((x) => x.kind === 'effects_dropped');
     expect(w).toBeDefined();
-    expect(w!.message).toContain('2 shadows');
+    expect(w!.message).toContain('4 shadows');
+    // The first THREE shadows all resolve now (multi-shadow box-shadow list).
+    const layer = layers.find((l: any) => l.id === 'shadowed') as any;
+    expect(layer.shadows).toHaveLength(4);
+    expect(layer.shadow).toBeDefined();
+  });
+
+  it('2-3 shadows on one node render fully (no effects_dropped warning)', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const rect: PenChild = {
+      id: 'shadowed2', type: 'rectangle', x: 0, y: 0, width: 50, height: 50,
+      effect: [
+        { type: 'shadow', offset: { x: 0, y: 2 }, blur: 4, color: '#0000001a' },
+        { type: 'shadow', offset: { x: 0, y: 8 }, blur: 12, color: '#00000033' },
+      ],
+    };
+    const { warnings, layers } = resolvePenTreeDetailed({ ...doc, children: [rect] });
+    expect(warnings.find((x) => x.kind === 'effects_dropped')).toBeUndefined();
+    const layer = layers.find((l: any) => l.id === 'shadowed2') as any;
+    expect(layer.shadows).toHaveLength(2);
   });
 
   it('path_geometry_dropped: fires for geometry the simple M/L parser cannot read', () => {

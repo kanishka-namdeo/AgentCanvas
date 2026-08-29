@@ -158,7 +158,9 @@ function renderShapeToSvg(s: Layer, measuredBounds?: MeasuredBoundsMap): string 
   if (W <= 0 || H <= 0) return '';
 
   const opacityAttr = s.opacity !== undefined && s.opacity < 1 ? ` opacity="${s.opacity}"` : '';
-  const transformAttr = s.rotation ? ` transform="rotate(${s.rotation} ${s.x + s.width / 2} ${s.y + s.height / 2})"` : '';
+  // C5: rotate around the TOP-LEFT corner — matches the DOM renderer
+  // (transform-origin: 0 0) and the SVG export path.
+  const transformAttr = s.rotation ? ` transform="rotate(${s.rotation} ${s.x} ${s.y})"` : '';
 
   // Resolve fill (may be a gradient).
   const fillValue = s.fill === 'transparent' || !s.fill ? 'none' : s.fill;

@@ -155,7 +155,12 @@ function isContainerNode(node: PenChild): node is
 // ---- Theme + variable resolution -----------------------------------------
 
 /** Resolve a variable reference. Returns the concrete value, or the raw
- *  string if it's not a $-reference. */
+ *  string if it's not a $-reference.
+ *
+ *  Audit 4 C14 (nested $var fix): a variable whose value is ANOTHER $ref
+ *  ($brand.primary → $color.primary → #hex) used to leak the literal
+ *  "$color.primary" into the rendered fill. Resolution is now iterative with
+ *  a depth cap + cycle guard, so chains resolve to a concrete value. */
 function resolveValue<T extends string | number | boolean>(
   raw: T,
   variables: { [key: string]: PenVariableDef } | undefined,
@@ -163,11 +168,19 @@ function resolveValue<T extends string | number | boolean>(
 ): T {
   if (typeof raw !== 'string') return raw;
   if (!raw.startsWith('$')) return raw;
-  const key = raw.slice(1);
-  const def = variables?.[key];
-  if (!def) return raw; // unknown variable — leave as-is
-  const themed = resolveThemedValue(def, theme);
-  return themed as T;
+  const MAX_VAR_DEPTH = 5;
+  let current: string | number | boolean = raw;
+  const seen = new Set<string>();
+  for (let depth = 0; depth < MAX_VAR_DEPTH; depth++) {
+    if (typeof current !== 'string' || !current.startsWith('$')) break;
+    const key = current.slice(1);
+    if (seen.has(key)) break; // $a → $b → $a cycle guard — emit the literal.
+    seen.add(key);
+    const def = variables?.[key];
+    if (!def) break; // unknown variable — leave as-is
+    current = resolveThemedValue(def, theme);
+  }
+  return current as T;
 }
 
 /** Pick the winning value from a variable def given the effective theme.
@@ -254,16 +267,24 @@ function resolveStroke(node: any, variables: any, theme: PenTheme): { color: str
 }
 
 /** Resolve effects: first shadow (drop or inner) + first blur (layer or background). */
-function resolveEffects(node: any, variables: any, theme: PenTheme): { shadow: ShadowEffect | null; blur: number } {
+function resolveEffects(node: any, variables: any, theme: PenTheme): { shadow: ShadowEffect | null; blur: number; shadows: ShadowEffect[] | null; backgroundBlur: number } {
   const effects = node.effect;
-  if (!effects) return { shadow: null, blur: 0 };
+  const empty = { shadow: null, blur: 0, shadows: null, backgroundBlur: 0 };
+  if (!effects) return empty;
   const arr = Array.isArray(effects) ? effects : [effects];
   let shadow: ShadowEffect | null = null;
   let blur = 0;
+  // Audit 4 C4: collect ALL shadows (first → `shadow` for compat) and track
+  // background blur separately from layer blur — the DOM renderer composes
+  // multi-shadow box-shadow lists and applies backdrop-filter for
+  // background blur (the Figma glass effect previously collapsed into a
+  // self-blur, which is the wrong visual).
+  const allShadows: ShadowEffect[] = [];
+  let backgroundBlur = 0;
   for (const e of arr) {
     if (e.enabled === false) continue;
-    if (e.type === 'shadow' && !shadow) {
-      shadow = {
+    if (e.type === 'shadow') {
+      const s: ShadowEffect = {
         x: typeof e.offset?.x === 'number' ? e.offset.x : 0,
         y: typeof e.offset?.y === 'number' ? e.offset.y : 0,
         blur: typeof e.blur === 'number' ? e.blur : 0,
@@ -271,17 +292,17 @@ function resolveEffects(node: any, variables: any, theme: PenTheme): { shadow: S
         spread: typeof e.spread === 'number' ? e.spread : 0,
         inset: e.shadowType === 'inner',
       };
-    } else if ((e.type === 'blur' || e.type === 'background_blur') && blur === 0) {
-      // Per the .pen spec, both 'blur' (layer blur) and 'background_blur'
-      // (background-only blur) carry a `radius` field. We collapse both into
-      // the single `blur` number on the resolved Layer; the renderer applies
-      // it via feGaussianBlur. (Surfacing them as distinct fields on the
-      // Layer type is a future enhancement — for now, blurring is the same
-      // visual effect either way.)
-      blur = typeof e.radius === 'number' ? e.radius : 0;
+      allShadows.push(s);
+      if (!shadow) shadow = s;
+    } else if (e.type === 'blur') {
+      // Layer blur (filter: blur on the node itself).
+      if (blur === 0) blur = typeof e.radius === 'number' ? e.radius : 0;
+    } else if (e.type === 'background_blur') {
+      // Background blur (backdrop-filter — glass effect).
+      if (backgroundBlur === 0) backgroundBlur = typeof e.radius === 'number' ? e.radius : 0;
     }
   }
-  return { shadow, blur };
+  return { shadow, blur, shadows: allShadows.length > 1 ? allShadows : null, backgroundBlur };
 }
 
 // ---- Sizing ---------------------------------------------------------------
@@ -1119,7 +1140,11 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
       const vars = variables;
       const theme = rn.theme;
       const fills = (n as any).fill as PenFills | undefined;
-      const { shadow, blur } = resolveEffects(n, vars, theme);
+      // Audit 4 C4: resolveEffects now returns ALL shadows + backgroundBlur
+      // separately (the DOM renderer composes multi-shadow box-shadow lists
+      // and backdrop-filter for background blur). `shadow`/`blur` keep their
+      // single-value contracts for backward compat (first shadow / layer blur).
+      const { shadow, blur, shadows, backgroundBlur } = resolveEffects(n, vars, theme);
       // Degradation: the resolved Layer carries ONE shadow + ONE blur; extra
       // enabled effects are silently dropped by resolveEffects. Surface it so
       // the agent stops stacking multiple shadows expecting them to render.
@@ -1129,10 +1154,13 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
         const rawEffects = (n as any).effect;
         const effArr: Array<Record<string, unknown>> = Array.isArray(rawEffects) ? rawEffects : [rawEffects];
         const enabled = effArr.filter((e) => e && (e as { enabled?: unknown }).enabled !== false);
-        const shadows = enabled.filter((e) => e.type === 'shadow');
-        const blurs = enabled.filter((e) => e.type === 'blur' || e.type === 'background_blur');
-        if (shadows.length > 1 || blurs.length > 1) {
-          warn(n, 'effects_dropped', `${shadows.length > 1 ? `${shadows.length} shadows ` : ''}${shadows.length > 1 && blurs.length > 1 ? '+ ' : ''}${blurs.length > 1 ? `${blurs.length} blurs ` : ''}on one node — only the first of each renders; merge effects or split onto nested layers`);
+        const shadowCount = enabled.filter((e) => e.type === 'shadow').length;
+        const blurCount = enabled.filter((e) => e.type === 'blur').length;
+        if (shadowCount > 3) {
+          warn(n, 'effects_dropped', `${shadowCount} shadows on one node — the DOM renderer composes up to 3; extra ones drop`);
+        }
+        if (blurCount > 1) {
+          warn(n, 'effects_dropped', `${blurCount} layer blurs on one node — only the first renders; merge them`);
         }
       }
       const stroke = resolveStroke(n, vars, theme);
@@ -1203,8 +1231,15 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
         iconLibrary: n.type === 'icon' ? String((n as any).library ?? 'lucide') : null,
         gradient: resolveGradient(fills, vars, theme) ?? ((n as any).gradient ?? null),
         shadow,
+        shadows,
         blur,
+        backgroundBlur,
         maskId: (n as any).maskId ?? null,
+        // Audit 4 C4/C6 fidelity fields: blend mode + flips flow to the DOM
+        // renderer (mix-blend-mode / scaleX(-1) scaleY(-1)).
+        blendMode: typeof (n as any).blendMode === 'string' ? (n as any).blendMode : null,
+        flipX: (n as any).flipX === true ? true : undefined,
+        flipY: (n as any).flipY === true ? true : undefined,
         // Effective theme (own + inherited) so the Properties panel can show
         // and edit it via set_node_theme patches.
         theme: rn.theme,

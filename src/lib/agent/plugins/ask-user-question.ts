@@ -55,6 +55,25 @@ export function getPendingQuestions(): string[] {
   return Array.from(pendingQuestions.keys());
 }
 
+/// Audit 2-c S6: register a pending question WITHOUT owning the ask_user_question
+/// tool — other plugins (goal_interview) reuse the same dialog + resolution
+/// path (emit `agent:ask_user_question`, the frontend POSTs to
+/// /api/agent/answers, resolveAskUserQuestion resolves). Previously
+/// goal_interview never registered here, so its 100ms poll "resolved"
+/// instantly and silently discarded the user's answers.
+export function awaitPendingUserAnswers(
+  toolCallId: string,
+  timeoutMs: number = ASK_TIMEOUT_MS,
+): Promise<string[][]> {
+  return new Promise<string[][]>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pendingQuestions.delete(toolCallId);
+      reject(new Error(`Ask-user-question timed out after ${Math.round(timeoutMs / 1000)}s`));
+    }, timeoutMs);
+    pendingQuestions.set(toolCallId, { resolve, reject, timer });
+  });
+}
+
 // ---- Tool definition ------------------------------------------------------
 
 const MAX_QUESTIONS = 5;

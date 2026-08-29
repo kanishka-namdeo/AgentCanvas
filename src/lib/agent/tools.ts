@@ -69,6 +69,7 @@ import { renderCanvasToPng } from '../canvas/render-to-png';
 import type { PenChild } from '../pen/types';
 import { getLucideIcon, searchLucideIcons, lucidePromptCatalog } from '@/lib/icons';
 import { formatShapeLine } from './shape-line';
+import { notFoundResult } from './tool-errors';
 import { emitEvent, hasSink } from './plugins/event-bus';
 import {
   aliasToolEntries,
@@ -1472,11 +1473,7 @@ const createShape = defineTool({
       const shapeId = params.nodeId ?? params.shapeId ?? (params as any).id;
       const existing = ctx.getShapes().find((s) => s.id === shapeId);
       if (!existing) {
-        return {
-          content: [{ type: 'text', text: `Error: no shape with id ${shapeId}` }],
-          details: { error: 'not_found', shapeId },
-          isError: true as any,
-        };
+        return notFoundResult(ctx, shapeId);
       }
       // Tolerate LLMs that pass changes as top-level fields instead of
       // nesting them under `changes`. If `changes` is missing/empty but
@@ -1954,11 +1951,7 @@ const createShape = defineTool({
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
-        return {
-          content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }],
-          details: { error: 'not_found', shapeId: params.shapeId },
-          isError: true as any,
-        };
+        return notFoundResult(ctx, params.shapeId);
       }
       const patch: CanvasPatch = {
         op: 'set_constraints',
@@ -2156,8 +2149,10 @@ const createShape = defineTool({
     name: 'pen_instantiate_component',
     label: 'Instantiate Component',
     description:
-      'Create a linked instance of an existing component. The instance copies the component\'s shape but ' +
-      'gets a new id and componentId pointing at the original. Useful for placing the same UI element multiple times.',
+      'DEPRECATED — prefer pen_place_component_instance (PenRef-linked, tracks main-component edits) ' +
+      'or pen_create_ref (.pen-native ref with descendant overrides). This legacy tool SHALLOW-COPIES ' +
+      'the component: the instance does NOT update when the main component changes. ' +
+      'Create a linked instance of an existing component; the copy gets a new id + componentId pointing at the original.',
     promptSnippet: 'Place a linked instance of a component.',
     parameters: Type.Object({
       componentId: Type.String({ description: 'ID of the source component' }),
@@ -2245,11 +2240,7 @@ const createShape = defineTool({
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
-        return {
-          content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }],
-          details: { error: 'not_found' },
-          isError: true as any,
-        };
+        return notFoundResult(ctx, params.shapeId);
       }
       const patch: CanvasPatch = {
         op: 'convert_to_component',
@@ -2967,11 +2958,7 @@ const createShape = defineTool({
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
-        return {
-          content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }],
-          details: { error: 'not_found' },
-          isError: true as any,
-        };
+        return notFoundResult(ctx, params.shapeId);
       }
       const topic = params.topic?.trim() || 'your product';
       const copy = COPY_VARIANTS[params.variant](topic);
@@ -3180,7 +3167,7 @@ const createShape = defineTool({
       const variableId: string = params.variableId ?? p.tokenKey;
       const shape = ctx.getShapes().find((s) => s.id === nodeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${nodeId}` }], details: { error: 'not_found', shapeId: nodeId }, isError: true as any };
+        return notFoundResult(ctx, nodeId);
       }
       const token = ctx.getTokens().colors.find((c) => c.key === variableId);
       if (!token) {
@@ -3217,7 +3204,7 @@ const createShape = defineTool({
       const nodeId: string = params.nodeId ?? p.shapeId;
       const shape = ctx.getShapes().find((s) => s.id === nodeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${nodeId}` }], details: { error: 'not_found' }, isError: true as any };
+        return notFoundResult(ctx, nodeId);
       }
       const binding = { ...(shape.tokenBinding ?? {}) };
       // Bake in the current resolved value before removing the binding, so the
@@ -3350,7 +3337,7 @@ const createShape = defineTool({
   const bringToFront = defineTool({
     name: 'pen_bring_to_front',
     label: 'Bring to Front',
-    description: 'Move one or more shapes to the top of the z-order (above all other shapes).',
+    description: 'Move one or more shapes to the FRONT of the z-order (on top of everything — use when the user says "on top" or "in front"). For a one-step nudge use pen_move_forward; for an exact position use pen_reorder_shape.',
     promptSnippet: 'Bring shapes to the front of the z-order.',
     parameters: Type.Object({
       shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to bring to front' }),
@@ -3365,7 +3352,7 @@ const createShape = defineTool({
   const sendToBack = defineTool({
     name: 'pen_send_to_back',
     label: 'Send to Back',
-    description: 'Move one or more shapes to the bottom of the z-order (below all other shapes).',
+    description: 'Move one or more shapes to the BOTTOM of the z-order (behind everything — use when the user says "behind" or "send back"). For a one-step nudge use pen_move_backward.',
     promptSnippet: 'Send shapes to the back of the z-order.',
     parameters: Type.Object({
       shapeIds: Type.Array(Type.String(), { description: 'Shape IDs to send to back' }),
@@ -3380,7 +3367,7 @@ const createShape = defineTool({
   const moveForward = defineTool({
     name: 'pen_move_forward',
     label: 'Move Forward',
-    description: 'Move a shape one level forward (above its current neighbor).',
+    description: 'Move a shape ONE level up in the z-order (a single step above its current neighbor — NOT to the top; for that use pen_bring_to_front).',
     promptSnippet: 'Move a shape one level up in the z-order.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape ID to move forward' }),
@@ -3395,7 +3382,7 @@ const createShape = defineTool({
   const moveBackward = defineTool({
     name: 'pen_move_backward',
     label: 'Move Backward',
-    description: 'Move a shape one level backward (below its current neighbor).',
+    description: 'Move a shape ONE level down in the z-order (a single step below its current neighbor — NOT to the bottom; for that use pen_send_to_back).',
     promptSnippet: 'Move a shape one level down in the z-order.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape ID to move backward' }),
@@ -3410,7 +3397,7 @@ const createShape = defineTool({
   const reorderShape = defineTool({
     name: 'pen_reorder_shape',
     label: 'Reorder Shape',
-    description: 'Move a shape to a specific z-index position. Other shapes shift to make room.',
+    description: 'Move a shape to an EXACT z-index position (0 = bottom). Other shapes shift to make room. Prefer pen_bring_to_front / pen_send_to_back for top/bottom — use this only when a specific depth matters.',
     promptSnippet: 'Move a shape to a specific z-index.',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Shape ID to reorder' }),
@@ -3433,8 +3420,8 @@ const createShape = defineTool({
   const undoCanvas = defineTool({
     name: 'pen_undo',
     label: 'Undo',
-    description: 'Undo the last canvas change. Can be called multiple times to undo further back. ' +
-      'NOTE: this only affects the local (client) canvas state — it does not reverse agent tool calls in the chat history.',
+    description: 'Undo the LAST canvas change (one step of this turn\u2019s own patches — NOT prior turns or prior user work). Use it to revert your own most recent patch; do NOT call it repeatedly to walk back earlier turns. ' +
+      'The chat history is never modified — undo affects the canvas only. "Restore from before this turn" is a user-side affordance, not a tool.',
     promptSnippet: 'Undo the last canvas change.',
     parameters: Type.Object({}),
     async execute(toolCallId) {
@@ -4555,11 +4542,9 @@ const createShape = defineTool({
     name: 'pen_boolean_op',
     label: 'Boolean Operation',
     description: 'Combine two shapes using a boolean operation. ' +
-      'NOTE: this is a simplified implementation — true vector boolean math requires a polygon-clipping library. ' +
-      'union: groups both shapes under a single group with unified fill. ' +
-      'subtract: sets the second shape as a mask (clips the first). ' +
-      'intersect: same as subtract (mask intersection). ' +
-      'exclude: hides the second shape (visual approximation).',
+      'LIMITED (no true vector boolean math — union = group with unified fill; subtract = mask; ' +
+      'intersect = same as subtract; exclude = HIDES the second shape). For precise vector cuts, ' +
+      'prefer building the geometry directly with pen_create_path instead.',
     promptSnippet: 'Boolean-combine two shapes (union/subtract/intersect/exclude).',
     parameters: Type.Object({
       shapeId: Type.String({ description: 'Primary shape' }),
@@ -4607,7 +4592,7 @@ const createShape = defineTool({
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+        return notFoundResult(ctx, params.shapeId);
       }
       const maskId = params.maskShapeId ?? null;
       if (maskId) {
@@ -4645,7 +4630,7 @@ const createShape = defineTool({
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+        return notFoundResult(ctx, params.shapeId);
       }
       if (!Array.isArray(params.stops) || params.stops.length < 2) {
         return { content: [{ type: 'text', text: 'Error: need at least 2 gradient stops' }], details: { error: 'invalid_stops' }, isError: true as any };
@@ -4679,7 +4664,7 @@ const createShape = defineTool({
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+        return notFoundResult(ctx, params.shapeId);
       }
       const shadow = {
         x: Number(params.x) || 0,
@@ -4707,7 +4692,7 @@ const createShape = defineTool({
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+        return notFoundResult(ctx, params.shapeId);
       }
       const blur = Math.max(0, Number(params.radius) || 0);
       const patch: CanvasPatch = { op: 'update', shapeId: params.shapeId, shape: { blur }, summary: `Set blur ${blur}px on ${shape.name}` };
@@ -4732,7 +4717,7 @@ const createShape = defineTool({
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
-        return { content: [{ type: 'text', text: `Error: no shape with id ${params.shapeId}` }], details: { error: 'not_found' }, isError: true as any };
+        return notFoundResult(ctx, params.shapeId);
       }
       if (shape.type !== 'rectangle' && shape.type !== 'frame') {
         return { content: [{ type: 'text', text: `Error: per-corner radii only apply to rectangle/frame shapes (got ${shape.type})` }], details: { error: 'wrong_type', shapeType: shape.type }, isError: true as any };
@@ -4919,10 +4904,10 @@ const createShape = defineTool({
   const generateImage = defineTool({
     name: 'pen_generate_image',
     label: 'Generate Image (placeholder)',
-    description: 'Generate an image from a text prompt and place it on the canvas. ' +
-      'NOTE: in this sandbox, this tool places a placeholder rectangle with the prompt text — ' +
-      'actual AI image generation requires the image-generation API. ' +
-      'The placeholder uses a dashed border so the user knows to replace it.',
+    description: 'PLACEHOLDER (no real image generation in this environment): places a dashed ' +
+      'placeholder rectangle with the prompt text on the canvas. Use it when a layout genuinely needs ' +
+      'an image slot — and ALWAYS tell the user in your summary that the image is a placeholder they ' +
+      'must replace (or use pen_upload_image with a real URL when the user has one).',
     promptSnippet: 'Generate an image from a prompt and place it.',
     parameters: Type.Object({
       prompt: Type.String({ description: 'Image generation prompt' }),
@@ -5498,6 +5483,359 @@ const createShape = defineTool({
     },
   });
 
+  // ---- Audit 2-b T18: composite tools (design-quality hot paths) -----------
+  //
+  // Three task-shaped tools that collapse documented multi-call hot paths:
+  //   pen_apply_design_system — a shipped pack's semantic tokens → $color.*
+  //     variables in ONE call (the dashboard eval showed pen_set_variable ×11
+  //     hand-transcribing tokens.css; this does it deterministically).
+  //   pen_create_chart — bar/line/donut chart subtree in ONE call (charts were
+  //     hand-assembled from ~15 rectangles/paths).
+  //   pen_apply_typography — map existing text layers to typography roles in
+  //     ONE call (the most common critique fix: N pen_update_node calls).
+
+  const applyDesignSystem = defineTool({
+    name: 'pen_apply_design_system',
+    label: 'Apply Design-System Pack',
+    description:
+      'Apply a shipped design-system pack (shadcn-default, vercel-geist, mantine-default) to the canvas in ONE call: ' +
+      'defines the pack\u2019s semantic colors as $color.* variables (bg, surface, border, text, text-muted, primary, ' +
+      'accent, success, warning, danger), sets the canvas background, and optionally rebinds existing shapes ' +
+      'to the new tokens. Use this instead of hand-calling pen_set_variable 10+ times. ' +
+      'Run with no arguments to list available packs.',
+    promptSnippet: 'Apply a design-system pack\u2019s tokens in one call.',
+    parameters: Type.Object({
+      pack: Type.Optional(Type.String({ description: 'Pack id: "shadcn-default" | "vercel-geist" | "mantine-default". Omit to list packs.' })),
+      rebind: Type.Optional(Type.Boolean({ description: 'Also recolor existing shapes to the nearest pack token (default true).' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const { listPacks, getPackTokens } = await import('../design-systems/loader');
+      let packs;
+      try {
+        packs = await listPacks();
+      } catch {
+        return {
+          content: [{ type: 'text', text: 'Error: design-system registry unavailable (download/design-systems/).' }],
+          details: { error: 'registry_unavailable' },
+          isError: true as any,
+        };
+      }
+      if (!params.pack) {
+        const lines = packs.map((p) => `  - ${p.name}${p.isDefault ? ' (default)' : ''}: ${p.description}`);
+        return { content: [{ type: 'text', text: `Available design-system packs:\n${lines.join('\n')}\n\nCall with { pack: "<name>" } to apply.` }], details: { packs: packs.map((p) => p.name) } };
+      }
+      const pack = packs.find((p) => p.name === params.pack);
+      if (!pack) {
+        return {
+          content: [{ type: 'text', text: `Error: no pack named "${params.pack}". Available: ${packs.map((p) => p.name).join(', ')}.` }],
+          details: { error: 'unknown_pack' },
+          isError: true as any,
+        };
+      }
+      // Parse the pack's tokens.css: collect every CSS custom property, then
+      // resolve semantic --color-* values against primitives (one level of
+      // var(--x) indirection is enough for the 3-layer token files).
+      const css = await getPackTokens(pack.name);
+      const vars = new Map<string, string>();
+      for (const m of css.matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+);/gi)) {
+        vars.set(m[1], m[2].trim());
+      }
+      const resolve = (name: string, depth = 0): string => {
+        const v = vars.get(name);
+        if (v === undefined) return '';
+        const ref = v.match(/^var\(--([a-z0-9-]+)\)$/i);
+        if (ref && depth < 3) return resolve(ref[1], depth + 1);
+        return v;
+      };
+      // Semantic → $color.* mapping (the canonical high-fidelity vocabulary).
+      const colorMap: Array<[string, string]> = [
+        ['color.bg', 'color-bg'], ['color.surface', 'color-surface'], ['color.surface-2', 'color-bg-subtle'],
+        ['color.border', 'color-border-default'], ['color.text', 'color-text-primary'], ['color.text-muted', 'color-text-secondary'],
+        ['color.primary', 'color-accent'], ['color.primary-fg', 'color-accent-fg'],
+        ['color.accent', 'color-accent-hover'], ['color.success', 'color-success'], ['color.danger', 'color-danger'],
+        ['color.warning', 'color-warning'],
+      ];
+      const found: Array<{ key: string; value: string }> = [];
+      for (const [penKey, cssName] of colorMap) {
+        const v = resolve(cssName);
+        if (v) found.push({ key: penKey, value: v });
+      }
+      // Palette fallbacks when a pack names things differently.
+      if (!found.some((f) => f.key === 'color.primary')) found.push({ key: 'color.primary', value: pack.palette.primary });
+      if (!found.some((f) => f.key === 'color.bg')) found.push({ key: 'color.bg', value: pack.palette.background });
+      if (!found.some((f) => f.key === 'color.text')) found.push({ key: 'color.text', value: pack.palette.text });
+      if (!found.some((f) => f.key === 'color.accent')) found.push({ key: 'color.accent', value: pack.palette.accent });
+
+      const doc = ctx.getDocument?.();
+      const existing = doc?.tokens?.colors ?? [];
+      const merged = existing.map((c) => ({ ...c }));
+      for (const f of found) {
+        const e = merged.find((c) => c.key === f.key);
+        if (e) e.value = f.value;
+        else merged.push({ name: f.key, key: f.key, value: f.value });
+      }
+      const patch: CanvasPatch = {
+        op: 'tokens',
+        tokens: { colors: merged },
+        summary: `Applied "${pack.name}" design system: ${found.length} semantic color variables`,
+      };
+      ctx.applyPatch(patch);
+
+      // Background to the pack's bg token.
+      const bg = found.find((f) => f.key === 'color.bg');
+      if (bg) ctx.applyPatch({ op: 'background', background: bg.value, summary: `Canvas background → pack bg (${bg.value})` });
+
+      // Optionally rebind existing shapes via the nearest-color palette mapper.
+      let rebound = 0;
+      if (params.rebind !== false) {
+        const palette = found.map((f) => f.value);
+        const before = (ctx.getShapes() ?? []).length;
+        ctx.applyPatch({
+          op: 'palette',
+          palette,
+          bindToTokens: true,
+          summary: `Rebound canvas to "${pack.name}" tokens`,
+        } as any);
+        rebound = before;
+      }
+
+      const varLines = found.map((f) => `  $${f.key} = ${f.value}`).join('\n');
+      return {
+        content: [{ type: 'text', text: `Applied the "${pack.name}" design system.\nVariables defined:\n${varLines}\n\nCanvas background set to $color.bg. Existing shapes rebound to the nearest token${rebound ? ` (${rebound} layer(s) considered)` : ''}. Build new shapes with $color.* references to stay on-system.` }],
+        details: { pack: pack.name, variables: found, rebound },
+      };
+    },
+  });
+
+  const createChart = defineTool({
+    name: 'pen_create_chart',
+    label: 'Create Chart',
+    description:
+      'Create a complete chart in ONE call: bar (vertical/horizontal), line (with area fill), or donut. ' +
+      'Builds the container card, axes/gridlines, data geometry, and labels as one subtree with ' +
+      'consistent styling (radius 12 card, 1px border, subtle shadow, $color.* tokens when defined). ' +
+      'Replaces ~15 hand-assembled pen_create_node/pen_create_path calls — use it for dashboards, KPI detail views, and analytics sections.',
+    promptSnippet: 'Create a styled bar/line/donut chart from data.',
+    parameters: Type.Object({
+      type: Type.Union([Type.Literal('bar'), Type.Literal('line'), Type.Literal('donut')], { description: 'Chart type.' }),
+      title: Type.Optional(Type.String({ description: 'Chart title (e.g. "Revenue by month"). Rendered as a 16px/600 heading.' })),
+      data: Type.Array(Type.Object({ label: Type.String(), value: Type.Number() }), {
+        minItems: 2, maxItems: 24,
+        description: 'Data points. E.g. [{label:"Jan", value:42}, ...]. For donut, values are proportions.',
+      }),
+      x: Type.Number({ description: 'Canvas-space X for the chart card.' }),
+      y: Type.Number({ description: 'Canvas-space Y for the chart card.' }),
+      width: Type.Optional(Type.Number({ description: 'Card width in px (default 420).' })),
+      height: Type.Optional(Type.Number({ description: 'Card height in px (default 280).' })),
+      color: Type.Optional(Type.String({ description: 'Data-series hex color (default #0ea5e9). Use $color.primary when tokens exist.' })),
+      horizontal: Type.Optional(Type.Boolean({ description: 'bar only: draw horizontal bars (default false).' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const W = Math.max(240, params.width ?? 420);
+      const H = Math.max(200, params.height ?? 280);
+      const series = params.color ?? '#0ea5e9';
+      const data = params.data.slice(0, 24);
+      const values = data.map((d) => Number(d.value) || 0);
+      const maxV = Math.max(...values, 1);
+      const children: Array<Record<string, unknown>> = [];
+
+      // Title.
+      if (params.title) {
+        children.push({ type: 'text', name: `${params.title} (title)`, x: 24, y: 20, width: W - 48, height: 24, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, text: params.title, textColor: '$color.text' });
+      }
+      const top = params.title ? 60 : 24;
+      const plotH = H - top - 44;
+      const plotW = W - 48;
+
+      if (params.type === 'bar') {
+        const n = data.length;
+        const horizontal = params.horizontal === true;
+        const gap = 8;
+        if (horizontal) {
+          const rowH = Math.min(36, (plotH - (n - 1) * gap) / Math.max(1, n));
+          data.forEach((d, i) => {
+            const y = top + i * (rowH + gap);
+            const w = Math.max(2, (Number(d.value) / maxV) * (plotW - 120));
+            children.push({ type: 'text', name: `${d.label} (label)`, x: 24, y: y + rowH / 2 - 8, width: 90, height: 16, fontSize: 12, text: d.label, textColor: '$color.text-muted' });
+            children.push({ type: 'rectangle', name: `${d.label} bar`, x: 120, y, width: w, height: rowH, fill: series, radius: 4 });
+            children.push({ type: 'text', name: `${d.label} value`, x: 124 + w, y: y + rowH / 2 - 8, width: 56, height: 16, fontSize: 12, fontWeight: 600, text: String(d.value), textColor: '$color.text' });
+          });
+        } else {
+          const barW = Math.max(8, (plotW - (n - 1) * gap) / n);
+          data.forEach((d, i) => {
+            const h = Math.max(2, (Number(d.value) / maxV) * (plotH - 20));
+            const x = 24 + i * (barW + gap);
+            children.push({ type: 'rectangle', name: `${d.label} bar`, x, y: top + plotH - h, width: barW, height: h, fill: series, radius: 4 });
+            children.push({ type: 'text', name: `${d.label} (label)`, x: x - 8, y: top + plotH + 8, width: barW + 16, height: 14, fontSize: 11, textAlign: 'center', text: d.label, textColor: '$color.text-muted' });
+          });
+          // Baseline.
+          children.push({ type: 'rectangle', name: 'x-axis', x: 24, y: top + plotH, width: plotW, height: 1, fill: '$color.border' });
+        }
+      } else if (params.type === 'line') {
+        const n = data.length;
+        const step = plotW / Math.max(1, n - 1);
+        const pts = data.map((d, i) => ({ x: 24 + i * step, y: top + plotH - (Number(d.value) / maxV) * (plotH - 16) }));
+        // Area fill (subtle) + line.
+        children.push({ type: 'path', name: 'trend area', points: [{ x: pts[0].x, y: top + plotH }, ...pts, { x: pts[pts.length - 1].x, y: top + plotH }], closed: true, fill: series, opacity: 0.12 });
+        children.push({ type: 'path', name: 'trend line', points: pts, closed: false, fill: 'transparent', stroke: series, strokeWidth: 2.5 });
+        pts.forEach((p, i) => {
+          children.push({ type: 'ellipse', name: `${data[i].label} point`, x: p.x - 3, y: p.y - 3, width: 6, height: 6, fill: series });
+          if (n <= 8) {
+            children.push({ type: 'text', name: `${data[i].label} (label)`, x: p.x - 20, y: top + plotH + 8, width: 40, height: 14, fontSize: 11, textAlign: 'center', text: data[i].label, textColor: '$color.text-muted' });
+          }
+        });
+        children.push({ type: 'rectangle', name: 'x-axis', x: 24, y: top + plotH, width: plotW, height: 1, fill: '$color.border' });
+      } else {
+        // Donut: proportional ring of wedge paths + legend.
+        const cx = 24 + Math.min(plotH, plotW * 0.5) / 2;
+        const cy = top + plotH / 2;
+        const R = Math.min(plotH, 200) / 2;
+        const total = values.reduce((a, b) => a + b, 0) || 1;
+        let angle = -Math.PI / 2;
+        const palette = [series, '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
+        data.forEach((d, i) => {
+          const frac = Math.max(0, Math.min(1, Number(d.value) / total));
+          const a2 = angle + frac * Math.PI * 2;
+          const p0 = { x: cx + R * Math.cos(angle), y: cy + R * Math.sin(angle) };
+          const p1 = { x: cx + R * Math.cos(a2), y: cy + R * Math.sin(a2) };
+          const pi0 = { x: cx + (R * 0.62) * Math.cos(angle), y: cy + (R * 0.62) * Math.sin(angle) };
+          const pi1 = { x: cx + (R * 0.62) * Math.cos(a2), y: cy + (R * 0.62) * Math.sin(a2) };
+          const col = palette[i % palette.length];
+          if (frac >= 0.999) {
+            children.push({ type: 'ellipse', name: `${d.label} ring`, x: cx - R, y: cy - R, width: R * 2, height: R * 2, fill: 'transparent', stroke: col, strokeWidth: R * 0.38 });
+          } else if (frac > 0.002) {
+            children.push({
+              type: 'path', name: `${d.label} arc`,
+              points: [p0, p1, pi1, pi0], closed: true, fill: col,
+            });
+          }
+          // Legend entry.
+          const ly = top + 8 + i * 20;
+          children.push({ type: 'rectangle', name: `${d.label} swatch`, x: W - 130, y: ly, width: 10, height: 10, fill: col, radius: 2 });
+          children.push({ type: 'text', name: `${d.label} legend`, x: W - 114, y: ly - 2, width: 96, height: 14, fontSize: 11, text: `${d.label} · ${d.value}`, textColor: '$color.text-muted' });
+          angle = a2;
+        });
+      }
+
+      const id = crypto.randomUUID();
+      const patch: CanvasPatch = {
+        op: 'add_subtree',
+        shapeId: id,
+        shape: {
+          id,
+          type: 'frame',
+          name: `${params.title ?? params.type} chart`,
+          x: Number(params.x) || 0,
+          y: Number(params.y) || 0,
+          width: W,
+          height: H,
+          fill: '$color.surface',
+          stroke: '$color.border',
+          strokeWidth: 1,
+          radius: 12,
+          shadow: { x: 0, y: 1, blur: 2, color: '#0000000d' },
+          autoLayout: { direction: 'vertical', gap: 8, padding: 24, alignX: 'min', alignY: 'min' },
+        },
+        nodes: children,
+        summary: `Created ${params.type} chart${params.title ? ` "${params.title}"` : ''} (${data.length} points, ${children.length} nodes)`,
+      } as any;
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Created a ${params.type} chart card at (${params.x}, ${params.y}), ${W}x${H} — ${children.length} child nodes under frame id=${id} ("${params.title ?? params.type} chart"). Refine individual pieces with pen_update_node { nodeId, changes }.` }],
+        details: { frameId: id, childCount: children.length, type: params.type },
+      };
+    },
+  });
+
+  const applyTypography = defineTool({
+    name: 'pen_apply_typography',
+    label: 'Apply Typography Roles',
+    description:
+      'Apply the system\u2019s typography scale to EXISTING text layers in ONE call, by role. Roles set ' +
+      'fontSize/weight/letterSpacing/lineHeight together: display (48/700/-0.8), h1 (38/700/-0.6), ' +
+      'h2 (30/600/-0.4), h3 (24/600/-0.2), subtitle (20/500/-0.1), body (16/400/0), label (14/500/+0.4), ' +
+      'caption (12/400/+0.2), metric (26/700/-0.5). Target by explicit ids, by name regex, or all text layers ' +
+      '("auto" infers each layer\u2019s role from its name — the standard post-critique fix).',
+    promptSnippet: 'Batch-apply typography roles to text layers.',
+    parameters: Type.Object({
+      role: Type.Union(
+        [Type.Literal('display'), Type.Literal('h1'), Type.Literal('h2'), Type.Literal('h3'), Type.Literal('subtitle'), Type.Literal('body'), Type.Literal('label'), Type.Literal('caption'), Type.Literal('metric'), Type.Literal('auto')],
+        { description: 'Typography role to apply ("auto" infers per-layer roles from names).' },
+      ),
+      shapeIds: Type.Optional(Type.Array(Type.String(), { description: 'Text layer ids to restyle. Omit to use nameFilter / all text layers.' })),
+      nameFilter: Type.Optional(Type.String({ description: 'Regex matched against layer names (e.g. "^Stat .*value$"). Ignored when shapeIds given.' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const ROLES: Record<string, { fontSize: number; fontWeight: number; letterSpacing: number; lineHeight: number; textAlign?: 'left' | 'center' | 'right' }> = {
+        display: { fontSize: 48, fontWeight: 700, letterSpacing: -0.8, lineHeight: 1.1 },
+        h1: { fontSize: 38, fontWeight: 700, letterSpacing: -0.6, lineHeight: 1.2 },
+        h2: { fontSize: 30, fontWeight: 600, letterSpacing: -0.4, lineHeight: 1.25 },
+        h3: { fontSize: 24, fontWeight: 600, letterSpacing: -0.2, lineHeight: 1.3 },
+        subtitle: { fontSize: 20, fontWeight: 500, letterSpacing: -0.1, lineHeight: 1.35 },
+        body: { fontSize: 16, fontWeight: 400, letterSpacing: 0, lineHeight: 1.6 },
+        label: { fontSize: 14, fontWeight: 500, letterSpacing: 0.4, lineHeight: 1.4 },
+        caption: { fontSize: 12, fontWeight: 400, letterSpacing: 0.2, lineHeight: 1.4 },
+        metric: { fontSize: 26, fontWeight: 700, letterSpacing: -0.5, lineHeight: 1.2 },
+      };
+      const inferRole = (name: string): string => {
+        const n = name.toLowerCase();
+        if (/display|hero (value|number)/.test(n)) return 'display';
+        if (/page title|hero (heading|title)|headline|wordmark|brand|app name/.test(n)) return 'h1';
+        if (/section (title|heading)|h2|subtitle title/.test(n)) return 'h2';
+        if (/card title|panel title|item title|h3|modal title/.test(n)) return 'h3';
+        if (/subtitle|tagline/.test(n)) return 'subtitle';
+        if (/label|overline|eyebrow/.test(n)) return 'label';
+        if (/caption|helper|hint|footnote/.test(n)) return 'caption';
+        if (/(stat|kpi|metric).*(value|number)|amount|total/.test(n)) return 'metric';
+        return 'body';
+      };
+      const all = (ctx.getShapes() ?? []).filter((s) => s.type === 'text');
+      let targets = params.shapeIds?.length
+        ? all.filter((s) => (params.shapeIds as string[]).includes(s.id))
+        : params.nameFilter
+          ? (() => {
+              try { return all.filter((s) => new RegExp(params.nameFilter!, 'i').test(s.name ?? '')); }
+              catch { return []; }
+            })()
+          : all;
+      if (targets.length === 0) {
+        return {
+          content: [{ type: 'text', text: 'No text layers matched. Call pen_get_metadata to see text layer ids/names, then retry with shapeIds or a nameFilter.' }],
+          details: { error: 'no_targets' },
+          isError: true as any,
+        };
+      }
+      const updates = targets.map((s) => {
+        const roleKey = params.role === 'auto' ? inferRole(s.name ?? '') : params.role;
+        const role = ROLES[roleKey] ?? ROLES.body;
+        return {
+          id: s.id,
+          changes: {
+            fontSize: role.fontSize,
+            fontWeight: role.fontWeight,
+            letterSpacing: role.letterSpacing,
+            lineHeight: role.lineHeight,
+            ...(role.textAlign ? { textAlign: role.textAlign } : {}),
+          },
+          _role: roleKey,
+        };
+      });
+      const patch: CanvasPatch = {
+        op: 'update_many' as any,
+        updates: updates.map(({ id, changes }) => ({ id, changes })),
+        summary: `Applied ${params.role} typography to ${updates.length} text layer(s)`,
+      };
+      ctx.applyPatch(patch);
+      const roleCounts: Record<string, number> = {};
+      for (const u of updates) roleCounts[u._role] = (roleCounts[u._role] ?? 0) + 1;
+      const summary = Object.entries(roleCounts).map(([r, c]) => `${r}×${c}`).join(', ');
+      return {
+        content: [{ type: 'text', text: `Applied typography roles to ${updates.length} text layer(s): ${summary}. Geometry note: label/caption layers may now need width adjustments — check pen_get_metadata for text-width warnings.` }],
+        details: { updated: updates.length, roles: roleCounts },
+      };
+    },
+  });
+
   return [
     // Core
     createShape,
@@ -5603,6 +5941,10 @@ const createShape = defineTool({
     // Task 7-c — UI QUALITY ENFORCEMENT tools
     generateDesignBrief,    // T1: pre-generation design brief
     visualCritique,         // T3: VLM screenshot critique
+    // Audit 2-b T18 — composite tools (design-quality hot paths)
+    applyDesignSystem,      // design-system pack → $color.* tokens in one call
+    createChart,            // bar/line/donut chart subtree in one call
+    applyTypography,        // batch typography roles on text layers
   ];
 }
 

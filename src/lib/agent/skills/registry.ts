@@ -66,67 +66,39 @@ color, drop shadows on elevated surfaces, gradients on hero/CTA, realistic conte
 type scale, 8px spacing, and bound design tokens. A grayscale flat layout with no shadows is a
 WIREFRAME — only produce that if the user explicitly says "wireframe", "low-fi", "sketch", etc.
 
-=== STRATEGY (follow this order — every step matters) =====================
+=== STRATEGY (audit 2-c S10 - aligned with the current architecture) ======
 
-1. SCAFFOLD: If the request matches a built-in template, call pen_generate_wireframe FIRST.
-   Templates: mobile_login, mobile_signup, mobile_dashboard, mobile_welcome, mobile_permissions,
-   mobile_done, mobile_browse, mobile_product_detail, mobile_cart, mobile_checkout, web_landing,
-   web_dashboard, web_blog, web_pricing. This produces a structured starting point in one call.
-   The generator now emits high-fidelity styling (shadows, gradients, radii, real content) by default.
-   If the request is a multi-screen flow (onboarding, ecommerce, auth, signup_funnel), call
-   pen_generate_user_flow instead. If it's a diagram (flowchart, mindmap), call pen_generate_diagram.
+The system pre-generates a DESIGN BRIEF for every design turn and injects it into your prompt
+("[PRE-GENERATED DESIGN BRIEF ...]"). It IS the palette / typography / layout source of truth -
+do NOT call pen_generate_design_brief, do NOT hand-define tokens unless the brief is absent.
 
-2. LIST: After generating, call pen_get_metadata to see what was created + their IDs.
-   IMPORTANT: copy shape IDs verbatim from the pen_get_metadata output — do NOT wrap them in
-   arrays or quotes-within-quotes. The shapeId parameter is a plain STRING, e.g. "abc-123",
-   NOT ["abc-123"].
+1. BUILD in as FEW calls as possible (aim <= 12 for the whole turn):
+   - If a built-in template fits the request, ONE pen_generate_wireframe call produces a fully
+     styled screen (shadows, gradients, radii, real content are baked in). Templates: mobile_login,
+     mobile_signup, mobile_dashboard, mobile_welcome, mobile_permissions, mobile_done, mobile_browse,
+     mobile_product_detail, mobile_cart, mobile_checkout, web_landing, web_dashboard, web_blog,
+     web_pricing. Multi-screen flow (onboarding/ecommerce/auth/signup_funnel) -> pen_generate_user_flow.
+     Diagram (flowchart/mindmap) -> pen_generate_diagram.
+   - Otherwise build with 1-3 pen_create_subtree calls (whole nested trees; "nodes: [...]" for
+     several INDEPENDENT trees at once; the result lists every generated id) or one pen_insert_html.
+   - Repeating an element N times -> pen_duplicate_nodes { count, direction } - ONE call.
+   - Emit independent tool calls in the SAME response (batched execution).
+2. VERIFY: call pen_get_metadata once after building - check types, names, geometry, and any
+   resolver warnings (fix container_overflow / unresolved $vars in the same turn).
+3. RESTYLE in batches: pen_bulk_update_by_filter (filter + changes) beats N pen_update_node calls.
+   One-off surgical changes -> pen_update_node { nodeId, changes: { ... } }.
+4. CONTENT: replace placeholder text ("Lorem ipsum", "Item 1") with realistic domain copy via
+   pen_find_replace_text or the text field of pen_update_node. Real names, real numbers, real labels.
+   When the user gave exact copy, use those EXACT strings.
+5. ICONS: lucide icon nodes via pen_search_icons (stroke width 2, size 20-24). NEVER emoji.
+6. COMPONENTIZE (optional): 3+ similar shapes -> pen_recommend_components, then convert + place
+   linked instances (pen_convert_to_component / pen_place_component_instance / pen_create_ref).
+7. REPARHING: to move X into a frame, create the target frame with pen_create_node, THEN
+   pen_reparent_nodes (keepAbsolutePosition default). Never pass "parent" to pen_update_node.
 
-3. TOKENIZE: Define the semantic color tokens via pen_set_variable (or pen_set_variables).
-   Required tokens: $color.bg, $color.surface, $color.surface-2, $color.border, $color.text,
-   $color.text-muted, $color.primary, $color.primary-fg, $color.accent, $color.success, $color.danger.
-   Use the values from the HIGH-FIDELITY DESIGN SYSTEM in your system prompt.
-
-4. PALETTE: Call pen_apply_palette with bindToTokens=true to bind shapes to the tokens and apply a
-   harmonious 60-30-10 palette. Default palette: bg #f8fafc, surface #ffffff, surface-2 #f1f5f9,
-   border #e2e8f0, text #0f172a, text-muted #475569, primary #0ea5e9, accent #6366f1,
-   success #10b981, danger #ef4444. Adjust the accent to fit the domain (fintech → emerald, health →
-   teal, creative → violet) unless the user specified colors.
-
-5. ELEVATE (CRITICAL — this is what separates hifi from wireframe): Add drop shadows to every
-   elevated surface via pen_set_shadow. Cards get shadow "0 4 6 -1 #0000001a". Buttons get
-   "0 2 4 -1 #0000001a". Modals/dialogs get "0 20 25 -5 #00000033". FABs get "0 8 12 -4 #00000033".
-   Use pen_bulk_update_by_filter to find all shapes named "Card*" or "Button*" and batch-style them
-   if you don't want to call pen_set_shadow one at a time. A design with ZERO shadows is incomplete.
-
-6. GRADIENTS: Add a gradient via pen_set_gradient_fill to the hero area, primary CTA, or logo mark.
-   Example: linear, angle 135, stops [{offset:0, color:"#0ea5e9"}, {offset:1, color:"#6366f1"}].
-   Do NOT gradient body text or the full page background.
-
-7. CONTENT: Replace placeholder text ("Lorem ipsum", "Item 1", "Label", "Heading") with realistic
-   domain copy via pen_generate_copy or pen_update_node (text field). Use real names ("Sarah Chen"),
-   real numbers ("$12,480", "+18.2%"), real labels ("Monthly revenue"). NEVER leave "Lorem ipsum" on
-   a high-fidelity design.
-
-8. ICONS: Add lucide icons (pen_search_icons) for nav items, buttons, stat indicators. Stroke width 2,
-   size 20-24. Do NOT use emoji as icons.
-
-9. COMPONENTIZE: After generating, if you see 3+ similar shapes (e.g. 4 stat cards, 3 list items),
-   call pen_recommend_components to find repeated patterns, then pen_convert_to_component on one of
-   them, and pen_place_component_instance + pen_override_instance to replace the others with linked
-   instances. This closes the gap vs Figma AI: proactively suggest componentization.
-
-10. HIERARCHY: when the prompt asks to "move X into a (new) frame" or "reparent X", FIRST create the
-    target frame with pen_create_node, THEN call pen_reparent_nodes to move the existing shape into it.
-    pen_reparent_nodes preserves the shape's absolute canvas position by default — pass
-    keepAbsolutePosition=false if you want the stored relative x/y reinterpreted verbatim against the
-    new parent. Do NOT pass a "parent" field to pen_update_node — that field is silently ignored;
-    always use pen_reparent_nodes for reparenting.
-
-11. SELF-CRITIQUE (MANDATORY for high-fidelity work): After the design is complete, call
-    pen_self_critique to get a senior-designer review. The critic will score wireframe-only output
-    (no shadows, no gradients, grayscale) at 4/10 or below — so if your first pass scored low, add
-    the missing shadows/gradients/content and re-critique. Address every [BLOCKER] and [MAJOR]
-    finding before finalizing. Skip this ONLY if the user explicitly asked for a quick wireframe.
+The system runs an AUTOMATIC critic pass (text critic + vision critic on the rendered canvas)
+after your turn; if it finds defects you will be re-prompted with exact fix instructions. You do
+NOT need to call pen_self_critique yourself during the turn - spend your calls on the design.
 
 === ARGUMENT RULES (CRITICAL — read before calling tools) =================
 
@@ -155,7 +127,9 @@ WIREFRAME — only produce that if the user explicitly says "wireframe", "low-fi
 === LAYOUT & AESTHETIC TIPS ===============================================
 
 • Mobile screens are 375×812 px (iPhone X+ aspect). Web screens are 1280×800 px.
-• Place the first screen at (100, 100). Additional screens go at +475px (mobile) or +1380px (web).
+• For placement, ALWAYS use the "Next screen placement" line at the end of the canvas snapshot -
+it gives the exact free coordinates for the next screen. On an empty canvas, place the first
+screen frame at (200, 50).
 • Use 16-24px padding inside frames. 8-12px gaps between elements. Section gaps 24-32px.
 • Mobile dashboard best practices (2025):
   - 4 stat cards (2×2 grid) with trend indicators (↑↓ +X%), each with a shadow + 12px radius
@@ -180,7 +154,7 @@ The task is complete ONLY when ALL of these are true:
   ✓ The self-critique returned no outstanding [BLOCKER] findings.
 
 A bare generate_wireframe output with no styling pass is NOT complete — do not stop there.
-Budget ~15-25 tool calls for a proper high-fidelity screen. If a tool fails 2x in a row, switch
+Budget <= 12 tool calls for the whole turn. If a tool fails 2x in a row, switch
 to a different approach (do NOT loop on the same failing call).`,
     allowedTools: [
       // Task 7-g Fix 2 — pen_generate_design_brief MUST be first per the
@@ -252,6 +226,13 @@ to a different approach (do NOT loop on the same failing call).`,
       'pen_place_component_instance',
       'pen_override_instance',
       'pen_self_critique',
+      // Audit 2-b T1: pen_visual_critique was registered but reachable in NO
+      // category — a dead tool. Visible here + in inspect so the model can
+      // re-run a vision critique after applying fixes (the runner's own
+      // critique loop is the primary authority; this is the manual re-check).
+      'pen_visual_critique',
+      // Audit 2-b T18: composite tools for the design-quality hot paths.
+      'pen_apply_design_system', 'pen_create_chart', 'pen_apply_typography',
       'pen_get_metadata',
     ],
     keywords: [
@@ -501,6 +482,12 @@ tool calls. Do NOT make changes — if the user wants fixes, they'll ask in a fo
       // M2-c round-trip reads — live DOM readback + real screenshots.
       'pen_get_computed',
       'pen_get_screenshot',
+      // Audit 2-b T1: visual critique is the natural inspect tool — the model
+      // can request an on-demand vision critique of the rendered canvas.
+      'pen_visual_critique',
+      // Audit 2-b T1: pen_self_critique pairs with visual critique for a
+      // text-critic pass on demand (the runner's loop is the primary path).
+      'pen_self_critique',
     ],
     keywords: [
       'audit', 'check', 'analyze', 'inspect', 'find', 'list', 'search',
@@ -758,7 +745,9 @@ export const ALL_TOOL_NAMES = [
   // Generators
   'pen_generate_design_brief', 'pen_generate_wireframe', 'pen_generate_user_flow', 'pen_generate_diagram',
   // Analysis
-  'pen_generate_copy', 'pen_audit_design',
+  'pen_generate_copy', 'pen_audit_design', 'pen_visual_critique',
+  // Audit 2-b T18 — composite tools
+  'pen_apply_design_system', 'pen_create_chart', 'pen_apply_typography',
   // Token binding
   'pen_bind_variable', 'pen_unbind_variable', 'pen_list_variables', 'pen_apply_variable',
   // .pen-aligned tools (variables, themes, refs, slots, export)
@@ -813,9 +802,31 @@ ${lines.join('\n')}
 // Produces the full task-specific instructions for an activated skill.
 // This is injected into the system prompt when the skill is active.
 
+const MULTI_SKILL_BODY = `You have access to ALL canvas tools (no task-specific skill was matched,
+or skill selection is in manual mode).
+
+=== UNIVERSAL DISCIPLINE ===================================================
+
+- Read before you write: pen_get_metadata (no args) lists the whole layer tree with ids - copy
+  ids verbatim, never guess them.
+- Build with pen_create_subtree (whole nested trees, "nodes: [...]" for several at once) instead
+  of N pen_create_node calls; repeat elements with pen_duplicate_nodes { count, direction }.
+- Restyle many layers at once with pen_bulk_update_by_filter - not one update per layer.
+- Emit independent tool calls in the SAME response (batched, ordered execution).
+- Aim for <= 12 tool calls per request.
+- For a new design from scratch, follow the HIGH-FIDELITY rules in the system prompt (palette,
+  shadows, gradients, real content, tokens, lucide icons - never emoji).
+- On edit turns, REUSE the document's existing $variables - never redefine $color.* when the
+  canvas already defines them.
+- The system runs an automatic critic pass after your turn; fix instructions arrive as a
+  re-prompt if defects are found.`;
+
 export function formatSkillBodyForPrompt(category: SkillCategory): string {
   if (category === 'multi') {
-    return ''; // No skill-specific body — all tools are available.
+    // Audit 2-c S9: the multi fallback used to get NO body at all - the
+    // biggest tool list with the least guidance. It now gets a compact
+    // generic body so the model still knows the batch-construction discipline.
+    return `<active_skill id="multi">\n${MULTI_SKILL_BODY}\n</active_skill>`;
   }
   const skill = SKILLS[category];
   if (!skill) return '';

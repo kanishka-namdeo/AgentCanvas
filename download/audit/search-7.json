@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://community.openai.com/t/prompting-best-practices-for-tool-use-function-calling/1123036",
+    "name": "Prompting Best Practices for Tool Use (Function Calling)",
+    "snippet": "Feb 17, 2025 — I'm looking for an explanation of how LLMs use/see the information passed in to the API parameters - specifically the tools that are specified. Read more",
+    "host_name": "community.openai.com",
+    "rank": 0,
+    "date": "Feb 17, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2605.00737v1",
+    "name": "A Framework to Assess and Optimize LLM Tool Calling",
+    "snippet": "May 1, 2026 — Most evaluations are coarse - grained —they test whether tool calling improves the aggregate accuracy (Yao et al., 2023; Qian et al., 2025 ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 1,
+    "date": "May 1, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@laurentkubaski/tool-or-function-calling-best-practices-a5165a33d5f1",
+    "name": "Tool (aka Function Calling) Best Practices",
+    "snippet": "Limit the number of tools most LLM providers do not talk much about this: they give the maximum number of tools that a model … in practice , the ...",
+    "host_name": "medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/LLMDevs/comments/1l4g5ne/complex_tool_calling",
+    "name": "Complex Tool Calling : r/LLMDevs",
+    "snippet": "I have a use case where I need to orchestrate through and potentially call 4-5 tools /APIs depending on a user query.",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.anthropic.com/engineering/writing-tools-for-agents",
+    "name": "Writing effective tools for AI agents—using",
+    "snippet": "Sep 11, 2025 — The Model Context Protocol (MCP) can empower LLM agents with potentially hundreds of tools to solve real-world tasks. Read more",
+    "host_name": "www.anthropic.com",
+    "rank": 4,
+    "date": "Sep 11, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling",
+    "name": "Programmatic tool calling - Claude Platform Docs",
+    "snippet": "Jan 20, 2026 — Let Claude call your tools from code in the code execution container, cutting model round trips and token use in multi- tool workflows.",
+    "host_name": "platform.claude.com",
+    "rank": 5,
+    "date": "Jan 20, 2026",
+    "favicon": ""
+  }
+]

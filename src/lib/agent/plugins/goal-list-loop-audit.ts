@@ -109,29 +109,18 @@ const goalInterviewTool = defineTool({
         options: q.options.map((o) => ({ label: o.label, description: o.description })),
       })),
     });
-    // Block until the user answers. We piggyback on the ask-user-question
-    // pending-question mechanism — register a fake pending entry that the
-    // /api/agent/answers route will resolve.
-    const { resolveAskUserQuestion, getPendingQuestions } = await import('./ask-user-question');
-    void resolveAskUserQuestion; // ensure import is loaded
-    void getPendingQuestions;
-    const answers = await new Promise<string[][]>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Goal interview timed out')), 5 * 60 * 1000);
-      // Register a one-shot resolver.
-      const checkInterval = setInterval(() => {
-        if (!getPendingQuestions().includes(toolCallId)) {
-          // The ask-user-question module already resolved this.
-          clearInterval(checkInterval);
-          clearTimeout(timer);
-          // Resolve with whatever the ask-user-question module returned.
-          // Since it already resolved, the answer was passed back to the
-          // ask_user_question tool — we just return the user's answers here.
-          // (For the goal interview, we treat the answers as goal criteria.)
-          resolve([['(interview completed)']]);
-        }
-      }, 100);
-    }).catch(() => [['(timeout)']]);
-    void answers;
+    // Audit 2-c S6: block on the REAL pending-question registry. The old
+    // implementation never registered a pending entry — it polled
+    // getPendingQuestions() for its own (never-registered) id, saw it absent
+    // after 100ms, and "resolved" with "(interview completed)" while silently
+    // discarding whatever the user eventually answered in the dialog.
+    const { awaitPendingUserAnswers } = await import('./ask-user-question');
+    let answers: string[][] = [];
+    try {
+      answers = await awaitPendingUserAnswers(toolCallId);
+    } catch {
+      answers = typed.questions.map(() => ['(timeout)']);
+    }
     // Build a goal from the answers.
     const goalId = `goal-${Date.now()}`;
     const goal: Goal = {

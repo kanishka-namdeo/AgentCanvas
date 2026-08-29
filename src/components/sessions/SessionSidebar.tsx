@@ -626,7 +626,9 @@ function TagEditorInline({
 }) {
   const [newTag, setNewTag] = useState('');
   // Reset the input whenever this editor re-mounts (the dropdown menu item
-  // re-renders per session row).
+  // re-renders per session row). Synchronous reset is intentional — the
+  // editor is keyed per session, so this runs once per mount, not per render.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setNewTag(''); }, [sessionId]);
 
   const addTag = () => {

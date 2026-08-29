@@ -8,12 +8,12 @@ A specialized skill for auditing design consistency, accessibility, and best pra
 - User wants accessibility checks (contrast, font size)
 
 ## Tools
-- pen_list_shapes — get the current canvas state
+- pen_get_metadata — get the current canvas state (layer tree with ids)
 - pen_audit_design — run the built-in audit checks
-- pen_find_shapes — filter by type/color/name
+- pen_find_nodes — filter by type/color/name
 
 ## Guidelines
-1. Always start with pen_list_shapes to see the current state
+1. Always start with pen_get_metadata to see the current state
 2. Run pen_audit_design for automated checks
 3. Report findings grouped by severity (high/medium/low)
 4. Suggest specific fixes with tool calls where possible

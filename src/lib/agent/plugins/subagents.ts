@@ -204,10 +204,10 @@ const reviewerTool = defineTool({
     if (!activeLLM) {
       return { content: [{ type: 'text', text: 'Error: no LLM client available for sub-agent.' }], details: { error: 'no_llm' } };
     }
-    // We need the canvas — pull it from the runner's ctx. Since the SDK
-    // passes ctx but our tools don't use it, we read the canvas from a
-    // module-level slot set by the runner.
-    const canvas = activeCanvas;
+    // We need the canvas — pull it from the runner's live provider (S5: a
+    // static turn-start snapshot used to make mid-turn reviews critique the
+    // PRE-turn canvas).
+    const canvas = getActiveCanvas();
     if (!canvas) {
       return { content: [{ type: 'text', text: 'Error: no canvas available.' }], details: { error: 'no_canvas' } };
     }
@@ -281,7 +281,7 @@ const workerTool = defineTool({
   name: 'subagent_worker',
   label: 'Sub-agent: Worker',
   description:
-    'Dispatch the worker sub-agent for focused implementation work. Currently a passthrough that returns the task as a summary — placeholder for future sub-session spawning.',
+    'NOT AVAILABLE — returns an error directing the agent to do the work itself. (Reserved for future sub-session spawning.)',
   promptSnippet: 'Delegate focused implementation work to a sub-agent.',
   promptGuidelines: [
     'Use subagent_worker for focused sub-tasks that benefit from isolation.',
@@ -293,11 +293,16 @@ const workerTool = defineTool({
   async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
     const typed = params as { task: string };
     emitEvent({ type: 'agent:subagent_dispatch', subAgentType: 'worker', task: typed.task.slice(0, 100) } satisfies SyncEvent);
-    // Placeholder: just return the task as the summary.
+    // Audit 2-b T8 / audit 2-c S4: this tool used to return `success: true`
+    // for work it never did — success theater that lets the model believe a
+    // sub-task is done. It now returns an honest ERROR the model can act on
+    // (do the work itself with its own tools).
     const result = {
-      summary: `(Worker sub-agent is a placeholder in this release. Task was: "${typed.task}")`,
+      summary:
+        `Worker sub-agent is not available in this build (no sub-session spawning yet). ` +
+        `Do the task yourself with your own tools: "${typed.task.slice(0, 200)}".`,
       toolCalls: 0,
-      success: true,
+      success: false,
     };
     emitEvent({
       type: 'agent:subagent_result',
@@ -308,17 +313,41 @@ const workerTool = defineTool({
     } satisfies SyncEvent);
     return {
       content: [{ type: 'text', text: result.summary }],
-      details: { task: typed.task },
+      details: { task: typed.task, unavailable: true },
+      isError: true as any,
     };
   },
 });
 
 // ---- Canvas slot (set by the runner) --------------------------------------
+//
+// Audit 2-c S5: the runner used to pass a TURN-START snapshot here, so a
+// mid-turn subagent_reviewer call read the pre-turn canvas (empty on a fresh
+// document). The slot now accepts either a static document or a LIVE
+// provider (closure over the runner's `canvas` variable) — readers always
+// see the current state.
 
-let activeCanvas: CanvasDocument | null = null;
+let activeCanvas: CanvasDocument | (() => CanvasDocument | null) | null = null;
 
-export function setActiveCanvas(canvas: CanvasDocument | null): void {
+export function setActiveCanvas(
+  canvas: CanvasDocument | (() => CanvasDocument | null) | null,
+): void {
   activeCanvas = canvas;
+}
+
+/// The LIVE canvas for sub-agent tools — resolves the provider each call so
+/// mid-turn reads see the agent's own patches (the runner's `canvas` closure
+/// is reassigned by ctx.applyPatch on every patch).
+export function getActiveCanvas(): CanvasDocument | null {
+  if (activeCanvas === null) return null;
+  if (typeof activeCanvas === 'function') {
+    try {
+      return activeCanvas() ?? null;
+    } catch {
+      return null;
+    }
+  }
+  return activeCanvas;
 }
 
 export const tools = [reviewerTool, oracleTool, workerTool];

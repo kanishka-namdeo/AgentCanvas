@@ -492,9 +492,13 @@ function RunCard({ run }: { run: Run }) {
     // they may have expired from the localStorage cache and re-sending them
     // risks confusion if the user explicitly meant "retry without images".
     setTimeout(() => {
-      canvasStore.promptAgent(userMsg.text).catch((e) => {
+      try {
+        // promptAgent returns void (it routes through the socket / HTTP
+        // fallback internally; failures surface as agent:error events).
+        canvasStore.promptAgent(userMsg.text);
+      } catch (e) {
         toast.error('Re-run failed to start', { description: String(e).slice(0, 120) });
-      });
+      }
     }, 200);
     toast.success(`Re-running in "${fork.title}"`, {
       description: 'Original transcript is preserved — switch back to compare.',

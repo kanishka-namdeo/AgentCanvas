@@ -121,6 +121,15 @@ export function sanitizeAgentPatch(patch: CanvasPatch, canvas: CanvasDocument): 
       if (explicitId && existingIds.has(explicitId)) {
         return { patch: null, warnings: [`add: id "${explicitId}" already exists on canvas`] };
       }
+      // Audit 4 C17: an add whose parentId doesn't exist used to flow into
+      // insertNode, which DROPS the node entirely (maps and never inserts) —
+      // the shape vanished with only a server console line. Strip the bad
+      // parentId (the node lands at root, still visible + editable) and warn.
+      const parentId = typeof (shape as any).parentId === 'string' ? (shape as any).parentId : undefined;
+      if (parentId && !existingIds.has(parentId)) {
+        delete (shape as any).parentId;
+        warnings.push(`add: parentId "${parentId}" not on canvas — inserted at root instead (node NOT lost)`);
+      }
       clampShapePartial(shape, warnings);
       return { patch, warnings };
     }
@@ -173,6 +182,12 @@ export function sanitizeAgentPatch(patch: CanvasPatch, canvas: CanvasDocument): 
             : undefined;
       if (rootId && existingIds.has(rootId)) {
         return { patch: null, warnings: [`add_subtree: root id "${rootId}" already exists on canvas`] };
+      }
+      // C17: same parentId guard as add — a typo'd parent must not lose the tree.
+      const stParent = typeof (shape as any).parentId === 'string' ? (shape as any).parentId : undefined;
+      if (stParent && !existingIds.has(stParent)) {
+        delete (shape as any).parentId;
+        warnings.push(`add_subtree: parentId "${stParent}" not on canvas — inserted at root instead`);
       }
       clampShapePartial(shape, warnings);
       return { patch, warnings };

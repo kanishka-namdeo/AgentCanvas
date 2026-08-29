@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.anthropic.com/engineering/writing-tools-for-agents",
+    "name": "Writing effective tools for AI agents—using",
+    "snippet": "Sep 11, 2025 — You can use Claude Code to automatically optimize your tools ... You can find other best practices for tool definitions in our Developer Guide. Read more",
+    "host_name": "www.anthropic.com",
+    "rank": 0,
+    "date": "Sep 11, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.anthropic.com/engineering/building-effective-agents",
+    "name": "Building Effective AI Agents",
+    "snippet": "Dec 19, 2024 — A good tool definition often includes example usage , edge cases, input format requirements, and clear boundaries from other tools . How can ... Read more",
+    "host_name": "www.anthropic.com",
+    "rank": 1,
+    "date": "Dec 19, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+    "name": "Effective context engineering for AI agents",
+    "snippet": "Sep 29, 2025 — 2025 Context is a critical but finite resource for AI agents . In this post, we explore strategies for effectively curating and managing.  ...",
+    "host_name": "www.anthropic.com",
+    "rank": 2,
+    "date": "Sep 29, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview",
+    "name": "Tool use with Claude - Claude Platform Docs",
+    "snippet": "Tool use (also called function calling) lets Claude call functions that you define or that Anthropic provides. Claude determines when to call a tool based ... Read more",
+    "host_name": "platform.claude.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/LLMDevs/comments/1nfg54u/how_to_write_effective_tools_for_agents_from",
+    "name": "How to write effective tools for agents [ from Anthropic ]",
+    "snippet": "A summary of what Anthropic wrote about in their latest resource on how to write effective tools with your agents using agents 1/ More tools != ...",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.anthropic.com/engineering/advanced-tool-use",
+    "name": "Introducing advanced tool use on the Claude Developer",
+    "snippet": "Nov 24, 2025 — Claude can now discover, learn, and execute tools dynamically to enable agents that take action in the real world. Here's how.",
+    "host_name": "www.anthropic.com",
+    "rank": 5,
+    "date": "Nov 24, 2025",
+    "favicon": ""
+  }
+]

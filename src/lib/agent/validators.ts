@@ -85,7 +85,7 @@ export function validateCanvasBeforeComplete(
         `Most text shapes use default weight 400 (${textShapesWithWeight.length}/${textShapes.length} = ${Math.round(pct * 100)}% have non-default weight). ` +
         `Add typographic hierarchy per the LETTER SPACING RULES: page title=700 / section heading=600 / metric value=700 / metric label=500 / body=400. ` +
         `Also set letterSpacing (tighten headings -0.4 to -0.8, open labels +0.2 to +0.6) and textAlign. ` +
-        `Either call pen_update_shape on each text layer OR regenerate via pen_generate_wireframe (the wireframe generator now emits rich typography per role).`,
+        `Either call pen_update_node on each text layer (changes: { fontWeight, letterSpacing, textAlign }) OR regenerate via pen_generate_wireframe (the wireframe generator now emits rich typography per role).`,
       );
     }
   }
@@ -106,11 +106,11 @@ export function validateCanvasBeforeComplete(
   // Rule 4: zero autoLayout containers.
   if (autoLayoutContainers.length === 0 && totalShapes >= 5) {
     reasons.push(
-      `No autoLayout detected on any shape. Add autoLayout=true to layout containers ` +
+      `No autoLayout detected on any shape. Add autoLayout to layout containers ` +
       `(cards, sidebars, topbars, tab bars) so children align automatically. ` +
       `The wireframe generator's post-processor adds autoLayout to these container types — ` +
-      `if you scaffolded manually via pen_create_shape, you missed it. ` +
-      `Call pen_update_shape with autoLayout={direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min"} on each card / sidebar / topbar.`,
+      `if you scaffolded manually via pen_create_node, you missed it. ` +
+      `Call pen_update_node with changes: { autoLayout: { direction:"vertical", gap:8, padding:16, alignX:"min", alignY:"min" } } on each card / sidebar / topbar.`,
     );
   }
 
@@ -141,7 +141,7 @@ export function validateCanvasBeforeComplete(
     reasons.push(
       `${overflowing.length} layer(s) extend below their parent screen frame (${examples}). ` +
       `Content spilling out of a frame renders as broken boxes below the screen. ` +
-      `Compress the vertical layout (pen_update_shape to move/resize layers so everything fits inside the frame) ` +
+      `Compress the vertical layout (pen_update_node with changes: { y, height } to move/resize layers so everything fits inside the frame) ` +
       `or, if the screen genuinely needs more room, deliberately resize the frame with pen_update_node FIRST.`,
     );
   }

@@ -72,8 +72,11 @@ export function DocumentSwitcher() {
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  // Initial local-cache read (once).
+  // Initial local-cache read (once). The setState is intentionally
+  // synchronous (localStorage read → first-paint cache) — the rule's
+  // cascading-render concern doesn't apply to a mount-time cache hydrate.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalDocs(readLocalCache());
   }, []);
 
@@ -89,6 +92,9 @@ export function DocumentSwitcher() {
   }, []);
 
   useEffect(() => {
+    // refresh() is async — its setStates land after `await`, never
+    // synchronously during the effect body.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open) void refresh();
   }, [open, refresh]);
 

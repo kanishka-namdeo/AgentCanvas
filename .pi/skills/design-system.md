@@ -11,16 +11,16 @@ Specialized skill for creating and managing design systems (tokens, palettes, va
 ## Tools
 - pen_generate_palette — generate harmonious palettes (analogous, triadic, etc.)
 - pen_apply_palette — apply a palette to shapes (omit shapeIds for all shapes)
-- pen_update_tokens — define named color + text style tokens
-- pen_set_variable — set design variables (color.primary, spacing.md, etc.)
-- pen_bind_shape_to_token — bind a shape's fill to a token
-- pen_apply_token — apply a token to shapes
-- pen_list_tokens — see current tokens
+- pen_set_variables — define named color + text style tokens (batch)
+- pen_set_variable — set a single design variable (color.primary, spacing.md, etc.)
+- pen_bind_variable — bind a shape's fill to a variable
+- pen_apply_variable — apply a variable to shapes
+- pen_list_variables — see current tokens
 
 ## Guidelines
 1. Generate palettes with pen_generate_palette(baseColor, rule)
 2. Apply with pen_apply_palette(palette=[...]) — pass a REAL JSON array, not a string
-3. Create tokens with pen_update_tokens for persistent design systems
+3. Create tokens with pen_set_variables for persistent design systems
 4. Use pen_set_variable for theme-conditional values (light/dark mode)
-5. Bind shapes to tokens so changing a token updates all bound shapes
+5. Bind shapes to variables so changing a variable updates all bound shapes
 6. palette MUST be an array: ["#f8fafc", "#ffffff", ...] — never a stringified string

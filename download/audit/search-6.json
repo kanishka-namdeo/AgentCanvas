@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://ai.engineer/speakers/steve-ruiz",
+    "name": "Steve Ruiz — AI Engineer Talks",
+    "snippet": "Steve Ruiz introduces tldraw's React-based infinite- canvas SDK and demonstrates its progression from Make Real , which converts sketches and annotations into ... Read more",
+    "host_name": "ai.engineer",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tldraw.dev/blog",
+    "name": "Blog – tldraw: Infinite Canvas SDK for React",
+    "snippet": "tldraw raised another $2M. Nov 22, 2023 • Steve Ruiz. tldraw raised another $2M. make real , the story so far. Nov 18, 2023 • Steve Ruiz. make real , the story so ... Read more",
+    "host_name": "tldraw.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tessl.io/registry/ainativedev/aidevcon-2026-ldn/0.100.8/files/talk-ruiz-agents-on-canvas-tldraw/transcript.md",
+    "name": "0.100.8 • aidevcon-2026-ldn • ainativedev • Registry",
+    "snippet": "Transcript -- Agents on the canvas with tldraw · Section 1 — Intro & framing · Section 2 — November 2023: GPT-4 vision launches & \" make real \" · Section 3 — Demo: ...",
+    "host_name": "tessl.io",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://webiano.digital/tldraw-feels-closer-to-paper-than-productivity-software",
+    "name": "tldraw feels closer to paper than productivity software",
+    "snippet": "Aug 6, 2026 — In SDK version 5.3, released on August 5, 2026 , tldraw ... Make Real and tldraw Computer explore the canvas as an interface to generative systems. Read more",
+    "host_name": "webiano.digital",
+    "rank": 3,
+    "date": "Aug 6, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://tldraw.dev/blog/announcing-tldraw-series-a",
+    "name": "tldraw raises $10M to build the infinite canvas for developers",
+    "snippet": "Apr 9, 2025 — In addition to the tldraw SDK , we also make demos and tweets. You might have seen our earlier AI projects like Make Real , our 2023 vibe drawing ... Read more",
+    "host_name": "tldraw.dev",
+    "rank": 4,
+    "date": "Apr 9, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://finance.biggo.com/news/cbaeea0e55a89da9",
+    "name": "tldraw's Steve Ruiz: AI Agents Must Leave the Sidebar to Do",
+    "snippet": "May 1, 2026 — From One-Shot Demos to Multi- Agent Coordination ; Make Real , 2023, Draw wireframe, press button, Sends sketch to vision model, returns working ... Read more",
+    "host_name": "finance.biggo.com",
+    "rank": 5,
+    "date": "May 1, 2026",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://developers.openai.com/api/docs/guides/function-calling",
+    "name": "Function calling | OpenAI API",
+    "snippet": "Best practices for defining functions . Write clear and detailed function names, parameter descriptions, and instructions. Explicitly describe the purpose of ... Read more",
+    "host_name": "developers.openai.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://agenta.ai/blog/the-guide-to-structured-outputs-and-function-calling-with-llms",
+    "name": "The guide to structured outputs and function calling with",
+    "snippet": "Sep 10, 2025 — Function calling is a specific type of structured output where the LLM tells your system which function to run and provides the parameters in a ... Read more",
+    "host_name": "agenta.ai",
+    "rank": 1,
+    "date": "Sep 10, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.openai.com/t/difference-between-structured-outputs-and-function-calling-required/937697",
+    "name": "Difference between Structured Outputs and function calling",
+    "snippet": "Sep 12, 2024 — This schema defines a structured response with two required properties, “fruits” and “vegetables”, both of which are strings.",
+    "host_name": "community.openai.com",
+    "rank": 2,
+    "date": "Sep 12, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://machinelearningmastery.com/structured-outputs-vs-function-calling-which-should-your-agent-use",
+    "name": "Structured Outputs vs. Function Calling: Which Should",
+    "snippet": "Apr 13, 2026 — In this article, you will learn the architectural differences between structured outputs and function calling in modern language model ... Read more",
+    "host_name": "machinelearningmastery.com",
+    "rank": 3,
+    "date": "Apr 13, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.openai.com/t/how-can-i-use-function-calling-with-response-format-structured-output-feature-for-final-response/965784",
+    "name": "How can I use function calling with response format",
+    "snippet": "Oct 3, 2024 — I have found one way to have tool calling & structured outputs. It uses the openai.pydantic_function_tool() helper method turn the Pydantic ...",
+    "host_name": "community.openai.com",
+    "rank": 4,
+    "date": "Oct 3, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.vellum.ai/blog/when-should-i-use-function-calling-structured-outputs-or-json-mode",
+    "name": "When should I use function calling, structured outputs or JSON",
+    "snippet": "Sep 6, 2024 — Enabling Structured Outputs allows you to specify a JSON schema through Zod, Pydantic or through Vellum's UI to define the JSON. Use Structured ...",
+    "host_name": "www.vellum.ai",
+    "rank": 5,
+    "date": "Sep 6, 2024",
+    "favicon": ""
+  }
+]

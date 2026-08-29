@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.figma.com/blog/the-figma-agent-is-here",
+    "name": "The Figma Design Agent is Here | Figma Blog",
+    "snippet": "May 20, 2026 — You can start in Figma Design with our agent to generate design layers to clarify intent across flows, states, copy, and structure . Then, send ...",
+    "host_name": "www.figma.com",
+    "rank": 0,
+    "date": "May 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/solutions/ai-coding-agent",
+    "name": "AI Coding Agent for Apps: Build Faster in Figma Make",
+    "snippet": "Figma Make is an AI coding agent that turns ideas into working apps—no dev wait time. Prompt your way from concept to interactive, shippable app in one ...",
+    "host_name": "www.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/release-notes",
+    "name": "Figma product news and release notes",
+    "snippet": "4 days ago — Keep your context, including prompts , images, and brand guidelines. Chat with your agent as results return directly to your conversation.",
+    "host_name": "www.figma.com",
+    "rank": 2,
+    "date": "Aug 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1tipp1e/the_figma_design_agent_is_here",
+    "name": "The Figma design agent is here : r/FigmaDesign",
+    "snippet": "Key canvas interactions: start a prompt from any design layer , run parallel prompts to explore multiple ideas simultaneously, and make manual ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/37998629035799-Work-with-the-Figma-agent-in-design-files",
+    "name": "Work with the Figma agent in design files",
+    "snippet": "Access the agent. Select any layer on the canvas and click Agents to open the on-canvas prompt box, or use the keyboard shortcut Cmd or Ctrl + Enter .",
+    "host_name": "help.figma.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/felixleezd_2563eb-figmapartner-activity-7401631729758986240-e3rQ",
+    "name": "How to 10x your design with Figma Make (GUIDE ⭐️).",
+    "snippet": "Designers who master prompt engineering in 2026 will ship 10x more than everyone else. Add structural clues in your prompt , You can tweak ...",
+    "host_name": "www.linkedin.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

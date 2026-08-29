@@ -123,9 +123,18 @@ const ALL_PLUGINS: PluginManifest[] = [
   {
     pluginId: 'subagents',
     pluginName: 'Sub-agents (reviewer, oracle, worker)',
-    description: 'Multi-agent delegation: reviewer (replaces design-critic), oracle (second opinion), worker',
+    description: 'Multi-agent delegation: reviewer (second design critique), oracle (second opinion), worker (unavailable)',
     category: 'orchestration',
-    defaultEnabled: true,
+    // Audit 2-b T8 / audit 2-c S3-S4: default OFF. The runner's mandatory
+    // critique loop is the single critique authority (design-critic +
+    // design-critic-vlm with prior-content scoping); subagent_reviewer
+    // duplicated it with a WORSE prompt and no prior-shape scoping (a
+    // regression vector for the "critic flags user's earlier screens"
+    // bug), and subagent_worker was a success-theater placeholder. The
+    // module's getActiveLLM()/setActiveCanvas() side-door remains
+    // load-bearing (variant-generator + brief/critic fallbacks use it)
+    // regardless of this toggle. Users can still enable it in Settings.
+    defaultEnabled: false,
     tools: subagents.tools,
   },
 ];

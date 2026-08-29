@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.figma.com/blog/the-figma-canvas-is-now-open-to-agents",
+    "name": "Agents, Meet the Figma Canvas | Figma Blog",
+    "snippet": "Mar 24, 2026 — Via the use_figma tool, Claude Code, Codex, and other MCP clients can generate and modify design assets that are linked to your design system. Read more",
+    "host_name": "www.figma.com",
+    "rank": 0,
+    "date": "Mar 24, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/blog/the-figma-agent-is-here",
+    "name": "The Figma Design Agent is Here | Figma Blog",
+    "snippet": "May 20, 2026 — Use the MCP server and use_figma to pull code onto the canvas or push designs back to code. The result is a dedicated design agent that works ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 1,
+    "date": "May 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://muz.li/blog/figma-just-opened-the-canvas-to-ai-agents-heres-what-it-means-for-designers",
+    "name": "Figma Just Opened the Canvas to AI Agents",
+    "snippet": "Mar 24, 2026 — Through Figma's MCP server, agents can now write directly to your Figma files using the new use_figma tool. That means Claude Code, Codex, ... Read more",
+    "host_name": "muz.li",
+    "rank": 2,
+    "date": "Mar 24, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/blog/workflow-lab-expanding-the-canvas-with-figma-mcp",
+    "name": "Workflow Lab: Expanding the Canvas with Figma MCP",
+    "snippet": "Apr 30, 2026 — For each one, it generates an editable, designable frame on the canvas using Astra's design system components via use_figma . And the designer's ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 3,
+    "date": "Apr 30, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://azukiazusa.dev/en/blog/use-figma-mcp-tool",
+    "name": "Design with AI Agents: Manipulating the Figma Canvas via",
+    "snippet": "Mar 27, 2026 — In late March 2026 , Figma's MCP server gained the use_figma tool for directly manipulating the Figma canvas . The generate_figma_design tool was ... Read more",
+    "host_name": "azukiazusa.dev",
+    "rank": 4,
+    "date": "Mar 27, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/40287261761559-Code-to-canvas-with-your-design-system",
+    "name": "Code to canvas with your design system",
+    "snippet": "With the MCP server connected, you can use the use_figma tool to create and edit frames, components, variables, and auto layout directly on the Figma canvas . Read more",
+    "host_name": "help.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

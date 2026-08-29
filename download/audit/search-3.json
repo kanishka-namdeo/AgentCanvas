@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://support.bolt.new",
+    "name": "Prompt effectively",
+    "snippet": "Tips for writing better prompts . When building with Bolt, the quality of your results will often depend less on how well you know code and more on how clearly ... Read more",
+    "host_name": "support.bolt.new",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "EliFuzz/awesome-system-prompts: A collection",
+    "snippet": "A collection of system prompts and tool definitions from various AI coding agents: Leaked System Prompts … helps developers modify codebases efficiently ...",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.augmentcode.com",
+    "name": "Leaked system prompts for 28+ AI coding tools hit 134K",
+    "snippet": "Mar 30, 2026 — System prompts are the hidden layer that actually shapes how an AI coding tool behaves. They define what the model prioritizes, what it refuses, ... Read more",
+    "host_name": "www.augmentcode.com",
+    "rank": 2,
+    "date": "Mar 30, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://launchdarkly.com",
+    "name": "Prompt Engineering Best Practices: Tutorial & Examples",
+    "snippet": "Oct 30, 2025 — Learn how to prevent problems and achieve optimal results in AI projects by implementing proper prompt engineering techniques.",
+    "host_name": "launchdarkly.com",
+    "rank": 3,
+    "date": "Oct 30, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://zazencodes.com",
+    "name": "What I learned from the Perplexity and Copilot leaked",
+    "snippet": "I wrote a ridiculously powerful system prompt that was inspired by the leaked Perplexity and Copilot prompts . I'm including the full prompt ... Read more",
+    "host_name": "zazencodes.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

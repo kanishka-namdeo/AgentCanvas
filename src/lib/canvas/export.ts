@@ -135,10 +135,13 @@ function paintAttrs(s: Shape, uid: string): { defs: string[]; attrs: string } {
     );
     attrs += ` filter="url(#${fid})"`;
   }
+  // Audit 4 C5 (rotation convention): the DOM renderer rotates CLOCKWISE
+  // around the TOP-LEFT corner (transform-origin: 0 0). The export paths used
+  // to rotate around the CENTER — so any rotated layer changed shape between
+  // canvas and export. All three painters (DOM, SVG export, server render)
+  // now share the clockwise/top-left convention.
   if (s.rotation) {
-    const cx = s.x + s.width / 2;
-    const cy = s.y + s.height / 2;
-    attrs += ` transform="rotate(${s.rotation} ${cx} ${cy})"`;
+    attrs += ` transform="rotate(${s.rotation} ${s.x} ${s.y})"`;
   }
   return { defs, attrs };
 }
@@ -221,9 +224,8 @@ function shapeToSvg(s: Shape, uid: string): { el: string; defs: string[] } {
       });
       if (!g) return { el: '', defs };
       if (s.rotation) {
-        const cx = s.x + s.width / 2;
-        const cy = s.y + s.height / 2;
-        g = `<g transform="rotate(${s.rotation} ${cx} ${cy})">${g}</g>`;
+        // C5: top-left origin — matches the DOM renderer + shapeShapeAttrs.
+        g = `<g transform="rotate(${s.rotation} ${s.x} ${s.y})">${g}</g>`;
       }
       if (s.opacity !== undefined && s.opacity < 1) {
         g = `<g opacity="${s.opacity}">${g}</g>`;

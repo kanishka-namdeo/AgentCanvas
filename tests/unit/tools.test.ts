@@ -1365,9 +1365,9 @@ describe('tools: pen_set_constraints', () => {
 // ---- Tool registration sanity ------------------------------------------------
 
 describe('tools: registration sanity', () => {
-  it('returns 79 tools total (78 + pen_generate_variants — the ambiguous-creation parallel explorer; 79 pre-Phase-6 minus the pen_list_shapes supersede and the legacy mark-as-component pen_create_component fold — spec Phase 6 / G.3)', () => {
+  it('returns 82 tools total (79 + the three audit-2026-08-30 composite tools: pen_apply_design_system, pen_create_chart, pen_apply_typography)', () => {
     const tools = createCanvasTools(h.ctx);
-    expect(tools).toHaveLength(79);
+    expect(tools).toHaveLength(82);
   });
 
   it('every tool has a unique name', () => {

@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/32132100833559-Guide-to-the-Figma-MCP-server",
+    "name": "Guide to the Figma MCP server",
+    "snippet": "The Figma MCP server helps developers explore and implement designs quickly and accurately: Use your agentic tools to create and modify native Figma content ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/blog/introducing-figma-mcp-server",
+    "name": "Introducing our Dev Mode MCP server",
+    "snippet": "Jun 4, 2025 — We set out to apply this standard with Figma's MCP server , which allows developers to bring context from Figma into agentic coding tools like ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 1,
+    "date": "Jun 4, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/nbabich_ui-figma-mcp-activity-7377287004591398912-OpEX",
+    "name": "💡Top 3 MCP Servers for Figma Design-to-Code | Nick Babich",
+    "snippet": "This MCP connects directly to Figma's dev mode features and design system tokens and has a deep integration with Figma's ecosystem.",
+    "host_name": "www.linkedin.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.urbaninsight.com/article/figma-mcp-how-generate-design-accurate-front-end-code-ai",
+    "name": "Figma MCP: How to Generate Design-Accurate Front-End",
+    "snippet": "Figma MCP (Model Context Protocol) is a feature that connects Figma's design files directly to AI coding agents in your editor, allowing them to read exact ... Read more",
+    "host_name": "www.urbaninsight.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/blog/design-systems-ai-mcp",
+    "name": "Design Systems And AI: Why MCP Servers Are The Unlock",
+    "snippet": "Aug 6, 2025 — With the Figma MCP server , an AI agent can use design context to help audit differences between your designs and codebase. They can: Audit usage ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 4,
+    "date": "Aug 6, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.intodesignsystems.com/blog/learn-figma-mcp-server",
+    "name": "Learn the Figma MCP Server: A new era for Design",
+    "snippet": "Nov 17, 2025 — The new Figma Dev Mode MCP server changes how AI reads and understands Design Systems . Here is a practical and clear explanation of what it is, ...",
+    "host_name": "www.intodesignsystems.com",
+    "rank": 5,
+    "date": "Nov 17, 2025",
+    "favicon": ""
+  }
+]

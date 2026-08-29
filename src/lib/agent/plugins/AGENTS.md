@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The agent plugin subsystem: a registry of 8 ported pi-agent plugins exposing up to 32 additional tools, gated per-user by `settings.enabledPlugins` (14 tools default-enabled). Plugins add interactive runtime capabilities — blocking questions, todo lists, long-term memory, context compaction, goal tracking, background tasks, MCP servers, sub-agents — without touching the core tool surface in `tools.ts`.
+The agent plugin subsystem: a registry of 8 ported pi-agent plugins exposing up to 32 additional tools, gated per-user by `settings.enabledPlugins` (11 tools default-enabled after the 2026-08-30 audit — ask-user 1, todo 5, memory 5; the subagents plugin is now default-OFF: the runner's critique loop is the single critique authority, and subagent_worker was success theater). Plugins add interactive runtime capabilities — blocking questions, todo lists, long-term memory, context compaction, goal tracking, background tasks, MCP servers, sub-agents — without touching the core tool surface in `tools.ts`.
 
 ## Ownership
 

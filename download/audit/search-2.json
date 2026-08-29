@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.techaheadcorp.com/blog/inside-lovable-backend-design-system-architecture-ai-agent-orchestration-explained",
+    "name": "Inside Lovable: Backend Design & AI Agent Architecture",
+    "snippet": "Aug 5, 2026 — The AI agent runs a five-step orchestration loop : goal-setting, context collection, change-set planning, build-and-preview, and a feedback loop ... Read more",
+    "host_name": "www.techaheadcorp.com",
+    "rank": 0,
+    "date": "Aug 5, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.beam.cloud/blog/agentic-apps",
+    "name": "How Lovable and Bolt Work: Architecture of AI App Builders",
+    "snippet": "Jul 2, 2025 — This post breaks down that architecture and shows how to build a smaller version using agents , MCP, a sandboxed runtime, and a preview loop .",
+    "host_name": "www.beam.cloud",
+    "rank": 1,
+    "date": "Jul 2, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2604.04990v1",
+    "name": "How AI Coding Agents Shape Software Architecture",
+    "snippet": "Apr 5, 2026 — Agents make architectural decisions, but no feedback loop ties those decisions to established architectural knowledge.",
+    "host_name": "arxiv.org",
+    "rank": 2,
+    "date": "Apr 5, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.lovable.dev/tips-tricks/from-idea-to-app",
+    "name": "How to build a real product with Lovable",
+    "snippet": "Shape the idea, plan , design , build in small loops , add a backend, test, publish, and keep improving your app once people are using it.",
+    "host_name": "docs.lovable.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/lovable/comments/1qoo0h4/the_architecture_is_the_plan_fixing_agent_context",
+    "name": "The Architecture Is The Plan: Fixing Agent Context Drift",
+    "snippet": "Providing a step-by-step work plan instead of an overall objective helps agents reliably build larger projects.",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.devgenius.io/lovables-architecture-decoded-how-ai-transforms-intent-into-production-ready-code-ceead05003e4",
+    "name": "Lovable's Architecture Decoded: How AI Transforms “Intent",
+    "snippet": "Dec 21, 2025 — Lovable's most underappreciated architectural decision is that it treats development as a closed loop rather than a one-shot generation. You ... Read more",
+    "host_name": "blog.devgenius.io",
+    "rank": 5,
+    "date": "Dec 21, 2025",
+    "favicon": ""
+  }
+]

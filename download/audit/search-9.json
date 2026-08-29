@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.taskade.com/blog/self-improving-ai-agents-reflection",
+    "name": "Self-Improving AI Agents: The Reflection Loop (2026)",
+    "snippet": "Jun 29, 2026 — Reflection is a closed feedback loop where an AI agent evaluates its own output against quality criteria and revises until the output passes or ... Read more",
+    "host_name": "www.taskade.com",
+    "rank": 0,
+    "date": "Jun 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.tungstenautomation.com/blog/the-agentic-ai-reflection-pattern",
+    "name": "Agentic AI Reflection Pattern Explained",
+    "snippet": "Feb 19, 2026 — This post focuses on the Reflection Pattern and explains how self-review loops improve accuracy and trust in enterprise AI systems.",
+    "host_name": "www.tungstenautomation.com",
+    "rank": 1,
+    "date": "Feb 19, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.langchain.com/blog/reflection-agents",
+    "name": "Reflection Agents",
+    "snippet": "Feb 21, 2024 — Reflection is a prompting strategy used to improve the quality and success rate of agents and similar AI systems. It involves prompting an ... Read more",
+    "host_name": "www.langchain.com",
+    "rank": 2,
+    "date": "Feb 21, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.gigaspaces.com/question/how-do-feedback-loops-enhance-self-reflection-in-ai-agents",
+    "name": "How Do Feedback Loops Enhance Self-Reflection in AI",
+    "snippet": "Feedback loops enhance this by enabling continuous, in-the-moment evaluation . Instead of waiting for a post-hoc report, the agent learns and adapts on the fly. Read more",
+    "host_name": "www.gigaspaces.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1u2y8rh/i_built_a_selfimproving_gui_agent_that_learns",
+    "name": "I built a self-improving GUI agent that learns from its own",
+    "snippet": "But the part I'm most excited about is the self-improvement loop . After each task, the agent reviews what happened and extracts reusable skills ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.towardsai.net/loop-engineering-for-ai-agents-building-verifiable-self-correcting-coding-workflows-8b32c72184a1",
+    "name": "Building Verifiable, Self-Correcting Coding Workflows",
+    "snippet": "Jun 22, 2026 — Reflection systems can improve quality , but even the reflection literature emphasizes grounding critique in external signals rather than relying ... Read more",
+    "host_name": "pub.towardsai.net",
+    "rank": 5,
+    "date": "Jun 22, 2026",
+    "favicon": ""
+  }
+]

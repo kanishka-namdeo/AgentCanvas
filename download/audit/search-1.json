@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://medium.com/lets-code-future/i-built-a-full-client-website-using-v0-dev-with-just-a-few-prompts-25e96e4ee4e4",
+    "name": "I Built a Full Client Website Using V0.dev — With Just",
+    "snippet": "V0.dev lets you generate React code from a prompt . You just describe the UI, and it builds it for you using shadcn/ui components. Added new  ...",
+    "host_name": "medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/blog/maximizing-outputs-with-v0-from-ui-generation-to-code-creation",
+    "name": "Maximizing outputs with v0: From UI generation to code",
+    "snippet": "Oct 23, 2024 — v0 is a powerful tool for generating high-quality UIs and code, and it's also an educational asset for designing and creating on the web.",
+    "host_name": "vercel.com",
+    "rank": 1,
+    "date": "Oct 23, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://v0.app",
+    "name": "v0 by Vercel - Build Full-Stack Web Apps with AI",
+    "snippet": "Generate working applications in minutes with AI . Publish as live websites in seconds. Sync with a repo. Connect to GitHub and push code directly to your ... Read more",
+    "host_name": "v0.app",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://v0.dev/t/ueXiM7GOTaJ",
+    "name": "create a landing page for a ia ui design creator by simple",
+    "snippet": "This is a v0 .app and shadcn/ ui generation for the prompt : create a landing page for a ia ui design creator by simple text prompts and imagems, ...",
+    "host_name": "v0.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mindstudio.ai/blog/what-is-vercel-v0",
+    "name": "What Is Vercel v0? AI-Powered UI Generation Explained",
+    "snippet": "Apr 14, 2026 — Vercel v0 generates React components and UI layouts from text prompts . Here's what it is, what it's good at, and where it fits in a dev workflow ... Read more",
+    "host_name": "www.mindstudio.ai",
+    "rank": 4,
+    "date": "Apr 14, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.taskade.com/blog/v0-review",
+    "name": "v0 by Vercel Review 2026 - Pricing, Limits, Full-Stack Picks",
+    "snippet": "Oct 1, 2025 — V0 generates complete UI components from prompts , while Cursor is an AI-enhanced code editor where developers write code with AI assistance. V0 ... Read more",
+    "host_name": "www.taskade.com",
+    "rank": 5,
+    "date": "Oct 1, 2025",
+    "favicon": ""
+  }
+]

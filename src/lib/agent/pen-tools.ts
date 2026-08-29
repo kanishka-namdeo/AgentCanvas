@@ -33,6 +33,7 @@ import type { CanvasPatch } from '../canvas/types';
 import type { CanvasToolContext } from './tools';
 import type { PenVariableDef } from '../pen/types';
 import { canvasToPen, serializePenDocument } from '../pen/converters';
+import { notFoundResult } from './tool-errors';
 
 export function createPenTools(ctx: CanvasToolContext) {
   // ---- Tool: pen_set_variable ---------------------------------------------
@@ -62,9 +63,17 @@ export function createPenTools(ctx: CanvasToolContext) {
           description: 'Variable type. Defaults to "color" if the value is a hex string, "number" if numeric.',
         }),
       ),
-      value: Type.Union([Type.String(), Type.Number(), Type.Boolean()], {
-        description: 'Single value for the variable (use this OR themedValues, not both).',
-      }),
+      // Audit 2-b T7 (schema contradiction fix): `value` used to be REQUIRED
+      // while the description documented the themedValues-only pattern — the
+      // documented dark/light variable ({ themedValues: [...] } with no value)
+      // failed schema validation BEFORE execute, contradicting the tool's own
+      // docs. `value` is now optional and the value-XOR-themedValues rule is
+      // enforced in execute with a friendly error.
+      value: Type.Optional(
+        Type.Union([Type.String(), Type.Number(), Type.Boolean()], {
+          description: 'Single value for the variable (use this OR themedValues, not both).',
+        }),
+      ),
       themedValues: Type.Optional(
         Type.Array(
           Type.Object({
@@ -86,6 +95,36 @@ export function createPenTools(ctx: CanvasToolContext) {
         return {
           content: [{ type: 'text', text: 'Error: `key` (or `name`) is required.' }],
           details: { error: 'missing_key' },
+          isError: true as any,
+        };
+      }
+      // T7: enforce the documented XOR with a friendly, actionable error
+      // instead of a schema-level rejection the model can't interpret.
+      const hasValue = params.value !== undefined && params.value !== null;
+      const hasThemed = Array.isArray(params.themedValues) && params.themedValues.length > 0;
+      if (!hasValue && !hasThemed) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text:
+                'Error: pass either `value` (a single value) OR `themedValues` (an array of {value, theme}) — one of the two is required.',
+            },
+          ],
+          details: { error: 'missing_value_or_themed_values' },
+          isError: true as any,
+        };
+      }
+      if (hasValue && hasThemed) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text:
+                'Error: pass `value` OR `themedValues`, not both. For a theme-aware variable use only `themedValues` (the first entry is the default).',
+            },
+          ],
+          details: { error: 'value_xor_themed_values' },
           isError: true as any,
         };
       }
@@ -161,17 +200,18 @@ export function createPenTools(ctx: CanvasToolContext) {
       const modes: Record<string, string> = params.explicitVariableModes ?? p.theme ?? {};
       const shape = ctx.getShapes().find((s) => s.id === nodeId);
       if (!shape) {
-        return {
-          content: [{ type: 'text', text: `Error: no shape with id ${nodeId}` }],
-          details: { error: 'not_found', shapeId: nodeId },
-          isError: true as any,
-        };
+        return notFoundResult(ctx, nodeId, 'Set explicit modes');
       }
-      // Store theme in shape metadata (Phase C adds a first-class theme field).
+      // Audit 2-b T5 (no-op fix): the patch used to carry `shape: {}` — the
+      // modes were recorded ONLY in the summary string, so nothing persisted
+      // and a later pen_get_metadata contradicted the tool result. The .pen
+      // node's `theme` field IS the explicit-mode carrier the resolver reads
+      // (resolve.ts merges it into the effective theme for themed-variable
+      // resolution), so writing it here makes the tool REAL.
       const patch: CanvasPatch = {
         op: 'update',
         shapeId: nodeId,
-        shape: {},
+        shape: { theme: modes } as any,
         summary: `Applied modes ${JSON.stringify(modes)} to "${shape.name}"`,
       };
       ctx.applyPatch(patch);
@@ -181,8 +221,7 @@ export function createPenTools(ctx: CanvasToolContext) {
             type: 'text',
             text:
               `Applied modes ${JSON.stringify(modes)} to "${shape.name}". ` +
-              `Descendants will inherit these modes. (Note: full mode-variable resolution lands in Phase C; ` +
-              `for now this is recorded as metadata.)`,
+              `Descendants inherit these modes; variables with matching mode-conditional values resolve to them under this subtree.`,
           },
         ],
         details: { shapeId: nodeId, theme: modes, patch },
@@ -328,7 +367,9 @@ export function createPenTools(ctx: CanvasToolContext) {
     description:
       'Add or update a descendant override on an existing pen.dev component instance (ref). ' +
       'Lets you customize a specific nested node inside an instance without editing the component. ' +
-      'Maps to .pen `ref.descendants`.',
+      'Maps to .pen `ref.descendants`. ' +
+      'NOTE: descendant-path overrides are applied at creation time via pen_create_ref\'s `descendants` param; ' +
+      'this tool currently applies only DIRECT overrides on the instance root — prefer pen_create_ref for deep overrides.',
     promptSnippet: 'Override a descendant property on an existing component instance.',
     promptGuidelines: [
       'Pass the instance shapeId and the descendant ID path (e.g. "label" or "ok-button/label").',
@@ -347,11 +388,7 @@ export function createPenTools(ctx: CanvasToolContext) {
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const shape = ctx.getShapes().find((s) => s.id === params.shapeId);
       if (!shape) {
-        return {
-          content: [{ type: 'text', text: `Error: no instance with id ${params.shapeId}` }],
-          details: { error: 'not_found', shapeId: params.shapeId },
-          isError: true as any,
-        };
+        return notFoundResult(ctx, params.shapeId, 'Override descendant');
       }
       if (!shape.componentId) {
         return {
@@ -373,11 +410,30 @@ export function createPenTools(ctx: CanvasToolContext) {
           directOverrides[k] = v;
         }
       }
+      if (Object.keys(directOverrides).length === 0) {
+        // Audit 2-b T5 (honesty fix): previously this fell through to an
+        // empty `shape: {}` patch + a success message claiming the override
+        // was applied — success theater on a no-op.
+        return {
+          content: [
+            {
+              type: 'text',
+              text:
+                `Error: none of the overrides for descendant "${params.descendantPath}" are properties the ` +
+                `instance root can carry (supported: fill, stroke, text, fontSize, textColor, width, height, x, y, rotation, opacity, radius). ` +
+                `For DEEP descendant overrides, re-place the instance with pen_create_ref and pass its ` +
+                `descendants param: { "${params.descendantPath}": ${JSON.stringify(params.overrides)} }.`,
+            },
+          ],
+          details: { error: 'no_applicable_overrides', shapeId: params.shapeId, descendantPath: params.descendantPath },
+          isError: true as any,
+        };
+      }
       const patch: CanvasPatch = {
         op: 'update',
         shapeId: params.shapeId,
         shape: directOverrides,
-        summary: `Overrode descendant "${params.descendantPath}" on instance "${shape.name}"`,
+        summary: `Overrode instance "${shape.name}" (requested descendant "${params.descendantPath}" — direct properties applied to the instance root)`,
       };
       ctx.applyPatch(patch);
       return {
@@ -385,8 +441,9 @@ export function createPenTools(ctx: CanvasToolContext) {
           {
             type: 'text',
             text:
-              `Overrode descendant "${params.descendantPath}" on instance "${shape.name}". ` +
-              `Applied direct overrides: ${Object.keys(directOverrides).join(', ') || '(none — recorded as metadata)'}.`,
+              `Applied overrides to the instance "${shape.name}" root: ${Object.keys(directOverrides).join(', ')}. ` +
+              `(Note: "${params.descendantPath}"-scoped NESTED overrides are not applied to the descendant — ` +
+              `for that, re-place with pen_create_ref + descendants.)`,
           },
         ],
         details: { shapeId: params.shapeId, descendantPath: params.descendantPath, overrides: params.overrides, patch },
@@ -421,11 +478,7 @@ export function createPenTools(ctx: CanvasToolContext) {
         : [];
       const shape = (ctx.getShapes() ?? []).find((s) => s.id === params?.shapeId);
       if (!shape) {
-        return {
-          content: [{ type: 'text', text: `Error: no shape with id ${params?.shapeId}` }],
-          details: { error: 'not_found', shapeId: params?.shapeId },
-          isError: true as any,
-        };
+        return notFoundResult(ctx, params?.shapeId, 'Mark slot');
       }
       if (shape.type !== 'frame') {
         return {
@@ -434,11 +487,15 @@ export function createPenTools(ctx: CanvasToolContext) {
           isError: true as any,
         };
       }
-      // Slot info is stored in shape metadata (reconstructed on .pen export).
+      // Audit 2-b T5 (no-op fix): the patch used to carry `shape: {}` — the
+      // slot marker was recorded ONLY in the summary string. The .pen node's
+      // `slot` field (false | string[]) IS the slot carrier, so writing it
+      // here makes the marker persist (surfaces on .pen export + round-trips
+      // through normalizePenNode).
       const patch: CanvasPatch = {
         op: 'update',
         shapeId: params.shapeId,
-        shape: {},
+        shape: { slot: components.length > 0 ? components : false } as any,
         summary: `Marked frame "${shape.name}" as a slot for ${components.length} component(s): ${components.join(', ')}`,
       };
       ctx.applyPatch(patch);
@@ -447,8 +504,7 @@ export function createPenTools(ctx: CanvasToolContext) {
           {
             type: 'text',
             text:
-              `Marked frame "${shape.name}" as a slot. Recommended components: ${components.join(', ')}. ` +
-              `(Recorded as metadata; full slot rendering lands in Phase C.)`,
+              `Marked frame "${shape.name}" as a slot. Recommended components: ${components.join(', ') || '(none — slot marker removed)'}.`,
           },
         ],
         details: { shapeId: params.shapeId, components: params.components, patch },

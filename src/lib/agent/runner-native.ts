@@ -4,7 +4,7 @@
 // This is the production path. It replaces the legacy hand-rolled LLM loop
 // with the SDK's native agent session, while:
 //
-//   - Reusing the same 88 ToolDefinitions (already defined with `defineTool`).
+//   - Reusing the same tool catalog (defineTool ToolDefinitions).
 //   - Reusing the same SYSTEM_PROMPT_TEMPLATE + skill/classifier/planner.
 //   - Reusing the same web-research + design-critic subagents (now provider-aware).
 //   - Emitting the same SyncEvent shapes the React UI and Socket.IO service
@@ -79,7 +79,7 @@ import {
   type Plan,
 } from './skills';
 import { resolveModel, resolveZaiSandboxFallback } from './pi-ai-model-resolver';
-import { subscribeAndTranslate } from './agent-session-translator';
+import { subscribeAndTranslate, createEventQueue } from './agent-session-translator';
 import { registerActiveSession } from './active-sessions';
 import { dataUrlToImageContent } from './attachments';
 import { classifyAgentError, agentErrorMessage } from '../agent-error';
@@ -110,6 +110,68 @@ import { setActiveSession as setGoalActiveSession } from './plugins/goal-list-lo
 import { setActiveSession as setBackgroundTaskActiveSession } from './plugins/background-tasks';
 import { setActiveLLM as setSubagentActiveLLM, setActiveCanvas as setSubagentActiveCanvas } from './plugins/subagents';
 import { getMemoryContextForPrompt } from './plugins/memory';
+import { getJournalEvents } from './event-journal';
+
+// ---- Cross-turn conversation history (audit 1 P3) ---------------------------
+//
+// Replay the last few journaled user/assistant text pairs into the first user
+// message. The journal rows carry the full SyncEvent payloads; we keep only
+// the text, newest-last, capped per message and in total so a long chat can't
+// balloon the prompt. Exported for unit testing.
+const HISTORY_MAX_TURNS = 6;
+const HISTORY_PER_MSG_CAP = 1200;
+const HISTORY_TOTAL_CAP = 6000;
+
+export async function buildConversationHistory(documentId: string): Promise<string> {
+  if (!documentId) return '';
+  let rows: Array<{ type: string; payload: any }> = [];
+  try {
+    rows = await getJournalEvents(documentId, 0, 400);
+  } catch {
+    return '';
+  }
+  const pairs: Array<{ user: string; assistant: string }> = [];
+  let pendingUser: string | null = null;
+  for (const row of rows) {
+    if (row.type === 'agent:user_message') {
+      const text = typeof row.payload?.text === 'string' ? row.payload.text : '';
+      if (text.trim()) {
+        if (pendingUser !== null) pairs.push({ user: pendingUser, assistant: '' });
+        pendingUser = text;
+      }
+    } else if (row.type === 'agent:turn_final' && pendingUser !== null) {
+      const text = typeof row.payload?.text === 'string' ? row.payload.text : '';
+      pairs.push({ user: pendingUser, assistant: text });
+      pendingUser = null;
+    }
+  }
+  if (pendingUser !== null) pairs.push({ user: pendingUser, assistant: '' });
+  if (pairs.length === 0) return '';
+  // Drop the LAST pair when its user message is the CURRENT prompt (the
+  // journal row for this turn is written at run start, before the runner
+  // reads history — replaying it verbatim would duplicate the prompt).
+  const currentPromptRow = rows.filter((r) => r.type === 'agent:user_message').pop();
+  const lastPair = pairs[pairs.length - 1];
+  if (currentPromptRow && lastPair && lastPair.user === currentPromptRow.payload?.text && !lastPair.assistant) {
+    pairs.pop();
+  }
+  if (pairs.length === 0) return '';
+  const recent = pairs.slice(-HISTORY_MAX_TURNS);
+  const clip = (s: string): string => {
+    const t = s.replace(/\s+/g, ' ').trim();
+    return t.length > HISTORY_PER_MSG_CAP ? `${t.slice(0, HISTORY_PER_MSG_CAP)}…` : t;
+  };
+  const lines: string[] = [];
+  let total = 0;
+  for (const p of recent) {
+    const turn = `user: ${clip(p.user)}${p.assistant ? `\nassistant: ${clip(p.assistant)}` : ''}`;
+    if (total + turn.length > HISTORY_TOTAL_CAP && lines.length > 0) break;
+    lines.push(turn);
+    total += turn.length;
+  }
+  if (lines.length === 0) return '';
+  return `\n\n[CONVERSATION HISTORY — earlier turns on this canvas, most recent last. For context; the canvas snapshot below reflects the CURRENT state, so trust it over any geometry described in history:]\n${lines.join('\n---\n')}`;
+}
 
 // ---- Build the in-memory resource loader ----------------------------------
 //
@@ -210,7 +272,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     },
   };
 
-  // 2. Create all 88 tools. These are already `ToolDefinition[]` (defined
+  // 2. Create the full tool set. These are already `ToolDefinition[]` (defined
   //    via `defineTool` from `@earendil-works/pi-coding-agent`), so they
   //    can be passed straight to `createAgentSession({ customTools })`.
   const canvasTools = wrapToolsWithPriorContentGuard(createCanvasTools(ctx) as unknown as ToolDefinition[], {
@@ -269,7 +331,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       classification = await classifyIntent({
         prompt,
         canvasShapeCount: canvas.shapes.length,
-        llm: undefined, // keyword pass first; LLM fallback below if needed
+        // Audit 2-c S9: wire the LLM fallback via the provider-aware
+        // sub-agent client (it's OpenAI-shaped — exactly what classifyIntent
+        // wants). Previously `llm: undefined` meant keyword-regex-only routing
+        // in production; the fallback code existed but could never run.
+        llm: subAgentLLM as any,
         signal,
       });
     } catch {
@@ -281,25 +347,36 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         recommendPlan: false,
       };
     }
-    // For the LLM fallback, we'd need an OpenAI-shaped client. Since the
-    // main agent now uses pi-ai, we can't easily pass a client here without
-    // a pi-ai → OpenAI-shape adapter. The keyword pass is reliable enough
-    // for production; the LLM fallback was a safety net for ambiguous
-    // prompts. If confidence is low, the 'multi' fallback exposes all tools.
+    // The keyword pass runs first inside classifyIntent; the LLM fallback
+    // above only fires when keyword confidence is below threshold. If both
+    // fail, the 'multi' fallback exposes all tools.
   }
 
   const activeCategory: SkillCategory = classification.category;
 
-  // 5. Filter the tool set to the active skill (plus always-on pen_* + figma_*
-  //    + all plugin tools). Plugin tools are always available regardless of
-  //    the active skill — they're cross-cutting (ask_user_question, todo,
-  //    memory, etc.) and the agent should be able to use them in any context.
+  // 5. Filter the tool set to the active skill (plus, where they're actually
+  //    used, the .pen-file + Figma-ontology tools + all plugin tools).
+  //    Plugin tools are always available regardless of the active skill —
+  //    they're cross-cutting (ask_user_question, todo, memory, etc.) and the
+  //    agent should be able to use them in any context.
+  //
+  //    Audit 2-b T3: the .pen-file tools (PEN_TOOL_NAMES) and the Figma
+  //    page/component tools (FIGMA_TOOL_NAMES) used to ride along on EVERY
+  //    turn, pushing even the narrowest skill to 45-80 visible tools. They
+  //    now ride along only when a structural category (wireframe / multi) is
+  //    in play — the other skills' explicit allowlists already name the
+  //    variable/token/component tools they need individually.
+  //
+  //    Audit 2-c S9: secondary categories now widen the tool set too — a
+  //    prompt like "align these cards then make them blue" (layout+styling)
+  //    gets BOTH skills' ergonomic tools instead of doing styling work
+  //    through generic pen_update_node calls.
+  const structuralCategories = new Set<SkillCategory>([...classification.secondaryCategories, activeCategory]);
+  const includePenFileTools = structuralCategories.has('wireframe') || activeCategory === 'multi';
   const allowedToolNames = new Set<string>([
     ...getToolNamesForCategory(activeCategory),
-    ...PEN_TOOL_NAMES,
-    ...PEN_TOOL_LEGACY_NAMES,
-    ...FIGMA_TOOL_NAMES,
-    ...FIGMA_TOOL_LEGACY_NAMES,
+    ...classification.secondaryCategories.flatMap((c: SkillCategory) => getToolNamesForCategory(c)),
+    ...(includePenFileTools ? [...PEN_TOOL_NAMES, ...FIGMA_TOOL_NAMES] : []),
     ...pluginToolNames,
   ]);
   // Legacy ALIAS entries no longer ride along (Agent Performance Package
@@ -347,6 +424,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // below stays as the fallback for when pre-generation fails (endpoint
   // down / parse error / timeout).
   let preGeneratedBrief: string | null = null;
+  // ---- Audit 2-c S11: RACE the brief against everything else ----------------
+  //
+  // The brief sub-agent used to be AWAITED here, before classification,
+  // tool filtering and (most expensively) the web-research dispatch — a
+  // guaranteed 10-40s of dead wall-clock before the main loop could even
+  // start. It's now kicked off WITHOUT awaiting and joined just before the
+  // user message is assembled (the first point that actually needs it), so
+  // classification, tool-set construction and web research all overlap it.
+  let preGeneratedBriefPromise: Promise<string | null> | null = null;
   // ---- Ambiguous-creation detection (multi-variant explorer path) --------
   //
   // "a pricing page" / "a profile card" with no palette, style, or
@@ -388,33 +474,52 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const expectsCanvasOutput = isDesignRequest(prompt) && !QUESTIONISH_PROMPT;
 
   if (shouldEnforceBrief && !isAmbiguousCreation) {
-    try {
-      const { dispatchDesignBriefSubAgent } = await import('./subagents/design-brief');
-      const briefPromise = dispatchDesignBriefSubAgent({
-        task: prompt,
-        canvas,
-        originalPrompt: prompt,
-        ...(subAgentLLM ? { llm: subAgentLLM as any } : {}),
-      });
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('brief pre-generation timed out')), 40_000));
-      const briefResult = await Promise.race([briefPromise, timeoutPromise]);
-      if (briefResult?.brief) {
-        preGeneratedBrief = JSON.stringify(briefResult.brief, null, 2);
-        hasGeneratedBrief = true; // the tool-layer gate below becomes a no-op
+    preGeneratedBriefPromise = (async () => {
+      try {
+        const { dispatchDesignBriefSubAgent } = await import('./subagents/design-brief');
+        const briefPromise = dispatchDesignBriefSubAgent({
+          task: prompt,
+          canvas,
+          originalPrompt: prompt,
+          ...(subAgentLLM ? { llm: subAgentLLM as any } : {}),
+        });
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('brief pre-generation timed out')), 40_000));
+        const briefResult = await Promise.race([briefPromise, timeoutPromise]);
+        if (briefResult?.brief) {
+          return JSON.stringify(briefResult.brief, null, 2);
+        }
+        return null;
+      } catch {
+        // Pre-generation failed — fall back to the tool-layer brief gate.
+        return null;
       }
-    } catch {
-      // Pre-generation failed — fall back to the tool-layer brief gate.
-    }
+    })();
   }
 
+  // (The pre-generated brief promise is joined further down — after web
+  // research — so the sub-agent overlaps everything before the user message.)
+
   const BRIEF_TOOL_NAME = 'pen_generate_design_brief';
+  // Audit 1 P4: the gate used to miss the tools the prompt actively steers
+  // the model toward (pen_create_subtree, pen_insert_html, the generators)
+  // while gating a deprecated alias name that is never registered
+  // (pen_create_shape). It now covers every mutating construction tool, so
+  // the "brief before any design work" contract holds whichever primitive
+  // the model reaches for. Recovery is always available: every skill
+  // allowlist carries pen_generate_design_brief.
   const GATED_TOOL_NAMES = new Set<string>([
     'pen_generate_wireframe',
-    'pen_create_shape',
     'pen_create_node',
+    'pen_create_subtree',
+    'pen_insert_html',
+    'pen_generate_user_flow',
+    'pen_generate_diagram',
+    'pen_generate_copy',
+    'pen_generate_variants',
     'pen_apply_palette',
     'pen_set_variable',
+    'pen_set_variables',
   ]);
 
   // Ambiguous-creation turns skip the brief gate too — the variant explorer
@@ -633,9 +738,28 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     }
   }
 
+  // ---- Audit 2-c S11: join the pre-generated brief here (the first point
+  //      that needs it) — classification, tool filtering and web research
+  //      have all overlapped the sub-agent by now.
+  if (preGeneratedBriefPromise) {
+    const brief = await preGeneratedBriefPromise;
+    if (brief) {
+      preGeneratedBrief = brief;
+      hasGeneratedBrief = true; // the tool-layer gate below becomes a no-op
+    }
+  }
+
   // 8. Build the system prompt (identical to legacy runner — uses the same
   //    template, skill metadata, plan section, and canvas snapshot). Plus
   //    memory context (long-term MEMORY.md + scratchpad + today's log).
+  //
+  //    Audit 1 P6 (cache stability): the plan / file-skills / memory sections
+  //    are PER-TURN data. They used to be appended to the SYSTEM prompt,
+  //    which mutated the supposedly byte-stable cacheable prefix every turn
+  //    (skill body selection + plan + memory writes all busted the cache).
+  //    They now ride the FIRST USER MESSAGE alongside the snapshot — the
+  //    system prompt stays strictly static per document+settings, so the
+  //    cross-turn provider prefix cache actually hits.
   const skillMetadata = formatSkillMetadataForPrompt();
   const skillBody = formatSkillBodyForPrompt(activeCategory);
   const planSection = plan
@@ -660,7 +784,8 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
 
   // Long-term memory context (from the memory plugin — MEMORY.md + scratchpad
   // + today's + yesterday's daily logs). This gives the agent persistent
-  // recall of user preferences and past design decisions.
+  // recall of user preferences and past design decisions. Capped by the
+  // memory plugin itself (audit 1 P7) so it can't grow without bound.
   let memorySection = '';
   try {
     const memCtx = getMemoryContextForPrompt();
@@ -671,10 +796,32 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // Memory plugin failed to load — non-fatal.
   }
 
-  const systemContent =
-    buildSystemPrompt(skillMetadata, skillBody, planSection, canvas, defaultPalette, planFirst, settings?.pack, /* includeSnapshot */ false) +
-    fileSkillsSection +
-    memorySection;
+  // ---- Audit 1 P3: cross-turn conversation history --------------------------
+  //
+  // Every turn used to start from a blank session — the LLM saw the canvas
+  // snapshot but NEVER the prior chat turns, so "as we discussed",
+  // "use the other font you suggested", or a plain "yes, do that" after a
+  // clarifying question were unintelligible. The journal already records
+  // agent:user_message + agent:turn_final per turn; replay the last few
+  // turns into the first user message (token-capped) — after the snapshot,
+  // before the current prompt, never in the system prompt (cache).
+  let conversationHistorySection = '';
+  try {
+    conversationHistorySection = await buildConversationHistory(documentId);
+  } catch {
+    // Journal unavailable (fresh doc / DB hiccup) — non-fatal.
+  }
+
+  const systemContent = buildSystemPrompt(
+    skillMetadata,
+    skillBody,
+    /* planSection */ '', // per-turn data — rides the user message now (P6)
+    canvas,
+    defaultPalette,
+    planFirst,
+    settings?.pack,
+    /* includeSnapshot */ false,
+  );
 
   // ---- Agent Performance Package change 10: prompt caching -----------------
   //
@@ -788,9 +935,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const variantNudge = isAmbiguousCreation
     ? `\n\n[VARIANT EXPLORATION — this request does not pin a visual direction. Call pen_generate_variants FIRST with the request verbatim: it explores 2-3 complete design directions in parallel, a vision judge picks the best render, and only the winner is applied. Do NOT call pen_generate_design_brief — the palette choice is exactly what the exploration settles.]`
     : '';
+  // Per-turn context sections ride the user message (P6 cache stability):
+  // plan, file-skills, memory. Order: history → snapshot → per-turn sections →
+  // current prompt last-ish (brief/variant nudge + version stamp + pack nudge).
+  const perTurnSections = planSection + fileSkillsSection + memorySection;
   const userMessage = (webResearchSummary
     ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}`
-    : `${selectionNote}${prompt}`) + briefSection + variantNudge + snapshotSection + promptVersionSection + packReminder;
+    : `${selectionNote}${prompt}`) + briefSection + variantNudge + conversationHistorySection + snapshotSection + perTurnSections + promptVersionSection + packReminder;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;
@@ -1077,7 +1228,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     setGoalActiveSession(sessionId);
     setBackgroundTaskActiveSession(sessionId);
     setSubagentActiveLLM(subAgentLLM ?? null);
-    setSubagentActiveCanvas(canvas);
+    setSubagentActiveCanvas(() => canvas);
 
     // 14. Drain events from the queue while the prompt is running. We use
     //     a race between `session.prompt()` (which resolves when the turn
@@ -1552,7 +1703,34 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       let textCritiqueSeverity: 'low' | 'medium' | 'high' = 'medium';
       let vlmCritique: any = null;
       let vlmSeverity: 'low' | 'medium' | 'high' = 'medium';
-      const [textResult, vlmResult] = await Promise.all([
+      let vlmScreenshotSource: 'client' | 'server' | undefined;
+
+      // ---- Audit 2-c S2: keep an event sink alive ACROSS the critique phase --
+      //
+      // The main attempt loop's finally restores the sink the moment the
+      // turn ends — so when the VLM critic ran, hasSink() was always false
+      // and it judged the resvg APPROXIMATION instead of the real rendered
+      // canvas on 100% of mandatory runs. Installing a critique-phase sink
+      // (pushed into a queue drained concurrently with the critics — the
+      // same pattern the fix-turn uses) lets the critic's
+      // agent:screenshot_request round-trip reach the browser while the
+      // critics run, so the vision judge sees the REAL canvas.
+      //
+      // Audit 2-c S11: emit subagent_dispatch cards for the critics too —
+      // the SubAgentsCard UI already exists; previously the 15-40s critic
+      // phase was silent dead air (the run looked frozen).
+      const critiqueQueue = createEventQueue();
+      const restoreCritiqueSink = setEventSink((event) => {
+        critiqueQueue.push([{ kind: 'agent_event', event }]);
+      });
+      if (!smallCleanEdit) {
+        yield { kind: 'agent_event', event: { type: 'agent:subagent_dispatch', subAgentType: 'design_critic', task: 'Critique current canvas' } as any };
+        yield { kind: 'agent_event', event: { type: 'agent:subagent_dispatch', subAgentType: 'design_critic_vlm', task: 'Critique rendered canvas' } as any };
+      } else {
+        yield { kind: 'agent_event', event: { type: 'agent:subagent_dispatch', subAgentType: 'design_critic', task: 'Critique current canvas' } as any };
+      }
+
+      const criticsPromise = Promise.all([
         (async () => {
           try {
             const { dispatchDesignCriticSubAgent } = await import('./subagents/design-critic');
@@ -1589,6 +1767,21 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
               }
             })(),
       ]);
+      // Close the queue once the critics settle so the drain loop below
+      // exits after yielding everything they emitted mid-flight.
+      criticsPromise.then(
+        () => setTimeout(() => critiqueQueue.close(), 0),
+        () => setTimeout(() => critiqueQueue.close(), 0),
+      );
+      // Drain the critique queue CONCURRENTLY with the critics — this is
+      // what lets the screenshot request reach the client (and its answer
+      // return) while awaitClientResponse is still pending.
+      for await (const ev of critiqueQueue.drain()) {
+        yield ev;
+      }
+      const [textResult, vlmResult] = await criticsPromise;
+      restoreCritiqueSink();
+
       textCritiqueSummary = textResult?.summary ?? '';
       // The text critic's summary includes a SCORE: line — parse the number.
       const scoreMatch = textCritiqueSummary.match(/SCORE:\s*(\d+)/i);
@@ -1598,6 +1791,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       }
       vlmCritique = vlmResult?.critique ?? null;
       if (vlmCritique) vlmSeverity = vlmCritique.severity;
+      vlmScreenshotSource = vlmResult?.screenshotSource;
+      if (vlmResult?.success && vlmScreenshotSource) {
+        yield { kind: 'agent_event', event: { type: 'agent:subagent_result', subAgentType: 'design_critic_vlm', success: true, summary: `VLM critic finished (score ${vlmCritique?.overallScore ?? '?'}/10, screenshot: ${vlmScreenshotSource})`, toolCalls: 1 } as any };
+      }
 
       // ---- 4. Exit decision --------------------------------------------------
       const defects = [
@@ -1610,6 +1807,9 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       ];
 
       // Emit the critique event so the UI can render the critic's findings.
+      // screenshotSource (S2): tells the UI which picture the VLM critic
+      // actually judged — 'client' (real DOM capture) vs 'server' (resvg
+      // approximation) — so the "VLM 7/10" chip never overclaims.
       yield {
         kind: 'agent_event',
         event: {
@@ -1620,6 +1820,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           textSeverity: textCritiqueSeverity,
           vlmSeverity,
           vlmScore: vlmCritique?.overallScore,
+          vlmScreenshotSource,
         } as any,
       };
 
@@ -1682,9 +1883,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
 
       // Task 7-e Fix 3 #5: Strengthened fix-message — explicitly enumerate
       // which tools the agent MUST call + a "Do NOT respond with text only"
-      // directive. The previous vague "Fix them by calling pen_update_shape
-      // or pen_create_shape" let glm-5.3 respond with text-only "I've
-      // addressed the issues" without actually calling any tools.
+      // directive.
+      //
+      // AUDIT FIX (audit 1 P2 / audit 2 T2 / audit 3 S1 — critical): the old
+      // message mandated `pen_update_shape` / `pen_create_shape` with
+      // `{ shapeId, … }` — names that are NOT registered on the native path
+      // (they're filtered-out legacy aliases), so every fix-turn steered the
+      // model into guaranteed "Tool not found" errors and stuck-detector
+      // aborts. All recipes below now use the REGISTERED canonical contract:
+      // pen_update_node { nodeId, changes: { … } } and friends.
       const fixMessage = `The design critic found these defects in your current design:
 
 ${defects.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}
@@ -1692,18 +1899,18 @@ ${defects.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}
 Shapes you created THIS turn (${newShapesForCritique.length} — these are the ONLY shapes you may modify):
 ${shapeSummaries}
 ${priorScopeNote}
-You MUST call at least one of: pen_update_shape, pen_create_shape, pen_bulk_update_by_filter, pen_set_shadow, pen_set_gradient_fill, pen_apply_palette — to address these defects.
+You MUST call at least one of: pen_update_node, pen_bulk_update_by_filter, pen_create_node, pen_set_shadow, pen_apply_palette — to address these defects.
 
 Do NOT respond with text only. Do NOT declare done until you have made at least one tool call to fix each defect.
 
-Specifically:
-- If a text shape uses default weight 400, call pen_update_shape with { shapeId, fontWeight: 700 for H1 / 600 for H2 / 500 for labels }.
-- If a text shape has letterSpacing=0, call pen_update_shape with { shapeId, letterSpacing: -0.02 for headings / 0.01 for labels / 0 for body }.
-- If a text shape has no textAlign, call pen_update_shape with { shapeId, textAlign: 'left' for body / 'center' for hero / 'right' for numeric }.
-- If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:1, blur:2, color:"#0000000d" } (subtle sm shadow; use y:4/blur:6 only for raised states).
-- If a card/sidebar/topbar has no autoLayout, call pen_update_shape with { shapeId, autoLayout: { direction:"vertical", gap:8, padding:24, alignX:"min", alignY:"min" } }.
-- If a layer extends below its parent screen frame, call pen_update_shape to move/resize it (and its siblings) so ALL content fits inside the frame — or deliberately enlarge the frame with pen_update_node first.
-- If your screen is missing core components (KPI cards, chart, table, etc.) per the design brief's informationArchitecture, call pen_create_shape to add them.
+Specifically (pass shape ids verbatim from the list above):
+- If a text shape uses default weight 400, call pen_update_node with { nodeId, changes: { fontWeight: 700 for H1 / 600 for H2 / 500 for labels } }.
+- If a text shape has letterSpacing=0, call pen_update_node with { nodeId, changes: { letterSpacing: -0.4 for headings / 0.4 for labels / 0 for body } }.
+- If a text shape has no textAlign, call pen_update_node with { nodeId, changes: { textAlign: 'left' for body / 'center' for hero / 'right' for numeric } }.
+- If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:1, blur:2, color:"#0000000d" } (subtle sm shadow; use y:4/blur:6 only for raised states) — or batch it: pen_bulk_update_by_filter with a name filter matching the cards + changes: { shadow: { x:0, y:1, blur:2, color:"#0000000d" } }.
+- If a card/sidebar/topbar has no autoLayout, call pen_update_node with { nodeId, changes: { autoLayout: { direction:"vertical", gap:8, padding:24, alignX:"min", alignY:"min" } } }.
+- If a layer extends below its parent screen frame, call pen_update_node with { nodeId, changes: { y, height } } to move/resize it (and its siblings) so ALL content fits inside the frame — or deliberately enlarge the frame with pen_update_node first.
+- If your screen is missing core components (KPI cards, chart, table, etc.) per the design brief's informationArchitecture, call pen_create_subtree to add them (ONE call with a nested tree — not many pen_create_node calls).
 
 Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
 
@@ -1735,7 +1942,11 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
       setGoalActiveSession(sessionId);
       setBackgroundTaskActiveSession(sessionId);
       setSubagentActiveLLM(subAgentLLM ?? null);
-      setSubagentActiveCanvas(canvas);
+      // Audit 2-c S5: pass a LIVE canvas provider (closure over the runner's
+      // `canvas` variable) instead of a stale snapshot — the subagents plugin
+      // previously read a turn-START copy, so a mid-turn reviewer critique
+      // saw the pre-turn canvas (empty on a fresh document).
+      setSubagentActiveCanvas(() => canvas);
 
       let fixError: any;
       let fixSawActivity = false;

@@ -797,6 +797,44 @@ function flushPatchQueue() {
     }
   }
 
+  // ---- Audit 4 C18: agent-touched node pulse ---------------------------------
+  //
+  // agentHighlightIds used to fire ONLY when the agent explicitly called the
+  // select tool — patches themselves never pulsed the nodes they touched, so
+  // mid-turn the user saw geometry morph with no pointer to WHAT changed.
+  // Derive a transient "recently-touched-by-agent" set from this frame's
+  // AGENT patches (non-local) — the ids each patch targets — and merge it
+  // into the same highlight pipeline (1.5s pulse ring in DomChrome).
+  if (newHighlightIds === null) {
+    const touched = new Set<string>();
+    for (const q of queued) {
+      if (q.local) continue; // user's own edits don't pulse.
+      const p: any = q.patch;
+      if (p.shapeId && typeof p.shapeId === 'string') touched.add(p.shapeId);
+      if (Array.isArray(p.shapeIds)) {
+        for (const id of p.shapeIds) {
+          if (typeof id === 'string') touched.add(id);
+        }
+      }
+      if (Array.isArray(p.updates)) {
+        for (const u of p.updates) {
+          if (u && typeof u.id === 'string') touched.add(u.id);
+        }
+      }
+      if (p.shape && typeof p.shape.id === 'string') touched.add(p.shape.id);
+      if (Array.isArray(p.shapes)) {
+        for (const s of p.shapes) {
+          if (s && typeof s.id === 'string') touched.add(s.id);
+        }
+      }
+    }
+    // Cap the pulse set so a whole-canvas op (palette/clear) can't light up
+    // hundreds of rings at once — a 30-node pulse is plenty of signal.
+    if (touched.size > 0 && touched.size <= 30) {
+      newHighlightIds = [...touched];
+    }
+  }
+
   useCanvasStore.setState((s) => ({
     document: finalDoc,
     undoStack: mutatingPreStates.length > 0

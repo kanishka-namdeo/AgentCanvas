@@ -38,6 +38,7 @@ function baseSession(id: string, documentId: string, extra: Partial<Session> = {
     toolCallCount: 0,
     messageIds: [],
     runIds: [],
+    tags: [],
     createdAt: ts,
     updatedAt: ts,
     lastOpenedAt: ts,

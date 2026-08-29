@@ -385,6 +385,19 @@ export const tools = [memoryWriteTool, memoryReadTool, memorySearchTool, scratch
 
 // ---- System prompt injection (called by runner-native.ts) ------------------
 
+// Audit 1 P7: injection caps — MEMORY.md / scratchpad / daily logs grow
+// without bound and used to ride the prompt at full length. Keep the TAIL
+// (most recent entries) of each section.
+const MEMORY_INJECT_CAP_LINES = 100;
+const SCRATCHPAD_INJECT_CAP_LINES = 30;
+const DAILY_INJECT_CAP_LINES = 50;
+
+function tailLines(text: string, cap: number): string {
+  const lines = text.trimEnd().split('\n');
+  if (lines.length <= cap) return text.trim();
+  return `… (${lines.length - cap} older line(s) omitted)\n${lines.slice(-cap).join('\n')}`;
+}
+
 export function getMemoryContextForPrompt(): string {
   const memory = readFileSafe(MEMORY_FILE);
   const scratchpad = readFileSafe(SCRATCHPAD_FILE);
@@ -392,9 +405,9 @@ export function getMemoryContextForPrompt(): string {
   const yesterdayDate = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const yesterday = readFileSafe(path.join(DAILY_DIR, `${yesterdayDate}.md`));
   const parts: string[] = [];
-  if (memory.trim()) parts.push(`=== MEMORY (long-term, curated) ===\n${memory.trim()}`);
-  if (scratchpad.trim()) parts.push(`=== SCRATCHPAD (fix-later items) ===\n${scratchpad.trim()}`);
-  if (today.trim()) parts.push(`=== TODAY'S LOG ===\n${today.trim()}`);
-  if (yesterday.trim()) parts.push(`=== YESTERDAY'S LOG ===\n${yesterday.trim()}`);
+  if (memory.trim()) parts.push(`=== MEMORY (long-term, curated) ===\n${tailLines(memory, MEMORY_INJECT_CAP_LINES)}`);
+  if (scratchpad.trim()) parts.push(`=== SCRATCHPAD (fix-later items) ===\n${tailLines(scratchpad, SCRATCHPAD_INJECT_CAP_LINES)}`);
+  if (today.trim()) parts.push(`=== TODAY'S LOG ===\n${tailLines(today, DAILY_INJECT_CAP_LINES)}`);
+  if (yesterday.trim()) parts.push(`=== YESTERDAY'S LOG ===\n${tailLines(yesterday, DAILY_INJECT_CAP_LINES)}`);
   return parts.length > 0 ? parts.join('\n\n') : '';
 }

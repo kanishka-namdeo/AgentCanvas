@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.digitalapplied.com/blog/agent-self-verification-limits-by-output-modality-2026",
+    "name": "Where Agents Can Check Their Own Work, and Where Not",
+    "snippet": "Aug 12, 2026 — An agent iterating on a web page can read its own markup, its console errors and a screenshot of the result, so the fix -check- fix loop closes ...",
+    "host_name": "www.digitalapplied.com",
+    "rank": 0,
+    "date": "Aug 12, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://paddo.dev/blog/multimodal-validation-visual-verification",
+    "name": "Visual Verification: Making Agents Prove Their Work",
+    "snippet": "Dec 16, 2025 — Screenshot gets refreshed via Playwright Agent compares current state to reference If mismatch, agent identifies what's wrong and continues.  ...",
+    "host_name": "paddo.dev",
+    "rank": 1,
+    "date": "Dec 16, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/testdino-hq/playwright-skill/blob/main/core/visual-regression.md",
+    "name": "playwright-skill/core/visual-regression.md at main",
+    "snippet": "Verifying that a page or component renders correctly after code changes. Playwright compares a screenshot taken during the test. Screenshot per viewport ( loop ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://qaskills.sh/blog/playwright-visual-regression-testing-guide",
+    "name": "Playwright Visual Regression Testing: The Complete 2026",
+    "snippet": "Jun 16, 2026 — This guide is a complete, practical walkthrough of visual regression testing with Playwright . We cover the toHaveScreenshot and toMatchSnapshot ...",
+    "host_name": "qaskills.sh",
+    "rank": 3,
+    "date": "Jun 16, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://testquality.com/playwright-visual-regression-guide",
+    "name": "Playwright Visual Regression: Baselines, Flake & CI Guide",
+    "snippet": "May 8, 2026 — Playwright visual regression compares a saved baseline image against a fresh screenshot pixel by pixel. The most common cause is the operating ...",
+    "host_name": "testquality.com",
+    "rank": 4,
+    "date": "May 8, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://playwright.dev/docs/best-practices",
+    "name": "Best Practices",
+    "snippet": "For CI failures, use the Playwright trace viewer instead of videos and screenshots . inspect DOM snapshots for each action using dev tools, view network ...",
+    "host_name": "playwright.dev",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

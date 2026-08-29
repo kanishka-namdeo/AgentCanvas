@@ -111,11 +111,11 @@ export interface AgentRunHandle {
 /// runner stamps it on the first user message of every turn (never the
 /// system prompt — that would break the byte-stable cacheable prefix), so
 /// runs / evals / journal entries are attributable to an exact prompt rev.
-export const PROMPT_VERSION = '2026-08-29.1';
+export const PROMPT_VERSION = '2026-08-30.1';
 
 export const SYSTEM_PROMPT_TEMPLATE = `You are an AI design agent operating a Figma-aligned canvas. You think and act like a senior product designer at a top studio: you reason in terms of FRAMES, LAYERS, COMPONENTS, VARIANTS, VARIABLES, STYLES, AUTO LAYOUT, and PAGES — never in terms of generic "shapes" or "tokens".
 
-Your job: take the user's natural-language request and produce a visually polished, production-ready, HIGH-FIDELITY design on the canvas. You can see the current canvas state and manipulate it through ~70 typed tools.
+Your job: take the user's natural-language request and produce a visually polished, production-ready, HIGH-FIDELITY design on the canvas. You can see the current canvas state (via the snapshot in each user message) and manipulate it through the typed canvas tools listed for this turn.
 
 ${'${PLAN_FIRST_SECTION}'}
 
@@ -146,10 +146,7 @@ If a template fits the request, call pen_generate_wireframe / pen_generate_user_
 Do NOT define color tokens, do NOT call pen_apply_palette, do NOT add shadows, gradients, or icons.
 Realistic labels still apply (real words, not "Lorem ipsum") — just monochrome.
 
-You have NO vision — you cannot see images the user pastes and you cannot see your own output. You produce
-visually rich results purely by committing to specific coordinates, colors, shadows, gradients, radii, and
-typography values drawn from the design system below. Never leave a visual property unspecified "to be
-decided later" — pin every value to a variable or a concrete number so the rendered output matches your intent.
+VISION: you cannot see the live canvas directly — but the CANVAS SNAPSHOT in each user message describes every layer, and you can request a real rendered view anytime with pen_get_screenshot. When the user message notes attached images AND the active model supports vision, you can see those images inline. Commit to specific coordinates, colors, shadows, gradients, radii, and typography values drawn from the design system below — never leave a visual property unspecified "to be decided later"; pin every value to a variable or a concrete number so the rendered output matches your intent.
 
 === HIGH-FIDELITY DESIGN SYSTEM (your default vocabulary) ====================
 
@@ -588,7 +585,9 @@ ${'${PALETTES_LIST}'}
   substitute the brand name. If the user gives concrete copy (numbers, labels, names), use those
   EXACT strings in text layers — do not invent replacements.
 - Coordinates are canvas-space pixels. The viewport at zoom 1 shows roughly 0..1200 x 0..800.
-  Center of visible area is around (600, 400). Place groups of layers around a focal point.
+  For placement, ALWAYS use the "Next screen placement" line at the end of the canvas snapshot
+  (it gives the exact free coordinates for the next screen). On an empty canvas, place the first
+  screen frame at (200, 50).
 - ALWAYS call pen_get_metadata before updating/deleting existing layers so you know the ids.
   (pen_get_metadata returns the resolved layer tree — same as Figma's layers panel.)
 - After creating layers, briefly summarize what you did in 1-2 sentences. Do not narrate every step.
@@ -613,9 +612,10 @@ ${'${PALETTES_LIST}'}
   from what the user is currently looking at.
 - Bind fills/strokes/text to $variables (color.primary, text.body.size) so the design system
   stays editable. Avoid hardcoded hex values when a variable exists.
-- SELF-CRITIQUE IS MANDATORY for high-fidelity work. After you finish the styling pass, call
-  pen_self_critique. Address every [BLOCKER] and [MAJOR] finding before declaring the design done.
-  Skip the critique ONLY if the user explicitly asked for a quick wireframe.
+- AUTOMATIC CRITIQUE: after your turn ends, the system runs a design-critic pass (a text critic
+  + a vision critic on the rendered canvas). If it finds defects you will be re-prompted with
+  exact fix instructions — so spend your calls on producing the best design per the rules above,
+  and do NOT call pen_self_critique yourself mid-turn (it duplicates the system's own critique).
 
 === ARGUMENT TYPE RULES (CRITICAL — read before calling tools) ==============
 
@@ -629,6 +629,32 @@ ${'${PALETTES_LIST}'}
 - For web_fetch: url is a plain string (https://example.com/page or bare example.com).
 - Variant names follow Figma's convention: "Property=Value, Property=Value" (comma-separated,
   Property is capitalized, Value is capitalized). E.g. "Size=Large, State=Hover".
+
+=== EDIT TURNS (when the canvas already has layers) ========================
+Most turns happen on a NON-EMPTY canvas. When the request references existing content
+("make the cards darker", "add another tier", "change the hero copy"):
+  1. READ the canvas snapshot (and on edit-heavy turns, the CONVERSATION HISTORY section) to
+     understand what exists. If the snapshot collapses a subtree, expand it with
+     pen_get_metadata { nodeId, detail: true }.
+  2. RESOLVE targets: find the exact node ids with pen_get_metadata / pen_find_nodes — never
+     guess an id. "The hero" means the node NAMED like a hero; verify by name + type + geometry.
+  3. MUTATE with pen_update_node { nodeId, changes } or pen_bulk_update_by_filter (many nodes).
+     pen_delete_nodes only for explicit removal requests.
+  4. REUSE the document's existing $variables — NEVER redefine $color.* / $space.* on an edit
+     turn; restyle THROUGH the existing tokens (change the variable's value or bind more nodes).
+  5. VERIFY with pen_get_metadata after the batch — the tree should show your changes and
+     nothing else. Do not restructure or restyle layers the user didn't mention.
+
+=== DEFAULT-ON PLUGIN TOOLS ================================================
+A few cross-cutting tools ride along every turn:
+  - ask_user_question: ask the user typed clarifying questions (with options) when the request
+    is TRULY blocking — otherwise proceed with sensible defaults and note them in your summary.
+    One call per turn max; the user may take a minute to answer.
+  - todo_create / todo_update: only for genuinely multi-step work (5+ steps, 10+ calls) — batch
+    ALL status transitions into ONE todo_update call. Never call todo_list (results embed the
+    full list).
+  - memory_write / memory_read / memory_search: durable notes across sessions (user preferences,
+    brand decisions). Write a note only when the user states a durable preference; keep it short.
 
 === TURN FLOW ===============================================================
 
@@ -651,13 +677,15 @@ Build the full HIGH-FIDELITY design in this turn. The mandatory sequence is:
   6. CONTENT — replace any "Lorem ipsum" / "Item 1" / "Label" placeholder text with realistic domain
      copy via pen_generate_copy or pen_update_node (text field). Use real names, real numbers, real labels.
   7. ICONS — add lucide icons (pen_search_icons) for nav items, buttons, status indicators. Not emoji.
-  8. CRITIQUE — call pen_self_critique. Address every [BLOCKER] and [MAJOR] finding with another tool call.
+  8. VERIFY — call pen_get_metadata once: did the nodes land with the right types, names, geometry,
+     and no resolver warnings? (The system runs its own critic pass AFTER your turn — no need to
+     call pen_self_critique yourself; if defects are found you'll be re-prompted with fixes.)
   9. SUMMARIZE — give the user a 1-2 sentence summary of what you designed.
 
-You may call multiple tools per turn. Stop calling tools when the design is done AND the critique
-has no outstanding [BLOCKER]/[MAJOR] findings. For an EXPLICIT wireframe / low-fi / sketch request,
-after step 1 use ONLY grayscale fills (see WIREFRAME MODE above) and skip steps 2-8 entirely — no
-tokens, no palette, no shadows, no gradients, no critique — then summarize.
+You may call multiple tools per turn. Stop calling tools when the design satisfies the completion
+criteria and pen_get_metadata shows no unresolved warnings. For an EXPLICIT wireframe / low-fi /
+sketch request, after step 1 use ONLY grayscale fills (see WIREFRAME MODE above) and skip steps 2-8
+entirely — no tokens, no palette, no shadows, no gradients — then summarize.
 
 NEVER repeat a failed tool call with identical arguments — if a call errors, change the arguments or
 switch to a different tool. Two identical calls in a row is always a bug in your plan, not a retry.
@@ -750,6 +778,11 @@ export function round(v: unknown): number {
   return Number.isFinite(n) ? Math.round(n) : 0;
 }
 
+/// Audit 1 P7: max full-detail layer lines in a full snapshot. Past this,
+/// remaining siblings collapse to navigation lines (pen_get_metadata pointer)
+/// so a 500-layer canvas can't inject 12-40K tokens into every turn.
+const SNAPSHOT_LINE_CAP = 300;
+
 /// Build a textual snapshot of the canvas for the system message.
 ///
 /// Renders the canvas as a TREE (indented by depth), mirroring Figma's layers
@@ -788,13 +821,30 @@ export function canvasSnapshot(canvas: CanvasDocument): string {
 
   // Full-detail line — shared with the delta digest and pen_get_metadata's
   // detail mode (shape-line.ts, extracted verbatim in Phase C R9a).
-  const formatNode = (s: Shape, depth: number): string =>
-    formatShapeLine(s, depth, { byId, measured });
+  // lineCount feeds the P7 context cap (see renderTree).
+  let lineCount = 0;
+  const formatNode = (s: Shape, depth: number): string => {
+    lineCount++;
+    return formatShapeLine(s, depth, { byId, measured });
+  };
 
   const renderTree = (parentId: string | null, depth: number): string => {
     const kids = childrenOf(parentId);
     if (kids.length === 0) return '';
-    return kids.map((s) => formatNode(s, depth) + '\n' + renderTree(s.id, depth + 1)).join('').trimEnd() + '\n';
+    const lines: string[] = [];
+    for (const s of kids) {
+      // Audit 1 P7 (context cap): a 500-layer canvas used to render EVERY
+      // layer at full detail (~50-150KB ≈ 12-40K tokens). Past the cap the
+      // remaining siblings collapse to a navigation line with the same
+      // pen_get_metadata hydration pointer the delta digest uses — the
+      // model keeps a complete structural map without the byte explosion.
+      if (lineCount >= SNAPSHOT_LINE_CAP) {
+        lines.push(`${'  '.repeat(depth)}… ${kids.length - lines.length} more sibling(s) collapsed — call pen_get_metadata { nodeId: "${s.parentId ?? ''}", detail: true } to expand`);
+        break;
+      }
+      lines.push(formatNode(s, depth) + '\n' + renderTree(s.id, depth + 1));
+    }
+    return lines.join('').trimEnd() + '\n';
   };
 
   const treeLines = shapes.length === 0 ? '  (empty)' : renderTree(null, 0).trimEnd();
@@ -1343,11 +1393,20 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
   // brief-first enforcement doesn't reject the agent's fix-turn tool calls.
   let inCritiqueReprromptLegacy = false;
   const GATED_TOOL_NAMES_LEGACY = new Set<string>([
+    // Audit 1 P4: mirror the native gate's coverage (all mutating construction
+    // tools) and drop the duplicate 'pen_create_node' entry + the dead
+    // 'pen_create_shape' alias that was never registered.
     'pen_generate_wireframe',
     'pen_create_node',
-    'pen_create_node',
+    'pen_create_subtree',
+    'pen_insert_html',
+    'pen_generate_user_flow',
+    'pen_generate_diagram',
+    'pen_generate_copy',
+    'pen_generate_variants',
     'pen_apply_palette',
     'pen_set_variable',
+    'pen_set_variables',
   ]);
 
   // Per-session mutable state. The tools close over this via `ctx`.
