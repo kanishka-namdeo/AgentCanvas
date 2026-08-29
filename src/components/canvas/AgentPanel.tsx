@@ -645,7 +645,7 @@ function QueueChips() {
   );
 }
 
-export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
+export function AgentPanel() {
   const turns = useCanvasStore((s) => s.turns);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
@@ -949,6 +949,24 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
     };
   }, []);
 
+  // ⌘K palette hand-off (UI-audit round 2): free-form text typed in the
+  // command palette routes HERE instead of being sent directly — the
+  // composer is the richer surface (attachments, @mentions, /commands), so
+  // the palette pre-fills + focuses and the user reviews before sending.
+  useEffect(() => {
+    const onPrefill = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail;
+      if (typeof text === 'string' && text.trim()) {
+        setInput((prev) => (prev.trim() ? `${prev}\n${text}` : text));
+        // Follow the queue hint behavior: the user acted at the bottom.
+        stickToBottomRef.current = true;
+        requestAnimationFrame(() => inputRef.current?.focus());
+      }
+    };
+    window.addEventListener('agentcanvas:composer-prefill', onPrefill);
+    return () => window.removeEventListener('agentcanvas:composer-prefill', onPrefill);
+  }, []);
+
   // Auto-scroll to bottom on new content — ONLY when the user is already near
   // the bottom. (Bug fix: this previously forced scrollTop = scrollHeight on
   // every `turns` change — i.e. every streaming delta — making it impossible
@@ -1129,51 +1147,6 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
           </div>
         </div>
       )}
-      {/* Header (optional — hidden when used inside a panel that already has SessionHeader) */}
-      {!hideHeader && (
-      <div className="flex flex-wrap items-center justify-between gap-y-1.5 px-3 py-2 border-b ac-border-subtle">
-        {/* UI-audit 2026-08-29: header slimmed to two signals — bot + busy
-            dot on the left, model switcher + thinking level on the right.
-            The ".pen" badge (static decoration) and the "live/offline"
-            connection chip (duplicated the header's single bot status chip)
-            were removed. */}
-        <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
-          <div className="relative">
-            <Bot className="h-4 w-4 ac-text-2" />
-            {agentBusy && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full ac-dot-success animate-pulse" />
-            )}
-          </div>
-          <span className="text-xs font-medium ac-text-2">Agent</span>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[11px] ac-text-3 min-w-0">
-          <ModelContextStatus
-            activeModel={activeModel}
-            usageTotals={usageTotals}
-            contextTokens={contextTokens}
-            contextWindow={contextWindow}
-            lastCompacted={lastCompacted}
-          />
-          {/* Thinking level quick-cycle button */}
-          <button
-            onClick={() => {
-              const levels = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
-              const idx = levels.indexOf(thinkingLevel);
-              const next = levels[(idx + 1) % levels.length];
-              setSetting('thinkingLevel', next);
-            }}
-            title={`Thinking: ${thinkingLevel} (click to cycle)\nHigher = better reasoning on complex tasks, but slower. Off = fastest.`}
-            className={`flex items-center gap-0.5 h-6 px-1.5 py-0.5 rounded ac-transition hover:ac-surface-1 flex-shrink-0 ${thinkingLevel !== 'off' ? 'ac-text-info' : 'ac-text-4'}`}
-          >
-            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-            <span className="text-[11px]">{thinkingLevel}</span>
-          </button>
-        </div>
-      </div>
-      )}
-
       {/* Plugin UI (todo overlay, background tasks, ask-user-question dialog) */}
       <PluginUI />
 
@@ -1438,7 +1411,7 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             }}
             placeholder={agentBusy
               ? 'Queue a follow-up message… it sends when this turn finishes'
-              : 'Ask the agent to design something…  (@ mention layers · / commands · paste images)'}
+              : 'Ask the agent to design something…'}
             className="text-xs resize-none min-h-[44px] max-h-[120px] border-0 shadow-none focus-visible:ring-0 ac-text-2 placeholder:ac-text-4 bg-transparent"
             onKeyDown={(e) => {
               // --- @-mention autocomplete keys (menu open) — same pattern as
@@ -1519,10 +1492,16 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
               }
             }}
           />
-          {/* Action row — always visible: paperclip (image attach) on the
-              left, Send/Queue on the right once there's text OR staged
-              attachments. ChatGPT keeps the attach button permanently
-              available so images can be staged before typing. */}
+          {/* Action row — always visible: paperclip (image attach) + model
+              switcher + thinking level on the left, Send/Queue on the right
+              once there's text OR staged attachments. ChatGPT keeps the
+              attach button permanently available so images can be staged
+              before typing.
+              UI-audit round 2: the model switcher + thinking control moved
+              here from the panel's inner "Agent" header — the Chat tab strip
+              already labels the panel, so the 32px header row was a
+              double-header (tldraw/ChatGPT put the model picker on the
+              composer). */}
           <div className="flex flex-wrap items-center justify-between gap-y-1 gap-x-2 px-2 pb-1.5 pt-0.5 border-t ac-border-subtle">
             {/* Hidden file input + paperclip trigger (ChatGPT pattern). */}
             <input
@@ -1561,6 +1540,32 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
                 className="p-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Paperclip className="h-3.5 w-3.5" />
+              </button>
+              {/* Model switcher + context usage (≥70% only) + thinking level
+                  — relocated from the removed inner header (see comment above). */}
+              <span className="w-px h-4 ac-border-subtle bg-current mx-1 opacity-30" aria-hidden />
+              <ModelContextStatus
+                activeModel={activeModel}
+                usageTotals={usageTotals}
+                contextTokens={contextTokens}
+                contextWindow={contextWindow}
+                lastCompacted={lastCompacted}
+              />
+              <button
+                onClick={() => {
+                  const levels = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+                  const idx = levels.indexOf(thinkingLevel);
+                  const next = levels[(idx + 1) % levels.length];
+                  setSetting('thinkingLevel', next);
+                }}
+                title={`Thinking: ${thinkingLevel} (click to cycle)\nHigher = better reasoning on complex tasks, but slower. Off = fastest.`}
+                aria-label={`Thinking level: ${thinkingLevel}. Click to cycle.`}
+                className={`flex items-center gap-0.5 h-6 px-1.5 py-0.5 rounded ac-transition hover:ac-surface-1 ac-focus-ring flex-shrink-0 ${thinkingLevel !== 'off' ? 'ac-text-info' : 'ac-text-4'}`}
+              >
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <span className="text-[11px]">{thinkingLevel}</span>
               </button>
             </div>
             {/* Keyboard semantics hint — the input's behavior CHANGES while
@@ -2475,7 +2480,8 @@ function SteerInput() {
           }
         }}
         placeholder="Steer mid-turn (e.g. 'use blue', 'add more detail')…"
-        className="flex-1 text-[11px] bg-transparent ac-text-1 placeholder:ac-text-4 outline-none"
+        aria-label="Steer the agent mid-turn"
+        className="flex-1 min-w-0 text-[11px] bg-transparent ac-text-1 placeholder:ac-text-4 outline-none focus-visible:outline-1 focus-visible:outline-[var(--ac-accent)] rounded px-1 -mx-1"
       />
       <button
         onClick={submit}

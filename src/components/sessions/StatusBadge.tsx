@@ -77,6 +77,11 @@ export function StatusBadge({ status, size = 'sm', className = '', description }
   // without interrupting the user. The optional `description` prop appends
   // richer context after the label — pass e.g. "3 of 5 tool calls complete"
   // for the run panel, or omit for the bare label.
+  // Task 4d — compose the screen-reader announcement. The badge's visible
+  // text is aria-hidden so the aria-live region announces the sr-only node
+  // ONLY — previously both the visible label and the sr-only announcement
+  // lived inside the live region, so screen readers heard every status
+  // doubled ("completedcompleted").
   const announcement = description
     ? `${cfg.label}, ${description}`
     : cfg.label;
@@ -84,6 +89,7 @@ export function StatusBadge({ status, size = 'sm', className = '', description }
   return (
     <span aria-live="polite" aria-atomic="true" className="inline-flex">
       <span
+        aria-hidden="true"
         className={`inline-flex items-center gap-1 rounded border font-medium ${cfg.cls} ${sizeCls} ${className}`}
       >
         {Icon && <Icon className={`${iconCls} ${cfg.pulse ? 'animate-spin' : ''}`} />}

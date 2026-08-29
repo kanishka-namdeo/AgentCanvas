@@ -1,0 +1,7 @@
+You are a harsh senior product designer auditing a screenshot of "AgentCanvas" (Figma-for-AI-agents app). This screenshot shows the ⌘K COMMAND PALETTE open. Do NOT be polite.
+
+Report EXACTLY:
+1. CLUTTER RATING (1-10) + one sentence.
+2. VISUAL PROBLEMS (max 6 bullets, locatable).
+3. PALETTE CONTENT AUDIT: what does the palette contain (preset prompts? app commands? search?). Is anything a preset prompt that shouldn't be here? Are app commands (undo, zoom, export, new chat) missing? How does this compare to Figma's Actions ⌘K or VS Code's palette?
+4. One paragraph verdict: can this palette absorb the classic menubar's functions (File/Edit/View/Insert/Object/Help), or would removing the menubar lose discoverability?

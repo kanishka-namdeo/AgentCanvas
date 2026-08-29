@@ -92,8 +92,22 @@ export function DocumentSwitcher() {
     if (open) void refresh();
   }, [open, refresh]);
 
+  // UI-audit round 2: also fetch the server list once on MOUNT — the label
+  // previously refreshed only when the dropdown opened, so a rename made on
+  // another tab/session left the header showing the stale cached name after
+  // reload. Server rows win over the cache in `shownDocs`.
+  useEffect(() => {
+    // refresh() is async — its setStates land after `await`, never
+    // synchronously during the effect body.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
+  }, [refresh]);
+
   // The list shown to the user merges local cache (fast first paint) with
-  // server rows (authoritative). Server rows win on conflict.
+  // server rows (authoritative). Server rows win on conflict. The ACTIVE
+  // document is always present (appended if the server list somehow omits
+  // it) so the user can never strand themselves on an unlisted doc — the
+  // round-2 audit hit exactly that after creating a second document.
   const shownDocs: LocalDoc[] = useMemo(() => {
     const seen = new Set<string>();
     const merged: LocalDoc[] = [];
@@ -107,12 +121,18 @@ export function DocumentSwitcher() {
       seen.add(d.id);
       merged.push(d);
     }
+    if (!seen.has(documentId)) {
+      merged.push({ id: documentId, name: document?.name ?? documentId, updatedAt: '' });
+    }
     return merged.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  }, [docs, localDocs]);
+  }, [docs, localDocs, documentId, document?.name]);
 
-  // Active document's display name (canvas store is the source of truth —
-  // it already has the live document).
-  const activeName = document?.name ?? shownDocs.find((d) => d.id === documentId)?.name ?? documentId;
+  // Active document's display name. Prefer the merged list's entry for the
+  // CURRENT id: store.init() re-keys the previous document when switching
+  // (store keeps the old name until the new snapshot lands), which made the
+  // header show the PREVIOUS document's name right after a switch — the
+  // round-2 audit's "stale switcher label" bug.
+  const activeName = shownDocs.find((d) => d.id === documentId)?.name ?? document?.name ?? documentId;
 
   const handleCreate = async () => {
     const name = createName.trim();
@@ -130,6 +150,9 @@ export function DocumentSwitcher() {
       return;
     }
     init(id);
+    // init() re-keys the previous document — set the new name immediately so
+    // the header never flashes the old document's title.
+    setDocumentName(name);
     setCreateOpen(false);
     setCreateName('');
     toast.success(`Created "${name}"`, { description: 'Switched to the new document.' });
@@ -173,6 +196,10 @@ export function DocumentSwitcher() {
       return;
     }
     init(id);
+    // Same stale-label fix as handleCreate: seed the store with the known
+    // name of the target document so the header updates immediately.
+    const known = shownDocs.find((d) => d.id === id)?.name;
+    if (known) setDocumentName(known);
     setOpen(false);
   };
 
@@ -219,22 +246,26 @@ export function DocumentSwitcher() {
           >
             <FilePlus2 className="h-3 w-3 mr-2" /> New document…
           </DropdownMenuItem>
+          {/* UI-audit round 2: Rename is available for EVERY document,
+              including the seed 'demo' doc — round 1 removed the header's
+              doc-name input AND the switcher hid Rename for 'demo', which
+              together made the seed document impossible to rename (HIGH
+              regression found by the round-2 audit). Delete stays gated:
+              'demo' is the boot fallback id and deleting it is the one
+              genuinely destructive foot-gun. */}
+          <DropdownMenuItem
+            className="py-1.5"
+            onClick={() => { setRenameId(documentId); setRenameValue(activeName); setOpen(false); }}
+          >
+            <Pencil className="h-3 w-3 mr-2" /> Rename current…
+          </DropdownMenuItem>
           {documentId !== 'demo' && (
-            <>
-              <DropdownMenuItem
-                className="py-1.5"
-                onClick={() => { setRenameId(documentId); setRenameValue(activeName); setOpen(false); }}
-              >
-                <Pencil className="h-3 w-3 mr-2" /> Rename current…
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="py-1.5 ac-text-danger"
-                onClick={() => handleDelete(documentId, activeName)}
-              >
-                <Trash2 className="h-3 w-3 mr-2" /> Delete current…
-              </DropdownMenuItem>
-            </>
+            <DropdownMenuItem
+              className="py-1.5 ac-text-danger"
+              onClick={() => handleDelete(documentId, activeName)}
+            >
+              <Trash2 className="h-3 w-3 mr-2" /> Delete current…
+            </DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

@@ -92,27 +92,19 @@ export function SessionSidebar() {
   // Tag-filter state — when non-null, only sessions containing this tag are shown.
   const [tagFilter, setTagFilter] = useState<string | null>(null);
 
-  // Subscribe to sessions + snapshots maps so the list re-renders on change.
-  // We use the map + filter approach because listSessions returns a new
-  // array each call (which would cause an infinite re-render loop).
+  // Subscribe to the sessions map so the list re-renders on change. We use
+  // the map + filter approach because listSessions returns a new array each
+  // call (which would cause an infinite re-render loop).
   const sessionsMap = useSessionStore((s) => s.sessions);
-  const snapshotsMap = useSessionStore((s) => s.snapshots);
   const setSessionTags = useSessionStore((s) => s.setSessionTags);
-  // Compute stats via useMemo — NEVER call s.getStats() inside a selector
-  // because it returns a new object every call (causes infinite re-render).
-  // Snapshots are document-scoped (shared canvas) — counted from the
-  // snapshots registry, not from any session.
-  const stats = useMemo(() => {
-    const all = Object.values(sessionsMap).filter((s) => s.documentId === documentId);
-    return {
-      activeSessions: all.filter((s) => s.status === 'active').length,
-      totalRuns: all.reduce((n, s) => n + s.runCount, 0),
-      totalToolCalls: all.reduce((n, s) => n + s.toolCallCount, 0),
-      totalSnapshots: Object.values(snapshotsMap).filter(
-        (snap) => snap.documentId === documentId,
-      ).length,
-    };
-  }, [sessionsMap, snapshotsMap, documentId]);
+  // UI-audit round 2: the old stats memo also totaled runs / tool calls /
+  // snapshots for a footer bar that round 1 removed — and its snapshots-map
+  // subscription re-rendered the sidebar on EVERY snapshot write for
+  // nothing. Only the active-chat count (the "CHATS n" header) is consumed.
+  const activeCount = useMemo(
+    () => Object.values(sessionsMap).filter((s) => s.documentId === documentId && s.status === 'active').length,
+    [sessionsMap, documentId],
+  );
 
   // Document-scoped tag suggestions — derived locally from the in-memory
   // sessions map (instant); the server-side suggestions endpoint is the
@@ -240,8 +232,8 @@ export function SessionSidebar() {
           <div className="flex items-center gap-1.5 min-w-0">
             <MessageSquare className="h-3.5 w-3.5 ac-text-3 flex-shrink-0" />
             <span className="text-[11px] font-semibold uppercase tracking-wide ac-text-2 truncate">Chats</span>
-            {stats.activeSessions > 0 && (
-              <span className="text-[10px] ac-text-4 ml-0.5">{stats.activeSessions}</span>
+            {activeCount > 0 && (
+              <span className="text-[10px] ac-text-4 ml-0.5">{activeCount}</span>
             )}
           </div>
           <button
@@ -260,7 +252,7 @@ export function SessionSidebar() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title, messages, tool calls…"
+            placeholder="Search chats…"
             className="h-7 pl-7 pr-7 text-[11px] ac-border-subtle ac-surface-1 focus-visible:ac-border-default ac-text-2"
           />
           {search && (
@@ -377,7 +369,7 @@ export function SessionSidebar() {
                         {highlight(hit.snippet, search.trim())}
                       </div>
                     )}
-                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5 text-[10px] ac-text-3">
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-[10px] ac-text-4">
                       <span>{relativeTime(session.lastOpenedAt)}</span>
                       <span className="ac-text-5">·</span>
                       <span>{session.messageCount} msg</span>
@@ -404,6 +396,8 @@ export function SessionSidebar() {
                       <DropdownMenuTrigger asChild>
                         <button
                           onClick={(e) => e.stopPropagation()}
+                          aria-label={`More actions for ${session.title}`}
+                          title="More actions (rename, pin, star, tags, fork, archive…)"
                           className="p-1 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
                         >
                           <MoreHorizontal className="h-3.5 w-3.5" />

@@ -1,28 +1,27 @@
 'use client';
 
-// ⌘K Command Palette — fuzzy-searchable launcher for preset agent prompts.
+// ⌘K Command Palette — commands + preset prompts in one launcher
+// (UI-audit round 2).
 //
-// Replaces the always-visible "6 prompt-group chips + 4 prompt buttons"
-// block that previously dominated the AgentPanel's empty state. Now there's
-// a single "Ask anything…" trigger that opens this palette; the user types
-// a query and matches filter in real time. Selecting a prompt fires
-// `promptAgent` and closes the palette.
+// Round 1 made this a PROMPT-ONLY palette: typing "zoom" yielded just
+// "Send 'zoom' custom". The round-2 audit found that meant the palette
+// could NOT absorb any of the menubar's duties — every Figma-class tool
+// puts commands in ⌘K. Now the palette layers THREE result kinds:
 //
-// Keyboard:
-//   ⌘K / Ctrl+K  open
-//   Esc          close
-//   ↑↓           navigate
-//   Enter        run selected prompt
+//   1. COMMANDS (File / Edit / View / Insert / Object / Panels / Help) —
+//      supplied by page.tsx (which owns all the callbacks + refs), executed
+//      on Enter, shortcut hints shown from the live registry.
+//   2. PRESET PROMPTS — the scenario catalog (unchanged), sent directly.
+//   3. FREE-FORM TEXT — routed into the chat composer (prefill + focus)
+//      instead of direct-send: the composer is the richer surface
+//      (attachments, @mentions, /commands), so the user reviews before
+//      sending. This also fixed the round-1 duplication where the palette
+//      and the composer were two parallel text-entry surfaces that both
+//      fired `promptAgent`.
 //
-// Implementation:
-//   - Built on `cmdk` (already a dependency, wrapped by @/components/ui/command).
-//   - Prompt catalog is mirrored from AgentPanel.tsx's PROMPT_GROUPS so the
-//     palette and the chat empty state stay in sync. If the user prefers the
-//     old visible-list UX, they can still use the AgentPanel's preset chips.
-//   - Custom prompt: if the user types something that doesn't match any
-//     preset and hits Enter, we send it as a free-form prompt.
+// Keyboard: ⌘K open · Esc close · ↑↓ navigate · Enter run.
 
-import { useState, useRef } from 'react';
+import { useState, useRef, type ComponentType } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import {
   Command,
@@ -37,14 +36,27 @@ import {
 } from '@/components/ui/dialog';
 import {
   Smartphone, GitBranch, LayoutDashboard, Palette, Activity, Layers,
-  CornerDownLeft, Search,
+  CornerDownLeft, Search, Terminal,
 } from 'lucide-react';
 
 interface PromptGroup {
   id: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   prompts: string[];
+}
+
+/// One executable app command. `run` is a no-args closure built in
+/// page.tsx where every callback/ref lives.
+export interface PaletteCommand {
+  id: string;
+  label: string;
+  group: string;
+  icon?: ComponentType<{ className?: string }>;
+  shortcut?: string;
+  keywords?: string;
+  danger?: boolean;
+  run: () => void;
 }
 
 // Mirrors PROMPT_GROUPS in AgentPanel.tsx. Kept here so the palette is
@@ -120,10 +132,18 @@ const FLAT_PROMPTS: FlatPrompt[] = PROMPT_GROUPS.flatMap((g) =>
 );
 
 export function CommandPalette({
-  open, onOpenChange,
+  open,
+  onOpenChange,
+  commands = [],
+  onRouteToComposer,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /// App commands (page.tsx owns the callbacks). Empty = prompt-only mode.
+  commands?: PaletteCommand[];
+  /// Free-form text hand-off — page.tsx wires it to the composer prefill
+  /// event. Falls back to direct-send when omitted.
+  onRouteToComposer?: (text: string) => void;
 }) {
   const promptAgent = useCanvasStore((s) => s.promptAgent);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
@@ -146,25 +166,42 @@ export function CommandPalette({
     onOpenChange(false);
   };
 
+  const routeToComposer = (text: string) => {
+    if (!text.trim()) return;
+    if (onRouteToComposer) onRouteToComposer(text.trim());
+    else runPrompt(text);
+    onOpenChange(false);
+  };
+
   // Custom prompt: if the query doesn't match any preset, treat Enter as
-  // "send this as a free-form prompt". cmdk handles the Enter key, so we
+  // "hand this text to the composer". cmdk handles the Enter key, so we
   // expose a synthetic CommandItem at the top of the list when query is
   // non-empty and not an exact match for any preset.
   const trimmed = query.trim();
   const hasExactMatch = FLAT_PROMPTS.some((p) => p.prompt.toLowerCase() === trimmed.toLowerCase());
+
+  // Commands grouped by their `group` field, filtered by the query (cmdk
+  // filters CommandItems natively via value; we pre-filter groups so empty
+  // groups don't render headings).
+  const commandGroups = commands.length
+    ? [...new Set(commands.map((c) => c.group))].map((group) => ({
+        group,
+        items: commands.filter((c) => c.group === group),
+      }))
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 overflow-hidden max-w-xl gap-0" showCloseButton={false}>
         <DialogTitle className="sr-only">Command palette</DialogTitle>
         <DialogDescription className="sr-only">
-          Search preset prompts or send a custom prompt to the agent.
+          Search commands and preset prompts, or draft a prompt for the agent.
         </DialogDescription>
         <Command shouldFilter={true} loop>
           <div className="flex items-center gap-2 px-3 border-b ac-border-subtle">
             <Search className="h-3.5 w-3.5 ac-text-4 flex-shrink-0" />
             <CommandInput
-              placeholder="Ask the agent to design something…  (Esc to close)"
+              placeholder="Search commands, or ask the agent to design something…  (Esc to close)"
               value={query}
               onValueChange={setQuery}
               className="h-11 text-[13px] flex-1"
@@ -173,38 +210,71 @@ export function CommandPalette({
               ↵
             </kbd>
           </div>
-          <CommandList className="max-h-[400px] overflow-y-auto ac-hide-scrollbar">
+          <CommandList className="max-h-[420px] overflow-y-auto ac-hide-scrollbar">
             <CommandEmpty>
               <div className="px-3 py-6 text-center text-[12px] ac-text-3">
                 {trimmed ? (
                   <button
-                    onClick={() => runPrompt(trimmed)}
+                    onClick={() => routeToComposer(trimmed)}
                     className="w-full text-left px-2 py-1.5 rounded hover:ac-surface-1 ac-transition ac-focus-ring"
                   >
-                    Send <span className="ac-text-1 font-medium">&ldquo;{trimmed}&rdquo;</span> as a custom prompt
+                    Draft <span className="ac-text-1 font-medium">&ldquo;{trimmed}&rdquo;</span> in the chat composer
                     <span className="block text-[10px] ac-text-4 mt-0.5">
-                      Click or press <kbd className="px-1 py-0.5 rounded ac-surface-2 font-mono">↵</kbd> to send
+                      Click or press <kbd className="px-1 py-0.5 rounded ac-surface-2 font-mono">↵</kbd> — review, attach, then send
                     </span>
                   </button>
                 ) : (
-                  'Start typing to search prompts…'
+                  'Start typing to search commands and prompts…'
                 )}
               </div>
             </CommandEmpty>
 
-            {/* Free-form prompt (only when there's a query and no exact preset match) */}
-            {trimmed && !hasExactMatch && !agentBusy && (
+            {/* App commands — layered ABOVE prompts (Figma ⌘K is command-first) */}
+            {commandGroups.map(({ group, items }) => (
+              <CommandGroup
+                key={group}
+                heading={group}
+                className="text-[10px] ac-text-4 uppercase tracking-wide font-medium"
+              >
+                {items.map((c) => {
+                  const Icon = c.icon ?? Terminal;
+                  return (
+                    <CommandItem
+                      key={c.id}
+                      value={`${c.label} ${c.keywords ?? ''} ${c.group}`}
+                      onSelect={() => {
+                        onOpenChange(false);
+                        c.run();
+                      }}
+                      className={`gap-2 px-3 py-2 cursor-pointer ${c.danger ? 'ac-text-danger' : ''}`}
+                    >
+                      <Icon className="h-3 w-3 ac-text-3 flex-shrink-0" />
+                      <span className={`text-[12px] flex-1 truncate ${c.danger ? '' : 'ac-text-1'}`}>{c.label}</span>
+                      {c.shortcut && (
+                        <span className="text-[10px] ac-text-4 font-mono flex-shrink-0">{c.shortcut}</span>
+                      )}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            ))}
+
+            {/* Free-form hand-off (only when there's a query and no exact
+                preset match). Rendered AFTER the command groups so matching
+                commands outrank the fallback (UI-audit round 2 verification:
+                typing "re" selected the draft option over "Insert rectangle"). */}
+            {trimmed && !hasExactMatch && (
               <CommandGroup heading="Custom prompt">
                 <CommandItem
                   value={`${trimmed} — custom`}
-                  onSelect={() => runPrompt(trimmed)}
+                  onSelect={() => routeToComposer(trimmed)}
                   className="gap-2 px-3 py-2 cursor-pointer"
                 >
                   <CornerDownLeft className="h-3 w-3 ac-text-4 flex-shrink-0" />
                   <span className="text-[12px] ac-text-2 flex-1 truncate">
-                    Send <span className="ac-text-1 font-medium">&ldquo;{trimmed}&rdquo;</span>
+                    Draft <span className="ac-text-1 font-medium">&ldquo;{trimmed}&rdquo;</span>
                   </span>
-                  <span className="text-[10px] ac-text-4">custom</span>
+                  <span className="text-[10px] ac-text-4">in composer</span>
                 </CommandItem>
               </CommandGroup>
             )}
@@ -218,7 +288,7 @@ export function CommandPalette({
               return (
                 <CommandGroup
                   key={group.id}
-                  heading={group.label}
+                  heading={`Prompt · ${group.label}`}
                   className="text-[10px] ac-text-4 uppercase tracking-wide font-medium"
                 >
                   {filtered.map((prompt) => (

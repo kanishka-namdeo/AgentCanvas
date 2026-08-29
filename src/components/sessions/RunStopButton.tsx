@@ -19,7 +19,7 @@
 import { useCanvasStore } from '@/lib/canvas/store';
 import { Button } from '@/components/ui/button';
 
-export function RunStopButton(_props: { onAsk?: () => void }) {
+export function RunStopButton() {
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const stopAgent = useCanvasStore((s) => s.stopAgent);
 

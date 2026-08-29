@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "1. The **Design** tab is active, and the lower area contains **property fields** (specifically a message to \"Select a node to edit its properties\").\n2. **No**\n3. A **chat list** (under the \"Chats\" tab).",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1788030457,
+  "id": "202608300307360ce9f321fce44461",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "202608300307360ce9f321fce44461",
+  "usage": {
+    "completion_tokens": 56,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1762,
+    "prompt_tokens_details": {
+      "cached_tokens": 4
+    },
+    "total_tokens": 1818
+  }
+}

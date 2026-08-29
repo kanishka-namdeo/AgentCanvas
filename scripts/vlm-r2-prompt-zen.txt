@@ -1,0 +1,7 @@
+You are a harsh senior product designer auditing a screenshot of "AgentCanvas" (Figma-for-AI-agents app). This screenshot shows ZEN MODE (UI hidden). Do NOT be polite.
+
+Report EXACTLY:
+1. CLUTTER RATING (1-10) + one sentence.
+2. What chrome REMAINS on screen in zen mode? (menubar? header? toolbars? panels? zoom HUD? floating buttons?) List every remaining UI element.
+3. VISUAL PROBLEMS (max 5 bullets).
+4. Verdict: does zen mode actually deliver a distraction-free canvas (Figma/tldraw standard: hide ALL chrome including the top header), or is it half-done? One paragraph.

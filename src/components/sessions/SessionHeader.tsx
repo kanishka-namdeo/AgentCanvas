@@ -1,41 +1,38 @@
 'use client';
 
-// Compact header for the active session — title, model, status badge,
-// fork button.
+// Compact header for the active session — document switcher, chat title,
+// exception-only run status, fork button. Fits inside the 44px app header.
 //
-// Two variants:
-//   - default   — full layout (avatar + title + meta + Fork), used inside
-//                 the right column when the layout puts the chat panel on
-//                 the right (legacy / fallback layout).
-//   - compact   — single-row layout that fits inside the 44px top header:
-//                 small avatar (with status dot) + inline-editable title +
-//                 StatusBadge + Fork button. Drops the model + relative-time
-//                 meta to save horizontal space.
+// UI-audit round 2 (2026-08-30):
+//   - The non-compact variant was dead code (~100 lines: relativeTime,
+//     per-session token/cost roll-up — a status surface round 1 removed
+//     everywhere else). Sole caller is page.tsx's header; deleted.
+//   - The decorative bot avatar (a second gradient square 20px from the
+//     brand logo) was removed — the busy signal lives on the StatusBadge.
+//   - StatusBadge renders EXCEPTION-ONLY now: running / failed / stuck /
+//     cancelling states — the always-on green "completed" chip was status
+//     noise (round-1 philosophy: quiet-by-default) and never de-appeared.
+//   - Fork is icon-only with tooltip + aria-label (completing a round-1
+//     plan item that was silently dropped).
 
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { GitFork, Bot, Clock, Coins } from 'lucide-react';
+import { GitFork } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 import { DocumentSwitcher } from './DocumentSwitcher';
-import { formatCost } from '@/lib/sessions/format';
-import { useEffect, useState, useMemo } from 'react';
+import type { RunStatus } from '@/lib/sessions';
+import { useEffect, useState } from 'react';
 
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const diff = Math.max(0, now - then);
-  const sec = Math.floor(diff / 1000);
-  if (sec < 60) return 'just now';
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  return new Date(iso).toLocaleDateString();
-}
+/// Statuses worth a permanent header chip — anything actively in-flight or
+/// abnormal. 'completed' (the resting state) renders nothing.
+const EXCEPTION_STATUSES: ReadonlySet<RunStatus> = new Set([
+  'in_progress', 'awaiting_tool', 'queued', 'cancelling',
+  'failed', 'stuck', 'incomplete', 'cancelled',
+]);
 
-export function SessionHeader({ compact = false }: { compact?: boolean }) {
+export function SessionHeader() {
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
   const session = useSessionStore((s) => (activeSessionId ? s.sessions[activeSessionId] : undefined));
   const runsMap = useSessionStore((s) => s.runs);
@@ -52,40 +49,9 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
     if (session) setTitle(session.title);
   }, [session?.id, session?.title]);
 
-  // Per-session cost roll-up (P3-7): sum inputTokens/outputTokens/costUsd
-  // across every run in this session. useMemo'd so it only recomputes when
-  // the session's run list or the runs map changes. The totals render as a
-  // small chip in the session meta row (only when non-zero — matching the
-  // per-run cost badge pattern in RunHistoryPanel).
-  // NOTE: useMemo must run unconditionally on every render to satisfy the
-  // Rules of Hooks — the early return below would otherwise skip it when
-  // `session` is briefly undefined during state transitions, causing
-  // hook-order mismatch errors. Guard the body instead.
-  const sessionCost = useMemo(() => {
-    if (!session) return { inputTokens: 0, outputTokens: 0, costUsd: 0 };
-    let inputTokens = 0;
-    let outputTokens = 0;
-    let costUsd = 0;
-    for (const rid of session.runIds) {
-      const r = runsMap[rid];
-      if (!r) continue;
-      inputTokens += r.inputTokens || 0;
-      outputTokens += r.outputTokens || 0;
-      costUsd += r.costUsd || 0;
-    }
-    return { inputTokens, outputTokens, costUsd };
-  }, [session?.runIds, runsMap]);
-
   if (!session) {
-    if (compact) {
-      return (
-        <span className="text-[11px] ac-text-4 italic">No active chat</span>
-      );
-    }
     return (
-      <div className="px-3 py-3 border-b ac-border-subtle text-[11px] ac-text-4 ac-surface-1 text-center">
-        No active chat — click <span className="font-medium ac-text-3">New chat</span> to begin.
-      </div>
+      <span className="text-[11px] ac-text-4 italic">No active chat</span>
     );
   }
 
@@ -103,153 +69,45 @@ export function SessionHeader({ compact = false }: { compact?: boolean }) {
     setEditing(false);
   };
 
-  if (compact) {
-    return (
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        {/* Document switcher — lets the user create/switch documents from the top bar. */}
-        <DocumentSwitcher />
-        <div className="relative flex-shrink-0">
-          <div className="w-5 h-5 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-sm">
-            <Bot className="h-3 w-3 text-white" />
-          </div>
-          {currentRun && (
-            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ac-dot-info animate-pulse ring-1 ring-[var(--ac-surface-0)]" />
-          )}
-        </div>
-        {editing ? (
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={commitTitle}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commitTitle();
-              if (e.key === 'Escape') {
-                setTitle(session.title);
-                setEditing(false);
-              }
-            }}
-            className="h-6 text-[12px] px-1.5 font-medium ac-border-default max-w-[140px] sm:max-w-[200px] md:max-w-[280px]"
-            autoFocus
-          />
-        ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className="text-[12px] font-medium ac-text-1 truncate hover:ac-surface-1 rounded px-1.5 py-0.5 -mx-1.5 ac-transition ac-focus-ring max-w-[140px] sm:max-w-[200px] md:max-w-[280px]"
-            title="Click to rename"
-          >
-            {session.title}
-          </button>
-        )}
-        <StatusBadge status={status} />
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-6 px-2 text-[10px] ac-text-2 ac-border-default hover:ac-surface-1 ac-transition flex-shrink-0"
-          onClick={() => forkActiveSession(null)}
-          title="Fork this chat"
-        >
-          <GitFork className="h-3 w-3 mr-1" />
-          Fork
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="px-3 py-2.5 border-b ac-border-subtle ac-surface-0">
-      <div className="flex items-start gap-2">
-        <div className="relative flex-shrink-0 mt-0.5">
-          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-sm">
-            <Bot className="h-3.5 w-3.5 text-white" />
-          </div>
-          {currentRun && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ac-dot-info animate-pulse ring-2 ring-[var(--ac-surface-0)]" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          {/* Document switcher row — above the session title. Mirrors v0's
-              project-picker-above-chat-title layout. */}
-          <div className="mb-1">
-            <DocumentSwitcher />
-          </div>
-          {editing ? (
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={commitTitle}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') commitTitle();
-                if (e.key === 'Escape') {
-                  setTitle(session.title);
-                  setEditing(false);
-                }
-              }}
-              className="h-6 text-[13px] px-1.5 font-semibold ac-border-default"
-              autoFocus
-            />
-          ) : (
-            <button
-              onClick={() => setEditing(true)}
-              className="block w-full text-left text-[13px] font-semibold ac-text-1 truncate hover:ac-surface-1 rounded px-1.5 py-0.5 -mx-1.5 ac-transition ac-focus-ring"
-              title="Click to rename"
-            >
-              {session.title}
-            </button>
-          )}
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 px-0.5 text-[10px] ac-text-4">
-            <StatusBadge status={status} />
-            {!session.isRoot && (
-              <span className="flex items-center gap-0.5" style={{ color: 'var(--ac-accent)' }}>
-                <GitFork className="h-2.5 w-2.5" />
-                forked
-              </span>
-            )}
-            {lastRun && (
-              <>
-                <span className="ac-text-5">·</span>
-                <span className="flex items-center gap-0.5">
-                  <Clock className="h-2.5 w-2.5" />
-                  {relativeTime(lastRun.createdAt)}
-                </span>
-              </>
-            )}
-            {session.model && session.model !== 'unresolved' && (
-              <>
-                <span className="ac-text-5">·</span>
-                <span className="font-mono ac-text-4" title="Resolved model for this session (set on the first agent turn)">
-                  {session.model}
-                </span>
-              </>
-            )}
-            {/* Per-session cost roll-up (P3-7) — only render when non-zero. */}
-            {(sessionCost.inputTokens > 0 || sessionCost.outputTokens > 0) && (
-              <>
-                <span className="ac-text-5">·</span>
-                <span
-                  className="flex items-center gap-0.5 font-mono ac-text-3"
-                  title={`Session totals: ${sessionCost.inputTokens.toLocaleString()} input + ${sessionCost.outputTokens.toLocaleString()} output across ${session.runIds.length} run(s)${sessionCost.costUsd > 0 ? ` · ${formatCost(sessionCost.costUsd)}` : ''}`}
-                >
-                  <Coins className="h-2.5 w-2.5 ac-text-4" />
-                  {(sessionCost.inputTokens + sessionCost.outputTokens).toLocaleString()} tok
-                  {sessionCost.costUsd > 0 && (
-                    <span className="ac-text-4 ml-0.5">{formatCost(sessionCost.costUsd)}</span>
-                  )}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-6 px-2 text-[10px] ac-text-2 ac-border-default hover:ac-surface-1 ac-transition flex-shrink-0 mt-0.5"
-          onClick={() => forkActiveSession(null)}
-          title="Fork this chat"
+    <div className="flex items-center gap-2 min-w-0 flex-1">
+      {/* Document switcher — create/switch/rename documents from the top bar. */}
+      <DocumentSwitcher />
+      {editing ? (
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={commitTitle}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitTitle();
+            if (e.key === 'Escape') {
+              setTitle(session.title);
+              setEditing(false);
+            }
+          }}
+          className="h-6 text-[12px] px-1.5 font-medium ac-border-default max-w-[140px] sm:max-w-[200px] md:max-w-[280px]"
+          autoFocus
+        />
+      ) : (
+        <button
+          onClick={() => setEditing(true)}
+          className="text-[12px] font-medium ac-text-1 truncate hover:ac-surface-1 rounded px-1.5 py-0.5 -mx-1.5 ac-transition ac-focus-ring max-w-[140px] sm:max-w-[200px] md:max-w-[280px]"
+          title="Click to rename this chat"
         >
-          <GitFork className="h-3 w-3 mr-1" />
-          Fork
-        </Button>
-      </div>
+          {session.title}
+        </button>
+      )}
+      {EXCEPTION_STATUSES.has(status as RunStatus) && <StatusBadge status={status} />}
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-6 w-6 p-0 ac-text-2 ac-border-default hover:ac-surface-1 ac-transition flex-shrink-0"
+        onClick={() => forkActiveSession(null)}
+        title="Fork this chat"
+        aria-label="Fork this chat"
+      >
+        <GitFork className="h-3 w-3" />
+      </Button>
     </div>
   );
 }

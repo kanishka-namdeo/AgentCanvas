@@ -90,7 +90,25 @@ export async function PATCH(
   } catch (err) {
     const isNotFound = (err as { code?: string })?.code === 'P2025';
     if (isNotFound) {
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+      // UI-audit round 2: the seed 'demo' document (and any doc that only
+      // ever lived in the in-memory sync service) has NO database row until
+      // the user explicitly creates one — which made "Rename current…"
+      // 404 and left the header label stale. UPSERT instead: renaming a
+      // missing doc materializes it server-side under the same id.
+      try {
+        const document = await db.document.create({
+          data: {
+            id,
+            name: name ?? 'Untitled',
+            ...(viewportJson !== undefined ? { viewport: viewportJson } : {}),
+            ...(background !== undefined ? { background } : {}),
+          },
+        });
+        return NextResponse.json({ document });
+      } catch (createErr) {
+        const message = createErr instanceof Error ? createErr.message : 'Unknown database error';
+        return NextResponse.json({ error: `Failed to create document: ${message}` }, { status: 500 });
+      }
     }
     const message = err instanceof Error ? err.message : 'Unknown database error';
     return NextResponse.json({ error: `Failed to update document: ${message}` }, { status: 500 });

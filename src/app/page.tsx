@@ -9,11 +9,11 @@ import {
 import { useDefaultLayout, type PanelImperativeHandle, type LayoutStorage } from 'react-resizable-panels';
 import { Canvas } from '@/components/canvas/Canvas';
 import { Toolbar } from '@/components/canvas/Toolbar';
-import { TopMenuBar } from '@/components/canvas/TopMenuBar';
+import { AppMenu } from '@/components/canvas/AppMenu';
 import { LayersPanel } from '@/components/canvas/LayersPanel';
 import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
 import { AgentPanel } from '@/components/canvas/AgentPanel';
-import { CommandPalette } from '@/components/canvas/CommandPalette';
+import { CommandPalette, type PaletteCommand } from '@/components/canvas/CommandPalette';
 import { KeyboardShortcutsDialog } from '@/components/canvas/KeyboardShortcutsDialog';
 import { DesignSystemPicker } from '@/components/design-systems/DesignSystemPicker';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
@@ -22,7 +22,10 @@ import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { useIsMobile } from '@/lib/canvas/use-is-mobile';
 import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types';
-import { SHORTCUTS_BY_ACTION, matchShortcut } from '@/lib/canvas/shortcuts';
+import { SHORTCUTS_BY_ACTION, matchShortcut, chordFor, currentPlatform } from '@/lib/canvas/shortcuts';
+import { dropShapeAtCenter } from '@/lib/canvas/drop-shape';
+import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl } from '@/lib/canvas/export';
+import { exportBackgroundColor } from '@/lib/canvas/theme-colors';
 import { SessionSidebar } from '@/components/sessions/SessionSidebar';
 import { SessionHeader } from '@/components/sessions/SessionHeader';
 import { RunHistoryPanel } from '@/components/sessions/RunHistoryPanel';
@@ -32,7 +35,10 @@ import { usePenFile } from '@/components/canvas/PenFileMenu';
 import {
   PenTool, Bot, PanelLeft, PanelRight, PanelLeftClose, PanelRightClose,
   Maximize2, Minimize2, MessageSquare, Sliders, History as HistoryIcon,
-  Layers as LayersIcon, Search, Settings,
+  Layers as LayersIcon, Boxes, Search, Settings, Users,
+  FilePlus2, Undo2, Redo2, Copy, ClipboardPaste, Trash2, Eye, ZoomIn,
+  SunMoon, Square, Circle, Type, Minus, Frame, Section as SectionIcon,
+  PanelLeftClose as PanelLeftIcon, PanelRightClose as PanelRightIcon, Keyboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -41,7 +47,11 @@ import {
 } from '@/components/ui/tooltip';
 
 type RightTab = 'chat' | 'design' | 'history';
-type LeftTab = 'chats' | 'layers';
+/// UI-audit round 2: Assets is a top-level tab now — the left column has
+/// ONE strip (Chats · Layers · Assets), Figma-UI3 style, instead of the old
+/// outer Chats/Layers strip + a second inner Layers/Assets strip inside the
+/// panel (~100px of stacked chrome before any content).
+type LeftTab = 'chats' | 'layers' | 'assets';
 
 export default function Home() {
   // Multi-document support (P3-1): the page used to hard-code `documentId =
@@ -143,13 +153,10 @@ export default function Home() {
     return () => clearTimeout(t);
   }, []);
 
-  // Expose a global hook so the Canvas empty-state (or any other component
-  // without prop access) can open the command palette. Mirrors the
-  // `__focusAgentInput` pattern in AgentPanel.tsx.
-  useEffect(() => {
-    (window as any).__openCommandPalette = () => setPaletteOpen(true);
-    return () => { delete (window as any).__openCommandPalette; };
-  }, []);
+  // Expose the palette opener via the settings-dialog CustomEvent pattern
+  // only — the round-1 `__openCommandPalette` window global was dead code
+  // (its only consumer, the empty-state CTA, was removed in round 1;
+  // UI-audit round 2 dead-code sweep).
 
   // Mobile auto-collapse (P3-8) — when transitioning to mobile width, force
   // both side panels collapsed so the canvas gets full width. The user can
@@ -254,8 +261,13 @@ export default function Home() {
   }, [selectedIds, agentBusy]);
 
   // Zen mode — collapse all peripheral panels for a focused canvas view.
-  // Shortcut: ⌘\ (Cmd/Ctrl + Backslash). Toggle again to restore the previous layout.
-  const isZenMode = leftCollapsed && rightCollapsed;
+  // Shortcut: ⌘\ (Cmd/Ctrl + Backslash). Toggle again to restore.
+  // UI-audit round 2: zen is now an EXPLICIT state (it used to be derived
+  // from `leftCollapsed && rightCollapsed`, which made mobile auto-collapse
+  // look like zen). Zen also hides the app HEADER and the collapsed-panel
+  // edge buttons now — Figma's zen hides ALL chrome; the floating toolbar,
+  // zoom pill and a single exit affordance stay (tldraw model).
+  const [zenMode, setZenMode] = useState(false);
   const zenSnapshot = useRef<{
     leftCollapsed: boolean;
     rightCollapsed: boolean;
@@ -263,7 +275,7 @@ export default function Home() {
     rightSize: number;
   } | null>(null);
   const toggleZen = useCallback(() => {
-    if (!isZenMode) {
+    if (!zenMode) {
       zenSnapshot.current = {
         leftCollapsed,
         rightCollapsed,
@@ -274,6 +286,7 @@ export default function Home() {
       rightPanelRef.current?.collapse();
       setLeftCollapsed(true);
       setRightCollapsed(true);
+      setZenMode(true);
     } else {
       const snap = zenSnapshot.current;
       if (snap) {
@@ -294,8 +307,9 @@ export default function Home() {
         setLeftCollapsed(false);
         setRightCollapsed(false);
       }
+      setZenMode(false);
     }
-  }, [isZenMode, leftCollapsed, rightCollapsed]);
+  }, [zenMode, leftCollapsed, rightCollapsed]);
 
   // Keyboard shortcuts — registry-driven (spec Phase 7 / Appendix H §H.2).
   //   The single registry (lib/canvas/shortcuts.ts) drives BOTH this keymap
@@ -322,37 +336,10 @@ export default function Home() {
       }
       return null;
     };
-    // P0-08 helper — drop a shape at the viewport center + select it (the
-    // shared payload behind the R/O/T/L/F/⇧S/S tool chords).
-    const dropShapeAtCenter = (type: Shape['type'], w: number, h: number) => {
-      const state = useCanvasStore.getState();
-      const vp = state.document.viewport;
-      const cx = (-vp.panX + (typeof window !== 'undefined' ? window.innerWidth / 2 : 600)) / vp.zoom;
-      const cy = (-vp.panY + (typeof window !== 'undefined' ? window.innerHeight / 2 : 400)) / vp.zoom;
-      const newId = `shape-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const patch: CanvasPatch = {
-        op: 'add',
-        shape: {
-          id: newId,
-          type,
-          name: type.charAt(0).toUpperCase() + type.slice(1),
-          x: cx - w / 2,
-          y: cy - h / 2,
-          width: w,
-          height: h,
-          fill: type === 'line' ? '#0f172a' : '#e2e8f0',
-          stroke: '#0f172a',
-          strokeWidth: type === 'line' ? 2 : 0,
-          text: type === 'text' ? 'Text' : undefined,
-          fontSize: 16,
-          textColor: '#0f172a',
-          radius: 0,
-        },
-        summary: `Added ${type}`,
-      };
-      state.sendPatch(patch);
-      state.select([newId]);
-    };
+    // P0-08: shape-drop payloads now live in the shared token-based
+    // helper (lib/canvas/drop-shape.ts) — the old local copy hardcoded
+    // light-slate hexes that rendered wrong in dark mode (UI-audit round 2).
+    const drop = dropShapeAtCenter;
     // Phase 7 align helper — canonical alignKind values (Appendix G §G.2;
     // the patch applier normalizes + accepts both spellings).
     const alignSelection = (kind: CanvasPatch['alignKind'], label: string) => {
@@ -391,6 +378,15 @@ export default function Home() {
 
       // --- Meta-required shortcuts ---
       if (meta) {
+        // UI-audit round 2: ⌘N / ⌘O / ⌘E were shown as menu shortcut hints
+        // since forever but wired NOWHERE (the round-2 audit called the hints
+        // lies). All three now behave as labeled. Never hijack them from
+        // text inputs (same guard family as the clipboard chords below).
+        if (!isEditable) {
+          if (e.key === 'n' || e.key === 'N') { e.preventDefault(); state.newSession(); return; }
+          if (e.key === 'o' || e.key === 'O') { e.preventDefault(); penFile.importPen(); return; }
+          if (e.key === 'e' || e.key === 'E') { e.preventDefault(); penFile.exportPen(); return; }
+        }
         // Existing panel-toggle + palette + settings + zen + undo/redo.
         if (e.key === '1') { e.preventDefault(); toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); return; }
         if (e.key === '2') { e.preventDefault(); toggle(rightPanelRef, rightCollapsed, setRightCollapsed); return; }
@@ -601,25 +597,25 @@ export default function Home() {
             state.setToolMode('scale');
             break;
           case 'tool.frame':
-            dropShapeAtCenter('frame', 200, 200);
+            drop('frame', 200, 200);
             break;
           case 'tool.section':
-            dropShapeAtCenter('section', 480, 320);
+            drop('section', 480, 320);
             break;
           case 'tool.slice':
-            dropShapeAtCenter('slice', 200, 120);
+            drop('slice', 200, 120);
             break;
           case 'tool.rectangle':
-            dropShapeAtCenter('rectangle', 100, 100);
+            drop('rectangle', 100, 100);
             break;
           case 'tool.ellipse':
-            dropShapeAtCenter('ellipse', 100, 100);
+            drop('ellipse', 100, 100);
             break;
           case 'tool.line':
-            dropShapeAtCenter('line', 100, 0);
+            drop('line', 100, 0);
             break;
           case 'tool.text':
-            dropShapeAtCenter('text', 200, 24);
+            drop('text', 200, 24);
             break;
           case 'align.left':
             alignSelection('LEFT', 'left');
@@ -646,14 +642,12 @@ export default function Home() {
             flipSelection('flipY');
             break;
           case 'panel.layers-tab':
-            // ⌥1 — switch left sidebar to Layers tab. Dispatched via
-            // CustomEvent so the LayersPanel can own its tab state
-            // locally (no store round-trip); same pattern as ⌘R rename.
-            window.dispatchEvent(new CustomEvent('ac:layers-set-tab', { detail: 'layers' }));
+            // ⌥1 — switch the left column to Layers (top-level tab now).
+            setLeftTab('layers');
             break;
           case 'panel.assets-tab':
-            // ⌥2 — switch left sidebar to Assets tab (component grid).
-            window.dispatchEvent(new CustomEvent('ac:layers-set-tab', { detail: 'assets' }));
+            // ⌥2 — switch the left column to Assets.
+            setLeftTab('assets');
             break;
         }
         return;
@@ -723,36 +717,118 @@ export default function Home() {
     return () => window.removeEventListener('keydown', onKey);
   }, [leftCollapsed, rightCollapsed, toggleZen, clipboard]);
 
+  // ⌘K palette command layer (UI-audit round 2). Built here where every
+  // callback/ref lives; the palette renders them above the preset prompts.
+  // Figma-class ⌘K is command-first — this is what lets the palette absorb
+  // the menubar's duties and made collapsing the classic menubar possible.
+  const platform = currentPlatform();
+  const chordLabel = (action: string) => {
+    const def = SHORTCUTS_BY_ACTION.get(action);
+    return def ? chordFor(def, platform) : undefined;
+  };
+  const zoomTo = (kind: 'fit' | 'selection' | '100' | 'in' | 'out') =>
+    window.dispatchEvent(new CustomEvent('ac:canvas-zoom', { detail: { kind } }));
+  const toggleDarkMode = () => {
+    const isDark = typeof globalThis.document !== 'undefined' && globalThis.document.documentElement.classList.contains('dark');
+    useSettings.getState().set('themePreference', isDark ? 'light' : 'dark');
+  };
+  const exportDoc = async (fmt: 'svg' | 'png' | 'json') => {
+    const doc = useCanvasStore.getState().document;
+    const name = (doc.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
+    if (fmt === 'svg') {
+      const svg = exportSvg(doc.shapes);
+      if (!svg) { toast.error('Nothing to export', { description: 'Draw something first.' }); return; }
+      downloadFile(svg, `${name}.svg`, 'image/svg+xml');
+      toast.success('Exported SVG', { description: `${doc.shapes.length} shapes` });
+    } else if (fmt === 'json') {
+      downloadFile(exportJson(doc), `${name}.json`, 'application/json');
+      toast.success('Exported JSON', { description: `${doc.shapes.length} shapes` });
+    } else {
+      const worldElement = useCanvasStore.getState().worldElement;
+      const dataUrl = await exportPngDataUrl(doc.shapes, { worldElement, backgroundColor: exportBackgroundColor(doc.background), scale: 2 });
+      if (!dataUrl) { toast.error('Nothing to export', { description: 'Draw something first.' }); return; }
+      if (dataUrl.startsWith('data:image/png')) {
+        downloadDataUrl(dataUrl, `${name}.png`);
+        toast.success('Exported PNG', { description: `${doc.shapes.length} shapes @2x` });
+      } else {
+        downloadFile(dataUrl, `${name}.svg`, 'image/svg+xml');
+        toast.success('Exported SVG instead', { description: 'PNG rasterization was blocked by a remote image.' });
+      }
+    }
+  };
+  const paletteCommands: PaletteCommand[] = [
+    // File
+    { id: 'file.new-chat', label: 'New chat', group: 'File', icon: FilePlus2, shortcut: '⌘N', keywords: 'new session conversation', run: () => useCanvasStore.getState().newSession() },
+    { id: 'file.open-pen', label: 'Open .pen file…', group: 'File', keywords: 'import load', run: penFile.importPen },
+    { id: 'file.export-pen', label: 'Export as .pen', group: 'File', keywords: 'save download', run: penFile.exportPen },
+    { id: 'file.export-svg', label: 'Export as SVG', group: 'File', keywords: 'save download', run: () => void exportDoc('svg') },
+    { id: 'file.export-png', label: 'Export as PNG', group: 'File', keywords: 'save download image', run: () => void exportDoc('png') },
+    { id: 'file.export-json', label: 'Export as JSON', group: 'File', keywords: 'save download', run: () => void exportDoc('json') },
+    { id: 'file.settings', label: 'Settings…', group: 'File', shortcut: '⌘,', keywords: 'config', run: () => setSettingsOpen(true) },
+    { id: 'file.clear', label: 'Clear canvas…', group: 'File', icon: Trash2, danger: true, keywords: 'delete remove all', run: () => { if (confirm('Clear all shapes from the canvas?')) useCanvasStore.getState().sendPatch({ op: 'clear', summary: 'Cleared canvas' }); } },
+    // Edit
+    { id: 'edit.undo', label: 'Undo', group: 'Edit', icon: Undo2, shortcut: '⌘Z', keywords: 'history', run: () => { const s = useCanvasStore.getState(); if (!s.agentBusy) s.undo(); } },
+    { id: 'edit.redo', label: 'Redo', group: 'Edit', icon: Redo2, shortcut: '⌘⇧Z', keywords: 'history', run: () => { const s = useCanvasStore.getState(); if (!s.agentBusy) s.redo(); } },
+    { id: 'edit.duplicate', label: 'Duplicate selection', group: 'Edit', icon: Copy, shortcut: '⌘D', run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) s.sendPatch({ op: 'duplicate', shapeIds: s.selectedIds, summary: `Duplicated ${s.selectedIds.length} shape(s)` }); } },
+    { id: 'edit.paste', label: 'Paste', group: 'Edit', icon: ClipboardPaste, shortcut: '⌘V', run: () => clipboard.paste() },
+    { id: 'edit.select-all', label: 'Select all layers', group: 'Edit', shortcut: '⌘A', run: () => clipboard.selectAll() },
+    { id: 'edit.delete', label: 'Delete selection', group: 'Edit', icon: Trash2, shortcut: '⌫', danger: true, run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) { s.sendPatch({ op: 'remove', shapeIds: s.selectedIds, summary: `Deleted ${s.selectedIds.length} shape(s)` }); s.select([]); } } },
+    // View
+    { id: 'view.zen', label: 'Toggle zen mode', group: 'View', icon: Eye, shortcut: chordLabel('zen'), keywords: 'focus hide ui', run: toggleZen },
+    { id: 'view.dark', label: 'Toggle dark mode', group: 'View', icon: SunMoon, keywords: 'theme light night', run: toggleDarkMode },
+    { id: 'view.zoom-in', label: 'Zoom in', group: 'View', icon: ZoomIn, shortcut: chordLabel('zoom.in'), run: () => zoomTo('in') },
+    { id: 'view.zoom-out', label: 'Zoom out', group: 'View', shortcut: chordLabel('zoom.out'), run: () => zoomTo('out') },
+    { id: 'view.zoom-fit', label: 'Zoom to fit', group: 'View', shortcut: chordLabel('zoom.fit'), run: () => zoomTo('fit') },
+    { id: 'view.zoom-100', label: 'Zoom to 100%', group: 'View', shortcut: chordLabel('zoom.100'), run: () => zoomTo('100') },
+    { id: 'view.rulers', label: 'Toggle rulers', group: 'View', run: () => useCanvasStore.getState().toggleViewFlag('rulersVisible') },
+    { id: 'view.pixel-grid', label: 'Toggle pixel grid', group: 'View', shortcut: chordLabel('pixel-grid'), run: () => useCanvasStore.getState().toggleViewFlag('pixelGridVisible') },
+    { id: 'view.outline', label: 'Toggle outline mode', group: 'View', shortcut: chordLabel('outline-mode'), run: () => useCanvasStore.getState().toggleViewFlag('outlineMode') },
+    { id: 'view.design-systems', label: 'Design Systems…', group: 'View', keywords: 'pack registry', run: () => setDesignSystemsOpen(true) },
+    // Insert
+    { id: 'insert.rectangle', label: 'Insert rectangle', group: 'Insert', icon: Square, shortcut: 'R', run: () => dropShapeAtCenter('rectangle') },
+    { id: 'insert.ellipse', label: 'Insert ellipse', group: 'Insert', icon: Circle, shortcut: 'O', run: () => dropShapeAtCenter('ellipse') },
+    { id: 'insert.text', label: 'Insert text', group: 'Insert', icon: Type, shortcut: 'T', run: () => dropShapeAtCenter('text') },
+    { id: 'insert.line', label: 'Insert line', group: 'Insert', icon: Minus, shortcut: 'L', run: () => dropShapeAtCenter('line') },
+    { id: 'insert.frame', label: 'Insert frame', group: 'Insert', icon: Frame, shortcut: 'F', run: () => dropShapeAtCenter('frame') },
+    { id: 'insert.section', label: 'Insert section', group: 'Insert', icon: SectionIcon, shortcut: '⇧S', run: () => dropShapeAtCenter('section') },
+    // Panels
+    { id: 'panel.left', label: 'Toggle left panel', group: 'Panels', icon: PanelLeftIcon, shortcut: chordLabel('toggle-left-panel'), run: () => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed) },
+    { id: 'panel.right', label: 'Toggle right panel', group: 'Panels', icon: PanelRightIcon, shortcut: chordLabel('toggle-right-panel'), run: () => toggle(rightPanelRef, rightCollapsed, setRightCollapsed) },
+    { id: 'panel.chats', label: 'Show Chats', group: 'Panels', icon: MessageSquare, keywords: 'sessions sidebar', run: () => { setLeftTab('chats'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
+    { id: 'panel.layers', label: 'Show Layers', group: 'Panels', icon: LayersIcon, shortcut: '⌥1', keywords: 'tree', run: () => { setLeftTab('layers'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
+    { id: 'panel.assets', label: 'Show Assets', group: 'Panels', icon: Boxes, shortcut: '⌥2', keywords: 'components', run: () => { setLeftTab('assets'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
+    // Help
+    { id: 'help.shortcuts', label: 'Keyboard shortcuts', group: 'Help', icon: Keyboard, shortcut: '⌘/', run: () => setShortcutsOpen(true) },
+  ];
+
   return (
     <TooltipProvider delayDuration={300}>
       <div
         className="h-screen w-screen flex flex-col ac-surface-1 ac-text-1 overflow-hidden"
         data-density={density}
       >
-        {/* ───────────────────────── Top-level menu bar (P1-13) ─────────────────────────
-            File / Edit / View / Insert / Object / Help. Hidden in Zen mode. */}
-        {!isZenMode && (
-          <TopMenuBar
-            onOpenSettings={() => setSettingsOpen(true)}
-            onOpenCommandPalette={() => setPaletteOpen(true)}
-            onToggleZen={toggleZen}
-            onToggleTheme={() => {/* theme cycling handled by ThemeToggle in header */}}
-            onToggleLeftPanel={() => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed)}
-            onToggleRightPanel={() => toggle(rightPanelRef, rightCollapsed, setRightCollapsed)}
-            onNewChat={() => useCanvasStore.getState().newSession()}
-            onExportPen={penFile.exportPen}
-            onImportPen={penFile.importPen}
-            onOpenShortcuts={() => setShortcutsOpen(true)}
-            onOpenDesignSystems={() => setDesignSystemsOpen(true)}
-          />
-        )}
-        {/* ───────────────────────── Top bar ─────────────────────────
-            UI-audit 2026-08-29: the doc name renders exactly ONCE — the
-            DocumentSwitcher in the centered SessionHeader (rename lives in
-            its chevron menu). The old inline Input duplicated it here. */}
+        {/* ───────────────────────── App header ─────────────────────────
+            UI-audit round 2: the classic 6-menu menubar (File/Edit/View/
+            Insert/Object/Help — 28px of permanent chrome) collapsed into the
+            single AppMenu button on the left, Figma-UI3 style. Every menu
+            item is reachable here + via ⌘K + via keyboard chords. Hidden in
+            Zen mode (which now hides the header too). */}
+        {!zenMode && (
         <header className="flex flex-wrap items-center justify-between px-3 h-11 border-b ac-border-default ac-surface-0 flex-shrink-0 gap-2 sm:gap-3">
-          {/* Left: brand */}
+          {/* Left: app menu + brand */}
           <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
+            <AppMenu
+              onOpenSettings={() => setSettingsOpen(true)}
+              onOpenCommandPalette={() => setPaletteOpen(true)}
+              onToggleZen={toggleZen}
+              onToggleLeftPanel={() => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed)}
+              onToggleRightPanel={() => toggle(rightPanelRef, rightCollapsed, setRightCollapsed)}
+              onNewChat={() => useCanvasStore.getState().newSession()}
+              onExportPen={penFile.exportPen}
+              onImportPen={penFile.importPen}
+              onOpenShortcuts={() => setShortcutsOpen(true)}
+              onOpenDesignSystems={() => setDesignSystemsOpen(true)}
+            />
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-sm">
                 <PenTool className="h-3.5 w-3.5 text-white" />
@@ -760,10 +836,9 @@ export default function Home() {
               <span className="font-semibold text-[13px] tracking-tight ac-text-1 hidden sm:inline">AgentCanvas</span>
             </div>
           </div>
-
-          {/* Center: active session title (compact) */}
+          {/* Center: document switcher + active chat title (compact) */}
           <div className="flex-1 min-w-0 flex items-center justify-center">
-            <SessionHeader compact />
+            <SessionHeader />
           </div>
 
           {/* Right: ⌘K palette + Run/Stop + connection status + zen + theme + file */}
@@ -778,27 +853,31 @@ export default function Home() {
               className="h-7 px-2 text-[11px] ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-surface-1 ac-border-subtle border ac-transition ac-focus-ring gap-1.5"
             >
               <Search className="h-3 w-3" />
-              <span className="hidden md:inline">Ask anything</span>
+              <span className="hidden md:inline">Search or ask…</span>
               <kbd className="hidden md:inline text-[10px] ac-text-5 px-1 py-0 rounded ac-surface-2 font-mono ml-1">⌘K</kbd>
             </Button>
 
-            <RunStopButton onAsk={() => setPaletteOpen(true)} />
+            <RunStopButton />
 
             <div className="w-px h-5 ac-border-subtle border-l mx-0.5" />
 
-            {/* Connection + agent status — single icon with tooltip */}
+            {/* Connection + presence — the ONE status surface (UI-audit
+                round 2: green dot only when live-synced; local-only shows NO
+                dot — a permanent amber "offline" dot was alarm fatigue). */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
                   className="flex items-center gap-1.5 px-2 py-1 rounded-md ac-surface-1 ac-text-3 border ac-border-subtle cursor-default"
-                  aria-label="Agent + connection status"
+                  aria-label={connected ? `Live sync connected — ${viewerCount} viewer${viewerCount === 1 ? '' : 's'}` : 'Local-only — live sync unavailable'}
                 >
-                  <Bot className="h-3 w-3" />
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      connected ? 'ac-dot-success' : 'ac-dot-warning'
-                    }`}
-                  />
+                  <Bot className="h-3.5 w-3.5" />
+                  {connected && <span className="w-1.5 h-1.5 rounded-full ac-dot-success" />}
+                  {viewerCount > 1 && (
+                    <span className="flex items-center gap-0.5 text-[10px] ac-text-3" title={`${viewerCount} viewers on this canvas`}>
+                      <Users className="h-3 w-3" />
+                      {viewerCount}
+                    </span>
+                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[11px]">
@@ -813,11 +892,11 @@ export default function Home() {
               variant="ghost"
               size="sm"
               onClick={toggleZen}
-              title="Zen mode — hide all panels (⌘\\)"
+              title="Zen mode — hide all chrome (⌘\\)"
               aria-label="Toggle zen mode"
-              className={`h-7 w-7 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring ${isZenMode ? 'ac-surface-1 ac-text-1' : ''}`}
+              className="h-7 w-7 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring"
             >
-              {isZenMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              <Maximize2 className="h-3.5 w-3.5" />
             </Button>
 
             {/* Settings — opens the settings dialog */}
@@ -835,6 +914,7 @@ export default function Home() {
             <ThemeToggle />
           </div>
         </header>
+        )}
 
         {/* ───────────────────────── Main split ───────────────────────── */}
         {/* Wrapper is relative so the collapsed-panel edge buttons can float. */}
@@ -908,8 +988,10 @@ export default function Home() {
             is collapsed. Click to expand. Matches the pattern used by VS Code,
             Chrome DevTools, and Figma's collapsed-panel edges. */}
 
-        {/* Left panel collapsed → show expand tab on the left edge */}
-        {leftCollapsed && (
+        {/* Left panel collapsed → show expand tab on the left edge.
+            Hidden in zen mode (UI-audit round 2: zen hides ALL chrome; the
+            floating exit pill below is the single way back). */}
+        {!zenMode && leftCollapsed && (
           <button
             onClick={() => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed)}
             title="Show left panel (⌘1)"
@@ -920,8 +1002,8 @@ export default function Home() {
           </button>
         )}
 
-        {/* Right panel collapsed → show expand tab on the right edge */}
-        {rightCollapsed && (
+        {/* Right panel collapsed → show expand tab on the right edge. */}
+        {!zenMode && rightCollapsed && (
           <button
             onClick={() => toggle(rightPanelRef, rightCollapsed, setRightCollapsed)}
             title="Show right panel (⌘2)"
@@ -931,11 +1013,33 @@ export default function Home() {
             <PanelRight className="h-3.5 w-3.5 ac-text-2" />
           </button>
         )}
+        {/* Exit-zen pill — the single chrome affordance while zen is active
+            (tldraw model: tools stay, everything else hides). Also the
+            touch-only way back into the UI on mobile. */}
+        {zenMode && (
+          <button
+            onClick={toggleZen}
+            title="Exit zen mode (⌘\)"
+            aria-label="Exit zen mode"
+            className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border ac-border-default shadow-md text-[11px] ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring backdrop-blur"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--ac-surface-0) 88%, transparent)' }}
+          >
+            <Minimize2 className="h-3.5 w-3.5" />
+            Exit zen
+          </button>
+        )}
         </div>
       </div>
 
-      {/* ⌘K command palette — fuzzy-searchable preset prompts */}
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      {/* ⌘K command palette — commands + preset prompts (UI-audit round 2) */}
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        commands={paletteCommands}
+        onRouteToComposer={(text) =>
+          window.dispatchEvent(new CustomEvent('agentcanvas:composer-prefill', { detail: text }))
+        }
+      />
 
       {/* .pen file input + busy overlay (headless usePenFile chrome) */}
       {penFile.chrome}
@@ -973,9 +1077,13 @@ function LeftTabbedPanel({
   const tabs: { id: LeftTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'chats',  label: 'Chats',  icon: MessageSquare },
     { id: 'layers', label: 'Layers', icon: LayersIcon },
+    { id: 'assets', label: 'Assets', icon: Boxes },
   ];
   return (
-    <div className={`flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
+    // @container (Tailwind v4) — the tab labels below collapse to icon-only
+    // when the column is narrower than ~13rem, so three tabs never truncate
+    // at 1024px viewports (UI-audit round 2 verification finding).
+    <div className={`@container flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
       {/* Tab strip — also serves as the panel header (collapse chevron on the right) */}
       <div className="flex items-center gap-1 px-1.5 py-1.5 border-b ac-border-subtle ac-surface-0 flex-shrink-0">
         <div className="flex gap-0.5 flex-1 min-w-0">
@@ -986,6 +1094,7 @@ function LeftTabbedPanel({
               <button
                 key={t.id}
                 onClick={() => onTabChange(t.id)}
+                title={t.label}
                 className={`flex items-center gap-1.5 px-2.5 h-7 rounded-md text-[11px] font-medium ac-transition ac-focus-ring ${
                   active
                     ? 'ac-surface-2 ac-text-1 shadow-sm'
@@ -994,7 +1103,7 @@ function LeftTabbedPanel({
                 aria-pressed={active}
               >
                 <Icon className="h-3 w-3" />
-                {t.label}
+                <span className="hidden @min-[13rem]:inline">{t.label}</span>
               </button>
             );
           })}
@@ -1013,10 +1122,15 @@ function LeftTabbedPanel({
         </Button>
       </div>
 
-      {/* Active panel body — full vertical space */}
+      {/* Active panel body — full vertical space.
+          UI-audit round 2: Layers/Assets render the SAME panel in controlled
+          mode — the outer strip owns the tab (the panel's inner tab strip is
+          hidden; expand/collapse rides in its search row). */}
       <div className="flex-1 min-h-0">
         {tab === 'chats' && <SessionSidebar />}
-        {tab === 'layers' && <LayersPanel />}
+        {(tab === 'layers' || tab === 'assets') && (
+          <LayersPanel tab={tab} onTabChange={(t) => onTabChange(t)} />
+        )}
       </div>
     </div>
   );
@@ -1040,7 +1154,7 @@ function RightTabbedPanel({
     { id: 'history', label: 'History', icon: HistoryIcon },
   ];
   return (
-    <div className={`flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
+    <div className={`@container flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
       {/* Tab strip — also serves as the panel header (collapse chevron on the right) */}
       <div className="flex items-center gap-1 px-1.5 py-1.5 border-b ac-border-subtle ac-surface-0 flex-shrink-0">
         <div className="flex gap-0.5 flex-1 min-w-0">
@@ -1051,6 +1165,7 @@ function RightTabbedPanel({
               <button
                 key={t.id}
                 onClick={() => onTabChange(t.id)}
+                title={t.label}
                 className={`flex items-center gap-1.5 px-2.5 h-7 rounded-md text-[11px] font-medium ac-transition ac-focus-ring ${
                   active
                     ? 'ac-surface-2 ac-text-1 shadow-sm'
@@ -1059,7 +1174,7 @@ function RightTabbedPanel({
                 aria-pressed={active}
               >
                 <Icon className="h-3 w-3" />
-                {t.label}
+                <span className="hidden @min-[11rem]:inline">{t.label}</span>
               </button>
             );
           })}

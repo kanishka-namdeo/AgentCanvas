@@ -17,8 +17,8 @@
 //     below the list promotes the node to root.
 //   - Badges: component master (M), component instance (◆ ref), auto-layout
 //     (AL), effective theme (e.g. 🌙 dark), token-binding dot.
-//   - Footer: document variable + theme-axis counts (the .pen design-system
-//     layer).
+//     (UI-audit 2026-08-29: the footer stats bar was removed — zero-value
+//     readouts; Variables live in the Properties panel's empty state.)
 //   - Right-click menu: Delete, Rename, Duplicate.
 
 import { useState, useEffect, useMemo, type ReactNode, type ComponentType } from 'react';
@@ -189,7 +189,19 @@ function saveCollapsed(docId: string, collapsed: Set<string>): void {
   }
 }
 
-export function LayersPanel() {
+// UI-audit round 2: the panel accepts an optional CONTROLLED tab. The app
+// layout (page.tsx) now promotes Layers / Assets to top-level tabs on the
+// left column — when `tab` is provided, the inner tab strip is hidden (the
+// outer strip owns navigation) and expand/collapse moves into the search
+// row. Uncontrolled (no props) the panel behaves exactly as before — the
+// unit tests render it standalone and drive ⌥1/⌥2 via CustomEvent.
+export function LayersPanel({
+  tab,
+  onTabChange,
+}: {
+  tab?: 'layers' | 'assets';
+  onTabChange?: (t: 'layers' | 'assets') => void;
+} = {}) {
   const document = useCanvasStore((s) => s.document);
   const selectedIds = useCanvasStore((s) => s.selectedIds);
   const select = useCanvasStore((s) => s.select);
@@ -216,7 +228,14 @@ export function LayersPanel() {
   // 'panel.layers-tab' (⌥1) or 'panel.assets-tab' (⌥2) action. We keep the
   // tab state LOCAL to the panel session (no store field) — Figma tracks it
   // per-session too; on reload it resets to Layers (the default).
-  const [activeTab, setActiveTab] = useState<'layers' | 'assets'>('layers');
+  // Controlled mode (`tab` prop): the outer strip owns the state; the event
+  // still fires so the parent can sync (page.tsx listens and setLeftTab).
+  const [internalTab, setInternalTab] = useState<'layers' | 'assets'>('layers');
+  const activeTab = tab ?? internalTab;
+  const setActiveTab = (t: 'layers' | 'assets') => {
+    setInternalTab(t);
+    onTabChange?.(t);
+  };
   useEffect(() => {
     const onSetTab = (e: Event) => {
       const detail = (e as CustomEvent<string>).detail;
@@ -224,7 +243,7 @@ export function LayersPanel() {
     };
     window.addEventListener('ac:layers-set-tab', onSetTab);
     return () => window.removeEventListener('ac:layers-set-tab', onSetTab);
-  }, []);
+  }, [onTabChange]);
 
   // ---- Pages column state (spec Phase 7 — Appendix H §H.1 left sidebar) ------
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
@@ -887,7 +906,10 @@ export function LayersPanel() {
           can drive it via the `ac:layers-set-tab` CustomEvent without a store
           round-trip. Radix Tabs unmounts the inactive content so the grid
           never pays for tree reconciliation while the user is on Layers, and
-          vice-versa. */}
+          vice-versa.
+          UI-audit round 2: when CONTROLLED (`tab` prop — the outer Chats ·
+          Layers · Assets strip owns navigation), this whole inner strip is
+          skipped; expand/collapse rides in the search row instead. */}
       <div className="flex flex-col flex-1 min-w-0 ac-hide-scrollbar">
         <Tabs
           value={activeTab}
@@ -895,10 +917,7 @@ export function LayersPanel() {
           className="flex-1 flex flex-col min-h-0 gap-0"
           data-ac-layers-tabs=""
         >
-          {/* UI-audit 2026-08-29: merged-look header — the inner tabs row
-              lost its border-b + vertical padding so it reads as part of ONE
-              header block with the outer Chats/Layers strip instead of two
-              stacked 40px tab bars (~80px → ~52px). */}
+          {!tab && (
           <div className="flex items-center justify-between px-2 pt-1 pb-0.5 gap-1">
             <TabsList className="h-6" data-ac-tabs-list="">
               <TabsTrigger value="layers" data-ac-tab-trigger="layers" className="text-[11px] gap-1 px-2 h-6">
@@ -938,11 +957,14 @@ export function LayersPanel() {
               </div>
             )}
           </div>
+          )}
 
           <TabsContent value="layers" className="flex-1 flex flex-col min-h-0 outline-none" data-ac-layers-tab="">
-            {/* P0-12: Search-by-name input. Filters layers in real time. */}
-            <div className="px-2 pt-1 pb-1.5 border-b ac-border-subtle">
-              <div className="relative">
+            {/* P0-12: Search-by-name input. Filters layers in real time.
+                UI-audit round 2: in controlled mode the expand/collapse
+                buttons share this row (the inner strip is gone). */}
+            <div className="flex items-center gap-1 px-2 pt-1 pb-1.5 border-b ac-border-subtle">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 ac-text-4" />
                 <Input
                   type="text"
@@ -952,6 +974,30 @@ export function LayersPanel() {
                   className="h-6 text-[11px] pl-7 pr-2 ac-text-2 ac-surface-1 ac-border-subtle"
                 />
               </div>
+              {tab && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={expandAll}
+                    title="Expand all containers"
+                    aria-label="Expand all"
+                    className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 flex-shrink-0"
+                  >
+                    <ChevronsUpDown className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={collapseAll}
+                    title="Collapse all containers"
+                    aria-label="Collapse all"
+                    className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 flex-shrink-0"
+                  >
+                    <ChevronsDownUp className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
             </div>
             <ScrollArea className="flex-1 min-h-0 ac-hide-scrollbar">
               {/* The scroll area's inner div is the drop target for "move to

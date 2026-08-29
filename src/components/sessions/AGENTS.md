@@ -11,9 +11,9 @@ Shared-canvas model: the sidebar lists CONVERSATION CONTEXTS on one canvas ("Cha
 ## Ownership
 
 - `SessionSidebar.tsx` — left panel tab (Chats — conversation contexts on the shared canvas): search, New button, pinned-first sorting, archived section, footer stats (runs/tools + the document-scoped canvas-snapshot count), rich context menu. "Fork this chat" calls `forkSession(session.id, null)` directly (NOT `forkActiveSession`) — a CONVERSATION fork (message-prefix copy; the canvas is shared and untouched). Toasts on Archive/Delete/Fork/Duplicate/Export/Copy-prompt.
-- `SessionHeader.tsx` — top of the right panel. Two variants: `compact` (single-row for the 44px header — small avatar + inline-editable title + StatusBadge + Fork button) and default/full (avatar + title + meta row with status, fork indicator, relative time, model + Fork button). Inline-editable title, branded bot avatar.
+- `SessionHeader.tsx` — centered block in the app header (compact-only since UI-audit round 2): DocumentSwitcher + inline-editable chat title + exception-only StatusBadge (running/failed/stuck/…; "completed" renders nothing) + icon-only Fork button. The dead non-compact variant (~100 lines incl. relative-time + per-session cost roll-up) was removed.
 - `RunHistoryPanel.tsx` — right panel tab (History): tabbed (Runs / Snapshots). Expandable run cards with tool-call timeline. Snapshot cards (document-scoped list with per-chat provenance labels) with Restore / Bookmark — the "Fork from this snapshot" action was REMOVED (superseded by Restore). "Capture current state" button. Accepts `hideHeader` prop (compact tab strip when inside the right tabbed panel). Context menus on both run cards and snapshot cards. Toasts on Restore/Capture (Bookmark does not toast).
-- `RunStopButton.tsx` — header button. When idle: shows "Ask" button that opens the Command Palette via `onAsk` prop. When busy: shows "Stop" button with pulsing white dot.
+- `RunStopButton.tsx` — header button. When idle: renders nothing (the ⌘K palette trigger is the single prompt entry point). When busy: shows "Stop" button with pulsing white dot. No props (the round-1 `onAsk` prop was dead and removed in round 2).
 - `StatusBadge.tsx` — color-coded status pill for runs / tool-calls / sessions. Three status maps (Run, ToolCall, Session). Includes a `StatusDot` variant.
 
 ## Local Contracts

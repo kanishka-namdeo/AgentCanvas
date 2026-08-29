@@ -304,7 +304,8 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Filter models…"
-            className="w-full h-7 pl-7 pr-2 rounded-md text-[11px] ac-surface-1 ac-border-subtle border ac-text-1 placeholder:ac-text-4 outline-none focus:ac-border-default"
+            aria-label="Filter models"
+            className="w-full h-7 pl-7 pr-2 rounded-md text-[11px] ac-surface-1 ac-border-subtle border ac-text-1 placeholder:ac-text-4 outline-none focus:ac-border-default focus:ring-1 focus:ring-[var(--ac-accent)]"
           />
         </div>
 

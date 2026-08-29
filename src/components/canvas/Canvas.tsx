@@ -46,6 +46,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { useCanvasGestures, clampZoom } from '@/lib/canvas/use-canvas-gestures';
+import { resolveCanvasBackground } from '@/lib/canvas/theme-colors';
 import { useSettings } from '@/lib/settings/store';
 import { DomCanvas } from './dom/DomCanvas';
 import { Rulers } from './Rulers';
@@ -981,13 +982,17 @@ export function Canvas() {
     [viewport, sendPatch],
   );
 
+  // UI-audit round 2: the default '#f8fafc' canvas background now resolves
+  // to the --ac-canvas-bg THEME token (theme-colors.ts) — dark mode
+  // previously kept a near-white canvas (round-2 audit's #1 dark-mode
+  // finding). An explicit user-set color still wins.
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
           ref={containerRef}
           className={`relative w-full h-full overflow-hidden select-none ${(spaceDown || toolMode === 'pan') ? 'cursor-grab' : 'cursor-default'}`}
-          style={{ background: document.background, touchAction: 'none' }}
+          style={{ background: resolveCanvasBackground(document.background), touchAction: 'none' }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
@@ -1343,16 +1348,12 @@ export function Canvas() {
             <ContextMenuItem onClick={() => select([])}>
               <SquareStack className="h-3.5 w-3.5 mr-2" /> Clear selection <span className="ml-auto text-[10px] ac-text-4">⎋</span>
             </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem onClick={() => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom * 1.2) }))}>
-              <ArrowUp className="h-3.5 w-3.5 mr-2" /> Zoom in
-            </ContextMenuItem>
-            <ContextMenuItem onClick={() => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom * 0.8) }))}>
-              <ArrowDown className="h-3.5 w-3.5 mr-2" /> Zoom out
-            </ContextMenuItem>
-            <ContextMenuItem onClick={() => setViewport({ zoom: 1, panX: 120, panY: 80 })}>
-              <BringToFront className="h-3.5 w-3.5 mr-2" /> Reset zoom
-            </ContextMenuItem>
+            {/* UI-audit round 2: the Zoom in / Zoom out / Reset zoom trio was
+                removed — zoom already had THREE persistent surfaces (View
+                menu, the bottom-left HUD, keyboard chords); a fourth in the
+                context menu was pure redundancy (Figma's canvas right-click
+                has no zoom either). The trio also misused ArrowUp /
+                ArrowDown / BringToFront icons. */}
           </>
         )}
       </ContextMenuContent>

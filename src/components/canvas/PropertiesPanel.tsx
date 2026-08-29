@@ -48,6 +48,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { toast } from 'sonner';
+import { isDefaultCanvasBackground, isTokenColor, tokenToHex, colorInputValue } from '@/lib/canvas/theme-colors';
 import {
   AlignLeft, AlignCenterHorizontal, AlignRight,
   AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
@@ -69,9 +70,13 @@ export function PropertiesPanel() {
   // These wrap navigator.clipboard with a typed payload via useClipboard's
   // copyColor/pasteColor for typed interop, and raw writeText for the
   // string-form copies (hex / rgba / hsl).
+  // UI-audit round 2: token colors ('var(--ac-canvas-default-fill)' etc.)
+  // resolve to their concrete CURRENT-theme hex before copying — copying the
+  // raw var() string produced garbage on the other end.
   const copyColorHex = (hex: string) => {
+    const concrete = isTokenColor(hex) ? tokenToHex(hex, hex) : hex;
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(hex).then(() => toast.message(`Copied ${hex}`));
+      navigator.clipboard.writeText(concrete).then(() => toast.message(`Copied ${concrete}`));
     }
   };
   const pasteColorInto = async (apply: (hex: string) => void) => {
@@ -227,25 +232,36 @@ export function PropertiesPanel() {
   if (selected.length === 0) {
     return (
       <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
-        <div className="px-3 py-2 border-b ac-border-subtle text-[11px] font-semibold uppercase tracking-wide ac-text-2">
-          Properties
-        </div>
+        {/* UI-audit round 2: the "Properties" header row was removed — the
+            outer Design tab strip already labels this panel (the round-2
+            audit's double-header finding; History already dropped its
+            header via hideHeader). */}
         <div className="flex-1 overflow-y-auto p-3 space-y-3 ac-hide-scrollbar">
           <div>
             <Label className="text-[11px] ac-text-3">Canvas Background</Label>
+            {/* Default (#f8fafc) follows the app theme — resolved to the
+                --ac-canvas-bg token at render time (theme-colors.ts). Setting
+                any other color pins it for both themes. */}
             <div className="flex items-center gap-2 mt-1">
               <input
                 type="color"
-                value={document.background}
+                value={colorInputValue(document.background, '#f8fafc')}
                 onChange={(e) => setCanvasBackground(e.target.value)}
                 className="h-7 w-7 rounded border ac-border-default cursor-pointer"
+                title={isDefaultCanvasBackground(document.background) ? 'Following the app theme — pick a color to override' : 'Canvas background override'}
               />
               <Input
-                value={document.background}
+                value={isDefaultCanvasBackground(document.background) ? '' : document.background}
                 onChange={(e) => setCanvasBackground(e.target.value)}
+                placeholder="Auto — follows theme"
                 className="h-7 text-xs ac-text-2 ac-border-default"
               />
             </div>
+            {isDefaultCanvasBackground(document.background) && (
+              <p className="text-[10px] ac-text-4 mt-1">
+                Default follows the app theme. Enter a hex (e.g. #ffffff) to override; set it back to <span className="font-mono">#f8fafc</span> to re-follow.
+              </p>
+            )}
           </div>
 
           <Separator />
@@ -321,11 +337,10 @@ export function PropertiesPanel() {
 
   return (
     <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
-      <div className="px-3 py-2 border-b ac-border-subtle text-[11px] font-semibold uppercase tracking-wide ac-text-2 flex items-center gap-1.5">
-        Properties{isMulti ? ` (${selected.length} selected)` : ''}
-        {!isMulti && isComponentMaster && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal ac-status-info border-[var(--ac-info-border)]">Master</Badge>}
-        {!isMulti && isComponentInstance && <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 font-normal ac-status-warning border-[var(--ac-warning-border)]">Instance</Badge>}
-      </div>
+      {/* UI-audit round 2: header row removed (see empty-state note above).
+          The multi-select count rides on the align row; Master/Instance
+          badges were ALREADY duplicated by the Component info section
+          further down. */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3 ac-hide-scrollbar">
         {/* Alignment row (spec Phase 7 — Appendix H §H.1: alignment sits at the
             TOP of the right sidebar, Figma-style). 6 align + 2 distribute
@@ -338,6 +353,9 @@ export function PropertiesPanel() {
             Object menu + ⌥-shortcuts remain the always-available twin). */}
         {selected.length >= 2 && (
           <div data-ac-align-row className="flex items-center gap-0.5 flex-wrap">
+            <span className="text-[10px] ac-text-4 mr-1.5" aria-live="polite">
+              {selected.length} selected
+            </span>
             <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align left (⌥A)" aria-label="Align left" disabled={selected.length < 2} onClick={() => alignSelection('LEFT')}>
               <AlignLeft className="h-3 w-3" />
             </Button>
@@ -723,22 +741,28 @@ export function PropertiesPanel() {
               <Label className="text-[11px] ac-text-3">Fill</Label>
               <ContextMenu>
                 <ContextMenuTrigger asChild>
+                  {/* UI-audit round 2: token fills ('var(--ac-canvas-…)') show
+                      their resolved theme hex in the swatch + "Auto (theme)"
+                      in the text field — the raw var() string leaked into the
+                      input before (round-2 audit finding). */}
                   <div className="flex items-center gap-2 mt-1 cursor-context-menu">
                     <input
                       type="color"
-                      value={shape.fill}
+                      value={colorInputValue(shape.fill, '#e2e8f0')}
                       onChange={(e) => update({ fill: e.target.value })}
+                      title={isTokenColor(shape.fill) ? 'Theme default — pick a color to override' : 'Fill color'}
                       className="h-7 w-7 rounded border ac-border-default cursor-pointer"
                     />
                     <Input
-                      value={shape.fill}
-                      onChange={(e) => update({ fill: e.target.value })}
+                      value={isTokenColor(shape.fill) ? '' : shape.fill}
+                      onChange={(e) => { const v = e.target.value; if (v.trim()) update({ fill: v }); }}
+                      placeholder={isTokenColor(shape.fill) ? 'Auto — follows theme' : '#hex'}
                       className="h-7 text-xs"
                     />
                   </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent>
-                  <ContextMenuItem onClick={() => clipboard.copyColor(shape.fill)}>Copy color</ContextMenuItem>
+                  <ContextMenuItem onClick={() => clipboard.copyColor(isTokenColor(shape.fill) ? tokenToHex(shape.fill, shape.fill) : shape.fill)}>Copy color</ContextMenuItem>
                   <ContextMenuItem onClick={() => pasteColorInto((hex) => update({ fill: hex }))}>Paste color</ContextMenuItem>
                   <ContextMenuSeparator />
                   <ContextMenuItem onClick={() => copyColorHex(shape.fill)}>Copy as hex</ContextMenuItem>
@@ -754,14 +778,15 @@ export function PropertiesPanel() {
                     onClick={() => {
                       const base = (shape.name || shape.type || 'color').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'color';
                       const key = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+                      const value = isTokenColor(shape.fill) ? tokenToHex(shape.fill, shape.fill) : shape.fill;
                       sendPatch({
                         op: 'set_variable',
                         variableKey: key,
                         variableType: 'color',
-                        variableValue: shape.fill,
+                        variableValue: value,
                         summary: `Saved color as variable "${key}"`,
                       });
-                      toast.success('Saved as variable', { description: `${key} = ${shape.fill}` });
+                      toast.success('Saved as variable', { description: `${key} = ${value}` });
                     }}
                   >
                     Save as variable…
@@ -778,8 +803,9 @@ export function PropertiesPanel() {
                   <div className="flex items-center gap-2 mt-1 cursor-context-menu">
                     <input
                       type="color"
-                      value={shape.stroke}
+                      value={colorInputValue(shape.stroke, '#0f172a')}
                       onChange={(e) => update({ stroke: e.target.value })}
+                      title={isTokenColor(shape.stroke) ? 'Theme default — pick a color to override' : 'Stroke color'}
                       className="h-7 w-7 rounded border ac-border-default cursor-pointer"
                     />
                     <Input

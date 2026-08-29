@@ -1,0 +1,7 @@
+You are a harsh senior product designer auditing a screenshot of "AgentCanvas" (Figma-for-AI-agents app, Next.js), second-round audit after a de-clutter refactor. This screenshot shows a MENU OPEN (dropdown). Do NOT be polite.
+
+Report EXACTLY:
+1. CLUTTER RATING (1-10) + one sentence.
+2. VISUAL PROBLEMS (max 6 bullets, locatable: menu item alignment, shortcut-hint alignment, icons, spacing, overlay scrim, dark/light surface mismatch, z-order issues).
+3. MENU CONTENT AUDIT: list every menu item you can read, and judge: which look redundant with a toolbar/panel/keyboard shortcut? any item that looks like a stub or dead? any missing essential item (e.g. Rename document, New document)?
+4. One paragraph: does this classic menu bar (File/Edit/View/Insert/Object/Help) earn its 28px of permanent vertical space vs Figma-style single app-menu button + command palette?

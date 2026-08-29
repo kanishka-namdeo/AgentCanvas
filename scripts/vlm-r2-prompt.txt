@@ -1,0 +1,9 @@
+You are a senior product designer reviewing a screenshot of AgentCanvas, an AI-agent collaborative canvas app (Figma-class design tool). This app was just refactored to reduce visual overwhelm. Assess the CURRENT state:
+
+1. Rate visual clutter 1-10 (10 = overwhelming) and compare against a professional design tool standard (Figma/tldraw).
+2. List the UI regions you can identify across the top header, left panel, canvas, right panel, floating toolbar.
+3. Name up to 5 SPECIFIC remaining visual problems (misalignment, inconsistent spacing/typography/icon sizes, color noise, dead space, cramped or overflowing elements). For each: region + what's wrong.
+4. Name any element that looks broken, overlapping, or truncated.
+5. One-line verdict: does the layout look calm and professional?
+
+Be specific and critical — do not flatter. Keep the whole answer under 350 words.

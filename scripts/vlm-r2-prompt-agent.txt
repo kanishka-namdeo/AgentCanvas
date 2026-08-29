@@ -1,0 +1,7 @@
+You are a harsh senior product designer auditing a screenshot of "AgentCanvas" (Figma-for-AI-agents app). This screenshot shows the app AFTER AN AGENT TURN: the canvas contains shapes the AI created, and the right chat panel shows the conversation (user prompt, agent thinking/tool status, result cards). Do NOT be polite.
+
+Report EXACTLY:
+1. CLUTTER RATING (1-10) + one sentence.
+2. CHAT PANEL AUDIT: how many distinct visual elements does the agent's turn render (status chips, progress bars, tool-call cards, diff cards, code blocks)? Is the visual hierarchy clear — can you tell what the agent did at a glance? Any element types that look duplicated or noisy?
+3. CANVAS AUDIT: do the created shapes look coherent (alignment, spacing, labels)? Does the layers/selection state look right?
+4. One paragraph: vs a professional AI design tool (e.g. Figma Make, v0), what's missing or noisy in this result-view experience?
