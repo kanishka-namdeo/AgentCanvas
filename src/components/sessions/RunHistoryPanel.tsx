@@ -445,7 +445,14 @@ function RunCard({ run }: { run: Run }) {
   // top of an in-progress turn — mirrors v0's "agent is busy" guard).
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const toolCalls: ToolCallRecord[] = useMemo(() => {
+    // Render-time id dedupe (defensive): toolCallIds are guarded against
+    // duplicates at insertion, but runs persisted before that guard existed
+    // can still carry the same id twice — which surfaced as React
+    // "two children with the same key" in this timeline. First occurrence
+    // wins (stable step order preserved by the sort below).
+    const seen = new Set<string>();
     return run.toolCallIds
+      .filter((id) => (seen.has(id) ? false : (seen.add(id), true)))
       .map((id) => toolCallsMap[id])
       .filter(Boolean)
       .sort((a, b) => a.stepIndex - b.stepIndex);

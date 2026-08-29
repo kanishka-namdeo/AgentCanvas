@@ -1423,10 +1423,21 @@ export const useSessionStore = create<SessionStoreState>()(
             durationMs,
           };
           // Flip run back to in_progress (tool call done, agent may continue).
+          // Terminal-state guard (tool-calling reliability fix): a late
+          // tool_call_end that arrives AFTER the run reached a terminal
+          // status (watchdog 'failed' / Stop 'cancelled' / 'completed' /
+          // 'incomplete') must NOT resurrect it to in_progress — that
+          // resurrection defeated endRun's terminal guard (later turn_final
+          // with the SAME status re-ran, but a DIFFERENT honest status was
+          // absorbed) and left the run stuck in_progress in the DB until
+          // the 10-minute stale sweep. In-flight guards: an 'awaiting_tool'
+          // run is exactly the mid-tool-call state; only non-terminal runs
+          // may flip back.
           const run = s.runs[tc.runId];
-          const runs = run
-            ? { ...s.runs, [run.id]: { ...run, status: 'in_progress' as RunStatus } }
-            : s.runs;
+          const runs =
+            run && !TERMINAL_RUN_STATUSES.has(run.status)
+              ? { ...s.runs, [run.id]: { ...run, status: 'in_progress' as RunStatus } }
+              : s.runs;
           return {
             toolCalls: { ...s.toolCalls, [toolCallId]: updated },
             runs,

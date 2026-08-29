@@ -2252,7 +2252,23 @@ function DiffSummaryCard({
   );
 }
 
-function ToolCallsCluster({ toolCalls }: { toolCalls: AgentToolCallEntry[] }) {
+function ToolCallsCluster({ toolCalls: rawToolCalls }: { toolCalls: AgentToolCallEntry[] }) {
+  // Render-time id dedupe (defensive): the canvas + session stores both
+  // guard against duplicate tool_call_start events at INSERTION time, but
+  // records persisted to localStorage before those guards existed (and any
+  // future upstream dup) still reach this list — duplicate React keys broke
+  // reconciliation ("two children with the same key"). First entry wins,
+  // matching the stores' insert order.
+  const toolCalls = useMemo(() => {
+    const seen = new Set<string>();
+    const deduped: AgentToolCallEntry[] = [];
+    for (const tc of rawToolCalls) {
+      if (seen.has(tc.id)) continue;
+      seen.add(tc.id);
+      deduped.push(tc);
+    }
+    return deduped;
+  }, [rawToolCalls]);
   const anyPending = toolCalls.some((tc) => tc.success === undefined);
   // `null` = no user override → follow the pending state (expanded while
   // running, collapsed when done). A click pins the opposite.

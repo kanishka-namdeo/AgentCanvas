@@ -213,10 +213,38 @@ export async function POST(req: NextRequest) {
       req.signal.addEventListener('abort', onClientAbort, { once: true });
 
       const WATCHDOG_MS = 120_000;
+      // After runAbort fires (client Stop / disconnect / watchdog), the
+      // generator gets a GRACE window to unwind on its own (session.abort()
+      // → runner tail events → normal finally). If it is still streaming
+      // past the grace — a hung provider socket that ignores the abort —
+      // the watchdog FORCE-finalizes: turn_final + synthetic terminal are
+      // journaled, the run registry is freed, and the wire closes. Without
+      // this the whole teardown used to hang at `await iterator.return()`
+      // and the run stayed in_progress in the DB forever (observed live:
+      // the pinggy tunnel half-died mid-SSE; session.abort() was a no-op
+      // against the dead socket; the run never finalized).
+      const ABORT_GRACE_MS = 30_000;
+      let abortedAt: number | undefined;
       let lastActivity = Date.now();
       const watchdog = setInterval(() => {
-        if (closed || runAbort.signal.aborted) return;
-        if (Date.now() - lastActivity > WATCHDOG_MS) {
+        if (closed || turnFinalEmitted) return;
+        const now = Date.now();
+        if (runAbort.signal.aborted) {
+          if (abortedAt === undefined) abortedAt = now;
+          if (now - abortedAt > ABORT_GRACE_MS) {
+            console.warn(
+              '[agent-route] run did not unwind within the abort grace period — force-finalizing turn_final + terminal journal rows',
+            );
+            emitTurnFinalAndClose();
+            // Best-effort unwind in the background — when/if the hung
+            // generator eventually completes, its finally block re-runs the
+            // (now idempotent-guarded) teardown. It must not block the
+            // route any further.
+            try { void iterator.return?.(undefined).catch(() => {}); } catch { /* already finished */ }
+          }
+          return;
+        }
+        if (now - lastActivity > WATCHDOG_MS) {
           runAbort.abort();
           const event = {
             type: 'agent:error' as const,
@@ -238,7 +266,10 @@ export async function POST(req: NextRequest) {
           journalAgentEvent(documentId, { kind: 'agent_event', event });
           sawTerminalOnWire = true;
           sawErrorOnWire = true;
-          close();
+          // The runner now has ABORT_GRACE_MS to emit its own tail
+          // (turn_cancelled etc.). The aborted-branch above force-finalizes
+          // if it stays silent past the grace.
+          abortedAt = Date.now();
         }
       }, 15_000);
 
@@ -253,6 +284,10 @@ export async function POST(req: NextRequest) {
       // The finally block synthesizes one in the journal when a hard
       // teardown bypassed the runner's tail emissions.
       let sawTerminalOnWire = false;
+      // Idempotency guard for the turn-final emission — exactly ONE
+      // turn_final + synthetic terminal + unregister per run, whether the
+      // normal finally or the watchdog force path gets there first.
+      let turnFinalEmitted = false;
 
       // ---- Turn-final content accumulation (R3) -----------------------------
       //
@@ -266,6 +301,62 @@ export async function POST(req: NextRequest) {
       const FINAL_TEXT_CAP = 20_000;
       let sawErrorOnWire = false;
       let sawCancelledOnWire = false;
+
+      // ---- Turn-final emission (shared by the normal finally and the ------
+      //      watchdog force path).
+      //
+      // Exactly ONE turn_final + synthetic terminal + unregister per run —
+      // whichever teardown path reaches it first (the idempotency guard
+      // absorbs the second call). The watchdog force path exists because
+      // `await iterator.return()` in the finally can hang forever when the
+      // provider socket half-died and ignores session.abort(); without the
+      // shared function the turn_final (and therefore the DB run
+      // finalization) never happens and the run is stuck in_progress.
+      const emitTurnFinalAndClose = () => {
+        if (turnFinalEmitted) return;
+        turnFinalEmitted = true;
+        clearInterval(watchdog);
+        const finalStatus = runAbort.signal.aborted || sawCancelledOnWire
+          ? 'cancelled'
+          : sawErrorOnWire
+            ? 'error'
+            : 'complete';
+        const turnFinalEvent = {
+          type: 'agent:turn_final' as const,
+          text: finalText,
+          status: finalStatus,
+          ...(sessionId ? { sessionId } : {}),
+          ...(runId ? { runId } : {}),
+          ...(assistantMessageId ? { messageId: assistantMessageId } : {}),
+        };
+        send({ type: 'agent_event', event: turnFinalEvent });
+        appendSyntheticJournalEvent(documentId, 'agent:turn_final', undefined, turnFinalEvent);
+        // Journal-closure guarantee: the runner's tail emits a terminal
+        // event, but a HARD generator termination (iterator.return above —
+        // client disconnect / canvas-sync agent:stop while a tool call is
+        // mid-execution) unwinds at the suspension point and the tail never
+        // runs. Without this backstop the journal ends at the last
+        // tool_call_start forever — replay consumers would see an
+        // unterminated turn. Synthesize the honest terminal event instead.
+        if (!sawTerminalOnWire) {
+          appendSyntheticJournalEvent(
+            documentId,
+            runAbort.signal.aborted ? 'agent:turn_cancelled' : 'agent:turn_end',
+            undefined,
+            {
+              type: runAbort.signal.aborted ? 'agent:turn_cancelled' : 'agent:turn_end',
+              synthetic: true,
+              note: runAbort.signal.aborted
+                ? 'Run aborted (client Stop / disconnect / stream watchdog) — terminal event synthesized at stream teardown.'
+                : 'Run ended without a terminal event — synthesized at stream teardown.',
+            },
+          );
+        }
+        // Status-route visibility: the run is over (identity-checked — an
+        // aborted older run never unregisters a newer one).
+        unregisterActiveRun(documentId, runToken);
+        close();
+      };
 
       const iterator = runAgent({
         documentId,
@@ -355,56 +446,26 @@ export async function POST(req: NextRequest) {
         req.signal.removeEventListener('abort', onClientAbort);
         // Terminate the generator (runs its finally blocks → session dispose)
         // even when we exited the loop early (watchdog / client disconnect).
+        //
+        // ⚠️ This await CAN hang forever (provider socket half-died mid-SSE,
+        // session.abort() is a no-op against the dead socket) — which is
+        // exactly why emitTurnFinalAndClose() is shared with the watchdog's
+        // abort-grace force path: turn_final + the synthetic terminal +
+        // unregisterActiveRun must not depend on THIS await completing.
+        // When the force path already ran, the guarded call below is a
+        // no-op and the stream was closed from the watchdog tick.
         try { await iterator.return?.(undefined); } catch { /* already finished */ }
         // ---- Turn-final content event (R3) ----------------------------------
         //
         // ONE row per turn with the full final assistant text + the honest
         // terminal status + the client-threaded identity. Sent on the wire
-        // TOO (before any synthetic terminal below): live viewers use it to
+        // TOO (before any synthetic terminal): live viewers use it to
         // HEAL a turn whose delta stream dropped chunks (the text REPLACES,
         // so a fully-caught-up viewer is unaffected); reconnecting catch-up
         // replay uses it to reconstruct the whole turn. Bounded by the
-        // journal's 65K row cap regardless.
-        const finalStatus = runAbort.signal.aborted || sawCancelledOnWire
-          ? 'cancelled'
-          : sawErrorOnWire
-            ? 'error'
-            : 'complete';
-        const turnFinalEvent = {
-          type: 'agent:turn_final' as const,
-          text: finalText,
-          status: finalStatus,
-          ...(sessionId ? { sessionId } : {}),
-          ...(runId ? { runId } : {}),
-          ...(assistantMessageId ? { messageId: assistantMessageId } : {}),
-        };
-        send({ type: 'agent_event', event: turnFinalEvent });
-        appendSyntheticJournalEvent(documentId, 'agent:turn_final', undefined, turnFinalEvent);
-        // Journal-closure guarantee: the runner's tail emits a terminal
-        // event, but a HARD generator termination (iterator.return above —
-        // client disconnect / canvas-sync agent:stop while a tool call is
-        // mid-execution) unwinds at the suspension point and the tail never
-        // runs. Without this backstop the journal ends at the last
-        // tool_call_start forever — replay consumers would see an
-        // unterminated turn. Synthesize the honest terminal event instead.
-        if (!sawTerminalOnWire) {
-          appendSyntheticJournalEvent(
-            documentId,
-            runAbort.signal.aborted ? 'agent:turn_cancelled' : 'agent:turn_end',
-            undefined,
-            {
-              type: runAbort.signal.aborted ? 'agent:turn_cancelled' : 'agent:turn_end',
-              synthetic: true,
-              note: runAbort.signal.aborted
-                ? 'Run aborted (client Stop / disconnect / stream watchdog) — terminal event synthesized at stream teardown.'
-                : 'Run ended without a terminal event — synthesized at stream teardown.',
-            },
-          );
-        }
-        // Status-route visibility: the run is over (identity-checked — an
-        // aborted older run never unregisters a newer one).
-        unregisterActiveRun(documentId, runToken);
-        close();
+        // journal's 65K row cap regardless. Idempotent — see
+        // emitTurnFinalAndClose above.
+        emitTurnFinalAndClose();
       }
     },
   });

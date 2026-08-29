@@ -365,6 +365,28 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     const isEdit = /\b(darker|lighter|bigger|smaller|move|rename|change|update|align|delete|remove|another|more|also|instead)\b/.test(t) && !/\b(create|build|generate)\b/.test(t);
     return creationVerb && wholeThing && !pinned && !isEdit;
   })();
+
+  // ---- Tool-calling reliability: "did this turn OWE tool calls?" -----------
+  //
+  // A build-style design request ("Design a login screen…") is expected to
+  // produce tool calls (brief / variants / shapes). A question ("what would
+  // a good login screen look like?") legitimately answers with text only.
+  // This predicate gates the mid-stream-death fallback + the text-only
+  // silent-failure guard below, so we retry/error exactly the turns that
+  // should have drawn — and never harass legit prose answers.
+  //
+  // Observed live failure this enables recovery for: the pinggy tunnel
+  // closed the SSE stream mid-output (turn died at exactly 500 output
+  // tokens, right after the model's preamble, with ZERO tool calls). The
+  // old guards only handled "zero output at all" (sawActivity=false), so a
+  // preamble-then-death turn fell through every safety net and the run
+  // hung in in_progress.
+  const QUESTIONISH_PROMPT =
+    /^(what|who|when|where|why|how|which|can|could|should|would|will|is|are|do|does|did|tell|explain|describe|list|hi|hello|hey|thanks)\b|[?]\s*$/.test(
+      prompt.trim(),
+    );
+  const expectsCanvasOutput = isDesignRequest(prompt) && !QUESTIONISH_PROMPT;
+
   if (shouldEnforceBrief && !isAmbiguousCreation) {
     try {
       const { dispatchDesignBriefSubAgent } = await import('./subagents/design-brief');
@@ -803,6 +825,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // authoritative turn_end so the UI never hangs.
   let withheldTurnEnd = false;
   let lastSawActivity = false;
+  // Tool-call visibility for the LAST attempt — drives the text-only-design-turn
+  // silent-failure guard (a build request that settled with prose only and
+  // zero tool calls is a failed turn even though text "activity" was seen).
+  let lastSawToolCall = false;
   let lastSawErrorEvent = false;
   let lastPromptError: any = undefined;
   let currentModel = model;
@@ -890,6 +916,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     let sawMessageEnd = false;
     let sawTurnEnd = false;
     let sawActivity = false;
+    let sawToolCall = false;
     let sawErrorEvent = false;
     let promptError: any = undefined;
 
@@ -1126,6 +1153,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           if (ev.event.type === 'agent:error') sawErrorEvent = true;
           // ---- Stuck detector feed (C4) -----------------------------------
           if (ev.event.type === 'agent:tool_call_start') {
+            sawToolCall = true;
             stuckTracker.onStart(ev.event.toolCallId, ev.event.toolName, ev.event.argsPreview);
           }
           if (ev.event.type === 'agent:tool_call_end') {
@@ -1172,14 +1200,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           break;
         }
         if (promptError) {
-          // prompt() threw — surface the error and stop.
-          const message = `Agent prompt failed: ${agentErrorMessage(promptError)}`;
-          const cls = classifyAgentError(message);
-          yield {
-            kind: 'agent_event',
-            event: { type: 'agent:error', message, code: cls.code, retryable: cls.retryable },
-          };
-          sawErrorEvent = true;
+          // prompt() threw — STOP draining. The error itself is surfaced
+          // AFTER the fallback decision below: yielding here would paint the
+          // run red (agent:error marks the run failed client-side) even when
+          // the z.ai fallback retry on the next attempt then succeeds. The
+          // deferred emission only fires when we're actually giving up.
           break;
         }
       }
@@ -1188,17 +1213,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       // event (e.g. the SDK short-circuited), emit one defensively.
       if (!promptError && !settled) {
         // prompt() is still pending but the queue drained — unusual. Wait
-        // for prompt() to settle so we surface any error.
+        // for prompt() to settle so we surface any error. The error is
+        // DEFERRED to the fallback decision below (same rationale as the
+        // drain-loop break above — a mid-stream death must not paint the
+        // run failed before the z.ai fallback gets its chance).
         try {
           await promptPromise;
         } catch (err: any) {
-          const message = `Agent prompt failed: ${agentErrorMessage(err)}`;
-          const cls = classifyAgentError(message);
-          yield {
-            kind: 'agent_event',
-            event: { type: 'agent:error', message, code: cls.code, retryable: cls.retryable },
-          };
-          sawErrorEvent = true;
           promptError = err;
         }
       }
@@ -1219,6 +1240,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     if (sawMessageEnd) everSawMessageEnd = true;
     if (sawTurnEnd) everSawTurnEnd = true;
     lastSawActivity = sawActivity;
+    lastSawToolCall = sawToolCall;
     lastSawErrorEvent = sawErrorEvent;
     lastPromptError = promptError;
 
@@ -1227,19 +1249,40 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     if (wasAborted()) break;
 
     // Decide whether to fall back to the z.ai sandbox for a second attempt.
-    // Bounded: at most ONE retry per turn (attempt === 0 only), and only if
-    // the previous attempt produced ZERO user-visible output (no text deltas,
-    // no tool calls). Skipped when the resolver already swapped to the
-    // z.ai sandbox preflight (currentModel.usedFallback) — that would be a
-    // second fallback for the same turn, violating the one-retry bound.
-    // Also skipped when the configured provider is already 'zai' (no point
-    // falling back to the same provider).
+    // Bounded: at most ONE retry per turn (attempt === 0 only).
+    //
+    // THREE failure shapes justify the retry (previously only the first):
+    //
+    //   1. ZERO-OUTPUT attempt (no text deltas, no tool calls) — the classic
+    //      empty-200 / rate-limited-body case.
+    //   2. DIED-MID-STREAM attempt — text streamed, then prompt() THREW
+    //      (tunnel closed the SSE stream mid-output). The preamble the user
+    //      already saw is not a deliverable; a fresh attempt on a different
+    //      provider is the only recovery. The prompt error is DEFERRED (see
+    //      the drain loop) so this retry can still produce a clean turn.
+    //      Skipped when the resolver already swapped to the z.ai sandbox
+    //      preflight (currentModel.usedFallback) — that would be a second
+    //      fallback for the same turn, violating the one-retry bound. Also
+    //      skipped when the configured provider is already 'zai' (no point
+    //      falling back to the same provider).
+    //   3. TEXT-ONLY DESIGN TURN — the attempt settled "normally" (clean
+    //      message end, no throw) but produced ZERO tool calls on a
+    //      build-style design request (expectsCanvasOutput). Observed live:
+    //      the model streamed its preamble, the tunnel cut the stream at
+    //      exactly 500 output tokens, and the SDK surfaced it as a clean
+    //      message end — text "activity" with no drawing. The turn owed
+    //      tool calls and produced none → retry. Questions ("what makes a
+    //      good login screen?") never match expectsCanvasOutput, so legit
+    //      prose answers are never retried.
+    const diedMidStream = !!promptError && sawActivity;
+    const textOnlyDesignTurn = sawActivity && !sawToolCall && expectsCanvasOutput;
+
     const shouldFallback =
       attempt === 0 &&
       !didFallback &&
       !currentModel.usedFallback &&
       providerId !== 'zai' &&
-      !sawActivity;
+      (!sawActivity || diedMidStream || textOnlyDesignTurn);
 
     // VLM-exercise Fix 5: the FALLBACK ITSELF can return an empty body
     // (observed 3× during the exercise: pinggy primary down → preflight
@@ -1248,28 +1291,63 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // model is ALREADY the sandbox fallback (or the configured provider is
     // zai), retry the SAME model once after a backoff — bounded by the same
     // didFallback flag, so the total stays at one extra attempt per turn.
+    // Extended to the text-only-design-turn shape (same reasoning — the
+    // turn owed tool calls and produced none), but NOT to diedMidStream
+    // with a thrown error on the same model: the SDK already burned its
+    // internal retry budget on that exact model, so a thrown stream death
+    // on zai only surfaces the deferred error instead of re-rolling.
     const shouldRetrySameModel =
       attempt === 0 &&
       !didFallback &&
-      !sawActivity &&
-      (currentModel.usedFallback === true || providerId === 'zai');
+      (currentModel.usedFallback === true || providerId === 'zai') &&
+      (!sawActivity || (textOnlyDesignTurn && !promptError));
 
-    if (!shouldFallback && !shouldRetrySameModel) break;
+    // Emit the deferred prompt error now when we are NOT retrying — this is
+    // the only honest exit for a mid-stream death that no safety net caught.
+    // (When we ARE retrying, the error stays deferred: the next attempt's
+    // output replaces it, and the tail guards below still fire if that
+    // attempt fails too.)
+    const surfaceDeferredError = () => {
+      if (!promptError || sawErrorEvent || wasAborted()) return;
+      const message = `Agent prompt failed: ${agentErrorMessage(promptError)}`;
+      const cls = classifyAgentError(message);
+      sawErrorEvent = true;
+      lastSawErrorEvent = true;
+      return {
+        kind: 'agent_event' as const,
+        event: { type: 'agent:error' as const, message, code: cls.code, retryable: cls.retryable },
+      };
+    };
+
+    if (!shouldFallback && !shouldRetrySameModel) {
+      const deferred = surfaceDeferredError();
+      if (deferred) yield deferred;
+      break;
+    }
 
     if (shouldFallback) {
       // Try to resolve a z.ai-sandbox fallback model. If ZAI.create() throws
-      // (not in the z.ai sandbox / no creds), log and skip — the silent-failure
-      // guard below will surface an error to the user.
+      // (not in the z.ai sandbox / no creds), log and skip — the deferred
+      // error + silent-failure guard below will surface the failure to the
+      // user.
       const fallbackModel = await resolveZaiSandboxFallback();
-      if (!fallbackModel) break;
+      if (!fallbackModel) {
+        const deferred = surfaceDeferredError();
+        if (deferred) yield deferred;
+        break;
+      }
 
       console.warn(
-        `[llm-fallback] primary endpoint ${currentModel.label} produced no output (zero message_delta + zero tool_call events); retrying turn with z.ai sandbox / glm-5.3`,
+        `[llm-fallback] primary endpoint ${currentModel.label} produced ${
+          sawActivity ? (sawToolCall ? 'partial output' : 'text-only output with zero tool calls') : 'no output'
+        } (zero message_delta + zero tool_call events)${promptError ? ' — stream died mid-turn' : ''}; retrying turn with z.ai sandbox / glm-5.3`,
       );
       currentModel = fallbackModel;
     } else {
       console.warn(
-        `[llm-fallback] ${currentModel.label} (already the fallback) produced no output — rate-limit backoff 8s, then one retry on the same model`,
+        `[llm-fallback] ${currentModel.label} (already the fallback) produced ${
+          sawActivity ? 'text-only output with zero tool calls' : 'no output'
+        } — rate-limit backoff 8s, then one retry on the same model`,
       );
       await new Promise((r) => setTimeout(r, 8_000));
     }
@@ -1784,11 +1862,27 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
   // prompt() without throwing, so we must emit the error here or the user
   // sees an empty bubble with no clue.
   // Emitted BEFORE the closing events so the UI records it on the run.
-  if (!lastPromptError && !lastSawErrorEvent && !lastSawActivity && !wasAborted()) {
+  //
+  // Extended (tool-calling reliability): a build-style design turn that
+  // settled with ZERO tool calls and an UNCHANGED canvas is a silent
+  // failure even when prose streamed — the user asked for a screen and
+  // got (at best) a preamble. Previously the guard required
+  // `!lastSawActivity`, so a preamble-then-death turn (stream cut at
+  // exactly 500 output tokens, 0 tool calls) exited "successfully" and
+  // the run hung in in_progress with nothing on the canvas.
+  const designTurnNeverDrew =
+    expectsCanvasOutput &&
+    !lastSawToolCall &&
+    (canvas.shapes?.length ?? 0) === turnStartShapeIds.size;
+  if (!lastPromptError && !lastSawErrorEvent && !wasAborted() && (!lastSawActivity || designTurnNeverDrew)) {
     const emptyMessage =
-      'The model returned an empty response (no text and no tool calls). ' +
-      'This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. ' +
-      'Wait about a minute and resend your prompt; if it keeps happening, try a different model in Settings.';
+      designTurnNeverDrew && lastSawActivity
+        ? 'The model responded with text but never called any tools — nothing was drawn on the canvas. ' +
+          'This usually means the LLM provider connection dropped mid-generation (truncated output) or the model is rate-limited. ' +
+          'Resend your prompt; if it keeps happening, switch to a different model in Settings.'
+        : 'The model returned an empty response (no text and no tool calls). ' +
+          'This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. ' +
+          'Wait about a minute and resend your prompt; if it keeps happening, try a different model in Settings.';
     const cls = classifyAgentError(emptyMessage);
     yield {
       kind: 'agent_event',

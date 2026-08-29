@@ -366,7 +366,21 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
   // ZAI.create() reports an OAuth token.
   let sandboxOverride: { baseUrl: string; headers: Record<string, string> } | undefined;
 
-  if (providerId === 'zai' && !effectiveApiKey) {
+  if (providerId === 'zai') {
+    // ---- z.ai sandbox resolution (tool-calling reliability fix) -----------
+    //
+    // Previously this branch was gated on `!effectiveApiKey` — but the app
+    // DEFAULT_SETTINGS pin a placeholder key ('123456', the legacy tunnel
+    // bearer) which the route injects whenever the client omits it. The
+    // gate was therefore ALWAYS false in practice, the sandbox bundle was
+    // never resolved, and a `provider: 'zai'` request silently resolved to
+    // the DEFAULT custom endpoint (the dead pinggy tunnel) carrying the
+    // placeholder key — preflight skipped (providerId==='zai'), zero safety
+    // nets, empty stream. Observed live: settings.llmProvider='zai' →
+    // model_info custom/kimi-k2-5.
+    //
+    // New rule: provider 'zai' ALWAYS attempts the sandbox bundle first —
+    // an explicit user key is only used when the sandbox is unavailable.
     try {
       const zai = await ZAI.create();
       // `config` is private on ZAI; cast to access at runtime. The shape is
@@ -399,7 +413,10 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
         };
       }
     } catch {
-      // Fall through to the error below — no creds available.
+      // Sandbox unavailable — fall through. The placeholder/default key is
+      // NOT used to build a bogus custom model for provider 'zai': the
+      // no-creds error below fires instead (unless the user supplied a real
+      // key AND a non-default baseUrl — the deliberate zai-proxy case).
     }
   }
 
@@ -411,6 +428,22 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
         (providerId === 'zai'
           ? 'Inside the z.ai sandbox, ensure ~/.z-ai-config exists (z-ai-web-dev-sdk auto-resolves it).'
           : ''),
+    );
+  }
+  // A placeholder/default key (e.g. the legacy tunnel bearer pinned in
+  // DEFAULT_SETTINGS) must not satisfy the z.ai provider on its own — if the
+  // sandbox resolution above failed AND the key is exactly the placeholder,
+  // treat it as missing so the honest no-creds error fires instead of
+  // pointing a zai-labeled request at the legacy endpoint.
+  if (
+    providerId === 'zai' &&
+    !sandboxOverride &&
+    effectiveApiKey === DEFAULT_SETTINGS.apiKey &&
+    (settings?.apiBaseUrl?.trim() ?? DEFAULT_SETTINGS.apiBaseUrl.trim()) === DEFAULT_SETTINGS.apiBaseUrl.trim()
+  ) {
+    throw new Error(
+      'No z.ai credentials available for provider "zai" (the configured API key is the legacy endpoint placeholder). ' +
+        'Inside the z.ai sandbox, ensure ~/.z-ai-config exists (z-ai-web-dev-sdk auto-resolves it).',
     );
   }
 
@@ -426,8 +459,20 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
   // below — their native APIs don't route through a synthetic
   // openai-completions model.
   const customBaseUrl = settings?.apiBaseUrl?.trim() ?? DEFAULT_SETTINGS.apiBaseUrl.trim();
+  // The DEFAULT apiBaseUrl belongs to the legacy custom endpoint config
+  // (provider 'custom' → kimi-k2-5). When the user asked for provider 'zai',
+  // that stale default must NOT hijack the resolution (previously it did:
+  // the route injects the default whenever the client omits apiBaseUrl, so
+  // a zai request silently became a custom-endpoint request against the
+  // dead tunnel, with the preflight skipped because providerId==='zai').
+  // An explicit NON-default baseUrl on provider 'zai' is still honored —
+  // that's a deliberate zai-compatible proxy configuration.
+  const isLegacyDefaultBaseUrl = customBaseUrl === DEFAULT_SETTINGS.apiBaseUrl.trim();
   const useCustomEndpoint =
-    customBaseUrl !== '' && !sandboxOverride && (meta?.openAICompatible ?? true);
+    customBaseUrl !== '' &&
+    !sandboxOverride &&
+    (meta?.openAICompatible ?? true) &&
+    !(providerId === 'zai' && isLegacyDefaultBaseUrl);
 
   if (useCustomEndpoint) {
     if (!modelId) {
@@ -567,7 +612,10 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
   // Non-OpenAI-compatible providers (anthropic / google) with an explicit
   // apiBaseUrl: keep the legacy baseUrl spread — their native APIs (anthropic-
   // messages / google-generative-ai) are dispatched from the catalog model.
-  if (customBaseUrl && !sandboxOverride) {
+  // Same legacy-default guard as useCustomEndpoint above: provider 'zai' +
+  // the DEFAULT apiBaseUrl is a stale-default hijack, never a deliberate
+  // baseUrl override.
+  if (customBaseUrl && !sandboxOverride && !(providerId === 'zai' && isLegacyDefaultBaseUrl)) {
     model = { ...model, baseUrl: customBaseUrl };
   }
 
