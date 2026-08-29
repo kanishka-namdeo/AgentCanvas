@@ -90,6 +90,17 @@ function formatTokens(tokens: number): string {
   return String(tokens);
 }
 
+/// Locale-independent thousands-separator formatting for tooltips/aria text:
+/// 128000 → "128,000". `Number.prototype.toLocaleString()` is NOT safe in
+/// components rendered during SSR: the server bakes ITS locale into the HTML
+/// while the browser re-renders with the USER's locale (e.g. ar-AE renders
+/// 128000 as Arabic-Indic digits "١٢٨٬٠٠٠"), which trips React hydration on
+/// the `title` attribute (react.dev/link/hydration-mismatch). A fixed
+/// en-US-style grouping keeps server and client output byte-identical.
+function fmtInt(n: number): string {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 /// Compact duration formatter for tool-call / thinking chips: 940 → "940ms",
 /// 4200 → "4.2s", 75000 → "1m 15s".
 function formatMs(ms: number): string {
@@ -248,12 +259,14 @@ function ModelContextStatus({
   const tooltip = [
     `Model: ${modelId}${isResolved ? '' : ' (configured — not yet resolved)'}`,
     `Provider: ${provider}${usedFallback ? ' (sandbox fallback)' : ''}`,
-    `Context window: ${contextWindow.toLocaleString()} tokens`,
-    activeModel ? `Max output: ${activeModel.maxTokens.toLocaleString()} tokens` : null,
+    // fmtInt, not toLocaleString — this tooltip is rendered during SSR and
+    // must be byte-identical to the client's first render (see fmtInt above).
+    `Context window: ${fmtInt(contextWindow)} tokens`,
+    activeModel ? `Max output: ${fmtInt(activeModel.maxTokens)} tokens` : null,
     '',
-    `Context usage: ${contextTokens.toLocaleString()} / ${contextWindow.toLocaleString()} (${pct}%)${lastCompacted ? ' — compacted' : ''}`,
+    `Context usage: ${fmtInt(contextTokens)} / ${fmtInt(contextWindow)} (${pct}%)${lastCompacted ? ' — compacted' : ''}`,
     usageTotals.llmCalls > 0
-      ? `Session totals: ${usageTotals.llmCalls} LLM calls · in ${usageTotals.inputTokens.toLocaleString()} · out ${usageTotals.outputTokens.toLocaleString()} · cache read ${usageTotals.cacheReadTokens.toLocaleString()} · cache write ${usageTotals.cacheWriteTokens.toLocaleString()}`
+      ? `Session totals: ${usageTotals.llmCalls} LLM calls · in ${fmtInt(usageTotals.inputTokens)} · out ${fmtInt(usageTotals.outputTokens)} · cache read ${fmtInt(usageTotals.cacheReadTokens)} · cache write ${fmtInt(usageTotals.cacheWriteTokens)}`
       : null,
     usageTotals.cost > 0 ? `Estimated cost: $${usageTotals.cost.toFixed(4)}` : null,
     '',
@@ -1914,7 +1927,7 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
                 {turn.tokenUsage && (turn.tokenUsage.input > 0 || turn.tokenUsage.output > 0) && (
                   <span
                     className="flex items-center gap-0.5 flex-shrink-0"
-                    title={`Turn token usage: ${turn.tokenUsage.input.toLocaleString()} input + ${turn.tokenUsage.output.toLocaleString()} output (all LLM calls in this turn)`}
+                    title={`Turn token usage: ${fmtInt(turn.tokenUsage.input)} input + ${fmtInt(turn.tokenUsage.output)} output (all LLM calls in this turn)`}
                   >
                     <Cpu className="h-3 w-3" />
                     {formatTokens(turn.tokenUsage.input + turn.tokenUsage.output)} tok
