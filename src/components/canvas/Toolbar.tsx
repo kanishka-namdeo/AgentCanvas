@@ -25,11 +25,8 @@ import {
   Type,
   Minus,
   Frame,
-  Trash2,
   MousePointer2,
   Hand,
-  Undo2,
-  Redo2,
   Scaling,
   Section as SectionIcon,
 } from 'lucide-react';
@@ -64,12 +61,6 @@ export function Toolbar() {
   const toolMode = useCanvasStore((s) => s.toolMode);
   const setToolMode = useCanvasStore((s) => s.setToolMode);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
-  const undo = useCanvasStore((s) => s.undo);
-  const redo = useCanvasStore((s) => s.redo);
-  const undoStack = useCanvasStore((s) => s.undoStack);
-  const redoStack = useCanvasStore((s) => s.redoStack);
-  const canUndo = undoStack.length > 0;
-  const canRedo = redoStack.length > 0;
 
   const createShape = (type: LayerType) => {
     const defaults = SHAPE_DEFAULTS[type];
@@ -110,9 +101,6 @@ export function Toolbar() {
         ? 'ac-surface-3 ac-text-1 shadow-sm'
         : 'ac-text-2 hover:ac-text-1 hover:ac-surface-2'
     }`;
-
-
-  const canvasEmpty = shapes.length === 0;
 
   return (
     // Floating pill — absolutely positioned at bottom-center of the canvas container.
@@ -234,7 +222,7 @@ export function Toolbar() {
         {/* Separator between H.1 tool groups. */}
         <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
 
-        {/* H.1 group 4: Text (T). */}
+        {/* H.1 group 4: Text (T) — last group; nothing after it. */}
         <Button
           variant="ghost"
           size="icon"
@@ -247,49 +235,10 @@ export function Toolbar() {
           <Type className="h-4 w-4" />
         </Button>
 
-        {/* Separator between H.1 tool groups. */}
-        <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Undo (⌘Z)"
-          aria-label="Undo"
-          disabled={!canUndo || agentBusy}
-          onClick={() => undo()}
-        >
-          <Undo2 className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Redo (⌘⇧Z)"
-          aria-label="Redo"
-          disabled={!canRedo || agentBusy}
-          onClick={() => redo()}
-        >
-          <Redo2 className="h-4 w-4" />
-        </Button>
-
-        {/* Separator between H.1 tool groups. */}
-        <div className="w-px h-5 ac-border-subtle bg-current mx-0.5 opacity-30" />
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 ac-text-danger ac-hover-danger hover:ac-text-danger ac-transition ac-focus-ring rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
-          title="Clear canvas"
-          aria-label="Clear canvas"
-          disabled={canvasEmpty || agentBusy}
-          onClick={() => {
-            if (confirm('Clear all shapes from the canvas?')) {
-              sendPatch({ op: 'clear', summary: 'Cleared canvas' });
-            }
-          }}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        {/* UI-audit 2026-08-29: Undo/Redo/Trash were removed from the
+            floating pill (12 → 8 buttons). Figma/Excalidraw ship no undo,
+            redo, or destructive-clear buttons in persistent chrome — they
+            live on ⌘Z / ⌘⇧Z / Delete / File menu instead. */}
       </div>
     </div>
   );

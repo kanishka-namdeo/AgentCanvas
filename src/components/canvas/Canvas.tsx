@@ -37,7 +37,7 @@ import {
   readComponentIdFromDrop,
   buildComponentDropPatch,
 } from '@/lib/canvas/assets-drag';
-import { PenLine, MousePointerClick, Scissors, Copy, ClipboardPaste, Trash2, ArrowUp, ArrowDown, BringToFront, SendToBack, Group as GroupIcon, SquareStack, Lock, Eye } from 'lucide-react';
+import { Scissors, Copy, ClipboardPaste, Trash2, ArrowUp, ArrowDown, BringToFront, SendToBack, Group as GroupIcon, SquareStack, Lock, Eye } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -1140,7 +1140,12 @@ export function Canvas() {
         });
       })()}
 
-      {/* Empty-canvas drop zone — subtle, screen-centered, fades out when shapes exist. */}
+      {/* Empty-canvas hint — one quiet centered line (UI-audit 2026-08-29:
+          the old dashed hero card — 48px icon + title + body + accent CTA +
+          tip — was the heaviest element on an EMPTY screen and duplicated
+          prompt entry points that already exist in the header (⌘K) and the
+          chat panel. Figma/tldraw precedent: a blank canvas is legitimate;
+          guide with at most one nudge, no chrome. */}
       {document.shapes.length === 0 && (
         <div
           data-empty-bg="true"
@@ -1149,49 +1154,8 @@ export function Canvas() {
             animation: 'ac-fade-in 240ms ease-out',
           }}
         >
-          <div
-            className="flex flex-col items-center gap-3 px-10 py-8 rounded-xl border-2 border-dashed max-w-md text-center"
-            style={{
-              borderColor: 'var(--ac-border-strong)',
-              backgroundColor: 'color-mix(in oklch, var(--ac-surface-0) 70%, transparent)',
-              backdropFilter: 'blur(2px)',
-            }}
-          >
-            <div
-              className="flex items-center justify-center h-12 w-12 rounded-lg"
-              style={{
-                backgroundColor: 'var(--ac-accent-soft)',
-                color: 'var(--ac-accent)',
-                boxShadow: 'inset 0 0 0 1px var(--ac-accent-border)',
-              }}
-            >
-              <PenLine className="h-5 w-5" />
-            </div>
-            <div className="space-y-1.5">
-              <div className="text-[18px] font-semibold ac-text-1 tracking-tight">Empty canvas</div>
-              <div className="text-[12px] ac-text-2 leading-relaxed">
-                Describe what you want to build in the panel on the right,
-                <br />
-                or pick a shape from the toolbar to drop one in.
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                // Open the command palette so the user can pick a preset prompt.
-                const open = (window as any).__openCommandPalette as (() => void) | undefined;
-                if (open) open();
-              }}
-              className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium text-white ac-transition shadow-sm hover:opacity-90"
-              style={{ backgroundColor: 'var(--ac-accent)' }}
-            >
-              <PenLine className="h-3.5 w-3.5" />
-              Try a preset prompt
-              <kbd className="text-[9px] px-1 py-0 rounded bg-white/20 font-mono ml-1">⌘K</kbd>
-            </button>
-            <div className="flex items-center gap-1.5 mt-1 text-[10px] ac-text-4">
-              <MousePointerClick className="h-3 w-3" />
-              <span>Tip: try “Design a login form” in the chat</span>
-            </div>
+          <div className="text-[12px] ac-text-3 leading-relaxed text-center px-6">
+            Describe what to build in the chat — or press <kbd className="text-[10px] px-1 py-0 rounded ac-surface-2 ac-text-4 font-mono">⌘K</kbd> for presets
           </div>
         </div>
       )}
@@ -1264,38 +1228,40 @@ export function Canvas() {
         />
       )}
 
-      {/* Zoom indicator */}
+      {/* Zoom indicator — compact −/%/+ pill (UI-audit 2026-08-29: dropped
+          the text "Reset" button; ⇧0 / ⇧1 shortcuts + the % readout cover
+          it, Figma ships no reset label). */}
       <div
-        className="absolute bottom-3 left-3 flex items-center gap-2 backdrop-blur rounded-md border shadow-sm px-2 py-1 text-xs ac-text-2 ac-transition"
+        className="absolute bottom-3 left-3 flex items-center gap-1 backdrop-blur rounded-md border shadow-sm px-1.5 py-0.5 text-xs ac-text-2 ac-transition"
         style={{
           backgroundColor: 'color-mix(in oklch, var(--ac-surface-0) 88%, transparent)',
           borderColor: 'var(--ac-border-default)',
         }}
       >
         <button
-          className="px-1 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
+          className="px-1.5 py-0.5 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
           aria-label="Zoom out"
           title="Zoom out"
           onClick={() => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom * 0.9) }))}
         >
           −
         </button>
-        <span className="tabular-nums w-12 text-center ac-text-2" aria-live="polite">{Math.round(zoom * 100)}%</span>
         <button
-          className="px-1 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
+          className="tabular-nums w-11 text-center ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded py-0.5"
+          aria-live="polite"
+          aria-label="Reset zoom to 100%"
+          title="Reset zoom to 100% (⇧0) — zoom to fit is ⇧1"
+          onClick={() => setViewport({ zoom: 1, panX: 120, panY: 80 })}
+        >
+          {Math.round(zoom * 100)}%
+        </button>
+        <button
+          className="px-1.5 py-0.5 ac-text-3 hover:ac-text-1 ac-transition ac-focus-ring rounded"
           aria-label="Zoom in"
           title="Zoom in"
           onClick={() => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom * 1.1) }))}
         >
           +
-        </button>
-        <button
-          className="ml-1 px-2 py-0.5 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
-          aria-label="Reset zoom to 100%"
-          title="Reset zoom to 100%"
-          onClick={() => setViewport({ zoom: 1, panX: 120, panY: 80 })}
-        >
-          Reset
         </button>
       </div>
         </div>

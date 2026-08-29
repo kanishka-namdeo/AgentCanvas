@@ -49,7 +49,7 @@ import {
 } from '@/components/ui/context-menu';
 import { toast } from 'sonner';
 import {
-  Copy, Group, Ungroup, AlignLeft, AlignCenterHorizontal, AlignRight,
+  AlignLeft, AlignCenterHorizontal, AlignRight,
   AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
   AlignHorizontalDistributeStart, AlignVerticalDistributeCenter, Palette,
   ChevronDown, Component, SquareDashedBottom,
@@ -115,20 +115,9 @@ export function PropertiesPanel() {
     sendPatch(patch);
   };
 
-  // ---- Multi-selection quick actions ----------------------------------------
-  const duplicateSelection = () => {
-    if (selected.length === 0) return;
-    sendPatch({ op: 'duplicate', shapeIds: selectedIds, summary: `Duplicated ${selected.length} node(s)` });
-  };
-  const groupSelection = () => {
-    if (selected.length < 2) return;
-    sendPatch({ op: 'group', shapeIds: selectedIds, summary: `Grouped ${selected.length} node(s)` });
-  };
-  const ungroupSelection = () => {
-    const groups = selected.filter((s) => s.type === 'group');
-    if (groups.length === 0) return;
-    sendPatch({ op: 'ungroup', shapeIds: groups.map((g) => g.id), summary: `Ungrouped ${groups.length} group(s)` });
-  };
+  // ---- Multi-selection actions -----------------------------------------------
+  // UI-audit 2026-08-29: duplicate/group/ungroup helpers were removed — the
+  // Edit menu + ⌘D/⌘G/⌘⇧G + context menus are the canonical surfaces.
   const alignSelection = (kind: CanvasPatch['alignKind']) => {
     if (selected.length < 2 || !kind) return;
     sendPatch({ op: 'align', shapeIds: selectedIds, alignKind: kind, summary: `Aligned ${selected.length} node(s) ${kind}` });
@@ -341,77 +330,56 @@ export function PropertiesPanel() {
         {/* Alignment row (spec Phase 7 — Appendix H §H.1: alignment sits at the
             TOP of the right sidebar, Figma-style). 6 align + 2 distribute
             buttons emitting CANONICAL alignKind values (Appendix G §G.2 — the
-            patch applier accepts them post-Phase-6). Needs ≥ 2 selected. */}
-        <div data-ac-align-row className="flex items-center gap-0.5 flex-wrap">
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align left (⌥A)" aria-label="Align left" disabled={selected.length < 2} onClick={() => alignSelection('LEFT')}>
-            <AlignLeft className="h-3 w-3" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align horizontal centers (⌥H)" aria-label="Align horizontal centers" disabled={selected.length < 2} onClick={() => alignSelection('HCENTER')}>
-            <AlignHCentersIcon className="h-3 w-3" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align right (⌥D)" aria-label="Align right" disabled={selected.length < 2} onClick={() => alignSelection('RIGHT')}>
-            <AlignRight className="h-3 w-3" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align top (⌥W)" aria-label="Align top" disabled={selected.length < 2} onClick={() => alignSelection('TOP')}>
-            <AlignVerticalJustifyStart className="h-3 w-3" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align vertical centers (⌥V)" aria-label="Align vertical centers" disabled={selected.length < 2} onClick={() => alignSelection('VCENTER')}>
-            <AlignVCentersIcon className="h-3 w-3" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align bottom (⌥S)" aria-label="Align bottom" disabled={selected.length < 2} onClick={() => alignSelection('BOTTOM')}>
-            <AlignVerticalJustifyEnd className="h-3 w-3" />
-          </Button>
-          <span className="w-px h-4 ac-border-subtle bg-current mx-1 opacity-30" aria-hidden />
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Distribute horizontally" aria-label="Distribute horizontally" disabled={selected.length < 3} onClick={() => alignSelection('DISTRIBUTE_H')}>
-            <AlignHorizontalDistributeStart className="h-3 w-3" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Distribute vertically" aria-label="Distribute vertically" disabled={selected.length < 3} onClick={() => alignSelection('DISTRIBUTE_V')}>
-            <AlignVerticalDistributeCenter className="h-3 w-3" />
-          </Button>
-          {/* Flip (⇧H / ⇧V) — writes the .pen flip flags; see page.tsx note on
-              the visual-mirroring deviation. */}
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0 ml-auto" title="Flip horizontal (⇧H)" aria-label="Flip horizontal" disabled={selected.length === 0} onClick={() => flipSelection('flipX')}>
-            <FlipHorizontal className="h-3 w-3" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Flip vertical (⇧V)" aria-label="Flip vertical" disabled={selected.length === 0} onClick={() => flipSelection('flipY')}>
-            <FlipVertical className="h-3 w-3" />
-          </Button>
-        </div>
+            patch applier accepts them post-Phase-6).
 
-        {/* Multi-selection quick actions */}
-        {isMulti && (
-          <>
-            <div>
-              <Label className="text-[11px] ac-text-3">Quick Actions</Label>
-              <div className="grid grid-cols-3 gap-1 mt-1">
-                <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={duplicateSelection}>
-                  <Copy className="h-3 w-3 mr-1" /> Duplicate
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={groupSelection}>
-                  <Group className="h-3 w-3 mr-1" /> Group
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={ungroupSelection}>
-                  <Ungroup className="h-3 w-3 mr-1" /> Ungroup
-                </Button>
-              </div>
-            </div>
-            <Separator />
-          </>
-        )}
-
-        {/* Single-selection actions: duplicate, ungroup (if group) */}
-        {!isMulti && (
-          <div className="grid grid-cols-2 gap-1">
-            <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={duplicateSelection}>
-              <Copy className="h-3 w-3 mr-1" /> Duplicate
+            UI-audit 2026-08-29: rendered ONLY when ≥ 2 nodes are selected —
+            ten permanently-disabled buttons on every single/empty selection
+            were pure visual noise (Figma rule R10: show-on-selection; the
+            Object menu + ⌥-shortcuts remain the always-available twin). */}
+        {selected.length >= 2 && (
+          <div data-ac-align-row className="flex items-center gap-0.5 flex-wrap">
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align left (⌥A)" aria-label="Align left" disabled={selected.length < 2} onClick={() => alignSelection('LEFT')}>
+              <AlignLeft className="h-3 w-3" />
             </Button>
-            {shape.type === 'group' && (
-              <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={ungroupSelection}>
-                <Ungroup className="h-3 w-3 mr-1" /> Ungroup
-              </Button>
-            )}
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align horizontal centers (⌥H)" aria-label="Align horizontal centers" disabled={selected.length < 2} onClick={() => alignSelection('HCENTER')}>
+              <AlignHCentersIcon className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align right (⌥D)" aria-label="Align right" disabled={selected.length < 2} onClick={() => alignSelection('RIGHT')}>
+              <AlignRight className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align top (⌥W)" aria-label="Align top" disabled={selected.length < 2} onClick={() => alignSelection('TOP')}>
+              <AlignVerticalJustifyStart className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align vertical centers (⌥V)" aria-label="Align vertical centers" disabled={selected.length < 2} onClick={() => alignSelection('VCENTER')}>
+              <AlignVCentersIcon className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Align bottom (⌥S)" aria-label="Align bottom" disabled={selected.length < 2} onClick={() => alignSelection('BOTTOM')}>
+              <AlignVerticalJustifyEnd className="h-3 w-3" />
+            </Button>
+            <span className="w-px h-4 ac-border-subtle bg-current mx-1 opacity-30" aria-hidden />
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Distribute horizontally" aria-label="Distribute horizontally" disabled={selected.length < 3} onClick={() => alignSelection('DISTRIBUTE_H')}>
+              <AlignHorizontalDistributeStart className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Distribute vertically" aria-label="Distribute vertically" disabled={selected.length < 3} onClick={() => alignSelection('DISTRIBUTE_V')}>
+              <AlignVerticalDistributeCenter className="h-3 w-3" />
+            </Button>
+            {/* Flip (⇧H / ⇧V) — writes the .pen flip flags; see page.tsx note on
+                the visual-mirroring deviation. Menu twin: Object → Flip. */}
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0 ml-auto" title="Flip horizontal (⇧H)" aria-label="Flip horizontal" disabled={selected.length === 0} onClick={() => flipSelection('flipX')}>
+              <FlipHorizontal className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0" title="Flip vertical (⇧V)" aria-label="Flip vertical" disabled={selected.length === 0} onClick={() => flipSelection('flipY')}>
+              <FlipVertical className="h-3 w-3" />
+            </Button>
           </div>
         )}
+
+        {/* UI-audit 2026-08-29: the multi-select "Quick Actions" grid
+            (Duplicate / Group / Ungroup) and the single-select Duplicate /
+            Ungroup buttons were removed — duplicate was reachable from FIVE
+            surfaces (⌘D, Edit menu, canvas right-click, layers right-click,
+            and both grids). Menus + shortcuts are the twin; the panel shows
+            properties, not command buttons. */}
 
         {/* Name */}
         {!isMulti && (

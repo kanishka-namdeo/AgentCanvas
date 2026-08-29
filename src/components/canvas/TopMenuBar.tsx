@@ -53,7 +53,6 @@ export function TopMenuBar(props: TopMenuBarProps) {
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
   const setToolMode = useCanvasStore((s) => s.setToolMode);
-  const connected = useCanvasStore((s) => s.connected);
   const viewerCount = useCanvasStore((s) => s.viewerCount);
   // Presence lane (R7): named roster — feeds the viewer chip's tooltip so
   // "3" becomes "Guest A4F2, Guest B7C1 + you".
@@ -145,9 +144,6 @@ export function TopMenuBar(props: TopMenuBarProps) {
             <MenubarItem onClick={props.onImportPen}>
               Open .pen file… <MenubarShortcut>⌘O</MenubarShortcut>
             </MenubarItem>
-            <MenubarItem onClick={props.onImportPen}>
-              Import .pen file…
-            </MenubarItem>
             <MenubarSeparator />
             <MenubarItem onClick={props.onExportPen}>
               Export as .pen <MenubarShortcut>⌘E</MenubarShortcut>
@@ -224,6 +220,21 @@ export function TopMenuBar(props: TopMenuBarProps) {
             </MenubarItem>
             <MenubarItem onClick={props.onOpenSettings}>
               Settings… <MenubarShortcut>⌘,</MenubarShortcut>
+            </MenubarItem>
+            <MenubarSeparator />
+            {/* Clear canvas — moved here from the floating toolbar pill
+                (UI-audit 2026-08-29: no destructive button in persistent
+                chrome; destructive actions belong in a menu behind a
+                confirmation). */}
+            <MenubarItem
+              disabled={document.shapes.length === 0}
+              onClick={() => {
+                if (confirm('Clear all shapes from the canvas?')) {
+                  sendPatch({ op: 'clear', summary: 'Cleared canvas' });
+                }
+              }}
+            >
+              Clear canvas…
             </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
@@ -410,6 +421,32 @@ export function TopMenuBar(props: TopMenuBarProps) {
             <MenubarItem onClick={frameSelection}>
               Frame selection <MenubarShortcut>{chord('frame-selection')}</MenubarShortcut>
             </MenubarItem>
+            {/* Flip (⇧H/⇧V) — writes the .pen flipX/flipY flags. Lives here
+                since the Properties panel align row is now multi-select-only
+                (UI-audit 2026-08-29); single-selection flip needed a menu twin. */}
+            <MenubarItem
+              disabled={selectedIds.length === 0}
+              onClick={() => {
+                for (const id of selectedIds) {
+                  const s = findShape(document, id);
+                  if (s) sendPatch({ op: 'update', shapeId: s.id, shape: { flipX: true } as Partial<Shape>, summary: `Flipped horizontally: ${s.name}` });
+                }
+              }}
+            >
+              Flip horizontal <MenubarShortcut>⇧H</MenubarShortcut>
+            </MenubarItem>
+            <MenubarItem
+              disabled={selectedIds.length === 0}
+              onClick={() => {
+                for (const id of selectedIds) {
+                  const s = findShape(document, id);
+                  if (s) sendPatch({ op: 'update', shapeId: s.id, shape: { flipY: true } as Partial<Shape>, summary: `Flipped vertically: ${s.name}` });
+                }
+              }}
+            >
+              Flip vertical <MenubarShortcut>⇧V</MenubarShortcut>
+            </MenubarItem>
+            <MenubarSeparator />
             <MenubarSub>
               <MenubarSubTrigger>Align</MenubarSubTrigger>
               <MenubarSubContent>
@@ -484,7 +521,9 @@ export function TopMenuBar(props: TopMenuBarProps) {
       {/* Version history (Phase 7 group C — defect D14) */}
       <VersionHistoryDialog open={versionHistoryOpen} onOpenChange={setVersionHistoryOpen} />
 
-      {/* Connection + viewer indicators — always visible (right-aligned). */}
+      {/* Presence indicator — shown ONLY when other viewers are present
+          (Figma pattern: no persistent connection badge; sync status lives
+          on the header's single bot chip). UI-audit 2026-08-29. */}
       <div className="ml-auto flex items-center gap-2 pr-1">
         {viewerCount > 1 && (() => {
           const names = Object.values(remotePresence).map((p) => p.name);
@@ -504,13 +543,6 @@ export function TopMenuBar(props: TopMenuBarProps) {
             </span>
           );
         })()}
-        <span
-          className={`flex items-center gap-1 text-[10px] ${connected ? 'ac-text-3' : 'ac-text-danger'}`}
-          title={connected ? 'Connected — changes sync live to all viewers' : 'Offline — changes are local only'}
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'ac-dot-success' : 'ac-dot-danger'}`} />
-          {connected ? 'connected' : 'offline'}
-        </span>
       </div>
     </div>
   );

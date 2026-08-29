@@ -230,9 +230,13 @@ export function SessionSidebar() {
 
   return (
     <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
-      {/* Header */}
-      <div className="px-3 pt-3 pb-2 border-b ac-border-subtle">
-        <div className="flex items-center justify-between mb-2">
+      {/* Header — UI-audit 2026-08-29: compressed ~112px → ~68px. The
+          full-width accent "New chat" CTA (the loudest element in the whole
+          app, for a secondary action) became a compact ghost button inline
+          with the "CHATS" label, matching how every mature chat app treats
+          "new conversation" (ChatGPT / Linear / Slack). */}
+      <div className="px-3 pt-2.5 pb-2 border-b ac-border-subtle">
+        <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <MessageSquare className="h-3.5 w-3.5 ac-text-3 flex-shrink-0" />
             <span className="text-[11px] font-semibold uppercase tracking-wide ac-text-2 truncate">Chats</span>
@@ -240,16 +244,16 @@ export function SessionSidebar() {
               <span className="text-[10px] ac-text-4 ml-0.5">{stats.activeSessions}</span>
             )}
           </div>
+          <button
+            onClick={() => newSession()}
+            title="New chat (⌘N)"
+            aria-label="New chat"
+            className="flex items-center gap-1 h-6 px-2 rounded text-[11px] font-medium ac-text-2 ac-surface-1 ac-border-subtle border hover:ac-text-1 hover:ac-border-default ac-transition ac-focus-ring flex-shrink-0"
+          >
+            <Plus className="h-3 w-3" />
+            New
+          </button>
         </div>
-        {/* Primary CTA — visually distinct from list rows */}
-        <button
-          onClick={() => newSession()}
-          className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md text-[12px] font-medium text-white ac-transition shadow-sm mb-2"
-          style={{ backgroundColor: 'var(--ac-accent)' }}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New chat
-        </button>
         {/* Search — debounced content search (title + body + tool args) */}
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 ac-text-4" />
@@ -312,7 +316,7 @@ export function SessionSidebar() {
               {search ? 'No matches.' : (
                 <>
                   <p className="font-medium ac-text-3 mb-1">No chats yet</p>
-                  <p className="ac-text-4">Click “New chat” above to start.</p>
+                  <p className="ac-text-4">Hit “New” above to start a chat.</p>
                 </>
               )}
             </div>
@@ -562,20 +566,11 @@ export function SessionSidebar() {
         </div>
       </ScrollArea>
 
-      {/* Footer stats + server sync indicator */}
-      <div className="px-3 py-1.5 border-t ac-border-subtle text-[11px] ac-text-4 flex flex-wrap items-center justify-between gap-y-1 ac-surface-1">
-        <span className="whitespace-nowrap">{stats.totalRuns} runs · {stats.totalToolCalls} tools</span>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <span className="whitespace-nowrap" title="Canvas snapshots (shared across every chat on this canvas)">{stats.totalSnapshots} canvas snapshots</span>
-          {/* Server sync indicator — shows sessions are persisted server-side (Phase 3) */}
-          <span className="flex items-center gap-0.5 ac-text-success" title="Sessions sync to server automatically">
-            <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12l5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            synced
-          </span>
-        </div>
-      </div>
+      {/* UI-audit 2026-08-29: footer stats bar removed. "N runs · N tools ·
+          N snapshots · ✓ synced" wrapped to two lines at the bottom of the
+          panel and duplicated (a) the RunHistory tab's own header counts and
+          (b) sync status already carried by the header's single bot chip.
+          Exception-only: sync failures surface via toast. */}
 
       {/* Rename dialog */}
       <Dialog open={renamingId !== null} onOpenChange={(open) => !open && setRenamingId(null)}>

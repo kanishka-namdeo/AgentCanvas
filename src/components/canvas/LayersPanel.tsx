@@ -786,8 +786,9 @@ export function LayersPanel() {
   // axes (count of axes in `document.themes`). Both are optional on a .pen
   // document; absent means zero.
   const nodeCount = shapes.length;
-  const variableCount = document.variables ? Object.keys(document.variables).length : 0;
-  const themeAxisCount = document.themes ? Object.keys(document.themes).length : 0;
+  // UI-audit 2026-08-29: variableCount / themeAxisCount were only consumed by
+  // the removed summary footer — counts remain visible in the Properties
+  // panel's empty state where the variables themselves are listed.
   const pages = document.pages ?? [];
 
   return (
@@ -894,14 +895,18 @@ export function LayersPanel() {
           className="flex-1 flex flex-col min-h-0 gap-0"
           data-ac-layers-tabs=""
         >
-          <div className="flex items-center justify-between px-2 py-1.5 border-b ac-border-subtle gap-1">
-            <TabsList className="h-7" data-ac-tabs-list="">
-              <TabsTrigger value="layers" data-ac-tab-trigger="layers" className="text-[11px] gap-1 px-2">
+          {/* UI-audit 2026-08-29: merged-look header — the inner tabs row
+              lost its border-b + vertical padding so it reads as part of ONE
+              header block with the outer Chats/Layers strip instead of two
+              stacked 40px tab bars (~80px → ~52px). */}
+          <div className="flex items-center justify-between px-2 pt-1 pb-0.5 gap-1">
+            <TabsList className="h-6" data-ac-tabs-list="">
+              <TabsTrigger value="layers" data-ac-tab-trigger="layers" className="text-[11px] gap-1 px-2 h-6">
                 <Layers className="h-3 w-3" />
                 Layers
                 <span className="text-[9px] ac-text-4 font-normal">{nodeCount}</span>
               </TabsTrigger>
-              <TabsTrigger value="assets" data-ac-tab-trigger="assets" className="text-[11px] gap-1 px-2">
+              <TabsTrigger value="assets" data-ac-tab-trigger="assets" className="text-[11px] gap-1 px-2 h-6">
                 <Boxes className="h-3 w-3" />
                 Assets
                 <span className="text-[9px] ac-text-4 font-normal">{componentEntries.length}</span>
@@ -936,7 +941,7 @@ export function LayersPanel() {
 
           <TabsContent value="layers" className="flex-1 flex flex-col min-h-0 outline-none" data-ac-layers-tab="">
             {/* P0-12: Search-by-name input. Filters layers in real time. */}
-            <div className="px-2 py-1.5 border-b ac-border-subtle">
+            <div className="px-2 pt-1 pb-1.5 border-b ac-border-subtle">
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 ac-text-4" />
                 <Input
@@ -979,16 +984,11 @@ export function LayersPanel() {
                 )}
               </div>
             </ScrollArea>
-            {/* .pen design-system summary footer */}
-            <div className="border-t ac-border-subtle px-3 py-1.5 flex items-center gap-1.5 text-[10px] ac-text-4">
-              <Braces className="h-3 w-3 ac-text-4" aria-hidden />
-              <span>
-                {variableCount} variable{variableCount === 1 ? '' : 's'}
-                {' · '}
-                {themeAxisCount} theme axis{themeAxisCount === 1 ? '' : 'es'}
-                {pages.length > 0 ? ` · ${pages.length} page${pages.length === 1 ? '' : 's'}` : ''}
-              </span>
-            </div>
+            {/* UI-audit 2026-08-29: the .pen design-system summary footer
+                ("N variables · N theme axes · N pages") was removed — a
+                permanent readout of zero-value stats. Variables are browsable
+                in the Properties panel's empty state; pages in the pages
+                column when present. */}
           </TabsContent>
 
           <TabsContent value="assets" className="flex-1 min-h-0 outline-none" data-ac-assets-tab="">

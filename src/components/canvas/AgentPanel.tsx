@@ -281,8 +281,11 @@ function ModelContextStatus({
       <ModelSwitcher activeModel={activeModel} badgeTooltip={tooltip} />
 
       {/* Context usage — Cline-style progress bar with % + absolute tokens.
-          Hidden until the first LLM call reports usage (no fake data). */}
-      {contextTokens > 0 && (
+          UI-audit 2026-08-29: quiet-by-default — the bar now renders ONLY
+          once usage crosses the warn threshold (≥ 70%, OpenCode traffic-light
+          model); below that the model-badge tooltip carries the detail. A
+          permanently-green progress bar is telemetry noise, not signal. */}
+      {contextTokens > 0 && state !== 'ok' && (
         <span
           className="flex items-center gap-1"
           role="progressbar"
@@ -314,18 +317,9 @@ function ModelContextStatus({
         </span>
       )}
 
-      {/* Session cumulative usage — total tokens across all LLM calls this
-          session (input + output), shown once any usage was reported. Hidden
-          on narrow panels; the tooltip on the model badge already covers this. */}
-      {usageTotals.llmCalls > 0 && (
-        <span
-          className="hidden xl:flex items-center gap-0.5 flex-shrink-0"
-          title={`Session usage: ${usageTotals.llmCalls} LLM calls, ${usageTotals.inputTokens + usageTotals.outputTokens} tokens total${usageTotals.cost > 0 ? `, $${usageTotals.cost.toFixed(4)}` : ''}`}
-        >
-          <Clock className="h-2.5 w-2.5" />
-          {formatTokens(usageTotals.inputTokens + usageTotals.outputTokens)} tok
-        </span>
-      )}
+      {/* UI-audit 2026-08-29: the always-on session token counter was
+          removed — it duplicated the model badge tooltip verbatim and added
+          a third numeric readout to one 40px header row. */}
     </>
   );
 }
@@ -654,7 +648,6 @@ function QueueChips() {
 export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const turns = useCanvasStore((s) => s.turns);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
-  const connected = useCanvasStore((s) => s.connected);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
   const stopAgent = useCanvasStore((s) => s.stopAgent);
   const contextTokens = useCanvasStore((s) => s.contextTokens);
@@ -1139,6 +1132,11 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
       {/* Header (optional — hidden when used inside a panel that already has SessionHeader) */}
       {!hideHeader && (
       <div className="flex flex-wrap items-center justify-between gap-y-1.5 px-3 py-2 border-b ac-border-subtle">
+        {/* UI-audit 2026-08-29: header slimmed to two signals — bot + busy
+            dot on the left, model switcher + thinking level on the right.
+            The ".pen" badge (static decoration) and the "live/offline"
+            connection chip (duplicated the header's single bot status chip)
+            were removed. */}
         <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
           <div className="relative">
             <Bot className="h-4 w-4 ac-text-2" />
@@ -1147,9 +1145,6 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             )}
           </div>
           <span className="text-xs font-medium ac-text-2">Agent</span>
-          <Badge variant="outline" className="text-[11px] h-5 px-1.5 py-0 font-normal ac-text-3 ac-border-default" title=".pen protocol · 60+ tools available">
-            .pen
-          </Badge>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[11px] ac-text-3 min-w-0">
           <ModelContextStatus
@@ -1175,11 +1170,6 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
             </svg>
             <span className="text-[11px]">{thinkingLevel}</span>
           </button>
-          {/* Connection status */}
-          <span className={`flex items-center gap-0.5 flex-shrink-0 ${connected ? '' : 'ac-text-danger'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'ac-dot-success' : 'ac-dot-danger'}`} />
-            {connected ? 'live' : 'offline'}
-          </span>
         </div>
       </div>
       )}
@@ -1194,29 +1184,14 @@ export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
           <div className="p-3 space-y-3" role="log" aria-live="polite" aria-label="Agent conversation">
           {turns.length === 0 && (
             <div className="space-y-3">
-              <div className="rounded-lg border ac-border-subtle ac-surface-1 p-3 text-xs ac-text-2">
-                <div className="flex items-center gap-1.5 mb-1.5 font-medium ac-text-1">
-                  <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--ac-accent)' }} />
-                  How does this work?
-                </div>
-                <p className="leading-relaxed">
-                  This is a Figma-like canvas where the primary user is an AI agent.
-                  The agent (powered by the Pi Agent SDK&apos;s tool-calling API) sees the
-                  canvas state — a .pen object tree — and manipulates it through 60+ tools
-                  covering wireframes, user flows, diagrams, variables, themes, component
-                  instances, slots, copy, and audits. You can also draw manually — the
-                  agent will see your edits.
-                </p>
-                <p className="mt-2 leading-relaxed ac-text-2">
-                  Attach reference images with the paperclip, by pasting, or by dropping
-                  them here — vision-capable models (look for the Eye icon next to a model)
-                  will use them as visual context.
-                </p>
-              </div>
-
-              {/* ⌘K hint — promotes discoverability of the command palette */}
-              <div className="text-center text-[10px] ac-text-4">
-                Press <kbd className="px-1 py-0 rounded ac-surface-2 ac-text-3 font-mono">⌘K</kbd> for all preset prompts
+              {/* UI-audit 2026-08-29: the "How does this work?" explainer
+                  card (~100 words of SDK internals nobody reads on load) and
+                  the standalone ⌘K hint were replaced with a one-line
+                  greeting — progressive disclosure; the prompt chips below
+                  are the actual onboarding. */}
+              <div className="flex items-center gap-1.5 text-xs ac-text-3">
+                <Sparkles className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--ac-accent)' }} />
+                What should we design? Describe it, or pick a preset:
               </div>
 
               {/* Scenario prompt groups — kept as a secondary discovery surface

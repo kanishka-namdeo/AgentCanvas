@@ -28,13 +28,12 @@ import { SessionHeader } from '@/components/sessions/SessionHeader';
 import { RunHistoryPanel } from '@/components/sessions/RunHistoryPanel';
 import { RunStopButton } from '@/components/sessions/RunStopButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { PenFileMenu } from '@/components/canvas/PenFileMenu';
+import { usePenFile } from '@/components/canvas/PenFileMenu';
 import {
   PenTool, Bot, PanelLeft, PanelRight, PanelLeftClose, PanelRightClose,
   Maximize2, Minimize2, MessageSquare, Sliders, History as HistoryIcon,
   Layers as LayersIcon, Search, Settings,
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
@@ -63,9 +62,12 @@ export default function Home() {
   const connected = useCanvasStore((s) => s.connected);
   const viewerCount = useCanvasStore((s) => s.viewerCount);
   const document = useCanvasStore((s) => s.document);
-  const setDocumentName = useCanvasStore((s) => s.setDocumentName);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const selectedIds = useCanvasStore((s) => s.selectedIds);
+
+  // Headless .pen export/import — handlers feed the File menu; `chrome` is
+  // the hidden file input + busy toast (rendered once, always mounted).
+  const penFile = usePenFile();
 
   useEffect(() => {
     const cleanup = init(documentId);
@@ -738,15 +740,18 @@ export default function Home() {
             onToggleLeftPanel={() => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed)}
             onToggleRightPanel={() => toggle(rightPanelRef, rightCollapsed, setRightCollapsed)}
             onNewChat={() => useCanvasStore.getState().newSession()}
-            onExportPen={() => toast.message('Use the .pen file menu in the header to export.')}
-            onImportPen={() => toast.message('Use the .pen file menu in the header to import.')}
+            onExportPen={penFile.exportPen}
+            onImportPen={penFile.importPen}
             onOpenShortcuts={() => setShortcutsOpen(true)}
             onOpenDesignSystems={() => setDesignSystemsOpen(true)}
           />
         )}
-        {/* ───────────────────────── Top bar ───────────────────────── */}
+        {/* ───────────────────────── Top bar ─────────────────────────
+            UI-audit 2026-08-29: the doc name renders exactly ONCE — the
+            DocumentSwitcher in the centered SessionHeader (rename lives in
+            its chevron menu). The old inline Input duplicated it here. */}
         <header className="flex flex-wrap items-center justify-between px-3 h-11 border-b ac-border-default ac-surface-0 flex-shrink-0 gap-2 sm:gap-3">
-          {/* Left: brand + doc name */}
+          {/* Left: brand */}
           <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-sm">
@@ -754,12 +759,6 @@ export default function Home() {
               </div>
               <span className="font-semibold text-[13px] tracking-tight ac-text-1 hidden sm:inline">AgentCanvas</span>
             </div>
-            <span className="ac-text-5 text-xs select-none hidden sm:inline">/</span>
-            <Input
-              value={document.name}
-              onChange={(e) => setDocumentName(e.target.value)}
-              className="h-7 w-40 text-xs border-transparent bg-transparent hover:ac-border-subtle focus-visible:ac-border-default ac-text-2 hidden sm:inline-flex"
-            />
           </div>
 
           {/* Center: active session title (compact) */}
@@ -820,8 +819,6 @@ export default function Home() {
             >
               {isZenMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
             </Button>
-
-            <PenFileMenu />
 
             {/* Settings — opens the settings dialog */}
             <Button
@@ -939,6 +936,9 @@ export default function Home() {
 
       {/* ⌘K command palette — fuzzy-searchable preset prompts */}
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+
+      {/* .pen file input + busy overlay (headless usePenFile chrome) */}
+      {penFile.chrome}
 
       {/* Settings dialog — agent behavior, LLM provider, sessions, appearance, data, shortcuts */}
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />

@@ -1,8 +1,15 @@
-// PenFileMenu — export/import .pen (pen.dev) files.
+// PenFile — export/import .pen (pen.dev) files.
 //
-// Adds a dropdown to the header with:
-//   - Export .pen   — downloads the current canvas as a .pen JSON file
-//   - Import .pen   — opens a file picker, parses, and applies the .pen file
+// Exposes `usePenFile()`, a headless hook that provides:
+//   - exportPen()   — downloads the current canvas as a .pen JSON file
+//   - importPen()   — opens a file picker, parses, and applies the .pen file
+//   - chrome        — the hidden <input type="file"> + busy overlay to render
+//
+// The working handlers were previously reachable ONLY via a persistent
+// ".pen" dropdown in the header, while File → Open/Import/Export .pen were
+// toast stubs telling the user to go use that other menu (two menus, one
+// worked). UI-audit 2026-08-29: the header button is gone; the File menu
+// now calls these handlers directly, so there is exactly one surface.
 //
 // Export calls POST /api/pen/export with the live CanvasDocument; the
 // response is the .pen JSON which we turn into a Blob download.
@@ -13,26 +20,17 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { FileJson, Download, Upload, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Download, Upload } from 'lucide-react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { toast } from 'sonner';
 
-export function PenFileMenu() {
+export function usePenFile() {
   const canvasDoc = useCanvasStore((s) => s.document);
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<'export' | 'import' | null>(null);
 
-  async function handleExport() {
+  async function exportPen() {
     setBusy('export');
     try {
       const res = await fetch('/api/pen/export', {
@@ -67,7 +65,7 @@ export function PenFileMenu() {
     }
   }
 
-  function handleImportClick() {
+  function importPen() {
     fileInputRef.current?.click();
   }
 
@@ -109,52 +107,10 @@ export function PenFileMenu() {
     }
   }
 
-  return (
+  // Hidden <input> + transient busy overlay — render once at the app root
+  // (always mounted, independent of panel/tab state).
+  const chrome = (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy !== null}
-            title=".pen file (pen.dev format)"
-            aria-label=".pen file menu"
-            className="h-7 px-2 text-[11px] ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring gap-1.5"
-          >
-            <FileJson className="h-3.5 w-3.5" />
-            <span className="hidden lg:inline">.pen</span>
-            <ChevronDown className="h-3 w-3 opacity-60" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuLabel className="text-[11px] ac-text-3 font-normal">
-            pen.dev file format (.pen)
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleExport} className="gap-2 cursor-pointer">
-            <Download className="h-3.5 w-3.5" />
-            <span>Export as .pen</span>
-            <span className="ml-auto text-[10px] ac-text-4">{canvasDoc.shapes.length} nodes</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleImportClick} className="gap-2 cursor-pointer">
-            <Upload className="h-3.5 w-3.5" />
-            <span>Import .pen file…</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <div className="px-2 py-1.5 text-[10px] ac-text-4 leading-relaxed">
-            Open format compatible with pen.dev / pencil.dev.
-            <a
-              href="https://docs.pen.dev/for-developers/the-pen-format"
-              target="_blank"
-              rel="noreferrer"
-              className="block mt-1 underline hover:ac-text-2"
-            >
-              View the .pen spec →
-            </a>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
       <input
         ref={fileInputRef}
         type="file"
@@ -180,7 +136,6 @@ export function PenFileMenu() {
       )}
     </>
   );
-}
 
-// Re-export the icons for any consumer that wants the success/error styling.
-export { CheckCircle2, AlertCircle };
+  return { exportPen, importPen, chrome };
+}
