@@ -487,12 +487,21 @@ export async function dispatchVariantGeneration(
       }
     }
     if (!spec) {
+      // Diagnostic breadcrumb (dev.log): WITHOUT the content head, an
+      // all-variants-failed turn is undebuggable — the journal only keeps a
+      // 200-char tool summary and the raw generations never reach the DB.
+      console.warn(
+        `[variant-generator] unparseable spec for "${g.label}" (head): ${g.content.slice(0, 300).replace(/\s+/g, ' ')}`,
+      );
       notes.push(`variant "${g.label}": no parseable JSON spec${repaired ? '' : ' (repair failed)'}`);
       continue;
     }
     if (repaired) notes.push(`variant "${g.label}": needed one format-repair round-trip`);
     const nodeCount = countNodes(spec);
     if (nodeCount < 3) {
+      console.warn(
+        `[variant-generator] spec too small for "${g.label}" (${nodeCount} nodes, head): ${g.content.slice(0, 300).replace(/\s+/g, ' ')}`,
+      );
       notes.push(`variant "${g.label}": spec too small (${nodeCount} nodes) — skipped`);
       continue;
     }
@@ -733,34 +742,165 @@ export async function compositeVariantPngs(
 /// Extract {"direction", "spec"} from a model response — strips fences,
 /// finds the first balanced {...}, validates the spec is an object.
 export function extractSpecJson(content: string): Record<string, unknown> | null {
+  const hydrate = (spec: Record<string, unknown> | null) => {
+    if (spec) hydrateStringifiedChildren(spec);
+    return spec;
+  };
   // Fast path: the whole (fence-stripped) response is one JSON value —
   // handles array-root responses that first-balanced-block extraction
   // would mis-slice (it finds the first '{' INSIDE the array).
   const whole = tryParseWhole(content);
   if (whole !== null) {
     if (whole.spec && typeof whole.spec === 'object' && !Array.isArray(whole.spec)) {
-      return coerceNodeTree(whole.spec) ?? null;
+      return hydrate(coerceNodeTree(whole.spec));
     }
-    return coerceNodeTree(whole);
+    return hydrate(coerceNodeTree(whole));
   }
   const obj = extractJsonBlock(content);
   if (!obj) return null;
   if (obj.spec && typeof obj.spec === 'object' && !Array.isArray(obj.spec)) {
-    return coerceNodeTree(obj.spec) ?? null;
+    return hydrate(coerceNodeTree(obj.spec));
   }
   // Some models emit the spec root directly (no wrapper).
-  return coerceNodeTree(obj);
+  return hydrate(coerceNodeTree(obj));
+}
+
+/// Recursively JSON.parse any `children` field the model emitted as a STRING
+/// (the qwen stringifying habit — the same gotcha hydrateSubtreeChildren
+/// handles for the live subtree path; observed live: EVERY variant of the
+/// landing-page turn collapsed to nodeCount 1 because nested children were
+/// JSON-encoded strings, tripping the "spec too small" skip and failing the
+/// whole exploration with "All variant generations failed to parse").
+function hydrateStringifiedChildren(node: Record<string, unknown>): void {
+  const kids = node.children;
+  if (typeof kids === 'string') {
+    try {
+      const parsed = JSON.parse(kids);
+      if (Array.isArray(parsed)) node.children = parsed;
+      else if (parsed && typeof parsed === 'object') node.children = [parsed];
+      else delete node.children;
+    } catch {
+      delete node.children; // unparsable string children are garbage
+    }
+  }
+  const next = node.children;
+  if (Array.isArray(next)) {
+    for (const k of next) {
+      if (k && typeof k === 'object' && !Array.isArray(k)) {
+        hydrateStringifiedChildren(k as Record<string, unknown>);
+      }
+    }
+  }
 }
 
 /// Fence-tolerant whole-content JSON.parse. null when not pure JSON.
+/// Falls back to parseLooseJson: small models (qwen3.7-plus, live-observed
+/// 3× in one turn) emit JS object literals, not JSON — UNQUOTED KEYS like
+/// `autoLayout:{direction:"vertical",gap:0,padding:0}` — which kills
+/// JSON.parse for the WHOLE spec and used to fail the entire exploration
+/// ("All variant generations failed to parse") after the format-repair
+/// round-trips also failed.
 function tryParseWhole(content: string): any | null {
   let s = content.trim();
   if (s.startsWith('```')) {
     s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
   }
   if (!s.startsWith('{') && !s.startsWith('[')) return null;
+  return parseLooseJson(s);
+}
+
+/// JSON.parse with a bounded repair pass for the classic small-model sins:
+///   1. Bare object keys: {direction:"vertical",gap:0} → {"direction":...,"gap":0}
+///   2. Single-quoted strings: {label:'Hero'} → {"label":"Hero"}
+///   3. Trailing commas: [1,2,] → [1,2]
+/// The rewriter only touches text OUTSIDE double/single-quoted strings, so
+/// user content that legitimately contains braces/commas/colons is safe.
+function parseLooseJson(s: string): any | null {
   try {
     return JSON.parse(s);
+  } catch {
+    /* fall through to the repair pass */
+  }
+  let out = '';
+  let i = 0;
+  const n = s.length;
+  let inStr = false;   // inside a double-quoted string (verbatim)
+  let inSingle = false; // inside a single-quoted string (converted to ")
+  while (i < n) {
+    const c = s[i];
+    if (inSingle) {
+      if (c === '\\') {
+        out += c + (s[i + 1] ?? '');
+        i += 2;
+        continue;
+      }
+      if (c === "'") {
+        inSingle = false;
+        out += '"';
+        i++;
+        continue;
+      }
+      out += c === '"' ? '\\"' : c; // escape double quotes inside single-quoted strings
+      i++;
+      continue;
+    }
+    if (inStr) {
+      if (c === '\\') {
+        out += c + (s[i + 1] ?? '');
+        i += 2;
+        continue;
+      }
+      if (c === '"') {
+        inStr = false;
+      }
+      out += c;
+      i++;
+      continue;
+    }
+    if (c === '"') {
+      inStr = true;
+      out += c;
+      i++;
+      continue;
+    }
+    if (c === "'") {
+      inSingle = true;
+      out += '"';
+      i++;
+      continue;
+    }
+    if (c === '{' || c === ',') {
+      out += c;
+      i++;
+      // Bare-key detection: identifier + optional ws + ':' right after '{' or ','
+      let j = i;
+      while (j < n && /\s/.test(s[j])) j++;
+      const keyMatch = /^[A-Za-z_$][A-Za-z0-9_$]*/.exec(s.slice(j));
+      if (keyMatch) {
+        let k = j + keyMatch[0].length;
+        while (k < n && /\s/.test(s[k])) k++;
+        if (s[k] === ':') {
+          out += `"${keyMatch[0]}"`;
+          i = k;
+          continue;
+        }
+      }
+      continue;
+    }
+    if (c === '}' || c === ']') {
+      // Strip a trailing comma before the close (with whitespace between).
+      let end = out.length;
+      while (end > 0 && /\s/.test(out[end - 1])) end--;
+      if (out[end - 1] === ',') out = out.slice(0, end - 1);
+      out += c;
+      i++;
+      continue;
+    }
+    out += c;
+    i++;
+  }
+  try {
+    return JSON.parse(out);
   } catch {
     return null;
   }
@@ -852,11 +992,10 @@ export function extractJsonBlock(content: string): any | null {
     else if (c === '}') {
       depth--;
       if (depth === 0) {
-        try {
-          return JSON.parse(s.slice(start, i + 1));
-        } catch {
-          return null;
-        }
+        // parseLooseJson: bare keys / single quotes / trailing commas from
+        // small models — the plain JSON.parse here used to null the WHOLE
+        // block and kill the variant (see parseLooseJson docstring).
+        return parseLooseJson(s.slice(start, i + 1));
       }
     }
   }

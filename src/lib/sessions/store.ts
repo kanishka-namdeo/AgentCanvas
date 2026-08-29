@@ -812,10 +812,20 @@ export const useSessionStore = create<SessionStoreState>()(
         }));
         // Sync run to server (documentId enables server-side auto-heal of a
         // missing session shell — see api/sessions/ensure-session.ts).
+        // runId is REQUIRED here: without it the server generates its own
+        // cuid, and the later updateRun/endRun syncs (which DO pass run.id)
+        // upsert a SECOND row — the client's run_ id never maps to the
+        // server's cuid shell, which then stays 'in_progress' forever
+        // (zombie rows + inflated runCount; found via live debugging).
         if (typeof window !== 'undefined') {
           import('./server-sync').then(({ syncServerRun }) => {
             const s = get().sessions[sessionId];
-            syncServerRun(sessionId, { prompt, status: 'in_progress', documentId: s?.documentId });
+            syncServerRun(sessionId, {
+              runId: run.id,
+              prompt,
+              status: 'in_progress',
+              documentId: s?.documentId,
+            });
           });
         }
         return run;

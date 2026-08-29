@@ -27,7 +27,7 @@
 // native .pen properties, so the round-trip fidelity is preserved even
 // though the runtime model is simpler.
 
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { CanvasPatch } from '../canvas/types';
 import type { CanvasToolContext } from './tools';

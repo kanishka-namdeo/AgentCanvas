@@ -2,7 +2,9 @@
 //
 // This file is the canonical "agent-usable" surface of the Figma-like app.
 // Each tool is defined with `defineTool` from `@earendil-works/pi-coding-agent`
-// (the real Pi Agent SDK), using TypeBox (`@sinclair/typebox`) for parameter
+// (the real Pi Agent SDK), using TypeBox (`typebox` v1 — the SAME package the
+// SDK's validator uses, so its Value.Convert coerces model-stringified numbers)
+// for parameter
 // schemas — exactly the pattern documented at
 // https://pi.dev/docs/latest/sdk.
 //
@@ -56,7 +58,7 @@
 // The agent backend (see `src/lib/agent/runner.ts`) registers these tools
 // with the LLM and invokes their `execute` when the LLM calls them.
 
-import { Type, type Static } from '@sinclair/typebox';
+import { Type, type Static } from 'typebox';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { CanvasPatch, Shape, ShapeType, AutoLayout, DesignTokens, ColorToken, TextStyleToken } from '../canvas/types';
 import { parseHtmlFragment, htmlToPenTreeDetailed } from '../canvas/html-import';
@@ -200,8 +202,15 @@ const ShapeInputSchema = Type.Object({
   name: Type.Optional(Type.String({ description: 'Layer name shown in the layers panel' })),
   x: Type.Optional(Type.Number({ description: 'Canvas-space X (top-left origin)' })),
   y: Type.Optional(Type.Number({ description: 'Canvas-space Y' })),
-  width: Type.Optional(Type.Number({ description: 'Width in px' })),
-  height: Type.Optional(Type.Number({ description: 'Height in px' })),
+  // Number|String (NOT bare Number): the system prompt + pen_create_subtree
+  // docs teach the model sizing-behavior strings — height:"fit_content" /
+  // "fill_container" — and models apply that knowledge HERE too (live:
+  // pen_update_node changes:{height:"fit_content"} failed validation 8× in
+  // one turn). The applier/resolver interpret sizing strings natively
+  // (patch.ts sizeValue, canvas sizingMode HUG/FILL); coerceShapeInput
+  // preserves them verbatim below.
+  width: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'Width in px, or "fit_content" (size to children) / "fill_container" (size to parent).' })),
+  height: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'Height in px, or "fit_content" (size to children) / "fill_container" (size to parent).' })),
   rotation: Type.Optional(Type.Number({ description: 'Rotation in degrees' })),
   opacity: Type.Optional(Type.Number({ description: 'Opacity 0..1' })),
   fill: Type.Optional(Type.String({ description: 'Fill color hex, e.g. #ff0000' })),
@@ -310,29 +319,58 @@ function parseLooseShapeInput(
 // children accepts an array OR a JSON string (models occasionally stringify
 // nested params — the GLM gotcha documented at LooseShapeInputSchema).
 
-const SubtreeNodeSchema = Type.Recursive((Self) =>
-  Type.Object({
-    type: Type.Optional(Type.String({ description: 'Node type: frame | rectangle | ellipse | text | line | group | section | component | icon. Root defaults to frame when children are present, else rectangle.' })),
-    name: Type.Optional(Type.String({ description: 'Layer name (shown in the layers panel).' })),
-    x: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'X in px, relative to the PARENT (canvas-space for the root). Children of auto-layout parents may omit x/y.' })),
-    y: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'Y in px, relative to the parent.' })),
-    width: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'Width in px, or "fit_content" (size to children) / "fill_container" (size to parent).' })),
-    height: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'Height in px, or "fit_content" / "fill_container".' })),
-    children: Type.Optional(Type.Union([Type.Array(Self), Type.String()], { description: 'Nested child nodes — same shape as this object (any creation field + their own children). A JSON-encoded string is also accepted.' })),
-  }),
-);
-
-const SubtreeInputSchema = Type.Object({
-  node: Type.Union([SubtreeNodeSchema, Type.String()], {
-    description:
-      'The subtree ROOT node as an object (or JSON-encoded string). Accepts every pen_create_node field (fill, text, fontSize, radius, shadow, gradient, autoLayout, icon, …) in legacy or .pen spelling, plus nested `children` — ids are optional (fresh ids are assigned automatically).',
-  }),
-  nodes: Type.Optional(Type.Array(SubtreeNodeSchema, {
-    description:
-      'MULTI-ROOT batch (preferred for several screens/sections): an array of root nodes, each with the same fields as `node` (nested `children` allowed). One call creates them ALL — use this instead of repeated pen_create_subtree calls when creating multiple independent trees at once.',
-  })),
-  parentId: Type.Optional(Type.String({ description: 'Optional parent frame/group id to insert the subtree under. Omit for a top-level layer.' })),
-});
+// Recursive subtree-node schema. typebox v1 (the package the SDK validates
+// with) has NO Type.Recursive builder — the v0 API was dropped in the 1.x
+// rewrite — and Type.Cyclic/Type.Ref don't survive the SDK's Compile. So the
+// node shape is hand-built as a plain JSON-Schema `$defs`/`$ref` pair, which
+// the SDK's validator resolves fine (verified live: nested objects/arrays
+// validate, non-object garbage is rejected). Notes:
+//   - The shape is deliberately PERMISSIVE: no `additionalProperties: false`,
+//     so extra fields the model invents flow through to the applier instead
+//     of failing validation BEFORE execute() (the pi-ai pre-validation gotcha).
+//   - width/height/x/y are number|string unions ('fit_content'/'fill_container'),
+//     so the SDK skipping Value.Convert inside `$defs` costs nothing here.
+//   - children accepts an array OR a JSON string (models occasionally
+//     stringify nested params — the LooseShapeInputSchema gotcha, recursive).
+const SubtreeInputSchema = {
+  type: 'object',
+  $defs: {
+    subtreeNode: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', description: 'Node type: frame | rectangle | ellipse | text | line | group | section | component | icon. Root defaults to frame when children are present, else rectangle.' },
+        name: { type: 'string', description: 'Layer name (shown in the layers panel).' },
+        x: { anyOf: [{ type: 'number' }, { type: 'string' }], description: 'X in px, relative to the PARENT (canvas-space for the root). Children of auto-layout parents may omit x/y.' },
+        y: { anyOf: [{ type: 'number' }, { type: 'string' }], description: 'Y in px, relative to the parent.' },
+        width: { anyOf: [{ type: 'number' }, { type: 'string' }], description: 'Width in px, or "fit_content" (size to children) / "fill_container" (size to parent).' },
+        height: { anyOf: [{ type: 'number' }, { type: 'string' }], description: 'Height in px, or "fit_content" / "fill_container".' },
+        children: {
+          description: 'Nested child nodes — same shape as this object (any creation field + their own children). A JSON-encoded string is also accepted.',
+          anyOf: [{ type: 'array', items: { $ref: '#/$defs/subtreeNode' } }, { type: 'string' }],
+        },
+      },
+    },
+  },
+  properties: {
+    node: {
+      description:
+        'The subtree ROOT node as an object (or JSON-encoded string). Accepts every pen_create_node field (fill, text, fontSize, radius, shadow, gradient, autoLayout, icon, …) in legacy or .pen spelling, plus nested `children` — ids are optional (fresh ids are assigned automatically).',
+      anyOf: [{ $ref: '#/$defs/subtreeNode' }, { type: 'string' }],
+    },
+    nodes: {
+      type: 'array',
+      items: { $ref: '#/$defs/subtreeNode' },
+      description:
+        'MULTI-ROOT batch (preferred for several screens/sections): an array of root nodes, each with the same fields as `node` (nested `children` allowed). One call creates them ALL — use this instead of repeated pen_create_subtree calls when creating multiple independent trees at once.',
+    },
+    parentId: { type: 'string', description: 'Optional parent frame/group id to insert the subtree under. Omit for a top-level layer.' },
+  },
+  // NOTE: `node` is deliberately NOT required — `nodes`-only calls are the
+  // DOCUMENTED multi-root input and execute() handles them first; requiring
+  // node here would reject every nodes-only batch before execute() ran
+  // (both-missing falls through to execute()'s friendly subtree_node_missing
+  // error instead of a validator message the model can't act on).
+} as any; // plain JSON-Schema (recursive $ref) — the SDK validates raw schemas directly
 
 type RawSubtreeNode = Record<string, unknown> & { children?: unknown };
 
@@ -546,14 +584,26 @@ const COMMON_HEX_TO_TOKEN: Record<string, string> = {
 /// hint nudging the AI toward $color.* token syntax. The system prompt's
 /// COMPONENT RECIPES now use $color.* exclusively, so well-behaved turns
 /// won't trip the hint. Raw hex from the AI is a fallback, not the default.
+/// .pen sizing-behavior strings ('fit_content', 'fit_content(100)',
+/// 'fill_container') must survive coercion verbatim — the resolver interprets
+/// them (same contract as patch.ts sizeValue). Everything else → numeric.
+function sizingOrNumber(v: unknown, def: number): number | string {
+  if (typeof v === 'string' && (v.startsWith('fit_content') || v.startsWith('fill_container'))) {
+    return v;
+  }
+  return Number(v) || def;
+}
+
 function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shape> {
   const out: Partial<Shape> = {};
   if (params.type !== undefined) out.type = params.type as Shape['type'];
   if (params.name !== undefined) out.name = String(params.name);
   if (params.x !== undefined) out.x = Number(params.x) || 0;
   if (params.y !== undefined) out.y = Number(params.y) || 0;
-  if (params.width !== undefined) out.width = Number(params.width) || 0;
-  if (params.height !== undefined) out.height = Number(params.height) || 0;
+  // Sizing strings preserved verbatim (cast: Shape.width is typed number but
+  // the .pen layer + renderer carry number | sizing-string by design).
+  if (params.width !== undefined) (out as any).width = sizingOrNumber(params.width, 100);
+  if (params.height !== undefined) (out as any).height = sizingOrNumber(params.height, 100);
   if (params.rotation !== undefined) out.rotation = Number(params.rotation) || 0;
   if (params.opacity !== undefined) out.opacity = Math.max(0, Math.min(1, Number(params.opacity) || 1));
   if (params.fill !== undefined) {
@@ -939,7 +989,7 @@ const createShape = defineTool({
           };
         }
       } else {
-        const single = parseSubtreeNode(params.node);
+        const single = parseSubtreeNode((params as { node?: unknown }).node);
         if (!single) {
           return {
             content: [{ type: 'text', text: 'Error: `node` must be an object (or JSON-encoded object) describing the subtree root. Example: {"type":"frame","width":360,"height":640,"children":[{"type":"text","text":"Hello"}]}.' }],
@@ -957,7 +1007,7 @@ const createShape = defineTool({
         };
       }
 
-      const globalParentId = params.parentId as string | undefined;
+      const globalParentId = (params as { parentId?: string }).parentId;
       if (globalParentId && !ctx.getShapes().some((s) => s.id === globalParentId)) {
         return {
           content: [{ type: 'text', text: `Error: parentId "${globalParentId}" does not exist. Call pen_get_metadata (no nodeId) for the page list, or pass a valid frame id.` }],
@@ -1188,12 +1238,15 @@ const createShape = defineTool({
         minItems: 1, maxItems: 3,
         description: 'Optional 2-3 design-direction descriptions to explore (e.g. "minimal light SaaS", "bold colorful startup"). Default: Minimal Light / Bold Vibrant / Dark Premium.',
       })),
-      // Type.Number (NOT Literal(2)|Literal(3)): models routinely stringify
-      // numbers ("variantCount": "3" was observed live from kimi-k2-5), and
-      // the SDK's TypeBox validation only coerces strings for schemas that
-      // declare a primitive "type" — a literal union has none, so the call
-      // failed validation 2 turns in a row before the model guessed a bare
-      // number. min/max keep the constraint; execute() clamps defensively.
+      // Type.Number with min/max: models routinely stringify numbers
+      // ("variantCount": "3" was observed live from kimi-k2-5 AND qwen3.7-plus),
+      // which used to fail the SDK's TypeBox validation with a Literal-union
+      // schema AND (before the typebox-v1 migration) even with a Number schema —
+      // the schemas were built with @sinclair/typebox v0.34 while the SDK
+      // validates with `typebox` v1.3.7, so its Value.Convert no-opped on
+      // foreign-kind schemas. Now the tool schemas are built with `typebox`
+      // itself, the SDK coerces "3"→3 for every declared-number argument
+      // system-wide; execute() still clamps defensively.
       variantCount: Type.Optional(Type.Number({
         minimum: 2,
         maximum: 3,
@@ -5561,7 +5614,7 @@ const createShape = defineTool({
 // This helper converts our TypeBox-defined Pi tools into the JSON-schema
 // tool spec that the LLM expects.
 
-import { Value } from '@sinclair/typebox/value';
+import { Value } from 'typebox/value';
 
 export interface OpenAIToolSpec {
   type: 'function';

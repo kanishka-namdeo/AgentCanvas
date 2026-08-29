@@ -16,7 +16,7 @@
 //   9. figma_set_component_property — define a component property
 //  10. figma_set_instance_property — override a component property on an instance
 
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { CanvasPatch } from '../canvas/types';
 import type { CanvasToolContext } from './tools';
