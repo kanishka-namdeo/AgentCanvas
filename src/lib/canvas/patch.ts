@@ -1175,6 +1175,19 @@ function normalizeSubtree(
   const id = rootId;
   const node = normalizeToNode(partial as Partial<PenChild> & Record<string, unknown>, id);
   if (Array.isArray(children) && children.length > 0) {
+    // Stress test 2026-08-30: LLM-authored subtrees sometimes carry explicit
+    // width/height 0 on content containers (observed live: a "FeatureContent1"
+    // frame with width=0 collapsed and its 8 child text layers became
+    // unpaintable). A zero extent on a container that HAS children is never
+    // meaningful — treat it as hug-content sizing and let the resolver size
+    // the frame to its stack.
+    const t = node.type as string;
+    if (t === 'frame' || t === 'group' || t === 'component' || t === 'component_set' || t === 'section' || t === 'boolean_operation') {
+      const w = (node as { width?: number | string }).width;
+      const h = (node as { height?: number | string }).height;
+      if (w === 0 || w === '0') (node as { width?: number | string }).width = 'fit_content';
+      if (h === 0 || h === '0') (node as { height?: number | string }).height = 'fit_content';
+    }
     const kids: PenChild[] = [];
     for (let i = 0; i < children.length; i++) {
       const child = children[i] as Partial<Shape> & Record<string, unknown>;

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://medium.com/lets-code-future/i-built-a-full-client-website-using-v0-dev-with-just-a-few-prompts-25e96e4ee4e4",
+    "name": "I Built a Full Client Website Using V0.dev — With Just",
+    "snippet": "V0.dev lets you generate React code from a prompt . You just describe the UI, and it builds it. Create a responsive landing page for a life ...",
+    "host_name": "medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/1jgbvx7/a_stepbystep_guide_to_v0dev_development",
+    "name": "A step-by-step guide to V0.dev development : r/nextjs",
+    "snippet": "Example Prompts . “Create a Next.js page for Inventory Dashboard : header, search, table (Name, SKU, Quantity). Modern design ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://v0.app/docs/text-prompting",
+    "name": "Text Prompting | v0 Docs",
+    "snippet": "Basic Examples. Start with simple, descriptive prompts. For example: \"A dashboard with a login page and user profile view\"; \"A landing page for a mobile app ... Read more",
+    "host_name": "v0.app",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://news.ycombinator.com/item?id=37510699",
+    "name": "v0: Generate UI with simple text prompts",
+    "snippet": "Sep 14, 2023 — You can use the prompt library (https://v0.dev/explore) and copy/paste any of those examples. We're going to be rolling out access to folks ... Read more",
+    "host_name": "news.ycombinator.com",
+    "rank": 3,
+    "date": "Sep 14, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/blog/maximizing-outputs-with-v0-from-ui-generation-to-code-creation",
+    "name": "Maximizing outputs with v0: From UI generation to code",
+    "snippet": "Oct 23, 2024 — In this post, we'll look at how you can get the most out of v0's core features, UI generation abilities , code generation, and developer support. Read more",
+    "host_name": "vercel.com",
+    "rank": 4,
+    "date": "Oct 23, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://v0.dev/t/ueXiM7GOTaJ",
+    "name": "create a landing page for a ia ui design creator by simple",
+    "snippet": "This is a v0.app and shadcn/ui generation for the prompt: create a landing page for a ia ui design creator by simple text prompts and imagems, ...",
+    "host_name": "v0.dev",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.bitcot.com/top-10-ui-components-you-can-create-with-v0-by-vercel",
+    "name": "Top 10 UI Components You Can Create with v0 by Vercel",
+    "snippet": "Jun 18, 2025 — How to Generate: Visit v0 . dev and prompt : “Create a modern dashboard with interactive charts, KPI widgets, real-time data display, and ... Read more",
+    "host_name": "www.bitcot.com",
+    "rank": 6,
+    "date": "Jun 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.rapidevelopers.com/v0-template/prompting-is-all-you-need",
+    "name": "Prompting Is All You Need V0 Template",
+    "snippet": "The Prompting Is All You Need v0 template is an educational AI demo built on Next.js 14, AI SDK v6, and OpenAI. It ships a PromptInputPanel , rotating ... Read more",
+    "host_name": "www.rapidevelopers.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

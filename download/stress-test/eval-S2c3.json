@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "I'd rate this bar chart card design **7/10**. Yes, 4 bars are visible side by side with Q1-Q4 labels, values (120k, 150k, 135k), a title (\"Quarterly Revenue\" with \"2024 Performance\" subtitle), and legend items (\"Total Revenue\", \"YoY Growth\"). The main defects are the missing Q4 value label and the unclear legend that doesn't visually correspond to the single-color bars.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1788069021,
+  "id": "20260830135015cdd73cbb27114a2f",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260830135015cdd73cbb27114a2f",
+  "usage": {
+    "completion_tokens": 97,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 718,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 815
+  }
+}

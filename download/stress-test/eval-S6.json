@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**Score: 6/10**\nThe design resolved heavily toward the **minimalist/clean** side, utilizing a stark white background, generous spacing, and a very limited color palette (mostly white and slate with minimal indigo accents). It is **coherent** in its execution of the minimalist brief but fails to meet the \"vibrant gradients\" and \"heavy decoration\" requirements almost entirely. The only visible defect is the awkward text overlap in the \"Ready to transform your workflow?\" section where \"workflow?\" is struck through and overlaps the line above.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1788069651,
+  "id": "202608301400470c8ee88f09944f4f",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "202608301400470c8ee88f09944f4f",
+  "usage": {
+    "completion_tokens": 114,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1794,
+    "prompt_tokens_details": {
+      "cached_tokens": 3
+    },
+    "total_tokens": 1908
+  }
+}

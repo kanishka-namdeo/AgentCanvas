@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://arxiv.org/html/2607.22928v1",
+    "name": "Design Theater: A Benchmark for Generative UI",
+    "snippet": "Jul 24, 2026 — The benchmark includes 24 UI generation tasks spanning structural, styling, and functional design requirements . styling tasks, including color , ...",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "Jul 24, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/uxdesignercommunity/posts/24418937001122479",
+    "name": "Improving UI design with spacing, hierarchy, and typography",
+    "snippet": "High-contrast color combinations are essential for UI design to ensure readability and accessibility, with designers often recommending avoiding ... Read more",
+    "host_name": "www.facebook.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mdpi.com/2073-431X/15/4/238",
+    "name": "Design Behaviour and Interface Consistency in Generative",
+    "snippet": "by G Irmak · 2026 · Cited by 1 — This paper presents a systematic literature review examining how generative no-code systems make design and aesthetic decisions with respect to layout structure ... Read more",
+    "host_name": "www.mdpi.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blogs.businesscompassllc.com/2026/02/inside-generative-ui-how-specs_01006219873.html",
+    "name": "Inside Generative UI: How Specs, Protocols, and Patterns",
+    "snippet": "Feb 2, 2026 — Tools like Style Dictionary and Theo create standardized ways to define colors , typography , spacing , and other design properties that generative ... Read more",
+    "host_name": "blogs.businesscompassllc.com",
+    "rank": 3,
+    "date": "Feb 2, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.nakulrajpal.com/papers/design-theater-aies-2026.pdf",
+    "name": "Design Theater: A Benchmark for Generative UI - Nakul Rajpal",
+    "snippet": "by K Imteyaz — We introduce a benchmark with 24 UI design tasks. AI-driven methods provide design feedback on layout, color 25– 40. How will you use color ,  ...",
+    "host_name": "www.nakulrajpal.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.typeface.ai/blog/ai-design-quality-benchmarks-and-best-practices",
+    "name": "AI Design Quality Benchmarks and Best Practices",
+    "snippet": "Jun 12, 2025 — This blog decodes the critical quality benchmarks to provide a practical framework to evaluate and enhance your AI-generated designs . How can AI ... Read more",
+    "host_name": "www.typeface.ai",
+    "rank": 5,
+    "date": "Jun 12, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://readabilitymatters.org/articles/generative-ui-meets-better-readability",
+    "name": "Generative UI Meets Better Readability",
+    "snippet": "Jul 25, 2025 — A Generative UI could analyze your reading behavior and automatically deliver a custom-optimized typographic experience, tailored not just to ... Read more",
+    "host_name": "readabilitymatters.org",
+    "rank": 6,
+    "date": "Jul 25, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net/publication/372121532_Design_Quality_Criteria_for_Smartphone_Applications_Interface_and_its_Impact_on_User_Experience_and_Usability",
+    "name": "(PDF) Design Quality Criteria for Smartphone Applications",
+    "snippet": "Jul 1, 2023 — To ensure legibility, designers should use appropriate font sizes, spacing , and contrast to enhance the readability of the text.",
+    "host_name": "www.researchgate.net",
+    "rank": 7,
+    "date": "Jul 1, 2023",
+    "favicon": ""
+  }
+]

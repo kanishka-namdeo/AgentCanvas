@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**Score: 9/10**\n\nThe light-on-dark text is highly readable with excellent contrast across all three pricing tiers, headings, and body copy. No invisible text or critical defects are present, though the \"billed annually\" label in the Pro tier has slightly lower contrast against the dark background. The overall design successfully balances vibrant accent colors (purple/red) with clear white typography for optimal legibility.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1788070632,
+  "id": "202608301417115280435039a54c77",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "202608301417115280435039a54c77",
+  "usage": {
+    "completion_tokens": 83,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1767,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 1850
+  }
+}

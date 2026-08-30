@@ -1789,6 +1789,24 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         const score = parseInt(scoreMatch[1], 10);
         textCritiqueSeverity = score >= 7 ? 'low' : score >= 4 ? 'medium' : 'high';
       }
+      // Stress test 2026-08-30: resolve the text critic's SubAgentsCard row —
+      // previously only the VLM critic emitted subagent_result, so every
+      // design_critic row spun forever after the turn ended.
+      if (textResult) {
+        const failed = /^\(text critic failed/i.test(textResult.summary ?? '');
+        yield {
+          kind: 'agent_event',
+          event: {
+            type: 'agent:subagent_result',
+            subAgentType: 'design_critic',
+            success: !failed,
+            summary: failed
+              ? textResult.summary.slice(0, 120)
+              : `Text critic finished${scoreMatch ? ` (score ${scoreMatch[1]}/10, severity ${textCritiqueSeverity})` : ''}`,
+            toolCalls: 1,
+          } as any,
+        };
+      }
       vlmCritique = vlmResult?.critique ?? null;
       if (vlmCritique) vlmSeverity = vlmCritique.severity;
       vlmScreenshotSource = vlmResult?.screenshotSource;
@@ -1908,7 +1926,7 @@ Specifically (pass shape ids verbatim from the list above):
 - If a text shape has letterSpacing=0, call pen_update_node with { nodeId, changes: { letterSpacing: -0.4 for headings / 0.4 for labels / 0 for body } }.
 - If a text shape has no textAlign, call pen_update_node with { nodeId, changes: { textAlign: 'left' for body / 'center' for hero / 'right' for numeric } }.
 - If a card lacks shadow, call pen_set_shadow with { shapeId, x:0, y:1, blur:2, color:"#0000000d" } (subtle sm shadow; use y:4/blur:6 only for raised states) — or batch it: pen_bulk_update_by_filter with a name filter matching the cards + changes: { shadow: { x:0, y:1, blur:2, color:"#0000000d" } }.
-- If a card/sidebar/topbar has no autoLayout, call pen_update_node with { nodeId, changes: { autoLayout: { direction:"vertical", gap:8, padding:24, alignX:"min", alignY:"min" } } }.
+- If a card/sidebar/topbar has no autoLayout, call pen_update_node with { nodeId, changes: { autoLayout: { direction:"vertical", gap:8, padding:24, alignX:"min", alignY:"min" } } }. NEVER add autoLayout to chart/diagram frames (names containing "chart"/"diagram"/"graph") or any frame whose children are absolutely-positioned geometry (bars, points, paths, axes) — auto-layout restacks that geometry into a vertical column and destroys the chart.
 - If a layer extends below its parent screen frame, call pen_update_node with { nodeId, changes: { y, height } } to move/resize it (and its siblings) so ALL content fits inside the frame — or deliberately enlarge the frame with pen_update_node first.
 - If your screen is missing core components (KPI cards, chart, table, etc.) per the design brief's informationArchitecture, call pen_create_subtree to add them (ONE call with a nested tree — not many pen_create_node calls).
 

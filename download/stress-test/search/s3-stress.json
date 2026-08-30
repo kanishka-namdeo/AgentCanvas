@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://javascript.plainenglish.io/how-to-stress-test-any-ai-system-using-a-multi-agent-task-force-e666fca2c0d6",
+    "name": "How to Stress-Test Any AI System Using a Multi — Agent",
+    "snippet": "Apr 7, 2026 — The prompt is everything. A vague “review this” produces vague feedback. Give the agents specific lenses to look through — genericity, ...",
+    "host_name": "javascript.plainenglish.io",
+    "rank": 0,
+    "date": "Apr 7, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/sarabjeetarora_how-to-stress-test-ai-agent-decisions-against-activity-7371193570248052736-9WX4",
+    "name": "How to stress-test AI agents against real-world edge cases",
+    "snippet": "Testing against intentionally ambiguous scenarios is a widely accepted approach to expose the resilience (or fragility) of AI agents .",
+    "host_name": "www.linkedin.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.getvocal.ai/blog/how-ai-agent-stress-testing-works",
+    "name": "How AI agent stress testing works: Load simulation and",
+    "snippet": "Feb 20, 2026 — AI agent stress testing measures cognitive load under concurrent conversations to find breaking points before accuracy degrades.",
+    "host_name": "www.getvocal.ai",
+    "rank": 2,
+    "date": "Feb 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://aveni.ai/blog/ai-agent-stress-testing-financial-services",
+    "name": "AI agent stress testing for financial services",
+    "snippet": "Jun 10, 2026 — AI agent stress testing is a structured pre-deployment process that exposes an AI agent to adversarial, edge-case, and regulatory-sensitive ... Read more",
+    "host_name": "aveni.ai",
+    "rank": 3,
+    "date": "Jun 10, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@oracle_43885/ai-harm-os-stress-testing-the-safety-of-computer-use-desktop-applications-ai-agents-6c2b9ab53d96",
+    "name": "AI Harm OS: Stress-Testing the Safety of Computer use",
+    "snippet": "Simulate Adversarial Scenarios . Conduct red-teaming with prompt injections and ambiguous instructions. Regularly retrain supervisors to ... Read more",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1t8qnrj/i_built_a_stress_testing_tool_for_ai_agents_after",
+    "name": "I built a stress testing tool for AI agents after realizing most",
+    "snippet": "stress testing is not “retry until the prompt works”. It is more like: define the intended behaviour define what the agent is allowed and not ...",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/698593531630485/posts/1372405917582573",
+    "name": "Stress-testing AI credibility with scrutiny",
+    "snippet": "This from chatgpt.\n\nMost people either:\n\nLook for agreement from AI (using it almost like a sounding board), or\n\nTry to “optimize prompts” to squeeze ...",
+    "host_name": "www.facebook.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.inflectra.com/Ideas/Topic/AI-Agent-Prompt-Engineering.aspx",
+    "name": "Prompt Engineering for AI Agents: 2026 Guide",
+    "snippet": "Mar 27, 2026 — Test Edge Cases & Adversarial Cases: Include adversarial coverage from the start, such as jailbreak attempts, conflicts between user and system ... Read more",
+    "host_name": "www.inflectra.com",
+    "rank": 7,
+    "date": "Mar 27, 2026",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**Visible:** A design canvas showing a \"Quarterly Revenue\" bar chart with **only 2 bars (Q1 and Q2)**. The bars are blue with labels \"Q1\" and \"Q2\" underneath.\n\n**Defects:**\n*   **Incomplete Data:** Missing **2 bars (Q3 and Q4)**, despite the text prompt specifying 4 quarters.\n*   **Missing Value Labels:** No numerical values (e.g., 120k, 150k) are displayed on or above the bars.\n*   **Layout Issue:** The two existing bars are stacked vertically instead of being arranged horizontally side-by-side.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1788068174,
+  "id": "20260830133612312d1470549f4a91",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260830133612312d1470549f4a91",
+  "usage": {
+    "completion_tokens": 132,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1777,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 1909
+  }
+}

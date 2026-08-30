@@ -104,7 +104,14 @@ export function validateCanvasBeforeComplete(
   }
 
   // Rule 4: zero autoLayout containers.
-  if (autoLayoutContainers.length === 0 && totalShapes >= 5) {
+  // Stress test 2026-08-30 exemption: chart/diagram frames are absolutely-
+  // positioned geometry (bars, points, axes) — forcing autoLayout onto them
+  // restacks the geometry into a vertical column and destroys the chart
+  // (observed live: a working pen_create_chart bar chart was "fixed" into a
+  // vertical stack by the critique fix-turn). Rule 4 exists for content
+  // stacks (cards/sidebars/topbars), not hand-positioned geometry.
+  const chartLike = shapes.some((s) => /chart|diagram|graph|plot\b/i.test(String((s as any).name ?? '')));
+  if (autoLayoutContainers.length === 0 && totalShapes >= 5 && !chartLike) {
     reasons.push(
       `No autoLayout detected on any shape. Add autoLayout to layout containers ` +
       `(cards, sidebars, topbars, tab bars) so children align automatically. ` +

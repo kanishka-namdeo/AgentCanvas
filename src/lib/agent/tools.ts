@@ -2574,10 +2574,16 @@ const createShape = defineTool({
         };
       }
       const paletteHsl = params.palette.map((hex) => ({ hex, hsl: hexToHsl(hex) }));
-      const updates: Array<{ id: string; changes: Partial<Shape> }> = [];
+      // Pass 1 (stress test 2026-08-30): map every shape's fill to its
+      // nearest palette color and tally the resulting fills. Text needs a
+      // swatch with maximum contrast against the DOMINANT fill — the old
+      // "darkest swatch" rule (and a naive palette-average heuristic) both
+      // produce dark-on-dark text on dark-mode palettes: a live
+      // "switch to dark mode" turn left 33 labels invisible (VLM 2/10).
+      const fillCounts = new Map<string, number>();
+      const nearestByShape = new Map<string, string>();
       for (const s of shapes) {
         const sHsl = hexToHsl(s.fill);
-        // Nearest by Euclidean distance in HSL space.
         let best = paletteHsl[0];
         let bestD = Infinity;
         for (const p of paletteHsl) {
@@ -2587,17 +2593,34 @@ const createShape = defineTool({
           const d = Math.sqrt(dh * dh + ds * ds + dl * dl);
           if (d < bestD) { bestD = d; best = p; }
         }
-        const changes: Partial<Shape> = { fill: best.hex };
+        nearestByShape.set(s.id, best.hex);
+        if (s.type !== 'text') {
+          fillCounts.set(best.hex, (fillCounts.get(best.hex) ?? 0) + 1);
+        }
+      }
+      // Dominant non-text fill (post-mapping). Fall back to the palette's
+      // median-lightness swatch when there are no filled shapes.
+      let dominantHex = paletteHsl.map((p) => p.hex).sort((a, b) => hexToHsl(a).l - hexToHsl(b).l)[Math.floor(paletteHsl.length / 2)];
+      let dominantCount = 0;
+      for (const [hex, count] of fillCounts) {
+        if (count > dominantCount) { dominantCount = count; dominantHex = hex; }
+      }
+      const dominantL = hexToHsl(dominantHex).l;
+      const textSwatch = [...paletteHsl].sort(
+        (a, b) => Math.abs(b.hsl.l - dominantL) - Math.abs(a.hsl.l - dominantL),
+      )[0];
+      const updates: Array<{ id: string; changes: Partial<Shape> }> = [];
+      for (const s of shapes) {
+        const changes: Partial<Shape> = { fill: nearestByShape.get(s.id)! };
         if (s.type === 'text') {
-          // For text shapes, set textColor to the darkest palette swatch.
+          // Text: textColor to the max-contrast swatch vs the dominant fill.
           // Don't touch `fill` (previously, `changes.fill = s.fill` left the
           // text node with fill='transparent' AND patch.ts dropped the
           // textColor because fill was already set → all text invisible).
           // Include `type: 'text'` so patch.ts::toPenNodePartial knows
           // this is a text shape and lets textColor take precedence over
           // any pre-existing fill on the node.
-          const darkest = [...paletteHsl].sort((a, b) => a.hsl.l - b.hsl.l)[0];
-          changes.textColor = darkest.hex;
+          changes.textColor = textSwatch.hex;
           changes.type = 'text';
           delete changes.fill;
         }
@@ -5574,35 +5597,47 @@ const createShape = defineTool({
         if (e) e.value = f.value;
         else merged.push({ name: f.key, key: f.key, value: f.value });
       }
+      // 2026-08-30 stress test: every applied patch must be returned in
+      // details.patches — the session translator is the ONLY path that fans
+      // patches out to clients + the journal. ctx.applyPatch alone mutates
+      // just the runner-local canvas and the work is silently lost.
+      const appliedPatches: CanvasPatch[] = [];
       const patch: CanvasPatch = {
         op: 'tokens',
         tokens: { colors: merged },
         summary: `Applied "${pack.name}" design system: ${found.length} semantic color variables`,
       };
       ctx.applyPatch(patch);
+      appliedPatches.push(patch);
 
       // Background to the pack's bg token.
       const bg = found.find((f) => f.key === 'color.bg');
-      if (bg) ctx.applyPatch({ op: 'background', background: bg.value, summary: `Canvas background → pack bg (${bg.value})` });
+      if (bg) {
+        const bgPatch: CanvasPatch = { op: 'background', background: bg.value, summary: `Canvas background → pack bg (${bg.value})` };
+        ctx.applyPatch(bgPatch);
+        appliedPatches.push(bgPatch);
+      }
 
       // Optionally rebind existing shapes via the nearest-color palette mapper.
       let rebound = 0;
       if (params.rebind !== false) {
         const palette = found.map((f) => f.value);
         const before = (ctx.getShapes() ?? []).length;
-        ctx.applyPatch({
+        const rebindPatch: CanvasPatch = {
           op: 'palette',
           palette,
           bindToTokens: true,
           summary: `Rebound canvas to "${pack.name}" tokens`,
-        } as any);
+        } as any;
+        ctx.applyPatch(rebindPatch);
+        appliedPatches.push(rebindPatch);
         rebound = before;
       }
 
       const varLines = found.map((f) => `  $${f.key} = ${f.value}`).join('\n');
       return {
         content: [{ type: 'text', text: `Applied the "${pack.name}" design system.\nVariables defined:\n${varLines}\n\nCanvas background set to $color.bg. Existing shapes rebound to the nearest token${rebound ? ` (${rebound} layer(s) considered)` : ''}. Build new shapes with $color.* references to stay on-system.` }],
-        details: { pack: pack.name, variables: found, rebound },
+        details: { patches: appliedPatches, pack: pack.name, variables: found, rebound },
       };
     },
   });
@@ -5718,6 +5753,11 @@ const createShape = defineTool({
       }
 
       const id = crypto.randomUUID();
+      // NOTE (2026-08-30 stress test): children MUST be nested under
+      // `shape.children` — the add_subtree applier only reads `patch.shape`
+      // (a sibling `patch.nodes` field is silently dropped). The root must
+      // NOT use autoLayout: chart geometry is absolutely positioned, and an
+      // auto-layout parent would restack area/line/points into a column.
       const patch: CanvasPatch = {
         op: 'add_subtree',
         shapeId: id,
@@ -5734,15 +5774,16 @@ const createShape = defineTool({
           strokeWidth: 1,
           radius: 12,
           shadow: { x: 0, y: 1, blur: 2, color: '#0000000d' },
-          autoLayout: { direction: 'vertical', gap: 8, padding: 24, alignX: 'min', alignY: 'min' },
+          children,
         },
-        nodes: children,
         summary: `Created ${params.type} chart${params.title ? ` "${params.title}"` : ''} (${data.length} points, ${children.length} nodes)`,
       } as any;
       ctx.applyPatch(patch);
       return {
         content: [{ type: 'text', text: `Created a ${params.type} chart card at (${params.x}, ${params.y}), ${W}x${H} — ${children.length} child nodes under frame id=${id} ("${params.title ?? params.type} chart"). Refine individual pieces with pen_update_node { nodeId, changes }.` }],
-        details: { frameId: id, childCount: children.length, type: params.type },
+        // details.patch is what the session translator fans out to clients /
+        // the journal — omitting it silently loses the whole subtree.
+        details: { patch, frameId: id, childCount: children.length, type: params.type },
       };
     },
   });
@@ -5831,7 +5872,7 @@ const createShape = defineTool({
       const summary = Object.entries(roleCounts).map(([r, c]) => `${r}×${c}`).join(', ');
       return {
         content: [{ type: 'text', text: `Applied typography roles to ${updates.length} text layer(s): ${summary}. Geometry note: label/caption layers may now need width adjustments — check pen_get_metadata for text-width warnings.` }],
-        details: { updated: updates.length, roles: roleCounts },
+        details: { patch, updated: updates.length, roles: roleCounts },
       };
     },
   });

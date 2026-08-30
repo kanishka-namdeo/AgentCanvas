@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.facebook.com/groups/698593531630485/posts/1328707515285747",
+    "name": "Building complex ai prompts through iteration and",
+    "snippet": "Do people really get by with one shot prompts? Anyone go for iteration? Most of the time it takes a long conversation to prepare for a “prompt”. I ...",
+    "host_name": "www.facebook.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://decagon.ai/glossary/what-is-a-multi-turn-conversation",
+    "name": "What is a Multi-Turn Conversation? Definition & AI Guide",
+    "snippet": "A multi-turn conversation is a dialogue where earlier exchanges shape later responses. asks a follow-up , requests a change, and confirms the outcome across ...",
+    "host_name": "decagon.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.shortpoint.com/support/ai-designer/basics/multi-turn-conversation",
+    "name": "How to Iterate with Multi-Turn Conversation | Support",
+    "snippet": "May 25, 2026 — Multi-Turn Conversation is the capability that lets you refine and adjust your intranet page through an ongoing dialogue with AI Designer. Read more",
+    "host_name": "www.shortpoint.com",
+    "rank": 2,
+    "date": "May 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mindstudio.ai/blog/iterative-refinement-loop-claude-design-multimodal",
+    "name": "What Is the Iterative Refinement Loop? How Claude",
+    "snippet": "May 3, 2026 — The refinement loop solves both problems. You start with a rough prompt , get something back, then refine based on what you actually see. The ... Read more",
+    "host_name": "www.mindstudio.ai",
+    "rank": 3,
+    "date": "May 3, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.ibm.com/think/topics/iterative-prompting",
+    "name": "What is Iterative Prompting? | IBM",
+    "snippet": "Iterative prompting is a structured, step-by-step approach in prompt engineering designed to refine and optimize interactions with large language models ...",
+    "host_name": "www.ibm.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1lcbkpg/multiturn_conversations",
+    "name": "Multi-turn conversations : r/AI_Agents",
+    "snippet": "One approach is to refine your prompt design to explicitly instruct the model not to generate user inputs. For example, you can specify that ...",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mirascope.com/blog/prompt-iteration",
+    "name": "A Guide to Prompt Iteration: Strategies and Examples",
+    "snippet": "Nov 26, 2025 — Iterative prompting is the process of refining a model's response through a series of follow-up prompts until it produces the kind of output ... Read more",
+    "host_name": "mirascope.com",
+    "rank": 6,
+    "date": "Nov 26, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2505.06120v1",
+    "name": "LLMs Get Lost In Multi-Turn Conversation",
+    "snippet": "May 9, 2025 — Long-form evaluation in the multi - turn setting is therefore essential, as it assesses models' ability to flexibly adapt and refine the response ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 7,
+    "date": "May 9, 2025",
+    "favicon": ""
+  }
+]

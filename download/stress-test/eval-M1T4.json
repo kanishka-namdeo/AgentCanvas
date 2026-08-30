@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "9/10. The FAQ questions and answers are clearly visible and highly readable against the dark background, and the styling perfectly complements the overall dark theme with consistent typography and subtle card borders.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1788070879,
+  "id": "20260830142118fd2c0c401f7b4330",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260830142118fd2c0c401f7b4330",
+  "usage": {
+    "completion_tokens": 39,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1777,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 1816
+  }
+}

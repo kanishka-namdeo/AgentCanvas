@@ -520,17 +520,21 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
   // math while the subtree is skipped, so the world div's overall geometry
   // stays stable (pan/zoom math relies on the resolver-declared sizes).
   //
-  // VLM-exercise Fix 1 + audit 4 C10a: cv:auto's paint containment CLIPS every
-  // descendant to the container's box. When children overflow a non-clipping
-  // frame, we used to skip culling entirely — which disabled L4 on exactly the
-  // frames agent output produces (overflowing non-clip containers). Instead we
-  // KEEP content-visibility:auto (the off-screen skip — the perf win) but drop
-  // only the paint containment while the element is on-screen, so overflowing
-  // children stay visible (Figma semantics). Clipping frames keep full
-  // containment.
-  if (opts.l4Culling && CLIPPABLE_TYPES.has(layer.type) && layer.width > 0 && layer.height > 0) {
+  // Stress test 2026-08-30 (REVERT of audit-4 C10a): cv:auto's layout+style+
+  // PAINT containment is INTRINSIC (spec: it applies whenever cv:auto is set,
+  // on-screen or not — the `contain` property cannot opt out of it; browsers
+  // report the combination as computed `contain: content`). C10a kept cv:auto
+  // on overflowing non-clip frames with `contain: layout style`, believing
+  // that preserved visible overflow — it does not: paint containment still
+  // clips every descendant to the container's box. Observed live: a variant-
+  // generated chart card (fixed 164px height, 459px of chart children) became
+  // completely invisible while its DOM boxes existed — zero data pixels
+  // painted. Frames whose children overflow and that don't clip must skip
+  // culling entirely; Figma semantics keep overflow visible.
+  const overflowingNoClip = !!opts.childOverflows && layer.clip !== true;
+  if (opts.l4Culling && CLIPPABLE_TYPES.has(layer.type) && layer.width > 0 && layer.height > 0 && !overflowingNoClip) {
     style.contentVisibility = 'auto';
-    style.contain = layer.clip === true || !opts.childOverflows ? 'layout style paint' : 'layout style';
+    style.contain = 'layout style paint';
     style.containIntrinsicSize = `${layer.width}px ${layer.height}px`;
   }
 

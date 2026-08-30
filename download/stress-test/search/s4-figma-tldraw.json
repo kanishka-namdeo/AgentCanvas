@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/23955143044247-Use-First-Draft-with-Figma-AI",
+    "name": "Use First Draft with Figma AI",
+    "snippet": "The following prompts typically generate strong outputs: A checkout page for a store that sells BBQs A food delivery app for pet food A marketing website for a ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://designerup.co/blog/figma-ai-first-draft-feature-rerelease",
+    "name": "Figma's First Draft AI Feature is NOT what you think",
+    "snippet": "One of my favorite features is the ability to generate tables. For example, I asked it to create a CRM table. CRM with table of names and ...",
+    "host_name": "designerup.co",
+    "rank": 1,
+    "date": "Nov 28, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1nsm30t/why_isnt_there_a_way_to_generate_figma_screens",
+    "name": "Why isn't there a way to generate Figma screens from text",
+    "snippet": "I've been experimenting with an idea: a plugin that lets you describe a screen in plain text, and it instantly creates a draft design in Figma.",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/nbabich_figma-design-ai-activity-7382181112183406592-VMPf",
+    "name": "💎 10 tips and tricks for Figma Make | Nick Babich",
+    "snippet": "🛠️ This guide offers 10 power tips, from using reference components and layout hints to creating your own Prompt Library. Level up your AI ...",
+    "host_name": "www.linkedin.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/design-bootcamp/prompt-engineering-for-ui-how-i-made-figma-make-generate-real-screens-at-scale-6e997c6b691e",
+    "name": "Prompt Engineering for UI: How I made Figma Make",
+    "snippet": "1. Don't start in Figma Make — start by compiling context with an AI helper. 2. Use a checkpoint prompt (“Tell me what you ...",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/ai",
+    "name": "Your Creativity, unblocked with Figma AI",
+    "snippet": "Use the Figma agent to generate new design directions, create diagrams, edit images, search your files, and more. A prompt asks the Figma agent to animate a ...",
+    "host_name": "www.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]
