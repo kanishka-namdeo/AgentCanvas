@@ -15,12 +15,24 @@
 // Mirrors /api/agent/approvals (the destructive-op gate resolver) — same
 // module-level pending registry, same idempotent no-op for unknown ids
 // (already resolved / timed out / from a stale reconnect replay).
+//
+// GET /api/agent/plans — diagnostics twin of GET /api/agent/pending:
+// returns the currently-pending plan ids so a reconnecting client (or a
+// debug session) can see whether a PlanApprovalCard is still awaiting a
+// decision (e.g. the user closed the tab mid-review).
 
 import { NextRequest } from 'next/server';
-import { resolvePlanProposal } from '@/lib/agent/plan-gate';
+import { getPendingPlanProposals, resolvePlanProposal } from '@/lib/agent/plan-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  return new Response(JSON.stringify({ pending: getPendingPlanProposals() }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));

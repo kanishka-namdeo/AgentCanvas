@@ -1367,6 +1367,23 @@ export async function callLLMWithRetry(llm: LLMClient, params: {
 export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<AgentStreamEvent> {
   const { documentId, prompt, canvas: initialCanvas, llm: injectedLlm, signal, settings } = opts;
 
+  // ---- Mode-blindness guard (2026-08-30 modes audit) ------------------------
+  // This legacy loop is the TEST-ONLY path (reached when `injectedLlm` is
+  // set); it has NO mode tool-gating — the registry-level enforcement (ask /
+  // plan allowlists, submit_plan registration, plan-execution swap) lives
+  // exclusively in runner-native.ts. Silently ignoring a non-build mode here
+  // would let a test exercise a mode-blind path and pass while production
+  // behaves differently — so fail LOUDLY instead. Mode behavior is covered by
+  // tests/unit/modes-2026-08-30.test.ts (pure functions + allowlists +
+  // runner-native source invariants); exercise the native runner for
+  // end-to-end mode flows.
+  if (settings?.mode && settings.mode !== 'build') {
+    throw new Error(
+      `runAgentLegacy is mode-blind (test-only path) and cannot run in '${settings.mode}' mode. ` +
+        'Mode enforcement lives in runner-native.ts — see tests/unit/modes-2026-08-30.test.ts.',
+    );
+  }
+
   // Resolve settings with defaults. Tests don't pass settings, so we fall back
   // to the previous hard-coded values to keep the existing test suite green.
   const temperature = settings?.temperature ?? 0.4;

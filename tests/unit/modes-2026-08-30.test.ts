@@ -806,3 +806,86 @@ describe('modes: plan hint surfaces the saved-LLM-calls estimate', () => {
     expect(planTools.PLAN_MODE_SAVED_LLM_CALLS_ESTIMATE).toBe(mod.PLAN_MODE_SAVED_LLM_CALLS_ESTIMATE);
   });
 });
+
+// ---- 16. Legacy-runner mode-blindness guard (audit follow-up) ----------------
+
+describe('runner-legacy: mode-blindness guard', () => {
+  it('throws LOUDLY for non-build modes (the legacy loop has no mode gating)', async () => {
+    const { runAgentLegacy } = await import('@/lib/agent/runner-legacy');
+    for (const mode of ['ask', 'plan'] as const) {
+      const gen = runAgentLegacy({
+        documentId: 'doc',
+        prompt: 'hello',
+        canvas: {} as any,
+        settings: { mode } as any,
+      });
+      await expect(gen.next()).rejects.toThrow(/mode-blind.*runner-native\.ts/);
+    }
+  });
+
+  it('build mode and absent mode keep the legacy path usable (tests rely on it)', async () => {
+    const { runAgentLegacy } = await import('@/lib/agent/runner-legacy');
+    // Minimal valid doc (integration/runner.test.ts makeDoc style) + a mock
+    // LLM whose text-only response ends the turn after one iteration.
+    const doc = {
+      id: 'test-doc', name: 'Test', background: '#ffffff', version: '2.17',
+      children: [], viewport: { zoom: 1, panX: 0, panY: 0 },
+      shapes: [], tokens: { colors: [], textStyles: [] },
+    } as any;
+    const doneLlm = {
+      chat: {
+        completions: {
+          create: async () => ({ choices: [{ message: { content: 'Done.', tool_calls: undefined } }] }),
+        },
+      },
+    } as any;
+
+    const drain = async (opts: Record<string, unknown>): Promise<string[]> => {
+      const types: string[] = [];
+      for await (const ev of runAgentLegacy(opts as any)) {
+        if ((ev as any).kind === 'agent_event') types.push((ev as any).event.type);
+      }
+      return types;
+    };
+
+    // Absent mode → defaults to build behavior, runs to completion.
+    const absent = await drain({ documentId: 'd1', prompt: 'hello', canvas: doc, llm: doneLlm });
+    expect(absent).toContain('agent:turn_end');
+    // Explicit build mode → equally fine (the guard must not over-fire).
+    const build = await drain({
+      documentId: 'd1', prompt: 'hello', canvas: doc, llm: doneLlm,
+      settings: { mode: 'build' } as any,
+    });
+    expect(build).toContain('agent:turn_end');
+  });
+});
+
+// ---- 17. GET /api/agent/plans — pending-plan diagnostics endpoint --------------
+
+describe('GET /api/agent/plans: pending-plan diagnostics', () => {
+  it('the route wires getPendingPlanProposals into a GET handler (no longer a dead export)', async () => {
+    const routeSrc = read(join('app', 'api', 'agent', 'plans', 'route.ts'));
+    expect(routeSrc).toContain('getPendingPlanProposals');
+    expect(routeSrc).toMatch(/export async function GET/);
+    // Twin contract with /api/agent/pending (same { pending: [...] } shape).
+    expect(routeSrc).toContain('JSON.stringify({ pending: getPendingPlanProposals() })');
+  });
+
+  it('getPendingPlanProposals lists live pending plan ids', async () => {
+    resetPlanGate();
+    expect(getPendingPlanProposals()).toEqual([]);
+    const decision = submitPlanProposal({
+      planId: 'plan-diag-1',
+      title: 'T',
+      summary: 'S',
+      steps: [{ step: 1, description: 'one' }],
+    });
+    try {
+      expect(getPendingPlanProposals()).toEqual(['plan-diag-1']);
+    } finally {
+      resolvePlanProposal('plan-diag-1', 'build');
+      await decision;
+    }
+    expect(getPendingPlanProposals()).toEqual([]);
+  });
+});

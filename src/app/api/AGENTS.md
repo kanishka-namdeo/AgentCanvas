@@ -10,6 +10,8 @@ Next.js Route Handlers. Five route families: the `/api/agent` endpoints that run
 - `agent/answers/route.ts` — POST: resolves a pending `ask_user_question` tool call (`{toolCallId, answers: string[][], cancelled}`); calls `resolveAskUserQuestion()` from `src/lib/agent/plugins/ask-user-question`. 400 if `toolCallId` missing.
 - `agent/background/[id]/route.ts` — GET: background-task status by id (404 if unknown); backed by `getBackgroundTaskStatus()` from `src/lib/agent/plugins/background-tasks`. Polled by the BackgroundTaskList UI.
 - `agent/pending/route.ts` — GET: `{ pending: [...] }` list of unanswered `ask_user_question` toolCallIds (frontend polls on reconnect); backed by `getPendingQuestions()`.
+- `agent/approvals/route.ts` — POST: resolves a pending destructive-op approval gate (`{toolCallId, decision, edits?}`); backed by the approval-gate plugin's pending map. Same idempotent no-op contract for unknown ids as `plans`.
+- `agent/plans/route.ts` — POST: resolves a pending PLAN-mode approval gate (`{planId, decision: 'build' | 'revise', feedback?}`; feedback required for `revise`) — the PlanApprovalCard submits here. GET: `{ pending: [...] }` list of plan ids awaiting a decision (diagnostics twin of `/api/agent/pending`); both backed by `src/lib/agent/plan-gate.ts`.
 - `plugins/route.ts` — GET: all agent-plugin manifests (`pluginId, pluginName, description, category, defaultEnabled, toolCount, toolNames`) for Settings → Plugins; backed by `getAllPlugins()`. User toggles live client-side (`enabledPlugins` setting) — not persisted server-side.
 - `sessions/route.ts` — GET/POST: server-side session persistence (DB is source of truth, localStorage is cache). GET filters by `documentId` + `status` (default `active`), ordered `lastOpenedAt desc`, with message/run counts (the snapshot `_count` include was dropped — snapshots are document-scoped now); POST creates a session (`documentId` required, else 400).
 - `sessions/[id]/route.ts` — GET/PATCH/DELETE: fetch session with messages (asc) + runs (asc) (the snapshots include was dropped — snapshots are document-scoped now), 404 if missing; update title/status/pinned/counters/lastOpenedAt (`snapshotCount` dropped); cascade delete (messages + runs only — snapshots no longer cascade with their session).
@@ -55,11 +57,13 @@ Next.js Route Handlers. Five route families: the `/api/agent` endpoints that run
 - The frontend canvas store calls this endpoint when the WebSocket connection to `mini-services/canvas-sync/` is unavailable. Both paths MUST produce identical event shapes — the canvas store does not branch on transport.
 - When the WebSocket IS available, the canvas store prefers it (lower latency, bidirectional). The HTTP path is the fallback.
 
-### `/api/agent/answers`, `/api/agent/pending`, `/api/agent/background/[id]`
-- Backed by in-memory plugin state in `src/lib/agent/plugins/` — no DB. All three exist so the browser can interact with blocking/background plugin tools while a run is in flight.
+### `/api/agent/answers`, `/api/agent/pending`, `/api/agent/background/[id]`, `/api/agent/plans`, `/api/agent/approvals`
+- Backed by in-memory plugin state in `src/lib/agent/plugins/` (or `plan-gate.ts` for plans) — no DB. All exist so the browser can interact with blocking/background plugin tools while a run is in flight.
 - `/api/agent/answers` resolves the blocked `ask_user_question` tool call (the PluginUI dialog submits here via the canvas store's `submitQuestionAnswers`).
 - `/api/agent/pending` is polled on reconnect so a reload doesn't orphan an unanswered question.
 - `/api/agent/background/[id]` is polled by the BackgroundTaskList UI while background tasks run.
+- `/api/agent/plans` (POST) resolves the PLAN-mode approval triad — `build` hands the approved plan to the runner for a build-toolset execution session, `revise` feeds the user's notes back as the `submit_plan` tool result; (GET) lists pending plan ids for reconnect diagnostics.
+- `/api/agent/approvals` (POST) resolves the destructive-op approval card (`approve` / `reject` with optional edits).
 
 ### `/api/sessions*` family
 - Server-side persistence via Prisma (`db.session`, `db.sessionMessage`, `db.sessionRun` from `src/lib/db`; canvas snapshots live in `db.documentSnapshot` behind the `/api/documents/[documentId]/snapshots*` routes — see below). The DB is the source of truth; the localStorage store (see `src/lib/sessions/AGENTS.md`) is a cache.
@@ -162,4 +166,4 @@ Next.js Route Handlers. Five route families: the `/api/agent` endpoints that run
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder contains: `agent/route.ts`, `agent/answers/route.ts`, `agent/background/[id]/route.ts`, `agent/pending/route.ts`, `plugins/route.ts`, `sessions/route.ts`, `sessions/[id]/route.ts`, `sessions/[id]/messages/route.ts`, `sessions/[id]/runs/route.ts`, `documents/[documentId]/snapshots/route.ts`, `documents/[documentId]/snapshots/[id]/route.ts`, `mcp/[id]/route.ts`, `route.ts`, `pen/import/route.ts`, `pen/export/route.ts`.
+No child `AGENTS.md` files. This folder contains: `agent/route.ts`, `agent/answers/route.ts`, `agent/approvals/route.ts`, `agent/background/[id]/route.ts`, `agent/client-responses/route.ts`, `agent/pending/route.ts`, `agent/plans/route.ts`, `plugins/route.ts`, `sessions/route.ts`, `sessions/[id]/route.ts`, `sessions/[id]/messages/route.ts`, `sessions/[id]/runs/route.ts`, `documents/[documentId]/snapshots/route.ts`, `documents/[documentId]/snapshots/[id]/route.ts`, `mcp/[id]/route.ts`, `route.ts`, `pen/import/route.ts`, `pen/export/route.ts`.

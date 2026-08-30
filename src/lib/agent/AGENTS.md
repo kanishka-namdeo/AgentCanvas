@@ -169,11 +169,20 @@ plan-mode violations documented this):
 - **plan**: ask set + `submit_plan` (the ExitPlanMode analog — plan artifact
   as a TOOL call, never plain text). `plan-gate.ts` holds the pending map:
   `agent:plan_proposed` → PlanApprovalCard → POST `/api/agent/plans`
-  ('build' | 'revise' + feedback) → 10-min timeout. On approval the runner
-  disposes the planning session and creates a SECOND session with
+  ('build' | 'revise' + feedback) → 10-min timeout. GET `/api/agent/plans`
+  lists pending plan ids (reconnect diagnostics — twin of
+  `/api/agent/pending`, backed by `getPendingPlanProposals()`). On approval
+  the runner disposes the planning session and creates a SECOND session with
   `buildToolsForPlanMode` (full build toolset, mode filter removed) whose
   first user message carries the original request + the approved plan
   verbatim; the critique loop runs on that execution session.
+- **Legacy-runner mode guard** (audit follow-up): `runAgentLegacy` is the
+  TEST-ONLY path (`injectedLlm`) and has NO mode gating — it now THROWS for
+  any non-build `settings.mode` instead of silently running mode-blind (a
+  test that passed via the legacy loop while production enforced the mode
+  was a false green). Mode behavior is covered by
+  `tests/unit/modes-2026-08-30.test.ts` (pure functions + allowlists +
+  runner-native source invariants).
 - **Post-approval hard stop** (stress-test round 3, live-verified fix): the
   approved `submit_plan` result tells the model to STOP, and
   `planCompletionBlocker` (runner-native) enforces it — after
