@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://cognition.com/blog/closing-the-agent-loop-devin-autofixes-review-comments",
+    "name": "Closing the Agent Loop: Devin Autofixes Review Comments",
+    "snippet": "Devin can now be configured to autofix incoming review comments from Devin Review and other review bots. Devin also continues to autofix lint and CI/CD issues. Read more",
+    "host_name": "cognition.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.augmentcode.com/guides/autonomous-engineering-loop",
+    "name": "From Assisted to Autonomous: How Far Can the",
+    "snippet": "Jul 24, 2026 — As of July 2026, agents close the autonomous engineering loop across six pre-merge stages through pull request creation and review -comment ... Read more",
+    "host_name": "www.augmentcode.com",
+    "rank": 1,
+    "date": "Jul 24, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://devin.ai",
+    "name": "Devin | The AI Software Engineer",
+    "snippet": "Devin is an AI coding agent and software engineer that helps developers build better software faster. Parallel cloud agents for serious engineering teams.",
+    "host_name": "devin.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.quora.com/Can-an-autonomous-AI-agent-effectively-self-correct-and-ship-production-ready-code-using-only-a-simple-feedback-loop-and-a-test-suite",
+    "name": "Can an autonomous AI agent effectively self-correct and",
+    "snippet": "Can an autonomous AI agent effectively self-correct and ship production-ready code using only a simple feedback loop and a test suite?",
+    "host_name": "www.quora.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/nikhil-thorat-58a18232_coding-agents-increase-the-autonomy-slider-activity-7348344728607764482-tX-S",
+    "name": "How to use AI coding agents with self-verification loops",
+    "snippet": "self - verification loops are the single most important mental model for using AI coding agents . Like ear training—teach Claude to hear when code ...",
+    "host_name": "www.linkedin.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aidevsetup.com/code/devin",
+    "name": "Devin: AI Software Engineering Agent | LeadAI Review",
+    "snippet": "Mar 26, 2026 — If the agent makes mistakes, they appear in code review or test results. Devin's self-healing loop may catch and fix issues automatically ... Read more",
+    "host_name": "aidevsetup.com",
+    "rank": 5,
+    "date": "Mar 26, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2607.13091v1",
+    "name": "Self-Improving AI Coding Agents Through Accumulated",
+    "snippet": "Jul 13, 2026 — We present a closed- loop framework in which every accepted review comment is codified as a persistent behavioral rule, progressively expanding ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 6,
+    "date": "Jul 13, 2026",
+    "favicon": ""
+  }
+]

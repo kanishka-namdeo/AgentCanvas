@@ -116,7 +116,7 @@ export interface ChatTurn {
   /// began — that's the moment the UI collapses the block.
   thinkingStartedAt?: number;
   thinkingEndedAt?: number;
-  /// Self-critique findings from the runner's mandatory critique loop
+  /// Self-critique findings from the runner's critique loop
   /// (pi-agent `agent:critique`). Rendered as a "self-review" row on the
   /// turn so users can see WHY the agent iterated.
   critique?: {
@@ -126,6 +126,22 @@ export interface ChatTurn {
     vlmSeverity: 'low' | 'medium' | 'high';
     vlmScore?: number;
   };
+  /// PLAN mode: the plan the agent submitted for approval (agent:plan_proposed)
+  /// + its resolution state. Rendered as the PlanApprovalCard with the
+  /// approval triad (Build it / Keep planning).
+  planProposal?: {
+    planId: string;
+    title: string;
+    summary: string;
+    steps: Array<{ step: number; description: string }>;
+    openQuestions?: string[];
+    status: 'pending' | 'approved' | 'revising' | 'timeout';
+    feedback?: string;
+  };
+  /// Adaptive critique gating: the runner skipped the LLM critics on this
+  /// turn (small/clean — deterministic validation only). Rendered as a muted
+  /// "self-review skipped" row with the saved-call estimate.
+  critiqueSkipped?: { reason: string; savedLlmCalls: number };
 }
 
 /// A prompt the user submitted WHILE the agent was busy (Cursor 3's default
@@ -2668,6 +2684,69 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
                 vlmSeverity: event.vlmSeverity,
                 ...(event.vlmScore !== undefined ? { vlmScore: event.vlmScore } : {}),
               },
+            };
+          }
+          return { turns };
+        });
+        break;
+      }
+      case 'agent:plan_proposed': {
+        // PLAN mode: the agent submitted a plan and is blocked on approval.
+        // Attach the proposal to the streaming assistant turn — the
+        // PlanApprovalCard renders the triad (Build it / Keep planning).
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant') {
+            turns[turns.length - 1] = {
+              ...last,
+              planProposal: {
+                planId: event.planId,
+                title: event.title,
+                summary: event.summary,
+                steps: event.steps.map((st) => ({ step: st.step, description: st.description })),
+                ...(event.openQuestions && event.openQuestions.length > 0
+                  ? { openQuestions: event.openQuestions }
+                  : {}),
+                status: 'pending',
+              },
+            };
+          }
+          return { turns };
+        });
+        break;
+      }
+      case 'agent:plan_resolved': {
+        // The plan gate closed (decision client POSTs; every viewer gets
+        // the fan-out). Update the card state so buttons disable and the
+        // outcome (approved → building / revising with feedback) shows.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last?.planProposal && last.planProposal.planId === event.planId) {
+            turns[turns.length - 1] = {
+              ...last,
+              planProposal: {
+                ...last.planProposal,
+                status: event.decision === 'build' ? 'approved' : event.decision === 'revise' ? 'revising' : 'timeout',
+                ...(event.feedback ? { feedback: event.feedback } : {}),
+              },
+            };
+          }
+          return { turns };
+        });
+        break;
+      }
+      case 'agent:critique_skipped': {
+        // Adaptive critique gating: deterministic validation only ran on
+        // this turn (small/clean) — surface the saving instead of silence.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant' && !last.critiqueSkipped) {
+            turns[turns.length - 1] = {
+              ...last,
+              critiqueSkipped: { reason: event.reason, savedLlmCalls: event.savedLlmCalls },
             };
           }
           return { turns };

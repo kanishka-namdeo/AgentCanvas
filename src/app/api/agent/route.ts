@@ -83,6 +83,14 @@ export async function POST(req: NextRequest) {
         // component injects the pack's tokens.css on the world root so
         // those variables resolve at render time.
         pack: typeof body.settings.pack === 'string' ? body.settings.pack : undefined,
+        // Agent mode (Cursor-style, 2026-08-30): 'build' | 'ask' | 'plan'.
+        // Structurally enforced by the runner at tool-registry assembly —
+        // ask/plan physically cannot see mutating tools. Unknown values
+        // drop to undefined (the runner defaults to 'build').
+        mode:
+          body.settings.mode === 'ask' || body.settings.mode === 'plan' || body.settings.mode === 'build'
+            ? body.settings.mode
+            : undefined,
       }
     : undefined;
 
@@ -197,6 +205,9 @@ export async function POST(req: NextRequest) {
         ...(sessionId ? { sessionId } : {}),
         ...(runId ? { runId } : {}),
         ...(userMessageId ? { messageId: userMessageId } : {}),
+        // Agent mode rides the journaled payload (additive — replay consumers
+        // ignore unknown fields) so run forensics can attribute turns to modes.
+        ...(settings?.mode ? { mode: settings.mode } : {}),
       });
 
       // ---- Server-side Stop + watchdog wiring (durability fixes) ----------

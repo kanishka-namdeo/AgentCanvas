@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://cursor.com/docs/agent/plan-mode",
+    "name": "Plan Mode | Cursor Docs",
+    "snippet": "Press Shift+Tab from the chat input to rotate to Plan Mode. Cursor also suggests it automatically when you type keywords that indicate complex tasks. Use the  ...",
+    "host_name": "cursor.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.cursorforpms.com/guides/cursor-modes-explained",
+    "name": "Cursor Modes Explained: Agent, Ask, Plan, and Debug (2026)",
+    "snippet": "Aug 5, 2026 — Open the panel with Cmd+I / Ctrl+I and cycle modes with Shift + Tab or the mode picker dropdown . What is Ask mode in Cursor ? Ask mode is the read- ... Read more",
+    "host_name": "www.cursorforpms.com",
+    "rank": 1,
+    "date": "Aug 5, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://explainx.ai/blog/cursor-cli-slash-commands-complete-reference-guide-2026",
+    "name": "Cursor CLI Slash Commands: Complete Reference (2026)",
+    "snippet": "Jun 11, 2026 — Every Cursor CLI slash command —/ plan , / ask , /model, /compress, /mcp, /rules, and 25+ more. Workflow guide from official docs.",
+    "host_name": "explainx.ai",
+    "rank": 2,
+    "date": "Jun 11, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@devquillinsights/5-new-cursor-slash-commands-that-are-changing-how-i-code-ed610d0d5b66",
+    "name": "5 New Cursor Slash Commands That Are Changing How I",
+    "snippet": "Cursor shipped new slash commands that change how you manage models, rules, plugins, MCP servers, and your entire plan workflow — most of it ...",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/shift-tab-not-working-in-cursor-ide/136617",
+    "name": "Shift Tab Not Working in Cursor IDE - Bug Reports",
+    "snippet": "Oct 8, 2025 — “ Shift Tab ” should move to previous chat message (“Cycle to previous message”) In the latest update, it just switching Plan / Ask /Agent. Press “ ...",
+    "host_name": "forum.cursor.com",
+    "rank": 4,
+    "date": "Oct 8, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://onehorizon.ai/blog/cursor-shortcuts-and-snippets-every-dev-should-use",
+    "name": "Cursor Shortcuts and Snippets Every Dev Should Use - Blog",
+    "snippet": "Jan 15, 2026 — These four commands handle 80% of your Cursor interactions. Tab (Smart Complete) - As you type, Tab accepts AI predictions. It reads your ...",
+    "host_name": "onehorizon.ai",
+    "rank": 5,
+    "date": "Jan 15, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/anthropics/claude-code/issues/6383",
+    "name": "Feature Request: Slash commands for mode switching",
+    "snippet": "Aug 22, 2025 — Add slash command to change to plan mode #3429 · Allow customization of mode switching shortcuts (Alt+M vs Shift+Tab) #5885 · Consistent by ... Read more",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "Aug 22, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/cursor/comments/1oewzf1/am_i_missing_something_re_plan_mode_built_a_plan",
+    "name": "plan mode? Built a plan with a single prompt, then asked it",
+    "snippet": "Am I missing something RE: plan mode ? Built a plan with a single prompt, then asked it to refine the plan - instead it started implementing! Read more",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

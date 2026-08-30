@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://support.bolt.new/best-practices/plan-mode",
+    "name": "Plan before building with Plan Mode",
+    "snippet": "Bolt has a chat mode called Plan Mode where you can plan and ask questions without making changes to your code. Plan Mode provides project-specific help, ... Read more",
+    "host_name": "support.bolt.new",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/boltnewbuilders/comments/1lh0l9f/from_boltnew_to_claude_code",
+    "name": "From Bolt.new to Claude Code? : r/boltnewbuilders",
+    "snippet": "I’ve a giant project that I’m trying to build but Bolt is already full of things and it cannot handle the instructions without wasting money. People ...",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxpilot.ai/blogs/bolt-new-ai",
+    "name": "Bolt.new AI Walkthrough: Pricing, Features, and Alternatives",
+    "snippet": "Nov 25, 2025 — The Interaction Discussion Mode lets you pause building and brainstorm directly with the AI before making any real changes. Instead of writing ... Read more",
+    "host_name": "uxpilot.ai",
+    "rank": 2,
+    "date": "Nov 25, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.nocode.mba/articles/bolt-beginners-guide",
+    "name": "Beginner's Guide to Bolt: Here's What to Do After Your First",
+    "snippet": "May 12, 2025 — Bolt offers a unique \"discuss mode \" that allows you to brainstorm ideas with the AI without making immediate changes to your design.",
+    "host_name": "www.nocode.mba",
+    "rank": 3,
+    "date": "May 12, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://bolt.new/blog/bolt-design-system-agents",
+    "name": "Bolt.new's Design System Agents",
+    "snippet": "Mar 26, 2026 — Bolt . new's Design System Agents ingest your real components and design tokens so prototypes match your codebase and ship without a rebuild.",
+    "host_name": "bolt.new",
+    "rank": 4,
+    "date": "Mar 26, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.news.aakashg.com/p/pm-guide-bolt",
+    "name": "The PM's Complete Guide to Bolt.new - Product Growth",
+    "snippet": "Apr 1, 2026 — Bolt.new is the tool that lets you build the prototype yourself , in minutes, without asking engineering for help. You pair roadmap discussions ...",
+    "host_name": "www.news.aakashg.com",
+    "rank": 5,
+    "date": "Apr 1, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://bolt.new",
+    "name": "Bolt.new",
+    "snippet": "Bolt automatically routes to the right model for each task , balancing quality and cost. No more juggling platforms or guessing which agent to use. Bolt Agent. Read more",
+    "host_name": "bolt.new",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://replit.discourse.group/t/new-agent-build-plan-modes/6831",
+    "name": "New agent Build & Plan modes - Replit Community Forum",
+    "snippet": "Aug 30, 2025 — New agent Build & Plan modes ; Outline Creation: Agent creates a detailed development plan without executing code ; Review Process: You can review ... Read more",
+    "host_name": "replit.discourse.group",
+    "rank": 7,
+    "date": "Aug 30, 2025",
+    "favicon": ""
+  }
+]

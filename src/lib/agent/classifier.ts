@@ -141,6 +141,45 @@ function classifyByKeywords(prompt: string, canvasShapeCount: number): Classific
     }
   }
 
+  // Canvas-anchored-question override (modes update, 2026-08-30): a prompt
+  // that references THE USER'S canvas/design and asks a question is an
+  // INSPECT ask — never web research, never a multi-step build. Live
+  // failure: "What is currently on my canvas?" matched web_research's
+  // generic 'what is' keyword (and the LLM fallback agreed) → the turn
+  // dead-ended on a research sub-agent instead of reading the canvas.
+  // Only fires when a canvas reference + question word co-occur — "what's
+  // new in web design 2026" (no canvas reference) still routes to research.
+  const canvasRef =
+    /\b(my|the|this|our|current)\s+(canvas|design|screen|layer|shape|layout|palette|document|artboard)\b/i.test(prompt) ||
+    /\bon\s+(my|the|this)\s+canvas\b/i.test(prompt);
+  const questionish =
+    /^(what|who|which|how|where|why|when|is|are|do|does|did|can|could|should|would|will|tell|explain|describe|list|show|audit|check|analyze)\b/i.test(
+      prompt.trim(),
+    );
+  // Build-intent guard: polite phrasing ("can you build me a dashboard on my
+  // canvas") is a BUILD request, not a question. Creation verbs disable the
+  // override — EXCEPT 'design' which is equally a noun ("my design" = the
+  // existing artifact): it only counts as creation when followed by an
+  // indefinite object ("design a dashboard" / "design me an app").
+  const buildIntent =
+    /\b(build|create|make|draw|generate|add|remove|delete|move|resize|restyle|update|change|modify|edit)\b/i.test(prompt) ||
+    /\bdesign\s+(me\s+)?(a|an|some)\b/i.test(prompt);
+  if (canvasRef && questionish && !buildIntent) {
+    // Return inspect DIRECTLY: the keyword scores for such prompts are noise
+    // ("research my design" scores web_research; "and" triggers the
+    // multi-step/last-deliverable logic toward wireframe). A question about
+    // existing content has exactly one right answer category, and web_research
+    // must not survive as a secondary either (that would still dispatch the
+    // research sub-agent).
+    return {
+      category: 'inspect' as SkillCategory,
+      secondaryCategories: [] as SkillCategory[],
+      method: 'keyword' as const,
+      confidence: 0.92,
+      recommendPlan: false,
+    };
+  }
+
   // Bug fix (B): Deterministic tie-break. When two skills have the same score,
   // prefer the one with more specific (longer/weighted) keyword matches.
   // This prevents stable-sort from always picking wireframe (which is first

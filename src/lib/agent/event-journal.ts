@@ -55,6 +55,14 @@ const JOURNALED_AGENT_EVENT_TYPES = new Set<string>([
   'agent:approval_request',
   'agent:approval_resolved',
   'agent:ask_user_question',
+  // Agent modes (2026-08-30): the plan-approval handshake + the adaptive
+  // critique skip notice MUST be journaled — reconnect catch-up replay
+  // rebuilds the PlanApprovalCard / saving row from these rows (a skipped
+  // journal write = a reconnecting viewer never sees a pending plan).
+  'agent:plan_proposed',
+  'agent:plan_resolved',
+  'agent:critique_skipped',
+  'agent:tool_progress',
   'agent:todo_update',
   'agent:background_task_started',
   'agent:background_task_complete',

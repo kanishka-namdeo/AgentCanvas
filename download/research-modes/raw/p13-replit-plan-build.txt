@@ -1,0 +1,440 @@
+URL: https://docs.replit.com/learn/plan-vs-build-mode
+TITLE: Plan vs. Build Mode - Replit
+
+Plan vs. Build Mode - Replit 
+ Documentation Index
+ Fetch the complete documentation index at: /llms.txt 
+ Use this file to discover all available pages before exploring further.
+ Skip to main content 
+ 
+ Replit home page English 
+ 
+
+ 
+ 
+ Search...
+
+ Ctrl K 
+ Start Building 
+ Start Building 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Search... 
+
+ Navigation 
+ 
+ 
+ 
+ Work with Agent 
+ 
+ Plan vs. Build Mode
+
+ 
+ Home 
+ Chat 
+ Build 
+ Design 
+ Use cases 
+ Learn 
+ Features 
+ Trust & Billing 
+ Enterprise 
+ 
+
+ 
+ Foundations 
+
+ 
+ What is an app? 
+
+ 
+ 
+ Introduction to AI 
+
+ 
+ 
+ Context management 
+
+ 
+ 
+ Vibe coding 101 
+
+ 
+ 
+ 
+
+ Projects & Artifacts 
+
+ 
+ Project Editor 
+
+ 
+ 
+ Projects & Artifacts 
+
+ 
+ 
+ Storage & Databases 
+
+ 
+ 
+ Auth 
+
+ 
+ 
+ Checkpoints 
+
+ 
+ 
+ Publishing 
+
+ 
+ 
+ 
+
+ Work with Agent 
+
+ 
+ Build with Agent 
+
+ 
+ 
+ Plan vs. Build Mode 
+
+ 
+ 
+ Effective prompting 
+
+ 
+ 
+ Agent skills 
+
+ 
+ 
+ Model Context Protocol 
+
+ 
+ 
+ 
+
+ Power builder 
+
+ 
+ Task system 
+
+ 
+ 
+ Build in parallel 
+
+ 
+ 
+ 
+
+ Mobile 
+
+ 
+ Expo 
+
+ 
+ 
+ 
+
+ Build safely 
+
+ 
+ Development URLs 
+
+ 
+ 
+ Security checklist 
+
+ 
+ 
+
+ 
+ 
+ 
+ On this page 
+ What is Plan Mode? 
+ What is Build Mode? 
+ Using both modes together 
+ When to use each mode 
+ Key differences 
+ Best practices Getting the most from Plan Mode 
+ Seamless transitions 
+ 
+ Next steps 
+ 
+ 
+
+ Work with Agent
+ Plan vs. Build Mode
+ 
+ 
+ Copy page Copy page 
+ 
+ 
+
+ Learn the difference between Plan and Build modes in Replit, and how to combine them for more effective development.
+
+ 
+ 
+ Copy page Copy page 
+ 
+ 
+ Replit Agent offers two interaction modes: Plan Mode and Build Mode . Use them together to think through your ideas first, then implement with confidence. 
+ ​ 
+ 
+ 
+ 
+ What is Plan Mode? 
+
+ Plan Mode lets you brainstorm, ask questions, and plan your work with Agent—without modifying any code. Think of it as a collaborative planning session where you can explore ideas freely. 
+ Plan Mode is perfect for: 
+ 
+ Brainstorming ideas : Explore different approaches before committing to one
+
+ Breaking down complex projects : Get a structured task list before building
+
+ Learning and understanding : Ask questions about technologies, patterns, or your codebase
+
+ Planning architecture : Design your app’s structure before writing code
+
+ 
+ 
+ 
+ In Plan Mode, Agent reads your project and provides guidance, but it won’t make any changes to your files. When you’re ready to implement, switch to Build Mode or approve a plan to start building automatically. 
+
+ ​ 
+ 
+ 
+ 
+ What is Build Mode? 
+
+ Build Mode is the default mode where Agent writes code, modifies files, and implements features directly in your project. This is where ideas become reality. 
+ Use Build Mode when you’re ready to: 
+ 
+ Create new features : Let Agent write the code for your next feature
+
+ Set up your app : Install dependencies, configure databases, and connect services
+
+ Fix issues : Let Agent debug and resolve problems in your codebase
+
+ Refactor code : Improve existing code structure and organization
+
+ 
+ ​ 
+ 
+ 
+ 
+ Using both modes together 
+
+ Plan Mode and Build Mode work best as a sequence. Start by planning to clarify your thinking, then build with a clear direction. 
+ 
+ 1
+
+ Start in Plan Mode
+ Switch to Plan Mode and describe what you want to build. Agent will help you think through the requirements, suggest approaches, and identify potential challenges—all without touching your code. 
+
+ 
+ 2
+
+ Generate a task list
+ Ask Agent to create a development plan. It will break down your project into specific, actionable tasks with clear priorities and dependencies. 
+ 
+ 
+ 
+ 
+
+ 
+ 3
+
+ Review and refine
+ Review the proposed plan. Ask follow-up questions, request changes, or explore alternative approaches. Keep iterating until the plan matches your vision. 
+
+ 
+ 4
+
+ Start building
+ When you’re satisfied with the plan, select Start building . Agent automatically switches to Build Mode and begins implementing the approved tasks. 
+ 
+ 
+ 
+ 
+
+ 
+ 5
+
+ Track progress
+ Monitor Agent’s progress as it works through the task list. Each completed task creates a checkpoint, so you can review changes and roll back if needed. 
+
+ ​ 
+ 
+ 
+ 
+ When to use each mode 
+
+ 
+ Use Plan Mode when
+ 
+ You’re starting a new project and need direction
+
+ You want to explore different approaches
+
+ The task is complex and needs breaking down
+
+ You want to learn before implementing
+
+ You’re unsure about the best solution
+
+ 
+
+ 
+ Use Build Mode when
+ 
+ You know exactly what you want
+
+ You have a clear plan ready to execute
+
+ You’re making quick fixes or small changes
+
+ You’re following an approved task list
+
+ Speed of implementation is the priority
+
+ 
+
+ 
+ 
+ Not sure which to pick? If your request involves multiple features or significant changes, start with Plan Mode. For simple, well-defined tasks, go straight to Build Mode. 
+
+ ​ 
+ 
+ 
+ 
+ Key differences 
+
+ Feature Plan Mode Build Mode 
+ Purpose Brainstorm, plan, and learn Implement and build 
+ Code changes None—read-only Writes and modifies files 
+ Output Ideas, task lists, guidance Working code and features 
+ Best for Complex projects, exploration Clear tasks, implementation 
+ Transition Click “Start building” to switch Already in implementation mode 
+ 
+
+ ​ 
+ 
+ 
+ 
+ Best practices 
+
+ ​ 
+ 
+ 
+ 
+ Getting the most from Plan Mode 
+
+ 
+ Be specific about requirements : The more detail you provide, the better the plan
+
+ Ask follow-up questions : Clarify suggestions you don’t understand
+
+ Request examples : Ask Agent to show code snippets or patterns
+
+ Discuss trade-offs : Explore pros and cons of different approaches
+
+ Iterate on ideas : Refine the plan until it feels right
+
+ 
+ ​ 
+ 
+ 
+ 
+ Seamless transitions 
+
+ 
+ Review before building : Always review the task list before approving
+
+ Start small : Begin with a subset of tasks if the full plan feels overwhelming
+
+ Use checkpoints : Agent creates checkpoints as it builds, so you can always roll back
+
+ 
+ ​ 
+ 
+ 
+ 
+ Next steps 
+
+ 
+ 
+ 
+ 
+ Plan Mode
+ Deep dive into planning features 
+
+ 
+
+ 
+ 
+ 
+ 
+ Agent
+ Explore all Agent capabilities 
+
+ 
+
+ 
+ 
+ 
+ 
+ Checkpoints
+ Learn about rollbacks and recovery 
+
+ 
+
+ 
+ 
+ 
+ 
+ Effective Prompting
+ Write better prompts for Agent 
+
+ 
+
+ Was this page helpful?
+ 
+ 
+ Yes 
+ 
+ No 
+ 
+
+ Build with Agent
+ 
+ Previous 
+
+ Effective prompting with Replit AI
+ 
+ Next 
+
+ 
+ 
+ 
+
+ x linkedin youtube

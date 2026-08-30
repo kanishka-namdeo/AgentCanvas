@@ -1,0 +1,506 @@
+URL: https://support.bolt.new/best-practices/plan-mode
+TITLE: Plan before building with Plan Mode - Bolt
+
+Plan before building with Plan Mode - Bolt 
+ Documentation Index
+ Fetch the complete documentation index at: /llms.txt 
+ Use this file to discover all available pages before exploring further.
+ Skip to main content 
+ 
+ Bolt home page 
+
+ Search... ⌘ K Ask Assistant ⌘ I 
+ Release Notes 
+ Bolt Status 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Bolt home page Search... 
+ 
+ 
+
+ Navigation 
+ 
+ 
+ 
+ Planning and prompting 
+ 
+ Plan before building with Plan Mode
+
+ 
+
+ 
+ Get started with Bolt 
+
+ Intro to Bolt 
+
+ 
+ QuickStart guide 
+
+ 
+ Project lifecycle 
+
+ 
+ Learn Bolt with video tutorials 
+
+ 
+ 
+ Planning and prompting 
+
+ Plan Mode 
+
+ 
+ Prompt effectively 
+
+ 
+ Save and manage prompts 
+
+ 
+ Maximize token efficiency 
+
+ 
+ Manage project context 
+
+ 
+ 
+ Building 
+
+ Start a project 
+
+ 
+ Choose an agent 
+
+ 
+ Attach files 
+
+ 
+ Work with images 
+
+ 
+ Use Code View 
+
+ 
+ Use skills 
+
+ 
+ Security 
+
+ 
+ Chat tools 
+
+ 
+ 
+ Project types 
+
+ Slides 
+
+ 
+ 
+ Collaboration 
+
+ Collaborate with others 
+
+ 
+ Share your project 
+
+ 
+ 
+ Managing projects 
+
+ Manage your projects 
+
+ 
+ Back up or restore your project 
+
+ 
+ 
+ Use your design system in Bolt 
+
+ Introduction 
+
+ 
+ Add your design system 
+
+ 
+ View your design system in Bolt 
+
+ 
+ Build with your design system 
+
+ 
+ Sync your design system with Bolt 
+
+ 
+ Best practices 
+
+ 
+ 
+ Bolt Cloud 
+
+ What is Bolt Cloud? 
+
+ 
+ Database 
+ 
+ 
+ 
+ Domains 
+ 
+ 
+ 
+ Hosting 
+ 
+ 
+ 
+ 
+ Use Bolt with other tools 
+
+ Expo for mobile apps 
+
+ 
+ Figma for design 
+
+ 
+ GitHub for version control 
+
+ 
+ GitHub org access 
+
+ 
+ Google SSO for authentication 
+
+ 
+ Google Stitch for design 
+
+ 
+ Import from Lovable 
+
+ 
+ Netlify for hosting 
+
+ 
+ Stripe for payments 
+
+ 
+ Supabase for databases 
+
+ 
+ Connect to an MCP server 
+
+ 
+ 
+ Settings 
+
+ Account settings 
+
+ 
+ Workspace settings 
+
+ 
+ Project settings 
+
+ 
+ Team settings 
+
+ 
+ 
+ Accounts and subscriptions 
+
+ Accounts 
+
+ 
+ Billing 
+
+ 
+ Corporate and commercial 
+
+ 
+ Tokens 
+
+ 
+ Refer a friend 
+
+ 
+ 
+ Teams 
+
+ Overview 
+
+ 
+ Plans and billing 
+
+ 
+ Manage your team 
+
+ 
+ Team templates 
+
+ 
+ 
+ Troubleshooting 
+
+ Bolt issues 
+
+ 
+ Preview issues 
+
+ 
+ Publish issues 
+
+ 
+ Integrations issues 
+
+ 
+ Login issues 
+
+ 
+ Contact support 
+
+ 
+ 
+ Reference 
+
+ Introduction to databases 
+
+ 
+ Introduction to LLMs 
+
+ 
+ Version history, version control, and GitHub 
+
+ 
+ Supported technologies 
+
+ 
+ FAQs 
+
+ 
+ Glossary 
+
+ 
+ 
+
+ Planning and prompting
+ Plan before building with Plan Mode
+
+ Chat with Bolt to get help without immediately generating code.
+
+ Bolt has a chat mode called Plan Mode where you can plan and ask questions without making changes to your code. Plan Mode provides project-specific help, drawing on Bolt’s documentation and other online sources when needed. 
+ Using Plan Mode lets you explore ideas safely, save tokens by avoiding unnecessary code exchanges, and ensure you get things right before moving into Build Mode. 
+ ​ 
+ 
+ 
+ 
+ Features 
+
+ ​ 
+ 
+ 
+ 
+ Project context awareness 
+
+ Every discussion message includes your project codebase for context-aware responses, as well as the most recent messages. 
+ Because Plan Mode has the entire context of your project, there is a wide range of use cases, including: 
+ 
+ Debugging assistance
+
+ Recommendations on tools, libraries and APIs
+
+ Product/project decision-making
+
+ Suggestions on how to improve design
+
+ Suggestions for new features
+
+ Understanding and integrating external APIs
+
+ Generating implementation plans for later execution
+
+ Use the Inspector tool to highlight a component within a page, and discuss potential changes
+
+ 
+ ​ 
+ 
+ 
+ 
+ Web research 
+
+ When Bolt answers a question, it can pull in real-time, up-to-date information from trusted web sources instead of just relying on what it was trained on. This helps ensure the answers are accurate, relevant, and not outdated. When a search has been conducted, Bolt displays the sources at the top of the response. 
+ For example: 
+ 
+ If you ask about the latest Stripe API updates, Bolt won’t just rely on old knowledge; it will search for the latest documentation and give you a more reliable answer.
+
+ If you ask about a bug in a popular library, it can check forums or support pages for the most recent solutions.
+
+ 
+ ​ 
+ 
+ 
+ 
+ Quick action buttons 
+
+ If your question or prompt has an intuitive action associated with it, Bolt will likely generate quick action buttons at the end of its response. 
+ With these buttons, you can take immediate actions such as: 
+ 
+ Implement this plan (auto-switches to Build Mode to apply changes)
+
+ Show an example 
+
+ Refine this idea 
+
+ 
+ The quick action buttons are contextual and will vary depending on your project and the topic of discussion. 
+ ​ 
+ 
+ 
+ 
+ How to use Plan Mode 
+
+ Plan Mode helps you map out steps, reason through complex problems, and build strategies. 
+ While its main strength is structured planning, it can also search the web or explore your codebase if needed. 
+ ​ 
+ 
+ 
+ 
+ Use Plan Mode on the Bolt homepage 
+
+ You can begin your Bolt project in Plan Mode right from the first prompt. This lets you create and refine a plan through back-and-forth discussion before executing a build, helping you avoid unwanted changes and use fewer tokens overall. 
+ 
+ 
+ 
+
+ Click Plan before submitting your prompt to generate a plan for your build. Plan Mode highlights blue when active. Click it again to turn it off and return to Build Mode. 
+ 
+ 
+ When you use Plan Mode from the homepage, it starts by creating the base structure of your app. After that, it shares a plan in the chatbox. You can review this plan, suggest changes, and continue building step by step. 
+
+ 
+ 
+ If you want to create a mobile app, it’s important to mention this directly in your prompt. For example, you might prompt: “Build a mobile app that helps people track their daily habits.” 
+
+ ​ 
+ 
+ 
+ 
+ Use Plan Mode in a project 
+
+ 
+ 
+ 
+ Open your project.
+
+ In the bottom-right corner of the chatbox, click Plan .
+
+ Enter your question or prompt, and read the response. You can then either: 
+ 
+ Continue the discussion.
+
+ Use one of the quick action buttons to implement the suggestion.
+
+ 
+
+ 
+ 
+ 
+ Plan Mode highlights blue when active. Click it again to turn it off and return to Build Mode. 
+
+ Was this page helpful?
+ 
+ 
+ Yes 
+ 
+ No 
+ 
+
+ Learn Bolt with video tutorials
+ 
+ Previous 
+
+ Prompt effectively
+ 
+ Next 
+
+ 
+ 
+ 
+
+ On this page 
+ Features Project context awareness 
+ Web research 
+ Quick action buttons 
+ 
+ How to use Plan Mode Use Plan Mode on the Bolt homepage 
+ Use Plan Mode in a project 
+ 
+ 
+ 
+ 
+ 
+ Copy page 
+ 
+ 
+ 
+ View as Markdown 
+ 
+ 
+
+ Bolt home page x github discord linkedin youtube reddit instagram 
+
+ Terms of Service Privacy Policy 
+
+ x github discord linkedin youtube reddit instagram 
+
+ 
+ Powered by 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ This documentation is built and hosted on Mintlify, a developer documentation platform 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Assistant 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Responses are generated using AI and may contain mistakes.

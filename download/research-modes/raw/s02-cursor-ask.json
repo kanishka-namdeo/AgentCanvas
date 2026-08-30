@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://cursor.com/docs",
+    "name": "Cursor Docs — Agent, Rules, MCP, Skills & CLI",
+    "snippet": "Use it to understand your codebase , plan and build features, fix bugs, review changes, and work with the tools you already use.",
+    "host_name": "cursor.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.builder.io/blog/cursor-tips",
+    "name": "How I use Cursor (+ my best tips)",
+    "snippet": "Mar 11, 2025 — Practical tips for using Cursor AI effectively, including YOLO mode , test-driven development, debugging, and keyboard shortcuts.",
+    "host_name": "www.builder.io",
+    "rank": 1,
+    "date": "Mar 11, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/anybody-find-a-useful-use-case-scenario-for-this-edit-mode/65285",
+    "name": "Anybody find a useful use-case scenario for this \"EDIT",
+    "snippet": "Mar 17, 2025 — In Ask mode, developers can quickly inquire about their codebase using natural language . This feature allows users to select code segments and ...",
+    "host_name": "forum.cursor.com",
+    "rank": 2,
+    "date": "Mar 17, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/bobbenedict_vibe-hybridvibe-ai-activity-7393775924539777025-_QA4",
+    "name": "Why I prefer Ask mode over Agent mode in Cursor",
+    "snippet": "Tool Use - Access to actual external tools it can call and interact with . Function calling that lets the agent DO things, not just talk about ...",
+    "host_name": "www.linkedin.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cursor.com/docs/cli/overview",
+    "name": "Cursor CLI | Cursor Docs",
+    "snippet": "Cursor CLI lets you interact with AI agents directly from your terminal to write, review, and modify code. tools for complex coding tasks. Ask Read-only ...",
+    "host_name": "cursor.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@roberto.g.infante/mastering-cursor-ide-10-best-practices-building-a-daily-task-manager-app-0b26524411c1",
+    "name": "Mastering Cursor IDE: 10 Best Practices (Building a Daily",
+    "snippet": "Ask mode is great for when you want to explore or learn about the code without altering anything. For instance, you can use Ask mode to query, ...",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/cursor/comments/1jr72ab/why_did_you_remove_the_editing_functionality_in",
+    "name": "Why did you remove the editing functionality in \"Ask\"?",
+    "snippet": "it can fetch files, run commands and read the output and interact with many different things.",
+    "host_name": "www.reddit.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cursor.com",
+    "name": "Cursor: AI Coding Agent for Building Ambitious Software",
+    "snippet": "Built to make you extraordinarily productive, agents turn ideas into code. Accelerate development by handing off tasks to Cursor .",
+    "host_name": "cursor.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,149 @@
+URL: https://community.vercel.com/t/requesting-plan-and-build-modes/22153
+TITLE: Requesting 'Plan' and 'Build' Modes
+
+Requesting 'Plan' and 'Build' Modes - v0 - Vercel Community 
+ Skip to content 
+ 
+ 
+ ⌘K 
+
+ 
+ Sign In 
+ 
+
+ Welcome to the new Vercel Community beta
+ Report feedback 
+ 
+ 
+ Community 
+ 
+ 
+ v0 
+ 
+ Requesting 'Plan' and 'Build' Modes
+ Sep 9, 6:20 PM Solved Closed # feature-request # v0 
+ 
+ 
+ 
+
+ 
+
+ 
+ Community 
+ 
+ Announcements 
+ 
+ Knowledge Base 
+ 
+ Showcase 
+ 
+ Events 
+ 
+ Live Sessions 
+ 
+ Hackathons 
+ 
+ Discussions 
+ 
+ Help 
+ 
+ Feedback 
+ 
+ Open Source 
+ 
+ v0 
+ 
+
+ 
+ 
+ Bkautz0824 1 year ago (edited) 
+ 
+ 
+ 
+ 
+
+ Building sites with AI has been a game-changer, and I’ve been using tools like Claude, v0, and Replit. One feature I’ve come to really appreciate with Replit is the “mode” setting for its AI assistant. The ability to switch between “Plan” and “Build” modes is incredibly useful.
+I believe this specific change would be a valuable addition to v0. It aligns perfectly with the new design mode’s principle of synchronizing the developer’s mindset with the agent’s actions. This clear separation of planning and execution makes the development process flow much more smoothly. It helps the assistant focus on the task at hand and prevents it from getting ahead of itself, making unintended changes based on something that was more of a discussion than a direct command.
+
+ What are your thoughts on integrating a similar mode-based system into v0?
+
+ 
+ Alexcumbers 9492 1 year ago 
+ 
+ 
+ 
+ 
+
+ This is essential and I’ve also suggested it. Other AI tools do this.
+
+ 
+ 1 
+ Simon 1 year ago 
+ 
+ 
+ 
+ 
+
+ I’d love to see Spec Driven Development concepts come into it. I am playing with using project custom instructions as well as prompting strategies which is working ok but it would be awesome if clear design and specification, implementation planning, and exectution steps were built in. Amazon has shown how useful this is with AI models with Kiro and Github just released their Spec Kit which looks pretty good.
+
+ 
+ Alexcumbers 9492 1 year ago 
+ 
+ 
+ 
+ 
+
+ Yes this would be good but the core V0 build system issues have to be addressed first.
+
+ 
+ Bkautz0824 1 year ago 
+ 
+ 
+ 
+ 
+
+ Can you expand on this?
+
+ 
+ Alexcumbers 9492 1 year ago 
+ 
+ 
+ 
+ 
+
+ Look all over the forums, problems with V0 code generation, credit usage and no update from V0 team.
+
+ 
+ 1 
+ Amy Egan 
+ Vercel Staff 8 months ago 
+ 
+ 
+ 
+ 
+
+ Have you had a chance to try the new "plan mode" option since it was added?
+
+ https://x.com/v0/status/1975336459231174791?s=20 
+ v0 (@v0) 
+ Custom Instructions are now available in v0.
+
+Use preset instructions like "Be Concise" and "Plan Mode", or create your own and apply them on-demand.
+ 
+ 189 likes · 9 reposts · 8 replies · 20.3K views
+
+ 
+
+ 
+ 
+
+ 
+ This topic is closed. It no longer accepts new replies.
+
+ 
+ 
+
+ 
+
+ Code of Conduct About Privacy Notice Feedback 
+ Vercel Community is built using Discourse.org, an open source discussion platform. For more information on privacy practices, visit discourse.org/privacy.

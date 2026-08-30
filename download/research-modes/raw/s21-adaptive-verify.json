@@ -1,0 +1,83 @@
+[
+  {
+    "url": "https://agentpatterns.ai/patterns/agent-design/adaptive-generate-rank-verify",
+    "name": "Adaptive Generate-Rank-Verify Under Costly Verification",
+    "snippet": "Generate cheaply, rank with a cheap signal, spend the expensive verifier only on the top of the ranking under a doubling schedule when verification ...",
+    "host_name": "agentpatterns.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net/forum?id=JMDCMf7mlF",
+    "name": "Anytime Verified Agents: Adaptive Compute Allocation for",
+    "snippet": "The paper proposes Anytime Verified Agents (AVA), a framework for adaptive compute allocation in LLM agents that dynamically routes budget ...",
+    "host_name": "openreview.net",
+    "rank": 1,
+    "date": "by D Patel",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2603.11445v2",
+    "name": "A Plan-Execute-Verify-Replan Framework for Complex",
+    "snippet": "An LLM-based verifier evaluates result completeness at the orchestration level, triggering adaptive replanning when gaps are identified— ...",
+    "host_name": "arxiv.org",
+    "rank": 2,
+    "date": "Mar 15, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.tdcommons.org/cgi/viewcontent.cgi?article=9826&context=dpubs_series",
+    "name": "Adaptive Computational Budgeting for AI Agents in",
+    "snippet": "Budget determination: A check (104) is performed to determine a budget is required based on organizational policy or task type. If no budget ...",
+    "host_name": "www.tdcommons.org",
+    "rank": 3,
+    "date": "by J Start · 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.preprints.org/frontend/manuscript/6d6cf018748a85c1cc85619af77bef65/download_pub",
+    "name": "Strategic Verification for Long-Running LLM Agents",
+    "snippet": "We introduce Budgeted Adaptive Verification with Asymmetric Rewards (BAVAR), a framework that formulates verification as a sequential, resource ...",
+    "host_name": "www.preprints.org",
+    "rank": 4,
+    "date": "Aug 28, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net/publication/403227480_Adaptive_Semantic_Gates_for_Reliable_Multi-Agent_LLMs",
+    "name": "Adaptive Semantic Gates for Reliable Multi-Agent LLMs",
+    "snippet": "Agents generate reasoning traces that are filtered by the Adaptive Semantic Gate (ASG) before interacting with three execution domains. ...",
+    "host_name": "www.researchgate.net",
+    "rank": 5,
+    "date": "Apr 15, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://link.springer.com/article/10.1007/s44163-026-01072-y",
+    "name": "Orchestrated intelligence: an adaptive multi-agent architecture",
+    "snippet": "by M Ayatollahi · 2026 — The interaction of multiple adaptive agents can lead to complex, unpredictable emergent behaviors, especially under market stress.",
+    "host_name": "link.springer.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2026.1892739/full",
+    "name": "AdaK: adaptive KV cache budget estimation framework for",
+    "snippet": "Unlike H2O or SnapKV, which simultaneously estimate budgets and perform eviction, AdaK's decoupled design enables independent validation of budget quality.",
+    "host_name": "www.frontiersin.org",
+    "rank": 7,
+    "date": "by T Shao · 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.towardsai.net/how-multi-agent-self-verification-actually-works-and-why-it-changes-everything-for-production-ai-71923df63d01",
+    "name": "How Multi-Agent Self-Verification Actually Works (And Why",
+    "snippet": "The key insight: your verifier doesn't need to be your most expensive model. Smaller models verify better than they generate — and this changes ...",
+    "host_name": "pub.towardsai.net",
+    "rank": 8,
+    "date": "Mar 29, 2026",
+    "favicon": ""
+  }
+]

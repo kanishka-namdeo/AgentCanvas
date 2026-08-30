@@ -1,0 +1,83 @@
+[
+  {
+    "url": "https://lucumr.pocoo.org/2025/12/17/what-is-plan-mode",
+    "name": "What Actually Is Claude Code's Plan Mode?",
+    "snippet": "Dec 17, 2025 — Amp is removing theirs . It has a little state machine going on to enter and exit plan mode that it can use. the edit file tool is actually used ...",
+    "host_name": "lucumr.pocoo.org",
+    "rank": 0,
+    "date": "Dec 17, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://ampcode.com",
+    "name": "Amp Code",
+    "snippet": "Your Amp plan still includes agent usage and orb time. Ultra continues to use Amp credits. Install Amp CLI. Also: Agents on Your Machines.",
+    "host_name": "ampcode.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://sidbharath.com/blog/amp-code-guide",
+    "name": "Amp Code Tutorial: Setup, Modes, Skills, and Agents",
+    "snippet": "Sep 4, 2025 — Removing them makes isolation more important. Amp does not need a special planning mode . Choose the Mode From the Plan If the change is local ...",
+    "host_name": "sidbharath.com",
+    "rank": 2,
+    "date": "Sep 4, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/LLMDevs/comments/1ui1dv6/how_often_do_you_actually_use_plan_mode_with",
+    "name": "How often do you actually use “plan mode” with coding",
+    "snippet": "I’m curious how people are actually using coding agents in day-to-day development, especially now that tools like Claude Code, Codex, Copilot CLI, and ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ampcode.com/chronicle",
+    "name": "Chronicle - Amp Code",
+    "snippet": "A new agent mode in Amp : deep. It thinks for longer, plans more, and needs you less. We're removing Amp Tab. It is not part of the future we see. we removed ...",
+    "host_name": "ampcode.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://discuss.ai.google.dev/t/is-plan-mode-removed-from-the-ide/145586",
+    "name": "Is \"Plan Mode\" removed from the IDE? - Google Antigravity",
+    "snippet": "May 20, 2026 — Disabling Plan Mode was one of the best features in Antigravity , and they removed it. no code update is needed. Plan Mode keeps executing ...",
+    "host_name": "discuss.ai.google.dev",
+    "rank": 5,
+    "date": "May 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/agent-mode-thinks-its-still-in-plan-mode/144006",
+    "name": "Agent mode thinks its still in plan mode - Bug Reports",
+    "snippet": "Nov 25, 2025 — It is clear after clicking the orange build button the agent moved from plan to agent mode , but it thinks it is still limited by plan mode ...",
+    "host_name": "forum.cursor.com",
+    "rank": 6,
+    "date": "Nov 25, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://asadjb.com/blog/2026-02-08-i-keep-coming-back-to-amp",
+    "name": "I keep coming back to Amp Code | Jibran's Perspective",
+    "snippet": "Feb 8, 2026 — I've been using Claude Code (Max $100/m plan ) since Jan 2026, and recently started using Codex ($20/m plus plan with the 2X usage limits offer).",
+    "host_name": "asadjb.com",
+    "rank": 7,
+    "date": "Feb 8, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://ampcode.com/news/the-dial",
+    "name": "The Dial",
+    "snippet": "Jul 9, 2026 — The dial removes knobs from the default experience, not from Amp . Plugins can register their own agent modes with your model, your prompt ...",
+    "host_name": "ampcode.com",
+    "rank": 8,
+    "date": "Jul 9, 2026",
+    "favicon": ""
+  }
+]

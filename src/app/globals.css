@@ -1,6 +1,17 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Pin content scanning to the source tree (Tailwind 4). The automatic
+   detector picks up class-like strings from non-source files under
+   download/ (research snapshots of fetched web pages carry HTML-escaped
+   utility candidates such as [&_[role="listitem"]]:pl-4, which compile to
+   INVALID CSS selectors and 500 the whole app). Belt and braces: scan src/
+   only AND explicitly exclude the data/output directories. */
+@source "../../src/**/*.{ts,tsx,js,jsx,mdx}";
+@source not "../../download";
+@source not "../../scripts";
+@source not "../../tests";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

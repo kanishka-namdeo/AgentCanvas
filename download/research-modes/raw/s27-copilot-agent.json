@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://docs.github.com/copilot/concepts/agents/cloud-agent/about-cloud-agent",
+    "name": "About GitHub Copilot cloud agent",
+    "snippet": "Copilot can research a repository, create an implementation plan , and make code changes on a branch. You can review the diff, iterate, and create a pull request",
+    "host_name": "docs.github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.github.com/copilot/concepts/agents/code-review",
+    "name": "About GitHub Copilot code review",
+    "snippet": "Copilot reviews your pull requests , identifies issues, and suggests fixes you can apply in a couple of clicks. Copilot only reviews a pull request if you  ...",
+    "host_name": "docs.github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.blog/news-insights/product-news/agents-panel-launch-copilot-coding-agent-tasks-anywhere-on-github",
+    "name": "Launch Copilot coding agent tasks anywhere on GitHub",
+    "snippet": "Aug 20, 2025 — Delegate coding tasks to Copilot and track progress wherever you are on GitHub. Copilot works in the background, creates a pull request, and ...",
+    "host_name": "github.blog",
+    "rank": 2,
+    "date": "Aug 20, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.github.com/copilot/using-github-copilot/code-review/using-copilot-code-review",
+    "name": "Using GitHub Copilot code review",
+    "snippet": "When reviewing a pull request , Copilot reads repository custom instructions, agent instructions, and agent skills from the head branch (the branch with your ... Read more",
+    "host_name": "docs.github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/GithubCopilot/comments/1nvbz0q/my_company_told_me_to_build_an_ai_agent_with",
+    "name": "My company told me to \"build an AI agent with GitHub",
+    "snippet": "If your repos were on GitHub , you could enable a GitHub Copilot agent to review pull requests and assign tasks to the agent :",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/orgs/community/discussions/174930",
+    "name": "Getting better results from Copilot Coding Agent 🆙 #174930",
+    "snippet": "Copilot Coding Agent runs independently in the background to complete assigned tasks. opens a pull request (PR) for your review.",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://devblogs.microsoft.com/dotnet/copilot-coding-agent-dotnet",
+    "name": "Let Copilot Coding Agent handle the busy work - .NET Blog",
+    "snippet": "Sep 3, 2025 — The GitHub Copilot Coding Agent . Beyond inline suggestions, it can analyze your repo, plan multi‐step tasks , create issues and pull requests , ...",
+    "host_name": "devblogs.microsoft.com",
+    "rank": 6,
+    "date": "Sep 3, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://thomasthornton.cloud/github-copilot-coding-agent-first-impressions",
+    "name": "GitHub Copilot Coding Agent: First Impressions",
+    "snippet": "Jun 12, 2025 — Every issue I assign to the coding agent , I see the eyes emoji pop up, and a draft pull request appears within minutes to the associated repo. Read more",
+    "host_name": "thomasthornton.cloud",
+    "rank": 7,
+    "date": "Jun 12, 2025",
+    "favicon": ""
+  }
+]

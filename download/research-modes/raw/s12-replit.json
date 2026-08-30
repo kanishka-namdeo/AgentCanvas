@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://docs.replit.com/features/agent/overview",
+    "name": "Replit Agent",
+    "snippet": "Enable Plan mode to brainstorm, ask questions, and map out your project before Agent changes any code or data. When you're happy with the plan , approve it and  ...",
+    "host_name": "docs.replit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/replit/comments/1jduhz7/your_agent_checkpoint_has_been_reached",
+    "name": "Your agent Checkpoint has been reached! : r/replit",
+    "snippet": "Your agent Checkpoint has been reached ! car dealership are blocking you in and before you know it, If you have patience and take things slowly ...",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.replit.com/learn/plan-vs-build-mode",
+    "name": "Plan vs. Build Mode",
+    "snippet": "Each completed task creates a checkpoint, Review before building: Always review the task list before approving. Use checkpoints: Agent creates checkpoints as ...",
+    "host_name": "docs.replit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://replit.discourse.group/t/new-agent-build-plan-modes/6831",
+    "name": "New agent Build & Plan modes - Replit Community Forum",
+    "snippet": "Aug 30, 2025 — Agent creates a plan that you can review and approve before implementation; The safety comes from the review process, not absolute prevention ... Read more",
+    "host_name": "replit.discourse.group",
+    "rank": 3,
+    "date": "Aug 30, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mindstudio.ai/blog/what-is-replit-agent-4",
+    "name": "What Is Replit Agent 4? How to Ideate, Design, and Build in",
+    "snippet": "Apr 7, 2026 — Once you review the design plan , you explicitly approve it before the agent starts coding. This approval step is deliberate — it creates a ... Read more",
+    "host_name": "www.mindstudio.ai",
+    "rank": 4,
+    "date": "Apr 7, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://techjacksolutions.com/ai-tools/replit-ai/how-to-use-replit-agent",
+    "name": "How to Use Replit Agent to Build an App (2026)",
+    "snippet": "How to use Replit Agent: describe your app, use Plan mode and agent modes, refine with checkpoints , and publish a live URL, in a 2026 guide.",
+    "host_name": "techjacksolutions.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://replit.com/blog/decision-time-guidance",
+    "name": "Decision-Time Guidance: Keeping Replit Agent Reliable",
+    "snippet": "Jan 20, 2026 — Replit Agent across building, planning, deployment, and overall code quality—while keeping costs and context in check.",
+    "host_name": "replit.com",
+    "rank": 6,
+    "date": "Jan 20, 2026",
+    "favicon": ""
+  }
+]

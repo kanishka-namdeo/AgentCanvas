@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/37998629035799-Work-with-the-Figma-agent-in-design-files",
+    "name": "Work with the Figma agent in design files",
+    "snippet": "In Figma Design , you can collaborate with an agent to generate and remix designs , automate busywork, and get design feedback. The agent can use the existing AI ...",
+    "host_name": "help.figma.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/blog/the-figma-agent-is-here",
+    "name": "The Figma Design Agent is Here | Figma Blog",
+    "snippet": "May 20, 2026 — Use Figma 's agent when you're working on the canvas—it's built in and has additional context about your design system. Use the MCP server ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 1,
+    "date": "May 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1tk53ap/figmas_ai_agent_an_honest_review",
+    "name": "Figma's AI Agent - an honest review : r/FigmaDesign",
+    "snippet": "TLDR: it's slow, minimally helpful, and I'm not super impressed . I work at a larger organization. I'd consider myself a Figma expert. Read more",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/solutions/ai-design-feedback-agent",
+    "name": "AI design feedback agent",
+    "snippet": "Get AI design feedback directly in Figma Design . Review layouts, critique components, and improve your work with contextual suggestions. Try it free.",
+    "host_name": "www.figma.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://animaapp.com/blog/genai/figma-design-agent-review-features-pros-cons-best-alternative",
+    "name": "Figma Design Agent Review: Features, Pros, Cons, and",
+    "snippet": "May 20, 2026 — Figma Design Agent review : explore its features, pros, cons, beta limitations, and why Buddy by Anima is the best alternative for ...",
+    "host_name": "animaapp.com",
+    "rank": 4,
+    "date": "May 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.figma.com/solutions/design-review",
+    "name": "AI Design Review Built Into the Figma canvas",
+    "snippet": "Run design reviews directly in Figma Design. Get AI feedback, summarize comments, and align your team —all in the same file you're working in. Try it free.",
+    "host_name": "www.figma.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://muz.li/blog/figma-just-put-an-agent-inside-your-file-heres-what-it-actually-does",
+    "name": "Figma AI Design Agent: What It Actually Does Inside Your",
+    "snippet": "May 20, 2026 — Figma's new Design Agent lives on the canvas, knows your design system, and edits the same file you're working in. We break down what it ... Read more",
+    "host_name": "muz.li",
+    "rank": 6,
+    "date": "May 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.banani.co/blog/figma-agent-review",
+    "name": "Figma Agent Review: Beats AI-native Alternative?",
+    "snippet": "Jun 17, 2026 — Figma AI Agent promises power of prompt-to- design and canvas context. But does it deliver, and that, too, better than AI-native alternatives ...",
+    "host_name": "www.banani.co",
+    "rank": 7,
+    "date": "Jun 17, 2026",
+    "favicon": ""
+  }
+]

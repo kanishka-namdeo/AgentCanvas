@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.linkedin.com/posts/bobbenedict_vibe-hybridvibe-ai-activity-7393775924539777025-_QA4",
+    "name": "Why I prefer Ask mode over Agent mode in Cursor",
+    "snippet": "Ask mode 💬 and just switch to Agent mode ♾️ when we have a plan . Both getting essentially the same instruction: \"Can you provide an example of ...",
+    "host_name": "www.linkedin.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cursor.com/docs/agent/plan-mode",
+    "name": "Plan Mode | Cursor Docs",
+    "snippet": "Plan Mode creates detailed implementation plans before writing any code. Agent researches your codebase, asks clarifying questions, and generates a reviewable ... Read more",
+    "host_name": "cursor.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/cursor/comments/1rlgtuf/discussing_design_using_agent_mode_vs_plan_mode",
+    "name": "Discussing Design using Agent Mode vs Plan Mode : r/cursor",
+    "snippet": "use plan mode because it puts all the plans in a single hidden folder regardless of workspace or repo.",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://engincanveske.substack.com/p/how-i-use-cursor-plan-mode-for-real",
+    "name": "How I Use Cursor Plan Mode for Real-World Feature",
+    "snippet": "Agent: The default mode , which allows you to give instructions ly edit your code for you. Plan: This mode thinks first, creates a step-by-step, ...",
+    "host_name": "engincanveske.substack.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.stackademic.com/mastering-cursor-modes-ask-plan-agent-debug-a6a3e1ae10a1",
+    "name": "Mastering Cursor Modes: Ask, Plan, Agent & Debug",
+    "snippet": "Mar 7, 2026 — Ask mode is for thinking, not building . Plan: “Design safe pagination state handling.” Agent: “Implement only ViewModel changes.” Cursor does ...",
+    "host_name": "blog.stackademic.com",
+    "rank": 4,
+    "date": "Mar 7, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://nearform.com/digital-community/cursor-vs-copilot-what-tool-has-the-best-planning-mode",
+    "name": "Cursor vs. Copilot: What tool has the best planning mode?",
+    "snippet": "Dec 2, 2025 — Using plan mode allows longer agent sessions or more complex tasks because the plan gives structure, context and boundaries Preparing the  ...",
+    "host_name": "nearform.com",
+    "rank": 5,
+    "date": "Dec 2, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/feature-request-support-separate-ai-models-for-plan-and-act-modes-inspired-by-clinebot/119789",
+    "name": "Support Separate AI Models for “Plan” and “Act” Modes",
+    "snippet": "Jul 18, 2025 — The agent executes the plan —generating code, making changes, or otherwise “doing the thing.” Cursor AI could benefit greatly from a similar ...",
+    "host_name": "forum.cursor.com",
+    "rank": 6,
+    "date": "Jul 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/zenishasavaliya_cursorai-developertools-aifordevelopers-activity-7406924194468265984-bDrr",
+    "name": "Cursor Isn't One Tool—It's Four. | Zenisha S.",
+    "snippet": "Plan mode is a really useful feature. It helps document the approach upfront so we can review and share it before jumping into code. Another ... Read more",
+    "host_name": "www.linkedin.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

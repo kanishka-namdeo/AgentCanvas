@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://github.com/orgs/community/discussions/142971",
+    "name": "How GitHub Next took Copilot Workspace from concept to",
+    "snippet": "GitHub Copilot Workspace helps jumpstart your tasks by describing what you want in natural language. You remain in control as you move between tasks, specs, ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://githubnext.com/projects/copilot-workspace",
+    "name": "Copilot Workspace",
+    "snippet": "Simply edit the spec or plan at any point, and Copilot Workspace will regenerate all the downstream steps with your new input. Why does steerability matter ...",
+    "host_name": "githubnext.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/features/copilot",
+    "name": "GitHub Copilot · Your AI pair programmer",
+    "snippet": "What are GitHub AI Credits? GitHub AI Credits are how you pay for AI usage in GitHub Copilot. Every plan includes a monthly allowance: 1 AI credit = $0.01 USD.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.blog/ai-and-ml/github-copilot/5-tips-and-tricks-when-using-github-copilot-workspace",
+    "name": "5 tips and tricks when using GitHub Copilot Workspace",
+    "snippet": "Each stage is deliberately editable so that you can adjust course as needed. If the spec or plan doesn't look quite right, then edit them, or ...",
+    "host_name": "github.blog",
+    "rank": 3,
+    "date": "Oct 9, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/orgs/community/discussions/162682",
+    "name": "Copilot in VS Code lost the ability to edit files directly, or",
+    "snippet": "Select Topic Area\n\nQuestion\n\nCopilot Feature Area\n\nGeneral\n\nBody\n\n\"Sorry, I can't assist with that. I'm designed to help with suggesting directory structures ...",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "Jun 12, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.visualstudio.com/blogs/2024/11/12/introducing-copilot-edits",
+    "name": "Introducing Copilot Edits (preview)",
+    "snippet": "Copilot Edits allows you to get to the changes you need in your workspace, across multiple files, using a UI designed for fast iteration.",
+    "host_name": "code.visualstudio.com",
+    "rank": 5,
+    "date": "Nov 12, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://techcommunity.microsoft.com/blog/educatordeveloperblog/unlock-the-power-of-github-copilot-workspaces-a-beginner%E2%80%99s-guide/4210179",
+    "name": "Unlock the Power of GitHub Copilot Workspaces",
+    "snippet": "Open a workspace session in a Codespace, by clicking the “Open in Codespace” button in the header bar or in the “Implementation” panel.",
+    "host_name": "techcommunity.microsoft.com",
+    "rank": 6,
+    "date": "Aug 6, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/GithubCopilot/comments/1snxohd/how_to_edit_the_plan_before_implementation",
+    "name": "How to edit the plan before implementation? : r/GithubCopilot",
+    "snippet": "Working with the vs code copilot plan mode, so it comes up with a plan and some questions, how do you guys answer the questions i.e. edit the plan ...",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

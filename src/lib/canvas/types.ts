@@ -544,7 +544,7 @@ export type SyncEvent =
   // it by messageId — idempotent). It gives OTHER viewers and reconnecting
   // catch-up replay the user half of a turn, which previously only existed
   // on the originating client.
-  | { type: 'agent:user_message'; text: string; sessionId?: string; runId?: string; messageId?: string }
+  | { type: 'agent:user_message'; text: string; sessionId?: string; runId?: string; messageId?: string; mode?: string }
   // `agent:turn_final` is journaled + sent at run teardown carrying the FULL
   // final assistant text (deltas are deliberately ephemeral — bolt.diy rule),
   // the honest terminal status, and the client-threaded message/run identity.
@@ -673,6 +673,20 @@ export type SyncEvent =
   // and the VLM overall_score. The frontend can render a "Critic iteration
   // N/M" badge + the defect list as a collapsible panel.
   | { type: 'agent:critique'; iteration: number; defects: string[]; validation: { totalShapes: number; textShapes: number; cardShapes: number; textShapesWithWeight: number; cardShapesWithShadow: number; autoLayoutContainers: number }; textSeverity: 'low' | 'medium' | 'high'; vlmSeverity: 'low' | 'medium' | 'high'; vlmScore?: number }
+  // ---- Agent modes (Cursor-style, 2026-08-30) --------------------------------
+  // PLAN mode: the agent submitted a plan via the submit_plan tool and is
+  // BLOCKED awaiting the user's decision. The frontend renders the
+  // PlanApprovalCard (approval triad: Build it / Keep planning). Resolved via
+  // POST /api/agent/plans (same pending-map pattern as agent:approval_request).
+  | { type: 'agent:plan_proposed'; planId: string; title: string; summary: string; steps: Array<{ step: number; description: string }>; openQuestions?: string[] }
+  // Fan-out (the deciding client's POST resolves the server-side gate; this
+  // event tells every viewer the gate closed and how).
+  | { type: 'agent:plan_resolved'; planId: string; decision: 'build' | 'revise' | 'timeout'; feedback?: string }
+  // Adaptive critique gating (research §4.4): the runner SKIPPED the LLM
+  // critics on a small/clean turn — deterministic validation only. The
+  // frontend renders a muted "self-review skipped (saved ~N LLM calls)" row
+  // so the cost saving is visible instead of silent.
+  | { type: 'agent:critique_skipped'; reason: string; savedLlmCalls: number }
   | { type: 'presence'; viewerCount: number }
   // ---- Presence lane (R7) --------------------------------------------------
   // Volatile collaboration awareness: cursors, selection and idle state of

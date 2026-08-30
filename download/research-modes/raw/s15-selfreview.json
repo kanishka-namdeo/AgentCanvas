@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://cameronrwolfe.substack.com/p/self-critique-self-rag-neftune-safe",
+    "name": "Self-Critique, Self-RAG, NEFTune, Safe RLHF and More",
+    "snippet": "If retrieval is not necessary, the LLM generates a response and critiques this response (using a critique token ) to determine if it is useful. Read more",
+    "host_name": "cameronrwolfe.substack.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://evjang.com/2023/03/26/self-reflection.html",
+    "name": "Can LLMs Critique and Iterate on Their Own Outputs?",
+    "snippet": "Mar 26, 2023 — The benefit of self - reflection is that the model can identify mistakes (potentially using CoT prompting itself), and correct them by starting ... Read more",
+    "host_name": "evjang.com",
+    "rank": 1,
+    "date": "Mar 26, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://galileo.ai/blog/self-reflection-in-language-models",
+    "name": "Self Reflection and Fixing Inconsistency in Language Models",
+    "snippet": "Jul 18, 2025 — Self-reflection offers a deeper fix . It allows language models to review their reasoning, detect when something's off, and revise their outputs ... Read more",
+    "host_name": "galileo.ai",
+    "rank": 2,
+    "date": "Jul 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2510.01270v1",
+    "name": "Safeguarding by Progressive Self-Reflection",
+    "snippet": "Sep 29, 2025 — In this paper, we introduce Progressive Self - Reflection (PSR), a novel inference-time technique that empowers LLMs to self -monitor and correct ...",
+    "host_name": "arxiv.org",
+    "rank": 3,
+    "date": "Sep 29, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.emergentmind.com/topics/reflection-tokens",
+    "name": "Reflection Tokens in LLM Reasoning",
+    "snippet": "Dec 9, 2025 — Reflection tokens are juncture words in LLMs that signal self - evaluation and control, enhancing reasoning efficiency and factual accuracy - ...",
+    "host_name": "www.emergentmind.com",
+    "rank": 4,
+    "date": "Dec 9, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.projectpro.io/article/self-rag/1176",
+    "name": "The Self-RAG Shortcut Every AI Expert Wishes They Knew",
+    "snippet": "Oct 15, 2025 — Self-RAG allows these models to reflect on their own outputs using reflection tokens, adaptive retrieval, and candidate critique. Explore its ...",
+    "host_name": "www.projectpro.io",
+    "rank": 5,
+    "date": "Oct 15, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@inkollusrivarsha0287/beyond-blind-retrieval-master-self-reflection-with-self-rag-33e687abd805",
+    "name": "Beyond Blind Retrieval: Master Self-Reflection with Self-RAG",
+    "snippet": "SELF -RAG enables the model to adaptively retrieve knowledge, generate answers, and critique its own outputs through self - reflection , leading to ...",
+    "host_name": "medium.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alphaxiv.org/abs/2310.11511",
+    "name": "Self-RAG: Learning to Retrieve, Generate, and Critique",
+    "snippet": "Generating reflection tokens makes the LM controllable during the inference phase, enabling it to tailor its behavior to diverse task requirements. Experiments ... Read more",
+    "host_name": "www.alphaxiv.org",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

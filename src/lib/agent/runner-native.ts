@@ -111,6 +111,20 @@ import { setActiveSession as setBackgroundTaskActiveSession } from './plugins/ba
 import { setActiveLLM as setSubagentActiveLLM, setActiveCanvas as setSubagentActiveCanvas } from './plugins/subagents';
 import { getMemoryContextForPrompt } from './plugins/memory';
 import { getJournalEvents } from './event-journal';
+// Cursor-style modes (Build / Ask / Plan) + multitask + adaptive critique —
+// see download/research-modes/cursor-modes-research.md §4 for the design.
+import {
+  normalizeAgentMode,
+  modeToolAllowlist,
+  modeSectionFor,
+  shouldRunCritics,
+  promptRequestsCritique,
+  detectMultitaskPrompt,
+  CRITIC_PATH_ESTIMATED_LLM_CALLS,
+} from './modes';
+import { submitPlanTool, SUBMIT_PLAN_TOOL_NAME } from './plan-tools';
+import { consumeApprovedPlan } from './plan-gate';
+import { hydrateSubtreeChildren, type RawSubtreeNode } from './tools';
 
 // ---- Cross-turn conversation history (audit 1 P3) ---------------------------
 //
@@ -243,6 +257,23 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // server process AND in localStorage (so the next run re-seeds them).
   seedAlwaysAllow(settings?.alwaysAllowTools);
 
+  // ---- Cursor-style mode (Build / Ask / Plan) — modes.ts --------------------
+  //
+  // The mode is WHAT the agent is allowed to do this turn (NOT a model
+  // tier): structurally enforced at tool-registry assembly below — Ask/Plan
+  // physically cannot see mutating tools (Cursor's own forum documents
+  // plan-mode violations under prompt-only enforcement, so restrictions
+  // live in the registry). Absent → 'build' preserves pre-mode behavior.
+  const mode = normalizeAgentMode(settings?.mode);
+  const runStartedAt = Date.now();
+  // True once a PLAN-mode turn's approved plan has executed (the critique
+  // loop then treats the turn as a build turn — it produced design output).
+  let planExecuted = false;
+  // Abort predicate — declared early (before the multitask path + plan phases)
+  // so every phase checks Stop consistently. The listener wiring that pairs
+  // with it lives next to the session lifecycle below.
+  const wasAborted = () => signal?.aborted === true;
+
   // 1. Normalize canvas + build tool context (identical to legacy runner).
   let canvas: CanvasDocument = normalizeCanvas(initialCanvas);
 
@@ -297,6 +328,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     ...penTools,
     ...figmaTools,
     ...pluginTools,
+    // PLAN mode only: the submit_plan tool (Claude Code ExitPlanMode
+    // pattern — the plan artifact is the ONLY thing the planning agent
+    // "writes"). Filtered out of every other mode by the mode gate below.
+    ...(mode === 'plan' ? [submitPlanTool as unknown as ToolDefinition] : []),
   ] as unknown as ToolDefinition[]);
   const pluginToolNames = getEnabledPluginToolNames(settings);
 
@@ -373,12 +408,30 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   //    through generic pen_update_node calls.
   const structuralCategories = new Set<SkillCategory>([...classification.secondaryCategories, activeCategory]);
   const includePenFileTools = structuralCategories.has('wireframe') || activeCategory === 'multi';
-  const allowedToolNames = new Set<string>([
+  const categoryAllowedToolNames = new Set<string>([
     ...getToolNamesForCategory(activeCategory),
     ...classification.secondaryCategories.flatMap((c: SkillCategory) => getToolNamesForCategory(c)),
     ...(includePenFileTools ? [...PEN_TOOL_NAMES, ...FIGMA_TOOL_NAMES] : []),
     ...pluginToolNames,
   ]);
+
+  // ---- Mode enforcement (Cursor lesson: restrictions live in the registry) --
+  //
+  // Ask/Plan intersect the category allowlist with a read-only mode set
+  // (modes.ts) — mutating tools are PHYSICALLY absent from the LLM's tool
+  // list, not prompt-banned (Cursor's forum-documented plan-mode violations
+  // + our own alias-bypass audit finding both argue for structural
+  // enforcement). Plan additionally admits submit_plan. The skill chip's
+  // toolCount then honestly shrinks with the mode — users learn what a mode
+  // means from the affordance, not docs.
+  const modeAllowlist = modeToolAllowlist(mode);
+  if (modeAllowlist) {
+    for (const name of categoryAllowedToolNames) {
+      if (!modeAllowlist.has(name)) categoryAllowedToolNames.delete(name);
+    }
+    if (mode === 'plan') categoryAllowedToolNames.add(SUBMIT_PLAN_TOOL_NAME);
+  }
+
   // Legacy ALIAS entries no longer ride along (Agent Performance Package
   // change 6): the 26 deprecated-name clones duplicated ~28KB of schema
   // bytes on EVERY LLM call of the turn. Canonical names only — the alias
@@ -388,7 +441,22 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // many sessions; new contexts never teach the old spellings).
   const aliasNames = new Set(Object.keys(TOOL_ALIASES));
   const filteredTools = allTools.filter((t) =>
-    allowedToolNames.has(t.name) && !aliasNames.has(t.name));
+    categoryAllowedToolNames.has(t.name) && !aliasNames.has(t.name));
+
+  // PLAN mode also needs the UNFILTERED build set for the post-approval
+  // execution phase (a new session is created with it once the plan is
+  // approved — same category filter, no mode restriction).
+  const buildToolsForPlanMode: ToolDefinition[] | null = mode === 'plan'
+    ? allTools.filter((t) => {
+        const buildAllowed = new Set<string>([
+          ...getToolNamesForCategory(activeCategory),
+          ...classification.secondaryCategories.flatMap((c: SkillCategory) => getToolNamesForCategory(c)),
+          ...(includePenFileTools ? [...PEN_TOOL_NAMES, ...FIGMA_TOOL_NAMES] : []),
+          ...pluginToolNames,
+        ]);
+        return buildAllowed.has(t.name) && !aliasNames.has(t.name);
+      })
+    : null;
 
   // ---- Task 7-e Fix 2 — Architectural enforcement: pen_generate_design_brief
   //      MUST be the first tool call for design requests.
@@ -410,7 +478,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     const t = text.toLowerCase();
     return /\b(design|dashboard|landing\s*page|app|ui|build|create|make|draw|scaffold|layout|interface|website|page|screen)\b/.test(t);
   };
-  const shouldEnforceBrief = isDesignRequest(prompt);
+  // MODE GATE: the brief-first contract is a BUILD-mode concern. Ask turns
+  // answer questions; Plan turns produce a plan (the plan IS the brief for
+  // the execution phase — hasGeneratedBrief is pre-set there).
+  const shouldEnforceBrief = isDesignRequest(prompt) && mode === 'build';
 
   // ---- Agent Performance Package change 9: pre-generate the design brief --
   //
@@ -471,7 +542,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     /^(what|who|when|where|why|how|which|can|could|should|would|will|is|are|do|does|did|tell|explain|describe|list|hi|hello|hey|thanks)\b|[?]\s*$/.test(
       prompt.trim(),
     );
-  const expectsCanvasOutput = isDesignRequest(prompt) && !QUESTIONISH_PROMPT;
+  // MODE GATE: only BUILD turns "owe" canvas output. Ask/Plan turns
+  // legitimately settle as prose (an answer / a plan via submit_plan), so
+  // the silent-failure + retry guards must not harass them.
+  const expectsCanvasOutput = mode === 'build' && isDesignRequest(prompt) && !QUESTIONISH_PROMPT;
 
   if (shouldEnforceBrief && !isAmbiguousCreation) {
     preGeneratedBriefPromise = (async () => {
@@ -525,8 +599,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // Ambiguous-creation turns skip the brief gate too — the variant explorer
   // settles the palette; if it fails, pen_create_subtree must be reachable
   // without a brief detour (the fallback message tells the model to use it).
-  const enforcementWrappedTools: ToolDefinition[] = shouldEnforceBrief && !isAmbiguousCreation
-    ? filteredTools.map((t) => {
+  //
+  // Refactored into assembleOrderedTools (modes update): PLAN mode builds a
+  // SECOND toolset for the post-approval execution session — same wrapper
+  // chain (brief gate → approval gate → execution modes → deterministic
+  // sort), different base filter. Ask/Plan mode filtering already happened
+  // upstream (categoryAllowedToolNames), so the chain itself is mode-blind.
+  const assembleOrderedTools = (baseTools: ToolDefinition[]): ToolDefinition[] => {
+    const enforcementWrapped: ToolDefinition[] = shouldEnforceBrief && !isAmbiguousCreation
+      ? baseTools.map((t) => {
         const toolAny = t as any;
         const origExecute = toolAny.execute;
         if (typeof origExecute !== 'function') return t;
@@ -568,38 +649,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
 
         return t;
       })
-    : filteredTools;
+      : baseTools;
 
-  // ---- Destructive-op approval gate (Cursor "Run command?" / Cline Approve) --
-  //
-  // Wraps DESTRUCTIVE tools (pen_clear, pen_delete_shape, figma_delete_page,
-  // pen_clear_pattern_memory) so that, before they execute, the agent BLOCKS
-  // on a human Allow/Deny decision:
-  //
-  //   1. buildApprovalRequest() renders the tool args into a human
-  //      description ("Delete 3 layers: Card, Button, Input") using the
-  //      CURRENT canvas shape names.
-  //   2. requestApproval() emits `agent:approval_request` through the turn's
-  //      event sink (the frontend shows a dialog) and awaits the user's
-  //      POST /api/agent/approvals.
-  //   3. Approved → the original tool runs. Denied/timed out → an isError
-  //      result is returned so the MODEL adapts (no retry, no workaround).
-  //
-  // Mode behavior:
-  //   - 'destructive' (default): wrap each destructive tool with the gate.
-  //   - 'review':  do NOT wrap. The agent runs destructive tools freely;
-  //     the diff card on the affected turn surfaces a "Restore from before
-  //     this turn" action so the user can post-hoc revert the entire batch
-  //     (instead of being interrupted per call). Useful when you trust the
-  //     agent but want a single bulk-undo affordance per turn.
-  //   - 'off': no wrap, no review affordance (autonomous).
-  //
-  // The wrap composes AFTER the brief-enforcement wrap (both are plain
-  // execute() decorators, and their gated tool sets are disjoint).
-  const approvalWrappedTools: ToolDefinition[] =
-    approvalMode === 'off' || approvalMode === 'review'
-      ? enforcementWrappedTools
-      : enforcementWrappedTools.map((t) => {
+    // ---- Destructive-op approval gate (Cursor "Run command?" / Cline Approve)
+    const approvalWrapped: ToolDefinition[] =
+      approvalMode === 'off' || approvalMode === 'review'
+        ? enforcementWrapped
+        : enforcementWrapped.map((t) => {
           if (!DESTRUCTIVE_TOOLS.has(t.name)) return t;
           const toolAny = t as any;
           const origExecute = toolAny.execute;
@@ -621,25 +677,21 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           } as unknown as ToolDefinition;
         });
 
-  // ---- Agent Performance Package change 3: order-preserving batch execution.
-  //
-  // pi-agent-core executes ALL tool calls emitted in one assistant message
-  // as a single iteration (parallel by default). The system prompt's new
-  // PARALLEL TOOL EMISSION rule tells the model to batch independent calls;
-  // marking canvas MUTATIONS executionMode:'sequential' guarantees they
-  // still apply in emission order (create-then-style etc.), while read-only
-  // tools (metadata/search/export/critique sub-agents) stay concurrent.
-  //
-  // Deterministic registration order (Vercel AI SDK toolOrder pattern): the
-  // ~80 tool definitions are sorted alphabetically so the tool-schema bytes
-  // sent to the provider are IDENTICAL every turn — provider-side prompt
-  // caching keys on stable tool-definition order, and this is the single
-  // registry both `customTools` and the `tools` allowlist are built from.
-  // Sorted AFTER all wrapper layers (aliases → skill filter → brief gate →
-  // approval gate → execution modes) so wrapping never reorders it.
-  const orderedTools: ToolDefinition[] = [...applyExecutionModes(approvalWrappedTools)].sort(
-    (a, b) => a.name.localeCompare(b.name),
-  );
+    // Deterministic alphabetical order AFTER all wrapper layers — the
+    // tool-schema bytes sent to the provider stay IDENTICAL every turn
+    // (provider-side prompt caching keys on stable tool order).
+    return [...applyExecutionModes(approvalWrapped)].sort(
+      (a, b) => a.name.localeCompare(b.name),
+    );
+  };
+
+  const orderedTools: ToolDefinition[] = assembleOrderedTools(filteredTools);
+  // PLAN mode: the build-toolset session that executes the plan after
+  // approval. Assembled NOW (wrappers close over turn-scoped state) so the
+  // execution phase can create its session without re-running assembly.
+  const execOrderedTools: ToolDefinition[] | null = buildToolsForPlanMode
+    ? assembleOrderedTools(buildToolsForPlanMode)
+    : null;
 
   // Emit skill selection event (UI parity with legacy runner).
   yield {
@@ -726,15 +778,33 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     };
 
     // If the primary task WAS web research (not "research then design"),
-    // the sub-agent's summary IS the answer.
+    // the sub-agent's summary IS the answer — but ONLY on success. A FAILED
+    // research dispatch (no network / endpoint down) must NOT dead-end the
+    // turn: fall through to the main session so the agent can still answer
+    // from what it has (in Ask mode: canvas reads; in Build mode: proceed
+    // with the design) instead of ending on an error string.
+    // (Live modes-test finding: "What is currently on my canvas?" →
+    // web_research misroute → fetch failed → the turn ended with NO answer.)
     if (activeCategory === 'web_research' && !classification.recommendPlan) {
+      if (subAgentResult.success) {
+        yield {
+          kind: 'agent_event',
+          event: { type: 'agent:message_delta', text: webResearchSummary },
+        };
+        yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
+        yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
+        return;
+      }
+      // Failed research is context, not an answer — drop the summary so the
+      // failure text isn't injected into the main prompt as "research".
+      webResearchSummary = null;
       yield {
         kind: 'agent_event',
-        event: { type: 'agent:message_delta', text: webResearchSummary },
+        event: {
+          type: 'agent:message_delta',
+          text: '\n\n_[web research unavailable — proceeding without it]_\n',
+        } as any,
       };
-      yield { kind: 'agent_event', event: { type: 'agent:message_end' } };
-      yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
-      return;
     }
   }
 
@@ -746,6 +816,180 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     if (brief) {
       preGeneratedBrief = brief;
       hasGeneratedBrief = true; // the tool-layer gate below becomes a no-op
+    }
+  }
+
+  // ---- Multitask path (Cursor /multitask adaptation — modes.ts detection) ---
+  //
+  // Explicit `/multitask <request>` or a clear multi-screen ask in BUILD
+  // mode routes to the region-scoped parallel executor: ONE cheap LLM call
+  // decomposes the request into per-screen subtasks (with a shared design
+  // direction so the set coheres), each screen is generated in a staggered
+  // PARALLEL completion, and every parsed spec is applied into its own
+  // disjoint canvas region (the collision answer Cursor's v0 /multitask
+  // shipped without). Patches yield directly as { kind: 'patch' } — the
+  // route sanitizes + applies + journals + broadcasts them like any tool
+  // patch. On decomposition/generation failure the run FALLS THROUGH to the
+  // normal single-agent path (the request is still handled).
+  const multitaskDetection = detectMultitaskPrompt(prompt);
+  if (mode === 'build' && (multitaskDetection.explicit || multitaskDetection.heuristic) && !wasAborted()) {
+    const { dispatchMultitask } = await import('./subagents/multitask');
+
+    const liveScreenFrames = () =>
+      (canvas.shapes ?? []).filter(
+        (s) => !s.parentId && (s.type === 'frame' || s.type === 'component_set'),
+      );
+    const canvasSummary =
+      liveScreenFrames().length === 0
+        ? undefined
+        : `Existing screens: ${liveScreenFrames()
+            .map((s) => `"${s.name ?? s.id}" ${Math.round(s.width)}x${Math.round(s.height)}`)
+            .join(', ')}. New screens are additions placed to their RIGHT in a new row.`;
+
+    // Progress + watchdog heartbeat: the executor legitimately runs minutes
+    // (decomposition + K staggered generations). Events flow through a queue
+    // drained CONCURRENTLY with the dispatch (the critique-phase pattern) —
+    // agent:tool_progress feeds the route's 120s watchdog AND the pending
+    // tool card; per-task dispatch/result events feed the SubAgentsCard.
+    const mtQueue = createEventQueue();
+    const mtStartedAt = Date.now();
+    const mtHeartbeat = setInterval(() => {
+      mtQueue.push([{
+        kind: 'agent_event',
+        event: {
+          type: 'agent:tool_progress',
+          toolCallId: 'multitask',
+          text: `multitask executor still running — ${Math.round((Date.now() - mtStartedAt) / 1000)}s elapsed`,
+        },
+      }]);
+    }, 20_000);
+
+    yield {
+      kind: 'agent_event',
+      event: { type: 'agent:subagent_dispatch', subAgentType: 'multitask_planner', task: 'Decompose the request into per-screen tasks' } as any,
+    };
+
+    const mtPromise = dispatchMultitask({
+      prompt: multitaskDetection.effectivePrompt,
+      llm: subAgentLLM ?? undefined,
+      signal: signal ?? undefined,
+      ...(canvasSummary ? { canvasSummary } : {}),
+      onProgress: (text) => {
+        mtQueue.push([{ kind: 'agent_event', event: { type: 'agent:tool_progress', toolCallId: 'multitask', text } }]);
+      },
+      onTaskStart: (task, index, total) => {
+        mtQueue.push([{
+          kind: 'agent_event',
+          event: { type: 'agent:subagent_dispatch', subAgentType: 'multitask_worker', task: `(${index + 1}/${total}) Build "${task.title}" in parallel` } as any,
+        }]);
+      },
+      onTaskDone: (task, index, ok, detail) => {
+        mtQueue.push([{
+          kind: 'agent_event',
+          event: { type: 'agent:subagent_result', subAgentType: 'multitask_worker', success: ok, summary: `"${task.title}": ${detail}`, toolCalls: 1 } as any,
+        }]);
+      },
+    });
+    mtPromise.then(
+      () => setTimeout(() => mtQueue.close(), 0),
+      () => setTimeout(() => mtQueue.close(), 0),
+    );
+    for await (const ev of mtQueue.drain()) {
+      yield ev;
+    }
+    const mtResult = await mtPromise;
+    clearInterval(mtHeartbeat);
+
+    yield {
+      kind: 'agent_event',
+      event: {
+        type: 'agent:subagent_result',
+        subAgentType: 'multitask_planner',
+        success: !!mtResult.decomposition,
+        summary: mtResult.decomposition
+          ? `Decomposed into ${mtResult.decomposition.tasks.length} screen(s): ${mtResult.decomposition.tasks.map((t) => t.title).join(' · ')}`
+          : (mtResult.error ?? 'decomposition failed'),
+        toolCalls: 1,
+      } as any,
+    };
+
+    if (mtResult.screens.length > 0 && !wasAborted()) {
+      const preShapeIds = new Set((canvas.shapes ?? []).map((s) => s.id));
+      // Region placement (placementLineFor contract): first new screen to the
+      // RIGHT of existing screens (or (200, 50) on an empty canvas), each
+      // subsequent screen to the right of the previous one, 80px gutter.
+      const screensAtStart = liveScreenFrames();
+      let cursorX = screensAtStart.length > 0
+        ? Math.max(...screensAtStart.map((s) => s.x + s.width)) + 80
+        : 200;
+      const baseY = screensAtStart.length > 0
+        ? Math.min(...screensAtStart.map((s) => s.y))
+        : 50;
+      const MT_GUTTER = 80;
+
+      const appliedTitles: string[] = [];
+      for (const screen of mtResult.screens) {
+        if (wasAborted()) break;
+        const root = structuredClone(screen.spec) as unknown as RawSubtreeNode;
+        hydrateSubtreeChildren(root);
+        root.x = cursorX;
+        root.y = baseY;
+        const rootId = crypto.randomUUID();
+        root.id = rootId;
+        delete root.parentId;
+        const patch: CanvasPatch = {
+          op: 'add_subtree',
+          shapeId: rootId,
+          shape: root as unknown as CanvasPatch['shape'],
+          summary: `Multitask screen "${screen.title}" — ${screen.nodeCount} node(s)`,
+        };
+        ctx.applyPatch(patch);
+        // Yield the patch DIRECTLY — the route sanitizes + applies +
+        // journals + broadcasts it exactly like a tool-result patch.
+        yield { kind: 'patch', patch };
+        appliedTitles.push(screen.title);
+        // Advance the cursor by the APPLIED root's real width.
+        const appliedRoot = (canvas.shapes ?? []).find((s) => s.id === rootId);
+        const appliedW = appliedRoot && Number.isFinite(appliedRoot.width) && appliedRoot.width > 0
+          ? appliedRoot.width
+          : 390;
+        cursorX += appliedW + MT_GUTTER;
+      }
+
+      // Gate 0 (deterministic, free): validate everything this run added.
+      const newShapes = (canvas.shapes ?? []).filter((s) => !preShapeIds.has(s.id));
+      let validationNote = '';
+      try {
+        const { validateCanvasBeforeComplete } = await import('./validators');
+        const validation = validateCanvasBeforeComplete(newShapes, { relaxMinCount: true });
+        validationNote = validation.ok
+          ? ''
+          : `\n\nDeterministic checks found ${validation.reasons.length} issue(s) — run /critique for a full review, or ask me to fix them.`;
+      } catch {
+        // validation is best-effort here
+      }
+
+      const failedNotes = mtResult.notes.filter((n) => n.includes('failed')).length;
+      const summaryText =
+        `Built ${appliedTitles.length} screen${appliedTitles.length === 1 ? '' : 's'} in parallel (${appliedTitles.join(' · ')}) — ` +
+        `${newShapes.length} nodes placed in ${appliedTitles.length} region${appliedTitles.length === 1 ? '' : 's'} ` +
+        `(${Math.round(mtResult.generationMs / 1000)}s total).` +
+        (failedNotes > 0 ? `\n${failedNotes} screen generation(s) failed and were skipped — ask me to build them individually.` : '') +
+        validationNote;
+
+      yield { kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } as any };
+      yield { kind: 'agent_event', event: { type: 'agent:message_delta', text: summaryText } as any };
+      yield { kind: 'agent_event', event: { type: 'agent:message_end' } as any };
+      yield { kind: 'agent_event', event: { type: 'agent:turn_end' } };
+      return;
+    }
+
+    // No screens landed — fall through to the single-agent path with a note.
+    if (mtResult.error) {
+      yield {
+        kind: 'agent_event',
+        event: { type: 'agent:message_delta', text: `\n\n_[multitask executor fell back to the single-agent path: ${mtResult.error}]_\n` } as any,
+      };
     }
   }
 
@@ -931,17 +1175,22 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     : '';
   // Ambiguous-creation nudge: steer the first tool call to the parallel
   // explorer (one call = 2-3 whole-design variants, VLM-judged, winner
-  // applied) instead of the model guessing one direction.
-  const variantNudge = isAmbiguousCreation
+  // applied) instead of the model guessing one direction. Build mode only —
+  // Ask/Plan don't have pen_generate_variants in their toolset and shouldn't
+  // be nudged toward building.
+  const variantNudge = isAmbiguousCreation && mode === 'build'
     ? `\n\n[VARIANT EXPLORATION — this request does not pin a visual direction. Call pen_generate_variants FIRST with the request verbatim: it explores 2-3 complete design directions in parallel, a vision judge picks the best render, and only the winner is applied. Do NOT call pen_generate_design_brief — the palette choice is exactly what the exploration settles.]`
     : '';
   // Per-turn context sections ride the user message (P6 cache stability):
   // plan, file-skills, memory. Order: history → snapshot → per-turn sections →
   // current prompt last-ish (brief/variant nudge + version stamp + pack nudge).
+  // The MODE section rides immediately after the prompt — it is the turn's
+  // behavioral contract (what the (already-filtered) toolset enforces).
+  const modeSection = modeSectionFor(mode);
   const perTurnSections = planSection + fileSkillsSection + memorySection;
   const userMessage = (webResearchSummary
     ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}`
-    : `${selectionNote}${prompt}`) + briefSection + variantNudge + conversationHistorySection + snapshotSection + perTurnSections + promptVersionSection + packReminder;
+    : `${selectionNote}${prompt}`) + modeSection + briefSection + variantNudge + conversationHistorySection + snapshotSection + perTurnSections + promptVersionSection + packReminder;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;
@@ -1050,7 +1299,6 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // Already aborted before we subscribed (e.g. watchdog fired during model
     // resolution) — the checks below short-circuit the run.
   }
-  const wasAborted = () => signal?.aborted === true;
 
   // Task 7-e Fix 3: Lift `session` to the outer scope so the critique loop
   // can REUSE it for the fix-message re-prompt. Declared here, assigned in
@@ -1598,6 +1846,164 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     }
   }
 
+  // ---- PLAN-mode execution phase (post-approval toolset swap) -----------------
+  //
+  // Cursor Plan-mode / Claude Code ExitPlanMode handoff: the planning session
+  // (read-only tools + submit_plan) ends with the user clicking "Build it" —
+  // the tool recorded the approved plan (plan-gate.consumeApprovedPlan). We
+  // now create a SECOND session with the FULL build toolset whose first user
+  // message carries the original request + the approved plan (the plan IS
+  // the brief — hasGeneratedBrief is pre-set so the brief gate no-ops). The
+  // critique loop below then runs on the EXECUTION session (adaptive gates
+  // apply as on any build turn) because `session` is reassigned here.
+  const approvedPlan = mode === 'plan' && !wasAborted() && !lastPromptError
+    ? consumeApprovedPlan(runStartedAt)
+    : null;
+  if (approvedPlan && session && execOrderedTools && execOrderedTools.length > 0) {
+    planExecuted = true;
+    hasGeneratedBrief = true; // the approved plan supersedes the design brief
+
+    yield { kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } as any };
+    yield {
+      kind: 'agent_event',
+      event: {
+        type: 'agent:message_delta',
+        text: `\n\n_[Plan approved — switching to Build mode and executing "${approvedPlan.title}" (${approvedPlan.steps.length} steps).]_\n`,
+      } as any,
+    };
+    yield { kind: 'agent_event', event: { type: 'agent:message_end' } as any };
+
+    // Dispose the planning session + its steer registration; the execution
+    // session replaces both (the outer finally disposes whatever `session`
+    // points at LAST — exactly one live session at any time).
+    try { session.dispose(); } catch {}
+    session = undefined;
+    if (unregisterSteer) { unregisterSteer(); unregisterSteer = undefined; }
+
+    try {
+      const execResult = await createAgentSession({
+        cwd: process.cwd(),
+        model: currentModel.model,
+        modelRuntime: currentModel.modelRuntime,
+        thinkingLevel: mapThinkingLevel(thinkingLevel),
+        noTools: 'all',
+        customTools: execOrderedTools,
+        tools: execOrderedTools.map((t) => t.name),
+        resourceLoader,
+        sessionManager: SessionManager.inMemory(process.cwd()),
+        settingsManager: SettingsManager.inMemory({
+          compaction: { enabled: false },
+          retry: { enabled: true, maxRetries: 2 },
+        } as any),
+      });
+      session = execResult.session;
+      unregisterSteer = registerActiveSession(documentId, session);
+      // Same iteration-budget probe as the main loop (the plan's steps can
+      // legitimately need many calls; the budget spans this whole run).
+      try {
+        const agentAny = (session as unknown as { agent?: Record<string, unknown> }).agent;
+        if (agentAny && typeof agentAny === 'object' && 'shouldStopAfterTurn' in agentAny) {
+          let toolCallBudget = Math.max(1, maxIterations);
+          (agentAny as { shouldStopAfterTurn: unknown }).shouldStopAfterTurn = (turnCtx: {
+            message?: { content?: Array<{ type?: string }> };
+          }) => {
+            const toolCalls = turnCtx?.message?.content?.filter?.((c: { type?: string }) => c?.type === 'toolCall') ?? [];
+            toolCallBudget -= toolCalls.length;
+            return toolCallBudget <= 0 || stuckTracker.stuck;
+          };
+        }
+      } catch {
+        // Capability probe failed — loop stays unbounded.
+      }
+
+      const execUserMessage =
+        `${selectionNote}The user APPROVED your plan — execute it now with the full design toolset.\n\n` +
+        `ORIGINAL REQUEST:\n${prompt}\n\n` +
+        `APPROVED PLAN — "${approvedPlan.title}":\n${approvedPlan.summary}\n\n` +
+        `Steps (execute in order, completing each before the next):\n` +
+        approvedPlan.steps.map((s) => `${s.step}. ${s.description}`).join('\n') +
+        (approvedPlan.openQuestions && approvedPlan.openQuestions.length > 0
+          ? `\n\nAssumptions the user accepted:\n${approvedPlan.openQuestions.map((q) => `- ${q}`).join('\n')}`
+          : '') +
+        conversationHistorySection + snapshotSection + memorySection + fileSkillsSection +
+        `\n\nThe plan above is the source of truth for this turn. Build exactly what it describes — do not redesign it. ` +
+        `Use pen_create_subtree (ONE call per screen with a nested tree) so each step lands as a complete screen.` +
+        promptVersionSection + packReminder;
+
+      // Drain the execution session exactly like the main attempt loop:
+      // translator queue + event sink + turn_end WITHHELD (the critique loop
+      // may follow and owns the terminal event).
+      const { queue: execQueue, unsubscribe: execUnsubscribe } = subscribeAndTranslate(
+        (listener) => session!.subscribe(listener),
+        { contextWindow: currentModel.model.contextWindow },
+      );
+      const execRestoreSink = setEventSink((event: any) => {
+        execQueue.push([{ kind: 'agent_event', event }]);
+      });
+      setTodoActiveSession(sessionId);
+      setGoalActiveSession(sessionId);
+      setBackgroundTaskActiveSession(sessionId);
+      setSubagentActiveLLM(subAgentLLM ?? null);
+      setSubagentActiveCanvas(() => canvas);
+
+      let execError: any;
+      let execSawActivity = false;
+      try {
+        yield { kind: 'agent_event', event: { type: 'agent:message_start', role: 'assistant' } as any };
+        const execPromptPromise = session!.prompt(execUserMessage, { expandPromptTemplates: false });
+        execPromptPromise.catch((err: any) => { execError = err; execQueue.close(); });
+        void execPromptPromise.then(() => {
+          setTimeout(() => execQueue.close(), 0);
+        });
+        for await (const ev of execQueue.drain()) {
+          if (ev.kind === 'agent_event') {
+            if (ev.event.type === 'agent:message_delta' || ev.event.type === 'agent:tool_call_start') {
+              execSawActivity = true;
+              everSawMessageEnd = true; // an execution-phase message exists
+            }
+            if (ev.event.type === 'agent:message_end') everSawMessageEnd = true;
+            if (ev.event.type === 'agent:turn_end') {
+              withheldTurnEnd = true;
+              continue;
+            }
+            if (ev.event.type === 'agent:message_end' && ev.event.stopReason) {
+              lastStopReason = ev.event.stopReason;
+            }
+          }
+          yield ev;
+          if (execError || wasAborted()) break;
+        }
+        if (!execError) {
+          try { await execPromptPromise; } catch (err: any) { execError = err; }
+        }
+      } finally {
+        execQueue.close();
+        execUnsubscribe();
+        execRestoreSink();
+      }
+      if (execError) {
+        const message = `Plan-execution prompt failed: ${agentErrorMessage(execError)}`;
+        const cls = classifyAgentError(message);
+        yield {
+          kind: 'agent_event',
+          event: { type: 'agent:error', message, code: cls.code, retryable: cls.retryable },
+        };
+        lastSawErrorEvent = true;
+      } else {
+        lastSawActivity = execSawActivity || lastSawActivity;
+        lastSawToolCall = execSawActivity; // tool_call_start sets execSawActivity too
+      }
+    } catch (err: any) {
+      const message = `Failed to create plan-execution session: ${agentErrorMessage(err)}`;
+      const cls = classifyAgentError(message);
+      yield {
+        kind: 'agent_event',
+        event: { type: 'agent:error', message, code: cls.code, retryable: cls.retryable },
+      };
+      lastSawErrorEvent = true;
+    }
+  }
+
   // Task 7-c P1.3 / T2 + P1.4 / T10 — MANDATORY self-critique loop with
   // pre-complete validation gate.
   //
@@ -1645,8 +2051,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   //     in the main turn; we don't want to force another).
   const maxCritiqueIterations = settings?.maxDesignCritiqueIterations ?? 2;
   let noOpFixAttempts = 0;
+  // MODE GATE: the critique loop is a BUILD concern. Ask turns produced no
+  // design output (nothing to critique); a PLAN turn that never executed
+  // likewise. planExecuted turns DID produce design output — the loop runs.
+  const critiqueEligible = mode === 'build' || planExecuted;
+  // One critique_skipped notice per TURN (not per iteration) — a fix sequence
+  // on a gated turn shouldn't re-announce the saving every iteration.
+  let critiqueSkipAnnounced = false;
   try {
-  if (maxCritiqueIterations > 0 && session && !wasAborted()) {
+  if (maxCritiqueIterations > 0 && critiqueEligible && session && !wasAborted()) {
     for (let critiqueIteration = 0; critiqueIteration < maxCritiqueIterations; critiqueIteration++) {
       // A stopped run never enters (or continues) the critique loop — critics
       // and fix-turns would spend more tokens after the user said Stop.
@@ -1685,25 +2098,52 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         relaxMinCount: true,
       });
 
-      // ---- Agent Performance Package change 8: critique gating + -----------
-      //      parallelism.
-      //  - The validation gate is deterministic and free, so it now runs
-      //    BEFORE any LLM critic and gates the expensive VLM pass: small
-      //    CLEAN edits (validation.ok + < 8 new shapes) skip the
-      //    render+vision call entirely — the text critic + validation
-      //    already cover them.
-      //  - When both critics run, they run CONCURRENTLY (Promise.all)
-      //    instead of back-to-back — the text critic (~10-15s) and the VLM
-      //    critic (~10-20s incl. screenshot render) overlap, saving one
-      //    critic's wall-clock per iteration.
-      const smallCleanEdit = validation.ok && newShapesForCritique.length < 8;
+      // ---- Agent Performance Package change 8 → ADAPTIVE CRITIQUE LADDER ----
+      //      (2026-08-30 modes update — replaces always-on self-review)
+      //
+      // Research (cursor-modes-research.md §4.4): same-model same-context
+      // self-critique rubber-stamps; always-on text+VLM critics cost 2-5
+      // extra LLM calls + 30-90s per turn, and the stress test measured
+      // 2.5-13.5 min/turn largely from this loop. The ladder:
+      //   Gate 0 — deterministic validation: EVERY eligible turn (free).
+      //   Gate 1 — LLM critics: only when the turn is BIG (≥20 new nodes),
+      //            a substantial fresh-document build (≥12 nodes on an empty
+      //            canvas), validation found ≥3 issues, or the prompt asked
+      //            for critique/polish (incl. /critique). Small/medium turns
+      //            get validator-only repair — same quality floor, ~3 fewer
+      //            LLM calls. Tune for recall: a redundant critique is cheap,
+      //            a missed disaster ships.
+      //   Gate 2 — no-op bail (below, unchanged): 2 text-only fix-turns stop
+      //            the loop honestly instead of burning iterations.
+      //   Gate 3 — user-triggered: /critique forces the full pass any time.
+      const criticGate = shouldRunCritics({
+        newShapeCount: newShapesForCritique.length,
+        validationReasonCount: validation.reasons.length,
+        freshDocument: turnStartShapeIds.size === 0,
+        promptWantsCritique: promptRequestsCritique(prompt),
+      });
+      const runCritics = criticGate.runCritics;
 
       // ---- 2. Text critic + VLM critic (T3), concurrently -------------------
       let textCritiqueSummary = '';
-      let textCritiqueSeverity: 'low' | 'medium' | 'high' = 'medium';
+      let textCritiqueSeverity: 'low' | 'medium' | 'high' = runCritics ? 'medium' : 'low';
       let vlmCritique: any = null;
-      let vlmSeverity: 'low' | 'medium' | 'high' = 'medium';
+      let vlmSeverity: 'low' | 'medium' | 'high' = 'low';
       let vlmScreenshotSource: 'client' | 'server' | undefined;
+
+      if (!runCritics && !critiqueSkipAnnounced) {
+        // Surface the saving (research §4.7 "show cost intent"): one muted
+        // row per turn — the store's reducer also dedupes by idempotence.
+        yield {
+          kind: 'agent_event',
+          event: {
+            type: 'agent:critique_skipped' as any,
+            reason: criticGate.skipReason ?? 'small_clean_turn',
+            savedLlmCalls: CRITIC_PATH_ESTIMATED_LLM_CALLS,
+          } as any,
+        };
+        critiqueSkipAnnounced = true;
+      }
 
       // ---- Audit 2-c S2: keep an event sink alive ACROSS the critique phase --
       //
@@ -1723,31 +2163,30 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       const restoreCritiqueSink = setEventSink((event) => {
         critiqueQueue.push([{ kind: 'agent_event', event }]);
       });
-      if (!smallCleanEdit) {
+      if (runCritics) {
         yield { kind: 'agent_event', event: { type: 'agent:subagent_dispatch', subAgentType: 'design_critic', task: 'Critique current canvas' } as any };
         yield { kind: 'agent_event', event: { type: 'agent:subagent_dispatch', subAgentType: 'design_critic_vlm', task: 'Critique rendered canvas' } as any };
-      } else {
-        yield { kind: 'agent_event', event: { type: 'agent:subagent_dispatch', subAgentType: 'design_critic', task: 'Critique current canvas' } as any };
       }
 
       const criticsPromise = Promise.all([
-        (async () => {
-          try {
-            const { dispatchDesignCriticSubAgent } = await import('./subagents/design-critic');
-            return await dispatchDesignCriticSubAgent({
-              task: 'Critique the current canvas design.',
-              canvas,
-              originalPrompt: prompt,
-              llm: subAgentLLM,
-              priorShapeIds,
-            });
-          } catch (err: any) {
-            return { summary: `(text critic failed: ${err.message ?? String(err)})` };
-          }
-        })(),
-        smallCleanEdit
-          ? Promise.resolve(null)
-          : (async () => {
+        runCritics
+          ? (async () => {
+              try {
+                const { dispatchDesignCriticSubAgent } = await import('./subagents/design-critic');
+                return await dispatchDesignCriticSubAgent({
+                  task: 'Critique the current canvas design.',
+                  canvas,
+                  originalPrompt: prompt,
+                  llm: subAgentLLM,
+                  priorShapeIds,
+                });
+              } catch (err: any) {
+                return { summary: `(text critic failed: ${err.message ?? String(err)})` };
+              }
+            })()
+          : Promise.resolve(null),
+        runCritics
+          ? (async () => {
               try {
                 const { dispatchDesignCriticVlmSubAgent } = await import('./subagents/design-critic-vlm');
                 return await dispatchDesignCriticVlmSubAgent({
@@ -1765,7 +2204,8 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
                 console.warn('[vlm-critic] failed (non-fatal):', err instanceof Error ? err.message : String(err));
                 return null;
               }
-            })(),
+            })()
+          : Promise.resolve(null),
       ]);
       // Close the queue once the critics settle so the drain loop below
       // exits after yielding everything they emitted mid-flight.

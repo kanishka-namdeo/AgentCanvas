@@ -26,6 +26,14 @@ export interface ChatCommand {
 }
 
 export const CHAT_COMMANDS: ChatCommand[] = [
+  // --- Agent modes (Cursor-style; see lib/agent/modes.ts) -------------------
+  // Switch the sticky mode. With args, the args are sent immediately in the
+  // new mode (/plan a fintech onboarding flow); bare, the next prompt uses it.
+  { cmd: '/ask', label: '/ask', hint: 'Ask mode — read-only Q&A about the canvas', kind: 'action', run: 'mode-ask', args: true },
+  { cmd: '/plan', label: '/plan', hint: 'Plan mode — propose a plan for approval first', kind: 'action', run: 'mode-plan', args: true },
+  { cmd: '/build', label: '/build', hint: 'Build mode — design and edit the canvas (default)', kind: 'action', run: 'mode-build', args: true },
+  // --- Multitask (Cursor /multitask adaptation: decompose + parallel build) ---
+  { cmd: '/multitask', label: '/multitask', hint: 'Build several screens in parallel (e.g. /multitask a 4-screen checkout flow)', kind: 'action', run: 'multitask', args: true },
   // --- Design system (client-side, instant) ---
   // e.g. `/pick-pack geist` — fuzzy-resolves to vercel-geist and pins it
   // for all subsequent agent generations this session.
@@ -46,6 +54,10 @@ export const CHAT_COMMANDS: ChatCommand[] = [
   { cmd: '/icons', label: '/icons', hint: 'Ask the agent to add lucide icons', kind: 'prompt', run: 'Add appropriate lucide icons to navigation items, buttons, and status indicators across the design.', args: true },
   { cmd: '/copy', label: '/copy', hint: 'Ask the agent to write realistic copy', kind: 'prompt', run: 'Replace every placeholder text with realistic, domain-appropriate copy.', args: true },
   { cmd: '/organize', label: '/organize', hint: 'Ask the agent to organize layers', kind: 'prompt', run: 'Organize the layers: group related layers, rename them clearly, and tidy the z-order.', args: true },
+  // --- Self-review on demand (Gate 3 of the adaptive critique ladder) ---
+  // Forces the full text+VLM critic pass (the runner's promptRequestsCritique
+  // gate detects "critique" in the prompt) regardless of turn size.
+  { cmd: '/critique', label: '/critique', hint: 'Full design critique of the canvas + fixes', kind: 'prompt', run: 'Run a full design critique of the current canvas: review visual hierarchy, contrast, spacing, typography, alignment, and consistency, list every defect you find with its concrete fix, then fix the blockers via tool calls.', args: true },
 ];
 
 /// Filter commands by the current input token. Returns matching commands

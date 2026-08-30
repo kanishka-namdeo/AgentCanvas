@@ -1,0 +1,231 @@
+URL: https://www.cursorforpms.com/guides/cursor-modes-explained
+TITLE: Cursor Modes Explained: Agent, Ask, Plan, and Debug (2026)
+
+Cursor Modes Explained: Agent, Ask, Plan, and Debug (2026) – Cursor for Product Managers 
+ Cursor for Product Managers 
+ CTRL K 
+ GitHub 
+ GitHub 
+ 
+ 
+ 
+ 
+ CTRL K 
+
+ Home 
+ Module 0: Getting Started 
+ 0.1: Introduction 
+ 0.2: Installation & Setup 
+ 0.3: Starting the Course 
+ 
+
+ Module 1: Fundamentals 
+ 1.1: Welcome to TaskFlow 
+ 1.2: Using Cursor's Interface 
+ 1.3: First PM Tasks 
+ 1.4: Templates & Workflows 
+ 1.5: Three Interaction Modes 
+ 1.6: Project Rules & Context 
+ 
+
+ Module 2: Advanced PM Work 
+ 2.1: Write a PRD 
+ 2.2: Analyze Data 
+ 2.3: Product Strategy 
+ 
+
+ Module 3: Nano Banana 
+ 3.0: Setup & Download 
+ 3.1.1: Welcome & First Generation 
+ 3.1.2: Understanding the Basics 
+ 3.1.3: Consistency & Style 
+ 3.1.4: Building Your Style Database 
+ 3.2.1: Users & Product Visuals 
+ 3.2.2: Strategy & Architecture Visuals 
+ 3.2.3: Marketing & Launch Assets 
+ 
+
+ Guides 
+ All Guides 
+ Open a Folder 
+ Modes Explained 
+ Keyboard Shortcuts 
+ Write a PRD 
+ Cursor Rules 
+ Excel & CSV Files 
+ 
+
+ TaskFlow Context 
+ Company Overview 
+ 
+
+ Search 
+ 
+
+ 
+ System 
+ 
+ 
+ 
+ 
+ On This Page
+ The four modes, in one table 
+ Agent: the default doer 
+ Ask: read-only, and criminally underused by nervous beginners 
+ Plan: the mode that thinks before it types 
+ Debug: for “it’s broken and I don’t know why” 
+ The history: what happened to Chat (Cmd+L) and Composer (Cmd+I) 
+ The Composer trap, spelled out 
+ Which mode should a PM actually use? 
+ Learn the modes by using them (the course is free) 
+ FAQ 
+ What is the primary difference between Chat (Cmd+L) and Composer (Cmd+I) in Cursor? 
+ What modes does Cursor have now? 
+ What is Ask mode in Cursor? 
+ Is Composer a mode or a model in Cursor? 
+ What happened to Manual mode and custom modes in Cursor? 
+ Give Carl feedback → 
+ 
+
+ 
+ Guides 
+ Modes Explained 
+ Cursor Modes Explained: Agent, Ask, Plan, and Debug (2026)
+
+ Last updated: August 5, 2026 
+
+ Searching for cursor modes in 2026 is a small archaeology project. Half the results explain a Chat pane you open with Cmd+L
+ and a Composer you open with Cmd+I
+. Those were real, and they’re gone — merged into one interface a year and a half ago. Other results describe Manual mode or custom modes. Also real, also gone.
+
+ Here’s the current picture, verified against Cursor’s own docs as of August 2026: there is one panel (open it with Cmd+I
+ on Mac, Ctrl+I
+ on Windows) and four modes inside it — Agent, Ask, Plan, and Debug. This page explains each in plain English, tells the Chat-vs-Composer history so old tutorials stop confusing you, and gives my honest take on which mode a product manager should actually live in.
+
+ The four modes, in one table 
+
+ From Cursor’s official mode comparison , lightly translated:
+
+ Mode What it does Can it change your files? 
+ Agent Does the work: searches your folder, edits files, runs commands Yes 
+ Ask Answers questions about your files No — read-only 
+ Plan Writes a plan you review and edit before any work happens Only after you approve the plan 
+ Debug Investigates why something is broken before fixing it Yes 
+ 
+ You switch between them with Shift+Tab
+ (cycles through the modes from the chat input) or the mode picker dropdown in the panel. One non-obvious detail from the docs : each mode uses its own context, so switching modes mid-task effectively starts fresh — when you change tasks, start a new chat.
+
+ Note what’s not on the mode list: the model (Claude, GPT, Composer, etc.). Mode and model are separate dropdowns. The mode decides what the AI is allowed to do ; the model decides which AI is doing it. Keep those two dials separate in your head and most Cursor confusion evaporates.
+
+ Agent: the default doer 
+
+ Agent is the default and the headline feature : give it a task in plain language and it figures out which files to read, what changes to make, and how to verify the result. For a PM that means “turn these five interview notes into a themes doc,” “restructure this PRD to match our template,” or “build me a prototype of this flow.” Edits show up in a diff view as they happen, and you can reject anything you don’t want.
+
+ Ask: read-only, and criminally underused by nervous beginners 
+
+ Ask mode is Agent with the pens taken away: it searches and reads your folder but cannot edit anything. “What did we decide about pricing in these meeting notes?” “Summarize what this codebase actually does.” “Which of these PRDs mention the mobile app?”
+
+ Here’s my opinionated advice: if you’re new and nervous, live in Ask mode for your first week. Every “the AI rewrote my document!” horror story starts in Agent mode. Ask mode makes that structurally impossible, and for a lot of PM work — understanding, summarizing, finding — it’s not a compromise at all, it’s the right tool. When an answer makes you want changes, switch to Agent.
+
+ Plan: the mode that thinks before it types 
+
+ Plan mode inserts a review step: the AI asks clarifying questions, researches your folder, and writes a plan that opens as an editable document. You read it, fix it, and click Build when you’re happy. Plans save to your home directory by default, with a Save to workspace button to keep them in your project.
+
+ Cursor’s docs pitch this at complex features touching many files, and one piece of their advice deserves quoting because it’s the most PM-shaped sentence in all of Cursor’s documentation: “The hard part is often figuring out what change should be made” ( Plan Mode docs ). That is literally the product manager job description. When Agent builds the wrong thing, the docs recommend reverting and fixing the plan rather than nagging the agent with follow-ups — the same instinct as fixing the spec instead of arguing with the implementation. Writing a plan in Plan mode feels a lot like writing a PRD , and the skills transfer both ways.
+
+ Debug: for “it’s broken and I don’t know why” 
+
+ Debug mode is the specialist: instead of guessing at a fix, it forms hypotheses, adds logging, and uses runtime evidence to find the root cause before making a targeted change. Cursor’s rule of thumb: use Agent when you know what to build, Debug when something isn’t working and you need to find out why. If you’re vibe-coding a prototype and it mysteriously stopped working, this is the mode. Most PMs will touch it rarely; it’s good to know it exists.
+
+ The history: what happened to Chat (Cmd+L) and Composer (Cmd+I) 
+
+ This is the question behind most stale search results, so here’s the direct answer.
+
+ In early-2025 Cursor, Chat and Composer were two separate panels. Chat ( Cmd+L
+) was primarily for asking questions about your code — conversation first, changes applied manually if at all. Composer ( Cmd+I
+) was the editing tool that could change multiple files at once. The primary difference, in one sentence: Chat talked about your files; Composer changed them. 
+
+ Then Cursor spent a year collapsing the distinction:
+
+ 
+ February 2025 (v0.46): the merge. The changelog says it outright: Agent became the default mode, with “no more confusion between Chat, Composer, and Agent — just one smart interface” ( 0.46 changelog ).
+
+ March 2025 (v0.48): Agent and Ask became the built-in modes of that single interface, “Edit” was renamed “Manual,” custom modes arrived in beta, and the shortcuts settled into their current shape: Cmd+I
+ opens Agent, while Cmd+L
+ merely toggles the side pane ( 0.48 changelog ).
+
+ October 2025 (Cursor 2.0): the name “Composer” came back from the dead as something else entirely — Cursor’s own fast coding model ( Cursor 2.0 announcement ), alongside a redesigned agent-centered interface.
+
+ Late 2025 (Cursor 2.1): Manual mode and then custom modes were removed, confirmed by Cursor staff on the forum , with commands and rules suggested as the replacement.
+
+ April 2026 (Cursor 3): the Agents Window arrived — a full agent-first workspace with extras like Design mode for annotating UI in the browser ( changelog ) — while the classic editor stayed one toggle away.
+
+ 
+ So if a tutorial tells you to press Cmd+L
+ for Chat, mentally substitute: one panel, Cmd+I
+, and the old Chat/Composer split is now the Ask/Agent mode toggle inside it. 
+
+ The Composer trap, spelled out 
+
+ Worth its own flag because it snags everyone: “Composer” today is a model, not a mode. It appears in the model dropdown — currently as Composer 2.5, per Cursor’s model docs — and it has nothing to do with the old Composer pane except the name. You can run the Composer model in Agent mode, Ask mode, or any other mode. Cursor reusing its most famous feature name for an unrelated product is, I’ll say gently, a choice.
+
+ Which mode should a PM actually use? 
+
+ My honest defaults after teaching this to a lot of product managers:
+
+ 
+ Understanding something (a codebase, a pile of docs, “what did we ship in Q2”): Ask. Zero risk, and it’s plenty.
+
+ Everyday doing (drafting, reformatting, summarizing, building small prototypes): Agent. This is the 80% mode.
+
+ Anything big or ambiguous (multi-document restructuring, a prototype with several screens, work where the approach matters): Plan first, then let it build. Reviewing a plan is a PM superpower; use it.
+
+ A prototype that broke: Debug. 
+
+ 
+ If you only remember one thing: Cmd+I
+, and Shift+Tab
+ until the mode matches how much you trust the AI with this particular task. The keyboard shortcuts guide has the rest of the muscle memory.
+
+ Two caveats to keep this honest. First, Cursor’s interface has changed dramatically roughly every six months (0.46, 2.0, 3.0), so treat every screenshot on the internet — and, eventually, this page — with a squint; I’ve date-stamped everything here to August 2026. Second, mode names differ across surfaces: the CLI supports Agent, Plan, and Ask ( CLI docs ), and the Agents Window adds extras like Design mode, so don’t panic if a particular surface shows a slightly different list.
+
+ Learn the modes by using them (the course is free) 
+
+ Reading about modes is like reading about swimming. I made a free course that runs inside Cursor itself : you install Cursor , open a folder — that’s a whole guide of its own — paste one prompt , and the AI teaches you hands-on, no code required. You’ll use Agent and Ask within the first ten minutes, and by the end you’ll be writing PRDs and setting up rules without thinking about which pane is which. Start here .
+
+ FAQ 
+
+ What is the primary difference between Chat (Cmd+L) and Composer (Cmd+I) in Cursor? 
+
+ Historically, Chat ( Cmd+L
+) was for asking questions about your files without changing them, while Composer ( Cmd+I
+) made multi-file edits. As of August 2026, this distinction no longer exists: Cursor merged them into one Agent panel ( Cmd+I
+) back in version 0.46 in early 2025, and the old Chat-vs-Composer split lives on as the Ask and Agent modes inside that single panel.
+
+ What modes does Cursor have now? 
+
+ As of August 2026, Cursor has four modes in the Agent panel: Agent (makes changes), Ask (read-only questions), Plan (writes a reviewable plan before building), and Debug (investigates why something is broken before fixing it). Open the panel with Cmd+I
+ / Ctrl+I
+ and cycle modes with Shift+Tab
+ or the mode picker dropdown.
+
+ What is Ask mode in Cursor? 
+
+ Ask mode is the read-only mode: the AI answers questions and explores your files without editing anything. It is the safe default when you want to understand something — a codebase, a folder of docs, a feature — without any risk of changes.
+
+ Is Composer a mode or a model in Cursor? 
+
+ As of August 2026, Composer is a model, not a mode. Cursor reused the name in October 2025 for its own fast coding model (currently Composer 2.5), which you pick in the model dropdown. The old Composer editing pane it was named after was merged into the Agent panel back in early 2025.
+
+ What happened to Manual mode and custom modes in Cursor? 
+
+ Both are gone. Manual mode (originally called Edit) was removed as Cursor went agent-first, and custom modes were removed in Cursor 2.1 in late 2025, with commands and rules suggested as replacements. Tutorials that show a Manual option or a custom-modes setting are describing an older Cursor.
+ Last updated on August 5, 2026 
+ 
+ Open a Folder Keyboard Shortcuts 
+ 
+ 
+ 
+ System 
+ 
+ © 2026 Carl Vellotti. Licensed under CC BY-NC-ND 4.0 .

@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://tldraw.dev/starter-kits/agent",
+    "name": "Agent starter kit",
+    "snippet": "The Agent Starter Kit demonstrates how to build an AI agent that can interpret and manipulate the tldraw canvas . It features a chat panel on the righthand side",
+    "host_name": "tldraw.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://sergeichyrkov.com/blog/magicpath-2.0-ai-agents-that-design-ui-together",
+    "name": "MagicPath 2.0: AI Agents That Design UI Together",
+    "snippet": "May 21, 2026 — MagicPath 2.0 lets multiple AI agents design your UI simultaneously on a shared canvas . AI agents and humans work together in real time … ...",
+    "host_name": "sergeichyrkov.com",
+    "rank": 1,
+    "date": "May 21, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://gitnation.com/contents/agents-on-the-canvas-with-tldraw-3450",
+    "name": "Agents on the Canvas With tldraw by Max Drake",
+    "snippet": "It covers the development of the Agent Starter Kit for navigating Canvas tasks and introduces fairies as collaborative agents . The discussion includes managing ... Read more",
+    "host_name": "gitnation.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://magicpath.ai",
+    "name": "MagicPath | The shared workspace for humans and agents",
+    "snippet": "Create interactive prototypes, real apps, and production-ready experiences in one shared visual workspace. Humans and agents build together while your team ... Read more",
+    "host_name": "magicpath.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.openai.com/t/how-should-i-architect-an-ai-agent-that-edits-a-visual-canvas-through-tools-json-state/1382929",
+    "name": "How should I architect an AI agent that edits a visual",
+    "snippet": "Jun 7, 2026 — Hi everyone, I'm trying to build an AI agent that can draw, arrange, and manipulate objects on a canvas from natural language prompts.",
+    "host_name": "community.openai.com",
+    "rank": 4,
+    "date": "Jun 7, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/tldraw/agent-template",
+    "name": "tldraw/agent-template",
+    "snippet": "Enable AI agents to interpret and interact with canvas drawings and elements . This starter kit demonstrates how to build an agent that can manipulate the  ...",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.latent.space/p/tldraw",
+    "name": "The Accidental AI Canvas - with Steve Ruiz of tldraw",
+    "snippet": "Jan 5, 2024 — In a canvas environment, you can see the progression of your generation and visually “branch” by putting new prompts in different spaces. UI has ... Read more",
+    "host_name": "www.latent.space",
+    "rank": 6,
+    "date": "Jan 5, 2024",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://docs.devin.ai/desktop/cascade/modes",
+    "name": "Cascade Modes",
+    "snippet": "Plan mode helps you think through complex tasks by developing a detailed implementation plan before writing any code. In Plan mode, the agent will: Explore your ... Read more",
+    "host_name": "docs.devin.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/windsurf/comments/1m3grl1/tip_planning_mode_is_great_but_its_not_enough",
+    "name": "Planning mode is great, but it's not enough. Here is",
+    "snippet": "It's basically what Windsurf now calls plan mode . Windsurf now has actual workflows, so you can type those up and literally call the workflow ...",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tomaszs2.medium.com/windsurf-adds-plan-mode-to-help-ai-stay-on-track-with-complex-coding-tasks-82c1dd1f9a3b",
+    "name": "Windsurf Adds Plan Mode to Help AI Stay on Track with",
+    "snippet": "The Windsurf IDE, built on top of VSCode, just rolled out a new “ Plan Mode ” inside its Cascade AI assistant. It doesn't run by default, ... Read more",
+    "host_name": "tomaszs2.medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.devin.ai/windsurf/plugins/cascade/cascade-overview",
+    "name": "Cascade Overview - Windsurf",
+    "snippet": "Cascade comes in two modes: Write and Chat. Write mode allows Cascade to create and make modifications to your codebase, while Chat mode is optimized for ... Read more",
+    "host_name": "docs.devin.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://en.paradigmadigital.com/dev/windsurf-cascade-guide-best-practices",
+    "name": "Windsurf Cascade: Guide and Best Practices",
+    "snippet": "Nov 21, 2025 — Cascade is the systematic use of written plans to organize and document complex work. These plans function as: Roadmaps for large ...",
+    "host_name": "en.paradigmadigital.com",
+    "rank": 4,
+    "date": "Nov 21, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.instagram.com",
+    "name": "Windsurf Cascade Planning Mode",
+    "snippet": "Watch short videos about windsurf cascade planning mode from people around the world. benchmarks written by someone else testing someone else's code. this post ...",
+    "host_name": "www.instagram.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://datalakehousehub.com/blog/2026-03-context-management-windsurf",
+    "name": "Context management strategies for Windsurf : AI Flow IDE,",
+    "snippet": "Mar 7, 2026 — Autonomous mode where Cascade plans and executes multi-step tasks . In Agent Mode, Cascade: Reads and writes files across your project; Runs ... Read more",
+    "host_name": "datalakehousehub.com",
+    "rank": 6,
+    "date": "Mar 7, 2026",
+    "favicon": ""
+  }
+]

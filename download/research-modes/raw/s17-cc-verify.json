@@ -1,0 +1,83 @@
+[
+  {
+    "url": "https://www.linkedin.com/posts/shahzadbadar_claude-code-pro-tips-activity-7492222354954211329-Xb5o",
+    "name": "Verification Trumps Prompting with Claude Code",
+    "snippet": "Reliable loops use deterministic tools or separate, lightweight evaluator models to validate work before declaring \" done .\"",
+    "host_name": "www.linkedin.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/claudeaicommunity/posts/1332807302219767",
+    "name": "How to verify AI 'done' status in Claude code",
+    "snippet": "Found something wild in my own AI setup today: a rule file my coding assistant reads every single session had a sentence that's been WRONG for about a month ...",
+    "host_name": "www.facebook.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://claude.com/blog/building-verification-loops-in-claude-code-with-skills",
+    "name": "Building verification loops in Claude Code with skills",
+    "snippet": "Jul 22, 2026 — In Claude Code , a verification loop is an iterative process where Claude checks and attempts to fix the work. diagram of the agentic loop: 1. Read more",
+    "host_name": "claude.com",
+    "rank": 2,
+    "date": "Jul 22, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://juliocasal.com/blog/Make-Claude-Code-Verify-Its-Own-Work",
+    "name": "Make Claude Code Verify Its Own Work",
+    "snippet": "Jul 25, 2026 — Today I'll show you the problem I caught in Claude's plan, and how I steered it so that it would check its own work along the way. concrete  ...",
+    "host_name": "juliocasal.com",
+    "rank": 3,
+    "date": "Jul 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeWorkflows/comments/1tpxfuw/workflow_claude_selfverification_for_uiux_using",
+    "name": "[Workflow] Claude Self-Verification for UI/UX: Using MCP",
+    "snippet": "This workflow enables Claude to self-verify its UI changes … and re-screenshot for confirmation before declaring the task complete.",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.towardsai.net/claude-code-verification-how-to-verify-ai-written-code-so-the-bugs-get-caught-before-they-ship-3036ff01bec0",
+    "name": "Claude Code Verification: How to verify AI-written code so",
+    "snippet": "May 25, 2026 — Make verification a thing that happens automatically , not a thing you have to remember, so AI-written bugs get caught before they ship.",
+    "host_name": "pub.towardsai.net",
+    "rank": 5,
+    "date": "May 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://levelup.gitconnected.com/expected-output-self-verification-in-claude-code-d5eb314545d1",
+    "name": "Expected Output Self-Verification in Claude Code | by NGU",
+    "snippet": "Apr 9, 2026 — Verification criteria (must verify before reporting completion): 1. `npm run build` passes without error 2. `npm test` all pass 3. [Specific ... Read more",
+    "host_name": "levelup.gitconnected.com",
+    "rank": 6,
+    "date": "Apr 9, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://academy.claude.com/courses/claude-code-in-action/verification-skills",
+    "name": "Verification skills · Claude Code in Action",
+    "snippet": "In this lesson we look at one specific job that skills are great for: verifying your own work . A verification skill removes that dependency. Done is the gates ...",
+    "host_name": "academy.claude.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/coding-nexus/how-i-made-claude-code-review-its-own-work-before-saying-done-784bbe82d1a6",
+    "name": "How I Made Claude Code Review Its Own Work Before",
+    "snippet": "Step 1: Redefine What “ Done ” Means · Step 2: Make Verification Automatic · Step 3: Block “ Done ” Until Tests Run · Step 4: Add a Dedicated Reviewer. Read more",
+    "host_name": "medium.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  }
+]

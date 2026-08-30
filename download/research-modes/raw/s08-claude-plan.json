@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://github.com/anthropics/claude-code/issues/32934",
+    "name": "ExitPlanMode fails when plan mode toggled via Shift+Tab",
+    "snippet": "Mar 10, 2026 — The issue appears to be in how Claude Code handles the permission mode ... [Bug] Plan mode doesn't exit after approval , requires manual SHIFT + TAB ... Read more",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "Mar 10, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.claudelog.com/mechanics/plan-mode",
+    "name": "Plan Mode",
+    "snippet": "Jul 1, 2026 — Claude analyzes and plans without making changes until you approve . Activate it by pressing Shift+Tab twice, or use the /plan command. Exit ...",
+    "host_name": "www.claudelog.com",
+    "rank": 1,
+    "date": "Jul 1, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.claude.com/docs/en/permission-modes",
+    "name": "Choose a permission mode - Claude Code Docs",
+    "snippet": "Approving a plan exits plan mode and switches the session to the permission mode each approve option describes, so Claude starts editing.",
+    "host_name": "code.claude.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeCode/comments/1rqn4zv/ccs_plan_being_rejected_even_though_i_pressed_1",
+    "name": "CC's plan being rejected even though I pressed \"1\" and/or \"",
+    "snippet": "Since you've confirmed approval , could you try using the / plan command or typing \" exit plan mode \" to toggle out of plan mode manually? That ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://codewithmukesh.com/blog/plan-mode-claude-code",
+    "name": "Claude Code Plan Mode for .NET Developers",
+    "snippet": "Jul 29, 2026 — Switch out of Plan Mode ( Shift + Tab ) and let Claude execute the plan . some terminals intercept Shift + Tab before Claude Code receives it.",
+    "host_name": "codewithmukesh.com",
+    "rank": 4,
+    "date": "Jul 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.threads.com/@boris_cherny/post/DKxKMUjPYty/how-it-works-press-shifttab-twice-to-activate-plan-mode-then-prompt-claude-code-?hl=en",
+    "name": "How it works: press Shift+Tab twice to activate plan mode.",
+    "snippet": "How it works: press Shift+Tab twice to activate plan mode . Then, prompt Claude Code as usual, and it will present a detailed implementation plan ... Read more",
+    "host_name": "www.threads.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lucumr.pocoo.org/2025/12/17/what-is-plan-mode",
+    "name": "What Actually Is Claude Code's Plan Mode?",
+    "snippet": "Dec 17, 2025 — When exiting plan mode it will read the plan file that it wrote to disk and then start working off that. So the path towards spec in the prompt ...",
+    "host_name": "lucumr.pocoo.org",
+    "rank": 6,
+    "date": "Dec 17, 2025",
+    "favicon": ""
+  }
+]

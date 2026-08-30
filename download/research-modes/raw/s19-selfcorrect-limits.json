@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://arxiv.org/abs/2310.01798",
+    "name": "Large Language Models Cannot Self-Correct Reasoning Yet",
+    "snippet": "by J Huang · 2023 · Cited by 1319 — LLMs struggle to self-correct their responses without external feedback, and at times, their performance even degrades after self-correction.",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net/pdf?id=IkmD3fKBPQ",
+    "name": "LARGE LANGUAGE MODELS CANNOT SELF-CORRECT",
+    "snippet": "by J Huang · Cited by 1319 — In this work, we demonstrate that current LLMs cannot improve their reasoning performance through intrinsic self - correction .",
+    "host_name": "openreview.net",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.semanticscholar.org/paper/Large-Language-Models-Cannot-Self-Correct-Reasoning-Huang-Chen/6d4bacb69923e1e94fb4de468b939ce6db32fb51",
+    "name": "Large Language Models Cannot Self-Correct Reasoning Yet",
+    "snippet": "It is indicated that LLMs struggle to self-correct their responses without external feedback, and at times, their performance even degrades after ...",
+    "host_name": "www.semanticscholar.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aclanthology.org/2024.emnlp-main.714",
+    "name": "Large Language Models Can Self-Correct with Key",
+    "snippet": "by Z Wu · 2024 · Cited by 67 — Intrinsic self - correct was a method that instructed large language models (LLMs) to verify and correct their responses without external feedback.",
+    "host_name": "aclanthology.org",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchbunny.com/papers/large-language-models-cannot-self-correct-reasoning-yet-7mg5",
+    "name": "LARGE LANGUAGE MODELS CANNOT SELF-CORRECT",
+    "snippet": "This paper critically examines self-correction in Large Language Models , focusing on intrinsic self-correction—when a model tries to fix its own answers ...",
+    "host_name": "www.researchbunny.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alphaxiv.org/abs/2310.01798",
+    "name": "Large Language Models Cannot Self-Correct Reasoning Yet",
+    "snippet": "LLMs struggle to self-correct their responses without external feedback, and at times, their performance even degrades after self-correction.",
+    "host_name": "www.alphaxiv.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://beancount.io/bean-labs/research-logs/2026/04/28/llms-cannot-self-correct-reasoning-yet",
+    "name": "LLMs Cannot Self-Correct Reasoning Yet — ICLR 2024",
+    "snippet": "Apr 28, 2026 — LLMs try to self-correct their reasoning without any external signal, they do not improve — they get worse. correction; it is oracle-guided ...",
+    "host_name": "beancount.io",
+    "rank": 6,
+    "date": "Apr 28, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://huggingface.co/papers/2310.01798",
+    "name": "Large Language Models Cannot Self-Correct Reasoning Yet",
+    "snippet": "Oct 4, 2023 — This paper evaluates the intrinsic self-correction capabilities of Large Language Models and identifies limitations in their ability to ...",
+    "host_name": "huggingface.co",
+    "rank": 7,
+    "date": "Oct 4, 2023",
+    "favicon": ""
+  }
+]

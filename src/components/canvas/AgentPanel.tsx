@@ -73,8 +73,14 @@ import {
   ChevronRight, Clock, CornerDownLeft, Cpu, Paperclip, X, ArrowDown,
   RotateCcw, TriangleAlert, Copy, Camera, BoxSelect, GitCompareArrows,
   ThumbsUp, ThumbsDown, Pencil, Brain, ListChecks, AtSign, ListPlus, Circle,
-  BadgeCheck, Bot as BotIcon,
+  BadgeCheck, Bot as BotIcon, Hammer, MessageCircleQuestion, ClipboardList,
+  MessageSquareMore, Zap, ChevronDown,
 } from 'lucide-react';
+import {
+  AGENT_MODES,
+  MODE_METADATA,
+  type AgentMode,
+} from '@/lib/agent/modes';
 import {
   activeMentionToken, applyMention, matchMentions, extractMentionedLayerIds,
   mentionableLayers,
@@ -545,6 +551,240 @@ function CritiqueRow({ critique }: { critique: NonNullable<ChatTurn['critique']>
   );
 }
 
+/// Self-review-skipped row — the adaptive critique ladder's visible saving
+/// (agent:critique_skipped): small/clean turns run deterministic validation
+/// only; the muted row says WHY the LLM critics were skipped + the estimated
+/// call saving (research §4.7 "show cost intent").
+function CritiqueSkippedRow({ skipped }: { skipped: NonNullable<ChatTurn['critiqueSkipped']> }) {
+  const reasonText =
+    skipped.reason === 'small_clean_turn'
+      ? 'small clean edit — deterministic checks passed'
+      : 'small turn — deterministic checks only';
+  return (
+    <div
+      className="flex items-center gap-1.5 px-2 py-1 rounded-md border ac-border-subtle ac-surface-1 text-[10px] ac-text-4"
+      title="The adaptive critique gate skipped the LLM critics for this turn (small/clean output). Deterministic validation still ran — run /critique any time for a full review."
+    >
+      <BadgeCheck className="h-3 w-3 flex-shrink-0 opacity-60" />
+      <span className="flex-shrink-0 font-medium">Self-review skipped</span>
+      <span className="truncate flex-1 min-w-0">{reasonText}</span>
+      <span className="flex-shrink-0 opacity-80">saved ~{skipped.savedLlmCalls} LLM calls</span>
+    </div>
+  );
+}
+
+/// PLAN-mode approval card (agent:plan_proposed) — the approval triad
+/// (Claude Code permission-triad pattern): "Build it" switches the run to a
+/// build-toolset session executing the plan verbatim; "Keep planning" returns
+/// the feedback to the agent for revision. Statuses settle via
+/// agent:plan_resolved so every viewer converges.
+function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planProposal']> }) {
+  const [busy, setBusy] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  // The status field is the source of truth — while the plan is pending the
+  // agent run is BLOCKED inside submit_plan waiting for THIS decision (the
+  // turn is "busy" but interactive), so agentBusy must NOT disable the triad.
+  const pending = proposal.status === 'pending' && !busy;
+
+  const post = async (decision: 'build' | 'revise', feedbackText?: string) => {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/agent/plans', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ planId: proposal.planId, decision, ...(feedbackText ? { feedback: feedbackText } : {}) }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error('Plan decision failed', { description: data.error ?? `HTTP ${res.status}` });
+        setBusy(false);
+        return;
+      }
+      // The agent:plan_resolved fan-out settles the card state.
+      if (decision === 'build') toast.success('Plan approved', { description: 'Switching to Build mode — executing the plan…' });
+      else toast.message('Plan sent back', { description: 'The agent is revising it with your feedback.' });
+    } catch (err) {
+      toast.error('Plan decision failed', { description: err instanceof Error ? err.message : String(err) });
+      setBusy(false);
+    }
+  };
+
+  const statusChip =
+    proposal.status === 'approved' ? (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium ac-text-success flex-shrink-0">
+        <CheckCircle2 className="h-3 w-3" /> Approved — building
+      </span>
+    ) : proposal.status === 'revising' ? (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium ac-text-warning flex-shrink-0">
+        <Loader2 className="h-3 w-3 animate-spin" /> Revising
+      </span>
+    ) : proposal.status === 'timeout' ? (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium ac-text-4 flex-shrink-0">
+        <Clock className="h-3 w-3" /> Timed out
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium ac-text-info flex-shrink-0">
+        <Loader2 className="h-3 w-3 animate-spin" /> Awaiting your decision
+      </span>
+    );
+
+  return (
+    <div className="rounded-md border ac-border-subtle ac-surface-1 overflow-hidden">
+      <div className="px-2 py-1.5 space-y-1.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <ClipboardList className="h-3.5 w-3.5 ac-text-info flex-shrink-0" />
+            <span className="text-[11px] font-semibold ac-text-1 truncate">{proposal.title}</span>
+          </div>
+          {statusChip}
+        </div>
+        <p className="text-[10px] ac-text-3 leading-snug">{proposal.summary}</p>
+        <ol className="space-y-1">
+          {proposal.steps.map((s) => (
+            <li key={s.step} className="flex items-start gap-1.5 text-[10px] ac-text-2 leading-snug">
+              <span className="ac-text-4 font-medium flex-shrink-0">{s.step}.</span>
+              <span>{s.description}</span>
+            </li>
+          ))}
+        </ol>
+        {proposal.openQuestions && proposal.openQuestions.length > 0 && (
+          <details className="text-[10px] ac-text-4">
+            <summary className="cursor-pointer select-none">Assumptions ({proposal.openQuestions.length})</summary>
+            <ul className="mt-1 space-y-0.5 pl-1">
+              {proposal.openQuestions.map((q, i) => (
+                <li key={i} className="leading-snug">· {q}</li>
+              ))}
+            </ul>
+          </details>
+        )}
+        {proposal.status === 'revising' && proposal.feedback && (
+          <div className="text-[10px] ac-text-warning leading-snug border-l-2 pl-1.5" style={{ borderColor: 'var(--ac-warning)' }}>
+            Your feedback: {proposal.feedback}
+          </div>
+        )}
+        {pending && !showFeedback && (
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <Button
+              size="sm"
+              className="h-6 text-[11px] text-white flex-shrink-0"
+              style={{ backgroundColor: 'var(--ac-accent)' }}
+              onClick={() => void post('build')}
+              title="Approve the plan — the run switches to Build mode and executes it step by step"
+            >
+              <Hammer className="h-3 w-3 mr-1" />
+              Build it
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[11px] flex-shrink-0"
+              onClick={() => setShowFeedback(true)}
+              title="Send the plan back with revision notes — the agent revises and re-submits"
+            >
+              <MessageSquareMore className="h-3 w-3 mr-1" />
+              Keep planning
+            </Button>
+          </div>
+        )}
+        {pending && showFeedback && (
+          <div className="space-y-1 pt-0.5">
+            <Textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="What should change in the plan? (e.g. mobile-first, add a paywall screen, drop the pricing table)"
+              className="min-h-[44px] text-[10px] ac-border-subtle ac-surface-2 resize-none"
+              rows={2}
+            />
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 text-[11px]"
+                disabled={!feedback.trim()}
+                onClick={() => void post('revise', feedback.trim())}
+              >
+                Send feedback
+              </Button>
+              <Button size="sm" variant="ghost" className="h-6 text-[11px]" onClick={() => setShowFeedback(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/// Mode picker (Cursor mode-pill pattern) — a compact dropdown in the
+/// composer's action row. Mode = what the agent is ALLOWED to do (not a
+/// model tier): Build designs/edits, Ask answers read-only, Plan proposes
+/// an approval-gated plan. The sticky selection persists in settings
+/// (agentMode); slash commands /ask /plan /build and Shift+Tab reach it too.
+const MODE_ICONS: Record<AgentMode, React.ComponentType<{ className?: string }>> = {
+  build: Hammer,
+  ask: MessageCircleQuestion,
+  plan: ClipboardList,
+};
+
+function ModeSelector({ mode, onModeChange }: { mode: AgentMode; onModeChange: (m: AgentMode) => void }) {
+  const [open, setOpen] = useState(false);
+  const ModeIcon = MODE_ICONS[mode];
+  return (
+    <div className="relative flex-shrink-0">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label={`Agent mode: ${MODE_METADATA[mode].label}. Click to change.`}
+        aria-expanded={open}
+        title={`${MODE_METADATA[mode].hint}\n(click to change · ⇧+Tab cycles · /ask /plan /build)`}
+        className={`flex items-center gap-1 h-6 px-1.5 py-0.5 rounded ac-transition hover:ac-surface-1 ac-focus-ring ${mode === 'build' ? 'ac-text-3' : 'ac-text-info font-medium'}`}
+      >
+        <ModeIcon className="h-3 w-3" />
+        <span className="text-[11px]">{MODE_METADATA[mode].label}</span>
+        <ChevronDown className="h-2.5 w-2.5 opacity-60" />
+      </button>
+      {open && (
+        <>
+          <button
+            className="fixed inset-0 z-40 cursor-default"
+            aria-label="Close mode menu"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute bottom-full left-0 mb-1 z-50 w-72 rounded-md border ac-border-subtle ac-surface-1 shadow-lg overflow-hidden">
+            <div className="px-2 py-1 text-[9px] font-medium ac-text-4 uppercase tracking-wide border-b ac-border-subtle">
+              Agent mode — what the agent can do
+            </div>
+            {AGENT_MODES.map((m) => {
+              const Icon = MODE_ICONS[m];
+              const active = m === mode;
+              return (
+                <button
+                  key={m}
+                  onClick={() => {
+                    onModeChange(m);
+                    setOpen(false);
+                  }}
+                  className={`w-full flex items-start gap-2 px-2 py-1.5 text-left hover:ac-surface-2 ac-transition ${active ? 'ac-surface-2' : ''}`}
+                >
+                  <Icon className={`h-3.5 w-3.5 mt-0.5 flex-shrink-0 ${active ? 'ac-text-info' : 'ac-text-4'}`} />
+                  <span className="min-w-0">
+                    <span className={`block text-[11px] font-medium ${active ? 'ac-text-1' : 'ac-text-2'}`}>
+                      {MODE_METADATA[m].label}
+                      {active && <span className="ml-1 ac-text-4 font-normal">(current)</span>}
+                    </span>
+                    <span className="block text-[10px] ac-text-4 leading-snug">{MODE_METADATA[m].description}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /// Skill chip — which intent-classifier skill the turn routed to
 /// (category · confidence · tool budget). One quiet line above the plan.
 function SkillChip({ skillInfo }: { skillInfo: NonNullable<ChatTurn['skillInfo']> }) {
@@ -657,6 +897,10 @@ export function AgentPanel() {
   const usageTotals = useCanvasStore((s) => s.usageTotals);
   const thinkingLevel = useSettings((s) => s.thinkingLevel);
   const setSetting = useSettings((s) => s.set);
+  // Sticky agent mode (Cursor-style) — persisted in settings, threaded to the
+  // runner via agentRunSettings().mode on every prompt.
+  const agentMode = useSettings((s) => s.agentMode) ?? 'build';
+  const setAgentMode = (m: AgentMode) => setSetting('agentMode', m);
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
   // Prompt-history navigation cursor (-1 = live input, not navigating).
@@ -668,6 +912,9 @@ export function AgentPanel() {
   // drag-and-drop, staged as preview chips until sent). Downscaled client-side
   // by lib/agent/attachments.ts before they ever leave the browser.
   const [attachments, setAttachments] = useState<AttachedImage[]>([]);
+  // Plan-suggestion chip dismissal (one-shot per mount — re-suggests on the
+  // next multi-screen prompt after a remount, which is the right nag level).
+  const [planSuggestDismissed, setPlanSuggestDismissed] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   // "Jump to latest" pill — visible while the user has scrolled away from
   // the bottom (ChatGPT/Claude pattern; auto-follow pauses so they can read).
@@ -726,6 +973,15 @@ export function AgentPanel() {
   );
   const targetingCount = new Set([...selectedIds, ...mentionedIds]).size;
 
+  // ==== Plan-mode auto-suggest (Cursor: suggest, never auto-switch) =========
+  //
+  // A clear multi-screen ask in Build mode gets the one-click chip above.
+  // Deliberately CLIENT-side + conservative: it must fire only when the plan
+  // genuinely adds value (multi-screen scope), never on ordinary prompts.
+  const looksMultiScreen = (t: string) =>
+    /\b(\d+|two|three|four|five|six|seven)\s+[-\s]?(screens?|pages?|views?|flows?)\b/i.test(t) ||
+    /\bmulti[-\s]?screen\b/i.test(t);
+
   // ==== Draft persistence (Cursor keeps unsent input across reloads) =======
   //
   // Load once per document; save debounced (400ms); clear on send/queue.
@@ -751,6 +1007,53 @@ export function AgentPanel() {
 
   /// Execute a resolved slash command.
   const executeCommand = (cmd: ChatCommand, args: string) => {
+    // --- Mode commands (Cursor /ask /plan /build): switch the sticky mode;
+    //     with args, send them immediately in the NEW mode. ---
+    const modeFor: Record<string, AgentMode> = {
+      'mode-ask': 'ask',
+      'mode-plan': 'plan',
+      'mode-build': 'build',
+    };
+    if (cmd.run in modeFor) {
+      const nextMode = modeFor[cmd.run];
+      setAgentMode(nextMode);
+      const trimmedArgs = args.trim();
+      if (!trimmedArgs) {
+        toast.success(`${MODE_METADATA[nextMode].label} mode on`, {
+          description: MODE_METADATA[nextMode].description,
+        });
+        return;
+      }
+      // Send the args in the new mode (queue while busy — the next turn
+      // will already carry it; Zustand's set is synchronous so promptAgent
+      // reads the updated setting).
+      if (agentBusy) {
+        queuePrompt(trimmedArgs);
+        toast.message('Queued', { description: `Runs in ${MODE_METADATA[nextMode].label} mode when the current turn finishes.` });
+        return;
+      }
+      pushPromptHistory(trimmedArgs);
+      promptAgent(trimmedArgs);
+      return;
+    }
+    if (cmd.run === 'multitask') {
+      if (!args.trim()) {
+        toast.error('Usage: /multitask <request>', {
+          description: 'e.g. /multitask a 4-screen checkout flow: cart, shipping, payment, confirmation',
+        });
+        return;
+      }
+      const mtPrompt = `/multitask ${args.trim()}`;
+      if (agentBusy) {
+        queuePrompt(mtPrompt);
+        toast.message('Queued', { description: 'Runs when the current turn finishes.' });
+        return;
+      }
+      setAgentMode('build'); // the parallel executor is a build-mode path
+      pushPromptHistory(mtPrompt);
+      promptAgent(mtPrompt);
+      return;
+    }
     if (cmd.kind === 'prompt') {
       const prompt = args ? `${cmd.run} ${args}` : cmd.run;
       if (agentBusy) {
@@ -1274,6 +1577,37 @@ export function AgentPanel() {
             )}
           </div>
         )}
+        {/* Auto-suggest Plan chip (Cursor pattern: suggest, NEVER auto-switch).
+            A clear multi-screen ask in Build mode gets a one-click offer to
+            plan first — the user keeps control (Cursor's forum-chaos thread
+            about unwanted mode flips is the cautionary tale). Dismissible. */}
+        {agentMode === 'build' && !agentBusy && looksMultiScreen(input) && !planSuggestDismissed && (
+          <div className="flex items-center gap-1.5 mb-1.5 px-2 py-1 rounded-md border ac-border-subtle ac-surface-1">
+            <ClipboardList className="h-3 w-3 flex-shrink-0 ac-text-info" />
+            <span className="text-[10px] ac-text-2 truncate flex-1">
+              Looks like a multi-screen build — plan first?
+            </span>
+            <button
+              onClick={() => {
+                setAgentMode('plan');
+                setPlanSuggestDismissed(true);
+                toast.success('Plan mode on', { description: 'Send your request — the agent will propose a plan for your approval.' });
+              }}
+              className="px-1.5 py-0.5 rounded text-[10px] font-medium text-white ac-transition ac-focus-ring flex-shrink-0"
+              style={{ backgroundColor: 'var(--ac-accent)' }}
+            >
+              Switch to Plan
+            </button>
+            <button
+              onClick={() => setPlanSuggestDismissed(true)}
+              aria-label="Dismiss plan suggestion"
+              title="Keep building directly"
+              className="p-0.5 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring flex-shrink-0"
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </div>
+        )}
         {/* Slash-command autocomplete — floats above the textarea. */}
         {cmdMenuOpen && (
           <div className="mb-1.5 rounded-lg border ac-border-default ac-surface-0 shadow-lg overflow-hidden" role="listbox" aria-label="Slash commands">
@@ -1490,6 +1824,19 @@ export function AgentPanel() {
                 e.preventDefault();
                 submit();
               }
+              // --- Shift+Tab cycles the agent mode (Cursor Tab-Tab analog) ---
+              // Only when NO autocomplete menu is open (plain Tab completes
+              // commands/mentions there). Order: build → ask → plan → build.
+              if (e.key === 'Tab' && e.shiftKey && !cmdMenuOpen && !mentionMenuOpen) {
+                e.preventDefault();
+                const order: AgentMode[] = ['build', 'ask', 'plan'];
+                const idx = order.indexOf(agentMode);
+                const next = order[(idx + 1) % order.length];
+                setAgentMode(next);
+                toast.message(`${MODE_METADATA[next].label} mode`, {
+                  description: MODE_METADATA[next].description,
+                });
+              }
             }}
           />
           {/* Action row — always visible: paperclip (image attach) + model
@@ -1544,6 +1891,12 @@ export function AgentPanel() {
               {/* Model switcher + context usage (≥70% only) + thinking level
                   — relocated from the removed inner header (see comment above). */}
               <span className="w-px h-4 ac-border-subtle bg-current mx-1 opacity-30" aria-hidden />
+              {/* Mode picker (Cursor mode-pill pattern) — Build / Ask / Plan.
+                  Mode = what the agent is ALLOWED to do (NOT a model tier —
+                  the model switcher is its own control, the Amp counter-
+                  pattern respected). Sticky in settings; /ask /plan /build
+                  and Shift+Tab reach the same state. */}
+              <ModeSelector mode={agentMode} onModeChange={setAgentMode} />
               <ModelContextStatus
                 activeModel={activeModel}
                 usageTotals={usageTotals}
@@ -1806,6 +2159,9 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
             {turn.plan && turn.plan.length > 0 && <PlanCard plan={turn.plan} />}
             {/* Sub-agent dispatches — one card per turn, expandable rows. */}
             {turn.subAgents && turn.subAgents.length > 0 && <SubAgentsCard subAgents={turn.subAgents} />}
+            {/* PLAN-mode approval card — the triad renders while the agent
+                blocks inside submit_plan; agent:plan_resolved settles it. */}
+            {turn.planProposal && <PlanApprovalCard proposal={turn.planProposal} />}
             {/* Tool calls — collapsed to ONE summary row per completed turn
                 (ChatGPT "Used N tools" pattern); expands for the details.
                 While any call is pending the cluster stays open so the user
@@ -1916,9 +2272,19 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
               </div>
             )}
             {/* Self-review (pi-agent critique loop) — iteration + defects +
-                VLM score. After the footer so it reads as the turn's closing
-                quality gate. */}
-            {turn.critique && !turn.streaming && <CritiqueRow critique={turn.critique} />}
+                VLM score. When the adaptive gate skipped the LLM critics AND
+                the deterministic checks found nothing, the SAVING row renders
+                instead (an empty "no defects found" would overclaim — it
+                implies the critics looked and approved). After the footer so
+                it reads as the turn's closing quality gate. */}
+            {turn.critique && !turn.streaming && !(turn.critiqueSkipped && turn.critique.defects.length === 0) && (
+              <CritiqueRow critique={turn.critique} />
+            )}
+            {/* Adaptive-critique save notice — the muted counterpart of the
+                self-review row ("why didn't it review? it didn't need to"). */}
+            {turn.critiqueSkipped && !turn.streaming && !(turn.critique && turn.critique.defects.length > 0) && (
+              <CritiqueSkippedRow skipped={turn.critiqueSkipped} />
+            )}
             {/* Failed turn — inline Retry affordance. The error message lives
                 on the turn (NOT spliced into the markdown text anymore); this
                 row is its surface, with the full message (wrapped, not

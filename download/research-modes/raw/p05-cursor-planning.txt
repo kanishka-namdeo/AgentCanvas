@@ -1,0 +1,244 @@
+URL: https://cursor.com/docs/agent/planning
+TITLE: Plan Mode | Cursor Docs
+
+Plan Mode | Cursor Docs 
+ Skip to main content Cursor Logo 
+ 
+ Docs 
+ API Learn Help 
+ 
+ Search docs... ⌘K 
+
+ Sign in Download 
+ 
+ 
+ 
+ 
+ 
+
+ Command Palette
+ Search for a command to run...
+
+ 
+ 
+ 
+
+ Get Started
+ Welcome 
+ Quickstart 
+ Models & Pricing 
+ 
+ Changelog 
+ 
+
+ Agent
+ Overview 
+ Agents Window 
+ Agent Review 
+ Planning 
+ Prompting 
+ Debugging 
+ Design Mode 
+ Tools 
+ 
+ Security 
+ 
+ 
+
+ Customize
+ Overview 
+ Plugins 
+ Rules 
+ Skills 
+ Subagents 
+ Hooks 
+ MCP 
+ 
+
+ Cloud Agents
+ Overview 
+ Setup 
+ Builds 
+ Capabilities 
+ 
+ Best Practices 
+ Automations 
+ Bugbot 
+ Security Agents 
+ PR Routing & Approval 
+ Mobile 
+ Security 
+ 
+ Settings 
+ API 
+ 
+
+ Origin
+ Overview 
+ CLI 
+ 
+ Create a repository 
+ Clone, Push & Pull 
+ Mirror GitHub 
+ Pull requests 
+ Browse & Search 
+ Settings 
+ Codebase settings 
+ Integrations 
+ 
+
+ Integrations
+ Slack 
+ Microsoft Teams 
+ Jira 
+ Linear 
+ Notion 
+ GitHub 
+ GitLab 
+ Azure DevOps 
+ Bitbucket 
+ JetBrains 
+ Xcode 
+ Deeplinks 
+ 
+
+ SDK
+ TypeScript 
+ Python 
+ Bridge 
+ Changelog 
+ 
+
+ CLI
+ Overview 
+ Installation 
+ Capabilities 
+ Changelog 
+ Shell Mode 
+ ACP 
+ Headless / CI 
+ Reference 
+ 
+ 
+
+ Teams & Enterprise
+ Teams 
+ 
+ Enterprise 
+ 
+ 
+
+ Get Started 
+ Plan Mode
+
+ Plan Mode creates detailed implementation plans before writing any code. Agent researches your codebase, asks clarifying questions, and generates a reviewable plan you can edit before building.
+
+ Press Shift+Tab from the chat input to rotate to Plan Mode. Cursor also suggests it automatically when you type keywords that indicate complex tasks.
+
+ How it works 
+ 
+ 
+ 
+
+ 
+ Agent asks clarifying questions to understand your requirements
+
+ Researches your codebase to gather relevant context
+
+ Creates a comprehensive implementation plan
+
+ You review and edit the plan through chat or markdown files
+
+ Click to build the plan when ready
+
+ 
+ Plans are saved by default in your home directory. Click "Save to workspace" to move it to your workspace for future reference, team sharing, and documentation.
+
+ When to use Plan Mode 
+ 
+ 
+ 
+
+ Plan Mode works best for:
+
+ 
+ Complex features with multiple valid approaches
+
+ Tasks that touch many files or systems
+
+ Unclear requirements where you need to explore before understanding scope
+
+ Architectural decisions where you want to review the approach first
+
+ 
+ For quick changes or tasks you've done many times before, jumping straight to Agent mode is fine.
+
+ Starting over from a plan 
+ 
+ 
+ 
+
+ Sometimes Agent builds something that doesn't match what you wanted. Instead of trying to fix it through follow-up prompts, go back to the plan.
+
+ Revert the changes, refine the plan to be more specific about what you need, and run it again. This is often faster than fixing an in-progress agent, and produces cleaner results.
+
+ 
+ 
+ 
+ For larger changes, spend extra time creating a precise, well-scoped plan. The hard part is often figuring out what change should be made. With the right instructions, delegate implementation to Agent.
+
+ Switching modes 
+ 
+ 
+ 
+
+ 
+ Use the mode picker dropdown in Agent
+
+ Press Shift+Tab for quick switching
+
+ 
+ Related 
+ 
+ 
+ 
+
+ 
+ Plan mode help 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English 
+ English 
+ 
+ 简体中文 
+ Русский 
+ 日本語 
+ Português 
+ Español 
+ 
+
+ How it works 
+ When to use Plan Mode 
+ Starting over from a plan 
+ Switching modes 
+ Related 
+ 
+ 
+ 
+ 
+ Copy page

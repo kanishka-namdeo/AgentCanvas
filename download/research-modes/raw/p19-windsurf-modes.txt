@@ -1,0 +1,386 @@
+URL: https://docs.devin.ai/desktop/cascade/modes
+TITLE: Cascade Modes
+
+Cascade Modes 
+ Documentation Index
+ Fetch the complete documentation index at: /llms.txt 
+ Use this file to discover all available pages before exploring further.
+ Skip to main content 
+ Devin Docs home page English 
+ 
+
+ 
+ 
+ Search...
+
+ ⌘ K 
+ 
+ Ask Assistant ⌘ I 
+ Support 
+ Devin 
+ Devin 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Search... 
+ 
+ 
+
+ Navigation 
+ 
+ 
+ 
+ Cascade 
+ 
+ Cascade Modes
+
+ 
+ Cloud 
+ CLI 
+ Desktop 
+ Enterprise 
+ Use Cases 
+ API 
+ Federal 
+ 
+
+ 
+ Devin Desktop 
+
+ Editor 
+ 
+ 
+ 
+ Devin Local Agent 
+
+ 
+ Cascade 
+ 
+ 
+ Overview 
+
+ 
+ Arena Mode 
+
+ 
+ Modes 
+
+ 
+ App Deploys 
+
+ 
+ Web and Docs Search 
+
+ 
+ Memories & Rules 
+
+ 
+ Skills 
+
+ 
+ AGENTS.md 
+
+ 
+ Workflows 
+
+ 
+ Worktrees 
+
+ 
+ Model Context Protocol (MCP) 
+
+ 
+ Cascade Hooks 
+
+ 
+ 
+ Context Awareness 
+ 
+ 
+ 
+ Troubleshooting 
+ 
+ 
+ 
+ 
+ Agent Command Center 
+
+ Agent Command Center 
+
+ 
+ Spaces 
+
+ 
+ Devin 
+
+ 
+ Agent Client Protocol (preview) 
+
+ 
+ Building a custom ACP agent 
+
+ 
+ 
+ Releases 
+
+ 
+ Changelog 
+
+ 
+ 
+ Changelog (Next) 
+
+ 
+ 
+ Releases 
+
+ 
+ 
+ Releases (Next) 
+
+ 
+ 
+ Windsurf Plugins 
+
+ Changelog 
+ 
+ 
+ 
+ Get Started 
+ 
+ 
+ 
+ Features 
+ 
+ 
+ 
+ Cascade (JetBrains) 
+ 
+ 
+ 
+ Context Awareness 
+ 
+ 
+ 
+ Best Practices 
+ 
+ 
+ 
+ Troubleshooting 
+ 
+ 
+ 
+ 
+ Accounts 
+
+ Usage 
+
+ 
+ Quota 
+
+ 
+ Analytics 
+
+ 
+ Teams & Enterprise 
+ 
+ 
+ 
+ 
+ Security 
+
+ FedRAMP Security Admin Guide 
+
+ 
+ Reporting 
+
+ 
+ 
+
+ 
+ 
+ 
+ On this page 
+ Code Mode 
+ Plan Mode Planning more deeply 
+ Continuing from a plan 
+ Exiting plan mode 
+ 
+ Ask Mode 
+ 
+ 
+
+ Cascade
+ Cascade Modes
+ 
+ 
+ Copy page Copy page 
+ 
+ 
+
+ Devin Desktop offers multiple distinct agent modes, each optimized for different types of tasks.
+
+ 
+ 
+ Copy page Copy page 
+ 
+ 
+ Devin Desktop offers three distinct agent modes, each with a different set of capabilities designed for specific workflows. 
+ Mode Use case Tools 
+ Code Complex features, refactoring All tools enabled 
+ Plan Complex features requiring planning All tools enabled 
+ Ask Learning, planning, questions Search tools only 
+ 
+
+ You can switch between different modes using the mode selector below the input box, or by using the keyboard shortcut ⌘+.
+ (Mac) or Ctrl+.
+ (Windows/Linux). The selector also offers permission modes, which control how much the agent asks before acting — see Permissions . 
+ ​ 
+ 
+ 
+ 
+ Code Mode 
+
+ Code mode is Devin Desktop’s default fully agentic mode, designed for making changes to your codebase. 
+ In Code mode, the agent can: 
+ 
+ Create, edit, and delete files
+
+ Run terminal commands
+
+ Search and analyze your codebase
+
+ Install dependencies
+
+ Execute multi-step tasks autonomously
+
+ 
+ Use Code mode when you want the agent to actively work on your project and implement changes. 
+ 
+ 
+ We recommend you use Code mode as your default mode for most tasks.
+
+ ​ 
+ 
+ 
+ 
+ Plan Mode 
+
+ Plan mode helps you think through complex tasks by developing a detailed implementation plan before writing any code. 
+ In Plan mode, the agent will: 
+ 
+ Explore your codebase to understand the current state
+
+ Ask clarifying questions to ensure the plan aligns with your goals
+
+ Provide multiple options for you to choose from with an interactive interface
+
+ Present a detailed plan, written in an external Markdown file, with implementation steps
+
+ 
+ The plan file lives outside your repository and persists for the session, so planning can span several messages. When the agent is finished, it asks to start implementing — or you can click “Implement” on the plan file yourself to switch to Code mode and begin. 
+ ​ 
+ 
+ 
+ 
+ Planning more deeply 
+
+ Including the keyword megaplan
+, ultraplan
+, or masterplan
+ anywhere in your message switches the conversation into Plan mode and makes the agent plan more extensively, asking at least one clarifying question before it writes the plan. The previous mode is restored once you remove the keyword. 
+ 
+ 
+ 
+ 
+ In plan mode, Cascade often asks multiple choice questions to clarify your requirements
+ 
+
+ ​ 
+ 
+ 
+ 
+ Continuing from a plan 
+
+ The markdown file created in plan mode can be particularly useful for continuing work across multiple sessions. 
+ Plans are stored in your ~/.windsurf/plans
+ or ~/.devin/plans
+ directory, depending on the agent, and are available in the @mentions menu.
+By mentioning a plan file, you can continue implementation with a fresh context. 
+ This can be particularly useful when an initial implementation went awry: just discard the original changes, tweak the plan file, and click “Implement” to attempt implementation again in a new conversation. 
+ ​ 
+ 
+ 
+ 
+ Exiting plan mode 
+
+ There are multiple different ways to move from planning to implementation: 
+ 
+ Click the “Implement” button on the plan file
+
+ Approve the agent’s request to leave Plan mode once the plan is ready
+
+ Change your mode to Code mode in the input box
+
+ Let the agent automatically switch to Code mode when it detects that you’re ready to implement
+
+ 
+ ​ 
+ 
+ 
+ 
+ Ask Mode 
+
+ Ask mode is a read-only mode optimized for questions and exploration. 
+ In ask mode, the agent can search and analyze your codebase, but cannot make any changes. 
+ 
+ Arena Mode
+ App Deploys
+ 
+ 
+ 
+ 
+
+ linkedin x 
+ Powered by 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ This documentation is built and hosted on Mintlify, a developer documentation platform 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Assistant 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Responses are generated using AI and may contain mistakes.

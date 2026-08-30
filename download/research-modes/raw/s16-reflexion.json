@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://arxiv.org/abs/2303.11366",
+    "name": "Reflexion: Language Agents with Verbal Reinforcement",
+    "snippet": "by N Shinn · 2023 · Cited by 7134 — We propose Reflexion , a novel framework to reinforce language agents not by updating weights, but instead through linguistic feedback. Read more",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://neurips.cc/virtual/2023/poster/70114",
+    "name": "Reflexion: language agents with verbal reinforcement",
+    "snippet": "In the Reflexion runs, the agent uses self - reflection to find its mistake, update its memory, reset the environment, and start a new trial. To avoid very long ... Read more",
+    "host_name": "neurips.cc",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.promptingguide.ai/techniques/reflexion",
+    "name": "Reflexion",
+    "snippet": "Feb 1, 2026 — Reflexion is designed to help agents improve their performance by reflecting on past mistakes and incorporating that knowledge into future ...",
+    "host_name": "www.promptingguide.ai",
+    "rank": 2,
+    "date": "Feb 1, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alphaxiv.org/abs/2303.11366",
+    "name": "Language Agents with Verbal Reinforcement Learning",
+    "snippet": "The self - reflection component proves particularly valuable when agents have access to relevant information but fail to synthesize it correctly. Reflections help ... Read more",
+    "host_name": "www.alphaxiv.org",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/MachineLearning/comments/1215dbl/r_reflexion_an_autonomous_agent_with_dynamic",
+    "name": "[R] Reflexion: an autonomous agent with dynamic memory",
+    "snippet": "Reflexion , an approach that endows an agent with dynamic memory and self - reflection capabilities to enhance its existing reasoning trace and ...",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net/pdf?id=vAElhFcKW6",
+    "name": "Language Agents with Verbal Reinforcement Learning",
+    "snippet": "by N Shinn · Cited by 7134 — We propose Reflexion , a novel framework to reinforce language agents not by updating weights, but in- stead through linguistic feedback. Concretely, Reflexion ... Read more",
+    "host_name": "openreview.net",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@vi.ha.engr/building-a-self-correcting-ai-a-deep-dive-into-the-reflexion-agent-with-langchain-and-langgraph-ae2b1ddb8c3b",
+    "name": "A Deep Dive into the Reflexion Agent with LangChain and",
+    "snippet": "This article provides a comprehensive tutorial for building a sophisticated, self-correcting AI agent based on the principles of the Reflexion ...",
+    "host_name": "medium.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.turingpost.com/p/reflection",
+    "name": "Reflection in AI: Reflexion, ReAct, and Self-Correction",
+    "snippet": "Through self - reflection , an agent can correct previous mistakes and generate improved solutions on the next attempt, embodying a form of self-improvement loop. Read more",
+    "host_name": "www.turingpost.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

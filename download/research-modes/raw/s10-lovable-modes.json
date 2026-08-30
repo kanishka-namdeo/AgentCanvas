@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.reddit.com/r/lovable/comments/1m3okmj/agent_mode_is_it_better",
+    "name": "Agent Mode - is it better? : r/lovable",
+    "snippet": "Hi. I have been testing out agent mode and I can’t tell if it is better so I wanted to hear other peoples experiences and assessments.\n\nWhat ...",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.lovable.dev/features/agent-mode",
+    "name": "Implement changes in Build mode",
+    "snippet": "Build mode (previously Agent mode ) is Lovable's autonomous execution mode , designed to implement changes directly in your project. When you give Lovable a task, ... Read more",
+    "host_name": "docs.lovable.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.blog/ai-and-ml/github-copilot/copilot-ask-edit-and-agent-modes-what-they-do-and-when-to-use-them",
+    "name": "Copilot ask, edit, and agent modes: What they do and",
+    "snippet": "May 2, 2025 — Agent mode lets you hand it a high-level prompt and then watch as Copilot autonomously plans the steps, selects the right files, runs tools or ... Read more",
+    "host_name": "github.blog",
+    "rank": 2,
+    "date": "May 2, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/orgs/community/discussions/183385",
+    "name": "Visual live preview and visual-edit mode for AI Code Assist",
+    "snippet": "Visual live preview: See UI changes of your code in real time, just like lovable .dev. Visual- edit mode : Do WYSIWYG style changes directly in a preview pane, ... Read more",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/normal-vs-agent-vs-chat/46835",
+    "name": "Normal vs agent vs chat - Discussions",
+    "snippet": "Feb 1, 2025 — How do you use these different “ modes ”? I just use agent and sonnet for everything. If I'm chatting , I just say it should not execute, just plan ... Read more",
+    "host_name": "forum.cursor.com",
+    "rank": 4,
+    "date": "Feb 1, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://lovable.dev/blog/agent-mode-beta",
+    "name": "Introducing Agent Mode (Beta): enabling Lovable to think,",
+    "snippet": "Jun 30, 2025 — In our current Default and Chat Mode , each message costs 1 credit regardless of the complexity of the edit . · Agent Mode (beta) uses usage-based ... Read more",
+    "host_name": "lovable.dev",
+    "rank": 5,
+    "date": "Jun 30, 2025",
+    "favicon": ""
+  }
+]

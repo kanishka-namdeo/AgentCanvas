@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://v0.app",
+    "name": "v0 by Vercel - Build Full-Stack Web Apps with AI",
+    "snippet": "Create design systems Define colors, typography, and styles that you can use across projects. Agentic by default v0 plans , creates tasks, and connects to ...",
+    "host_name": "v0.app",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.vercel.com/t/requesting-plan-and-build-modes/22153",
+    "name": "Requesting 'Plan' and 'Build' Modes - v0",
+    "snippet": "Sep 9, 2025 — Instructions are now available in v0 . Use preset instructions like \"Be Concise\" and \" Plan Mode \", or create your own and apply them on-demand.",
+    "host_name": "community.vercel.com",
+    "rank": 1,
+    "date": "Sep 9, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/blog/transforming-how-you-work-with-v0",
+    "name": "Transforming how you work with v0",
+    "snippet": "Jan 10, 2025 — Generate ideas for blog posts, social media content, and ad copy . Helping draft project plans and timelines",
+    "host_name": "vercel.com",
+    "rank": 2,
+    "date": "Jan 10, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/vercel/comments/1ms9ldm/v0_agent_mode_review",
+    "name": "v0 Agent Mode Review : r/vercel",
+    "snippet": "It Immediately creates a .txt file. It changed the entire layout of the UI, further develop the blog site efficiently in v0 , if Agent Mode is ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://v0.app/docs",
+    "name": "What is v0? | v0 Docs",
+    "snippet": "v0 is an AI agent that helps anyone create real code and full-stack apps and agents . Generate ideas for blog posts, social media content, and ad copy … plans ...",
+    "host_name": "v0.app",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.vercel.com/t/possible-to-keep-v0-agent/29973",
+    "name": "Possible to keep v0 agent?",
+    "snippet": "Dec 15, 2025 — I usually use planning mode first and then let it implement it, It will usually give a step by step plan . so then you have time to correct / ...",
+    "host_name": "community.vercel.com",
+    "rank": 5,
+    "date": "Dec 15, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mindstudio.ai/blog/what-is-vercel-v0",
+    "name": "What Is Vercel v0? AI-Powered UI Generation Explained",
+    "snippet": "Apr 14, 2026 — Vercel v0 generates React components and UI layouts from text prompts. A UI generation tool that outputs real, usable frontend code from ...",
+    "host_name": "www.mindstudio.ai",
+    "rank": 6,
+    "date": "Apr 14, 2026",
+    "favicon": ""
+  }
+]

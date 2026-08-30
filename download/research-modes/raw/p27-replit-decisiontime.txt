@@ -1,0 +1,255 @@
+URL: https://replit.com/blog/decision-time-guidance
+TITLE: Decision-Time Guidance: Keeping Replit Agent Reliable
+
+Decision-Time Guidance: Keeping Replit Agent | Replit 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Products 
+ CREATE Design 
+ Apps & Websites 
+ Slides 
+
+ PLATFORM Agents 
+ Databases 
+ Integrations 
+ Security 
+
+ 
+
+ Solutions 
+ BY ROLE Founders 
+ Product Managers 
+ Designers 
+ Engineers 
+ Operations 
+ IT 
+
+ BY USE CASE Apps 
+ Websites 
+ Landing Pages 
+ Dashboards 
+ Prototypes 
+ Chatbots 
+
+ 
+
+ Pricing Enterprise Resources 
+ LEARN & SUPPORT Docs 
+ Community 
+ Support 
+ Replit Experts 
+ Partners 
+
+ DISCOVER Customer Stories 
+ Gallery 
+ Blog 
+ Newsroom 
+
+ 
+
+ 
+ Contact sales Log in Sign up 
+
+ Products 
+ 
+ 
+
+ Solutions 
+ 
+ 
+
+ Pricing 
+ Enterprise 
+ Resources 
+ 
+ 
+
+ 
+
+ 
+ Log in Sign up 
+
+ 
+ 
+ Blog
+ 
+
+ 
+
+ 
+ Engineering 
+ Infrastructure 
+ Decision-Time Guidance: Keeping Replit Agent Reliable
+
+ 
+
+ 
+
+ 
+ Published:
+ Jan 20, 2026 
+ Updated:
+ Jan 23, 2026 
+
+ Zhen Li
+
+ Vaibhav Kumar
+
+ James Austin
+
+ Nick Ondo
+
+ Peter Zhong
+
+ Michele Catasta
+
+ 
+
+ 
+
+ 
+ At Replit, we want to give our users access to the most powerful agentic coding system in the world—one that amplifies their productivity and minimizes the time from idea to product.
+ Today, Replit Agent tackles more complex tasks than ever before. As a result, average session durations have increased and trajectories have grown longer, with the agent completing more work autonomously. But longer trajectories introduce a novel challenge: model-based failures can compound, and unexpected behaviors can surface. Every trajectory is unique, so static prompt-based rules often fail to generalize—or worse, pollute the context as they scale. This demands a new approach to guiding the agent when failures are detected.
+ Our insight: the execution environment itself can be that guide. The environment already plays a critical role in any agentic system—but what if it could do more than just execute? What if it could provide intelligent feedback that helps the agent course-correct, all while keeping a human in the loop? In this post, we discuss a set of techniques that have proven effective on long trajectories, significantly improving Replit Agent across building, planning, deployment, and overall code quality—while keeping costs and context in check.
+ 
+ William H. Schenck, The Third Avenue Railroad Depot — control emerges at the junction The Problem with Static Prompts on Long Trajectories
+ System prompts and few-shot examples are the classic way to steer an agent by specifying intent and constraints up front. In practice, many production agents also rely on execution-time scaffolding—task lists, reminders, and other lightweight control signals —that are updated as the agent observes tool output and responds to user input.
+ These approaches work reasonably well for a wide range of use cases, especially when tasks are constrained and interactions are short. But as agents operate over longer interactions with humans in the loop, decisions accumulate and feedback arrives continuously. In this regime, guidance applied uniformly or too early loses leverage, and maintaining reliable behavior becomes progressively harder.
+ Several problems emerge:
+ Learned priors can override written rules: Even with explicit instructions, models may fall back to behaviors learned during pre-training or post-training when rules are verbose, ambiguous, or conflicting [1].
+ Instruction-following degrades as context grows: Due to primacy bias and recency bias [2,3] — instructions near the beginning and end of the context tend to carry more weight, while mid-context rules have reduced influence.
+ More rules have diminishing returns: Adding constraints increases cost and priority ambiguity, and often forces the model to reason over rules that don’t matter for the current decision—leading to partial or inconsistent compliance rather than better control.
+ These problems makes agent less reliable and sometimes more expensive in the long trajectories as shown in Figure 1. Therefore, effective control needs to intervene at decision time, aligning guidance with the agent’s execution lifecycle rather than front-loading every constraint in advance.
+ Think of this as rails and signals — not a locked track.
+ 
+ Figure 1: Issues encountered with static prompts and multiple reminders The Curse of Reminders
+ If static prompts fail because they're too far from the decision, why not inject guidance right before the model generates its next token? This is the intuition behind decision-time injection. Recency bias [2] means models weight later context more heavily, so guidance placed at the end of the trace exerts outsize influence. For example, when we encourage parallel tool calling for Replit agent, injecting a short prompt at the bottom of the trace led the agent to execute 15% more tools per loop than placing the same guidance in the system prompt.
+ But a naive implementation creates its own problems. If you append every useful reminder to the bottom of the context, you recreate the same failure mode you were trying to escape: a bloated block of instructions, most of which don't apply to the current decision. The model still has to reason over irrelevant rules. Conflicts resurface. Priority becomes ambiguous. You've just moved the mess from the top of the prompt to the bottom.
+ We observed this directly. Early experiments injecting multiple reminders at decision time showed diminishing returns after the third or fourth, and sometimes negative returns, as competing instructions led to inconsistent behavior. Earlier model generations would often mock data to pass a task or perform dangerous deletions without user confirmation. When we combined a reminder to avoid mock data with three or more other reminders, compliance dropped. Worse, the reminders competed not just with each other but with user messages, degrading human-in-the-loop performance overall.
+ Decision-Time Guidance
+ We introduce decision-time guidance —a control layer that injects short, situational instructions exactly when they matter, and only when they matter.
+ The key is selectivity. A lightweight multi-label classifier analyzes the agent's current trajectory—user messages, recent tool results, error patterns—and decides which guidance, if any, to inject. The classifier runs on a fast, cheap model, so it can fire on every agent iteration without becoming a bottleneck.
+ 
+ Figure 2. Decision time guidance This moves control out of a monolithic system prompt and into a bank of reusable micro-instructions . We maintain a stable core prompt and dynamically load only what's relevant. Each intervention is short, focused on a single decision, and distilled from failure patterns observed in production. This allows us scale from 4–5 static reminders to hundreds, varying both the number and types of guidance we provide.
+ Two patterns have proven especially effective in our experience:
+ Diagnostic signals: 
+ When repeated errors appear in console output, the system injects a short nudge prompting the agent to address failures before continuing. Importantly, this is a notification , not a context dump—the agent is told errors exist and prompted to pull the relevant logs itself. This keeps the injection minimal while giving the agent access to diagnostic information only when it chooses to look.
+ A simple reminder prompting the agent to read logs looks like this:
+ Found 1 new browser console log , use the log tool to view the latest logs . 
+
+ Consult when it matters:
+ When the classifier detects signs of a doom loop—repeated failed attempts, circular edits, or high-risk changes. It injects a reminder to consult an external agent.
+ The external agent generates a plan from fresh context, unburdened by the failed attempts polluting the main agent's trace. This exploits the generator-discriminator gap [4]: the stuck agent doesn't need to generate its way out, it just needs to recognize a good plan when offered one. And recognition is the easier task.
+ Also, the consultation is performed by a different model . Switching models at the right moment reduces this self-preference bias [5] and improves reliability when the agent has become anchored to a failing trajectory.
+ Why this works
+ False positives are cheap. Because reminders are suggestions rather than hard constraints, the model simply ignores guidance that doesn't apply. This lets us tune for recall over precision, we'd rather catch a failure mode and occasionally misfire than miss it entirely.
+ Guidance is ephemeral. Injected reminders don't persist in conversation history. Once the decision is made, they disappear. Context accumulates only what remains relevant.
+ Caching stays intact. The core prompt never changes, so we always hit the prompt cache. Behavior shifts from step to step without paying for prompt rewrites, reducing cost by 90% compared to dynamic system prompt modification.
+ The result: a control layer that intervenes when it helps, disappears when it doesn't, and costs almost nothing either way.
+ In conclusion, decision-time guidance has proved to be an effective paradigm for an agent harness designed around the current generation of LLMs, improving both reliability and output quality over long trajectories. As model intelligence and long-horizon capabilities evolve, the role of external feedback as well as tooling will change. For the next generation of models, we expect stronger self-reflection capabilities, making them less likely to require external feedback, along with improved capacity to attend to multiple instructions in parallel.
+ We're excited to keep pushing the frontier of autonomous agents, with a focus on reliability for the most complex coding tasks. If you are interested in working on the frontier of autonomous software engineering agents, our team is hiring, reach out to pirroh@repl.it .
+ Reference
+ Control Illusion: The Failure of Instruction Hierarchies in Large Language Models 
+ Lost in the Middle: How Language Models Use Long Contexts 
+ RULER: What's the Real Context Size of Your Long-Context Language Models? 
+ Benchmarking and Improving Generator-Validator Consistency of Language Models 
+ LLM Evaluators Recognize and Favor Their Own Generations 
+ 
+
+ 
+ 
+
+ 
+ 
+ Follow @Replit
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ More
+
+ 
+
+ 
+ 
+ Aug 3, 2026 AI adoption starts with truth
+ The semantic layer is the foundation
+
+AI adoption is limited by trust. A user who gets burned by a confidently wrong answer will double-check the next one, eventually routing consequential work around the system entirely. Once that happens, AI remains a tool at the edges rather than infrastructure at the center… useful, but never trusted with the workflows where its value compounds. Before a company can benefit from more capable agents, those agents need a reliable way to know what the company considers true.
+
+A semantic layer tells an agent which tables are sources of truth and how they relate. That's the floor. It is necessary, and it isn't sufficient.
+
+A semantic layer is not plumbing. It is the first act of governance for an AI-native company: the shared definitions of the business, the canonical metrics, the sources of truth, and the relationships an agent is allowed to rely on. Without it, an agent does not have a data problem. It has a language problem: several tables can each look plausible, and the model has no grounded way to know which one means "revenue," "active user," or "customer."
+
+Getting that floor right changes the shape of everything above it. A semantic layer is not the product; it is the shared contract that lets a company safely add a system of specialized capabilities instead of one generic chatbot. Once an agent can ground itself in the right entities, metrics, and relationships, it can reliably run multi-step workflows, call focused tools, retain reviewed knowledge across runs, reuse validation and analysis code, and operate through durable services where work already happens.
+
+ 
+ 
+ Jun 23, 2026 Closing the loop: Evaluating and improving Replit Agent at scale
+ Most Replit Agent users start with an idea. They describe the goal in natural language — without a repo, test suite, or chosen framework — and expect the agent to turn it into a functioning app. The result might be a website, slide deck, mobile app, several connected artifacts, or something else entirely.
+
+Vibe coders are not usually checking diffs or test output. Success for Replit Agent is deceptively simple: the app should work when users click around.
+
+That changes the job of evaluation. A single score can help with a specific shipping decision, but it cannot tell us, week over week, whether Replit Agent is getting better for users. To answer that question, evaluation must become part of the improvement loop.
+
+Evaluation has to do more now
+
+ 
+ 
+ Feb 26, 2026 We Built a Video Rendering Engine by Lying to the Browser About What Time It Is
+ How Replit turns any web page into a deterministic video by virtualizing time itself, patching key browser audio APIs, and waging war against headless Chrome's quirks.
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ CA 11 : 52 PM 
+
+ Made in sunny California. 
+ All rights reserved. Copyright © 2026 Replit, Inc. 
+
+ Handy Links Resources Help How to guides Status Certifications Partnerships 
+
+ Legal Terms of Service Commercial Agreement Privacy Subprocessors DPA Report Abuse 
+
+ Company About Us News Careers Brand Center Contact Us 
+
+ Social Twitter/X YouTube Linkedin Instagram Facebook Tiktok

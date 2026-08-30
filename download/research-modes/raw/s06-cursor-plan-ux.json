@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://medium.com/@rachelcantor/how-i-use-cursor-to-plan-and-ship-89e3169a297f",
+    "name": "How I Use Cursor to Plan and Ship | by Rachel Cantor",
+    "snippet": "Step 1: Create the plan and save to workspace. I tell Cursor in plan mode: Create a plan for implementing external client authentication . Read more",
+    "host_name": "medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://engincanveske.substack.com/p/how-i-use-cursor-plan-mode-for-real",
+    "name": "How I Use Cursor Plan Mode for Real-World Feature",
+    "snippet": "Plan : This mode thinks first, creates a step-by-step, approachable plan , and allows you to edit it and then run the implementation step-by-step. Read more",
+    "host_name": "engincanveske.substack.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/plan-vs-act-modes/43550",
+    "name": "Plan vs Act modes - Guides",
+    "snippet": "Jan 22, 2025 — If the user asks you to take an action while in plan mode you will remind them that you are in plan mode and that they need to approve the plan ...",
+    "host_name": "forum.cursor.com",
+    "rank": 2,
+    "date": "Jan 22, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/plan-mode-ui-button-auto-switches-to-agent-chaos-ensues/148247",
+    "name": "PLAN mode UI button auto-switches to AGENT, chaos",
+    "snippet": "Jan 7, 2026 — This is a known issue with Plan Mode . The team is aware and is working on a fix. the mode you clearly selected doesn't work as expected.",
+    "host_name": "forum.cursor.com",
+    "rank": 3,
+    "date": "Jan 7, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.stork.ai/blog/youre-using-cursor-wrong",
+    "name": "How Cursor Plan Mode Unlocks Faster, Higher-Quality",
+    "snippet": "Dec 15, 2025 — Plan Mode is a feature in the Cursor IDE that allows you and the AI to collaboratively create a detailed, step-by-step implementation plan in a ... Read more",
+    "host_name": "www.stork.ai",
+    "rank": 4,
+    "date": "Dec 15, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://luca-becker.me/blog/cursor-planning-mode-vs-hooks",
+    "name": "Cursor's New Features: One Hit, One Miss | Luca Becker",
+    "snippet": "Oct 26, 2025 — Planning Mode proves Cursor can iterate thoughtfully, while Cursor Hooks feels rushed. A detailed review of both features from six months of ...",
+    "host_name": "luca-becker.me",
+    "rank": 5,
+    "date": "Oct 26, 2025",
+    "favicon": ""
+  }
+]

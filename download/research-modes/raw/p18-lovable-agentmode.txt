@@ -1,0 +1,658 @@
+URL: https://docs.lovable.dev/features/agent-mode
+TITLE: Implement changes in Build mode - Lovable Documentation
+
+Implement changes in Build mode - Lovable Documentation 
+ Documentation Index
+ Fetch the complete documentation index at: /llms.txt 
+ Use this file to discover all available pages before exploring further.
+ Skip to main content 
+ Lovable Documentation home page 
+
+ 
+ 
+ Search...
+
+ ⌘ K 
+ 
+ Ask Assistant ⌘ I 
+ Support 
+ Blog 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Search... 
+ 
+ 
+
+ Navigation 
+ 
+ 
+ 
+ The agent 
+ 
+ Implement changes in Build mode
+
+ 
+ Documentation 
+ Changelog 
+ 
+
+ 
+ Getting started 
+
+ Welcome to Lovable 
+
+ 
+ Create an account 
+
+ 
+ Quick start 
+
+ 
+ Dashboard overview 
+
+ 
+ Enterprise 
+
+ 
+ Lovable platforms 
+ 
+ 
+ 
+ Use Lovable from other tools 
+ 
+ 
+ 
+ 
+ Build 
+
+ Projects 
+ 
+ 
+ 
+ The agent 
+ 
+ 
+ Plan mode 
+
+ 
+ Build mode 
+
+ 
+ Subagents 
+
+ 
+ 
+ Context & knowledge 
+ 
+ 
+ 
+ File generation 
+
+ 
+ Design 
+ 
+ 
+ 
+ Backend (Cloud) 
+ 
+ 
+ 
+ AI for your app 
+
+ 
+ Test your app 
+ 
+ 
+ 
+ Secure your app 
+ 
+ 
+ 
+ npm packages 
+
+ 
+ Build secrets ENT 
+
+ 
+ Managed registry (Beta) ENT 
+
+ 
+ 
+ Connect 
+
+ Connectors 
+ 
+ 
+ 
+ Connector catalog 
+ 
+ 
+ 
+ Connect any API 
+
+ 
+ Git sync 
+ 
+ 
+ 
+ 
+ Collaborate 
+
+ Collaboration 
+
+ 
+ Share a project 
+
+ 
+ Project comments 
+
+ 
+ Project access 
+
+ 
+ 
+ Deploy & host 
+
+ Hosting 
+
+ 
+ Publish 
+
+ 
+ Custom domains 
+
+ 
+ Transfer a domain 
+
+ 
+ Branded app URLs 
+
+ 
+ Ownership & portability 
+ 
+ 
+ 
+ 
+ Grow & optimize 
+
+ SEO and AEO 
+
+ 
+ Project analytics 
+
+ 
+ Payments 
+
+ 
+ Emails 
+
+ 
+ Agent integrations 
+
+ 
+ Project monitoring 
+
+ 
+ 
+ Workspace & account 
+
+ Workspace 
+ 
+ 
+ 
+ Access 
+ 
+ 
+ 
+ Security 
+ 
+ 
+ 
+ Your account 
+ 
+ 
+ 
+ 
+ Plans & billing 
+
+ Subscription plans 
+
+ 
+ Credits and usage 
+
+ 
+ 
+ Guides & reference 
+
+ Guides 
+ 
+ 
+ 
+ FAQ 
+
+ 
+ Glossary 
+
+ 
+ Video tutorials 
+
+ 
+ Support policy 
+
+ 
+ 
+
+ 
+ 
+ 
+ On this page 
+ Overview 
+ What Build mode is for 
+ How to use Build mode 
+ Tasks and execution visibility 
+ Send follow-ups mid-build 
+ Debugging and verification 
+ How long Lovable works on one message 
+ Pricing Control the cost of a Build mode request 
+ 
+ FAQ 
+ 
+ 
+
+ The agent
+ Implement changes in Build mode
+ 
+ 
+ Copy page Copy page 
+ 
+ 
+
+ Build mode lets Lovable implement and verify changes directly in your project, handling execution end to end with minimal supervision.
+
+ 
+ 
+ Copy page Copy page 
+ 
+ 
+ 
+ 
+ Choose a mode Lovable has two modes: 
+ Plan mode → think through the problem, explore options, and decide on an approach
+
+ Build mode → implement changes and verify the outcome
+
+ Plan mode is for decision-making. Build mode is for execution. The two modes are designed to work together, and you can switch between them at any time. 
+
+ ​ 
+ 
+ 
+ 
+ Overview 
+
+ Build mode (previously Agent mode) is Lovable’s autonomous execution mode, designed to implement changes directly in your project. 
+ When you give Lovable a task, it takes ownership of execution end to end. It understands your intent, explores the codebase for context, applies changes across files, and resolves issues that appear during development. While it works, you can see progress through visible tasks and review the results before moving on. 
+ ​ 
+ 
+ 
+ 
+ What Build mode is for 
+
+ You can use Build mode to: 
+ 
+ Implement features or changes once an approach is decided
+
+ Fix bugs or errors end to end
+
+ Refactor code across multiple files
+
+ Apply coordinated changes across frontend, backend, and configuration
+
+ Debug issues that arise during implementation
+
+ Inspect logs and network activity to identify problems
+
+ Fetch external documentation or assets when needed
+
+ Generate or edit images and videos for use in your project
+
+ Verify results before finishing
+
+ 
+ All changes are applied directly to your project and surfaced through file diffs and summaries. You can follow along step by step in the Details view . 
+ ​ 
+ 
+ 
+ 
+ How to use Build mode 
+
+ Build mode is active unless you switch to Plan mode . 
+ To use it, describe what you want and send your message. Clear requirements and constraints help Lovable produce better results. 
+ Be specific about what you want 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Add a contact form with name, email, and message fields. Validate email format and show error messages inline. 
+ 
+
+ 
+
+ Describe expected behavior 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ When users click ‘Add to Cart’, show a success message and update the cart count in the header. Store cart items in local storage. 
+ 
+
+ 
+
+ Provide context for complex changes 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Update the dashboard to show sales data from the last 30 days. Use the existing Chart component and match the styling used on the analytics page. 
+ 
+
+ 
+
+ Set guardrails for sensitive areas 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Add a new feature to @src/pages/dashboard. Do not modify @src/shared/Layout.tsx or the existing authentication logic. 
+ 
+
+ 
+
+ ​ 
+ 
+ 
+ 
+ Tasks and execution visibility 
+
+ While Lovable is working, tasks appear in the chat interface showing: 
+ 
+ Current step being executed
+
+ Files being modified
+
+ Tools being used (search, web fetch, image generation)
+
+ Progress through multi-step implementations
+
+ 
+ For a closer look, click the activity card while Lovable works, or Details on a finished change. The Details view opens where the preview usually appears. Its Timeline tab lists every step Lovable took, including tool calls, and its Changes tab shows the resulting file changes. Click Hide details to return to the preview. 
+ This visibility helps you: 
+ 
+ Follow progress on complex builds
+
+ Understand the steps being performed
+
+ Stay oriented during complex changes
+
+ Spot issues early if something seems off
+
+ 
+ ​ 
+ 
+ 
+ 
+ Send follow-ups mid-build 
+
+ Lovable working on a request doesn’t block you. Send a follow-up, a correction, or a new idea at any time to steer the work, and Lovable picks it up at its next natural stopping point without losing completed work. Some messages, like Try to fix , run as their own request after the current one. See Send follow-ups while Lovable works for details. 
+ If you still have the now-deprecated message queue , your messages keep queueing in order instead. Send now on a queued message delivers it into the running task right away, like a follow-up. The Message queue setting in Settings → Your account lets you disable the queue and switch to follow-ups. Only accounts that still have the queue see this setting. 
+ ​ 
+ 
+ 
+ 
+ Debugging and verification 
+
+ When using Build mode, Lovable does more than ensure code compiles. 
+ As part of investigation and problem solving, the agent can: 
+ 
+ observe build errors and failures from test runs
+
+ inspect console output and network requests when verification tools are used
+
+ reproduce reported issues using browser testing or targeted backend calls
+
+ verify that fixes work as expected by running appropriate checks
+
+ 
+ Lovable has access to verification tools such as browser testing, frontend tests, and edge function verification to help understand system behavior, validate user workflows, and ensure backend logic works as expected. Most of these tools run only when you ask for them. 
+ For a detailed explanation of testing and verification capabilities, see Test and verify your app . 
+ ​ 
+ 
+ 
+ 
+ How long Lovable works on one message 
+
+ Lovable works on one Build mode message for up to 10 hours, so a large task, like a refactor across multiple files or a long cycle of testing and fixing, is more likely to finish in a single message. This applies automatically, and there is nothing to turn on. Most messages finish well before the limit. 
+ In the final half hour, Lovable wraps up: it finishes what is in progress instead of starting new work, and summarizes what is done and what remains, so you can ask it to continue in a new message. 
+ Because a Build mode message is billed on the work Lovable does, a message that runs for hours costs more credits than a short one. Credit check-ins still apply, so a long message pauses when it crosses your check-in level and asks whether to continue, and the stop button stops it at any time. The 10-hour limit applies to Build mode messages only. 
+ ​ 
+ 
+ 
+ 
+ Pricing 
+
+ Pricing for Build mode is usage-based . Cost depends on factors such as: 
+ 
+ Number of files modified
+
+ Complexity of logic changes
+
+ Amount of codebase exploration required
+
+ Use of tools such as verification, browser checks, web search, or image generation
+
+ 
+ Many requests cost less than one credit, while more complex tasks may cost more. Lovable does not show an upfront credit estimate before a Build mode request runs, because cost depends on work that is discovered during execution. To follow the cost, open the More options menu below Lovable’s response: it shows Credits used while the request is still running, and the final cost when it finishes. See Credits and usage and Time and cost while Lovable works . 
+ If your workspace runs out of credits while Lovable is working on a message, the message pauses rather than ending. A card in chat lets you add credits and resume where Lovable left off, or have Lovable wrap up what’s in progress. See What happens when you run out of credits . 
+ ​ 
+ 
+ 
+ 
+ Control the cost of a Build mode request 
+
+ You have several controls to shape the cost of a Build mode request: 
+ 
+ Scope each prompt narrowly. Ask for one change at a time and name the specific files or areas to touch, as shown in How to use Build mode . Broad prompts like “clean up the app” tend to explore more of the codebase and modify more files, which costs more than a scoped prompt like “add email validation to the sign-up form in @src/pages/signup.tsx”.
+
+ Plan first for large or unfamiliar changes. Switch to Plan mode to review the intended approach, files involved, and steps before any code is changed. Every Plan mode message costs one credit, so you can trade one predictable credit for visibility into what Build mode would do next.
+
+ Let credit check-ins catch expensive messages. When a single message crosses your check-in level, 20 credits by default, Lovable pauses with the cost so far, and you choose whether to continue, adjust the level, or have Lovable wrap up. Manage check-ins in account settings . In beta. See Build costs .
+
+ Stop a request in progress. Click the stop button while Lovable is working to halt the current task immediately. Stopped requests are charged only for work completed up to that point, and completed changes are kept. Use the undo button to revert to the previous state if you want to discard the changes as well.
+
+ Watch progress in the Details view. While Lovable works, click the activity card in chat to open the Details view, which shows each step, tool, and file change as it runs, so you can stop early if the task is expanding beyond what you intended.
+
+ Check your balance before starting large tasks. Open Settings → Plans & credit usage to see your remaining credits, or click the project name in the project editor to see the credit bar. See View your credit balance .
+
+ 
+ ​ 
+ 
+ 
+ 
+ FAQ 
+
+ 
+ 
+ Does Lovable modify my project directly when in Build mode?
+
+ Yes. Lovable applies changes directly to your project when using Build mode. All modifications are visible through file diffs and summaries. 
+ 
+ 
+ What happens if errors occur during implementation?
+
+ Lovable can inspect logs, runtime output, and network activity and iterate on fixes until the issue is resolved or clarified. See Test and verify your app for more information. 
+ 
+ 
+ Can I see what Lovable is doing while it works?
+
+ Yes. Visible tasks show each step of execution, including progress and which files are being modified. 
+ 
+ 
+ Can multiple messages be sent while working in Build mode?
+
+ Yes. While Lovable is working, keep typing: Lovable picks up each message at its next natural stopping point and includes it in the work without losing anything it has already done. See Send follow-ups while Lovable works . If you still have the message queue , your messages keep queueing in order instead. Send now on a queued message delivers it into the running task right away, and you can disable the queue in Settings → Your account . 
+ 
+ 
+ How do I stop a request, and what happens when I do?
+
+ Click the stop button while Lovable is responding to immediately halt the current task. This lets you stop a request to provide more context or correct the agent. Lovable keeps all changes made up to that point, so you won’t lose completed work. Stopped requests are charged based on the work completed so far. If you want to remove the changes, use the undo button to revert to the previous state. 
+ 
+ 
+ What happens if I run out of credits while Lovable is working?
+
+ The message pauses rather than ending, and a card appears in chat. Choose Add credits to resume where Lovable left off, or Wrap up to have Lovable finish the work in progress and stop. Paused work waits until you decide. See What happens when you run out of credits . 
+ 
+ 
+ When should I switch to Plan mode?
+
+ Switch to Plan mode when you want to: 
+ Think through a complex change before implementation
+
+ Compare multiple architectural approaches
+
+ Review or edit a plan before any code is changed
+
+ Investigate an issue and decide on a solution first
+
+ 
+ 
+ 
+ Can I reference a specific file when chatting with Lovable?
+
+ Yes. You can reference code files from your current project directly in chat to make edits and discussion faster and more precise. Type @
+ and select a file, or use the Reference file in chat button in the code editor . For example: 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ @src/components/UserProfile.tsx add a loading state here 
+ 
+
+ 
+
+ This only references files within your current project. To reference another project, see Cross-project referencing . 
+ 
+ 
+ Can Lovable reuse code or features from another project?
+
+ Yes. Lovable supports cross-project referencing within the same workspace. You can use @
+ mentions to reference another project directly, or simply ask Lovable to reuse an existing implementation. The agent can access relevant code, files, assets, and chat history from other projects and adapt them to your current one. Cross-project access is read-only and respects workspace permissions. 
+ 
+
+ Related topics
+ 
+ 
+ 
+ 
+ 
+ Brainstorm in Plan mode 
+ 
+ 
+ 
+ 
+ Implement SEO and GEO best practices 
+ 
+ 
+ 
+ 
+ Credits and usage 
+ 
+ 
+ 
+ 
+ Cross-project referencing 
+ 
+ 
+ 
+ 
+ Video tutorials 
+ Was this page helpful?
+ 
+ 
+ Yes 
+ 
+ No 
+ 
+
+ 
+ Plan mode
+ Subagents
+ 
+ 
+ 
+ 
+
+ x github linkedin youtube discord reddit 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Assistant 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Responses are generated using AI and may contain mistakes.

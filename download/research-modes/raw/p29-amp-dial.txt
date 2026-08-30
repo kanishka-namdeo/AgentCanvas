@@ -1,0 +1,206 @@
+URL: https://ampcode.com/news/the-dial
+TITLE: The Dial
+
+The Dial - Amp 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Return to Amp 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Chronicle // [ News ] The Dial 
+ July 9, 2026 The Dial 
+ 
+
+ Amp's agent modes are now a dial: low
+, medium
+, high
+, ultra
+. They replace smart
+, deep
+, rush
+, and large
+.
+
+ 
+
+ The old modes were models in disguise: each name hid a model, a prompt, a reasoning effort — and to pick one, you had to know what that model was like this month. That world is gone. The models converged, open-weight models got seriously good, and the only question left is capability against cost.
+
+ The dial asks one question: how hard is this task?
+
+ Missing in either direction costs you. Undershoot and the model churns: wrong fix, re-prompt, wrong fix again. You pay three times for a result you could have had once. Overshoot and you're using Fable to fix a typo. Set it right and you pay for exactly the intelligence the task needs.
+
+ 
+ ultra
+ — The outcome is clear, but the path is full of unknowns. Migrations, architecture, changes that span many files, systems, and decisions the model has to discover as it goes.
+
+ high
+ — You know where the change goes, but getting it right is hard: cross-cutting changes, concurrency, bugs where a subtle miss is expensive. You get diffs closer to reviewer-ready than medium
+ gets you — but plan on one round of feedback before merging, and about twice the wait.
+
+ medium
+ — You know roughly what you want. This should be your default. It handles messy, multi-part tasks, fuzzy requirements, the steps you didn't spell out. Strong enough for most work, fast enough to steer.
+
+ low
+ — You know exactly what you want. Bug fixes, tests, refactors, features you can describe precisely. There is less to figure out for the model, so low
+ builds it.
+
+ 
+ Turn the dial with Ctrl+S
+ in the CLI, or with the mode picker in the web app.
+
+ 
+
+ Under the Hood
+
+ We want you to know exactly what you're getting, so here's what backs each mode today. This wiring will change as models improve. The dial won't.
+
+ 
+ ultra
+: Claude Fable 5, with a system prompt written for it. GPT-5.6 Sol as the oracle.
+
+ high
+: GPT-5.6 Sol at xhigh
+ reasoning effort. Claude Fable 5 as the oracle.
+
+ medium
+: GPT-5.6 Sol at medium reasoning effort. GPT-5.6 Sol at high effort as the oracle.
+
+ low
+: GLM-5.2, Z.ai's open-weight model, the strongest open model on agentic coding. GPT-5.6 Sol as the oracle. (Workspace admins can choose to use GPT-5.6 Terra low instead of GLM-5.2 here.)
+
+ 
+ Reasoning effort is part of the tier now. No more cycling Opt+D
+ through effort levels on top of picking a mode.
+
+ Every mode has an oracle for second opinions. On the top tiers, it's the other frontier model: in high
+, GPT-5.6 Sol writes and Fable reviews. In ultra
+, Fable writes and GPT-5.6 Sol reviews.
+
+ Migrating
+
+ 
+ smart
+, deep
+ → medium
+ (same model and effort as deep
+). Turn up for hard problems.
+
+ rush
+ → low
+.
+
+ deep**3
+ -> ultra
+ or high
+
+ 
+ Want to Tune It Yourself?
+
+ The dial removes knobs from the default experience, not from Amp. Plugins can register their own agent modes with your model, your prompt, and your tools, and they show up right next to the built-in ones.
+
+ We used that same plugin API to package up the deprecated modes — exact system prompts, exact tool lists, same models and reasoning efforts. If you want smart
+, deep
+, rush
+, or large
+ back, install them:
+
+ amp plugins add --auto-update @amp/smart-classic
+amp plugins add --auto-update @amp/deep-classic
+amp plugins add --auto-update @amp/rush-classic
+amp plugins add --auto-update @amp/large-classic
+
+ Then run plugins: reload
+ (or restart the CLI) and they appear in the mode picker as Smart (classic), Deep (classic), Rush (classic), and Large (classic) — the original names stay reserved for the built-ins. --auto-update
+ keeps them current when we update the plugins; drop it if you'd rather pin. The full list of installable modes is on ampcode.com/modes .
+
+ Start at medium
+. Turn it down when the task is clear. Turn it up when a miss costs more than the wait.
+
+ We'll follow up with posts on each mode and numbers on what each one can handle.
+
+ 
+ 
+ 
+ Also of Interest
+ GPT-5.5
+ The predecessor of GPT-5.6 in Amp's high and medium modes 
+ 
+ 
+ Read 
+ 
+
+ 
+
+ 
+ 
+ All Systems Operational 
+ Security 
+ Privacy Policy 
+ Terms of Service 
+ 
+
+ Product
+ Download App 
+ Start 
+ Sign In 
+ Docs 
+ What Are Orbs? 
+ Models 
+ 
+ Resources
+ Chronicle 
+ Pricing 
+ Podcast 
+ Press Kit 
+ 
+ Guides
+ How to Build an Agent 
+ Context Management 
+ 
+ Community
+ 𝕏 @ampcode 
+ Amp Insiders 
+ YouTube 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ . Layers appended to (bits-ui portals
+ such as menus and dialogs, toasts, drag previews) would otherwise toggle the app
+ root's :last-child state, and WebKit then restyles the entire app subtree on every
+ open and close (tens of ms on a long thread). With this stable tail element only
+ the tail's state changes, which is free. -->

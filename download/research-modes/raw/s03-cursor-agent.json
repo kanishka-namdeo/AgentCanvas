@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://cursor.com/docs/agent/overview",
+    "name": "Overview | Cursor Docs",
+    "snippet": "Agent is Cursor's assistant that can complete complex coding tasks independently, run terminal commands, and edit code. Access in sidepane with Cmd+ICtrl+I . Read more",
+    "host_name": "cursor.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@jongchanko/cursor-ai-agent-what-is-difference-between-agent-and-edit-34abda92d539",
+    "name": "[Cursor/AI Agent] What is difference between Agent and Edit.",
+    "snippet": "In Agent mode , AI can understand the entire codebase, modify multiple files simultaneously, and execute terminal commands.",
+    "host_name": "medium.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cursor.com/docs/cli/using",
+    "name": "Using Agent in CLI | Cursor Docs",
+    "snippet": "The agent searches your codebase and provides answers without editing files. Agent has tools for file operations , searching, running shell commands, and web ...",
+    "host_name": "cursor.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://hyperskill.org/learn/step/53231",
+    "name": "Working with Cursor",
+    "snippet": "In this mode, the agent can create, read, and write files, make edits , run commands, fix errors, and perform complex multi-step workflows.",
+    "host_name": "hyperskill.org",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://eastondev.com/blog/en/posts/dev/20260110-cursor-agent-complete-guide",
+    "name": "Complete Guide to Cursor Agent Mode: Start AI-Powered",
+    "snippet": "Jan 10, 2026 — Can edit several files at once (e.g., adding a feature that requires changes to components, routes, and API) terminal commands without ...",
+    "host_name": "eastondev.com",
+    "rank": 4,
+    "date": "Jan 10, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://freeacademy.ai/lessons/agent-mode",
+    "name": "Agent Mode: Let Cursor Drive",
+    "snippet": "Agent mode is Cursor's most autonomous feature . It takes a high-level goal and executes a sequence of file reads, edits, file creations, and terminal commands ... Read more",
+    "host_name": "freeacademy.ai",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/cursor/comments/1qd15xv/asking_configuration_to_edit_any_file_in_the",
+    "name": "Asking configuration to edit any file in the workspace since",
+    "snippet": "Open a workspace containing more than one project in it, ask for any change . What did you expect to happen instead? Not asking for confirmation ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.learncursor.dev/learn/cursor-agents/agent-terminal-tool",
+    "name": "Cursor Agent: The Terminal Tool",
+    "snippet": "Jul 28, 2026 — Cursor's terminal tool runs shell commands directly in your terminal . Your Run Mode setting controls when a command runs, when Cursor asks ... Read more",
+    "host_name": "www.learncursor.dev",
+    "rank": 7,
+    "date": "Jul 28, 2026",
+    "favicon": ""
+  }
+]

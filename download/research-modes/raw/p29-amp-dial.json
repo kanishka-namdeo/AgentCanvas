@@ -1,0 +1,968 @@
+{
+  "code": 200,
+  "data": {
+    "description": "Four new agent modes: low, medium, high, ultra. Dial in how hard Amp should work. Smart, deep, rush, and large are deprecated.",
+    "external": {
+      "alternate": {
+        "https://ampcode.com/news.rss": {
+          "title": "Amp News RSS Feed",
+          "type": "application/rss+xml"
+        },
+        "https://ampcode.com/podcast.rss": {
+          "title": "Raising an Agent Podcast",
+          "type": "application/rss+xml"
+        }
+      },
+      "apple-touch-icon": {
+        "https://ampcode.com/app-icon.png?v=4": {}
+      },
+      "apple-touch-startup-image": {
+        "https://ampcode.com/pwa-startup-images/dark-1125x2436.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1170x2532.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1179x2556.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1206x2622.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1260x2736.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1284x2778.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1290x2796.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1320x2868.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1334x750.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1488x2266.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1620x2160.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1640x2360.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1668x2388.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-1668x2420.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2048x2732.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2064x2752.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2160x1620.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2266x1488.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2360x1640.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2388x1668.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2420x1668.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2436x1125.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2532x1170.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2556x1179.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2622x1206.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2732x2048.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2736x1260.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2752x2064.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2778x1284.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2796x1290.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-2868x1320.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/dark-750x1334.png?v=1": {
+          "media": "(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1125x2436.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1170x2532.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1179x2556.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1206x2622.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1260x2736.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1284x2778.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1290x2796.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1320x2868.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1334x750.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1488x2266.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1620x2160.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1640x2360.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1668x2388.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-1668x2420.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2048x2732.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2064x2752.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2160x1620.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2266x1488.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2360x1640.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2388x1668.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2420x1668.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2436x1125.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2532x1170.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2556x1179.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2622x1206.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2732x2048.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2736x1260.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2752x2064.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2778x1284.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2796x1290.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-2868x1320.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"
+        },
+        "https://ampcode.com/pwa-startup-images/light-750x1334.png?v=1": {
+          "media": "(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        }
+      },
+      "dns-prefetch": {
+        "https://static.ampcode.com/": {}
+      },
+      "icon": {
+        "https://ampcode.com/app-icon-192.png?v=4": {
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        "https://ampcode.com/app-icon.svg?v=4": {
+          "data-amp-favicon": "",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      },
+      "manifest": {
+        "https://ampcode.com/site.webmanifest": {
+          "crossorigin": "use-credentials"
+        }
+      },
+      "modulepreload": {
+        "https://ampcode.com/_app/immutable/chunks/1019fdf1c13b82e8.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/12ee2d5f3ad6ea6f2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/14af6e3a5d115ab82.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/15a8c3cf581f2633.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/15da15f25be24b582.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/175659636d0c9f37.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/1868f97286d348d2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/18fabf5f109ae760.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/1a7e511509b7c604.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/1b3156397e02fb7a.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/1bcc344dcf85e2f72.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/1d707cf658ca9e192.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/21ad3b8b14bf15f72.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/21e188ee604f2be6.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/22c96a513c5bd3492.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/22eb530ad56a16d42.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/23e589a1ee71b352.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/246c2a7e8fdc7a89.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/27b4d88df992cc7e2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/2af4519983966c4f.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/2e30316591bab8ee.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/2fc96cca07af19b12.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/2fe7d945cf356dd12.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/318a14ed2a5a89c8.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/3327f21bed364aef.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/36bca35618ad0d1b.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/37627f10af5ee78b.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/37e3792b180689af.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/390c1df9b9d5cb86.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/3967be267df73cc42.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/3a135eee6bcfbfa6.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/3c2df161234d7ea4.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/3d6fa6a4dee721162.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/3d74c02096c2d02d2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/3dec44515b35e4342.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/3f8cefa17250308a2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/4058e2cd3eac9394.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/41d15622aa3caf2a.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/44a10e41c2323802.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/450525a615ffeaea2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/45332ab3e6ecc6892.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/45d9dca36c70f9b1.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/45e67ce1df5e012c2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/46c768a114f17ca8.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/485181b407b1d3762.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/4902a2f7d88df521.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/49d00cc714697d96.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/4db45ca13876bb23.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/4e744845c66c8140.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/4f50134437b29217.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/5004bb396f870b43.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/52dde95b07c9a95b.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/558c84123f8966a6.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/56de050e28b144f7.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/579ef27d8850f25c.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/57e3af680c1eb9432.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/5acc43daff860b932.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/5b57fd2ce17a2caa.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/5bdda0abaad6d060.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/5ca9119f2f03af8c.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/5cfd77ac212b9c23.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/5ddcd5e79b74989f.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/5f6938c8525cd2b82.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/5fe8e0ab02e7cdf62.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/61ce0b8432982da0.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/6342fce8bf5b27c52.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/647d6b140b3c39952.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/649f2ac9ddd86791.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/64b8e93e595acf602.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/677d79100b37e7032.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/698b4c6e75fb7728.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/69be691ad6b185842.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/6a83db8433a5491a.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/6a9298fa26c9a5cf.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/6c47cb17c2560e71.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/6e8506f70abef9fe.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/70713b8b1988eea12.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/7434eaa4f09b9bd8.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/76311f22f8c68176.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/767b1320eed4cbb4.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/7d8e5135f5476a612.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/7df1df976ecf84112.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/7fc0f890a58f3abc.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/81b5fe0ce0a10e6c2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/82c983bba717d88c2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/8522d45bd2a7d4702.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/8580adab0b9f9411.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/89ea874df148954f.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/8a4898d2052d01342.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/8aae4a13529b684e2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/8b2262884b8b48462.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/8cb77ca4a5eb438b.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/8f503bf3700bd175.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/91f039cc58b95015.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/977e40088894aca4.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/997cc0ef0c930844.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/a2701781d2cbd07f.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/a2728fa20f24dc45.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/a2bda1a95f33f2942.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/a672667b6b6a48862.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/a6b2bf7f62478b76.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/a6b88617c027b5ce2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/a6bd2ce226606a43.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/a6c360170dabc8462.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/ab8417b957fab2552.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/ad2d4609c7d816d52.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/aed0f06deac3c952.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/b00b4883192017592.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/b0c1799fbcc76388.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/b23f0d4342183c2d2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/b53e943c431f8062.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/b58e4050d3d47665.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/b687319ea2fb9100.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/b70831e3a1ac3547.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/b79ab50afb793408.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/b81bb699a1627119.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/b9ae1d92c02cbb56.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/baf68c37778f3a822.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/bd6d0e3a38f5682b.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/c1e19319c5a029992.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/c567f74fcd585129.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/c716e888ca200247.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/c78c94bf9754f5352.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/c88a04c6d1ea372d2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/c96f69ef61ae8a3f2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/cb45d9fb48d0d299.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/cce471aaf7d25ec1.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/cebc9d8211a3d51d.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/d2352b2a7d9d864b.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/d30cf1449a97240b2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/d49238b0fd406ea72.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/d5761cd486d8c478.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/d7e3c2a87323c6942.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/d99286d587150647.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/db72919cf74de317.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/dcecb5146b3b257a.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/ddfee0f9a53738ef.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/de4820ff3698b7482.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/df9661df5eebfa74.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/e22652e22257384d.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/e3ecd1e9e4193dcd.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/e409c771168733f0.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/e45d040f5150ee8f2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/e79d366950c7c69e2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/e99f1c0d7a3360c9.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/eaefdfb3a74674b7.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/eb2fdbd8d66b7135.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/ed2ebf9c045cacd6.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/edc08fdb64d0dfc22.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/edd78338553912d92.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/ee2a9ebfab06af74.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/effee0b706f79df2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/f1f96d8e46acaf2f.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/f2714ebe19ff0b102.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/f2fe7ec241d85f812.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/f3d0aabbddd791f72.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/f4451a4472217103.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/f8d7df2f4eb15cbb2.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/fcfce2bd681ccd4b.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/fd1434a5eaa63e81.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/ffa8171c5008cf11.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/ffaf8b9610be7e88.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/chunks/ffe263bdd5826a5a.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/nodes/0.b1027ce3d005bde9.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/nodes/1.67107646f121129b.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/nodes/32.9290b3daaf23471c.js": {
+          "as": "script",
+          "crossorigin": ""
+        },
+        "https://ampcode.com/_app/immutable/nodes/551.bbb931b519f8ab43.js": {
+          "as": "script",
+          "crossorigin": ""
+        }
+      },
+      "preload": {
+        "https://ampcode.com/fonts/PolySans-variable.woff2": {
+          "as": "font",
+          "crossorigin": "anonymous",
+          "type": "font/woff2"
+        },
+        "https://ampcode.com/fonts/SagittaireDisplay-ExtralightItalic.woff2": {
+          "as": "font",
+          "crossorigin": "anonymous",
+          "type": "font/woff2"
+        },
+        "https://ampcode.com/fonts/SagittaireDisplay-Regular.woff2": {
+          "as": "font",
+          "crossorigin": "anonymous",
+          "type": "font/woff2"
+        }
+      }
+    },
+    "html": "<html lang=\"en\" data-type-scale=\"\" data-amp-theme=\"theme-0\" data-amp-color-scheme=\"system\" data-amp-app-layout=\"framed\" style=\"\"><head>\n\t\t<meta charset=\"utf-8\">\n\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n\t\t<style>\n\t\t\t:root {\n\t\t\t\tcolor-scheme: light dark;\n\t\t\t\t--amp-shell-light-background-color: #fafaf8;\n\t\t\t\t--amp-shell-dark-background-color: #0b0d0b;\n\t\t\t\t--amp-surface-light-background-color: #f9fdf6;\n\t\t\t\t--amp-surface-dark-background-color: #0c1516;\n\t\t\t}\n\n\t\t\thtml[data-amp-color-scheme='light'] {\n\t\t\t\tcolor-scheme: light;\n\t\t\t}\n\n\t\t\thtml[data-amp-color-scheme='dark'] {\n\t\t\t\tcolor-scheme: dark;\n\t\t\t}\n\n\t\t\thtml[data-amp-theme='theme-1'] {\n\t\t\t\t--amp-shell-light-background-color: #fafafa;\n\t\t\t\t--amp-shell-dark-background-color: #0c0c0c;\n\t\t\t\t--amp-surface-light-background-color: #fcfcfc;\n\t\t\t\t--amp-surface-dark-background-color: #121212;\n\t\t\t}\n\n\t\t\thtml,\n\t\t\tbody {\n\t\t\t\tbackground-color: var(--amp-shell-light-background-color);\n\t\t\t}\n\n\t\t\tbody:not([data-amp-app-mounted]) .app-shell [data-slot='sidebar-trigger'],\n\t\t\t.app-shell[data-app-mount-preview-loading] [data-slot='sidebar-trigger'] {\n\t\t\t\tposition: relative;\n\t\t\t\tpointer-events: none;\n\t\t\t}\n\n\t\t\t.app-shell [data-slot='sidebar-trigger'] > :not(.sr-only) {\n\t\t\t\ttransform: scale(1);\n\t\t\t\ttransform-origin: center;\n\t\t\t\topacity: 1;\n\t\t\t\ttransition:\n\t\t\t\t\ttransform 120ms cubic-bezier(0.2, 0.8, 0.2, 1),\n\t\t\t\t\topacity 120ms ease-out;\n\t\t\t}\n\n\t\t\tbody:not([data-amp-app-mounted])\n\t\t\t\t.app-shell\n\t\t\t\t[data-slot='sidebar-trigger']\n\t\t\t\t> :not(.sr-only),\n\t\t\t.app-shell[data-app-mount-preview-loading]\n\t\t\t\t[data-slot='sidebar-trigger']\n\t\t\t\t> :not(.sr-only) {\n\t\t\t\ttransform: scale(0.4);\n\t\t\t\topacity: 0;\n\t\t\t}\n\n\t\t\t.app-shell [data-slot='sidebar-trigger']::after {\n\t\t\t\tcontent: '';\n\t\t\t\tposition: absolute;\n\t\t\t\ttop: 50%;\n\t\t\t\tleft: 50%;\n\t\t\t\t/* 62.5% of the trigger's 0.875rem icon box; matches Loader's .loader-dot scale. */\n\t\t\t\twidth: 0.546875rem;\n\t\t\t\theight: 0.546875rem;\n\t\t\t\tmargin-top: -0.2734375rem;\n\t\t\t\tmargin-left: -0.2734375rem;\n\t\t\t\tbackground: currentColor;\n\t\t\t\tborder-radius: 9999px;\n\t\t\t\ttransform: scale(0);\n\t\t\t\topacity: 0;\n\t\t\t\ttransition:\n\t\t\t\t\ttransform 120ms cubic-bezier(0.4, 0, 1, 1),\n\t\t\t\t\topacity 120ms ease-out;\n\t\t\t}\n\n\t\t\tbody:not([data-amp-app-mounted]) .app-shell [data-slot='sidebar-trigger']::after,\n\t\t\t.app-shell[data-app-mount-preview-loading] [data-slot='sidebar-trigger']::after {\n\t\t\t\ttransform: scale(1);\n\t\t\t\topacity: 0.65;\n\t\t\t\tanimation: amp-app-mounting-sidebar-trigger-breathe 1.2s ease-in-out infinite;\n\t\t\t}\n\n\t\t\t@keyframes amp-app-mounting-sidebar-trigger-breathe {\n\t\t\t\t0%,\n\t\t\t\t100% {\n\t\t\t\t\topacity: 0.4;\n\t\t\t\t}\n\n\t\t\t\t50% {\n\t\t\t\t\topacity: 0.8;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t@media (prefers-reduced-motion: reduce) {\n\t\t\t\t.app-shell [data-slot='sidebar-trigger'] > :not(.sr-only),\n\t\t\t\t.app-shell [data-slot='sidebar-trigger']::after {\n\t\t\t\t\ttransition: none;\n\t\t\t\t}\n\n\t\t\t\tbody:not([data-amp-app-mounted]) .app-shell [data-slot='sidebar-trigger']::after,\n\t\t\t\t.app-shell[data-app-mount-preview-loading] [data-slot='sidebar-trigger']::after {\n\t\t\t\t\tanimation: none;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\thtml[data-amp-color-scheme='dark'],\n\t\t\thtml[data-amp-color-scheme='dark'] body {\n\t\t\t\tbackground-color: var(--amp-shell-dark-background-color);\n\t\t\t}\n\n\t\t\t@media (prefers-color-scheme: dark) {\n\t\t\t\thtml[data-amp-color-scheme='system'],\n\t\t\t\thtml[data-amp-color-scheme='system'] body {\n\t\t\t\t\tbackground-color: var(--amp-shell-dark-background-color);\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t/* macOS auxiliary windows (thread-in-own-window) paint the app surface color\n\t\t\t   before hydration so the new window doesn't flash the shell background\n\t\t\t   (white-ish in dark mode). The native shell sets the marker at\n\t\t\t   document-start; see native-shell.ts getMacOSAuxiliaryWindow. */\n\t\t\thtml[data-amp-auxiliary-window],\n\t\t\thtml[data-amp-auxiliary-window] body {\n\t\t\t\tbackground-color: var(--amp-surface-light-background-color);\n\t\t\t}\n\n\t\t\t/* Thread windows start with the sidebar collapsed, but the server renders the\n\t\t\t   user's saved (usually expanded) sidebar state. Hide it until the client applies\n\t\t\t   the per-window collapsed state so it never flashes open and closed. */\n\t\t\thtml[data-amp-auxiliary-window='thread']\n\t\t\t\tbody:not([data-amp-app-mounted])\n\t\t\t\t[data-slot='sidebar'] {\n\t\t\t\tdisplay: none;\n\t\t\t}\n\n\t\t\thtml[data-amp-color-scheme='dark'][data-amp-auxiliary-window],\n\t\t\thtml[data-amp-color-scheme='dark'][data-amp-auxiliary-window] body {\n\t\t\t\tbackground-color: var(--amp-surface-dark-background-color);\n\t\t\t}\n\n\t\t\t@media (prefers-color-scheme: dark) {\n\t\t\t\thtml[data-amp-color-scheme='system'][data-amp-auxiliary-window],\n\t\t\t\thtml[data-amp-color-scheme='system'][data-amp-auxiliary-window] body {\n\t\t\t\t\tbackground-color: var(--amp-surface-dark-background-color);\n\t\t\t\t}\n\t\t\t}\n\t\t</style>\n\t\t<link rel=\"manifest\" href=\"/site.webmanifest\" crossorigin=\"use-credentials\">\n\t\t<!-- Keep the ?v= icon version in sync with appIconVersion in routes/site.webmanifest/+server.ts -->\n\t\t<link rel=\"apple-touch-icon\" href=\"https://ampcode.com/app-icon.png?v=4\">\n\t\t<meta name=\"apple-mobile-web-app-title\" content=\"Amp\">\n\t\t<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">\n\t\t<meta name=\"mobile-web-app-capable\" content=\"yes\">\n\t\t<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\">\n\t\t<!-- Captures `beforeinstallprompt` before hydration so the PWA install flow\n\t\t     (lib/standalone/pwa-install-helper.svelte) can trigger it later. Inline with the\n\t\t     per-request CSP nonce, which SvelteKit only substitutes in this template, to avoid\n\t\t     a render-blocking external script request. -->\n\t\t<script nonce=\"a1i5PUlUDsO1WRQ7mtVXbQ==\">\n\t\t\tglobalThis.addEventListener('beforeinstallprompt', (event) => {\n\t\t\t\tevent.preventDefault()\n\t\t\t\tglobalThis.installPromptEvent = event\n\t\t\t})\n\t\t</script>\n\t\t<link rel=\"icon\" type=\"image/svg+xml\" sizes=\"any\" href=\"https://ampcode.com/app-icon.svg?v=4\" data-amp-favicon=\"\">\n\t\t<link rel=\"icon\" type=\"image/png\" sizes=\"192x192\" href=\"https://ampcode.com/app-icon-192.png?v=4\">\n\t\t<!--[-1--><!--]--> <!--[-1--><!--]--> <!--[-1--><!--]--> <!--[-1--><!--]--> <meta property=\"og:title\" content=\"The Dial\"> <!--[0--><meta property=\"og:description\" content=\"Four new agent modes: low, medium, high, ultra. Dial in how hard Amp should work. Smart, deep, rush, and large are deprecated.\"><!--]--> <!--[0--><meta property=\"og:image\" content=\"https://ampcode.com/og?_template=news&amp;_version=7&amp;title=The+Dial&amp;date=July+9%2C+2026&amp;tagline=Four+new+agent+modes%3A+low%2C+medium%2C+high%2C+ultra.+Dial+in+how+hard+Amp+should+work.+Smart%2C+deep%2C+rush%2C+and+large+are+deprecated.&amp;screenshot=https%3A%2F%2Fstatic.ampcode.com%2Fnews%2Fdial-release.png%3Fv%3D20260709-2&amp;sig=9df8d437ded37c55c3b60e7e5aa31334b743164fd1efc4ced68512a20cfbd289\"><meta name=\"twitter:image\" content=\"https://ampcode.com/og?_template=news&amp;_version=7&amp;title=The+Dial&amp;date=July+9%2C+2026&amp;tagline=Four+new+agent+modes%3A+low%2C+medium%2C+high%2C+ultra.+Dial+in+how+hard+Amp+should+work.+Smart%2C+deep%2C+rush%2C+and+large+are+deprecated.&amp;screenshot=https%3A%2F%2Fstatic.ampcode.com%2Fnews%2Fdial-release.png%3Fv%3D20260709-2&amp;sig=9df8d437ded37c55c3b60e7e5aa31334b743164fd1efc4ced68512a20cfbd289\"><!--]--> <meta name=\"twitter:site\" content=\"@ampcode\"> <link rel=\"alternate\" type=\"application/rss+xml\" title=\"Amp News RSS Feed\" href=\"/news.rss\"> <link rel=\"alternate\" type=\"application/rss+xml\" title=\"Raising an Agent Podcast\" href=\"/podcast.rss\"> <link rel=\"dns-prefetch\" href=\"https://static.ampcode.com\"><!----><!--[--><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1620x2160.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1620x2160.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2160x1620.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2160x1620.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1488x2266.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1488x2266.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2266x1488.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2266x1488.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1640x2360.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1640x2360.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2360x1640.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2360x1640.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1668x2388.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1668x2388.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2388x1668.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2388x1668.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2048x2732.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2048x2732.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2732x2048.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2732x2048.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1668x2420.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1668x2420.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2420x1668.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2420x1668.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 834px) and (device-height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2064x2752.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2064x2752.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2752x2064.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2752x2064.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1125x2436.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1125x2436.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2436x1125.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2436x1125.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1170x2532.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1170x2532.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2532x1170.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2532x1170.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1284x2778.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1284x2778.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2778x1284.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2778x1284.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-750x1334.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-750x1334.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1334x750.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1334x750.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1179x2556.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1179x2556.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2556x1179.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2556x1179.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1290x2796.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1290x2796.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2796x1290.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2796x1290.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1206x2622.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1206x2622.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2622x1206.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2622x1206.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1320x2868.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1320x2868.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2868x1320.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2868x1320.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-1260x2736.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-1260x2736.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/light-2736x1260.png?v=1\" media=\"(prefers-color-scheme: light) and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><link rel=\"apple-touch-startup-image\" href=\"/pwa-startup-images/dark-2736x1260.png?v=1\" media=\"(prefers-color-scheme: dark) and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)\"><!--]--><!----><link rel=\"preload\" href=\"/fonts/SagittaireDisplay-Regular.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"anonymous\"> <link rel=\"preload\" href=\"/fonts/SagittaireDisplay-ExtralightItalic.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"anonymous\"> <link rel=\"preload\" href=\"/fonts/PolySans-variable.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"anonymous\"><!----><!----><meta data-amp-theme-color=\"light\" name=\"theme-color\" content=\"#dfdfc1\" media=\"(prefers-color-scheme: light)\"> <meta data-amp-theme-color=\"dark\" name=\"theme-color\" content=\"#091c1e\" media=\"(prefers-color-scheme: dark)\"><!----> <!----><style>:root {\n\t\t--amp-shell-light-background-color: #dfdfc1;\n\t\t--amp-shell-dark-background-color: #091c1e;\n\t}</style><!----><!----><!--[0--><meta name=\"description\" content=\"Four new agent modes: low, medium, high, ultra. Dial in how hard Amp should work. Smart, deep, rush, and large are deprecated.\" class=\"svelte-1mqar8i\"><!--]--> <meta name=\"author\" content=\"Amp\" class=\"svelte-1mqar8i\"> <meta property=\"author\" content=\"Amp\" class=\"svelte-1mqar8i\"> <meta property=\"og:type\" content=\"article\" class=\"svelte-1mqar8i\"> <meta property=\"og:url\" content=\"https://ampcode.com/news/the-dial\" class=\"svelte-1mqar8i\"> <!--[0--><meta property=\"article:published_time\" content=\"2026-07-09T00:00:00.000Z\" class=\"svelte-1mqar8i\"><!--]--> <!--[0--><meta property=\"article:modified_time\" content=\"2026-07-09\" class=\"svelte-1mqar8i\"><!--]--> <!--[0--><meta property=\"og:image:secure_url\" content=\"https://ampcode.com/og?_template=news&amp;_version=7&amp;title=The+Dial&amp;date=July+9%2C+2026&amp;tagline=Four+new+agent+modes%3A+low%2C+medium%2C+high%2C+ultra.+Dial+in+how+hard+Amp+should+work.+Smart%2C+deep%2C+rush%2C+and+large+are+deprecated.&amp;screenshot=https%3A%2F%2Fstatic.ampcode.com%2Fnews%2Fdial-release.png%3Fv%3D20260709-2&amp;sig=9df8d437ded37c55c3b60e7e5aa31334b743164fd1efc4ced68512a20cfbd289\" class=\"svelte-1mqar8i\"><meta property=\"og:image:type\" content=\"image/png\" class=\"svelte-1mqar8i\"><meta property=\"og:image:width\" content=\"1200\" class=\"svelte-1mqar8i\"><meta property=\"og:image:height\" content=\"630\" class=\"svelte-1mqar8i\"><!--]--> <meta name=\"twitter:creator\" content=\"@ampcode\" class=\"svelte-1mqar8i\"> <meta name=\"twitter:card\" content=\"summary_large_image\" class=\"svelte-1mqar8i\"><!----><title>The Dial - Amp</title>\n\t\t<link href=\"/_app/immutable/assets/dialog-content.2d5a0477cf89a34f.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/root.e1c4cbbefec0b44e.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/loader.1530c3b26f7d9172.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/0.f815ce807d695313.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/app.915f2b5b2071b1a9.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/pwa-page-toolbar.6dd5f4fd20200c1e.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/background-grid.7071470c83d43eae.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/marketing-layout-context.c3f9201220f8fd79.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/marketing-layout.e922eda62bf9236f.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/subscription-pricing-chart.726a498376f1c901.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/table-of-contents.6f6b2d227a6126aa.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/recommended-reading.3a5013460d5754e4.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/lightbox.2de5a57a2787cca1.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/animated-orb.41efe4fd3e0a92ab.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/news-content.d14b4ace60f02bde.css\" rel=\"stylesheet\">\n\t\t<link href=\"/_app/immutable/assets/551.f34114148c1ce638.css\" rel=\"stylesheet\">\n\t<link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/nodes/0.b1027ce3d005bde9.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/a2728fa20f24dc45.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/ddfee0f9a53738ef.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/e99f1c0d7a3360c9.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/36bca35618ad0d1b.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/61ce0b8432982da0.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/3c2df161234d7ea4.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/e409c771168733f0.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/1868f97286d348d2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/5b57fd2ce17a2caa.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/e3ecd1e9e4193dcd.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/318a14ed2a5a89c8.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/f1f96d8e46acaf2f.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/fd1434a5eaa63e81.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/4f50134437b29217.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/6a9298fa26c9a5cf.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/52dde95b07c9a95b.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/ad2d4609c7d816d52.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/56de050e28b144f7.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/6c47cb17c2560e71.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/5ca9119f2f03af8c.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/d2352b2a7d9d864b.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/eaefdfb3a74674b7.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/b81bb699a1627119.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/effee0b706f79df2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/8580adab0b9f9411.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/5ddcd5e79b74989f.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/5004bb396f870b43.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/b53e943c431f8062.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/6e8506f70abef9fe.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/3a135eee6bcfbfa6.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/1019fdf1c13b82e8.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/579ef27d8850f25c.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/df9661df5eebfa74.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/a6b2bf7f62478b76.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/76311f22f8c68176.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/1b3156397e02fb7a.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/ffaf8b9610be7e88.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/f4451a4472217103.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/bd6d0e3a38f5682b.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/15a8c3cf581f2633.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/cb45d9fb48d0d299.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/246c2a7e8fdc7a89.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/d5761cd486d8c478.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/a2701781d2cbd07f.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/4902a2f7d88df521.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/b79ab50afb793408.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/c96f69ef61ae8a3f2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/45d9dca36c70f9b1.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/a672667b6b6a48862.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/1d707cf658ca9e192.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/ed2ebf9c045cacd6.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/5acc43daff860b932.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/12ee2d5f3ad6ea6f2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/3967be267df73cc42.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/edd78338553912d92.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/d49238b0fd406ea72.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/c567f74fcd585129.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/22c96a513c5bd3492.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/8aae4a13529b684e2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/27b4d88df992cc7e2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/22eb530ad56a16d42.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/57e3af680c1eb9432.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/64b8e93e595acf602.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/15da15f25be24b582.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/c88a04c6d1ea372d2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/c1e19319c5a029992.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/a6b88617c027b5ce2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/b9ae1d92c02cbb56.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/46c768a114f17ca8.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/3327f21bed364aef.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/4e744845c66c8140.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/f3d0aabbddd791f72.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/82c983bba717d88c2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/44a10e41c2323802.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/2fe7d945cf356dd12.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/1bcc344dcf85e2f72.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/b00b4883192017592.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/647d6b140b3c39952.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/5f6938c8525cd2b82.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/2fc96cca07af19b12.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/f2714ebe19ff0b102.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/d30cf1449a97240b2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/45e67ce1df5e012c2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/677d79100b37e7032.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/b23f0d4342183c2d2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/8a4898d2052d01342.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/nodes/1.67107646f121129b.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/7d8e5135f5476a612.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/485181b407b1d3762.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/c78c94bf9754f5352.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/8b2262884b8b48462.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/37627f10af5ee78b.js\"><link rel=\"stylesheet\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/assets/error-page.2a71878fb5c2c7c2.css\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/nodes/32.9290b3daaf23471c.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/eb2fdbd8d66b7135.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/41d15622aa3caf2a.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/37e3792b180689af.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/5bdda0abaad6d060.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/aed0f06deac3c952.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/5fe8e0ab02e7cdf62.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/cce471aaf7d25ec1.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/69be691ad6b185842.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/ab8417b957fab2552.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/21e188ee604f2be6.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/8522d45bd2a7d4702.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/d7e3c2a87323c6942.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/b58e4050d3d47665.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/ee2a9ebfab06af74.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/89ea874df148954f.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/2af4519983966c4f.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/6a83db8433a5491a.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/49d00cc714697d96.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/4db45ca13876bb23.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/b0c1799fbcc76388.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/7df1df976ecf84112.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/5cfd77ac212b9c23.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/a6bd2ce226606a43.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/649f2ac9ddd86791.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/db72919cf74de317.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/ffe263bdd5826a5a.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/14af6e3a5d115ab82.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/767b1320eed4cbb4.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/8cb77ca4a5eb438b.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/de4820ff3698b7482.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/18fabf5f109ae760.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/175659636d0c9f37.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/3f8cefa17250308a2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/ffa8171c5008cf11.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/1a7e511509b7c604.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/nodes/551.bbb931b519f8ab43.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/698b4c6e75fb7728.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/21ad3b8b14bf15f72.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/fcfce2bd681ccd4b.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/c716e888ca200247.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/b70831e3a1ac3547.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/a6c360170dabc8462.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/e79d366950c7c69e2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/baf68c37778f3a822.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/558c84123f8966a6.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/2e30316591bab8ee.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/450525a615ffeaea2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/7fc0f890a58f3abc.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/390c1df9b9d5cb86.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/a2bda1a95f33f2942.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/3dec44515b35e4342.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/45332ab3e6ecc6892.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/3d74c02096c2d02d2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/cebc9d8211a3d51d.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/b687319ea2fb9100.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/6342fce8bf5b27c52.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/91f039cc58b95015.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/e22652e22257384d.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/edc08fdb64d0dfc22.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/8f503bf3700bd175.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/23e589a1ee71b352.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/81b5fe0ce0a10e6c2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/3d6fa6a4dee721162.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/d99286d587150647.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/dcecb5146b3b257a.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/f8d7df2f4eb15cbb2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/e45d040f5150ee8f2.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/f2fe7ec241d85f812.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/997cc0ef0c930844.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/7434eaa4f09b9bd8.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/977e40088894aca4.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/4058e2cd3eac9394.js\"><link rel=\"modulepreload\" as=\"script\" crossorigin=\"\" href=\"https://ampcode.com/_app/immutable/chunks/70713b8b1988eea12.js\"></head>\n\t<body data-sveltekit-preload-data=\"hover\" data-amp-keymap-platform=\"linux\" data-amp-app-mounted=\"true\">\n\t\t<div style=\"display: contents\"><!--[--><!--[0--><!--[--><!----> <!----> <!----> <!--[-1--><!--]--> <!--[1--><!--[0--><!--[--><!----> <div class=\"fixed inset-0 z-40 pointer-events-none transition-opacity duration-150 nav-menu-scrim svelte-1bsnhax\" aria-hidden=\"true\" style=\"opacity: 0;\"></div> <nav class=\"pwa-page-toolbar svelte-109iaf5\" aria-label=\"Page Navigation\"><!--[-1--><button class=\"ring-offset-background focus-visible:ring-ring inline-flex items-center justify-center gap-1 whitespace-nowrap font-medium focus-visible:outline-hidden focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 pointer-coarse:active:opacity-85 [&amp;_svg]:pointer-events-none [&amp;_svg]:stroke-[1.75px] [&amp;_svg]:shrink-0 select-none text-foreground/80 border border-transparent data-[default-ghost-icon-color]:[&amp;_svg:not([class*=&quot;text-&quot;])]:text-foreground data-[default-ghost-icon-color]:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-80 pointer-fine:hover:bg-foreground/5 pointer-fine:hover:text-foreground data-[default-ghost-icon-color]:pointer-fine:hover:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-100 active:bg-foreground/5 active:text-foreground data-[default-ghost-icon-color]:active:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-100 data-[active=true]:bg-accent data-[active=true]:text-accent-foreground data-[default-ghost-icon-color]:data-[active=true]:[&amp;_svg:not([class*=&quot;text-&quot;])]:text-accent-foreground data-[default-ghost-icon-color]:data-[active=true]:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-100 h-6.5 w-6.5 rounded-sm text-sm [&amp;_svg]:size-3.5 pointer-coarse:size-9 pointer-coarse:[&amp;_svg]:size-5 [&amp;_[data-loader]]:size-3.5 pointer-coarse:[&amp;_[data-loader]]:size-5 relative [&amp;_[data-loader]]:absolute [&amp;_[data-loader]]:inset-0 [&amp;_[data-loader]]:m-auto\" type=\"button\" data-default-ghost-icon-color=\"\" aria-label=\"Back\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" data-lucide-icon=\"\" stroke-width=\"1.75\"><path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"m12 19l-7-7l7-7m7 7H5\"></path></svg><!----> <!--[-1--><!--]--></button><!--]--><!----> <!--[-1--><button class=\"ring-offset-background focus-visible:ring-ring inline-flex items-center justify-center gap-1 whitespace-nowrap font-medium focus-visible:outline-hidden focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 pointer-coarse:active:opacity-85 [&amp;_svg]:pointer-events-none [&amp;_svg]:stroke-[1.75px] [&amp;_svg]:shrink-0 select-none text-foreground/80 border border-transparent data-[default-ghost-icon-color]:[&amp;_svg:not([class*=&quot;text-&quot;])]:text-foreground data-[default-ghost-icon-color]:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-80 pointer-fine:hover:bg-foreground/5 pointer-fine:hover:text-foreground data-[default-ghost-icon-color]:pointer-fine:hover:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-100 active:bg-foreground/5 active:text-foreground data-[default-ghost-icon-color]:active:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-100 data-[active=true]:bg-accent data-[active=true]:text-accent-foreground data-[default-ghost-icon-color]:data-[active=true]:[&amp;_svg:not([class*=&quot;text-&quot;])]:text-accent-foreground data-[default-ghost-icon-color]:data-[active=true]:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-100 h-6.5 w-6.5 rounded-sm text-sm [&amp;_svg]:size-3.5 pointer-coarse:size-9 pointer-coarse:[&amp;_svg]:size-5 [&amp;_[data-loader]]:size-3.5 pointer-coarse:[&amp;_[data-loader]]:size-5 relative [&amp;_[data-loader]]:absolute [&amp;_[data-loader]]:inset-0 [&amp;_[data-loader]]:m-auto\" type=\"button\" data-default-ghost-icon-color=\"\" aria-label=\"Forward\" disabled=\"\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" data-lucide-icon=\"\" stroke-width=\"1.75\"><path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M5 12h14m-7-7l7 7l-7 7\"></path></svg><!----> <!--[-1--><!--]--></button><!--]--><!----> <!--[0--><a class=\"ring-offset-background focus-visible:ring-ring inline-flex items-center justify-center gap-1 whitespace-nowrap font-medium focus-visible:outline-hidden focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 pointer-coarse:active:opacity-85 [&amp;_svg]:pointer-events-none [&amp;_svg]:stroke-[1.75px] [&amp;_svg]:shrink-0 select-none text-foreground/80 border border-transparent data-[default-ghost-icon-color]:[&amp;_svg:not([class*=&quot;text-&quot;])]:text-foreground data-[default-ghost-icon-color]:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-80 pointer-fine:hover:bg-foreground/5 pointer-fine:hover:text-foreground data-[default-ghost-icon-color]:pointer-fine:hover:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-100 active:bg-foreground/5 active:text-foreground data-[default-ghost-icon-color]:active:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-100 data-[active=true]:bg-accent data-[active=true]:text-accent-foreground data-[default-ghost-icon-color]:data-[active=true]:[&amp;_svg:not([class*=&quot;text-&quot;])]:text-accent-foreground data-[default-ghost-icon-color]:data-[active=true]:[&amp;_svg:not([class*=&quot;text-&quot;]):not([class*=&quot;opacity-&quot;])]:opacity-100 rounded-sm px-2 py-1 text-sm [&amp;_svg]:size-3.5 [&amp;_[data-loader]]:size-3.5 pwa-page-toolbar-return-link\" href=\"/\" data-default-ghost-icon-color=\"\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" data-lucide-icon=\"\" stroke-width=\"1.75\"><path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"m10 17l5-5l-5-5m5 5H3m12-9h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4\"></path></svg><!----> Return to Amp<!----> <!--[-1--><!--]--></a><!--]--><!----> <!--[-1--><!--]--></nav> <div class=\"pwa-page-toolbar-spacer svelte-109iaf5\" aria-hidden=\"true\"></div><!----> <!--[0--><div class=\" nav-menu-trigger fixed right-3.5 z-50 svelte-1bsnhax\"><!--$s1--><!--[-1--><button class=\"w-12 h-12 flex items-center justify-center touch-manipulation focus-visible:outline-none opacity-60 hover:opacity-100 mt-1 \" aria-label=\"Toggle menu\" id=\"bits-s1\" aria-haspopup=\"dialog\" aria-expanded=\"false\" data-state=\"closed\" data-popover-trigger=\"\" type=\"button\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" data-lucide-icon=\"\" stroke-width=\"1.75\" class=\"h-6 w-6 transition-transform duration-150 opacity-80 \"><path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"m6 9l6 6l6-6\"></path></svg><!----></button><!--]--><!----><!----> <!--[--><!--[-1--><!--]--><!--]--><!----><!----><!----><!----></div><!--]--> <div class=\"background-grid  svelte-vre9z4\" aria-hidden=\"true\"><svg class=\"background-grid-svg svelte-vre9z4\" preserveAspectRatio=\"none\" viewBox=\"0 0 1280 3233\" style=\"height: 3233px;\"><line class=\"bg-grid-rail-line svelte-vre9z4\" data-rail=\"margin-left\" x1=\"52.45440000000001\" y1=\"0\" x2=\"52.45440000000001\" y2=\"3233\"></line><line class=\"bg-grid-rail-line svelte-vre9z4\" data-rail=\"1-2\" x1=\"346.35840714604734\" y1=\"0\" x2=\"346.35840714604734\" y2=\"3233\"></line><line class=\"bg-grid-rail-line svelte-vre9z4\" data-rail=\"2-3\" x1=\"640.2624142920947\" y1=\"0\" x2=\"640.2624142920947\" y2=\"3233\"></line><line class=\"bg-grid-rail-line svelte-vre9z4\" data-rail=\"3-4\" x1=\"836.0234761947298\" y1=\"0\" x2=\"836.0234761947298\" y2=\"3233\"></line><line class=\"bg-grid-rail-line svelte-vre9z4\" data-rail=\"4-5\" x1=\"1031.784538097365\" y1=\"0\" x2=\"1031.784538097365\" y2=\"3233\"></line><line class=\"bg-grid-rail-line svelte-vre9z4\" data-rail=\"margin-right\" x1=\"1227.5456000000001\" y1=\"0\" x2=\"1227.5456000000001\" y2=\"3233\"></line></svg></div><!----> <!--[-1--><!--]--><!----> <div id=\"marketing-root\" class=\"relative min-h-screen flex flex-col svelte-1bsnhax\"><!--[0--><!--[0--><nav class=\"grid-container items-center grid-section--dense\"><a href=\"/home\" class=\"cell-pad justify-self-start self-center py-0 rail-tick-start\"><!--[-1--><svg class=\"h-[32px]\" viewBox=\"0 0 281 144\" fill=\"currentColor\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M236.014 20C260.431 20.0001 280.602 37.4115 280.603 64.7432C280.602 93.5337 260.065 114.166 233.52 114.166C224.158 114.166 215.639 112.422 208.63 108.49C202.886 105.27 198.203 100.605 194.919 94.3379L188.115 141.822L187.946 143.016H174.214L174.448 141.423L191.772 22.4941H205.372L203.937 31.3369C212.143 23.8608 223.2 20.0002 236.014 20ZM47.082 20.1543C56.4435 20.1543 65.0012 21.8991 72.0488 25.8486C77.8222 29.0831 82.5323 33.7713 85.8271 40.085L88.1201 23.6924L88.2861 22.4932H101.863L89.1611 110.633L88.9873 111.826H75.4092L76.7227 102.855C68.5854 110.456 57.3981 114.323 44.5889 114.323C20.1709 114.323 0.000167223 96.9087 0 69.5771C0.000149745 40.7854 20.54 20.1549 47.082 20.1543ZM116.234 110.636L116.061 111.827H102.485L115.351 23.6855L115.521 22.4941H129.083L116.234 110.636ZM140.673 110.636L140.499 111.827H126.924L139.789 23.6855L139.96 22.4941H153.521L140.673 110.636ZM177.958 22.4941L165.108 110.636L164.935 111.827H151.36L164.225 23.6855L164.396 22.4941H177.958ZM48.4854 31.9844C27.8638 31.985 14.0133 48.3799 14.0127 68.9521C14.0127 77.7907 16.8094 86.1771 22.3145 92.334C27.7973 98.4657 36.0631 102.493 47.2402 102.493C67.8534 102.493 81.7122 85.9487 81.7129 65.3682C81.7129 55.4076 78.2493 47.0792 72.4131 41.2441C66.5794 35.4088 58.2871 31.9844 48.4854 31.9844ZM233.362 31.8291C212.749 31.8297 198.89 48.3716 198.89 68.9521C198.89 78.9123 202.356 87.2403 208.189 93.0742C214.023 98.9107 222.315 102.336 232.116 102.336C252.738 102.335 266.589 85.9407 266.59 65.3682C266.59 56.5296 263.795 48.1424 258.29 41.9863C252.807 35.8551 244.542 31.8291 233.362 31.8291Z\"></path></svg><!--]--><!----></a> <div class=\"cell-pad col-span-full cell-pad--stroke-context lg:col-start-2 lg:col-span-3 flex items-center py-0 pb-2 sm:pb-0 overflow-x-auto whitespace-nowrap\" style=\"mask-image: linear-gradient(to right, #000 95%, transparent 100%); -webkit-mask-image: linear-gradient(to right, #000 95%, transparent 100%);\"><a href=\"/chronicle\" class=\"font-mono rail-tick-start font-bold uppercase text-sm text-muted-foreground hover:text-foreground transition-colors tracking-wide shrink-0\">Chronicle</a> <span class=\"font-sagittaire-text italic text-muted-foreground/50 normal-case mx-2 shrink-0\">//</span> <span class=\"font-mono font-bold uppercase text-sm text-muted-foreground tracking-wide\"><span class=\"opacity-30 font-normal\">[</span>News<span class=\"font-normal opacity-30\">]</span><!--[0-->&nbsp;The Dial<!--]--></span></div></nav><!----><!--]--><!--]--> <div class=\"flex-1 min-h-0 flex flex-col\"><!--[-1--><!--[--><!--[-1--><!--]--> <!--[-1--><!--[-1--><!--]--> <main class=\"flex-1 grid-container content-start svelte-1mqar8i\"><header class=\"grid-section !pb-0 col-span-full grid grid-cols-subgrid pt-4 md:pt-6 svelte-1mqar8i\"><div class=\"cell-pad col-span-full lg:col-start-2 cell-pad--stroke-context lg:col-span-3 min-w-0 svelte-1mqar8i\"><time class=\"font-mono font-bold type-xs uppercase tracking-wider text-muted-foreground rail-tick-start svelte-1mqar8i\">July 9, 2026</time> <div class=\"flex items-center gap-3 mt-2 svelte-1mqar8i\"><h1 class=\"font-sagittaire-display text-6xl md:text-6xl lg:text-8xl text-balance tracking-tighter svelte-1mqar8i\"><!--[-1-->The Dial<!--]--></h1> <!--[-1--><!--]--></div></div></header> <article class=\"grid-section col-span-full grid grid-cols-subgrid pb-16 md:pb-24 svelte-1mqar8i\" data-news-slug=\"the-dial\"><!--[-1--><!--]--> <aside class=\"cell-pad cell-pad--stroke-context hidden lg:block min-w-0 svelte-1mqar8i\"><!--[-1--><!--]--></aside> <div class=\"cell-pad col-span-full lg:col-start-2 overflow-x-clip min-w-0 @container lg:col-span-3 svelte-1mqar8i\"><!--[-1--><!--[-1--><!--]--> <!--[0--><!--[-1--><!--]--> <!----><div class=\"prose dark:prose-invert news-content-body leading-[1.4]  svelte-1m63zip\"><!--[-1--><!----><p>Amp's agent modes are now a dial: <code>low</code>, <code>medium</code>, <code>high</code>, <code>ultra</code>. They replace <code>smart</code>, <code>deep</code>, <code>rush</code>, and <code>large</code>.</p>\n<img width=\"987\" style=\"aspect-ratio: 987 / 324; cursor: pointer;\" src=\"https://static.ampcode.com/news/dial-release.png?v=20260709-2\" alt=\"Amp's mode dial in the CLI showing low, medium, high, and ultra\">\n\n<p>The old modes were models in disguise: each name hid a model, a prompt, a reasoning effort — and to pick one, you had to know what that model was like this month. That world is gone. The models converged, open-weight models got seriously good, and the only question left is capability against cost.</p>\n<p>The dial asks one question: how hard is this task?</p>\n<p>Missing in either direction costs you. Undershoot and the model churns: wrong fix, re-prompt, wrong fix again. You pay three times for a result you could have had once. Overshoot and you're using Fable to fix a typo. Set it right and you pay for exactly the intelligence the task needs.</p>\n<ul>\n<li><strong><code>ultra</code></strong> — The outcome is clear, but the path is full of unknowns. Migrations, architecture, changes that span many files, systems, and decisions the model has to discover as it goes.</li>\n<li><strong><code>high</code></strong> — You know where the change goes, but getting it right is hard: cross-cutting changes, concurrency, bugs where a subtle miss is expensive. You get diffs closer to reviewer-ready than <code>medium</code> gets you — but plan on one round of feedback before merging, and about twice the wait.</li>\n<li><strong><code>medium</code></strong> — You know roughly what you want. This should be your default. It handles messy, multi-part tasks, fuzzy requirements, the steps you didn't spell out. Strong enough for most work, fast enough to steer.</li>\n<li><strong><code>low</code></strong> — You know exactly what you want. Bug fixes, tests, refactors, features you can describe precisely. There is less to figure out for the model, so <code>low</code> builds it.</li>\n</ul>\n<p>Turn the dial with <code>Ctrl+S</code> in the CLI, or with the mode picker in the web app.</p>\n<img width=\"2462\" style=\"aspect-ratio: 2462 / 1572; cursor: pointer;\" src=\"https://static.ampcode.com/news/dial-web.png?v=20260709-2\" alt=\"Amp's mode picker in the web app showing low, medium, high, and ultra\">\n\n<h2>Under the Hood</h2>\n<p>We want you to know exactly what you're getting, so here's what backs each mode today. This wiring will change as models improve. The dial won't.</p>\n<ul>\n<li><code>ultra</code>: Claude Fable 5, with a system prompt written for it. GPT-5.6 Sol as the oracle.</li>\n<li><code>high</code>: GPT-5.6 Sol at <code>xhigh</code> reasoning effort. Claude Fable 5 as the oracle.</li>\n<li><code>medium</code>: GPT-5.6 Sol at medium reasoning effort. GPT-5.6 Sol at high effort as the oracle.</li>\n<li><code>low</code>: GLM-5.2, Z.ai's open-weight model, the strongest open model on agentic coding. GPT-5.6 Sol as the oracle. (Workspace admins can choose to use GPT-5.6 Terra low instead of GLM-5.2 here.)</li>\n</ul>\n<p>Reasoning effort is part of the tier now. No more cycling <code>Opt+D</code> through effort levels on top of picking a mode.</p>\n<p>Every mode has an oracle for second opinions. On the top tiers, it's the other frontier model: in <code>high</code>, GPT-5.6 Sol writes and Fable reviews. In <code>ultra</code>, Fable writes and GPT-5.6 Sol reviews.</p>\n<h2>Migrating</h2>\n<ul>\n<li><code>smart</code>, <code>deep</code> → <code>medium</code> (same model and effort as <code>deep</code>). Turn up for hard problems.</li>\n<li><code>rush</code> → <code>low</code>.</li>\n<li><code>deep**3</code> -&gt; <code>ultra</code> or <code>high</code></li>\n</ul>\n<h2>Want to Tune It Yourself?</h2>\n<p>The dial removes knobs from the default experience, not from Amp. <a href=\"https://ampcode.com/manual#define-a-custom-agent-mode\">Plugins can register their own agent modes</a> with your model, your prompt, and your tools, and they show up right next to the built-in ones.</p>\n<p>We used that same plugin API to package up the deprecated modes — exact system prompts, exact tool lists, same models and reasoning efforts. If you want <code>smart</code>, <code>deep</code>, <code>rush</code>, or <code>large</code> back, install them:</p>\n<pre><code>amp plugins add --auto-update @amp/smart-classic\namp plugins add --auto-update @amp/deep-classic\namp plugins add --auto-update @amp/rush-classic\namp plugins add --auto-update @amp/large-classic\n</code></pre><p>Then run <code>plugins: reload</code> (or restart the CLI) and they appear in the mode picker as Smart (classic), Deep (classic), Rush (classic), and Large (classic) — the original names stay reserved for the built-ins. <code>--auto-update</code> keeps them current when we update the plugins; drop it if you'd rather pin. The full list of installable modes is on <a href=\"https://ampcode.com/modes\">ampcode.com/modes</a>.</p>\n<p>Start at <code>medium</code>. Turn it down when the task is clear. Turn it up when a miss costs more than the wait.</p>\n<p>We'll follow up with posts on each mode and numbers on what each one can handle.</p>\n<!----><!--]--></div><!----><!--]--> <!--[--><!--[--><!--[-1--><!--]--><!--]--><!----><!--]--><!----><!--]--><!----></div> <!--[0--><aside class=\"col-span-2 col-start-2 lg:col-start-5 lg:col-span-1 min-w-0 lg:mt-96\"><div class=\"sticky top-20\"><div class=\"pop-out-scope svelte-1k18utt\"><div class=\"herald-pop translate-y-9 flex justify-end relative bleed-inline-end pointer-events-none z-10 !pr-0 svelte-1k18utt\"><img src=\"/trumpeter/image.jpg\" alt=\"\" class=\"img-matte pointer-events-none w-1/2 lg:w-full svelte-1k18utt\" aria-hidden=\"true\" style=\"max-width: 400px\"></div> <a href=\"/news/gpt-5.5\" class=\"block group bleed-inline-end bleed-inline-end--viewport antialiased relative link-callout link-callout--pop-out transition-colors svelte-1k18utt\"><div class=\"flex flex-col items-start lg:gap-5 gap-4 py-8 pl-8 lg:py-10 lg:pl-10 2xl:pr-5 relative overflow-hidden\"><div class=\"font-mono text-sm font-bold uppercase tracking-widest opacity-60\">Also<span class=\"font-sagittaire-text italic normal-case mx-1\">of</span>Interest</div> <div class=\"flex flex-col gap-3\"><h4 class=\"type-base font-medium\">GPT-5.5</h4> <!--[0--><div class=\"link-callout__subtitle svelte-1k18utt\"><p class=\"type-sm opacity-80\"><!--[--><!--[0-->The predecessor of GPT-5.6 in Amp's high and medium modes<!--]--><!--]--><!----></p><!----></div><!--]--></div> <div class=\"inline-flex font-mono text-sm px-2 py-1 font-bold uppercase tracking-widest justify-start items-center gap-0.5 link-callout__cta svelte-1k18utt\">Read <svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" data-lucide-icon=\"\" stroke-width=\"1.75\" class=\"size-3.5 transition-transform group-hover:translate-x-0.5\"><path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M5 12h14m-7-7l7 7l-7 7\"></path></svg><!----></div></div></a></div></div></aside><!--]--></article></main><!--]--><!--]--><!--]--><!----><!----></div> <!--[0--><footer class=\"grid-container border-t border-border grid-section\" data-page-footer=\"\"><div class=\"cell-pad section-header gap-[var(--lens-cell-padding)] svelte-1yl60m7\"><a class=\"inline-block\" href=\"/home\"><!--[-1--><svg class=\"h-full w-20 md:w-30\" viewBox=\"0 0 281 144\" fill=\"currentColor\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M236.014 20C260.431 20.0001 280.602 37.4115 280.603 64.7432C280.602 93.5337 260.065 114.166 233.52 114.166C224.158 114.166 215.639 112.422 208.63 108.49C202.886 105.27 198.203 100.605 194.919 94.3379L188.115 141.822L187.946 143.016H174.214L174.448 141.423L191.772 22.4941H205.372L203.937 31.3369C212.143 23.8608 223.2 20.0002 236.014 20ZM47.082 20.1543C56.4435 20.1543 65.0012 21.8991 72.0488 25.8486C77.8222 29.0831 82.5323 33.7713 85.8271 40.085L88.1201 23.6924L88.2861 22.4932H101.863L89.1611 110.633L88.9873 111.826H75.4092L76.7227 102.855C68.5854 110.456 57.3981 114.323 44.5889 114.323C20.1709 114.323 0.000167223 96.9087 0 69.5771C0.000149745 40.7854 20.54 20.1549 47.082 20.1543ZM116.234 110.636L116.061 111.827H102.485L115.351 23.6855L115.521 22.4941H129.083L116.234 110.636ZM140.673 110.636L140.499 111.827H126.924L139.789 23.6855L139.96 22.4941H153.521L140.673 110.636ZM177.958 22.4941L165.108 110.636L164.935 111.827H151.36L164.225 23.6855L164.396 22.4941H177.958ZM48.4854 31.9844C27.8638 31.985 14.0133 48.3799 14.0127 68.9521C14.0127 77.7907 16.8094 86.1771 22.3145 92.334C27.7973 98.4657 36.0631 102.493 47.2402 102.493C67.8534 102.493 81.7122 85.9487 81.7129 65.3682C81.7129 55.4076 78.2493 47.0792 72.4131 41.2441C66.5794 35.4088 58.2871 31.9844 48.4854 31.9844ZM233.362 31.8291C212.749 31.8297 198.89 48.3716 198.89 68.9521C198.89 78.9123 202.356 87.2403 208.189 93.0742C214.023 98.9107 222.315 102.336 232.116 102.336C252.738 102.335 266.589 85.9407 266.59 65.3682C266.59 56.5296 263.795 48.1424 258.29 41.9863C252.807 35.8551 244.542 31.8291 233.362 31.8291Z\"></path></svg><!--]--><!----></a> <div class=\"footer-legal svelte-1yl60m7\"><ul class=\"svelte-1yl60m7\"><li class=\"svelte-1yl60m7\"><a href=\"https://ampcodestatus.com\" class=\"flex items-center gap-1.5 lg:gap-2\"><span class=\"w-1.5 h-1.5 rounded-full operational order-2 md:order-1 svelte-17tm13q\"></span> <span class=\"order-1 md:order-2\">All Systems Operational</span></a><!----></li> <li class=\"svelte-1yl60m7\"><a href=\"/security\" class=\"svelte-1yl60m7\">Security</a></li> <li class=\"svelte-1yl60m7\"><a href=\"/privacy-policy\" class=\"svelte-1yl60m7\">Privacy Policy</a></li> <li class=\"svelte-1yl60m7\"><a href=\"/terms\" class=\"svelte-1yl60m7\">Terms of Service</a></li></ul></div></div> <div class=\"cell-pad md:col-span-2 lg:col-start-3 lg:col-span-4 flex flex-col gap-8 lg:flex-row sm:grid sm:grid-cols-2 sm:gap-[var(--lens-cell-padding)] lg:flex lg:gap-0 lg:justify-between\"><div class=\"footer-column svelte-1yl60m7\"><h3 class=\"svelte-1yl60m7\">Product</h3> <ul class=\"svelte-1yl60m7\"><li class=\"svelte-1yl60m7\"><a href=\"/\" class=\"svelte-1yl60m7\">Download App</a></li> <!--[0--><li class=\"svelte-1yl60m7\"><a href=\"/auth/sign-up\" class=\"svelte-1yl60m7\">Start</a></li> <li class=\"svelte-1yl60m7\"><a href=\"/auth/sign-in\" class=\"svelte-1yl60m7\">Sign In</a></li><!--]--> <li class=\"svelte-1yl60m7\"><a href=\"/docs\" class=\"svelte-1yl60m7\">Docs</a></li> <li class=\"svelte-1yl60m7\"><a href=\"/what-are-orbs\" class=\"svelte-1yl60m7\">What Are Orbs?</a></li> <li class=\"svelte-1yl60m7\"><a href=\"/modes\" class=\"svelte-1yl60m7\">Models</a></li></ul></div> <div class=\"footer-column svelte-1yl60m7\"><h3 class=\"svelte-1yl60m7\">Resources</h3> <ul class=\"svelte-1yl60m7\"><li class=\"svelte-1yl60m7\"><a href=\"/chronicle\" class=\"svelte-1yl60m7\">Chronicle</a></li> <li class=\"svelte-1yl60m7\"><a href=\"/pricing\" class=\"svelte-1yl60m7\">Pricing</a></li> <li class=\"svelte-1yl60m7\"><a href=\"/podcast\" class=\"svelte-1yl60m7\">Podcast</a></li> <li class=\"svelte-1yl60m7\"><a href=\"/press-kit\" class=\"svelte-1yl60m7\">Press Kit</a></li></ul></div> <div class=\"footer-column svelte-1yl60m7\"><h3 class=\"svelte-1yl60m7\">Guides</h3> <ul class=\"svelte-1yl60m7\"><li class=\"svelte-1yl60m7\"><a href=\"/notes/how-to-build-an-agent\" class=\"svelte-1yl60m7\">How to Build an Agent</a></li> <li class=\"svelte-1yl60m7\"><a href=\"/guides/context-management\" class=\"svelte-1yl60m7\">Context Management</a></li></ul></div> <div class=\"footer-column svelte-1yl60m7\"><h3 class=\"svelte-1yl60m7\">Community</h3> <ul class=\"svelte-1yl60m7\"><li class=\"svelte-1yl60m7\"><a href=\"https://x.com/ampcode\" class=\"svelte-1yl60m7\">𝕏 @ampcode</a></li> <li class=\"svelte-1yl60m7\"><a href=\"https://ampcode.com/insiders\" class=\"svelte-1yl60m7\">Amp Insiders</a></li> <li class=\"svelte-1yl60m7\"><a href=\"https://www.youtube.com/@Sourcegraph/videos\" class=\"svelte-1yl60m7\">YouTube</a></li></ul></div></div></footer><!--]--></div> <!--[-1--><!--]--><!----><!--]--><!--]--><!----><!--]--> <div class=\"sonner-container pointer-events-none fixed top-[max(0.875rem,var(--app-mobile-safe-area-inset-top,0px))] left-1/2 w-[calc(100%-2rem)] max-w-[32rem] -translate-x-1/2 z-100 flex flex-col items-center gap-2 svelte-a8z4tr\" data-position=\"top-center\"><!--[--><!--]--></div><!----><!----><!----> <!--[-1--><!--]--><!----> <!--[-1--><!--]--><!----><!----><!----> <!--[-1--><!--]--><!----><!--]--><!--]--> <!--[-1--><div id=\"svelte-announcer\" aria-live=\"assertive\" aria-atomic=\"true\" style=\"position: absolute; left: 0; top: 0; clip: rect(0 0 0 0); clip-path: inset(50%); overflow: hidden; white-space: nowrap; width: 1px; height: 1px\"><!----></div><!--]--><!--]-->\n\t\t\t\n\t\t\t<script nonce=\"a1i5PUlUDsO1WRQ7mtVXbQ==\">\n\t\t\t\t{\n\t\t\t\t\t__sveltekit_6zkjeh = {\n\t\t\t\t\t\tbase: \"\",\n\t\t\t\t\t\tenv: {\"PUBLIC_SLACK_APP_ID\":\"A09SJP9PVQU\",\"PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY\":\"BA0BielWB9tDSsedAEuBPujSJr580MjArIQjpyjy_AsPcWQDMBhUCbZMvEjVTs9xoUul8FnE4HFQl3hIW_z9tBM\"}\n\t\t\t\t\t};\n\n\t\t\t\t\tconst element = document.currentScript.parentElement;\n\n\t\t\t\t\tPromise.all([\n\t\t\t\t\t\timport(\"/_app/immutable/entry/start.ef0d18cdbd9e59ad.js\"),\n\t\t\t\t\t\timport(\"/_app/immutable/entry/app.a955417110dd391d.js\")\n\t\t\t\t\t]).then(([kit, app]) => {\n\t\t\t\t\t\tkit.start(app, element, {\n\t\t\t\t\t\t\tnode_ids: [0, 32, 551],\n\t\t\t\t\t\t\tdata: [{type:\"data\",data:{colorScheme:\"system\",codeFontFamily:null,browserTraceparent:null,clientInfo:{secCHUA:\"\\\"Not=A?Brand\\\";v=\\\"99\\\", \\\"Google Chrome\\\";v=\\\"151\\\", \\\"Chromium\\\";v=\\\"151\\\"\",secCHUAMobile:\"?0\",secCHUAPlatform:\"\\\"Linux\\\"\",userAgent:\"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36\"},browserTracingGoogleCloudProject:null,browserTracingEnabled:false,user:void 0,userKeymap:{},userIsInternal:false,userWorkspace:null,timezone:\"UTC\",forcedTraceId:void 0,portalDomain:\"onamp.dev\",attachmentOrigin:\"https://ampcode.com\",threadActorConfig:{baseURL:\"https://default:pk_9tm4qz3zrMerdZXTlBRLRsmJIzSQIPH24meKBqiL6vVpscTvc4w1YPiBgymXf9Az@ampcode.com/actors\",ampURL:\"https://ampcode.com\",poolName:\"k8s\"},sudoSession:null,viewState:{sidebarDesktopOpen:true,sidebarWidth:256,devmanOpen:false,devmanPanelState:{tab:\"threads\",selectedThread:\"current\",expandedSections:[\"worker\",\"agent\",\"executor\",\"commands\"]},notGenerallyAvailableRibbon:true,forceShipCelebration:false,showPWAInstallRibbonInDev:false,forceNativeAppSwitchNotice:false,devmanWidth:520,changesDiffLayout:\"split\",changesFilesSidebarHidden:false,fileViewerViewMode:\"rendered\",orbIconLowColor:false,threadColorDisplay:\"icon\",portalBookmarksVisible:true,collapsedSidebarGroups:[],pinnedSidebarProjects:[],expandedSidebarSubthreads:[],actorThreadsOnly:false},unsupportedNativeApp:null},uses:{dependencies:[\"data:userWorkspace\"]}},null,{type:\"data\",data:{newsItem:{slug:\"the-dial\",date:\"July 9, 2026\",file:\"20260709_the-dial.md\",title:\"The Dial\",content:\"Amp's agent modes are now a dial: `low`, `medium`, `high`, `ultra`. They replace `smart`, `deep`, `rush`, and `large`.\\n\\n\\u003Cimg width=\\\"987\\\" style=\\\"aspect-ratio: 987/324\\\" src=\\\"https://static.ampcode.com/news/dial-release.png?v=20260709-2\\\" alt=\\\"Amp's mode dial in the CLI showing low, medium, high, and ultra\\\" />\\n\\nThe old modes were models in disguise: each name hid a model, a prompt, a reasoning effort — and to pick one, you had to know what that model was like this month. That world is gone. The models converged, open-weight models got seriously good, and the only question left is capability against cost.\\n\\nThe dial asks one question: how hard is this task?\\n\\nMissing in either direction costs you. Undershoot and the model churns: wrong fix, re-prompt, wrong fix again. You pay three times for a result you could have had once. Overshoot and you're using Fable to fix a typo. Set it right and you pay for exactly the intelligence the task needs.\\n\\n- **`ultra`** — The outcome is clear, but the path is full of unknowns. Migrations, architecture, changes that span many files, systems, and decisions the model has to discover as it goes.\\n- **`high`** — You know where the change goes, but getting it right is hard: cross-cutting changes, concurrency, bugs where a subtle miss is expensive. You get diffs closer to reviewer-ready than `medium` gets you — but plan on one round of feedback before merging, and about twice the wait.\\n- **`medium`** — You know roughly what you want. This should be your default. It handles messy, multi-part tasks, fuzzy requirements, the steps you didn't spell out. Strong enough for most work, fast enough to steer.\\n- **`low`** — You know exactly what you want. Bug fixes, tests, refactors, features you can describe precisely. There is less to figure out for the model, so `low` builds it.\\n\\nTurn the dial with `Ctrl+S` in the CLI, or with the mode picker in the web app.\\n\\n\\u003Cimg width=\\\"2462\\\" style=\\\"aspect-ratio: 2462/1572\\\" src=\\\"https://static.ampcode.com/news/dial-web.png?v=20260709-2\\\" alt=\\\"Amp's mode picker in the web app showing low, medium, high, and ultra\\\" />\\n\\n## Under the Hood\\n\\nWe want you to know exactly what you're getting, so here's what backs each mode today. This wiring will change as models improve. The dial won't.\\n\\n- `ultra`: Claude Fable 5, with a system prompt written for it. GPT-5.6 Sol as the oracle.\\n- `high`: GPT-5.6 Sol at `xhigh` reasoning effort. Claude Fable 5 as the oracle.\\n- `medium`: GPT-5.6 Sol at medium reasoning effort. GPT-5.6 Sol at high effort as the oracle.\\n- `low`: GLM-5.2, Z.ai's open-weight model, the strongest open model on agentic coding. GPT-5.6 Sol as the oracle. (Workspace admins can choose to use GPT-5.6 Terra low instead of GLM-5.2 here.)\\n\\nReasoning effort is part of the tier now. No more cycling `Opt+D` through effort levels on top of picking a mode.\\n\\nEvery mode has an oracle for second opinions. On the top tiers, it's the other frontier model: in `high`, GPT-5.6 Sol writes and Fable reviews. In `ultra`, Fable writes and GPT-5.6 Sol reviews.\\n\\n## Migrating\\n\\n- `smart`, `deep` → `medium` (same model and effort as `deep`). Turn up for hard problems.\\n- `rush` → `low`.\\n- `deep**3` -> `ultra` or `high`\\n\\n## Want to Tune It Yourself?\\n\\nThe dial removes knobs from the default experience, not from Amp. [Plugins can register their own agent modes](https://ampcode.com/manual#define-a-custom-agent-mode) with your model, your prompt, and your tools, and they show up right next to the built-in ones.\\n\\nWe used that same plugin API to package up the deprecated modes — exact system prompts, exact tool lists, same models and reasoning efforts. If you want `smart`, `deep`, `rush`, or `large` back, install them:\\n\\n```\\namp plugins add --auto-update @amp/smart-classic\\namp plugins add --auto-update @amp/deep-classic\\namp plugins add --auto-update @amp/rush-classic\\namp plugins add --auto-update @amp/large-classic\\n```\\n\\nThen run `plugins: reload` (or restart the CLI) and they appear in the mode picker as Smart (classic), Deep (classic), Rush (classic), and Large (classic) — the original names stay reserved for the built-ins. `--auto-update` keeps them current when we update the plugins; drop it if you'd rather pin. The full list of installable modes is on [ampcode.com/modes](https://ampcode.com/modes).\\n\\nStart at `medium`. Turn it down when the task is clear. Turn it up when a miss costs more than the wait.\\n\\nWe'll follow up with posts on each mode and numbers on what each one can handle.\",publishedAt:void 0,excerpt:void 0,indexOnlyContent:void 0,url:\"/news/the-dial\",preview:false,previewSecret:void 0,ogImage:void 0,description:void 0,tagline:\"Four new agent modes: low, medium, high, ultra. Dial in how hard Amp should work. Smart, deep, rush, and large are deprecated.\",showTagline:false,screenshot:\"https://static.ampcode.com/news/dial-release.png?v=20260709-2\",backgroundImage:void 0,footnotes:void 0,recommendedReading:{href:\"/news/gpt-5.5\",title:\"GPT-5.5\",subtitle:\"The predecessor of GPT-5.6 in Amp's high and medium modes\"},tableOfContents:void 0,wideLayout:false},showEducationDiscount:false,educationDiscountDeclared:false,publishedAt:\"2026-07-09T00:00:00.000Z\",lastModified:\"2026-07-09\",title:\"The Dial\",openGraphDescription:\"Four new agent modes: low, medium, high, ultra. Dial in how hard Amp should work. Smart, deep, rush, and large are deprecated.\",openGraphImage:\"https://ampcode.com/og?_template=news&_version=7&title=The+Dial&date=July+9%2C+2026&tagline=Four+new+agent+modes%3A+low%2C+medium%2C+high%2C+ultra.+Dial+in+how+hard+Amp+should+work.+Smart%2C+deep%2C+rush%2C+and+large+are+deprecated.&screenshot=https%3A%2F%2Fstatic.ampcode.com%2Fnews%2Fdial-release.png%3Fv%3D20260709-2&sig=9df8d437ded37c55c3b60e7e5aa31334b743164fd1efc4ced68512a20cfbd289\"},uses:{search_params:[\"og-image\"],params:[\"slug\"]}}],\n\t\t\t\t\t\t\tform: null,\n\t\t\t\t\t\t\terror: null\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\n\t\t\t\t\tif ('serviceWorker' in navigator) {\n\t\t\t\t\t\tconst script_url = '/service-worker.js';\n\t\t\t\t\t\tconst policy = globalThis?.window?.trustedTypes?.createPolicy(\n\t\t\t\t\t\t\t'sveltekit-trusted-url',\n\t\t\t\t\t\t\t{ createScriptURL(url) { return url; } }\n\t\t\t\t\t\t);\n\t\t\t\t\t\tconst sanitised = policy?.createScriptURL(script_url) ?? script_url;\n\t\t\t\t\t\taddEventListener('load', function () {\n\t\t\t\t\t\t\tnavigator.serviceWorker.register(sanitised);\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t</script>\n\t\t</div>\n\t\t<!-- Keep this the last element in <body>. Layers appended to <body> (bits-ui portals\n\t\t     such as menus and dialogs, toasts, drag previews) would otherwise toggle the app\n\t\t     root's :last-child state, and WebKit then restyles the entire app subtree on every\n\t\t     open and close (tens of ms on a long thread). With this stable tail element only\n\t\t     the tail's state changes, which is free. -->\n\t\t<div data-amp-body-tail=\"\" hidden=\"\"></div>\n\t\n\n<!----><!----><!----><!----><!----><!----><!----><!----> <!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----> <!----><!----><!----><!----><!----><!----><!----><!----> <!----><!----></body></html>",
+    "httpStatus": 200,
+    "httpStatusText": "OK",
+    "metadata": {
+      "apple-mobile-web-app-capable": "yes",
+      "apple-mobile-web-app-status-bar-style": "black-translucent",
+      "apple-mobile-web-app-title": "Amp",
+      "article:modified_time": "2026-07-09",
+      "article:published_time": "2026-07-09T00:00:00.000Z",
+      "author": [
+        "Amp",
+        "Amp"
+      ],
+      "description": "Four new agent modes: low, medium, high, ultra. Dial in how hard Amp should work. Smart, deep, rush, and large are deprecated.",
+      "lang": "en",
+      "mobile-web-app-capable": "yes",
+      "og:description": "Four new agent modes: low, medium, high, ultra. Dial in how hard Amp should work. Smart, deep, rush, and large are deprecated.",
+      "og:image": "https://ampcode.com/og?_template=news&_version=7&title=The+Dial&date=July+9%2C+2026&tagline=Four+new+agent+modes%3A+low%2C+medium%2C+high%2C+ultra.+Dial+in+how+hard+Amp+should+work.+Smart%2C+deep%2C+rush%2C+and+large+are+deprecated.&screenshot=https%3A%2F%2Fstatic.ampcode.com%2Fnews%2Fdial-release.png%3Fv%3D20260709-2&sig=9df8d437ded37c55c3b60e7e5aa31334b743164fd1efc4ced68512a20cfbd289",
+      "og:image:height": "630",
+      "og:image:secure_url": "https://ampcode.com/og?_template=news&_version=7&title=The+Dial&date=July+9%2C+2026&tagline=Four+new+agent+modes%3A+low%2C+medium%2C+high%2C+ultra.+Dial+in+how+hard+Amp+should+work.+Smart%2C+deep%2C+rush%2C+and+large+are+deprecated.&screenshot=https%3A%2F%2Fstatic.ampcode.com%2Fnews%2Fdial-release.png%3Fv%3D20260709-2&sig=9df8d437ded37c55c3b60e7e5aa31334b743164fd1efc4ced68512a20cfbd289",
+      "og:image:type": "image/png",
+      "og:image:width": "1200",
+      "og:title": "The Dial",
+      "og:type": "article",
+      "og:url": "https://ampcode.com/news/the-dial",
+      "theme-color": [
+        "#dfdfc1",
+        "#091c1e"
+      ],
+      "twitter:card": "summary_large_image",
+      "twitter:creator": "@ampcode",
+      "twitter:image": "https://ampcode.com/og?_template=news&_version=7&title=The+Dial&date=July+9%2C+2026&tagline=Four+new+agent+modes%3A+low%2C+medium%2C+high%2C+ultra.+Dial+in+how+hard+Amp+should+work.+Smart%2C+deep%2C+rush%2C+and+large+are+deprecated.&screenshot=https%3A%2F%2Fstatic.ampcode.com%2Fnews%2Fdial-release.png%3Fv%3D20260709-2&sig=9df8d437ded37c55c3b60e7e5aa31334b743164fd1efc4ced68512a20cfbd289",
+      "twitter:site": "@ampcode",
+      "viewport": "width=device-width, initial-scale=1, viewport-fit=cover"
+    },
+    "publishedTime": "2026-07-09T00:00:00.000Z",
+    "title": "The Dial",
+    "url": "https://ampcode.com/news/the-dial",
+    "usage": {
+      "tokens": 26202
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 26202
+    }
+  },
+  "status": 20000
+}

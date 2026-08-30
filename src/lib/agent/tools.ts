@@ -373,7 +373,7 @@ const SubtreeInputSchema = {
   // error instead of a validator message the model can't act on).
 } as any; // plain JSON-Schema (recursive $ref) — the SDK validates raw schemas directly
 
-type RawSubtreeNode = Record<string, unknown> & { children?: unknown };
+export type RawSubtreeNode = Record<string, unknown> & { children?: unknown };
 
 function parseSubtreeNode(value: unknown): RawSubtreeNode | null {
   if (typeof value === 'string') {
@@ -391,7 +391,9 @@ function parseSubtreeNode(value: unknown): RawSubtreeNode | null {
 /// Deep-walk a parsed subtree: hydrate any `children` arrays the model sent
 /// as JSON STRINGS (the LooseShapeInputSchema gotcha, applied recursively)
 /// and drop non-array garbage so the applier always sees real arrays.
-function hydrateSubtreeChildren(node: RawSubtreeNode): void {
+/// Exported for the runner's multitask path (specs parsed by
+/// subagents/multitask.ts go through the same hydration before add_subtree).
+export function hydrateSubtreeChildren(node: RawSubtreeNode): void {
   let kids = node.children;
   if (typeof kids === 'string') {
     try {

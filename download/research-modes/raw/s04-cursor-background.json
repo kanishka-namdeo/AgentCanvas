@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://cursor.com/docs/cloud-agent",
+    "name": "Cloud Agents | Cursor Docs",
+    "snippet": "Cloud agents use the same agent fundamentals but run in isolated VMs in the cloud with full development environments instead of on your local machine. Read more",
+    "host_name": "cursor.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://madewithlove.com/blog/using-cursor-background-agents",
+    "name": "Cursor Background Agents: What They Do and When to Use",
+    "snippet": "Jul 31, 2025 — Cursor Pro's background agents spin up cloud environments, clone your repo, and complete tasks in parallel, raising PRs without touching ...",
+    "host_name": "madewithlove.com",
+    "rank": 1,
+    "date": "Jul 31, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://stevekinney.com/courses/ai-development/cursor-background-agents",
+    "name": "Cursor Cloud Agents | Developing with AI Tools",
+    "snippet": "Jun 24, 2026 — Use Cursor Cloud Agents for isolated, remote agent work with explicit environments, verification commands, artifacts, and review boundaries.",
+    "host_name": "stevekinney.com",
+    "rank": 2,
+    "date": "Jun 24, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.digitalapplied.com/blog/cursor-cloud-agents-isolated-vms-guide",
+    "name": "Cursor Cloud Agents: Build and Test in Isolated VMs",
+    "snippet": "Feb 27, 2026 — Cursor Cloud Agents are autonomous coding agents that execute tasks inside cloud-hosted virtual machines . Unlike local Cursor, which runs the AI ... Read more",
+    "host_name": "www.digitalapplied.com",
+    "rank": 3,
+    "date": "Feb 27, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.qovery.com/blog/cursor-cloud-agents-enterprise-limitations",
+    "name": "Cursor Cloud Agents Are Incredible - Until You Need",
+    "snippet": "May 15, 2026 — The agent starts a dev server, opens a browser, clicks through the UI, takes screenshots to prove it works , and attaches everything to the PR.",
+    "host_name": "www.qovery.com",
+    "rank": 4,
+    "date": "May 15, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/cursor/comments/1nk74gq/is_anyone_really_using_background_agents",
+    "name": "Is anyone really using background agents? : r/cursor",
+    "snippet": "For a while I’ve known that Cursor has their background agents and the idea sounded great! Even more with the ability of working with them remotely ...",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.tembo.io/blog/tembo-vs-cursor-background-agents",
+    "name": "Tembo vs Cursor Background Agents: Which Is Right for You?",
+    "snippet": "Mar 13, 2026 — How Cursor Cloud Agents work. They clone your repo from GitHub or GitLab , work on a branch in an isolated cloud environment, and push changes ... Read more",
+    "host_name": "www.tembo.io",
+    "rank": 6,
+    "date": "Mar 13, 2026",
+    "favicon": ""
+  }
+]

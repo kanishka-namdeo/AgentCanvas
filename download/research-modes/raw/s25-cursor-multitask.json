@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://x.com/cursor_ai/status/2052489388895195399?lang=en",
+    "name": "Cursor can now split plans up into parallel subtasks by",
+    "snippet": "Cursor can now split plans up into parallel subtasks by multitasking . Click \"Build in Parallel\" to have it identify independent tasks and run ...",
+    "host_name": "x.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/multitask-in-agents-window/158955",
+    "name": "/multitask in Agents Window - Release Discussions",
+    "snippet": "Apr 24, 2026 — We're excited to introduce / multitask , a new way for Cursor to parallelize agent work with async subagents! Cursor can also break larger tasks ...",
+    "host_name": "forum.cursor.com",
+    "rank": 1,
+    "date": "Apr 24, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.digitalapplied.com/blog/cursor-3-agents-window-complete-guide",
+    "name": "Cursor 3: Agents Window, Cloud Agents, and What Changed",
+    "snippet": "Apr 3, 2026 — Multitask Parallelises With Async Subagents : The April 24, 2026 update added /multitask, which spawns async subagents to handle independent ... Read more",
+    "host_name": "www.digitalapplied.com",
+    "rank": 2,
+    "date": "Apr 3, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/cursor/comments/1tmyuzw/the_new_multitask_mode_is_great",
+    "name": "The new Multitask mode is great : r/cursor",
+    "snippet": "In the new multitask mode subagents are spun up to do the actual implementation in the background while not blocking the current chat.",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/towards-data-engineering/parallel-ai-agents-in-cursor-2-0-a-practical-guide-e808f89cffb9",
+    "name": "Parallel AI Agents in Cursor 2.0: A Practical Guide",
+    "snippet": "On October 29, 2025, Cursor released version 2.0 with native parallel agent support . You can run multiple AI agents simultaneously,",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/onepizzateam/cursor-3-shipped-parallel-agents-and-the-community-cant-agree-on-whether-thats-good-1p3n",
+    "name": "Cursor 3 shipped parallel agents and the community can't",
+    "snippet": "Apr 30, 2026 — The headline change is the Agents Window -- a full-screen workspace running alongside the IDE where you manage multiple AI agents in parallel . ...",
+    "host_name": "dev.to",
+    "rank": 5,
+    "date": "Apr 30, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/cursor-2-0-split-tasks-using-parallel-agents-automatically-in-one-chat-how-to-setup-worktree-json/140218",
+    "name": "Split tasks using PARALLEL AGENTS automatically in one",
+    "snippet": "Oct 31, 2025 — When you launch parallel agents: Cursor automatically runs a setup script in each worktree; Each agent claims the next available task number (1, ... Read more",
+    "host_name": "forum.cursor.com",
+    "rank": 6,
+    "date": "Oct 31, 2025",
+    "favicon": ""
+  }
+]

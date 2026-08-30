@@ -57,6 +57,16 @@ export type DefaultPalette = 'slate' | 'warm' | 'forest' | 'mono';
 ///     autonomously (the pre-gate behavior; only disable for trusted automation).
 export type ApprovalMode = 'destructive' | 'review' | 'off';
 
+/// Agent mode (Cursor-style, see src/lib/agent/modes.ts): what the agent is
+/// ALLOWED to do on a turn — orthogonal to the model picker.
+///   - 'build' (default): full toolset; the agent designs + edits the canvas.
+///   - 'ask':  read-only toolset — questions about the canvas get answers,
+///     never mutations. Structurally enforced at tool-registry assembly.
+///   - 'plan': read-only toolset + submit_plan — the agent proposes a plan
+///     artifact; the user approves ("Build it" / "Keep planning"); an
+///     approved plan executes in a build-toolset session carrying the plan.
+export type AgentMode = 'build' | 'ask' | 'plan';
+
 /// Canvas renderer backend (spec docs/html-dom-renderer.md). DOM is the only
 /// live renderer as of the SVG-renderer-removal sweep — real divs per node +
 /// inline SVG islands for vector primitives + screen-space chrome overlay +
@@ -174,6 +184,13 @@ export interface AppSettings {
   enabledPlugins?: string[];
   /// MCP server configurations (from Settings → MCP Servers).
   mcpServers?: McpServerConfig[];
+
+  // ── Phase 6: Agent modes (Cursor-style) ──────────────────────────────────
+  /// Sticky agent mode (Build / Ask / Plan) — the composer's mode picker and
+  /// the /ask /plan /build slash commands write it. Optional: pre-mode
+  /// settings blobs lack it; read sites default to 'build' so the persisted
+  /// blob needs no migration.
+  agentMode?: AgentMode;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -213,6 +230,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   skillSelectionMode: 'auto',
   autoArchiveIdleAfter: 'never',
   density: 'comfortable',
+
+  // Cursor-style mode system (see src/lib/agent/modes.ts). 'build' preserves
+  // the pre-mode behavior for every existing user + test.
+  agentMode: 'build' as AgentMode,
 };
 
 /// Subset of settings that the /api/agent route consumes. Sent in the
@@ -240,6 +261,12 @@ export interface AgentRunSettings {
   /// MCP server configurations (for the mcp-adapter plugin). Each entry is
   /// a server the user has added via Settings → MCP Servers.
   mcpServers?: McpServerConfig[];
+  /// Agent mode for this turn (Cursor-style): 'build' | 'ask' | 'plan'.
+  /// Rides the settings object through every leg (client store → WS/HTTP →
+  /// route → runner) untouched; the runner enforces it at tool-registry
+  /// assembly (ask/plan physically cannot see mutating tools). Absent →
+  /// 'build' (pre-mode behavior).
+  mode?: AgentMode;
   /// Task 7-c P1.3 (T2): max iterations of the MANDATORY self-critique loop
   /// that runs after the agent emits its final message. Each iteration:
   ///   1. Dispatches BOTH the text-based design critic
@@ -312,10 +339,13 @@ export function agentRunSettings(s: AppSettings): AgentRunSettings {
     apiBaseUrl: s.apiBaseUrl,
     enabledPlugins: s.enabledPlugins,
     mcpServers: s.mcpServers,
+    // Cursor-style mode system: the sticky composer mode rides every run.
+    mode: s.agentMode ?? 'build',
     // Task 7-c P1.3 — default to 2 mandatory critique iterations.
-    // AppSettings doesn't expose this knob in the UI yet (deferred); the
-    // server-side default keeps the loop on for every turn so production
-    // behavior improves immediately.
+    // NOTE (2026-08-30 modes update): the critique loop is now ADAPTIVE
+    // (modes.ts shouldRunCritics) — 2 stays the iteration CAP; which turns
+    // run critics at all is complexity-gated (small clean turns get
+    // validator-only repair, ~3 LLM calls saved per gated turn).
     maxDesignCritiqueIterations: 2,
   };
 }

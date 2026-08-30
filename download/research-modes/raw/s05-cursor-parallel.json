@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://www.datacamp.com/blog/cursor-3",
+    "name": "What Is Cursor 3? Agents, Worktrees, and What's New",
+    "snippet": "Apr 8, 2026 — Agent Tabs let you view multiple agent chats side-by-side or in a grid. Agent chats are also now standard editor tabs, so split-pane and ...",
+    "host_name": "www.datacamp.com",
+    "rank": 0,
+    "date": "Apr 8, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/weekend-discussion-how-are-you-guys-using-so-many-agents-in-parallel/155462",
+    "name": "How are you guys using so many agents in parallel?",
+    "snippet": "Mar 21, 2026 — I really recommend building your own agent orchestrator / vibe coding tool, I made a thread about it and open sourced it powered by the Cursor ... Read more",
+    "host_name": "forum.cursor.com",
+    "rank": 1,
+    "date": "Mar 21, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.developersdigest.tech/blog/cursor-3-11-side-chats-developer-guide-2026",
+    "name": "Cursor v3.11 Side Chats: Developer Guide for Parallel Agent",
+    "snippet": "Jul 11, 2026 — Cursor v3.11 introduces Side Chats for parallel agent conversations , released July 10, 2026.",
+    "host_name": "www.developersdigest.tech",
+    "rank": 2,
+    "date": "Jul 11, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://futurumgroup.com/insights/cursor-3-2-reframes-the-ide-as-an-agent-execution-runtime",
+    "name": "Cursor 3.2 Reframes the IDE as an Agent Execution Runtime",
+    "snippet": "Apr 29, 2026 — Cursor 3.2 introduces /multitask for async subagent parallelization , parallelizes user requests and breaks larger tasks",
+    "host_name": "futurumgroup.com",
+    "rank": 3,
+    "date": "Apr 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ArtificialInteligence/comments/1shkz9p/cursor_3_just_replaced_the_code_editor_with_an",
+    "name": "Cursor 3 just replaced the code editor with an agent",
+    "snippet": "The default view is now a dashboard where you manage multiple agents running in parallel . the file tree is gone, replaced by a prompt input ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@tentenco/cursor-3-ships-an-agent-first-interface-heres-what-it-actually-changes-1f2bf8f383e2",
+    "name": "Cursor 3 Ships an Agent-First Interface. Here's What It",
+    "snippet": "Cursor 3 launched on April 2, 2026, Developers can run multiple AI agents in parallel across local machines, worktrees, cloud sandboxes, and ...",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.augmentcode.com/tools/cursor-3-vs-intent",
+    "name": "Cursor 3 vs Intent (2026): Prompt-Driven vs Spec",
+    "snippet": "Apr 12, 2026 — Cursor 3 introduced an agent -first workspace with parallel cloud agents , worktrees, and prompt-driven orchestration. Intent takes a structurally ... Read more",
+    "host_name": "www.augmentcode.com",
+    "rank": 6,
+    "date": "Apr 12, 2026",
+    "favicon": ""
+  }
+]

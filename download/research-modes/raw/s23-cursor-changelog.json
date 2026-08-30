@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://cursor.com/changelog/0-46-x",
+    "name": "Agent is ready and UI refresh",
+    "snippet": "Agent is now the default mode , bringing a more powerful and unified AI experience. No more confusion between Chat, Composer, and Agent - just one smart  ...",
+    "host_name": "cursor.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/cursor/comments/1iuvain/ive_tested_the_new_cursor_046_ui_update",
+    "name": "I've tested the new Cursor 0.46 - UI Update",
+    "snippet": "Cursor 0.46 is here and we got some fresh UI Updates. Chat -> Ask Composer (normal) -> Edit Composer ( agent ) -> Agent . You can switch between ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cursor.com/changelog/3-0",
+    "name": "New Cursor Interface",
+    "snippet": "Apr 2, 2026 — The new Cursor interface allows you to run many agents in parallel across repos and environments: locally, in worktrees, in the cloud, and on ... Read more",
+    "host_name": "cursor.com",
+    "rank": 2,
+    "date": "Apr 2, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/bug-report-multiple-features-missing-broken-in-cursor-0-46-0/52730",
+    "name": "[Bug Report] Multiple Features Missing/Broken in",
+    "snippet": "Feb 21, 2025 — The Composer feature has completely disappeared from the interface In Agent mode , the auto-code-modification feature is no longer working … ...",
+    "host_name": "forum.cursor.com",
+    "rank": 3,
+    "date": "Feb 21, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/after-updating-cursor-agent-mode-applies-file-changes-directly-to-disk-with-no-red-green-inline-diff-and-no-keep-undo-or-accept-reject-controls-settings-that-used-to-control-this-either-dont-exist-in-my-ui-or-have-no-effect-this-removed/162532",
+    "name": "After updating Cursor, Agent mode applies file changes",
+    "snippet": "Jun 5, 2026 — After updating Cursor , Agent mode applies file changes **directly to disk** with no red/green inline diff and no **Keep / Undo** (or Accept / ... Read more",
+    "host_name": "forum.cursor.com",
+    "rank": 4,
+    "date": "Jun 5, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/v0-46-pre-release-discussions/52833",
+    "name": "V0.46 - Pre-release Discussions!",
+    "snippet": "Feb 21, 2025 — You can start in ask mode with R1 then move to agent mode with Sonnet and retain context. It's not perfect for this use case but it's workable. Read more",
+    "host_name": "forum.cursor.com",
+    "rank": 5,
+    "date": "Feb 21, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.infoq.com/news/2026/04/cursor-3-agent-first-interface",
+    "name": "Cursor 3 Introduces Agent-First Interface, Moving beyond",
+    "snippet": "Apr 16, 2026 — Anysphere released Cursor 3, a redesigned interface built from scratch that shifts the primary model from file editing to managing parallel ...",
+    "host_name": "www.infoq.com",
+    "rank": 6,
+    "date": "Apr 16, 2026",
+    "favicon": ""
+  }
+]
