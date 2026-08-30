@@ -32,6 +32,7 @@ import {
   consumeApprovedPlan,
   resetPlanGate,
   getPendingPlanProposals,
+  hasApprovedPlanSince,
 } from '@/lib/agent/plan-gate';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
@@ -653,5 +654,155 @@ describe('classifier: build-intent guard', () => {
     const { classifyIntent } = await import('@/lib/agent/classifier');
     const result = await classifyIntent({ prompt: 'Can you build me a dashboard on my canvas?', canvasShapeCount: 0 });
     expect(result.category).not.toBe('inspect');
+  });
+});
+
+// ---- 14. Stress-test round 3: plan-mode post-approval hard stop -------------------
+//
+// Live-verified failure (2026-08-30 plan-mode E2E through the gateway): after
+// "Build it", the model kept executing INSIDE the read-only planning session
+// (todo spam + pen_insert_html/pen_create_node "Tool not found" for ~3
+// minutes), and a giant exec-session tool call was then killed by the stream
+// watchdog because toolcall_delta events never reached the wire. These tests
+// pin the three fixes: (a) hasApprovedPlanSince + the runner's planning-session
+// tool blocker, (b) submit_plan's hard-stop result text, (c) the translator's
+// toolcall_delta → tool_progress watchdog feed.
+
+describe('plan-gate: hasApprovedPlanSince (post-approval blocker input)', () => {
+  beforeEach(() => resetPlanGate());
+
+  it('is false with no approval, true after one newer than the run start', () => {
+    const runStartedAt = Date.now();
+    expect(hasApprovedPlanSince(runStartedAt)).toBe(false);
+    recordApprovedPlan({
+      planId: 'tc-block-1', title: 'T', summary: 'S',
+      steps: [{ step: 1, description: 'a' }, { step: 2, description: 'b' }],
+    });
+    expect(hasApprovedPlanSince(runStartedAt)).toBe(true);
+    // Stale run starts (a previous run) must NOT see this approval.
+    expect(hasApprovedPlanSince(Date.now() + 1)).toBe(false);
+  });
+
+  it('clears once the runner consumes the approved plan', () => {
+    const runStartedAt = Date.now() - 1_000;
+    recordApprovedPlan({
+      planId: 'tc-block-2', title: 'T', summary: 'S',
+      steps: [{ step: 1, description: 'a' }, { step: 2, description: 'b' }],
+    });
+    expect(consumeApprovedPlan(runStartedAt)?.planId).toBe('tc-block-2');
+    expect(hasApprovedPlanSince(runStartedAt)).toBe(false);
+  });
+});
+
+describe('submit_plan: approved result is a hard stop (no in-session execution)', () => {
+  it('tells the model NOT to execute, create todos, or call tools', async () => {
+    const { submitPlanTool } = await import('@/lib/agent/plan-tools');
+    const execute = (submitPlanTool as any).execute as (
+      toolCallId: string, params: any, signal?: any, onUpdate?: any, ctx?: any,
+    ) => Promise<{ content: Array<{ type: string; text: string }>; details?: any }>;
+
+    const promise = execute('tc-stop-1', {
+      title: 'T', summary: 'S',
+      steps: [{ step: 1, description: 'a' }, { step: 2, description: 'b' }],
+    });
+    await new Promise((r) => setTimeout(r, 25));
+    resolvePlanProposal('tc-stop-1', 'build');
+    const result = await promise;
+    const text = result.content[0].text;
+    // The old text ("switching to Build mode now") invited in-session
+    // execution — the new text must forbid every escape hatch explicitly.
+    expect(text).toMatch(/PLANNING SESSION COMPLETE/i);
+    expect(text).toMatch(/do NOT execute any steps/i);
+    expect(text).toMatch(/do NOT create todos/i);
+    expect(text).toMatch(/do NOT call any more tools/i);
+    expect(text).toMatch(/end your turn/i);
+    expect(text).not.toMatch(/switching to Build mode now/i);
+  });
+});
+
+describe('runner source invariants: post-approval tool blocker', () => {
+  it('wraps the PLANNING toolset with planCompletionBlocker (plan mode only)', () => {
+    const src = read('lib/agent/runner-native.ts');
+    expect(src).toMatch(
+      /mode === 'plan' \? planCompletionBlocker\(filteredTools\) : filteredTools/,
+    );
+    // The blocker consults the gate scoped to THIS run.
+    expect(src).toMatch(/hasApprovedPlanSince\(runStartedAt\)/);
+    // The blocker's error result is a terminal stop instruction.
+    expect(src).toContain('PLANNING SESSION COMPLETE — the plan was approved');
+  });
+
+  it('does NOT wrap the EXEC toolset (execOrderedTools must stay unblocked)', () => {
+    const src = read('lib/agent/runner-native.ts');
+    // The exec assembly call takes buildToolsForPlanMode directly.
+    expect(src).toMatch(
+      /execOrderedTools: ToolDefinition\[\] \| null = buildToolsForPlanMode\s*\n\s*\? assembleOrderedTools\(buildToolsForPlanMode\)/,
+    );
+  });
+});
+
+describe('translator: toolcall_delta feeds the stream watchdog', () => {
+  it('emits throttled agent:tool_progress with tool name + KB while composing tool args', async () => {
+    const { translateAgentSessionEvent, createTranslatorState } = await import(
+      '@/lib/agent/agent-session-translator'
+    );
+    const state = createTranslatorState();
+    // Open a message so the UI state machine is balanced.
+    translateAgentSessionEvent({ type: 'message_start' } as any, state);
+
+    const delta = (deltaText: string, name: string) => ({
+      type: 'message_update',
+      assistantMessageEvent: {
+        type: 'toolcall_delta',
+        contentIndex: 0,
+        delta: deltaText,
+        partial: { content: [{ type: 'toolCall', id: 'call-1', name, arguments: {} }] },
+      },
+    }) as any;
+
+    // First delta emits immediately with the tool name.
+    const first = translateAgentSessionEvent(delta('x'.repeat(600), 'pen_create_subtree'), state);
+    const progress1 = first.filter((e) => (e as any).event?.type === 'agent:tool_progress');
+    expect(progress1).toHaveLength(1);
+    expect((progress1[0] as any).event.text).toContain('pen_create_subtree');
+    expect((progress1[0] as any).event.text).toMatch(/0\.\d KB/);
+
+    // Immediate second delta is throttled away (no wire spam).
+    const second = translateAgentSessionEvent(delta('y'.repeat(200), 'pen_create_subtree'), state);
+    expect(second.filter((e) => (e as any).event?.type === 'agent:tool_progress')).toHaveLength(0);
+
+    // A >2s-old throttle window emits again with accumulated bytes (fake the
+    // clock by checking the map indirectly: force an emit by using a NEW
+    // toolCall id, which has fresh throttle state).
+    const third = translateAgentSessionEvent({
+      type: 'message_update',
+      assistantMessageEvent: {
+        type: 'toolcall_delta',
+        contentIndex: 1,
+        delta: 'z'.repeat(2048),
+        partial: { content: [null, { type: 'toolCall', id: 'call-2', name: 'pen_insert_html', arguments: {} }] },
+      },
+    } as any, state);
+    const progress3 = third.filter((e) => (e as any).event?.type === 'agent:tool_progress');
+    expect(progress3).toHaveLength(1);
+    expect((progress3[0] as any).event.text).toContain('pen_insert_html');
+    expect((progress3[0] as any).event.text).toMatch(/2\.0 KB/);
+
+    // text_delta still translates to message_delta (regression guard).
+    const text = translateAgentSessionEvent({
+      type: 'message_update',
+      assistantMessageEvent: { type: 'text_delta', delta: 'hello' },
+    } as any, state);
+    expect(text.some((e) => (e as any).event?.type === 'agent:message_delta')).toBe(true);
+  });
+});
+
+describe('modes: plan hint surfaces the saved-LLM-calls estimate', () => {
+  it('MODE_METADATA.plan.hint mentions the estimate; constant defined once in modes.ts', async () => {
+    const mod = await import('@/lib/agent/modes');
+    expect(MODE_METADATA.plan.hint).toContain(String(mod.PLAN_MODE_SAVED_LLM_CALLS_ESTIMATE));
+    // plan-tools re-exports the same constant (import-pure modes module owns it).
+    const planTools = await import('@/lib/agent/plan-tools');
+    expect(planTools.PLAN_MODE_SAVED_LLM_CALLS_ESTIMATE).toBe(mod.PLAN_MODE_SAVED_LLM_CALLS_ESTIMATE);
   });
 });

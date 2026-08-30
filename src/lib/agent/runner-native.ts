@@ -123,7 +123,7 @@ import {
   CRITIC_PATH_ESTIMATED_LLM_CALLS,
 } from './modes';
 import { submitPlanTool, SUBMIT_PLAN_TOOL_NAME } from './plan-tools';
-import { consumeApprovedPlan } from './plan-gate';
+import { consumeApprovedPlan, hasApprovedPlanSince } from './plan-gate';
 import { hydrateSubtreeChildren, type RawSubtreeNode } from './tools';
 
 // ---- Cross-turn conversation history (audit 1 P3) ---------------------------
@@ -685,10 +685,54 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     );
   };
 
-  const orderedTools: ToolDefinition[] = assembleOrderedTools(filteredTools);
+  // ---- PLAN-mode post-approval tool blocker (stress-test round 2) ----------
+  //
+  // Live-verified failure (2026-08-30 plan-mode E2E): after "Build it"
+  // resolves, the model kept executing IN THE READ-ONLY PLANNING SESSION —
+  // todo_create spam, pen_insert_html/pen_create_node "Tool not found"
+  // errors, then ~3 minutes of confused read-only calls before the turn
+  // ended. submit_plan's approved-result text now says STOP, but prompts
+  // decay (kimi-k2-5 ignored the old "end your turn" instruction), so this
+  // wrapper enforces it architecturally — the same lesson as the brief-first
+  // gate: once a plan is approved for THIS run, every tool call in the
+  // planning session returns a terminal error result. The model's only
+  // remaining move is text, which ends the turn and starts the builder
+  // session. The EXEC toolset (execOrderedTools) is NOT wrapped — it runs
+  // after the handoff and must never be blocked.
+  const planCompletionBlocker = (tools: ToolDefinition[]): ToolDefinition[] =>
+    tools.map((t) => {
+      const toolAny = t as any;
+      const origExecute = toolAny.execute;
+      if (typeof origExecute !== 'function') return t;
+      return {
+        ...t,
+        execute: async (toolCallId: string, params: any, signal: any, onUpdate: any, ctx: any) => {
+          if (hasApprovedPlanSince(runStartedAt)) {
+            return {
+              content: [{
+                type: 'text' as const,
+                text:
+                  'PLANNING SESSION COMPLETE — the plan was approved and a builder session will execute it. ' +
+                  'This session is read-only and finished: do not call any more tools. ' +
+                  'End your turn now with a one-sentence confirmation.',
+              }],
+              details: { error: 'planning_complete', toolName: t.name },
+              isError: true as any,
+            };
+          }
+          return origExecute(toolCallId, params, signal, onUpdate, ctx);
+        },
+      } as unknown as ToolDefinition;
+    });
+
+  const orderedTools: ToolDefinition[] = assembleOrderedTools(
+    mode === 'plan' ? planCompletionBlocker(filteredTools) : filteredTools,
+  );
   // PLAN mode: the build-toolset session that executes the plan after
   // approval. Assembled NOW (wrappers close over turn-scoped state) so the
   // execution phase can create its session without re-running assembly.
+  // NOT passed through planCompletionBlocker — the blocker exists to end the
+  // PLANNING session; the exec session must have unblocked tools.
   const execOrderedTools: ToolDefinition[] | null = buildToolsForPlanMode
     ? assembleOrderedTools(buildToolsForPlanMode)
     : null;
@@ -705,15 +749,19 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     },
   };
 
-  // 6. Optionally generate a plan (identical to legacy runner, but we skip
-  //    the LLM-based planner because we don't have an OpenAI-shaped client
-  //    readily available — the planner's LLM call would need an adapter).
-  //    The keyword-based `recommendPlan` detection still works; the plan
-  //    body will be empty unless we wire in a planner LLM later.
+  // 6. The legacy Manus-style planner is INERT on the native path:
+  //    generatePlan() returns null without an LLM (planner.ts:50-54) and we
+  //    pass llm=undefined — so this block can never produce a plan body.
+  //    It is kept only for the `agent:plan` event parity with the legacy
+  //    runner (tests assert the wire shape). Real planning goes through
+  //    PLAN mode's submit_plan gate — see modes.ts / plan-gate.ts. If a
+  //    keyword-only step list is ever wanted here, generatePlan needs a
+  //    no-LLM implementation first.
   let plan: Plan | null = null;
   if (classification.recommendPlan) {
     try {
-      // generatePlan with llm=undefined falls back to keyword-based planning.
+      // generatePlan(llm: undefined) → null (documented in planner.ts) —
+      // the call is kept for shape parity, not for its result.
       plan = await generatePlan({
         prompt,
         classification,

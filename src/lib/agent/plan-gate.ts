@@ -124,6 +124,16 @@ export function consumeApprovedPlan(runStartedAt: number): PlanProposalInput | n
   return null;
 }
 
+/// Is there an approval newer than `runStartedAt` (not yet consumed)?
+/// Post-approval tool blocker for the PLANNING session (runner-native.ts):
+/// once the user clicks "Build it", every tool call in the read-only planning
+/// session must fail fast so the model ends its turn instead of trying to
+/// execute the plan with tools it doesn't have (live-verified failure mode:
+/// todo spam + "Tool pen_insert_html not found" for minutes).
+export function hasApprovedPlanSince(runStartedAt: number): boolean {
+  return lastApprovedPlan !== null && lastApprovedPlan.resolvedAt >= runStartedAt;
+}
+
 /// Test helper — clear all pending plans + their timers + the approval slot.
 export function resetPlanGate(): void {
   for (const p of pendingPlans.values()) clearTimeout(p.timer);

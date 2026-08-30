@@ -27,6 +27,12 @@
 
 import { PARALLEL_SAFE_TOOL_NAMES } from './tool-execution-mode';
 
+/// LLM-calls the full plan-then-execute path saves vs. a blind build turn
+/// (research §4.7: "Plan Mode saves tokens by avoiding generation
+/// round-trips" — Bolt's rationale). Lives HERE (not plan-tools.ts) so this
+/// module stays import-pure; plan-tools re-exports it for its tests.
+export const PLAN_MODE_SAVED_LLM_CALLS_ESTIMATE = 4;
+
 /// The agent mode union. 'build' is the default and preserves all pre-mode
 /// behavior byte-for-byte when absent (old settings blobs, legacy callers,
 /// tests that don't pass settings).
@@ -245,6 +251,8 @@ export const MODE_METADATA: Record<AgentMode, AgentModeMetadata> = {
   plan: {
     label: 'Plan',
     description: 'Propose a plan first, approve, then build',
-    hint: 'Plan mode — the agent researches and proposes a step-by-step plan for your approval before building.',
+    hint:
+      `Plan mode — the agent researches and proposes a step-by-step plan for your approval before building. ` +
+      `Avoids wasted generation round-trips (typically saves ~${PLAN_MODE_SAVED_LLM_CALLS_ESTIMATE} LLM calls vs. blind building).`,
   },
 };

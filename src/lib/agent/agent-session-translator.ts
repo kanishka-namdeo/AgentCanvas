@@ -106,6 +106,53 @@ export function createTranslatorState(contextWindow = 128_000): TranslatorState 
   return { messageOpen: false, turnEnded: false, contextWindow };
 }
 
+// ---- toolcall_delta → throttled agent:tool_progress (watchdog feed) ---------
+//
+// Module-scoped throttle state (toolCallIds are unique per call, so a plain
+// map is safe; entries are cleared when the call completes or the turn ends).
+// Emits at most one progress event per call per THROTTLE_MS with the tool
+// name + accumulated argument size — enough to feed the route's 120s stream
+// watchdog on every chunk of a multi-minute argument generation, without
+// flooding the wire/UI with per-token events.
+const TOOLCALL_PROGRESS_THROTTLE_MS = 2_000;
+const toolCallProgressState = new Map<string, { bytes: number; lastEmitAt: number }>();
+
+function toolCallDeltaProgress(
+  contentIndex: number,
+  delta: string,
+  partial: unknown,
+): { type: 'agent:tool_progress'; toolCallId: string; text: string } | null {
+  // Resolve the toolCall block (name + id) from the partial AssistantMessage.
+  let toolName = '';
+  let toolCallId = '';
+  try {
+    const block = (partial as any)?.content?.[contentIndex];
+    if (block && block.type === 'toolCall') {
+      toolName = typeof block.name === 'string' ? block.name : '';
+      toolCallId = typeof block.id === 'string' ? block.id : '';
+    }
+  } catch {
+    // Malformed partial — fall through with empty identifiers.
+  }
+  // Id may be empty until the provider streams it; key by index+name instead.
+  const key = toolCallId || `idx-${contentIndex}-${toolName}`;
+  const now = Date.now();
+  const prev = toolCallProgressState.get(key);
+  const bytes = (prev?.bytes ?? 0) + (typeof delta === 'string' ? delta.length : 0);
+  if (prev && now - prev.lastEmitAt < TOOLCALL_PROGRESS_THROTTLE_MS) {
+    toolCallProgressState.set(key, { bytes, lastEmitAt: prev.lastEmitAt });
+    return null;
+  }
+  toolCallProgressState.set(key, { bytes, lastEmitAt: now });
+  const kb = (bytes / 1024).toFixed(1);
+  const label = toolName || 'tool call';
+  return {
+    type: 'agent:tool_progress',
+    toolCallId: toolCallId || key,
+    text: `Composing ${label} arguments… ${kb} KB`,
+  };
+}
+
 /// Derive the "current context fill" token count from a pi-ai `Usage`
 /// payload. Mirrors the SDK's `calculateContextTokens`: the input of the last
 /// LLM call plus its output (and cache reads/writes) is the size of the
@@ -134,21 +181,37 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
     }
 
     case 'message_update': {
-      // AssistantMessageEvent is a discriminated union — text_delta | thinking_delta | tool_call_start | tool_call_delta | tool_call_end | usage | image | ...
+      // AssistantMessageEvent is a discriminated union — text_delta | thinking_delta | toolcall_start | toolcall_delta | toolcall_end | usage | image | ...
       const ame = (event as any).assistantMessageEvent;
       if (!ame) break;
       if (ame.type === 'text_delta' && typeof ame.delta === 'string') {
         out.push({ kind: 'agent_event', event: { type: 'agent:message_delta', text: ame.delta } });
       } else if (ame.type === 'thinking_delta' && typeof ame.delta === 'string') {
         out.push({ kind: 'agent_event', event: { type: 'agent:thinking_delta', text: ame.delta } });
+      } else if (ame.type === 'toolcall_delta' && typeof ame.delta === 'string') {
+        // Watchdog feed (2026-08-30 modes E2E, live-verified failure): a
+        // giant tool-call argument (a whole screen as one pen_create_subtree /
+        // pen_insert_html payload) can take >120s of pure argument streaming.
+        // toolcall_delta events were dropped here, so NOTHING reached the wire
+        // for 2 minutes — the route's stream watchdog killed the run mid-
+        // generation ("Agent stream stalled"), leaving an empty canvas.
+        // Throttled agent:tool_progress keeps the watchdog fed AND shows the
+        // user the agent is composing a large call (pending tool card).
+        const progress = toolCallDeltaProgress(ame.contentIndex, ame.delta, ame.partial);
+        if (progress) {
+          out.push({ kind: 'agent_event', event: progress });
+        }
       }
-      // Other assistantMessageEvent types (tool_call_start/delta/end, usage, image)
+      // Other assistantMessageEvent types (toolcall_start/end, usage, image)
       // don't need separate SyncEvents — we emit our own tool_call_start/end
       // from the SDK's tool_execution_start/end events below.
       break;
     }
 
     case 'message_end': {
+      // A completed message closes all its tool calls — drop the throttle
+      // state so a new message's calls start from zero bytes.
+      toolCallProgressState.clear();
       // Extract the LLM usage payload from the completed AssistantMessage.
       // `event.message` is the full AssistantMessage (pi-ai types): it carries
       // `usage` (input/output/cacheRead/cacheWrite tokens + cost), `model`,

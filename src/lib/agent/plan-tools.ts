@@ -14,13 +14,13 @@
 import { Type } from '@earendil-works/pi-ai';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { submitPlanProposal, recordApprovedPlan } from './plan-gate';
+import { PLAN_MODE_SAVED_LLM_CALLS_ESTIMATE } from './modes';
 
 export const SUBMIT_PLAN_TOOL_NAME = 'submit_plan';
 
-/// LLM-calls the full plan-then-execute path saves vs. a blind build turn
-/// (research §4.7: "Plan Mode saves tokens by avoiding generation
-/// round-trips" — Bolt's rationale). Surfaced in the UI hint.
-export const PLAN_MODE_SAVED_LLM_CALLS_ESTIMATE = 4;
+// Re-exported for existing imports (tests, future UI hints) — the canonical
+// definition lives in modes.ts (import-pure module).
+export { PLAN_MODE_SAVED_LLM_CALLS_ESTIMATE };
 
 export const submitPlanTool = defineTool({
   name: SUBMIT_PLAN_TOOL_NAME,
@@ -125,12 +125,22 @@ export const submitPlanTool = defineTool({
         steps,
         openQuestions: (typed.openQuestions ?? []).slice(0, 5).map((q) => String(q).slice(0, 300)),
       });
+      // Stress-test round 2 (live-verified): the old text said "the run is
+      // switching to Build mode now" — models read that as "start building
+      // NOW" and kept executing INSIDE this read-only planning session
+      // (todo spam + pen_create_node/pen_insert_html "Tool not found" for
+      // ~3 minutes). The wording below is a hard stop, and the runner's
+      // post-approval tool blocker (runner-native.ts) enforces it
+      // architecturally if the model still tries.
       return {
         content: [{
           type: 'text' as const,
           text:
-            'PLAN APPROVED. The run is switching to Build mode now and will execute this plan step by step with the full design toolset. ' +
-            'End your turn with a one-sentence confirmation — the builder session carries the plan.',
+            'PLAN APPROVED — PLANNING SESSION COMPLETE. Your job is DONE. ' +
+            'Do NOT execute any steps, do NOT create todos, and do NOT call any more tools: ' +
+            'this session is read-only, so design tools would fail with "Tool not found". ' +
+            'A separate builder session with the full design toolset executes the plan automatically once you end your turn. ' +
+            'Reply with exactly ONE short sentence confirming the handoff, then end your turn.',
         }],
         details: { decision: 'build' },
       };

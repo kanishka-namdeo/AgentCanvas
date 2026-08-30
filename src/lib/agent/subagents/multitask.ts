@@ -65,8 +65,14 @@ export interface MultitaskResult {
 // ---- Budgets -----------------------------------------------------------------
 
 const DECOMPOSE_TIMEOUT_MS = 60_000;
-const SCREEN_GEN_TIMEOUT_MS = 150_000;
-const TOTAL_BUDGET_MS = 420_000; // 7 min — K screens staggered 10s + retries
+// Per-screen deadline. Live-verified 2026-08-30 (kimi-k2-5, /multitask E2E):
+// a full-screen pen_create_subtree spends 80-140s in pure argument
+// COMPOSITION before the single patch lands — 150s killed 3 of 4 workers
+// mid-composition (each had exactly 1 tool call in flight). 240s covers the
+// observed p95 plus one provider retry; the total budget still bounds the
+// wall clock.
+const SCREEN_GEN_TIMEOUT_MS = 240_000;
+const TOTAL_BUDGET_MS = 600_000; // 10 min — K screens staggered 10s + retries
 const MAX_TASKS = 5;
 const STAGGER_MS = 10_000;
 

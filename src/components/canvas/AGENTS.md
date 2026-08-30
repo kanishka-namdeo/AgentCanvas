@@ -52,6 +52,13 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
   - **No hardcoded hex colors** (`#0ea5e9`, `#a855f7`, `#f59e0b`, etc.) are allowed in `Canvas.tsx` or `Toolbar.tsx` — use the tokens above so the canvas adapts to dark mode like the rest of the UI.
 
 ### Component contracts
+- `AgentPanel.tsx` — agent-mode UX (Cursor-style, 2026-08-30):
+  - **ModeSelector** — pill + dropdown next to the composer (`Agent mode: Build/Ask/Plan`): Build = design/edit (default), Ask = read-only Q&A, Plan = propose-approve-build. Sticky mode lives in the settings store (`agentMode`); queued prompts adopt the next-turn mode.
+  - **Slash commands** — `/ask`, `/plan`, `/build` switch the sticky mode (with args: `/plan a fintech onboarding flow` switches AND sends); `/multitask` forces build + parallel screen decomposition; `/critique` forces the full critic pass (adaptive-gate bypass).
+  - **Shift+Tab** cycles modes in the composer (build → ask → plan).
+  - **PlanApprovalCard** — renders `agent:plan_proposed` (title, summary, numbered steps, open questions) with the approval triad: "Build it" (POST `/api/agent/plans` decision=build) / "Keep planning" (decision=revise + feedback textarea). Settles on `agent:plan_resolved`; after "Build it" the runner's exec session streams its own tool cards under the same turn.
+  - **CritiqueSkippedRow** — renders `agent:critique_skipped` (reason + saved LLM calls) so small turns show WHY no critic ran instead of looking broken.
+  - **Plan-suggestion chip** — a multi-screen ask in build mode surfaces a one-click "Switch to Plan" suggestion (suggest, never auto-switch — Cursor's auto-switching is a documented complaint).
 - `Canvas.tsx`:
   - Reads `document.shapes`, `selectedIds`, `toolMode` from the canvas store. Renders `dom/DomCanvas` with the standard callback props (`onShapeMouseDown`, `onResizeHandleMouseDown`, `layoutMode`, `outlineMode`, `l4Culling`, `pointerCanvas`, `measureMode`); ALL interaction state (pan/zoom/drag/resize/context menu) lives in the shell.
   - `toolMode === 'pan'` makes click-drag pan the canvas (same as Space-held). `onShapeMouseDown` returns early in pan mode (no selection).
