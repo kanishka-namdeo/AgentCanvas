@@ -1,0 +1,1459 @@
+{
+  "runs": [
+    {
+      "id": "simple-shape",
+      "prompt": "Draw a red rounded rectangle, 240x120, in the top-left area of the canvas.",
+      "startedAt": "2026-08-30T22:02:43.434Z",
+      "durationMs": 15153,
+      "toolCallCount": 3,
+      "toolNames": [
+        [
+          "pen_create_node",
+          2
+        ],
+        [
+          "pen_generate_design_brief",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "rectangle near 240x120 exists",
+          "pass": true,
+          "detail": "1 match(es)"
+        },
+        {
+          "name": "fill is red",
+          "pass": true,
+          "detail": "found #ef4444"
+        },
+        {
+          "name": "corners rounded",
+          "pass": true,
+          "detail": "radius=12"
+        },
+        {
+          "name": "placed top-left (x<600, y<400)",
+          "pass": true,
+          "detail": "position ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 3 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "3 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 8,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 1,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "simple-shape",
+      "prompt": "Draw a red rounded rectangle, 240x120, in the top-left area of the canvas.",
+      "startedAt": "2026-08-30T22:03:43.593Z",
+      "durationMs": 13174,
+      "toolCallCount": 3,
+      "toolNames": [
+        [
+          "pen_create_node",
+          2
+        ],
+        [
+          "pen_generate_design_brief",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "rectangle near 240x120 exists",
+          "pass": true,
+          "detail": "1 match(es)"
+        },
+        {
+          "name": "fill is red",
+          "pass": true,
+          "detail": "found #f43f5e"
+        },
+        {
+          "name": "corners rounded",
+          "pass": true,
+          "detail": "radius=12"
+        },
+        {
+          "name": "placed top-left (x<600, y<400)",
+          "pass": true,
+          "detail": "position ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 3 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "3 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 8,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 1,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "text-heading",
+      "prompt": "Add a bold heading that says 'Quarterly Report' at 32px, centered near the top of the canvas.",
+      "startedAt": "2026-08-30T22:04:41.771Z",
+      "durationMs": 15778,
+      "toolCallCount": 2,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          1
+        ],
+        [
+          "pen_create_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "heading text present",
+          "pass": true,
+          "detail": "Quarterly Report"
+        },
+        {
+          "name": "fontSize ~32",
+          "pass": true,
+          "detail": "32px"
+        },
+        {
+          "name": "near top (y < 300)",
+          "pass": true,
+          "detail": "y ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 2 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "2 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 7,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 1,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "text-heading",
+      "prompt": "Add a bold heading that says 'Quarterly Report' at 32px, centered near the top of the canvas.",
+      "startedAt": "2026-08-30T22:05:42.564Z",
+      "durationMs": 6882,
+      "toolCallCount": 2,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          1
+        ],
+        [
+          "pen_create_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "heading text present",
+          "pass": true,
+          "detail": "Quarterly Report"
+        },
+        {
+          "name": "fontSize ~32",
+          "pass": true,
+          "detail": "32px"
+        },
+        {
+          "name": "near top (y < 300)",
+          "pass": true,
+          "detail": "y ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 2 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "2 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 7,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 1,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "startedAt": "2026-08-30T22:06:34.461Z",
+      "durationMs": 72924,
+      "toolCallCount": 11,
+      "toolNames": [
+        [
+          "pen_set_shadow",
+          4
+        ],
+        [
+          "pen_generate_design_brief",
+          1
+        ],
+        [
+          "pen_create_subtree",
+          1
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_apply_palette",
+          1
+        ],
+        [
+          "pen_set_gradient_fill",
+          1
+        ],
+        [
+          "pen_get_metadata",
+          1
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "11 layers"
+        },
+        {
+          "name": "uses a container/frame",
+          "pass": true,
+          "detail": "1 container(s)"
+        },
+        {
+          "name": "email + password copy present",
+          "pass": false,
+          "detail": "email=false password=true"
+        },
+        {
+          "name": "brand \"Vaultly\" present",
+          "pass": true,
+          "detail": "brand copy ok"
+        },
+        {
+          "name": "colorful design (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on elevated surfaces",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "Sign In action present",
+          "pass": false,
+          "detail": "no \"Sign In\" text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": false,
+          "detail": "1 failed: pen_bulk_update_by_filter (Validation failed for tool \"pen_bulk_update_by_filter\":\n  - )"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "11 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 3,
+      "status": "fail",
+      "finalLayerCount": 11,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Vaultly Logo",
+          "text": "VAULTLY"
+        },
+        {
+          "name": "Welcome headline",
+          "text": "Welcome back to Vaultly"
+        },
+        {
+          "name": "Forgot password link",
+          "text": "Forgot password?"
+        },
+        {
+          "name": "Sign up prompt",
+          "text": "Don't have an account? Sign up"
+        },
+        {
+          "name": "Or continue with",
+          "text": ""
+        }
+      ],
+      "repeat": 1
+    },
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "startedAt": "2026-08-30T22:08:32.403Z",
+      "durationMs": 20273,
+      "toolCallCount": 0,
+      "toolNames": [],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": false,
+          "detail": "only 0 layers — too few for a login screen"
+        },
+        {
+          "name": "uses a container/frame",
+          "pass": false,
+          "detail": "no frame/group — flat layer soup"
+        },
+        {
+          "name": "email + password copy present",
+          "pass": false,
+          "detail": "email=false password=false"
+        },
+        {
+          "name": "brand \"Vaultly\" present",
+          "pass": false,
+          "detail": "no \"Vaultly\" text anywhere"
+        },
+        {
+          "name": "colorful design (hi-fi)",
+          "pass": false,
+          "detail": "fewer than 3 saturated-color layers — looks grayscale"
+        },
+        {
+          "name": "shadows on elevated surfaces",
+          "pass": false,
+          "detail": "no shadow anywhere — flat/wireframe look"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "Sign In action present",
+          "pass": false,
+          "detail": "no \"Sign In\" text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 0 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": false,
+          "detail": "0 tool calls (expected 4..90)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": false,
+          "detail": "errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. Wait about a minute and resend your prompt;"
+        }
+      ],
+      "passed": 3,
+      "failed": 9,
+      "status": "fail",
+      "finalLayerCount": 0,
+      "emptyTurn": false,
+      "textLayers": [],
+      "repeat": 2
+    },
+    {
+      "id": "wireframe-lofi",
+      "prompt": "Draw a low-fidelity wireframe of a blog homepage: header with nav, one hero article block, and a 3-card article grid.",
+      "startedAt": "2026-08-30T22:09:37.679Z",
+      "durationMs": 20286,
+      "toolCallCount": 0,
+      "toolNames": [],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": false,
+          "detail": "only 0 layers"
+        },
+        {
+          "name": "3-card grid present",
+          "pass": false,
+          "detail": "no 3+ boxes sharing a similar height band"
+        },
+        {
+          "name": "stays grayscale (lo-fi)",
+          "pass": true,
+          "detail": "0 saturated layer(s) (tolerance 1)"
+        },
+        {
+          "name": "no shadows (lo-fi)",
+          "pass": true,
+          "detail": "flat as expected"
+        },
+        {
+          "name": "no gradients (lo-fi)",
+          "pass": true,
+          "detail": "no gradients as expected"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 0 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": false,
+          "detail": "0 tool calls (expected 1..90)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": false,
+          "detail": "errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. Wait about a minute and resend your prompt;"
+        }
+      ],
+      "passed": 5,
+      "failed": 4,
+      "status": "fail",
+      "finalLayerCount": 0,
+      "emptyTurn": false,
+      "textLayers": [],
+      "repeat": 1
+    },
+    {
+      "id": "wireframe-lofi",
+      "prompt": "Draw a low-fidelity wireframe of a blog homepage: header with nav, one hero article block, and a 3-card article grid.",
+      "startedAt": "2026-08-30T22:10:42.980Z",
+      "durationMs": 6014,
+      "toolCallCount": 1,
+      "toolNames": [
+        [
+          "pen_generate_wireframe",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "14 layers"
+        },
+        {
+          "name": "3-card grid present",
+          "pass": true,
+          "detail": "6 boxes, size-bands=[[800,1],[80,1],[360,1],[180,3]]"
+        },
+        {
+          "name": "stays grayscale (lo-fi)",
+          "pass": true,
+          "detail": "0 saturated layer(s) (tolerance 1)"
+        },
+        {
+          "name": "no shadows (lo-fi)",
+          "pass": true,
+          "detail": "flat as expected"
+        },
+        {
+          "name": "no gradients (lo-fi)",
+          "pass": true,
+          "detail": "no gradients as expected"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 1 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "1 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 14,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "modify-precision",
+      "prompt": "Change the Banner rectangle fill to green. Leave everything else exactly as it is.",
+      "startedAt": "2026-08-30T22:11:34.004Z",
+      "durationMs": 3510,
+      "toolCallCount": 3,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          2
+        ],
+        [
+          "pen_update_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "banner recolored green",
+          "pass": true,
+          "detail": "#10b981"
+        },
+        {
+          "name": "status dot untouched",
+          "pass": true,
+          "detail": "fill=#ef4444"
+        },
+        {
+          "name": "note text untouched",
+          "pass": true,
+          "detail": "unchanged"
+        },
+        {
+          "name": "no extra layers added",
+          "pass": true,
+          "detail": "still 3 layers"
+        },
+        {
+          "name": "used update-style tools",
+          "pass": true,
+          "detail": "1 update call(s)"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 3 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "3 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 3,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "modify-precision",
+      "prompt": "Change the Banner rectangle fill to green. Leave everything else exactly as it is.",
+      "startedAt": "2026-08-30T22:12:22.523Z",
+      "durationMs": 3669,
+      "toolCallCount": 2,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          1
+        ],
+        [
+          "pen_update_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "banner recolored green",
+          "pass": true,
+          "detail": "#10b981"
+        },
+        {
+          "name": "status dot untouched",
+          "pass": true,
+          "detail": "fill=#ef4444"
+        },
+        {
+          "name": "note text untouched",
+          "pass": true,
+          "detail": "unchanged"
+        },
+        {
+          "name": "no extra layers added",
+          "pass": true,
+          "detail": "still 3 layers"
+        },
+        {
+          "name": "used update-style tools",
+          "pass": true,
+          "detail": "1 update call(s)"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 2 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "2 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 3,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "flowchart",
+      "prompt": "Create a flowchart for a document approval process with 4 nodes: Start, Review, Approve, End — connected with arrows.",
+      "startedAt": "2026-08-30T22:13:11.201Z",
+      "durationMs": 53748,
+      "toolCallCount": 24,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          6
+        ],
+        [
+          "pen_set_shadow",
+          4
+        ],
+        [
+          "pen_create_node",
+          4
+        ],
+        [
+          "pen_generate_diagram",
+          2
+        ],
+        [
+          "pen_find_nodes",
+          2
+        ],
+        [
+          "pen_generate_design_brief",
+          1
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_apply_palette",
+          1
+        ],
+        [
+          "pen_set_gradient_fill",
+          1
+        ],
+        [
+          "pen_set_variable",
+          1
+        ],
+        [
+          "pen_update_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "4+ node shapes",
+          "pass": true,
+          "detail": "4 node shapes"
+        },
+        {
+          "name": "all 4 node labels present",
+          "pass": true,
+          "detail": "start/review/approve/end all present"
+        },
+        {
+          "name": "connector lines present",
+          "pass": true,
+          "detail": "6 line/path connectors"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 24 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "24 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": false,
+          "detail": "errors: Critique-fix turn produced no output (rate-limit / transient outage). Skipping remaining critique iterations."
+        }
+      ],
+      "passed": 6,
+      "failed": 1,
+      "status": "fail",
+      "finalLayerCount": 15,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Start label",
+          "text": "Start"
+        },
+        {
+          "name": "Review label",
+          "text": "Review"
+        },
+        {
+          "name": "Approve label",
+          "text": "Approve"
+        },
+        {
+          "name": "End label",
+          "text": "End"
+        },
+        {
+          "name": "title",
+          "text": "Document Approval Process"
+        }
+      ],
+      "repeat": 1
+    },
+    {
+      "id": "flowchart",
+      "prompt": "Create a flowchart for a document approval process with 4 nodes: Start, Review, Approve, End — connected with arrows.",
+      "startedAt": "2026-08-30T22:14:49.953Z",
+      "durationMs": 22116,
+      "toolCallCount": 0,
+      "toolNames": [],
+      "assertions": [
+        {
+          "name": "4+ node shapes",
+          "pass": false,
+          "detail": "only 0 node shapes"
+        },
+        {
+          "name": "all 4 node labels present",
+          "pass": false,
+          "detail": "missing labels: start, review, approve, end"
+        },
+        {
+          "name": "connector lines present",
+          "pass": false,
+          "detail": "only 0 line/path layers — no arrows"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 0 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": false,
+          "detail": "0 tool calls (expected 2..90)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": false,
+          "detail": "errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. Wait about a minute and resend your prompt;"
+        }
+      ],
+      "passed": 2,
+      "failed": 5,
+      "status": "fail",
+      "finalLayerCount": 0,
+      "emptyTurn": false,
+      "textLayers": [],
+      "repeat": 2
+    },
+    {
+      "id": "dashboard-hifi",
+      "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+      "startedAt": "2026-08-30T22:15:57.085Z",
+      "durationMs": 20405,
+      "toolCallCount": 0,
+      "toolNames": [],
+      "assertions": [
+        {
+          "name": "all 4 KPI values present",
+          "pass": false,
+          "detail": "missing values: 128.4, 8,421, 2.1, 62"
+        },
+        {
+          "name": "4 card-like containers in a row",
+          "pass": false,
+          "detail": "no 4 similar-height containers — cards not built"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": false,
+          "detail": "too grayscale for a hi-fi dashboard"
+        },
+        {
+          "name": "shadows on cards",
+          "pass": false,
+          "detail": "no shadows — flat look"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 0 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": false,
+          "detail": "0 tool calls (expected 4..90)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": false,
+          "detail": "errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. Wait about a minute and resend your prompt;"
+        }
+      ],
+      "passed": 3,
+      "failed": 6,
+      "status": "fail",
+      "finalLayerCount": 0,
+      "emptyTurn": false,
+      "textLayers": [],
+      "repeat": 1
+    },
+    {
+      "id": "dashboard-hifi",
+      "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+      "startedAt": "2026-08-30T22:17:02.507Z",
+      "durationMs": 20285,
+      "toolCallCount": 0,
+      "toolNames": [],
+      "assertions": [
+        {
+          "name": "all 4 KPI values present",
+          "pass": false,
+          "detail": "missing values: 128.4, 8,421, 2.1, 62"
+        },
+        {
+          "name": "4 card-like containers in a row",
+          "pass": false,
+          "detail": "no 4 similar-height containers — cards not built"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": false,
+          "detail": "too grayscale for a hi-fi dashboard"
+        },
+        {
+          "name": "shadows on cards",
+          "pass": false,
+          "detail": "no shadows — flat look"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 0 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": false,
+          "detail": "0 tool calls (expected 4..90)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": false,
+          "detail": "errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. Wait about a minute and resend your prompt;"
+        }
+      ],
+      "passed": 3,
+      "failed": 6,
+      "status": "fail",
+      "finalLayerCount": 0,
+      "emptyTurn": false,
+      "textLayers": [],
+      "repeat": 2
+    },
+    {
+      "id": "palette-sunset",
+      "prompt": "Generate a row of 5 color palette swatches for a 'Sunset' theme, each swatch labeled with its hex code.",
+      "startedAt": "2026-08-30T22:18:07.803Z",
+      "durationMs": 20295,
+      "toolCallCount": 0,
+      "toolNames": [],
+      "assertions": [
+        {
+          "name": "5 saturated swatches",
+          "pass": false,
+          "detail": "only 0 saturated swatch layers"
+        },
+        {
+          "name": "hex code labels present",
+          "pass": false,
+          "detail": "only 0 text layers contain hex codes"
+        },
+        {
+          "name": "warm sunset hues",
+          "pass": true,
+          "detail": "0/0 warm"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 0 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": false,
+          "detail": "0 tool calls (expected 3..90)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": false,
+          "detail": "errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. Wait about a minute and resend your prompt;"
+        }
+      ],
+      "passed": 3,
+      "failed": 4,
+      "status": "fail",
+      "finalLayerCount": 0,
+      "emptyTurn": false,
+      "textLayers": [],
+      "repeat": 1
+    },
+    {
+      "id": "palette-sunset",
+      "prompt": "Generate a row of 5 color palette swatches for a 'Sunset' theme, each swatch labeled with its hex code.",
+      "startedAt": "2026-08-30T22:19:13.116Z",
+      "durationMs": 20256,
+      "toolCallCount": 0,
+      "toolNames": [],
+      "assertions": [
+        {
+          "name": "5 saturated swatches",
+          "pass": false,
+          "detail": "only 0 saturated swatch layers"
+        },
+        {
+          "name": "hex code labels present",
+          "pass": false,
+          "detail": "only 0 text layers contain hex codes"
+        },
+        {
+          "name": "warm sunset hues",
+          "pass": true,
+          "detail": "0/0 warm"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 0 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": false,
+          "detail": "0 tool calls (expected 3..90)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": false,
+          "detail": "errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. Wait about a minute and resend your prompt;"
+        }
+      ],
+      "passed": 3,
+      "failed": 4,
+      "status": "fail",
+      "finalLayerCount": 0,
+      "emptyTurn": false,
+      "textLayers": [],
+      "repeat": 2
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "simple-shape",
+      "prompt": "Draw a red rounded rectangle, 240x120, in the top-left area of the canvas.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 3,
+        "min": 3,
+        "max": 3
+      },
+      "durationS": {
+        "mean": 14.163499999999999,
+        "min": 13.174,
+        "max": 15.153
+      },
+      "assertionsPassed": 16,
+      "assertionsTotal": 16,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "text-heading",
+      "prompt": "Add a bold heading that says 'Quarterly Report' at 32px, centered near the top of the canvas.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 2,
+        "min": 2,
+        "max": 2
+      },
+      "durationS": {
+        "mean": 11.33,
+        "min": 6.882,
+        "max": 15.778
+      },
+      "assertionsPassed": 14,
+      "assertionsTotal": 14,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 2,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 5.5,
+        "min": 0,
+        "max": 11
+      },
+      "durationS": {
+        "mean": 46.5985,
+        "min": 20.273,
+        "max": 72.924
+      },
+      "assertionsPassed": 12,
+      "assertionsTotal": 24,
+      "flakyAssertions": [
+        {
+          "name": "email + password copy present",
+          "passRate": 0
+        },
+        {
+          "name": "Sign In action present",
+          "passRate": 0
+        },
+        {
+          "name": "canvas has layers",
+          "passRate": 0.5
+        },
+        {
+          "name": "uses a container/frame",
+          "passRate": 0.5
+        },
+        {
+          "name": "brand \"Vaultly\" present",
+          "passRate": 0.5
+        },
+        {
+          "name": "colorful design (hi-fi)",
+          "passRate": 0.5
+        },
+        {
+          "name": "shadows on elevated surfaces",
+          "passRate": 0.5
+        },
+        {
+          "name": "no failed tool calls",
+          "passRate": 0.5
+        },
+        {
+          "name": "reasonable tool-call count",
+          "passRate": 0.5
+        },
+        {
+          "name": "no agent errors",
+          "passRate": 0.5
+        }
+      ],
+      "emptyTurns": 0
+    },
+    {
+      "id": "wireframe-lofi",
+      "prompt": "Draw a low-fidelity wireframe of a blog homepage: header with nav, one hero article block, and a 3-card article grid.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 0.5,
+      "statusSpread": {
+        "pass": 1,
+        "fail": 1,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 0.5,
+        "min": 0,
+        "max": 1
+      },
+      "durationS": {
+        "mean": 13.15,
+        "min": 6.014,
+        "max": 20.286
+      },
+      "assertionsPassed": 14,
+      "assertionsTotal": 18,
+      "flakyAssertions": [
+        {
+          "name": "canvas has layers",
+          "passRate": 0.5
+        },
+        {
+          "name": "3-card grid present",
+          "passRate": 0.5
+        },
+        {
+          "name": "reasonable tool-call count",
+          "passRate": 0.5
+        },
+        {
+          "name": "no agent errors",
+          "passRate": 0.5
+        }
+      ],
+      "emptyTurns": 0
+    },
+    {
+      "id": "modify-precision",
+      "prompt": "Change the Banner rectangle fill to green. Leave everything else exactly as it is.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 2.5,
+        "min": 2,
+        "max": 3
+      },
+      "durationS": {
+        "mean": 3.5895,
+        "min": 3.51,
+        "max": 3.669
+      },
+      "assertionsPassed": 18,
+      "assertionsTotal": 18,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "flowchart",
+      "prompt": "Create a flowchart for a document approval process with 4 nodes: Start, Review, Approve, End — connected with arrows.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 2,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 12,
+        "min": 0,
+        "max": 24
+      },
+      "durationS": {
+        "mean": 37.932,
+        "min": 22.116,
+        "max": 53.748
+      },
+      "assertionsPassed": 8,
+      "assertionsTotal": 14,
+      "flakyAssertions": [
+        {
+          "name": "no agent errors",
+          "passRate": 0
+        },
+        {
+          "name": "4+ node shapes",
+          "passRate": 0.5
+        },
+        {
+          "name": "all 4 node labels present",
+          "passRate": 0.5
+        },
+        {
+          "name": "connector lines present",
+          "passRate": 0.5
+        },
+        {
+          "name": "reasonable tool-call count",
+          "passRate": 0.5
+        }
+      ],
+      "emptyTurns": 0
+    },
+    {
+      "id": "dashboard-hifi",
+      "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 2,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "durationS": {
+        "mean": 20.345,
+        "min": 20.285,
+        "max": 20.405
+      },
+      "assertionsPassed": 6,
+      "assertionsTotal": 18,
+      "flakyAssertions": [
+        {
+          "name": "all 4 KPI values present",
+          "passRate": 0
+        },
+        {
+          "name": "4 card-like containers in a row",
+          "passRate": 0
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "passRate": 0
+        },
+        {
+          "name": "shadows on cards",
+          "passRate": 0
+        },
+        {
+          "name": "reasonable tool-call count",
+          "passRate": 0
+        },
+        {
+          "name": "no agent errors",
+          "passRate": 0
+        }
+      ],
+      "emptyTurns": 0
+    },
+    {
+      "id": "palette-sunset",
+      "prompt": "Generate a row of 5 color palette swatches for a 'Sunset' theme, each swatch labeled with its hex code.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 2,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "durationS": {
+        "mean": 20.2755,
+        "min": 20.256,
+        "max": 20.295
+      },
+      "assertionsPassed": 6,
+      "assertionsTotal": 14,
+      "flakyAssertions": [
+        {
+          "name": "5 saturated swatches",
+          "passRate": 0
+        },
+        {
+          "name": "hex code labels present",
+          "passRate": 0
+        },
+        {
+          "name": "reasonable tool-call count",
+          "passRate": 0
+        },
+        {
+          "name": "no agent errors",
+          "passRate": 0
+        }
+      ],
+      "emptyTurns": 0
+    }
+  ]
+}

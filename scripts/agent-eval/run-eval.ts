@@ -32,6 +32,13 @@ import { SCENARIOS, type Scenario, type Trajectory, type AssertionResult } from 
 
 const API = process.env.EVAL_API ?? 'http://localhost:3000/api/agent';
 
+// Prompt-tuning exercise: provider/model/thinking overrides for reproducible A/B runs
+// (see download/prompt-tuning/). Defaults keep the production behavior.
+const EVAL_PROVIDER = process.env.EVAL_PROVIDER ?? DEFAULT_SETTINGS.llmProvider;
+const EVAL_MODEL = process.env.EVAL_MODEL ?? DEFAULT_SETTINGS.modelName;
+const EVAL_THINKING = process.env.EVAL_THINKING ?? DEFAULT_SETTINGS.thinkingLevel;
+const EVAL_CRITIQUES = process.env.EVAL_CRITIQUES !== undefined ? Number(process.env.EVAL_CRITIQUES) : undefined;
+
 // ---- CLI args ---------------------------------------------------------------
 
 const args = process.argv.slice(2);
@@ -171,10 +178,12 @@ async function runScenario(sc: Scenario): Promise<ScenarioResult> {
           temperature: DEFAULT_SETTINGS.temperature,
           maxIterations: DEFAULT_SETTINGS.maxIterations,
           planFirst: DEFAULT_SETTINGS.planFirst,
-          thinkingLevel: DEFAULT_SETTINGS.thinkingLevel,
+          thinkingLevel: EVAL_THINKING,
           defaultPalette: DEFAULT_SETTINGS.defaultPalette,
           skillSelectionMode: DEFAULT_SETTINGS.skillSelectionMode,
-          llmProvider: DEFAULT_SETTINGS.llmProvider,
+          llmProvider: EVAL_PROVIDER,
+          modelName: EVAL_MODEL,
+          ...(EVAL_CRITIQUES !== undefined ? { maxDesignCritiqueIterations: EVAL_CRITIQUES } : {}),
         },
       }),
     });

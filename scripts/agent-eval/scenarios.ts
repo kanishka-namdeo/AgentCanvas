@@ -122,7 +122,10 @@ function trajectoryChecks(minTools: number): Array<(c: CanvasDocument, t: Trajec
         'no failed tool calls',
         failed.length === 0,
         `all ${t.toolCalls.length} tool calls succeeded`,
-        `${failed.length} failed: ${failed.map((f) => `${f.name} (${f.summary.slice(0, 60)})`).join('; ')}`,
+        // Task 7-b: 200 chars — at 60 the summary was amputated exactly after
+        // the bullet dash ("…\":\n  - "), so validation errors looked EMPTY in
+        // reports even though the model-facing message had path + reason.
+        `${failed.length} failed: ${failed.map((f) => `${f.name} (${f.summary.slice(0, 200)})`).join('; ')}`,
       );
     },
     (_c, t) => {
