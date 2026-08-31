@@ -1,0 +1,74 @@
+{
+  "scores": {
+    "prompt_fidelity": 8,
+    "layout_structure": 7,
+    "typography": 8,
+    "color_cohesion": 7,
+    "component_polish": 6,
+    "overall_polish": 7
+  },
+  "overall": 7,
+  "defects": [
+    {
+      "dimension": "prompt_fidelity",
+      "severity": "high",
+      "description": "KPI cards display 'TOTAL REVENUE', 'ACTIVE USERS', 'CHURN RATE', 'NPS SCORE' labels instead of the exact requested labels 'Revenue', 'Active Users', 'Churn', 'NPS'",
+      "location": "KPI card headers, all four cards"
+    },
+    {
+      "dimension": "prompt_fidelity",
+      "severity": "medium",
+      "description": "KPI cards show trend indicators (+12.5%, +8.3%, -0.4%, +3 pts) that were never requested in any turn",
+      "location": "Below each KPI value, all four cards"
+    },
+    {
+      "dimension": "prompt_fidelity",
+      "severity": "medium",
+      "description": "Header contains 'Performance overview' subtitle that was never requested",
+      "location": "Below 'Growth Metrics' title in dark header bar"
+    },
+    {
+      "dimension": "component_polish",
+      "severity": "high",
+      "description": "KPI cards have NO shadows applied despite explicit request in turn 3; only have thin light borders",
+      "location": "All four KPI cards"
+    },
+    {
+      "dimension": "layout_structure",
+      "severity": "medium",
+      "description": "Date picker overlaps with 'Growth Metrics' title, causing visual collision and reduced readability",
+      "location": "Header area, date picker positioned over title text"
+    },
+    {
+      "dimension": "component_polish",
+      "severity": "medium",
+      "description": "Date picker 'Apply' button uses purple/violet accent (#6366f1) that clashes with the dark navy header and has no hover state indication",
+      "location": "Right side of date picker in header"
+    },
+    {
+      "dimension": "color_cohesion",
+      "severity": "low",
+      "description": "Trend badges use light green background that feels slightly mismatched with the professional dark navy header aesthetic",
+      "location": "KPI card trend indicators"
+    },
+    {
+      "dimension": "layout_structure",
+      "severity": "low",
+      "description": "Cards have generous internal padding but could use slightly more vertical breathing room between header and cards",
+      "location": "Vertical spacing between header and KPI row"
+    }
+  ],
+  "missing_elements": [
+    "Subtle shadows on KPI cards (explicitly requested in turn 3)"
+  ],
+  "top_fixes": [
+    "Add subtle drop shadows to all four KPI cards (e.g., box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06))",
+    "Reposition date picker to the right side of header without overlapping the title, or increase header height",
+    "Remove unauthorized trend indicators from KPI cards or make them optional; keep only requested values",
+    "Change KPI labels to exactly match request: 'Revenue', 'Active Users', 'Churn', 'NPS' instead of 'TOTAL REVENUE', etc.",
+    "Remove unauthorized 'Performance overview' subtitle or confirm with user"
+  ],
+  "provider": "kimi",
+  "model": "kimi-k2-5",
+  "raw": "{\"scores\": {\"prompt_fidelity\": 8, \"layout_structure\": 7, \"typography\": 8, \"color_cohesion\": 7, \"component_polish\": 6, \"overall_polish\": 7}, \"overall\": 7, \"defects\": [{\"dimension\": \"prompt_fidelity\", \"severity\": \"high\", \"description\": \"KPI cards display 'TOTAL REVENUE', 'ACTIVE USERS', 'CHURN RATE', 'NPS SCORE' labels instead of the exact requested labels 'Revenue', 'Active Users', 'Churn', 'NPS'\", \"location\": \"KPI card headers, all four cards\"}, {\"dimension\": \"prompt_fidelity\", \"severity\": \"medium\", \"description\": \"KPI cards show trend indicators (+12.5%, +8.3%, -0.4%, +3 pts) that were never requested in any turn\", \"location\": \"Below each KPI value, all four cards\"}, {\"dimension\": \"prompt_fidelity\", \"severity\": \"medium\", \"description\": \"Header contains 'Performance overview' subtitle that was never requested\", \"location\": \"Below 'Growth Metrics' title in dark header bar\"}, {\"dimension\": \"component_polish\", \"severity\": \"high\", \"description\": \"KPI cards have NO shadows applied despite explicit request in turn 3; only have thin light borders\", \"location\": \"All four KPI cards\"}, {\"dimension\": \"layout_structure\", \"severity\": \"medium\", \"description\": \"Date picker overlaps with 'Growth Metrics' title, causing visual collision and reduced readability\", \"location\": \"Header area, date picker positioned over title text\"}, {\"dimension\": \"component_polish\", \"severity\": \"medium\", \"description\": \"Date picker 'Apply' button uses purple/violet accent (#6366f1) that clashes with the dark navy header and has no hover state indication\", \"location\": \"Right side of date picker in header\"}, {\"dimension\": \"color_cohesion\", \"severity\": \"low\", \"description\": \"Trend badges use light green background that feels slightly mismatched with the professional dark navy header aesthetic\", \"location\": \"KPI card trend indicators\"}, {\"dimension\": \"layout_structure\", \"severity\": \"low\", \"description\": \"Cards have generous internal padding but could use slightly more vertical breathing room between header and cards\", \"location\": \"Vertical spacing between header and KPI row\"}], \"missing_elements\": [\"Subtle shadows on KPI cards (explicitly requested in turn 3)\"], \"top_fixes\": [\"Add subtle drop shadows to all four KPI cards (e.g., box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06))\", \"Reposition date picker to the right side of header without overlapping the title, or increase header height\", \"Remove unauthorized trend indicators from KPI cards or make them optional; keep only requested values\", \"Change KPI labels to exactly match request: 'Revenue', 'Active Users', 'Churn', 'NPS' instead of 'TOTAL REVENUE', etc.\", \"Remove unauthorized 'Performance overview' subtitle or confirm with user\"]}"
+}

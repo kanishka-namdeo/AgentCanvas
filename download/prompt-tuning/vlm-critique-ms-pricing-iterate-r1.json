@@ -1,0 +1,88 @@
+{
+  "scores": {
+    "prompt_fidelity": 6,
+    "layout_structure": 5,
+    "typography": 6,
+    "color_cohesion": 5,
+    "component_polish": 6,
+    "overall_polish": 5
+  },
+  "overall": 5,
+  "defects": [
+    {
+      "dimension": "prompt_fidelity",
+      "severity": "high",
+      "description": "Monthly/yearly billing toggle is placed at the bottom left corner of the canvas instead of at the top of the pricing section as requested. The toggle is also cut off/clipped and appears to be floating outside the main content area.",
+      "location": "Bottom left corner, partially clipped"
+    },
+    {
+      "dimension": "prompt_fidelity",
+      "severity": "medium",
+      "description": "The toggle appears to show 'Yearly' as selected but the pricing cards still display '/month' pricing without any yearly discount indication or price update. The toggle state and displayed prices are disconnected.",
+      "location": "Bottom left toggle and all three pricing cards"
+    },
+    {
+      "dimension": "layout_structure",
+      "severity": "high",
+      "description": "A dark horizontal bar cuts through the middle of the pricing cards, visually interrupting the Enterprise card and creating a broken appearance. This appears to be an unintended rendering artifact or misplaced element.",
+      "location": "Horizontal dark bar spanning across the middle of the three pricing cards, approximately at the height of the Enterprise card's middle section"
+    },
+    {
+      "dimension": "layout_structure",
+      "severity": "medium",
+      "description": "The three pricing cards are not aligned to the same baseline. The Pro card (center) is taller and positioned lower than the Starter and Enterprise cards, creating an uneven visual rhythm even though this is somewhat intentional for emphasis.",
+      "location": "Center Pro pricing card relative to left Starter and right Enterprise cards"
+    },
+    {
+      "dimension": "layout_structure",
+      "severity": "medium",
+      "description": "The 'Simple, transparent pricing' headline and subhead use extremely light gray/white text on white background, making them nearly invisible and creating excessive empty space that disconnects the header from the pricing cards.",
+      "location": "Top center heading area above the pricing cards"
+    },
+    {
+      "dimension": "color_cohesion",
+      "severity": "medium",
+      "description": "The hero/header area uses a dark navy/black background that abruptly cuts off, creating a harsh horizontal line. The transition to white background below is jarring and the dark bar cutting through cards creates confusion about the color system.",
+      "location": "Header area and the mysterious horizontal dark bar through pricing cards"
+    },
+    {
+      "dimension": "color_cohesion",
+      "severity": "low",
+      "description": "The Pro card uses a bright green accent for 'MOST POPULAR' badge and CTA button, while the toggle at the bottom uses a similar green, but the overall palette mixes dark navy, pure black cards, and bright green without clear hierarchy.",
+      "location": "Pro card badge/CTA and bottom toggle"
+    },
+    {
+      "dimension": "component_polish",
+      "severity": "medium",
+      "description": "The billing toggle at the bottom is clipped/truncated, showing only partial UI. It appears to be a pill-shaped toggle but is cut off on the left side and positioned incorrectly.",
+      "location": "Bottom left corner toggle component"
+    },
+    {
+      "dimension": "component_polish",
+      "severity": "low",
+      "description": "The 'MOST POPULAR' badge on the Pro card has tight padding and sits very close to the card edge, feeling cramped. The green color also has low contrast against the dark card background for the badge text.",
+      "location": "Top of center Pro pricing card"
+    },
+    {
+      "dimension": "typography",
+      "severity": "low",
+      "description": "Feature list items in the Enterprise card appear to have inconsistent indentation or alignment compared to the other cards. Some items appear to have bullet points while others don't, or the alignment is uneven.",
+      "location": "Right Enterprise card feature list"
+    }
+  ],
+  "missing_elements": [
+    "Monthly/yearly billing toggle at the TOP of the page (above pricing cards) - instead placed incorrectly at bottom",
+    "Toggle is non-functional and disconnected from pricing display - no yearly prices shown",
+    "Proper spacing/connection between headline and pricing cards"
+  ],
+  "top_fixes": [
+    "Move the billing toggle to the top of the pricing section, centered above the three cards, and ensure it's fully visible with proper padding",
+    "Remove or fix the mysterious dark horizontal bar that cuts through the middle of the pricing cards",
+    "Connect the toggle state to actual pricing display - show yearly prices (discounted) when yearly is selected, or add 'billed annually' copy",
+    "Fix the headline contrast - use darker text or add a subtle background to make 'Simple, transparent pricing' readable",
+    "Align all three pricing cards to the same baseline or create more intentional asymmetry with proper spacing"
+  ],
+  "provider": "kimi",
+  "model": "kimi-k2-5",
+  "raw": "```json\n{\n  \"scores\": {\n    \"prompt_fidelity\": 6,\n    \"layout_structure\": 5,\n    \"typography\": 6,\n    \"color_cohesion\": 5,\n    \"component_polish\": 6,\n    \"overall_polish\": 5\n  },\n  \"overall\": 5,\n  \"defects\": [\n    {\n      \"dimension\": \"prompt_fidelity\",\n      \"severity\": \"high\",\n      \"description\": \"Monthly/yearly billing toggle is placed at the bottom left corner of the canvas instead of at the top of the pricing section as requested. The toggle is also cut off/clipped and appears to be floating outside the main content area.\",\n      \"location\": \"Bottom left corner, partially clipped\"\n    },\n    {\n      \"dimension\": \"prompt_fidelity\",\n      \"severity\": \"medium\",\n      \"description\": \"The toggle appears to show 'Yearly' as selected but the pricing cards still display '/month' pricing without any yearly discount indication or price update. The toggle state and displayed prices are disconnected.\",\n      \"location\": \"Bottom left toggle and all three pricing cards\"\n    },\n    {\n      \"dimension\": \"layout_structure\",\n      \"severity\": \"high\",\n      \"description\": \"A dark horizontal bar cuts through the middle of the pricing cards, visually interrupting the Enterprise card and creating a broken appearance. This appears to be an unintended rendering artifact or misplaced element.\",\n      \"location\": \"Horizontal dark bar spanning across the middle of the three pricing cards, approximately at the height of the Enterprise card's middle section\"\n    },\n    {\n      \"dimension\": \"layout_structure\",\n      \"severity\": \"medium\",\n      \"description\": \"The three pricing cards are not aligned to the same baseline. The Pro card (center) is taller and positioned lower than the Starter and Enterprise cards, creating an uneven visual rhythm even though this is somewhat intentional for emphasis.\",\n      \"location\": \"Center Pro pricing card relative to left Starter and right Enterprise cards\"\n    },\n    {\n      \"dimension\": \"layout_structure\",\n      \"severity\": \"medium\",\n      \"description\": \"The 'Simple, transparent pricing' headline and subhead use extremely light gray/white text on white background, making them nearly invisible and creating excessive empty space that disconnects the header from the pricing cards.\",\n      \"location\": \"Top center heading area above the pricing cards\"\n    },\n    {\n      \"dimension\": \"color_cohesion\",\n      \"severity\": \"medium\",\n      \"description\": \"The hero/header area uses a dark navy/black background that abruptly cuts off, creating a harsh horizontal line. The transition to white background below is jarring and the dark bar cutting through cards creates confusion about the color system.\",\n      \"location\": \"Header area and the mysterious horizontal dark bar through pricing cards\"\n    },\n    {\n      \"dimension\": \"color_cohesion\",\n      \"severity\": \"low\",\n      \"description\": \"The Pro card uses a bright green accent for 'MOST POPULAR' badge and CTA button, while the toggle at the bottom uses a similar green, but the overall palette mixes dark navy, pure black cards, and bright green without clear hierarchy.\",\n      \"location\": \"Pro card badge/CTA and bottom toggle\"\n    },\n    {\n      \"dimension\": \"component_polish\",\n      \"severity\": \"medium\",\n      \"description\": \"The billing toggle at the bottom is clipped/truncated, showing only partial UI. It appears to be a pill-shaped toggle but is cut off on the left side and positioned incorrectly.\",\n      \"location\": \"Bottom left corner toggle component\"\n    },\n    {\n      \"dimension\": \"component_polish\",\n      \"severity\": \"low\",\n      \"description\": \"The 'MOST POPULAR' badge on the Pro card has tight padding and sits very close to the card edge, feeling cramped. The green color also has low contrast against the dark card background for the badge text.\",\n      \"location\": \"Top of center Pro pricing card\"\n    },\n    {\n      \"dimension\": \"typography\",\n      \"severity\": \"low\",\n      \"description\": \"Feature list items in the Enterprise card appear to have inconsistent indentation or alignment compared to the other cards. Some items appear to have bullet points while others don't, or the alignment is uneven.\",\n      \"location\": \"Right Enterprise card feature list\"\n    }\n  ],\n  \"missing_elements\": [\n    \"Monthly/yearly billing toggle at the TOP of the page (above pricing cards) - instead placed incorrectly at bottom\",\n    \"Toggle is non-functional and disconnected from pricing display - no yearly prices shown\",\n    \"Proper spacing/connection between headline and pricing cards\"\n  ],\n  \"top_fixes\": [\n    \"Move the billing toggle to the top of the pricing section, centered above the three cards, and ensure it's fully visible with proper padding\",\n    \"Remove or fix the mysterious dark horizontal bar that cuts through the middle of the pricing cards\",\n    \"Connect the toggle state to actual pricing display - show yearly prices (discounted) when yearly is selected, or add 'billed annually' copy\",\n    \"Fix the headline contrast - use darker text or add a subtle background to make 'Simple, transparent pricing' readable\",\n    \"Align all three pricing cards to the same baseline or create more intentional asymmetry with proper spacing\"\n  ]\n}\n```"
+}

@@ -1,0 +1,78 @@
+{
+  "scores": {
+    "prompt_fidelity": 6,
+    "layout_structure": 7,
+    "typography": 6,
+    "color_cohesion": 5,
+    "component_polish": 6,
+    "overall_polish": 6
+  },
+  "overall": 6,
+  "defects": [
+    {
+      "dimension": "prompt_fidelity",
+      "severity": "high",
+      "description": "Monthly/yearly billing toggle is present but placed at the bottom-left corner of the canvas instead of 'at the top of the page' as explicitly requested. The toggle appears to be floating or misplaced, partially cut off and overlapping the footer area.",
+      "location": "Bottom-left corner, overlapping footer edge"
+    },
+    {
+      "dimension": "layout_structure",
+      "severity": "medium",
+      "description": "Severe vertical spacing issue: excessive whitespace between the header/navigation and the 'Simple, transparent pricing' headline, creating a disconnected, floating appearance. The headline feels orphaned with too much empty space above the pricing cards.",
+      "location": "Between navigation bar and hero headline"
+    },
+    {
+      "dimension": "color_cohesion",
+      "severity": "medium",
+      "description": "The hero headline 'Simple, transparent pricing' and subheadline use an extremely light gray/white that blends into the white background, creating illegible text with insufficient contrast. This appears to be a color value error.",
+      "location": "Hero headline area, center-top of pricing section"
+    },
+    {
+      "dimension": "color_cohesion",
+      "severity": "medium",
+      "description": "The 'Trusted by 10,000+ teams worldwide' text and partner logos (Stripe, Notion, Figma, Linear, Vercel) use the same illegible light color against white background, rendering them nearly invisible.",
+      "location": "Social proof section below pricing cards"
+    },
+    {
+      "dimension": "component_polish",
+      "severity": "medium",
+      "description": "The billing toggle at bottom-left is partially clipped/cut off, showing only a rounded pill shape with 'Yearly' label and a green segment. It lacks clear 'Monthly' labeling and appears broken or unfinished.",
+      "location": "Bottom-left corner toggle component"
+    },
+    {
+      "dimension": "layout_structure",
+      "severity": "low",
+      "description": "Navigation bar contains 'Flowly' logo overlapping with 'Features' text ('FlowlyFeatures'), indicating poor text alignment or spacing in the header.",
+      "location": "Top-left navigation bar"
+    },
+    {
+      "dimension": "typography",
+      "severity": "low",
+      "description": "Feature lists in Starter and Enterprise tiers lack checkmark icons (only Pro has visible checkmarks), creating visual inconsistency and making scanability harder.",
+      "location": "Starter and Enterprise card feature lists"
+    },
+    {
+      "dimension": "component_polish",
+      "severity": "low",
+      "description": "The 'MOST POPULAR' badge on Pro tier uses a teal/green color that clashes slightly with the purple accent used elsewhere, and its positioning feels cramped against the tier name.",
+      "location": "Pro tier card, top-left badge area"
+    }
+  ],
+  "missing_elements": [
+    "Monthly/yearly billing toggle at the TOP of the page (currently misplaced at bottom)",
+    "Visible 'Monthly' label on the billing toggle",
+    "Checkmark icons for feature lists in Starter and Enterprise tiers",
+    "Proper contrast/color values for hero headline text",
+    "Proper contrast/color values for social proof section text and logos"
+  ],
+  "top_fixes": [
+    "Move the billing toggle to the top of the page, directly below the hero headline and above the pricing cards, with clear 'Monthly' and 'Yearly' labels and proper spacing",
+    "Fix the hero headline color to use a dark color (e.g., slate-900) with proper contrast against the white background instead of the current near-white invisible text",
+    "Add checkmark icons to the Starter and Enterprise feature lists for consistency with the Pro tier",
+    "Fix the navigation bar text overlap where 'Flowly' and 'Features' are colliding",
+    "Restore visibility to the social proof section by using appropriate dark text colors for the trust statement and partner logos"
+  ],
+  "provider": "kimi",
+  "model": "kimi-k2-5",
+  "raw": "{\"scores\": {\"prompt_fidelity\": 6, \"layout_structure\": 7, \"typography\": 6, \"color_cohesion\": 5, \"component_polish\": 6, \"overall_polish\": 6}, \"overall\": 6, \"defects\": [{\"dimension\": \"prompt_fidelity\", \"severity\": \"high\", \"description\": \"Monthly/yearly billing toggle is present but placed at the bottom-left corner of the canvas instead of 'at the top of the page' as explicitly requested. The toggle appears to be floating or misplaced, partially cut off and overlapping the footer area.\", \"location\": \"Bottom-left corner, overlapping footer edge\"}, {\"dimension\": \"layout_structure\", \"severity\": \"medium\", \"description\": \"Severe vertical spacing issue: excessive whitespace between the header/navigation and the 'Simple, transparent pricing' headline, creating a disconnected, floating appearance. The headline feels orphaned with too much empty space above the pricing cards.\", \"location\": \"Between navigation bar and hero headline\"}, {\"dimension\": \"color_cohesion\", \"severity\": \"medium\", \"description\": \"The hero headline 'Simple, transparent pricing' and subheadline use an extremely light gray/white that blends into the white background, creating illegible text with insufficient contrast. This appears to be a color value error.\", \"location\": \"Hero headline area, center-top of pricing section\"}, {\"dimension\": \"color_cohesion\", \"severity\": \"medium\", \"description\": \"The 'Trusted by 10,000+ teams worldwide' text and partner logos (Stripe, Notion, Figma, Linear, Vercel) use the same illegible light color against white background, rendering them nearly invisible.\", \"location\": \"Social proof section below pricing cards\"}, {\"dimension\": \"component_polish\", \"severity\": \"medium\", \"description\": \"The billing toggle at bottom-left is partially clipped/cut off, showing only a rounded pill shape with 'Yearly' label and a green segment. It lacks clear 'Monthly' labeling and appears broken or unfinished.\", \"location\": \"Bottom-left corner toggle component\"}, {\"dimension\": \"layout_structure\", \"severity\": \"low\", \"description\": \"Navigation bar contains 'Flowly' logo overlapping with 'Features' text ('FlowlyFeatures'), indicating poor text alignment or spacing in the header.\", \"location\": \"Top-left navigation bar\"}, {\"dimension\": \"typography\", \"severity\": \"low\", \"description\": \"Feature lists in Starter and Enterprise tiers lack checkmark icons (only Pro has visible checkmarks), creating visual inconsistency and making scanability harder.\", \"location\": \"Starter and Enterprise card feature lists\"}, {\"dimension\": \"component_polish\", \"severity\": \"low\", \"description\": \"The 'MOST POPULAR' badge on Pro tier uses a teal/green color that clashes slightly with the purple accent used elsewhere, and its positioning feels cramped against the tier name.\", \"location\": \"Pro tier card, top-left badge area\"}], \"missing_elements\": [\"Monthly/yearly billing toggle at the TOP of the page (currently misplaced at bottom)\", \"Visible 'Monthly' label on the billing toggle\", \"Checkmark icons for feature lists in Starter and Enterprise tiers\", \"Proper contrast/color values for hero headline text\", \"Proper contrast/color values for social proof section text and logos\"], \"top_fixes\": [\"Move the billing toggle to the top of the page, directly below the hero headline and above the pricing cards, with clear 'Monthly' and 'Yearly' labels and proper spacing\", \"Fix the hero headline color to use a dark color (e.g., slate-900) with proper contrast against the white background instead of the current near-white invisible text\", \"Add checkmark icons to the Starter and Enterprise feature lists for consistency with the Pro tier\", \"Fix the navigation bar text overlap where 'Flowly' and 'Features' are colliding\", \"Restore visibility to the social proof section by using appropriate dark text colors for the trust statement and partner logos\"]}"
+}

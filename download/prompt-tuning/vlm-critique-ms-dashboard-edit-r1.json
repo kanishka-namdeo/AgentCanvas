@@ -1,0 +1,55 @@
+{
+  "scores": {
+    "prompt_fidelity": 7,
+    "layout_structure": 7,
+    "typography": 8,
+    "color_cohesion": 7,
+    "component_polish": 6,
+    "overall_polish": 7
+  },
+  "overall": 7,
+  "defects": [
+    {
+      "dimension": "prompt_fidelity",
+      "severity": "high",
+      "description": "KPI cards display only subtle border shadows instead of the requested 'subtle shadow' effect; shadows are nearly invisible and fail to create depth",
+      "location": "All four KPI cards below header"
+    },
+    {
+      "dimension": "prompt_fidelity",
+      "severity": "medium",
+      "description": "Header title shows 'Growth' but appears truncated/cut off, making full 'Growth Metrics' text unreadable",
+      "location": "Top-left of dark header bar"
+    },
+    {
+      "dimension": "component_polish",
+      "severity": "medium",
+      "description": "Date range selector uses dark-on-dark styling with poor contrast; calendar icon and date text blend into header background",
+      "location": "Header bar, right of title"
+    },
+    {
+      "dimension": "layout_structure",
+      "severity": "low",
+      "description": "Date picker container overlaps with title text area, creating cramped composition",
+      "location": "Header bar, center-left"
+    },
+    {
+      "dimension": "component_polish",
+      "severity": "low",
+      "description": "Trend indicators use pill-shaped backgrounds with excessive horizontal padding that feels unbalanced against the compact card content",
+      "location": "Bottom of each KPI card"
+    }
+  ],
+  "missing_elements": [
+    "Fully visible 'Growth Metrics' title (currently truncated)",
+    "Properly visible shadows on KPI cards with adequate elevation"
+  ],
+  "top_fixes": [
+    "Extend header width or reduce title size to reveal complete 'Growth Metrics' text without truncation",
+    "Replace nearly-invisible border shadows with proper elevation shadows (y-offset 2-4px, blur 8-16px, low-opacity black) on KPI cards",
+    "Improve date picker contrast by using lighter surface or adding subtle background container with better separation from dark header"
+  ],
+  "provider": "kimi",
+  "model": "kimi-k2-5",
+  "raw": "{\"scores\": {\"prompt_fidelity\": 7, \"layout_structure\": 7, \"typography\": 8, \"color_cohesion\": 7, \"component_polish\": 6, \"overall_polish\": 7}, \"overall\": 7, \"defects\": [{\"dimension\": \"prompt_fidelity\", \"severity\": \"high\", \"description\": \"KPI cards display only subtle border shadows instead of the requested 'subtle shadow' effect; shadows are nearly invisible and fail to create depth\", \"location\": \"All four KPI cards below header\"}, {\"dimension\": \"prompt_fidelity\", \"severity\": \"medium\", \"description\": \"Header title shows 'Growth' but appears truncated/cut off, making full 'Growth Metrics' text unreadable\", \"location\": \"Top-left of dark header bar\"}, {\"dimension\": \"component_polish\", \"severity\": \"medium\", \"description\": \"Date range selector uses dark-on-dark styling with poor contrast; calendar icon and date text blend into header background\", \"location\": \"Header bar, right of title\"}, {\"dimension\": \"layout_structure\", \"severity\": \"low\", \"description\": \"Date picker container overlaps with title text area, creating cramped composition\", \"location\": \"Header bar, center-left\"}, {\"dimension\": \"component_polish\", \"severity\": \"low\", \"description\": \"Trend indicators use pill-shaped backgrounds with excessive horizontal padding that feels unbalanced against the compact card content\", \"location\": \"Bottom of each KPI card\"}], \"missing_elements\": [\"Fully visible 'Growth Metrics' title (currently truncated)\", \"Properly visible shadows on KPI cards with adequate elevation\"], \"top_fixes\": [\"Extend header width or reduce title size to reveal complete 'Growth Metrics' text without truncation\", \"Replace nearly-invisible border shadows with proper elevation shadows (y-offset 2-4px, blur 8-16px, low-opacity black) on KPI cards\", \"Improve date picker contrast by using lighter surface or adding subtle background container with better separation from dark header\"]}"
+}

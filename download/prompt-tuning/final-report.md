@@ -9,7 +9,7 @@ A research-grounded prompt-tuning exercise was run end-to-end: web research → 
 - A/B evals with repeats (n=2) on a 5-scenario core subset; 429-confounded runs (tools==0) excluded from conclusions; held-out scenarios reserved.
 - Multi-shot evals: NEW harness (scripts/agent-eval/run-multishot.ts) — 3 scenarios × 3 turns measuring iterative refinement, edit precision, and no-regression.
 - Providers: glm-5.3 (zai sandbox) for the A/B arms; kimi-k2-5 (custom endpoint, the app's production default) for final validation.
-- Visual: rendered PNGs of final canvases + a computed visual audit (shadow coverage, saturation, hue clusters, type-scale, 4px grid) + VLM critique when quota allowed.
+- Visual: rendered PNGs of final canvases + a computed visual audit (shadow coverage, saturation, hue clusters, type-scale, 4px grid) + a deferred VLM critique, completed 2026-08-31 on the kimi-k2-5 endpoint (z.ai vision stayed 429 quota-blocked).
 
 ## 3. Results
 | Eval round | Provider | Valid runs | Valid-run assertions | Notes |
@@ -39,19 +39,33 @@ Also: tool-count floor heuristic punished legitimate macro-tool one-shots (pen_g
 ## 6. Visual audit (computed, no LLM)
 Rendered PNGs: ms-pricing-iterate.png, ms-login-refine.png, ms-dashboard-edit.png. Metrics: 3 hue clusters each (cohesive); type-scale adherence 50-92%; shadow coverage 2-13% (weakest metric — future prompt target); 4px-grid adherence ~55% (dragged by standard 375px mobile frames).
 
-## 7. VLM critique
-VLM critique deferred (sandbox vision endpoint quota-blocked >4h). Final attempt on task 12-a (2026-08-31): 3/3 vision calls (ms-pricing-iterate, ms-login-refine, ms-dashboard-edit) returned HTTP 429 "Too many requests" via zai-sdk createChatCompletion — same endpoint throttling that gated all prior VLM phases since ~00:15 UTC. Re-run the 3-image critique (scores: prompt_fidelity, layout_structure, typography, color_cohesion, component_polish, overall_polish) once the quota clears; the images and rubric are preserved in-repo for exact replication.
+## 7. VLM critique — completed 2026-08-31 (kimi-k2-5 as VLM)
+Task 12-a re-run: the z.ai sandbox vision endpoint was re-probed and remained HTTP-429 (hard throttle, 0.0s), so per operator directive the critique ran on the **kimi-k2-5 custom endpoint as the VLM** — vision capability verified first with a tiny-image probe (`scripts/vlm-inspect/probe-vlm-quota.ts`: correct dominant-color identification). 3 images × 2 repeats = **6/6 runs scored** (`scripts/agent-eval/vlm-critique-pt.ts`, rubric exactly as planned; per-run JSONs + `vlm-summary.{md,json}` in this directory).
+
+| image | overall (r1/r2) | key findings (cross-checked where noted) |
+|---|---|---|
+| ms-pricing-iterate | 5 / 6 | billing toggle rendered **bottom-left & clipped** (pixel-verified: green block at x 2%, y 98%; doc shows it appended as the LAST flow child with a y=-320 absolute-position hack that autoLayout reflow defeated — the prompt said "top of the page"); root page frame carries a **FIXED h=100 dark fill while 6 children flow ~1400px** (the "dark bar through the cards") |
+| ms-login-refine | 6 / 6 | "Forgot password?" drifted below the social buttons (VLM-reported); generic glyphs instead of Google/Apple brand marks (VLM-reported); scattered vertical spacing (VLM-reported) |
+| ms-dashboard-edit | 7 / 7 | title "Growth Metrics" **clipped by FIXED w=120 at 38px** (doc-verified — the eval was right that the rename happened, the VLM was right that it renders truncated); requested "subtle shadow" on KPI cards reads as invisible (blur=2, computed-audit-confirmed — both VLM runs independently flagged it); KPI labels embellished ("TOTAL REVENUE" vs asked "Revenue") plus unrequested trend indicators and subtitle (content-verified) |
+
+**Mean 6.17/10** · dimension means: typography 7.00, prompt_fidelity 6.83, layout_structure 6.33, color_cohesion 6.33, component_polish 6.00, overall_polish 6.17 · severity h/m/l 9/21/16 · repeat variance low (±0-1, vs ±1.5 in the earlier VLM exercise).
+
+Reading: the assertion suite (22/22) and the VLM disagree **by design** — assertions verify presence, the VLM verifies placement and visual quality. Cross-checking the VLM's claims against the documents and pixels: five findings are real agent-output defects, one (near-invisible pricing headline) is contradicted by pixel sampling (ink clearly present in the hero rows). The verified gaps convert directly into prompt/resolver targets (§8).
 
 ## 8. Remaining recommendations
-- Shadow coverage is the weakest computed metric (2-13%) — the TURN FLOW's ELEVATE step could get a numeric floor ("shadows on ≥50% of card-class surfaces").
+- Shadow coverage is the weakest computed metric (2-13%, and the VLM reads blur=2 shadows as absent) — the TURN FLOW's ELEVATE step could get a numeric floor ("shadows on ≥50% of card-class surfaces", blur ≥ 8).
+- **POSITIONAL FIDELITY prompt rule + position-aware assertions** — "at the top of the page" / "below X" are layout constraints, not suggestions; the pricing toggle passed a presence check while sitting clipped in the bottom-left corner.
+- **Auto-grow (or resolver warning) for FIXED-width text nodes whose content no longer fits** — this clipped the renamed "Growth Metrics" title at w=120/38px.
+- **Page/root frames should size fit_content** — the h=100 FIXED root painted a dark bar across the pricing flow.
+- **No-unrequested-content rule** — invented trend indicators/subtitles dilute prompt fidelity (dashboard KPI cards).
 - zai/glm re-validation of round-2 prompt (this report's kimi numbers are the production default; glm A/B ended at round-1).
 - Monochromatic palette ramp still tops at L=90 (untested by scenarios).
 - Consider consolidating the 3 remaining instance-placer tools (pen_instantiate_component is deprecated but still reachable via 'multi').
-- VLM critiques once the sandbox vision endpoint quota clears.
 
 ## 9. Artifacts
 - All eval reports: scripts/agent-eval/results/tuning-*.{json,md}, multishot-*, ms-*
 - Logs: download/prompt-tuning/eval-*.log
 - Research: download/prompt-tuning/research-summary.md, tool-descriptions.md
 - Visual: download/prompt-tuning/*.png, visual-audit.md
+- VLM critique: download/prompt-tuning/vlm-summary.{md,json} + vlm-critique-*-r*.json; harness scripts/agent-eval/vlm-critique-pt.ts (--provider=auto re-uses z.ai vision once its quota clears); endpoint probe scripts/vlm-inspect/probe-vlm-quota.ts
 - Worklog: /home/z/my-project/worklog.md (session-local)
