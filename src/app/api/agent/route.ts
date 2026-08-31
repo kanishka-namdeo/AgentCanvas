@@ -55,6 +55,21 @@ export async function POST(req: NextRequest) {
     ? {
         temperature: typeof body.settings.temperature === 'number' ? body.settings.temperature : DEFAULT_SETTINGS.temperature,
         maxIterations: typeof body.settings.maxIterations === 'number' ? body.settings.maxIterations : DEFAULT_SETTINGS.maxIterations,
+        // Task 7-b bug fix: mandatory-critique-loop budget MUST pass through.
+        // This field was previously missing from this allowlist, so callers
+        // sending maxDesignCritiqueIterations (e.g. the eval harness with
+        // EVAL_CRITIQUES=0) were silently ignored and the runner's
+        // `settings?.maxDesignCritiqueIterations ?? 2` always defaulted to 2
+        // — the critique-fix loop ran even when explicitly disabled.
+        // 0 = hard off-switch; valid range integer 0..5; invalid/absent →
+        // undefined so the runner default (2) applies.
+        maxDesignCritiqueIterations:
+          typeof body.settings.maxDesignCritiqueIterations === 'number' &&
+          Number.isInteger(body.settings.maxDesignCritiqueIterations) &&
+          body.settings.maxDesignCritiqueIterations >= 0 &&
+          body.settings.maxDesignCritiqueIterations <= 5
+            ? body.settings.maxDesignCritiqueIterations
+            : undefined,
         planFirst: typeof body.settings.planFirst === 'boolean' ? body.settings.planFirst : DEFAULT_SETTINGS.planFirst,
         thinkingLevel: body.settings.thinkingLevel ?? DEFAULT_SETTINGS.thinkingLevel,
         defaultPalette: body.settings.defaultPalette ?? DEFAULT_SETTINGS.defaultPalette,
