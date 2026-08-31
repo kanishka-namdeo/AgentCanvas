@@ -141,12 +141,27 @@ function trajectoryChecks(minTools: number): Array<(c: CanvasDocument, t: Trajec
     (_c, t) => {
       // A turn that does near-zero tool calls for a build request is a refusal
       // or chat-only answer. A turn with a huge number is a runaway loop.
+      // Round 3 (task 10-d): generative/macro tools (pen_generate_*,
+      // pen_insert_html, pen_create_subtree) can legitimately build an entire
+      // screen in ONE call — round2-kimi one-shotted a 60-layer dashboard via
+      // a single pen_generate_variants — so when any macro tool appears in the
+      // trajectory the minimum floor drops to 1. The max bound (runaway-loop
+      // guard) is unchanged.
       const n = t.toolCalls.length;
+      const macroTools = [
+        ...new Set(
+          t.toolCalls
+            .map((tc) => tc.name)
+            .filter((name) => name.startsWith('pen_generate_') || name === 'pen_insert_html' || name === 'pen_create_subtree'),
+        ),
+      ];
+      const macroUsed = macroTools.length > 0;
+      const floor = macroUsed ? 1 : minTools;
       return assert(
         'reasonable tool-call count',
-        n >= minTools && n <= 90,
-        `${n} tool calls`,
-        `${n} tool calls (expected ${minTools}..90)`,
+        n >= floor && n <= 90,
+        `${n} tool calls${macroUsed && n < minTools ? ` (macro-tool exception applied: ${macroTools.join(', ')})` : ''}`,
+        `${n} tool calls (expected ${floor}..90)${macroUsed ? ` — macro-tool exception applied (floor lowered to 1; saw ${macroTools.join(', ')})` : ''}`,
       );
     },
     (_c, t) => assert('no agent errors', t.errors.length === 0, 'clean turn', `errors: ${t.errors.join(' | ').slice(0, 200)}`),
