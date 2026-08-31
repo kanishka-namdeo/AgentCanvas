@@ -1,0 +1,114 @@
+Running 8 scenario(s) × 2 run(s) against http://localhost:3000/api/agent (delay 45s) — dev set only (held-out excluded) …
+
+▶ simple-shape [run 1/2] — "Draw a red rounded rectangle, 240x120, in the top-left area of the can…"
+  ✅ 8/8 assertions · 4 tools · 20s
+
+  … cooldown 45s (rate-limit guard)
+▶ simple-shape [run 2/2] — "Draw a red rounded rectangle, 240x120, in the top-left area of the can…"
+  ❌ 7/8 assertions · 4 tools · 14s
+     FAIL fill is red: no rectangle with a red-hue fill
+
+  … cooldown 45s (rate-limit guard)
+▶ text-heading [run 1/2] — "Add a bold heading that says 'Quarterly Report' at 32px, centered near…"
+  ✅ 7/7 assertions · 2 tools · 15s
+
+  … cooldown 45s (rate-limit guard)
+▶ text-heading [run 2/2] — "Add a bold heading that says 'Quarterly Report' at 32px, centered near…"
+  ✅ 7/7 assertions · 2 tools · 22s
+
+  … cooldown 45s (rate-limit guard)
+▶ login-hifi [run 1/2] — "Design a polished, high-fidelity mobile login screen for a fintech app…"
+  ❌ 5/12 assertions · 7 tools · 195s
+     FAIL canvas has layers: only 1 layers — too few for a login screen
+     FAIL email + password copy present: email=false password=false
+     FAIL brand "Vaultly" present: no "Vaultly" text anywhere
+     FAIL colorful design (hi-fi): fewer than 3 saturated-color layers — looks grayscale
+     FAIL shadows on elevated surfaces: no shadow anywhere — flat/wireframe look
+     FAIL Sign In action present: no "Sign In" text
+     FAIL no agent errors: errors: Agent stream stalled — no output for 2 minutes. The run was closed to avoid hanging; resend the prompt to retry.
+
+  … cooldown 45s (rate-limit guard)
+▶ login-hifi [run 2/2] — "Design a polished, high-fidelity mobile login screen for a fintech app…"
+  ✅ 12/12 assertions · 18 tools · 77s
+
+  … cooldown 45s (rate-limit guard)
+▶ wireframe-lofi [run 1/2] — "Draw a low-fidelity wireframe of a blog homepage: header with nav, one…"
+  ✅ 9/9 assertions · 2 tools · 7s
+
+  … cooldown 45s (rate-limit guard)
+▶ wireframe-lofi [run 2/2] — "Draw a low-fidelity wireframe of a blog homepage: header with nav, one…"
+  ✅ 9/9 assertions · 1 tools · 8s
+
+  … cooldown 45s (rate-limit guard)
+▶ modify-precision [run 1/2] — "Change the Banner rectangle fill to green. Leave everything else exact…"
+  ❌ 5/9 assertions · 0 tools · 20s
+     FAIL banner recolored green: fill=#3b82f6 is not green-hued
+     FAIL used update-style tools: no update/set_fill tool used
+     FAIL reasonable tool-call count: 0 tool calls (expected 1..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+  … cooldown 45s (rate-limit guard)
+▶ modify-precision [run 2/2] — "Change the Banner rectangle fill to green. Leave everything else exact…"
+  ❌ 5/9 assertions · 0 tools · 20s
+     FAIL banner recolored green: fill=#3b82f6 is not green-hued
+     FAIL used update-style tools: no update/set_fill tool used
+     FAIL reasonable tool-call count: 0 tool calls (expected 1..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+  … cooldown 45s (rate-limit guard)
+▶ flowchart [run 1/2] — "Create a flowchart for a document approval process with 4 nodes: Start…"
+  ❌ 2/7 assertions · 0 tools · 22s
+     FAIL 4+ node shapes: only 0 node shapes
+     FAIL all 4 node labels present: missing labels: start, review, approve, end
+     FAIL connector lines present: only 0 line/path layers — no arrows
+     FAIL reasonable tool-call count: 0 tool calls (expected 2..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+  … cooldown 45s (rate-limit guard)
+▶ flowchart [run 2/2] — "Create a flowchart for a document approval process with 4 nodes: Start…"
+  ✅ 7/7 assertions · 23 tools · 59s
+
+  … cooldown 45s (rate-limit guard)
+▶ dashboard-hifi [run 1/2] — "Design a high-fidelity analytics dashboard header bar plus a row of 4 …"
+  ❌ 7/9 assertions · 4 tools · 97s
+     FAIL all 4 KPI values present: missing values: 128.4, 8,421, 2.1, 62
+     FAIL no agent errors: errors: Critique-fix turn produced no output (rate-limit / transient outage). Skipping remaining critique iterations.
+
+  … cooldown 45s (rate-limit guard)
+▶ dashboard-hifi [run 2/2] — "Design a high-fidelity analytics dashboard header bar plus a row of 4 …"
+  ❌ 3/9 assertions · 0 tools · 20s
+     FAIL all 4 KPI values present: missing values: 128.4, 8,421, 2.1, 62
+     FAIL 4 card-like containers in a row: no 4 similar-height containers — cards not built
+     FAIL colorful (hi-fi): too grayscale for a hi-fi dashboard
+     FAIL shadows on cards: no shadows — flat look
+     FAIL reasonable tool-call count: 0 tool calls (expected 4..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+  … cooldown 45s (rate-limit guard)
+▶ palette-sunset [run 1/2] — "Generate a row of 5 color palette swatches for a 'Sunset' theme, each …"
+  ❌ 3/7 assertions · 0 tools · 20s
+     FAIL 5 saturated swatches: only 0 saturated swatch layers
+     FAIL hex code labels present: only 0 text layers contain hex codes
+     FAIL reasonable tool-call count: 0 tool calls (expected 3..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+  … cooldown 45s (rate-limit guard)
+▶ palette-sunset [run 2/2] — "Generate a row of 5 color palette swatches for a 'Sunset' theme, each …"
+  ❌ 3/7 assertions · 0 tools · 20s
+     FAIL 5 saturated swatches: only 0 saturated swatch layers
+     FAIL hex code labels present: only 0 text layers contain hex codes
+     FAIL reasonable tool-call count: 0 tool calls (expected 3..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+──────────────────────────────────────────────
+RESULT: 2/8 scenarios fully passed (16 total runs)
+  ⚠️  simple-shape: 50% pass (4-4 tools, 14-20s)
+  ✅ text-heading: 100% pass (2-2 tools, 15-22s)
+  ⚠️  login-hifi: 50% pass (7-18 tools, 77-195s)
+  ✅ wireframe-lofi: 100% pass (1-2 tools, 7-8s)
+  ❌ modify-precision: 0% pass (0-0 tools, 20-20s)
+  ⚠️  flowchart: 50% pass (0-23 tools, 22-59s)
+  ❌ dashboard-hifi: 0% pass (0-4 tools, 20-97s)
+  ❌ palette-sunset: 0% pass (0-0 tools, 20-20s)
+Reports: /home/z/my-project/scripts/agent-eval/results/tuning-baseline2.md
+         /home/z/my-project/scripts/agent-eval/results/tuning-baseline2.json

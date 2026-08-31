@@ -1,0 +1,14 @@
+Running 1 scenario(s) × 2 run(s) against http://localhost:3000/api/agent (delay 60s) — dev set only (held-out excluded) …
+
+▶ palette-sunset [run 1/2] — "Generate a row of 5 color palette swatches for a 'Sunset' theme, each …"
+  ✅ 7/7 assertions · 2 tools · 44s
+
+  … cooldown 60s (rate-limit guard)
+▶ palette-sunset [run 2/2] — "Generate a row of 5 color palette swatches for a 'Sunset' theme, each …"
+  ✅ 7/7 assertions · 2 tools · 42s
+
+──────────────────────────────────────────────
+RESULT: 1/1 scenarios fully passed (2 total runs)
+  ✅ palette-sunset: 100% pass (2-2 tools, 42-44s)
+Reports: /home/z/my-project/scripts/agent-eval/results/tuning-palette-fix.md
+         /home/z/my-project/scripts/agent-eval/results/tuning-palette-fix.json

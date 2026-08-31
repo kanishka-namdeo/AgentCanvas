@@ -1,0 +1,50 @@
+Running 3 scenario(s) × 2 run(s) against http://localhost:3000/api/agent (delay 60s) — dev set only (held-out excluded) …
+
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+▶ text-heading [run 1/2] — "Add a bold heading that says 'Quarterly Report' at 32px, centered near…"
+  ✅ 7/7 assertions · 1 tools · 16s
+
+  … cooldown 60s (rate-limit guard)
+▶ text-heading [run 2/2] — "Add a bold heading that says 'Quarterly Report' at 32px, centered near…"
+  ✅ 7/7 assertions · 1 tools · 12s
+
+  … cooldown 60s (rate-limit guard)
+▶ wireframe-lofi [run 1/2] — "Draw a low-fidelity wireframe of a blog homepage: header with nav, one…"
+  ✅ 9/9 assertions · 2 tools · 15s
+
+  … cooldown 60s (rate-limit guard)
+▶ wireframe-lofi [run 2/2] — "Draw a low-fidelity wireframe of a blog homepage: header with nav, one…"
+  ✅ 9/9 assertions · 1 tools · 13s
+
+  … cooldown 60s (rate-limit guard)
+▶ palette-sunset [run 1/2] — "Generate a row of 5 color palette swatches for a 'Sunset' theme, each …"
+  ❌ 6/7 assertions · 2 tools · 37s
+     FAIL 5 saturated swatches: only 4 saturated swatch layers
+
+  … cooldown 60s (rate-limit guard)
+▶ palette-sunset [run 2/2] — "Generate a row of 5 color palette swatches for a 'Sunset' theme, each …"
+  ❌ 6/7 assertions · 2 tools · 42s
+     FAIL 5 saturated swatches: only 4 saturated swatch layers
+
+──────────────────────────────────────────────
+RESULT: 2/3 scenarios fully passed (6 total runs)
+  ✅ text-heading: 100% pass (1-1 tools, 12-16s)
+  ✅ wireframe-lofi: 100% pass (1-2 tools, 13-15s)
+  ❌ palette-sunset: 0% pass (2-2 tools, 37-42s)
+Reports: /home/z/my-project/scripts/agent-eval/results/tuning-final-sweep.md
+         /home/z/my-project/scripts/agent-eval/results/tuning-final-sweep.json

@@ -1,0 +1,78 @@
+Running 5 scenario(s) × 2 run(s) against http://localhost:3000/api/agent (delay 60s) — dev set only (held-out excluded) …
+
+▶ simple-shape [run 1/2] — "Draw a red rounded rectangle, 240x120, in the top-left area of the can…"
+  ✅ 8/8 assertions · 3 tools · 16s
+
+  … cooldown 60s (rate-limit guard)
+▶ simple-shape [run 2/2] — "Draw a red rounded rectangle, 240x120, in the top-left area of the can…"
+  ✅ 8/8 assertions · 3 tools · 10s
+
+  … cooldown 60s (rate-limit guard)
+▶ login-hifi [run 1/2] — "Design a polished, high-fidelity mobile login screen for a fintech app…"
+  ❌ 11/12 assertions · 11 tools · 48s
+     FAIL Sign In action present: no "Sign In" text
+
+  … cooldown 60s (rate-limit guard)
+▶ login-hifi [run 2/2] — "Design a polished, high-fidelity mobile login screen for a fintech app…"
+  ❌ 11/12 assertions · 5 tools · 37s
+     FAIL colorful design (hi-fi): fewer than 3 saturated-color layers — looks grayscale
+
+  … cooldown 60s (rate-limit guard)
+▶ modify-precision [run 1/2] — "Change the Banner rectangle fill to green. Leave everything else exact…"
+  ❌ 5/9 assertions · 0 tools · 20s
+     FAIL banner recolored green: fill=#3b82f6 is not green-hued
+     FAIL used update-style tools: no update/set_fill tool used
+     FAIL reasonable tool-call count: 0 tool calls (expected 1..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+  … cooldown 60s (rate-limit guard)
+▶ modify-precision [run 2/2] — "Change the Banner rectangle fill to green. Leave everything else exact…"
+  ✅ 9/9 assertions · 3 tools · 9s
+
+  … cooldown 60s (rate-limit guard)
+▶ flowchart [run 1/2] — "Create a flowchart for a document approval process with 4 nodes: Start…"
+  ❌ 2/7 assertions · 0 tools · 23s
+     FAIL 4+ node shapes: only 0 node shapes
+     FAIL all 4 node labels present: missing labels: start, review, approve, end
+     FAIL connector lines present: only 0 line/path layers — no arrows
+     FAIL reasonable tool-call count: 0 tool calls (expected 2..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+  … cooldown 60s (rate-limit guard)
+▶ flowchart [run 2/2] — "Create a flowchart for a document approval process with 4 nodes: Start…"
+  ❌ 2/7 assertions · 0 tools · 22s
+     FAIL 4+ node shapes: only 0 node shapes
+     FAIL all 4 node labels present: missing labels: start, review, approve, end
+     FAIL connector lines present: only 0 line/path layers — no arrows
+     FAIL reasonable tool-call count: 0 tool calls (expected 2..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+  … cooldown 60s (rate-limit guard)
+▶ dashboard-hifi [run 1/2] — "Design a high-fidelity analytics dashboard header bar plus a row of 4 …"
+  ❌ 3/9 assertions · 0 tools · 20s
+     FAIL all 4 KPI values present: missing values: 128.4, 8,421, 2.1, 62
+     FAIL 4 card-like containers in a row: no 4 similar-height containers — cards not built
+     FAIL colorful (hi-fi): too grayscale for a hi-fi dashboard
+     FAIL shadows on cards: no shadows — flat look
+     FAIL reasonable tool-call count: 0 tool calls (expected 4..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+  … cooldown 60s (rate-limit guard)
+▶ dashboard-hifi [run 2/2] — "Design a high-fidelity analytics dashboard header bar plus a row of 4 …"
+  ❌ 3/9 assertions · 0 tools · 20s
+     FAIL all 4 KPI values present: missing values: 128.4, 8,421, 2.1, 62
+     FAIL 4 card-like containers in a row: no 4 similar-height containers — cards not built
+     FAIL colorful (hi-fi): too grayscale for a hi-fi dashboard
+     FAIL shadows on cards: no shadows — flat look
+     FAIL reasonable tool-call count: 0 tool calls (expected 4..90)
+     FAIL no agent errors: errors: The model returned an empty response (no text and no tool calls). This usually means the LLM provider is rate-limited (HTTP 429) or 
+
+──────────────────────────────────────────────
+RESULT: 1/5 scenarios fully passed (10 total runs)
+  ✅ simple-shape: 100% pass (3-3 tools, 10-16s)
+  ❌ login-hifi: 0% pass (5-11 tools, 37-48s)
+  ⚠️  modify-precision: 50% pass (0-3 tools, 9-20s)
+  ❌ flowchart: 0% pass (0-0 tools, 22-23s)
+  ❌ dashboard-hifi: 0% pass (0-0 tools, 20-20s)
+Reports: /home/z/my-project/scripts/agent-eval/results/tuning-round1b.md
+         /home/z/my-project/scripts/agent-eval/results/tuning-round1b.json

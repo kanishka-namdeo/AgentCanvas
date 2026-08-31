@@ -1,0 +1,118 @@
+{
+  "id": "ms-login-refine",
+  "description": "Additive edits + layout tweaks: mobile banking login → social sign-in row → tighter spacing with a full-width sign-in button. Exercises growing an existing layout and restructuring it without losing earlier content.",
+  "startedAt": "2026-08-31T01:58:23.098Z",
+  "durationMs": 439785,
+  "turns": [
+    {
+      "index": 1,
+      "prompt": "Create a mobile login screen for a banking app called 'Vaultly' with email and password fields, a sign-in button, and a 'Forgot password?' link.",
+      "durationMs": 206139,
+      "toolCallCount": 7,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          4
+        ],
+        [
+          "pen_update_node",
+          2
+        ],
+        [
+          "pen_generate_variants",
+          1
+        ]
+      ],
+      "errors": [],
+      "patches": 3,
+      "retries": 0,
+      "emptyTurn": false
+    },
+    {
+      "index": 2,
+      "prompt": "Add social sign-in buttons for Google and Apple below the sign-in button.",
+      "durationMs": 91387,
+      "toolCallCount": 20,
+      "toolNames": [
+        [
+          "pen_create_node",
+          13
+        ],
+        [
+          "pen_update_node",
+          4
+        ],
+        [
+          "pen_search_icons",
+          2
+        ],
+        [
+          "pen_delete_nodes",
+          1
+        ]
+      ],
+      "errors": [],
+      "patches": 16,
+      "retries": 0,
+      "emptyTurn": false
+    },
+    {
+      "index": 3,
+      "prompt": "Tighten the spacing and make the sign-in button full-width.",
+      "durationMs": 22221,
+      "toolCallCount": 4,
+      "toolNames": [
+        [
+          "pen_update_node",
+          4
+        ]
+      ],
+      "errors": [],
+      "patches": 4,
+      "retries": 0,
+      "emptyTurn": false
+    }
+  ],
+  "toolCallCount": 31,
+  "assertions": [
+    {
+      "name": "T1: email/password/sign-in/forgot-password texts present",
+      "pass": true,
+      "detail": "vaultly:✓ email:✓ password:✓ signIn:✓ forgot:✓"
+    },
+    {
+      "name": "T2: Google AND Apple sign-in present",
+      "pass": true,
+      "detail": "google:true, apple:true (text or layer name)"
+    },
+    {
+      "name": "T3: sign-in button ≈ full-width (≥80% of frame)",
+      "pass": true,
+      "detail": "button \"SignInButton\" 345px / frame 393px = 88%"
+    },
+    {
+      "name": "no-regression: Vaultly/email/password survive all turns",
+      "pass": true,
+      "detail": "vaultly:true, email:true, password:true"
+    },
+    {
+      "name": "no failed tool calls (all turns)",
+      "pass": true,
+      "detail": "all 31 tool call(s) across 3 turn(s) succeeded"
+    },
+    {
+      "name": "no agent errors (all turns)",
+      "pass": true,
+      "detail": "3 turn(s), no errors"
+    },
+    {
+      "name": "no duplicate consecutive tool calls (per turn)",
+      "pass": true,
+      "detail": "31 call(s), no back-to-back repeats"
+    }
+  ],
+  "passed": 7,
+  "failed": 0,
+  "status": "pass",
+  "finalLayerCount": 47
+}

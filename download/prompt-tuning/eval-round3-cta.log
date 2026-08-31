@@ -1,0 +1,34 @@
+Running 1 scenario(s) × 3 run(s) against http://localhost:3000/api/agent (delay 60s) — dev set only (held-out excluded) …
+
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+▶ login-hifi [run 1/3] — "Design a polished, high-fidelity mobile login screen for a fintech app…"
+  ✅ 12/12 assertions · 1 tools · 91s
+
+  … cooldown 60s (rate-limit guard)
+▶ login-hifi [run 2/3] — "Design a polished, high-fidelity mobile login screen for a fintech app…"
+  ✅ 12/12 assertions · 7 tools · 124s
+
+  … cooldown 60s (rate-limit guard)
+▶ login-hifi [run 3/3] — "Design a polished, high-fidelity mobile login screen for a fintech app…"
+  ✅ 12/12 assertions · 9 tools · 90s
+
+──────────────────────────────────────────────
+RESULT: 1/1 scenarios fully passed (3 total runs)
+  ✅ login-hifi: 100% pass (1-9 tools, 90-124s)
+Reports: /home/z/my-project/scripts/agent-eval/results/tuning-round3-cta.md
+         /home/z/my-project/scripts/agent-eval/results/tuning-round3-cta.json

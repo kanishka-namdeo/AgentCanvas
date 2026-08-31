@@ -1,0 +1,319 @@
+{
+  "runs": [
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "startedAt": "2026-08-31T03:14:57.299Z",
+      "durationMs": 91355,
+      "toolCallCount": 1,
+      "toolNames": [
+        [
+          "pen_generate_variants",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "34 layers"
+        },
+        {
+          "name": "uses a container/frame",
+          "pass": true,
+          "detail": "15 container(s)"
+        },
+        {
+          "name": "email + password copy present",
+          "pass": true,
+          "detail": "email=true password=true"
+        },
+        {
+          "name": "brand \"Vaultly\" present",
+          "pass": true,
+          "detail": "brand copy ok"
+        },
+        {
+          "name": "colorful design (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on elevated surfaces",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "Sign In action present",
+          "pass": true,
+          "detail": "CTA copy ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 1 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "1 tool calls (macro-tool exception applied: pen_generate_variants)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 12,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 34,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "startedAt": "2026-08-31T03:17:28.677Z",
+      "durationMs": 123603,
+      "toolCallCount": 7,
+      "toolNames": [
+        [
+          "pen_create_subtree",
+          2
+        ],
+        [
+          "pen_search_icons",
+          1
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_apply_palette",
+          1
+        ],
+        [
+          "pen_set_gradient_fill",
+          1
+        ],
+        [
+          "pen_get_metadata",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "30 layers"
+        },
+        {
+          "name": "uses a container/frame",
+          "pass": true,
+          "detail": "5 container(s)"
+        },
+        {
+          "name": "email + password copy present",
+          "pass": true,
+          "detail": "email=true password=true"
+        },
+        {
+          "name": "brand \"Vaultly\" present",
+          "pass": true,
+          "detail": "brand copy ok"
+        },
+        {
+          "name": "colorful design (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on elevated surfaces",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "Sign In action present",
+          "pass": true,
+          "detail": "CTA copy ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 7 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "7 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 12,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 30,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "startedAt": "2026-08-31T03:20:32.284Z",
+      "durationMs": 90354,
+      "toolCallCount": 9,
+      "toolNames": [
+        [
+          "pen_set_gradient_fill",
+          2
+        ],
+        [
+          "pen_set_variable",
+          2
+        ],
+        [
+          "pen_generate_design_brief",
+          1
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_create_subtree",
+          1
+        ],
+        [
+          "pen_apply_palette",
+          1
+        ],
+        [
+          "pen_get_metadata",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "32 layers"
+        },
+        {
+          "name": "uses a container/frame",
+          "pass": true,
+          "detail": "13 container(s)"
+        },
+        {
+          "name": "email + password copy present",
+          "pass": true,
+          "detail": "email=true password=true"
+        },
+        {
+          "name": "brand \"Vaultly\" present",
+          "pass": true,
+          "detail": "brand copy ok"
+        },
+        {
+          "name": "colorful design (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on elevated surfaces",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "Sign In action present",
+          "pass": true,
+          "detail": "CTA copy ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 9 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "9 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 12,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 32,
+      "emptyTurn": false,
+      "repeat": 3
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "heldOut": false,
+      "runs": 3,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 3,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 5.666666666666667,
+        "min": 1,
+        "max": 9
+      },
+      "durationS": {
+        "mean": 101.77066666666667,
+        "min": 90.354,
+        "max": 123.603
+      },
+      "assertionsPassed": 36,
+      "assertionsTotal": 36,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    }
+  ]
+}

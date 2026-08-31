@@ -1,0 +1,1050 @@
+{
+  "runs": [
+    {
+      "id": "simple-shape",
+      "prompt": "Draw a red rounded rectangle, 240x120, in the top-left area of the canvas.",
+      "startedAt": "2026-08-31T02:29:58.780Z",
+      "durationMs": 23022,
+      "toolCallCount": 1,
+      "toolNames": [
+        [
+          "pen_create_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "rectangle near 240x120 exists",
+          "pass": true,
+          "detail": "1 match(es)"
+        },
+        {
+          "name": "fill is red",
+          "pass": true,
+          "detail": "found #f43f5e"
+        },
+        {
+          "name": "corners rounded",
+          "pass": true,
+          "detail": "radius=12"
+        },
+        {
+          "name": "placed top-left (x<600, y<400)",
+          "pass": true,
+          "detail": "position ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 1 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "1 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 8,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 1,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "simple-shape",
+      "prompt": "Draw a red rounded rectangle, 240x120, in the top-left area of the canvas.",
+      "startedAt": "2026-08-31T02:31:21.820Z",
+      "durationMs": 14342,
+      "toolCallCount": 1,
+      "toolNames": [
+        [
+          "pen_create_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "rectangle near 240x120 exists",
+          "pass": true,
+          "detail": "1 match(es)"
+        },
+        {
+          "name": "fill is red",
+          "pass": true,
+          "detail": "found #ef4444"
+        },
+        {
+          "name": "corners rounded",
+          "pass": true,
+          "detail": "radius=12"
+        },
+        {
+          "name": "placed top-left (x<600, y<400)",
+          "pass": true,
+          "detail": "position ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 1 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "1 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 8,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 1,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "startedAt": "2026-08-31T02:32:36.175Z",
+      "durationMs": 104508,
+      "toolCallCount": 14,
+      "toolNames": [
+        [
+          "pen_update_node",
+          4
+        ],
+        [
+          "pen_get_metadata",
+          3
+        ],
+        [
+          "pen_set_gradient_fill",
+          2
+        ],
+        [
+          "pen_create_subtree",
+          1
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_create_node",
+          1
+        ],
+        [
+          "pen_set_shadow",
+          1
+        ],
+        [
+          "pen_align_shapes",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "23 layers"
+        },
+        {
+          "name": "uses a container/frame",
+          "pass": true,
+          "detail": "9 container(s)"
+        },
+        {
+          "name": "email + password copy present",
+          "pass": true,
+          "detail": "email=true password=true"
+        },
+        {
+          "name": "brand \"Vaultly\" present",
+          "pass": true,
+          "detail": "brand copy ok"
+        },
+        {
+          "name": "colorful design (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on elevated surfaces",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "Sign In action present",
+          "pass": false,
+          "detail": "no \"Sign In\" text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 14 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "14 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 11,
+      "failed": 1,
+      "status": "fail",
+      "finalLayerCount": 23,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "App Name",
+          "text": "Vaultly"
+        },
+        {
+          "name": "Tagline",
+          "text": "Secure Banking, Simplified"
+        },
+        {
+          "name": "Email Label",
+          "text": "Email"
+        },
+        {
+          "name": "Email Placeholder",
+          "text": "Enter your email"
+        },
+        {
+          "name": "Password Label",
+          "text": "Password"
+        },
+        {
+          "name": "Password Placeholder",
+          "text": "Enter your password"
+        },
+        {
+          "name": "Forgot Password",
+          "text": "Forgot password?"
+        },
+        {
+          "name": "Separator",
+          "text": "•"
+        },
+        {
+          "name": "Sign Up Link",
+          "text": "Create account"
+        }
+      ],
+      "repeat": 1
+    },
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "startedAt": "2026-08-31T02:35:20.691Z",
+      "durationMs": 166355,
+      "toolCallCount": 25,
+      "toolNames": [
+        [
+          "pen_update_node",
+          12
+        ],
+        [
+          "pen_get_metadata",
+          4
+        ],
+        [
+          "pen_find_nodes",
+          2
+        ],
+        [
+          "pen_create_node",
+          2
+        ],
+        [
+          "pen_generate_wireframe",
+          1
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_apply_palette",
+          1
+        ],
+        [
+          "pen_search_icons",
+          1
+        ],
+        [
+          "pen_set_shadow",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "14 layers"
+        },
+        {
+          "name": "uses a container/frame",
+          "pass": true,
+          "detail": "1 container(s)"
+        },
+        {
+          "name": "email + password copy present",
+          "pass": true,
+          "detail": "email=true password=true"
+        },
+        {
+          "name": "brand \"Vaultly\" present",
+          "pass": true,
+          "detail": "brand copy ok"
+        },
+        {
+          "name": "colorful design (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on elevated surfaces",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "Sign In action present",
+          "pass": true,
+          "detail": "CTA copy ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 25 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "25 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 12,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 14,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "modify-precision",
+      "prompt": "Change the Banner rectangle fill to green. Leave everything else exactly as it is.",
+      "startedAt": "2026-08-31T02:39:07.060Z",
+      "durationMs": 10160,
+      "toolCallCount": 1,
+      "toolNames": [
+        [
+          "pen_update_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "banner recolored green",
+          "pass": true,
+          "detail": "#10b981"
+        },
+        {
+          "name": "status dot untouched",
+          "pass": true,
+          "detail": "fill=#ef4444"
+        },
+        {
+          "name": "note text untouched",
+          "pass": true,
+          "detail": "unchanged"
+        },
+        {
+          "name": "no extra layers added",
+          "pass": true,
+          "detail": "still 3 layers"
+        },
+        {
+          "name": "used update-style tools",
+          "pass": true,
+          "detail": "1 update call(s)"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 1 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "1 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 3,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "modify-precision",
+      "prompt": "Change the Banner rectangle fill to green. Leave everything else exactly as it is.",
+      "startedAt": "2026-08-31T02:40:17.230Z",
+      "durationMs": 10024,
+      "toolCallCount": 1,
+      "toolNames": [
+        [
+          "pen_update_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "banner recolored green",
+          "pass": true,
+          "detail": "#10b981"
+        },
+        {
+          "name": "status dot untouched",
+          "pass": true,
+          "detail": "fill=#ef4444"
+        },
+        {
+          "name": "note text untouched",
+          "pass": true,
+          "detail": "unchanged"
+        },
+        {
+          "name": "no extra layers added",
+          "pass": true,
+          "detail": "still 3 layers"
+        },
+        {
+          "name": "used update-style tools",
+          "pass": true,
+          "detail": "1 update call(s)"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 1 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "1 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 3,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "flowchart",
+      "prompt": "Create a flowchart for a document approval process with 4 nodes: Start, Review, Approve, End — connected with arrows.",
+      "startedAt": "2026-08-31T02:41:27.255Z",
+      "durationMs": 143741,
+      "toolCallCount": 19,
+      "toolNames": [
+        [
+          "pen_update_node",
+          7
+        ],
+        [
+          "pen_set_shadow",
+          4
+        ],
+        [
+          "pen_get_metadata",
+          3
+        ],
+        [
+          "pen_find_nodes",
+          2
+        ],
+        [
+          "pen_generate_diagram",
+          1
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_apply_palette",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "4+ node shapes",
+          "pass": true,
+          "detail": "4 node shapes"
+        },
+        {
+          "name": "all 4 node labels present",
+          "pass": true,
+          "detail": "start/review/approve/end all present"
+        },
+        {
+          "name": "connector lines present",
+          "pass": true,
+          "detail": "3 line/path connectors"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 19 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "19 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 7,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 11,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "flowchart",
+      "prompt": "Create a flowchart for a document approval process with 4 nodes: Start, Review, Approve, End — connected with arrows.",
+      "startedAt": "2026-08-31T02:44:51.002Z",
+      "durationMs": 170157,
+      "toolCallCount": 22,
+      "toolNames": [
+        [
+          "pen_update_node",
+          8
+        ],
+        [
+          "pen_find_nodes",
+          5
+        ],
+        [
+          "pen_get_metadata",
+          3
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          3
+        ],
+        [
+          "pen_generate_diagram",
+          1
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_apply_palette",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "4+ node shapes",
+          "pass": true,
+          "detail": "4 node shapes"
+        },
+        {
+          "name": "all 4 node labels present",
+          "pass": true,
+          "detail": "start/review/approve/end all present"
+        },
+        {
+          "name": "connector lines present",
+          "pass": true,
+          "detail": "3 line/path connectors"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 22 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "22 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 7,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 11,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "dashboard-hifi",
+      "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+      "startedAt": "2026-08-31T02:48:41.162Z",
+      "durationMs": 133303,
+      "toolCallCount": 4,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          3
+        ],
+        [
+          "pen_generate_variants",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "all 4 KPI values present",
+          "pass": true,
+          "detail": "all values found"
+        },
+        {
+          "name": "4 card-like containers in a row",
+          "pass": true,
+          "detail": "4 candidates, bands=[[168,4]]"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on cards",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 4 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "4 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 46,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "dashboard-hifi",
+      "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+      "startedAt": "2026-08-31T02:51:54.473Z",
+      "durationMs": 113421,
+      "toolCallCount": 1,
+      "toolNames": [
+        [
+          "pen_generate_variants",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "all 4 KPI values present",
+          "pass": true,
+          "detail": "all values found"
+        },
+        {
+          "name": "4 card-like containers in a row",
+          "pass": true,
+          "detail": "4 candidates, bands=[[192,4]]"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on cards",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 1 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": false,
+          "detail": "1 tool calls (expected 4..90)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 8,
+      "failed": 1,
+      "status": "fail",
+      "finalLayerCount": 60,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "LogoText",
+          "text": "Pulse"
+        },
+        {
+          "name": "NavOverview",
+          "text": "Overview"
+        },
+        {
+          "name": "NavAnalytics",
+          "text": "Analytics"
+        },
+        {
+          "name": "NavReports",
+          "text": "Reports"
+        },
+        {
+          "name": "NavSettings",
+          "text": "Settings"
+        },
+        {
+          "name": "PageTitle",
+          "text": "Analytics Dashboard"
+        },
+        {
+          "name": "PageSubtitle",
+          "text": "Track your core metrics and growth trends"
+        },
+        {
+          "name": "RevenueLabel",
+          "text": "Revenue"
+        },
+        {
+          "name": "RevenueValue",
+          "text": "$128.4K"
+        },
+        {
+          "name": "RevenueChange",
+          "text": "+12.5%"
+        },
+        {
+          "name": "RevenuePeriod",
+          "text": "vs last month"
+        },
+        {
+          "name": "ActiveUsersLabel",
+          "text": "Active Users"
+        },
+        {
+          "name": "ActiveUsersValue",
+          "text": "8,421"
+        },
+        {
+          "name": "ActiveUsersChange",
+          "text": "+8.2%"
+        },
+        {
+          "name": "ActiveUsersPeriod",
+          "text": "vs last month"
+        },
+        {
+          "name": "ChurnLabel",
+          "text": "Churn Rate"
+        },
+        {
+          "name": "ChurnValue",
+          "text": "2.1%"
+        },
+        {
+          "name": "ChurnChange",
+          "text": "-0.4%"
+        },
+        {
+          "name": "ChurnPeriod",
+          "text": "vs last month"
+        },
+        {
+          "name": "NpsLabel",
+          "text": "NPS Score"
+        },
+        {
+          "name": "NpsValue",
+          "text": "62"
+        },
+        {
+          "name": "NpsChange",
+          "text": "+5 pts"
+        },
+        {
+          "name": "NpsPeriod",
+          "text": "vs last quarter"
+        }
+      ],
+      "repeat": 2
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "simple-shape",
+      "prompt": "Draw a red rounded rectangle, 240x120, in the top-left area of the canvas.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationS": {
+        "mean": 18.682,
+        "min": 14.342,
+        "max": 23.022
+      },
+      "assertionsPassed": 16,
+      "assertionsTotal": 16,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 0.5,
+      "statusSpread": {
+        "pass": 1,
+        "fail": 1,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 19.5,
+        "min": 14,
+        "max": 25
+      },
+      "durationS": {
+        "mean": 135.4315,
+        "min": 104.508,
+        "max": 166.355
+      },
+      "assertionsPassed": 23,
+      "assertionsTotal": 24,
+      "flakyAssertions": [
+        {
+          "name": "Sign In action present",
+          "passRate": 0.5
+        }
+      ],
+      "emptyTurns": 0
+    },
+    {
+      "id": "modify-precision",
+      "prompt": "Change the Banner rectangle fill to green. Leave everything else exactly as it is.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationS": {
+        "mean": 10.091999999999999,
+        "min": 10.024,
+        "max": 10.16
+      },
+      "assertionsPassed": 18,
+      "assertionsTotal": 18,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "flowchart",
+      "prompt": "Create a flowchart for a document approval process with 4 nodes: Start, Review, Approve, End — connected with arrows.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 20.5,
+        "min": 19,
+        "max": 22
+      },
+      "durationS": {
+        "mean": 156.949,
+        "min": 143.741,
+        "max": 170.157
+      },
+      "assertionsPassed": 14,
+      "assertionsTotal": 14,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "dashboard-hifi",
+      "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 0.5,
+      "statusSpread": {
+        "pass": 1,
+        "fail": 1,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 2.5,
+        "min": 1,
+        "max": 4
+      },
+      "durationS": {
+        "mean": 123.362,
+        "min": 113.421,
+        "max": 133.303
+      },
+      "assertionsPassed": 17,
+      "assertionsTotal": 18,
+      "flakyAssertions": [
+        {
+          "name": "reasonable tool-call count",
+          "passRate": 0.5
+        }
+      ],
+      "emptyTurns": 0
+    }
+  ]
+}

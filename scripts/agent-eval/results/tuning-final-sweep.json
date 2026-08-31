@@ -1,0 +1,509 @@
+{
+  "runs": [
+    {
+      "id": "text-heading",
+      "prompt": "Add a bold heading that says 'Quarterly Report' at 32px, centered near the top of the canvas.",
+      "startedAt": "2026-08-31T03:39:54.472Z",
+      "durationMs": 16122,
+      "toolCallCount": 1,
+      "toolNames": [
+        [
+          "pen_create_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "heading text present",
+          "pass": true,
+          "detail": "Quarterly Report"
+        },
+        {
+          "name": "fontSize ~32",
+          "pass": true,
+          "detail": "32px"
+        },
+        {
+          "name": "near top (y < 300)",
+          "pass": true,
+          "detail": "y ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 1 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "1 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 7,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 1,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "text-heading",
+      "prompt": "Add a bold heading that says 'Quarterly Report' at 32px, centered near the top of the canvas.",
+      "startedAt": "2026-08-31T03:41:10.609Z",
+      "durationMs": 11874,
+      "toolCallCount": 1,
+      "toolNames": [
+        [
+          "pen_create_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "heading text present",
+          "pass": true,
+          "detail": "Quarterly Report"
+        },
+        {
+          "name": "fontSize ~32",
+          "pass": true,
+          "detail": "32px"
+        },
+        {
+          "name": "near top (y < 300)",
+          "pass": true,
+          "detail": "y ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 1 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "1 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 7,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 1,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "wireframe-lofi",
+      "prompt": "Draw a low-fidelity wireframe of a blog homepage: header with nav, one hero article block, and a 3-card article grid.",
+      "startedAt": "2026-08-31T03:42:22.491Z",
+      "durationMs": 15294,
+      "toolCallCount": 2,
+      "toolNames": [
+        [
+          "pen_generate_wireframe",
+          1
+        ],
+        [
+          "pen_get_metadata",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "14 layers"
+        },
+        {
+          "name": "3-card grid present",
+          "pass": true,
+          "detail": "6 boxes, size-bands=[[800,1],[80,1],[360,1],[180,3]]"
+        },
+        {
+          "name": "stays grayscale (lo-fi)",
+          "pass": true,
+          "detail": "0 saturated layer(s) (tolerance 1)"
+        },
+        {
+          "name": "no shadows (lo-fi)",
+          "pass": true,
+          "detail": "flat as expected"
+        },
+        {
+          "name": "no gradients (lo-fi)",
+          "pass": true,
+          "detail": "no gradients as expected"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 2 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "2 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 14,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "wireframe-lofi",
+      "prompt": "Draw a low-fidelity wireframe of a blog homepage: header with nav, one hero article block, and a 3-card article grid.",
+      "startedAt": "2026-08-31T03:43:37.790Z",
+      "durationMs": 12925,
+      "toolCallCount": 1,
+      "toolNames": [
+        [
+          "pen_generate_wireframe",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "14 layers"
+        },
+        {
+          "name": "3-card grid present",
+          "pass": true,
+          "detail": "6 boxes, size-bands=[[800,1],[80,1],[360,1],[180,3]]"
+        },
+        {
+          "name": "stays grayscale (lo-fi)",
+          "pass": true,
+          "detail": "0 saturated layer(s) (tolerance 1)"
+        },
+        {
+          "name": "no shadows (lo-fi)",
+          "pass": true,
+          "detail": "flat as expected"
+        },
+        {
+          "name": "no gradients (lo-fi)",
+          "pass": true,
+          "detail": "no gradients as expected"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 1 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "1 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 14,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "palette-sunset",
+      "prompt": "Generate a row of 5 color palette swatches for a 'Sunset' theme, each swatch labeled with its hex code.",
+      "startedAt": "2026-08-31T03:44:50.728Z",
+      "durationMs": 37353,
+      "toolCallCount": 2,
+      "toolNames": [
+        [
+          "pen_generate_palette",
+          1
+        ],
+        [
+          "pen_create_subtree",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "5 saturated swatches",
+          "pass": false,
+          "detail": "only 4 saturated swatch layers"
+        },
+        {
+          "name": "hex code labels present",
+          "pass": true,
+          "detail": "5 hex labels"
+        },
+        {
+          "name": "warm sunset hues",
+          "pass": true,
+          "detail": "3/4 warm"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 2 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "2 tool calls (macro-tool exception applied: pen_generate_palette, pen_create_subtree)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 6,
+      "failed": 1,
+      "status": "fail",
+      "finalLayerCount": 18,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Palette Title",
+          "text": "Sunset Theme"
+        },
+        {
+          "name": "Hex 1",
+          "text": "#ab6e07"
+        },
+        {
+          "name": "Hex 2",
+          "text": "#f6a723"
+        },
+        {
+          "name": "Hex 3",
+          "text": "#f9c56c"
+        },
+        {
+          "name": "Hex 4",
+          "text": "#9dc0fb"
+        },
+        {
+          "name": "Hex 5",
+          "text": "#cedffd"
+        }
+      ],
+      "repeat": 1
+    },
+    {
+      "id": "palette-sunset",
+      "prompt": "Generate a row of 5 color palette swatches for a 'Sunset' theme, each swatch labeled with its hex code.",
+      "startedAt": "2026-08-31T03:46:28.090Z",
+      "durationMs": 42029,
+      "toolCallCount": 2,
+      "toolNames": [
+        [
+          "pen_generate_palette",
+          1
+        ],
+        [
+          "pen_create_subtree",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "5 saturated swatches",
+          "pass": false,
+          "detail": "only 4 saturated swatch layers"
+        },
+        {
+          "name": "hex code labels present",
+          "pass": true,
+          "detail": "5 hex labels"
+        },
+        {
+          "name": "warm sunset hues",
+          "pass": true,
+          "detail": "4/4 warm"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 2 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "2 tool calls (macro-tool exception applied: pen_generate_palette, pen_create_subtree)"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 6,
+      "failed": 1,
+      "status": "fail",
+      "finalLayerCount": 18,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Title",
+          "text": "Sunset Theme"
+        },
+        {
+          "name": "Hex 1",
+          "text": "#ab1c07"
+        },
+        {
+          "name": "Hex 2",
+          "text": "#f67223"
+        },
+        {
+          "name": "Hex 3",
+          "text": "#f9c56c"
+        },
+        {
+          "name": "Hex 4",
+          "text": "#fbf09d"
+        },
+        {
+          "name": "Hex 5",
+          "text": "#f7fdce"
+        }
+      ],
+      "repeat": 2
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "text-heading",
+      "prompt": "Add a bold heading that says 'Quarterly Report' at 32px, centered near the top of the canvas.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationS": {
+        "mean": 13.998000000000001,
+        "min": 11.874,
+        "max": 16.122
+      },
+      "assertionsPassed": 14,
+      "assertionsTotal": 14,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "wireframe-lofi",
+      "prompt": "Draw a low-fidelity wireframe of a blog homepage: header with nav, one hero article block, and a 3-card article grid.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 1.5,
+        "min": 1,
+        "max": 2
+      },
+      "durationS": {
+        "mean": 14.1095,
+        "min": 12.925,
+        "max": 15.294
+      },
+      "assertionsPassed": 18,
+      "assertionsTotal": 18,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "palette-sunset",
+      "prompt": "Generate a row of 5 color palette swatches for a 'Sunset' theme, each swatch labeled with its hex code.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 2,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 2,
+        "min": 2,
+        "max": 2
+      },
+      "durationS": {
+        "mean": 39.691,
+        "min": 37.353,
+        "max": 42.029
+      },
+      "assertionsPassed": 12,
+      "assertionsTotal": 14,
+      "flakyAssertions": [
+        {
+          "name": "5 saturated swatches",
+          "passRate": 0
+        }
+      ],
+      "emptyTurns": 0
+    }
+  ]
+}

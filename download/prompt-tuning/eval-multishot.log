@@ -1,0 +1,62 @@
+Running 3 multi-shot scenario(s) (9 turns total) against http://localhost:3000/api/agent
+  provider/model: custom / kimi-k2-5 (thinking: high) · turn timeout 8min · delays: 60s turns / 60s scenarios
+
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+  … LLM endpoint still rate-limited, waiting 45s
+▶ ms-pricing-iterate — 3 turns — Iterative refinement: build a 3-tier pricing page, visually emphasize the Pro ti…
+  ▶ turn 1/3 — "Design a pricing page for a SaaS called 'Flowly' with 3 tiers: Starter…"
+    5 tools · 4 patches · 191s
+  … turn cooldown 60s (rate-limit guard)
+  ▶ turn 2/3 — "Make the Pro tier visually highlighted as the most popular option.…"
+    3 tools · 3 patches · 22s
+  … turn cooldown 60s (rate-limit guard)
+  ▶ turn 3/3 — "Add a monthly/yearly billing toggle at the top of the page.…"
+    6 tools · 7 patches · 42s
+  ✅ 7/7 assertions · 14 tools · 375s · status=pass
+
+… scenario cooldown 60s (rate-limit guard)
+▶ ms-login-refine — 3 turns — Additive edits + layout tweaks: mobile banking login → social sign-in row → tigh…
+  ▶ turn 1/3 — "Create a mobile login screen for a banking app called 'Vaultly' with e…"
+    7 tools · 3 patches · 206s
+  … turn cooldown 60s (rate-limit guard)
+  ▶ turn 2/3 — "Add social sign-in buttons for Google and Apple below the sign-in butt…"
+    20 tools · 16 patches · 91s
+  … turn cooldown 60s (rate-limit guard)
+  ▶ turn 3/3 — "Tighten the spacing and make the sign-in button full-width.…"
+    4 tools · 4 patches · 22s
+  ✅ 7/7 assertions · 31 tools · 440s · status=pass
+
+… scenario cooldown 60s (rate-limit guard)
+▶ ms-dashboard-edit — 3 turns — Copy edits + style application: dashboard header → 4 KPI cards → retitle to 'Gro…
+  ▶ turn 1/3 — "Design a simple analytics dashboard header with the title 'Metrics' an…"
+    1 tools · 1 patches · 61s
+  … turn cooldown 60s (rate-limit guard)
+  ▶ turn 2/3 — "Add a row of 4 KPI cards below the header: Revenue $128.4K, Active Use…"
+    1 tools · 1 patches · 36s
+  … turn cooldown 60s (rate-limit guard)
+  ▶ turn 3/3 — "Change the dashboard title to 'Growth Metrics' and give the KPI cards …"
+    7 tools · 5 patches · 29s
+  ✅ 8/8 assertions · 9 tools · 246s · status=pass
+
+──────────────────────────────────────────────
+RESULT: 3/3 multi-shot scenarios passed
+  ✅ ms-pricing-iterate: 7/7 assertions · 3 turns · 14 tools · 375s
+  ✅ ms-login-refine: 7/7 assertions · 3 turns · 31 tools · 440s
+  ✅ ms-dashboard-edit: 8/8 assertions · 3 turns · 9 tools · 246s
+Reports: /home/z/my-project/scripts/agent-eval/results/multishot-tuned.md
+         /home/z/my-project/scripts/agent-eval/results/multishot-tuned.json
+         /home/z/my-project/scripts/agent-eval/results/<scenario>-final-canvas.json (per-scenario canvas dumps)

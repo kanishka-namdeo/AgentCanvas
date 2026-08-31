@@ -94,3 +94,7 @@ server.log
 
 # Third-party research clones (agent-durability research 2026-08-28)
 /research-scan/
+
+# Prompt-tuning artifacts (task 2026-08-31): keep eval logs, drop editor .bak files
+!download/prompt-tuning/eval-*.log
+download/prompt-tuning/*.bak
