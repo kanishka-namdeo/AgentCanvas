@@ -14,6 +14,7 @@ Implements the Anthropic Agent Skills standard (also adopted by Manus):
 - `types.ts` — Skill, SkillCategory, ClassificationResult, Plan, PlanStep, SubAgentParams, SubAgentResult interfaces.
 - `registry.ts` — The 7 skill definitions (Level 1 metadata + Level 2 body + allowedTools + keywords).
   Also exports SKILLS, getSkill, getSkillMetadata, CORE_TOOL_NAMES, ALL_TOOL_NAMES, getToolNamesForCategory, formatSkillMetadataForPrompt, formatSkillBodyForPrompt.
+  The Level 2 bodies carry the prompt-tuned guardrails (2026-08-31 rev `.4`): the VERIFY step names every resolver-warning kind with its fix (container_overflow / text_overflow / flow_child_absolute_coords / unresolved $vars), and the layout body carries the batch-construction + call-budget rules. Skill bodies and the SYSTEM_PROMPT_TEMPLATE must not drift — both are stamped by the same PROMPT_VERSION rev.
 - `index.ts` — Barrel export (also re-exports classifier, planner, sub-agent).
 
 ## Local Contracts
