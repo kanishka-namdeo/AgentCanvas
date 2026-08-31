@@ -1147,20 +1147,31 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // 10. Build the stub resource loader with our pre-built system prompt.
   const resourceLoader = buildResourceLoader(systemContent);
 
-  // ---- Reactive z.ai sandbox fallback --------------------------------------
+  // ---- Reactive rate-limit backoff + z.ai sandbox fallback (Task 7-c) ------
   //
   // The resolver's preflight (in `pi-ai-model-resolver.ts`) catches the
   // dead-endpoint case BEFORE the session is created — it swaps the model
   // to a z.ai-sandbox-resolved `glm-5.3` and marks `model.usedFallback=true`.
   //
   // But the preflight can't catch a turn that completes with HTTP 200 + an
-  // EMPTY body (no text, no tool calls). For that case, the runner re-runs
-  // the turn ONCE against a freshly-resolved z.ai-sandbox model. Bounded:
-  //   - `attempt < 2` (at most one retry per turn).
-  //   - `!currentModel.usedFallback` (skip if the resolver already swapped).
-  //   - `providerId !== 'zai'` (no point falling back to the same provider).
-  //   - `!sawActivity` (only retry if the previous attempt produced zero
-  //     user-visible output — no `message_delta`, no `tool_call_start`).
+  // EMPTY body (no text, no tool calls) — the classic provider-429 shape
+  // that killed ~40-50% of eval turns (tuning-baseline3 / round1b: every
+  // "429-empty" run had tools=0 and a dead turn). Recovery is now a
+  // three-tier ladder, cheapest first (decision block after the attempt
+  // loop's drain phase):
+  //   1. SAME-provider rate-limit backoff (Task 7-c): failure looks
+  //      rate-limit shaped AND the attempt produced zero user-visible
+  //      output → re-run the turn on the SAME model after 20s, then 45s
+  //      (max 2 retries per turn). The per-account rate-limit window
+  //      usually clears within that horizon, and re-prompting the active
+  //      provider is cheaper than switching.
+  //   2. z.ai sandbox swap: at most one swap per turn to a freshly-resolved
+  //      z.ai-sandbox model — `!currentModel.usedFallback` (skip if the
+  //      resolver already swapped), `providerId !== 'zai'` (no point
+  //      falling back to the same provider).
+  //   3. Legacy 8s same-model net: one final retry for the shapes the
+  //      backoff tier doesn't take (text-only design turns; zero-output
+  //      attempts whose thrown error isn't rate-limit shaped).
   //
   // The cumulative `everSaw*` flags track closing events across ALL attempts
   // so the defensive tail after the loop doesn't double-emit. The `last*`
@@ -1266,6 +1277,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const sessionId = opts.documentId ?? `session-${Date.now()}`;
 
   let didFallback = false;
+  // Task 7-c: same-provider rate-limit backoff retries used this turn
+  // (max 2 → backoff 20s then 45s). Separate from `didFallback` so the z.ai
+  // swap tier below stays available after the same-model budget is spent.
+  let sameModelRetries = 0;
   let everSawMessageEnd = false;
   let everSawTurnEnd = false;
   // True when a translator-emitted agent:turn_end was WITHHELD from the
@@ -1355,8 +1370,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // (NOTE: `session` is now declared above, next to the abort wiring, so the
   // abort listener can reference it.)
 
-  // Up to 2 attempts: primary, then (conditionally) one z.ai sandbox retry.
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // Up to 4 attempts: primary → up to two SAME-provider rate-limit backoff
+  // retries (Task 7-c: 20s, then 45s) → (conditionally) one z.ai sandbox
+  // swap or legacy 8s same-model net. The loop bound alone caps the worst
+  // case; the per-tier guards below keep the usual case at 1-2 attempts.
+  for (let attempt = 0; attempt < 4; attempt++) {
     // Per-attempt translator state — re-create per attempt so a fresh
     // `agent_end` from the second attempt's SDK emits its own `turn_end`
     // without being suppressed by the first attempt's state.
@@ -1691,12 +1709,81 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     lastSawErrorEvent = sawErrorEvent;
     lastPromptError = promptError;
 
-    // Skip the z.ai fallback retry entirely when the run was aborted —
-    // a stopped run must not kick off a SECOND LLM attempt.
+    // Skip every retry tier when the run was aborted — a stopped run must
+    // not kick off a SECOND LLM attempt.
     if (wasAborted()) break;
 
-    // Decide whether to fall back to the z.ai sandbox for a second attempt.
-    // Bounded: at most ONE retry per turn (attempt === 0 only).
+    // ---- Task 7-c: same-provider rate-limit backoff retry ------------------
+    //
+    // Eval telemetry: 40-50% of turns died with the empty-response error
+    // ("...LLM provider is rate-limited (HTTP 429)") because the ladder had
+    // no patient backoff — the SDK's internal retries fire back-to-back
+    // (all inside the same rate-limit window) and the 8s legacy net was too
+    // short for the per-account window to clear. BEFORE considering the
+    // z.ai swap, re-run the turn on the SAME model:
+    //   retry 1 → wait 20s, retry 2 → wait 45s (max 2 retries per turn).
+    //
+    // Trigger is deliberately narrow — BOTH must hold:
+    //   - rate-limit signature: prompt() threw with '429' / 'rate' /
+    //     'empty response' / 'overloaded' in the message, OR settled without
+    //     throwing and without user-visible output (the empty-200 body the
+    //     silent-failure guard attributes to HTTP 429).
+    //   - zero user-visible events: no `message_delta`, no `tool_call_start`
+    //     (thinking deltas don't count — see `sawActivity`). With nothing
+    //     streamed and no tools run, the retry is idempotent: the canvas is
+    //     untouched, and the loop top re-creates a fresh session with the
+    //     SAME model + SAME prompt.
+    const promptErrorText = promptError ? agentErrorMessage(promptError).toLowerCase() : '';
+    const rateLimitSignature = promptError
+      ? promptErrorText.includes('429') ||
+        promptErrorText.includes('rate') ||
+        promptErrorText.includes('empty response') ||
+        promptErrorText.includes('overloaded')
+      : true;
+    if (
+      attempt < 3 && // keep a slot free for the z.ai swap / legacy net below
+      sameModelRetries < 2 &&
+      !sawActivity &&
+      rateLimitSignature
+    ) {
+      sameModelRetries++;
+      const backoffMs = sameModelRetries === 1 ? 20_000 : 45_000;
+      console.warn(
+        `[llm-retry] attempt ${attempt + 2} after ${backoffMs / 1000}s — provider rate-limited ` +
+          `(${currentModel.label} produced zero message_delta + zero tool_call events` +
+          `${promptError ? `; prompt error: ${agentErrorMessage(promptError)}` : ''})`,
+      );
+      // Sleep WITHOUT tripping the route's 120s stream watchdog: while we
+      // sleep the generator is suspended and nothing else feeds the wire, so
+      // a silent 45s wait stacked on the dead attempt's own silent span
+      // could cross the threshold and abort the whole run. Yield a throttled
+      // agent:tool_progress heartbeat (the established watchdog feed — see
+      // the multitask executor) every ≤20s: each write resets the route's
+      // lastActivity AND tells the user why the turn is paused. The abort
+      // poll inside the loop honors a client Stop mid-backoff.
+      const backoffDeadline = Date.now() + backoffMs;
+      while (Date.now() < backoffDeadline && !wasAborted()) {
+        const remaining = backoffDeadline - Date.now();
+        yield {
+          kind: 'agent_event',
+          event: {
+            type: 'agent:tool_progress',
+            toolCallId: 'llm-retry',
+            text: `LLM provider rate-limited — retrying this turn in ${Math.ceil(remaining / 1000)}s (attempt ${attempt + 2} of 4)…`,
+          },
+        };
+        await new Promise((r) => setTimeout(r, Math.min(20_000, remaining)));
+      }
+      // Client disconnected / Stop fired during the backoff — honor it: a
+      // stopped run must not spend another LLM attempt.
+      if (wasAborted()) break;
+      continue; // same model, fresh session at the loop top
+    }
+
+    // Decide whether to fall back to the z.ai sandbox. Reached only AFTER
+    // the same-provider backoff tier above declined (failure not rate-limit
+    // shaped, or its 2-retry budget is spent). Bounded: at most ONE swap per
+    // turn (`didFallback`) and only while an attempt slot remains.
     //
     // THREE failure shapes justify the retry (previously only the first):
     //
@@ -1725,29 +1812,31 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     const textOnlyDesignTurn = sawActivity && !sawToolCall && expectsCanvasOutput;
 
     const shouldFallback =
-      attempt === 0 &&
+      attempt < 3 &&
       !didFallback &&
       !currentModel.usedFallback &&
       providerId !== 'zai' &&
       (!sawActivity || diedMidStream || textOnlyDesignTurn);
 
-    // VLM-exercise Fix 5: the FALLBACK ITSELF can return an empty body
-    // (observed 3× during the exercise: pinggy primary down → preflight
-    // swaps to glm-5.3 → glm-5.3 transiently rate-limited → empty 200 →
-    // turn dies with a user-facing error and 0 tool calls). When the current
-    // model is ALREADY the sandbox fallback (or the configured provider is
-    // zai), retry the SAME model once after a backoff — bounded by the same
-    // didFallback flag, so the total stays at one extra attempt per turn.
-    // Extended to the text-only-design-turn shape (same reasoning — the
-    // turn owed tool calls and produced none), but NOT to diedMidStream
-    // with a thrown error on the same model: the SDK already burned its
-    // internal retry budget on that exact model, so a thrown stream death
-    // on zai only surfaces the deferred error instead of re-rolling.
+    // VLM-exercise Fix 5 — now the LEGACY same-model net (Task 7-c moved the
+    // rate-limit zero-output case into the 20s/45s backoff tier above): when
+    // the current model is ALREADY the sandbox fallback (or the configured
+    // provider is zai), retry the SAME model once after a short 8s backoff.
+    // Covers the shapes the backoff tier doesn't take:
+    //   - text-only design turns (stream cut at ~500 output tokens, clean
+    //     settle, zero tool calls — the turn owed tool calls and produced
+    //     none), and
+    //   - zero-output attempts whose thrown error does NOT look rate-limit
+    //     shaped (transient network blips like 'fetch failed').
+    // Still bounded by didFallback (one extra attempt per turn), and still
+    // NOT for diedMidStream with a thrown error on the same model: the SDK
+    // already burned its internal retry budget on that exact model, so a
+    // thrown stream death on zai only surfaces the deferred error.
     const shouldRetrySameModel =
-      attempt === 0 &&
+      attempt < 3 &&
       !didFallback &&
       (currentModel.usedFallback === true || providerId === 'zai') &&
-      (!sawActivity || (textOnlyDesignTurn && !promptError));
+      ((textOnlyDesignTurn && !promptError) || (!sawActivity && !rateLimitSignature));
 
     // Emit the deferred prompt error now when we are NOT retrying — this is
     // the only honest exit for a mid-stream death that no safety net caught.
@@ -1794,12 +1883,12 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       console.warn(
         `[llm-fallback] ${currentModel.label} (already the fallback) produced ${
           sawActivity ? 'text-only output with zero tool calls' : 'no output'
-        } — rate-limit backoff 8s, then one retry on the same model`,
+        } — legacy net: 8s backoff, then one retry on the same model`,
       );
       await new Promise((r) => setTimeout(r, 8_000));
     }
     didFallback = true;
-    // Loop continues to attempt 1 with the fallback (or same) model.
+    // Loop continues to the next attempt with the fallback (or same) model.
   }
 
   // ---- Auto-continue past truncation (bolt.diy SwitchableStream pattern) --
