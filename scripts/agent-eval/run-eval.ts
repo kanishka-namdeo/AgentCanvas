@@ -359,6 +359,10 @@ async function probeLLM(cfg: ProbeConfig | null): Promise<boolean> {
 
 /// Wait until the LLM endpoint answers a probe (or `maxWaitMs` elapses).
 async function waitForLLM(maxWaitMs = 12 * 60 * 1000): Promise<boolean> {
+  // Custom provider configured — the sandbox/zai endpoint gate is irrelevant
+  // here (it would stall ~12 min probing the wrong endpoint). The per-turn
+  // empty-retry still guards against actual provider failures.
+  if (process.env.EVAL_PROVIDER) return true;
   const cfg = loadProbeConfig();
   if (!cfg) return true;
   const deadline = Date.now() + maxWaitMs;
