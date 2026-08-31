@@ -193,8 +193,7 @@ export function createFigmaTools(ctx: CanvasToolContext) {
     name: 'pen_create_component',
     label: 'Create Component',
     description:
-      'Promote a frame (or create a new one) into a COMPONENT — a reusable design element. ' +
-      'Once a component exists, you can create INSTANCES of it via pen_create_ref.',
+      'Create a reusable COMPONENT — either promote an existing frame or create a new one. Instances come from pen_create_ref (or pen_place_component_instance). To promote a node you just designed, pen_convert_to_component is the direct path.',
     promptSnippet: 'Create a reusable COMPONENT.',
     parameters: Type.Object({
       name: Type.String({ description: 'Component name. E.g. "Primary Button", "User Card".' }),

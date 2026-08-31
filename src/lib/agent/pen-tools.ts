@@ -42,10 +42,7 @@ export function createPenTools(ctx: CanvasToolContext) {
     name: 'pen_set_variable',
     label: 'Set .pen Variable',
     description:
-      'Create or update a pen.dev document variable. Variables are design tokens referenced via "$name" ' +
-      '(e.g. "$color.background"). A variable can have a single value, or a list of theme-conditional ' +
-      'values (e.g. one value for mode=light, another for mode=dark). Use this to build a design-token ' +
-      'system that thematically adapts. Maps to .pen `variables`.',
+      'Create or update ONE design-token variable, referenced via "$name" (e.g. "$color.primary"). Supports a single value or theme-conditional values (one per mode, e.g. light/dark). Use for a single token or theme-aware tokens; when defining the full 11-13 token set for a new design, prefer the batch tool pen_set_variables. Maps to .pen `variables`.',
     promptSnippet: 'Create/update a $variable (color/number/string/boolean), optionally theme-aware.',
     promptGuidelines: [
       'Variable keys use dotted notation: "color.primary", "text.heading.size", "spacing.md".',

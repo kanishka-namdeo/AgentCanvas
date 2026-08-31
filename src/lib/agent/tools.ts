@@ -1581,7 +1581,7 @@ const createShape = defineTool({
   const deleteShape = defineTool({
     name: 'pen_delete_nodes',
     label: 'Delete Nodes',
-    description: 'Delete one or more nodes from the canvas by id. This is permanent for the current session.',
+    description: 'Delete specific nodes by id — permanent for the current session. Use ONLY for elements the user asked to remove or that a design fix explicitly requires. Never use it to clear space (that\'s pen_clear); prefer pen_update_node to restyle instead of delete-and-recreate.',
     promptSnippet: 'Delete nodes by id.',
     promptGuidelines: [
       'Use pen_get_metadata to find ids before deleting.',
@@ -1633,7 +1633,7 @@ const createShape = defineTool({
   const clearCanvas = defineTool({
     name: 'pen_clear',
     label: 'Clear Canvas',
-    description: 'Remove every shape from the canvas. Use sparingly — this is destructive and cannot be undone in this demo.',
+    description: 'DESTRUCTIVE: permanently removes EVERY shape on the canvas (cannot be undone). Use only for explicit clear/start-over/wipe requests. For selective removal use pen_delete_nodes; for new work alongside existing content, place the new design beside it instead.',
     promptSnippet: 'Wipe the canvas clean.',
     promptGuidelines: [
       'Only use when the user explicitly asks to "clear" or "start over".',
@@ -1652,7 +1652,7 @@ const createShape = defineTool({
   const setBackground = defineTool({
     name: 'pen_set_background',
     label: 'Set Background',
-    description: 'Set the canvas background color.',
+    description: 'Set the page/canvas background color. Use when the user names a background color or the design calls for a distinct canvas background (dark mode, hero wash, tinted page).',
     promptSnippet: 'Set canvas background color.',
     parameters: Type.Object({
       color: Type.String({ description: 'Background color hex, e.g. #ffffff' }),
@@ -2489,9 +2489,7 @@ const createShape = defineTool({
     name: 'pen_set_variables',
     label: 'Set Variables',
     description:
-      'Update the document\'s variables — named colors and text styles that nodes can bind to. ' +
-      'When a variable changes, every node bound to it (via tokenBinding) is recolored automatically. ' +
-      'Pass only the variables you want to add or change; existing ones are merged by key.',
+      'Batch-define or update the document\'s design tokens ($color.* variables and text styles) — the standard way to set up a full design\'s 11-13 semantic color tokens in ONE call. Nodes bound via tokenBinding recolor automatically when a variable changes. Pass only the variables to add/change; existing ones merge by key. For a single variable (especially theme-conditional), pen_set_variable also works.',
     promptSnippet: 'Update variables (color palette, text styles).',
     promptGuidelines: [
       'Variable keys use dotted paths: `bg.primary`, `accent`, `text.heading`, etc.',
@@ -3170,9 +3168,7 @@ const createShape = defineTool({
     name: 'pen_bind_variable',
     label: 'Bind Variable',
     description:
-      'Bind a node property (fill, stroke, or textColor) to a named variable. ' +
-      'When the variable\'s value changes, the bound property auto-updates. ' +
-      'Use this after pen_set_variables or pen_apply_palette to create a live link.',
+      'Create a LIVE LINK from a node property (fill, stroke, or textColor) to a named variable — the node auto-updates whenever the variable changes. Use after pen_set_variables or pen_apply_palette to wire up theming. If you just want a one-time recolor, pen_apply_variable or pen_update_node is simpler.',
     promptSnippet: 'Bind a node property to a variable (live link).',
     promptGuidelines: [
       'The variableId must match a key in the document\'s color variables. Call pen_list_variables to see available keys.',
@@ -3264,8 +3260,7 @@ const createShape = defineTool({
   const applyToken = defineTool({
     name: 'pen_apply_variable',
     label: 'Apply Variable to Nodes',
-    description: 'Apply a variable\'s value to one or more nodes. Optionally also bind the nodes to the variable (live link). ' +
-      'This is the batch version of pen_bind_variable.',
+    description: 'Recolor one or more nodes with a variable\'s CURRENT value (batch one-shot paint — nodes keep their prior binding state unless you also pass bind=true). Use when the design exists and you want token-colored fills now. For a live link only, see pen_bind_variable.',
     promptSnippet: 'Apply a variable value to multiple nodes at once.',
     parameters: Type.Object({
       nodeIds: Type.Array(Type.String(), { description: 'Node IDs to apply the variable to (legacy alias: shapeIds)' }),
@@ -4457,14 +4452,28 @@ const createShape = defineTool({
     name: 'pen_bulk_update_by_filter',
     label: 'Bulk Update by Filter',
     description: 'Update all nodes matching a filter. Combines pen_find_nodes + pen_update_node into one call. ' +
-      'Example: "make all ellipses red" → filter type=ellipse, changes fill=#ff0000.',
+      'Example: "make all ellipses red" → filter type=ellipse, changes fill=#ff0000. ' +
+      '`changes` must be an OBJECT with the fields to apply to every match (a JSON-encoded string is also accepted), ' +
+      'e.g. changes:{"fill":"#ff0000"} — the same fields pen_update_node accepts.',
     promptSnippet: 'Update all shapes matching a filter in one call.',
+    promptGuidelines: [
+      'Pass `changes` as an object, e.g. {"fill":"#ff0000"} or {"fontSize":14} — not a JSON string.',
+      'Use at least one filter (type / fill / nameContains / parentId) so the match set is predictable.',
+    ],
     parameters: Type.Object({
       type: Type.Optional(ShapeTypeSchema),
       fill: Type.Optional(Type.String({ description: 'Filter by current fill color' })),
       nameContains: Type.Optional(Type.String({ description: 'Filter by name (substring)' })),
       parentId: Type.Optional(Type.String({ description: 'Filter by parent ID' })),
-      changes: ShapeInputSchema,
+      // Task 7-b bug fix: was `ShapeInputSchema` (strict object-only). LLMs
+      // (GLM-family especially) sometimes stringify nested params — the
+      // documented "Loose nested-object params" gotcha (AGENTS.md).
+      // pen_update_node got the loose treatment; this tool was missed, so a
+      // stringified `changes` died at SDK validation (round1 login-hifi r1:
+      // 'Validation failed for tool "pen_bulk_update_by_filter"'). Accept
+      // object OR JSON string and parse below; empty/unparseable input gets
+      // an actionable error instead of a silent no-op.
+      changes: LooseShapeInputSchema,
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       let matches = ctx.getShapes();
@@ -4475,7 +4484,24 @@ const createShape = defineTool({
       if (matches.length === 0) {
         return { content: [{ type: 'text', text: 'No shapes matched the filter.' }], details: { error: 'no_matches', count: 0 }, isError: true as any };
       }
-      const coerced = coerceShapeInput(params.changes);
+      // Object OR JSON-encoded string (LooseShapeInputSchema above). An
+      // empty/unparseable `changes` returns an actionable error the model can
+      // self-correct from — never a silent no-op update.
+      const coerced = coerceShapeInput(parseLooseShapeInput(params.changes));
+      if (Object.keys(coerced).length === 0) {
+        return {
+          content: [{
+            type: 'text',
+            text:
+              'Error: `changes` is empty or unparseable. Pass an OBJECT with at least one field to apply to every matched node — ' +
+              'e.g. {"fill":"#ff0000"}, {"fontSize":14}, or {"x":40,"width":200}. Supported fields (same as pen_update_node `changes`): ' +
+              'fill, stroke, strokeWidth, x, y, width, height, rotation, opacity, radius, name, text, fontSize, fontWeight, ' +
+              `fontFamily, letterSpacing, lineHeight, textAlign, textColor, underline. Received changes: ${JSON.stringify(params.changes).slice(0, 160)}`,
+          }],
+          details: { error: 'empty_changes', count: 0 },
+          isError: true as any,
+        };
+      }
       const updates = matches.map((s) => ({ id: s.id, changes: coerced }));
       const patch: CanvasPatch = { op: 'update_many', updates, summary: `Bulk-updated ${matches.length} shape(s): ${Object.keys(coerced).join(', ')}` };
       ctx.applyPatch(patch);
