@@ -224,7 +224,11 @@ describe('pen_audit_design node-budget warnings (Phase 4 §4.5)', () => {
   });
 
   describe('(b) per-page budget', () => {
-    it('flags when page total exceeds 4000 nodes (approaching 5k L5 threshold)', async () => {
+    // 4001-node audit resolves the whole tree; runs ~4-5s standalone and
+    // tips past the default 5s hook timeout under full-suite parallel load
+    // (observed flake 2026-08-31, pre-existing before the resolver-warning
+    // additions). Explicit budget keeps it deterministic.
+    it('flags when page total exceeds 4000 nodes (approaching 5k L5 threshold)', { timeout: 30_000 }, async () => {
       // Build a doc with 4001 top-level rects. (Skip the 5k threshold to keep
       // the test fast — the audit checks >= 4000.)
       for (let i = 0; i < 4001; i++) {

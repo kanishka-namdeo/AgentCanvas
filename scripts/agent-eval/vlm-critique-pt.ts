@@ -40,7 +40,7 @@ const PROVIDER = PROVIDER_ARG ? PROVIDER_ARG.split('=').slice(1).join('=') : 'ki
 const REPEATS_ARG = process.argv.find((a) => a.startsWith('--repeats='));
 const REPEATS = REPEATS_ARG ? Math.max(1, parseInt(REPEATS_ARG.split('=')[1], 10) || 1) : 1;
 const ONLY_ARG = process.argv.find((a) => a.startsWith('--only='));
-const ONLY = ONLY_ARG ? ONLY_ARG.split('=').slice(1).split(',') : null;
+const ONLY = ONLY_ARG ? ONLY_ARG.slice(7).split(',') : null;
 
 // ---- targets ------------------------------------------------------------------
 

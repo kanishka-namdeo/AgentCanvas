@@ -113,7 +113,17 @@ export type ResolverWarningKind =
   /// bounds (fixed height/width too small for the flow content). The overflow
   /// now RENDERS (culling gate), but it escapes the frame's background —
   /// switch the container to height:'fit_content' or size it to its content.
-  | 'container_overflow';
+  | 'container_overflow'
+  /// Prompt-tuning deferred-critique fix: a text node's FIXED width is
+  /// narrower than its estimated rendered content — the text will clip
+  /// ("Growth Metrics" @38px in a 120px box). Widen it, use fit_content, or
+  /// shorten the text.
+  | 'text_overflow'
+  /// Prompt-tuning deferred-critique fix: a FLOW child of an auto-layout
+  /// container carries large absolute-style x/y — the layout engine IGNORES
+  /// them, so the node renders in flow order, not at the coordinates. Pin it
+  /// with layoutPosition:'absolute' or move it to the right flow index.
+  | 'flow_child_absolute_coords';
 
 export interface ResolverWarning {
   nodeId: string;
@@ -534,6 +544,34 @@ function computeIntrinsicSize(
       c.height = finalContentH;
     }
   }
+
+  // Prompt-tuning deferred-critique fix: clipped-text warning. A text node
+  // whose EXPLICIT width (or height) is narrower than the estimated rendered
+  // content will visually truncate — verified defect: "Growth Metrics" @38px
+  // in a 120px box rendered as "Grow…". Tolerance is calibrated to the
+  // estimator's error band (0.62 × fontSize average advance is a heuristic
+  // with ±20% error): 30% / 12px on width, 25% / 6px on height. A designed
+  // tight fit ("Card title" @16px in an 80px box, est. 105px) stays silent;
+  // only definite clipping (120px box for a 336px string) fires. Native
+  // (measured) mode replaces estimates with real bounds, so this only guards
+  // the resolver/static path.
+  if (node.type === 'text' && textEstimate) {
+    const explicitW = w !== undefined && w !== null && !isFitContent(w) && !isFillContainer(w);
+    const explicitH = h !== undefined && h !== null && !isFitContent(h) && !isFillContainer(h);
+    const label = String((node as { name?: unknown }).name ?? 'text');
+    if (explicitW && width + Math.max(12, textEstimate.width * 0.3) < textEstimate.width) {
+      warn?.(
+        'text_overflow',
+        `"${label}" is ${Math.round(width)}px wide but its text needs ~${textEstimate.width}px — it will be CLIPPED. Widen it to ≥${textEstimate.width}px, set width:"fit_content", or shorten the text.`,
+      );
+    } else if (explicitH && height + Math.max(6, textEstimate.height * 0.25) < textEstimate.height) {
+      warn?.(
+        'text_overflow',
+        `"${label}" is ${Math.round(height)}px tall but its text needs ~${textEstimate.height}px — lines will be CLIPPED. Set height:"fit_content" or size it to the line count.`,
+      );
+    }
+  }
+
   return { width: Math.max(0, width), height: Math.max(0, height) };
 }
 
@@ -1021,22 +1059,77 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
         const hasExplicitW = nodeWidth(rn.node) !== undefined && nodeWidth(rn.node) !== null && !isFitContent(nodeWidth(rn.node)) && !isFillContainer(nodeWidth(rn.node));
         const hasExplicitH = nodeHeight(rn.node) !== undefined && nodeHeight(rn.node) !== null && !isFitContent(nodeHeight(rn.node)) && !isFillContainer(nodeHeight(rn.node));
         if (hasExplicitW || hasExplicitH) {
-          const escapee = kids.find(
+          const escapees = kids.filter(
             (k) =>
               k.absX < rn.absX - 1 ||
               k.absY < rn.absY - 1 ||
               k.absX + k.width > rn.absX + rn.width + 1 ||
               k.absY + k.height > rn.absY + rn.height + 1,
           );
-          if (escapee) {
+          if (escapees.length > 0) {
+            // Prompt-tuning deferred-critique fix: report the WORST escape
+            // across ALL overflow children, not the first child's worst axis
+            // — the pricing defect (root frame h=100, 6 children flowing
+            // ~1400px) previously understated as "extend ~0px".
             const overBy = Math.max(
               0,
-              Math.round(Math.max(escapee.absY + escapee.height - (rn.absY + rn.height), escapee.absX + escapee.width - (rn.absX + rn.width))),
+              Math.round(
+                Math.max(
+                  ...escapees.map((k) =>
+                    Math.max(
+                      k.absY + k.height - (rn.absY + rn.height),
+                      k.absX + k.width - (rn.absX + rn.width),
+                      0,
+                    ),
+                  ),
+                ),
+              ),
             );
             warn(
               rn.node,
               'container_overflow',
-              `"${String((rn.node as { name?: unknown }).name ?? 'container')}" has fixed dimensions but its children extend ~${overBy}px beyond its bounds (first escapee: "${String((escapee.node as { name?: unknown }).name ?? escapee.node.type)}") — the overflow renders OUTSIDE the frame's background. Set the container's height (and/or width) to "fit_content" so it hugs its content, or size it explicitly to fit.`,
+              `"${String((rn.node as { name?: unknown }).name ?? 'container')}" has fixed dimensions but ${escapees.length} child${escapees.length > 1 ? 'ren' : ''} extend up to ~${overBy}px beyond its bounds (first escapee: "${String((escapees[0].node as { name?: unknown }).name ?? escapees[0].node.type)}") — the overflow renders OUTSIDE the frame's background. Set the container's height (and/or width) to "fit_content" so it hugs its content, or size it explicitly to fit.`,
+            );
+          }
+        }
+
+        // Prompt-tuning deferred-critique fix: auto-layout IGNORES x/y on
+        // flow children. The pricing-toggle defect: the agent "moved" the
+        // toggle up by setting y=-320 on a flow child of a vertical layout —
+        // flex placed it LAST anyway (bottom-left, clipped). The login
+        // defect: children carried sequential manual y-coordinates but the
+        // array order contradicted them, so flow rendered them out of the
+        // intended sequence.
+        //
+        // Detection compares INTENT vs REALITY: a flow child's stored axis
+        // coordinate (≥40 magnitude — real intent, not padding leftovers)
+        // against its ACHIEVED flow-relative position after layout. Both
+        // must differ by ≥40px for a contradiction. A stale coordinate that
+        // HAPPENS to match the flow position (YearlyOption x=160 landing at
+        // 160) stays silent — the render already matches the intent.
+        // At most ONE warning per container: the order-contradiction message
+        // (≥2 contradicted, names the intended sequence) or the direct
+        // message (1 contradicted).
+        if (layout === 'horizontal' || layout === 'vertical') {
+          const axis: 'x' | 'y' = layout === 'vertical' ? 'y' : 'x';
+          const coordOf = (n: PenChild) => num((n as { x?: unknown; y?: unknown })[axis], 0);
+          const achievedOf = (k: ResolvedNode) =>
+            axis === 'y' ? k.absY - rn.absY : k.absX - rn.absX;
+          const contradicted = kids.filter(
+            (k) =>
+              (k.node as { layoutPosition?: unknown }).layoutPosition !== 'absolute' &&
+              Math.abs(coordOf(k.node)) >= 40 &&
+              Math.abs(coordOf(k.node) - achievedOf(k)) >= 40,
+          );
+          if (contradicted.length >= 1) {
+            const sorted = [...contradicted].sort((a, b) => coordOf(a.node) - coordOf(b.node));
+            const k = sorted[0];
+            warn(
+              k.node,
+              'flow_child_absolute_coords',
+              contradicted.length >= 2
+                ? `"${String((k.node as { name?: unknown }).name ?? k.node.type)}" (${axis}=${Math.round(coordOf(k.node))}) is in "${String((rn.node as { name?: unknown }).name ?? 'parent')}"'s ${layout} auto-layout, which IGNORES x/y and renders children in ARRAY order — the coordinate order you set (${sorted.map((s) => String((s.node as { name?: unknown }).name ?? s.node.type)).join(' → ')}) contradicts the render order. Either reorder the children to match, or set layoutPosition:"absolute" on the node you are pinning.`
+                : `"${String((k.node as { name?: unknown }).name ?? k.node.type)}" has ${axis}=${Math.round(coordOf(k.node))} inside "${String((rn.node as { name?: unknown }).name ?? 'parent')}"'s ${layout} auto-layout — the layout engine IGNORES x/y on flow children and places them by ORDER, so this node is NOT at that coordinate (it renders in flow position ${kids.indexOf(k) + 1} of ${kids.length}). To pin it at specific coordinates: set layoutPosition:"absolute". To place it earlier/later: move it to that flow index.`,
             );
           }
         }

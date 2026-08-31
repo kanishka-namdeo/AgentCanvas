@@ -360,4 +360,144 @@ describe('resolvePenTreeDetailed — resolver warnings', () => {
     // External accumulator received the same entries.
     expect(external).toEqual(warnings);
   });
+
+  // ---- text_overflow (prompt-tuning deferred-critique fix) ------------------
+  // Verified defect: the dashboard title "Growth Metrics" @38px sat in a
+  // FIXED 120px-wide node and rendered truncated.
+
+  it('text_overflow: fires when a FIXED text width is narrower than its content', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const title: PenText = {
+      id: 'page-title', type: 'text', name: 'PageTitle',
+      content: 'Growth Metrics', fontSize: 38, x: 0, y: 0, width: 120,
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [title] });
+    const w = warnings.find((x) => x.kind === 'text_overflow');
+    expect(w).toBeDefined();
+    expect(w!.nodeId).toBe('page-title');
+    expect(w!.message).toContain('CLIPPED');
+    expect(w!.message).toContain('120px wide');
+  });
+
+  it('text_overflow: NOT raised for fit_content / fill_container / fitting widths', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const kids: PenChild[] = [
+      { id: 't-fit', type: 'text', name: 'Fit', content: 'Growth Metrics', fontSize: 38, x: 0, y: 0, width: 'fit_content' },
+      { id: 't-fill', type: 'text', name: 'Fill', content: 'Growth Metrics', fontSize: 38, x: 0, y: 0, width: 'fill_container' },
+      { id: 't-wide', type: 'text', name: 'Wide', content: 'Growth Metrics', fontSize: 38, x: 0, y: 0, width: 500 },
+    ];
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: kids });
+    expect(warnings.filter((w) => w.kind === 'text_overflow')).toHaveLength(0);
+  });
+
+  it('text_overflow: a designed tight fit stays inside tolerance (no warning)', () => {
+    const doc = createEmptyCanvasDocument('test');
+    // Estimated width for 14 chars @38px ≈ 336px; tolerance is 15% (≈50px),
+    // so a 300px box (36px short) is a tight fit, not a clip.
+    const title: PenText = {
+      id: 't-tight', type: 'text', name: 'Tight', content: 'Growth Metrics', fontSize: 38, x: 0, y: 0, width: 300,
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [title] });
+    expect(warnings.filter((w) => w.kind === 'text_overflow')).toHaveLength(0);
+  });
+
+  // ---- flow_child_absolute_coords (prompt-tuning deferred-critique fix) ------
+  // Verified defects: pricing toggle "moved" with y=-320 but flex placed it
+  // LAST (bottom-left, clipped); login children carried manual y-coordinates
+  // whose order contradicted the array order.
+
+  it('flow_child_absolute_coords: fires for a flow child whose ignored coords contradict its flow position', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const page: PenFrame = {
+      id: 'page', type: 'frame', name: 'PricingPage', x: 0, y: 0,
+      width: 800, height: 'fit_content', layout: 'vertical',
+      children: [
+        { id: 'hero', type: 'rectangle', name: 'Hero', x: 0, y: 0, width: 800, height: 60 },
+        { id: 'toggle', type: 'frame', name: 'BillingToggle', x: 560, y: -320, width: 320, height: 48 },
+      ],
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [page] });
+    const w = warnings.find((x) => x.kind === 'flow_child_absolute_coords');
+    expect(w).toBeDefined();
+    expect(w!.nodeId).toBe('toggle');
+    expect(w!.message).toContain('IGNORES x/y');
+    // ONE warning for the whole container — not one per miscoordinated child.
+    expect(warnings.filter((x) => x.kind === 'flow_child_absolute_coords')).toHaveLength(1);
+  });
+
+  it('flow_child_absolute_coords: NOT raised when the stored coord matches the achieved flow position', () => {
+    const doc = createEmptyCanvasDocument('test');
+    // Second child's stored x=160 ≈ its achieved flow x (156) — stale but
+    // harmless; the render already matches the intent.
+    const row: PenFrame = {
+      id: 'row', type: 'frame', name: 'Row', x: 0, y: 0,
+      width: 'fit_content', height: 'fit_content', layout: 'horizontal',
+      children: [
+        { id: 'monthly', type: 'rectangle', name: 'Monthly', x: 0, y: 0, width: 156, height: 40 },
+        { id: 'yearly', type: 'rectangle', name: 'Yearly', x: 160, y: 0, width: 156, height: 40 },
+      ],
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [row] });
+    expect(warnings.filter((w) => w.kind === 'flow_child_absolute_coords')).toHaveLength(0);
+  });
+
+  it('flow_child_absolute_coords: layoutPosition absolute opts out of the check', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const page: PenFrame = {
+      id: 'page', type: 'frame', name: 'Page', x: 0, y: 0,
+      width: 800, height: 'fit_content', layout: 'vertical',
+      children: [
+        { id: 'hero', type: 'rectangle', name: 'Hero', x: 0, y: 0, width: 800, height: 60 },
+        { id: 'pinned', type: 'rectangle', name: 'Pinned', x: 560, y: -320, width: 320, height: 48, layoutPosition: 'absolute' },
+      ],
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [page] });
+    expect(warnings.filter((w) => w.kind === 'flow_child_absolute_coords')).toHaveLength(0);
+  });
+
+  it('flow_child_absolute_coords: order contradiction names the intended sequence (login defect)', () => {
+    const doc = createEmptyCanvasDocument('test');
+    // Array order: SignIn(490), Biometric(730), Google(600). The coordinate
+    // order says SignIn → Google → Biometric; the render order contradicts.
+    const form: PenFrame = {
+      id: 'form', type: 'frame', name: 'LoginForm', x: 0, y: 0,
+      width: 375, height: 'fit_content', layout: 'vertical',
+      children: [
+        { id: 'signin', type: 'rectangle', name: 'SignInButton', x: 0, y: 490, width: 345, height: 48 },
+        { id: 'biometric', type: 'rectangle', name: 'BiometricOption', x: 0, y: 730, width: 345, height: 24 },
+        { id: 'google', type: 'rectangle', name: 'GoogleButton', x: 24, y: 600, width: 327, height: 48 },
+      ],
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [form] });
+    const hits = warnings.filter((w) => w.kind === 'flow_child_absolute_coords');
+    expect(hits).toHaveLength(1);
+    expect(hits[0].message).toContain('ARRAY order');
+    expect(hits[0].message).toContain('SignInButton');
+    expect(hits[0].message).toContain('GoogleButton');
+  });
+
+  // ---- container_overflow message improvement -------------------------------
+  // The pricing defect (root frame h=100, 6 children flowing ~1400px) was
+  // previously understated as "children extend ~0px" (first child's worst
+  // axis); the message must report the WORST escape across ALL children.
+
+  it('container_overflow: reports the worst escape across all children, with the count', () => {
+    const doc = createEmptyCanvasDocument('test');
+    const page: PenFrame = {
+      id: 'page', type: 'frame', name: 'Page', x: 0, y: 0,
+      width: 800, height: 100,
+      children: [
+        { id: 'navbar', type: 'rectangle', name: 'Navbar', x: 0, y: 0, width: 800, height: 50 },
+        { id: 'cards', type: 'rectangle', name: 'Cards', x: 0, y: 50, width: 800, height: 400 },
+        { id: 'footer', type: 'rectangle', name: 'Footer', x: 0, y: 450, width: 800, height: 380 },
+      ],
+    };
+    const { warnings } = resolvePenTreeDetailed({ ...doc, children: [page] });
+    const w = warnings.find((x) => x.kind === 'container_overflow');
+    expect(w).toBeDefined();
+    // Navbar (50px) fits; Cards overflows by 350; Footer by 730 → worst 730,
+    // and 2 children escape (not just the first escapee).
+    expect(w!.message).toContain('2 child');
+    expect(w!.message).toContain('~730px');
+  });
 });

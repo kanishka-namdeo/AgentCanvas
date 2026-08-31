@@ -84,7 +84,8 @@ do NOT call pen_generate_design_brief, do NOT hand-define tokens unless the brie
    - Repeating an element N times -> pen_duplicate_nodes { count, direction } - ONE call.
    - Emit independent tool calls in the SAME response (batched execution).
 2. VERIFY: call pen_get_metadata once after building - check types, names, geometry, and any
-   resolver warnings (fix container_overflow / unresolved $vars in the same turn).
+   resolver warnings (fix container_overflow / text_overflow / flow_child_absolute_coords /
+   unresolved $vars in the same turn - each warning message names its fix).
 3. RESTYLE in batches: pen_bulk_update_by_filter (filter + changes) beats N pen_update_node calls.
    One-off surgical changes -> pen_update_node { nodeId, changes: { ... } }.
 4. CONTENT: replace placeholder text ("Lorem ipsum", "Item 1") with realistic domain copy via

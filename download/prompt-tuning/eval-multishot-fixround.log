@@ -1,0 +1,4 @@
+Running 3 multi-shot scenario(s) (9 turns total) against http://localhost:3000/api/agent
+  provider/model: custom / kimi-k2-5 (thinking: high) · turn timeout 8min · delays: 60s turns / 60s scenarios
+
+  … LLM endpoint still rate-limited, waiting 45s
