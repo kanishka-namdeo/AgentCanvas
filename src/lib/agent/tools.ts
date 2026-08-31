@@ -2698,7 +2698,7 @@ const createShape = defineTool({
       // Vary lightness across the palette.
       const lightnesses = params.rule === 'monochromatic'
         ? [25, 45, 60, 75, 90]
-        : [35, 55, 70, 80, 90];
+        : [35, 55, 70, 80, 85];
       const palette = hues.map((h, i) => {
         const hh = ((h % 360) + 360) % 360;
         return hslToHex(hh, base.s, lightnesses[i]);
