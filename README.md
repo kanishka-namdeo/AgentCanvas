@@ -39,7 +39,7 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ## 🎥 Two core workflows
 
-**1. Agent chat → live canvas mutation** — type a prompt, watch the agent reason + call typed tools, see shapes appear on the canvas in real time. *(This is the literal product: Figma's canvas + Cursor's agent loop.)*
+**1. Agent chat → live canvas mutation** — type a prompt ("Draw a red rectangle, a green circle, and a blue text label saying Hello"), watch the agent reason + call typed `pen_create_shape` tools, and see the shapes appear on the canvas in real time. *(This is the literal product: Figma's canvas + Cursor's agent loop.)*
 
 ![Agent chat: prompt → tool calls → live canvas mutation](./download/video-demos/core-agent-chat.gif)
 

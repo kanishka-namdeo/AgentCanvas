@@ -26,14 +26,23 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const APP_URL = 'http://127.0.0.1:3000/';
+const APP_URL = 'http://127.0.0.1:81/';
+// IMPORTANT: load via the Caddy gateway on :81, NOT directly on :3000.
+// The app's Socket.IO client connects to '/?XTransformPort=3003' — a RELATIVE
+// URL. When the page is loaded on :3000 directly, that resolves to
+// ws://127.0.0.1:3000/socket.io?XTransformPort=3003, and the Next.js dev
+// server does NOT understand the XTransformPort query param — so the
+// Socket.IO handshake fails and the canvas never receives the agent's
+// patches (the agent runs fine server-side, but shapes never appear on the
+// canvas). Loading via :81 routes the Socket.IO connection through the
+// Caddy gateway, which DOES interpret XTransformPort and proxies to :3003.
 const CHROME = '/home/z/.cache/ms-playwright/chromium-1200/chrome-linux64/chrome';
 const OUT_DIR = '/home/z/my-project/download/video-demos';
 
 const VIEWPORT = { width: 1920, height: 1200 };
 const DEVICE_SCALE_FACTOR = 2;
 const CAPTURE_FPS = 25;
-const SCENE_BUDGET_MS = 45_000; // longer for these richer scenes
+const SCENE_BUDGET_MS = 55_000; // longer for the agent-chat scene (LLM call + 3 tool calls)
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -152,12 +161,23 @@ async function recordScene(
 
 // --- Scene 1: Agent chat → live canvas mutation (the headline) --------------
 //
-// We use a real multi-tool prompt: "Design a mobile login screen with social
-// sign-in buttons." This exercises the agent's planning + multi-tool loop and
-// produces visible shapes (frame + text + buttons) on the canvas. We capture
-// the typing, the streaming thoughts, the tool-call cards, and the final
-// turn-diff chip.
+// We use a prompt that RELIABLY produces visible, distinct, colored shapes on
+// the canvas (verified via live API testing — the agent calls pen_create_shape
+// 3 times for this prompt, producing a red rectangle, green ellipse, and text
+// label). Richer prompts like "Design a mobile login screen" tended to
+// trigger the gen_generate_variants planning tool instead of direct shape
+// creation, leaving the canvas empty — which defeats the purpose of the demo.
 async function sceneAgentChat(page: Page) {
+  // Use a fresh documentId for each recording so the canvas starts completely
+  // empty (no leftover shapes from prior agent runs persisted in localStorage
+  // or the server journal). The app reads ?doc=ID from the URL (page.tsx:68).
+  const docId = `video-demo-${Date.now()}`;
+  await page.goto(`${APP_URL}?doc=${docId}`, { waitUntil: 'networkidle', timeout: 30_000 }).catch(() => {});
+  await sleep(2000);
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} }).catch(() => {});
+  await page.reload({ waitUntil: 'networkidle', timeout: 30_000 }).catch(() => {});
+  await sleep(2000);
+
   const ta = page.locator('textarea').first();
   await ta.click();
   await sleep(300);
@@ -165,29 +185,37 @@ async function sceneAgentChat(page: Page) {
   await page.keyboard.press('Backspace');
   await sleep(200);
 
-  // Type a real prompt character-by-character so the recording shows the
-  // input UX (placeholder, focus ring, send button activating).
-  await ta.pressSequentially('Design a mobile login screen with social sign-in buttons', { delay: 45 });
+  // Prompt verified via live API testing to reliably produce 3 distinct,
+  // visible, colored shapes (red rectangle, green ellipse, blue text "Hello").
+  // Richer prompts like "Design a mobile login screen" trigger the
+  // gen_generate_variants planning tool instead of direct pen_create_shape
+  // calls, leaving the canvas empty.
+  await ta.pressSequentially('Draw a red rectangle, a green circle, and a blue text label saying Hello, arranged in a row', { delay: 35 });
   await sleep(700);
+
+  // Capture baseline BEFORE submitting — the canvas has a few frame/layer
+  // wrapper nodes even when empty of user shapes.
+  const initialShapeCount = await page.locator('[data-node-id]').count().catch(() => 0);
+  console.log(`  baseline node count: ${initialShapeCount}`);
 
   await page.keyboard.press('Enter');
 
-  // Watch the agent loop. We bound the recording to ~35s — long enough for
-  // the agent to plan + call multiple tools + finish, short enough to keep
-  // the GIF small. We exit early once we see shapes on canvas AND the turn
-  // has settled (no new tool-call cards for 3s).
-  const deadline = Date.now() + 35_000;
+  // Watch the agent loop. The canvas DOM renders each shape with a
+  // data-node-id attribute (NOT data-ac-shape-id — that was a wrong guess
+  // in the prior version that caused 0 shapes to be detected). Exit early
+  // once 3+ new shapes appear AND the turn has settled.
+  const deadline = Date.now() + 50_000;
   let lastToolCardCount = 0;
   let stableSince = 0;
   while (Date.now() < deadline) {
     await sleep(1500);
-    const shapeCount = await page.locator('[data-ac-shape-id], [data-shape-id]').count().catch(() => 0);
+    const shapeCount = await page.locator('[data-node-id]').count().catch(() => 0);
     const toolCardCount = await page.locator('[class*="tool-call"], [class*="ToolCall"], [data-tool-call-id]').count().catch(() => 0);
-    if (shapeCount >= 3) {
+    if (shapeCount >= initialShapeCount + 3) {
       if (toolCardCount === lastToolCardCount) {
         stableSince += 1500;
         if (stableSince >= 3000) {
-          await sleep(1500); // let the turn-diff chip render
+          await sleep(2000); // let the turn-diff chip render
           break;
         }
       } else {
