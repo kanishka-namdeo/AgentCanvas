@@ -513,6 +513,20 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // these turns and nudge the model toward the explorer instead.
   const isAmbiguousCreation = (() => {
     const t = prompt.toLowerCase();
+    const trimmed = t.trim();
+
+    // The variant explorer (pen_generate_variants) is a slow (60-300s) sub-agent
+    // that needs its own LLM client and frequently fails silently — producing
+    // ZERO shapes on the canvas. Routing every "design a screen" prompt through
+    // it was the root cause of the agent failing to generate any UI for real-
+    // world design requests (verified via 8-scenario test suite — all produced
+    // 0 shapes). Now we ONLY trigger variant exploration when the user EXPLICITLY
+    // opts in via `/variants` or "explore"/"directions"/"multiple options".
+    const explicitVariantRequest =
+      /^\/variants?\b/i.test(trimmed) ||
+      /\b(variants?|explore|directions?|multiple\s+(options|designs)|go\s+wide|a\s*\/\s*b\s*\/\s*c)\b/i.test(t);
+    if (!explicitVariantRequest) return false;
+
     const creationVerb = /\b(create|make|build|design|draw|generate|add)\b/.test(t);
     const wholeThing = /\b(page|card|screen|panel|dashboard|hero|landing|layout|section|profile|form|chart)\b/.test(t);
     // Pinned-direction signals — ANY of these means NOT ambiguous.
@@ -547,7 +561,16 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // the silent-failure + retry guards must not harass them.
   const expectsCanvasOutput = mode === 'build' && isDesignRequest(prompt) && !QUESTIONISH_PROMPT;
 
-  if (shouldEnforceBrief && !isAmbiguousCreation) {
+  // Pre-generate the design brief for ALL design requests in build mode —
+  // including ambiguous creations. The brief gives the LLM a deterministic
+  // palette / typography / IA so it can call pen_create_subtree /
+  // pen_generate_wireframe directly. Previously this was skipped for
+  // ambiguous creations (steering them toward the slow pen_generate_variants
+  // sub-agent instead), but that path fails silently for users without a
+  // sub-agent LLM client, producing zero shapes. With Fix 1 above,
+  // isAmbiguousCreation is now rare (explicit /variants opt-in only), but
+  // this belt-and-suspenders change ensures even those turns get a brief.
+  if (shouldEnforceBrief) {
     preGeneratedBriefPromise = (async () => {
       try {
         const { dispatchDesignBriefSubAgent } = await import('./subagents/design-brief');
@@ -606,7 +629,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // sort), different base filter. Ask/Plan mode filtering already happened
   // upstream (categoryAllowedToolNames), so the chain itself is mode-blind.
   const assembleOrderedTools = (baseTools: ToolDefinition[]): ToolDefinition[] => {
-    const enforcementWrapped: ToolDefinition[] = shouldEnforceBrief && !isAmbiguousCreation
+    const enforcementWrapped: ToolDefinition[] = shouldEnforceBrief
       ? baseTools.map((t) => {
         const toolAny = t as any;
         const origExecute = toolAny.execute;

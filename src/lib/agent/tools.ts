@@ -1356,18 +1356,83 @@ const createShape = defineTool({
         if (heartbeat) clearInterval(heartbeat);
       }
 
-      // Fatal: all variants failed — tell the agent to fall back.
+      // Fatal: all variants failed — apply a deterministic starter subtree so
+      // the canvas is NEVER empty (the #1 user complaint: "the agent didn't
+      // draw anything"). The starter is a simple frame + title text derived
+      // from the prompt, which the agent can iterate on via pen_update_node
+      // in subsequent turns. This is far better than returning a text-only
+      // error and hoping the LLM recovers (weak models often don't).
       if (result.error || result.variants.length === 0 || !result.judge) {
-        return {
-          content: [{
-            type: 'text',
-            text:
-              `Variant generation failed: ${result.error ?? 'no variants parsed'}.\n` +
-              `Fall back to pen_create_subtree and build the design directly.\n` +
-              `Notes: ${result.notes.join(' | ') || '(none)'}`,
-          }],
-          details: { error: result.error ?? 'no_variants', notes: result.notes, generationMs: result.generationMs },
-        };
+        try {
+          const requestText = String((params as { request?: unknown }).request ?? prompt ?? 'Design');
+          const starterRootId = crypto.randomUUID();
+          const starterTitleId = crypto.randomUUID();
+          // Minimal starter: a white rounded frame with a title text.
+          const starterSpec: RawSubtreeNode = {
+            id: starterRootId,
+            type: 'frame',
+            name: 'Starter Design',
+            x: 200,
+            y: 100,
+            width: 360,
+            height: 480,
+            fill: '#ffffff',
+            radius: 12,
+            stroke: '#e2e8f0',
+            strokeWidth: 1,
+            children: [
+              {
+                id: starterTitleId,
+                type: 'text',
+                name: 'Title',
+                text: requestText.slice(0, 60),
+                x: 24,
+                y: 24,
+                width: 312,
+                fontSize: 20,
+                fontWeight: 600,
+                fill: '#0f172a',
+              },
+            ],
+          };
+          hydrateSubtreeChildren(starterSpec);
+          const starterPatch: CanvasPatch = {
+            op: 'add_subtree',
+            shapeId: starterRootId,
+            shape: starterSpec as unknown as CanvasPatch['shape'],
+            summary: `Variant explorer failed (${result.error ?? 'no_variants'}); applied starter design — iterate via pen_update_node.`,
+          };
+          ctx.applyPatch(starterPatch);
+          return {
+            content: [{
+              type: 'text',
+              text:
+                `Variant generation failed (${result.error ?? 'no variants parsed'}), but a starter design has been applied to the canvas.\n` +
+                `Iterate on it via pen_update_node (use the ids below) or rebuild with pen_create_subtree.\n` +
+                `Notes: ${result.notes.join(' | ') || '(none)'}`,
+            }],
+            details: {
+              error: result.error ?? 'no_variants',
+              notes: result.notes,
+              generationMs: result.generationMs,
+              fallbackApplied: true,
+              starterRootId,
+              starterTitleId,
+            },
+          };
+        } catch {
+          // Even the fallback failed — return the original error path.
+          return {
+            content: [{
+              type: 'text',
+              text:
+                `Variant generation failed: ${result.error ?? 'no variants parsed'}.\n` +
+                `Fall back to pen_create_subtree and build the design directly.\n` +
+                `Notes: ${result.notes.join(' | ') || '(none)'}`,
+            }],
+            details: { error: result.error ?? 'no_variants', notes: result.notes, generationMs: result.generationMs },
+          };
+        }
       }
 
       const winner = result.variants[result.judge.winnerIndex];

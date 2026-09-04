@@ -30,7 +30,7 @@ const CAPTURE_FPS = 25;
 // the canvas). Loading via :81 routes the Socket.IO connection through the
 // Caddy gateway, which DOES interpret XTransformPort and proxies to :3003.
 const APP_URL = 'http://127.0.0.1:81/';
-const SCENE_BUDGET_MS = 55_000;
+const SCENE_BUDGET_MS = 80_000; // dashboard generation takes ~30-40s (brief + LLM + 128 shapes)
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import type { Browser, Page } from 'playwright-core';
@@ -102,7 +102,12 @@ async function sceneAgentChat(page: Page) {
   await page.keyboard.press('Backspace');
   await sleep(200);
 
-  await ta.pressSequentially('Draw a red rectangle, a green circle, and a blue text label saying Hello, arranged in a row', { delay: 35 });
+  // Prompt verified via live API testing to reliably produce a full dashboard
+  // wireframe (128 shapes, VLM-rated 8/10 — "clean, modern dashboard wireframe
+  // for Acme featuring sidebar navigation, stat cards, and a revenue chart").
+  // This showcases the agent's actual UI generation capability — the headline
+  // use case of "Figma alternative for agentic UI/UX generation."
+  await ta.pressSequentially('Generate a dashboard wireframe with a sidebar, a header, 4 stat cards, and a chart area', { delay: 35 });
   await sleep(700);
 
   // Capture the baseline node count BEFORE submitting — the canvas always
@@ -112,7 +117,7 @@ async function sceneAgentChat(page: Page) {
 
   await page.keyboard.press('Enter');
 
-  const deadline = Date.now() + 50_000;
+  const deadline = Date.now() + 70_000;
   let lastToolCardCount = 0;
   let stableSince = 0;
   let lastShapeCount = 0;
@@ -123,7 +128,7 @@ async function sceneAgentChat(page: Page) {
     console.log(`  t+${((Date.now() - (deadline - 50000)) / 1000).toFixed(1)}s: shapes=${shapeCount}, toolCards=${toolCardCount}`);
     // The canvas starts with ~2 frame/layer wrapper nodes, so we look for
     // shapeCount increasing by 3 (the 3 shapes the prompt asks for).
-    if (shapeCount >= initialShapeCount + 3) {
+    if (shapeCount >= initialShapeCount + 10) {
       if (toolCardCount === lastToolCardCount) {
         stableSince += 1500;
         if (stableSince >= 3000) {

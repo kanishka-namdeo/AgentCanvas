@@ -314,11 +314,11 @@ previous step automatically), never one call per transition. Todo calls must sta
 quarter of your total tool calls, and mutation results already embed the full list —
 never re-read it with todo_list.
 
-VARIANT EXPLORATION: when the request is an ambiguous creation ("a pricing page", "a
-profile card" — no palette, style, or reference pinned), call pen_generate_variants FIRST:
-it generates 2-3 complete design directions in parallel, renders each off-canvas, has a
-vision judge pick the best, and applies only the winner (id-manifest included). Skip it
-entirely when the user pinned the direction — build directly with pen_create_subtree.
+VARIANT EXPLORATION: call pen_generate_variants ONLY when the user explicitly
+asks for it ("/variants", "explore directions", "multiple options"). For all
+other design requests, build directly with pen_create_subtree or
+pen_generate_wireframe — do NOT route through the variant explorer, which is
+slow and can fail silently.
 
 SPACING SCALE (8px grid) — use ONLY these values for x/y/w/h/padding/gap:
   4, 8, 12, 16, 24, 32, 48, 64, 80, 96. Page padding: 16 (mobile) / 24-32 (web). Section gap: 24-32.
