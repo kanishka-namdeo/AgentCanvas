@@ -225,6 +225,7 @@ const ShapeInputSchema = Type.Object({
   letterSpacing: Type.Optional(Type.Number({ description: 'Letter spacing in px (can be negative for tightening, e.g. -0.4 for headings).' })),
   lineHeight: Type.Optional(Type.Number({ description: 'Line height as a unitless ratio (e.g. 1.6 for body, 1.25 for headings).' })),
   textAlign: Type.Optional(Type.Union([Type.Literal('left'), Type.Literal('center'), Type.Literal('right'), Type.Literal('justify')], { description: 'Horizontal text alignment within the layer bounds. center for titles/buttons, right for numbers/dates, left for body.' })),
+  textTransform: Type.Optional(Type.Union([Type.Literal('none'), Type.Literal('uppercase'), Type.Literal('lowercase'), Type.Literal('capitalize')], { description: 'CSS text-transform. Use "uppercase" for KPI labels, table headers, and overlines — style the transform instead of retyping the string in caps.' })),
   underline: Type.Optional(Type.Boolean({ description: 'Underline decoration (links).' })),
   strikethrough: Type.Optional(Type.Boolean({ description: 'Strikethrough decoration.' })),
   textColor: Type.Optional(Type.String({ description: 'Text color hex' })),
@@ -634,6 +635,12 @@ function coerceShapeInput(params: Static<typeof ShapeInputSchema>): Partial<Shap
   if ((params as any).letterSpacing !== undefined) out.letterSpacing = Number((params as any).letterSpacing) || 0;
   if ((params as any).lineHeight !== undefined) out.lineHeight = Number((params as any).lineHeight) || 1.4;
   if ((params as any).textAlign !== undefined) out.textAlign = (params as any).textAlign;
+  if ((params as any).textTransform !== undefined) {
+    const tt = String((params as any).textTransform).toLowerCase();
+    if (tt === 'uppercase' || tt === 'lowercase' || tt === 'capitalize' || tt === 'none') {
+      out.textTransform = tt;
+    }
+  }
   if ((params as any).underline !== undefined) out.underline = !!(params as any).underline;
   if ((params as any).strikethrough !== undefined) out.strikethrough = !!(params as any).strikethrough;
   // Phase 5 extended fields:
@@ -2810,14 +2817,15 @@ const createShape = defineTool({
       'Templates: mobile_login, mobile_signup, mobile_dashboard, mobile_welcome, mobile_permissions, mobile_done, ' +
       'mobile_browse, mobile_product_detail, mobile_cart, mobile_checkout, web_landing, web_dashboard, web_blog, web_pricing. ' +
       'The frame is placed at (x, y) with the template\'s default size. ' +
-      'This is a scaffold — follow it with pen_apply_palette, pen_set_shadow on cards/buttons, and pen_set_gradient_fill on the hero/CTA for full polish.',
-    promptSnippet: 'Generate a screen from a template (mobile/web); fidelity=lofi for wireframes; texts for exact copy.',
+      'Pass `palette` (primaryColor + accentColor from the design brief) in the SAME call so the brand colors land ' +
+      'on the generated screen immediately — then only patch what the template could not know.',
+    promptSnippet: 'Generate a screen from a template (mobile/web); fidelity=lofi for wireframes; texts for exact copy; palette for brand colors.',
     promptGuidelines: [
       'Use this for "make a login screen", "design a dashboard", "create a landing page", etc.',
       'When the user says wireframe / low-fi / sketch / graybox, pass fidelity=lofi and do NOT style afterwards.',
       'When the user gives exact copy (brand names, KPI values, headings), pass `texts` overrides in THIS call — never leave template placeholder values in the design.',
-      'After a hifi generate, ALWAYS follow with: pen_apply_palette (bindToTokens=true), pen_set_shadow on cards/buttons, pen_set_gradient_fill on the hero/CTA, and pen_generate_copy for real content.',
-      'A bare hifi generate_wireframe call with no styling pass is a wireframe, not a finished design.',
+      'When a design brief exists (it almost always does), pass its primaryColor/accentColor via `palette` in THIS call so the screen lands brand-colored — no follow-up restyle chain needed.',
+      'A hifi generate WITH texts+palette is a finished screen; only patch details the template couldn\'t know (missing icons, specific sections).',
     ],
     parameters: Type.Object({
       template: Type.Union(
@@ -2848,6 +2856,10 @@ const createShape = defineTool({
           '(case-insensitive, e.g. "Stat 1 value", "Page title", "Brand"); values replace the placeholder text. ' +
           'Use whenever the user specified exact copy (names, numbers, labels).',
       })),
+      palette: Type.Optional(Type.Object({
+        primaryColor: Type.Optional(Type.String({ description: 'Brand primary hex (e.g. #7c3aed) — replaces the default #0ea5e9 on CTAs, active states, links, and gradients. Take it from the design brief.' })),
+        accentColor: Type.Optional(Type.String({ description: 'Brand accent hex (e.g. #db2777) — replaces the default #6366f1 on gradients and secondary accents.' })),
+      }, { description: 'Rebrand the template in the SAME call — default template colors (Sky primary / Indigo accent) are swapped for the brief\'s palette everywhere they appear (fills, text, gradients).' })),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       // Coerce x/y to numbers — the LLM occasionally passes them as strings
@@ -2859,6 +2871,38 @@ const createShape = defineTool({
       const wf = buildWireframe(params.template, x, y);
       if (params.fidelity === 'lofi') {
         applyLofiFidelity(wf.shapes);
+      }
+      // Brief-palette parameterization: swap the template's DEFAULT brand
+      // colors (Sky #0ea5e9 / Indigo #6366f1) for the caller's palette so the
+      // screen lands brand-colored in this same call. Only the defaults are
+      // touched — any color the template set deliberately (neutrals,
+      // success/danger) is preserved. Gradient stops are swapped too, so
+      // hero/CTA gradients carry the brief's hues without a restyle pass.
+      let paletteApplied = 0;
+      const pal = params.palette as { primaryColor?: string; accentColor?: string } | undefined;
+      if (pal?.primaryColor || pal?.accentColor) {
+        const swap = (c: unknown): { v: string; hit: boolean } => {
+          if (typeof c !== 'string') return { v: '', hit: false };
+          if (pal.primaryColor && c.toLowerCase() === '#0ea5e9') return { v: pal.primaryColor, hit: true };
+          if (pal.accentColor && c.toLowerCase() === '#6366f1') return { v: pal.accentColor, hit: true };
+          return { v: c, hit: false };
+        };
+        for (const s of wf.shapes) {
+          for (const field of ['fill', 'stroke', 'textColor'] as const) {
+            const cur = (s as Record<string, unknown>)[field];
+            if (typeof cur === 'string') {
+              const r = swap(cur);
+              if (r.hit) { (s as Record<string, unknown>)[field] = r.v; paletteApplied++; }
+            }
+          }
+          const g = (s as { gradient?: { stops?: Array<{ color?: string }> } }).gradient;
+          if (g?.stops) {
+            for (const stop of g.stops) {
+              const r = swap(stop.color);
+              if (r.hit) { stop.color = r.v; paletteApplied++; }
+            }
+          }
+        }
       }
       // Multi-screen collision guard: if the generated screen frame would
       // stack on an existing top-level screen, shift the WHOLE template
@@ -2892,7 +2936,7 @@ const createShape = defineTool({
       const patch: CanvasPatch = {
         op: 'bulk_add',
         shapes: wf.shapes,
-        summary: `Generated ${params.template} ${params.fidelity === 'lofi' ? 'low-fi wireframe' : 'screen'} (${wf.shapes.length} shapes${appliedTexts > 0 ? `, ${appliedTexts} text override(s)` : ''})`,
+        summary: `Generated ${params.template} ${params.fidelity === 'lofi' ? 'low-fi wireframe' : 'screen'} (${wf.shapes.length} shapes${appliedTexts > 0 ? `, ${appliedTexts} text override(s)` : ''}${paletteApplied > 0 ? `, palette rebranded (${paletteApplied} color refs)` : ''})`,
       };
       ctx.applyPatch(patch);
       return {
@@ -2902,6 +2946,7 @@ const createShape = defineTool({
             text:
               `Generated ${params.template} wireframe at (${wfFrame?.x ?? x}, ${wfFrame?.y ?? y}). ${wf.shapes.length} shapes added. Frame id: ${wf.frameId}.` +
               placementNote +
+              (paletteApplied > 0 ? ` Palette applied: ${paletteApplied} color references rebranded.` : '') +
               (appliedTexts > 0
                 ? ` Applied ${appliedTexts} text override(s).`
                 : params.texts && Object.keys(params.texts).length > 0
@@ -4561,7 +4606,7 @@ const createShape = defineTool({
               'Error: `changes` is empty or unparseable. Pass an OBJECT with at least one field to apply to every matched node — ' +
               'e.g. {"fill":"#ff0000"}, {"fontSize":14}, or {"x":40,"width":200}. Supported fields (same as pen_update_node `changes`): ' +
               'fill, stroke, strokeWidth, x, y, width, height, rotation, opacity, radius, name, text, fontSize, fontWeight, ' +
-              `fontFamily, letterSpacing, lineHeight, textAlign, textColor, underline. Received changes: ${JSON.stringify(params.changes).slice(0, 160)}`,
+              `fontFamily, letterSpacing, lineHeight, textAlign, textTransform, textColor, underline. Received changes: ${JSON.stringify(params.changes).slice(0, 160)}`,
           }],
           details: { error: 'empty_changes', count: 0 },
           isError: true as any,
@@ -6679,9 +6724,11 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
 
   switch (template) {
     case 'mobile_login': {
-      addFrame(375, 667, 'Mobile / Login');
+      // Type-scale alignment (2026-09-05): 375×812 canonical mobile frame,
+      // 24px H2 heading (taught scale 12/14/16/20/24/30/38 — 22 was off-scale).
+      addFrame(375, 812, 'Mobile / Login');
       add({ id: crypto.randomUUID(), type: 'text', name: 'Logo', x: ox + 137, y: oy + 80, width: 100, height: 32, fill: 'transparent', text: 'Logo', fontSize: 24, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Heading', x: ox + 32, y: oy + 160, width: 200, height: 28, fill: 'transparent', text: 'Welcome back', fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Heading', x: ox + 32, y: oy + 160, width: 220, height: 32, fill: 'transparent', text: 'Welcome back', fontSize: 24, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
       add({ id: crypto.randomUUID(), type: 'text', name: 'Subheading', x: ox + 32, y: oy + 196, width: 250, height: 20, fill: 'transparent', text: 'Sign in to continue', fontSize: 14, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
       add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Email field', x: ox + 32, y: oy + 256, width: 311, height: 48, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
       add({ id: crypto.randomUUID(), type: 'text', name: 'Email label', x: ox + 48, y: oy + 270, width: 100, height: 16, fill: 'transparent', text: 'Email', fontSize: 13, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
@@ -6693,8 +6740,8 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
       break;
     }
     case 'mobile_signup': {
-      addFrame(375, 667, 'Mobile / Signup');
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Heading', x: ox + 32, y: oy + 80, width: 250, height: 28, fill: 'transparent', text: 'Create account', fontSize: 22, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      addFrame(375, 812, 'Mobile / Signup');
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Heading', x: ox + 32, y: oy + 80, width: 260, height: 32, fill: 'transparent', text: 'Create account', fontSize: 24, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
       add({ id: crypto.randomUUID(), type: 'text', name: 'Subheading', x: ox + 32, y: oy + 116, width: 280, height: 20, fill: 'transparent', text: 'Join us in 30 seconds', fontSize: 14, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
       add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Name field', x: ox + 32, y: oy + 176, width: 311, height: 48, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
       add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Email field', x: ox + 32, y: oy + 240, width: 311, height: 48, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 8, fontSize: 14, textColor: DARK });
@@ -6709,8 +6756,8 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
       addFrame(375, 812, 'Mobile / Onboarding · Welcome');
       add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Hero image', x: ox + 48, y: oy + 120, width: 279, height: 220, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 16, fontSize: 14, textColor: DARK });
       add({ id: crypto.randomUUID(), type: 'text', name: 'Hero icon', x: ox + 165, y: oy + 200, width: 50, height: 50, fill: 'transparent', text: '✨', fontSize: 48, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Headline', x: ox + 32, y: oy + 380, width: 311, height: 36, fill: 'transparent', text: 'Welcome to Acme', fontSize: 28, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-      add({ id: crypto.randomUUID(), type: 'text', name: 'Subhead', x: ox + 32, y: oy + 424, width: 311, height: 48, fill: 'transparent', text: 'The fastest way to ship your product. Get started in under 2 minutes.', fontSize: 15, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Headline', x: ox + 32, y: oy + 380, width: 311, height: 40, fill: 'transparent', text: 'Welcome to Acme', fontSize: 30, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+      add({ id: crypto.randomUUID(), type: 'text', name: 'Subhead', x: ox + 32, y: oy + 424, width: 311, height: 48, fill: 'transparent', text: 'The fastest way to ship your product. Get started in under 2 minutes.', fontSize: 16, textColor: '#64748b', stroke: 'transparent', strokeWidth: 0, radius: 0 });
       add({ id: crypto.randomUUID(), type: 'rectangle', name: 'Primary CTA', x: ox + 32, y: oy + 540, width: 311, height: 52, fill: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 12, fontSize: 16, textColor: '#ffffff' });
       add({ id: crypto.randomUUID(), type: 'text', name: 'Primary CTA label', x: ox + 130, y: oy + 558, width: 150, height: 20, fill: 'transparent', text: 'Get started', fontSize: 16, textColor: '#ffffff', stroke: 'transparent', strokeWidth: 0, radius: 0 });
       add({ id: crypto.randomUUID(), type: 'text', name: 'Secondary CTA', x: ox + 100, y: oy + 612, width: 175, height: 20, fill: 'transparent', text: 'I already have an account', fontSize: 14, textColor: '#0ea5e9', stroke: 'transparent', strokeWidth: 0, radius: 0 });
@@ -6737,7 +6784,7 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
         const py = oy + 200 + i * 88;
         add({ id: crypto.randomUUID(), type: 'rectangle', name: `Perm card ${i + 1}`, x: ox + 24, y: py, width: 327, height: 72, fill: LIGHT, stroke: GRAY, strokeWidth: 1, radius: 12, fontSize: 14, textColor: DARK });
         add({ id: crypto.randomUUID(), type: 'text', name: `Perm ${i + 1} icon`, x: ox + 40, y: py + 22, width: 32, height: 32, fill: 'transparent', text: perms[i].icon, fontSize: 24, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
-        add({ id: crypto.randomUUID(), type: 'text', name: `Perm ${i + 1} title`, x: ox + 84, y: py + 18, width: 180, height: 18, fill: 'transparent', text: perms[i].title, fontSize: 15, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
+        add({ id: crypto.randomUUID(), type: 'text', name: `Perm ${i + 1} title`, x: ox + 84, y: py + 18, width: 180, height: 20, fill: 'transparent', text: perms[i].title, fontSize: 16, textColor: DARK, stroke: 'transparent', strokeWidth: 0, radius: 0 });
         add({ id: crypto.randomUUID(), type: 'text', name: `Perm ${i + 1} sub`, x: ox + 84, y: py + 40, width: 200, height: 16, fill: 'transparent', text: perms[i].sub, fontSize: 12, textColor: '#94a3b8', stroke: 'transparent', strokeWidth: 0, radius: 0 });
         // Toggle (on for first, off for others — visual variety)
         const toggleOn = i === 0;

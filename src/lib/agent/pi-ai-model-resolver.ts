@@ -282,7 +282,11 @@ export async function resolveZaiSandboxFallback(): Promise<ResolvedModel | null>
 ///   - tool calling is inherently enabled: the openai-completions API always
 ///     converts + sends `context.tools`, which the agent loop depends on
 ///   - cost 0 (unknown pricing), conservative context/output windows
-function buildCustomEndpointModel(baseUrl: string, modelId: string): Model<Api> {
+function buildCustomEndpointModel(
+  baseUrl: string,
+  modelId: string,
+  temperature?: number,
+): Model<Api> {
   return {
     id: modelId,
     name: modelId,
@@ -294,6 +298,16 @@ function buildCustomEndpointModel(baseUrl: string, modelId: string): Model<Api> 
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 131072,
     maxTokens: 32768,
+    // Agent-quality wiring: pi-ai's openai-completions adapter merges
+    // Model.samplingParams into every request body. The user-facing
+    // settings.temperature knob was previously read by the runner but never
+    // reached the endpoint (StreamOptions.temperature is per-request and
+    // createAgentSession doesn't expose it); declaring it on the Model makes
+    // the knob actually apply. Kimi K2 serving guidance (0.6/top_p 0.95) —
+    // we pass temperature only and let the endpoint default top_p.
+    ...(temperature !== undefined && Number.isFinite(temperature)
+      ? { samplingParams: { temperature } }
+      : {}),
     compat: {
       supportsStore: false,
       supportsDeveloperRole: false,
@@ -520,15 +534,21 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
       }
     }
 
-    // Resolved-model cache hit: identical (baseUrl, model, key) within the
-    // TTL window reuses the runtime + registered provider + pushed API key.
-    const modelCacheKey = `${customBaseUrl}::${modelId}::${effectiveApiKey.slice(0, 12)}`;
+    // Resolved-model cache hit: identical (baseUrl, model, key, temperature)
+    // within the TTL window reuses the runtime + registered provider + pushed
+    // API key. Temperature participates in the key so changing the knob
+    // takes effect on the next turn rather than serving a stale Model.
+    const userTemperature =
+      typeof settings?.temperature === 'number' && Number.isFinite(settings.temperature)
+        ? settings.temperature
+        : undefined;
+    const modelCacheKey = `${customBaseUrl}::${modelId}::${effectiveApiKey.slice(0, 12)}::${userTemperature ?? 'default'}`;
     const cachedResolved = resolvedModelCache.get(modelCacheKey);
     if (cachedResolved && Date.now() < cachedResolved.expiresAt) {
       return cachedResolved.resolved;
     }
 
-    const customModel = buildCustomEndpointModel(customBaseUrl, modelId);
+    const customModel = buildCustomEndpointModel(customBaseUrl, modelId, userTemperature);
 
     // Register a minimal dispatch provider on THIS runtime instance (the
     // runtime is created per turn, so there is no cross-turn state). Without

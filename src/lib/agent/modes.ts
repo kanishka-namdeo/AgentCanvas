@@ -141,9 +141,12 @@ export function modeSectionFor(mode: AgentMode): string {
 //            quality floor, 2-5 fewer LLM calls per turn.
 //
 // Tune for recall over precision (Replit: "false positives are cheap" — a
-// redundant critique costs a call; a missed disaster ships).
-export const CRITIC_NODE_THRESHOLD = 20;
-export const FRESH_DOC_NODE_THRESHOLD = 12;
+// redundant critique costs a call; a missed disaster ships). 2026-09-05
+// tuning: 20→14 / 12→8 after the eval showed 11-19-node screens (login-hifi
+// at 11 layers) skipping the vision critic entirely — a full login screen is
+// a substantial design even at 11 nodes.
+export const CRITIC_NODE_THRESHOLD = 14;
+export const FRESH_DOC_NODE_THRESHOLD = 8;
 export const CRITIC_VIOLATION_THRESHOLD = 3;
 
 export interface CriticGateInput {

@@ -33,8 +33,22 @@ function str(v: unknown, def: string): string {
  * Normalize a (possibly legacy) shape partial into a .pen node partial.
  * Maps: radius → cornerRadius, text → content, autoLayout → layout/gap/...
  * keeps .pen-native fields (cornerRadius, content, layout, fill, stroke, …).
+ *
+ * `opts.targetType` — the EXISTING node's type for update patches (where the
+ * changes payload usually carries no `type`). The textColor → fill mapping
+ * is TEXT-ONLY: .pen text nodes store their color in `fill`. Mapping
+ * textColor → fill on non-text nodes (the old `out.fill === undefined`
+ * fallback) caused bulk textColor updates to REPAINT every rectangle's fill
+ * with the text color — live-observed 2026-09-05: five 38-node
+ * pen_bulk_update_by_filter(textColor) passes wiped the primary fills set
+ * minutes earlier, leaving a white-on-white "Sign In" button and a flat,
+ * shadowless screen. Rectangles have no textColor concept; a textColor-only
+ * change on a non-text node is a no-op.
  */
-function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Partial<PenChild> & Record<string, unknown> {
+function toPenNodePartial(
+  input: Partial<Shape> & Record<string, unknown>,
+  opts?: { targetType?: string },
+): Partial<PenChild> & Record<string, unknown> {
   const out: Partial<PenChild> & Record<string, unknown> = {};
 
   // Direct .pen fields (pass through if present).
@@ -42,7 +56,7 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
   // (locked, tokenBinding, maskId, points, closed, componentId) — these are
   // carried as opaque node properties so they survive the tree round-trip
   // and are surfaced on resolved Shapes by resolvePenTree.
-  for (const k of ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'opacity', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'strokeAlignment', 'effect', 'reusable', 'theme', 'enabled', 'flipX', 'flipY', 'layoutPosition', 'metadata', 'layout', 'gap', 'padding', 'justifyContent', 'alignItems', 'layoutIncludeStroke', 'clip', 'placeholder', 'slot', 'content', 'fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'fontStyle', 'underline', 'lineHeight', 'textAlign', 'textAlignVertical', 'strikethrough', 'href', 'textGrowth', 'children', 'geometry', 'viewBox', 'fillRule', 'polygonCount', 'cornerRadius', 'innerRadius', 'startAngle', 'sweepAngle', 'library', 'icon', 'weight', 'scriptUri', 'inputs', 'ref', 'descendants', 'context', 'locked', 'tokenBinding', 'maskId', 'points', 'closed', 'componentId', 'src', 'constraints', 'label', 'collapsed', 'pointCount', 'booleanOperationType', 'exportSettings', 'componentPropertyDefinitions', 'componentProperties', 'variantPropertyAxes', 'variantPropertyValues', 'variantLayout',
+  for (const k of ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'opacity', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'strokeAlignment', 'effect', 'reusable', 'theme', 'enabled', 'flipX', 'flipY', 'layoutPosition', 'metadata', 'layout', 'gap', 'padding', 'justifyContent', 'alignItems', 'layoutIncludeStroke', 'clip', 'placeholder', 'slot', 'content', 'fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'fontStyle', 'underline', 'lineHeight', 'textAlign', 'textAlignVertical', 'textTransform', 'strikethrough', 'href', 'textGrowth', 'children', 'geometry', 'viewBox', 'fillRule', 'polygonCount', 'cornerRadius', 'innerRadius', 'startAngle', 'sweepAngle', 'library', 'icon', 'weight', 'scriptUri', 'inputs', 'ref', 'descendants', 'context', 'locked', 'tokenBinding', 'maskId', 'points', 'closed', 'componentId', 'src', 'constraints', 'label', 'collapsed', 'pointCount', 'booleanOperationType', 'exportSettings', 'componentPropertyDefinitions', 'componentProperties', 'variantPropertyAxes', 'variantPropertyValues', 'variantLayout',
     // Figma ontology v3 fields (spec Phase 6 part 1) — passed through so
     // imported/migrated .pen trees survive the patch round-trip; the
     // dual-carry normalizer (normalizePenNode) keeps them in sync with the
@@ -85,11 +99,16 @@ function toPenNodePartial(input: Partial<Shape> & Record<string, unknown>): Part
     // text color to the darkest palette swatch while leaving the original
     // `fill='transparent'`). Previously the `out.fill === undefined` guard
     // silently dropped the textColor, leaving all text shapes with
-    // textColor='transparent' (invisible). For non-text shapes, only apply
-    // textColor → fill if fill isn't already set (defensive — rectangles
-    // don't have a textColor concept).
-    const isTextShape = input.type === 'text' || out.type === 'text';
-    if (isTextShape || out.fill === undefined) {
+    // textColor='transparent' (invisible).
+    //
+    // 2026-09-05 fix: the mapping is now TEXT-ONLY. The old fallback
+    // (`|| out.fill === undefined`) also fired for NON-text update payloads
+    // (rectangles etc.), converting textColor changes into fill repaints —
+    // see the function docstring. Non-text nodes keep textColor as a no-op
+    // (it is not a .pen-native field for them).
+    const isTextShape =
+      input.type === 'text' || out.type === 'text' || opts?.targetType === 'text';
+    if (isTextShape) {
       out.fill = str(input.textColor, '#0f172a');
     }
   }
@@ -249,14 +268,22 @@ export function applyPatchToCanvas(
     }
     case 'update': {
       if (!patch.shapeId) break;
-      const penPartial = toPenNodePartial(patch.shape ?? {});
+      // Target-type context so the textColor → fill mapping stays text-only
+      // (see toPenNodePartial docstring).
+      const target = findNode(next.children, patch.shapeId);
+      const penPartial = toPenNodePartial(patch.shape ?? {}, {
+        targetType: target?.type as string | undefined,
+      });
       next.children = updateNode(next.children, patch.shapeId, penPartial);
       break;
     }
     case 'update_many': {
       if (!patch.updates) break;
       for (const u of patch.updates) {
-        const penPartial = toPenNodePartial(u.changes);
+        const target = findNode(next.children, u.id);
+        const penPartial = toPenNodePartial(u.changes, {
+          targetType: target?.type as string | undefined,
+        });
         next.children = updateNode(next.children, u.id, penPartial);
       }
       break;

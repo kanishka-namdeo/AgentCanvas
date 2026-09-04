@@ -222,6 +222,7 @@ function textStyles(node: SerNode): StyleMap {
   if (l.fontFamily) styles['font-family'] = String(l.fontFamily);
   if (l.lineHeight) styles['line-height'] = String(l.lineHeight);
   if (l.letterSpacing) styles['letter-spacing'] = `${l.letterSpacing}px`;
+  if (l.textTransform) styles['text-transform'] = l.textTransform;
   if (l.textAlign && l.textAlign !== 'left') styles['text-align'] = l.textAlign;
   if (l.underline) styles['text-decoration'] = 'underline';
   return styles;

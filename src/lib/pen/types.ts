@@ -492,6 +492,7 @@ export interface PenTextStyle {
   lineHeight?: PenNumberOrVariable;
   textAlign?: 'left' | 'center' | 'right' | 'justify';
   textAlignVertical?: 'top' | 'middle' | 'bottom';
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   strikethrough?: PenBooleanOrVariable;
   href?: string;
 }

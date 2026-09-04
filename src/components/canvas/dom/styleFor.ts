@@ -482,6 +482,9 @@ export function styleFor(layer: Layer, opts: StyleForOpts): React.CSSProperties 
     if (layer.textAlign) {
       style.textAlign = layer.textAlign;
     }
+    if (layer.textTransform) {
+      style.textTransform = layer.textTransform;
+    }
     const decoration =
       layer.underline && layer.strikethrough ? 'underline line-through'
       : layer.underline ? 'underline'

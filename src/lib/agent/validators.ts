@@ -153,6 +153,42 @@ export function validateCanvasBeforeComplete(
     );
   }
 
+  // Rule 6: near-invisible text contrast (deterministic WCAG check — free,
+  // catches the grey-on-grey defect class before any LLM critic runs).
+  // Threshold 2.0:1 is intentionally lenient — the app's own text-subtle
+  // token (#94a3b8 on #ffffff = 2.5:1) is a deliberate caption style; this
+  // rule targets text the eye genuinely cannot read (ratio < 2), including
+  // text whose color equals its container fill exactly.
+  const byIdForContrast = new Map(shapes.map((s) => [s.id, s] as const));
+  const lowContrast: Array<{ name: string; ratio: number; fg: string; bg: string }> = [];
+  for (const s of shapes) {
+    if (s.type !== 'text') continue;
+    const tc = (s as { textColor?: string }).textColor;
+    if (!isCheckableHex(tc)) continue; // token refs / unset → skip
+    const bg = effectiveBackground(s, byIdForContrast);
+    const ratio = contrastRatioOf(tc.slice(0, 7), bg);
+    if (ratio !== null && ratio < 2) {
+      lowContrast.push({
+        name: s.name ?? s.id,
+        ratio: Math.round(ratio * 10) / 10,
+        fg: tc.slice(0, 7),
+        bg,
+      });
+    }
+  }
+  if (lowContrast.length > 0) {
+    const examples = lowContrast
+      .slice(0, 4)
+      .map((o) => `"${o.name}" ${o.fg} on ${o.bg} = ${o.ratio}:1`)
+      .join('; ');
+    reasons.push(
+      `${lowContrast.length} text layer(s) are nearly invisible — contrast < 2:1 against their background (${examples}). ` +
+      `This is the grey-on-grey defect class: the text renders but the eye cannot read it. ` +
+      `Fix with pen_update_node changes: { textColor: "#0f172a" } (or another color with WCAG contrast — target 4.5:1 for body, ` +
+      `3:1 for large text) on each flagged layer.`,
+    );
+  }
+
   return {
     ok: reasons.length === 0,
     reasons,
@@ -179,4 +215,70 @@ export function validateCanvasBeforeComplete(
  */
 function isCardByName(name: string): boolean {
   return /\bcard\b|\bstat\b|\bchart\b|\bpanel\b|\btile\b|\bitem\b|\bproduct\b/i.test(name);
+}
+
+// ---- WCAG contrast utilities (local copies of tools.ts's private helpers) ----
+// Same formulas (relative luminance per WCAG 2.x); duplicated here so the
+// deterministic validation gate stays dependency-free and import-cycle-safe.
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const m = hex.replace('#', '').trim();
+  if (!/^[0-9a-fA-F]{6}/.test(m)) return null;
+  return {
+    r: parseInt(m.slice(0, 2), 16),
+    g: parseInt(m.slice(2, 4), 16),
+    b: parseInt(m.slice(4, 6), 16),
+  };
+}
+
+function luminanceOf(hex: string): number | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  const lin = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(rgb.r) + 0.7152 * lin(rgb.g) + 0.0722 * lin(rgb.b);
+}
+
+function contrastRatioOf(fg: string, bg: string): number | null {
+  const l1 = luminanceOf(fg);
+  const l2 = luminanceOf(bg);
+  if (l1 === null || l2 === null) return null;
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/// Hex or token reference? Only hex (6-digit, optional alpha) can be checked
+/// deterministically — token refs are resolved at bind time and skipped.
+function isCheckableHex(c: unknown): c is string {
+  return typeof c === 'string' && /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(c.trim());
+}
+
+/// Walk the parent chain to the first opaque fill (frames/rectangles).
+/// Falls back to white — a light-bg assumption that matches the app's default
+/// document background. Max depth 4 guards against cycles in malformed trees.
+function effectiveBackground(
+  start: Layer,
+  byId: Map<string, Layer>,
+): string {
+  let cur: Layer | undefined = start;
+  let depth = 0;
+  while (cur && depth < 4) {
+    const parentId = (cur as { parentId?: string | null }).parentId ?? null;
+    if (!parentId) break;
+    const parent = byId.get(parentId);
+    if (!parent) break;
+    const f = parent.fill;
+    if (isCheckableHex(f) && !/^#([0-9a-fA-F]{2})?$/i.test(f)) {
+      // Ignore (near-)transparent fills: an 8-digit hex with alpha <= 0x33
+      // contributes ~nothing to the rendered backdrop.
+      const alpha = f.length === 9 ? parseInt(f.slice(7, 9), 16) / 255 : 1;
+      if (alpha > 0.2) return f.slice(0, 7);
+    }
+    cur = parent;
+    depth++;
+  }
+  return '#ffffff';
 }

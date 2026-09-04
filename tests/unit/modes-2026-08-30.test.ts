@@ -223,10 +223,10 @@ describe('modes: adaptive critique gate (shouldRunCritics)', () => {
     expect(d.runCritics).toBe(true);
   });
 
-  it('fresh document with >= 12 nodes → critics run (substantial first screen)', () => {
-    expect(shouldRunCritics({ ...base, freshDocument: true, newShapeCount: 12 }).runCritics).toBe(true);
+  it('fresh document with >= 8 nodes → critics run (substantial first screen)', () => {
+    expect(shouldRunCritics({ ...base, freshDocument: true, newShapeCount: 8 }).runCritics).toBe(true);
     // trivial element on an empty canvas → still skipped
-    expect(shouldRunCritics({ ...base, freshDocument: true, newShapeCount: 11 }).runCritics).toBe(false);
+    expect(shouldRunCritics({ ...base, freshDocument: true, newShapeCount: 7 }).runCritics).toBe(false);
   });
 
   it('prompt asking for critique/polish forces critics regardless of size', () => {

@@ -220,10 +220,16 @@ function renderShapeToSvg(s: Layer, measuredBounds?: MeasuredBoundsMap): string 
       const weight = s.fontWeight ?? 400;
       const ls = s.letterSpacing !== undefined ? ` letter-spacing="${s.letterSpacing}"` : '';
       const lh = s.lineHeight !== undefined ? ` style="line-height:${s.lineHeight}"` : '';
-      // Escape text content for XML.
+      // Escape text content for XML. textTransform is applied to the CONTENT
+      // (not CSS) — SVG rasterizers don't reliably support CSS text-transform,
+      // but transforming the string itself renders correctly everywhere.
       const esc = (s.text ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const content =
+        s.textTransform === 'uppercase' ? esc.toUpperCase()
+        : s.textTransform === 'lowercase' ? esc.toLowerCase()
+        : esc;
       const textColor = s.textColor || '#000000';
-      return `  <text x="${tx}" y="${s.y + s.fontSize}" font-size="${s.fontSize}" font-weight="${weight}" font-family="${fontFamily}"${ls} text-anchor="${anchor}" text-decoration="${decoration}" fill="${textColor}"${lh}${opacityAttr}${transformAttr}>${esc}</text>`;
+      return `  <text x="${tx}" y="${s.y + s.fontSize}" font-size="${s.fontSize}" font-weight="${weight}" font-family="${fontFamily}"${ls} text-anchor="${anchor}" text-decoration="${decoration}" fill="${textColor}"${lh}${opacityAttr}${transformAttr}>${content}</text>`;
     }
     case 'path': {
       if (!s.points || s.points.length === 0) return '';

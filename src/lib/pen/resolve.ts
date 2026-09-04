@@ -1306,6 +1306,7 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
         letterSpacing: (n as any).letterSpacing !== undefined ? num((n as any).letterSpacing, 0) : undefined,
         lineHeight: (n as any).lineHeight !== undefined ? num((n as any).lineHeight, 1.4) : undefined,
         textAlign: (n as any).textAlign,
+        textTransform: (n as any).textTransform,
         underline: (n as any).underline === true ? true : undefined,
         strikethrough: (n as any).strikethrough === true ? true : undefined,
         parentId,

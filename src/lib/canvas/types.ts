@@ -146,6 +146,10 @@ export interface Layer {
   letterSpacing?: number;
   lineHeight?: number;
   textAlign?: 'left' | 'center' | 'right' | 'justify';
+  /// CSS text-transform for micro-labels (KPI/table/overline). Style the
+  /// transform instead of retyping the string in caps — the stored text
+  /// stays sentence-case for find/replace + export fidelity.
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   underline?: boolean;
   strikethrough?: boolean;
   parentId?: string | null;

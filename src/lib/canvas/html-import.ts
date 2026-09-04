@@ -689,7 +689,7 @@ export function htmlToPenTreeDetailed(
     const isTextTag = isHeading || ['p', 'span', 'strong', 'em', 'label', 'a', 'button', 'textarea'].includes(el.tag);
     const liTextOnly = el.tag === 'li' && !hasElementChildren(el.children);
     if (isTextTag || liTextOnly) {
-      const text = collectText(el.children).trim();
+      let text = collectText(el.children).trim();
       const heading = HEADING_DEFAULTS[el.tag] ?? { fontSize: 16, fontWeight: 400 };
       let fontSize = heading.fontSize;
       let fontWeight = el.tag === 'button' ? 500 : heading.fontWeight;
@@ -698,6 +698,7 @@ export function htmlToPenTreeDetailed(
       let lineHeight: number | undefined;
       let letterSpacing: number | undefined;
       let textAlign: 'left' | 'center' | 'right' | 'justify' | undefined;
+      let textTransform: 'none' | 'uppercase' | 'lowercase' | 'capitalize' | undefined;
       if (el.tag === 'strong') fontWeight = 700;
       if (el.tag === 'em') fontStyle = 'italic';
       if (style['font-size']) {
@@ -717,6 +718,15 @@ export function htmlToPenTreeDetailed(
         if (Number.isFinite(mult) && mult > 0) lineHeight = Math.round(mult * 100) / 100;
       }
       if (style['letter-spacing']) letterSpacing = pxNum(style['letter-spacing'], 0);
+      const tt = (style['text-transform'] ?? '').trim().toLowerCase();
+      if (tt === 'uppercase' || tt === 'lowercase' || tt === 'capitalize') textTransform = tt;
+      else if (el.tag === 'button' && text.length >= 2 && text === text.toUpperCase() && /[A-Z]/.test(text)) {
+        // Buttons whose label ships pre-uppercased in the HTML ("SIGN IN")
+        // become a transform + sentence-case string — the stored text stays
+        // findable via pen_find_replace_text, the pixels stay uppercase.
+        text = text.toLowerCase();
+        textTransform = 'uppercase';
+      }
       if (style['text-align'] === 'center') textAlign = 'center';
       else if (style['text-align'] === 'right') textAlign = 'right';
       else if (style['text-align'] === 'justify') textAlign = 'justify';
@@ -737,6 +747,7 @@ export function htmlToPenTreeDetailed(
         ...(color ? { fill: color } : {}), // .pen text nodes store color in `fill`
         ...(lineHeight !== undefined ? { lineHeight } : {}),
         ...(letterSpacing !== undefined ? { letterSpacing } : {}),
+        ...(textTransform ? { textTransform } : {}),
         ...(textAlign ? { textAlign } : {}),
         textGrowth: 'fixed-width',
       };
