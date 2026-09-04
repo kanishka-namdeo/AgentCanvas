@@ -149,8 +149,27 @@ export async function dispatchDesignCriticVlmSubAgent(
       // resolver's predictions. The renderCanvasToPng `measuredBounds` param
       // can now read the server-side map — wired below when a document id is
       // available in SubAgentParams.
-      const png = await renderCanvasToPng(shapes, 1440, 900);
-      base64 = png.toString('base64');
+      //
+      // 2026-09-05 worker isolation: the server-side render now runs in a
+      // child process. If it fails (native resvg crash, bad SVG, timeout)
+      // the critic DOWNGRADES to a low-severity no-op instead of throwing —
+      // a missing VLM pass must never fail the turn (and, pre-isolation, a
+      // native panic used to kill the whole dev server).
+      let png: Buffer | null = null;
+      try {
+        png = await renderCanvasToPng(shapes, 1440, 900);
+        base64 = png.toString('base64');
+      } catch (renderErr) {
+        console.warn('[design-critic-vlm] server-side render failed — skipping VLM pass:', renderErr instanceof Error ? renderErr.message : renderErr);
+        return {
+          overallScore: 0,
+          severity: 'low',
+          topFixes: [],
+          screenshotSource: undefined,
+          skipped: true,
+          skipReason: `server render failed: ${renderErr instanceof Error ? renderErr.message : String(renderErr)}`,
+        } as any;
+      }
     }
     toolCallCount++;
 

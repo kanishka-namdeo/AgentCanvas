@@ -223,10 +223,26 @@ export function detectMultitaskPrompt(prompt: string): MultitaskDetection {
   const countWord =
     /\b(\d+|two|three|four|five|six|seven)\s+[-\s]?(screens?|pages?|views?|flows?)\b/.test(t) ||
     /\bmulti[-\s]?screen\b/.test(t);
-  const screenList =
-    /\b(login|log[-\s]?in|sign[-\s]?up|dashboard|settings|profile|checkout|onboarding|landing|pricing|inbox|home|search|detail)\b[^.?!]{0,80}\b(and|,|\+|then|plus)\b[^.?!]{0,80}\b(login|log[-\s]?in|sign[-\s]?up|dashboard|settings|profile|checkout|onboarding|landing|pricing|inbox|home|search|detail|screen|page)s?\b/.test(
-      t,
-    );
+  // 2026-09-05 multi-shot fix: a screen list only counts when the two screen
+  // words are DIFFERENT. "the dashboard at the top level, and the dashboard's
+  // own chart card" mentions the SAME screen twice (an edit-scoping phrase,
+  // not a multi-screen ask) and used to route the prompt into the parallel
+  // screen-builder, which duplicated the dashboard instead of patching it.
+  const screenListMatch = t.match(
+    /\b(login|log[-\s]?in|sign[-\s]?up|dashboard|settings|profile|checkout|onboarding|landing|pricing|inbox|home|search|detail)\b[^.?!]{0,80}\b(and|,|\+|then|plus)\b[^.?!]{0,80}\b(login|log[-\s]?in|sign[-\s]?up|dashboard|settings|profile|checkout|onboarding|landing|pricing|inbox|home|search|detail|screen|page)s?\b/,
+  );
+  const screenList = !!screenListMatch && screenListMatch[1] !== screenListMatch[3];
+  // 2026-09-05 multi-shot fix: EDIT-intent prompts (delete/fix/recreate/
+  // update existing content) never route to the parallel screen-builder —
+  // observed live: "delete the stray chart frame, 2) recreate the chart
+  // inside the dashboard" built a DUPLICATE dashboard plus a junk
+  // "verification" screen instead of performing the surgical edit. The
+  // single-agent EDIT TURNS path handles these; /multitask remains the
+  // explicit escape hatch.
+  const editIntent =
+    /\b(delete|remove|fix|restore|recreate|move|rename|replace|refine|clean\s?up|repair|undo)\b/.test(t) ||
+    /\b(change|update|adjust|align|tighten|darken|lighten|resize|reposition)\b/.test(t);
+  if (editIntent) return { explicit: false, heuristic: false, effectivePrompt };
   return { explicit: false, heuristic: countWord || screenList, effectivePrompt };
 }
 

@@ -20,6 +20,7 @@
 import { NextRequest } from 'next/server';
 import { runAgent } from '@/lib/agent/runner';
 import { journalAgentEvent, appendSyntheticJournalEvent } from '@/lib/agent/event-journal';
+import { patchToOpRecord, summarizeTurnDiff, formatDiffSummary, type PatchOpRecord } from '@/lib/agent/turn-diff';
 import { classifyAgentError, agentErrorMessage } from '@/lib/agent-error';
 import { sanitizeAgentPatch } from '@/lib/canvas/patch-sanitizer';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
@@ -327,6 +328,13 @@ export async function POST(req: NextRequest) {
       const FINAL_TEXT_CAP = 20_000;
       let sawErrorOnWire = false;
       let sawCancelledOnWire = false;
+      // Turn-level diff records (2026-09-05 multi-shot): every SANITIZED patch
+      // that lands on the canvas is folded into a compact op record
+      // ("38 created · 5 updated"). The summary rides agent:turn_final so the
+      // cross-turn conversation history can replay WHAT each prior turn
+      // changed — the model then targets those regions in follow-ups without
+      // re-reading the whole canvas tree.
+      let turnPatchRecords: PatchOpRecord[] = [];
 
       // ---- Turn-final emission (shared by the normal finally and the ------
       //      watchdog force path).
@@ -351,6 +359,7 @@ export async function POST(req: NextRequest) {
           type: 'agent:turn_final' as const,
           text: finalText,
           status: finalStatus,
+          diffSummary: formatDiffSummary(summarizeTurnDiff(turnPatchRecords)),
           ...(sessionId ? { sessionId } : {}),
           ...(runId ? { runId } : {}),
           ...(assistantMessageId ? { messageId: assistantMessageId } : {}),
@@ -430,6 +439,8 @@ export async function POST(req: NextRequest) {
             }
             send({ type: 'patch', patch: sanitized, toolCallId: ev.toolCallId });
             journalAgentEvent(documentId, { kind: 'patch', patch: sanitized, toolCallId: ev.toolCallId });
+            const diffRec = patchToOpRecord(sanitized);
+            if (diffRec) turnPatchRecords.push(diffRec);
           } else {
             send({ type: 'agent_event', event: ev.event });
             journalAgentEvent(documentId, ev);

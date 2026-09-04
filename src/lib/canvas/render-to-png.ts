@@ -18,8 +18,97 @@
 // visually equivalent to the on-screen canvas at 2x DPI.
 
 import type { Layer } from '../canvas/types';
-import { Resvg } from '@resvg/resvg-js';
 import { lucideIconGroupSvg } from '@/lib/icons';
+import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+// ---- Worker isolation (2026-09-05) -------------------------------------------
+//
+// resvg is a NATIVE Rust module: a panic inside it aborts the whole Node
+// process (observed live — the dev server died mid-turn while the VLM critic
+// rendered a screenshot; resvg geom.rs:27 unwrap on None). Rasterization runs
+// in a CHILD process so a native panic only kills the worker. JS-level
+// failures (bad SVG, timeout, crash) surface as normal Errors the callers
+// already handle.
+const RENDER_TIMEOUT_MS = 35_000;
+
+function renderViaWorker(svg: string, width: number, _height: number): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    let workerPath: string;
+    try {
+      // Resolve order: module-relative (works under tsx/tsx-based tooling and
+      // the source tree) → project-relative source path (Next dev server,
+      // which runs from the repo root). If neither resolves the worker is
+      // genuinely missing — surface a normal Error.
+      try {
+        workerPath = require.resolve('./render-worker.mjs');
+      } catch {
+        workerPath = require.resolve('../canvas/render-worker.mjs');
+      }
+    } catch {
+      try {
+        // Last resort: the repo checkout layout (dev server runs from cwd).
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const path = require('node:path') as typeof import('node:path');
+        const fs = require('node:fs') as typeof import('node:fs');
+        const candidate = path.join(process.cwd(), 'src', 'lib', 'canvas', 'render-worker.mjs');
+        if (fs.existsSync(candidate)) {
+          workerPath = candidate;
+        } else {
+          reject(new Error('render worker not found'));
+          return;
+        }
+      } catch {
+        reject(new Error('render worker not found'));
+        return;
+      }
+    }
+    const child = spawn(process.execPath, [workerPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, NODE_OPTIONS: '' },
+    });
+    let out = '';
+    let errTail = '';
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { child.kill('SIGKILL'); } catch { /* already gone */ }
+      fn();
+    };
+    const timer = setTimeout(
+      () => finish(() => reject(new Error('server-side PNG render timed out'))),
+      RENDER_TIMEOUT_MS,
+    );
+    child.stdout.on('data', (d: Buffer) => { out += d.toString('utf-8'); });
+    child.stderr.on('data', (d: Buffer) => { errTail = (errTail + d.toString('utf-8')).slice(-400); });
+    child.on('error', (err) => finish(() => reject(err)));
+    child.on('close', (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        const line = out.trim().split('\n').pop() ?? '';
+        const parsed = JSON.parse(line);
+        if (parsed?.ok && typeof parsed.png === 'string') {
+          resolve(Buffer.from(parsed.png, 'base64'));
+          return;
+        }
+        reject(new Error(String(parsed?.error ?? `render worker exited (code ${code})`)));
+      } catch {
+        reject(new Error(
+          `render worker failed (code ${code})${errTail ? `: ${errTail.slice(-200)}` : ' — possible native resvg crash'}`,
+        ));
+      }
+    });
+    child.stdin.on('error', () => { /* EPIPE if the worker died early — close() handles it */ });
+    child.stdin.write(JSON.stringify({ svg, width, height: _height }));
+    child.stdin.end();
+  });
+}
 
 // ---- Public API ------------------------------------------------------------
 
@@ -50,22 +139,13 @@ export async function renderCanvasToPng(
   // the design as a senior designer would on a Retina display.
   // Task 8-c fix: resvg's default font resolution fell back to a SERIF face
   // (the sandbox has no Inter), so every clean-render VLM critique complained
-  // "replace the serif font". Load the local sans-serif family explicitly.
-  const resvg = new Resvg(svg, {
-    fitTo: { mode: 'width', value: width * 2 },
-    background: '#ffffff',
-    font: {
-      fontFiles: [
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-        '/usr/share/fonts/truetype/chinese/NotoSansSC-Regular.ttf',
-      ],
-      loadSystemFonts: true,
-      defaultFontFamily: 'DejaVu Sans',
-    },
-  });
-  const rendered = resvg.render();
-  return rendered.asPng();
+  // "replace the serif font". The worker loads the local sans-serif family
+  // explicitly.
+  //
+  // 2026-09-05: rasterization runs in a CHILD PROCESS (see the worker
+  // isolation block above) — a native resvg panic aborts only the worker;
+  // this side turns it into a normal Error the callers degrade from.
+  return renderViaWorker(svg, width, height);
 }
 
 /**

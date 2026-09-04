@@ -1394,6 +1394,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   mcpServers: [],
 
   init: (documentId) => {
+    // Document-switch detection (2026-09-05 multi-shot hygiene fix): captured
+    // BEFORE the set() below re-keys the store. When init() swaps to a
+    // DIFFERENT document that has no local snapshot, the canvas must reset
+    // to empty — the old code kept the previous document's frames and
+    // re-keyed the id, so a freshly created document inherited the prior
+    // doc's screens (its first turn_end snapshot then captured the stale
+    // frames, and the client's view disagreed with the server journal-fold
+    // forever). Same-id re-init (reconnect / HMR / name change) keeps the
+    // live document exactly as before.
+    const previousDocumentId = get().documentId;
+    const isDocumentSwitch = previousDocumentId !== documentId;
+
     // Hydrate the persisted session store from localStorage (client-only).
     // This is a no-op on the server.
     hydrateSessionStore();
@@ -1470,8 +1482,23 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const latest = ss.listSnapshots(documentId)[0];
     if (latest && !latest.remote) {
       set({ document: { ...latest.document, id: documentId } });
+    } else if (isDocumentSwitch) {
+      // Genuinely NEW document with no snapshot history: clean canvas, not
+      // the previous document's content. Per-shape chrome that references
+      // the old ids (selection, highlights, measured bounds, turn
+      // checkpoints) is cleared with it — same reset semantics as a snapshot
+      // restore.
+      set({
+        document: createEmptyCanvasDocument(documentId, 'Untitled'),
+        selectedIds: [],
+        agentHighlightIds: [],
+        measuredBounds: {},
+        checkpoints: [],
+        lastCheckpointSignature: null,
+      });
     } else {
-      // No usable snapshot — keep the current document, just re-key its id.
+      // No usable snapshot on the SAME document — keep the current document,
+      // just re-key its id.
       set((s) => ({ document: { ...s.document, id: documentId } }));
     }
     get()._syncTurnsFromSession();

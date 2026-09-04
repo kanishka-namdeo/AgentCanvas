@@ -4575,6 +4575,11 @@ const createShape = defineTool({
       fill: Type.Optional(Type.String({ description: 'Filter by current fill color' })),
       nameContains: Type.Optional(Type.String({ description: 'Filter by name (substring)' })),
       parentId: Type.Optional(Type.String({ description: 'Filter by parent ID' })),
+      // 2026-09-05 multi-shot: scope guard hook. The prior-content guard
+      // injects the prior turns' node ids here during critique fix-turns so a
+      // bulk restyle ("make all text #0f172a") can never repaint the user's
+      // earlier screens. Main turns leave it unset (no behavioral change).
+      excludeIds: Type.Optional(Type.Array(Type.String({ description: 'Node ids to EXCLUDE from the match set (scope guard)' }))),
       // Task 7-b bug fix: was `ShapeInputSchema` (strict object-only). LLMs
       // (GLM-family especially) sometimes stringify nested params — the
       // documented "Loose nested-object params" gotcha (AGENTS.md).
@@ -4591,8 +4596,15 @@ const createShape = defineTool({
       if (params.fill) matches = matches.filter((s) => s.fill === params.fill);
       if (params.nameContains) matches = matches.filter((s) => s.name.toLowerCase().includes(params.nameContains!.toLowerCase()));
       if (params.parentId) matches = matches.filter((s) => s.parentId === params.parentId);
+      let excludedCount = 0;
+      if (params.excludeIds && params.excludeIds.length > 0) {
+        const excluded = new Set(params.excludeIds);
+        const visible = matches.filter((s) => !excluded.has(s.id));
+        excludedCount = matches.length - visible.length;
+        matches = visible;
+      }
       if (matches.length === 0) {
-        return { content: [{ type: 'text', text: 'No shapes matched the filter.' }], details: { error: 'no_matches', count: 0 }, isError: true as any };
+        return { content: [{ type: 'text', text: excludedCount > 0 ? `No shapes matched the filter after excluding ${excludedCount} prior-turn node(s) (scope guard) — the match set is prior content. Target shapes you created in this turn instead.` : 'No shapes matched the filter.' }], details: { error: 'no_matches', count: 0, excludedCount }, isError: true as any };
       }
       // Object OR JSON-encoded string (LooseShapeInputSchema above). An
       // empty/unparseable `changes` returns an actionable error the model can
@@ -4615,7 +4627,8 @@ const createShape = defineTool({
       const updates = matches.map((s) => ({ id: s.id, changes: coerced }));
       const patch: CanvasPatch = { op: 'update_many', updates, summary: `Bulk-updated ${matches.length} shape(s): ${Object.keys(coerced).join(', ')}` };
       ctx.applyPatch(patch);
-      return { content: [{ type: 'text', text: `Updated ${matches.length} shape(s) with ${Object.keys(coerced).join(', ')}.` }], details: { count: matches.length, patch } };
+      const guardNote = excludedCount > 0 ? ` (${excludedCount} prior-turn node(s) excluded by scope guard)` : '';
+      return { content: [{ type: 'text', text: `Updated ${matches.length} shape(s) with ${Object.keys(coerced).join(', ')}.${guardNote}` }], details: { count: matches.length, patch } };
     },
   });
 

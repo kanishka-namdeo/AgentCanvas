@@ -233,6 +233,38 @@ export async function getJournalEvents(
   }));
 }
 
+/// Read the MOST RECENT journal rows of the given types, returned in
+/// chronological (seq-ascending) order. `limit` caps how many recent rows are
+/// considered.
+///
+/// Why not getJournalEvents(…, 0, N)? That reads the OLDEST N rows (ascending
+/// from seq 0) — a dense design turn writes 30-60 rows, so once the journal
+/// passes the window size, the NEWEST turns (the ones a follow-up prompt
+/// actually references) fall out of the window exactly when a multi-shot
+/// session gets long. This variant queries newest-first (type-filtered, so
+/// the window counts only the rows the caller cares about) and reverses the
+/// result back to chronological order for replay-style consumers.
+export async function getJournalEventsByType(
+  documentId: string,
+  types: string[],
+  limit = 80,
+): Promise<JournalRow[]> {
+  const { db } = await import('../db');
+  if (types.length === 0) return [];
+  const rows = await db.agentEvent.findMany({
+    where: { documentId, type: { in: types } },
+    orderBy: { seq: 'desc' },
+    take: Math.min(Math.max(limit, 1), 1000),
+  });
+  return rows.reverse().map((row) => ({
+    seq: row.seq,
+    type: row.type,
+    toolCallId: row.toolCallId,
+    payload: safeParse(row.payload),
+    createdAt: row.createdAt.toISOString(),
+  }));
+}
+
 /// Latest seq written for a document (0 when the journal is empty).
 export async function getJournalLastSeq(documentId: string): Promise<number> {
   const { db } = await import('../db');

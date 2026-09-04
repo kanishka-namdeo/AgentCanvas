@@ -274,6 +274,31 @@ describe('modes: detectMultitaskPrompt', () => {
     expect(detectMultitaskPrompt('Make the cards darker').heuristic).toBe(false);
     expect(detectMultitaskPrompt('What do you think about my pricing page?').heuristic).toBe(false);
   });
+
+  // 2026-09-05 multi-shot fixes: same-word screen mentions and edit-intent
+  // prompts must stay on the single-agent EDIT path.
+  it('same screen mentioned twice is edit-scoping, not a multi-screen ask', () => {
+    expect(
+      detectMultitaskPrompt(
+        "a stray chart frame sits OUTSIDE the dashboard at the top level, and the dashboard's own chart card is missing",
+      ).heuristic,
+    ).toBe(false);
+  });
+
+  it('edit-intent prompts never route to the parallel screen-builder', () => {
+    expect(
+      detectMultitaskPrompt(
+        'Fix it: 1) delete the stray top-level Monthly Revenue chart frame, 2) recreate the chart inside the dashboard section',
+      ).heuristic,
+    ).toBe(false);
+    expect(detectMultitaskPrompt('Update the login screen and change the dashboard header').heuristic).toBe(false);
+    expect(detectMultitaskPrompt('Remove the pricing page and move the settings screen left').heuristic).toBe(false);
+  });
+
+  it('genuine multi-screen CREATION asks still route (no edit verbs)', () => {
+    expect(detectMultitaskPrompt('Create the login screen and the dashboard screen for our SaaS').heuristic).toBe(true);
+    expect(detectMultitaskPrompt('Build a pricing page plus a checkout page').heuristic).toBe(true);
+  });
 });
 
 // ---- 5. Settings plumbing ----------------------------------------------------------

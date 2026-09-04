@@ -1197,6 +1197,34 @@ function normalizeSubtree(
   rootId: string,
 ): PenChild {
   const { children, parentId: _rootParentId, ...rest } = input as Record<string, unknown>;
+  // 2026-09-05 chart-line fix: point-carrying path nodes (chart trend lines,
+  // drawn polylines) frequently arrive WITHOUT x/y/width/height — the node
+  // defaults then produce the 100×100 placeholder, and the DOM path island
+  // renders its viewBox as "x y 100 100", cropping a 940-unit polyline to
+  // its first ~10% (observed live: a 12-point revenue trend line rendered as
+  // a dot cluster inside a 100px box while its ellipse data points spread
+  // across the full plot width). Derive the node's geometry from the points'
+  // bounding box BEFORE the defaults apply; explicit values always win.
+  {
+    const r = rest as { type?: string; points?: Array<{ x?: unknown; y?: unknown }>; x?: unknown; y?: unknown; width?: unknown; height?: unknown };
+    if (r.type === 'path' && Array.isArray(r.points) && r.points.length >= 2) {
+      const valid = r.points.every(
+        (p) => p && typeof (p as { x?: unknown }).x === 'number' && typeof (p as { y?: unknown }).y === 'number',
+      );
+      if (valid) {
+        const xs = r.points.map((p) => p.x as number);
+        const ys = r.points.map((p) => p.y as number);
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+        if (r.x === undefined || r.x === null) r.x = minX;
+        if (r.y === undefined || r.y === null) r.y = minY;
+        if (r.width === undefined || r.width === null) r.width = Math.max(1, maxX - minX);
+        if (r.height === undefined || r.height === null) r.height = Math.max(1, maxY - minY);
+      }
+    }
+  }
   const partial = toPenNodePartial(rest as Partial<Shape> & Record<string, unknown>);
   delete partial.parentId;
   const id = rootId;

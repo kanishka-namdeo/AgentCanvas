@@ -1316,7 +1316,25 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
         autoLayout,
         tokenBinding: (n as any).tokenBinding ?? null,
         componentId: (n as any).componentId ?? null,
-        points: (n as any).points ?? null,
+        // 2026-09-05 chart-line fix: path points are authored in the node's
+        // PARENT coordinate space (pen_create_chart emits plot-local points;
+        // subtree children are parent-relative by convention) while the
+        // resolved Shape's x/y are ABSOLUTE. The DOM path island and the SVG
+        // exporter both consume points in the absolute space (viewBox
+        // `${layer.x} ${layer.y} w h` / root-space polylines), so rebase each
+        // point by the node's (abs − authored) offset. Top-level paths have
+        // offset 0 and are unchanged; the double-shift risk for
+        // absolute-authored nested points is accepted because the subtree
+        // convention (everything parent-relative) makes those rare.
+        points: (n as any).points && Array.isArray((n as any).points) && (n as any).points.length > 0
+          ? (n as any).points.map((p: { x?: unknown; y?: unknown }) => ({
+              // num() coercion: LLM/test-authored points may carry string
+              // numbers ("x": "10") — the geometry-string branch always
+              // coerced these; keep that behavior here.
+              x: num(p?.x, 0) + rn.absX - num((n as any).x, rn.absX),
+              y: num(p?.y, 0) + rn.absY - num((n as any).y, rn.absY),
+            }))
+          : ((n as any).points ?? null),
         closed: (n as any).closed ?? false,
         src: (n as any).src ?? null,
         // Icon nodes (.pen PenIcon): library-qualified name, resolved to
@@ -1689,12 +1707,21 @@ function mapNodeExtras(
   _theme: PenTheme,
   warn?: (kind: ResolverWarningKind, message: string) => void,
 ): void {
-  if (node.type === 'path' && (node as any).geometry) {
+  if (node.type === 'path' && (node as any).geometry && !Array.isArray((node as any).points)) {
     // Best-effort: parse "M x y L x y ..." into points.
     const geometry = String((node as any).geometry);
     const pts = parsePathGeometry(geometry);
     if (pts.length > 0) {
-      shape.points = pts;
+      // 2026-09-05 chart-line fix: geometry coordinates are authored in the
+      // node's PARENT space (same convention as points arrays — see the
+      // points rebase in emit()); pathIsland and the SVG exporter consume
+      // the ABSOLUTE space, so shift by the node's (abs − authored) offset.
+      // Top-level paths have offset 0 and are unchanged.
+      const dx = shape.x - num((node as any).x, shape.x);
+      const dy = shape.y - num((node as any).y, shape.y);
+      shape.points = dx === 0 && dy === 0
+        ? pts
+        : pts.map((p) => ({ x: p.x + dx, y: p.y + dy }));
       shape.closed = geometry.includes('Z');
     }
     // Curve/arc commands (C/Q/S/T/A, either case) are dropped by the

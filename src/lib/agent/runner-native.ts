@@ -110,7 +110,7 @@ import { setActiveSession as setGoalActiveSession } from './plugins/goal-list-lo
 import { setActiveSession as setBackgroundTaskActiveSession } from './plugins/background-tasks';
 import { setActiveLLM as setSubagentActiveLLM, setActiveCanvas as setSubagentActiveCanvas } from './plugins/subagents';
 import { getMemoryContextForPrompt } from './plugins/memory';
-import { getJournalEvents } from './event-journal';
+import { getJournalEvents, getJournalEventsByType } from './event-journal';
 // Cursor-style modes (Build / Ask / Plan) + multitask + adaptive critique —
 // see download/research-modes/cursor-modes-research.md §4 for the design.
 import {
@@ -132,34 +132,56 @@ import { hydrateSubtreeChildren, type RawSubtreeNode } from './tools';
 // message. The journal rows carry the full SyncEvent payloads; we keep only
 // the text, newest-last, capped per message and in total so a long chat can't
 // balloon the prompt. Exported for unit testing.
+//
+// 2026-09-05 multi-shot fix: the read used to be getJournalEvents(…, 0, 400) —
+// an ASCENDING read from seq 0, i.e. the OLDEST 400 rows. A dense design turn
+// writes 30-60 rows, so after ~8-10 turns the recent turns fell out of the
+// window exactly when "as we discussed" references go stale. The read is now
+// TYPE-FILTERED (user_message + turn_final only — 2 rows per turn instead of
+// 30-60) and NEWEST-first, so the window always holds the most recent turns.
+// Each assistant line also carries the turn's diff summary ("38 created · 5
+// updated", from turn_final's payload) so the model knows WHAT each prior
+// turn changed without re-reading the whole canvas — the Cursor "Edited N
+// files" chip pattern, applied to prompt context.
 const HISTORY_MAX_TURNS = 6;
 const HISTORY_PER_MSG_CAP = 1200;
 const HISTORY_TOTAL_CAP = 6000;
+
+/// Strip system-injected italic markers (_[Design critic iteration 1/2…]_) from
+/// replayed assistant text — they are turn-runtime telemetry, not design
+/// decisions, and replaying them into later turns' context teaches the model
+/// to emit the same markers itself (observed in journal replays).
+function stripSystemMarkers(text: string): string {
+  return text.replace(/_\[[^\]]*\]_/g, ' ').replace(/\s+/g, ' ');
+}
 
 export async function buildConversationHistory(documentId: string): Promise<string> {
   if (!documentId) return '';
   let rows: Array<{ type: string; payload: any }> = [];
   try {
-    rows = await getJournalEvents(documentId, 0, 400);
+    rows = await getJournalEventsByType(documentId, ['agent:user_message', 'agent:turn_final'], 64);
   } catch {
     return '';
   }
-  const pairs: Array<{ user: string; assistant: string }> = [];
+  const pairs: Array<{ user: string; assistant: string; diff: string }> = [];
   let pendingUser: string | null = null;
   for (const row of rows) {
     if (row.type === 'agent:user_message') {
       const text = typeof row.payload?.text === 'string' ? row.payload.text : '';
       if (text.trim()) {
-        if (pendingUser !== null) pairs.push({ user: pendingUser, assistant: '' });
+        if (pendingUser !== null) pairs.push({ user: pendingUser, assistant: '', diff: '' });
         pendingUser = text;
       }
     } else if (row.type === 'agent:turn_final' && pendingUser !== null) {
       const text = typeof row.payload?.text === 'string' ? row.payload.text : '';
-      pairs.push({ user: pendingUser, assistant: text });
+      const diff = typeof row.payload?.diffSummary === 'string' && row.payload.diffSummary.trim()
+        ? row.payload.diffSummary.trim()
+        : '';
+      pairs.push({ user: pendingUser, assistant: text, diff });
       pendingUser = null;
     }
   }
-  if (pendingUser !== null) pairs.push({ user: pendingUser, assistant: '' });
+  if (pendingUser !== null) pairs.push({ user: pendingUser, assistant: '', diff: '' });
   if (pairs.length === 0) return '';
   // Drop the LAST pair when its user message is the CURRENT prompt (the
   // journal row for this turn is written at run start, before the runner
@@ -178,7 +200,11 @@ export async function buildConversationHistory(documentId: string): Promise<stri
   const lines: string[] = [];
   let total = 0;
   for (const p of recent) {
-    const turn = `user: ${clip(p.user)}${p.assistant ? `\nassistant: ${clip(p.assistant)}` : ''}`;
+    // Diff chip (Cursor "Edited N files" pattern): tells the model WHAT the
+    // prior turn changed on the canvas, so a follow-up can target those
+    // regions without re-reading the whole tree.
+    const diffChip = p.diff ? ` [canvas: ${p.diff}]` : '';
+    const turn = `user: ${clip(p.user)}${p.assistant ? `\nassistant: ${clip(stripSystemMarkers(p.assistant))}${diffChip}` : ''}`;
     if (total + turn.length > HISTORY_TOTAL_CAP && lines.length > 0) break;
     lines.push(turn);
     total += turn.length;
@@ -293,11 +319,34 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   let hasGeneratedBrief = false;
   let inCritiqueReprrompt = false;
 
+  // 2026-09-05 multi-shot: nodes MUTATED (not created) by THIS turn. Pure edit
+  // turns ("make it dark theme") create zero new shapes, which used to skip
+  // the ENTIRE post-turn validation phase — a recolored label could break
+  // contrast or a renamed text could overflow its old box with no check.
+  // Interception point: every patch the tools apply flows through
+  // ctx.applyPatch below, so update / update_many ids are recorded here and
+  // the critique loop validates exactly those nodes on edit-only turns.
+  const turnTouchedIds = new Set<string>();
+  const collectTouchedIds = (patch: CanvasPatch): void => {
+    try {
+      if (patch.op === 'update' && typeof (patch as any).shapeId === 'string') {
+        turnTouchedIds.add((patch as any).shapeId);
+      } else if (Array.isArray(patch.updates)) {
+        for (const u of patch.updates) {
+          if (u && typeof (u as any).id === 'string') turnTouchedIds.add((u as any).id);
+        }
+      }
+    } catch {
+      // Non-fatal — tracking is best-effort.
+    }
+  };
+
   const ctx: CanvasToolContext = {
     getShapes: () => canvas.shapes ?? [],
     getTokens: () => canvas.tokens ?? { colors: [], textStyles: [] },
     getDocument: () => canvas,
     applyPatch(patch: CanvasPatch): CanvasPatch {
+      collectTouchedIds(patch);
       canvas = applyPatchToCanvas(canvas, patch);
       return patch;
     },
@@ -310,6 +359,9 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     getProtectedShapeIds: () => turnStartShapeIds,
     getProtectedShapeNames: () => turnStartShapeNames,
     isGuardActive: () => inCritiqueReprrompt,
+    // Live canvas for the restyle guards (apply_palette auto-scoping) — read
+    // lazily so the wrapper sees the canvas AS THE TURN MUTATES IT.
+    getShapes: () => canvas.shapes ?? [],
   }) as unknown as ReturnType<typeof createCanvasTools>;
   const penTools = createPenTools(ctx);
   const figmaTools = createFigmaTools(ctx);
@@ -481,7 +533,22 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // MODE GATE: the brief-first contract is a BUILD-mode concern. Ask turns
   // answer questions; Plan turns produce a plan (the plan IS the brief for
   // the execution phase — hasGeneratedBrief is pre-set there).
-  const shouldEnforceBrief = isDesignRequest(prompt) && mode === 'build';
+  //
+  // MULTI-SHOT GATE (2026-09-05): the brief sub-agent never sees the canvas
+  // (design-brief.ts ignores its `canvas` param), so on a NON-EMPTY canvas it
+  // invents a FRESH palette/typography that contradicts the design the user
+  // already has — while the system prompt's EDIT TURNS doctrine says to reuse
+  // the document's existing $variables. The injected "[PRE-GENERATED DESIGN
+  // BRIEF — source of truth for this whole turn]" header then directly fights
+  // the EDIT TURNS rule on exactly the follow-up prompts ("make it dark",
+  // "now the dashboard screen") that matter most. On a non-empty canvas the
+  // document's OWN variables + snapshot ARE the style source of truth (this
+  // also keeps multi-screen builds consistent — the Figma-alternative
+  // standard). The brief tool itself stays available; the model can still
+  // call pen_generate_design_brief when the user explicitly requests a fresh
+  // direction.
+  const shouldEnforceBrief = isDesignRequest(prompt) && mode === 'build'
+    && turnStartShapeIds.size === 0;
 
   // ---- Agent Performance Package change 9: pre-generate the design brief --
   //
@@ -2239,7 +2306,44 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       // critique loop entirely — there is nothing new to critique, and a
       // whole-canvas critique would re-litigate prior screens forever.
       const newShapesForCritique = shapesForCritique.filter((s) => !turnStartShapeIds.has(s.id));
-      if (newShapesForCritique.length === 0) break;
+      if (newShapesForCritique.length === 0) {
+        // ---- 2026-09-05: pure edit turns still get the FREE deterministic ----
+        // gate. "make it dark theme" / "tighten the spacing" touch EXISTING
+        // nodes: no new shapes → nothing for the multi-screen-scoped critic
+        // loop to critique, and previously nothing validated at all. Validate
+        // the nodes THIS turn mutated (see turnTouchedIds) and surface the
+        // findings as a low-severity critique event — no LLM critics, no fix
+        // re-prompt: the edits were the user's explicit instruction, and a
+        // re-prompt would risk reverting exactly what was just asked for.
+        // Findings land in the journal + UI so the user can issue a follow-up.
+        const touchedShapes = shapesForCritique.filter((s) => turnTouchedIds.has(s.id));
+        if (touchedShapes.length > 0) {
+          try {
+            const { validateCanvasBeforeComplete } = await import('./validators');
+            const editValidation = validateCanvasBeforeComplete(touchedShapes, {
+              relaxMinCount: true,
+            });
+            if (!editValidation.ok && editValidation.reasons.length > 0) {
+              yield {
+                kind: 'agent_event',
+                event: {
+                  type: 'agent:critique' as any,
+                  iteration: 0,
+                  defects: editValidation.reasons.slice(0, 6),
+                  validation: editValidation.stats,
+                  textSeverity: 'low' as const,
+                  vlmSeverity: 'low' as const,
+                  editTurnScope: touchedShapes.length,
+                  source: 'deterministic-validator (edit turn)' as any,
+                } as any,
+              };
+            }
+          } catch {
+            // Validator unavailable — non-fatal.
+          }
+        }
+        break;
+      }
       const priorShapeIds = [...turnStartShapeIds];
 
       // Skip critique during an explicit wireframe / low-fi request — the

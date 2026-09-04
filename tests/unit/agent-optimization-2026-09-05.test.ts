@@ -326,7 +326,7 @@ describe('2026-09-05: system prompt optimization', () => {
 
   it('PROMPT_VERSION is stamped for this pass', async () => {
     const { PROMPT_VERSION } = await import('@/lib/agent/runner-legacy');
-    expect(PROMPT_VERSION).toBe('2026-09-05.2');
+    expect(PROMPT_VERSION).toBe('2026-09-05.3');
   });
 
   it('one canonical construction hierarchy exists (subtree canonical, insert_html demoted)', () => {
@@ -376,5 +376,309 @@ describe('2026-09-05: temperature reaches the custom endpoint model', () => {
     expect(resolverSrc).toContain('buildCustomEndpointModel(customBaseUrl, modelId, userTemperature)');
     // Temperature participates in the resolved-model cache key (no stale Model).
     expect(resolverSrc).toContain("::${userTemperature ?? 'default'}");
+  });
+});
+
+// ---- 6. MULTI-SHOT (follow-up turn) optimizations — 2026-09-05.3 --------------
+
+describe('2026-09-05.3: multi-shot conversation history (source invariants)', () => {
+  const nativeSrc = readFileSync(join(process.cwd(), 'src/lib/agent/runner-native.ts'), 'utf-8');
+  const journalSrc = readFileSync(join(process.cwd(), 'src/lib/agent/event-journal.ts'), 'utf-8');
+  const routeSrc = readFileSync(join(process.cwd(), 'src/app/api/agent/route.ts'), 'utf-8');
+
+  it('history reads the NEWEST type-filtered journal rows, not the oldest 400', () => {
+    // The old ascending read from seq 0 lost recent turns after ~8-10 dense turns.
+    expect(nativeSrc).not.toContain('getJournalEvents(documentId, 0, 400)');
+    expect(nativeSrc).toContain(
+      "getJournalEventsByType(documentId, ['agent:user_message', 'agent:turn_final'], 64)",
+    );
+    // Newest-first query, reversed to chronological, type-filtered.
+    expect(journalSrc).toContain('export async function getJournalEventsByType');
+    expect(journalSrc).toMatch(/type: \{ in: types \}/);
+    expect(journalSrc).toMatch(/orderBy: \{ seq: 'desc' \}/);
+    expect(journalSrc).toContain('rows.reverse()');
+  });
+
+  it('history lines carry per-turn diff chips and strip system telemetry markers', () => {
+    expect(nativeSrc).toContain('diffChip');
+    expect(nativeSrc).toContain('[canvas: ${p.diff}]');
+    expect(nativeSrc).toContain('function stripSystemMarkers');
+    expect(nativeSrc).toContain("replace(/_\\[[^\\]]*\\]_/g, ' ')");
+  });
+
+  it('route journals the turn diff summary on agent:turn_final', () => {
+    expect(routeSrc).toContain('patchToOpRecord');
+    expect(routeSrc).toContain('diffSummary: formatDiffSummary(summarizeTurnDiff(turnPatchRecords))');
+    // Only SANITIZED patches count toward the diff (dropped patches excluded).
+    expect(routeSrc).toMatch(/const diffRec = patchToOpRecord\(sanitized\);\s*\n\s*if \(diffRec\) turnPatchRecords\.push\(diffRec\);/);
+  });
+
+  it('brief-first gating is skipped on non-empty canvases (multi-shot style drift fix)', () => {
+    expect(nativeSrc).toMatch(/isDesignRequest\(prompt\) && mode === 'build'\s*\n?\s*&& turnStartShapeIds\.size === 0/);
+  });
+
+  it('pure edit turns still run deterministic validation on touched nodes', () => {
+    expect(nativeSrc).toContain('const turnTouchedIds = new Set<string>()');
+    expect(nativeSrc).toContain('collectTouchedIds(patch)');
+    expect(nativeSrc).toContain('editValidation');
+    expect(nativeSrc).toContain("source: 'deterministic-validator (edit turn)'");
+  });
+});
+
+describe('2026-09-05.3: multi-shot EDIT TURNS doctrine (prompt invariants)', () => {
+  const src = readFileSync(join(process.cwd(), 'src/lib/agent/runner-legacy.ts'), 'utf-8');
+  const templateStart = src.indexOf('SYSTEM_PROMPT_TEMPLATE = `');
+  const template = src.slice(templateStart, src.indexOf('`;', templateStart));
+
+  it('EDIT TURNS carries the never-recreate + keep-untouched + style-continuity rules', () => {
+    expect(template).toContain('NEVER RE-CREATE what already exists');
+    expect(template).toContain('KEEP-UNTOUCHED');
+    expect(template).toContain('STYLE CONTINUITY across turns');
+    expect(template).toContain('ONE REQUEST PER TURN');
+    // The model is taught to read the [canvas: …] diff chips from history.
+    expect(template).toContain('[canvas: N created ·');
+  });
+
+  it('TURN FLOW branches first-turn vs follow-up (multi-shot path)', () => {
+    expect(template).toContain('FIRST TURN vs FOLLOW-UP');
+    expect(template).toContain('EDIT PATH (EDIT TURNS above)');
+    expect(template).toContain("skip the TOKENS step whenever $color.*\nvariables already exist");
+  });
+});
+
+describe('2026-09-05.3: prior-content guard covers restyle tools', () => {
+  const wrapTools = async () => (await import('@/lib/agent/prior-content-guard')).wrapToolsWithPriorContentGuard;
+
+  const mkTool = (name: string, executeFn: (params: any) => any) => ({
+    name,
+    execute: async (_id: string, params: any) => executeFn(params),
+  });
+
+  const mkOpts = (protectedIds: string[], shapes: Array<{ id: string }>, active: boolean) => ({
+    getProtectedShapeIds: () => new Set(protectedIds),
+    getProtectedShapeNames: () => new Map(protectedIds.map((id) => [id, `Prior ${id}`])),
+    isGuardActive: () => active,
+    getShapes: () => shapes,
+  });
+
+  it('pen_update_node on a protected node is blocked while the guard is active', async () => {
+    const seen: any[] = [];
+    const tools = (await wrapTools())(
+      [mkTool('pen_update_node', (p) => { seen.push(p); return { content: [{ type: 'text', text: 'ok' }] }; })],
+      mkOpts(['prior-1'], [], true),
+    );
+    const r: any = await (tools[0] as any).execute('t1', { nodeId: 'prior-1', changes: { fill: '#000' } }, null, null, null);
+    expect(r.isError).toBe(true);
+    expect(r.content[0].text).toContain('prior-content scope guard');
+    expect(seen).toHaveLength(0); // never reached the tool
+  });
+
+  it('pen_update_node on a NEW node passes through (fix-turns can edit this turn\'s work)', async () => {
+    const tools = (await wrapTools())(
+      [mkTool('pen_update_node', () => ({ content: [{ type: 'text', text: 'ok' }] }))],
+      mkOpts(['prior-1'], [], true),
+    );
+    const r: any = await (tools[0] as any).execute('t1', { nodeId: 'new-1', changes: { fill: '#000' } }, null, null, null);
+    expect(r.isError).toBeUndefined();
+    expect(r.content[0].text).toBe('ok');
+  });
+
+  it('pen_update_node is untouched when the guard is INACTIVE (main turns)', async () => {
+    const tools = (await wrapTools())(
+      [mkTool('pen_update_node', () => ({ content: [{ type: 'text', text: 'ok' }] }))],
+      mkOpts(['prior-1'], [], false),
+    );
+    const r: any = await (tools[0] as any).execute('t1', { nodeId: 'prior-1', changes: {} }, null, null, null);
+    expect(r.isError).toBeUndefined();
+  });
+
+  it('pen_apply_palette with omitted shapeIds auto-scopes to non-protected shapes', async () => {
+    const calls: any[] = [];
+    const tools = (await wrapTools())(
+      [mkTool('pen_apply_palette', (p) => { calls.push(p); return { content: [{ type: 'text', text: 'applied' }] }; })],
+      mkOpts(['prior-1', 'prior-2'], [{ id: 'prior-1' }, { id: 'prior-2' }, { id: 'new-1' }], true),
+    );
+    const r: any = await (tools[0] as any).execute('t1', { palette: ['#111', '#eee'] }, null, null, null);
+    expect(r.isError).toBeUndefined();
+    expect(calls[0].shapeIds).toEqual(['new-1']); // prior shapes excluded
+    expect(r.content[1].text).toContain('excluded 2 prior-turn node(s)');
+  });
+
+  it('pen_apply_palette whose explicit targets are ALL prior content errors out', async () => {
+    const tools = (await wrapTools())(
+      [mkTool('pen_apply_palette', () => ({ content: [{ type: 'text', text: 'applied' }] }))],
+      mkOpts(['prior-1'], [], true),
+    );
+    const r: any = await (tools[0] as any).execute('t1', { palette: ['#111'], shapeIds: ['prior-1'] }, null, null, null);
+    expect(r.isError).toBe(true);
+    expect(r.content[0].text).toContain('prior-content scope guard');
+  });
+
+  it('pen_bulk_update_by_filter gets prior ids injected as excludeIds', async () => {
+    const calls: any[] = [];
+    const tools = (await wrapTools())(
+      [mkTool('pen_bulk_update_by_filter', (p) => { calls.push(p); return { content: [{ type: 'text', text: 'ok' }] }; })],
+      mkOpts(['prior-1', 'prior-2'], [], true),
+    );
+    await (tools[0] as any).execute('t1', { type: 'text', changes: { textColor: '#111' } }, null, null, null);
+    expect(calls[0].excludeIds).toContain('prior-1');
+    expect(calls[0].excludeIds).toContain('prior-2');
+  });
+});
+
+describe('2026-09-05.3: pen_bulk_update_by_filter excludeIds (behavioral)', () => {
+  beforeEach(() => h.reset());
+
+  // Shapes must be created via the TOOLS (they populate the children tree the
+  // patch applier mutates); h.addShape only touches the flat derived list.
+  const mkText = async (name: string) => {
+    const created = await run('pen_create_node', {
+      type: 'text', name, text: name, x: 0, y: 0, width: 160, height: 20, fontSize: 14,
+    });
+    expect(created.isError).toBeFalsy();
+    return h.doc.shapes.find((s) => s.name === name)!.id;
+  };
+
+  it('excludes the listed ids from the match set and reports the exclusion', async () => {
+    const priorId = await mkText('Prior label');
+    const newId = await mkText('New label');
+    const r = await run('pen_bulk_update_by_filter', {
+      type: 'text',
+      changes: { textColor: '#0f172a' },
+      excludeIds: [priorId],
+    });
+    expect(r.isError).toBeFalsy();
+    const prior = h.doc.shapes.find((s) => s.id === priorId);
+    const fresh = h.doc.shapes.find((s) => s.id === newId);
+    expect(prior?.textColor).not.toBe('#0f172a');
+    expect(fresh?.textColor).toBe('#0f172a');
+    expect(String(r.content)).toContain('1 prior-turn node(s) excluded');
+  });
+
+  it('when the match set is ONLY excluded prior content, returns an actionable error', async () => {
+    const priorId = await mkText('Prior label');
+    const r = await run('pen_bulk_update_by_filter', {
+      type: 'text',
+      changes: { textColor: '#0f172a' },
+      excludeIds: [priorId],
+    });
+    expect(r.isError).toBe(true);
+    expect(String(r.content)).toContain('scope guard');
+  });
+
+  it('without excludeIds the behavior is unchanged (backward compatible)', async () => {
+    const idA = await mkText('A');
+    const idB = await mkText('B');
+    const r = await run('pen_bulk_update_by_filter', { type: 'text', changes: { textColor: '#334155' } });
+    expect(r.isError).toBeFalsy();
+    expect(h.doc.shapes.find((s) => s.id === idA)?.textColor).toBe('#334155');
+    expect(h.doc.shapes.find((s) => s.id === idB)?.textColor).toBe('#334155');
+    expect(String(r.content)).not.toContain('excluded');
+  });
+});
+
+describe('2026-09-05.3: turn-diff records feed the history diff chips', () => {
+  it('update_many patch counts as updates and formats as a one-line chip', async () => {
+    const { patchToOpRecord, summarizeTurnDiff, formatDiffSummary } = await import('@/lib/agent/turn-diff');
+    const rec = patchToOpRecord({
+      op: 'update_many',
+      updates: [{ id: 'a', changes: {} }, { id: 'b', changes: {} }, { id: 'c', changes: {} }],
+      summary: 'Bulk restyle',
+    } as CanvasPatch);
+    expect(rec?.count).toBe(3);
+    const chip = formatDiffSummary(summarizeTurnDiff([rec!]));
+    expect(chip).toBe('3 updated');
+  });
+
+  it('a mixed turn renders created + updated in the chip order', async () => {
+    const { diffSummaryFromPatches, formatDiffSummary } = await import('@/lib/agent/turn-diff');
+    const chip = formatDiffSummary(diffSummaryFromPatches([
+      { op: 'add_subtree', shapes: [{ id: 'x' }], summary: 'login screen' } as CanvasPatch,
+      { op: 'update', shapeId: 'y', summary: 'restyle' } as CanvasPatch,
+    ]));
+    expect(chip).toBe('1 created · 1 updated');
+  });
+});
+
+describe('2026-09-05.3: document-switch canvas hygiene (store init)', () => {
+  it('init() resets the canvas when switching to a snapshot-less document', () => {
+    const src = readFileSync(join(process.cwd(), 'src/lib/canvas/store.ts'), 'utf-8');
+    // The switch is detected from the PREVIOUS documentId (captured before set).
+    expect(src).toContain('const previousDocumentId = get().documentId;');
+    expect(src).toContain('const isDocumentSwitch = previousDocumentId !== documentId;');
+    // A snapshot-less document switch starts from a CLEAN canvas…
+    expect(src).toMatch(/isDocumentSwitch[\s\S]{0,400}createEmptyCanvasDocument\(documentId/);
+    // …and clears the per-shape chrome that references the old document's ids.
+    expect(src).toMatch(/isDocumentSwitch[\s\S]{0,700}measuredBounds: \{\}/);
+    expect(src).toMatch(/isDocumentSwitch[\s\S]{0,800}checkpoints: \[\]/);
+    // Same-document re-init still keeps the live document (re-key only).
+    expect(src).toContain('// No usable snapshot on the SAME document — keep the current document,');
+  });
+});
+
+describe('2026-09-05.3: path nodes derive geometry from points (chart trend line fix)', () => {
+  beforeEach(() => h.reset());
+
+  it('add_subtree path with points and NO width/height gets bbox-derived geometry', async () => {
+    const r = await run('pen_create_subtree', {
+      nodes: [{
+        type: 'frame', name: 'Chart', x: 100, y: 100, width: 500, height: 300, fill: '#111827',
+        children: [
+          // The exact shape pen_create_chart emits: points only, no geometry.
+          { type: 'path', name: 'trend line', points: [
+            { x: 24, y: 200 }, { x: 120, y: 180 }, { x: 216, y: 160 },
+            { x: 312, y: 140 }, { x: 408, y: 120 }, { x: 480, y: 100 },
+          ], closed: false, fill: 'transparent', stroke: '#0066FF', strokeWidth: 2.5 },
+        ],
+      }],
+    });
+    expect(r.isError).toBeFalsy();
+    const line = h.doc.shapes.find((s) => s.name === 'trend line');
+    expect(line).toBeTruthy();
+    // Bbox derived: x=minX, y=minY, w/h = extent (NOT the 100x100 placeholder).
+    // Resolved shapes are ABSOLUTE: parent frame at (100,100) + local bbox.
+    expect(Math.round(line!.x)).toBe(124);
+    expect(Math.round(line!.y)).toBe(200);
+    expect(Math.round(line!.width)).toBe(456); // 480 - 24
+    expect(Math.round(line!.height)).toBe(100); // 200 - 100
+    // Points are rebased into the SAME absolute space (parent offset added).
+    expect(line!.points?.length).toBe(6);
+    expect(Math.round(line!.points![0].x)).toBe(124); // 24 + 100
+    expect(Math.round(line!.points![0].y)).toBe(300); // 200 + 100
+  });
+
+  it('explicit path geometry is never overridden', async () => {
+    const r = await run('pen_create_subtree', {
+      nodes: [{
+        type: 'frame', name: 'F', x: 0, y: 0, width: 400, height: 300, fill: '#111827',
+        children: [
+          { type: 'path', name: 'explicit line', x: 10, y: 10, width: 200, height: 50,
+            points: [{ x: 10, y: 10 }, { x: 300, y: 300 }], closed: false, fill: 'transparent', stroke: '#fff', strokeWidth: 2 },
+        ],
+      }],
+    });
+    expect(r.isError).toBeFalsy();
+    const line = h.doc.shapes.find((s) => s.name === 'explicit line');
+    expect(Math.round(line!.x)).toBe(10);
+    expect(Math.round(line!.width)).toBe(200);
+  });
+
+  it('pen_create_chart line geometry spans its data (regression: 100x100 crop)', async () => {
+    const r = await run('pen_create_chart', {
+      type: 'line', title: 'Monthly Revenue', x: 50, y: 50, width: 600, height: 320,
+      data: Array.from({ length: 12 }, (_, i) => ({ label: `M${i + 1}`, value: 40 + i * 8 })),
+      seriesColor: '#0066FF',
+    });
+    expect(r.isError).toBeFalsy();
+    const trend = h.doc.shapes.find((s) => s.name === 'trend line');
+    expect(trend).toBeTruthy();
+    // The trend line's resolved width must SPAN the plot (hundreds of px),
+    // not the 100px placeholder that cropped it to a dot cluster.
+    expect(trend!.width).toBeGreaterThan(300);
+    const area = h.doc.shapes.find((s) => s.name === 'trend area');
+    expect(area!.width).toBeGreaterThan(300);
+    // Data points present alongside.
+    const dots = h.doc.shapes.filter((s) => /point$/.test(s.name ?? ''));
+    expect(dots.length).toBe(12);
   });
 });
