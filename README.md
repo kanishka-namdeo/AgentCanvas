@@ -29,41 +29,29 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ---
 
-## 🎬 Screenshots
+## 🎬 In pictures
 
-| The workspace | Agent thinking | Dashboard generated |
-| :---: | :---: | :---: |
-| ![Initial workspace](./download/dashboard-demo/01-initial.png) | ![Agent thinking](./download/dashboard-demo/03-agent-thinking.png) | ![Dashboard](./download/dashboard-demo/05b-dashboard-full.png) |
-
-| Dashboard generated | Dark mode | Session history |
-| :---: | :---: | :---: |
-| ![Dashboard](./download/dashboard-demo/05b-dashboard-full.png) | ![Dark mode](./download/polish-pass2/06-dark-mode-empty.png) | ![Sessions](./download/session-mgmt/10-run-history-expanded.png) |
-
-> More screenshots in [`download/`](./download/) — including a full dashboard-generation walkthrough and session-management demo.
+| The workspace | Agent thinking | Dashboard generated | Session history |
+| :---: | :---: | :---: | :---: |
+| ![Initial workspace](./download/dashboard-demo/01-initial.png) | ![Agent thinking](./download/dashboard-demo/03-agent-thinking.png) | ![Dashboard](./download/dashboard-demo/05b-dashboard-full.png) | ![Sessions](./download/session-mgmt/10-run-history-expanded.png) |
 
 ---
 
-## 🎥 Video demos
+## 🎥 Two core workflows
 
-Short screen-captured walkthroughs of every headline feature. All clips are **recorded programmatically** with [Playwright's `page.screencast` API](https://playwright.dev/docs/api/class-screencast) (1.59+) driving a headless Chromium against the live dev server — see [`scripts/video-demos/`](./scripts/video-demos/) for the recorder + ffmpeg converter.
+**1. Agent chat → live canvas mutation** — type a prompt, watch the agent reason + call typed tools, see shapes appear on the canvas in real time. *(This is the literal product: Figma's canvas + Cursor's agent loop.)*
 
-**Why not Playwright's built-in `recordVideo`?** That option is hardcoded to VP8 at a 1 Mbps realtime bitrate ([microsoft/playwright#31424](https://github.com/microsoft/playwright/issues/31424)), which produces visible mosquito noise around glyph edges and banding in flat gradients — exactly the kind of artifacts that make UI demo clips look bad. Instead, the recorder streams raw JPEG frames from `page.screencast.onFrame` into a separately-spawned ffmpeg process pinned to `libx264 -preset ultrafast -crf 18` (visually lossless, can't fall behind realtime). The capture runs at 1920×1200 with `deviceScaleFactor: 2` for retina-quality text, and a tiny CSS-animated heartbeat element forces the compositor to emit a steady 25 fps stream even when the page is otherwise static.
+![Agent chat: prompt → tool calls → live canvas mutation](./download/video-demos/core-agent-chat.gif)
 
-A downstream two-pass ffmpeg pipeline then transcodes each capture into a small distribution MP4 (H.264 CRF 20, ~100–270 KB) plus a palette-optimized GIF (~400 KB–1.1 MB) for guaranteed rendering inside GitHub's markdown (GitHub does not render `<video>` tags with relative paths, but GIFs always render via `![alt](path)`). The GIF pipeline uses `palettegen` with `stats_mode=full` (histogram across every frame, not just diffs) and `paletteuse` with `sierra2_4a` dithering + `lanczos` scaling — per [ubitux's high-quality GIF guide](https://blog.pkh.me/p/21-high-quality-gif-with-ffmpeg.html).
+<sub>Higher-quality MP4: [`core-agent-chat_dist.mp4`](./download/video-demos/core-agent-chat_dist.mp4) · raw capture: [`core-agent-chat.mp4`](./download/video-demos/core-agent-chat.mp4)</sub>
 
-> Re-record any clip with `bash scripts/video-demos/record-and-convert.sh` (requires the dev server on `:3000`).
+**2. Human-in-the-loop trust** — every destructive operation (`pen_clear`, `pen_delete_shape`, `figma_delete_page`) is gated behind an Allow/Deny dialog with a 5-minute timeout. The turn-diff chip + per-op diff card keep the agent accountable. *(The pattern Cursor/Cline/Claude Code established for code — applied to a visual design canvas for the first time.)*
 
-| Agent chat — prompt → tool calls → live canvas mutation | Manual shape drawing | Layers panel + properties inspector |
-| :---: | :---: | :---: |
-| ![Agent chat demo](./download/video-demos/06-agent-chat.gif) | ![Shape drawing demo](./download/video-demos/01-shape-drawing.gif) | ![Layers + properties demo](./download/video-demos/02-layers-properties.gif) |
-| <sub>MP4: [`06-agent-chat_dist.mp4`](./download/video-demos/06-agent-chat_dist.mp4)</sub> | <sub>MP4: [`01-shape-drawing_dist.mp4`](./download/video-demos/01-shape-drawing_dist.mp4)</sub> | <sub>MP4: [`02-layers-properties_dist.mp4`](./download/video-demos/02-layers-properties_dist.mp4)</sub> |
+![Trust loop: diff card + approval gate](./download/video-demos/core-trust-loop.gif)
 
-| Dark mode toggle | Infinite canvas — zoom + space-drag pan | ⌘K command palette | Session sidebar |
-| :---: | :---: | :---: | :---: |
-| ![Dark mode demo](./download/video-demos/03-dark-mode.gif) | ![Zoom and pan demo](./download/video-demos/04-zoom-pan.gif) | ![Command palette demo](./download/video-demos/05-command-palette.gif) | ![Session sidebar demo](./download/video-demos/07-session-sidebar.gif) |
-| <sub>MP4: [`03-dark-mode_dist.mp4`](./download/video-demos/03-dark-mode_dist.mp4)</sub> | <sub>MP4: [`04-zoom-pan_dist.mp4`](./download/video-demos/04-zoom-pan_dist.mp4)</sub> | <sub>MP4: [`05-command-palette_dist.mp4`](./download/video-demos/05-command-palette_dist.mp4)</sub> | <sub>MP4: [`07-session-sidebar_dist.mp4`](./download/video-demos/07-session-sidebar_dist.mp4)</sub> |
+<sub>Higher-quality MP4: [`core-trust-loop_dist.mp4`](./download/video-demos/core-trust-loop_dist.mp4) · raw capture: [`core-trust-loop.mp4`](./download/video-demos/core-trust-loop.mp4)</sub>
 
-Higher-quality MP4s (the raw H.264 CRF 18 captures) live in [`download/video-demos/`](./download/video-demos/) alongside the GIFs and distribution MP4s.
+> **How these clips are made** — both are recorded programmatically. The agent-chat clip uses [Playwright's `page.screencast` API](https://playwright.dev/docs/api/class-screencast) (not the built-in `recordVideo`, which is hardcoded to VP8 at 1 Mbps and produces mosquito noise) streaming JPEG frames into a separately-spawned ffmpeg pinned to `libx264 -preset ultrafast -crf 18`. The trust-loop clip is a crossfade slideshow stitched from the screenshots in [`download/agent-chat-trust/`](./download/agent-chat-trust/) — the approval gate only fires when the agent calls a destructive tool, which is non-deterministic in a live recording, so a slideshow guarantees a clean, reproducible demo of the full arc. See [`scripts/video-demos/`](./scripts/video-demos/) for the recorder + slideshow builder + ffmpeg converter.
 
 ---
 
