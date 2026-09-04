@@ -43,6 +43,26 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ---
 
+## 🎥 Video demos
+
+Short screen-captured walkthroughs of every headline feature. All clips are **recorded programmatically** with [Playwright](https://playwright.dev/docs/videos) driving a headless Chromium against the live dev server — see [`scripts/video-demos/`](./scripts/video-demos/) for the recorder + ffmpeg converter. The recorder opens a fresh `recordVideo` context per scene, replays real UI interactions (clicks, drags, typing, theme toggles, ⌘K palette), and then a two-pass ffmpeg pipeline emits a small MP4 (H.264, ~100 KB) plus a palette-optimized GIF (~1–3 MB) for guaranteed rendering inside GitHub's markdown.
+
+> Re-record any clip with `bash scripts/video-demos/record-and-convert.sh` (requires the dev server on `:3000`).
+
+| Agent chat — prompt → tool calls → live canvas mutation | Manual shape drawing | Layers panel + properties inspector |
+| :---: | :---: | :---: |
+| ![Agent chat demo](./download/video-demos/06-agent-chat.gif) | ![Shape drawing demo](./download/video-demos/01-shape-drawing.gif) | ![Layers + properties demo](./download/video-demos/02-layers-properties.gif) |
+| <sub>MP4: [`06-agent-chat.mp4`](./download/video-demos/06-agent-chat.mp4)</sub> | <sub>MP4: [`01-shape-drawing.mp4`](./download/video-demos/01-shape-drawing.mp4)</sub> | <sub>MP4: [`02-layers-properties.mp4`](./download/video-demos/02-layers-properties.mp4)</sub> |
+
+| Dark mode toggle | Infinite canvas — zoom + space-drag pan | ⌘K command palette | Session sidebar |
+| :---: | :---: | :---: | :---: |
+| ![Dark mode demo](./download/video-demos/03-dark-mode.gif) | ![Zoom and pan demo](./download/video-demos/04-zoom-pan.gif) | ![Command palette demo](./download/video-demos/05-command-palette.gif) | ![Session sidebar demo](./download/video-demos/07-session-sidebar.gif) |
+| <sub>MP4: [`03-dark-mode.mp4`](./download/video-demos/03-dark-mode.mp4)</sub> | <sub>MP4: [`04-zoom-pan.mp4`](./download/video-demos/04-zoom-pan.mp4)</sub> | <sub>MP4: [`05-command-palette.mp4`](./download/video-demos/05-command-palette.mp4)</sub> | <sub>MP4: [`07-session-sidebar.mp4`](./download/video-demos/07-session-sidebar.mp4)</sub> |
+
+Higher-quality MP4s live in [`download/video-demos/`](./download/video-demos/) alongside the GIFs.
+
+---
+
 ## 🚀 Features
 
 ### 🤖 AI agent at the wheel
