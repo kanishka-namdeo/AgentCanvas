@@ -45,21 +45,25 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ## 🎥 Video demos
 
-Short screen-captured walkthroughs of every headline feature. All clips are **recorded programmatically** with [Playwright](https://playwright.dev/docs/videos) driving a headless Chromium against the live dev server — see [`scripts/video-demos/`](./scripts/video-demos/) for the recorder + ffmpeg converter. The recorder opens a fresh `recordVideo` context per scene, replays real UI interactions (clicks, drags, typing, theme toggles, ⌘K palette), and then a two-pass ffmpeg pipeline emits a small MP4 (H.264, ~100 KB) plus a palette-optimized GIF (~1–3 MB) for guaranteed rendering inside GitHub's markdown.
+Short screen-captured walkthroughs of every headline feature. All clips are **recorded programmatically** with [Playwright's `page.screencast` API](https://playwright.dev/docs/api/class-screencast) (1.59+) driving a headless Chromium against the live dev server — see [`scripts/video-demos/`](./scripts/video-demos/) for the recorder + ffmpeg converter.
+
+**Why not Playwright's built-in `recordVideo`?** That option is hardcoded to VP8 at a 1 Mbps realtime bitrate ([microsoft/playwright#31424](https://github.com/microsoft/playwright/issues/31424)), which produces visible mosquito noise around glyph edges and banding in flat gradients — exactly the kind of artifacts that make UI demo clips look bad. Instead, the recorder streams raw JPEG frames from `page.screencast.onFrame` into a separately-spawned ffmpeg process pinned to `libx264 -preset ultrafast -crf 18` (visually lossless, can't fall behind realtime). The capture runs at 1920×1200 with `deviceScaleFactor: 2` for retina-quality text, and a tiny CSS-animated heartbeat element forces the compositor to emit a steady 25 fps stream even when the page is otherwise static.
+
+A downstream two-pass ffmpeg pipeline then transcodes each capture into a small distribution MP4 (H.264 CRF 20, ~100–270 KB) plus a palette-optimized GIF (~400 KB–1.1 MB) for guaranteed rendering inside GitHub's markdown (GitHub does not render `<video>` tags with relative paths, but GIFs always render via `![alt](path)`). The GIF pipeline uses `palettegen` with `stats_mode=full` (histogram across every frame, not just diffs) and `paletteuse` with `sierra2_4a` dithering + `lanczos` scaling — per [ubitux's high-quality GIF guide](https://blog.pkh.me/p/21-high-quality-gif-with-ffmpeg.html).
 
 > Re-record any clip with `bash scripts/video-demos/record-and-convert.sh` (requires the dev server on `:3000`).
 
 | Agent chat — prompt → tool calls → live canvas mutation | Manual shape drawing | Layers panel + properties inspector |
 | :---: | :---: | :---: |
 | ![Agent chat demo](./download/video-demos/06-agent-chat.gif) | ![Shape drawing demo](./download/video-demos/01-shape-drawing.gif) | ![Layers + properties demo](./download/video-demos/02-layers-properties.gif) |
-| <sub>MP4: [`06-agent-chat.mp4`](./download/video-demos/06-agent-chat.mp4)</sub> | <sub>MP4: [`01-shape-drawing.mp4`](./download/video-demos/01-shape-drawing.mp4)</sub> | <sub>MP4: [`02-layers-properties.mp4`](./download/video-demos/02-layers-properties.mp4)</sub> |
+| <sub>MP4: [`06-agent-chat_dist.mp4`](./download/video-demos/06-agent-chat_dist.mp4)</sub> | <sub>MP4: [`01-shape-drawing_dist.mp4`](./download/video-demos/01-shape-drawing_dist.mp4)</sub> | <sub>MP4: [`02-layers-properties_dist.mp4`](./download/video-demos/02-layers-properties_dist.mp4)</sub> |
 
 | Dark mode toggle | Infinite canvas — zoom + space-drag pan | ⌘K command palette | Session sidebar |
 | :---: | :---: | :---: | :---: |
 | ![Dark mode demo](./download/video-demos/03-dark-mode.gif) | ![Zoom and pan demo](./download/video-demos/04-zoom-pan.gif) | ![Command palette demo](./download/video-demos/05-command-palette.gif) | ![Session sidebar demo](./download/video-demos/07-session-sidebar.gif) |
-| <sub>MP4: [`03-dark-mode.mp4`](./download/video-demos/03-dark-mode.mp4)</sub> | <sub>MP4: [`04-zoom-pan.mp4`](./download/video-demos/04-zoom-pan.mp4)</sub> | <sub>MP4: [`05-command-palette.mp4`](./download/video-demos/05-command-palette.mp4)</sub> | <sub>MP4: [`07-session-sidebar.mp4`](./download/video-demos/07-session-sidebar.mp4)</sub> |
+| <sub>MP4: [`03-dark-mode_dist.mp4`](./download/video-demos/03-dark-mode_dist.mp4)</sub> | <sub>MP4: [`04-zoom-pan_dist.mp4`](./download/video-demos/04-zoom-pan_dist.mp4)</sub> | <sub>MP4: [`05-command-palette_dist.mp4`](./download/video-demos/05-command-palette_dist.mp4)</sub> | <sub>MP4: [`07-session-sidebar_dist.mp4`](./download/video-demos/07-session-sidebar_dist.mp4)</sub> |
 
-Higher-quality MP4s live in [`download/video-demos/`](./download/video-demos/) alongside the GIFs.
+Higher-quality MP4s (the raw H.264 CRF 18 captures) live in [`download/video-demos/`](./download/video-demos/) alongside the GIFs and distribution MP4s.
 
 ---
 

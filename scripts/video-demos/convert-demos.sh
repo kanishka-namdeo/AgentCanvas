@@ -1,57 +1,77 @@
 #!/bin/bash
-# convert-demos.sh — convert WebM recordings to small MP4 + optimized GIF.
+# convert-demos.sh — transcode capture MP4s into distribution MP4 + GIF.
 #
-# Why both:
-#   - GitHub README renders animated GIFs via ![alt](path) — always works.
-#   - MP4 (H.264) is ~10x smaller and sharper; some renderers support
-#     <video> tags. We embed the GIF in the README for guaranteed rendering
-#     and keep the MP4 alongside for users who want a higher-quality copy.
+# Input:  capture MP4 at 3840x2400 (DPR 2 from a 1920x1200 viewport),
+#         H.264 ultrafast CRF 18 from record-demos.ts.
+# Output: small MP4 (~100-200 KB, CRF 20 medium preset, 1280-wide) plus
+#         a high-quality palette-optimized GIF (900-wide).
 #
-# Palette trick: ffmpeg's gif codec looks awful without a palette. The standard
-# two-pass approach generates a stats file from the source, then uses it as a
-# filter to produce a clean 256-color GIF.
+# Quality choices (informed by https://blog.pkh.me/p/21-high-quality-gif-with-ffmpeg.html):
+#   - palettegen with stats_mode=full — builds the palette from the histogram
+#     of EVERY frame (not just diffs). For UI demos where most of the frame
+#     stays the same color, this captures the full color range of the canvas
+#     instead of just the changed pixels. Result: no banding on flat fills.
+#   - paletteuse with dither=sierra2_4a — error-diffusion dither that
+#     produces smoother gradients than bayer (no 8x8 crosshatch). The
+#     "swarming" artifact the article warns about is acceptable here because
+#     our content is mostly static UI chrome; bayer's pattern would be MORE
+#     visible on text-heavy UI. diff_mode=rectangle keeps file size sane by
+#     only redrawing the changed sub-rectangle per frame.
+#   - scale with flags=lanczos — the article specifically recommends lanczos
+#     or bicubic over the default bilinear; bilinear makes the input blurry
+#     when downsampling, which destroys text crispness.
+#   - For the MP4 distribution: libx264 medium crf 20 (visually lossless),
+#     yuv420p for universal player support, +faststart for web streaming.
 #
 # Refs:
-#   - https://ffmpeg.org/ffmpeg-filters.html#palettegen-1
-#   - https://trac.ffmpeg.org/wiki/Create%20animated%20GIF%20with%20FFmpeg
+#   - https://blog.pkh.me/p/21-high-quality-gif-with-ffmpeg.html
+#   - https://trac.ffmpeg.org/wiki/Encode/H.264
+#   - https://ffmpeg.org/ffmpeg-filters.html#paletteuse-1
 set -euo pipefail
 
 OUT_DIR="${1:-/home/z/my-project/download/video-demos}"
 cd "$OUT_DIR"
 
-FPS=12          # smooth enough for UI demos, keeps GIF small
-SCALE=900       # width in px — fits GitHub's README column
-PALETTE="/tmp/_palette_$$ .png"
+# Distribution dimensions
+GIF_WIDTH=900       # GIF is rendered at README column width on GitHub
+MP4_WIDTH=1280      # MP4 is the higher-quality link
+FPS=20              # smooth enough for UI demos; keeps GIF frame count reasonable
+
+PALETTE="$(mktemp /tmp/_palette.XXXXXX.png)"
 
 shopt -s nullglob
-for webm in *.webm; do
-  base="${webm%.webm}"
-  mp4="${base}.mp4"
+for cap in *.mp4; do
+  # Skip files we already converted (idempotency: skip "_dist.mp4" suffix).
+  case "$cap" in *_dist.mp4) continue;; esac
+
+  base="${cap%.mp4}"
+  mp4_dist="${base}_dist.mp4"
   gif="${base}.gif"
 
-  echo "→ $webm"
+  echo "→ $cap"
 
-  # 1) MP4 (H.264 + AAC, faststart for progressive web playback)
-  ffmpeg -y -i "$webm" \
+  # 1) Distribution MP4 — H.264 medium CRF 20 (visually lossless, small)
+  ffmpeg -y -i "$cap" \
     -an \
-    -vf "scale=${SCALE}:-2" \
-    -c:v libx264 -profile:v high -preset veryfast -crf 26 \
+    -vf "scale=${MP4_WIDTH}:-2" \
+    -c:v libx264 -preset medium -crf 20 \
+    -profile:v high -pix_fmt yuv420p \
     -movflags +faststart \
-    -pix_fmt yuv420p \
-    "$mp4" 2>/dev/null
-  echo "    ✓ $mp4 ($(du -h "$mp4" | cut -f1))"
+    "$mp4_dist" 2>/dev/null
+  echo "    ✓ $mp4_dist ($(du -h "$mp4_dist" | cut -f1))"
 
-  # 2) GIF — palettegen + paletteuse two-pass
-  ffmpeg -y -i "$webm" \
-    -vf "fps=${FPS},scale=${SCALE}:-1:flags=lanczos,palettegen=stats_mode=diff" \
+  # 2) GIF — palettegen (stats_mode=full) + paletteuse (sierra2_4a dither)
+  ffmpeg -y -i "$cap" \
+    -vf "fps=${FPS},scale=${GIF_WIDTH}:-1:flags=lanczos,palettegen=stats_mode=full" \
     "$PALETTE" 2>/dev/null
-  ffmpeg -y -i "$webm" -i "$PALETTE" \
-    -filter_complex "fps=${FPS},scale=${SCALE}:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" \
+  ffmpeg -y -i "$cap" -i "$PALETTE" \
+    -filter_complex "fps=${FPS},scale=${GIF_WIDTH}:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=sierra2_4a:diff_mode=rectangle" \
     "$gif" 2>/dev/null
-  rm -f "$PALETTE"
   echo "    ✓ $gif ($(du -h "$gif" | cut -f1))"
 done
 
+rm -f "$PALETTE"
+
 echo ""
 echo "=== done. files in $OUT_DIR ==="
-ls -lh *.mp4 *.gif 2>/dev/null | awk '{print $5, $9}'
+ls -lh *_dist.mp4 *.gif 2>/dev/null | awk '{print $5, $9}'
