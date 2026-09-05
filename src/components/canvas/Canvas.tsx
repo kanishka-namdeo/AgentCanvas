@@ -29,7 +29,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape, Viewport } from '@/lib/canvas/types';
-import { SHORTCUTS_BY_ACTION, matchShortcut } from '@/lib/canvas/shortcuts';
+import { SHORTCUTS_BY_ACTION, matchShortcut, platformChord, isEditableTarget, inCanvasKeyScope, menuLayerOpen } from '@/lib/canvas/shortcuts';
 import { fitViewport, bboxOf, contentOutsideViewport, DEFAULT_VIEWPORT } from '@/lib/canvas/viewport';
 import { scaleGeometry } from '@/lib/canvas/scale';
 import {
@@ -118,6 +118,7 @@ export function Canvas() {
   const guideLines = useCanvasStore((s) => s.guideLines);
   const addGuideAction = useCanvasStore((s) => s.addGuide);
   const removeGuideAction = useCanvasStore((s) => s.removeGuide);
+  const clearGuidesAction = useCanvasStore((s) => s.clearGuides);
   // Phase 7 §H.2 measure overlay (Alt/Option hover): measureMode is set
   // transiently by the keydown/keyup handler below — never user-toggled.
   // The DOM renderer reads it to know when to paint the redline overlay.
@@ -336,7 +337,12 @@ export function Canvas() {
       if (!isEditableTarget(e.target)) {
         setMeasureMode(e.altKey);
       }
-      if (e.code === 'Space' && !isEditableTarget(e.target)) {
+      // Space pan-arm: only in the CANVAS key scope. When focus is on a
+      // chrome control (toolbar button, tree row, input), Space belongs to
+      // that control (button activation) — arming grab-pan simultaneously
+      // made every Space press on a button ALSO flip the canvas cursor to
+      // grab for the duration of the press.
+      if (e.code === 'Space' && inCanvasKeyScope(e.target) && !isEditableTarget(e.target)) {
         setSpaceDown(true);
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (isEditableTarget(e.target)) return;
@@ -353,18 +359,30 @@ export function Canvas() {
           select([]);
         }
       } else if (e.key === 'Escape') {
-        // Esc semantics (2026-09-05 contract): stopping the agent wins while
-        // a run is live (NN/g user-control heuristic #3 — the canvas-scope
-        // escape hatch); with the agent idle it clears the selection as
-        // before. Skipped while a modal surface owns Esc (Radix dialogs lock
-        // body scroll; cmdk mounts its own root) or while editing text —
-        // those surfaces close themselves and must NOT also stop the agent.
+        // Esc semantics (2026-09-05 contract, interaction-consistency pass):
+        // the OPEN SURFACE owns Esc, in ownership order —
+        //   1. text entry / native select (their own Esc behavior —
+        //      previously a focused composer + Esc still cleared the
+        //      canvas selection from under the typist),
+        //   2. any Radix floating layer (dropdown/context/popover menus —
+        //      they close themselves; the old handler only knew dialogs,
+        //      so closing a context menu during a live run ALSO stopped
+        //      the agent),
+        //   3. Radix dialogs (body[data-scroll-locked]) + the command
+        //      palette ([cmdk-root]),
+        //   4. stopping the agent while a run is live (NN/g user-control
+        //      heuristic #3 — the canvas-scope escape hatch),
+        //   5. clearing the selection with the agent idle.
+        // In every "owned" case we return without acting — the owning
+        // surface handles the key.
         const overlayOwnsEsc =
           (typeof window !== 'undefined' &&
             (window.document.body.matches('[data-scroll-locked]') ||
               !!window.document.querySelector('[cmdk-root]'))) ||
+          menuLayerOpen() ||
           isEditableTarget(e.target);
-        if (agentBusyRef.current && !overlayOwnsEsc) {
+        if (overlayOwnsEsc) return;
+        if (agentBusyRef.current) {
           stopAgent();
         } else {
           select([]);
@@ -373,6 +391,16 @@ export function Canvas() {
         if (isEditableTarget(e.target)) return;
         // Busy guard — skip the text-edit prompt under a live run.
         if (agentBusyRef.current) return;
+        // Canvas-surface keys (Enter / Tab families) are scoped to the
+        // canvas key scope — focus on a shape, the world, or body. When a
+        // chrome control has focus, the CONTROL owns the key: Enter
+        // activates the focused button (was globally swallowed — every
+        // button was Enter-dead), Tab moves focus along the tab ring (was
+        // globally preventDefaulted — an effective keyboard trap; APG:
+        // Tab moves focus BETWEEN components). Modifier chords (⌘… zoom /
+        // view options) still fire from anywhere — they are APG-safe and
+        // Figma keeps ⌘-chords app-global.
+        if (!inCanvasKeyScope(e.target) && !e.metaKey && !e.ctrlKey) return;
         // Task 4d — Enter on a single-selected text shape enters edit mode
         // (window.prompt for the new text content). Done BEFORE the
         // registry chords so a text shape doesn't fall through to the
@@ -408,6 +436,14 @@ export function Canvas() {
           const def = SHORTCUTS_BY_ACTION.get(action);
           return def ? matchShortcut(e, def) : false;
         };
+        // Tab/⇧Tab/Enter/⇧Enter navigation needs a selection to act on.
+        // Without one the old handler still preventDefaulted — a silent
+        // Tab swallow for body-focused users with an empty canvas.
+        const navNeedsSelection = (a: string) =>
+          a === 'nav.sibling-next' || a === 'nav.sibling-prev' ||
+          a === 'nav.child' || a === 'nav.parent';
+        const tryNav = (action: string) =>
+          match(action) && (!navNeedsSelection(action) || selectedIds.length > 0);
         if (match('zoom.fit')) { e.preventDefault(); applyZoom('fit'); return; }
         if (match('zoom.selection')) { e.preventDefault(); applyZoom('selection'); return; }
         if (match('zoom.100')) { e.preventDefault(); applyZoom('100'); return; }
@@ -416,10 +452,10 @@ export function Canvas() {
         if (match('outline-mode')) { e.preventDefault(); toggleViewFlag('outlineMode'); return; }
         if (match('pixel-grid')) { e.preventDefault(); toggleViewFlag('pixelGridVisible'); return; }
         if (match('snap-to-pixel')) { e.preventDefault(); toggleViewFlag('snapToPixel'); return; }
-        if (match('nav.child')) { e.preventDefault(); navigateHierarchy('child'); return; }
-        if (match('nav.parent')) { e.preventDefault(); navigateHierarchy('parent'); return; }
-        if (match('nav.sibling-next')) { e.preventDefault(); navigateHierarchy('next'); return; }
-        if (match('nav.sibling-prev')) { e.preventDefault(); navigateHierarchy('prev'); return; }
+        if (tryNav('nav.child')) { e.preventDefault(); navigateHierarchy('child'); return; }
+        if (tryNav('nav.parent')) { e.preventDefault(); navigateHierarchy('parent'); return; }
+        if (tryNav('nav.sibling-next')) { e.preventDefault(); navigateHierarchy('next'); return; }
+        if (tryNav('nav.sibling-prev')) { e.preventDefault(); navigateHierarchy('prev'); return; }
       }
     };
     const onUp = (e: KeyboardEvent) => {
@@ -433,7 +469,12 @@ export function Canvas() {
     };
     // Window blur — if the user Alt-Tabs away while Alt is held, the keyup
     // never fires; reset measureMode so the overlay doesn't get stuck on.
-    const onBlur = () => setMeasureMode(false);
+    // Same for Space: alt-tabbing while holding Space left spaceDown=true,
+    // which silently converted every subsequent left-drag into a pan.
+    const onBlur = () => {
+      setMeasureMode(false);
+      setSpaceDown(false);
+    };
     window.addEventListener('keydown', onDown);
     window.addEventListener('keyup', onUp);
     window.addEventListener('blur', onBlur);
@@ -495,6 +536,16 @@ export function Canvas() {
   // These handle single-pointer mouse drags. Touch drags with one finger also
   // route through here because React maps touch → mouse events synthetically
   // (and the gesture hook doesn't interfere with single-pointer events).
+  //
+  // DRAG LIFECYCLE (interaction-consistency pass): mousedown handlers stay
+  // on the container (hit-testing needs the event target), but the
+  // move/up phases are WINDOW-level listeners routed through latest-refs.
+  // The old container-scoped onMouseMove/onMouseUp + onMouseLeave→abort
+  // cut a drag short the moment the cursor left the canvas bounds
+  // (Figma/tldraw keep the drag alive until button-up wherever the cursor
+  // is). Window listeners also keep receiving the touch-compatibility
+  // mouse events (they bubble to window) and marquee/move/resize now
+  // survive an excursion outside the canvas.
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
@@ -515,6 +566,18 @@ export function Canvas() {
       }
 
       if (e.button !== 0) return;
+
+      // L5 culled-subtree placeholder: geometry is preserved but the subtree
+      // is unmounted — clicking it used to be a dead zone (no selection, no
+      // deselect). Treat it like a click on the shape it stands in for.
+      const placeholderEl = (e.target as HTMLElement).closest?.('[data-ac-placeholder]');
+      if (placeholderEl && placeholderEl !== e.currentTarget) {
+        const id = placeholderEl.getAttribute('data-node-id');
+        if (id) {
+          select([id]);
+          return;
+        }
+      }
 
       // Click on empty canvas → clear selection. In select mode this ALSO
       // starts a marquee (rubber-band) drag (spec Phase 7): dragging selects
@@ -539,19 +602,37 @@ export function Canvas() {
     [spaceDown, toolMode, viewport, select],
   );
 
+  const wasInsideRef = useRef(true);
   const onMouseMove = useCallback(
     (e: React.MouseEvent) => {
       // Presence lane (R7): broadcast the cursor in canvas space — every
       // mousemove, including during drags (that's the interesting part to
       // watch). sendPresence throttles wire events to 33ms internally.
+      // Window-level listener: only broadcast while the pointer is INSIDE
+      // the canvas; clear the remote cursor exactly once when it leaves
+      // (replaces the old onMouseLeave hook).
       const presenceRect = containerRef.current?.getBoundingClientRect();
       if (presenceRect) {
-        sendPresence({
-          cursor: {
-            x: (e.clientX - presenceRect.left - viewport.panX) / viewport.zoom,
-            y: (e.clientY - presenceRect.top - viewport.panY) / viewport.zoom,
-          },
-        });
+        const inside =
+          e.clientX >= presenceRect.left && e.clientX <= presenceRect.right &&
+          e.clientY >= presenceRect.top && e.clientY <= presenceRect.bottom;
+        if (inside) {
+          wasInsideRef.current = true;
+          sendPresence({
+            cursor: {
+              x: (e.clientX - presenceRect.left - viewport.panX) / viewport.zoom,
+              y: (e.clientY - presenceRect.top - viewport.panY) / viewport.zoom,
+            },
+          });
+        } else if (wasInsideRef.current) {
+          wasInsideRef.current = false;
+          sendPresence({ cursor: null });
+        }
+        if (!inside) {
+          // Idle-hover measure tracking only makes sense over the canvas.
+          if (!dragState && !measureMode) return;
+          if (!dragState) return;
+        }
       }
       if (!dragState) {
         // Phase 7 §H.2 idle-hover path — track the pointer in canvas
@@ -846,6 +927,27 @@ export function Canvas() {
     setDragState(null);
   }, [dragState, sendPatch, document, viewport, select]);
 
+  // Window-level drag-phase listeners (latest-ref pattern — see the DRAG
+  // LIFECYCLE note above onMouseDown). Registered once; both the React
+  // synthetic container events and native window events satisfy the fields
+  // onMouseMove reads (clientX/Y, shiftKey, preventDefault…).
+  const mouseMoveRef = useRef(onMouseMove);
+  const mouseUpRef = useRef(onMouseUp);
+  useEffect(() => {
+    mouseMoveRef.current = onMouseMove;
+    mouseUpRef.current = onMouseUp;
+  });
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => mouseMoveRef.current(e as unknown as React.MouseEvent);
+    const onUp = () => mouseUpRef.current();
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
   // ---- Shape interaction handlers -------------------------------------------
   const onShapeMouseDown = useCallback(
     (e: React.MouseEvent, shape: Shape) => {
@@ -1025,14 +1127,6 @@ export function Canvas() {
           className={`relative w-full h-full overflow-hidden select-none ${(spaceDown || toolMode === 'pan') ? 'cursor-grab' : 'cursor-default'}`}
           style={{ background: resolveCanvasBackground(document.background), touchAction: 'none' }}
           onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onMouseLeave={() => {
-            onMouseUp();
-            // Presence lane (R7): the pointer left the canvas — clear the
-            // broadcast cursor so remote viewers don't see a frozen ghost.
-            sendPresence({ cursor: null });
-          }}
           onContextMenu={onContextMenu}
           onDragOver={onCanvasDragOver}
           onDragLeave={onCanvasDragLeave}
@@ -1191,7 +1285,7 @@ export function Canvas() {
           }}
         >
           <div className="text-[12px] ac-text-3 leading-relaxed text-center px-6">
-            Describe what to build in the chat — or press <kbd className="text-[10px] px-1 py-0 rounded ac-surface-2 ac-text-4 font-mono">⌘K</kbd> for presets
+            Describe what to build in the chat — or press <kbd className="text-[10px] px-1 py-0 rounded ac-surface-2 ac-text-4 font-mono">{platformChord('⌘K')}</kbd> for presets
           </div>
         </div>
       )}
@@ -1261,6 +1355,7 @@ export function Canvas() {
           width={size.w}
           height={size.h}
           onRemoveGuide={(id) => removeGuideAction(id)}
+          onClearAll={clearGuidesAction}
         />
       )}
 
@@ -1308,42 +1403,42 @@ export function Canvas() {
           <>
             {/* === Shape right-click (P0-02) === */}
             <ContextMenuItem onClick={() => clipboard.cut([contextShape])}>
-              <Scissors className="h-3.5 w-3.5 mr-2" /> Cut <span className="ml-auto text-[10px] ac-text-4">⌘X</span>
+              <Scissors className="h-3.5 w-3.5 mr-2" /> Cut <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘X')}</span>
             </ContextMenuItem>
             <ContextMenuItem onClick={() => clipboard.copy([contextShape])}>
-              <Copy className="h-3.5 w-3.5 mr-2" /> Copy <span className="ml-auto text-[10px] ac-text-4">⌘C</span>
+              <Copy className="h-3.5 w-3.5 mr-2" /> Copy <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘C')}</span>
             </ContextMenuItem>
             <ContextMenuItem onClick={() => clipboard.paste()}>
-              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste <span className="ml-auto text-[10px] ac-text-4">⌘V</span>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘V')}</span>
             </ContextMenuItem>
             <ContextMenuItem onClick={() => clipboard.paste({ offset: { dx: 0, dy: 0 } })}>
-              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste in place <span className="ml-auto text-[10px] ac-text-4">⌘⇧V</span>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste in place <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧V')}</span>
             </ContextMenuItem>
             <ContextMenuItem onClick={() => sendPatch({ op: 'duplicate', shapeIds: [contextShape.id], summary: `Duplicated ${contextShape.name}` })}>
-              <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate here <span className="ml-auto text-[10px] ac-text-4">⌘D</span>
+              <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate here <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘D')}</span>
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [contextShape.id], zorderKind: 'forward', summary: `Bring forward` })}>
-              <ArrowUp className="h-3.5 w-3.5 mr-2" /> Bring forward <span className="ml-auto text-[10px] ac-text-4">⌘]</span>
+              <ArrowUp className="h-3.5 w-3.5 mr-2" /> Bring forward <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘]')}</span>
             </ContextMenuItem>
             <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [contextShape.id], zorderKind: 'front', summary: `Bring to front` })}>
-              <BringToFront className="h-3.5 w-3.5 mr-2" /> Bring to front <span className="ml-auto text-[10px] ac-text-4">⌘⇧]</span>
+              <BringToFront className="h-3.5 w-3.5 mr-2" /> Bring to front <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧]')}</span>
             </ContextMenuItem>
             <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [contextShape.id], zorderKind: 'backward', summary: `Send backward` })}>
-              <ArrowDown className="h-3.5 w-3.5 mr-2" /> Send backward <span className="ml-auto text-[10px] ac-text-4">⌘[</span>
+              <ArrowDown className="h-3.5 w-3.5 mr-2" /> Send backward <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘[')}</span>
             </ContextMenuItem>
             <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [contextShape.id], zorderKind: 'back', summary: `Send to back` })}>
-              <SendToBack className="h-3.5 w-3.5 mr-2" /> Send to back <span className="ml-auto text-[10px] ac-text-4">⌘⇧[</span>
+              <SendToBack className="h-3.5 w-3.5 mr-2" /> Send to back <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧[')}</span>
             </ContextMenuItem>
             <ContextMenuSeparator />
             {selectedIds.length >= 2 && (
               <ContextMenuItem onClick={() => sendPatch({ op: 'group', shapeIds: selectedIds, summary: `Grouped ${selectedIds.length} shape(s)` })}>
-                <GroupIcon className="h-3.5 w-3.5 mr-2" /> Group <span className="ml-auto text-[10px] ac-text-4">⌘G</span>
+                <GroupIcon className="h-3.5 w-3.5 mr-2" /> Group <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘G')}</span>
               </ContextMenuItem>
             )}
             {contextShape.type === 'group' && (
               <ContextMenuItem onClick={() => sendPatch({ op: 'ungroup', shapeIds: [contextShape.id], summary: `Ungrouped ${contextShape.name}` })}>
-                <SquareStack className="h-3.5 w-3.5 mr-2" /> Ungroup <span className="ml-auto text-[10px] ac-text-4">⌘⇧G</span>
+                <SquareStack className="h-3.5 w-3.5 mr-2" /> Ungroup <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧G')}</span>
               </ContextMenuItem>
             )}
             <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: contextShape.id, shape: { locked: !contextShape.locked }, summary: `${contextShape.locked ? 'Unlocked' : 'Locked'} ${contextShape.name}` })}>
@@ -1360,24 +1455,24 @@ export function Canvas() {
               }}
               className="ac-text-danger"
             >
-              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete <span className="ml-auto text-[10px] ac-text-4">⌫</span>
+              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌫')}</span>
             </ContextMenuItem>
           </>
         ) : (
           <>
             {/* === Empty canvas right-click (P0-01) === */}
             <ContextMenuItem onClick={() => clipboard.paste()}>
-              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste <span className="ml-auto text-[10px] ac-text-4">⌘V</span>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘V')}</span>
             </ContextMenuItem>
             <ContextMenuItem onClick={() => clipboard.paste({ offset: { dx: 0, dy: 0 } })}>
-              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste in place <span className="ml-auto text-[10px] ac-text-4">⌘⇧V</span>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste in place <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧V')}</span>
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem onClick={() => clipboard.selectAll()}>
-              <SquareStack className="h-3.5 w-3.5 mr-2" /> Select all <span className="ml-auto text-[10px] ac-text-4">⌘A</span>
+              <SquareStack className="h-3.5 w-3.5 mr-2" /> Select all <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘A')}</span>
             </ContextMenuItem>
             <ContextMenuItem onClick={() => select([])}>
-              <SquareStack className="h-3.5 w-3.5 mr-2" /> Clear selection <span className="ml-auto text-[10px] ac-text-4">⎋</span>
+              <SquareStack className="h-3.5 w-3.5 mr-2" /> Clear selection <span className="ml-auto text-[10px] ac-text-4">{platformChord('⎋')}</span>
             </ContextMenuItem>
             {/* UI-audit round 2: the Zoom in / Zoom out / Reset zoom trio was
                 removed — zoom already had THREE persistent surfaces (View
@@ -1395,12 +1490,4 @@ export function Canvas() {
 // Hook to keep selectedIds stable across renders when nothing changed.
 function useSelectedIds() {
   return useCanvasStore((s) => s.selectedIds);
-}
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!target) return false;
-  const el = target as HTMLElement;
-  if (el.isContentEditable) return true;
-  const tag = el.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 }

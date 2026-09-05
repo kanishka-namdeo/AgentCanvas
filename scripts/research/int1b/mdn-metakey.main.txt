@@ -1,0 +1,219 @@
+KeyboardEvent: metaKey property
+
+ 
+ 
+ 
+ 
+ Baseline
+ 
+
+ Widely available
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ This feature is well established and works across many devices and browser versions. It’s been available across browsers since July 2015.
+
+ 
+ 
+ - 
+ 
+ See full compatibility
+ 
+ 
+
+ - 
+ 
+ Learn more
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ The KeyboardEvent.metaKey
+ read-only property returning a
+boolean value that indicates if the Meta key was pressed
+( true
+) or not ( false
+) when the event occurred. Some operating
+systems may intercept the key so it is never detected.
+
+ 
+ Note: 
+On Macintosh keyboards, this is the ⌘ Command key.
+
+ 
+ Note: 
+Before Firefox 118, the ⊞ Windows key was handled
+as an "OS" key rather than the "Meta" key. KeyboardEvent.metaKey
+ was
+ false
+ when the ⊞ Windows key was pressed.
+
+ When the Meta key itself is pressed or released, this property is true
+ for its keydown
+ event and false
+ for its keyup
+ event, because both events fire after the state change.
+
+ 
+
+ 
+
+ 
+ 
+ 
+## In this article
+
+ 
+ - 
+ Value 
+ 
+- 
+ Examples 
+ 
+- 
+ Specifications 
+ 
+- 
+ Browser compatibility 
+ 
+- 
+ See also 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+## Value 
+ 
+ A boolean value.
+
+ 
+ 
+ 
+## Examples 
+ 
+ html 
+ <button>Click me with the meta key</button>
+
+<p id="output"></p>
+
+ js 
+ document.querySelector("button").addEventListener("click", (e) => {
+ document.querySelector("#output").textContent =
+ `metaKey pressed? ${e.metaKey}`;
+});
+
+ 
+ 
+ 
+### Result 
+ 
+ 
+ 
+
+ 
+ 
+ 
+## Specifications 
+ 
+ 
+[TABLE]
+
+ 
+ 
+ 
+ Specification
+ 
+
+ 
+
+ 
+
+ 
+ 
+ UI Events 
+# dom-keyboardevent-metakey 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+## Browser compatibility 
+ 
+ Enable JavaScript to view this browser compatibility table. 
+ 
+ 
+ 
+ 
+## See also 
+ 
+ 
+- KeyboardEvent
+ 
+
+ 
+ 
+ 
+ 
+ 
+ - 
+ 
+
+ 
+## 
+ Help improve MDN
+ 
+
+ 
+ Was this page helpful to you? 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Yes 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ No 
+ 
+ 
+ 
+ 
+ Learn how to contribute 
+ This page was last modified on Sep 4, 2026 by MDN contributors .
+ 
+ 
+ View this page on GitHub • Report a problem with this content

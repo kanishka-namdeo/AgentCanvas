@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/Element/wheel_event",
+    "name": "Element: wheel event - Web APIs | MDN",
+    "snippet": "Jul 28, 2026 — If the event is canceled, no scrolling or zooming is performed. You can avoid this by setting passive : true when calling addEventListener() , ...",
+    "host_name": "developer.mozilla.org",
+    "rank": 0,
+    "date": "Jul 28, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/20110224/what-is-the-height-of-a-line-in-a-wheel-event-deltamode-dom-delta-line",
+    "name": "What is the height of a \"line\" in a wheel event? (deltaMode",
+    "snippet": "The wheel event in Firefox >= 17 has a deltaMode property. With the OS/mouse I'm using, it's set to 1 (or DOM_DELTA_LINE). This setting means that the ...",
+    "host_name": "stackoverflow.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/mdn/content/blob/main/files/en-us/web/api/element/wheel_event/index.md?plain=1",
+    "name": "content/files/en-us/web/api/element/wheel_event/index.md",
+    "snippet": "Zooming actions using the wheel . If the event is canceled, no scrolling or zooming is performed. You can avoid this by setting ` passive : true` … zoom , {  ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.sitepoint.com/html5-javascript-mouse-wheel",
+    "name": "How to Use the Mouse Wheel Event in HTML5 Pages",
+    "snippet": "Mar 27, 2024 — Yes, you can prevent the default action of the mouse wheel event by calling the 'preventDefault' method of the event object. This can be useful ...",
+    "host_name": "www.sitepoint.com",
+    "rank": 3,
+    "date": "Mar 27, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://mdn2.netlify.app/en-us/docs/web/api/element/wheel_event",
+    "name": "Element: wheel event - Web APIs",
+    "snippet": "Feb 18, 2022 — The wheel event fires when the user rotates a wheel button on a pointing device (typically a mouse). This event replaces the non-standard ... Read more",
+    "host_name": "mdn2.netlify.app",
+    "rank": 4,
+    "date": "Feb 18, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.chrome.com/blog/scrolling-intervention-2",
+    "name": "Making wheel scrolling fast by default | Blog",
+    "snippet": "Feb 7, 2019 — Registering the event listeners as passive tells the browser that the wheel listeners will not call preventDefault () and the browser can safely ... Read more",
+    "host_name": "developer.chrome.com",
+    "rank": 5,
+    "date": "Feb 7, 2019",
+    "favicon": ""
+  },
+  {
+    "url": "https://w3c.github.io/uievents/split/wheel-events.html",
+    "name": "Wheel Events",
+    "snippet": "Jan 24, 2024 — Calling preventDefault on a wheel event can prevent or otherwise interrupt scrolling . For maximum scroll performance, a user agent may not wait ...",
+    "host_name": "w3c.github.io",
+    "rank": 6,
+    "date": "Jan 24, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent/deltaMode",
+    "name": "WheelEvent: deltaMode property - Web APIs | MDN",
+    "snippet": "Feb 13, 2026 — The WheelEvent . deltaMode read-only property returns an unsigned long representing the unit of the delta values scroll amount.",
+    "host_name": "developer.mozilla.org",
+    "rank": 7,
+    "date": "Feb 13, 2026",
+    "favicon": ""
+  }
+]

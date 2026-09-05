@@ -65,6 +65,118 @@ export function resetPlatformCache(): void {
   cachedPlatform = null;
 }
 
+/// Render a mac-notation chord for the CURRENT platform — context-menu
+/// hints, command-palette `shortcut:` strings, empty-state <kbd> caps.
+/// Windows/Linux users see "Ctrl+X" instead of a ⌘ glyph (interaction
+/// consistency pass: hints must match the chord that actually fires).
+/// Non-modifier symbols that have a Windows spelling are translated too
+/// (⎋ → Esc, ⌫ → Backspace); everything else passes through unchanged.
+const WIN_SYMBOLS: Record<string, string> = { '⎋': 'Esc', '⌫': 'Backspace', '⌥': 'Alt', '⌘': 'Ctrl' };
+export function platformChord(macChord: string): string {
+  if (currentPlatform() === 'mac') return macChord;
+  // Collect flags first so output order is canonical (Ctrl, Alt, Shift)
+  // regardless of the source notation order ('⌥⌘K' and '⌘⌥K' both →
+  // 'Ctrl+Alt+K').
+  let ctrl = false;
+  let alt = false;
+  let shift = false;
+  let key = '';
+  for (const ch of macChord) {
+    if (ch === '⌘' || ch === '⌃') ctrl = true;
+    else if (ch === '⌥') alt = true;
+    else if (ch === '⇧') shift = true;
+    else key += ch;
+  }
+  const winKey = WIN_SYMBOLS[key] ?? key;
+  return `${ctrl ? 'Ctrl+' : ''}${alt ? 'Alt+' : ''}${shift ? 'Shift+' : ''}${winKey}`;
+}
+
+// ---- Focus-scope helpers (interaction-surface consistency pass) -----------
+// Grounded in WAI-ARIA APG "Developing a Keyboard Interface":
+//   - Tab/Shift+Tab move focus BETWEEN components (the tab ring);
+//   - arrow keys move focus INSIDE composite widgets;
+//   - menus/dialogs own Escape while they are open;
+//   - single-character shortcuts must not collide with composite-widget
+//     keys (menu typeahead) or text entry (WCAG 2.1.4).
+
+/// True when the event target is a surface whose OWN key handling must win:
+/// browser-native typing semantics (⌘Z undoes typing, arrows move the caret,
+/// Enter inserts a newline, Escape closes a native select popup).
+export function isEditableTarget(target: EventTarget | null): boolean {
+  if (!target) return false;
+  const el = target as HTMLElement;
+  if (el.isContentEditable) return true;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
+const COMPOSITE_WIDGET_SELECTOR = [
+  'input', 'textarea', 'select',
+  '[contenteditable="true"]', '[contenteditable=""]',
+  '[role="slider"]', '[role="spinbutton"]', '[role="listbox"]',
+  '[role="menu"]', '[role="menubar"]', '[role="tablist"]',
+  '[role="combobox"]', '[role="tree"]', '[role="grid"]',
+  '[role="option"]', '[role="menuitem"]', '[role="menuitemradio"]',
+  '[role="tab"]', '[role="treeitem"]', '[data-radix-collection-item]'
+].join(',');
+
+/// True when focus is inside a composite widget (Radix sliders/selects/
+/// menus/tabs, the Layers tree, native form controls…). Single-character
+/// canvas shortcuts and the arrow-key nudge must NOT fire in this state —
+/// the widget consumes those keys (APG: arrows move focus inside
+/// composites; letters are menu typeahead), and firing both corrupts both
+/// interactions (the "nudge while adjusting a slider" double-fire).
+export function inCompositeWidget(target: EventTarget | null): boolean {
+  if (!target) return false;
+  const el = target as HTMLElement;
+  if (typeof el.closest !== 'function') return false;
+  try {
+    return !!el.closest(COMPOSITE_WIDGET_SELECTOR);
+  } catch {
+    return false;
+  }
+}
+
+/// True while a Radix floating layer is open (DropdownMenu / ContextMenu /
+/// Popover / Menubar content all portal into `[data-radix-popper-
+/// content-wrapper]`). Those layers own Escape (close) and printable keys
+/// (typeahead) — window-level handlers must stand down (the old Escape
+/// handler only knew Radix *dialogs*, so closing a context menu during a
+/// live agent run ALSO stopped the agent).
+export function menuLayerOpen(): boolean {
+  if (typeof document === 'undefined') return false;
+  return !!document.querySelector('[data-radix-popper-content-wrapper]');
+}
+
+/// True when DOM focus is on the canvas surface — a shape node, the world
+/// layer, or the body fallback ("nothing focused" after clicking the
+/// background). In this state the canvas-surface keys may act: Tab/⇧Tab
+/// cycle siblings, Enter descends / edits text, Space enables grab-pan.
+/// When focus is on ANY chrome control (button, input, menu item, tree
+/// row) the CONTROL owns the key instead: Tab moves focus along the tab
+/// ring (restores keyboard reachability of the toolbar/panels — was a
+/// global Tab hijack = effective keyboard trap), Enter activates the
+/// focused button, Space presses it.
+export function inCanvasKeyScope(target: EventTarget | null): boolean {
+  if (typeof document === 'undefined' || !target) return false;
+  // Window-targeted events = "no specific element focused" — the body
+  // fallback. Identified by self-reference (target.window === target), which
+  // is cross-realm safe: real browsers, the vitest jsdom sandbox (where the
+  // module-visible `window` is globalThis while synthetic events dispatch on
+  // the REAL jsdom window — two distinct objects), and globalThis itself
+  // (globalThis.window === globalThis) all pass.
+  const t = target as { window?: unknown };
+  if (t.window === target) return true;
+  if (target === document || target === document.body || target === document.documentElement) return true;
+  const el = target as HTMLElement;
+  if (typeof el.closest !== 'function') return false;
+  try {
+    return !!el.closest('[data-node-type], [data-ac-world], [data-empty-bg="true"]');
+  } catch {
+    return false;
+  }
+}
+
 // ---- Chord parsing -----------------------------------------------------------
 
 export interface ParsedChord {
@@ -304,11 +416,15 @@ export const SHORTCUTS: ShortcutDef[] = [
   { action: 'snap-to-pixel', label: 'Toggle snap to pixel grid', mac: '⌘⇧\'', win: "Ctrl+Shift+'", scope: 'canvas' },
 
   // --- Zoom ---
-  { action: 'zoom.in', label: 'Zoom in', mac: '⇧+', win: 'Shift++', scope: 'canvas' },
-  { action: 'zoom.out', label: 'Zoom out', mac: '⇧−', win: 'Shift+-', scope: 'canvas' },
+  // `also` aliases: ⌘+ / ⌘− / ⌘0 keep the CANVAS zoom responding to the
+  // browser's page-zoom chords (Figma parity — the app owns zoom, the page
+  // must not shrink). ⌘= is the unshifted plus on US layouts; ⌘⇧+ is the
+  // shifted form (the '+' key physically requires Shift there).
+  { action: 'zoom.in', label: 'Zoom in', mac: '⇧+', win: 'Shift++', scope: 'canvas', also: ['⌘⇧+', '⌘='] },
+  { action: 'zoom.out', label: 'Zoom out', mac: '⇧−', win: 'Shift+-', scope: 'canvas', also: ['⌘−', '⌘-'] },
   { action: 'zoom.fit', label: 'Zoom to fit', mac: '⇧1', win: 'Shift+1', scope: 'canvas' },
   { action: 'zoom.selection', label: 'Zoom to selection', mac: '⇧2', win: 'Shift+2', scope: 'canvas' },
-  { action: 'zoom.100', label: 'Zoom to 100%', mac: '⇧0', win: 'Shift+0', scope: 'canvas' },
+  { action: 'zoom.100', label: 'Zoom to 100%', mac: '⇧0', win: 'Shift+0', scope: 'canvas', also: ['⌘0'] },
 
   // --- Hierarchy navigation ---
   { action: 'nav.child', label: 'Select first child (enter container)', mac: 'Enter', win: 'Enter', scope: 'canvas' },
@@ -316,14 +432,31 @@ export const SHORTCUTS: ShortcutDef[] = [
   { action: 'nav.sibling-next', label: 'Select next sibling', mac: 'Tab', win: 'Tab', scope: 'canvas' },
   { action: 'nav.sibling-prev', label: 'Select previous sibling', mac: '⇧Tab', win: 'Shift+Tab', scope: 'canvas' },
 
+  // --- Z-order (was ad-hoc in page.tsx — now registry-dispatched) ---
+  { action: 'bring-forward', label: 'Bring forward', mac: '⌘]', win: 'Ctrl+]', scope: 'canvas' },
+  { action: 'bring-to-front', label: 'Bring to front', mac: '⌘⇧]', win: 'Ctrl+Shift+]', scope: 'canvas' },
+  { action: 'send-backward', label: 'Send backward', mac: '⌘[', win: 'Ctrl+[', scope: 'canvas' },
+  { action: 'send-to-back', label: 'Send to back', mac: '⌘⇧[', win: 'Ctrl+Shift+[', scope: 'canvas' },
+
   // --- Canvas interaction modifiers (documented, not keymap-dispatched) ---
   { action: 'deep-select', label: 'Deep select — click through the ancestor chain', mac: '⌘+click', win: 'Ctrl+click', scope: 'canvas' },
   { action: 'nested-marquee', label: 'Nested marquee — select descendants of intersecting containers', mac: '⌘+drag', win: 'Ctrl+drag', scope: 'canvas' },
+  { action: 'duplicate-drag', label: 'Duplicate by dragging (original reverts)', mac: '⌥+drag', win: 'Alt+drag', scope: 'canvas' },
+  { action: 'pan-space-drag', label: 'Hold Space and drag to pan (temporary hand tool)', mac: 'Space+drag', win: 'Space+drag', scope: 'canvas' },
+  { action: 'measure-hold', label: 'Hold ⌥ and hover a layer to measure distances', mac: '⌥ (hold)', win: 'Alt (hold)', scope: 'canvas' },
+  { action: 'nudge', label: 'Nudge selection — arrows move 1px, ⇧+arrows 10px', mac: 'Arrow keys', win: 'Arrow keys', scope: 'canvas' },
+  { action: 'auto-layout.apply', label: 'Apply auto-layout to the selected frame/group', mac: 'A', win: 'A', scope: 'canvas' },
+  { action: 'tool.pen', label: 'Pen tool — routes to the chat (path prompts)', mac: 'P', win: 'P', scope: 'canvas' },
 
   // --- App-level (existing chords, now registry-listed) ---
+  { action: 'file.new-session', label: 'New chat / session', mac: '⌘N', win: 'Ctrl+N', scope: 'app' },
+  { action: 'file.import', label: 'Open .pen file', mac: '⌘O', win: 'Ctrl+O', scope: 'app' },
+  { action: 'file.export', label: 'Export as .pen', mac: '⌘E', win: 'Ctrl+E', scope: 'app' },
   { action: 'zen', label: 'Toggle zen / hide UI', mac: '⌘\\', win: 'Ctrl+\\', scope: 'app' },
   { action: 'palette', label: 'Open command palette', mac: '⌘K', win: 'Ctrl+K', scope: 'app' },
-  { action: 'save-checkpoint', label: 'Save a version-history checkpoint', mac: '⌘⌥S', win: 'Ctrl+Alt+S', scope: 'app' },
+  { action: 'save-checkpoint', label: 'Save a version-history checkpoint', mac: '⌘⌥S', win: 'Ctrl+Alt+S', scope: 'app', also: ['⌘S'] },
+  { action: 'chat.scroll-up', label: 'Scroll the chat panel up', mac: '⌘↑', win: 'Ctrl+Up', scope: 'app' },
+  { action: 'chat.scroll-down', label: 'Scroll the chat panel down', mac: '⌘↓', win: 'Ctrl+Down', scope: 'app' },
   { action: 'undo', label: 'Undo', mac: '⌘Z', win: 'Ctrl+Z', scope: 'app' },
   { action: 'redo', label: 'Redo', mac: '⌘⇧Z', win: 'Ctrl+Shift+Z', scope: 'app' },
   { action: 'copy', label: 'Copy selection', mac: '⌘C', win: 'Ctrl+C', scope: 'app' },
@@ -331,7 +464,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   { action: 'paste', label: 'Paste (with +24 offset)', mac: '⌘V', win: 'Ctrl+V', scope: 'app' },
   { action: 'paste-in-place', label: 'Paste in place', mac: '⌘⇧V', win: 'Ctrl+Shift+V', scope: 'app' },
   { action: 'select-all', label: 'Select all layers', mac: '⌘A', win: 'Ctrl+A', scope: 'app' },
-  { action: 'shortcuts-dialog', label: 'Open the keyboard shortcuts cheat sheet', mac: '⌘/', win: 'Ctrl+/', scope: 'app', also: ['⌃⇧?'] },
+  { action: 'shortcuts-dialog', label: 'Open the keyboard shortcuts cheat sheet', mac: '⌘/', win: 'Ctrl+/', scope: 'app' },
   { action: 'toggle-left-panel', label: 'Toggle left panel', mac: '⌘⇧1', win: 'Ctrl+Shift+1', scope: 'app', also: ['⌘1'] },
   { action: 'toggle-right-panel', label: 'Toggle right panel', mac: '⌘⇧2', win: 'Ctrl+Shift+2', scope: 'app', also: ['⌘2'] },
   // --- Sidebar tab selection (Appendix H §H.3 deviation #1) ---
@@ -341,8 +474,14 @@ export const SHORTCUTS: ShortcutDef[] = [
   // Layers tree ↔ the Assets component grid).
   { action: 'panel.layers-tab', label: 'Switch left sidebar to Layers tab', mac: '⌥1', win: 'Alt+1', scope: 'app' },
   { action: 'panel.assets-tab', label: 'Switch left sidebar to Assets tab', mac: '⌥2', win: 'Alt+2', scope: 'app' },
-  { action: 'delete', label: 'Delete selection', mac: '⌫', win: 'Del', scope: 'canvas' },
+  { action: 'delete', label: 'Delete selection', mac: '⌫', win: 'Del / Backspace', scope: 'canvas' },
 ];
+
+// NOTE (registry contract): pointer/arrow-gesture entries (deep-select,
+// nested-marquee, duplicate-drag, pan-space-drag, nudge, measure-hold) are
+// documented like Figma's cheat sheet documents gestures — they are not
+// keymap-dispatched, they exist so the help surface and reality stay in
+// sync.
 
 /// action id → def lookup (keymap dispatch + tests).
 export const SHORTCUTS_BY_ACTION: ReadonlyMap<string, ShortcutDef> = new Map(

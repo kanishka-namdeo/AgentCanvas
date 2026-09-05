@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.reddit.com/r/webdev/comments/is5h26/is_there_a_way_to_disableintercept_reserved",
+    "name": "Is there a way to disable/intercept reserved keyboard",
+    "snippet": "I ran into a problem on a project yesterday. I need to use certain keyboard shortcuts that are used by the browser, and there doesn't seem to be any ...",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/7295508/javascript-capture-browser-shortcuts-ctrlt-n-w",
+    "name": "javascript capture browser shortcuts (ctrl+t/n/w)",
+    "snippet": "Is it possible to capture these shortcuts?  Ctrl+N  Ctrl+T  Ctrl+W  I tried this but it doesn't work: Copy$(window).keydown(function(event) { console.log(event. ...",
+    "host_name": "stackoverflow.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://issues.chromium.org/41081444",
+    "name": "Ctrl-N, Ctrl-T and Ctrl-W no longer available to client side",
+    "snippet": "possible. In Chrome4, certain control key combinations have been reserved for browser usage only and can no longer be intercepted by the client side JavaScript Read more",
+    "host_name": "issues.chromium.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/cockpit-project/cockpit/issues/7956",
+    "name": "terminal: protect against Ctrl+W closing the tab #7956",
+    "snippet": "Oct 24, 2017 — I've looked into this and found out that browsers don't allow any global keyboard shortcuts to be overridden . Other examples are Ctrl+Q to quit ... Read more",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "Oct 24, 2017",
+    "favicon": ""
+  },
+  {
+    "url": "https://bugzilla.mozilla.org/show_bug.cgi?id=380637",
+    "name": "Should web pages be restricted from being able to override",
+    "snippet": "It's fine to say that I shouldn' t override Ctrl -S, but as long as it's possible programmatically, someone's going to do it (because they didn' t happen to read ... Read more",
+    "host_name": "bugzilla.mozilla.org",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.math.cmu.edu/~gautam/sj/blog/20220329-firefox-disable-ctrl-w.html",
+    "name": "Disabling the Ctrl-W shortcut on Firefox",
+    "snippet": "Mar 29, 2022 — Go to System, Preferences, Hardware, Keyboard Shortcuts , assign Ctrl - w to something and it will quit working in Firefox. Beware that it will ... Read more",
+    "host_name": "www.math.cmu.edu",
+    "rank": 5,
+    "date": "Mar 29, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://superuser.com/questions/168087/how-to-forbid-keyboard-shortcut-stealing-by-websites-in-firefox",
+    "name": "How to forbid keyboard shortcut stealing by websites in",
+    "snippet": "Jul 27, 2010 — I took inspiration from this script and this script to combine them into a Userscript that sucessfully intercepts the keyboard shortcuts Ctrl + ... Read more",
+    "host_name": "superuser.com",
+    "rank": 6,
+    "date": "Jul 27, 2010",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.babylonjs.com/t/how-prevent-default-of-c-w-t-n/44117",
+    "name": "How prevent default of C-w/t/n - Questions",
+    "snippet": "Sep 14, 2023 — I'm developing a first-person game, and my character needs to be able to squat. But when ctrl + w is combined, the browser tab closes.",
+    "host_name": "forum.babylonjs.com",
+    "rank": 7,
+    "date": "Sep 14, 2023",
+    "favicon": ""
+  }
+]

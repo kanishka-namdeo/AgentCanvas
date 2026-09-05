@@ -22,7 +22,7 @@ Component tree root. Owns the shared ThemeToggle component directly, and indexes
 ## Work Guidance
 
 - New top-level components (not canvas/session/settings/ui) land here and get an Ownership entry.
-- `src/hooks/` sibling utilities (use-clipboard, use-scrub, use-mobile, use-toast) are shared hooks, not components — document usage at the call site.
+- `src/hooks/` sibling utilities (use-clipboard, use-toast) are shared hooks, not components — document usage at the call site. (use-scrub + use-mobile were deleted 2026-09-05: dead code, referenced nowhere; use-is-mobile in lib/canvas is the live mobile hook.)
 
 ## Verification
 

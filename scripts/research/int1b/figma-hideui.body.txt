@@ -1,0 +1,56 @@
+In Figma files, you can minimize the UI or hide the entire UI:
+ 
+- 
+ Minimizing the left and right UI in Figma allows you to view more of the canvas while still having access to properties in the right sidebar when you select a layer. 
+
+- 
+ Hiding the entire UI will conceal the navigation bar, left and right sidebars, and the toolbar. This is great for maximizing the amount of space in your window for viewing designs.
+
+ 
+### Minimize the UI
+ To Minimize or Expand the left and right UI in Figma, use the keyboard shortcut: click in left sidebar of the File tab, or use the keyboard shortcut:
+ 
+- Mac: ⌘ Command Shift \ 
+
+- Windows: Control Shift \ 
+
+ If you select an object, the navigation bar and left sidebar remains minimized, while the right sidebar expands to provide access to properties of the selected object. Once all objects are deselected, the right sidebar minimizes again.
+ 
+
+### Hide or show UI
+ To hide the entire UI, find Hide/Show UI from Actions , or use the keyboard shortcut:
+ 
+- 
+ Mac : ⌘ Command \ 
+
+- 
+ Windows : Ctrl \ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 

@@ -1,0 +1,12 @@
+select => v
+hand => h
+eraser => e
+draw => d,b,x
+arrow => a
+line => l
+frame => f
+text => t
+asset => cmd+u,ctrl+u
+note => n
+laser => k
+highlight => shift+d

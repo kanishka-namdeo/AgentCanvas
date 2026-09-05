@@ -1,0 +1,1015 @@
+URL: https://help.figma.com/hc/en-us/articles/4404575206295-Set-small-and-big-nudge-values
+TITLE: Set small and big nudge values &ndash; Figma Learn - Help Center
+
+Set small and big nudge values &ndash; Figma Learn - Help Center 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Learn 
+ 
+
+ 
+ 
+ 
+ Get started 
+ Product documentation 
+ Administration 
+ Courses, tutorials, projects 
+ Help 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ enter to select 
+ ↑ ↓ to navigate 
+ esc to close 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Design
+
+ Design and prototype in one place
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Make
+
+ 
+
+ Prompt to code anything you can imagine
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Dev Mode
+
+ Translate designs into code
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Weave
+
+ New 
+ 
+
+ AI workflows for imagery, video, and audio
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+
+ Create precise, production-ready animations
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ FigJam
+
+ Collaborate with a digital whiteboard
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Draw
+
+ 
+
+ Illustrate with advanced vector tools
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Slides
+
+ Co-create presentations
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Sites
+
+ Beta 
+ 
+
+ Publish fully responsive websites
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+
+ Produce on-brand assets at scale
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ AI
+
+ Explore all Figma AI features
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Developer docs
+
+ Work with APIs, embeds, and more
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ For everyone
+
+ 
+ 
+ Account 
+ 
+ Manage settings 
+
+ Change preferences 
+
+ 
+ 
+
+ 
+ Files and projects 
+ 
+ Use the file browser 
+
+ Manage files and projects 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ For administration
+
+ 
+ 
+ Billing 
+ 
+ Overview 
+
+ Manage seats 
+
+ Manage your plan 
+
+ Pay for Figma
+ 
+
+ 
+ 
+
+ 
+ Teams 
+ 
+ Manage a team 
+
+ 
+ 
+
+ 
+ Organizations 
+ 
+ Overview 
+
+ Login and authentication 
+
+ Deploy Figma 
+
+ Members and guests 
+
+ Teams 
+
+ Libraries and resources 
+
+ 
+ 
+
+ 
+ Enterprise 
+ 
+ Billing groups 
+
+ Workspaces 
+
+ Security features 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Find out more
+
+ 
+ 
+ 
+ 
+ 
+ Courses and collections
+
+ New 
+ 
+
+ 
+
+ Level up your Figma skills with these comprehensive skill-based courses.
+
+ 
+ 
+ 
+ 
+ 
+ Projects
+
+ 
+
+ 
+
+ Get hands-on experience in Figma with these practical bite-sized projects.
+
+ 
+ 
+ 
+ 
+ 
+ Tutorials
+
+ 
+
+ 
+
+ Explore tools and features by watching and following along with these expert-led video tutorials.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Get solutions
+
+ 
+ 
+ 
+ 
+ Troubleshoot
+
+ 
+
+ 
+
+ Get help with common issues and troubleshoot unexpected behavior.
+
+ 
+ 
+ 
+ 
+ Work with support
+
+ 
+
+ 
+
+ Submit a bug report, get help collecting log files, and find your system information.
+
+ 
+ 
+ 
+ 
+ Common questions
+
+ 
+
+ 
+
+ Get answers to frequently asked questions.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Figma Community Forum
+
+ 
+
+ Ask the community, share ideas, and connect with other Figma users.
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ Get started 
+ 
+ Product documentation 
+ 
+ 
+ Products 
+ Figma Design 
+ Figma Make 
+ Dev Mode 
+ 
+ Figma Weave
+
+ New 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+ FigJam 
+ Figma Draw 
+ Figma Slides 
+ 
+ Figma Sites
+
+ Beta 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+ 
+
+ 
+ Features 
+ AI 
+ Accessibility 
+ Developer docs 
+ Figma Community 
+ 
+
+ 
+
+ 
+
+ 
+ Administration 
+ 
+ 
+ For everyone 
+ Account 
+ Files and projects 
+ 
+
+ 
+ For administration 
+ Billing 
+ Teams 
+ Organizations 
+ Enterprise
+ 
+ 
+
+ 
+
+ 
+
+ 
+ Courses, tutorials, projects 
+ 
+ 
+ Find out more 
+ Courses and collections 
+ Projects 
+ Tutorials 
+ 
+
+ 
+
+ 
+
+ 
+ Help 
+ 
+ 
+ Get solutions 
+ Troubleshoot 
+ Work with support 
+ Common questions 
+ Figma Community Forum 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ 
+
+ 
+ 
+ 
+ Figma Design 
+ 
+ 
+
+ 
+ 
+ 
+ Tour the interface 
+ 
+ 
+
+ 
+ 
+ 
+ File utilities 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ Set small and big nudge values 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Before you start
+
+ Who can use this feature
+
+ 
+ 
+ Supported on any team or plan 
+
+ 
+ 
+ Only people with can edit access to the file can make changes to a layer's position, dimensions, or alignment.
+
+ 
+ You can use your arrow keys to nudge the position of your layers. Figma allows you to set two default nudge amounts: small nudge and big nudge .
+
+ By default, small nudge is set to 1
+ and big nudge set to 10
+. Both of these values are in resolution-independent points.
+
+ Adjust nudge settings
+
+ 
+ Click on the menu.
+
+ Go to Preferences > Nudge amount... 
+
+ Enter your desired Small nudge and Big nudge in the fields provided.
+
+ Click outside the window or use the icon to apply and close.
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Was this article helpful? 
+ 
+ Yes 
+ No 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Help Center feedback 
+ 
+ Got a second? Tell us what we’re doing well. 
+ 
+ 
+ 
+ 
+ Submit article feedback 
+ Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form .
+
+ 
+ 
+ 
+ Help Center feedback 
+ 
+ Thanks for letting us know! What was the issue? 
+ 
+ 
+ 
+ 
+ -- Please choose an option -- 
+ Incorrect or missing information 
+ Hard to understand 
+ There are typos or broken links 
+ Issues with images, GIFs, or videos 
+ I wish the feature worked a different way 
+ Something else 
+ 
+ 
+ Submit article feedback 
+ Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form .
+
+ 
+ 
+
+ 
+ 
+ Thank you for helping us improve Figma’s Help Center!
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 
+ 한국어
+ 
+ 
+ 
+ Nederlands (Nederland)
+ 
+ 
+ 
+ Polski (Polska)
+ 
+ 
+ 
+ Português do Brasil
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ Use cases
+
+ 
+ 
+ UI design 
+ 
+
+ 
+ UX design 
+ 
+
+ 
+ Prototyping 
+ 
+
+ 
+ Graphic design 
+ 
+
+ 
+ Wireframing 
+ 
+
+ 
+ Brainstorming 
+ 
+
+ 
+ Templates 
+ 
+
+ 
+ Remote design 
+ 
+
+ 
+ 
+
+ 
+ Explore
+
+ 
+ 
+ Design features 
+ 
+
+ 
+ Prototyping features 
+ 
+
+ 
+ Design systems features 
+ 
+
+ 
+ Collaboration features 
+ 
+
+ 
+ FigJam 
+ 
+
+ 
+ Pricing 
+ 
+
+ 
+ Enterprise 
+ 
+
+ 
+ Students and educators 
+ 
+
+ 
+ Customers 
+ 
+
+ 
+ Security 
+ 
+
+ 
+ Integrations 
+ 
+
+ 
+ Contact 
+ 
+
+ 
+ 
+
+ 
+ Resources
+
+ 
+ 
+ Blog 
+ 
+
+ 
+ Best practices 
+ 
+
+ 
+ Support 
+ 
+
+ 
+ Developers 
+ 
+
+ 
+ Learn design 
+ 
+
+ 
+ Downloads 
+ 
+
+ 
+ What's new 
+ 
+
+ 
+ Releases 
+ 
+
+ 
+ Careers 
+ 
+
+ 
+ About us 
+ 
+
+ 
+ Agency partners 
+ 
+
+ 
+ Privacy 
+ 
+
+ 
+ Status

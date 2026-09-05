@@ -1,0 +1,419 @@
+URL: https://tigerabrodi.blog/how-to-handle-trackpad-pinch-to-zoom-vs-two-finger-scroll-in-javascript-canvas-apps
+TITLE: How to Handle Trackpad Pinch-to-Zoom vs Two-Finger Scroll in JavaScript Canvas Apps
+DATE: 
+
+How to Handle Trackpad Pinch-to-Zoom vs Two-Finger Scroll in JavaScript Canvas Apps 
+ Skip to main content Hashnode Tiger's Place 
+ Open search (press Control or Command and K) Toggle theme Open menu 
+
+ Hashnode Tiger's Place 
+ 
+ Open search (press Control or Command and K) Toggle theme Write 
+
+ Command Palette
+ Search for a command to run...
+
+ How to Handle Trackpad Pinch-to-Zoom vs Two-Finger Scroll in JavaScript Canvas Apps
+ Updated March 4, 2026 
+ • 6 min read • View as Markdown 
+
+ 
+ 
+ Tiger Abrodi 
+
+ Just a guy who loves to write code and watch anime.
+
+ On this page
+ Introduction The Problem The "Obvious" Fix That Doesn't Work The Real Signal: ctrlKey Why It Still Feels Bad The Fix: Clamp the Delta Why You Cannot Do Better Quick Reference Full Working Example (React) 
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ Introduction
+
+ You are building a canvas app. An infinite canvas. Something like Figma, Miro, or Excalidraw. You want two things:
+
+ 
+ Two-finger scroll → pan around the canvas
+
+ Pinch gesture → zoom in and out
+
+ 
+ Sounds simple. It is not.
+
+ The Problem
+
+ The browser fires the same event for both gestures: wheel
+.
+
+ Two-finger scroll? wheel
+ event. Pinch-to-zoom? Also a wheel
+ event. There is no pinch
+ event. There is no trackpadscroll
+ event. Just wheel
+.
+
+ So how do you tell them apart?
+
+ The "Obvious" Fix That Doesn't Work
+
+ Most developers try to distinguish them by looking at the raw deltaY
+ values. Maybe pinch events have smaller deltas? Maybe scroll events have deltaX
+ too?
+
+ // DON'T DO THIS — unreliable 
+ if ( Math . abs (e. deltaY ) < 5 ) {
+ // must be a pinch? 
+ handleZoom (e);
+} else {
+ handlePan (e);
+}
+
+ 
+ 
+ 
+ 
+
+ This breaks immediately. Delta values vary wildly across browsers, operating systems, trackpad hardware, and user sensitivity settings. There is no reliable threshold.
+
+ The Real Signal: ctrlKey
+
+ Here is the trick that every production canvas tool uses.
+
+ When you do a pinch gesture on a trackpad, the browser lies to you. It sets e.ctrlKey = true
+ on the wheel event even though you never touched the Ctrl key.
+
+ This is not a bug. It is intentional. Chrome started doing this around 2015 to give web apps a way to detect pinch gestures. Firefox followed. It is now a de-facto standard across all major browsers.
+
+ The rule is simple:
+
+ 
+ e.ctrlKey === true
+ → the user is pinching to zoom (or holding Ctrl + scrolling)
+
+ e.ctrlKey === false
+ → the user is two-finger scrolling (panning)
+
+ 
+ container. addEventListener (
+ "wheel" ,
+ ( e ) => {
+ e. preventDefault ();
+
+ if (e. ctrlKey || e. metaKey ) {
+ handleZoom (e);
+ } else {
+ handlePan (e);
+ }
+ },
+ { passive : false },
+);
+
+ 
+ 
+ 
+ 
+
+ Figma does this. Tldraw does this. Excalidraw does this. It is the standard approach.
+
+ Why It Still Feels Bad
+
+ You add the ctrlKey
+ check. Panning works. Zooming works. But the zoom feels jerky and inconsistent . Sometimes it barely moves. Sometimes it flies past your target.
+
+ Here is why.
+
+ A trackpad pinch sends tiny deltaY
+ values. Like 0.5
+, 1.2
+, 2.8
+. Very small, very frequent.
+
+ A mouse wheel with Ctrl held sends huge deltaY
+ values. Like 100
+, 120
+, 150
+. Big discrete jumps.
+
+ Both hit the same zoom handler. If your sensitivity is tuned for trackpad, mouse wheel zooms way too fast. If it is tuned for mouse wheel, trackpad pinch barely moves.
+
+ This is the code that feels bad:
+
+ // Same sensitivity for both input types — feels wrong 
+ const factor = Math . pow ( 2 , -e. deltaY * 0.008 );
+
+ 
+ 
+ 
+ 
+
+ The Fix: Clamp the Delta
+
+ The solution is to clamp deltaY
+ before applying it. This caps the maximum zoom step per event so mouse wheel jumps stay reasonable while trackpad pinch stays smooth.
+
+ const handleWheel = ( e ) => {
+ e. preventDefault ();
+
+ if (e. ctrlKey || e. metaKey ) {
+ // ZOOM — pinch or ctrl+scroll 
+ const rect = container. getBoundingClientRect ();
+ const mx = e. clientX - rect. left ;
+ const my = e. clientY - rect. top ;
+
+ // Clamp deltaY so mouse wheel doesn't overshoot 
+ const MAX_DELTA = 10 ;
+ const clamped = Math . max (- MAX_DELTA , Math . min ( MAX_DELTA , e. deltaY ));
+
+ const factor = Math . pow ( 2 , -clamped * 0.01 );
+ const newScale = Math . min ( MAX , Math . max ( MIN , scale * factor));
+
+ // Zoom toward cursor — keep the point under the cursor fixed 
+ const ratio = newScale / scale;
+ const newX = mx - (mx - offsetX) * ratio;
+ const newY = my - (my - offsetY) * ratio;
+
+ setViewport ({ x : newX, y : newY, scale : newScale });
+ } else {
+ // PAN — two-finger scroll 
+ setViewport ({
+ x : offsetX - e. deltaX ,
+ y : offsetY - e. deltaY ,
+ scale,
+ });
+ }
+};
+
+container. addEventListener ( "wheel" , handleWheel, { passive : false });
+
+ 
+ 
+ 
+ 
+
+ Three things are happening here:
+
+ 
+ e.ctrlKey || e.metaKey
+ separates zoom from pan. metaKey
+ catches Cmd+scroll on Mac which users expect to work.
+
+ Clamping deltaY to ±10 normalizes the input. Trackpad pinch values (0.5–3) pass through untouched. Mouse wheel values (100+) get capped to 10. Both feel smooth.
+
+ passive: false
+ is required so preventDefault()
+ works. Without it the browser may also zoom the whole page.
+
+ 
+ Why You Cannot Do Better
+
+ You might think: can I detect whether the user has a trackpad or a mouse and handle them differently?
+
+ No. The browser gives you no way to know. A trackpad and a mouse produce identical events. There is no e.device
+ property. There is no InputDevice
+ API for wheel events. The Mappedin engineering team tried heuristics like event polling rate and deltaX
+ detection. All of them failed on edge cases.
+
+ Native apps like Apple Maps can do this because they have direct access to OS-level input device info. Browsers do not expose this.
+
+ The ctrlKey
+ hack plus delta clamping is the best solution available. It is what the entire industry uses.
+
+ Quick Reference
+
+ 
+ 
+ 
+ Gesture
+
+ ctrlKey
+
+ deltaX
+
+ deltaY
+
+ Action
+
+ 
+ Trackpad two-finger scroll
+
+ false
+
+ varies
+
+ varies
+
+ Pan
+
+ 
+ Trackpad pinch
+
+ true
+
+ ~0
+
+ small (0.5–3)
+
+ Zoom
+
+ 
+ Mouse wheel
+
+ false
+
+ 0
+
+ large (100+)
+
+ Pan*
+
+ 
+ Ctrl + mouse wheel
+
+ true
+
+ 0
+
+ large (100+)
+
+ Zoom
+
+ 
+
+ *In Figma-style apps, plain mouse wheel pans vertically. Some apps (like Google Maps) make plain mouse wheel zoom instead. That is a design choice, not a technical one.
+
+ Full Working Example (React)
+
+ useEffect ( () => {
+ const container = containerRef. current ;
+ if (!container) return ;
+
+ const MIN_SCALE = 0.1 ;
+ const MAX_SCALE = 5 ;
+
+ const handler = ( e : WheelEvent ) => {
+ e. preventDefault ();
+
+ if (e. ctrlKey || e. metaKey ) {
+ const rect = container. getBoundingClientRect ();
+ const mx = e. clientX - rect. left ;
+ const my = e. clientY - rect. top ;
+
+ const clamped = Math . max (- 10 , Math . min ( 10 , e. deltaY ));
+ const factor = Math . pow ( 2 , -clamped * 0.01 );
+
+ setViewport ( ( prev ) => {
+ const newScale = Math . min (
+ MAX_SCALE ,
+ Math . max ( MIN_SCALE , prev. scale * factor),
+ );
+ const ratio = newScale / prev. scale ;
+ return {
+ x : mx - (mx - prev. x ) * ratio,
+ y : my - (my - prev. y ) * ratio,
+ scale : newScale,
+ };
+ });
+ } else {
+ setViewport ( ( prev ) => ({
+ x : prev. x - e. deltaX ,
+ y : prev. y - e. deltaY ,
+ scale : prev. scale ,
+ }));
+ }
+ };
+
+ container. addEventListener ( "wheel" , handler, { passive : false });
+ return () => container. removeEventListener ( "wheel" , handler);
+}, []);
+
+ 
+ 
+ 
+ 
+
+ That is it. ctrlKey
+ to separate zoom from pan. Clamp deltaY
+ to make both input devices feel smooth. No heuristics. No device detection. Just the standard approach that the entire industry settled on.
+
+ 
+
+ 
+
+ Comments
+ Join the discussion 
+ No comments yet. Be the first to comment. 
+ 
+
+ More from this blog
+ Become a cracked product engineer today
+ Qualities that make outstanding builders.
+ Jun 1, 2026 · 4 min read 
+
+ 
+
+ Bipedal, humanoid, and the words for creature shapes in games
+ Bipedal vs quadrupedal: how many legs
+This is about the number of legs the creature walks on.
+Bipedal. Two legs. Humans, ostriches, T-rex, kangaroos, most fantasy humanoids.
+Quadrupedal. Four legs. Do
+ May 18, 2026 · 3 min read 
+
+ 
+
+ Lerp and smoothstep, what they actually do
+ Intro
+You hear "lerp" and "smoothstep" everywhere in game dev. They sound like math jargon. They're not. Both are small tools that do the same job: smoothly move from one value to another.
+The problem
+ May 18, 2026 · 4 min read 
+
+ 
+
+ IK and FK, what they actually are
+ What is Kinematics
+Kinematics is the math field. It's the study of how things move without worrying about forces (which would be dynamics). FK and IK are the two branches: forward kinematics and inver
+ May 10, 2026 · 7 min read 
+
+ 
+
+ How to make your textures fast on the GPU
+ Intro
+Textures are usually the biggest cost in a 3D scene. Memory, bandwidth, and load time all get eaten by them. Resizing them is the obvious lever. There's more.
+This post is about the less obvious
+ May 10, 2026 · 8 min read 
+
+ 
+
+ Tiger's Place
+ 497 posts
+
+ 
+
+ 
+
+ © 2026 Tiger's Place
+ Archive 
+ Privacy 
+ Terms 
+ Sitemap RSS 
+ 
+ 
+ 
+
+ 
+ Contents

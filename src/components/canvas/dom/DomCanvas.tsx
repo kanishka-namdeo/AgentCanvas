@@ -95,16 +95,15 @@ export interface DomCanvasProps {
   /// composes `${layer.name} (${layer.type})` from the layer itself — the
   /// common case.
   ariaLabelById?: Map<string, string>;
-  /// Focus / blur / keydown handlers attached to every shape's DOM node.
+  /// Focus / blur handlers attached to every shape's DOM node.
   /// The Canvas shell wires `onShapeFocus` to its `select()` action so a
   /// keyboard-focused shape becomes the active selection (mirroring the
-  /// click-to-select path), and `onShapeKeyDown` to the Enter-to-edit-text
-  /// flow. Tab/Shift+Tab and Escape still flow through the window-level
-  /// listeners (existing Phase 7 chords in Canvas.tsx) — we do NOT
-  /// stopPropagation in onShapeKeyDown so those listeners still see them.
+  /// click-to-select path). ALL key handling lives in the window-level
+  /// listeners (Phase 7 chords in Canvas.tsx + nudge in page.tsx) — shape
+  /// divs carry no per-node keydown handler (the old dead prop chain was
+  /// removed; Canvas never provided it).
   onShapeFocus?: (id: string) => void;
   onShapeBlur?: (id: string) => void;
-  onShapeKeyDown?: (e: React.KeyboardEvent, shape: Shape) => void;
   /// The id of the shape that currently has DOM focus (tracked by the
   /// Canvas shell via onFocus/onBlur). When set, DomChrome renders a
   /// dashed focus ring overlay that's visually distinct from the solid
@@ -241,7 +240,6 @@ export function DomCanvas({
   ariaLabelById,
   onShapeFocus,
   onShapeBlur,
-  onShapeKeyDown,
   focusedId,
 }: DomCanvasProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -504,7 +502,6 @@ export function DomCanvas({
               ariaLabel={ariaLabelById?.get(layer.id)}
               onShapeFocus={onShapeFocus}
               onShapeBlur={onShapeBlur}
-              onShapeKeyDown={onShapeKeyDown}
               onShapeMouseDown={onShapeMouseDown}
               onHover={onHover}
             />

@@ -1,0 +1,1607 @@
+URL: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/getModifierState
+TITLE: KeyboardEvent: getModifierState() method - Web APIs | MDN
+
+KeyboardEvent: getModifierState() method - Web APIs | MDN 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Skip to main content 
+ 
+
+ 
+ Skip to search 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ MDN 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ HTML 
+ 
+ 
+ 
+ HTML: Markup language 
+ 
+
+ 
+ 
+ HTML reference 
+ 
+ 
+ Elements 
+ 
+ 
+ Global attributes 
+ 
+ 
+ Attributes 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ HTML guides 
+ 
+ 
+ Responsive images 
+ 
+ 
+ HTML cheatsheet 
+ 
+ 
+ Date & time formats 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Markup languages 
+ 
+ 
+ SVG 
+ 
+ 
+ MathML 
+ 
+ 
+ XML 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ CSS 
+ 
+ 
+ 
+ CSS: Styling language 
+ 
+
+ 
+ 
+ CSS reference 
+ 
+ 
+ Properties 
+ 
+ 
+ Selectors 
+ 
+ 
+ At-rules 
+ 
+ 
+ Values 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ CSS guides 
+ 
+ 
+ Box model 
+ 
+ 
+ Animations 
+ 
+ 
+ Flexbox 
+ 
+ 
+ Colors 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Layout cookbook 
+ 
+ 
+ Column layouts 
+ 
+ 
+ Centering an element 
+ 
+ 
+ Card component 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ JavaScript JS 
+ 
+ 
+ 
+ JavaScript: Scripting language 
+ 
+
+ 
+ 
+ JS reference 
+ 
+ 
+ Standard built-in objects 
+ 
+ 
+ Expressions & operators 
+ 
+ 
+ Statements & declarations 
+ 
+ 
+ Functions 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ JS guides 
+ 
+ 
+ Control flow & error handing 
+ 
+ 
+ Loops and iteration 
+ 
+ 
+ Working with objects 
+ 
+ 
+ Using classes 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Web APIs 
+ 
+ 
+ 
+ Web APIs: Programming interfaces 
+ 
+
+ 
+ 
+ Web API reference 
+ 
+ 
+ File system API 
+ 
+ 
+ Fetch API 
+ 
+ 
+ Geolocation API 
+ 
+ 
+ HTML DOM API 
+ 
+ 
+ Push API 
+ 
+ 
+ Service worker API 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Web API guides 
+ 
+ 
+ Using the Web animation API 
+ 
+ 
+ Using the Fetch API 
+ 
+ 
+ Working with the History API 
+ 
+ 
+ Using the Web speech API 
+ 
+ 
+ Using web workers 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ All 
+ 
+ 
+ 
+ All web technology 
+ 
+
+ 
+ 
+ Technologies 
+ 
+ 
+ Accessibility 
+ 
+ 
+ HTTP 
+ 
+ 
+ URI 
+ 
+ 
+ Web extensions 
+ 
+ 
+ WebAssembly 
+ 
+ 
+ WebDriver 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Topics 
+ 
+ 
+ Media 
+ 
+ 
+ Performance 
+ 
+ 
+ Privacy 
+ 
+ 
+ Security 
+ 
+ 
+ Progressive web apps 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Learn 
+ 
+ 
+ 
+ Learn web development 
+ 
+
+ 
+ 
+ Frontend developer course 
+ 
+ 
+ Getting started modules 
+ 
+ 
+ Core modules 
+ 
+ 
+ MDN Curriculum 
+ 
+ 
+ Check out the video course from Scrimba, our partner 
+ 
+
+ 
+ 
+ Learn HTML 
+ 
+ 
+ Structuring content with HTML module 
+ 
+
+ 
+ 
+ Learn CSS 
+ 
+ 
+ CSS styling basics module 
+ 
+ 
+ CSS layout module 
+ 
+
+ 
+ 
+ Learn JavaScript 
+ 
+ 
+ Dynamic scripting with JavaScript module 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Tools 
+ 
+ 
+ 
+ Discover our tools
+ 
+
+ 
+ 
+ 
+ Playground 
+ 
+ 
+ HTTP Observatory 
+ 
+
+ 
+ 
+ Border-image generator 
+ 
+ 
+ Border-radius generator 
+ 
+ 
+ Box-shadow generator 
+ 
+ 
+ Color format converter 
+ 
+ 
+ Color mixer 
+ 
+ 
+ Shape generator 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ About 
+ 
+ 
+ 
+ Get to know MDN better
+ 
+
+ 
+ 
+ 
+ About MDN 
+ 
+ 
+ Advertise with us 
+ 
+
+ 
+ 
+ Community 
+ 
+ 
+ MDN on GitHub 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Blog 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Toggle sidebar 
+ 
+ 
+ 
+ 
+ Web 
+ 
+ 
+
+ 
+ 
+ Web APIs 
+ 
+ 
+
+ 
+ 
+ KeyboardEvent 
+ 
+ 
+
+ 
+ 
+ getModifierState() 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Theme 
+ 
+ 
+ 
+ 
+ 
+ OS default 
+ 
+ 
+ 
+ 
+ Light 
+ 
+ 
+ 
+ 
+ Dark 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (US) 
+ 
+ 
+ 
+ 
+ 
+ 
+ Remember language 
+ 
+ 
+ 
+ 
+ 
+ 
+ Learn more 
+ 
+
+ 
+ 
+ 
+ Deutsch 
+ 
+
+ 
+ 
+ English (US) 
+ 
+
+ 
+ 
+ 日本語 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ KeyboardEvent: getModifierState() method
+
+ 
+ 
+ 
+ 
+ Baseline
+ 
+
+ Widely available
+
+ *
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ This feature is well established and works across many devices and browser versions. It’s been available across browsers since March 2017.
+
+ 
+ * Some parts of this feature may have varying levels of support.
+ 
+
+ 
+ 
+ 
+ See full compatibility
+ 
+ 
+
+ 
+ 
+ Learn more
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ The KeyboardEvent.getModifierState()
+ method returns the
+current state of the specified modifier key: true
+ if the modifier is active
+(that is the modifier key is pressed or locked), otherwise, false
+.
+
+ 
+ 
+
+ 
+ 
+ In this article
+
+ 
+ 
+ Syntax 
+ 
+ 
+ Modifier keys on Firefox 
+ 
+ 
+ "Accel"
+ virtual modifier 
+ 
+ 
+ Examples 
+ 
+ 
+ Specifications 
+ 
+ 
+ Browser compatibility 
+ 
+ 
+ See also 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Syntax 
+ 
+ js 
+ getModifierState(key)
+
+ 
+ Parameters 
+ 
+ 
+ key
+ 
+ 
+ A modifier key value. The value must be one of the KeyboardEvent.key
+ 
+values which represent modifier keys, or the string "Accel"
+
+ . This is case-sensitive.
+
+ 
+ 
+ 
+ Return value 
+ 
+ A boolean.
+
+ 
+ Modifier keys on Firefox 
+ 
+ When getModifierState()
+ returns true on Firefox?
+
+ 
+ 
+ 
+ 
+
+ Windows
+
+ Linux (GTK)
+
+ Mac
+
+ Android 2.3
+
+ Android 3.0 or later
+
+ 
+
+ 
+
+ 
+ 
+ "Alt"
+
+ Either Alt key or AltGr key pressed
+
+ Alt key pressed
+
+ ⌥ Option key pressed
+
+ Alt key or option key pressed
+
+ 
+
+ 
+ "AltGraph"
+
+ 
+ 
+ Both Alt and Ctrl keys are pressed, or
+ AltGr key is pressed
+ 
+
+ 
+
+ 
+ Level 3 Shift key (or Level 5 Shift key) pressed
+ 
+
+ ⌥ Option key pressed
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ 
+
+ 
+ "CapsLock"
+
+ During LED for ⇪ Caps Lock turned on
+
+ ❌ Not supported 
+
+ While CapsLock is locked
+
+ 
+
+ 
+ "Control"
+
+ Either Ctrl key or AltGr key pressed
+
+ Ctrl key pressed
+
+ control key pressed
+
+ menu key pressed.
+
+ 
+ Ctrl key, control key or menu key
+ pressed.
+ 
+
+ 
+
+ 
+ "Fn"
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ 
+ Function key is pressed, but we're not sure what key makes
+ the modifier state active. Fn key on Mac keyboard doesn't
+ cause this active.
+ 
+
+ 
+
+ 
+ "FnLock"
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ 
+
+ 
+ "Hyper"
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ 
+
+ 
+ "Meta"
+
+ ⊞ Windows Logo key pressed (from Firefox 118)
+
+ Meta key pressed
+
+ ⌘ Command key pressed
+
+ ❌ Not supported 
+
+ ⊞ Windows Logo key or command key pressed
+
+ 
+
+ 
+ "NumLock"
+
+ During LED for Num Lock turned on
+
+ A key on numpad pressed
+
+ ❌ Not supported 
+
+ While NumLock is locked
+
+ 
+
+ 
+ "OS"
+
+ ⊞ Windows Logo key pressed (before Firefox 118)
+
+ 
+ Super key or Hyper key pressed (typically, mapped
+ to ⊞ Windows Logo key)
+ 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ 
+
+ 
+ "ScrollLock"
+
+ During LED for Scroll Lock turned on
+
+ 
+ During LED for Scroll Lock turned on, but typically this
+ isn't supported by platform
+ 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ While ScrollLock is locked
+
+ 
+
+ 
+ "Shift"
+
+ ⇧ Shift key pressed
+
+ 
+
+ 
+ "Super"
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ 
+
+ 
+ "Symbol"
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ 
+
+ 
+ "SymbolLock"
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ ❌ Not supported 
+
+ 
+
+ 
+
+ 
+ 
+ On the other platforms, "Alt", "Control" and "Shift" may be supported.
+
+ All modifiers (except "FnLock"
+, "Hyper"
+, "Super"
+ and "Symbol"
+ which are defined after Firefox implements this) are always supported for untrusted events on Firefox.
+This doesn't depend on the platform.
+
+ 
+ 
+ "Accel"
+ virtual modifier 
+ 
+ 
+ Note: 
+The "Accel"
+ virtual modifier has
+been effectively deprecated in current drafts of the DOM3 Events
+specification.
+
+ getModifierState()
+ also accepts a deprecated virtual modifier named
+ "Accel"
+. event.getModifierState("Accel")
+ returns
+ true
+ when at least one of KeyboardEvent.ctrlKey
+ or
+ KeyboardEvent.metaKey
+ is true
+.
+
+ In old implementations and outdated specifications, it returned true
+ when
+a modifier which is the typical modifier key for the shortcut key is pressed. For
+example, on Windows, pressing Ctrl key may make it return true
+.
+However, on Mac, pressing ⌘ Command key may make it return true
+.
+Note that which modifier key makes it return true depends on platforms, browsers, and
+user settings. For example, Firefox users can customize this with a pref,
+ "ui.key.accelKey"
+.
+
+ 
+ Examples 
+ 
+ js 
+ function handleKeyboardEvent(event) {
+ // Ignore if following modifier is active.
+ if (
+ event.getModifierState("Fn") ||
+ event.getModifierState("Hyper") ||
+ event.getModifierState("OS") ||
+ event.getModifierState("Super") ||
+ event.getModifierState("Win") /* hack for IE */
+ ) {
+ return;
+ }
+
+ // Also ignore if two or more modifiers except Shift are active.
+ if (
+ event.getModifierState("Control") +
+ event.getModifierState("Alt") +
+ event.getModifierState("Meta") >
+ 1
+ ) {
+ return;
+ }
+
+ // Handle shortcut key with standard modifier
+ if (event.getModifierState("Accel")) {
+ switch (event.key.toLowerCase()) {
+ case "c":
+ if (event.getModifierState("Shift")) {
+ // Handle Accel + Shift + C
+ event.preventDefault(); // consume the key event
+ }
+ break;
+ case "k":
+ if (!event.getModifierState("Shift")) {
+ // Handle Accel + K
+ event.preventDefault(); // consume the key event
+ }
+ break;
+ }
+ return;
+ }
+
+ // Do something different for arrow keys if ScrollLock is locked.
+ if (
+ (event.getModifierState("ScrollLock") ||
+ event.getModifierState("Scroll")) /* hack for IE */ &&
+ !event.getModifierState("Control") &&
+ !event.getModifierState("Alt") &&
+ !event.getModifierState("Meta")
+ ) {
+ switch (event.key) {
+ case "ArrowDown":
+ case "Down": // hack for IE and old Firefox
+ event.preventDefault(); // consume the key event
+ break;
+ case "ArrowLeft":
+ case "Left": // hack for IE and old Firefox
+ // Do something different if ScrollLock is locked.
+ event.preventDefault(); // consume the key event
+ break;
+ case "ArrowRight":
+ case "Right": // hack for IE and old Firefox
+ // Do something different if ScrollLock is locked.
+ event.preventDefault(); // consume the key event
+ break;
+ case "ArrowUp":
+ case "Up": // hack for IE and old Firefox
+ // Do something different if ScrollLock is locked.
+ event.preventDefault(); // consume the key event
+ break;
+ }
+ }
+}
+
+ 
+ Note: 
+Although this example uses .getModifierState()
+ with "Alt"
+,
+ "Control"
+, "Meta"
+ and "Shift"
+, using
+ event.altKey
+, event.ctrlKey
+, event.metaKey
+ and
+ event.shiftKey
+ may be more preferable.
+
+ 
+ Specifications 
+ 
+ 
+ 
+ 
+ 
+ Specification
+ 
+
+ 
+
+ 
+
+ 
+ 
+ UI Events 
+# dom-keyboardevent-getmodifierstate 
+
+ 
+
+ 
+ 
+
+ 
+ Browser compatibility 
+ 
+ Enable JavaScript to view this browser compatibility table. 
+ 
+ 
+ See also 
+ 
+ 
+ The KeyboardEvent
+ this method belongs to.
+
+ MouseEvent.getModifierState
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Help improve MDN
+ 
+
+ 
+ Was this page helpful to you? 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Yes 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ No 
+ 
+ 
+ 
+ 
+ Learn how to contribute 
+ This page was last modified on Jul 26, 2024 by MDN contributors .
+ 
+ 
+ View this page on GitHub • Report a problem with this content 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Filter sidebar 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Clear filter input 
+ 
+ 
+
+ UI Events 
+ KeyboardEvent
+ 
+ Constructor KeyboardEvent()
+ 
+ 
+ Instance properties altKey
+ 
+ charCode
+ 
+ code
+ 
+ ctrlKey
+ 
+ isComposing
+ 
+ key
+ 
+ keyCode
+ 
+ keyIdentifier
+ 
+ location
+ 
+ metaKey
+ 
+ repeat
+ 
+ shiftKey
+ 
+ 
+ Instance methods getModifierState()
+ 
+ initKeyboardEvent()
+ 
+ 
+ Inheritance UIEvent
+ 
+ Event
+ 
+ 
+ Related pages for UI Events CompositionEvent
+ 
+ FocusEvent
+ 
+ InputEvent
+ 
+ MutationEvent
+ 
+ TextEvent
+ 
+ UIEvent
+ 
+ 
+ Guides Code values for keyboard events 
+ Key values for keyboard events 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ MDN 
+ 
+ Your blueprint for a better internet.
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ MDN 
+ 
+ 
+ 
+ 
+ 
+ About
+ 
+ 
+
+ 
+ 
+ 
+ Blog
+ 
+ 
+
+ 
+ 
+ 
+ Mozilla careers
+ 
+ 
+
+ 
+ 
+ 
+ Advertise with us
+ 
+ 
+
+ 
+ 
+ 
+ MDN Plus
+ 
+ 
+
+ 
+ 
+ 
+ Product help
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Contribute 
+ 
+ 
+ 
+ 
+ 
+ MDN Community
+ 
+ 
+
+ 
+ 
+ 
+ Community resources
+ 
+ 
+
+ 
+ 
+ 
+ Writing guidelines
+ 
+ 
+
+ 
+ 
+ 
+ MDN Discord
+ 
+ 
+
+ 
+ 
+ 
+ MDN on GitHub
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Developers 
+ 
+ 
+ 
+ 
+ 
+ Web technologies
+ 
+ 
+
+ 
+ 
+ 
+ Learn web development
+ 
+ 
+
+ 
+ 
+ 
+ Guides
+ 
+ 
+
+ 
+ 
+ 
+ Tutorials
+ 
+ 
+
+ 
+ 
+ 
+ Glossary
+ 
+ 
+
+ 
+ 
+ 
+ Hacks blog
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Mozilla 
+ 
+ 
+ 
+ Website Privacy Notice 
+ 
+
+ 
+ 
+ Telemetry Settings 
+ 
+
+ 
+ 
+ Legal 
+ 
+
+ 
+ 
+ Community Participation Guidelines 
+ 
+
+ 
+ 
+ 
+ Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under a Creative Commons license .

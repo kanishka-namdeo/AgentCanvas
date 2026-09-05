@@ -1,0 +1,1128 @@
+URL: https://help.figma.com/hc/en-us/search?query=group+and+ungroup+objects
+TITLE: Search results &ndash; Figma Learn - Help Center
+
+Search results &ndash; Figma Learn - Help Center 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Learn 
+ 
+
+ 
+ 
+ 
+ Get started 
+ Product documentation 
+ Administration 
+ Courses, tutorials, projects 
+ Help 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ enter to select 
+ ↑ ↓ to navigate 
+ esc to close 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Design
+
+ Design and prototype in one place
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Make
+
+ 
+
+ Prompt to code anything you can imagine
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Dev Mode
+
+ Translate designs into code
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Weave
+
+ New 
+ 
+
+ AI workflows for imagery, video, and audio
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+
+ Create precise, production-ready animations
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ FigJam
+
+ Collaborate with a digital whiteboard
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Draw
+
+ 
+
+ Illustrate with advanced vector tools
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Slides
+
+ Co-create presentations
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Sites
+
+ Beta 
+ 
+
+ Publish fully responsive websites
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+
+ Produce on-brand assets at scale
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ AI
+
+ Explore all Figma AI features
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Developer docs
+
+ Work with APIs, embeds, and more
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ For everyone
+
+ 
+ 
+ Account 
+ 
+ Manage settings 
+
+ Change preferences 
+
+ 
+ 
+
+ 
+ Files and projects 
+ 
+ Use the file browser 
+
+ Manage files and projects 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ For administration
+
+ 
+ 
+ Billing 
+ 
+ Overview 
+
+ Manage seats 
+
+ Manage your plan 
+
+ Pay for Figma
+ 
+
+ 
+ 
+
+ 
+ Teams 
+ 
+ Manage a team 
+
+ 
+ 
+
+ 
+ Organizations 
+ 
+ Overview 
+
+ Login and authentication 
+
+ Deploy Figma 
+
+ Members and guests 
+
+ Teams 
+
+ Libraries and resources 
+
+ 
+ 
+
+ 
+ Enterprise 
+ 
+ Billing groups 
+
+ Workspaces 
+
+ Security features 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Find out more
+
+ 
+ 
+ 
+ 
+ 
+ Courses and collections
+
+ New 
+ 
+
+ 
+
+ Level up your Figma skills with these comprehensive skill-based courses.
+
+ 
+ 
+ 
+ 
+ 
+ Projects
+
+ 
+
+ 
+
+ Get hands-on experience in Figma with these practical bite-sized projects.
+
+ 
+ 
+ 
+ 
+ 
+ Tutorials
+
+ 
+
+ 
+
+ Explore tools and features by watching and following along with these expert-led video tutorials.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Get solutions
+
+ 
+ 
+ 
+ 
+ Troubleshoot
+
+ 
+
+ 
+
+ Get help with common issues and troubleshoot unexpected behavior.
+
+ 
+ 
+ 
+ 
+ Work with support
+
+ 
+
+ 
+
+ Submit a bug report, get help collecting log files, and find your system information.
+
+ 
+ 
+ 
+ 
+ Common questions
+
+ 
+
+ 
+
+ Get answers to frequently asked questions.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Figma Community Forum
+
+ 
+
+ Ask the community, share ideas, and connect with other Figma users.
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ Get started 
+ 
+ Product documentation 
+ 
+ 
+ Products 
+ Figma Design 
+ Figma Make 
+ Dev Mode 
+ 
+ Figma Weave
+
+ New 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+ FigJam 
+ Figma Draw 
+ Figma Slides 
+ 
+ Figma Sites
+
+ Beta 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+ 
+
+ 
+ Features 
+ AI 
+ Accessibility 
+ Developer docs 
+ Figma Community 
+ 
+
+ 
+
+ 
+
+ 
+ Administration 
+ 
+ 
+ For everyone 
+ Account 
+ Files and projects 
+ 
+
+ 
+ For administration 
+ Billing 
+ Teams 
+ Organizations 
+ Enterprise
+ 
+ 
+
+ 
+
+ 
+
+ 
+ Courses, tutorials, projects 
+ 
+ 
+ Find out more 
+ Courses and collections 
+ Projects 
+ Tutorials 
+ 
+
+ 
+
+ 
+
+ 
+ Help 
+ 
+ 
+ Get solutions 
+ Troubleshoot 
+ Work with support 
+ Common questions 
+ Figma Community Forum 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 106 results for "group and ungroup objects" in All Categories
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Group objects in FigJam
+ 
+
+ ...accommodate all objects within the group . Remove objects from a group To remove an object from a group : Select the...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ FigJam 
+
+ 
+ Work on boards 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ FigJam for iPad
+ 
+
+ ...about selecting objects in FigJam → Group To group two or more items: Select the objects you want to group . Tap the...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ FigJam 
+
+ 
+ Tour the interface 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ The difference between frames and groups
+ 
+
+ ...works exactly the same way as groups . To un- group , select the group and choose “ Ungroup ”, or use: Mac: Shift Command...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Create and edit layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Boolean operations
+ 
+
+ ...the group . To break up a boolean group and revert the layers back into individual objects , right-click on the group and select...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Design with vector tools 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ FD4B: Combine shapes using boolean operations
+ 
+
+ ...the group . To break up a boolean group and revert the layers back into individual objects , right-click on the group and select...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Courses, tutorials, projects 
+
+ 
+ Courses and collections 
+
+ 
+ Figma Design for beginners 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Edit objects on the canvas in bulk
+ 
+
+ ...Create multiple groups of objects across separate sections Add auto layout to multiple nested objects across frames Insert...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Work with layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Identify matching objects
+ 
+
+ ...Parent objects : Objects such as frames, components, and groups , that contain other objects . Grandparent objects are...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Work with layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Select layers and objects
+ 
+
+ ...matching objects → To select matching objects : Select an object inside a frame or group . The frame or group should sit...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Work with layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Parent, child, and sibling relationships
+ 
+
+ ...there are objects within it. If a parent contains more than one object , the child objects are siblings. Objects — like...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Work with layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Organize your canvas with sections
+ 
+
+ ...Add objects to a section There are a few ways to add objects to a section: Move a section over an object Resize...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Work with layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ Next 
+ › 
+ 
+ 
+
+ 
+ 
+ Last 
+ » 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 
+ 한국어
+ 
+ 
+ 
+ Nederlands (Nederland)
+ 
+ 
+ 
+ Polski (Polska)
+ 
+ 
+ 
+ Português do Brasil
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ Use cases
+
+ 
+ 
+ UI design 
+ 
+
+ 
+ UX design 
+ 
+
+ 
+ Prototyping 
+ 
+
+ 
+ Graphic design 
+ 
+
+ 
+ Wireframing 
+ 
+
+ 
+ Brainstorming 
+ 
+
+ 
+ Templates 
+ 
+
+ 
+ Remote design 
+ 
+
+ 
+ 
+
+ 
+ Explore
+
+ 
+ 
+ Design features 
+ 
+
+ 
+ Prototyping features 
+ 
+
+ 
+ Design systems features 
+ 
+
+ 
+ Collaboration features 
+ 
+
+ 
+ FigJam 
+ 
+
+ 
+ Pricing 
+ 
+
+ 
+ Enterprise 
+ 
+
+ 
+ Students and educators 
+ 
+
+ 
+ Customers 
+ 
+
+ 
+ Security 
+ 
+
+ 
+ Integrations 
+ 
+
+ 
+ Contact 
+ 
+
+ 
+ 
+
+ 
+ Resources
+
+ 
+ 
+ Blog 
+ 
+
+ 
+ Best practices 
+ 
+
+ 
+ Support 
+ 
+
+ 
+ Developers 
+ 
+
+ 
+ Learn design 
+ 
+
+ 
+ Downloads 
+ 
+
+ 
+ What's new 
+ 
+
+ 
+ Releases 
+ 
+
+ 
+ Careers 
+ 
+
+ 
+ About us 
+ 
+
+ 
+ Agency partners 
+ 
+
+ 
+ Privacy 
+ 
+
+ 
+ Status

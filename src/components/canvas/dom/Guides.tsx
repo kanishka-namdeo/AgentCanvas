@@ -7,9 +7,12 @@
 // Guides are stored in canvas space (y for horizontal, x for vertical) and
 // projected to screen here so they stay put as the user pans/zooms.
 //
-// Right-click a guide line → calls onRemoveGuide(id). Drag-back-to-ruler to
-// delete is a separate gesture (deferred — Figma also supports it but the
-// right-click path is enough for the spec §H.2 acceptance criterion).
+// Right-click a guide line → a proper context menu (Delete guide / Clear
+// all guides). Interaction-consistency pass: it used to delete INSTANTLY on
+// right-click — a destructive action with no menu, no confirm, and no undo,
+// inconsistent with every other right-click surface in the app. Drag-back-
+// to-ruler delete remains deferred (Figma also supports it; the menu path
+// is the primary affordance).
 //
 // Mounted inside DomChrome (the screen-space chrome overlay) so it inherits
 // the chrome's stacking context (zIndex 10) + pointer-events baseline. The
@@ -18,6 +21,14 @@
 // without rulers is a non-sequitur).
 
 import type { GuideLine } from '@/lib/canvas/types';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import { Trash2, Layers } from 'lucide-react';
 
 export interface GuidesProps {
   /// Guides to render (from the canvas store's `guideLines` slice).
@@ -30,11 +41,11 @@ export interface GuidesProps {
   /// guides extend across the full viewport.
   width: number;
   height: number;
-  /// Right-click a guide line → calls this with the guide's id. The parent
-  /// wires this to the store's `removeGuide` action. Optional so the
-  /// component is reusable in contexts without delete affordance (e.g.
-  /// a read-only shared canvas).
+  /// Delete a guide (wired to the store's `removeGuide` action).
   onRemoveGuide?: (id: string) => void;
+  /// Clear every guide (wired to the store's `clearGuides` action).
+  /// Optional — read-only contexts omit both delete affordances.
+  onClearAll?: () => void;
 }
 
 /// Default guide color — Figma's guide red (#f24822). Used when a guide
@@ -97,6 +108,7 @@ export function Guides({
   width,
   height,
   onRemoveGuide,
+  onClearAll,
 }: GuidesProps) {
   if (guideLines.length === 0) return null;
 
@@ -128,51 +140,65 @@ export function Guides({
           const handleX = g.axis === 'horizontal' ? 0 : axisScreen;
           const handleY = g.axis === 'horizontal' ? axisScreen : 0;
           return (
-            <g key={g.id}>
-              {/* Visible 1px guide line. */}
-              <line
-                data-ac-guide={g.id}
-                data-ac-guide-axis={g.axis}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke={color}
-                strokeWidth={1}
-              />
-              {/* Invisible wider hit area for right-click delete — 1px
-                  lines are hard to hit precisely. pointer-events:stroke
-                  would work but only on the exact 1px; an explicit wider
-                  transparent line is more forgiving. */}
-              {onRemoveGuide && (
-                <line
-                  data-ac-guide-hit={g.id}
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke="transparent"
-                  strokeWidth={HIT_PADDING * 2}
-                  style={{ pointerEvents: 'stroke', cursor: 'context-menu' }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    onRemoveGuide(g.id);
-                  }}
-                />
+            <ContextMenu key={g.id}>
+              <ContextMenuTrigger asChild>
+                <g>
+                  {/* Visible 1px guide line. */}
+                  <line
+                    data-ac-guide={g.id}
+                    data-ac-guide-axis={g.axis}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke={color}
+                    strokeWidth={1}
+                  />
+                  {/* Invisible wider hit area — 1px lines are hard to hit
+                      precisely. pointer-events:stroke would work but only on
+                      the exact 1px; an explicit wider transparent line is
+                      more forgiving. */}
+                  <line
+                    data-ac-guide-hit={g.id}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke="transparent"
+                    strokeWidth={HIT_PADDING * 2}
+                    style={{ pointerEvents: 'stroke', cursor: 'context-menu' }}
+                  />
+                  {/* Handle circle at the ruler end. */}
+                  <circle
+                    cx={handleX}
+                    cy={handleY}
+                    r={HANDLE_RADIUS}
+                    fill={color}
+                    style={{ pointerEvents: onRemoveGuide ? 'auto' : 'none', cursor: onRemoveGuide ? 'context-menu' : 'default' }}
+                  />
+                </g>
+              </ContextMenuTrigger>
+              {(onRemoveGuide || onClearAll) && (
+                <ContextMenuContent className="w-44">
+                  {onRemoveGuide && (
+                    <ContextMenuItem
+                      className="ac-text-danger"
+                      onClick={() => onRemoveGuide(g.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete guide
+                    </ContextMenuItem>
+                  )}
+                  {onClearAll && guideLines.length > 1 && (
+                    <>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem onClick={() => onClearAll()}>
+                        <Layers className="h-3.5 w-3.5 mr-2" /> Clear all guides ({guideLines.length})
+                      </ContextMenuItem>
+                    </>
+                  )}
+                </ContextMenuContent>
               )}
-              {/* Handle circle at the ruler end. */}
-              <circle
-                cx={handleX}
-                cy={handleY}
-                r={HANDLE_RADIUS}
-                fill={color}
-                style={{ pointerEvents: onRemoveGuide ? 'auto' : 'none', cursor: onRemoveGuide ? 'context-menu' : 'default' }}
-                onContextMenu={onRemoveGuide ? (e) => {
-                  e.preventDefault();
-                  onRemoveGuide(g.id);
-                } : undefined}
-              />
-            </g>
+            </ContextMenu>
           );
         })}
       </svg>

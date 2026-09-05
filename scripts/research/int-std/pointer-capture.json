@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://blog.carlosrojas.dev/the-complete-guide-to-pointer-events-21e44b2f9da0",
+    "name": "The Complete Guide to Pointer Events. - Client-Side JavaScript",
+    "snippet": "Oct 13, 2025 — Employ setPointerCapture() for drag operations to ensure continuous, uninterrupted interactions independent of pointer spatial location.",
+    "host_name": "blog.carlosrojas.dev",
+    "rank": 0,
+    "date": "Oct 13, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://w3c.github.io/pointerevents",
+    "name": "Pointer Events",
+    "snippet": "Aug 26, 2026 — During a mouse drag , the value of the button property in a pointermove event will be different from that in a mousemove event .",
+    "host_name": "w3c.github.io",
+    "rank": 1,
+    "date": "Aug 26, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events",
+    "name": "Pointer events - Web APIs | MDN",
+    "snippet": "Aug 28, 2026 — Best practices. Here are some best practices to consider when using pointer events: Minimize the amount of work performed in event handlers . Read more",
+    "host_name": "developer.mozilla.org",
+    "rank": 2,
+    "date": "Aug 28, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/62807804/does-setpointercapture-works-only-for-pointerdown-event",
+    "name": "Does setPointerCapture works only for pointerDown event?",
+    "snippet": "MDN says:  The setPointerCapture() method of the Element interface is used to designate a specific element as the capture target of future pointer ...",
+    "host_name": "stackoverflow.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.r0b.io/post/creating-drag-interactions-with-set-pointer-capture-in-java-script",
+    "name": "Creating drag interactions with setPointerCapture in JavaScript",
+    "snippet": "Jan 7, 2023 — Pointer events are the web's answer to mouse vs touch interactions , so you can add one event and it will be triggered consistently whether ... Read more",
+    "host_name": "blog.r0b.io",
+    "rank": 4,
+    "date": "Jan 7, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/learnjavascript/comments/1r64mt7/has_drag_and_drop_been_deprecated_by_pointer",
+    "name": "Has drag and drop been deprecated by pointer events?",
+    "snippet": "No, the drag and drop api has not been deprecated. Nor are pointer events direct equivalent. Drag and drop is for a specialized UX, while ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,1249 @@
+KeyboardEvent: ctrlKey property - Web APIs | MDN 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Skip to main content 
+ 
+
+ 
+ Skip to search 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ MDN 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ HTML 
+ 
+ 
+ 
+ HTML: Markup language 
+ 
+
+ 
+ 
+ HTML reference
+
+ 
+ 
+ Elements 
+ 
+ 
+ Global attributes 
+ 
+ 
+ Attributes 
+ 
+ 
+ See all… 
+ 
+
+ 
+
+ 
+ HTML guides
+
+ 
+ 
+ Responsive images 
+ 
+ 
+ HTML cheatsheet 
+ 
+ 
+ Date & time formats 
+ 
+ 
+ See all… 
+ 
+
+ 
+
+ 
+ Markup languages
+
+ 
+ 
+ SVG 
+ 
+ 
+ MathML 
+ 
+ 
+ XML 
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ CSS 
+ 
+ 
+ 
+ CSS: Styling language 
+ 
+
+ 
+ 
+ CSS reference
+
+ 
+ 
+ Properties 
+ 
+ 
+ Selectors 
+ 
+ 
+ At-rules 
+ 
+ 
+ Values 
+ 
+ 
+ See all… 
+ 
+
+ 
+
+ 
+ CSS guides
+
+ 
+ 
+ Box model 
+ 
+ 
+ Animations 
+ 
+ 
+ Flexbox 
+ 
+ 
+ Colors 
+ 
+ 
+ See all… 
+ 
+
+ 
+
+ 
+ Layout cookbook
+
+ 
+ 
+ Column layouts 
+ 
+ 
+ Centering an element 
+ 
+ 
+ Card component 
+ 
+ 
+ See all… 
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ JavaScript JS 
+ 
+ 
+ 
+ JavaScript: Scripting language 
+ 
+
+ 
+ 
+ JS reference
+
+ 
+ 
+ Standard built-in objects 
+ 
+ 
+ Expressions & operators 
+ 
+ 
+ Statements & declarations 
+ 
+ 
+ Functions 
+ 
+ 
+ See all… 
+ 
+
+ 
+
+ 
+ JS guides
+
+ 
+ 
+ Control flow & error handing 
+ 
+ 
+ Loops and iteration 
+ 
+ 
+ Working with objects 
+ 
+ 
+ Using classes 
+ 
+ 
+ See all… 
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Web APIs 
+ 
+ 
+ 
+ Web APIs: Programming interfaces 
+ 
+
+ 
+ 
+ Web API reference
+
+ 
+ 
+ File system API 
+ 
+ 
+ Fetch API 
+ 
+ 
+ Geolocation API 
+ 
+ 
+ HTML DOM API 
+ 
+ 
+ Push API 
+ 
+ 
+ Service worker API 
+ 
+ 
+ See all… 
+ 
+
+ 
+
+ 
+ Web API guides
+
+ 
+ 
+ Using the Web animation API 
+ 
+ 
+ Using the Fetch API 
+ 
+ 
+ Working with the History API 
+ 
+ 
+ Using the Web speech API 
+ 
+ 
+ Using web workers 
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ All 
+ 
+ 
+ 
+ All web technology 
+ 
+
+ 
+ 
+ Technologies
+
+ 
+ 
+ Accessibility 
+ 
+ 
+ HTTP 
+ 
+ 
+ URI 
+ 
+ 
+ Web extensions 
+ 
+ 
+ WebAssembly 
+ 
+ 
+ WebDriver 
+ 
+ 
+ See all… 
+ 
+
+ 
+
+ 
+ Topics
+
+ 
+ 
+ Media 
+ 
+ 
+ Performance 
+ 
+ 
+ Privacy 
+ 
+ 
+ Security 
+ 
+ 
+ Progressive web apps 
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Learn 
+ 
+ 
+ 
+ Learn web development 
+ 
+
+ 
+ 
+ Frontend developer course
+
+ 
+ 
+ Getting started modules 
+ 
+ 
+ Core modules 
+ 
+ 
+ MDN Curriculum 
+ 
+ 
+ Check out the video course from Scrimba, our partner 
+ 
+
+ 
+
+ 
+ Learn HTML
+
+ 
+ 
+ Structuring content with HTML module 
+ 
+
+ 
+
+ 
+ Learn CSS
+
+ 
+ 
+ CSS styling basics module 
+ 
+ 
+ CSS layout module 
+ 
+
+ 
+
+ 
+ Learn JavaScript
+
+ 
+ 
+ Dynamic scripting with JavaScript module 
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Tools 
+ 
+ 
+ 
+ Discover our tools
+ 
+
+ 
+ 
+ 
+ Playground 
+ 
+ 
+ HTTP Observatory 
+ 
+
+ 
+ 
+ Border-image generator 
+ 
+ 
+ Border-radius generator 
+ 
+ 
+ Box-shadow generator 
+ 
+ 
+ Color format converter 
+ 
+ 
+ Color mixer 
+ 
+ 
+ Shape generator 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ About 
+ 
+ 
+ 
+ Get to know MDN better
+ 
+
+ 
+ 
+ 
+ About MDN 
+ 
+ 
+ Advertise with us 
+ 
+
+ 
+ 
+ Community 
+ 
+ 
+ MDN on GitHub 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Blog 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Toggle sidebar 
+ 
+ 
+ 
+ 
+ Web 
+ 
+ 
+
+ 
+ 
+ Web APIs 
+ 
+ 
+
+ 
+ 
+ KeyboardEvent 
+ 
+ 
+
+ 
+ 
+ ctrlKey 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Theme 
+ 
+ 
+ 
+ 
+ 
+ OS default 
+ 
+ 
+ 
+ 
+ Light 
+ 
+ 
+ 
+ 
+ Dark 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (US) 
+ 
+ 
+ 
+ 
+ 
+ 
+ Remember language 
+ 
+ 
+ 
+ 
+ 
+ 
+ Learn more 
+ 
+
+ 
+ 
+ 
+ Deutsch 
+ 
+
+ 
+ 
+ English (US) 
+ 
+
+ 
+ 
+ 日本語 
+ 
+
+ 
+ 
+ 한국어 
+ 
+
+ 
+ 
+ 中文 (简体) 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ KeyboardEvent: ctrlKey property
+
+ 
+ 
+ 
+ 
+ Baseline
+ 
+
+ Widely available
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ This feature is well established and works across many devices and browser versions. It’s been available across browsers since July 2015.
+
+ 
+ 
+ 
+ 
+ See full compatibility
+ 
+ 
+
+ 
+ 
+ Learn more
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ The KeyboardEvent.ctrlKey
+ read-only property returns a
+boolean value that indicates if the control key was pressed
+( true
+) or not ( false
+) when the event occurred.
+
+ When the Control key itself is pressed or released, this property is true
+ for its keydown
+ event and false
+ for its keyup
+ event, because both events fire after the state change.
+
+ 
+ 
+
+ 
+ 
+ In this article
+
+ 
+ 
+ Value 
+ 
+ 
+ Examples 
+ 
+ 
+ Specifications 
+ 
+ 
+ Browser compatibility 
+ 
+ 
+ See also 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Value 
+ 
+ A boolean value.
+
+ 
+ Examples 
+ 
+ html 
+ <p>
+ Press any character key, with or without holding down the CTRL key.<br />
+ You can also use the SHIFT key together with the CTRL key.
+</p>
+<pre id="output"></pre>
+
+ js 
+ const output = document.getElementById("output");
+
+function showChar(e) {
+ output.textContent = `Key KeyDown: "${e.key}"
+CTRL key KeyDown: ${e.ctrlKey}
+`;
+}
+
+document.addEventListener("keydown", showChar);
+
+ 
+ 
+
+ 
+ Specifications 
+ 
+ 
+ 
+ 
+ 
+ Specification
+ 
+
+ 
+
+ 
+
+ 
+ 
+ UI Events 
+# dom-keyboardevent-ctrlkey 
+
+ 
+
+ 
+ 
+
+ 
+ Browser compatibility 
+ 
+ Enable JavaScript to view this browser compatibility table. 
+ 
+ 
+ See also 
+ 
+ 
+ KeyboardEvent
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Help improve MDN
+ 
+
+ 
+ Was this page helpful to you? 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Yes 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ No 
+ 
+ 
+ 
+ 
+ Learn how to contribute 
+ This page was last modified on Sep 4, 2026 by MDN contributors .
+ 
+ 
+ View this page on GitHub • Report a problem with this content 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Filter sidebar 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Clear filter input 
+ 
+ 
+
+ UI Events 
+ KeyboardEvent
+ 
+ Constructor KeyboardEvent()
+ 
+ 
+ Instance properties altKey
+ 
+ charCode
+ 
+ code
+ 
+ ctrlKey
+ 
+ isComposing
+ 
+ key
+ 
+ keyCode
+ 
+ keyIdentifier
+ 
+ location
+ 
+ metaKey
+ 
+ repeat
+ 
+ shiftKey
+ 
+ 
+ Instance methods getModifierState()
+ 
+ initKeyboardEvent()
+ 
+ 
+ Inheritance UIEvent
+ 
+ Event
+ 
+ 
+ Related pages for UI Events CompositionEvent
+ 
+ FocusEvent
+ 
+ InputEvent
+ 
+ MutationEvent
+ 
+ TextEvent
+ 
+ UIEvent
+ 
+ 
+ Guides Code values for keyboard events 
+ Key values for keyboard events 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ MDN 
+ 
+ Your blueprint for a better internet.
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ MDN
+
+ 
+ 
+ 
+ 
+ 
+ About
+ 
+ 
+
+ 
+ 
+ 
+ Blog
+ 
+ 
+
+ 
+ 
+ 
+ Mozilla careers
+ 
+ 
+
+ 
+ 
+ 
+ Advertise with us
+ 
+ 
+
+ 
+ 
+ 
+ MDN Plus
+ 
+ 
+
+ 
+ 
+ 
+ Product help
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ Contribute
+
+ 
+ 
+ 
+ 
+ 
+ MDN Community
+ 
+ 
+
+ 
+ 
+ 
+ Community resources
+ 
+ 
+
+ 
+ 
+ 
+ Writing guidelines
+ 
+ 
+
+ 
+ 
+ 
+ MDN Discord
+ 
+ 
+
+ 
+ 
+ 
+ MDN on GitHub
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ Developers
+
+ 
+ 
+ 
+ 
+ 
+ Web technologies
+ 
+ 
+
+ 
+ 
+ 
+ Learn web development
+ 
+ 
+
+ 
+ 
+ 
+ Guides
+ 
+ 
+
+ 
+ 
+ 
+ Tutorials
+ 
+ 
+
+ 
+ 
+ 
+ Glossary
+ 
+ 
+
+ 
+ 
+ 
+ Hacks blog
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ Mozilla 
+ 
+ 
+ 
+ Website Privacy Notice 
+ 
+
+ 
+ 
+ Telemetry Settings 
+ 
+
+ 
+ 
+ Legal 
+ 
+
+ 
+ 
+ Community Participation Guidelines 
+ 
+
+ 
+ 
+ 
+ Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under a Creative Commons license .

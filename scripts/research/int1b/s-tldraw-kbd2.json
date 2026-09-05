@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://seatable.com/help/guide-to-whiteboard-plugin-tldraw",
+    "name": "Whiteboard Plugin (tldraw): Sketch, Collaborate, Export",
+    "snippet": "The whiteboard plugin gives you the freedom to graphically visualize processes and structures that you cannot display with the previous plugins. Read more",
+    "host_name": "seatable.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tldraw.dev/examples/keyboard-shortcuts",
+    "name": "Custom keyboard shortcuts",
+    "snippet": "Keyboard shortcuts are associated with either tools ( draw , eraser , etc) ... Select the Draw tool by pressing 'p'; Copy as png by pressing 'ctrl/cmd + 1 ... Read more",
+    "host_name": "tldraw.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/webdev/comments/qwovzg/tldraw_a_tiny_little_drawing_app_just_released",
+    "name": "tldraw - a tiny little drawing app, just released! : r/webdev",
+    "snippet": "Your keyboard shortcut for zooming in ( Ctrl +) matches the browser's default shortcut. So instead of zooming just the canvas, you end up ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://helpx.adobe.com/illustrator/using/default-keyboard-shortcuts.html",
+    "name": "Default keyboard shortcuts for Illustrator",
+    "snippet": "Feb 17, 2026 — Select tools ; Eraser tool. Shift + E · Shift + E ; Scissors tool. C · C ; Hand tool. H · H ; Zoom tool. Z · Z. Read more",
+    "host_name": "helpx.adobe.com",
+    "rank": 3,
+    "date": "Feb 17, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/tldraw/tldraw/issues/1254",
+    "name": "Easier hand tool access, either via right click or keyboard",
+    "snippet": "Feb 18, 2023 — So my suggestion is to change the ad-hoc hand tool scrolling behavior to zoom . That way you dont have to hold Space+Ctrl while scrolling, just ... Read more",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "Feb 18, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://examples-canary.tldraw.com",
+    "name": "tldraw examples",
+    "snippet": "Add a tool to the toolbar · Remove a tool from the toolbar · Change default colors · Change default styles · Changing menus · Format rich text on multiple shapes. Read more",
+    "host_name": "examples-canary.tldraw.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.toonboom.com/help/storyboard-pro-20/storyboard/reference/tool-properties/line-tool-properties.html",
+    "name": "Storyboard Pro 20 Online Help: Line Tool Properties",
+    "snippet": "Keyboard Shortcuts Keyboard Shortcuts · Reference > Tool ... NOTE For tasks related to the Ellipse tool , see About the Rectangle , Ellipse and Line Tools . Read more",
+    "host_name": "docs.toonboom.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,596 @@
+URL: https://tldraw.dev/sdk-features/camera
+TITLE: Camera system • tldraw Docs
+DATE: 
+
+Camera system • tldraw Docs 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Twitter/X 
+ 
+ Discord 
+ 
+ GitHub 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Search docs … 
+ ⌘K 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ Search docs … 
+ ⌘K 
+
+ 
+ 
+ 
+ Quick start 
+ 
+ 
+ Documentation 
+ 
+ 
+ Reference 
+ 
+ 
+ Starter kits 
+ 
+ 
+ Examples 
+ Introduction
+ Quick start 
+ Installation 
+ Releases 
+ 
+ Learn tldraw
+ Editor 
+ Shapes 
+ Tools 
+ User interface 
+ Handles 
+ Persistence 
+ Assets 
+ Indicators 
+ Collaboration 
+ AI integrations 
+ Commenting 
+ tldraw sync 
+ Driving the editor 
+ Mermaid diagrams 
+ LLM documentation 
+ 
+ SDK features
+ Accessibility 
+ Actions 
+ Animation 
+ Assets 
+ Attribution 
+ Bindings 
+ Camera system 
+ Click detection 
+ Clipboard 
+ Collaboration 
+ Commenting 
+ Coordinates 
+ Culling 
+ Cursor chat 
+ Cursors 
+ Deep links 
+ Default shapes 
+ Drag and drop 
+ Draw shape 
+ Edge scrolling 
+ Editor 
+ Embed shape 
+ Environment detection 
+ Error handling 
+ Events 
+ External content handling 
+ Focus 
+ Frame shape 
+ Geo shape 
+ Geometry 
+ Groups 
+ Handles 
+ Highlighting 
+ History (undo/redo) 
+ Image export 
+ Indicators 
+ Input handling 
+ Instance state 
+ Internationalization 
+ License key 
+ Locked shapes 
+ Note shape 
+ Options 
+ Overlay utils 
+ Pages 
+ Parenting and ancestors 
+ Performance 
+ Persistence 
+ Readonly mode 
+ Rich text 
+ Scribble 
+ Selection 
+ Shape clipping 
+ Shape indexing 
+ Shape transforms 
+ Shapes 
+ Side effects 
+ Signals 
+ Snapping 
+ Store 
+ Styles 
+ Text measurement 
+ Text shape 
+ Themes 
+ Ticks 
+ Tools 
+ UI components 
+ UI primitives 
+ User following 
+ User preferences 
+ Validation 
+ Visibility 
+ 
+ Community
+ Translations 
+ Contributing 
+ License 
+ 
+
+ 
+ 
+ Menu 
+ 
+ 
+ 
+ Search docs … 
+ ⌘K 
+
+ Camera system
+ 
+ Copy markdown 
+
+ The camera controls which part of the infinite canvas is visible. It holds the viewport's position and zoom, converts between screen space and page space, and responds to user input like wheel, trackpad, keyboard, and touch. You can constrain it to a bounded area, move it programmatically with animation, and follow other users' viewports in collaborative sessions.
+
+ How it works
+
+ The camera represents the viewport's position and zoom using three values: x
+ and y
+ for position in page space, and z
+ for zoom level. A zoom of 1
+ means 100%, 0.5
+ is 50%, and 2
+ is 200%. The camera's x
+ and y
+ are the page-space offset of the viewport: the page point at the viewport's top-left corner is (- x , - y )
+.
+
+ The camera converts between screen space (browser pixels) and page space (the canvas). Use Editor . screenToPage
+ to turn a mouse position into a canvas point and Editor . pageToScreen
+ to go the other way. See Coordinates for the full set of conversions.
+
+ const pagePoint = editor . screenToPage ({ x : event . clientX , y : event . clientY }) 
+ const screenPoint = editor . pageToScreen ({ x : shape . x , y : shape . y }) 
+
+ 
+ Copy 
+
+ Read the camera with Editor . getCamera
+ or Editor . getZoomLevel
+ , and read the visible page area with Editor . getViewportPageBounds
+ . All of these are reactive, so you can use them in track
+ components or useValue
+.
+
+ Camera options
+
+ Configure the camera with TLCameraOptions
+ . Pass the initial options through the options . camera
+ prop, or change them at runtime with Editor . setCameraOptions
+ , which re-applies the constraints to the current camera immediately:
+
+ < Tldraw options ={ { camera : { wheelBehavior : ' zoom ' } } } /> 
+
+ 
+ Copy 
+
+ editor . setCameraOptions ({ 
+ isLocked : false , 
+ wheelBehavior : ' pan ' , 
+ panSpeed : 1 , 
+ zoomSpeed : 1 , 
+ zoomSteps : [ 0.1 , 0.25 , 0.5 , 1 , 2 , 4 , 8 ], 
+ }) 
+
+ 
+ Copy 
+
+ Set isLocked
+ to freeze the camera for fixed-viewport apps. Camera methods then do nothing unless you pass force : true
+.
+
+ wheelBehavior
+ decides what the mouse wheel or trackpad scroll does: ' pan '
+, ' zoom '
+, or ' none '
+. If the user has set an input mode in their preferences, that preference wins: ' trackpad '
+ pans and ' mouse '
+ zooms.
+
+ panSpeed
+ and zoomSpeed
+ are multipliers on input sensitivity. Values below 1 slow movement down, values above 1 speed it up.
+
+ zoomSteps
+ lists the discrete zoom levels used by zoom in and zoom out. The first value is the minimum zoom and the last is the maximum; the camera clamps to this range even without constraints.
+
+ Camera constraints
+
+ Camera constraints limit where users can navigate. Use them for presentations, guided experiences, or applications with fixed content areas:
+
+ editor . setCameraOptions ({ 
+ constraints : { 
+ bounds : { x : 0 , y : 0 , w : 1920 , h : 1080 }, 
+ padding : { x : 50 , y : 50 }, 
+ origin : { x : 0.5 , y : 0.5 }, 
+ initialZoom : ' fit - min ' , 
+ baseZoom : ' default ' , 
+ behavior : ' inside ' , 
+ }, 
+ }) 
+
+ 
+ Copy 
+
+ The bounds
+ define the constrained area in page space. The camera restricts panning outside this rectangle based on the behavior
+ setting.
+
+ The padding
+ adds a screen-space margin inside the viewport so content doesn't touch the edges.
+
+ The origin
+ positions the bounds within the viewport when an axis uses ' fixed '
+ behavior, when ' contain '
+ is zoomed out below the fit zoom, and when the camera resets. { x : 0.5, y : 0.5 }
+ centers the bounds; { x : 0, y : 0 }
+ aligns them top-left.
+
+ Zoom fitting
+
+ initialZoom
+ is the zoom the camera starts at and returns to on reset. baseZoom
+ is the zoom that zoomSteps
+ are multiplied by, so a step of 1
+ means "the base zoom" rather than 100%. Both accept the same values:
+
+ Value
+ Description
+
+ ' default '
+
+ 100% zoom
+
+ ' fit - x '
+
+ The bounds' width fills the viewport width
+
+ ' fit - y '
+
+ The bounds' height fills the viewport height
+
+ ' fit - min '
+
+ The smaller axis fills the viewport; the larger axis may extend past it
+
+ ' fit - max '
+
+ The larger axis fills the viewport, so the full bounds stay visible
+
+ ' fit - x -100'
+
+ fit - x
+ or 100%, whichever is smaller
+
+ ' fit - y -100'
+
+ fit - y
+ or 100%, whichever is smaller
+
+ ' fit - min -100'
+
+ fit - min
+ or 100%, whichever is smaller
+
+ ' fit - max -100'
+
+ fit - max
+ or 100%, whichever is smaller
+
+ 
+
+ Constraint behaviors
+
+ The behavior
+ option controls how the bounds constrain camera movement:
+
+ Value
+ Description
+
+ ' free '
+
+ The bounds are ignored
+
+ ' fixed '
+
+ The bounds are pinned at the origin; the user can't pan
+
+ ' inside '
+
+ The bounds stay completely within the viewport
+
+ ' outside '
+
+ The bounds stay touching the viewport
+
+ ' contain '
+
+ ' fixed '
+ when zoomed out below the fit zoom, ' inside '
+ when zoomed in past it
+
+ 
+
+ Set behavior per axis for asymmetric constraints:
+
+ behavior : { 
+ x : ' free ' , // Horizontal panning unrestricted 
+ y : ' inside ' , // Vertical panning keeps bounds visible 
+ } 
+
+ 
+ Copy 
+
+ Camera methods
+
+ The camera-move methods below ( Editor . setCamera
+ , Editor . centerOnPoint
+ , Editor . zoomIn
+ , Editor . zoomOut
+ , Editor . zoomToFit
+ , Editor . zoomToSelection
+ , Editor . zoomToBounds
+ , and Editor . resetZoom
+ ) accept optional TLCameraMoveOptions
+ :
+
+ 
+ animation
+ - animate the move with duration
+ and easing
+
+ immediate
+ - move the camera immediately rather than on the next tick
+
+ force
+ - move the camera even when isLocked
+ is true
+
+ reset
+ - reset the camera to the constraints' initial zoom and origin
+
+ 
+ Basic navigation
+
+ Move the camera to a specific position and zoom:
+
+ editor . setCamera ({ x : - 500 , y : - 300 , z : 1.5 }) 
+
+ 
+ Copy 
+
+ Center the viewport on a point:
+
+ editor . centerOnPoint ({ x : 1000 , y : 500 }) 
+
+ 
+ Copy 
+
+ Zoom in or out. Both methods accept an optional screen point to zoom toward:
+
+ editor . zoomIn () 
+ editor . zoomOut () 
+ editor . zoomIn ( editor . inputs . getCurrentScreenPoint (), { animation : { duration : 200 } }) 
+
+ 
+ Copy 
+
+ Zoom to content
+
+ Focus the camera on shapes or bounds:
+
+ // Fit all shapes on the current page 
+ editor . zoomToFit () 
+ 
+ // Fit the current selection 
+ editor . zoomToSelection () 
+ 
+ // Reset zoom to 100%. With constraints , toggles between the initial zoom and 100% 
+ editor . resetZoom () 
+ 
+ // Fit specific bounds with padding 
+ const bounds = { x : 0 , y : 0 , w : 1000 , h : 800 } 
+ editor . zoomToBounds ( bounds , { inset : 100 }) 
+
+ 
+ Copy 
+
+ zoomToBounds
+ accepts inset
+ to add screen-space padding around the bounds and targetZoom
+ to cap the zoom level.
+
+ Animated movement
+
+ Add smooth transitions with the animation
+ option. The EASINGS
+ object provides common easing functions:
+
+ import { EASINGS } from ' tldraw ' 
+ 
+ editor . setCamera ( 
+ { x : 0 , y : 0 , z : 1 }, 
+ { 
+ animation : { 
+ duration : 500 , 
+ easing : EASINGS . easeInOutCubic , 
+ }, 
+ } 
+ ) 
+
+ 
+ Copy 
+
+ Camera animations stop automatically when the user pans or zooms: user input takes precedence over programmatic movement. You can also stop them at any time with Editor . stopCameraAnimation
+ . See Animation for more on animation options and user preferences.
+
+ Momentum scrolling
+
+ Use Editor . slideCamera
+ for kinetic scrolling, for example to keep the camera moving after a gesture ends:
+
+ editor . slideCamera ({ 
+ speed : 1 , 
+ direction : { x : 1 , y : 0 }, 
+ friction : 0.1 , 
+ speedThreshold : 0.01 , 
+ }) 
+
+ 
+ Copy 
+
+ speed
+ is clamped to a maximum of 1
+ and direction
+ sets the initial velocity. A z
+ component on direction
+ slides the zoom as well. friction
+ controls how fast the camera decelerates (higher stops sooner) and defaults to editor . options . cameraSlideFriction
+. The slide ends once the speed drops below speedThreshold
+.
+
+ Quick zoom navigation
+
+ The default tldraw UI has a quick zoom mode. Press z
+ to select the zoom tool, then hold Shift. The camera zooms out to show your current viewport plus everything on the page, and a brush marks where you'll land. Move the cursor to place the brush and release Shift to zoom there. Press Escape to cancel and return to the original view.
+
+ Collaboration features
+
+ Call Editor . startFollowingUser
+ to track another user's viewport, or Editor . zoomToUser
+ to jump to their cursor once. While following, the camera fits the other user's viewport inside yours: if the aspect ratios differ, the zoom adjusts so their whole viewport stays visible.
+
+ See User following for details.
+
+ Related examples
+
+ 
+ Camera options - Configure the camera's options and constraints, including zoom behavior, pan speed, and camera bounds.
+
+ Image annotator - Configure camera options for a fixed-viewport annotation app.
+
+ Slideshow (fixed camera) - A slideshow with a fixed camera using camera constraints.
+
+ Lock camera zoom - Lock the camera at a specific zoom level.
+
+ Zoom to bounds - Zoom the camera to specific bounds with zoomToBounds
+.
+
+ Scrollable container - Use the editor inside a scrollable container with mousewheel handling.
+
+ 
+ Prev 
+ Bindings Next 
+ 
+ Click detection On this page
+ 
+
+ How it works 
+ Camera options 
+ Camera constraints 
+ Zoom fitting 
+ Constraint behaviors 
+ Camera methods 
+ Basic navigation 
+ Zoom to content 
+ Animated movement 
+ Momentum scrolling 
+ Quick zoom navigation 
+ Collaboration features 
+ Related examples 
+ 
+ Is this page helpful? 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ The infinite canvas SDK
+ GitHub 
+ X/Twitter 
+ Discord 
+ LinkedIn 
+ 
+
+ Product
+ Whiteboard 
+ Starter kits 
+ Pricing 
+ FAQ 
+ 
+ Developers
+ Quick start guide 
+ Starter kits 
+ Examples 
+ Releases 
+ Docs 
+ 
+ Community
+ GitHub 
+ Discord 
+ X/Twitter 
+ LinkedIn 
+ Bluesky 
+ Mastodon 
+ 
+ Company
+ Videos 
+ Careers 
+ License 
+ Trademarks 
+ CLA 
+ Privacy settings 
+ 
+
+ © 2026 tldraw

@@ -1,0 +1,1222 @@
+URL: https://help.figma.com/hc/en-us/articles/360039831974-Explore-the-navigation-bar-and-left-sidebar
+TITLE: Explore the navigation bar and left sidebar
+
+Explore the navigation bar and left sidebar &ndash; Figma Learn - Help Center 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Learn 
+ 
+
+ 
+ 
+ 
+ Get started 
+ Product documentation 
+ Administration 
+ Courses, tutorials, projects 
+ Help 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ enter to select 
+ ↑ ↓ to navigate 
+ esc to close 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Design
+
+ Design and prototype in one place
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Make
+
+ 
+
+ Prompt to code anything you can imagine
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Dev Mode
+
+ Translate designs into code
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Weave
+
+ New 
+ 
+
+ AI workflows for imagery, video, and audio
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+
+ Create precise, production-ready animations
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ FigJam
+
+ Collaborate with a digital whiteboard
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Draw
+
+ 
+
+ Illustrate with advanced vector tools
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Slides
+
+ Co-create presentations
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Sites
+
+ Beta 
+ 
+
+ Publish fully responsive websites
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+
+ Produce on-brand assets at scale
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ AI
+
+ Explore all Figma AI features
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Developer docs
+
+ Work with APIs, embeds, and more
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ For everyone
+
+ 
+ 
+ Account 
+ 
+ Manage settings 
+
+ Change preferences 
+
+ 
+ 
+
+ 
+ Files and projects 
+ 
+ Use the file browser 
+
+ Manage files and projects 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ For administration
+
+ 
+ 
+ Billing 
+ 
+ Overview 
+
+ Manage seats 
+
+ Manage your plan 
+
+ Pay for Figma
+ 
+
+ 
+ 
+
+ 
+ Teams 
+ 
+ Manage a team 
+
+ 
+ 
+
+ 
+ Organizations 
+ 
+ Overview 
+
+ Login and authentication 
+
+ Deploy Figma 
+
+ Members and guests 
+
+ Teams 
+
+ Libraries and resources 
+
+ 
+ 
+
+ 
+ Enterprise 
+ 
+ Billing groups 
+
+ Workspaces 
+
+ Security features 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Find out more
+
+ 
+ 
+ 
+ 
+ 
+ Courses and collections
+
+ New 
+ 
+
+ 
+
+ Level up your Figma skills with these comprehensive skill-based courses.
+
+ 
+ 
+ 
+ 
+ 
+ Projects
+
+ 
+
+ 
+
+ Get hands-on experience in Figma with these practical bite-sized projects.
+
+ 
+ 
+ 
+ 
+ 
+ Tutorials
+
+ 
+
+ 
+
+ Explore tools and features by watching and following along with these expert-led video tutorials.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Get solutions
+
+ 
+ 
+ 
+ 
+ Troubleshoot
+
+ 
+
+ 
+
+ Get help with common issues and troubleshoot unexpected behavior.
+
+ 
+ 
+ 
+ 
+ Work with support
+
+ 
+
+ 
+
+ Submit a bug report, get help collecting log files, and find your system information.
+
+ 
+ 
+ 
+ 
+ Common questions
+
+ 
+
+ 
+
+ Get answers to frequently asked questions.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Figma Community Forum
+
+ 
+
+ Ask the community, share ideas, and connect with other Figma users.
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ Get started 
+ 
+ Product documentation 
+ 
+ 
+ Products 
+ Figma Design 
+ Figma Make 
+ Dev Mode 
+ 
+ Figma Weave
+
+ New 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+ FigJam 
+ Figma Draw 
+ Figma Slides 
+ 
+ Figma Sites
+
+ Beta 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+ 
+
+ 
+ Features 
+ AI 
+ Accessibility 
+ Developer docs 
+ Figma Community 
+ 
+
+ 
+
+ 
+
+ 
+ Administration 
+ 
+ 
+ For everyone 
+ Account 
+ Files and projects 
+ 
+
+ 
+ For administration 
+ Billing 
+ Teams 
+ Organizations 
+ Enterprise
+ 
+ 
+
+ 
+
+ 
+
+ 
+ Courses, tutorials, projects 
+ 
+ 
+ Find out more 
+ Courses and collections 
+ Projects 
+ Tutorials 
+ 
+
+ 
+
+ 
+
+ 
+ Help 
+ 
+ 
+ Get solutions 
+ Troubleshoot 
+ Work with support 
+ Common questions 
+ Figma Community Forum 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ 
+
+ 
+ 
+ 
+ Figma Design 
+ 
+ 
+
+ 
+ 
+ 
+ Tour the interface 
+ 
+ 
+
+ 
+ 
+ 
+ Explore 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ Explore the navigation bar and left sidebar 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Who can use this feature
+
+ 
+ 
+
+ Available on all plans 
+
+ 
+ 
+
+ Anyone with can edit
+ access can interact with all tabs in the navigation bar
+
+ 
+ 
+
+ Anyone with only can view
+ access can view the File tab
+
+ 
+ Figma Design files now have a new navigation bar!
+
+ The new navigation bar provides entry points to your file’s essential workflows—like accessing the layers panel, the Figma agent, tools, viewing assets, updating variables, and more. The navigation bar sits along the left side of the file. 
+
+ 
+
+ Here's what changed
+
+ 
+ The variables view , formerly called the variables modal, has moved from the Properties panel (right sidebar) to the new navigation bar. Now you can access your variables collections at any time, even when you have layers selected.
+
+ The File tab and Assets tab have moved from the left sidebar to the navigation bar . 
+
+ 
+ File notifications and warnings , such as library updates and missing font alerts, are now at the bottom of the navigation bar.
+
+ 
+ Additional tips
+
+ 
+ 
+ Additional labels are turned on by default to help you identify each tab. You can toggle the labels on and off by going to &gt; View .
+
+ 
+ Need a bit more room on the canvas? You can still minimize your UI by pressing ⌘ Command ⇧ Shift \ (Mac) or Ctrl Shift \ (Windows). This collapses the navigation bar, left sidebar, and right sidebar for an expanded view.
+
+ 
+
+ Figma Design files have five distinct interactive areas: a toolbar, a navigation bar, left and right panels, and a scrollable canvas. These areas allow you to access, create, and adjust elements of your design.
+ In this article, we’ll cover two areas of your design file: the (A) navigation bar and (B) left sidebar . We'll provide an overview of the main workflows for each section of the navigation bar and left sidebar.
+ Looking to explore other parts of the file? Get an overview of the Figma Design file to learn about the canvas, toolbar, sidebars, and more.
+
+ Navigation bar
+ The navigation bar is the left-most vertical bar in a design file and contains tabs for essential workflows for your canvas—like navigating layers and pages, inserting components, managing variables, and reviewing file notifications. The navigation bar includes the following:
+ 
+ Figma menu 
+
+ Files tab 
+
+ Agents tab 
+
+ Assets tab 
+
+ Tools tab 
+
+ Variables view 
+
+ File notifications 
+
+ Left sidebar
+ The left sidebar is the panel next to the navigation bar and contains dynamic content that changes based on the selected tab.
+ 
+ Tip:  You can adjust the width of the left sidebar. This allows you to better see layer or asset names.
+
+ 
+ Hover your cursor over the right-edge of the sidebar. A bidirectional arrow will appear.
+
+ Click and drag to adjust the width of the sidebar.
+
+ Release to set the sidebar width.
+
+ 
+
+ Figma menu
+ 
+ The Figma menu at the top of the sidebar provides access to various app commands, layer actions, file creation, and file preferences like  dark mode .
+ File tab
+ 
+ The File tab provides access to the file’s pages and layers. You can also rename the file, set file specific preferences, and minimize the file’s Figma UI panels and bars.
+ You can quickly access the File tab using the keyboard shortcut:
+ 
+ Mac:  ⌥ Option 1 
+
+ Windows:  Alt 1 
+
+ The edit file menu
+ The Edit file menu allows you to perform file-specific actions—such as renaming the file , viewing its version history , setting its color profile , and moving the file to a different folder .
+ To access the Edit file menu , click next to the file name.
+ Pages panel
+ You can create as many pages as you need within a file and are a great way to organize designs and content in a file. Each page has its own canvas, where you can explore and iterate on your designs. You can even create separate  prototypes  on each page. Learn how to create and manage pages .
+ Find
+ Use Find to quickly search the entire file for text, images, frames, components, and more. You can also switch to Replace to make bulk text changes. Learn more about find and replace .
+ Layers panel
+ Any frames, groups, or objects you add to the canvas will be visible in the Layers section of the File tab. New layers are added to the top of the list, or to the top of the group, frame, or section it is contained within. Or, just above the layer you currently have selected.
+ You can determine if a layer is a frame, group or a specific type of object by the icon next to it:
+ 
+ 
+ Frame
+
+ 
+ Group
+
+ 
+ Component
+
+ 
+ Instance
+
+ 
+ Text
+
+ 
+ Shape—icon varies depending on the shape .
+
+ 
+ Image
+
+ 
+ Auto layout—icon varies depending on the auto layout's flow .
+
+ 
+ Section
+
+ 
+ Animated GIF or video
+
+ 
+ Slot
+
+ Figma nests any child objects within their parent group or frame. This allows you to collapse and expand layers within a group or Frame.
+ Tip : To collapse all expanded layers, click Collapse layers in the top right corner of the Layers panel. If you've already selected a layer when you collapse layers, all expanded layers collapse except for your selection.
+
+ There are many other ways to interact with layers:
+ 
+ Select layers, groups, and frames 
+
+ Adjust the z-index with layer order 
+
+ Rename layers individually or in bulk 
+
+ Toggle layer visibility 
+
+ Lock and unlock layers 
+
+ Tip: You can enable or disable the Highlight layers on hover setting. Go to Menu &gt; Preferences &gt; Highlight layers on hover .
+
+ Minimize the UI
+ If you want more space to view the contents of your canvas, you can click Minimize next to the file name to collapse the navigation bar, left sidebar, and right sidebar. You can also use the keyboard shortcut: 
+ 
+ Mac: ⌘ Command ⇧ Shift \  
+
+ Windows: Ctrl Shift \  
+
+ If you select an object while the panels are minimized, the left sidebar remains minimized while the right sidebar expands so you can update the properties of the selected object. Once all objects are deselected, the right panel minimizes again.
+ Agents tab
+ 
+ Open the Agents tab to collaborate with the Figma agent to generate and remix designs, build plugins and shaders, automate busywork, and get design feedback.
+ The left sidebar will contain a history of past chats that have taken place within file including chats you’ve created and chats by file collaborators if they’ve made it available to you.
+ Click the New chat at the top of the sidebar to initiate a new conversation. You can click More options to change the chat access that other collaborators will have to the chat.
+ Learn more about the Figma agent. 
+ Assets tab
+ 
+ Components  are UI elements that can be reused throughout your designs. This can be things like buttons or icons, or more complex assets like navigation menus or status bars.
+ The Assets tab provides access to local components , or components from the current file, as well as components from kits  or  libraries  (requires edit access) that have been added to the file. You can drag any component from the assets panel onto the canvas to create an instance of the component.
+ You can quickly access the Assets tab by using the keyboard shortcut:
+ 
+ 
+ Mac : ⌥ Option 2 
+
+ 
+ Windows : Alt 2 
+
+ Once you've opened the assets view, you can:
+ 
+ Open the Libraries modal
+
+ Use the search field to find a specific component. Figma looks for components in the current file, as well as any libraries you can access.
+
+ Open Libraries and settings to filter through available libraries, and to switch between Grid and List views
+
+ Browse through All libraries that have been added to the file
+
+ Explore a file, page, or frame by clicking on the arrow to expand it
+
+ Figma lists team or organization libraries added to the file, and enabled UI kits, in the assets view
+
+ Create an instance by dragging a component from the assets view on to the canvas
+
+ Learn how to insert components from the assets tab. 
+ Note : Figma groups components in the assets view by heading. If you have many components, Figma will present them as a path: file &gt; page &gt; frame .
+
+ Libraries modal
+ The Libraries modal allows you to publish assets—styles, components, and variables—from your files as a library. You can also use assets from other published libraries by adding them to the current file.
+ To access your libraries from the assets tab, click Libraries to open the libraries modal.
+ You can also quickly access the Libraries modal tab by using the keyboard shortcut:
+ 
+ 
+ Mac : ⌥ Option 3 
+
+ 
+ Windows : Alt 3 
+
+ Get started with libraries .
+ Note : A blue dot is added to the Libraries icon and the label changed to Review library updates if the file contains component instances with available updates. Learn about library updates .
+
+ Tools tab
+ The Tools tab contains an assortment of plugins, widgets, shaders, and Weave tools that you can use to extend the capabilities of Figma Design and support your specific workflows.
+ Find specific tools from the search bar or use various filters to narrow down your search. 
+ Plugins
+ Plugins are applications that extend the functionality of Figma's products. You can automate repetitive tasks and add functionality that isn't native to the tool, like generating content, cleaning up layers, or connecting to external tools. 
+ Learn how to find and use plugins , or build your own . 
+ Tip : Filter by Created by Figma to find plugins built by the Figma team that you can use for free in your design files. Available to everyone.
+
+ Widgets
+ Widgets are interactive objects that you can add to the canvas to customize how you and your team work together. You can add things like voting widgets, data from external applications, or new ways to play.
+ Learn how to find and use widgets , or build your own .
+ Shaders
+ Shaders fills and shader effects give you precise control over the visual appearance of how something is rendered on your screen, allowing you to create striking visuals like frosted glass, holographic shimmers, and realistic fire textures.
+ Add a shader fill to create a visual element, like a pattern or complex gradient. Apply a shader effect to modify how a layer renders, like adding a distortion on an existing image.
+ Learn how to use shader fills and shader effects in your designs, or build your own shaders .
+ Tip : Filter by Created by Figma to find shaders built by the Figma team that you can use for free in your design files. Available to everyone.
+
+ Weave tools
+ Weave tools bring AI-powered capabilities into your design workflow, helping you generate, edit, and refine work without leaving the canvas.
+ Learn more about Weave tools. 
+ Variables view
+ 
+ Variables in Figma Design store reusable values and tokens that can be applied to all kinds of design properties. The Variables view gives you access to creating and editing variables, modes, and collections.
+ Learn how to create and manage variables. 
+ File notifications
+ 
+ The bottom of the navigation bar contains notifications and warnings specific to the file, if any exist. This can include things such as library updates , missing font alerts , and offline statuses —which will only appear in the case that any messages exist.
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Was this article helpful? 
+ 
+ Yes 
+ No 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Help Center feedback 
+ 
+ Got a second? Tell us what we’re doing well. 
+ 
+ 
+ 
+ 
+ Submit article feedback 
+ Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form .
+
+ 
+ 
+ 
+ Help Center feedback 
+ 
+ Thanks for letting us know! What was the issue? 
+ 
+ 
+ 
+ 
+ -- Please choose an option -- 
+ Incorrect or missing information 
+ Hard to understand 
+ There are typos or broken links 
+ Issues with images, GIFs, or videos 
+ I wish the feature worked a different way 
+ Something else 
+ 
+ 
+ Submit article feedback 
+ Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form .
+
+ 
+ 
+
+ 
+ 
+ Thank you for helping us improve Figma’s Help Center!
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 
+ 한국어
+ 
+ 
+ 
+ Nederlands (Nederland)
+ 
+ 
+ 
+ Polski (Polska)
+ 
+ 
+ 
+ Português do Brasil
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ Use cases
+
+ 
+ 
+ UI design 
+ 
+
+ 
+ UX design 
+ 
+
+ 
+ Prototyping 
+ 
+
+ 
+ Graphic design 
+ 
+
+ 
+ Wireframing 
+ 
+
+ 
+ Brainstorming 
+ 
+
+ 
+ Templates 
+ 
+
+ 
+ Remote design 
+ 
+
+ 
+ 
+
+ 
+ Explore
+
+ 
+ 
+ Design features 
+ 
+
+ 
+ Prototyping features 
+ 
+
+ 
+ Design systems features 
+ 
+
+ 
+ Collaboration features 
+ 
+
+ 
+ FigJam 
+ 
+
+ 
+ Pricing 
+ 
+
+ 
+ Enterprise 
+ 
+
+ 
+ Students and educators 
+ 
+
+ 
+ Customers 
+ 
+
+ 
+ Security 
+ 
+
+ 
+ Integrations 
+ 
+
+ 
+ Contact 
+ 
+
+ 
+ 
+
+ 
+ Resources
+
+ 
+ 
+ Blog 
+ 
+
+ 
+ Best practices 
+ 
+
+ 
+ Support 
+ 
+
+ 
+ Developers 
+ 
+
+ 
+ Learn design 
+ 
+
+ 
+ Downloads 
+ 
+
+ 
+ What's new 
+ 
+
+ 
+ Releases 
+ 
+
+ 
+ Careers 
+ 
+
+ 
+ About us 
+ 
+
+ 
+ Agency partners 
+ 
+
+ 
+ Privacy 
+ 
+
+ 
+ Status

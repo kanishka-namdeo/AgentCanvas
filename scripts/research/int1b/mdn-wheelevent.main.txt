@@ -1,0 +1,323 @@
+WheelEvent
+
+ 
+ 
+ 
+ 
+ Baseline
+ 
+
+ Widely available
+
+ *
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ This feature is well established and works across many devices and browser versions. It’s been available across browsers since July 2015.
+ Want more browser support for this feature? Tell us why. 
+
+ 
+ * Some parts of this feature may have varying levels of support.
+ 
+
+ 
+ - 
+ 
+ See full compatibility
+ 
+ 
+
+ - 
+ 
+ Learn more
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ The WheelEvent
+ interface represents events that occur due to the user moving a mouse wheel or similar input device.
+
+ 
+ Note: 
+This is the standard wheel event interface to use. Old versions of browsers implemented the non-standard and non-cross-browser-compatible MouseWheelEvent
+ and MouseScrollEvent
+ interfaces. Use this interface and avoid the non-standard ones.
+
+ Don't confuse the wheel
+ event with the scroll
+ event:
+
+ 
+- A wheel
+ event doesn't necessarily dispatch a scroll
+ event. For example, the element may be unscrollable at all. Zooming actions using the wheel or trackpad also fire wheel
+ events.
+
+- A scroll
+ event isn't necessarily triggered by a wheel
+ event. Elements can also be scrolled by using the keyboard, dragging a scrollbar, or using JavaScript.
+
+- Even when the wheel
+ event does trigger scrolling, the delta*
+ values in the wheel
+ event don't necessarily reflect the content's scrolling direction.
+
+ 
+ 
+ 
+ 
+ Event
+ 
+ - 
+ 
+ 
+ 
+ 
+ UIEvent
+ 
+ - 
+ 
+ 
+ 
+ 
+ MouseEvent
+ 
+ - 
+ 
+ 
+ 
+ 
+ WheelEvent
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+## In this article
+
+ 
+ - 
+ Constructor 
+ 
+- 
+ Instance properties 
+ 
+- 
+ Instance methods 
+ 
+- 
+ Specifications 
+ 
+- 
+ Browser compatibility 
+ 
+- 
+ See also 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+## Constructor 
+ 
+ 
+ WheelEvent()
+ 
+
+ 
+ Creates a WheelEvent
+ object.
+
+ 
+ 
+ 
+ 
+## Instance properties 
+ 
+ This interface inherits properties from its ancestors, MouseEvent
+ , UIEvent
+ , and Event
+ . 
+
+ 
+ WheelEvent.deltaX
+ Read only 
+
+ 
+ Returns a double
+ representing the horizontal scroll amount.
+
+ WheelEvent.deltaY
+ Read only 
+
+ 
+ Returns a double
+ representing the vertical scroll amount.
+
+ WheelEvent.deltaZ
+ Read only 
+
+ 
+ Returns a double
+ representing the scroll amount for the z-axis.
+
+ WheelEvent.deltaMode
+ Read only 
+
+ 
+ Returns an unsigned long
+ representing the unit of the delta*
+ values' scroll amount.
+
+ WheelEvent.wheelDelta
+ Read only 
+
+ 
+ Returns an integer (32-bit) representing the distance in pixels.
+
+ WheelEvent.wheelDeltaX
+ Read only 
+
+ 
+ Returns an integer representing the horizontal scroll amount.
+
+ WheelEvent.wheelDeltaY
+ Read only 
+
+ 
+ Returns an integer representing the vertical scroll amount.
+
+ 
+ 
+ Note: 
+ Element: mousewheel event has additional documentation about the deprecated properties wheelDelta
+, wheelDeltaX
+, wheelDeltaY
+.
+
+ 
+ 
+ 
+## Instance methods 
+ 
+ This interface doesn't define any specific methods, but inherits methods from its ancestors, MouseEvent
+ , UIEvent
+ , and Event
+ . 
+
+ 
+ 
+ 
+## Specifications 
+ 
+ 
+[TABLE]
+
+ 
+ 
+ 
+ Specification
+ 
+
+ 
+
+ 
+
+ 
+ 
+ Pointer Events 
+# interface-wheelevent 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+## Browser compatibility 
+ 
+ Enable JavaScript to view this browser compatibility table. 
+ 
+ 
+ 
+ 
+## See also 
+ 
+ 
+- wheel
+ event
+
+- Interfaces replaced by this one:
+ 
+- Gecko's legacy mouse wheel event object: MouseScrollEvent
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ - 
+ 
+
+ 
+## 
+ Help improve MDN
+ 
+
+ 
+ Was this page helpful to you? 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Yes 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ No 
+ 
+ 
+ 
+ 
+ Learn how to contribute 
+ This page was last modified on Feb 13, 2026 by MDN contributors .
+ 
+ 
+ View this page on GitHub • Report a problem with this content

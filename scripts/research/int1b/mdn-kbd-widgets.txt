@@ -1,0 +1,1599 @@
+URL: https://developer.mozilla.org/en-US/docs/Web/Accessibility/Keyboard-navigable_JavaScript_widgets
+TITLE: Keyboard-navigable JavaScript widgets - Accessibility | MDN
+
+Keyboard-navigable JavaScript widgets - Accessibility | MDN 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Skip to main content 
+ 
+
+ 
+ Skip to search 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ MDN 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ HTML 
+ 
+ 
+ 
+ HTML: Markup language 
+ 
+
+ 
+ 
+ HTML reference 
+ 
+ 
+ Elements 
+ 
+ 
+ Global attributes 
+ 
+ 
+ Attributes 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ HTML guides 
+ 
+ 
+ Responsive images 
+ 
+ 
+ HTML cheatsheet 
+ 
+ 
+ Date & time formats 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Markup languages 
+ 
+ 
+ SVG 
+ 
+ 
+ MathML 
+ 
+ 
+ XML 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ CSS 
+ 
+ 
+ 
+ CSS: Styling language 
+ 
+
+ 
+ 
+ CSS reference 
+ 
+ 
+ Properties 
+ 
+ 
+ Selectors 
+ 
+ 
+ At-rules 
+ 
+ 
+ Values 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ CSS guides 
+ 
+ 
+ Box model 
+ 
+ 
+ Animations 
+ 
+ 
+ Flexbox 
+ 
+ 
+ Colors 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Layout cookbook 
+ 
+ 
+ Column layouts 
+ 
+ 
+ Centering an element 
+ 
+ 
+ Card component 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ JavaScript JS 
+ 
+ 
+ 
+ JavaScript: Scripting language 
+ 
+
+ 
+ 
+ JS reference 
+ 
+ 
+ Standard built-in objects 
+ 
+ 
+ Expressions & operators 
+ 
+ 
+ Statements & declarations 
+ 
+ 
+ Functions 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ JS guides 
+ 
+ 
+ Control flow & error handing 
+ 
+ 
+ Loops and iteration 
+ 
+ 
+ Working with objects 
+ 
+ 
+ Using classes 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Web APIs 
+ 
+ 
+ 
+ Web APIs: Programming interfaces 
+ 
+
+ 
+ 
+ Web API reference 
+ 
+ 
+ File system API 
+ 
+ 
+ Fetch API 
+ 
+ 
+ Geolocation API 
+ 
+ 
+ HTML DOM API 
+ 
+ 
+ Push API 
+ 
+ 
+ Service worker API 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Web API guides 
+ 
+ 
+ Using the Web animation API 
+ 
+ 
+ Using the Fetch API 
+ 
+ 
+ Working with the History API 
+ 
+ 
+ Using the Web speech API 
+ 
+ 
+ Using web workers 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ All 
+ 
+ 
+ 
+ All web technology 
+ 
+
+ 
+ 
+ Technologies 
+ 
+ 
+ Accessibility 
+ 
+ 
+ HTTP 
+ 
+ 
+ URI 
+ 
+ 
+ Web extensions 
+ 
+ 
+ WebAssembly 
+ 
+ 
+ WebDriver 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Topics 
+ 
+ 
+ Media 
+ 
+ 
+ Performance 
+ 
+ 
+ Privacy 
+ 
+ 
+ Security 
+ 
+ 
+ Progressive web apps 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Learn 
+ 
+ 
+ 
+ Learn web development 
+ 
+
+ 
+ 
+ Frontend developer course 
+ 
+ 
+ Getting started modules 
+ 
+ 
+ Core modules 
+ 
+ 
+ MDN Curriculum 
+ 
+ 
+ Check out the video course from Scrimba, our partner 
+ 
+
+ 
+ 
+ Learn HTML 
+ 
+ 
+ Structuring content with HTML module 
+ 
+
+ 
+ 
+ Learn CSS 
+ 
+ 
+ CSS styling basics module 
+ 
+ 
+ CSS layout module 
+ 
+
+ 
+ 
+ Learn JavaScript 
+ 
+ 
+ Dynamic scripting with JavaScript module 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Tools 
+ 
+ 
+ 
+ Discover our tools
+ 
+
+ 
+ 
+ 
+ Playground 
+ 
+ 
+ HTTP Observatory 
+ 
+
+ 
+ 
+ Border-image generator 
+ 
+ 
+ Border-radius generator 
+ 
+ 
+ Box-shadow generator 
+ 
+ 
+ Color format converter 
+ 
+ 
+ Color mixer 
+ 
+ 
+ Shape generator 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ About 
+ 
+ 
+ 
+ Get to know MDN better
+ 
+
+ 
+ 
+ 
+ About MDN 
+ 
+ 
+ Advertise with us 
+ 
+
+ 
+ 
+ Community 
+ 
+ 
+ MDN on GitHub 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Blog 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Toggle sidebar 
+ 
+ 
+ 
+ 
+ Web 
+ 
+ 
+
+ 
+ 
+ Accessibility 
+ 
+ 
+
+ 
+ 
+ Guides 
+ 
+ 
+
+ 
+ 
+ Keyboard-navigable JavaScript widgets 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Theme 
+ 
+ 
+ 
+ 
+ 
+ OS default 
+ 
+ 
+ 
+ 
+ Light 
+ 
+ 
+ 
+ 
+ Dark 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (US) 
+ 
+ 
+ 
+ 
+ 
+ 
+ Remember language 
+ 
+ 
+ 
+ 
+ 
+ 
+ Learn more 
+ 
+
+ 
+ 
+ 
+ Deutsch 
+ 
+
+ 
+ 
+ English (US) 
+ 
+
+ 
+ 
+ Français 
+ 
+
+ 
+ 
+ 日本語 
+ 
+
+ 
+ 
+ Русский 
+ 
+
+ 
+ 
+ 中文 (简体) 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Keyboard-navigable JavaScript widgets
+
+ 
+ 
+ Web applications often use JavaScript to mimic desktop widgets such as menus, tree views, rich text fields, and tab panels. These widgets are typically composed of <div>
+ and <span>
+ elements that do not, by nature, offer the same keyboard functionality that their desktop counterparts do. This document describes techniques to make JavaScript widgets accessible with the keyboard.
+
+ 
+ 
+
+ 
+ 
+ In this article
+
+ 
+ 
+ Using tabindex 
+ 
+ 
+ Managing focus inside groups 
+ 
+ 
+ General guidelines 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Using tabindex 
+ 
+ By default, when people use the tab key to browse a webpage, only interactive elements (like links, form controls) get focused. With the tabindex
+ global attribute , authors can make other elements focusable, too. When set to 0
+, the element becomes focusable by keyboard and script. When set to -1
+, the element becomes focusable by script, but it does not become part of the keyboard focus order.
+
+ The order in which elements gain focus when using a keyboard, is the source order by default. In exceptional circumstances, authors may want to redefine the order. To do this, authors can set tabindex
+ to any positive number.
+
+ 
+ Warning: 
+Avoid using positive values for tabindex
+. Elements with a positive tabindex
+ are put before the default interactive elements on the page, which means page authors will have to set (and maintain) tabindex
+ values for all focusable elements on the page whenever they use one or more positive values for tabindex
+.
+
+ The following table describes tabindex
+ behavior in modern browsers:
+
+ 
+ 
+ 
+ tabindex
+ attribute
+
+ Focusable with mouse or JavaScript via element.focus()
+
+ Tab navigable
+
+ 
+
+ 
+
+ 
+ 
+ not present
+
+ Follows the platform convention of the element (yes for form controls, links, etc.).
+
+ Follows the platform convention of the element.
+
+ 
+
+ 
+ Negative (i.e., tabindex="-1"
+)
+
+ Yes
+
+ No; author must focus the element with focus()
+ in response to arrow or other key presses.
+
+ 
+
+ 
+ Zero (i.e., tabindex="0"
+)
+
+ Yes
+
+ In tab order relative to element's position in document (note that interactive elements like <a>
+ have this behavior by default, they don't need the attribute).
+
+ 
+
+ 
+ Positive (e.g., tabindex="33"
+)
+
+ Yes
+
+ tabindex
+ value determines where this element is positioned in the tab order: smaller values will position elements earlier in the tab order than larger values (for example, tabindex="7"
+ will be positioned before tabindex="11"
+).
+
+ 
+
+ 
+
+ 
+ 
+ Non-native controls 
+ 
+ Native HTML elements that are interactive, like <a>
+ , <input>
+ and <select>
+ , are already accessible by keyboards, so to use one of them is the fastest path to make components work with keyboards.
+
+ Authors can also make a <div>
+ or <span>
+ keyboard accessible by adding a tabindex
+ of 0
+. This is particularly useful for components that use interactive elements that do not exist in HTML.
+
+ 
+ Grouping controls 
+ 
+ For grouping widgets such as menus, tablists, grids, or tree views, the parent element should be in the tab order ( tabindex="0"
+), and each descendant choice/tab/cell/row should be removed from the tab order ( tabindex="-1"
+). Users should be able to navigate the descendant elements using arrow keys. (For a full description of the keyboard support that is normally expected for typical widgets, see the WAI-ARIA Authoring Practices .)
+
+ The example below shows this technique used with a nested menu control. Once keyboard focus lands on the containing <ul>
+ element, the JavaScript developer must programmatically manage focus and respond to arrow keys. For techniques for managing focus within widgets, see "Managing focus inside groups" below.
+
+ html 
+ <ul id="mb1" tabindex="0">
+ <li id="mb1_menu1" tabindex="-1">
+ Font
+ <ul id="fontMenu" title="Font" tabindex="-1">
+ <li id="sans-serif" tabindex="-1">Sans-serif</li>
+ <li id="serif" tabindex="-1">Serif</li>
+ <li id="monospace" tabindex="-1">Monospace</li>
+ <li id="fantasy" tabindex="-1">Fantasy</li>
+ </ul>
+ </li>
+ <li id="mb1_menu2" tabindex="-1">
+ Style
+ <ul id="styleMenu" title="Style" tabindex="-1">
+ <li id="italic" tabindex="-1">Italics</li>
+ <li id="bold" tabindex="-1">Bold</li>
+ <li id="underline" tabindex="-1">Underlined</li>
+ </ul>
+ </li>
+ <li id="mb1_menu3" tabindex="-1">
+ Justification
+ <ul id="justificationMenu" title="Justification" tabindex="-1">
+ <li id="left" tabindex="-1">Left</li>
+ <li id="center" tabindex="-1">Centered</li>
+ <li id="right" tabindex="-1">Right</li>
+ <li id="justify" tabindex="-1">Justify</li>
+ </ul>
+ </li>
+</ul>
+
+ Disabled controls
+
+ When a custom control becomes disabled, remove it from the tab order by setting tabindex="-1"
+. Note that disabled items within a grouped widget (such as menu items in a menu) should remain navigable using arrow keys.
+
+ 
+ Managing focus inside groups 
+ 
+ When a user tabs away from a widget and returns, focus should return to the specific element that had focus, for example, the tree item or grid cell. There are two techniques for accomplishing this:
+
+ 
+ Roving tabindex
+: programmatically moving focus
+
+ aria-activedescendant
+: managing a 'virtual' focus
+
+ 
+ 
+ Technique 1: Roving tabindex 
+ 
+ Setting the tabindex
+ of the focused element to "0" ensures that if the user tabs away from the widget and then returns, the selected item within the group retains focus. Note that updating the tabindex
+ to "0" requires also updating the previously selected item to tabindex="-1"
+. This technique involves programmatically moving focus in response to key events and updating the tabindex
+ to reflect the currently focused item. To do this:
+
+ Bind a key down handler to each element in the group, and when an arrow key is used to move to another element:
+
+ 
+ programmatically apply focus to the new element,
+
+ update the tabindex
+ of the focused element to "0", and
+
+ update the tabindex
+ of the previously focused element to "-1".
+
+ 
+ 
+ Technique 2: aria-activedescendant
+ 
+ 
+ This technique involves binding a single event handler to the container widget and using the aria-activedescendant
+ to track a "virtual" focus. (For more information about ARIA, see this overview of accessible web applications and widgets .)
+
+ The aria-activedescendant
+ property identifies the ID of the descendant element that currently has the virtual focus. The event handler on the container must respond to key and mouse events by updating the value of aria-activedescendant
+ and ensuring that the current item is styled appropriately (for example, with a border or background color).
+
+ 
+ General guidelines 
+ 
+ 
+ 
+ Usage of focus events 
+ 
+ 
+ Do not dispatch the focus
+ event to send focus to an element. DOM focus events are considered informational only: they are generated by the system after something is focused, but not actually used to set focus. Use element.focus()
+ instead.
+
+ Do listen for the focus
+ and blur
+ events to track focus changes. Don't assume that all focus changes will come via key and mouse events: assistive technologies such as screen readers can set the focus to any focusable element. If you want to track the focus status for the whole document, you can use the document.activeElement
+ to get the active element, or document.hasFocus
+ to make sure if the current document has focus.
+
+ 
+ 
+ Ensure that keyboard and mouse produce the same experience 
+ 
+ To ensure that the user experience is consistent regardless of input device, keyboard and mouse event handlers should share code where appropriate. For example, the code that updates the tabindex
+ or the styling when users navigate using the arrow keys should also be used by mouse click handlers to produce the same changes.
+
+ 
+ Ensure that the keyboard can be used to activate element 
+ 
+ To ensure that the keyboard can be used to activate elements, any handlers bound to mouse events should also be bound to keyboard events. For example, to ensure that the Enter key will activate an element, if you have an onclick="doSomething()"
+, you should bind doSomething()
+ to the key down event as well: onkeydown="event.code === "Enter" && doSomething();"
+.
+
+ 
+ Always draw the focus for tabindex="-1" items and elements that receive focus programmatically 
+ 
+ Ensure that focused elements have a focus ring. This can be done using the CSS outline
+ property, which should not be unconditionally set to none
+—if you want to prevent unnecessary focus rings being displayed, use the :focus-visible
+ pseudo-class.
+
+ 
+ Prevent used key events from performing browser functions 
+ 
+ If your widget handles a key event, prevent the browser from also handling it (for example, scrolling in response to the arrow keys) by using your event handler's return code. If your event handler returns false
+, the event will not be propagated beyond your handler.
+
+ For example:
+
+ html 
+ <span tabindex="-1">…</span>
+
+ js 
+ span.onkeydown = handleKeyDown;
+
+ If handleKeyDown()
+ returns false
+, the event will be consumed, preventing the browser from performing any action based on the keystroke.
+
+ 
+ Don't rely on consistent behavior for key repeat, at this point 
+ 
+ Unfortunately onkeydown
+ may or may not repeat depending on what browser and OS you're running on.
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Help improve MDN
+ 
+
+ 
+ Was this page helpful to you? 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Yes 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ No 
+ 
+ 
+ 
+ 
+ Learn how to contribute 
+ This page was last modified on Jun 2, 2025 by MDN contributors .
+ 
+ 
+ View this page on GitHub • Report a problem with this content 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Filter sidebar 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Clear filter input 
+ 
+ 
+
+ Accessibility 
+ Guides 
+ Information for web authors 
+ Personalization to help browse safely 
+ Accessible web applications and widgets 
+ Keyboard-navigable JavaScript widgets 
+ Mobile accessibility checklist 
+ Cognitive accessibility 
+ Spatial patterns 
+ Colors and Luminance 
+ Preventing seizures and physical reactions 
+ Understanding WCAG Keyboard accessible 
+ Operable 
+ Perceivable 
+ Robust 
+ Text labels and names 
+ Understandable 
+ 
+ ARIA 
+ ARIA guides ARIA live regions 
+ Screen reader implementors guide 
+ Using ARIA: Roles, states, and properties 
+ Using ARIA for labels with embedded fields 
+ 
+ ARIA reference 
+ Attributes aria-activedescendant
+ 
+ aria-atomic
+ 
+ aria-autocomplete
+ 
+ aria-braillelabel
+ 
+ aria-brailleroledescription
+ 
+ aria-busy
+ 
+ aria-checked
+ 
+ aria-colcount
+ 
+ aria-colindex
+ 
+ aria-colindextext
+ 
+ aria-colspan
+ 
+ aria-controls
+ 
+ aria-current
+ 
+ aria-describedby
+ 
+ aria-description
+ 
+ aria-details
+ 
+ aria-disabled
+ 
+ aria-dropeffect
+ 
+ aria-errormessage
+ 
+ aria-expanded
+ 
+ aria-flowto
+ 
+ aria-grabbed
+ 
+ aria-haspopup
+ 
+ aria-hidden
+ 
+ aria-invalid
+ 
+ aria-keyshortcuts
+ 
+ aria-label
+ 
+ aria-labelledby
+ 
+ aria-level
+ 
+ aria-live
+ 
+ aria-modal
+ 
+ aria-multiline
+ 
+ aria-multiselectable
+ 
+ aria-orientation
+ 
+ aria-owns
+ 
+ aria-placeholder
+ 
+ aria-posinset
+ 
+ aria-pressed
+ 
+ aria-readonly
+ 
+ aria-relevant
+ 
+ aria-required
+ 
+ aria-roledescription
+ 
+ aria-rowcount
+ 
+ aria-rowindex
+ 
+ aria-rowindextext
+ 
+ aria-rowspan
+ 
+ aria-selected
+ 
+ aria-setsize
+ 
+ aria-sort
+ 
+ aria-valuemax
+ 
+ aria-valuemin
+ 
+ aria-valuenow
+ 
+ aria-valuetext
+ 
+ 
+ Roles alert
+ 
+ alertdialog
+ 
+ application
+ 
+ article
+ 
+ banner
+ 
+ button
+ 
+ cell
+ 
+ checkbox
+ 
+ columnheader
+ 
+ combobox
+ 
+ command
+ 
+ comment
+ 
+ complementary
+ 
+ composite
+ 
+ contentinfo
+ 
+ definition
+ 
+ dialog
+ 
+ directory
+ 
+ document
+ 
+ feed
+ 
+ figure
+ 
+ form
+ 
+ generic
+ 
+ grid
+ 
+ gridcell
+ 
+ group
+ 
+ heading
+ 
+ img
+ 
+ input
+ 
+ landmark
+ 
+ link
+ 
+ list
+ 
+ listbox
+ 
+ listitem
+ 
+ log
+ 
+ main
+ 
+ mark
+ 
+ marquee
+ 
+ math
+ 
+ menu
+ 
+ menubar
+ 
+ menuitem
+ 
+ menuitemcheckbox
+ 
+ menuitemradio
+ 
+ meter
+ 
+ navigation
+ 
+ none
+ 
+ note
+ 
+ option
+ 
+ presentation
+ 
+ progressbar
+ 
+ radio
+ 
+ radiogroup
+ 
+ range
+ 
+ region
+ 
+ roletype
+ 
+ row
+ 
+ rowgroup
+ 
+ rowheader
+ 
+ scrollbar
+ 
+ search
+ 
+ searchbox
+ 
+ section
+ 
+ sectionhead
+ 
+ select
+ 
+ separator
+ 
+ slider
+ 
+ spinbutton
+ 
+ status
+ 
+ Structural
+ 
+ structure
+ 
+ suggestion
+ 
+ switch
+ 
+ tab
+ 
+ table
+ 
+ tablist
+ 
+ tabpanel
+ 
+ term
+ 
+ textbox
+ 
+ timer
+ 
+ toolbar
+ 
+ tooltip
+ 
+ tree
+ 
+ treegrid
+ 
+ treeitem
+ 
+ widget
+ 
+ window
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ MDN 
+ 
+ Your blueprint for a better internet.
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ MDN 
+ 
+ 
+ 
+ 
+ 
+ About
+ 
+ 
+
+ 
+ 
+ 
+ Blog
+ 
+ 
+
+ 
+ 
+ 
+ Mozilla careers
+ 
+ 
+
+ 
+ 
+ 
+ Advertise with us
+ 
+ 
+
+ 
+ 
+ 
+ MDN Plus
+ 
+ 
+
+ 
+ 
+ 
+ Product help
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Contribute 
+ 
+ 
+ 
+ 
+ 
+ MDN Community
+ 
+ 
+
+ 
+ 
+ 
+ Community resources
+ 
+ 
+
+ 
+ 
+ 
+ Writing guidelines
+ 
+ 
+
+ 
+ 
+ 
+ MDN Discord
+ 
+ 
+
+ 
+ 
+ 
+ MDN on GitHub
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Developers 
+ 
+ 
+ 
+ 
+ 
+ Web technologies
+ 
+ 
+
+ 
+ 
+ 
+ Learn web development
+ 
+ 
+
+ 
+ 
+ 
+ Guides
+ 
+ 
+
+ 
+ 
+ 
+ Tutorials
+ 
+ 
+
+ 
+ 
+ 
+ Glossary
+ 
+ 
+
+ 
+ 
+ 
+ Hacks blog
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Mozilla 
+ 
+ 
+ 
+ Website Privacy Notice 
+ 
+
+ 
+ 
+ Telemetry Settings 
+ 
+
+ 
+ 
+ Legal 
+ 
+
+ 
+ 
+ Community Participation Guidelines 
+ 
+
+ 
+ 
+ 
+ Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under a Creative Commons license .

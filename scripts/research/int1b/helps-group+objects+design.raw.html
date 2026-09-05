@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <!-- v27896 -->
+    <!-- guide_search/semantic_search_enabled = true -->
+
+  <!-- guide_search/articles_index = help_center_articles_v40 -->
+  <!-- guide_search/sections_index = sections_v4 -->
+  <!-- guide_search/community_posts_index = help_center_community_posts_v32 -->
+  <!-- guide_search/community_users_index = help_center_community_users_v5 -->
+  <!-- guide_search/external_content_index = external_content_records_v23 -->
+
+  <title>Search results &ndash; Figma Learn - Help Center</title>
+
+  
+
+  
+
+  <link rel="stylesheet" href="//static.zdassets.com/hc/assets/application-dfda240c40477db2e8cc0ad93adeb1eb.css" media="all" id="stylesheet" />
+  <link rel="stylesheet" type="text/css" href="/hc/theming_assets/9325143/360002676493/style.css?digest=42611701647127">
+
+  <link rel="icon" type="image/x-icon" href="/hc/theming_assets/01HZFG1NHWKZA6P3KEG8EQ31YX">
+
+    
+
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+<meta property="og:image" content="https://help.figma.com/hc/theming_assets/01JMYWSNCNTYE97HCPWWCJNSRN" />
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<link rel="stylesheet" href="/hc/theming_assets/01HZFG1DTG8R13CABP5NVF1P1X" />
+<link rel="stylesheet" href="/hc/theming_assets/01JZTGBH4CRGW9YQ0E77GT4A6N" />
+<link rel="stylesheet" href="/hc/theming_assets/01KWF1H3RH3EM93C5G9NQRTK6C" />
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/URI.js/1.18.0/URI.min.js"></script>
+
+<script src="/hc/theming_assets/01HZFG190S3X3KQSCHW2KF60M8"></script>
+<script src="/hc/theming_assets/01HZFG1AR5D59E2783S5ZDV7QF"></script>
+<script src="/hc/theming_assets/01HZFG1HJ7SJQNVDZSNN61RMXY"></script>
+<script src="/hc/theming_assets/01HZFG14YEGNT9ZYCF8A3YST30"></script>
+  
+</head>
+<body class="">
+  
+  
+  
+
+  <header class="header-wrapper">
+    <fl-announcement-banner></fl-announcement-banner>
+    <div class="header">
+        <a title="Home" href="/hc/en-us">
+            <div class="logo">
+                <span class="logo-text"><strong>Figma</strong> Learn</span>
+            </div>
+        </a>
+        <div class="mega-nav-items">
+            <nav>
+                <a href="https://help.figma.com/hc/categories/360002051613-Get-started" class="body body-regular">Get started</a>
+                <button id="MenuProduct" class="body body-regular" aria-label="Click to open product documentation menu">Product documentation</button>
+                <button id="MenuAdmin" class="body body-regular" aria-label="Click to open administration menu">Administration</button>
+                <button id="MenuCourses" class="body body-regular" aria-label="Click to open courses, tutorials, and projects documentation menu">Courses, tutorials, projects</button>
+                <button id="MenuHelp" class="body body-regular" aria-label="Click to open help menu">Help</button>
+            </nav>
+        </div>
+        <div class="grid grid-flow-col items-center gap-2 2xl:gap-4">
+            <fl-contact-sales-button
+                text="Contact sales"
+                href="https://www.figma.com/contact/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center_contact_sales"
+            ></fl-contact-sales-button>
+            <div class="header-signup-wrapper">
+                <div class="search-wrapper header-search">
+                    <section
+                        class="search-overlay fixed left-4 right-4 top-[160px] z-50 m-auto hidden max-w-[600px] flex-col justify-end gap-2 rounded-[13px] border border-solid border-black bg-white shadow-lg shadow-black/50 sm:left-0 sm:right-0"
+                    >
+                        <div class="hidden grid-flow-col gap-3 self-end p-3 pb-1 text-sm text-zinc-500 sm:grid">
+                            <span><kbd>enter</kbd>to select</span>
+                            <span><kbd>↑</kbd><kbd>↓</kbd>to navigate</span>
+                            <span><kbd>esc</kbd>to close</span>
+                        </div>
+                        <form role="search" class="search" data-search="" data-instant="true" autocomplete="off" action="/hc/en-us/search" accept-charset="UTF-8" method="get"><input type="hidden" name="utf8" value="&#x2713;" autocomplete="off" /><input type="search" name="query" id="query" placeholder="Search components, styles, auto layout, etc..." autocomplete="off" aria-label="Search components, styles, auto layout, etc..." /></form>
+                    </section>
+                    
+                    <button
+                        class="grid grid-flow-col items-center gap-1 rounded-full border border-solid border-[var(--border-subtle)] bg-transparent p-2 transition-all hover:bg-zinc-200"
+                        id="ActionSearch"
+                    >
+                        <img src="/hc/theming_assets/01JYKS7CZ94QTYRX1XR0HPP9MS" class="h-7 w-7" />
+                        <div class="search-keys hidden grid-flow-col gap-1 text-black">
+                        </div>
+                    </button>
+                </div>
+            </div>
+            
+                <span id="HeaderSignup">
+                    <fl-button text="Sign up" href="https://www.figma.com/zendesk/sso?locale=en-us"></fl-button>
+                </span>
+            
+        </div>
+    </div>
+    
+    <div class="mega-nav-menu">
+        <div class="mega-nav-content-wrapper">
+            <div class="content-desktop">
+                <section id="MenuProduct" class="flex flex-col">
+                    
+                    <div class="grid grid-cols-4 gap-12">
+                        <article>
+                            <a href="https://help.figma.com/hc/categories/360002042553" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">Figma Design</p>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Design and prototype in one place</p>
+                                </div>
+                            </a>
+                        </article>
+                        <article>
+                            <a href="https://help.figma.com/hc/categories/31304285531543" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">Figma Make</p>
+                                    </div>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Prompt to code anything you can imagine</p>
+                                </div>
+                            </a>
+                        </article>
+                        <article>
+                            <a href="https://help.figma.com/hc/sections/15023066873239" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">Dev Mode</p>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Translate designs into code</p>
+                                </div>
+                            </a>
+                        </article>
+                        <article>
+                            <a href="https://help.weavy.ai/en/" target="_blank" rel="noopener noreferrer" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">Figma Weave</p>
+                                        <span class="nav-tag tag-default">New</span>
+                                    </div>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">AI workflows for imagery, video, and audio</p>
+                                </div>
+                            </a>
+                        </article>
+                        
+                        <article>
+                            <a href="https://help.figma.com/hc/categories/41274596092695" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">Figma Motion</p>
+                                        <span class="nav-tag tag-default">New</span>
+                                    </div>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Create precise, production-ready animations</p>
+                                </div>
+                            </a>
+                        </article>
+                        <article>
+                            <a href="https://help.figma.com/hc/categories/360002051633" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">FigJam</p>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Collaborate with a digital whiteboard</p>
+                                </div>
+                            </a>
+                        </article>
+                        <article>
+                            <a href="https://help.figma.com/hc/sections/31830768959511" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">Figma Draw</p>
+                                    </div>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Illustrate with advanced vector tools</p>
+                                </div>
+                            </a>
+                        </article>
+                        <article>
+                            <a href="https://help.figma.com/hc/categories/24146015318551" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">Figma Slides</p>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Co-create presentations</p>
+                                </div>
+                            </a>
+                        </article>
+                    </div>
+                    
+                    <div class="grid grid-cols-4 gap-12">
+                        <article>
+                            <a href="https://help.figma.com/hc/categories/31823555275671" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">Figma Sites</p>
+                                        <span class="nav-tag tag-default">Beta</span>
+                                    </div>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Publish fully responsive websites</p>
+                                </div>
+                            </a>
+                        </article>
+                        <article>
+                            <a href="https://help.figma.com/hc/categories/31194838351767" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">Figma Buzz</p>
+                                        <span class="nav-tag tag-default">Beta</span>
+                                    </div>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Produce on-brand assets at scale</p>
+                                </div>
+                            </a>
+                        </article>
+                        <article>
+                            <a href="https://help.figma.com/hc/en-us/sections/24369548041111" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">AI</p>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Explore all Figma AI features</p>
+                                </div>
+                            </a>
+                        </article>
+                        <article>
+                            <a href="https://www.figma.com/developers" class="group block">
+                                <div class="mb-4 flex flex-col gap-1">
+                                    <p class="body !m-0 !p-0 text-2xl font-light group-hover:underline">Developer docs</p>
+                                    <p class="!m-0 !p-0 text-[1.15rem] font-light leading-6 text-[#697485]">Work with APIs, embeds, and more</p>
+                                </div>
+                            </a>
+                        </article>
+                    </div>
+                </section>
+                <section id="MenuAdmin">
+                    <div class="nav-list-category nav-list-size-4">
+                        <p class="body body-eyebrow">For everyone</p>
+                        <div class="nav-list-items">
+                            <div class="nav-list">
+                                <a href="https://help.figma.com/hc/sections/360006479433" class="body text-lg font-normal">Account</a>
+                                <ul class="body body-regular">
+                                    <li><a href="https://help.figma.com/hc/sections/4403936365591">Manage settings</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/4403936364311">Change preferences</a></li>
+                                </ul>
+                            </div>
+                            <div class="nav-list">
+                                <a href="https://help.figma.com/hc/sections/360006050633" class="body text-lg font-normal">Files and projects</a>
+                                <ul class="body body-regular">
+                                    <li><a href="https://help.figma.com/hc/sections/13166486919191">Use the file browser</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/13166489863319">Manage files and projects</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nav-list-category nav-list-size-8">
+                        <p class="body body-eyebrow">For administration</p>
+                        <div class="nav-list-items-flexible">
+                            <div class="nav-list">
+                                <a href="https://help.figma.com/hc/sections/4421076253719" class="body text-lg font-normal">Billing</a>
+                                <ul class="body body-regular">
+                                    <li><a href="https://help.figma.com/hc/sections/4403936381463">Overview</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/20830735292567">Manage seats</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/4403929058327">Manage your plan</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/1500001018842">Pay for Figma
+                                        </a></li>
+                                </ul>
+                            </div>
+                            <div class="nav-list">
+                                <a href="https://help.figma.com/hc/sections/360006457394" class="body text-lg font-normal">Teams</a>
+                                <ul class="body body-regular">
+                                    <li><a href="https://help.figma.com/hc/sections/360006457394">Manage a team</a></li>
+                                </ul>
+                            </div>
+                            <div class="nav-list">
+                                <a href="https://help.figma.com/hc/sections/360006606913" class="body text-lg font-normal">Organizations</a>
+                                <ul class="body body-regular">
+                                    <li><a href="https://help.figma.com/hc/sections/20832795476375">Overview</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/4403936348311">Login and authentication</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/4403928836759">Deploy Figma</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/4403928781847">Members and guests</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/20832780119959">Teams</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/4403928823063">Libraries and resources</a></li>
+                                </ul>
+                            </div>
+                            <div class="nav-list">
+                                <a href="https://help.figma.com/hc/sections/20832705104407" class="body text-lg font-normal">Enterprise</a>
+                                <ul class="body body-regular">
+                                    <li><a href="https://help.figma.com/hc/sections/19100866155543">Billing groups</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/4419363208855">Workspaces</a></li>
+                                    <li><a href="https://help.figma.com/hc/sections/20833164749719">Security features</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section id="MenuCourses">
+                    <div class="nav-list-category nav-list-size-12">
+                        <p class="body body-eyebrow">Find out more</p>
+                        <div class="nav-list-items">
+                            <a href="https://help.figma.com/hc/sections/23691657321239" class="nav-list nav-list-size-3 group">
+                                <div class="nav-list-title">
+                                    <span class="nav-list-icon list-ic-learn-courses"></span>
+                                    <div class="nav-title-tag">
+                                        <p class="body text-lg font-normal group-hover:underline">Courses and collections</p>
+                                        <span class="nav-tag tag-default">New</span>
+                                    </div>
+                                </div>
+                                <p class="body body-regular">Level up your Figma skills with these comprehensive skill-based courses.</p>
+                            </a>
+                            <a href="https://help.figma.com/hc/sections/13148624530967" class="nav-list nav-list-size-3 group">
+                                <div class="nav-list-title">
+                                    <span class="nav-list-icon list-ic-learn-mini-project"></span>
+                                    <div class="nav-title-tag">
+                                        <p class="body text-lg font-normal group-hover:underline">Projects</p>
+                                    </div>
+                                </div>
+                                <p class="body body-regular">Get hands-on experience in Figma with these practical bite-sized projects.</p>
+                            </a>
+                            <a href="https://www.youtube.com/@Figma" class="nav-list nav-list-size-3 group">
+                                <div class="nav-list-title">
+                                    <span class="nav-list-icon list-ic-learn-tutorial"></span>
+                                    <div class="nav-title-tag">
+                                        <p class="body text-lg font-normal group-hover:underline">Tutorials</p>
+                                    </div>
+                                </div>
+                                <p class="body body-regular">Explore tools and features by watching and following along with these expert-led video tutorials.</p>
+                            </a>
+                        </div>
+                    </div>
+                </section>
+                <section id="MenuHelp">
+                    <div class="nav-list-category nav-list-size-9">
+                        <p class="body body-eyebrow">Get solutions</p>
+                        <div class="nav-list-items">
+                            <a href="https://help.figma.com/hc/sections/1500000378401" class="nav-list nav-list-size-3 group">
+                                <div class="nav-list-title">
+                                    <div class="nav-title-tag">
+                                        <p class="body text-lg font-normal group-hover:underline">Troubleshoot</p>
+                                    </div>
+                                </div>
+                                <p class="body body-regular">Get help with common issues and troubleshoot unexpected behavior.</p>
+                            </a>
+                            <a href="https://help.figma.com/hc/sections/19818052690455" class="nav-list nav-list-size-3 group">
+                                <div class="nav-list-title">
+                                    <div class="nav-title-tag">
+                                        <p class="body text-lg font-normal group-hover:underline">Work with support</p>
+                                    </div>
+                                </div>
+                                <p class="body body-regular">Submit a bug report, get help collecting log files, and find your system information.</p>
+                            </a>
+                            <a href="https://help.figma.com/hc/sections/13148115222551" class="nav-list nav-list-size-3 group">
+                                <div class="nav-list-title">
+                                    <div class="nav-title-tag">
+                                        <p class="body text-lg font-normal group-hover:underline">Common questions</p>
+                                    </div>
+                                </div>
+                                <p class="body body-regular">Get answers to frequently asked questions.</p>
+                            </a>
+                        </div>
+                    </div>
+                    <a href="https://forum.figma.com/" class="nav-featured-card featured-gray nav-list-size-3">
+                        <div class="nav-list">
+                            <div class="nav-list-title">
+                                <span class="nav-list-icon list-ic-forum"></span>
+                                <p class="body text-lg font-normal">Figma Community Forum</p>
+                            </div>
+                            <p class="body body-regular">Ask the community, share ideas, and connect with other Figma users.</p>
+                        </div>
+                    </a>
+                </section>
+            </div>
+            <div class="content-mobile">
+                <nav id="MenuMobileContent">
+                    <a href="https://help.figma.com/hc/categories/360002051613-Get-started" class="body body-medium">Get started</a>
+                    <div class="body body-medium">
+                        <button id="MenuMobileProduct">Product documentation</button>
+                        <div id="MenuMobileProduct" class="body body-regular">
+                            <div class="mobile-nav-list">
+                                <span class="body body-eyebrow">Products</span>
+                                <a href="https://help.figma.com/hc/categories/360002042553">Figma Design</a>
+                                <a href="https://help.figma.com/hc/categories/31304285531543">Figma Make</a>
+                                <a href="https://help.figma.com/hc/sections/15023066873239">Dev Mode</a>
+                                <a href="https://help.weavy.ai/en/" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-2">
+                                    <p class="!m-0 !p-0 group-hover:underline">Figma Weave</p>
+                                    <span class="nav-tag tag-default">New</span>
+                                </a>
+                                <a href="https://help.figma.com/hc/categories/41274596092695" class="group flex items-center gap-2">
+                                    <p class="!m-0 !p-0 group-hover:underline">Figma Motion</p>
+                                    <span class="nav-tag tag-default">New</span>
+                                </a>
+                                <a href="https://help.figma.com/hc/categories/360002051633">FigJam</a>
+                                <a href="https://help.figma.com/hc/sections/31830768959511">Figma Draw</a>
+                                <a href="https://help.figma.com/hc/categories/24146015318551">Figma Slides</a>
+                                <a href="https://help.figma.com/hc/categories/31823555275671" class="group flex items-center gap-2">
+                                    <p class="!m-0 !p-0 group-hover:underline">Figma Sites</p>
+                                    <span class="nav-tag tag-default">Beta</span>
+                                </a>
+                                <a href="https://help.figma.com/hc/categories/31194838351767" class="group flex items-center gap-2">
+                                    <p class="!m-0 !p-0 group-hover:underline">Figma Buzz</p>
+                                    <span class="nav-tag tag-default">Beta</span>
+                                </a>
+                            </div>
+                            <div class="mobile-nav-list">
+                                <span class="body body-eyebrow">Features</span>
+                                <a href="https://help.figma.com/hc/en-us/sections/24369548041111">AI</a>
+                                <a href="https://help.figma.com/hc/articles/35063862380311">Accessibility</a>
+                                <a href="https://www.figma.com/developers">Developer docs</a>
+                                <a href="https://help.figma.com/hc/en-us/categories/360002772634">Figma Community</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="body body-medium">
+                        <button id="MenuMobileAdmin">Administration</button>
+                        <div id="MenuMobileAdmin" class="body body-regular">
+                            <div class="mobile-nav-list">
+                                <span class="body body-eyebrow">For everyone</span>
+                                <a href="https://help.figma.com/hc/sections/360006479433">Account</a>
+                                <a href="https://help.figma.com/hc/sections/360006050633">Files and projects</a>
+                            </div>
+                            <div class="mobile-nav-list">
+                                <span class="body body-eyebrow">For administration</span>
+                                <a href="https://help.figma.com/hc/sections/4421076253719">Billing</a>
+                                <a href="https://help.figma.com/hc/sections/360006457394">Teams </a>
+                                <a href="https://help.figma.com/hc/sections/360006606913">Organizations </a>
+                                <a href="https://help.figma.com/hc/sections/20832705104407">Enterprise
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="body body-medium">
+                        <button id="MenuMobileCourses">Courses, tutorials, projects</button>
+                        <div id="MenuMobileCourses" class="body body-regular">
+                            <div class="mobile-nav-list">
+                                <span class="body body-eyebrow">Find out more</span>
+                                <a href="https://help.figma.com/hc/sections/23691657321239">Courses and collections</a>
+                                <a href="https://help.figma.com/hc/sections/13148624530967">Projects</a>
+                                <a href="https://www.youtube.com/@Figma">Tutorials</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="body body-medium">
+                        <button id="MenuMobileHelp">Help</button>
+                        <div id="MenuMobileHelp" class="body body-regular">
+                            <div class="mobile-nav-list">
+                                <span class="body body-eyebrow">Get solutions</span>
+                                <a href="https://help.figma.com/hc/sections/1500000378401">Troubleshoot</a>
+                                <a href="https://help.figma.com/hc/sections/19818052690455">Work with support</a>
+                                <a href="https://help.figma.com/hc/sections/13148115222551">Common questions</a>
+                                <a href="https://forum.figma.com/">Figma Community Forum</a>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+  <main role="main">
+    <script>
+    var templateName = 'search_results';
+</script>
+
+<div class="container max-w-[900px]">
+
+    <div class="-mb-[var(--padding-page-bottom)] -mt-[var(--padding-page-top)] flex gap-8">
+        
+        <section class="flex flex-col gap-4 pb-[var(--padding-page-bottom)] pt-[var(--padding-page-top)]">
+            <h1 class="display display-title-medium mb-12">
+                
+                    
+                        294 results for "group objects design" in All Categories
+                    
+                
+            </h1>
+            <div data-app="generative_answers"></div>
+            
+                <ul class="flex flex-col gap-10">
+                    
+                        <li class="result-article flex flex-col gap-4">
+                            <a href=/hc/en-us/search/click?data=BAh7DjoHaWRsKwjy9To%2FXQE6D2FjY291bnRfaWRpA1dKjjoJdHlwZUkiDGFydGljbGUGOgZFVDoIdXJsSSJTaHR0cHM6Ly9oZWxwLmZpZ21hLmNvbS9oYy9lbi11cy9hcnRpY2xlcy8xNTAwMDA0NDE0OTYyLUdyb3VwLW9iamVjdHMtaW4tRmlnSmFtBjsIVDoOc2VhcmNoX2lkSSIpZGVhNTJlY2MtZTJlNC00OTlkLTgyY2UtYjM5MTYwZTdmNzNmBjsIRjoJcmFua2kGOgtsb2NhbGVJIgplbi11cwY7CFQ6CnF1ZXJ5SSIZZ3JvdXAgb2JqZWN0cyBkZXNpZ24GOwhUOhJyZXN1bHRzX2NvdW50aQImAQ%3D%3D--8055fcaa1b03fddf55b00d23cd2920ba9db9682e class="group flex flex-col gap-1 text-black">
+                                <h2 class="body body-medium group-hover:underline">
+                                    Group objects in FigJam
+                                </h2>
+                                <div class="body body-regular opacity-70 [&_em]:font-semibold">...accommodate all <em>objects</em> within the <em>group</em>. Remove <em>objects</em> from a <em>group</em> To remove an <em>object</em> from a <em>group</em>: Select the...</div>
+                            </a>
+                            <ol class="breadcrumbs">
+                                
+                                    <li title="Figma Learn - Help Center"><a href="https://help.figma.com">Figma Learn - Help Center</a></li>
+                                
+                                    <li title="FigJam"><a href="https://help.figma.com/hc/en-us/categories/360002051633-FigJam">FigJam</a></li>
+                                
+                                    <li title="Work on boards"><a href="https://help.figma.com/hc/en-us/sections/15329445881111-Work-on-boards">Work on boards</a></li>
+                                
+                            </ol>
+                        </li>
+                    
+                        <li class="result-article flex flex-col gap-4">
+                            <a href=/hc/en-us/search/click?data=BAh7DjoHaWRsKwgXSHxLmBw6D2FjY291bnRfaWRpA1dKjjoJdHlwZUkiDGFydGljbGUGOgZFVDoIdXJsSSJcaHR0cHM6Ly9oZWxwLmZpZ21hLmNvbS9oYy9lbi11cy9hcnRpY2xlcy8zMTQ0MDQyNzA0MjgzOS1DcmVhdGUtcGF0dGVybnMtd2l0aC10cmFuc2Zvcm1zBjsIVDoOc2VhcmNoX2lkSSIpZGVhNTJlY2MtZTJlNC00OTlkLTgyY2UtYjM5MTYwZTdmNzNmBjsIRjoJcmFua2kHOgtsb2NhbGVJIgplbi11cwY7CFQ6CnF1ZXJ5SSIZZ3JvdXAgb2JqZWN0cyBkZXNpZ24GOwhUOhJyZXN1bHRzX2NvdW50aQImAQ%3D%3D--65d7048e3457b36c606222bd59c0d987432f3b57 class="group flex flex-col gap-1 text-black">
+                                <h2 class="body body-medium group-hover:underline">
+                                    Create patterns with transforms
+                                </h2>
+                                <div class="body body-regular opacity-70 [&_em]:font-semibold">...alter your original <em>object</em>. When you add a transform to an <em>object</em>, the <em>object</em> is added to a transform <em>group</em>. This preserves that...</div>
+                            </a>
+                            <ol class="breadcrumbs">
+                                
+                                    <li title="Figma Learn - Help Center"><a href="https://help.figma.com">Figma Learn - Help Center</a></li>
+                                
+                                    <li title="Figma Design"><a href="https://help.figma.com/hc/en-us/categories/360002042553-Figma-Design">Figma Design</a></li>
+                                
+                                    <li title="Figma Draw"><a href="https://help.figma.com/hc/en-us/sections/31830768959511-Figma-Draw">Figma Draw</a></li>
+                                
+                            </ol>
+                        </li>
+                    
+                        <li class="result-article flex flex-col gap-4">
+                            <a href=/hc/en-us/search/click?data=BAh7DjoHaWRsKwhRRxXUUwA6D2FjY291bnRfaWRpA1dKjjoJdHlwZUkiDGFydGljbGUGOgZFVDoIdXJsSSJUaHR0cHM6Ly9oZWxwLmZpZ21hLmNvbS9oYy9lbi11cy9hcnRpY2xlcy8zNjAwNDA0NDk4NzMtU2VsZWN0LWxheWVycy1hbmQtb2JqZWN0cwY7CFQ6DnNlYXJjaF9pZEkiKWRlYTUyZWNjLWUyZTQtNDk5ZC04MmNlLWIzOTE2MGU3ZjczZgY7CEY6CXJhbmtpCDoLbG9jYWxlSSIKZW4tdXMGOwhUOgpxdWVyeUkiGWdyb3VwIG9iamVjdHMgZGVzaWduBjsIVDoScmVzdWx0c19jb3VudGkCJgE%3D--8b9b64e0f1828b7f460302a8b13a8059d595df59 class="group flex flex-col gap-1 text-black">
+                                <h2 class="body body-medium group-hover:underline">
+                                    Select layers and objects
+                                </h2>
+                                <div class="body body-regular opacity-70 [&_em]:font-semibold">...matching <em>objects</em> → To select matching <em>objects</em>: Select an <em>object</em> inside a frame or <em>group</em>. The frame or <em>group</em> should sit...</div>
+                            </a>
+                            <ol class="breadcrumbs">
+                                
+                                    <li title="Figma Learn - Help Center"><a href="https://help.figma.com">Figma Learn - Help Center</a></li>
+                                
+                                    <li title="Figma Design"><a href="https://help.figma.com/hc/en-us/categories/360002042553-Figma-Design">Figma Design</a></li>
+                                
+                                    <li title="Create designs"><a href="https://help.figma.com/hc/en-us/sections/4403912808599-Create-designs">Create designs</a></li>
+                                
+                                    <li title="Work with layers"><a href="https://help.figma.com/hc/en-us/sections/15330116720791-Work-with-layers">Work with layers</a></li>
+                                
+                            </ol>
+                        </li>
+                    
+                        <li class="result-article flex flex-col gap-4">
+                            <a href=/hc/en-us/search/click?data=BAh7DjoHaWRsKwiXQc0a4wg6D2FjY291bnRfaWRpA1dKjjoJdHlwZUkiDGFydGljbGUGOgZFVDoIdXJsSSJeaHR0cHM6Ly9oZWxwLmZpZ21hLmNvbS9oYy9lbi11cy9hcnRpY2xlcy85NzcxNTAwMjU3Njg3LU9yZ2FuaXplLXlvdXItY2FudmFzLXdpdGgtc2VjdGlvbnMGOwhUOg5zZWFyY2hfaWRJIilkZWE1MmVjYy1lMmU0LTQ5OWQtODJjZS1iMzkxNjBlN2Y3M2YGOwhGOglyYW5raQk6C2xvY2FsZUkiCmVuLXVzBjsIVDoKcXVlcnlJIhlncm91cCBvYmplY3RzIGRlc2lnbgY7CFQ6EnJlc3VsdHNfY291bnRpAiYB--4076861464b664cdb4709dd7ac816a242bba760a class="group flex flex-col gap-1 text-black">
+                                <h2 class="body body-medium group-hover:underline">
+                                    Organize your canvas with sections
+                                </h2>
+                                <div class="body body-regular opacity-70 [&_em]:font-semibold">...Add <em>objects</em> to a section There are a few ways to add <em>objects</em> to a section: Move a section over an <em>object</em> Resize...</div>
+                            </a>
+                            <ol class="breadcrumbs">
+                                
+                                    <li title="Figma Learn - Help Center"><a href="https://help.figma.com">Figma Learn - Help Center</a></li>
+                                
+                                    <li title="Figma Design"><a href="https://help.figma.com/hc/en-us/categories/360002042553-Figma-Design">Figma Design</a></li>
+                                
+                                    <li title="Create designs"><a href="https://help.figma.com/hc/en-us/sections/4403912808599-Create-designs">Create designs</a></li>
+                                
+                                    <li title="Work with layers"><a href="https://help.figma.com/hc/en-us/sections/15330116720791-Work-with-layers">Work with layers</a></li>
+                                
+                            </ol>
+                        </li>
+                    
+                        <li class="result-article flex flex-col gap-4">
+                            <a href=/hc/en-us/search/click?data=BAh7DjoHaWRsKwiXtgxmkxM6D2FjY291bnRfaWRpA1dKjjoJdHlwZUkiDGFydGljbGUGOgZFVDoIdXJsSSJWaHR0cHM6Ly9oZWxwLmZpZ21hLmNvbS9oYy9lbi11cy9hcnRpY2xlcy8yMTUyMzc5MzIyOTQ2My1JZGVudGlmeS1tYXRjaGluZy1vYmplY3RzBjsIVDoOc2VhcmNoX2lkSSIpZGVhNTJlY2MtZTJlNC00OTlkLTgyY2UtYjM5MTYwZTdmNzNmBjsIRjoJcmFua2kKOgtsb2NhbGVJIgplbi11cwY7CFQ6CnF1ZXJ5SSIZZ3JvdXAgb2JqZWN0cyBkZXNpZ24GOwhUOhJyZXN1bHRzX2NvdW50aQImAQ%3D%3D--7ebb369a62f2b4bdbaef4cb0222b17caefb6f9b7 class="group flex flex-col gap-1 text-black">
+                                <h2 class="body body-medium group-hover:underline">
+                                    Identify matching objects
+                                </h2>
+                                <div class="body body-regular opacity-70 [&_em]:font-semibold">...Parent <em>objects</em> : <em>Objects</em> such as frames, components, and <em>groups</em>, that contain other <em>objects</em>. Grandparent <em>objects</em> are...</div>
+                            </a>
+                            <ol class="breadcrumbs">
+                                
+                                    <li title="Figma Learn - Help Center"><a href="https://help.figma.com">Figma Learn - Help Center</a></li>
+                                
+                                    <li title="Figma Design"><a href="https://help.figma.com/hc/en-us/categories/360002042553-Figma-Design">Figma Design</a></li>
+                                
+                                    <li title="Create designs"><a href="https://help.figma.com/hc/en-us/sections/4403912808599-Create-designs">Create designs</a></li>
+                                
+                                    <li title="Work with layers"><a href="https://help.figma.com/hc/en-us/sections/15330116720791-Work-with-layers">Work with layers</a></li>
+                                
+                            </ol>
+                        </li>
+                    
+                        <li class="result-article flex flex-col gap-4">
+                            <a href=/hc/en-us/search/click?data=BAh7DjoHaWRsKwgXNnBtUQw6D2FjY291bnRfaWRpA1dKjjoJdHlwZUkiDGFydGljbGUGOgZFVDoIdXJsSSJjaHR0cHM6Ly9oZWxwLmZpZ21hLmNvbS9oYy9lbi11cy9hcnRpY2xlcy8xMzU0Mzg2Nzk1NDcxMS1DcmVhdGUtYW4taWxsdXN0cmF0aW9uLWluLUZpZ21hLURlc2lnbgY7CFQ6DnNlYXJjaF9pZEkiKWRlYTUyZWNjLWUyZTQtNDk5ZC04MmNlLWIzOTE2MGU3ZjczZgY7CEY6CXJhbmtpCzoLbG9jYWxlSSIKZW4tdXMGOwhUOgpxdWVyeUkiGWdyb3VwIG9iamVjdHMgZGVzaWduBjsIVDoScmVzdWx0c19jb3VudGkCJgE%3D--dc764735b786b0caf1be1ba2741c60d39c5f1325 class="group flex flex-col gap-1 text-black">
+                                <h2 class="body body-medium group-hover:underline">
+                                    Create an illustration in Figma Design
+                                </h2>
+                                <div class="body body-regular opacity-70 [&_em]:font-semibold">...canvas. As you move <em>objects</em>, you’ll notice red guides appear. These help you align the <em>object</em> to other <em>objects</em> on the canvas....</div>
+                            </a>
+                            <ol class="breadcrumbs">
+                                
+                                    <li title="Figma Learn - Help Center"><a href="https://help.figma.com">Figma Learn - Help Center</a></li>
+                                
+                                    <li title="Courses, tutorials, projects"><a href="https://help.figma.com/hc/en-us/categories/23557013073047-Courses-tutorials-projects">Courses, tutorials, projects</a></li>
+                                
+                                    <li title="Projects"><a href="https://help.figma.com/hc/en-us/sections/23691703777175-Projects">Projects</a></li>
+                                
+                                    <li title="Projects"><a href="https://help.figma.com/hc/en-us/sections/13148624530967-Projects">Projects</a></li>
+                                
+                            </ol>
+                        </li>
+                    
+                        <li class="result-article flex flex-col gap-4">
+                            <a href=/hc/en-us/search/click?data=BAh7DjoHaWRsKwiX4Za16Q06D2FjY291bnRfaWRpA1dKjjoJdHlwZUkiDGFydGljbGUGOgZFVDoIdXJsSSJRaHR0cHM6Ly9oZWxwLmZpZ21hLmNvbS9oYy9lbi11cy9hcnRpY2xlcy8xNTI5NzQyNTEwNTMwMy1FeHBsb3JlLWRlc2lnbi1maWxlcwY7CFQ6DnNlYXJjaF9pZEkiKWRlYTUyZWNjLWUyZTQtNDk5ZC04MmNlLWIzOTE2MGU3ZjczZgY7CEY6CXJhbmtpDDoLbG9jYWxlSSIKZW4tdXMGOwhUOgpxdWVyeUkiGWdyb3VwIG9iamVjdHMgZGVzaWduBjsIVDoScmVzdWx0c19jb3VudGkCJgE%3D--5c0ef8c5651518ebe8c6e31c504b2f546a3634a8 class="group flex flex-col gap-1 text-black">
+                                <h2 class="body body-medium group-hover:underline">
+                                    Explore design files
+                                </h2>
+                                <div class="body body-regular opacity-70 [&_em]:font-semibold">...working with <em>design</em> files in Figma <em>Design</em>. If you're new to Figma <em>Design</em>, we recommend taking our Figma <em>Design</em> for beginners...</div>
+                            </a>
+                            <ol class="breadcrumbs">
+                                
+                                    <li title="Figma Learn - Help Center"><a href="https://help.figma.com">Figma Learn - Help Center</a></li>
+                                
+                                    <li title="Figma Design"><a href="https://help.figma.com/hc/en-us/categories/360002042553-Figma-Design">Figma Design</a></li>
+                                
+                                    <li title="Tour the interface"><a href="https://help.figma.com/hc/en-us/sections/13148571463703-Tour-the-interface">Tour the interface</a></li>
+                                
+                                    <li title="Explore"><a href="https://help.figma.com/hc/en-us/sections/23539410052631-Explore">Explore</a></li>
+                                
+                            </ol>
+                        </li>
+                    
+                        <li class="result-article flex flex-col gap-4">
+                            <a href=/hc/en-us/search/click?data=BAh7DjoHaWRsKwiXpRhVrRM6D2FjY291bnRfaWRpA1dKjjoJdHlwZUkiDGFydGljbGUGOgZFVDoIdXJsSSJfaHR0cHM6Ly9oZWxwLmZpZ21hLmNvbS9oYy9lbi11cy9hcnRpY2xlcy8yMTYzNTE3Nzk0ODU2Ny1FZGl0LW9iamVjdHMtb24tdGhlLWNhbnZhcy1pbi1idWxrBjsIVDoOc2VhcmNoX2lkSSIpZGVhNTJlY2MtZTJlNC00OTlkLTgyY2UtYjM5MTYwZTdmNzNmBjsIRjoJcmFua2kNOgtsb2NhbGVJIgplbi11cwY7CFQ6CnF1ZXJ5SSIZZ3JvdXAgb2JqZWN0cyBkZXNpZ24GOwhUOhJyZXN1bHRzX2NvdW50aQImAQ%3D%3D--0b13b0015eb34a50ae92dd68fdcc241ec645dde5 class="group flex flex-col gap-1 text-black">
+                                <h2 class="body body-medium group-hover:underline">
+                                    Edit objects on the canvas in bulk
+                                </h2>
+                                <div class="body body-regular opacity-70 [&_em]:font-semibold">...Create multiple <em>groups</em> of <em>objects</em> across separate sections Add auto layout to multiple nested <em>objects</em> across frames Insert...</div>
+                            </a>
+                            <ol class="breadcrumbs">
+                                
+                                    <li title="Figma Learn - Help Center"><a href="https://help.figma.com">Figma Learn - Help Center</a></li>
+                                
+                                    <li title="Figma Design"><a href="https://help.figma.com/hc/en-us/categories/360002042553-Figma-Design">Figma Design</a></li>
+                                
+                                    <li title="Create designs"><a href="https://help.figma.com/hc/en-us/sections/4403912808599-Create-designs">Create designs</a></li>
+                                
+                                    <li title="Work with layers"><a href="https://help.figma.com/hc/en-us/sections/15330116720791-Work-with-layers">Work with layers</a></li>
+                                
+                            </ol>
+                        </li>
+                    
+                        <li class="result-article flex flex-col gap-4">
+                            <a href=/hc/en-us/search/click?data=BAh7DjoHaWRsKwgXV0JscyM6D2FjY291bnRfaWRpA1dKjjoJdHlwZUkiDGFydGljbGUGOgZFVDoIdXJsSSIBjWh0dHBzOi8vaGVscC5maWdtYS5jb20vaGMvZW4tdXMvYXJ0aWNsZXMvMzg5Nzg2NDQ0OTgxOTktQUktd29ya2Zsb3dzLWNvbGxlY3Rpb24tQmVzdC1wcmFjdGljZXMtdG8taGVscC1GaWdtYS1BSS11bmRlcnN0YW5kLXlvdXItZGVzaWduLXN5c3RlbQY7CFQ6DnNlYXJjaF9pZEkiKWRlYTUyZWNjLWUyZTQtNDk5ZC04MmNlLWIzOTE2MGU3ZjczZgY7CEY6CXJhbmtpDjoLbG9jYWxlSSIKZW4tdXMGOwhUOgpxdWVyeUkiGWdyb3VwIG9iamVjdHMgZGVzaWduBjsIVDoScmVzdWx0c19jb3VudGkCJgE%3D--b05bc3030653ae088ba21733d7489e693249137d class="group flex flex-col gap-1 text-black">
+                                <h2 class="body body-medium group-hover:underline">
+                                    AI workflows collection: Best practices to help Figma AI understand your design system
+                                </h2>
+                                <div class="body body-regular opacity-70 [&_em]:font-semibold">...example: The agent in Figma <em>Design</em> can use your <em>design</em> system as the foundation for any <em>designs</em> it creates or edits. The...</div>
+                            </a>
+                            <ol class="breadcrumbs">
+                                
+                                    <li title="Figma Learn - Help Center"><a href="https://help.figma.com">Figma Learn - Help Center</a></li>
+                                
+                                    <li title="Courses, tutorials, projects"><a href="https://help.figma.com/hc/en-us/categories/23557013073047-Courses-tutorials-projects">Courses, tutorials, projects</a></li>
+                                
+                                    <li title="Courses and collections"><a href="https://help.figma.com/hc/en-us/sections/23691657321239-Courses-and-collections">Courses and collections</a></li>
+                                
+                                    <li title="Use AI in your design workflows"><a href="https://help.figma.com/hc/en-us/sections/41296947580311-Use-AI-in-your-design-workflows">Use AI in your design workflows</a></li>
+                                
+                            </ol>
+                        </li>
+                    
+                        <li class="result-article flex flex-col gap-4">
+                            <a href=/hc/en-us/search/click?data=BAh7DjoHaWRsKwgXWPlrOw06D2FjY291bnRfaWRpA1dKjjoJdHlwZUkiDGFydGljbGUGOgZFVDoIdXJsSSJeaHR0cHM6Ly9oZWxwLmZpZ21hLmNvbS9oYy9lbi11cy9hcnRpY2xlcy8xNDU0ODg2NTczNDY3OS1MZXNzb24tMy1CdWlsZC15b3VyLWRlc2lnbi1zeXN0ZW0GOwhUOg5zZWFyY2hfaWRJIilkZWE1MmVjYy1lMmU0LTQ5OWQtODJjZS1iMzkxNjBlN2Y3M2YGOwhGOglyYW5raQ86C2xvY2FsZUkiCmVuLXVzBjsIVDoKcXVlcnlJIhlncm91cCBvYmplY3RzIGRlc2lnbgY7CFQ6EnJlc3VsdHNfY291bnRpAiYB--af10b03e645ed733ce831bd07ab5aa613f8e12b3 class="group flex flex-col gap-1 text-black">
+                                <h2 class="body body-medium group-hover:underline">
+                                    Lesson 3: Build your design system
+                                </h2>
+                                <div class="body body-regular opacity-70 [&_em]:font-semibold">...set Kai sets up a <em>Design</em> systems folder within their <em>design</em> team and creates a new <em>design</em> file. They want to use pages...</div>
+                            </a>
+                            <ol class="breadcrumbs">
+                                
+                                    <li title="Figma Learn - Help Center"><a href="https://help.figma.com">Figma Learn - Help Center</a></li>
+                                
+                                    <li title="Courses, tutorials, projects"><a href="https://help.figma.com/hc/en-us/categories/23557013073047-Courses-tutorials-projects">Courses, tutorials, projects</a></li>
+                                
+                                    <li title="Courses and collections"><a href="https://help.figma.com/hc/en-us/sections/23691657321239-Courses-and-collections">Courses and collections</a></li>
+                                
+                                    <li title="Introduction to design systems"><a href="https://help.figma.com/hc/en-us/sections/14548397990423-Introduction-to-design-systems">Introduction to design systems</a></li>
+                                
+                            </ol>
+                        </li>
+                    
+                </ul>
+            
+            
+<nav class="pagination" aria-label="Pagination">
+  <ul class="pagination-list">
+    
+
+    
+      <li class="pagination-next">
+        <a href="/hc/en-us/search?page=2&amp;query=group+objects+design#results" class="pagination-next-link" rel="next nofollow">
+          <span class="pagination-next-text">Next</span>
+          <span class="pagination-next-icon" aria-hidden="true">›</span>
+      </a>
+      </li>
+
+      <li class="pagination-last">
+        <a href="/hc/en-us/search?page=30&amp;query=group+objects+design#results" class="pagination-last-link" rel="nofollow">
+          <span class="pagination-last-text">Last</span>
+          <span class="pagination-last-icon" aria-hidden="true">»</span>
+        </a>
+      </li>
+    
+  </ul>
+</nav>
+
+
+        </section>
+    </div>
+</div>
+  </main>
+
+  <div class="wrap">
+<footer class="footer">
+    <div class="logo-and-social footer-links">
+        <a aria-current="page" href="https://www.figma.com/" class="mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" alt="Figma" class="logo-mark" fill="none" viewBox="0 0 120 44" aria-hidden="true"><path fill="currentColor" d="M108.157 35.146q-2.47 0-4.435-.927-1.915-.928-3.074-2.49-1.11-1.61-1.109-3.71 0-2.733 1.814-4.442t5.191-2.343l5.897-1.171q1.763-.342 2.419-1.074.655-.732.655-2.148l.604 5.711-8.466 1.758q-1.713.34-2.671 1.22-.907.88-.907 2.44 0 1.611 1.26 2.588 1.31.975 3.527.976 1.815 0 3.327-.781 1.561-.78 2.419-2.148.907-1.416.907-3.222v-8.542q0-1.758-1.311-2.734-1.26-1.025-3.477-1.025-2.822 0-4.334 1.367t-1.764 3.856l-4.435-.585q.252-2.588 1.613-4.442 1.361-1.904 3.628-2.93 2.268-1.024 5.393-1.024 4.434 0 6.803 2.196T120 17.183v17.23h-4.384v-3.172q-.656 1.61-2.671 2.782-1.967 1.123-4.788 1.123M63.807 34.414V10.056h4.384v2.734q.504-1.416 2.218-2.441t3.98-1.025q2.22 0 4.083.927 1.865.928 2.419 2.783.655-1.71 2.42-2.685 1.813-1.025 4.03-1.025 3.831 0 5.847 2.148 2.016 2.147 2.016 6.248v16.694h-4.486V18.305q0-2.44-1.108-3.66-1.06-1.27-3.125-1.27-2.268 0-3.528 1.562-1.21 1.515-1.21 4.442v15.035h-4.484V18.305q0-2.44-1.11-3.66-1.057-1.27-3.124-1.27-2.268 0-3.528 1.562-1.21 1.515-1.21 4.442v15.035zM46.656 43.2q-4.687 0-7.61-2.099t-3.73-5.857l4.385-.928q.555 2.392 2.369 3.71 1.814 1.367 4.586 1.367 3.325 0 4.989-1.66 1.713-1.61 1.713-4.832v-3.857q-.755 1.805-2.822 2.93-2.016 1.122-4.535 1.122-3.327 0-5.846-1.464-2.52-1.515-3.931-4.198-1.411-2.685-1.411-6.2 0-3.563 1.41-6.248 1.412-2.685 3.881-4.149 2.52-1.513 5.897-1.513 2.52 0 4.586 1.122 2.115 1.074 2.872 2.685v-3.075h4.385V32.9q0 3.22-1.31 5.516-1.31 2.343-3.83 3.563-2.47 1.22-6.048 1.22m-.101-13.96q3.225 0 5.14-2.197 1.965-2.196 1.966-5.809 0-3.66-1.966-5.857t-5.14-2.197q-3.225 0-5.191 2.197-1.915 2.197-1.915 5.857 0 3.612 1.965 5.81 1.966 2.195 5.14 2.196M25.761 34.414V10.056h4.486v24.358zm-.05-27.482V0h4.586v6.932zM0 34.414V0h4.737v34.414zm.958-14.547v-4.149h19.301v4.15zm0-15.669V0h21.166v4.198z"></path></svg>              
+        </a>
+        <ul class="md:mt-6">
+            <li class="locale-options">
+            <select id="locale-picker" role="menu">
+                <option value="/hc/change_language/en-us?return_to=%2Fhc%2Fen-us%2Fsearch%3Fquery%3Dgroup%2Bobjects%2Bdesign">
+                English (United States)
+                </option>
+                
+                <option value="/hc/change_language/de?return_to=%2Fhc%2Fde%2Fsearch%3Fquery%3Dgroup%2Bobjects%2Bdesign">
+                    Deutsch
+                </option>
+                
+                <option value="/hc/change_language/es-419?return_to=%2Fhc%2Fes-419%2Fsearch%3Fquery%3Dgroup%2Bobjects%2Bdesign">
+                    Español (Latinoamérica)
+                </option>
+                
+                <option value="/hc/change_language/es-es?return_to=%2Fhc%2Fes-es%2Fsearch%3Fquery%3Dgroup%2Bobjects%2Bdesign">
+                    Español (España)
+                </option>
+                
+                <option value="/hc/change_language/fr?return_to=%2Fhc%2Ffr%2Fsearch%3Fquery%3Dgroup%2Bobjects%2Bdesign">
+                    Français
+                </option>
+                
+                <option value="/hc/change_language/ja?return_to=%2Fhc%2Fja%2Fsearch%3Fquery%3Dgroup%2Bobjects%2Bdesign">
+                    日本語
+                </option>
+                
+                <option value="/hc/change_language/ko?return_to=%2Fhc%2Fko%2Fsearch%3Fquery%3Dgroup%2Bobjects%2Bdesign">
+                    한국어
+                </option>
+                
+                <option value="/hc/change_language/nl-nl?return_to=%2Fhc%2Fnl-nl%2Fsearch%3Fquery%3Dgroup%2Bobjects%2Bdesign">
+                    Nederlands (Nederland)
+                </option>
+                
+                <option value="/hc/change_language/pl-pl?return_to=%2Fhc%2Fpl-pl%2Fsearch%3Fquery%3Dgroup%2Bobjects%2Bdesign">
+                    Polski (Polska)
+                </option>
+                
+                <option value="/hc/change_language/pt-br?return_to=%2Fhc%2Fpt-br%2Fsearch%3Fquery%3Dgroup%2Bobjects%2Bdesign">
+                    Português do Brasil
+                </option>
+                
+            </select>
+            </li>
+
+            <script>
+                $(function(){
+                // bind change event to select
+                $('#locale-picker').on('change', function () {
+                    var url = $(this).val(); // get selected value
+                    if (url) { // require a URL
+                        window.location = url; // redirect
+                    }
+                    return false;
+                });
+                });
+            </script>
+            <ul class="flex gap-2 social-icons">
+                <li>
+                    <a href="https://x.com/figma" target="_blank" rel="noreferrer" aria-label="X" title="X" class="css-3l9mu9">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16" aria-hidden="true" class="css-jaq9k5">
+                            <path fill="currentColor" d="M9.47 6.77 15.3 0h-1.4L8.85 5.88 4.81 0H.15l6.11 8.9L.15 16h1.38l5.35-6.21L11.14 16h4.67zm-1.9 2.2-.61-.88-4.93-7.05h2.12l3.98 5.69.62.88 5.17 7.4h-2.13L7.58 8.97z"></path>
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a href="https://www.youtube.com/figmadesign" target="_blank" rel="noreferrer" aria-label="YouTube" title="YouTube" class="css-3l9mu9">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="14" fill="none" viewBox="0 0 16 14" aria-hidden="true" class="css-jaq9k5">
+                            <g clip-path="url(#a)">
+                            <path fill="currentColor" d="M15.6 2.5c.4 1.4.4 4.4.4 4.4s0 3-.4 4.4c-.2.8-.8 1.4-1.5 1.6-1.4.4-6.1.4-6.1.4s-4.7 0-6-.4c-.8-.2-1.4-.8-1.6-1.6C0 9.9 0 6.9 0 6.9s0-3 .4-4.4c.2-.8.8-1.4 1.5-1.6C3.3.5 8 .5 8 .5s4.7 0 6 .4c.8.2 1.4.8 1.6 1.6M6.4 9.7l4.8-2.8-4.8-2.8z"></path>
+                            </g>
+                            <defs>
+                            <clipPath id="a">
+                                <path fill="currentColor" d="M0 .5h16v13H0z"></path>
+                            </clipPath>
+                            </defs>
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a href="https://www.instagram.com/figma" target="_blank" rel="noreferrer" aria-label="Instagram" title="Instagram" class="css-3l9mu9">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 449 449" aria-hidden="true" class="css-jaq9k5">
+                            <path fill="currentColor" d="M224.18 109.6c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9 114.9-51.3 114.9-114.9-51.3-114.9-114.9-114.9m0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7m146.4-194.3c0 14.9-12 26.8-26.8 26.8a26.8 26.8 0 1 1 26.8-26.8m76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8m-47.8 224.5a75.63 75.63 0 0 1-42.6 42.6c-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9a75.63 75.63 0 0 1-42.6-42.6c-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1a75.63 75.63 0 0 1 42.6-42.6c29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9a75.63 75.63 0 0 1 42.6 42.6c11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1"></path>
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a href="https://www.facebook.com/figmadesign" target="_blank" rel="noreferrer" aria-label="Facebook" title="Facebook" class="css-3l9mu9">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 448 449" aria-hidden="true" class="css-jaq9k5">
+                            <path fill="currentColor" d="M448 25.2v398.5c0 13.7-11.1 24.7-24.7 24.7H309.1V275h58.2l8.7-67.6h-67v-43.2c0-19.6 5.4-32.9 33.5-32.9h35.8V70.8c-6.2-.8-27.4-2.7-52.2-2.7-51.6 0-87 31.5-87 89.4v49.9h-58.4V275h58.4v173.5H24.7C11.1 448.5 0 437.4 0 423.8V25.2C0 11.6 11.1.5 24.7.5h398.5C436.9.5 448 11.6 448 25.2"></path>
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </ul>
+    </div>
+    <div class="footer-links">
+        <h6>Use cases</h6>
+        <ul>
+            <li>
+                <a href="https://www.figma.com/ui-design-tool/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">UI design</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/ux-design-tool/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">UX design</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/prototyping/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Prototyping</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/graphic-design-tool/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Graphic design</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/wireframe-tool/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Wireframing</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/brainstorming-tool/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Brainstorming</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/templates/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Templates</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/remote-design/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Remote design</a>
+            </li>
+        </ul>
+    </div>
+    <div class="footer-links">
+        <h6>Explore</h6>
+        <ul>
+            <li>
+                <a href="https://www.figma.com/design/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Design features</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/prototyping/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Prototyping features</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/design-systems/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Design systems features</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/collaboration/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Collaboration features</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/figjam/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">FigJam</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/pricing/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Pricing</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/organization/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Enterprise</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/education/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Students and educators</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/customers/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Customers</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/security/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Security</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/product-integrations/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Integrations</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/contact/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Contact</a>
+            </li>
+        </ul>
+    </div>
+    <div class="footer-links">
+        <h6>Resources</h6>
+        <ul>
+            <li>
+                <a href="https://www.figma.com/blog/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Blog</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/best-practices/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Best practices</a>
+            </li>
+            <li>
+                <a href="https://help.figma.com/hc/" title="Support" target="_blank">Support</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/developers/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Developers</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/resources/learn-design/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Learn design</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/downloads/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Downloads</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/whats-new/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">What's new</a>
+            </li>
+            <li>
+                <a href="https://releases.figma.com/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Releases</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/careers/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Careers</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/about/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">About us</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/agency-partner-program/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Agency partners</a>
+            </li>
+            <li>
+                <a href="https://www.figma.com/summary-of-policy/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Privacy</a>
+            </li>
+            <li>
+                <a href="https://status.figma.com/?utm_source=help-center&utm_medium=marketing_referral&utm_campaign=help_center" target="_blank">Status</a>
+            </li>
+        </ul>
+    </div>
+</footer>
+</div>
+
+
+  <!-- / -->
+
+  
+  <script src="//static.zdassets.com/hc/assets/en-us.40d9559b3308c0ac84df.js"></script>
+  
+
+  <script type="text/javascript">
+  /*
+
+    Greetings sourcecode lurker!
+
+    This is for internal Zendesk and legacy usage,
+    we don't support or guarantee any of these values
+    so please don't build stuff on top of them.
+
+  */
+
+  HelpCenter = {};
+  HelpCenter.account = {"subdomain":"figma","environment":"production","name":"Figma"};
+  HelpCenter.user = {"identifier":"da39a3ee5e6b4b0d3255bfef95601890afd80709","email":null,"name":"","role":"anonymous","avatar_url":"https://assets.zendesk.com/hc/assets/default_avatar.png","is_admin":false,"external_id":null,"organizations":[],"groups":[]};
+  HelpCenter.internal = {"asset_url":"//static.zdassets.com/hc/assets/","web_widget_asset_composer_url":"https://static.zdassets.com/ekr/snippet.js","current_session":{"locale":"en-us","csrf_token":null,"shared_csrf_token":null},"usage_tracking":null,"current_record_id":null,"current_record_url":null,"current_record_title":null,"current_text_direction":"ltr","current_brand_id":360002676493,"current_brand_name":"Figma","current_brand_url":"https://figma.zendesk.com","current_brand_active":true,"current_path":"/hc/en-us/search","show_autocomplete_breadcrumbs":true,"user_info_changing_enabled":false,"has_user_profiles_enabled":true,"has_end_user_attachments":true,"user_aliases_enabled":false,"has_anonymous_kb_voting":true,"has_multi_language_help_center":true,"show_at_mentions":false,"embeddables_config":{"embeddables_web_widget":true,"embeddables_help_center_auth_enabled":false,"embeddables_connect_ipms":false},"answer_bot_subdomain":"static","gather_plan_state":"subscribed","has_article_verification":true,"has_gather":true,"has_ckeditor":false,"has_community_enabled":false,"has_community_badges":true,"has_community_post_content_tagging":false,"has_gather_content_tags":true,"has_guide_content_tags":true,"has_user_segments":true,"has_answer_bot_web_form_enabled":false,"has_garden_modals":false,"theming_cookie_key":"hc-da39a3ee5e6b4b0d3255bfef95601890afd80709-2-preview","is_preview":false,"has_search_settings_in_plan":true,"theming_api_version":2,"theming_settings":{"brand_color":"#000000","brand_text_color":"#FFFFFF","text_color":"#545454","link_color":"#5551FF","background_color":"#FFFFFF","header_background_color":"#FFFFFF","header_link_color":"#000000","footer_background_color":"#FFFFFF","footer_text_color":"#000000","heading_font":"-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif","text_font":"-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif","logo":"/hc/theming_assets/01HZFG1N1QJPKABHT3PHQQ0J9J","favicon":"/hc/theming_assets/01HZFG1NHWKZA6P3KEG8EQ31YX","hero_image_visibility":false,"homepage_banner_bg_color":"#FFFFFF","homepage_background_image":"/hc/theming_assets/01HZFG1P7YTYN0F6FBWXEAJPAV","chero_image_visibility":true,"community_banner_bg_color":"#FFFFFF","community_background_image":"/hc/theming_assets/01HZFG1P7YTYN0F6FBWXEAJPAV","error_image":"/hc/theming_assets/01HZFG1Q8NQDVZP9YJXP59F2SZ","welcome_message_text":"Welcome to the Figma Help Center","welcome_message_text_dc":"NONE","welcome_message_text_color":"#000000","alter_welcome_message_text":"Learn and level up","alter_welcome_message_text_dc":"NONE","alter_welcome_text_color":"#000000","search_placeholder_text":"Search Components, Styles, Smart Selections","search_placeholder_text_dc":"NONE","category_block_visibility":false,"custom_block_visibility":true,"show_knowledge_base_tree":false,"first_block_icon":"/hc/theming_assets/01HZFG1QQWRMWCNW3CW3C84PSD","first_block_title_color":"rgba(0, 0, 0, 1)","first_block_title":"","first_block_title_dc":"help_center_category_blocks_getting_started","first_block_url":"https://figma.zendesk.com/hc/en-us/categories/360002051613-Getting-Started","second_block_icon":"/hc/theming_assets/01HZFG1R8PB98V9D16W0S2HYAM","second_block_title_color":"rgba(0, 0, 0, 1)","second_block_title":"","second_block_title_dc":"help_center_category_blocks_figma_organization","second_block_url":"https://help.figma.com/hc/en-us/sections/360006606913-Organizations","third_block_icon":"/hc/theming_assets/01HZFG1RQZN8KY9VTPB439AKC0","third_block_title_color":"rgba(0, 0, 0, 1)","third_block_title":"","third_block_title_dc":"help_center_category_blocks_community","third_block_url":"https://help.figma.com/hc/en-us/categories/360002772634-Community#Figma-Community","fourth_block_icon":"/hc/theming_assets/01HZFG1S5DVRJB5R24H5QVQQP3","fourth_block_title_color":"rgba(0, 0, 0, 1)","fourth_block_title":"","fourth_block_title_dc":"help_center_category_blocks_administration","fourth_block_url":"https://figma.zendesk.com/hc/en-us/categories/360001980773-Administration","fifth_block_icon":"/hc/theming_assets/01HZFG1DMFKVD0FXM4JPGAN809","fifth_block_title_color":"rgba(0, 0, 0, 1)","fifth_block_title":"","fifth_block_title_dc":"help_center_category_blocks_video_tutorials","fifth_block_url":"https://www.youtube.com/channel/UCQsVmhSa4X-G3lHlUtejzLA","sixth_block_icon":"/hc/theming_assets/01HZFG1SY15B659D2G6CYTD460","sixth_block_title_color":"rgba(0, 0, 0, 1)","sixth_block_title":"","sixth_block_title_dc":"help_center_category_blocks_components","sixth_block_url":"https://figma.zendesk.com/hc/en-us/categories/360002042553-Using-Figma#Components","seventh_block_icon":"/hc/theming_assets/01HZFG1TCYCSSNN6TQ6GN08FG2","seventh_block_title_color":"rgba(0, 0, 0, 1)","seventh_block_title":"","seventh_block_title_dc":"help_center_footer_downloads","seventh_block_url":"https://www.figma.com/downloads/","eighth_block_icon":"/hc/theming_assets/01HZFG1TVY2ZTK75Q3SMFNG75W","eighth_block_title_color":"rgba(0, 0, 0, 1)","eighth_block_title":"","eighth_block_title_dc":"help_center_footer_blog","eighth_block_url":"https://www.figma.com/blog/","show_follow_button":false,"hide_search_result_sidebar":true,"comment_block_visibility":false,"show_articles_in_section":false,"author_meta_details_visibility":false,"show_follow_article":false,"social_share_visibility":false,"twitter_link":"https://twitter.com/figmadesign","facebook_link":"https://www.facebook.com/figmadesign","medium_link":"https://medium.com/figma-design","instagram_link":"https://www.instagram.com/figmadesign/"},"has_pci_credit_card_custom_field":true,"help_center_restricted":false,"is_assuming_someone_else":false,"flash_messages":[],"user_photo_editing_enabled":true,"user_preferred_locale":"en-us","base_locale":"en-us","login_url":"https://figma.zendesk.com/access?locale=en-us\u0026brand_id=360002676493\u0026return_to=https%3A%2F%2Fhelp.figma.com%2Fhc%2Fen-us%2Fsearch%3Fquery%3Dgroup%2520objects%2520design","has_alternate_templates":true,"has_custom_statuses_enabled":false,"has_hc_generative_answers_setting_enabled":true,"has_suggested_initial_questions_enabled":false,"has_contentful_eap":false,"has_contentful_eap_eligible":false,"has_pdf_ingestion_eap":true,"has_pdf_ingestion_eap_eligible":true,"has_guide_saas_management":false,"has_knowledge_category_translation_modal":false,"has_guide_service_catalog":true,"has_service_catalog_search_poc":true,"has_service_catalog_multibranding":true,"has_csat_reverse_2_scale_in_mobile":false,"has_unified_navigation":true,"has_unified_navigation_eap_access":true,"has_knowledge_locale_display_names":false,"has_csat_bet365_branding":false,"has_csat_flora":false,"has_csat_theming_integration_phase_1":false,"has_help_center_gen_search_follow_up_conversation":true,"chat_page_renderable":false,"version":"v27896","dev_mode":false};
+</script>
+
+  
+  
+  <script src="//static.zdassets.com/hc/assets/hc_enduser-335fd93d840aa9ce4e1a8ecae1303fd1.js"></script>
+  <script type="text/javascript" src="/hc/theming_assets/9325143/360002676493/script.js?digest=42611701647127"></script>
+  
+</body>
+</html>

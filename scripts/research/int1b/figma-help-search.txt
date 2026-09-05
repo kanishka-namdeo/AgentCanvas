@@ -1,0 +1,1125 @@
+URL: https://help.figma.com/hc/en-us/search?query=keyboard+shortcuts
+TITLE: Search results &ndash; Figma Learn - Help Center
+
+Search results &ndash; Figma Learn - Help Center 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Learn 
+ 
+
+ 
+ 
+ 
+ Get started 
+ Product documentation 
+ Administration 
+ Courses, tutorials, projects 
+ Help 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ enter to select 
+ ↑ ↓ to navigate 
+ esc to close 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Design
+
+ Design and prototype in one place
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Make
+
+ 
+
+ Prompt to code anything you can imagine
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Dev Mode
+
+ Translate designs into code
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Weave
+
+ New 
+ 
+
+ AI workflows for imagery, video, and audio
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+
+ Create precise, production-ready animations
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ FigJam
+
+ Collaborate with a digital whiteboard
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Draw
+
+ 
+
+ Illustrate with advanced vector tools
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Slides
+
+ Co-create presentations
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Sites
+
+ Beta 
+ 
+
+ Publish fully responsive websites
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+
+ Produce on-brand assets at scale
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ AI
+
+ Explore all Figma AI features
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Developer docs
+
+ Work with APIs, embeds, and more
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ For everyone
+
+ 
+ 
+ Account 
+ 
+ Manage settings 
+
+ Change preferences 
+
+ 
+ 
+
+ 
+ Files and projects 
+ 
+ Use the file browser 
+
+ Manage files and projects 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ For administration
+
+ 
+ 
+ Billing 
+ 
+ Overview 
+
+ Manage seats 
+
+ Manage your plan 
+
+ Pay for Figma
+ 
+
+ 
+ 
+
+ 
+ Teams 
+ 
+ Manage a team 
+
+ 
+ 
+
+ 
+ Organizations 
+ 
+ Overview 
+
+ Login and authentication 
+
+ Deploy Figma 
+
+ Members and guests 
+
+ Teams 
+
+ Libraries and resources 
+
+ 
+ 
+
+ 
+ Enterprise 
+ 
+ Billing groups 
+
+ Workspaces 
+
+ Security features 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Find out more
+
+ 
+ 
+ 
+ 
+ 
+ Courses and collections
+
+ New 
+ 
+
+ 
+
+ Level up your Figma skills with these comprehensive skill-based courses.
+
+ 
+ 
+ 
+ 
+ 
+ Projects
+
+ 
+
+ 
+
+ Get hands-on experience in Figma with these practical bite-sized projects.
+
+ 
+ 
+ 
+ 
+ 
+ Tutorials
+
+ 
+
+ 
+
+ Explore tools and features by watching and following along with these expert-led video tutorials.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Get solutions
+
+ 
+ 
+ 
+ 
+ Troubleshoot
+
+ 
+
+ 
+
+ Get help with common issues and troubleshoot unexpected behavior.
+
+ 
+ 
+ 
+ 
+ Work with support
+
+ 
+
+ 
+
+ Submit a bug report, get help collecting log files, and find your system information.
+
+ 
+ 
+ 
+ 
+ Common questions
+
+ 
+
+ 
+
+ Get answers to frequently asked questions.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Figma Community Forum
+
+ 
+
+ Ask the community, share ideas, and connect with other Figma users.
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ Get started 
+ 
+ Product documentation 
+ 
+ 
+ Products 
+ Figma Design 
+ Figma Make 
+ Dev Mode 
+ 
+ Figma Weave
+
+ New 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+ FigJam 
+ Figma Draw 
+ Figma Slides 
+ 
+ Figma Sites
+
+ Beta 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+ 
+
+ 
+ Features 
+ AI 
+ Accessibility 
+ Developer docs 
+ Figma Community 
+ 
+
+ 
+
+ 
+
+ 
+ Administration 
+ 
+ 
+ For everyone 
+ Account 
+ Files and projects 
+ 
+
+ 
+ For administration 
+ Billing 
+ Teams 
+ Organizations 
+ Enterprise
+ 
+ 
+
+ 
+
+ 
+
+ 
+ Courses, tutorials, projects 
+ 
+ 
+ Find out more 
+ Courses and collections 
+ Projects 
+ Tutorials 
+ 
+
+ 
+
+ 
+
+ 
+ Help 
+ 
+ 
+ Get solutions 
+ Troubleshoot 
+ Work with support 
+ Common questions 
+ Figma Community Forum 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 209 results for "keyboard shortcuts" in All Categories
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Use Figma products with a keyboard
+ 
+
+ ...list of available shortcuts in the shortcuts panel. Open the shortcuts panel Open the keyboard shortcuts panel to view a...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Tour the interface 
+
+ 
+ File utilities 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Copy and paste objects
+ 
+
+ ...duplicate shortcuts to speed up your workflow! If you use click and drag to duplicate, then use this keyboard shortcut to continue...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Work with layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Hide or minimize the UI
+ 
+
+ ...in Figma, use the keyboard shortcut : click in left sidebar of the File tab, or use the keyboard shortcut : Mac: ⌘ Command...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Tour the interface 
+
+ 
+ File utilities 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Add links to text
+ 
+
+ ...apply the link. Use the keyboard shortcut Make your selection. Use the keyboard shortcut to open the link input box...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Text and typography 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Add, delete, and organize webpages
+ 
+
+ ...the Webpage tool in the toolbar—or by using the W keyboard shortcut . Tip : By default, new webpages use absolute...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Sites 
+
+ 
+ Create webpages and breakpoints 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Toggle on auto layout in designs
+ 
+
+ ...layers and use one of the following methods: Use the keyboard shortcut ⇧ Shift A In the right panel, click next to Auto...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Use auto layout 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Code blocks in FigJam
+ 
+
+ ...is set to TypeScript by default. Keyboard shortcut Use the keyboard shortcut : Press `. Hover the code block preview...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ FigJam 
+
+ 
+ Work on boards 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Boolean operations
+ 
+
+ ...applied to the object’s outer path. Union selection keyboard shortcut : Mac: Option Shift U Windows: Alt Shift...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Design with vector tools 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Convert text to vector paths
+ 
+
+ ...version history to restore a previous version or use the undo shortcut : Mac: Command Z Windows: Control Z...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Design with vector tools 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Build faster with quick create in FigJam
+ 
+
+ ...Quick create is a set of shortcuts that help speed up your process when brainstorming or diagraming. Use quick create to:...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ FigJam 
+
+ 
+ Work on boards 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ Next 
+ › 
+ 
+ 
+
+ 
+ 
+ Last 
+ » 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 
+ 한국어
+ 
+ 
+ 
+ Nederlands (Nederland)
+ 
+ 
+ 
+ Polski (Polska)
+ 
+ 
+ 
+ Português do Brasil
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ Use cases
+
+ 
+ 
+ UI design 
+ 
+
+ 
+ UX design 
+ 
+
+ 
+ Prototyping 
+ 
+
+ 
+ Graphic design 
+ 
+
+ 
+ Wireframing 
+ 
+
+ 
+ Brainstorming 
+ 
+
+ 
+ Templates 
+ 
+
+ 
+ Remote design 
+ 
+
+ 
+ 
+
+ 
+ Explore
+
+ 
+ 
+ Design features 
+ 
+
+ 
+ Prototyping features 
+ 
+
+ 
+ Design systems features 
+ 
+
+ 
+ Collaboration features 
+ 
+
+ 
+ FigJam 
+ 
+
+ 
+ Pricing 
+ 
+
+ 
+ Enterprise 
+ 
+
+ 
+ Students and educators 
+ 
+
+ 
+ Customers 
+ 
+
+ 
+ Security 
+ 
+
+ 
+ Integrations 
+ 
+
+ 
+ Contact 
+ 
+
+ 
+ 
+
+ 
+ Resources
+
+ 
+ 
+ Blog 
+ 
+
+ 
+ Best practices 
+ 
+
+ 
+ Support 
+ 
+
+ 
+ Developers 
+ 
+
+ 
+ Learn design 
+ 
+
+ 
+ Downloads 
+ 
+
+ 
+ What's new 
+ 
+
+ 
+ Releases 
+ 
+
+ 
+ Careers 
+ 
+
+ 
+ About us 
+ 
+
+ 
+ Agency partners 
+ 
+
+ 
+ Privacy 
+ 
+
+ 
+ Status

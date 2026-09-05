@@ -1,0 +1,20 @@
+{
+  "code": 200,
+  "data": {
+    "description": "",
+    "html": "<html style=\"height: 100%;\"><head><meta name=\"viewport\" content=\"width=device-width, minimum-scale=0.1\"><title>gradient-brand-Design.svg</title></head><body style=\"margin: 0px; height: 100%; background-color: rgb(14, 14, 14);\"><p>Graphic design with an orange triangle and a lighter orange triangle, stretching to produce a grey background</p></body></html>",
+    "httpStatus": 200,
+    "httpStatusText": "",
+    "title": "gradient-brand-Design.svg",
+    "url": "https://shortcuts.design/tools/toolspage-figma",
+    "usage": {
+      "tokens": 96
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 96
+    }
+  },
+  "status": 20000
+}

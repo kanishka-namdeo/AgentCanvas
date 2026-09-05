@@ -1,0 +1,286 @@
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 274 results for "scale tool proportionally resize layers" in All Categories
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Scale layers while maintaining proportions
+ 
+ ...instance overrides. Scale To resize an object using the scale tool : Activate the scale tool by pressing K, or by... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Work with layers 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Apply constraints to define how layers resize
+ 
+ ...This may cause layers to grow or shrink along the x axis, when resized . Center maintains the layer ’s position, relative... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Work with layers 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Adjust text dimensions and resizing
+ 
+ ...effect on them. Scale text layers You can also use the scale tool to change the size of a text layer . If you take this... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Text and typography 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Shape tools
+ 
+ ...shape tools Shapes make up the majority of your layers in any given design. Use the following shape tools as your... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Create and edit layers 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Resize assets in Figma Buzz
+ 
+ ...preparing assets for resizing , and learn how to resize assets directly in Figma Buzz. Resize assets To resize an asset in Figma... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Buzz 
+ 
+ Create and edit assets in Figma Buzz 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Resize, rotate, and flip objects in FigJam
+ 
+ ...and scaling its contents proportionally . See resizing by object type to see which objects support scaling . To scale an object:... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ FigJam 
+ 
+ Work on boards 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Access design tools from the toolbar
+ 
+ ...a text layer with a fixed size Learn more about creating text layers . Comment tools Use the Comment tools menu to... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Tour the interface 
+ 
+ Explore 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Arrange layers with Smart selection
+ 
+ ...Move or reorder Duplicate layers Resize layers Delete layers You can choose which layers in the selection you'd like... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Work with layers 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Adjust alignment, rotation, position, and dimensions
+ 
+ ...order of the layer by changing the layer 's position in the Layers panel. Open the Layers panel in the left sidebar.... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Work with layers 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Edit vector layers
+ 
+ ...multiple vector layers : You can edit multiple vector layers at once by pressing Shift and clicking on a layer to add it to... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Design with vector tools 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ Next 
+ › 
+ 
+ 
+
+ 
+ 
+ Last 
+ » 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 

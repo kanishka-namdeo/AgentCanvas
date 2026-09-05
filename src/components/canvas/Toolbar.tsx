@@ -17,7 +17,8 @@
 // canvas, not the whole window.
 
 import { useCanvasStore } from '@/lib/canvas/store';
-import type { CanvasPatch, LayerType } from '@/lib/canvas/types';
+import { dropShapeAtCenter } from '@/lib/canvas/drop-shape';
+import type { LayerType } from '@/lib/canvas/types';
 import { Button } from '@/components/ui/button';
 import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import {
@@ -57,36 +58,24 @@ const SHAPE_DEFAULTS: Record<LayerType, Partial<{ width: number; height: number;
 };
 
 export function Toolbar() {
-  const sendPatch = useCanvasStore((s) => s.sendPatch);
-  const shapes = useCanvasStore((s) => s.document.shapes);
   const toolMode = useCanvasStore((s) => s.toolMode);
   const setToolMode = useCanvasStore((s) => s.setToolMode);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
 
   const createShape = (type: LayerType) => {
+    // Interaction-consistency pass: the SAME insert action must place the
+    // shape the SAME way from every surface. Toolbar buttons used to place
+    // at a blind `x = 200 + n·20` (comment admitted "we don't know the
+    // viewport") while the keyboard chords / Insert menu / ⌘K palette all
+    // use dropShapeAtCenter (viewport-center + token colors + select).
+    // Toolbar sizes pass as overrides so click-to-create keeps its slightly
+    // larger defaults; placement semantics are now identical.
     const defaults = SHAPE_DEFAULTS[type];
-    // Place at the center of the visible viewport. We don't know the exact
-    // viewport here without reaching into the Canvas component — use a
-    // reasonable default around the document origin.
-    const offset = shapes.length * 20;
-    const patch: CanvasPatch = {
-      op: 'add',
-      shape: {
-        type,
-        name: `${type[0].toUpperCase()}${type.slice(1)} ${shapes.length + 1}`,
-        x: 200 + offset,
-        y: 160 + offset,
-        width: defaults.width ?? 100,
-        height: defaults.height ?? 100,
-        fill: defaults.fill ?? 'var(--ac-canvas-default-fill)',
-        text: defaults.text,
-        fontSize: defaults.fontSize ?? 16,
-        stroke: type === 'group' ? 'var(--ac-canvas-default-stroke)' : 'var(--ac-canvas-default-text)',
-        strokeWidth: type === 'group' ? 1 : 0,
-      },
-      summary: `Created ${type}`,
-    };
-    sendPatch(patch);
+    dropShapeAtCenter(
+      type as Parameters<typeof dropShapeAtCenter>[0],
+      defaults.width,
+      defaults.height,
+    );
   };
 
   // Shared button class for shape-creation tools. `.ac-busy` is the one

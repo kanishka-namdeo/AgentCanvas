@@ -22,7 +22,7 @@ import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { useIsMobile } from '@/lib/canvas/use-is-mobile';
 import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types';
-import { SHORTCUTS_BY_ACTION, matchShortcut, chordFor, currentPlatform } from '@/lib/canvas/shortcuts';
+import { SHORTCUTS_BY_ACTION, matchShortcut, chordFor, currentPlatform, isEditableTarget, inCompositeWidget, menuLayerOpen, platformChord } from '@/lib/canvas/shortcuts';
 import { dropShapeAtCenter } from '@/lib/canvas/drop-shape';
 import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl } from '@/lib/canvas/export';
 import { exportBackgroundColor } from '@/lib/canvas/theme-colors';
@@ -391,7 +391,11 @@ export default function Home() {
       const meta = e.metaKey || e.ctrlKey;
       const state = useCanvasStore.getState();
       const target = e.target as HTMLElement;
-      const isEditable = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      // Shared focus-scope guards (lib/canvas/shortcuts.ts — single semantic
+      // for every key surface, replacing the per-file copies that disagreed
+      // about <select>).
+      const isEditable = isEditableTarget(target);
+      const inComposite = inCompositeWidget(target);
 
       // --- Meta-required shortcuts ---
       if (meta) {
@@ -450,6 +454,7 @@ export default function Home() {
           'group', 'ungroup', 'frame-selection', 'duplicate',
           'lock', 'hide', 'rename', 'create-component', 'detach-instance',
           'save-checkpoint',
+          'bring-forward', 'bring-to-front', 'send-backward', 'send-to-back',
         ]);
         if (metaAction) {
           e.preventDefault();
@@ -519,11 +524,29 @@ export default function Home() {
             }
             case 'save-checkpoint': {
               // Phase 7 group C (D14): manual version-history checkpoint
-              // (⌘⌥S / Ctrl+Alt+S — registry action 'save-checkpoint').
+              // (⌘⌥S / ⌘S — registry action 'save-checkpoint'; ⌘S is an alias
+              // so the app, not the browser's "Save page as…", owns the
+              // chord — Figma parity).
               const name = window.prompt('Checkpoint name:', 'Manual save') ?? 'Manual save';
               const saved = state.addCheckpoint(name, false);
               if (saved) toast.success('Checkpoint saved', { description: name });
               else toast.message('No changes since the last checkpoint');
+              break;
+            }
+            case 'bring-forward':
+            case 'bring-to-front':
+            case 'send-backward':
+            case 'send-to-back': {
+              if (state.selectedIds.length === 0) break;
+              const zorderKind = metaAction === 'bring-forward' ? 'forward'
+                : metaAction === 'bring-to-front' ? 'front'
+                : metaAction === 'send-backward' ? 'backward' : 'back';
+              state.sendPatch({
+                op: 'zorder',
+                shapeIds: state.selectedIds,
+                zorderKind,
+                summary: `Z-order: ${zorderKind}`,
+              });
               break;
             }
           }
@@ -567,26 +590,19 @@ export default function Home() {
         // Phase 7 registry block above — ⌘G / ⌘⇧G / ⌘D — keeping the exact
         // same patch payloads.)
 
-        // P0-07: Z-order (⌘] / [ / ⌘⇧] / [). Same input guard.
-        if (e.key === ']' || e.key === '[') {
-          if (isEditable) return;
-          e.preventDefault();
-          if (state.selectedIds.length === 0) return;
-          const zorderKind = e.shiftKey
-            ? (e.key === ']' ? 'front' : 'back')
-            : (e.key === ']' ? 'forward' : 'backward');
-          state.sendPatch({
-            op: 'zorder',
-            shapeIds: state.selectedIds,
-            zorderKind,
-            summary: `Z-order: ${zorderKind}`,
-          });
-          return;
-        }
+        // (P0-07 Z-order — ⌘] / ⌘[ / ⌘⇧] / ⌘⇧[ — also dispatches through the
+        // registry block above now; the ad-hoc bracket handler was the last
+        // non-registry meta chord.)
         return;
       }
 
-      // --- Non-meta shortcuts — only fire when not typing in an input ---
+      // --- Non-meta shortcuts ---
+      // Stand down while a floating menu layer is open (its typeahead + arrow
+      // keys own the keyboard) or while focus is inside a composite widget
+      // (sliders/selects/trees — APG: arrows move focus inside composites;
+      // WCAG 2.1.4: single-character shortcuts must not fire in them).
+      // Buttons and plain body focus keep the Figma-style muscle memory.
+      if (menuLayerOpen() || inComposite) return;
       if (isEditable) return;
 
       // ---- Phase 7 registry chords (non-meta family) -----------------------
@@ -707,12 +723,14 @@ export default function Home() {
       const shapeKey = e.key.toLowerCase();
       // P1-23: A key applies auto-layout to the currently selected frame.
       // (⌥A align-left is consumed earlier by the registry block, so this
-      // only fires for the unmodified key.)
+      // only fires for the unmodified key.) preventDefault only when the
+      // action actually applies — a bare 'a' with no frame selected must
+      // fall through untouched (it used to swallow the keypress).
       if (shapeKey === 'a') {
-        e.preventDefault();
         if (state.selectedIds.length === 1) {
           const s = findShape(state.document, state.selectedIds[0]);
           if (s && (s.type === 'frame' || s.type === 'group')) {
+            e.preventDefault();
             state.sendPatch({
               op: 'update',
               shapeId: s.id,
@@ -775,21 +793,21 @@ export default function Home() {
   };
   const paletteCommands: PaletteCommand[] = [
     // File
-    { id: 'file.new-chat', label: 'New chat', group: 'File', icon: FilePlus2, shortcut: '⌘N', keywords: 'new session conversation', mutates: true, run: () => useCanvasStore.getState().newSession() },
+    { id: 'file.new-chat', label: 'New chat', group: 'File', icon: FilePlus2, shortcut: platformChord('⌘N'), keywords: 'new session conversation', mutates: true, run: () => useCanvasStore.getState().newSession() },
     { id: 'file.open-pen', label: 'Open .pen file…', group: 'File', keywords: 'import load', mutates: true, run: penFile.importPen },
     { id: 'file.export-pen', label: 'Export as .pen', group: 'File', keywords: 'save download', run: penFile.exportPen },
     { id: 'file.export-svg', label: 'Export as SVG', group: 'File', keywords: 'save download', run: () => void exportDoc('svg') },
     { id: 'file.export-png', label: 'Export as PNG', group: 'File', keywords: 'save download image', run: () => void exportDoc('png') },
     { id: 'file.export-json', label: 'Export as JSON', group: 'File', keywords: 'save download', run: () => void exportDoc('json') },
-    { id: 'file.settings', label: 'Settings…', group: 'File', shortcut: '⌘,', keywords: 'config', run: () => setSettingsOpen(true) },
+    { id: 'file.settings', label: 'Settings…', group: 'File', shortcut: platformChord('⌘,'), keywords: 'config', run: () => setSettingsOpen(true) },
     { id: 'file.clear', label: 'Clear canvas…', group: 'File', icon: Trash2, danger: true, keywords: 'delete remove all', mutates: true, run: () => { if (confirm('Clear all shapes from the canvas?')) useCanvasStore.getState().sendPatch({ op: 'clear', summary: 'Cleared canvas' }); } },
     // Edit
-    { id: 'edit.undo', label: 'Undo', group: 'Edit', icon: Undo2, shortcut: '⌘Z', keywords: 'history', mutates: true, run: () => { useCanvasStore.getState().undo(); } },
-    { id: 'edit.redo', label: 'Redo', group: 'Edit', icon: Redo2, shortcut: '⌘⇧Z', keywords: 'history', mutates: true, run: () => { useCanvasStore.getState().redo(); } },
-    { id: 'edit.duplicate', label: 'Duplicate selection', group: 'Edit', icon: Copy, shortcut: '⌘D', mutates: true, run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) s.sendPatch({ op: 'duplicate', shapeIds: s.selectedIds, summary: `Duplicated ${s.selectedIds.length} shape(s)` }); } },
-    { id: 'edit.paste', label: 'Paste', group: 'Edit', icon: ClipboardPaste, shortcut: '⌘V', mutates: true, run: () => clipboard.paste() },
-    { id: 'edit.select-all', label: 'Select all layers', group: 'Edit', shortcut: '⌘A', run: () => clipboard.selectAll() },
-    { id: 'edit.delete', label: 'Delete selection', group: 'Edit', icon: Trash2, shortcut: '⌫', danger: true, mutates: true, run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) { s.sendPatch({ op: 'remove', shapeIds: s.selectedIds, summary: `Deleted ${s.selectedIds.length} shape(s)` }); s.select([]); } } },
+    { id: 'edit.undo', label: 'Undo', group: 'Edit', icon: Undo2, shortcut: platformChord('⌘Z'), keywords: 'history', mutates: true, run: () => { useCanvasStore.getState().undo(); } },
+    { id: 'edit.redo', label: 'Redo', group: 'Edit', icon: Redo2, shortcut: platformChord('⌘⇧Z'), keywords: 'history', mutates: true, run: () => { useCanvasStore.getState().redo(); } },
+    { id: 'edit.duplicate', label: 'Duplicate selection', group: 'Edit', icon: Copy, shortcut: platformChord('⌘D'), mutates: true, run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) s.sendPatch({ op: 'duplicate', shapeIds: s.selectedIds, summary: `Duplicated ${s.selectedIds.length} shape(s)` }); } },
+    { id: 'edit.paste', label: 'Paste', group: 'Edit', icon: ClipboardPaste, shortcut: platformChord('⌘V'), mutates: true, run: () => clipboard.paste() },
+    { id: 'edit.select-all', label: 'Select all layers', group: 'Edit', shortcut: platformChord('⌘A'), run: () => clipboard.selectAll() },
+    { id: 'edit.delete', label: 'Delete selection', group: 'Edit', icon: Trash2, shortcut: platformChord('⌫'), danger: true, mutates: true, run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) { s.sendPatch({ op: 'remove', shapeIds: s.selectedIds, summary: `Deleted ${s.selectedIds.length} shape(s)` }); s.select([]); } } },
     // View
     { id: 'view.zen', label: 'Toggle zen mode', group: 'View', icon: Eye, shortcut: chordLabel('zen'), keywords: 'focus hide ui', run: toggleZen },
     { id: 'view.dark', label: 'Toggle dark mode', group: 'View', icon: SunMoon, keywords: 'theme light night', run: toggleDarkMode },
@@ -812,10 +830,10 @@ export default function Home() {
     { id: 'panel.left', label: 'Toggle left panel', group: 'Panels', icon: PanelLeftIcon, shortcut: chordLabel('toggle-left-panel'), run: () => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed) },
     { id: 'panel.right', label: 'Toggle right panel', group: 'Panels', icon: PanelRightIcon, shortcut: chordLabel('toggle-right-panel'), run: () => toggle(rightPanelRef, rightCollapsed, setRightCollapsed) },
     { id: 'panel.chats', label: 'Show Chats', group: 'Panels', icon: MessageSquare, keywords: 'sessions sidebar', run: () => { setLeftTab('chats'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
-    { id: 'panel.layers', label: 'Show Layers', group: 'Panels', icon: LayersIcon, shortcut: '⌥1', keywords: 'tree', run: () => { setLeftTab('layers'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
-    { id: 'panel.assets', label: 'Show Assets', group: 'Panels', icon: Boxes, shortcut: '⌥2', keywords: 'components', run: () => { setLeftTab('assets'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
+    { id: 'panel.layers', label: 'Show Layers', group: 'Panels', icon: LayersIcon, shortcut: platformChord('⌥1'), keywords: 'tree', run: () => { setLeftTab('layers'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
+    { id: 'panel.assets', label: 'Show Assets', group: 'Panels', icon: Boxes, shortcut: platformChord('⌥2'), keywords: 'components', run: () => { setLeftTab('assets'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
     // Help
-    { id: 'help.shortcuts', label: 'Keyboard shortcuts', group: 'Help', icon: Keyboard, shortcut: '⌘/', run: () => setShortcutsOpen(true) },
+    { id: 'help.shortcuts', label: 'Keyboard shortcuts', group: 'Help', icon: Keyboard, shortcut: platformChord('⌘/'), run: () => setShortcutsOpen(true) },
   ];
 
   return (
@@ -871,7 +889,7 @@ export default function Home() {
             >
               <Search className="h-3 w-3" />
               <span className="hidden md:inline">Search or ask…</span>
-              <kbd className="hidden md:inline text-[10px] ac-text-5 px-1 py-0 rounded ac-surface-2 font-mono ml-1">⌘K</kbd>
+              <kbd className="hidden md:inline text-[10px] ac-text-5 px-1 py-0 rounded ac-surface-2 font-mono ml-1">{platformChord('⌘K')}</kbd>
             </Button>
 
             <RunStopButton />

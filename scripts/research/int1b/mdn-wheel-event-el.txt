@@ -1,0 +1,1733 @@
+Element: wheel event - Web APIs | MDN 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Skip to main content 
+ 
+
+ 
+ Skip to search 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ MDN 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ HTML 
+ 
+ 
+ 
+ HTML: Markup language 
+ 
+
+ 
+ 
+ HTML reference 
+ 
+ 
+ Elements 
+ 
+ 
+ Global attributes 
+ 
+ 
+ Attributes 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ HTML guides 
+ 
+ 
+ Responsive images 
+ 
+ 
+ HTML cheatsheet 
+ 
+ 
+ Date & time formats 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Markup languages 
+ 
+ 
+ SVG 
+ 
+ 
+ MathML 
+ 
+ 
+ XML 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ CSS 
+ 
+ 
+ 
+ CSS: Styling language 
+ 
+
+ 
+ 
+ CSS reference 
+ 
+ 
+ Properties 
+ 
+ 
+ Selectors 
+ 
+ 
+ At-rules 
+ 
+ 
+ Values 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ CSS guides 
+ 
+ 
+ Box model 
+ 
+ 
+ Animations 
+ 
+ 
+ Flexbox 
+ 
+ 
+ Colors 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Layout cookbook 
+ 
+ 
+ Column layouts 
+ 
+ 
+ Centering an element 
+ 
+ 
+ Card component 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ JavaScript JS 
+ 
+ 
+ 
+ JavaScript: Scripting language 
+ 
+
+ 
+ 
+ JS reference 
+ 
+ 
+ Standard built-in objects 
+ 
+ 
+ Expressions & operators 
+ 
+ 
+ Statements & declarations 
+ 
+ 
+ Functions 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ JS guides 
+ 
+ 
+ Control flow & error handing 
+ 
+ 
+ Loops and iteration 
+ 
+ 
+ Working with objects 
+ 
+ 
+ Using classes 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Web APIs 
+ 
+ 
+ 
+ Web APIs: Programming interfaces 
+ 
+
+ 
+ 
+ Web API reference 
+ 
+ 
+ File system API 
+ 
+ 
+ Fetch API 
+ 
+ 
+ Geolocation API 
+ 
+ 
+ HTML DOM API 
+ 
+ 
+ Push API 
+ 
+ 
+ Service worker API 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Web API guides 
+ 
+ 
+ Using the Web animation API 
+ 
+ 
+ Using the Fetch API 
+ 
+ 
+ Working with the History API 
+ 
+ 
+ Using the Web speech API 
+ 
+ 
+ Using web workers 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ All 
+ 
+ 
+ 
+ All web technology 
+ 
+
+ 
+ 
+ Technologies 
+ 
+ 
+ Accessibility 
+ 
+ 
+ HTTP 
+ 
+ 
+ URI 
+ 
+ 
+ Web extensions 
+ 
+ 
+ WebAssembly 
+ 
+ 
+ WebDriver 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Topics 
+ 
+ 
+ Media 
+ 
+ 
+ Performance 
+ 
+ 
+ Privacy 
+ 
+ 
+ Security 
+ 
+ 
+ Progressive web apps 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Learn 
+ 
+ 
+ 
+ Learn web development 
+ 
+
+ 
+ 
+ Frontend developer course 
+ 
+ 
+ Getting started modules 
+ 
+ 
+ Core modules 
+ 
+ 
+ MDN Curriculum 
+ 
+ 
+ Check out the video course from Scrimba, our partner 
+ 
+
+ 
+ 
+ Learn HTML 
+ 
+ 
+ Structuring content with HTML module 
+ 
+
+ 
+ 
+ Learn CSS 
+ 
+ 
+ CSS styling basics module 
+ 
+ 
+ CSS layout module 
+ 
+
+ 
+ 
+ Learn JavaScript 
+ 
+ 
+ Dynamic scripting with JavaScript module 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Tools 
+ 
+ 
+ 
+ Discover our tools
+ 
+
+ 
+ 
+ 
+ Playground 
+ 
+ 
+ HTTP Observatory 
+ 
+
+ 
+ 
+ Border-image generator 
+ 
+ 
+ Border-radius generator 
+ 
+ 
+ Box-shadow generator 
+ 
+ 
+ Color format converter 
+ 
+ 
+ Color mixer 
+ 
+ 
+ Shape generator 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ About 
+ 
+ 
+ 
+ Get to know MDN better
+ 
+
+ 
+ 
+ 
+ About MDN 
+ 
+ 
+ Advertise with us 
+ 
+
+ 
+ 
+ Community 
+ 
+ 
+ MDN on GitHub 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Blog 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Toggle sidebar 
+ 
+ 
+ 
+ 
+ Web 
+ 
+ 
+
+ 
+ 
+ Web APIs 
+ 
+ 
+
+ 
+ 
+ Element 
+ 
+ 
+
+ 
+ 
+ wheel 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Theme 
+ 
+ 
+ 
+ 
+ 
+ OS default 
+ 
+ 
+ 
+ 
+ Light 
+ 
+ 
+ 
+ 
+ Dark 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (US) 
+ 
+ 
+ 
+ 
+ 
+ 
+ Remember language 
+ 
+ 
+ 
+ 
+ 
+ 
+ Learn more 
+ 
+
+ 
+ 
+ 
+ Deutsch 
+ 
+
+ 
+ 
+ English (US) 
+ 
+
+ 
+ 
+ Español 
+ 
+
+ 
+ 
+ Français 
+ 
+
+ 
+ 
+ 日本語 
+ 
+
+ 
+ 
+ 中文 (简体) 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Element: wheel event
+
+ 
+ 
+ 
+ 
+ Limited availability
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ This feature is not Baseline because it does not work in some of the most widely-used browsers.
+ Want more browser support for this feature? Tell us why. 
+
+ 
+ 
+ 
+ 
+ See full compatibility
+ 
+ 
+
+ 
+ 
+ Learn more
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ The wheel
+ event fires when the user rotates a wheel button on a pointing device (typically a mouse). It is also fired for related devices that simulate wheel actions, such as trackpads and mouse balls.
+
+ This event replaces the non-standard deprecated mousewheel
+ event.
+
+ Don't confuse the wheel
+ event with the scroll
+ event:
+
+ 
+ A wheel
+ event doesn't necessarily dispatch a scroll
+ event. For example, the element may be unscrollable at all. Zooming actions using the wheel or trackpad also fire wheel
+ events (with ctrlKey
+ set to true).
+
+ A scroll
+ event isn't necessarily triggered by a wheel
+ event. Elements can also be scrolled by using the keyboard, dragging a scrollbar, or using JavaScript.
+
+ Even when the wheel
+ event does trigger scrolling, the delta*
+ values in the wheel
+ event don't necessarily reflect the content's scrolling direction.
+
+ 
+ Therefore, do not rely on the wheel
+ event's delta*
+ properties to get the scrolling direction. Instead, detect value changes of scrollLeft
+ and scrollTop
+ of the target in the scroll
+ event.
+
+ The wheel
+ event is cancelable. In some browsers, only the first wheel
+ event in a sequence is cancelable, and later events are non-cancelable. If the event is canceled, no scrolling or zooming is performed. This may cause performance issues as the browser has to wait for every wheel event to be processed before actually scrolling the content. You can avoid this by setting passive: true
+ when calling addEventListener()
+ , which may cause the browser to generate non-cancelable wheel
+ events.
+
+ 
+ 
+
+ 
+ 
+ In this article
+
+ 
+ 
+ Syntax 
+ 
+ 
+ Event type 
+ 
+ 
+ Examples 
+ 
+ 
+ Specifications 
+ 
+ 
+ Browser compatibility 
+ 
+ 
+ See also 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Syntax 
+ 
+ Use the event name in methods like addEventListener()
+ , or set an event handler property.
+
+ js 
+ addEventListener("wheel", (event) =&gt; { })
+
+onwheel = (event) =&gt; { }
+
+ 
+ Event type 
+ 
+ A WheelEvent
+ . Inherits from MouseEvent
+ , UIEvent
+ and Event
+ .
+
+ 
+ 
+ 
+ Event
+ 
+ 
+ 
+ 
+ 
+ 
+ UIEvent
+ 
+ 
+ 
+ 
+ 
+ 
+ MouseEvent
+ 
+ 
+ 
+ 
+ 
+ 
+ WheelEvent
+ 
+ 
+ 
+ Examples 
+ 
+ 
+ 
+ Scaling an element via the wheel 
+ 
+ This example shows how to scale an element using the mouse (or other pointing device) wheel.
+
+ html 
+ &lt;div&gt;Scale me with your mouse wheel.&lt;/div&gt;
+
+ css 
+ body {
+ min-height: 100vh;
+ margin: 0;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+}
+
+div {
+ width: 105px;
+ height: 105px;
+ background: #ccddff;
+ padding: 5px;
+}
+
+ js 
+ let scale = 1;
+const el = document.querySelector("div");
+
+function zoom(event) {
+ event.preventDefault();
+
+ scale += event.deltaY * -0.01;
+
+ // Restrict scale
+ scale = Math.min(Math.max(0.125, scale), 4);
+
+ // Apply scale transform
+ el.style.transform = `scale(${scale})`;
+}
+
+el.onwheel = zoom;
+
+ 
+ 
+
+ 
+ addEventListener equivalent 
+ 
+ The event handler can also be set up using the addEventListener()
+ method:
+
+ js 
+ el.addEventListener("wheel", zoom, { passive: false });
+
+ 
+ Specifications 
+ 
+ 
+ 
+ 
+ 
+ Specification
+ 
+
+ 
+
+ 
+
+ 
+ 
+ Pointer Events 
+# wheel 
+
+ 
+ 
+ HTML 
+# handler-onwheel 
+
+ 
+
+ 
+ 
+ 
+ Browser compatibility 
+ 
+ Enable JavaScript to view this browser compatibility table. 
+ 
+ 
+ See also 
+ 
+ 
+ WheelEvent
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Help improve MDN
+ 
+
+ 
+ Was this page helpful to you? 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Yes 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ No 
+ 
+ 
+ 
+ 
+ Learn how to contribute 
+ This page was last modified on Jul 28, 2026 by MDN contributors .
+ 
+ 
+ View this page on GitHub • Report a problem with this content 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Filter sidebar 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Clear filter input 
+ 
+ 
+
+ UI Events 
+ Element
+ 
+ Instance properties activeViewTransition
+ 
+ ariaActiveDescendantElement
+ 
+ ariaAtomic
+ 
+ ariaAutoComplete
+ 
+ ariaBrailleLabel
+ 
+ ariaBrailleRoleDescription
+ 
+ ariaBusy
+ 
+ ariaChecked
+ 
+ ariaColCount
+ 
+ ariaColIndex
+ 
+ ariaColIndexText
+ 
+ ariaColSpan
+ 
+ ariaControlsElements
+ 
+ ariaCurrent
+ 
+ ariaDescribedByElements
+ 
+ ariaDescription
+ 
+ ariaDetailsElements
+ 
+ ariaDisabled
+ 
+ ariaErrorMessageElements
+ 
+ ariaExpanded
+ 
+ ariaFlowToElements
+ 
+ ariaHasPopup
+ 
+ ariaHidden
+ 
+ ariaInvalid
+ 
+ ariaKeyShortcuts
+ 
+ ariaLabel
+ 
+ ariaLabelledByElements
+ 
+ ariaLevel
+ 
+ ariaLive
+ 
+ ariaModal
+ 
+ ariaMultiLine
+ 
+ ariaMultiSelectable
+ 
+ ariaOrientation
+ 
+ ariaOwnsElements
+ 
+ ariaPlaceholder
+ 
+ ariaPosInSet
+ 
+ ariaPressed
+ 
+ ariaReadOnly
+ 
+ ariaRelevant
+ 
+ ariaRequired
+ 
+ ariaRoleDescription
+ 
+ ariaRowCount
+ 
+ ariaRowIndex
+ 
+ ariaRowIndexText
+ 
+ ariaRowSpan
+ 
+ ariaSelected
+ 
+ ariaSetSize
+ 
+ ariaSort
+ 
+ ariaValueMax
+ 
+ ariaValueMin
+ 
+ ariaValueNow
+ 
+ ariaValueText
+ 
+ assignedSlot
+ 
+ attributes
+ 
+ childElementCount
+ 
+ children
+ 
+ classList
+ 
+ className
+ 
+ clientHeight
+ 
+ clientLeft
+ 
+ clientTop
+ 
+ clientWidth
+ 
+ currentCSSZoom
+ 
+ customElementRegistry
+ 
+ elementTiming
+ 
+ firstElementChild
+ 
+ id
+ 
+ innerHTML
+ 
+ lastElementChild
+ 
+ localName
+ 
+ namespaceURI
+ 
+ nextElementSibling
+ 
+ outerHTML
+ 
+ part
+ 
+ prefix
+ 
+ previousElementSibling
+ 
+ role
+ 
+ scrollHeight
+ 
+ scrollLeft
+ 
+ scrollLeftMax
+ 
+ scrollTop
+ 
+ scrollTopMax
+ 
+ scrollWidth
+ 
+ shadowRoot
+ 
+ slot
+ 
+ tagName
+ 
+ 
+ Instance methods after()
+ 
+ animate()
+ 
+ append()
+ 
+ ariaNotify()
+ 
+ attachShadow()
+ 
+ before()
+ 
+ checkVisibility()
+ 
+ closest()
+ 
+ computedStyleMap()
+ 
+ getAnimations()
+ 
+ getAttribute()
+ 
+ getAttributeNames()
+ 
+ getAttributeNode()
+ 
+ getAttributeNodeNS()
+ 
+ getAttributeNS()
+ 
+ getBoundingClientRect()
+ 
+ getClientRects()
+ 
+ getElementsByClassName()
+ 
+ getElementsByTagName()
+ 
+ getElementsByTagNameNS()
+ 
+ getHTML()
+ 
+ hasAttribute()
+ 
+ hasAttributeNS()
+ 
+ hasAttributes()
+ 
+ hasPointerCapture()
+ 
+ insertAdjacentElement()
+ 
+ insertAdjacentHTML()
+ 
+ insertAdjacentText()
+ 
+ matches()
+ 
+ moveBefore()
+ 
+ prepend()
+ 
+ pseudo()
+ 
+ querySelector()
+ 
+ querySelectorAll()
+ 
+ releasePointerCapture()
+ 
+ remove()
+ 
+ removeAttribute()
+ 
+ removeAttributeNode()
+ 
+ removeAttributeNS()
+ 
+ replaceChildren()
+ 
+ replaceWith()
+ 
+ requestFullscreen()
+ 
+ requestPointerLock()
+ 
+ scroll()
+ 
+ scrollBy()
+ 
+ scrollIntoView()
+ 
+ scrollIntoViewIfNeeded()
+ 
+ scrollTo()
+ 
+ setAttribute()
+ 
+ setAttributeNode()
+ 
+ setAttributeNodeNS()
+ 
+ setAttributeNS()
+ 
+ setCapture()
+ 
+ setHTML()
+ 
+ setHTMLUnsafe()
+ 
+ setPointerCapture()
+ 
+ startViewTransition()
+ 
+ toggleAttribute()
+ 
+ 
+ Events afterscriptexecute
+ 
+ animationcancel
+ 
+ animationend
+ 
+ animationiteration
+ 
+ animationstart
+ 
+ auxclick
+ 
+ beforeinput
+ 
+ beforematch
+ 
+ beforescriptexecute
+ 
+ beforexrselect
+ 
+ blur
+ 
+ click
+ 
+ compositionend
+ 
+ compositionstart
+ 
+ compositionupdate
+ 
+ contentvisibilityautostatechange
+ 
+ contextmenu
+ 
+ copy
+ 
+ cut
+ 
+ dblclick
+ 
+ DOMActivate
+ 
+ DOMMouseScroll
+ 
+ focus
+ 
+ focusin
+ 
+ focusout
+ 
+ fullscreenchange
+ 
+ fullscreenerror
+ 
+ gesturechange
+ 
+ gestureend
+ 
+ gesturestart
+ 
+ gotpointercapture
+ 
+ input
+ 
+ keydown
+ 
+ keypress
+ 
+ keyup
+ 
+ lostpointercapture
+ 
+ mousedown
+ 
+ mouseenter
+ 
+ mouseleave
+ 
+ mousemove
+ 
+ mouseout
+ 
+ mouseover
+ 
+ mouseup
+ 
+ mousewheel
+ 
+ MozMousePixelScroll
+ 
+ paste
+ 
+ pointercancel
+ 
+ pointerdown
+ 
+ pointerenter
+ 
+ pointerleave
+ 
+ pointermove
+ 
+ pointerout
+ 
+ pointerover
+ 
+ pointerrawupdate
+ 
+ pointerup
+ 
+ scroll
+ 
+ scrollend
+ 
+ scrollsnapchange
+ 
+ scrollsnapchanging
+ 
+ securitypolicyviolation
+ 
+ touchcancel
+ 
+ touchend
+ 
+ touchmove
+ 
+ touchstart
+ 
+ transitioncancel
+ 
+ transitionend
+ 
+ transitionrun
+ 
+ transitionstart
+ 
+ webkitmouseforcechanged
+ 
+ webkitmouseforcedown
+ 
+ webkitmouseforceup
+ 
+ webkitmouseforcewillbegin
+ 
+ wheel
+ 
+ 
+ Inheritance Node
+ 
+ EventTarget
+ 
+ 
+ Related pages for UI Events CompositionEvent
+ 
+ FocusEvent
+ 
+ InputEvent
+ 
+ KeyboardEvent
+ 
+ MutationEvent
+ 
+ TextEvent
+ 
+ UIEvent
+ 
+ 
+ Guides Code values for keyboard events 
+ Key values for keyboard events 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ MDN 
+ 
+ Your blueprint for a better internet.
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ MDN 
+ 
+ 
+ 
+ 
+ 
+ About
+ 
+ 
+
+ 
+ 
+ 
+ Blog
+ 
+ 
+
+ 
+ 
+ 
+ Mozilla careers
+ 
+ 
+
+ 
+ 
+ 
+ Advertise with us
+ 
+ 
+
+ 
+ 
+ 
+ MDN Plus
+ 
+ 
+
+ 
+ 
+ 
+ Product help
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Contribute 
+ 
+ 
+ 
+ 
+ 
+ MDN Community
+ 
+ 
+
+ 
+ 
+ 
+ Community resources
+ 
+ 
+
+ 
+ 
+ 
+ Writing guidelines
+ 
+ 
+
+ 
+ 
+ 
+ MDN Discord
+ 
+ 
+
+ 
+ 
+ 
+ MDN on GitHub
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Developers 
+ 
+ 
+ 
+ 
+ 
+ Web technologies
+ 
+ 
+
+ 
+ 
+ 
+ Learn web development
+ 
+ 
+
+ 
+ 
+ 
+ Guides
+ 
+ 
+
+ 
+ 
+ 
+ Tutorials
+ 
+ 
+
+ 
+ 
+ 
+ Glossary
+ 
+ 
+
+ 
+ 
+ 
+ Hacks blog
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Mozilla 
+ 
+ 
+ 
+ Website Privacy Notice 
+ 
+
+ 
+ 
+ Telemetry Settings 
+ 
+
+ 
+ 
+ Legal 
+ 
+
+ 
+ 
+ Community Participation Guidelines 
+ 
+
+ 
+ 
+ 
+ Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under a Creative Commons license .

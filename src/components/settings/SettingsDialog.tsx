@@ -21,6 +21,8 @@
 // "Save" button required.
 
 import { useState, useEffect, useRef } from 'react';
+import { ShortcutsReference } from '@/components/canvas/ShortcutsReference';
+import { platformChord } from '@/lib/canvas/shortcuts';
 import {
   Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -1004,45 +1006,21 @@ function UsageBar({ label, bytes, total, fmt }: {
 }
 
 // ── Section 6: Shortcuts reference ───────────────────────────────────────
+// Registry-driven (interaction-consistency pass): the old hand-maintained
+// table had drifted from reality ("Wheel = Zoom canvas" while trackpad
+// wheel pans, stale panel-toggle labels, none of the Phase 7 chords) —
+// the shortcut registry (lib/canvas/shortcuts.ts) is the single source of
+// truth the keymap dispatches against, and this section renders it
+// directly, same as the ⌘/ cheat sheet.
 function ShortcutsSection() {
-  const shortcuts: { keys: string[]; action: string }[] = [
-    { keys: ['⌘', 'K'], action: 'Open command palette' },
-    { keys: ['⌘', ','], action: 'Open settings' },
-    { keys: ['⌘', '1'], action: 'Toggle left panel (Chats / Layers)' },
-    { keys: ['⌘', '2'], action: 'Toggle right panel (Chat / Design / History)' },
-    { keys: ['⌘', '\\'], action: 'Zen mode (collapse all peripheral panels)' },
-    { keys: ['⌘', 'Z'], action: 'Undo last canvas change' },
-    { keys: ['⌘', '⇧', 'Z'], action: 'Redo' },
-    { keys: ['V'], action: 'Select tool' },
-    { keys: ['H'], action: 'Pan tool' },
-    { keys: ['Enter'], action: 'Send prompt' },
-    { keys: ['Shift', 'Enter'], action: 'Newline in prompt input' },
-    { keys: ['Space', 'drag'], action: 'Pan canvas (temporary)' },
-    { keys: ['Wheel'], action: 'Zoom canvas' },
-    { keys: ['Del'], action: 'Delete selected shape' },
-  ];
   return (
     <>
       <h2 className="text-[13px] font-semibold ac-text-1 mb-1">Keyboard shortcuts</h2>
       <p className="text-[11px] ac-text-4 mb-4 leading-relaxed">
-        Reference list. These are not editable.
+        Reference list, straight from the shortcut registry (same source as the {platformChord('⌘/')} cheat sheet). These are not editable.
       </p>
-      <div className="space-y-1">
-        {shortcuts.map((s, i) => (
-          <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:ac-surface-1">
-            <span className="text-[12px] ac-text-2">{s.action}</span>
-            <span className="flex items-center gap-0.5">
-              {s.keys.map((k, j) => (
-                <kbd
-                  key={j}
-                  className="px-1.5 py-0.5 rounded border ac-border-default ac-surface-1 ac-text-2 text-[10px] font-mono ml-0.5"
-                >
-                  {k}
-                </kbd>
-              ))}
-            </span>
-          </div>
-        ))}
+      <div className="max-h-[420px] overflow-y-auto -mx-1 px-1">
+        <ShortcutsReference />
       </div>
     </>
   );

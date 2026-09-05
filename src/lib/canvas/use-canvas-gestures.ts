@@ -35,6 +35,18 @@
 
 import { useEffect, useRef, useCallback, type RefObject } from 'react';
 
+// Safari-only WebKit GestureEvent (trackpad pinch) — not in TypeScript's DOM
+// lib. Minimal structural declaration: we only read scale/clientX/clientY and
+// call preventDefault. The `declare const` keeps `typeof GestureEvent !==
+// 'undefined'` a valid feature-detect in non-Safari engines at runtime.
+interface SafariGestureEvent extends UIEvent {
+  readonly scale: number;
+  readonly rotation: number;
+  readonly clientX: number;
+  readonly clientY: number;
+}
+declare const GestureEvent: { prototype: SafariGestureEvent } | undefined;
+
 export interface Viewport {
   zoom: number;
   panX: number;
@@ -81,6 +93,60 @@ const DOUBLE_TAP_MS = 300;
 const DOUBLE_TAP_DIST_PX = 30;
 const MOMENTUM_FRICTION = 0.92;
 const MOMENTUM_MIN_VELOCITY = 0.5;
+
+// ---- Wheel interpretation (pure — unit-tested) ----------------------------
+
+export type WheelGesture =
+  | { kind: 'zoom'; delta: number } // cursor-anchored zoom (delta = zoom factor delta)
+  | { kind: 'pan'; dx: number; dy: number }; // viewport pan in screen px
+
+/// Line/page-mode wheels (Firefox + external mice) report deltas in LINES or
+/// PAGES, not pixels — without normalization the line-mode pan heuristic
+/// misreads 3 lines as a trackpad scroll and Firefox mouse wheels PAN
+/// instead of zoom. ~40px per line matches Chrome/FF line metrics.
+const LINE_PX = 40;
+const PAGE_PX = 800;
+
+/// Heuristic threshold separating trackpad two-finger scrolls (many small
+/// pixel deltas) from discrete mouse-wheel ticks (few large deltas).
+/// Figma/tldraw use the same class of heuristic; fast trackpad flicks can
+/// exceed it and fall into mouse-wheel zoom (acceptable, self-correcting).
+const TRACKPAD_DELTA_MAX = 50;
+
+export function normalizeWheelDeltas(e: { deltaX: number; deltaY: number; deltaMode: number }): { dx: number; dy: number } {
+  if (e.deltaMode === 1) return { dx: e.deltaX * LINE_PX, dy: e.deltaY * LINE_PX };
+  if (e.deltaMode === 2) return { dx: e.deltaX * PAGE_PX, dy: e.deltaY * PAGE_PX };
+  return { dx: e.deltaX, dy: e.deltaY };
+}
+
+/// Interpret a wheel event as a canvas gesture (pure — extracted so tests can
+/// drive the branch table directly):
+///   ctrlKey            → zoom (macOS/Windows trackpad pinch — browsers encode
+///                        pinch as ctrl+wheel; Safari uses GestureEvent, see
+///                        the gesture* listeners in the effect below)
+///   shiftKey, no ctrl  → HORIZONTAL pan (platform convention: Shift swaps the
+///                        scroll axis — both browser-swapped (Firefox sends
+///                        deltaX with deltaY=0) and unswapped deltas are
+///                        normalized)
+///   deltaX ≠ 0         → trackpad two-finger pan
+///   small pixel deltaY → trackpad pan
+///   otherwise          → mouse-wheel zoom (cursor-anchored)
+export function interpretWheel(e: { deltaX: number; deltaY: number; deltaMode: number; ctrlKey: boolean; shiftKey: boolean }): WheelGesture {
+  if (e.ctrlKey) {
+    return { kind: 'zoom', delta: -e.deltaY * ZOOM_SENSITIVITY_PINCH };
+  }
+  const { dx, dy } = normalizeWheelDeltas(e);
+  if (e.shiftKey) {
+    // Horizontal scroll. Firefox already swaps axes (deltaY=0, deltaX=value)
+    // — prefer whichever axis carries the value.
+    const horizontal = dx !== 0 ? dx : dy;
+    return { kind: 'pan', dx: -horizontal, dy: 0 };
+  }
+  if (dx !== 0 || (e.deltaMode === 0 && Math.abs(dy) < TRACKPAD_DELTA_MAX)) {
+    return { kind: 'pan', dx: -dx, dy: -dy };
+  }
+  return { kind: 'zoom', delta: -dy * ZOOM_SENSITIVITY_WHEEL };
+}
 
 /**
  * Clamp a zoom factor to the canvas zoom range [MIN_ZOOM, MAX_ZOOM].
@@ -155,14 +221,8 @@ export function useCanvasGestures(opts: UseCanvasGesturesOptions) {
 
   // ---- Wheel handler (trackpad + mouse) -------------------------------------
   //
-  // Distinguishes:
-  //   - ctrlKey + wheel  → pinch-zoom (trackpad pinch gesture)
-  //   - wheel only       → pan (trackpad two-finger scroll) OR zoom (mouse wheel)
-  //
-  // The heuristic: if deltaX or deltaY is non-zero AND ctrlKey is false, it's
-  // a trackpad two-finger scroll → PAN. If ctrlKey is true, it's a pinch → ZOOM.
-  // For a plain mouse wheel (no ctrlKey, deltaY only, no deltaX), we zoom
-  // (matching the original behavior — most users expect mouse wheel = zoom).
+  // Branch table lives in the pure `interpretWheel()` above (unit-tested);
+  // this handler only applies the interpreted gesture at the cursor anchor.
   const onWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const el = containerRef.current;
@@ -171,11 +231,10 @@ export function useCanvasGestures(opts: UseCanvasGesturesOptions) {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    if (e.ctrlKey) {
-      // Pinch-zoom (trackpad pinch). ctrlKey is true when the user does a
-      // two-finger pinch on a trackpad. The deltaY gives the zoom delta.
+    const gesture = interpretWheel(e);
+    if (gesture.kind === 'zoom') {
+      const delta = gesture.delta;
       // Use the functional updater so rapid successive events accumulate.
-      const delta = -e.deltaY * ZOOM_SENSITIVITY_PINCH;
       setViewport((vp) => {
         const newZoom = clampZoom(vp.zoom * (1 + delta));
         const canvasX = (mouseX - vp.panX) / vp.zoom;
@@ -189,41 +248,25 @@ export function useCanvasGestures(opts: UseCanvasGesturesOptions) {
       return;
     }
 
-    // If there's a deltaX, it's definitely a trackpad two-finger pan (mouse
-    // wheels never produce deltaX). If deltaX is 0 and deltaY is non-zero,
-    // it could be either a trackpad scroll or a mouse wheel — we check
-    // deltaMode to distinguish (mice use lines=1, trackpads use pixels=0).
-    if (e.deltaX !== 0 || (e.deltaMode === 0 && Math.abs(e.deltaY) < 50 && !e.shiftKey)) {
-      // Trackpad two-finger pan. Use the functional updater so rapid
-      // successive wheel events accumulate correctly (viewportRef.current
-      // would be stale during a burst of events).
-      setViewport((vp) => ({
-        zoom: vp.zoom,
-        panX: vp.panX - e.deltaX,
-        panY: vp.panY - e.deltaY,
-      }));
-      return;
-    }
-
-    // Mouse wheel zoom (original behavior — no ctrlKey, large deltaY).
-    // Also use the functional updater for the same reason.
-    const delta = -e.deltaY * ZOOM_SENSITIVITY_WHEEL;
-    setViewport((vp) => {
-      const newZoom = clampZoom(vp.zoom * (1 + delta));
-      const canvasX = (mouseX - vp.panX) / vp.zoom;
-      const canvasY = (mouseY - vp.panY) / vp.zoom;
-      return {
-        zoom: newZoom,
-        panX: mouseX - canvasX * newZoom,
-        panY: mouseY - canvasY * newZoom,
-      };
-    });
+    // Pan (trackpad two-finger / shift+wheel horizontal / touch momentum
+    // follow-ups). Functional updater so bursts accumulate correctly.
+    setViewport((vp) => ({
+      zoom: vp.zoom,
+      panX: vp.panX + gesture.dx,
+      panY: vp.panY + gesture.dy,
+    }));
   }, [containerRef, setViewport]);
 
   // ---- Pointer handlers (mouse + touch unified) ----------------------------
   const onPointerDown = useCallback((e: PointerEvent) => {
     const el = containerRef.current;
     if (!el) return;
+    // Mouse pointers: track the PRIMARY button only. Two pressed mouse
+    // buttons (left-drag + right-click) used to register as "two pointers"
+    // → a spurious pinch-zoom. Middle/right button drags are handled by the
+    // Canvas React handlers (pan via middle, context menu via right).
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.pointerType === 'pen' && e.button !== 0 && e.button !== -1) return;
     const rect = el.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -409,19 +452,67 @@ export function useCanvasGestures(opts: UseCanvasGesturesOptions) {
   // ---- Register native event listeners --------------------------------------
   // We use native addEventListener (not React props) so we can control
   // passive/passive and capture phases precisely.
+  //
+  // NOTE (interaction-consistency pass): the container-level pointer
+  // listeners exist for the touch pinch/momentum path only — the single-
+  // pointer mouse drag phases run on WINDOW-level listeners in Canvas.tsx
+  // (latest-ref pattern) so drags survive the cursor leaving the canvas;
+  // mouse drag phases here are pass-through (onSinglePointer* not wired).
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    // Wheel: passive=false so we can preventDefault (stop browser zoom/scroll).
+    // Wheel: passive=false so we can preventDefault (stop browser zoom/
+    // scroll — including the ctrl+wheel pinch the browser would otherwise
+    // zoom the PAGE with, and Firefox's Option+wheel history navigation).
     el.addEventListener('wheel', onWheel, { passive: false });
-    // Pointer events: we use pointer capture for reliable drag tracking.
-    // The pointer handlers are always defined (they default to no-op when the
-    // optional callbacks aren't provided), so they're safe to pass directly.
     el.addEventListener('pointerdown', onPointerDown);
     el.addEventListener('pointermove', onPointerMove);
     el.addEventListener('pointerup', onPointerUp);
     el.addEventListener('pointercancel', onPointerUp);
+
+    // Safari-only trackpad pinch: Safari (all engines except Chromium/
+    // Gecko) does NOT emit ctrl+wheel for pinch — it fires the proprietary
+    // GestureEvent with a precomputed `scale`. Anchor stays constant during
+    // the gesture (clientX/clientY), so we capture the anchor + starting
+    // viewport on gesturestart and apply scale on gesturechange. Without
+    // this, Safari trackpad pinch zooms the PAGE instead of the canvas.
+    const gestureStart = (ge: SafariGestureEvent) => {
+      ge.preventDefault();
+      gestureRef.current.pinchStartZoom = viewportRef.current.zoom;
+      gestureRef.current.pinchStartPanX = viewportRef.current.panX;
+      gestureRef.current.pinchStartPanY = viewportRef.current.panY;
+      gestureRef.current.pinchStartMidX = ge.clientX;
+      gestureRef.current.pinchStartMidY = ge.clientY;
+      gestureRef.current.pinchStartDist = -1; // marker: gesture event in flight
+    };
+    const gestureChange = (ge: SafariGestureEvent) => {
+      ge.preventDefault();
+      const gs = gestureRef.current;
+      if (gs.pinchStartDist !== -1 || gs.pinchStartZoom <= 0) {
+        // Not started on our element — ignore (the event bubbles from
+        // nested gesture surfaces; we only own gestures that began here).
+        return;
+      }
+      const newZoom = clampZoom(gs.pinchStartZoom * ge.scale);
+      const anchorX = gs.pinchStartMidX;
+      const anchorY = gs.pinchStartMidY;
+      const canvasX = (anchorX - gs.pinchStartPanX) / gs.pinchStartZoom;
+      const canvasY = (anchorY - gs.pinchStartPanY) / gs.pinchStartZoom;
+      setViewport({
+        zoom: newZoom,
+        panX: anchorX - canvasX * newZoom,
+        panY: anchorY - canvasY * newZoom,
+      });
+    };
+    const gestureEnd = () => {
+      gestureRef.current.pinchStartDist = 0;
+    };
+    if (typeof GestureEvent !== 'undefined') {
+      el.addEventListener('gesturestart', gestureStart as EventListener);
+      el.addEventListener('gesturechange', gestureChange as EventListener);
+      el.addEventListener('gestureend', gestureEnd as EventListener);
+    }
 
     // Set touch-action: none so the browser doesn't intercept touch gestures
     // (no scrolling, no double-tap-zoom, no long-press context menu).
@@ -433,10 +524,15 @@ export function useCanvasGestures(opts: UseCanvasGesturesOptions) {
       el.removeEventListener('pointermove', onPointerMove);
       el.removeEventListener('pointerup', onPointerUp);
       el.removeEventListener('pointercancel', onPointerUp);
+      if (typeof GestureEvent !== 'undefined') {
+        el.removeEventListener('gesturestart', gestureStart as EventListener);
+        el.removeEventListener('gesturechange', gestureChange as EventListener);
+        el.removeEventListener('gestureend', gestureEnd as EventListener);
+      }
       if (momentumRef.current !== null) {
         cancelAnimationFrame(momentumRef.current);
         momentumRef.current = null;
       }
     };
-  }, [containerRef, onWheel, onPointerDown, onPointerMove, onPointerUp]);
+  }, [containerRef, onWheel, onPointerDown, onPointerMove, onPointerUp, setViewport]);
 }

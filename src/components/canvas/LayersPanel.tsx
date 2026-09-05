@@ -21,10 +21,11 @@
 //     readouts; Variables live in the Properties panel's empty state.)
 //   - Right-click menu: Delete, Rename, Duplicate.
 
-import { useState, useEffect, useMemo, type ReactNode, type ComponentType } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type ReactNode, type ComponentType } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape, LayerType } from '@/lib/canvas/types';
+import { platformChord } from '@/lib/canvas/shortcuts';
 import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, downloadDataUrl, copyToClipboard } from '@/lib/canvas/export';
 import { collectComponents } from '@/lib/pen/document';
 import { COMPONENT_DRAG_MIME } from '@/lib/canvas/assets-drag';
@@ -307,8 +308,11 @@ export function LayersPanel({
     () => [...filteredShapes].filter((s) => !s.parentId).sort((a, b) => b.zIndex - a.zIndex),
     [filteredShapes],
   );
-  const childrenOf = (id: string) =>
-    filteredShapes.filter((s) => s.parentId === id).sort((a, b) => b.zIndex - a.zIndex);
+  const childrenOf = useCallback(
+    (id: string) =>
+      filteredShapes.filter((s) => s.parentId === id).sort((a, b) => b.zIndex - a.zIndex),
+    [filteredShapes],
+  );
 
   // Containers (frame / group) can be expanded/collapsed and are valid drop
   // targets for reparent.
@@ -322,6 +326,137 @@ export function LayersPanel({
     if (next.has(id)) next.delete(id);
     else next.add(id);
     updateCollapsed(next);
+  };
+
+  // ---- Keyboard tree navigation (APG Tree View pattern) ---------------------
+  // The layers list was previously mouse-only (plain divs, onClick): the
+  // entire left tree was unreachable by keyboard. This implements the WAI-
+  // ARIA Authoring Practices tree contract:
+  //   role="tree" > role="treeitem" rows, roving tabindex (ONE tab stop in
+  //   the tree), ArrowUp/Down move focus, ArrowRight expands / descends,
+  //   ArrowLeft collapses / ascends to parent, Home/End jump, Enter selects,
+  //   Space toggles selection, F2 renames, printable chars = typeahead.
+  // Focus ≠ selection (APG) — arrowing through the tree does not re-select;
+  // Enter/Space act.
+  const treeContainerRef = useRef<HTMLDivElement | null>(null);
+  const [rovingId, setRovingId] = useState<string | null>(null);
+
+  const visibleRows = useMemo(() => {
+    const rows: Array<{
+      id: string;
+      parentId: string | null;
+      container: boolean;
+      hasChildren: boolean;
+      expanded: boolean;
+      name: string;
+    }> = [];
+    const walk = (nodes: Shape[]) => {
+      for (const s of nodes) {
+        const children = childrenOf(s.id);
+        const isContainerNode = isContainer(s);
+        const isExpanded = !collapsed.has(s.id);
+        rows.push({
+          id: s.id,
+          parentId: s.parentId ?? null,
+          container: isContainerNode,
+          hasChildren: children.length > 0,
+          expanded: isExpanded,
+          name: s.name,
+        });
+        if (isContainerNode && children.length > 0 && isExpanded) walk(children);
+      }
+    };
+    walk(sortedTop);
+    return rows;
+  }, [sortedTop, collapsed, childrenOf]);
+
+  // The single tab stop: the last-focused row, else the first selected
+  // visible row, else the first row.
+  const tabStopId =
+    (rovingId && visibleRows.some((r) => r.id === rovingId) ? rovingId : null) ??
+    (selectedIds.length > 0 && visibleRows.some((r) => r.id === selectedIds[0]) ? selectedIds[0] : null) ??
+    visibleRows[0]?.id ?? null;
+
+  const focusRow = (id: string) => {
+    setRovingId(id);
+    const container = treeContainerRef.current ?? (typeof document !== 'undefined' ? document : null);
+    if (!container) return;
+    const safeId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id;
+    const el = (container as HTMLElement | Document).querySelector?.(
+      `[data-ac-layer-row="${safeId}"]`,
+    ) as HTMLElement | null;
+    el?.focus();
+  };
+
+  const onRowKeyDown = (e: React.KeyboardEvent, shape: Shape) => {
+    if (editingId === shape.id) return; // the inline rename Input owns its keys
+    const rows = visibleRows;
+    const idx = rows.findIndex((r) => r.id === shape.id);
+    if (idx < 0) return;
+    const row = rows[idx];
+    const handled = () => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    switch (e.key) {
+      case 'ArrowDown':
+        handled();
+        if (idx < rows.length - 1) focusRow(rows[idx + 1].id);
+        return;
+      case 'ArrowUp':
+        handled();
+        if (idx > 0) focusRow(rows[idx - 1].id);
+        return;
+      case 'ArrowRight':
+        handled();
+        if (row.container && row.hasChildren) {
+          if (row.expanded && idx < rows.length - 1) focusRow(rows[idx + 1].id);
+          else if (!row.expanded) toggleExpand(shape.id);
+        }
+        return;
+      case 'ArrowLeft':
+        handled();
+        if (row.container && row.hasChildren && row.expanded) toggleExpand(shape.id);
+        else if (row.parentId) focusRow(row.parentId);
+        return;
+      case 'Home':
+        handled();
+        if (rows.length > 0) focusRow(rows[0].id);
+        return;
+      case 'End':
+        handled();
+        if (rows.length > 0) focusRow(rows[rows.length - 1].id);
+        return;
+      case 'Enter':
+        handled();
+        select([shape.id]);
+        return;
+      case ' ': {
+        handled();
+        const selected = selectedIds.includes(shape.id);
+        select(selected ? selectedIds.filter((id) => id !== shape.id) : [...selectedIds, shape.id]);
+        return;
+      }
+      case 'F2':
+        handled();
+        setEditingId(shape.id);
+        return;
+      default: {
+        // Typeahead (APG recommends it for trees) — printable char jumps to
+        // the next row whose name starts with it, wrapping.
+        if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
+          const q = e.key.toLowerCase();
+          for (let i = 1; i <= rows.length; i++) {
+            const cand = rows[(idx + i) % rows.length];
+            if (cand.name?.toLowerCase().startsWith(q)) {
+              handled();
+              focusRow(cand.id);
+              return;
+            }
+          }
+        }
+      }
+    }
   };
 
   // P0-12: Expand-all / Collapse-all helpers.
@@ -414,7 +549,14 @@ export function LayersPanel({
             onDragOver={(e) => onRowDragOver(e, shape)}
             onDragLeave={() => onRowDragLeave(shape)}
             onDrop={(e) => onRowDrop(e, shape)}
-            className={`group flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer ac-transition ${
+            data-ac-layer-row={shape.id}
+            role="treeitem"
+            aria-level={depth + 1}
+            aria-selected={selected}
+            aria-expanded={isContainerNode && children.length > 0 ? isExpanded : undefined}
+            tabIndex={tabStopId === shape.id ? 0 : -1}
+            onKeyDown={(e) => onRowKeyDown(e, shape)}
+            className={`group flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer ac-transition ac-focus-ring ${
               selected ? 'bg-[var(--ac-accent-soft)] ac-text-1' : 'hover:ac-surface-1 ac-text-2'
             }${dragOverId === shape.id ? ' ring-2 ring-[var(--ac-accent)]' : ''}`}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
@@ -510,7 +652,7 @@ export function LayersPanel({
               );
             })()}
             <button
-              className="opacity-0 group-hover:opacity-100 ac-text-4 hover:ac-text-1 ac-transition"
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 ac-text-4 hover:ac-text-1 ac-transition ac-focus-ring rounded"
               aria-label={shape.visible ? `Hide ${shape.name}` : `Show ${shape.name}`}
               aria-pressed={!shape.visible}
               title={shape.visible ? 'Hide layer' : 'Show layer'}
@@ -522,7 +664,7 @@ export function LayersPanel({
               {shape.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
             </button>
             <button
-              className="opacity-0 group-hover:opacity-100 ac-text-4 hover:ac-text-1 ac-transition"
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 ac-text-4 hover:ac-text-1 ac-transition ac-focus-ring rounded"
               aria-label={shape.locked ? `Unlock ${shape.name}` : `Lock ${shape.name}`}
               aria-pressed={shape.locked}
               title={shape.locked ? 'Unlock layer' : 'Lock layer'}
@@ -538,54 +680,54 @@ export function LayersPanel({
         <ContextMenuContent className="w-56">
           {/* ── Group 1: Clipboard (P0-03) ───────────────────────────── */}
           <ContextMenuItem onClick={() => clipboard.cut([shape])}>
-            <Scissors className="h-3.5 w-3.5 mr-2" /> Cut <span className="ml-auto text-[10px] ac-text-4">⌘X</span>
+            <Scissors className="h-3.5 w-3.5 mr-2" /> Cut <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘X')}</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => clipboard.copy([shape])}>
-            <Copy className="h-3.5 w-3.5 mr-2" /> Copy <span className="ml-auto text-[10px] ac-text-4">⌘C</span>
+            <Copy className="h-3.5 w-3.5 mr-2" /> Copy <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘C')}</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => clipboard.paste()}>
-            <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste <span className="ml-auto text-[10px] ac-text-4">⌘V</span>
+            <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘V')}</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => clipboard.paste({ offset: { dx: 0, dy: 0 } })}>
-            <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste in place <span className="ml-auto text-[10px] ac-text-4">⌘⇧V</span>
+            <ClipboardPaste className="h-3.5 w-3.5 mr-2" /> Paste in place <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧V')}</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => sendPatch({ op: 'duplicate', shapeIds: [shape.id], summary: `Duplicated ${shape.name}` })}>
-            <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate here <span className="ml-auto text-[10px] ac-text-4">⌘D</span>
+            <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate here <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘D')}</span>
           </ContextMenuItem>
           <ContextMenuSeparator />
           {/* ── Group 2: Z-order (P0-07) ─────────────────────────────── */}
           <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [shape.id], zorderKind: 'forward', summary: `Bring forward ${shape.name}` })}>
-            <ArrowUp className="h-3.5 w-3.5 mr-2" /> Bring forward <span className="ml-auto text-[10px] ac-text-4">⌘]</span>
+            <ArrowUp className="h-3.5 w-3.5 mr-2" /> Bring forward <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘]')}</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [shape.id], zorderKind: 'front', summary: `Bring to front ${shape.name}` })}>
-            <BringToFront className="h-3.5 w-3.5 mr-2" /> Bring to front <span className="ml-auto text-[10px] ac-text-4">⌘⇧]</span>
+            <BringToFront className="h-3.5 w-3.5 mr-2" /> Bring to front <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧]')}</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [shape.id], zorderKind: 'backward', summary: `Send backward ${shape.name}` })}>
-            <ArrowDown className="h-3.5 w-3.5 mr-2" /> Send backward <span className="ml-auto text-[10px] ac-text-4">⌘[</span>
+            <ArrowDown className="h-3.5 w-3.5 mr-2" /> Send backward <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘[')}</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => sendPatch({ op: 'zorder', shapeIds: [shape.id], zorderKind: 'back', summary: `Send to back ${shape.name}` })}>
-            <SendToBack className="h-3.5 w-3.5 mr-2" /> Send to back <span className="ml-auto text-[10px] ac-text-4">⌘⇧[</span>
+            <SendToBack className="h-3.5 w-3.5 mr-2" /> Send to back <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧[')}</span>
           </ContextMenuItem>
           <ContextMenuSeparator />
           {/* ── Group 3: Structure (P0-05) ───────────────────────────── */}
           {selectedIds.length >= 2 && (
             <ContextMenuItem onClick={() => sendPatch({ op: 'group', shapeIds: selectedIds, summary: `Grouped ${selectedIds.length} shape(s)` })}>
-              <Group className="h-3.5 w-3.5 mr-2" /> Group <span className="ml-auto text-[10px] ac-text-4">⌘G</span>
+              <Group className="h-3.5 w-3.5 mr-2" /> Group <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘G')}</span>
             </ContextMenuItem>
           )}
           {shape.type === 'group' && (
             <ContextMenuItem onClick={() => sendPatch({ op: 'ungroup', shapeIds: [shape.id], summary: `Ungrouped ${shape.name}` })}>
-              <SquareStack className="h-3.5 w-3.5 mr-2" /> Ungroup <span className="ml-auto text-[10px] ac-text-4">⌘⇧G</span>
+              <SquareStack className="h-3.5 w-3.5 mr-2" /> Ungroup <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧G')}</span>
             </ContextMenuItem>
           )}
           {/* ── Group 4: Visibility ──────────────────────────────────── */}
           {/* Phase 7: Lock/Hide rebound to Figma chords ⌘⇧L / ⌘⇧H (legacy
               ⌘L / ⌘; kept as registry aliases — Appendix H §H.3 #3). */}
           <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: shape.id, shape: { locked: !shape.locked }, summary: `${shape.locked ? 'Unlocked' : 'Locked'} ${shape.name}` })}>
-            <Lock className="h-3.5 w-3.5 mr-2" /> {shape.locked ? 'Unlock' : 'Lock'} <span className="ml-auto text-[10px] ac-text-4">⌘⇧L</span>
+            <Lock className="h-3.5 w-3.5 mr-2" /> {shape.locked ? 'Unlock' : 'Lock'} <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧L')}</span>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => sendPatch({ op: 'update', shapeId: shape.id, shape: { visible: !shape.visible }, summary: `${shape.visible ? 'Hid' : 'Showed'} ${shape.name}` })}>
-            <Eye className="h-3.5 w-3.5 mr-2" /> {shape.visible ? 'Hide' : 'Show'} <span className="ml-auto text-[10px] ac-text-4">⌘⇧H</span>
+            <Eye className="h-3.5 w-3.5 mr-2" /> {shape.visible ? 'Hide' : 'Show'} <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌘⇧H')}</span>
           </ContextMenuItem>
           <ContextMenuSeparator />
           {/* ── Group 5: Components ──────────────────────────────────── */}
@@ -595,7 +737,7 @@ export function LayersPanel({
               componentId — keep it only for non-frame/group shapes. */}
           {(shape.type === 'frame' || shape.type === 'group') && (
             <ContextMenuItem onClick={() => sendPatch({ op: 'convert_to_component', shapeId: shape.id, summary: `Promoted ${shape.name} to reusable Component` })}>
-              <ComponentIcon className="h-3.5 w-3.5 mr-2" /> Create component <span className="ml-auto text-[10px] ac-text-4">⌥⌘K</span>
+              <ComponentIcon className="h-3.5 w-3.5 mr-2" /> Create component <span className="ml-auto text-[10px] ac-text-4">{platformChord('⌥⌘K')}</span>
             </ContextMenuItem>
           )}
           {shape.type !== 'frame' && shape.type !== 'group' && (
@@ -810,6 +952,57 @@ export function LayersPanel({
   // panel's empty state where the variables themselves are listed.
   const pages = document.pages ?? [];
 
+  // Pages column keyboard (flat tree semantics — same APG contract as the
+  // layers tree above, minus hierarchy): roving tabindex, ArrowUp/Down/
+  // Home/End move focus, Enter activates the page, F2 renames.
+  const [rovingPageIdx, setRovingPageIdx] = useState<number>(-1);
+  const pageTabStop =
+    rovingPageIdx >= 0 && rovingPageIdx < pages.length
+      ? rovingPageIdx
+      : Math.min(document.activePageIndex ?? 0, Math.max(pages.length - 1, 0));
+  const focusPage = (idx: number) => {
+    setRovingPageIdx(idx);
+    if (typeof document === 'undefined' || !pages[idx]) return;
+    const page = pages[idx];
+    const el = window.document.querySelector(`[data-ac-page="${page.id}"]`) as HTMLElement | null;
+    el?.focus();
+  };
+  const onPageKeyDown = (e: React.KeyboardEvent, idx: number) => {
+    if (editingPageId === pages[idx]?.id) return; // rename Input owns its keys
+    const act = () => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    switch (e.key) {
+      case 'ArrowDown':
+        act();
+        if (idx < pages.length - 1) focusPage(idx + 1);
+        return;
+      case 'ArrowUp':
+        act();
+        if (idx > 0) focusPage(idx - 1);
+        return;
+      case 'Home':
+        act();
+        if (pages.length > 0) focusPage(0);
+        return;
+      case 'End':
+        act();
+        if (pages.length > 0) focusPage(pages.length - 1);
+        return;
+      case 'Enter': {
+        act();
+        const page = pages[idx];
+        if (page) sendPatch({ op: 'set_active_page', pageId: page.id, summary: `Switched to page "${page.name}"` });
+        return;
+      }
+      case 'F2':
+        act();
+        if (pages[idx]) setEditingPageId(pages[idx].id);
+        return;
+    }
+  };
+
   return (
     <div className="flex h-full ac-surface-0 ac-hide-scrollbar" data-ac-layers-panel>
       {/* ---- Pages column (spec Phase 7 — Appendix H §H.1) --------------------
@@ -824,13 +1017,22 @@ export function LayersPanel({
           <div className="px-2 py-2 border-b ac-border-subtle text-[9px] font-semibold uppercase tracking-wide ac-text-4">
             Pages
           </div>
-          <div className="flex-1 overflow-y-auto py-1 ac-hide-scrollbar">
+          <div
+            role="tree"
+            aria-label="Pages"
+            className="flex-1 overflow-y-auto py-1 ac-hide-scrollbar"
+          >
             {pages.map((page, idx) => (
               <ContextMenu key={page.id}>
                 <ContextMenuTrigger asChild>
                   <div
                     data-ac-page={page.id}
-                    className={`mx-1 mb-0.5 px-1.5 py-1 rounded text-[10px] cursor-pointer ac-transition flex items-center gap-1 ${
+                    role="treeitem"
+                    aria-selected={idx === (document.activePageIndex ?? 0)}
+                    aria-level={1}
+                    tabIndex={idx === pageTabStop ? 0 : -1}
+                    onKeyDown={(e) => onPageKeyDown(e, idx)}
+                    className={`mx-1 mb-0.5 px-1.5 py-1 rounded text-[10px] cursor-pointer ac-transition ac-focus-ring flex items-center gap-1 ${
                       idx === (document.activePageIndex ?? 0)
                         ? 'bg-[var(--ac-accent-soft)] ac-text-1 font-medium'
                         : 'ac-text-3 hover:ac-surface-1'
@@ -1005,7 +1207,10 @@ export function LayersPanel({
                   area below the list (or between rows) promotes the dragged
                   node to root. */}
               <div
-                className="p-1 min-h-full"
+                ref={treeContainerRef}
+                role="tree"
+                aria-label="Layers"
+                className="p-1 min-h-full outline-none"
                 onDragOver={(e) => {
                   // Allow drop only if the drag wasn't already handled by a
                   // row. We always preventDefault so the drop fires here when
@@ -1049,7 +1254,7 @@ export function LayersPanel({
                   </div>
                   <p className="text-[11px] font-medium ac-text-3 mb-1">No components yet</p>
                   <p className="text-[11px] ac-text-4 leading-relaxed">
-                    Create a component via the agent (<kbd className="text-[9px] px-1 rounded ac-surface-2">⌥⌘K</kbd>)
+                    Create a component via the agent (<kbd className="text-[9px] px-1 rounded ac-surface-2">{platformChord('⌥⌘K')}</kbd>)
                     or the <code className="text-[10px] px-1 rounded ac-surface-2">pen_create_component</code> tool,
                     then drag a card onto the canvas to place an instance.
                   </p>

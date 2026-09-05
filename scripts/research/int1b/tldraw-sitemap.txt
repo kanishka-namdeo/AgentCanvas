@@ -1,0 +1,5968 @@
+URL: https://tldraw.dev/sitemap.xml
+TITLE: 
+
+https://tldraw.dev/use-cases/training-and-assessment 
+ 2026-05-06T13:26:20.000Z 
+ 
+ 
+ https://tldraw.dev/features/customization 
+ 2026-05-13T10:51:31.000Z 
+ 
+ 
+ https://tldraw.dev/features/customization/custom-styles-and-themes 
+ 2026-05-13T10:51:10.000Z 
+ 
+ 
+ https://tldraw.dev/showcase 
+ 2026-07-09T19:52:48.000Z 
+ 
+ 
+ https://tldraw.dev/legal/contributor-license-agreement 
+ 2026-04-29T08:46:01.000Z 
+ 
+ 
+ https://tldraw.dev/careers 
+ 2026-05-13T10:51:14.000Z 
+ 
+ 
+ https://tldraw.dev/legal/trademark-guidelines 
+ 2026-05-08T17:53:09.000Z 
+ 
+ 
+ https://tldraw.dev/use-cases/planning-and-process-design 
+ 2026-05-06T13:27:33.000Z 
+ 
+ 
+ https://tldraw.dev/company 
+ 2026-05-06T13:27:52.000Z 
+ 
+ 
+ https://tldraw.dev/accessibility 
+ 2026-05-06T13:28:13.000Z 
+ 
+ 
+ https://tldraw.dev/blog 
+ 2026-05-06T13:27:40.000Z 
+ 
+ 
+ https://tldraw.dev/faq 
+ 2026-05-13T10:51:17.000Z 
+ 
+ 
+ https://tldraw.dev/features/composable-primitives 
+ 2026-05-13T10:51:19.000Z 
+ 
+ 
+ https://tldraw.dev/features/composable-primitives/accessibility 
+ 2026-05-13T10:51:21.000Z 
+ 
+ 
+ https://tldraw.dev/features/composable-primitives/camera-and-viewport 
+ 2026-05-13T10:51:22.000Z 
+ 
+ 
+ https://tldraw.dev/features/composable-primitives/data-management 
+ 2026-05-13T10:51:23.000Z 
+ 
+ 
+ https://tldraw.dev/features/composable-primitives/drawing-and-canvas-interactions 
+ 2026-05-13T10:51:25.000Z 
+ 
+ 
+ https://tldraw.dev/features/composable-primitives/layout-and-composition 
+ 2026-05-13T10:51:26.000Z 
+ 
+ 
+ https://tldraw.dev/features/composable-primitives/multiplayer-collaboration 
+ 2026-07-09T19:52:48.000Z 
+ 
+ 
+ https://tldraw.dev/features/composable-primitives/selection-and-transformation 
+ 2026-05-13T10:51:29.000Z 
+ 
+ 
+ https://tldraw.dev/features/composable-primitives/ui-and-menus 
+ 2026-05-13T10:51:30.000Z 
+ 
+ 
+ https://tldraw.dev/features/customization/custom-asset-and-content-management 
+ 2026-05-13T10:51:32.000Z 
+ 
+ 
+ https://tldraw.dev/features/customization/custom-shapes-and-tools 
+ 2026-05-13T10:51:34.000Z 
+ 
+ 
+ https://tldraw.dev/features/customization/custom-user-interface-components 
+ 2026-05-13T10:51:35.000Z 
+ 
+ 
+ https://tldraw.dev/features/out-of-the-box-whiteboard 
+ 2026-07-09T19:52:48.000Z 
+ 
+ 
+ https://tldraw.dev/features/programmatic-control 
+ 2026-05-13T10:51:37.000Z 
+ 
+ 
+ https://tldraw.dev/features/programmatic-control/creating-and-updating-shapes 
+ 2026-05-13T10:51:39.000Z 
+ 
+ 
+ https://tldraw.dev/features/programmatic-control/event-handling 
+ 2026-05-13T10:51:40.000Z 
+ 
+ 
+ https://tldraw.dev/features/programmatic-control/runtime-editor-api 
+ 2026-05-13T10:51:41.000Z 
+ 
+ 
+ https://tldraw.dev/features/programmatic-control/state-management-and-control 
+ 2026-05-13T10:51:43.000Z 
+ 
+ 
+ https://tldraw.dev/features/programmatic-control/viewport-and-camera-control 
+ 2026-05-13T10:51:44.000Z 
+ 
+ 
+ https://tldraw.dev/get-a-license/hobby 
+ 2026-04-24T09:18:59.000Z 
+ 
+ 
+ https://tldraw.dev/get-a-license/plans 
+ 2026-04-30T14:48:35.000Z 
+ 
+ 
+ https://tldraw.dev/get-a-license/startup 
+ 2026-04-30T14:47:51.000Z 
+ 
+ 
+ https://tldraw.dev/get-a-license/trial 
+ 2026-07-09T19:52:48.000Z 
+ 
+ 
+ https://tldraw.dev/homepage 
+ 2026-07-09T19:52:48.000Z 
+ 
+ 
+ https://tldraw.dev/honeycomb-agents 
+ 2026-05-21T16:30:02.000Z 
+ 
+ 
+ https://tldraw.dev/newsletter 
+ 2026-07-21T10:01:46.000Z 
+ 
+ 
+ https://tldraw.dev/partner 
+ 2026-05-06T13:28:03.000Z 
+ 
+ 
+ https://tldraw.dev/pricing 
+ 2026-07-09T19:52:48.000Z 
+ 
+ 
+ https://tldraw.dev/use-cases/ai-enabled-canvas 
+ 2026-07-09T19:52:48.000Z 
+ 
+ 
+ https://tldraw.dev/use-cases/creative-design 
+ 2026-06-04T15:47:43.000Z 
+ 
+ 
+ https://tldraw.dev/use-cases/documentation-and-brainstorming 
+ 2026-05-06T13:26:36.000Z 
+ 
+ 
+ https://tldraw.dev/use-cases/markup-annotation 
+ 2026-05-01T09:38:04.000Z 
+ 
+ 
+ https://tldraw.dev/use-cases/meetings-and-events 
+ 2026-05-06T11:38:11.000Z 
+ 
+ 
+ https://tldraw.dev/use-cases/technical-design 
+ 2026-05-06T13:27:01.000Z 
+ 
+ 
+ https://tldraw.dev/blog 
+ 2026-08-13T14:41:58.000Z 
+ 
+ 
+ https://tldraw.dev/blog/a-touchy-subject 
+ 2026-07-15T15:02:34.000Z 
+ 
+ 
+ https://tldraw.dev/blog/agents-cant-point 
+ 2026-08-11T17:29:26.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-offline 
+ 2026-07-16T15:49:05.000Z 
+ 
+ 
+ https://tldraw.dev/blog/erasing 
+ 2026-06-10T10:03:03.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-sdk-5-0 
+ 2026-07-13T10:34:29.000Z 
+ 
+ 
+ https://tldraw.dev/blog/introducing-tldraw-offline-multiplayer 
+ 2026-08-13T14:41:58.000Z 
+ 
+ 
+ https://tldraw.dev/blog/is-record-sorry 
+ 2026-07-09T21:20:53.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-sdk-5.2 
+ 2026-07-01T16:10:26.000Z 
+ 
+ 
+ https://tldraw.dev/blog/20-things-i-wish-ai-chatbots-knew-about-tldraw 
+ 2026-07-08T08:40:46.000Z 
+ 
+ 
+ https://tldraw.dev/blog/a-review-of-design-tool-hover-areas 
+ 2026-07-01T16:10:01.000Z 
+ 
+ 
+ https://tldraw.dev/blog/adding-delays-to-modifier-keys 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/announcing-tldraw-series-a 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/announcing-tldraw-sync 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/announcing-tldraws-seed-round 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/back-to-content 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/clickup 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/engineering-imperfection-with-draw-shapes 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/introducing-signia 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/jam 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/license-update-for-the-tldraw-sdk 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/make-real-the-story-so-far 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/miro-vs-tldraw 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/mobbin 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/padlet 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/redesigning-lasers 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230113 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230120 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230127 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230203 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230210 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230217 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230223 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230302 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230310 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230317 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230324 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230331 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230414 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230428 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230519 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230526 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230609 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20230630 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20240118 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20240208 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20240314 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20240418 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20240502 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/release-notes-20240620 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/stay-away-from-my-trash 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/text-is-not-enough 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-4-2-release 
+ 2026-07-07T11:18:10.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-mcp-app 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-raised-another-2m 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-sdk-4-0 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-sdk-4.3 
+ 2026-07-07T10:49:06.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-sdk-4.4 
+ 2026-07-07T10:46:46.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-sdk-4.5 
+ 2026-07-13T10:22:39.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraws-upcoming-relaunch 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/turning-mermaid-code-into-shapes 
+ 2026-05-05T13:57:15.000Z 
+ 
+ 
+ https://tldraw.dev/blog/whats-new-2025 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/whats-new-in-tldraw-december-2023 
+ 2026-04-16T16:49:08.000Z 
+ 
+ 
+ https://tldraw.dev/blog/mind-the-gap 
+ 2026-08-04T15:58:23.000Z 
+ 
+ 
+ https://tldraw.dev/blog/a-comment-is-not-a-shape 
+ 2026-08-06T16:18:24.000Z 
+ 
+ 
+ https://tldraw.dev/blog/building-with-tldraw-offline 
+ 2026-07-23T08:16:42.000Z 
+ 
+ 
+ https://tldraw.dev/blog/tldraw-sdk-5-3 
+ 2026-08-05T16:49:46.000Z 
+ 
+ 
+ https://tldraw.dev/blog/events 
+ 2026-07-17T18:47:12.000Z 
+ 
+ 
+ https://tldraw.dev/ 
+ 
+ 
+ https://tldraw.dev/community/contributing 
+ 
+ 
+ https://tldraw.dev/community/license 
+ 
+ 
+ https://tldraw.dev/community/translations 
+ 
+ 
+ https://tldraw.dev/docs/ai 
+ 
+ 
+ https://tldraw.dev/docs/assets 
+ 
+ 
+ https://tldraw.dev/docs/collaboration 
+ 
+ 
+ https://tldraw.dev/docs/commenting 
+ 
+ 
+ https://tldraw.dev/docs/driver 
+ 
+ 
+ https://tldraw.dev/docs/editor 
+ 
+ 
+ https://tldraw.dev/docs/handles 
+ 
+ 
+ https://tldraw.dev/docs/indicators 
+ 
+ 
+ https://tldraw.dev/docs/llm-docs 
+ 
+ 
+ https://tldraw.dev/docs/mermaid 
+ 
+ 
+ https://tldraw.dev/docs/persistence 
+ 
+ 
+ https://tldraw.dev/docs/shapes 
+ 
+ 
+ https://tldraw.dev/docs/sync 
+ 
+ 
+ https://tldraw.dev/docs/tools 
+ 
+ 
+ https://tldraw.dev/docs/user-interface 
+ 
+ 
+ https://tldraw.dev/examples/action-overrides 
+ 
+ 
+ https://tldraw.dev/examples/add-connected-shape 
+ 
+ 
+ https://tldraw.dev/examples/add-tool-to-toolbar 
+ 
+ 
+ https://tldraw.dev/examples/after-create-update-shape 
+ 
+ 
+ https://tldraw.dev/examples/after-delete-shape 
+ 
+ 
+ https://tldraw.dev/examples/ag-grid-shape 
+ 
+ 
+ https://tldraw.dev/examples/align-and-distribute-shapes 
+ 
+ 
+ https://tldraw.dev/examples/api 
+ 
+ 
+ https://tldraw.dev/examples/arrow-binding-options 
+ 
+ 
+ https://tldraw.dev/examples/arrow-labels 
+ 
+ 
+ https://tldraw.dev/examples/arrows-precise-exact 
+ 
+ 
+ https://tldraw.dev/examples/asset-props 
+ 
+ 
+ https://tldraw.dev/examples/attribution 
+ 
+ 
+ https://tldraw.dev/examples/attribution-timeline 
+ 
+ 
+ https://tldraw.dev/examples/basic 
+ 
+ 
+ https://tldraw.dev/examples/before-create-update-shape 
+ 
+ 
+ https://tldraw.dev/examples/before-delete-shape 
+ 
+ 
+ https://tldraw.dev/examples/bounds-snapping-shape 
+ 
+ 
+ https://tldraw.dev/examples/camera-options 
+ 
+ 
+ https://tldraw.dev/examples/canvas-events 
+ 
+ 
+ https://tldraw.dev/examples/changing-default-colors 
+ 
+ 
+ https://tldraw.dev/examples/changing-default-style 
+ 
+ 
+ https://tldraw.dev/examples/clipboard-events 
+ 
+ 
+ https://tldraw.dev/examples/color-picker 
+ 
+ 
+ https://tldraw.dev/examples/comment-anchors 
+ 
+ 
+ https://tldraw.dev/examples/comment-clustering 
+ 
+ 
+ https://tldraw.dev/examples/comment-drawing-reactions 
+ 
+ 
+ https://tldraw.dev/examples/comment-history 
+ 
+ 
+ https://tldraw.dev/examples/comment-notifications 
+ 
+ 
+ https://tldraw.dev/examples/comment-regions 
+ 
+ 
+ https://tldraw.dev/examples/comment-shape-precision 
+ 
+ 
+ https://tldraw.dev/examples/commenting 
+ 
+ 
+ https://tldraw.dev/examples/commenting-mobile 
+ 
+ 
+ https://tldraw.dev/examples/commenting-sidebar 
+ 
+ 
+ https://tldraw.dev/examples/conditional-culling 
+ 
+ 
+ https://tldraw.dev/examples/configure-shape-util 
+ 
+ 
+ https://tldraw.dev/examples/contextual-toolbar 
+ 
+ 
+ https://tldraw.dev/examples/coordinate-system 
+ 
+ 
+ https://tldraw.dev/examples/create-arrow 
+ 
+ 
+ https://tldraw.dev/examples/cubic-bezier-shape 
+ 
+ 
+ https://tldraw.dev/examples/custom-asset-type 
+ 
+ 
+ https://tldraw.dev/examples/custom-clipping-shape 
+ 
+ 
+ https://tldraw.dev/examples/custom-components 
+ 
+ 
+ https://tldraw.dev/examples/custom-config 
+ 
+ 
+ https://tldraw.dev/examples/custom-double-click-behavior 
+ 
+ 
+ https://tldraw.dev/examples/custom-embed 
+ 
+ 
+ https://tldraw.dev/examples/custom-error-capture 
+ 
+ 
+ https://tldraw.dev/examples/custom-geo-types 
+ 
+ 
+ https://tldraw.dev/examples/custom-grid 
+ 
+ 
+ https://tldraw.dev/examples/custom-language-translations 
+ 
+ 
+ https://tldraw.dev/examples/custom-menus 
+ 
+ 
+ https://tldraw.dev/examples/custom-options 
+ 
+ 
+ https://tldraw.dev/examples/custom-overlay 
+ 
+ 
+ https://tldraw.dev/examples/custom-paste 
+ 
+ 
+ https://tldraw.dev/examples/custom-records 
+ 
+ 
+ https://tldraw.dev/examples/custom-relative-snapping 
+ 
+ 
+ https://tldraw.dev/examples/custom-renderer 
+ 
+ 
+ https://tldraw.dev/examples/custom-shape 
+ 
+ 
+ https://tldraw.dev/examples/custom-shape-mermaids 
+ 
+ 
+ https://tldraw.dev/examples/custom-shape-wrapper 
+ 
+ 
+ https://tldraw.dev/examples/custom-text-outline 
+ 
+ 
+ https://tldraw.dev/examples/custom-theme 
+ 
+ 
+ https://tldraw.dev/examples/custom-tool 
+ 
+ 
+ https://tldraw.dev/examples/custom-ui 
+ 
+ 
+ https://tldraw.dev/examples/custom-user 
+ 
+ 
+ https://tldraw.dev/examples/custom-validators 
+ 
+ 
+ https://tldraw.dev/examples/d3-map 
+ 
+ 
+ https://tldraw.dev/examples/dark-mode 
+ 
+ 
+ https://tldraw.dev/examples/dark-mode-toggle 
+ 
+ 
+ https://tldraw.dev/examples/deep-links 
+ 
+ 
+ https://tldraw.dev/examples/derived-view 
+ 
+ 
+ https://tldraw.dev/examples/dimensions-hud 
+ 
+ 
+ https://tldraw.dev/examples/disable-pages 
+ 
+ 
+ https://tldraw.dev/examples/display-options 
+ 
+ 
+ https://tldraw.dev/examples/drag-and-drop 
+ 
+ 
+ https://tldraw.dev/examples/drag-and-drop-tray 
+ 
+ 
+ https://tldraw.dev/examples/dynamic-tools 
+ 
+ 
+ https://tldraw.dev/examples/easter-egg-styles 
+ 
+ 
+ https://tldraw.dev/examples/edge-scrolling 
+ 
+ 
+ https://tldraw.dev/examples/editable-shape 
+ 
+ 
+ https://tldraw.dev/examples/editor-focus 
+ 
+ 
+ https://tldraw.dev/examples/education-canvas 
+ 
+ 
+ https://tldraw.dev/examples/embed-permissions 
+ 
+ 
+ https://tldraw.dev/examples/environment-detection 
+ 
+ 
+ https://tldraw.dev/examples/error-boundary 
+ 
+ 
+ https://tldraw.dev/examples/escape-shape-focus-trap 
+ 
+ 
+ https://tldraw.dev/examples/event-blocker 
+ 
+ 
+ https://tldraw.dev/examples/exam-marking 
+ 
+ 
+ https://tldraw.dev/examples/exploded 
+ 
+ 
+ https://tldraw.dev/examples/export-canvas-as-image 
+ 
+ 
+ https://tldraw.dev/examples/export-canvas-settings 
+ 
+ 
+ https://tldraw.dev/examples/external-content-sources 
+ 
+ 
+ https://tldraw.dev/examples/external-dialog 
+ 
+ 
+ https://tldraw.dev/examples/external-ui 
+ 
+ 
+ https://tldraw.dev/examples/external-ui-context 
+ 
+ 
+ https://tldraw.dev/examples/flex-layout 
+ 
+ 
+ https://tldraw.dev/examples/floaty-window 
+ 
+ 
+ https://tldraw.dev/examples/focus-mode 
+ 
+ 
+ https://tldraw.dev/examples/fog-of-war 
+ 
+ 
+ https://tldraw.dev/examples/force-mobile 
+ 
+ 
+ https://tldraw.dev/examples/frame-colors 
+ 
+ 
+ https://tldraw.dev/examples/globs-editor 
+ 
+ 
+ https://tldraw.dev/examples/hide-ui 
+ 
+ 
+ https://tldraw.dev/examples/hosted-images 
+ 
+ 
+ https://tldraw.dev/examples/hovered-overlay 
+ 
+ 
+ https://tldraw.dev/examples/hundred-mermaids 
+ 
+ 
+ https://tldraw.dev/examples/image-annotator 
+ 
+ 
+ https://tldraw.dev/examples/image-component 
+ 
+ 
+ https://tldraw.dev/examples/indicators-logic 
+ 
+ 
+ https://tldraw.dev/examples/inline 
+ 
+ 
+ https://tldraw.dev/examples/inline-behavior 
+ 
+ 
+ https://tldraw.dev/examples/inset 
+ 
+ 
+ https://tldraw.dev/examples/inset-canvas 
+ 
+ 
+ https://tldraw.dev/examples/inspector-panel 
+ 
+ 
+ https://tldraw.dev/examples/interaction-end-callback 
+ 
+ 
+ https://tldraw.dev/examples/interactive-shape 
+ 
+ 
+ https://tldraw.dev/examples/keyboard-shortcuts 
+ 
+ 
+ https://tldraw.dev/examples/lasso-select-tool 
+ 
+ 
+ https://tldraw.dev/examples/layer-panel 
+ 
+ 
+ https://tldraw.dev/examples/layout-bindings 
+ 
+ 
+ https://tldraw.dev/examples/local-images 
+ 
+ 
+ https://tldraw.dev/examples/local-storage 
+ 
+ 
+ https://tldraw.dev/examples/local-videos 
+ 
+ 
+ https://tldraw.dev/examples/lock-camera-zoom 
+ 
+ 
+ https://tldraw.dev/examples/locked-shapes 
+ 
+ 
+ https://tldraw.dev/examples/many-shapes 
+ 
+ 
+ https://tldraw.dev/examples/mask-window 
+ 
+ 
+ https://tldraw.dev/examples/menu-system-hover 
+ 
+ 
+ https://tldraw.dev/examples/mermaid-pasting 
+ 
+ 
+ https://tldraw.dev/examples/meta-migrations 
+ 
+ 
+ https://tldraw.dev/examples/meta-on-change 
+ 
+ 
+ https://tldraw.dev/examples/meta-on-create 
+ 
+ 
+ https://tldraw.dev/examples/multiple 
+ 
+ 
+ https://tldraw.dev/examples/multiple-themes 
+ 
+ 
+ https://tldraw.dev/examples/only-editor 
+ 
+ 
+ https://tldraw.dev/examples/outlined-text 
+ 
+ 
+ https://tldraw.dev/examples/overlay-theme-colors 
+ 
+ 
+ https://tldraw.dev/examples/page-panel 
+ 
+ 
+ https://tldraw.dev/examples/pdf-editor 
+ 
+ 
+ https://tldraw.dev/examples/performance-hooks 
+ 
+ 
+ https://tldraw.dev/examples/permissions 
+ 
+ 
+ https://tldraw.dev/examples/permissions-2 
+ 
+ 
+ https://tldraw.dev/examples/persistence-key 
+ 
+ 
+ https://tldraw.dev/examples/persistent-iframe-shape 
+ 
+ 
+ https://tldraw.dev/examples/pin-bindings 
+ 
+ 
+ https://tldraw.dev/examples/popup-shape 
+ 
+ 
+ https://tldraw.dev/examples/portal-shapes 
+ 
+ 
+ https://tldraw.dev/examples/prevent-instance-change 
+ 
+ 
+ https://tldraw.dev/examples/prevent-multi-shape-selection 
+ 
+ 
+ https://tldraw.dev/examples/prevent-shape-change 
+ 
+ 
+ https://tldraw.dev/examples/reactive-inputs 
+ 
+ 
+ https://tldraw.dev/examples/readonly 
+ 
+ 
+ https://tldraw.dev/examples/reduced-motion 
+ 
+ 
+ https://tldraw.dev/examples/remove-tool 
+ 
+ 
+ https://tldraw.dev/examples/replace-brush-overlay 
+ 
+ 
+ https://tldraw.dev/examples/resize-note 
+ 
+ 
+ https://tldraw.dev/examples/rich-text-custom-extension 
+ 
+ 
+ https://tldraw.dev/examples/rich-text-font-extensions 
+ 
+ 
+ https://tldraw.dev/examples/rich-text-on-multiple-shapes 
+ 
+ 
+ https://tldraw.dev/examples/screen-reader-accessibility 
+ 
+ 
+ https://tldraw.dev/examples/screenshot-tool 
+ 
+ 
+ https://tldraw.dev/examples/scroll 
+ 
+ 
+ https://tldraw.dev/examples/selection-bounds 
+ 
+ 
+ https://tldraw.dev/examples/selection-color-condition 
+ 
+ 
+ https://tldraw.dev/examples/selection-ui 
+ 
+ 
+ https://tldraw.dev/examples/shape-animation 
+ 
+ 
+ https://tldraw.dev/examples/shape-with-custom-styles 
+ 
+ 
+ https://tldraw.dev/examples/shape-with-geometry 
+ 
+ 
+ https://tldraw.dev/examples/shape-with-migrations 
+ 
+ 
+ https://tldraw.dev/examples/shape-with-onClick 
+ 
+ 
+ https://tldraw.dev/examples/shape-with-onDoubleClickEdge 
+ 
+ 
+ https://tldraw.dev/examples/shape-with-tldraw-styles 
+ 
+ 
+ https://tldraw.dev/examples/signals 
+ 
+ 
+ https://tldraw.dev/examples/size-from-dom 
+ 
+ 
+ https://tldraw.dev/examples/slides 
+ 
+ 
+ https://tldraw.dev/examples/slideshow 
+ 
+ 
+ https://tldraw.dev/examples/snapshots 
+ 
+ 
+ https://tldraw.dev/examples/snowstorm 
+ 
+ 
+ https://tldraw.dev/examples/soft-clip 
+ 
+ 
+ https://tldraw.dev/examples/speech-bubble 
+ 
+ 
+ https://tldraw.dev/examples/stamp-tool 
+ 
+ 
+ https://tldraw.dev/examples/static-assets 
+ 
+ 
+ https://tldraw.dev/examples/sticker-bindings 
+ 
+ 
+ https://tldraw.dev/examples/store-events 
+ 
+ 
+ https://tldraw.dev/examples/stroke-size-picker 
+ 
+ 
+ https://tldraw.dev/examples/sync-custom-people-menu 
+ 
+ 
+ https://tldraw.dev/examples/sync-custom-presence 
+ 
+ 
+ https://tldraw.dev/examples/sync-custom-shape 
+ 
+ 
+ https://tldraw.dev/examples/sync-custom-user 
+ 
+ 
+ https://tldraw.dev/examples/sync-demo 
+ 
+ 
+ https://tldraw.dev/examples/sync-private-content 
+ 
+ 
+ https://tldraw.dev/examples/text-mass-style-updates 
+ 
+ 
+ https://tldraw.dev/examples/text-search 
+ 
+ 
+ https://tldraw.dev/examples/text-shape-configuration 
+ 
+ 
+ https://tldraw.dev/examples/things-on-the-canvas 
+ 
+ 
+ https://tldraw.dev/examples/timeline-scrubber 
+ 
+ 
+ https://tldraw.dev/examples/toSvg-method-example 
+ 
+ 
+ https://tldraw.dev/examples/toasts-and-dialogs 
+ 
+ 
+ https://tldraw.dev/examples/tool-with-child-states 
+ 
+ 
+ https://tldraw.dev/examples/toolbar-groups 
+ 
+ 
+ https://tldraw.dev/examples/tower-defense 
+ 
+ 
+ https://tldraw.dev/examples/ui-components-hidden 
+ 
+ 
+ https://tldraw.dev/examples/ui-events 
+ 
+ 
+ https://tldraw.dev/examples/ui-primitives 
+ 
+ 
+ https://tldraw.dev/examples/unsaved-changes 
+ 
+ 
+ https://tldraw.dev/examples/user-presence 
+ 
+ 
+ https://tldraw.dev/examples/vertical-toolbar 
+ 
+ 
+ https://tldraw.dev/examples/xkcd-dependency 
+ 
+ 
+ https://tldraw.dev/examples/z-order 
+ 
+ 
+ https://tldraw.dev/examples/zones 
+ 
+ 
+ https://tldraw.dev/examples/zoom-to-bounds 
+ 
+ 
+ https://tldraw.dev/installation 
+ 
+ 
+ https://tldraw.dev/quick-start 
+ 
+ 
+ https://tldraw.dev/reference/driver/Driver 
+ 
+ 
+ https://tldraw.dev/reference/driver/EventModifiers 
+ 
+ 
+ https://tldraw.dev/reference/driver/PointerEventInit_2 
+ 
+ 
+ https://tldraw.dev/reference/editor/Arc2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/AssetUtil 
+ 
+ 
+ https://tldraw.dev/reference/editor/BaseBoxShapeTool 
+ 
+ 
+ https://tldraw.dev/reference/editor/BaseBoxShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/editor/BaseFrameLikeShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/editor/BatchMeasurementRequest 
+ 
+ 
+ https://tldraw.dev/reference/editor/BindingOnChangeOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/BindingOnCreateOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/BindingOnDeleteOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/BindingOnShapeChangeOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/BindingOnShapeDeleteOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/BindingOnShapeIsolateOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/BindingUtil 
+ 
+ 
+ https://tldraw.dev/reference/editor/BoundsSnapGeometry 
+ 
+ 
+ https://tldraw.dev/reference/editor/BoundsSnapPoint 
+ 
+ 
+ https://tldraw.dev/reference/editor/BoundsSnaps 
+ 
+ 
+ https://tldraw.dev/reference/editor/Box 
+ 
+ 
+ https://tldraw.dev/reference/editor/BoxLike 
+ 
+ 
+ https://tldraw.dev/reference/editor/Circle2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/ClickManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/CollaboratorsManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/ContainerProvider 
+ 
+ 
+ https://tldraw.dev/reference/editor/ContainerProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/CubicBezier2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/CubicSpline2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/DEFAULT_THEME 
+ 
+ 
+ https://tldraw.dev/reference/editor/DebugFlag 
+ 
+ 
+ https://tldraw.dev/reference/editor/DebugFlagDef 
+ 
+ 
+ https://tldraw.dev/reference/editor/DebugFlagDefaults 
+ 
+ 
+ https://tldraw.dev/reference/editor/DefaultBackground 
+ 
+ 
+ https://tldraw.dev/reference/editor/DefaultCanvas 
+ 
+ 
+ https://tldraw.dev/reference/editor/DefaultCursor 
+ 
+ 
+ https://tldraw.dev/reference/editor/DefaultErrorFallback 
+ 
+ 
+ https://tldraw.dev/reference/editor/DefaultGrid 
+ 
+ 
+ https://tldraw.dev/reference/editor/DefaultShapeWrapper 
+ 
+ 
+ https://tldraw.dev/reference/editor/DefaultSpinner 
+ 
+ 
+ https://tldraw.dev/reference/editor/DefaultSvgDefs 
+ 
+ 
+ https://tldraw.dev/reference/editor/EASINGS 
+ 
+ 
+ https://tldraw.dev/reference/editor/EVENT_NAME_MAP 
+ 
+ 
+ https://tldraw.dev/reference/editor/Edge2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/EdgeScrollManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/Editor 
+ 
+ 
+ https://tldraw.dev/reference/editor/EditorAtom 
+ 
+ 
+ https://tldraw.dev/reference/editor/EditorContext 
+ 
+ 
+ https://tldraw.dev/reference/editor/EditorManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/EditorPortal 
+ 
+ 
+ https://tldraw.dev/reference/editor/EditorPortalProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/EditorProvider 
+ 
+ 
+ https://tldraw.dev/reference/editor/EditorProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/Ellipse2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/ErrorBoundary 
+ 
+ 
+ https://tldraw.dev/reference/editor/ErrorScreen 
+ 
+ 
+ https://tldraw.dev/reference/editor/FontManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/GapsSnapIndicator 
+ 
+ 
+ https://tldraw.dev/reference/editor/Geometry2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/Geometry2dFilters 
+ 
+ 
+ https://tldraw.dev/reference/editor/Geometry2dOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/Group2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/GroupShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/editor/HALF_PI 
+ 
+ 
+ https://tldraw.dev/reference/editor/HTMLContainer 
+ 
+ 
+ https://tldraw.dev/reference/editor/HTMLContainerProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/HandleSnapGeometry 
+ 
+ 
+ https://tldraw.dev/reference/editor/HandleSnaps 
+ 
+ 
+ https://tldraw.dev/reference/editor/HistoryManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/InputsManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/LoadingScreen 
+ 
+ 
+ https://tldraw.dev/reference/editor/LoadingScreenProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/Mat 
+ 
+ 
+ https://tldraw.dev/reference/editor/MatLike 
+ 
+ 
+ https://tldraw.dev/reference/editor/MatModel 
+ 
+ 
+ https://tldraw.dev/reference/editor/MenuClickCapture 
+ 
+ 
+ https://tldraw.dev/reference/editor/OptionalKeys 
+ 
+ 
+ https://tldraw.dev/reference/editor/OverlayManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/OverlayOptionsWithDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/editor/OverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/editor/PI 
+ 
+ 
+ https://tldraw.dev/reference/editor/PI2 
+ 
+ 
+ https://tldraw.dev/reference/editor/PerfectDashTerminal 
+ 
+ 
+ https://tldraw.dev/reference/editor/PerformanceApiAdapter 
+ 
+ 
+ https://tldraw.dev/reference/editor/PerformanceManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/Point2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/PointsSnapIndicator 
+ 
+ 
+ https://tldraw.dev/reference/editor/Polygon2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/Polyline2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/ROTATE_CORNER_TO_SELECTION_CORNER 
+ 
+ 
+ https://tldraw.dev/reference/editor/ReadonlySharedStyleMap 
+ 
+ 
+ https://tldraw.dev/reference/editor/Rectangle2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/RequiredKeys 
+ 
+ 
+ https://tldraw.dev/reference/editor/ResizeBoxOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/RichTextFontVisitor 
+ 
+ 
+ https://tldraw.dev/reference/editor/RichTextFontVisitorState 
+ 
+ 
+ https://tldraw.dev/reference/editor/RotateCorner 
+ 
+ 
+ https://tldraw.dev/reference/editor/SIDES 
+ 
+ 
+ https://tldraw.dev/reference/editor/SIN 
+ 
+ 
+ https://tldraw.dev/reference/editor/SVGContainer 
+ 
+ 
+ https://tldraw.dev/reference/editor/SVGContainerProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/SafeId 
+ 
+ 
+ https://tldraw.dev/reference/editor/ScribbleItem 
+ 
+ 
+ https://tldraw.dev/reference/editor/ScribbleManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/ScribbleSessionOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/SelectionCorner 
+ 
+ 
+ https://tldraw.dev/reference/editor/SelectionEdge 
+ 
+ 
+ https://tldraw.dev/reference/editor/SelectionHandle 
+ 
+ 
+ https://tldraw.dev/reference/editor/ShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/editor/SharedStyle 
+ 
+ 
+ https://tldraw.dev/reference/editor/SnapData 
+ 
+ 
+ https://tldraw.dev/reference/editor/SnapIndicator 
+ 
+ 
+ https://tldraw.dev/reference/editor/SnapManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/Stadium2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/StateNode 
+ 
+ 
+ https://tldraw.dev/reference/editor/SvgExportContext 
+ 
+ 
+ https://tldraw.dev/reference/editor/SvgExportDef 
+ 
+ 
+ https://tldraw.dev/reference/editor/TAB_ID 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLAdjacentDirection 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLAnyAssetUtilConstructor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLAnyBindingUtilConstructor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLAnyOverlayUtilConstructor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLAnyShapeUtilConstructor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLAssetUtilConstructor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLBaseBoxShape 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLBaseEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLBaseExternalContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLBindingUtilConstructor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCLickEventName 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCameraConstraints 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCameraEndPerfEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCameraMoveOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCameraOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCameraStartPerfEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCancelEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCancelEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCanvasComponentProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLClickEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLClickEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLClickState 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLClipboardPasteRawInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLClipboardWriteInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCompleteEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCompleteEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCropInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCurrentUser 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLCursorProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLDeepLink 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLDeepLinkOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLDragShapesInInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLDragShapesOutInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLDragShapesOverInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLDropShapesOverInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEditStartInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEditorComponents 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEditorOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEditorRunOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEditorSnapshot 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEmbedExternalContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEnterEventHandler 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLErrorBoundaryProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLErrorExternalContentSource 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLErrorFallbackComponent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEventHandlers 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEventMap 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEventMapHandler 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLEventName 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLExcalidrawExternalContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLExcalidrawExternalContentSource 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLExitEventHandler 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLExportType 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLExternalAsset 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLExternalContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLExternalContentSource 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLFileExternalAsset 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLFileReplaceExternalContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLFilesExternalContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLFramePerfEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLGeometryOpts 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLGetShapeAtPointOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLGridProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLHandleDragInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLHistoryBatchOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLHistoryDiff 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLHistoryEntry 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLHistoryMark 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLImageExportOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLIndicatorPath 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLInteractionEndPerfEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLInteractionStartPerfEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLInterruptEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLInterruptEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLKeyboardEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLKeyboardEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLKeyboardEventName 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLLoadSessionStateSnapshotOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLLoadSnapshotOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLMeasureTextOpts 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLMeasureTextSpanOpts 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLMeasuredTextSize 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLOnMountHandler 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLOverlay 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLOverlayEntry 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLOverlayUtilConstructor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPerfEventMap 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPerfFrameTimeStats 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPerfLongAnimationFrame 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPerfLongAnimationFrameScript 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPinchEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPinchEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPinchEventName 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPointerEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPointerEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPointerEventName 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLPointerEventTarget 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLRenderingShape 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLResizeHandle 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLResizeInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLResizeMode 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLResizeShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLSelectionHandle 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLSessionStateSnapshot 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLShapeErrorFallbackComponent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLShapeOperationPerfEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLShapeUtilCanBeLaidOutOpts 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLShapeUtilCanBindOpts 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLShapeUtilCanvasSvgDef 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLShapeUtilConstructor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLShapeWrapperProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLStateNodeConstructor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLStoreBaseOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLStoreEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLStoreOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLStoreSchemaOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLStoreWithStatus 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLSvgExportOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLSvgTextExternalContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLTextExternalContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLTextExternalContentSource 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLTextOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLTickEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLTickEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLTldrawExternalContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLTldrawExternalContentSource 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLUndoRedoPerfEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLUpdatePointerOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLUrlExternalAsset 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLUrlExternalContent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLUserPreferences 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLWheelEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/TLWheelEventInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/TextManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/ThemeManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/TiptapEditor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TiptapNode 
+ 
+ 
+ https://tldraw.dev/reference/editor/TldrawEditor 
+ 
+ 
+ https://tldraw.dev/reference/editor/TldrawEditorBaseProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/TldrawEditorProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/TldrawEditorStoreProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/TldrawEditorWithStoreProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/TldrawEditorWithoutStoreProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/TldrawOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/TransformedGeometry2d 
+ 
+ 
+ https://tldraw.dev/reference/editor/TransformedGeometry2dOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/UiEvent 
+ 
+ 
+ https://tldraw.dev/reference/editor/UiEventType 
+ 
+ 
+ https://tldraw.dev/reference/editor/UserPreferencesManager 
+ 
+ 
+ https://tldraw.dev/reference/editor/Vec 
+ 
+ 
+ https://tldraw.dev/reference/editor/VecLike 
+ 
+ 
+ https://tldraw.dev/reference/editor/angleDistance 
+ 
+ 
+ https://tldraw.dev/reference/editor/approximately 
+ 
+ 
+ https://tldraw.dev/reference/editor/areAnglesCompatible 
+ 
+ 
+ https://tldraw.dev/reference/editor/average 
+ 
+ 
+ https://tldraw.dev/reference/editor/canonicalizeRotation 
+ 
+ 
+ https://tldraw.dev/reference/editor/centerOfCircleFromThreePoints 
+ 
+ 
+ https://tldraw.dev/reference/editor/clamp 
+ 
+ 
+ https://tldraw.dev/reference/editor/clampRadians 
+ 
+ 
+ https://tldraw.dev/reference/editor/clockwiseAngleDist 
+ 
+ 
+ https://tldraw.dev/reference/editor/coreShapes 
+ 
+ 
+ https://tldraw.dev/reference/editor/counterClockwiseAngleDist 
+ 
+ 
+ https://tldraw.dev/reference/editor/createDebugValue 
+ 
+ 
+ https://tldraw.dev/reference/editor/createDeepLinkString 
+ 
+ 
+ https://tldraw.dev/reference/editor/createSessionStateSnapshotSignal 
+ 
+ 
+ https://tldraw.dev/reference/editor/createTLCurrentUser 
+ 
+ 
+ https://tldraw.dev/reference/editor/createTLSchemaFromUtils 
+ 
+ 
+ https://tldraw.dev/reference/editor/createTLStore 
+ 
+ 
+ https://tldraw.dev/reference/editor/dataUrlToFile 
+ 
+ 
+ https://tldraw.dev/reference/editor/defaultTldrawOptions 
+ 
+ 
+ https://tldraw.dev/reference/editor/defaultUserPreferences 
+ 
+ 
+ https://tldraw.dev/reference/editor/defaultUserStore 
+ 
+ 
+ https://tldraw.dev/reference/editor/degreesToRadians 
+ 
+ 
+ https://tldraw.dev/reference/editor/getArcMeasure 
+ 
+ 
+ https://tldraw.dev/reference/editor/getColorValue 
+ 
+ 
+ https://tldraw.dev/reference/editor/getCursor 
+ 
+ 
+ https://tldraw.dev/reference/editor/getDefaultCdnBaseUrl 
+ 
+ 
+ https://tldraw.dev/reference/editor/getDroppedShapesToNewParents 
+ 
+ 
+ https://tldraw.dev/reference/editor/getFontsFromRichText 
+ 
+ 
+ https://tldraw.dev/reference/editor/getFreshUserPreferences 
+ 
+ 
+ https://tldraw.dev/reference/editor/getIncrementedName 
+ 
+ 
+ https://tldraw.dev/reference/editor/getOverlayDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/editor/getPerfectDashProps 
+ 
+ 
+ https://tldraw.dev/reference/editor/getPointInArcT 
+ 
+ 
+ https://tldraw.dev/reference/editor/getPointOnCircle 
+ 
+ 
+ https://tldraw.dev/reference/editor/getPointerInfo 
+ 
+ 
+ https://tldraw.dev/reference/editor/getPointsOnArc 
+ 
+ 
+ https://tldraw.dev/reference/editor/getPolygonVertices 
+ 
+ 
+ https://tldraw.dev/reference/editor/getSnapshot 
+ 
+ 
+ https://tldraw.dev/reference/editor/getSvgAsImage 
+ 
+ 
+ https://tldraw.dev/reference/editor/getSvgPathFromPoints 
+ 
+ 
+ https://tldraw.dev/reference/editor/getUserPreferences 
+ 
+ 
+ https://tldraw.dev/reference/editor/hardReset 
+ 
+ 
+ https://tldraw.dev/reference/editor/hardResetEditor 
+ 
+ 
+ https://tldraw.dev/reference/editor/inlineBase64AssetStore 
+ 
+ 
+ https://tldraw.dev/reference/editor/intersectCircleCircle 
+ 
+ 
+ https://tldraw.dev/reference/editor/intersectCirclePolygon 
+ 
+ 
+ https://tldraw.dev/reference/editor/intersectCirclePolyline 
+ 
+ 
+ https://tldraw.dev/reference/editor/intersectLineSegmentCircle 
+ 
+ 
+ https://tldraw.dev/reference/editor/intersectLineSegmentLineSegment 
+ 
+ 
+ https://tldraw.dev/reference/editor/intersectLineSegmentPolygon 
+ 
+ 
+ https://tldraw.dev/reference/editor/intersectLineSegmentPolyline 
+ 
+ 
+ https://tldraw.dev/reference/editor/intersectPolygonBounds 
+ 
+ 
+ https://tldraw.dev/reference/editor/intersectPolygonPolygon 
+ 
+ 
+ https://tldraw.dev/reference/editor/isCursorInViewport 
+ 
+ 
+ https://tldraw.dev/reference/editor/isSafeFloat 
+ 
+ 
+ https://tldraw.dev/reference/editor/kickoutOccludedShapes 
+ 
+ 
+ https://tldraw.dev/reference/editor/linesIntersect 
+ 
+ 
+ https://tldraw.dev/reference/editor/loadSessionStateSnapshotIntoStore 
+ 
+ 
+ https://tldraw.dev/reference/editor/loadSnapshot 
+ 
+ 
+ https://tldraw.dev/reference/editor/loopToHtmlElement 
+ 
+ 
+ https://tldraw.dev/reference/editor/maybeSnapToGrid 
+ 
+ 
+ https://tldraw.dev/reference/editor/moveElementInto 
+ 
+ 
+ https://tldraw.dev/reference/editor/openWindow 
+ 
+ 
+ https://tldraw.dev/reference/editor/parseDeepLinkString 
+ 
+ 
+ https://tldraw.dev/reference/editor/perimeterOfEllipse 
+ 
+ 
+ https://tldraw.dev/reference/editor/pointInPolygon 
+ 
+ 
+ https://tldraw.dev/reference/editor/polygonIntersectsPolyline 
+ 
+ 
+ https://tldraw.dev/reference/editor/polygonsIntersect 
+ 
+ 
+ https://tldraw.dev/reference/editor/precise 
+ 
+ 
+ https://tldraw.dev/reference/editor/preventDefault 
+ 
+ 
+ https://tldraw.dev/reference/editor/radiansToDegrees 
+ 
+ 
+ https://tldraw.dev/reference/editor/rangeIntersection 
+ 
+ 
+ https://tldraw.dev/reference/editor/refreshPage 
+ 
+ 
+ https://tldraw.dev/reference/editor/releasePointerCapture 
+ 
+ 
+ https://tldraw.dev/reference/editor/resizeBox 
+ 
+ 
+ https://tldraw.dev/reference/editor/resizeScaled 
+ 
+ 
+ https://tldraw.dev/reference/editor/resolveLineHeightPx 
+ 
+ 
+ https://tldraw.dev/reference/editor/resolveThemes 
+ 
+ 
+ https://tldraw.dev/reference/editor/rotateSelectionHandle 
+ 
+ 
+ https://tldraw.dev/reference/editor/runtime 
+ 
+ 
+ https://tldraw.dev/reference/editor/sanitizeId 
+ 
+ 
+ https://tldraw.dev/reference/editor/setPointerCapture 
+ 
+ 
+ https://tldraw.dev/reference/editor/setRuntimeOverrides 
+ 
+ 
+ https://tldraw.dev/reference/editor/setUserPreferences 
+ 
+ 
+ https://tldraw.dev/reference/editor/shortAngleDist 
+ 
+ 
+ https://tldraw.dev/reference/editor/snapAngle 
+ 
+ 
+ https://tldraw.dev/reference/editor/stopEventPropagation 
+ 
+ 
+ https://tldraw.dev/reference/editor/strokeShapeIndicators 
+ 
+ 
+ https://tldraw.dev/reference/editor/suffixSafeId 
+ 
+ 
+ https://tldraw.dev/reference/editor/tlenv 
+ 
+ 
+ https://tldraw.dev/reference/editor/tlenvReactive 
+ 
+ 
+ https://tldraw.dev/reference/editor/tlmenus 
+ 
+ 
+ https://tldraw.dev/reference/editor/tltime 
+ 
+ 
+ https://tldraw.dev/reference/editor/toDomPrecision 
+ 
+ 
+ https://tldraw.dev/reference/editor/toFixed 
+ 
+ 
+ https://tldraw.dev/reference/editor/toPrecision 
+ 
+ 
+ https://tldraw.dev/reference/editor/uniq 
+ 
+ 
+ https://tldraw.dev/reference/editor/useColorMode 
+ 
+ 
+ https://tldraw.dev/reference/editor/useContainer 
+ 
+ 
+ https://tldraw.dev/reference/editor/useContainerIfExists 
+ 
+ 
+ https://tldraw.dev/reference/editor/useDelaySvgExport 
+ 
+ 
+ https://tldraw.dev/reference/editor/useEditor 
+ 
+ 
+ https://tldraw.dev/reference/editor/useEditorComponents 
+ 
+ 
+ https://tldraw.dev/reference/editor/useEditorPortalHost 
+ 
+ 
+ https://tldraw.dev/reference/editor/useGlobalMenuIsOpen 
+ 
+ 
+ https://tldraw.dev/reference/editor/useIsCropping 
+ 
+ 
+ https://tldraw.dev/reference/editor/useIsEditing 
+ 
+ 
+ https://tldraw.dev/reference/editor/useMaybeEditor 
+ 
+ 
+ https://tldraw.dev/reference/editor/usePassThroughWheelEvents 
+ 
+ 
+ https://tldraw.dev/reference/editor/usePeerIds 
+ 
+ 
+ https://tldraw.dev/reference/editor/usePresence 
+ 
+ 
+ https://tldraw.dev/reference/editor/useSharedSafeId 
+ 
+ 
+ https://tldraw.dev/reference/editor/useSvgExportContext 
+ 
+ 
+ https://tldraw.dev/reference/editor/useTLSchemaFromUtils 
+ 
+ 
+ https://tldraw.dev/reference/editor/useTLStore 
+ 
+ 
+ https://tldraw.dev/reference/editor/useTldrawCurrentUser 
+ 
+ 
+ https://tldraw.dev/reference/editor/useTransform 
+ 
+ 
+ https://tldraw.dev/reference/editor/useUniqueSafeId 
+ 
+ 
+ https://tldraw.dev/reference/editor/useViewportHeight 
+ 
+ 
+ https://tldraw.dev/reference/editor/userTypeValidator 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/BlueprintRenderingOptions 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/DiagramMermaidBlueprint 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/MERMAID_MINDMAP_NODE_TYPE 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/MermaidBlueprintEdge 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/MermaidBlueprintLineNode 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/MermaidBlueprintNode 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/MermaidBlueprintNodeRenderSpec 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/MermaidDiagramError 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/MermaidDiagramKind 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/MermaidDiagramOptions 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/MermaidNodeCreateFunctionArgs 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/MermaidNodeRenderMapper 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/createMermaidDiagram 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/defaultCreateMermaidNodeFromBlueprint 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/defaultMermaidNodeRenderSpec 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/renderBlueprint 
+ 
+ 
+ https://tldraw.dev/reference/mermaid/resolveMermaidNodeRender 
+ 
+ 
+ https://tldraw.dev/reference/state-react/track 
+ 
+ 
+ https://tldraw.dev/reference/state-react/useAtom 
+ 
+ 
+ https://tldraw.dev/reference/state-react/useComputed 
+ 
+ 
+ https://tldraw.dev/reference/state-react/useQuickReactor 
+ 
+ 
+ https://tldraw.dev/reference/state-react/useReactor 
+ 
+ 
+ https://tldraw.dev/reference/state-react/useStateTracking 
+ 
+ 
+ https://tldraw.dev/reference/state-react/useValue 
+ 
+ 
+ https://tldraw.dev/reference/state/Atom 
+ 
+ 
+ https://tldraw.dev/reference/state/AtomOptions 
+ 
+ 
+ https://tldraw.dev/reference/state/ComputeDiff 
+ 
+ 
+ https://tldraw.dev/reference/state/Computed 
+ 
+ 
+ https://tldraw.dev/reference/state/ComputedOptions 
+ 
+ 
+ https://tldraw.dev/reference/state/EMPTY_ARRAY 
+ 
+ 
+ https://tldraw.dev/reference/state/EffectScheduler 
+ 
+ 
+ https://tldraw.dev/reference/state/EffectSchedulerOptions 
+ 
+ 
+ https://tldraw.dev/reference/state/RESET_VALUE 
+ 
+ 
+ https://tldraw.dev/reference/state/Reactor 
+ 
+ 
+ https://tldraw.dev/reference/state/Signal 
+ 
+ 
+ https://tldraw.dev/reference/state/UNINITIALIZED 
+ 
+ 
+ https://tldraw.dev/reference/state/WithDiff 
+ 
+ 
+ https://tldraw.dev/reference/state/atom 
+ 
+ 
+ https://tldraw.dev/reference/state/computed 
+ 
+ 
+ https://tldraw.dev/reference/state/getComputedInstance 
+ 
+ 
+ https://tldraw.dev/reference/state/isAtom 
+ 
+ 
+ https://tldraw.dev/reference/state/isSignal 
+ 
+ 
+ https://tldraw.dev/reference/state/isUninitialized 
+ 
+ 
+ https://tldraw.dev/reference/state/localStorageAtom 
+ 
+ 
+ https://tldraw.dev/reference/state/react 
+ 
+ 
+ https://tldraw.dev/reference/state/reactor 
+ 
+ 
+ https://tldraw.dev/reference/state/transact 
+ 
+ 
+ https://tldraw.dev/reference/state/transaction 
+ 
+ 
+ https://tldraw.dev/reference/state/unsafe__withoutCapture 
+ 
+ 
+ https://tldraw.dev/reference/state/whyAmIRunning 
+ 
+ 
+ https://tldraw.dev/reference/state/withDiff 
+ 
+ 
+ https://tldraw.dev/reference/store/AtomMap 
+ 
+ 
+ https://tldraw.dev/reference/store/AtomSet 
+ 
+ 
+ https://tldraw.dev/reference/store/BaseRecord 
+ 
+ 
+ https://tldraw.dev/reference/store/ChangeSource 
+ 
+ 
+ https://tldraw.dev/reference/store/CollectionDiff 
+ 
+ 
+ https://tldraw.dev/reference/store/ComputedCache 
+ 
+ 
+ https://tldraw.dev/reference/store/CreateComputedCacheOpts 
+ 
+ 
+ https://tldraw.dev/reference/store/HistoryEntry 
+ 
+ 
+ https://tldraw.dev/reference/store/IdOf 
+ 
+ 
+ https://tldraw.dev/reference/store/LegacyBaseMigrationsInfo 
+ 
+ 
+ https://tldraw.dev/reference/store/LegacyMigration 
+ 
+ 
+ https://tldraw.dev/reference/store/LegacyMigrations 
+ 
+ 
+ https://tldraw.dev/reference/store/Migration 
+ 
+ 
+ https://tldraw.dev/reference/store/MigrationFailureReason 
+ 
+ 
+ https://tldraw.dev/reference/store/MigrationId 
+ 
+ 
+ https://tldraw.dev/reference/store/MigrationResult 
+ 
+ 
+ https://tldraw.dev/reference/store/MigrationSequence 
+ 
+ 
+ https://tldraw.dev/reference/store/QueryExpression 
+ 
+ 
+ https://tldraw.dev/reference/store/QueryValueMatcher 
+ 
+ 
+ https://tldraw.dev/reference/store/RSIndex 
+ 
+ 
+ https://tldraw.dev/reference/store/RSIndexDiff 
+ 
+ 
+ https://tldraw.dev/reference/store/RSIndexMap 
+ 
+ 
+ https://tldraw.dev/reference/store/RecordFromId 
+ 
+ 
+ https://tldraw.dev/reference/store/RecordId 
+ 
+ 
+ https://tldraw.dev/reference/store/RecordScope 
+ 
+ 
+ https://tldraw.dev/reference/store/RecordType 
+ 
+ 
+ https://tldraw.dev/reference/store/RecordsDiff 
+ 
+ 
+ https://tldraw.dev/reference/store/SerializedSchema 
+ 
+ 
+ https://tldraw.dev/reference/store/SerializedSchemaV1 
+ 
+ 
+ https://tldraw.dev/reference/store/SerializedSchemaV2 
+ 
+ 
+ https://tldraw.dev/reference/store/SerializedStore 
+ 
+ 
+ https://tldraw.dev/reference/store/StandaloneDependsOn 
+ 
+ 
+ https://tldraw.dev/reference/store/Store 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreAfterChangeHandler 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreAfterCreateHandler 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreAfterDeleteHandler 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreBeforeChangeHandler 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreBeforeCreateHandler 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreBeforeDeleteHandler 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreError 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreListener 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreListenerFilters 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreObject 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreObjectRecordType 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreOperationCompleteHandler 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreQueries 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreSchema 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreSchemaOptions 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreSideEffects 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreSnapshot 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreValidationFailure 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreValidator 
+ 
+ 
+ https://tldraw.dev/reference/store/StoreValidators 
+ 
+ 
+ https://tldraw.dev/reference/store/SynchronousRecordStorage 
+ 
+ 
+ https://tldraw.dev/reference/store/SynchronousStorage 
+ 
+ 
+ https://tldraw.dev/reference/store/UnknownRecord 
+ 
+ 
+ https://tldraw.dev/reference/store/assertIdType 
+ 
+ 
+ https://tldraw.dev/reference/store/createComputedCache 
+ 
+ 
+ https://tldraw.dev/reference/store/createMigrationIds 
+ 
+ 
+ https://tldraw.dev/reference/store/createMigrationSequence 
+ 
+ 
+ https://tldraw.dev/reference/store/createRecordType 
+ 
+ 
+ https://tldraw.dev/reference/store/devFreeze 
+ 
+ 
+ https://tldraw.dev/reference/store/isRecordsDiffEmpty 
+ 
+ 
+ https://tldraw.dev/reference/store/reverseRecordsDiff 
+ 
+ 
+ https://tldraw.dev/reference/store/squashRecordDiffs 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/DEFAULT_INITIAL_SNAPSHOT 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/DurableObjectSqliteSyncWrapper 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/InMemorySyncStorage 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/JsonChunkAssembler 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/NodeSqliteWrapper 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/OmitVoid 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/RoomSnapshot 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/RoomStoreMethods 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/SQLiteSyncStorage 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/SessionStateSnapshot 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/SubscribingFn 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/SyncSqliteDatabase 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLCustomMessageHandler 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLObjectStoreAccess 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLPersistentClientSocket 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLPresenceMode 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLRecordAuthorizer 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLRecordAuthorizers 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLRemoteSyncError 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSocketRoom 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSocketRoomOptions 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSocketStatusChangeEvent 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSqliteInputValue 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSqliteOutputValue 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSqliteRow 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncClient 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncErrorCloseEventCode 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncErrorCloseEventReason 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncForwardDiff 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncLog 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncSqliteStatement 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncSqliteWrapper 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncSqliteWrapperConfig 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncStorage 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncStorageGetChangesSinceResult 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncStorageOnChangeCallbackProps 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncStorageTransaction 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncStorageTransactionCallback 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncStorageTransactionOptions 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/TLSyncStorageTransactionResult 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/WebSocketMinimal 
+ 
+ 
+ https://tldraw.dev/reference/sync-core/loadSnapshotIntoStorage 
+ 
+ 
+ https://tldraw.dev/reference/sync/RemoteTLStoreWithStatus 
+ 
+ 
+ https://tldraw.dev/reference/sync/UseSyncConnectFn 
+ 
+ 
+ https://tldraw.dev/reference/sync/UseSyncDemoOptions 
+ 
+ 
+ https://tldraw.dev/reference/sync/UseSyncOptions 
+ 
+ 
+ https://tldraw.dev/reference/sync/UseSyncOptionsBase 
+ 
+ 
+ https://tldraw.dev/reference/sync/UseSyncOptionsWithConnectFn 
+ 
+ 
+ https://tldraw.dev/reference/sync/UseSyncOptionsWithUri 
+ 
+ 
+ https://tldraw.dev/reference/sync/useSync 
+ 
+ 
+ https://tldraw.dev/reference/sync/useSyncDemo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/A11yPriority 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/A11yProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ASPECT_RATIO_OPTION 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ASPECT_RATIO_OPTIONS 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ASPECT_RATIO_TO_VALUE 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/AccessibilityMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ActionsProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/AlertSeverity 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/AlignMenuItems 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrangeMenuSubmenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowBindingHintOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowBindingUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowDownToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowHintOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowLeftToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowRightToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowShapeTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowTargetState 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ArrowUpToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/AssetToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/AssetUrlsProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/AssetUrlsProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BasePathBuilderOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BookmarkAssetUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BookmarkShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BookmarkShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BookmarkShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BoxWidthHeight 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BreakPointProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BreakPointProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BrushOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BrushOverlayUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/BrushOverlayUtilOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CenteredTopPanelContainer 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CenteredTopPanelContainerProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CheckBoxToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ClipboardMenuGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CloudToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CollaboratorBrushOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CollaboratorCursorOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CollaboratorHintOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CollaboratorScribbleOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CollaboratorShapeIndicatorOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ColorSchemeMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CommentToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ConversionsMenuGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ConvertToBookmarkMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ConvertToEmbedMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CopyAsMenuGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CopyAsOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CopyMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CropBoxOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CursorChatItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CustomDebugFlags 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CustomEmbedDefinition 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/CutMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DEFAULT_EMBED_DEFINITIONS 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DEFAULT_MAX_ASSET_SIZE 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DEFAULT_MAX_IMAGE_DIMENSION 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DashedPathBuilderOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DebugFlags 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DebugFlagsProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultA11yAnnouncer 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultActionsMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultActionsMenuContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultContextMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultContextMenuContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultDebugMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultDebugMenuContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultDialogs 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultEmbedConfig 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultEmbedDefinitionType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultFollowingIndicator 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultFontFaces 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultHelpMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultHelpMenuContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultHelperButtons 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultHelperButtonsContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultImageToolbar 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultImageToolbarContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultImageToolbarContentProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultKeyboardShortcutsDialog 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultKeyboardShortcutsDialogContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultMainMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultMainMenuContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultMenuPanel 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultMinimap 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultNavigationPanel 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultPageMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultPeopleMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultPeopleMenuAvatar 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultPeopleMenuContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultPeopleMenuContentProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultPeopleMenuFacePile 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultPeopleMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultPeopleMenuProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultQuickActions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultQuickActionsContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultRichTextToolbar 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultRichTextToolbarContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultRichTextToolbarContentProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultSharePanel 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultStylePanel 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultStylePanelContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultToasts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultToolbar 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultToolbarContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultToolbarProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultUserPresenceEditor 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultVideoToolbar 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultVideoToolbarContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultVideoToolbarContentProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultZoomMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DefaultZoomMenuContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DeleteMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DiamondToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DistributeMenuItems 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DrawPathBuilderDOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DrawPathBuilderOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DrawShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DrawShapeTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DrawShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DrawShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DrawToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/DuplicateMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EditLinkMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EditMenuSubmenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EditSubmenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowBox 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowBoxEdges 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowBoxes 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowEdge 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowInfo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowInfoWithoutRoute 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowMidpointHandle 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowRange 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowRoute 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowSide 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ElbowArrowTargetBox 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EllipseToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EmbedDefinition 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EmbedShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EmbedShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EmbedShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EraserTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EraserToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/EventsProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ExampleDialog 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ExampleDialogProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ExportAsMenuGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ExportAsOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ExportFileContentSubMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ExtrasGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/FeatureFlags 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/FeatureFlagsProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/FitFrameToContentMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/FrameShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/FrameShapeTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/FrameShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/FrameShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/FrameToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/GeoShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/GeoShapeTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/GeoShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/GeoShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/GeoTypeDefinition 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/GoogleMapsEmbedConfig 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/GroupMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/GroupOrUngroupMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/HandTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/HandToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/HeartToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/HexagonToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/HighlightShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/HighlightShapeTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/HighlightShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/HighlightShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/HighlightToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ImageAssetUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ImageShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ImageShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ImageShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/InputModeMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/KeyboardShiftEnterTweakExtension 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/KeyboardShortcutsMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/LanguageMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/LaserTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/LaserToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/LineShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/LineShapeTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/LineShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/LineShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/LineToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/LockGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/MiscMenuGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/MobileStylePanel 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/MoveToPageMenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/NonePathBuilderOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/NoteShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/NoteShapeTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/NoteShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/NoteShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/NoteToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/OfflineIndicator 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/OnDragFromToolbarToCreateShapesOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/OvalToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/OverflowingToolbar 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/OverflowingToolbarProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PORTRAIT_BREAKPOINT 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PageItemInput 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PageItemInputProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PageItemSubmenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PageItemSubmenuProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PasteMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PathBuilder 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PathBuilderCommandOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PathBuilderGeometry2d 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PathBuilderLineOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PathBuilderOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PathBuilderToDOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PlainTextArea 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PlainTextLabel 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PlainTextLabelProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PreferencesGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/PrintItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/RTL_LANGUAGES 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/RectangleToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/RemoveFrameMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ReorderMenuItems 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ReorderMenuSubmenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/RhombusToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/RichTextArea 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/RichTextLabel 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/RichTextLabelProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/RichTextSVG 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/RichTextSVGProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/RotateCWMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ScribbleOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/SelectAllMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/SelectTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/SelectToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/SelectionForegroundOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ShapeHandleOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ShapeIndicatorOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ShapeOptionsWithDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/SnapIndicatorOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/SolidPathBuilderOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StackMenuItems 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StarToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StrokeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StrokePoint 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelArrowKindPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelArrowheadPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelButtonPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelButtonPickerInline 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelButtonPickerProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelColorPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelContext 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelContextProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelContextProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelDashPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelDoubleDropdownPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelDoubleDropdownPickerInline 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelDoubleDropdownPickerProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelDropdownPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelDropdownPickerInline 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelDropdownPickerProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelFillPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelFontPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelGeoShapePicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelLabelAlignPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelOpacityPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelSection 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelSectionProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelSizePicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelSplinePicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelSubheading 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelSubheadingProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StylePanelTextAlignPicker 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/StyleValuesForUi 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLArcArrowInfo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLArcInfo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLArrowBindingHintOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLArrowBindings 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLArrowHintOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLArrowInfo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLArrowPoint 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLBrushOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLCollaboratorBrushOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLCollaboratorCursorOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLCollaboratorHintOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLCollaboratorScribbleOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLCollaboratorShapeIndicatorOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLComponents 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLCopyType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLDRAW_FILE_EXTENSION 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLDefaultExternalContentHandlerOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLDefaultFont 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLDefaultFonts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLEditorAssetUrls 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLElbowArrowInfo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLEmbedDefinition 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLEmbedResult 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLEmbedShapePermissions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLExternalContentProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLScribbleOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLSelectionForegroundOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLShapeHandleOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLShapeIndicatorOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLSnapIndicatorOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLStraightArrowInfo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLTypeFace 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiA11y 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiA11yContextType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiActionItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiActionsContextType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiActionsMenuProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiAssetUrlOverrides 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiAssetUrls 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiButtonCheckProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiButtonIconProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiButtonLabelProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiButtonProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiComponents 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiComponentsProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiContextMenuProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiContextProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiContextualToolbarProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDebugMenuProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDialog 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDialogBodyProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDialogFooterProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDialogHeaderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDialogProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDialogTitleProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDialogsContextType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDialogsProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDropdownMenuCheckboxItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDropdownMenuContentProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDropdownMenuGroupProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDropdownMenuItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDropdownMenuRootProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDropdownMenuSubContentProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDropdownMenuSubProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDropdownMenuSubTriggerProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiDropdownMenuTriggerProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiEventContextType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiEventData 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiEventHandler 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiEventMap 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiEventSource 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiHelpMenuProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiHelperButtonsProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiIconJsx 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiIconProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiIconType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiImageToolbarProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiInputProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiKbdProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiKeyboardShortcutsDialogProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiLayoutProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiMainMenuProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiMenuActionCheckboxItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiMenuActionItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiMenuCheckboxItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiMenuContextProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiMenuContextType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiMenuGroupProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiMenuItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiMenuSubmenuProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiMenuToolItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiOverrideHelpers 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiOverrides 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiPeopleMenuAvatarProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiPeopleMenuFacePileProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiPeopleMenuItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiPopoverContentProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiPopoverProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiPopoverTriggerProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiQuickActionsProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiRichTextToolbarProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiSelectContentProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiSelectItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiSelectProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiSelectTriggerProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiSelectValueProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiSliderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiStylePanelProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToast 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToastAction 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToastsContextType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToastsProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToolItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToolbarButtonProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToolbarProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToolbarToggleGroupProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToolbarToggleItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToolsContextType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiToolsProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiTranslation 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiTranslationContextType 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiTranslationKey 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiTranslationProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiVideoToolbarProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLUiZoomMenuProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TLZoomBrushOverlay 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TextAreaProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TextShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TextShapeTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TextShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TextShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TextToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/Tldraw 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawBaseProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawFile 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawFileParseError 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawImage 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawImageProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUi 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiA11yProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiButton 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiButtonCheck 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiButtonIcon 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiButtonLabel 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiColumn 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiComponentsProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiContextProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiContextualToolbar 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDialogBody 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDialogCloseButton 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDialogFooter 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDialogHeader 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDialogTitle 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDialogsProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDropdownMenuCheckboxItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDropdownMenuContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDropdownMenuGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDropdownMenuIndicator 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDropdownMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDropdownMenuRoot 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDropdownMenuSub 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDropdownMenuSubContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDropdownMenuSubTrigger 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiDropdownMenuTrigger 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiEventsProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiGrid 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiIcon 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiInFrontOfTheCanvas 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiInput 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiKbd 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiMenuActionCheckboxItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiMenuActionItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiMenuCheckboxItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiMenuContextProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiMenuGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiMenuSubmenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiMenuToolItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiOrientationContext 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiOrientationProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiOrientationProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiPopover 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiPopoverContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiPopoverTrigger 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiRow 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiSelect 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiSelectContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiSelectItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiSelectTrigger 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiSelectValue 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiSlider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiToastsProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiToolbar 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiToolbarButton 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiToolbarToggleGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiToolbarToggleItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiTooltip 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiTooltipProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiTooltipProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiTooltipProviderProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TldrawUiTranslationProvider 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleAutoSizeMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleDebugModeItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleDynamicSizeModeItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleEdgeScrollingItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleEnhancedA11yModeItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleFocusModeItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleGridItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleInvertZoomItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleKeyboardShortcutsItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleLockMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TogglePasteAtCursorItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleReduceMotionItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleSnapModeItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleToolLockItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleToolLockedButton 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleToolLockedButtonProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleTransparentBgMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToggleWrapModeItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ToolbarItemProps 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TrapezoidToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/TriangleToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/UndoRedoGroup 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/UngroupMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/UnlockAllMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/UpdateArrowTargetStateOpts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/UseImageOrVideoAssetOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/VideoAssetUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/VideoShapeOptions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/VideoShapeUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/VideoShapeUtilDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ViewSubmenu 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/XBoxToolbarItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ZoomBrushOverlayUtil 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ZoomOrRotateMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ZoomTo100MenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ZoomToFitMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ZoomToSelectionMenuItem 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/ZoomTool 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/allDefaultFontFaces 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/centerSelectionAroundPoint 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/clearArrowTargetState 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/containBoxSize 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/copyAs 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/createBookmarkFromUrl 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/createEmptyBookmarkShape 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/createShapesForAssets 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultAddFontsFromNode 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultAssetUtils 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultBindingUtils 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultEditorAssetUrls 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultGeoTypeDefinitions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultHandleExternalEmbedContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultHandleExternalExcalidrawContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultHandleExternalFileAsset 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultHandleExternalFileContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultHandleExternalFileReplaceContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultHandleExternalSvgTextContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultHandleExternalTextContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultHandleExternalTldrawContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultHandleExternalUrlAsset 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultHandleExternalUrlContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultOverlayUtils 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultShapeTools 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultShapeUtils 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/defaultTools 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/downsizeImage 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/embedShapePermissionDefaults 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/exportAs 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/fitFrameToContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getArrowBindings 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getArrowInfo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getArrowTargetState 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getArrowTerminalsInArrowSpace 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getAssetInfo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getColorStyleItems 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getCropBox 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getDefaultCrop 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getDisplayValues 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getEmbedInfo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getFontFamily 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getFontStyleItems 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getGeoTypeDefinition 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getHitShapeOnCanvasPointerDown 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getPointsFromDrawSegment 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getPointsFromDrawSegments 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getStroke 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getStrokeOutlinePoints 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getStrokePoints 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getSvgPathFromStrokePoints 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getTipTapDefaultExtensions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/getUncroppedSize 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/handleNativeOrMenuCopy 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/hideAllTooltips 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/iconTypes 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/notifyIfFileNotAllowed 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/onDragFromToolbarToCreateShape 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/parseTldrawJsonFile 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/preloadFont 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/putExcalidrawContent 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/registerDefaultExternalContentHandlers 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/registerDefaultSideEffects 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/removeFrame 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/renderHtmlFromRichText 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/renderHtmlFromRichTextForMeasurement 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/renderHtmlFromRichTextWithExtensions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/renderPlaintextFromRichText 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/renderRichTextFromHTML 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/sanitizeSvg 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/serializeTldrawJson 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/serializeTldrawJsonBlob 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/startEditingShapeWithRichText 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/tipTapDefaultExtensions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/truncateStringWithEllipsis 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/unknownEmbedShapePermissionOverrides 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/unwrapLabel 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/updateArrowTargetState 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useA11y 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useActions 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useAssetUrls 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useBreakpoint 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useCanApplySelectionAction 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useCanRedo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useCanUndo 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useCollaborationStatus 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useCopyAs 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useCurrentTranslation 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useDefaultHelpers 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useDialogs 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useDirection 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useEditablePlainText 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useEditableRichText 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useExportAs 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useImageOrVideoAsset 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useIsToolSelected 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useKeyboardShortcuts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useLocalStorageState 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useMaybeCurrentTranslation 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useMenuClipboardEvents 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useMenuIsOpen 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useNativeClipboardEvents 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/usePrefersReducedMotion 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useReadonly 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useRelevantStyles 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useSelectedShapesAnnouncer 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useShowCollaborationUi 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useStylePanelContext 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useTldrawUiComponents 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useTldrawUiOrientation 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useToasts 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useTools 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useTranslation 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useUiEvents 
+ 
+ 
+ https://tldraw.dev/reference/tldraw/useUnlockedSelectedShapesCount 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/ArrowShapeArrowheadEndStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/ArrowShapeArrowheadStartStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/ArrowShapeKindStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/AssetRecordType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/BoxModel 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/CameraRecordType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/CreatePresenceStateDerivationOpts 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/CustomRecordInfo 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DIM_2D 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DIM_3D 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DefaultColorStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DefaultDashStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DefaultFillStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DefaultFontFamilies 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DefaultFontStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DefaultHorizontalAlignStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DefaultSizeStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DefaultTextAlignStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DefaultVerticalAlignStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/DocumentRecordType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/ElbowArrowSnap 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/EnumStyleProp 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/ExtractShapeByProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/GeoShapeGeoStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/ImageShapeCrop 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/InstancePageStateRecordType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/InstancePresenceRecordType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/LANGUAGES 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/LineShapeSplineStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/PageRecordType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/PointerRecordType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/RecordProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/RecordPropsType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/SchemaPropsInfo 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/SetValue 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/ShapeWithCrop 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/StyleProp 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/StylePropValue 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLArrowBinding 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLArrowBindingProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLArrowShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLArrowShapeArrowheadStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLArrowShapeKind 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLArrowShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLAsset 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLAssetContext 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLAssetId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLAssetPartial 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLAssetShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLAssetStore 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLBaseAsset 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLBaseBinding 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLBaseShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLBinding 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLBindingCreate 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLBindingId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLBindingUpdate 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLBookmarkAsset 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLBookmarkShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLBookmarkShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCamera 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCameraId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCanvasUiColor 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLComment 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCommentAnchor 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCommentId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCommentReaction 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCommentReactionId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCommentThread 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCommentThreadId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCreateShapePartial 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCursor 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCursorType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLCustomRecord 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDOCUMENT_ID 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultAsset 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultBinding 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultColor 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultColorStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultDashStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultFillStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultFontStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultHorizontalAlignStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultRecord 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultSizeStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultTextAlignStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDefaultVerticalAlignStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDocument 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDrawShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDrawShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLDrawShapeSegment 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLEmbedShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLEmbedShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLFontFace 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLFontFaceSource 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLFrameShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLFrameShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLGeoShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLGeoShapeGeoStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLGeoShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLGlobalAssetPropsMap 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLGlobalBindingPropsMap 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLGlobalRecordPropsMap 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLGlobalShapePropsMap 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLGroupShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLGroupShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLHandle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLHandleType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLHighlightShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLHighlightShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLINSTANCE_ID 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLImageAsset 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLImageShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLImageShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLIndexedAssets 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLIndexedBindings 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLIndexedRecords 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLIndexedShapes 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLInstance 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLInstanceId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLInstancePageState 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLInstancePageStateId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLInstancePresence 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLInstancePresenceID 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLLanguage 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLLineShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLLineShapePoint 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLLineShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLLineShapeSplineStyle 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLNoteShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLNoteShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLOpacityType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLPOINTER_ID 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLPage 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLPageId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLParentId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLPointer 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLPointerId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLPresenceStateInfo 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLPropsMigration 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLPropsMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLRecord 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLRemovedDefaultThemeColors 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLRichText 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLSchema 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLScribble 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLSerializedStore 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLShapeCrop 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLShapeId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLShapePartial 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLStore 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLStoreProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLStoreSchema 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLStoreSnapshot 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLTextShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLTextShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLTheme 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLThemeColors 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLThemeDefaultColors 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLThemeFont 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLThemeFonts 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLThemeId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLThemeUiColorKeys 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLThemes 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLUnknownAsset 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLUnknownBinding 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLUnknownShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLUser 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLUserId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLUserStore 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLVideoAsset 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLVideoShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TLVideoShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TL_CANVAS_UI_COLOR_TYPES 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TL_CURSOR_TYPES 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TL_HANDLE_TYPES 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/TL_SCRIBBLE_STATES 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/UserRecordType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/UserSchemaInfo 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/VecModel 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/arrowBindingMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/arrowBindingProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/arrowBindingVersions 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/arrowShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/arrowShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/arrowShapeVersions 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/assetIdValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/assetMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/b64Vecs 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/bindingIdValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/bookmarkAssetMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/bookmarkAssetProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/bookmarkShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/bookmarkShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/boxModelValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/canvasUiColorTypeValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/commentReactionRecordConfig 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/commentRecordConfig 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/commentSchemaRecords 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/commentThreadRecordConfig 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/compressLegacySegments 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createAssetPropsMigrationIds 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createAssetPropsMigrationSequence 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createAssetValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createBindingId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createBindingPropsMigrationIds 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createBindingPropsMigrationSequence 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createBindingValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createCachedUserResolve 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createComment 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createCommentId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createCommentReaction 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createCommentReactionId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createCommentThread 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createCommentThreadId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createCustomRecordId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createCustomRecordMigrationIds 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createCustomRecordMigrationSequence 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createPresenceStateDerivation 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createShapeId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createShapePropsMigrationIds 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createShapePropsMigrationSequence 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createShapeValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createTLSchema 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createUserId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/createUserRecordType 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/defaultAssetSchemas 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/defaultBindingSchemas 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/defaultShapeSchemas 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/drawShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/drawShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/embedShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/embedShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/frameShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/frameShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/geoShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/geoShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/getDefaultTranslationLocale 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/getDefaultUserPresence 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/groupShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/groupShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/highlightShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/highlightShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/idValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/imageAssetMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/imageAssetProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/imageShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/imageShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isBinding 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isBindingId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isCommentId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isCommentReactionId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isCommentThreadId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isCustomRecord 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isCustomRecordId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isDocument 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isPageId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isShape 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isShapeId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/isUserId 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/lineShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/lineShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/noteShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/noteShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/opacityValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/pageIdValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/parentIdValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/registerColorsFromThemes 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/registerFontsFromThemes 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/richTextValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/rootBindingMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/rootShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/scribbleValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/shapeIdValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/textShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/textShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/toRichText 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/userIdValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/vecModelValidator 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/videoAssetMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/videoAssetProps 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/videoShapeMigrations 
+ 
+ 
+ https://tldraw.dev/reference/tlschema/videoShapeProps 
+ 
+ 
+ https://tldraw.dev/reference/validate/ArrayOfValidator 
+ 
+ 
+ https://tldraw.dev/reference/validate/DictValidator 
+ 
+ 
+ https://tldraw.dev/reference/validate/ObjectValidator 
+ 
+ 
+ https://tldraw.dev/reference/validate/T 
+ 
+ 
+ https://tldraw.dev/reference/validate/UnionValidator 
+ 
+ 
+ https://tldraw.dev/reference/validate/UnionValidatorConfig 
+ 
+ 
+ https://tldraw.dev/reference/validate/Validator 
+ 
+ 
+ https://tldraw.dev/releases 
+ 
+ 
+ https://tldraw.dev/releases/migration-skill 
+ 
+ 
+ https://tldraw.dev/releases/next 
+ 
+ 
+ https://tldraw.dev/releases/v2.0.0 
+ 
+ 
+ https://tldraw.dev/releases/v2.1.0 
+ 
+ 
+ https://tldraw.dev/releases/v2.2.0 
+ 
+ 
+ https://tldraw.dev/releases/v2.3.0 
+ 
+ 
+ https://tldraw.dev/releases/v2.4.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.0.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.1.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.10.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.11.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.12.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.13.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.14.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.15.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.2.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.3.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.4.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.5.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.6.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.7.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.8.0 
+ 
+ 
+ https://tldraw.dev/releases/v3.9.0 
+ 
+ 
+ https://tldraw.dev/releases/v4.0.0 
+ 
+ 
+ https://tldraw.dev/releases/v4.1.0 
+ 
+ 
+ https://tldraw.dev/releases/v4.2.0 
+ 
+ 
+ https://tldraw.dev/releases/v4.3.0 
+ 
+ 
+ https://tldraw.dev/releases/v4.4.0 
+ 
+ 
+ https://tldraw.dev/releases/v4.5.0 
+ 
+ 
+ https://tldraw.dev/releases/v5.0.0 
+ 
+ 
+ https://tldraw.dev/releases/v5.1.0 
+ 
+ 
+ https://tldraw.dev/releases/v5.2.0 
+ 
+ 
+ https://tldraw.dev/releases/v5.3.0 
+ 
+ 
+ https://tldraw.dev/sdk-features/accessibility 
+ 
+ 
+ https://tldraw.dev/sdk-features/actions 
+ 
+ 
+ https://tldraw.dev/sdk-features/animation 
+ 
+ 
+ https://tldraw.dev/sdk-features/assets 
+ 
+ 
+ https://tldraw.dev/sdk-features/attribution 
+ 
+ 
+ https://tldraw.dev/sdk-features/bindings 
+ 
+ 
+ https://tldraw.dev/sdk-features/camera 
+ 
+ 
+ https://tldraw.dev/sdk-features/click-detection 
+ 
+ 
+ https://tldraw.dev/sdk-features/clipboard 
+ 
+ 
+ https://tldraw.dev/sdk-features/collaboration 
+ 
+ 
+ https://tldraw.dev/sdk-features/commenting 
+ 
+ 
+ https://tldraw.dev/sdk-features/coordinates 
+ 
+ 
+ https://tldraw.dev/sdk-features/culling 
+ 
+ 
+ https://tldraw.dev/sdk-features/cursor-chat 
+ 
+ 
+ https://tldraw.dev/sdk-features/cursors 
+ 
+ 
+ https://tldraw.dev/sdk-features/deep-links 
+ 
+ 
+ https://tldraw.dev/sdk-features/default-shapes 
+ 
+ 
+ https://tldraw.dev/sdk-features/drag-and-drop 
+ 
+ 
+ https://tldraw.dev/sdk-features/draw-shape 
+ 
+ 
+ https://tldraw.dev/sdk-features/edge-scrolling 
+ 
+ 
+ https://tldraw.dev/sdk-features/editor 
+ 
+ 
+ https://tldraw.dev/sdk-features/embed-shape 
+ 
+ 
+ https://tldraw.dev/sdk-features/environment 
+ 
+ 
+ https://tldraw.dev/sdk-features/errors 
+ 
+ 
+ https://tldraw.dev/sdk-features/events 
+ 
+ 
+ https://tldraw.dev/sdk-features/external-content 
+ 
+ 
+ https://tldraw.dev/sdk-features/focus 
+ 
+ 
+ https://tldraw.dev/sdk-features/frame-shape 
+ 
+ 
+ https://tldraw.dev/sdk-features/geo-shape 
+ 
+ 
+ https://tldraw.dev/sdk-features/geometry 
+ 
+ 
+ https://tldraw.dev/sdk-features/groups 
+ 
+ 
+ https://tldraw.dev/sdk-features/handles 
+ 
+ 
+ https://tldraw.dev/sdk-features/highlighting 
+ 
+ 
+ https://tldraw.dev/sdk-features/history 
+ 
+ 
+ https://tldraw.dev/sdk-features/image-export 
+ 
+ 
+ https://tldraw.dev/sdk-features/indicators 
+ 
+ 
+ https://tldraw.dev/sdk-features/input-handling 
+ 
+ 
+ https://tldraw.dev/sdk-features/instance-state 
+ 
+ 
+ https://tldraw.dev/sdk-features/internationalization 
+ 
+ 
+ https://tldraw.dev/sdk-features/license-key 
+ 
+ 
+ https://tldraw.dev/sdk-features/locked-shapes 
+ 
+ 
+ https://tldraw.dev/sdk-features/note-shape 
+ 
+ 
+ https://tldraw.dev/sdk-features/options 
+ 
+ 
+ https://tldraw.dev/sdk-features/overlay-utils 
+ 
+ 
+ https://tldraw.dev/sdk-features/pages 
+ 
+ 
+ https://tldraw.dev/sdk-features/parenting 
+ 
+ 
+ https://tldraw.dev/sdk-features/performance 
+ 
+ 
+ https://tldraw.dev/sdk-features/persistence 
+ 
+ 
+ https://tldraw.dev/sdk-features/readonly 
+ 
+ 
+ https://tldraw.dev/sdk-features/rich-text 
+ 
+ 
+ https://tldraw.dev/sdk-features/scribble 
+ 
+ 
+ https://tldraw.dev/sdk-features/selection 
+ 
+ 
+ https://tldraw.dev/sdk-features/shape-clipping 
+ 
+ 
+ https://tldraw.dev/sdk-features/shape-indexing 
+ 
+ 
+ https://tldraw.dev/sdk-features/shape-transforms 
+ 
+ 
+ https://tldraw.dev/sdk-features/shapes 
+ 
+ 
+ https://tldraw.dev/sdk-features/side-effects 
+ 
+ 
+ https://tldraw.dev/sdk-features/signals 
+ 
+ 
+ https://tldraw.dev/sdk-features/snapping 
+ 
+ 
+ https://tldraw.dev/sdk-features/store 
+ 
+ 
+ https://tldraw.dev/sdk-features/styles 
+ 
+ 
+ https://tldraw.dev/sdk-features/text-measurement 
+ 
+ 
+ https://tldraw.dev/sdk-features/text-shape 
+ 
+ 
+ https://tldraw.dev/sdk-features/themes 
+ 
+ 
+ https://tldraw.dev/sdk-features/ticks 
+ 
+ 
+ https://tldraw.dev/sdk-features/tools 
+ 
+ 
+ https://tldraw.dev/sdk-features/ui-components 
+ 
+ 
+ https://tldraw.dev/sdk-features/ui-primitives 
+ 
+ 
+ https://tldraw.dev/sdk-features/user-following 
+ 
+ 
+ https://tldraw.dev/sdk-features/user-preferences 
+ 
+ 
+ https://tldraw.dev/sdk-features/validation 
+ 
+ 
+ https://tldraw.dev/sdk-features/visibility 
+ 
+ 
+ https://tldraw.dev/starter-kits/agent 
+ 
+ 
+ https://tldraw.dev/starter-kits/branching-chat 
+ 
+ 
+ https://tldraw.dev/starter-kits/chat 
+ 
+ 
+ https://tldraw.dev/starter-kits/image-pipeline 
+ 
+ 
+ https://tldraw.dev/starter-kits/multiplayer 
+ 
+ 
+ https://tldraw.dev/starter-kits/overview 
+ 
+ 
+ https://tldraw.dev/starter-kits/shader 
+ 
+ 
+ https://tldraw.dev/starter-kits/workflow

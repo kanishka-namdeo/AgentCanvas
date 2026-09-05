@@ -1,0 +1,8 @@
+[
+  {"mode":"search-direct","arg":"figma keyboard shortcuts help.figma.com","name":"s-figma-kbd"},
+  {"mode":"search-direct","arg":"figma help explore canvas pan zoom article","name":"s-figma-canvas"},
+  {"mode":"search-direct","arg":"excalidraw keyboard shortcuts documentation","name":"s-excalidraw"},
+  {"mode":"search-direct","arg":"tldraw keyboard shortcuts documentation","name":"s-tldraw"},
+  {"mode":"search-direct","arg":"wheel event ctrlKey true trackpad pinch Safari Chrome prevent default","name":"s-pinch"},
+  {"mode":"search-direct","arg":"browser reserved shortcuts cannot be overridden Cmd+W Cmd+T web app","name":"s-reserved"}
+]

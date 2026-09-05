@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://stackoverflow.com/questions/68808218/how-to-capture-pinch-zoom-gestures-from-the-trackpad-in-a-desktop-browser-and-p",
+    "name": "How to capture pinch-zoom gestures from the trackpad in",
+    "snippet": "If you open Google Maps in Chrome/Firefox on a laptop with a trackpad, if you pinch-zoom, it just zooms the map, and the floating UI elements remain static. ...",
+    "host_name": "stackoverflow.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/pmndrs/use-gesture/discussions/518",
+    "name": "Pinch and wheel difference across browsers #518",
+    "snippet": "Jul 13, 2022 — But when using those trackpads on Chrome , if you try to zoom , you'll actually trigger WheelEvents with the ctrlKey flag set to true .",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "Jul 13, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://danburzo.ro/dom-gestures",
+    "name": "Pinch me, I'm zooming: gestures in the DOM",
+    "snippet": "Nov 7, 2021 — When you perfrom a pinch - zoom gesture, Firefox and Chrome produce a wheel event with a deltaY: ±scale, ctrlKey : true . They produce an ... Read more",
+    "host_name": "danburzo.ro",
+    "rank": 2,
+    "date": "Nov 7, 2021",
+    "favicon": ""
+  },
+  {
+    "url": "https://forums.tumult.com/t/pinch-and-zoom-using-a-trackpad-on-a-computer/20379",
+    "name": "Pinch and Zoom using a trackpad on a computer",
+    "snippet": "Mar 24, 2021 — In Chrome / Safari the added code allows both pinch and scroll to work Without the Added wheel code Only Safari will work.",
+    "host_name": "forums.tumult.com",
+    "rank": 3,
+    "date": "Mar 24, 2021",
+    "favicon": ""
+  },
+  {
+    "url": "https://tigerabrodi.blog/how-to-handle-trackpad-pinch-to-zoom-vs-two-finger-scroll-in-javascript-canvas-apps",
+    "name": "How to Handle Trackpad Pinch-to-Zoom vs Two-Finger Scroll",
+    "snippet": "Mar 4, 2026 — The solution is to clamp deltaY before applying it. This caps the maximum zoom step per event so mouse wheel jumps stay reasonable while ... Read more",
+    "host_name": "tigerabrodi.blog",
+    "rank": 4,
+    "date": "Mar 4, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/pmndrs/use-gesture/issues/80",
+    "name": "Pinch gestures trigger onWheel · Issue #80 · pmndrs/use-",
+    "snippet": "Aug 13, 2019 — Essentially when you pinch to zoom on a trackpad browsers might send the onWheel event with the ctrl modifier key flag set to true . I'll write a ... Read more",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "Aug 13, 2019",
+    "favicon": ""
+  },
+  {
+    "url": "https://groups.google.com/a/chromium.org/g/chromium-dev/c/VhSKxAJFCs0",
+    "name": "Pinch to zoom vs trackpad pinch to zoom and zooming by",
+    "snippet": "Oct 18, 2019 — To disable touchpad pinch zoom, you can use a wheel event listener which preventDefaults wheel events with the ctrl key set (chromium sends ...",
+    "host_name": "groups.google.com",
+    "rank": 6,
+    "date": "Oct 18, 2019",
+    "favicon": ""
+  },
+  {
+    "url": "https://bugs.webkit.org/show_bug.cgi?id=145214",
+    "name": "145214 – Pinch-to-zoom has no JavaScript event and",
+    "snippet": "Pinch gestures get mapped to wheel events with the control key pressed, and calling preventDefault() will prevent the page from zooming.",
+    "host_name": "bugs.webkit.org",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

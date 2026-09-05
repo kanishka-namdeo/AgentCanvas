@@ -88,13 +88,6 @@ export interface DomNodeProps {
   /// focused id for the dashed focus-ring chrome overlay.
   onShapeFocus?: (id: string) => void;
   onShapeBlur?: (id: string) => void;
-  /// Keydown handler attached to the shape's div. Used by Canvas.tsx to
-  /// dispatch the Enter-to-edit-text flow on text shapes. Other keys (Tab,
-  /// arrows, Escape) are handled by the window-level listeners (existing
-  /// Phase 7 chords in Canvas.tsx + the nudge handler in page.tsx); we
-  /// intentionally do NOT stopPropagation on those so the window listeners
-  /// still see them.
-  onShapeKeyDown?: (e: React.KeyboardEvent, shape: Layer) => void;
 }
 
 export const DomNode = memo(function DomNode({
@@ -116,7 +109,6 @@ export const DomNode = memo(function DomNode({
   ariaLabel,
   onShapeFocus,
   onShapeBlur,
-  onShapeKeyDown,
 }: DomNodeProps) {
   // ---- Native layout mode decisions (spec §3.4) ----------------------------
   // A node is a flex CONTAINER when its own .pen layout is vertical/horizontal;
@@ -183,7 +175,6 @@ export const DomNode = memo(function DomNode({
       aria-busy={ariaBusy || undefined}
       onFocus={onShapeFocus ? (e) => onShapeFocus(layer.id) : undefined}
       onBlur={onShapeBlur ? () => onShapeBlur(layer.id) : undefined}
-      onKeyDown={onShapeKeyDown ? (e) => onShapeKeyDown(e, layer) : undefined}
       // The shell's handler stopPropagation()s — nodes never bubble clicks
       // to the empty-canvas deselect path.
       onMouseDown={(e) => onShapeMouseDown(e, layer)}
@@ -266,7 +257,6 @@ export const DomNode = memo(function DomNode({
           ariaBusy={ariaBusy}
           onShapeFocus={onShapeFocus}
           onShapeBlur={onShapeBlur}
-          onShapeKeyDown={onShapeKeyDown}
           onShapeMouseDown={onShapeMouseDown}
           onHover={onHover}
         />

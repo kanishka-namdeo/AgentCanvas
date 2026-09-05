@@ -1,0 +1,1134 @@
+URL: https://help.figma.com/hc/en-us/articles/360041064174-Access-design-tools-from-the-toolbar
+TITLE: Access design tools from the toolbar &ndash; Figma Learn - Help Center
+
+Access design tools from the toolbar &ndash; Figma Learn - Help Center 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Learn 
+ 
+
+ 
+ 
+ 
+ Get started 
+ Product documentation 
+ Administration 
+ Courses, tutorials, projects 
+ Help 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ enter to select 
+ ↑ ↓ to navigate 
+ esc to close 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Design
+
+ Design and prototype in one place
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Make
+
+ 
+
+ Prompt to code anything you can imagine
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Dev Mode
+
+ Translate designs into code
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Weave
+
+ New 
+ 
+
+ AI workflows for imagery, video, and audio
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+
+ Create precise, production-ready animations
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ FigJam
+
+ Collaborate with a digital whiteboard
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Draw
+
+ 
+
+ Illustrate with advanced vector tools
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Slides
+
+ Co-create presentations
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Sites
+
+ Beta 
+ 
+
+ Publish fully responsive websites
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+
+ Produce on-brand assets at scale
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ AI
+
+ Explore all Figma AI features
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Developer docs
+
+ Work with APIs, embeds, and more
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ For everyone
+
+ 
+ 
+ Account 
+ 
+ Manage settings 
+
+ Change preferences 
+
+ 
+ 
+
+ 
+ Files and projects 
+ 
+ Use the file browser 
+
+ Manage files and projects 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ For administration
+
+ 
+ 
+ Billing 
+ 
+ Overview 
+
+ Manage seats 
+
+ Manage your plan 
+
+ Pay for Figma
+ 
+
+ 
+ 
+
+ 
+ Teams 
+ 
+ Manage a team 
+
+ 
+ 
+
+ 
+ Organizations 
+ 
+ Overview 
+
+ Login and authentication 
+
+ Deploy Figma 
+
+ Members and guests 
+
+ Teams 
+
+ Libraries and resources 
+
+ 
+ 
+
+ 
+ Enterprise 
+ 
+ Billing groups 
+
+ Workspaces 
+
+ Security features 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Find out more
+
+ 
+ 
+ 
+ 
+ 
+ Courses and collections
+
+ New 
+ 
+
+ 
+
+ Level up your Figma skills with these comprehensive skill-based courses.
+
+ 
+ 
+ 
+ 
+ 
+ Projects
+
+ 
+
+ 
+
+ Get hands-on experience in Figma with these practical bite-sized projects.
+
+ 
+ 
+ 
+ 
+ 
+ Tutorials
+
+ 
+
+ 
+
+ Explore tools and features by watching and following along with these expert-led video tutorials.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Get solutions
+
+ 
+ 
+ 
+ 
+ Troubleshoot
+
+ 
+
+ 
+
+ Get help with common issues and troubleshoot unexpected behavior.
+
+ 
+ 
+ 
+ 
+ Work with support
+
+ 
+
+ 
+
+ Submit a bug report, get help collecting log files, and find your system information.
+
+ 
+ 
+ 
+ 
+ Common questions
+
+ 
+
+ 
+
+ Get answers to frequently asked questions.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Figma Community Forum
+
+ 
+
+ Ask the community, share ideas, and connect with other Figma users.
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ Get started 
+ 
+ Product documentation 
+ 
+ 
+ Products 
+ Figma Design 
+ Figma Make 
+ Dev Mode 
+ 
+ Figma Weave
+
+ New 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+ FigJam 
+ Figma Draw 
+ Figma Slides 
+ 
+ Figma Sites
+
+ Beta 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+ 
+
+ 
+ Features 
+ AI 
+ Accessibility 
+ Developer docs 
+ Figma Community 
+ 
+
+ 
+
+ 
+
+ 
+ Administration 
+ 
+ 
+ For everyone 
+ Account 
+ Files and projects 
+ 
+
+ 
+ For administration 
+ Billing 
+ Teams 
+ Organizations 
+ Enterprise
+ 
+ 
+
+ 
+
+ 
+
+ 
+ Courses, tutorials, projects 
+ 
+ 
+ Find out more 
+ Courses and collections 
+ Projects 
+ Tutorials 
+ 
+
+ 
+
+ 
+
+ 
+ Help 
+ 
+ 
+ Get solutions 
+ Troubleshoot 
+ Work with support 
+ Common questions 
+ Figma Community Forum 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ 
+
+ 
+ 
+ 
+ Figma Design 
+ 
+ 
+
+ 
+ 
+ 
+ Tour the interface 
+ 
+ 
+
+ 
+ 
+ 
+ Explore 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ Access design tools from the toolbar 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Before you start
+
+ Who can use this feature
+
+ 
+ 
+ Available any plan 
+
+ 
+ 
+ Most tools in the toolbar require can edit
+ access to the file
+
+ 
+ The toolbar is your hub for interacting with—and adding objects—to the canvas. Here is an overview of the different tools in the toolbar.
+
+ 
+
+ Move tools
+
+ When you open a design file, the Move tool is enabled by default. Open the Move tools menu to access the Hand and Scale tools:
+
+ 
+ 
+ Move : Select and move objects around on the canvas
+
+ 
+ Hand : Click around a file without selecting and moving objects
+
+ 
+ Scale : Resize entire objects or layers 
+
+ 
+ If you're using Figma on a device with a touch screen, the Hand tool lets you pan around a file using your fingers.
+
+ 
+ 
+ Tip : You can press and hold the space bar to temporarily activate the Hand tool.
+
+ Region tools
+
+ Use the Region tools menu to access the Frame , Section , and Slice tools:
+
+ 
+ 
+ Frame : Frames  are the main building blocks of Figma. A frame is a container that holds design elements such as shapes, text, and images. You can use them to organize and structure design elements on the canvas. Create a frame with your own dimensions in the canvas, or select a frame size from Figma's presets in the properties panel on the right-hand side of the screen.
+
+ 
+ Section: Sections let you organize files for easier navigation, link others to a collection of designs, or mark content as "Ready for development" to help with the developer handoff.
+
+ 
+ Slice: The Slice tool allows you to specify a region of the screen you want to export.
+
+ 
+ Shape tools
+
+ The Shape tools menu gives you a number of default shapes to use. The Rectangle tool is selected by default. Click the arrow to choose from:
+
+ 
+ 
+ Rectangle
+
+ 
+ Line
+
+ 
+ Arrow
+
+ 
+ Ellipse
+
+ 
+ Polygon
+
+ 
+ Star
+
+ 
+ Image/video
+
+ 
+ 
+ 
+ Tip : Place Image lets you select one or more images on your computer and insert them on the canvas. In Figma, an image is imported as a fill on a shape , which is why Place Image is located in the Shape tool.
+
+ Creation tools
+
+ Use the  Creation tools menu to access the following tools:
+
+ 
+ 
+ Pen : Build complex Vector Networks using vector paths, anchor points, and bezier curves.
+
+ 
+ Pencil : Add freehand drawings or annotations to your design files. Figma will apply some basic smoothing to any paths you create with the Pencil tool.
+
+ 
+ Text
+
+ Text is a crucial component of interface design. Everything from the placement and arrangement of text, to the choice of font, has a part to play.
+
+ Select the Text tool, or press T  to add text layers to your file.
+
+ 
+ Click once in the canvas to add a text layer that grows horizontally
+
+ Click and drag to create a text layer with a fixed size
+
+ 
+ Learn more about creating text layers .
+
+ Comment tools
+
+ Use the  Comment tools  menu to access the following tools:
+
+ 
+ 
+ Comment: The Comment tool lets you annotate the canvas with your thoughts, ideas, and feedback. Use comments to give or respond to feedback, tweak your designs, and iterate faster—all without leaving the design file. Comments are accessible to anyone with view or edit access to the file. Learn more about comments . 
+
+ 
+ Annotation (Full seat only): Use annotations to highlight important properties and create a speedier development handoff. Learn more about annotations . 
+
+ 
+ Measurement (Full seat only):  Add measurements to quickly visualize spacing and sizing between components. Learn more about measurements .
+
+ 
+ Actions menu
+
+ The Actions menu is a collection of productivity tools in design files to help you stay in the flow. From here, you can access:
+
+ 
+ 
+ AI tools , like generating a design, replacing content, or creating images
+
+ 
+ A search tool for finding library assets by name or by description
+
+ 
+ Plugins and widgets 
+
+ Commands for common actions in Figma, like collapsing all layers in the navigation panel, or toggling rulers on and off
+
+ 
+ Enter Dev Mode
+
+ Dev Mode is a developer-focused interface for inspecting and navigating designs. To enter Dev Mode, click the Dev Mode toggle or use the keyboard shortcut Shift D . Learn more about Dev Mode . 
+
+ Enter Figma Draw
+
+ Figma Draw is a set of visual design tools within the Figma Design editor. To open Figma Draw, click Draw in the toolbar. Learn more about Figma Draw .
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Was this article helpful? 
+ 
+ Yes 
+ No 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Help Center feedback 
+ 
+ Got a second? Tell us what we’re doing well. 
+ 
+ 
+ 
+ 
+ Submit article feedback 
+ Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form .
+
+ 
+ 
+ 
+ Help Center feedback 
+ 
+ Thanks for letting us know! What was the issue? 
+ 
+ 
+ 
+ 
+ -- Please choose an option -- 
+ Incorrect or missing information 
+ Hard to understand 
+ There are typos or broken links 
+ Issues with images, GIFs, or videos 
+ I wish the feature worked a different way 
+ Something else 
+ 
+ 
+ Submit article feedback 
+ Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form .
+
+ 
+ 
+
+ 
+ 
+ Thank you for helping us improve Figma’s Help Center!
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 
+ 한국어
+ 
+ 
+ 
+ Nederlands (Nederland)
+ 
+ 
+ 
+ Polski (Polska)
+ 
+ 
+ 
+ Português do Brasil
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ Use cases
+
+ 
+ 
+ UI design 
+ 
+
+ 
+ UX design 
+ 
+
+ 
+ Prototyping 
+ 
+
+ 
+ Graphic design 
+ 
+
+ 
+ Wireframing 
+ 
+
+ 
+ Brainstorming 
+ 
+
+ 
+ Templates 
+ 
+
+ 
+ Remote design 
+ 
+
+ 
+ 
+
+ 
+ Explore
+
+ 
+ 
+ Design features 
+ 
+
+ 
+ Prototyping features 
+ 
+
+ 
+ Design systems features 
+ 
+
+ 
+ Collaboration features 
+ 
+
+ 
+ FigJam 
+ 
+
+ 
+ Pricing 
+ 
+
+ 
+ Enterprise 
+ 
+
+ 
+ Students and educators 
+ 
+
+ 
+ Customers 
+ 
+
+ 
+ Security 
+ 
+
+ 
+ Integrations 
+ 
+
+ 
+ Contact 
+ 
+
+ 
+ 
+
+ 
+ Resources
+
+ 
+ 
+ Blog 
+ 
+
+ 
+ Best practices 
+ 
+
+ 
+ Support 
+ 
+
+ 
+ Developers 
+ 
+
+ 
+ Learn design 
+ 
+
+ 
+ Downloads 
+ 
+
+ 
+ What's new 
+ 
+
+ 
+ Releases 
+ 
+
+ 
+ Careers 
+ 
+
+ 
+ About us 
+ 
+
+ 
+ Agency partners 
+ 
+
+ 
+ Privacy 
+ 
+
+ 
+ Status

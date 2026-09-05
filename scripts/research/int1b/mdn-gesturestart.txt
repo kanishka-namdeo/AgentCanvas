@@ -1,0 +1,1516 @@
+Element: gesturestart event - Web APIs | MDN 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Skip to main content 
+ 
+
+ 
+ Skip to search 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ MDN 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ HTML 
+ 
+ 
+ 
+ HTML: Markup language 
+ 
+
+ 
+ 
+ HTML reference 
+ 
+ 
+ Elements 
+ 
+ 
+ Global attributes 
+ 
+ 
+ Attributes 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ HTML guides 
+ 
+ 
+ Responsive images 
+ 
+ 
+ HTML cheatsheet 
+ 
+ 
+ Date & time formats 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Markup languages 
+ 
+ 
+ SVG 
+ 
+ 
+ MathML 
+ 
+ 
+ XML 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ CSS 
+ 
+ 
+ 
+ CSS: Styling language 
+ 
+
+ 
+ 
+ CSS reference 
+ 
+ 
+ Properties 
+ 
+ 
+ Selectors 
+ 
+ 
+ At-rules 
+ 
+ 
+ Values 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ CSS guides 
+ 
+ 
+ Box model 
+ 
+ 
+ Animations 
+ 
+ 
+ Flexbox 
+ 
+ 
+ Colors 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Layout cookbook 
+ 
+ 
+ Column layouts 
+ 
+ 
+ Centering an element 
+ 
+ 
+ Card component 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ JavaScript JS 
+ 
+ 
+ 
+ JavaScript: Scripting language 
+ 
+
+ 
+ 
+ JS reference 
+ 
+ 
+ Standard built-in objects 
+ 
+ 
+ Expressions & operators 
+ 
+ 
+ Statements & declarations 
+ 
+ 
+ Functions 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ JS guides 
+ 
+ 
+ Control flow & error handing 
+ 
+ 
+ Loops and iteration 
+ 
+ 
+ Working with objects 
+ 
+ 
+ Using classes 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Web APIs 
+ 
+ 
+ 
+ Web APIs: Programming interfaces 
+ 
+
+ 
+ 
+ Web API reference 
+ 
+ 
+ File system API 
+ 
+ 
+ Fetch API 
+ 
+ 
+ Geolocation API 
+ 
+ 
+ HTML DOM API 
+ 
+ 
+ Push API 
+ 
+ 
+ Service worker API 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Web API guides 
+ 
+ 
+ Using the Web animation API 
+ 
+ 
+ Using the Fetch API 
+ 
+ 
+ Working with the History API 
+ 
+ 
+ Using the Web speech API 
+ 
+ 
+ Using web workers 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ All 
+ 
+ 
+ 
+ All web technology 
+ 
+
+ 
+ 
+ Technologies 
+ 
+ 
+ Accessibility 
+ 
+ 
+ HTTP 
+ 
+ 
+ URI 
+ 
+ 
+ Web extensions 
+ 
+ 
+ WebAssembly 
+ 
+ 
+ WebDriver 
+ 
+ 
+ See all… 
+ 
+
+ 
+ 
+ Topics 
+ 
+ 
+ Media 
+ 
+ 
+ Performance 
+ 
+ 
+ Privacy 
+ 
+ 
+ Security 
+ 
+ 
+ Progressive web apps 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Learn 
+ 
+ 
+ 
+ Learn web development 
+ 
+
+ 
+ 
+ Frontend developer course 
+ 
+ 
+ Getting started modules 
+ 
+ 
+ Core modules 
+ 
+ 
+ MDN Curriculum 
+ 
+ 
+ Check out the video course from Scrimba, our partner 
+ 
+
+ 
+ 
+ Learn HTML 
+ 
+ 
+ Structuring content with HTML module 
+ 
+
+ 
+ 
+ Learn CSS 
+ 
+ 
+ CSS styling basics module 
+ 
+ 
+ CSS layout module 
+ 
+
+ 
+ 
+ Learn JavaScript 
+ 
+ 
+ Dynamic scripting with JavaScript module 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Tools 
+ 
+ 
+ 
+ Discover our tools
+ 
+
+ 
+ 
+ 
+ Playground 
+ 
+ 
+ HTTP Observatory 
+ 
+
+ 
+ 
+ Border-image generator 
+ 
+ 
+ Border-radius generator 
+ 
+ 
+ Box-shadow generator 
+ 
+ 
+ Color format converter 
+ 
+ 
+ Color mixer 
+ 
+ 
+ Shape generator 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ About 
+ 
+ 
+ 
+ Get to know MDN better
+ 
+
+ 
+ 
+ 
+ About MDN 
+ 
+ 
+ Advertise with us 
+ 
+
+ 
+ 
+ Community 
+ 
+ 
+ MDN on GitHub 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Blog 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Toggle sidebar 
+ 
+ 
+ 
+ 
+ Web 
+ 
+ 
+
+ 
+ 
+ Web APIs 
+ 
+ 
+
+ 
+ 
+ Element 
+ 
+ 
+
+ 
+ 
+ gesturestart 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Theme 
+ 
+ 
+ 
+ 
+ 
+ OS default 
+ 
+ 
+ 
+ 
+ Light 
+ 
+ 
+ 
+ 
+ Dark 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (US) 
+ 
+ 
+ 
+ 
+ 
+ 
+ Remember language 
+ 
+ 
+ 
+ 
+ 
+ 
+ Learn more 
+ 
+
+ 
+ 
+ 
+ Deutsch 
+ 
+
+ 
+ 
+ English (US) 
+ 
+
+ 
+ 
+ Français 
+ 
+
+ 
+ 
+ 日本語 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Element: gesturestart event
+
+ 
+ 
+ Non-standard: This feature is not standardized. We do not recommend using non-standard features in production, as they have limited browser support, and may change or be removed. However, they can be a suitable alternative in specific cases where no standard option exists.
+
+ The gesturestart
+ event is fired when multiple fingers contact the touch surface, thus starting a new gesture. During the gesture, gesturechange
+ events will be fired. When the gesture has ended, a gestureend
+ event will be fired.
+
+ It is a proprietary event specific to WebKit.
+
+ 
+ 
+
+ 
+ 
+ In this article
+
+ 
+ 
+ Syntax 
+ 
+ 
+ Event type 
+ 
+ 
+ Specifications 
+ 
+ 
+ Browser compatibility 
+ 
+ 
+ See also 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Syntax 
+ 
+ Use the event name in methods like addEventListener()
+ , or set an event handler property.
+
+ js 
+ addEventListener("gesturestart", (event) =&gt; { })
+
+ongesturestart = (event) =&gt; { }
+
+ 
+ Event type 
+ 
+ A GestureEvent
+ . Inherits from Event
+ .
+
+ 
+ Specifications 
+ 
+ Not part of any specification.
+
+ 
+ Browser compatibility 
+ 
+ Enable JavaScript to view this browser compatibility table. 
+ 
+ 
+ See also 
+ 
+ 
+ GestureEventClassReference at the Safari Developer Library 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Help improve MDN
+ 
+
+ 
+ Was this page helpful to you? 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Yes 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ No 
+ 
+ 
+ 
+ 
+ Learn how to contribute 
+ This page was last modified on Jul 28, 2026 by MDN contributors .
+ 
+ 
+ View this page on GitHub • Report a problem with this content 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Filter sidebar 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Clear filter input 
+ 
+ 
+
+ Element
+ 
+ Instance properties activeViewTransition
+ 
+ ariaActiveDescendantElement
+ 
+ ariaAtomic
+ 
+ ariaAutoComplete
+ 
+ ariaBrailleLabel
+ 
+ ariaBrailleRoleDescription
+ 
+ ariaBusy
+ 
+ ariaChecked
+ 
+ ariaColCount
+ 
+ ariaColIndex
+ 
+ ariaColIndexText
+ 
+ ariaColSpan
+ 
+ ariaControlsElements
+ 
+ ariaCurrent
+ 
+ ariaDescribedByElements
+ 
+ ariaDescription
+ 
+ ariaDetailsElements
+ 
+ ariaDisabled
+ 
+ ariaErrorMessageElements
+ 
+ ariaExpanded
+ 
+ ariaFlowToElements
+ 
+ ariaHasPopup
+ 
+ ariaHidden
+ 
+ ariaInvalid
+ 
+ ariaKeyShortcuts
+ 
+ ariaLabel
+ 
+ ariaLabelledByElements
+ 
+ ariaLevel
+ 
+ ariaLive
+ 
+ ariaModal
+ 
+ ariaMultiLine
+ 
+ ariaMultiSelectable
+ 
+ ariaOrientation
+ 
+ ariaOwnsElements
+ 
+ ariaPlaceholder
+ 
+ ariaPosInSet
+ 
+ ariaPressed
+ 
+ ariaReadOnly
+ 
+ ariaRelevant
+ 
+ ariaRequired
+ 
+ ariaRoleDescription
+ 
+ ariaRowCount
+ 
+ ariaRowIndex
+ 
+ ariaRowIndexText
+ 
+ ariaRowSpan
+ 
+ ariaSelected
+ 
+ ariaSetSize
+ 
+ ariaSort
+ 
+ ariaValueMax
+ 
+ ariaValueMin
+ 
+ ariaValueNow
+ 
+ ariaValueText
+ 
+ assignedSlot
+ 
+ attributes
+ 
+ childElementCount
+ 
+ children
+ 
+ classList
+ 
+ className
+ 
+ clientHeight
+ 
+ clientLeft
+ 
+ clientTop
+ 
+ clientWidth
+ 
+ currentCSSZoom
+ 
+ customElementRegistry
+ 
+ elementTiming
+ 
+ firstElementChild
+ 
+ id
+ 
+ innerHTML
+ 
+ lastElementChild
+ 
+ localName
+ 
+ namespaceURI
+ 
+ nextElementSibling
+ 
+ outerHTML
+ 
+ part
+ 
+ prefix
+ 
+ previousElementSibling
+ 
+ role
+ 
+ scrollHeight
+ 
+ scrollLeft
+ 
+ scrollLeftMax
+ 
+ scrollTop
+ 
+ scrollTopMax
+ 
+ scrollWidth
+ 
+ shadowRoot
+ 
+ slot
+ 
+ tagName
+ 
+ 
+ Instance methods after()
+ 
+ animate()
+ 
+ append()
+ 
+ ariaNotify()
+ 
+ attachShadow()
+ 
+ before()
+ 
+ checkVisibility()
+ 
+ closest()
+ 
+ computedStyleMap()
+ 
+ getAnimations()
+ 
+ getAttribute()
+ 
+ getAttributeNames()
+ 
+ getAttributeNode()
+ 
+ getAttributeNodeNS()
+ 
+ getAttributeNS()
+ 
+ getBoundingClientRect()
+ 
+ getClientRects()
+ 
+ getElementsByClassName()
+ 
+ getElementsByTagName()
+ 
+ getElementsByTagNameNS()
+ 
+ getHTML()
+ 
+ hasAttribute()
+ 
+ hasAttributeNS()
+ 
+ hasAttributes()
+ 
+ hasPointerCapture()
+ 
+ insertAdjacentElement()
+ 
+ insertAdjacentHTML()
+ 
+ insertAdjacentText()
+ 
+ matches()
+ 
+ moveBefore()
+ 
+ prepend()
+ 
+ pseudo()
+ 
+ querySelector()
+ 
+ querySelectorAll()
+ 
+ releasePointerCapture()
+ 
+ remove()
+ 
+ removeAttribute()
+ 
+ removeAttributeNode()
+ 
+ removeAttributeNS()
+ 
+ replaceChildren()
+ 
+ replaceWith()
+ 
+ requestFullscreen()
+ 
+ requestPointerLock()
+ 
+ scroll()
+ 
+ scrollBy()
+ 
+ scrollIntoView()
+ 
+ scrollIntoViewIfNeeded()
+ 
+ scrollTo()
+ 
+ setAttribute()
+ 
+ setAttributeNode()
+ 
+ setAttributeNodeNS()
+ 
+ setAttributeNS()
+ 
+ setCapture()
+ 
+ setHTML()
+ 
+ setHTMLUnsafe()
+ 
+ setPointerCapture()
+ 
+ startViewTransition()
+ 
+ toggleAttribute()
+ 
+ 
+ Events afterscriptexecute
+ 
+ animationcancel
+ 
+ animationend
+ 
+ animationiteration
+ 
+ animationstart
+ 
+ auxclick
+ 
+ beforeinput
+ 
+ beforematch
+ 
+ beforescriptexecute
+ 
+ beforexrselect
+ 
+ blur
+ 
+ click
+ 
+ compositionend
+ 
+ compositionstart
+ 
+ compositionupdate
+ 
+ contentvisibilityautostatechange
+ 
+ contextmenu
+ 
+ copy
+ 
+ cut
+ 
+ dblclick
+ 
+ DOMActivate
+ 
+ DOMMouseScroll
+ 
+ focus
+ 
+ focusin
+ 
+ focusout
+ 
+ fullscreenchange
+ 
+ fullscreenerror
+ 
+ gesturechange
+ 
+ gestureend
+ 
+ gesturestart
+ 
+ gotpointercapture
+ 
+ input
+ 
+ keydown
+ 
+ keypress
+ 
+ keyup
+ 
+ lostpointercapture
+ 
+ mousedown
+ 
+ mouseenter
+ 
+ mouseleave
+ 
+ mousemove
+ 
+ mouseout
+ 
+ mouseover
+ 
+ mouseup
+ 
+ mousewheel
+ 
+ MozMousePixelScroll
+ 
+ paste
+ 
+ pointercancel
+ 
+ pointerdown
+ 
+ pointerenter
+ 
+ pointerleave
+ 
+ pointermove
+ 
+ pointerout
+ 
+ pointerover
+ 
+ pointerrawupdate
+ 
+ pointerup
+ 
+ scroll
+ 
+ scrollend
+ 
+ scrollsnapchange
+ 
+ scrollsnapchanging
+ 
+ securitypolicyviolation
+ 
+ touchcancel
+ 
+ touchend
+ 
+ touchmove
+ 
+ touchstart
+ 
+ transitioncancel
+ 
+ transitionend
+ 
+ transitionrun
+ 
+ transitionstart
+ 
+ webkitmouseforcechanged
+ 
+ webkitmouseforcedown
+ 
+ webkitmouseforceup
+ 
+ webkitmouseforcewillbegin
+ 
+ wheel
+ 
+ 
+ Inheritance Node
+ 
+ EventTarget
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ MDN 
+ 
+ Your blueprint for a better internet.
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ MDN 
+ 
+ 
+ 
+ 
+ 
+ About
+ 
+ 
+
+ 
+ 
+ 
+ Blog
+ 
+ 
+
+ 
+ 
+ 
+ Mozilla careers
+ 
+ 
+
+ 
+ 
+ 
+ Advertise with us
+ 
+ 
+
+ 
+ 
+ 
+ MDN Plus
+ 
+ 
+
+ 
+ 
+ 
+ Product help
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Contribute 
+ 
+ 
+ 
+ 
+ 
+ MDN Community
+ 
+ 
+
+ 
+ 
+ 
+ Community resources
+ 
+ 
+
+ 
+ 
+ 
+ Writing guidelines
+ 
+ 
+
+ 
+ 
+ 
+ MDN Discord
+ 
+ 
+
+ 
+ 
+ 
+ MDN on GitHub
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Developers 
+ 
+ 
+ 
+ 
+ 
+ Web technologies
+ 
+ 
+
+ 
+ 
+ 
+ Learn web development
+ 
+ 
+
+ 
+ 
+ 
+ Guides
+ 
+ 
+
+ 
+ 
+ 
+ Tutorials
+ 
+ 
+
+ 
+ 
+ 
+ Glossary
+ 
+ 
+
+ 
+ 
+ 
+ Hacks blog
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Mozilla 
+ 
+ 
+ 
+ Website Privacy Notice 
+ 
+
+ 
+ 
+ Telemetry Settings 
+ 
+
+ 
+ 
+ Legal 
+ 
+
+ 
+ 
+ Community Participation Guidelines 
+ 
+
+ 
+ 
+ 
+ Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under a Creative Commons license .

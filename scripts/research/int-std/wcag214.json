@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.w3.org/WAI/WCAG21/Understanding/character-key-shortcuts.html",
+    "name": "Understanding SC 2.1.4 Character Key Shortcuts (Level A)",
+    "snippet": "The intent of this success criterion is to reduce accidental activation of keyboard shortcuts . Character key shortcuts work well for many keyboard users. Read more",
+    "host_name": "www.w3.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.getstark.co/wcag-explained/operable/keyboard-accessible/character-key-shortcuts",
+    "name": "WCAG Character Key Shortcuts Explained",
+    "snippet": "WCAG 2.1.4 , \" Character Key Shortcuts ,\" focuses on the accessibility concerns related to keyboard shortcuts that use character keys .",
+    "host_name": "www.getstark.co",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dequeuniversity.com/resources/wcag2.1/2.1.4-character-key-shortcuts",
+    "name": "2.1.4 Character Key Shortcuts (AA)",
+    "snippet": "Active only on focus : The keyboard shortcut for a user interface component is only active when that component has focus .",
+    "host_name": "dequeuniversity.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F99",
+    "name": "F99: Failure of Success Criterion 2.1.4 due to implementing",
+    "snippet": "The use of a single key keyboard shortcut is not a failure if the shortcut is only active when a particular interface element has focus .",
+    "host_name": "www.w3.org",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/w3c/wcag/issues/2314",
+    "name": "Understanding for 2.1.4 Character Key Shortcuts may",
+    "snippet": "Apr 19, 2022 — From a recent discussion on Slack about 2.1.4 Character Key Shortcuts , it seems there's some confusion about Shift as a modifier key .",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "Apr 19, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://mn.gov/mnit/media/blog/?id=38-604881",
+    "name": "Character Key Shortcuts and Label in Name - Minnesota.gov",
+    "snippet": "Dec 27, 2023 — This is a “quick dive” into two WCAG 2.1 success criteria – 2.1.4 Character Key Shortcuts and 2.5.3 Label in Name.",
+    "host_name": "mn.gov",
+    "rank": 5,
+    "date": "Dec 27, 2023",
+    "favicon": ""
+  }
+]

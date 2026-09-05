@@ -1,0 +1,432 @@
+URL: https://tldraw.dev/examples/canvas-events
+TITLE: Canvas events • tldraw Docs
+DATE: 
+
+Canvas events • tldraw Docs 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Twitter/X 
+ 
+ Discord 
+ 
+ GitHub 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Search docs … 
+ ⌘K 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ Search docs … 
+ ⌘K 
+
+ 
+ 
+ 
+ Quick start 
+ 
+ 
+ Documentation 
+ 
+ 
+ Reference 
+ 
+ 
+ Starter kits 
+ 
+ 
+ Examples 
+ Getting started
+ Tldraw component 
+ Multiplayer sync 
+ Controlling the canvas 
+ 
+ Configuration
+ Editor options 
+ Shape options 
+ Camera options 
+ Asset options 
+ Custom text outline 
+ Display options 
+ Edge scrolling 
+ Persistence key 
+ Read-only 
+ Reduced motion preferences 
+ Custom embeds 
+ Environment detection 
+ Embed permissions 
+ Deep links 
+ Frame colors 
+ Note resizing 
+ Precise exact arrows 
+ Disable pages 
+ Minimal 
+ Sublibraries 
+ 
+ Editor API
+ Controlling the canvas 
+ Save and load snapshots 
+ Coordinate system transformations 
+ Create an arrow 
+ Custom clipping shape 
+ Zoom to bounds 
+ Arrow labels 
+ Create a video shape 
+ Create an image shape 
+ Custom overlay 
+ Dynamic tools with setTool and removeTool 
+ Focus the editor 
+ Lock camera zoom 
+ Search text on the canvas 
+ Shape animation 
+ Z-order 
+ Align and distribute shapes 
+ Conditional culling 
+ Dimensions HUD 
+ Lasso select tool 
+ Locked shapes 
+ Reactive inputs 
+ Replace a built-in overlay 
+ Toggle focus mode 
+ Hovered overlay 
+ Interaction end callback 
+ Performance hooks 
+ Selection bounds 
+ Easter egg styles 
+ 
+ UI & theming
+ Toolbar groups 
+ Vertical toolbar 
+ Add a tool to the toolbar 
+ Remove a tool from the toolbar 
+ Change default colors 
+ Change default styles 
+ Changing menus 
+ Format rich text on multiple shapes 
+ Custom theme 
+ Multiple themes 
+ Hide UI components 
+ Menu system hover 
+ Screen reader accessibility 
+ Things on the canvas 
+ Toasts and dialogs 
+ UI primitives 
+ UI zones 
+ Hide the entire UI 
+ Replace the entire UI 
+ Contextual toolbar 
+ Custom canvas components 
+ Custom grid 
+ Drag and drop tray 
+ Error boundary 
+ Selection UI 
+ Text mass style updates 
+ Add connected shape 
+ Color picker 
+ Custom actions 
+ Custom error capture 
+ Custom indicators 
+ Custom keyboard shortcuts 
+ Escape shape focus trap 
+ Overlay theme colors 
+ Selection color condition 
+ Stroke size picker 
+ Dark mode 
+ Force mobile layout 
+ Toggle dark mode 
+ Inspector panel 
+ Layer panel 
+ Page panel 
+ Floaty window 
+ Custom translations and overrides 
+ Custom renderer 
+ 
+ Page layout
+ Inset editor 
+ Inset editor (fixed sizes) 
+ Inset editor (common practices) 
+ Inset canvas 
+ Scrollable container 
+ Multiple editors 
+ External dialog 
+ External UI (using context) 
+ External UI (using state) 
+ Snapshot image component 
+ 
+ Events & effects
+ Signals 
+ Canvas events 
+ Store events 
+ UI events 
+ Block events 
+ Prevent instance changes 
+ Prevent shape changes 
+ Prevent multi-shape selection 
+ Before create/update shape 
+ Before delete shape 
+ Custom double-click behavior 
+ After create/update shape 
+ After delete shape 
+ Permissions 
+ Permissions 2 
+ Derived view 
+ Shape meta (on change) 
+ Shape meta (on create) 
+ Unsaved changes 
+ 
+ Shapes & tools
+ Custom shape wrapper 
+ Custom shape 
+ Custom tool (sticker) 
+ Custom tool (screenshot) 
+ Cubic bezier curve shape 
+ Custom shape and tool 
+ Shape with onClick 
+ Shape with onDoubleClickEdge 
+ Custom shape with custom styles 
+ Custom shape with tldraw styles 
+ Clickable custom shape 
+ Custom handle snap reference 
+ Custom shape with handles 
+ Custom tool with child states 
+ Editable custom shape 
+ Flex layout shape 
+ Arrow binding options 
+ Custom geo types 
+ Custom shape geometry 
+ Custom shape migrations 
+ Custom shape SVG export 
+ Custom snapping 
+ Frame layout modes 
+ Shape that accepts dropped files 
+ Stamp tool 
+ Custom validators for shape props 
+ Programmatic text shape creation 
+ Data grid shape 
+ Drag and drop shape 
+ Portal shapes 
+ Attach shapes together (bindings) 
+ DOM-based shape size 
+ Layout constraints (bindings) 
+ Persistent iframe shape 
+ Pin (bindings) 
+ Rich text with custom extension and toolbar 
+ Rich text with font options 
+ Outlined text 
+ Globs 
+ Popup shape 
+ 
+ Collaboration
+ Commenting 
+ Multiplayer sync 
+ Commenting sidebar 
+ Comment clustering 
+ Multiplayer sync with a custom shape 
+ Multiplayer sync with custom people menu 
+ Multiplayer sync with custom presence 
+ Comment anchors 
+ Multiplayer sync with private content 
+ Commenting on mobile 
+ Manually update user presence 
+ Shape comment precision 
+ Comments and undo 
+ Region comments 
+ Drawn comment reactions 
+ Comment notifications 
+ 
+ Data & assets
+ Persist to storage 
+ Static assets 
+ Custom records 
+ Export canvas as image 
+ Export canvas as image (with settings) 
+ Hosted images 
+ Custom paste behavior 
+ External content sources 
+ Clipboard events 
+ Custom asset type 
+ Meta migrations 
+ 
+ Use cases
+ D3 geo map 
+ Slideshow (fixed camera) 
+ Slideshow (free camera) 
+ Education canvas 
+ Image annotator 
+ PDF editor 
+ Canvas mask 
+ Fog of war 
+ Mark exams 
+ Many shapes 
+ Soft clipping region 
+ Tower defense 
+ Customize Mermaid diagrams 
+ Gravity sim (xkcd 2347) 
+ Hundreds of Mermaid diagrams 
+ Pasting Mermaid code as shapes 
+ Snowstorm 
+ Timeline scrubber 
+ 
+
+ 
+ 
+ Menu 
+ 
+ 
+ 
+ Search docs … 
+ ⌘K 
+
+ Canvas events
+ 
+ Copy markdown 
+
+ Log the pointer, keyboard, and other input events the editor dispatches to its tools.
+ 
+ Try example 
+
+ App.tsx canvas-events.css 
+ import { useCallback, useState } from 'react' 
+ import { TLEventInfo, Tldraw } from 'tldraw' 
+ import 'tldraw/tldraw.css' 
+ import './canvas-events.css' 
+ 
+ // There's a guide at the bottom of this file! 
+ 
+ type TimedEvent = TLEventInfo & { lastUpdated : number } 
+ 
+ export default function CanvasEventsExample () { 
+ const [ events , setEvents ] = useState < Record < string , TimedEvent >>({}) 
+ 
+ // [1] 
+ const handleEvent = useCallback (( data : TLEventInfo ) => { 
+ setEvents (( prevEvents ) => ({ 
+ ... prevEvents, 
+ [data.type]: { 
+ ... data, 
+ lastUpdated: Date. now (), 
+ }, 
+ })) 
+ }, []) 
+ 
+ const eventsArray = Object. values (events). sort (( a , b ) => a.lastUpdated - b.lastUpdated) 
+ 
+ return ( 
+ < div className = "canvas-events" > 
+ < div className = "canvas-events__editor" > 
+ < Tldraw 
+ onMount = {(editor) => { 
+ // [2] 
+ editor. on ( 'event' , handleEvent) 
+ return () => { 
+ editor. off ( 'event' , handleEvent) 
+ } 
+ }} 
+ /> 
+ </ div > 
+ < div className = "canvas-events__log" onCopy = {(event) => event.stopPropagation()} > 
+ < pre >{JSON.stringify(eventsArray, undefined, 2 )} </ pre > 
+ </ div > 
+ </ div > 
+ ) 
+ } 
+ 
+ /* 
+ Canvas events are the low-level input events the editor dispatches to its tools: pointer, 
+ keyboard, wheel, pinch, tick and so on. They don't cover document changes like creating or 
+ deleting shapes; for those, see the store events example. For higher-level UI actions like 
+ "zoom in" or "select tool", see the UI events example. 
+ 
+ [1] 
+ Pointer moves and ticks fire many times a second, so logging every event would be unreadable. 
+ Instead we keep the latest event of each type, keyed by `type`, and show them ordered by when 
+ they last fired. 
+ 
+ [2] 
+ `Editor` is an event emitter. Subscribing to `'event'` gives you every `TLEventInfo` the editor 
+ handles, after its own processing. `onMount` can return a cleanup function, which is the right 
+ place to unsubscribe. 
+ */ 
+ 
+
+ 
+ Copy 
+ 
+
+ The editor is an event emitter. Subscribing to editor . on (' event ', handler )
+ gives you every
+ TLEventInfo
+ the editor processes: pointer, keyboard, wheel, pinch, click, and tick events. This
+example keeps the most recent event of each type and shows them on the right-hand side.
+
+ Try moving your cursor, dragging, and holding modifier keys, and watch the panel update. These are
+input events, not document changes: to see shapes being created or deleted, look at the store events
+example, and for high-level UI actions like tool selection, see the UI events example.
+ Is this page helpful? 
+ 
+ 
+
+ 
+ Prev 
+ Signals Next 
+ 
+ Store events 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ The infinite canvas SDK
+ GitHub 
+ X/Twitter 
+ Discord 
+ LinkedIn 
+ 
+
+ Product
+ Whiteboard 
+ Starter kits 
+ Pricing 
+ FAQ 
+ 
+ Developers
+ Quick start guide 
+ Starter kits 
+ Examples 
+ Releases 
+ Docs 
+ 
+ Community
+ GitHub 
+ Discord 
+ X/Twitter 
+ LinkedIn 
+ Bluesky 
+ Mastodon 
+ 
+ Company
+ Videos 
+ Careers 
+ License 
+ Trademarks 
+ CLA 
+ Privacy settings 
+ 
+
+ © 2026 tldraw

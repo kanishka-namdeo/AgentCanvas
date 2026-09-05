@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://www.linkedin.com/posts/soraia-soares_figma-shortcuts-designsystems-activity-7396140106929143809-YXhb",
+    "name": "Soraia Soares' Post",
+    "snippet": "Arrow = 1px / Shift + Arrow = 10px . Smart zoom : Shift +2 ( zoom to selection) / Shift + 1 ( fit to screen) Cmd + D → Duplicate Quickly suggest ...",
+    "host_name": "www.linkedin.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://shortcuts.design/tools/toolspage-figma",
+    "name": "All Mac & Windows shortcuts for Figma",
+    "snippet": "Learn or search all Mac &amp; Windows keyboard shortcuts for Figma in one place, Zoom in + Zoom out. Zoom to fit ⇧. Zoom in + Zoom out - Zoom to fit ⇧ 1",
+    "host_name": "shortcuts.design",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.topcoder.com/thrive/articles/top-shortcuts-for-figma",
+    "name": "Top Shortcuts for Figma",
+    "snippet": "Aug 8, 2022 — Hold SHIFT + 1 (compatible with Windows and MacOS) Arrow keys can be used to nudge and resize objects. To nudge, select the element, press the ...",
+    "host_name": "www.topcoder.com",
+    "rank": 2,
+    "date": "Aug 8, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/FigmaDesign/comments/1try420/what_is_your_ultimate_i_wish_i_knew_this_sooner",
+    "name": "What is your ultimate \"I wish I knew this sooner\" Figma",
+    "snippet": "We all know the basic muscle-memory commands like Shift + A for Auto Layout or Cmd / Ctrl + K to scale, but Figma is packed with hidden micro-features ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@designgrapes/20-figma-shortcuts-for-effortless-and-time-saving-design-dbb3b7e945a1",
+    "name": "20 Figma Shortcuts for Effortless and Time-Saving Design",
+    "snippet": "Press Cmd + = (Mac) or Ctrl + = (Windows ) to zoom in on your canvas. If you prefer to duplicate a layer in the same position, use Option + Cmd ...",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://verpex.com/blog/essential-figma-shortcuts-you-need-to-know",
+    "name": "Essential Figma Shortcuts You Need to Know",
+    "snippet": "Aug 30, 2025 — Zoom In: Cmd + ( Mac ) / Ctrl + ( Windows ). Zoom Out: Cmd - ( Mac ) / Ctrl ... Zoom to Selection: Shift + 2. Zoom to Fit All: Shift + 1 . These ... Read more",
+    "host_name": "verpex.com",
+    "rank": 5,
+    "date": "Aug 30, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard",
+    "name": "Use Figma products with a keyboard",
+    "snippet": "Hold Shift while pressing the arrow keys to increase the pan distance and move faster. The distance changes based on your current zoom level. To zoom in or out, ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

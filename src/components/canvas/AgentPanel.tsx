@@ -31,6 +31,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from '@/components/ui/dropdown-menu';
+import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -737,59 +744,51 @@ const MODE_ICONS: Record<AgentMode, React.ComponentType<{ className?: string }>>
 };
 
 function ModeSelector({ mode, onModeChange }: { mode: AgentMode; onModeChange: (m: AgentMode) => void }) {
-  const [open, setOpen] = useState(false);
   const ModeIcon = MODE_ICONS[mode];
+  // Radix DropdownMenu (interaction-consistency pass): the hand-rolled
+  // popover had NO Escape/arrow-key/typeahead handling and — worse — while
+  // it was open, Escape fell through to the window handler and stopped a
+  // live agent run. Radix gives the APG menu contract (Esc closes, arrows
+  // navigate, typeahead selects, focus trap + restore) AND mounts the
+  // [data-radix-popper-content-wrapper] layer the window-level Escape /
+  // single-char shortcut guards now key off.
   return (
-    <div className="relative flex-shrink-0">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-label={`Agent mode: ${MODE_METADATA[mode].label}. Click to change.`}
-        aria-expanded={open}
-        title={`${MODE_METADATA[mode].hint}\n(click to change · ⇧+Tab cycles · /ask /plan /build)`}
-        className={`flex items-center gap-1 h-6 px-1.5 py-0.5 rounded ac-transition hover:ac-surface-1 ac-focus-ring ${mode === 'build' ? 'ac-text-3' : 'ac-text-info font-medium'}`}
-      >
-        <ModeIcon className="h-3 w-3" />
-        <span className="text-[11px]">{MODE_METADATA[mode].label}</span>
-        <ChevronDown className="h-2.5 w-2.5 opacity-60" />
-      </button>
-      {open && (
-        <>
-          <button
-            className="fixed inset-0 z-40 cursor-default"
-            aria-label="Close mode menu"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute bottom-full left-0 mb-1 z-50 w-72 rounded-md border ac-border-subtle ac-surface-1 shadow-lg overflow-hidden">
-            <div className="px-2 py-1 text-[9px] font-medium ac-text-4 uppercase tracking-wide border-b ac-border-subtle">
-              Agent mode — what the agent can do
-            </div>
-            {AGENT_MODES.map((m) => {
-              const Icon = MODE_ICONS[m];
-              const active = m === mode;
-              return (
-                <button
-                  key={m}
-                  onClick={() => {
-                    onModeChange(m);
-                    setOpen(false);
-                  }}
-                  className={`w-full flex items-start gap-2 px-2 py-1.5 text-left hover:ac-surface-2 ac-transition ${active ? 'ac-surface-2' : ''}`}
-                >
-                  <Icon className={`h-3.5 w-3.5 mt-0.5 flex-shrink-0 ${active ? 'ac-text-info' : 'ac-text-4'}`} />
-                  <span className="min-w-0">
-                    <span className={`block text-[11px] font-medium ${active ? 'ac-text-1' : 'ac-text-2'}`}>
-                      {MODE_METADATA[m].label}
-                      {active && <span className="ml-1 ac-text-4 font-normal">(current)</span>}
-                    </span>
-                    <span className="block text-[10px] ac-text-4 leading-snug">{MODE_METADATA[m].description}</span>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label={`Agent mode: ${MODE_METADATA[mode].label}. Click to change.`}
+          title={`${MODE_METADATA[mode].hint}\n(click to change · ⇧+Tab cycles · /ask /plan /build)`}
+          className={`flex items-center gap-1 h-6 px-1.5 py-0.5 rounded ac-transition hover:ac-surface-1 ac-focus-ring ${mode === 'build' ? 'ac-text-3' : 'ac-text-info font-medium'}`}
+        >
+          <ModeIcon className="h-3 w-3" />
+          <span className="text-[11px]">{MODE_METADATA[mode].label}</span>
+          <ChevronDown className="h-2.5 w-2.5 opacity-60" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="start" className="w-72">
+        <div className="px-2 py-1 text-[9px] font-medium ac-text-4 uppercase tracking-wide border-b ac-border-subtle">
+          Agent mode — what the agent can do
+        </div>
+        <DropdownMenuRadioGroup value={mode} onValueChange={(v) => onModeChange(v as AgentMode)}>
+          {AGENT_MODES.map((m) => {
+            const Icon = MODE_ICONS[m];
+            const active = m === mode;
+            return (
+              <DropdownMenuRadioItem key={m} value={m} className="items-start py-1.5">
+                <Icon className={`h-3.5 w-3.5 mt-0.5 flex-shrink-0 ${active ? 'ac-text-info' : 'ac-text-4'}`} />
+                <span className="min-w-0">
+                  <span className={`block text-[11px] font-medium ${active ? 'ac-text-1' : 'ac-text-2'}`}>
+                    {MODE_METADATA[m].label}
+                    {active && <span className="ml-1 ac-text-4 font-normal">(current)</span>}
                   </span>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
+                  <span className="block text-[10px] ac-text-4 leading-snug">{MODE_METADATA[m].description}</span>
+                </span>
+              </DropdownMenuRadioItem>
+            );
+          })}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

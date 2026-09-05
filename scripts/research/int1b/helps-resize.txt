@@ -1,0 +1,398 @@
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 162 results for "resize objects shift proportions" in All Categories
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Resize, rotate, and flip objects in FigJam
+ 
+ ...height of an object . Manual resizing can change the aspect ratio of an object . To resize an object : Click the object to select... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ FigJam 
+ 
+ Work on boards 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Adjust alignment, rotation, position, and dimensions
+ 
+ ...Hold Shift and click the alignment controls to align multiple objects as a group to their parent frame. If objects live... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Work with layers 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Apply constraints to define how layers resize
+ 
+ ...frame's dimensions. It will then maintain those proportions as you resize it. For example: The frame's width is 100px... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Work with layers 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Resize assets in Figma Buzz
+ 
+ ...preparing assets for resizing , and learn how to resize assets directly in Figma Buzz. Resize assets To resize an asset in Figma... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Buzz 
+ 
+ Create and edit assets in Figma Buzz 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Scale layers while maintaining proportions
+ 
+ ...file can resize objects with the scale tool Use the scale tool to proportionally resize layers and objects . This tool... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Work with layers 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Frames in Figma Design
+ 
+ ...Constraints : Define how child objects respond when you resize a frame. Apply constraints to objects within a frame. Auto... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Create and edit layers 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Guide to auto layout
+ 
+ ...frames Object resizes based on its child objects Fill container Child objects of auto layout frames Object fills... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Figma Design 
+ 
+ Create designs 
+ 
+ Use auto layout 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Select, move, and order objects in FigJam
+ 
+ ...more than one object : Shift key Select an object on the board. Hold down Shift and click another object . Repeat for... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ FigJam 
+ 
+ Work on boards 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Create a reusable icon grid
+ 
+ ...tutorial much easier. Enable the snap to settings When resizing objects , moving layers, or moving vector points, we can use... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ Courses, tutorials, projects 
+ 
+ Projects 
+ 
+ Projects 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Organize your FigJam board with sections
+ 
+ ...Add objects to section There are a few ways to add objects to a section: Move a section over an object Resize a section... 
+ 
+ 
+ 
+ Figma Learn - Help Center 
+ 
+ FigJam 
+ 
+ Work on boards 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ Next 
+ › 
+ 
+ 
+
+ 
+ 
+ Last 
+ » 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 
+ 한국어
+ 
+ 
+ 
+ Nederlands (Nederland)
+ 
+ 
+ 
+ Polski (Polska)
+ 
+ 
+ 
+ Português do Brasil
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Use cases 
+ 
+ 
+ UI design 
+ 
+ 
+ UX design 
+ 
+ 
+ Prototyping 
+ 
+ 
+ Graphic design 
+ 
+ 
+ Wireframing 
+ 
+ 
+ Brainstorming 
+ 
+ 
+ Templates 
+ 
+ 
+ Remote design 
+ 
+ 
+ 
+ 
+ Explore 
+ 
+ 
+ Design features 
+ 
+ 
+ Prototyping features 
+ 
+ 
+ Design systems features 
+ 
+ 
+ Collaboration features 
+ 
+ 
+ FigJam 
+ 
+ 
+ Pricing 
+ 
+ 
+ Enterprise 
+ 
+ 
+ Students and educators 
+ 
+ 
+ 

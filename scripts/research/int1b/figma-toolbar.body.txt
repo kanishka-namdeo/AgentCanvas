@@ -1,0 +1,181 @@
+Before you start
+
+ Who can use this feature
+
+ 
+ 
+ Available any plan 
+
+ 
+ 
+ Most tools in the toolbar require can edit
+ access to the file
+
+ 
+ The toolbar is your hub for interacting with—and adding objects—to the canvas. Here is an overview of the different tools in the toolbar.
+
+ 
+
+## Move tools
+
+ When you open a design file, the Move tool is enabled by default. Open the Move tools menu to access the Hand and Scale tools:
+
+ 
+- 
+ Move : Select and move objects around on the canvas
+
+- 
+ Hand : Click around a file without selecting and moving objects
+
+- 
+ Scale : Resize entire objects or layers 
+
+ 
+ If you're using Figma on a device with a touch screen, the Hand tool lets you pan around a file using your fingers.
+
+ 
+ 
+ Tip : You can press and hold the space bar to temporarily activate the Hand tool.
+
+## Region tools
+
+ Use the Region tools menu to access the Frame , Section , and Slice tools:
+
+ 
+- 
+ Frame : Frames  are the main building blocks of Figma. A frame is a container that holds design elements such as shapes, text, and images. You can use them to organize and structure design elements on the canvas. Create a frame with your own dimensions in the canvas, or select a frame size from Figma's presets in the properties panel on the right-hand side of the screen.
+
+- 
+ Section: Sections let you organize files for easier navigation, link others to a collection of designs, or mark content as "Ready for development" to help with the developer handoff.
+
+- 
+ Slice: The Slice tool allows you to specify a region of the screen you want to export.
+
+ 
+
+## Shape tools
+
+ The Shape tools menu gives you a number of default shapes to use. The Rectangle tool is selected by default. Click the arrow to choose from:
+
+ 
+- 
+ Rectangle
+
+- 
+ Line
+
+- 
+ Arrow
+
+- 
+ Ellipse
+
+- 
+ Polygon
+
+- 
+ Star
+
+- 
+ Image/video
+
+ 
+ 
+ 
+ Tip : Place Image lets you select one or more images on your computer and insert them on the canvas. In Figma, an image is imported as a fill on a shape , which is why Place Image is located in the Shape tool.
+
+## Creation tools
+
+ Use the  Creation tools menu to access the following tools:
+
+ 
+- 
+ Pen : Build complex Vector Networks using vector paths, anchor points, and bezier curves.
+
+- 
+ Pencil : Add freehand drawings or annotations to your design files. Figma will apply some basic smoothing to any paths you create with the Pencil tool.
+
+ 
+
+## Text
+
+ Text is a crucial component of interface design. Everything from the placement and arrangement of text, to the choice of font, has a part to play.
+
+ Select the Text tool, or press T  to add text layers to your file.
+
+ 
+- Click once in the canvas to add a text layer that grows horizontally
+
+- Click and drag to create a text layer with a fixed size
+
+ 
+ Learn more about creating text layers .
+
+## Comment tools
+
+ Use the  Comment tools  menu to access the following tools:
+
+ 
+- 
+ Comment: The Comment tool lets you annotate the canvas with your thoughts, ideas, and feedback. Use comments to give or respond to feedback, tweak your designs, and iterate faster—all without leaving the design file. Comments are accessible to anyone with view or edit access to the file. Learn more about comments . 
+
+- 
+ Annotation (Full seat only): Use annotations to highlight important properties and create a speedier development handoff. Learn more about annotations . 
+
+- 
+ Measurement (Full seat only):  Add measurements to quickly visualize spacing and sizing between components. Learn more about measurements .
+
+ 
+
+## Actions menu
+
+ The Actions menu is a collection of productivity tools in design files to help you stay in the flow. From here, you can access:
+
+ 
+- 
+ AI tools , like generating a design, replacing content, or creating images
+
+- 
+ A search tool for finding library assets by name or by description
+
+- 
+ Plugins and widgets 
+
+- Commands for common actions in Figma, like collapsing all layers in the navigation panel, or toggling rulers on and off
+
+ 
+
+## Enter Dev Mode
+
+ Dev Mode is a developer-focused interface for inspecting and navigating designs. To enter Dev Mode, click the Dev Mode toggle or use the keyboard shortcut Shift D . Learn more about Dev Mode . 
+
+## Enter Figma Draw
+
+ Figma Draw is a set of visual design tools within the Figma Design editor. To open Figma Draw, click Draw in the toolbar. Learn more about Figma Draw .
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 

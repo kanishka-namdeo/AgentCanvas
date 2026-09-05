@@ -1,0 +1,1260 @@
+URL: https://github.com/tldraw/tldraw/issues/6164
+TITLE: Add scroll wheel zoom direction preference
+DATE: 
+
+Add scroll wheel zoom direction preference · Issue #6164 · tldraw/tldraw 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ Skip to content 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ Navigation Menu
+ 
+ 
+ Sign in 
+ Appearance settings
+
+ Platform 
+ AI CODE CREATION 
+ 
+ GitHub Copilot Write better code with AI 
+ 
+ GitHub Copilot app Direct agents from issue to merge 
+ 
+ 
+ MCP Registry Integrate external tools 
+ 
+
+ DEVELOPER WORKFLOWS 
+ Actions Automate any workflow 
+ 
+ 
+ Codespaces Instant dev environments 
+ 
+ 
+ Issues Plan and track work 
+ 
+ Code Review Manage code changes 
+ 
+ 
+ Code Quality Enforce quality at merge 
+ 
+
+ APPLICATION SECURITY 
+ GitHub Advanced Security Find and fix vulnerabilities 
+ 
+ Code security Secure your code as you build 
+ 
+ Secret protection Stop leaks before they start 
+ 
+
+ EXPLORE Why GitHub 
+ Documentation 
+ 
+ Blog 
+ 
+ Changelog 
+ 
+ Marketplace 
+ 
+
+ View all features 
+ 
+ 
+
+ Solutions 
+ BY COMPANY SIZE Enterprises 
+ Small and medium teams 
+ Startups 
+ Nonprofits 
+ 
+
+ BY USE CASE App Modernization 
+ DevSecOps 
+ DevOps 
+ CI/CD 
+ View all use cases 
+ 
+ 
+ 
+
+ BY INDUSTRY Healthcare 
+ Financial services 
+ Manufacturing 
+ Government 
+ View all industries 
+ 
+ 
+ 
+
+ View all solutions 
+ 
+ 
+
+ Resources 
+ EXPLORE BY TOPIC AI 
+ Software Development 
+ DevOps 
+ Security 
+ View all topics 
+ 
+ 
+ 
+
+ EXPLORE BY TYPE Customer stories 
+ Events & webinars 
+ Ebooks & reports 
+ Business insights 
+ GitHub Skills 
+ 
+ 
+
+ SUPPORT & SERVICES Documentation 
+ 
+ Customer support 
+ 
+ Community forum 
+ Trust center 
+ Partners 
+ 
+
+ View all resources 
+ 
+ 
+
+ Open Source 
+ COMMUNITY 
+ GitHub Sponsors Fund open source developers 
+ 
+
+ PROGRAMS Security Lab 
+ 
+ Maintainer Community 
+ 
+ GitHub Stars 
+ 
+ Archive Program 
+ 
+ 
+
+ REPOSITORIES Topics 
+ Trending 
+ Collections 
+ 
+
+ 
+
+ Enterprise 
+ ENTERPRISE SOLUTIONS 
+ Enterprise platform AI-powered developer platform 
+ 
+
+ AVAILABLE ADD-ONS 
+ GitHub Advanced Security Enterprise-grade security features 
+ 
+ 
+ Copilot for Business Enterprise-grade AI features 
+ 
+ Premium Support Enterprise-grade 24/7 support 
+ 
+
+ 
+
+ Pricing 
+ 
+ Search / 
+
+ Sign in 
+ Sign up 
+ Appearance settings
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ You signed in with another tab or window. Reload to refresh your session. 
+ You signed out in another tab or window. Reload to refresh your session. 
+ You switched accounts on another tab or window. Reload to refresh your session. 
+
+ 
+ 
+
+ 
+ Dismiss alert 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ {{ message }}
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Uh oh!
+
+ 
+ There was an error while loading. Please reload this page .
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ tldraw
+ 
+ / 
+ 
+ tldraw 
+ 
+
+ Public 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ Notifications
+ You must be signed in to change notification settings 
+
+ 
+
+ 
+ 
+ 
+
+ Fork
+ 3.5k 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ Star
+ 50.1k 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Code 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Issues 
+ 458 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Pull requests 
+ 252 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Actions 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Projects 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Security and quality 
+ 0 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Insights 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Additional navigation options 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Code
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Issues
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Pull requests
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Actions
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Projects
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Security and quality
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Insights
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ Add scroll wheel zoom direction preference #6164 
+
+ New issue 
+ 
+ 
+ Copy link 
+
+ New issue 
+ 
+ 
+ Copy link 
+
+ 
+ 
+ Closed 
+ Feature 
+ 
+ #7732 
+
+ 
+ 
+ Closed 
+ Add scroll wheel zoom direction preference #6164 
+ Feature
+ 
+ #7732 
+
+ 
+ 
+ Copy link 
+
+ Labels
+ good first issue Good for newcomers Good for newcomers stale ⚙️ Applied automatically to issues inactive for 150 days ⚙️ Applied automatically to issues inactive for 150 days 
+
+ 
+ 
+
+ 
+ Description
+ 
+ visnup 
+ opened on Jun 1, 2025 
+
+ 
+ 
+ 
+ Issue body actions 
+
+ What's the feature?
+
+ For whatever reason, my muscle memory wants scrolling up on the scroll wheel (actually, Magic Mouse on a Mac) to zoom into the canvas (objects get larger). I know everyone has their own preference though, so I'd suggest just adding a user preference that is "Invert zoom direction".
+
+ I think I'm used to it from that pinching out causes my index finger to move up, which is the same finger that would move the "scroll wheel" on a magic mouse. For what it's worth, the Maps app on macOS agrees with me, though Photos does not.
+
+ Where would you like this feature?
+
+ The developer package
+
+ Contact Details
+
+ visnup@gmail.com 
+
+ Code of Conduct
+
+ 
+
+ 
+ I agree to follow this project's Code of Conduct
+
+ 
+
+ 
+ To pick up a draggable item, press the space bar.
+ While dragging, use the arrow keys to move the item.
+ Press space again to drop the item in its new position, or press escape to cancel.
+ 
+ 
+
+ 
+
+ 👍 React with 👍 1 Reacted by aura 
+
+ Activity
+ 
+ 
+
+ 
+ 
+
+ visnup 
+added enhancement 
+ on Jun 1, 2025 
+ 
+
+ 
+
+ 
+ 
+
+ linear commented on Jun 1, 2025 
+ 
+ linear bot 
+ on Jun 1, 2025 – with Linear 
+
+ 
+ 
+ 
+ More actions 
+
+ ENG-3483 [Feature]: Scroll wheel zoom direction user preference 
+
+ 
+
+ 
+ 
+
+ github-actions commented on Nov 1, 2025 
+ 
+ github-actions bot 
+ on Nov 1, 2025 – with GitHub Actions 
+
+ 
+ Contributor 
+ 
+ More actions 
+
+ This issue has been marked as stale because it has been open for 150 days with no activity. If there's no further discussion, it'll be closed in 30 days time. If you would like to ensure it stays open, you can comment on the issue and revive the discussion. Or, you can add the 'keep' label to prevent it from being closed.
+
+ 
+
+ 
+ 
+
+ 
+ 
+
+ github-actions 
+added stale ⚙️ Applied automatically to issues inactive for 150 days ⚙️ Applied automatically to issues inactive for 150 days 
+ on Nov 1, 2025 
+ 
+
+ 
+
+ 
+ 
+
+ github-actions commented on Dec 1, 2025 
+ 
+ github-actions bot 
+ on Dec 1, 2025 – with GitHub Actions 
+
+ 
+ Contributor 
+ 
+ More actions 
+
+ This issue was closed because it has been inactive for 30 days since being marked as stale.
+
+ 
+
+ 
+ 
+
+ 
+ 
+
+ github-actions 
+closed this as not planned on Dec 1, 2025 
+ 
+
+ 
+
+ 
+ 
+
+ visnup commented on Dec 2, 2025 
+ 
+ visnup 
+ on Dec 2, 2025 
+
+ 
+ Author 
+ 
+ More actions 
+
+ Would still enjoy this small feature
+
+ 
+
+ 
+ 
+
+ 
+ 
+
+ steveruizok 
+changed the title [-] [Feature]: Scroll wheel zoom direction user preference [/-] [+] Add scroll wheel zoom direction preference [/+] on Jan 1, 2026 
+ 
+
+ 
+
+ 
+ 
+
+ steveruizok 
+removed enhancement 
+ on Jan 1, 2026 
+ 
+
+ 
+
+ 
+ 
+ 
+
+ steveruizok 
+added the Feature 
+
+issue type on Jan 1, 2026 
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ steveruizok 
+ reopened this on Jan 1, 2026 
+ 
+
+ 
+
+ 
+ 
+
+ steveruizok commented on Jan 1, 2026 
+ 
+ steveruizok 
+ on Jan 1, 2026 
+
+ 
+ Collaborator 
+ 
+ More actions 
+
+ This issue has been reopened as it remains unaddressed.
+
+ Summary
+
+ The feature requested in this issue has not been implemented despite comprehensive camera options being added in PR #3282 .
+
+ Analysis
+
+ The current TLCameraOptions
+ interface includes controls for:
+
+ 
+ panSpeed
+: Adjust pan sensitivity
+
+ zoomSpeed
+: Adjust zoom sensitivity
+
+ wheelBehavior
+: Choose between zoom, pan, or none
+
+ 
+ However, there is no invertZoomDirection
+ or equivalent option to reverse the scroll zoom direction.
+
+ Current behavior
+
+ 
+ Scrolling UP on scroll wheel: Zooms OUT
+
+ Scrolling DOWN on scroll wheel: Zooms IN
+
+ 
+ Requested behavior
+
+ 
+ Option to INVERT this direction (like macOS Maps, Apple Photos)
+
+ 
+ Why this matters
+
+ The current behavior doesn't match the muscle memory of users familiar with:
+
+ 
+ macOS Maps and Photos apps
+
+ Pinch gestures on touch devices (pinching out = index finger moving up)
+
+ Many mapping applications
+
+ 
+ Implementation Path
+
+ 
+ Add invertZoomDirection?: boolean
+ to TLCameraOptions
+
+ Update zoom calculation logic in Editor.ts
+ to respect this option
+
+ Add tests and documentation
+
+ 
+ This is a reasonable UX preference that aligns with established patterns in other applications.
+
+ 
+
+ 
+ 
+
+ 
+ 
+
+ steveruizok 
+added good first issue Good for newcomers Good for newcomers 
+ on Jan 1, 2026 
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+
+ kostyafarber 
+mentioned this on Jan 2, 2026 
+ 
+
+ 
+ feat(editor): add zoom direction preference #7552 
+
+ 
+
+ 
+ 
+
+ kostyafarber 
+mentioned this on Jan 22, 2026 
+ 
+
+ 
+ feat(editor): add zoom direction preference for mouse input #7732 
+
+ 
+
+ 
+ 
+
+ github-merge-queue 
+added a commit that references this issue on Jan 22, 2026 feat(editor): add zoom direction preference for mouse input ( #7732 )
+
+ 
+ ... 
+ 
+ 7c74a71 
+
+ 
+
+ 
+
+ 
+ 
+
+ kostyafarber 
+closed this as completed in #7732 on Jan 22, 2026 
+ 
+
+ 
+
+ 
+ 
+
+ steveruizok 
+mentioned this on Feb 14, 2026 
+ 
+
+ 
+ 
+ Add right-click drag panning and scroll zoom toggle #5808 
+
+ 
+
+ 
+
+ Sign up for free to join this conversation on GitHub. Already have an account? Sign in to comment 
+
+ Metadata
+ Metadata
+ 
+ Assignees
+
+ No one assigned 
+
+ Labels
+
+ good first issue Good for newcomers Good for newcomers stale ⚙️ Applied automatically to issues inactive for 150 days ⚙️ Applied automatically to issues inactive for 150 days 
+
+ Type
+
+ Feature 
+
+ Projects
+
+ No projects 
+
+ Milestone
+
+ No milestone 
+ 
+
+ Relationships
+
+ None yet 
+
+ Development
+
+ 
+ feat(editor): add zoom direction preference for mouse input tldraw/tldraw Release 
+ v4.4.0 
+ 
+
+ Participants
+
+ 
+
+ Issue actions
+ 
+ Open in GitHub Copilot app 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ Footer
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ © 2026 GitHub, Inc.
+ 
+ 
+
+ 
+ Footer navigation
+
+ 
+
+ 
+ Terms 
+ 
+
+ 
+ Privacy 
+ 
+
+ 
+ Security 
+ 
+
+ 
+ Status 
+ 
+
+ 
+ Community 
+ 
+
+ 
+ Docs 
+ 
+
+ 
+ Contact 
+ 
+
+ 
+ 
+ 
+ 
+ Manage cookies
+ 
+ 
+
+ 
+ 
+ 
+ Do not share my personal information
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ You can’t perform that action at this time.

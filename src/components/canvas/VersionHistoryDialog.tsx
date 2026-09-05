@@ -10,7 +10,7 @@
 // disabled while the agent is mid-turn (restoring under a streaming agent
 // would corrupt its working document — same guard as undo/redo).
 //
-// Opened from the TopMenuBar's File → "Version history…".
+// Opened from the File menu → "Version history…" (and the ⌘K palette).
 
 import { useCanvasStore } from '@/lib/canvas/store';
 import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';

@@ -1,0 +1,1122 @@
+URL: https://help.figma.com/hc/en-us/search?query=use+the+toolbar+tools
+TITLE: Search results &ndash; Figma Learn - Help Center
+
+Search results &ndash; Figma Learn - Help Center 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Learn 
+ 
+
+ 
+ 
+ 
+ Get started 
+ Product documentation 
+ Administration 
+ Courses, tutorials, projects 
+ Help 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ enter to select 
+ ↑ ↓ to navigate 
+ esc to close 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Design
+
+ Design and prototype in one place
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Make
+
+ 
+
+ Prompt to code anything you can imagine
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Dev Mode
+
+ Translate designs into code
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Weave
+
+ New 
+ 
+
+ AI workflows for imagery, video, and audio
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+
+ Create precise, production-ready animations
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ FigJam
+
+ Collaborate with a digital whiteboard
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Draw
+
+ 
+
+ Illustrate with advanced vector tools
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Slides
+
+ Co-create presentations
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Sites
+
+ Beta 
+ 
+
+ Publish fully responsive websites
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+
+ Produce on-brand assets at scale
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ AI
+
+ Explore all Figma AI features
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Developer docs
+
+ Work with APIs, embeds, and more
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ For everyone
+
+ 
+ 
+ Account 
+ 
+ Manage settings 
+
+ Change preferences 
+
+ 
+ 
+
+ 
+ Files and projects 
+ 
+ Use the file browser 
+
+ Manage files and projects 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ For administration
+
+ 
+ 
+ Billing 
+ 
+ Overview 
+
+ Manage seats 
+
+ Manage your plan 
+
+ Pay for Figma
+ 
+
+ 
+ 
+
+ 
+ Teams 
+ 
+ Manage a team 
+
+ 
+ 
+
+ 
+ Organizations 
+ 
+ Overview 
+
+ Login and authentication 
+
+ Deploy Figma 
+
+ Members and guests 
+
+ Teams 
+
+ Libraries and resources 
+
+ 
+ 
+
+ 
+ Enterprise 
+ 
+ Billing groups 
+
+ Workspaces 
+
+ Security features 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Find out more
+
+ 
+ 
+ 
+ 
+ 
+ Courses and collections
+
+ New 
+ 
+
+ 
+
+ Level up your Figma skills with these comprehensive skill-based courses.
+
+ 
+ 
+ 
+ 
+ 
+ Projects
+
+ 
+
+ 
+
+ Get hands-on experience in Figma with these practical bite-sized projects.
+
+ 
+ 
+ 
+ 
+ 
+ Tutorials
+
+ 
+
+ 
+
+ Explore tools and features by watching and following along with these expert-led video tutorials.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Get solutions
+
+ 
+ 
+ 
+ 
+ Troubleshoot
+
+ 
+
+ 
+
+ Get help with common issues and troubleshoot unexpected behavior.
+
+ 
+ 
+ 
+ 
+ Work with support
+
+ 
+
+ 
+
+ Submit a bug report, get help collecting log files, and find your system information.
+
+ 
+ 
+ 
+ 
+ Common questions
+
+ 
+
+ 
+
+ Get answers to frequently asked questions.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Figma Community Forum
+
+ 
+
+ Ask the community, share ideas, and connect with other Figma users.
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ Get started 
+ 
+ Product documentation 
+ 
+ 
+ Products 
+ Figma Design 
+ Figma Make 
+ Dev Mode 
+ 
+ Figma Weave
+
+ New 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+ FigJam 
+ Figma Draw 
+ Figma Slides 
+ 
+ Figma Sites
+
+ Beta 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+ 
+
+ 
+ Features 
+ AI 
+ Accessibility 
+ Developer docs 
+ Figma Community 
+ 
+
+ 
+
+ 
+
+ 
+ Administration 
+ 
+ 
+ For everyone 
+ Account 
+ Files and projects 
+ 
+
+ 
+ For administration 
+ Billing 
+ Teams 
+ Organizations 
+ Enterprise
+ 
+ 
+
+ 
+
+ 
+
+ 
+ Courses, tutorials, projects 
+ 
+ 
+ Find out more 
+ Courses and collections 
+ Projects 
+ Tutorials 
+ 
+
+ 
+
+ 
+
+ 
+ Help 
+ 
+ 
+ Get solutions 
+ Troubleshoot 
+ Work with support 
+ Common questions 
+ Figma Community Forum 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 438 results for "use the toolbar tools" in All Categories
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Access design tools from the toolbar
+ 
+
+ ...the Hand tool . Region tools Use the Region tools menu to access the Frame, Section, and Slice tools : Frame...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Tour the interface 
+
+ 
+ Explore 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Use Figma Design tools in Figma Buzz
+ 
+
+ ...Figma Design tools using the toggle in the toolbar or with the keyboard shortcut Shift D. Layers panel When using Figma Design...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Buzz 
+
+ 
+ Create and edit assets in Figma Buzz 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Draw with illustration tools
+ 
+
+ ...and Brush tools The Pencil and Brush tools allow you to draw and paint directly inside a Figma Design file. Use the Pencil...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Figma Draw 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Use design tools in Figma Sites
+ 
+
+ ...Figma Sites lets you create and publish websites using the same powerful tools found in Figma Design. Create designs in Figma...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Sites 
+
+ 
+ Design a site 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Figma Sites collection: Use Design tools in Figma Sites
+ 
+
+ ...Figma Sites. The toolbar at the bottom of the canvas is where you can add new webpages and use other tools you may be familiar...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Courses, tutorials, projects 
+
+ 
+ Courses and collections 
+
+ 
+ Figma Sites collection 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Use AI tools in Figma Design
+ 
+
+ ...Who can use this feature Figma Design AI tools are available on paid plans. Requires a Full seat to use AI tools...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Tour the interface 
+
+ 
+ Explore 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Edit assets in Figma Buzz
+ 
+
+ ...dashed Border from the inline toolbar . Add text, images, and more In Asset view, use the tools in the left navigation bar to...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Buzz 
+
+ 
+ Create and edit assets in Figma Buzz 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ FD4B: Create your avatar using shapes and fills
+ 
+
+ ...a circular shape, so we’ll use the Ellipse tool . Select the Ellipse tool from the toolbar or press O on your keyboard...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Courses, tutorials, projects 
+
+ 
+ Courses and collections 
+
+ 
+ Figma Design for beginners 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Shape tools
+ 
+
+ ...your own vector networks using the Pen tool . Learn more → Rectangles Use the Rectangle tool to create both rectangles...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Create and edit layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Use Weave tools in Figma
+ 
+
+ ...about Figma Weave. Use a Weave tool on an image To use a Weave tool on an image: Select Tools from the navigation bar...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Work across Figma 
+
+ 
+ Figma AI 
+
+ 
+ Image tools 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ Next 
+ › 
+ 
+ 
+
+ 
+ 
+ Last 
+ » 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 
+ 한국어
+ 
+ 
+ 
+ Nederlands (Nederland)
+ 
+ 
+ 
+ Polski (Polska)
+ 
+ 
+ 
+ Português do Brasil
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ Use cases
+
+ 
+ 
+ UI design 
+ 
+
+ 
+ UX design 
+ 
+
+ 
+ Prototyping 
+ 
+
+ 
+ Graphic design 
+ 
+
+ 
+ Wireframing 
+ 
+
+ 
+ Brainstorming 
+ 
+
+ 
+ Templates 
+ 
+
+ 
+ Remote design 
+ 
+
+ 
+ 
+
+ 
+ Explore
+
+ 
+ 
+ Design features 
+ 
+
+ 
+ Prototyping features 
+ 
+
+ 
+ Design systems features 
+ 
+
+ 
+ Collaboration features 
+ 
+
+ 
+ FigJam 
+ 
+
+ 
+ Pricing 
+ 
+
+ 
+ Enterprise 
+ 
+
+ 
+ Students and educators 
+ 
+
+ 
+ Customers 
+ 
+
+ 
+ Security 
+ 
+
+ 
+ Integrations 
+ 
+
+ 
+ Contact 
+ 
+
+ 
+ 
+
+ 
+ Resources
+
+ 
+ 
+ Blog 
+ 
+
+ 
+ Best practices 
+ 
+
+ 
+ Support 
+ 
+
+ 
+ Developers 
+ 
+
+ 
+ Learn design 
+ 
+
+ 
+ Downloads 
+ 
+
+ 
+ What's new 
+ 
+
+ 
+ Releases 
+ 
+
+ 
+ Careers 
+ 
+
+ 
+ About us 
+ 
+
+ 
+ Agency partners 
+ 
+
+ 
+ Privacy 
+ 
+
+ 
+ Status

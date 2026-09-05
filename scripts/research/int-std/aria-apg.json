@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.w3.org/WAI/ARIA/apg",
+    "name": "ARIA Authoring Practices Guide | APG | WAI",
+    "snippet": "Learn how to make accessible web components and widgets with ARIA roles, states and properties and by implementing keyboard support.",
+    "host_name": "www.w3.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wai-aria-practices.netlify.app/aria-practices",
+    "name": "ARIA Practices Guide | Web Accessibility Initiative (WAI) | W3C",
+    "snippet": "This document provides readers with an understanding of how to use WAI - ARIA 1.2 [ WAI - ARIA ] to create accessible rich internet applications. Read more",
+    "host_name": "wai-aria-practices.netlify.app",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://w3c.github.io/aria",
+    "name": "Accessible Rich Internet Applications (WAI-ARIA) 1.3",
+    "snippet": "7 days ago — The new semantics, when combined with the recommended keyboard interactions provided in ARIA Authoring Practices Guide , will allow alternate ... Read more",
+    "host_name": "w3c.github.io",
+    "rank": 2,
+    "date": "Aug 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.levelaccess.com/blog/wai-aria-guidance-best-practices-for-accessible-web-interfaces",
+    "name": "WAI‑ARIA Guidance: Best Practices for Accessible Web",
+    "snippet": "May 7, 2026 — All interactive ARIA controls must be keyboard accessible ; ARIA declares semantics but doesn't add keyboard functionality automatically. Testing ... Read more",
+    "host_name": "www.levelaccess.com",
+    "rank": 3,
+    "date": "May 7, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface",
+    "name": "Developing a Keyboard Interface | APG | WAI",
+    "snippet": "This section describes the principles and methods for making the functionality of a web page that includes ARIA widgets, such as menus and grids, as well as ... Read more",
+    "host_name": "www.w3.org",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://accessibility.arizona.edu/web-apps/aria-patterns",
+    "name": "ARIA Patterns & Components - Accessibility",
+    "snippet": "Keyboard behavior Tab — Cycle through focusable elements inside dialog only. Arrow keys move focus and update tabindex. attributes Check role requirements ...",
+    "host_name": "accessibility.arizona.edu",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.uxpin.com/studio/blog/keyboard-navigation-patterns-complex-widgets",
+    "name": "Keyboard Navigation Patterns for Complex Widgets",
+    "snippet": "Jun 3, 2026 — Test both basic navigation (using Tab and Shift+ Tab ) and widget-specific keys (e.g., arrows, Home, End) as defined in the ARIA Authoring ... Read more",
+    "host_name": "www.uxpin.com",
+    "rank": 6,
+    "date": "Jun 3, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/mdn/content/blob/main/files/en-us/web/accessibility/aria/reference/roles/toolbar_role/index.md?plain=1",
+    "name": "content/files/en-us/web/accessibility/aria/reference/roles/",
+    "snippet": "Avoid including controls whose operation requires arrow keys used for toolbar navigation (right and left arrows, or top and bottom for vertical toolbars).",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

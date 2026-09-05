@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://stackoverflow.com/questions/15416851/catching-mac-trackpad-zoom",
+    "name": "Catching Mac trackpad zoom - javascript",
+    "snippet": "Currently in my application i am catching the mouse wheel events and perform zoom in or out on a Canvas element. If user uses Mac and tries to perform zoom ...",
+    "host_name": "stackoverflow.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/pmndrs/use-gesture/issues/80",
+    "name": "Pinch gestures trigger onWheel · Issue #80 · pmndrs/use-",
+    "snippet": "Aug 13, 2019 — Essentially when you pinch to zoom on a trackpad browsers might send the onWheel event with the ctrl modifier key flag set to true . I'll ... Read more",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "Aug 13, 2019",
+    "favicon": ""
+  },
+  {
+    "url": "https://tigerabrodi.blog/how-to-handle-trackpad-pinch-to-zoom-vs-two-finger-scroll-in-javascript-canvas-apps",
+    "name": "How to Handle Trackpad Pinch-to-Zoom vs Two-Finger Scroll",
+    "snippet": "Mar 4, 2026 — The solution is to clamp deltaY before applying it. This caps the maximum zoom step per event so mouse wheel jumps stay reasonable while ... Read more",
+    "host_name": "tigerabrodi.blog",
+    "rank": 2,
+    "date": "Mar 4, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://kenneth.io/post/detecting-multi-touch-trackpad-gestures-in-javascript",
+    "name": "Detecting multi-touch trackpad gestures in JavaScript",
+    "snippet": "You can detect a pinch -to- zoom gesture with this quite simple event handler listening for the wheel event , where the e.deltaY value represents your zoom /scale ... Read more",
+    "host_name": "kenneth.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://danburzo.ro/dom-gestures",
+    "name": "Pinch me, I'm zooming: gestures in the DOM",
+    "snippet": "Nov 7, 2021 — When you perfrom a pinch - zoom gesture, Firefox and Chrome produce a wheel event with a deltaY: ±scale, ctrlKey : true . They produce an identical ... Read more",
+    "host_name": "danburzo.ro",
+    "rank": 4,
+    "date": "Nov 7, 2021",
+    "favicon": ""
+  },
+  {
+    "url": "https://devforum.zoom.us/t/trackpad-pinch-to-zoom-event-not-fired-in-zoom-apps/130482",
+    "name": "Trackpad pinch-to-zoom event not fired in Zoom apps",
+    "snippet": "Mar 25, 2025 — On regular browsers , when using a laptop's trackpad , users can pinch to zoom in or out which results in a wheel event with event. ctrlKey = true ... Read more",
+    "host_name": "devforum.zoom.us",
+    "rank": 5,
+    "date": "Mar 25, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://earlruby.org/2010/10/turn-off-pinch-to-zoom-on-firefox-on-mac-os-x",
+    "name": "Turn off trackpad pinch-to-zoom on Firefox on Mac OS X",
+    "snippet": "Click browser .gesture. pinch .out and change its setting from “cmd_fullZoomEnlarge” to “cmd_fullZoomEnlarge-disable”. That's it. No more annoying track pad zoom .",
+    "host_name": "earlruby.org",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forums.tumult.com/t/pinch-and-zoom-using-a-trackpad-on-a-computer/20379",
+    "name": "Pinch and Zoom using a trackpad on a computer",
+    "snippet": "Mar 24, 2021 — Hello, I am using this bit of code to enable the user to pinch / zoom an element on the hype stage and it is working fine.",
+    "host_name": "forums.tumult.com",
+    "rank": 7,
+    "date": "Mar 24, 2021",
+    "favicon": ""
+  }
+]

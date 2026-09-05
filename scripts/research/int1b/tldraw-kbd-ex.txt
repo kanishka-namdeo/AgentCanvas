@@ -1,0 +1,434 @@
+URL: https://tldraw.dev/examples/keyboard-shortcuts
+TITLE: Custom keyboard shortcuts • tldraw Docs
+
+Custom keyboard shortcuts • tldraw Docs 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Twitter/X 
+ 
+ Discord 
+ 
+ GitHub 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Search docs … 
+ ⌘K 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ Search docs … 
+ ⌘K 
+
+ 
+ 
+ 
+ Quick start 
+ 
+ 
+ Documentation 
+ 
+ 
+ Reference 
+ 
+ 
+ Starter kits 
+ 
+ 
+ Examples 
+ Getting started
+ Tldraw component 
+ Multiplayer sync 
+ Controlling the canvas 
+ 
+ Configuration
+ Editor options 
+ Shape options 
+ Camera options 
+ Asset options 
+ Custom text outline 
+ Display options 
+ Edge scrolling 
+ Persistence key 
+ Read-only 
+ Reduced motion preferences 
+ Custom embeds 
+ Environment detection 
+ Embed permissions 
+ Deep links 
+ Frame colors 
+ Note resizing 
+ Precise exact arrows 
+ Disable pages 
+ Minimal 
+ Sublibraries 
+ 
+ Editor API
+ Controlling the canvas 
+ Save and load snapshots 
+ Coordinate system transformations 
+ Create an arrow 
+ Custom clipping shape 
+ Zoom to bounds 
+ Arrow labels 
+ Create a video shape 
+ Create an image shape 
+ Custom overlay 
+ Dynamic tools with setTool and removeTool 
+ Focus the editor 
+ Lock camera zoom 
+ Search text on the canvas 
+ Shape animation 
+ Z-order 
+ Align and distribute shapes 
+ Conditional culling 
+ Dimensions HUD 
+ Lasso select tool 
+ Locked shapes 
+ Reactive inputs 
+ Replace a built-in overlay 
+ Toggle focus mode 
+ Hovered overlay 
+ Interaction end callback 
+ Performance hooks 
+ Selection bounds 
+ Easter egg styles 
+ 
+ UI & theming
+ Toolbar groups 
+ Vertical toolbar 
+ Add a tool to the toolbar 
+ Remove a tool from the toolbar 
+ Change default colors 
+ Change default styles 
+ Changing menus 
+ Format rich text on multiple shapes 
+ Custom theme 
+ Multiple themes 
+ Hide UI components 
+ Menu system hover 
+ Screen reader accessibility 
+ Things on the canvas 
+ Toasts and dialogs 
+ UI primitives 
+ UI zones 
+ Hide the entire UI 
+ Replace the entire UI 
+ Contextual toolbar 
+ Custom canvas components 
+ Custom grid 
+ Drag and drop tray 
+ Error boundary 
+ Selection UI 
+ Text mass style updates 
+ Add connected shape 
+ Color picker 
+ Custom actions 
+ Custom error capture 
+ Custom indicators 
+ Custom keyboard shortcuts 
+ Escape shape focus trap 
+ Overlay theme colors 
+ Selection color condition 
+ Stroke size picker 
+ Dark mode 
+ Force mobile layout 
+ Toggle dark mode 
+ Inspector panel 
+ Layer panel 
+ Page panel 
+ Floaty window 
+ Custom translations and overrides 
+ Custom renderer 
+ 
+ Page layout
+ Inset editor 
+ Inset editor (fixed sizes) 
+ Inset editor (common practices) 
+ Inset canvas 
+ Scrollable container 
+ Multiple editors 
+ External dialog 
+ External UI (using context) 
+ External UI (using state) 
+ Snapshot image component 
+ 
+ Events & effects
+ Signals 
+ Canvas events 
+ Store events 
+ UI events 
+ Block events 
+ Prevent instance changes 
+ Prevent shape changes 
+ Prevent multi-shape selection 
+ Before create/update shape 
+ Before delete shape 
+ Custom double-click behavior 
+ After create/update shape 
+ After delete shape 
+ Permissions 
+ Permissions 2 
+ Derived view 
+ Shape meta (on change) 
+ Shape meta (on create) 
+ Unsaved changes 
+ 
+ Shapes & tools
+ Custom shape wrapper 
+ Custom shape 
+ Custom tool (sticker) 
+ Custom tool (screenshot) 
+ Cubic bezier curve shape 
+ Custom shape and tool 
+ Shape with onClick 
+ Shape with onDoubleClickEdge 
+ Custom shape with custom styles 
+ Custom shape with tldraw styles 
+ Clickable custom shape 
+ Custom handle snap reference 
+ Custom shape with handles 
+ Custom tool with child states 
+ Editable custom shape 
+ Flex layout shape 
+ Arrow binding options 
+ Custom geo types 
+ Custom shape geometry 
+ Custom shape migrations 
+ Custom shape SVG export 
+ Custom snapping 
+ Frame layout modes 
+ Shape that accepts dropped files 
+ Stamp tool 
+ Custom validators for shape props 
+ Programmatic text shape creation 
+ Data grid shape 
+ Drag and drop shape 
+ Portal shapes 
+ Attach shapes together (bindings) 
+ DOM-based shape size 
+ Layout constraints (bindings) 
+ Persistent iframe shape 
+ Pin (bindings) 
+ Rich text with custom extension and toolbar 
+ Rich text with font options 
+ Outlined text 
+ Globs 
+ Popup shape 
+ 
+ Collaboration
+ Commenting 
+ Multiplayer sync 
+ Commenting sidebar 
+ Comment clustering 
+ Multiplayer sync with a custom shape 
+ Multiplayer sync with custom people menu 
+ Multiplayer sync with custom presence 
+ Comment anchors 
+ Multiplayer sync with private content 
+ Commenting on mobile 
+ Manually update user presence 
+ Shape comment precision 
+ Comments and undo 
+ Region comments 
+ Drawn comment reactions 
+ Comment notifications 
+ 
+ Data & assets
+ Persist to storage 
+ Static assets 
+ Custom records 
+ Export canvas as image 
+ Export canvas as image (with settings) 
+ Hosted images 
+ Custom paste behavior 
+ External content sources 
+ Clipboard events 
+ Custom asset type 
+ Meta migrations 
+ 
+ Use cases
+ D3 geo map 
+ Slideshow (fixed camera) 
+ Slideshow (free camera) 
+ Education canvas 
+ Image annotator 
+ PDF editor 
+ Canvas mask 
+ Fog of war 
+ Mark exams 
+ Many shapes 
+ Soft clipping region 
+ Tower defense 
+ Customize Mermaid diagrams 
+ Gravity sim (xkcd 2347) 
+ Hundreds of Mermaid diagrams 
+ Pasting Mermaid code as shapes 
+ Snowstorm 
+ Timeline scrubber 
+ 
+
+ 
+ 
+ Menu 
+ 
+ 
+ 
+ Search docs … 
+ ⌘K 
+
+ Custom keyboard shortcuts
+ 
+ Copy markdown 
+
+ Change tldraw&#x27;s default keyboard shortcuts for tools and actions.
+ 
+ Try example 
+
+ App.tsx 
+ import { TLUiOverrides, Tldraw } from 'tldraw' 
+ import 'tldraw/tldraw.css' 
+ 
+ // There's a guide at the bottom of this file! 
+ 
+ // [1] 
+ const overrides : TLUiOverrides = { 
+ // [a] 
+ actions ( _editor , actions ) { 
+ return { 
+ ... actions, 
+ 'toggle-grid' : { ... actions[ 'toggle-grid' ], kbd: 'x' }, 
+ 'copy-as-png' : { ... actions[ 'copy-as-png' ], kbd: 'cmd+1,ctrl+1' }, 
+ } 
+ }, 
+ // [b] 
+ tools ( _editor , tools ) { 
+ return { ... tools, draw: { ... tools.draw, kbd: 'p' } } 
+ }, 
+ } 
+ 
+ export default function KeyboardShortcutsExample () { 
+ return ( 
+ &#x3C; div className = "tldraw__editor" > 
+ { /* [2] */ } 
+ &#x3C; Tldraw overrides = {overrides} /> 
+ &#x3C;/ div > 
+ ) 
+ } 
+ 
+ /* 
+ Keyboard shortcuts belong to either tools (draw, eraser, ...) or actions (undo, group, 
+ toggle grid, ...). Both are described by objects with a `kbd` string, so changing a 
+ shortcut is a matter of returning a copy of the object with a different `kbd`. 
+ 
+ The `kbd` syntax is a comma-separated list of key combos, e.g. `'x'`, `'shift+x'`, 
+ `'cmd+1,ctrl+1'` (the second combo covers Windows and Linux). The keyboard shortcuts 
+ dialog reads the same `kbd` strings, so it stays in sync with your overrides. 
+ 
+ [1] 
+ `overrides` is a `TLUiOverrides` object. Each function receives the defaults and returns 
+ the replacements. It's defined at module level so `&#x3C;Tldraw>` doesn't see a new object on 
+ every render. 
+ [a] `toggle-grid` moves from cmd+' to `x`, and `copy-as-png` moves from cmd+shift+c 
+ to cmd+1. The override replaces the default shortcut rather than adding to it. 
+ [b] The draw tool moves from `d` to `p`. 
+ 
+ [2] 
+ Pass the overrides to `&#x3C;Tldraw>`. Open the keyboard shortcuts dialog from the help menu 
+ to see the new bindings. For shortcuts on custom tools, see the custom config example. 
+ */ 
+ 
+
+ 
+ Copy 
+
+ Shortcuts are the kbd
+ field on tool and action definitions. Use the actions
+ and tools
+ functions of TLUiOverrides
+ to return copies with different kbd
+ strings, then pass the overrides to < Tldraw >
+. The keyboard shortcuts dialog reads the same field, so it updates automatically.
+
+ Try it:
+
+ 
+ Press x
+ to toggle the grid
+
+ Press p
+ to select the draw tool
+
+ Press cmd +1
+ (or ctrl +1
+) to copy the selection as a PNG
+
+ 
+ For adding shortcuts to custom tools, see the custom config example.
+ Is this page helpful? 
+ 
+ 
+
+ 
+ Prev 
+ Custom indicators Next 
+ 
+ Escape shape focus trap 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ The infinite canvas SDK
+ GitHub 
+ X/Twitter 
+ Discord 
+ LinkedIn 
+ 
+
+ Product
+ Whiteboard 
+ Starter kits 
+ Pricing 
+ FAQ 
+ 
+ Developers
+ Quick start guide 
+ Starter kits 
+ Examples 
+ Releases 
+ Docs 
+ 
+ Community
+ GitHub 
+ Discord 
+ X/Twitter 
+ LinkedIn 
+ Bluesky 
+ Mastodon 
+ 
+ Company
+ Videos 
+ Careers 
+ License 
+ Trademarks 
+ CLA 
+ Privacy settings 
+ 
+
+ © 2026 tldraw

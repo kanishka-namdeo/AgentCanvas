@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://tldraw.dev/examples/keyboard-shortcuts",
+    "name": "Custom keyboard shortcuts",
+    "snippet": "This example shows how you can replace tldraw's default keyboard shortcuts with your own, or add a shortcut for an action that doesn't have one.",
+    "host_name": "tldraw.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.canva.com/help/canva-keyboard-shortcuts",
+    "name": "Canva keyboard shortcuts - Canva Help Center",
+    "snippet": "Move focus to the Editor toolbar: Command ⌘ + F1. Move focus to Canvas : Command ⌘ + F2. Quick actions shortcut : / or Command ⌘ + E. Open More actions menu ...",
+    "host_name": "www.canva.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0076448",
+    "name": "Using Zoom Canvas keyboard shortcuts",
+    "snippet": "Using keyboard shortcuts in your Zoom Canvas can help boost your productivity . Shift + Z Ctrl + Y or Ctrl + Shift + Z Copy. Shift + H Ctrl + Shift + H. L Ctrl ...",
+    "host_name": "support.zoom.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/tldraw/tldraw/issues/1254",
+    "name": "Easier hand tool access, either via right click or keyboard",
+    "snippet": "Feb 18, 2023 — Easier hand tool access, either via right click or keyboard shortcut. Space+Ctrl while scrolling , just the Space and scrolling resulting ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "Feb 18, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/webdev/comments/qwovzg/tldraw_a_tiny_little_drawing_app_just_released",
+    "name": "tldraw - a tiny little drawing app, just released! : r/webdev",
+    "snippet": "hold Control (or Command) while dragging an arrow to ignore “binding” to other shapes. hold Alt while dragging an arrow handle to make it “bind” ...",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://helpx.adobe.com/ie/dimension/desktop/using/keyboard-shortcuts.html",
+    "name": "Default keyboard shortcuts | Dimension",
+    "snippet": "Apr 27, 2021 — In this article, you can find details on some common shortcuts , a handy list of the default shortcuts , and instructions on editing shortcuts in ...",
+    "host_name": "helpx.adobe.com",
+    "rank": 5,
+    "date": "Apr 27, 2021",
+    "favicon": ""
+  }
+]

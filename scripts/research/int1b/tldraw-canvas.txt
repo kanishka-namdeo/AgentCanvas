@@ -1,0 +1,227 @@
+URL: https://tldraw.dev/features/composable-primitives/drawing-and-canvas-interactions
+TITLE: tldraw: Infinite Canvas SDK for React - Drawing and interactions – tldraw: Infinite Canvas SDK for React
+
+tldraw: Infinite Canvas SDK for React - Drawing and interactions – tldraw: Infinite Canvas SDK for React 
+ tldraw offline is the local whiteboard for you and your agents. 
+ 
+ 
+ is the local whiteboard for you and your agents. Download the app 
+ 
+ 
+ 
+ Product 
+ 
+ Solutions 
+ 
+ Developers 
+ 
+ Resources 
+ 
+ Pricing Showcase Blog Docs 
+ 
+ 50.1K Quick Start 
+ 
+
+ 
+ 
+ 
+ 
+ Composable Primitives 
+ Drawing and canvas interactions
+
+ Perfect drawing tools your users will love.
+
+ npm create tldraw
+ 
+ or Read the docs 
+ 
+
+ 
+ 
+
+ 
+ Freehand drawing 
+ Create fluid drawings with pressure-sensitive input and intelligent stroke algorithms, perfect for sketching tools, annotation systems, and creative applications.
+
+ 
+ Geometric shapes 
+ Enjoy a complete shape library that includes rectangles, ellipses, polygons, and hearts, each available in four stroke styles: solid, dashed, dotted, and hand-drawn.
+
+ 
+ Perfect arrows 
+ Draw connections with arc and elbow arrows that snap into clean orthogonal paths, using geometric routing to create optimal links between connection points.
+
+ 
+ Rich text editing 
+ Build powerful text editing with TipTap integration, auto-sizing modes, and extensible formatting. Ideal for document editors, note-taking tools, and annotation systems.
+
+ 
+ 
+ 
+ 
+ Precise eraser tool 
+ An eraser that distinguishes between click and drag, respects locked content, and previews exactly what will be deleted.
+
+ 
+ 
+ Built-in embed library 
+ Embed 19 popular platforms easily, with secure, responsive, pre-configured integrations that work out of the box.
+
+ 
+ Navigation controls 
+ Develop pan, zoom, and viewport tools with gesture support, smooth animations, and edge-scrolling for uninterrupted canvas exploration.
+
+ 
+ 
+
+ Solid engineering
+
+ Our team spent years to get all the details right, so you don’t have to.
+
+ 
+ Freehand drawing with digital ink
+
+ The freehand tool delivers precise, natural digital ink with seamless transitions between freehand and straight lines. Our state machine enables perfect lines, angle snapping, and fluid control, while a multi-stage pipeline ensures smooth input, pressure-responsive sizing, and adaptive corner detection. With pressure sensitivity, palm rejection, zoom-adaptive precision, and advanced stroke generation, it provides responsive, high-performance drawing across devices.
+
+ 
+ Sticky notes, deceptively simple
+
+ What feels like simple text editing is powered by clone handles, rotation-aware positioning, and smart “sticky pit” snapping. Behind the scenes, the system calculates pit positions, adapts keyboard movement, adjusts fonts precisely, and even adds natural shadows with seeded randomization. Text editing feels effortless while complex logic runs invisibly in the background.
+
+ 
+ 
+ 
+ Cross-browser asset management
+
+ To ensure reliability in supporting images, videos, and embeds, the system uses level-of-detail resolution with power-of-2 zoom steps, hash-based asset deduplication, and a local-to-remote upload flow. Exports preserve PNG metadata, maintain SVG foreignObject compatibility, and respect browser canvas size limits. The asset pipeline also handles animated GIFs, video codec fallbacks, and secure iframe sandboxing for more than 30 embed providers.
+
+ 
+ Custom shape extensibility
+
+ The shape system extends beyond built-ins to support 3D content, audio players, and interactive components through the same ShapeUtil interface. Custom shapes automatically gain selection handles, resize logic, binding points, and export support. Geometry, hit testing, and rendering optimizations are all handled by the architecture. This lets developers focus on unique behaviors while tldraw manages transforms, performance, and state integration.
+
+ 
+
+ Natural drawing, out of the box
+
+ Bring natural freehand drawing, shapes, and canvas interactions to your app.
+
+ npm create tldraw
+ 
+ or read the docs 
+ 
+
+ EXAMPLES
+ See for yourself
+
+ Have a look at our examples on how to implement multiplayer features.
+
+ Multiplayer sync demo
+
+ Build real-time collaborative editing with live cursors and presence indicators.
+
+ See example 
+ 
+
+ Custom presence
+
+ Implement application-specific presence data synchronized across all users.
+
+ See example 
+ 
+
+ Private content sharing
+
+ Manage sharing permissions with editor and viewer access controls.
+
+ See example 
+ 
+
+ 
+
+ Starter kits
+
+ Production ready starter kit to add a chat to your canvas. Building something different? See all starter kits 
+ 
+ 
+ Chat starter kit 
+ Integrate tldraw&#x27;s canvas into a chat application to let the user sketch, annotate and add markup to any chat message before sending it off to an AI model or a person.
+
+ Learn more 
+ 
+
+ 
+
+ Drawing that feels right
+
+ Freehand drawing and shapes built in for your app. 
+ npm create tldraw
+ 
+ or read the docs 
+ 
+
+ Zach Blodgett , Staff Product Manager at 
+
+ "tldraw’s technology enabled us to deliver a high-quality foundation and also develop native functionality ourselves. The technology and team have been great to work with."
+ ClickUp modernized its whiteboard for millions of users, replacing legacy infrastructure with the tldraw SDK.
+
+ Read the case study 
+ 
+ 
+
+ Join the community
+
+ 50.1K 
+ 
+ Source available on 
+ GitHub 
+ 74K followers on 
+ 8.72K members on 
+ Discord 368.6K weekly downloads on 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ The infinite canvas SDK
+
+ 
+ 
+ 
+ 
+ 
+
+ PRODUCT
+ Whiteboard 
+ Pricing 
+ Build vs Buy 
+ FAQ 
+ 
+ DEVELOPERS
+ Quick start 
+ Starter kits 
+ Examples 
+ Releases 
+ Docs 
+ 
+ COMMUNITY
+ GitHub 
+ Discord 
+ X/Twitter 
+ LinkedIn 
+ Bluesky 
+ Mastodon 
+ Join the mailing list 
+ 
+ COMPANY
+ Careers 
+ Media 
+ License 
+ Trademark 
+ CLA 
+ Privacy settings 
+ 
+
+ © 2026 tldraw

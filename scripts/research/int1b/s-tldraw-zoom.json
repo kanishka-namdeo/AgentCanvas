@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://github.com/tldraw/tldraw/issues/6164",
+    "name": "Add scroll wheel zoom direction preference · Issue #6164",
+    "snippet": "May 31, 2025 — However, there is no invertZoomDirection or equivalent option to reverse the scroll zoom direction. ... zoom direction preference for mouse input ... Read more",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "May 31, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/543628065696081/posts/7855578184500996",
+    "name": "How to reverse the scroll zoom action in Logic for improved",
+    "snippet": "My recent post about “scrolling” was excellent and people gave some great tips…\n\nI would now like to discuss the “scroll zoom” feature in Logic. ...",
+    "host_name": "www.facebook.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cycling74.com/forums/invert-mouse-scroll-zooming-direction-and-resetting-the-zooming-factor",
+    "name": "invert mouse scroll zooming direction and resetting the",
+    "snippet": "Apr 12, 2023 — ... invert zoom direction, the setting in Preferences is called \"Mouse Wheel Zoom Sensitivity\" which you can set to a negative number to invert . Read more",
+    "host_name": "cycling74.com",
+    "rank": 2,
+    "date": "Apr 12, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://tldraw.dev/sdk-features/camera",
+    "name": "Camera system • tldraw Docs",
+    "snippet": "The wheelBehavior option determines how mouse wheel or trackpad scroll affects the viewport: 'pan' for navigating large diagrams, ' zoom ' for detail work, or ' ... Read more",
+    "host_name": "tldraw.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/30192884/is-it-possible-to-configure-control-scroll-wheel-to-increase-decrease-zoom-in",
+    "name": "Is it possible to configure control + scroll-wheel to increase",
+    "snippet": "Similar to the default in the Visual Studio editors or Sublime, I would like to use control + scroll-wheel to change the font size / zoom level, rather ...",
+    "host_name": "stackoverflow.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://discourse.shapr3d.com/t/mouse-zoom-scroll-wheel-is-opposite-to-sytem-preferences/11703?page=2",
+    "name": "Mouse zoom (scroll wheel) is opposite to Sytem Preferences",
+    "snippet": "Mar 5, 2021 — Seems the mouse scrolling with the wheel is opposite to the System Preference . I personally hate 'Natural Scrolling' and have always had it ...",
+    "host_name": "discourse.shapr3d.com",
+    "rank": 5,
+    "date": "Mar 5, 2021",
+    "favicon": ""
+  }
+]

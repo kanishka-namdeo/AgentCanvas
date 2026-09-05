@@ -1,0 +1,1128 @@
+URL: https://help.figma.com/hc/en-us/search?query=select+objects+canvas
+TITLE: Search results &ndash; Figma Learn - Help Center
+
+Search results &ndash; Figma Learn - Help Center 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Learn 
+ 
+
+ 
+ 
+ 
+ Get started 
+ Product documentation 
+ Administration 
+ Courses, tutorials, projects 
+ Help 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ enter to select 
+ ↑ ↓ to navigate 
+ esc to close 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Design
+
+ Design and prototype in one place
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Make
+
+ 
+
+ Prompt to code anything you can imagine
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Dev Mode
+
+ Translate designs into code
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Weave
+
+ New 
+ 
+
+ AI workflows for imagery, video, and audio
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+
+ Create precise, production-ready animations
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ FigJam
+
+ Collaborate with a digital whiteboard
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Draw
+
+ 
+
+ Illustrate with advanced vector tools
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Figma Slides
+
+ Co-create presentations
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Sites
+
+ Beta 
+ 
+
+ Publish fully responsive websites
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+
+ Produce on-brand assets at scale
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ AI
+
+ Explore all Figma AI features
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ Developer docs
+
+ Work with APIs, embeds, and more
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ For everyone
+
+ 
+ 
+ Account 
+ 
+ Manage settings 
+
+ Change preferences 
+
+ 
+ 
+
+ 
+ Files and projects 
+ 
+ Use the file browser 
+
+ Manage files and projects 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ For administration
+
+ 
+ 
+ Billing 
+ 
+ Overview 
+
+ Manage seats 
+
+ Manage your plan 
+
+ Pay for Figma
+ 
+
+ 
+ 
+
+ 
+ Teams 
+ 
+ Manage a team 
+
+ 
+ 
+
+ 
+ Organizations 
+ 
+ Overview 
+
+ Login and authentication 
+
+ Deploy Figma 
+
+ Members and guests 
+
+ Teams 
+
+ Libraries and resources 
+
+ 
+ 
+
+ 
+ Enterprise 
+ 
+ Billing groups 
+
+ Workspaces 
+
+ Security features 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ Find out more
+
+ 
+ 
+ 
+ 
+ 
+ Courses and collections
+
+ New 
+ 
+
+ 
+
+ Level up your Figma skills with these comprehensive skill-based courses.
+
+ 
+ 
+ 
+ 
+ 
+ Projects
+
+ 
+
+ 
+
+ Get hands-on experience in Figma with these practical bite-sized projects.
+
+ 
+ 
+ 
+ 
+ 
+ Tutorials
+
+ 
+
+ 
+
+ Explore tools and features by watching and following along with these expert-led video tutorials.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ Get solutions
+
+ 
+ 
+ 
+ 
+ Troubleshoot
+
+ 
+
+ 
+
+ Get help with common issues and troubleshoot unexpected behavior.
+
+ 
+ 
+ 
+ 
+ Work with support
+
+ 
+
+ 
+
+ Submit a bug report, get help collecting log files, and find your system information.
+
+ 
+ 
+ 
+ 
+ Common questions
+
+ 
+
+ 
+
+ Get answers to frequently asked questions.
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Figma Community Forum
+
+ 
+
+ Ask the community, share ideas, and connect with other Figma users.
+
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ Get started 
+ 
+ Product documentation 
+ 
+ 
+ Products 
+ Figma Design 
+ Figma Make 
+ Dev Mode 
+ 
+ Figma Weave
+
+ New 
+ 
+ 
+ Figma Motion
+
+ New 
+ 
+ FigJam 
+ Figma Draw 
+ Figma Slides 
+ 
+ Figma Sites
+
+ Beta 
+ 
+ 
+ Figma Buzz
+
+ Beta 
+ 
+ 
+
+ 
+ Features 
+ AI 
+ Accessibility 
+ Developer docs 
+ Figma Community 
+ 
+
+ 
+
+ 
+
+ 
+ Administration 
+ 
+ 
+ For everyone 
+ Account 
+ Files and projects 
+ 
+
+ 
+ For administration 
+ Billing 
+ Teams 
+ Organizations 
+ Enterprise
+ 
+ 
+
+ 
+
+ 
+
+ 
+ Courses, tutorials, projects 
+ 
+ 
+ Find out more 
+ Courses and collections 
+ Projects 
+ Tutorials 
+ 
+
+ 
+
+ 
+
+ 
+ Help 
+ 
+ 
+ Get solutions 
+ Troubleshoot 
+ Work with support 
+ Common questions 
+ Figma Community Forum 
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 383 results for "select objects canvas" in All Categories
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ Select layers and objects
+ 
+
+ ...removes the current selection , then selects everything on the canvas you didn't select before. Select objects in view-only mode...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Work with layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Edit objects on the canvas in bulk
+ 
+
+ ...bulk select matching objects . Learn how to select multiple layers and matching objects → Once you’ve selected objects , you...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Work with layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Organize your canvas with sections
+ 
+
+ ...Add objects to a section There are a few ways to add objects to a section: Move a section over an object Resize...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Create designs 
+
+ 
+ Work with layers 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ View layer outlines in Figma Design
+ 
+
+ ...your canvas , making it easier for you to inspect, select , and adjust hidden and nested layers. View and select hidden...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Tour the interface 
+
+ 
+ File utilities 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Add guides to the canvas or frames
+ 
+
+ ...on your canvas . When you select objects in the frame, you'll see the same blue highlights for the selected object . Guides...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Tour the interface 
+
+ 
+ File utilities 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Accessibility at Figma
+ 
+
+ ...on a selected objects on the canvas , or any node if nothing is selected . The Tab and Enter keys that normally select objects...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Get started 
+
+ 
+ Set up your account 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Select, move, and order objects in FigJam
+ 
+
+ ...move it. Select objects Select objects to interact with them and change their properties. Selected objects are surrounded...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ FigJam 
+
+ 
+ Work on boards 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Use code snippets in Dev Mode
+ 
+
+ ...for objects selected on the canvas . To set a default language and unit: Deselect all objects on the canvas . Select...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Build with Figma 
+
+ 
+ Dev Mode 
+
+ 
+ Turn designs to code 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Guide to inspecting
+ 
+
+ ...Download any selected image on the canvas , and choose between downloading the image at its current size on the canvas or the original...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Build with Figma 
+
+ 
+ Dev Mode 
+
+ 
+ Inspect designs 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Use Figma products with a keyboard
+ 
+
+ ... (Windows) and press + or -. Add objects to the canvas You can create new objects like frames, shapes, or text layers...
+
+ 
+ 
+ 
+ Figma Learn - Help Center 
+
+ 
+ Figma Design 
+
+ 
+ Tour the interface 
+
+ 
+ File utilities 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ Next 
+ › 
+ 
+ 
+
+ 
+ 
+ Last 
+ » 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ English (United States)
+ 
+ 
+ 
+ Deutsch
+ 
+ 
+ 
+ Español (Latinoamérica)
+ 
+ 
+ 
+ Español (España)
+ 
+ 
+ 
+ Français
+ 
+ 
+ 
+ 日本語
+ 
+ 
+ 
+ 한국어
+ 
+ 
+ 
+ Nederlands (Nederland)
+ 
+ 
+ 
+ Polski (Polska)
+ 
+ 
+ 
+ Português do Brasil
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ Use cases
+
+ 
+ 
+ UI design 
+ 
+
+ 
+ UX design 
+ 
+
+ 
+ Prototyping 
+ 
+
+ 
+ Graphic design 
+ 
+
+ 
+ Wireframing 
+ 
+
+ 
+ Brainstorming 
+ 
+
+ 
+ Templates 
+ 
+
+ 
+ Remote design 
+ 
+
+ 
+ 
+
+ 
+ Explore
+
+ 
+ 
+ Design features 
+ 
+
+ 
+ Prototyping features 
+ 
+
+ 
+ Design systems features 
+ 
+
+ 
+ Collaboration features 
+ 
+
+ 
+ FigJam 
+ 
+
+ 
+ Pricing 
+ 
+
+ 
+ Enterprise 
+ 
+
+ 
+ Students and educators 
+ 
+
+ 
+ Customers 
+ 
+
+ 
+ Security 
+ 
+
+ 
+ Integrations 
+ 
+
+ 
+ Contact 
+ 
+
+ 
+ 
+
+ 
+ Resources
+
+ 
+ 
+ Blog 
+ 
+
+ 
+ Best practices 
+ 
+
+ 
+ Support 
+ 
+
+ 
+ Developers 
+ 
+
+ 
+ Learn design 
+ 
+
+ 
+ Downloads 
+ 
+
+ 
+ What's new 
+ 
+
+ 
+ Releases 
+ 
+
+ 
+ Careers 
+ 
+
+ 
+ About us 
+ 
+
+ 
+ Agency partners 
+ 
+
+ 
+ Privacy 
+ 
+
+ 
+ Status
