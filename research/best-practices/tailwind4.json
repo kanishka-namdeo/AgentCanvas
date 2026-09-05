@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://tailwindcss.com/blog/tailwindcss-v4",
+    "name": "Tailwind CSS v4.0",
+    "snippet": "Jan 22, 2025 — Tailwind CSS v4.0 · New high-performance engine · Designed for the modern web · Simplified installation · First-party Vite plugin · Automatic content ... Read more",
+    "host_name": "tailwindcss.com",
+    "rank": 0,
+    "date": "Jan 22, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://eastondev.com/blog/en/posts/dev/20260330-tailwind-performance-optimization",
+    "name": "Tailwind CSS: JIT, Content Scanning, and Production CSS Size",
+    "snippet": "Mar 30, 2026 — Step 1: Check Tailwind version. Recommend upgrading to v3+ for best performance 2 Step 2: Configure content scan paths Set precise scan paths ...",
+    "host_name": "eastondev.com",
+    "rank": 1,
+    "date": "Mar 30, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://tailgrids.com/blog/tailwind-css-best-practices",
+    "name": "Tailwind CSS Best Practices and Performance Optimization",
+    "snippet": "May 19, 2026 — This guide covers the exact practices that keep Tailwind projects clean, fast, and easy to work with as they grow. Tailwind covers almost every ...",
+    "host_name": "tailgrids.com",
+    "rank": 2,
+    "date": "May 19, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/79513123/how-do-i-specify-directories-tailwindcss-v4-should-scan-for-class-names",
+    "name": "How do I specify directories Tailwindcss v4 should scan for",
+    "snippet": "I currently have a django application structured like this: Copy/project-root | | /shop # installed application | ├── templates/ # Django templates ...",
+    "host_name": "stackoverflow.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tailwindcss.com/docs/detecting-classes-in-source-files",
+    "name": "Detecting classes in source files - Core concepts",
+    "snippet": "Tailwind works by scanning your project for utility classes , then generating all of the necessary CSS based on the classes you've actually used.",
+    "host_name": "tailwindcss.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/15y93iy/am_i_the_only_one_that_thinks_tailwind_css_makes",
+    "name": "Am I the only one that thinks Tailwind CSS makes my code",
+    "snippet": "I know that there is probably a Tailwind forum, but I haven't decided if I'm sold, so I haven't joined. Also, I think asking this question over there will ...",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.logrocket.com/tailwind-css-guide",
+    "name": "A dev's guide to Tailwind CSS in 2026",
+    "snippet": "Jan 23, 2026 — Tailwind CSS is more popular than ever. This guide breaks down v4's biggest changes, real-world usage, migration paths, and where it fits in ...",
+    "host_name": "blog.logrocket.com",
+    "rank": 6,
+    "date": "Jan 23, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/tailwindlabs/tailwindcss/discussions/18550",
+    "name": "[v4] How to ignore specific files using \"@source not\" and",
+    "snippet": "Jul 15, 2025 — @ source not does support file paths and globs . It is not limited. There are tests in Tailwind's scanner for patterns like these: @source",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "Jul 15, 2025",
+    "favicon": ""
+  }
+]

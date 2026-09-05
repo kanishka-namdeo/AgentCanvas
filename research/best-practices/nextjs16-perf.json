@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://nextjs.org/docs/app/guides/production-checklist",
+    "name": "Guides: Production",
+    "snippet": "Mar 10, 2026 — This page provides best practices that you can use as a reference when building your application and before going to production, as well as the ... Read more",
+    "host_name": "nextjs.org",
+    "rank": 0,
+    "date": "Mar 10, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://nextjs.org/blog/next-16",
+    "name": "Next.js 16",
+    "snippet": "Oct 21, 2025 — Next . js 16 includes a complete overhaul of the routing and navigation system, making page transitions leaner and faster. Performance ...",
+    "host_name": "nextjs.org",
+    "rank": 1,
+    "date": "Oct 21, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://pagepro.co/blog/nextjs-performance-optimization-in-9-steps",
+    "name": "Next.js Performance Optimization: 10 Proven Techniques",
+    "snippet": "Apr 1, 2026 — Master Next.js performance. Check out bundle analysis, code splitting, image optimization, and monitoring tools with practical examples.",
+    "host_name": "pagepro.co",
+    "rank": 2,
+    "date": "Apr 1, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/better-dev-nextjs-react/next-js-16-the-hidden-performance-features-nobodys-talking-about-b30521ff8a6b",
+    "name": "Next.js 16: The Hidden Performance Features Nobody's",
+    "snippet": "My recommendation: Start with a staging deploy, run the codemod, fix the edge cases , measure the performance impact, then roll it out. You'll ...",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://strapi.io/blog/next-js-16-features",
+    "name": "What's New in Next.js 16? How to Build Faster, Ship Smarter",
+    "snippet": "Dec 12, 2025 — Discover the 14 Next . js 16 features transforming production builds: Turbopack stability, new cache APIs, and React 19.2 integration.",
+    "host_name": "strapi.io",
+    "rank": 4,
+    "date": "Dec 12, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/tonyspiro_nextjs-15-vs-16-building-modern-blogs-in-activity-7387543520280178688-ahFe",
+    "name": "Next.js 15 vs 16: Speed and Optimization Comparison",
+    "snippet": "Go Production-Ready Optimize performance (lazy loading, code splitting). Focus on SEO, Core Web Vitals, and Progressive Web Apps (PWAs). Add ... Read more",
+    "host_name": "www.linkedin.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/hamidrazadev/how-to-make-your-website-lightning-fast-in-nextjs-16-3a3k",
+    "name": "How to Make Your Website Lightning Fast in Next.js 16 ⚡",
+    "snippet": "Mar 12, 2026 — ✓ Best Tips to Speed Up Your Next.js 16 Website · 1. Use the App Router the Right Way · 2. Optimize Images With next/image (Seriously, Don't Skip ... Read more",
+    "host_name": "dev.to",
+    "rank": 6,
+    "date": "Mar 12, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.aniq-ui.com/en/blog/performance-optimization-nextjs",
+    "name": "Next.js Performance Optimization: Practical Guide to Speed",
+    "snippet": "Learn how to speed up Next.js apps with image optimization, code splitting, static generation, font loading, and reducing bundle size.",
+    "host_name": "www.aniq-ui.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

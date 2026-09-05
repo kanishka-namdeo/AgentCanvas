@@ -1,7 +1,9 @@
-// GET    /api/documents/[documentId]   — get one document (id + name + viewport + counts)
+// GET    /api/documents/[documentId]   — get one document (id + name + viewport)
 // PATCH  /api/documents/[documentId]   — rename / update viewport / update background
-// DELETE /api/documents/[documentId]   — delete a document (cascade: shapes, actions,
-//                                          sessions, snapshots, agent events)
+// DELETE /api/documents/[documentId]   — delete a document (FK cascade: shapes,
+//                                          agent actions; sessions/snapshots/
+//                                          journal rows keep their documentId —
+//                                          no FK, they become orphans)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -24,7 +26,6 @@ export async function GET(
         background: true,
         createdAt: true,
         updatedAt: true,
-        _count: { select: { shapes: true, actions: true } },
       },
     });
     if (!document) {

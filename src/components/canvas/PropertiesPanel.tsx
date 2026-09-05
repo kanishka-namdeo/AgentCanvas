@@ -17,7 +17,7 @@
 // (doc.children) by the patch applier; the derived cache is recomputed
 // automatically on every mutation.
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, AutoLayout, Shape } from '@/lib/canvas/types';
@@ -59,7 +59,13 @@ import {
   FlipHorizontal, FlipVertical,
 } from 'lucide-react';
 
-export function PropertiesPanel() {
+// memoized (perf pass, task 4): zero-prop panel. It necessarily re-renders
+// when its own `document`/`selectedIds` subscriptions fire (canvas patch
+// flushes), but memo() stops the Home-cascade re-renders for page state this
+// panel doesn't subscribe to (agentBusy, connected, viewerCount, dialog
+// open states…). All rows are inline JSX in this single component, so the
+// panel export is the leaf memo unit.
+export const PropertiesPanel = memo(function PropertiesPanel() {
   const document = useCanvasStore((s) => s.document);
   const selectedIds = useCanvasStore((s) => s.selectedIds);
   const sendPatch = useCanvasStore((s) => s.sendPatch);
@@ -1116,4 +1122,4 @@ export function PropertiesPanel() {
       </div>
     </div>
   );
-}
+});

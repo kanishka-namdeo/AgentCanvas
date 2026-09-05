@@ -20,6 +20,7 @@
 //   - ⌘N / ⌘O / ⌘E shortcut hints are honest — page.tsx wires all three.
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import { useClipboard } from '@/hooks/use-clipboard';
@@ -29,7 +30,6 @@ import { exportBackgroundColor } from '@/lib/canvas/theme-colors';
 import { dropShapeAtCenter } from '@/lib/canvas/drop-shape';
 import { chordFor, SHORTCUTS_BY_ACTION, currentPlatform } from '@/lib/canvas/shortcuts';
 import { useSettings } from '@/lib/settings/store';
-import { VersionHistoryDialog } from '@/components/canvas/VersionHistoryDialog';
 import { Menu as MenuIcon } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -49,6 +49,32 @@ interface AppMenuProps {
   onImportPen?: () => void;
   onOpenShortcuts?: () => void;
   onOpenDesignSystems?: () => void;
+}
+
+// Version-history dialog — code-split (dialog-gated, not part of initial
+// paint; page.tsx does the same for its four dialogs). Mount is deferred to
+// first open so the chunk only loads when the user actually opens it.
+const VersionHistoryDialog = dynamic(
+  () => import('@/components/canvas/VersionHistoryDialog').then((m) => m.VersionHistoryDialog),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-24 w-full items-center justify-center" aria-hidden="true">
+        <div className="h-5 w-5 animate-pulse rounded ac-surface-2" />
+      </div>
+    ),
+  },
+);
+
+/// Mount-on-first-open gate (mirrors page.tsx's useDeferredMount): stays
+/// true once opened so the dialog keeps its internal state across
+/// close/reopen — same semantics as the previous always-mounted render.
+function useDeferredMount(open: boolean): boolean {
+  const [mounted, setMounted] = useState(false);
+  if (open && !mounted) {
+    setMounted(true);
+  }
+  return mounted;
 }
 
 export function AppMenu(props: AppMenuProps) {
@@ -72,6 +98,7 @@ export function AppMenu(props: AppMenuProps) {
   const setSetting = useSettings((s) => s.set);
   const [open, setOpen] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const versionHistoryMounted = useDeferredMount(versionHistoryOpen);
   const platform = currentPlatform();
   const chord = (action: string) => {
     const def = SHORTCUTS_BY_ACTION.get(action);
@@ -451,7 +478,9 @@ export function AppMenu(props: AppMenuProps) {
       </DropdownMenu>
 
       {/* Version history (File → "Version history…") */}
-      <VersionHistoryDialog open={versionHistoryOpen} onOpenChange={setVersionHistoryOpen} />
+      {versionHistoryMounted && (
+        <VersionHistoryDialog open={versionHistoryOpen} onOpenChange={setVersionHistoryOpen} />
+      )}
     </>
   );
 }

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://medium.com/@dev.arunengineer/how-to-configure-next-config-js-in-2026-to-make-your-project-10x-faster-77b4833e76d9",
+    "name": "How to Configure next.config.js in 2026 to Make Your",
+    "snippet": "Best Practices Checklist. Before deploying, ensure you've: ✓ Enabled Turbopack filesystem caching; ✓ Configured React Compiler for ... Read more",
+    "host_name": "medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://explainx.ai/skills/pproenca/dot-skills/nextjs",
+    "name": "nextjs — AI agent skill",
+    "snippet": "Comprehensive performance optimization guide for Next.js. Configure optimizePackageImports for. Configure Server External Packages for Node",
+    "host_name": "explainx.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://skillshub.wtf/pproenca/dot-skills/nextjs",
+    "name": "nextjs — pproenca/dot-skills | SkillsHub",
+    "snippet": "This skill should be used when writing Next .js 16 code, configuring caching, implementing Server Components in Next .js, setting up App Router routing, or ...",
+    "host_name": "skillshub.wtf",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@pashashaik/how-we-reduced-our-next-js-docker-image-from-2-1gb-to-180mb-35fa8ea4160d",
+    "name": "How We Reduced Our Next.js Docker Image from 2.1GB to",
+    "snippet": "Run as Non-Root User Security best practice . Server External Packages Some packages are only used on the server. Tell Next .js to exclude them: ...",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tonysantana1492-portfolio.mintlify.app/deployment/build-configuration",
+    "name": "Build Configuration - Tony Santana Portfolio",
+    "snippet": "Understand and optimize the Next .js build configuration , scripts, and production settings for your portfolio.",
+    "host_name": "tonysantana1492-portfolio.mintlify.app",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lobehub.com/bg/skills/pproenca-dot-skills-nextjs",
+    "name": "nextjs | Skills Marketplace",
+    "snippet": "1. Build & Bundle Optimization (CRITICAL) · build- optimize-package-imports - Configure optimizePackageImports for Icon Libraries · build-dynamic-imports - Use ...",
+    "host_name": "lobehub.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/mahdi_benrhouma_fe1c6005/nextjs-turbopack-stuck-on-compiling-how-to-fix-3keh",
+    "name": "Next.js Turbopack Stuck on Compiling How to Fix",
+    "snippet": "Jun 14, 2026 — Fix Next .js Turbopack stuck on compiling issues. Complete troubleshooting guide with cache clearing, dependency fixes, and performance ...",
+    "host_name": "dev.to",
+    "rank": 6,
+    "date": "Jun 14, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://lobehub.com/es/skills/pproenca-dot-skills-nextjs",
+    "name": "nextjs | Skills Marketplace",
+    "snippet": "Jul 28, 2026 — Comprehensive performance optimization guide for Next .js. Contains 40 rules across 8 categories, Configure Server External Packages for Node",
+    "host_name": "lobehub.com",
+    "rank": 7,
+    "date": "Jul 28, 2026",
+    "favicon": ""
+  }
+]

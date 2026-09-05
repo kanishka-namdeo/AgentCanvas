@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://www.linkedin.com/posts/osimfavour_most-people-struggle-to-fix-react-performance-activity-7367202121374490624-u5mH",
+    "name": "Most people struggle to fix React performance issues.",
+    "snippet": "1. Subscribe with selectors . ↳ Only pull in the exact state your component needs. 2. Use shallow ↳ Prevents re - renders when values don't change ...",
+    "host_name": "www.linkedin.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zustand.docs.pmnd.rs/learn/guides/prevent-rerenders-with-use-shallow",
+    "name": "Prevent rerenders with useShallow - Zustand Docs",
+    "snippet": "Auto-generating selectors ... In this case you might want to use useShallow to avoid a rerender if the computed value is always shallow equal the previous one. Read more",
+    "host_name": "zustand.docs.pmnd.rs",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/ccreusat/comment/2b51o",
+    "name": "Best ways to avoid unnecessary rerenders with zustand are",
+    "snippet": "Nov 29, 2023 — Best ways to avoid unnecessary rerenders with zustand are : Direct selector ... Best ways to avoid unnecessary rerenders with zustand are : Direct ...",
+    "host_name": "dev.to",
+    "rank": 2,
+    "date": "Nov 29, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@nfailla93/zustand-in-react-dos-and-donts-5a608c26c68",
+    "name": "Zustand in React: DOs and DON'Ts",
+    "snippet": "Don't: pick the whole state · Do: pick a single value or a slice instead · Do: pick multiple state values and/or actions in a single hook call. Read more",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://paths.grasp.study/modules/1220f1b4-760d-4462-ac96-2dde51ce970d/lessons/c0684353-3dc9-4076-8b39-a8698e3b2f1d",
+    "name": "Optimizing Re-renders with Zustand's Selective Subscriptions",
+    "snippet": "Today's lesson focuses on a core feature that makes Zustand so efficient. We will analyze how Zustand's selective subscriptions prevent unnecessary component re ... Read more",
+    "host_name": "paths.grasp.study",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/reactjs/comments/1jzye4v/how_to_optimise_zustand",
+    "name": "How to optimise zustand? : r/reactjs",
+    "snippet": "So in our nextjs application, organisation wide we are using zustand for store. We always create selectors for store states and setters and use them everywhere ...",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/pmndrs/zustand/discussions/2642",
+    "name": "Zustand causing more rerenders than expected #2642",
+    "snippet": "you should use useShallow each time you want to use useMyStore in order to prevent extra renders and apply shallow comparisons to your selectors",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

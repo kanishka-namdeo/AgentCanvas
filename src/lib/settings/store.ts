@@ -83,32 +83,8 @@ export const useSettings = create<SettingsStore>()(
   ),
 );
 
-/// Convenience selector for the agent-run subset. Components that need to
-/// build a /api/agent request body can use this to avoid re-renders when
-/// non-agent settings (like theme) change.
-export function useAgentRunSettings(): AppSettings {
-  return useSettings((s) => ({
-    temperature: s.temperature,
-    maxIterations: s.maxIterations,
-    planFirst: s.planFirst,
-    thinkingLevel: s.thinkingLevel,
-    defaultPalette: s.defaultPalette,
-    approvalMode: s.approvalMode ?? DEFAULT_SETTINGS.approvalMode,
-    alwaysAllowTools: Array.isArray(s.alwaysAllowTools) ? s.alwaysAllowTools : DEFAULT_SETTINGS.alwaysAllowTools,
-    skillSelectionMode: s.skillSelectionMode,
-    llmProvider: s.llmProvider,
-    apiKey: s.apiKey,
-    modelName: s.modelName,
-    apiBaseUrl: s.apiBaseUrl,
-    themePreference: s.themePreference,
-    snapshotCadence: s.snapshotCadence,
-    maxSessionsRetained: s.maxSessionsRetained,
-    maxSnapshotsPerCanvas: s.maxSnapshotsPerCanvas,
-    autoArchiveIdleAfter: s.autoArchiveIdleAfter,
-    density: s.density,
-    set: s.set,
-    patch: s.patch,
-    reset: s.reset,
-    replaceAll: s.replaceAll,
-  }));
-}
+// NOTE (perf pass, task 4): the former `useAgentRunSettings()` selector —
+// which returned a FRESH object on every call (unstable reference →
+// re-rendered its subscribers on every store flush) — had ZERO callers
+// (verified by grep across src/ and tests/) and was deleted as dead code.
+// The agent-run request body is built server-side via `useSettings.getState()`.

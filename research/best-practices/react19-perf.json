@@ -1,0 +1,20 @@
+[
+  {
+    "url": "https://softaims.com/blog/react-performance-optimization",
+    "name": "10 React Performance Optimization Techniques for 2026",
+    "snippet": "Apr 22, 2026 — Fix slow React apps with 10 optimization techniques covering code splitting, memoization, React 19 concurrent rendering, virtualization , and ... Read more",
+    "host_name": "softaims.com",
+    "rank": 0,
+    "date": "Apr 22, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/reactjs/comments/1tjbf4a/most_react_performance_advice_is_stuck_in_2023",
+    "name": "Most React performance advice is stuck in 2023. Here's",
+    "snippet": "Kept seeing the same advice everywhere: wrap things in useMemo , useCallback everything, React.memo all the things. Read more",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -3907,6 +3907,10 @@ export function findShape(doc: CanvasDocument, id: string): Shape | undefined {
 // Expose the store globally so the demo / browser console can drive the
 // agent directly when the WebSocket sync is unavailable (e.g. when the
 // dev server's HMR has put the socket in a bad state).
-if (typeof window !== 'undefined') {
+// Dev/test only (perf pass, task 4): production builds ship no debug global.
+// The vitest suite never reads it (grep-verified), so only the Playwright
+// bench is affected — and that prefers the page.tsx dev hooks anyway; in a
+// production build its fallback path now warns instead of driving the store.
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
   (window as any).__canvasStore = useCanvasStore;
 }

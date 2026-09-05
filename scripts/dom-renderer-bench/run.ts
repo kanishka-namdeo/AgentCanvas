@@ -11,7 +11,8 @@
 // The runner assumes a dev or standalone server is already running on
 // http://localhost:3000 (override with BENCH_URL). It drives the canvas store
 // via the window-level test hooks (__agentcanvas_test_*) when present (dev
-// mode), falling back to __canvasStore (always exposed — store.ts:1920).
+// mode), falling back to __canvasStore (exposed in dev/test only — see the
+// store.ts:3914 gate).
 //
 // Resilience:
 //   - playwright-core not installed → friendly install hint, exit 0
@@ -130,8 +131,10 @@ async function loadChromium(headless: boolean): Promise<any | null> {
 
 /// Inject a synthetic CanvasDocument into the running app. Uses the dev-only
 /// test hook when present (src/app/page.tsx), falling back to driving
-/// __canvasStore directly (always exposed in store.ts:1920) — production CI
-/// builds don't ship the test hooks but still expose the store.
+/// __canvasStore directly (exposed in dev/test builds only since the task-4
+/// perf pass — store.ts gates it on NODE_ENV !== 'production'). Production
+/// CI builds ship neither the test hooks nor the store global; injectDocument
+/// then returns false and the caller warns.
 async function injectDocument(page: any, doc: any): Promise<boolean> {
   return await page.evaluate((d) => {
     const w = window as any;

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.prisma.io/docs/orm/v6/prisma-client/observability-and-logging/logging",
+    "name": "Logging | Prisma Documentation",
+    "snippet": "Use the PrismaClient log parameter to configure log levels , including warnings, errors, and information about the queries sent to the database. Read more",
+    "host_name": "www.prisma.io",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/prisma/prisma/discussions/24841",
+    "name": "How to save logs to a file in Prisma #24841",
+    "snippet": "Jul 19, 2024 — Set up event-based logging : Configure Prisma Client to emit log events. . Subscribe to log events: Use the $on() method to handle log events. Read more",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "Jul 19, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.digitalapplied.com/blog/prisma-orm-production-guide-nextjs",
+    "name": "Prisma ORM Production Guide: Next.js Complete Setup 2025",
+    "snippet": "Oct 21, 2025 — A well-designed Prisma schema is the foundation of a maintainable application. Follow these best practices for production-ready schemas . Read more",
+    "host_name": "www.digitalapplied.com",
+    "rank": 2,
+    "date": "Oct 21, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://quizlet.com/study-guides/comprehensive-guide-to-prisma-client-setup-configuration-and-best-practices-fd40f38b-a67f-40a5-860c-7a816b2a414c",
+    "name": "Comprehensive Guide to Prisma Client",
+    "snippet": "Sep 23, 2025 — Best Practices for Long-Running Processes. In long-running applications, ensure only one global instance of PrismaClient is created to manage ... Read more",
+    "host_name": "quizlet.com",
+    "rank": 3,
+    "date": "Sep 23, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://lalatenduswain.medium.com/mastering-prisma-orm-streamlining-database-magic-in-modern-web-development-05206864342f",
+    "name": "Mastering Prisma ORM: Streamlining Database Magic in",
+    "snippet": "In production, enable query logging via log: ['query'] in your client instantiation for debugging slow endpoints. Run migrations on deploy ...",
+    "host_name": "lalatenduswain.medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.stackademic.com/a-beginners-guide-to-prisma-orm-with-examples-bb542bca7cac",
+    "name": "A Beginner's Guide to Prisma ORM with Examples",
+    "snippet": "May 25, 2025 — 9. Best Practices and Tips · Use .env to store your DB credentials securely . · Use prisma.$transaction() for multi-step operations. · Explore ... Read more",
+    "host_name": "blog.stackademic.com",
+    "rank": 5,
+    "date": "May 25, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/1i9zvyy/warning_think_twice_before_using_prisma_in_large",
+    "name": "Warning: Think twice before using Prisma in large projects",
+    "snippet": "Prisma, though probably not good for large codebases , does the best job at creating relational schemas with minimal debug time. That was the ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tessl.io/registry/tessl-labs/prisma-best-practices",
+    "name": "prisma-best-practices • tessl-labs • Registry",
+    "snippet": "Mar 20, 2026 — Prisma ORM patterns — schema design, migrations, type-safe queries, testing, error handling, and performance.",
+    "host_name": "tessl.io",
+    "rank": 7,
+    "date": "Mar 20, 2026",
+    "favicon": ""
+  }
+]

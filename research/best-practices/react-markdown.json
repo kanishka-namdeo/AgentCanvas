@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://github.com/orgs/remarkjs/discussions/1027",
+    "name": "Improving perfomance of `react-markdown` with very large",
+    "snippet": "Aug 12, 2022 — This would speed things up even for very very large documents . We could render chunks using InteractionObserver , keep track of scroll position ... Read more",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "Aug 12, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://strapi.io/blog/react-markdown-complete-guide-security-styling",
+    "name": "A Guide to React Markdown with Practical Examples",
+    "snippet": "Dec 12, 2025 — Performance optimization techniques like memoization and code splitting keep Markdown rendering efficient at scale. What is React Markdown ? Read more",
+    "host_name": "strapi.io",
+    "rank": 1,
+    "date": "Dec 12, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://ai-sdk.dev/cookbook/next/markdown-chatbot-with-memoization",
+    "name": "Next.js: Markdown Chatbot with Memoization",
+    "snippet": "This recipe uses memoization - a performance optimization technique where the results of expensive function calls are cached and reused to avoid unnecessary re ...",
+    "host_name": "ai-sdk.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.npmjs.com/package/%40m2d%2Freact-markdown",
+    "name": "MDX Renderer [ @m2d/react-markdown ]",
+    "snippet": "Jul 17, 2025 — TL;DR: @m2d/ react - markdown performs competitively with react - markdown , especially on medium and large documents . See full benchmarks →. Read more",
+    "host_name": "www.npmjs.com",
+    "rank": 3,
+    "date": "Jul 17, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://refine.dev/blog/react-markdown",
+    "name": "Creating Polished Content with React Markdown",
+    "snippet": "Aug 16, 2024 — Optimizing Big Documents To address the performance issue, the editor could render only the visible portions of a big Markdown document by ...",
+    "host_name": "refine.dev",
+    "rank": 4,
+    "date": "Aug 16, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/reactjs/comments/1f6abzy/performance_optimization_strategies_for",
+    "name": "Performance Optimization Strategies for Large-Scale React",
+    "snippet": "Proper asset serving, minification, gzip, and browser caching is more important. over memoization details and data flow.",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/JavaScript.Programming/posts/10171681729530343",
+    "name": "How to optimize React app performance with memoization?",
+    "snippet": "⚡️ Your React App Is Slow? Memoization Might Be the Fix.\n\nIf your React app starts lagging as it scales, it's probably not your API.\n\n It's your re-renders. ...",
+    "host_name": "www.facebook.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://app.studyraid.com/en/read/11460/359228/optimizing-large-markdown-documents",
+    "name": "Understand optimizing large Markdown documents",
+    "snippet": "Jan 7, 2025 — Optimizing large Markdown documents in React-Markdown requires a combination of techniques, including lazy loading, virtualization, memoization ...",
+    "host_name": "app.studyraid.com",
+    "rank": 7,
+    "date": "Jan 7, 2025",
+    "favicon": ""
+  }
+]

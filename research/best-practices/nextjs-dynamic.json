@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://nextjs.org/docs/app/guides/lazy-loading",
+    "name": "Guides: Lazy Loading",
+    "snippet": "Mar 10, 2026 — Lazy loading in Next . js helps improve the initial loading performance of an application by decreasing the amount of JavaScript needed to render ...",
+    "host_name": "nextjs.org",
+    "rank": 0,
+    "date": "Mar 10, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/1omk5vp/problem_with_app_router_noone_is_talking_about",
+    "name": "Problem with app router no-one is talking about - Dynamic",
+    "snippet": "Lazy load all client components . Dynamic imports shouldn't be necessary for code-splitting. Turbopack and Webpack should both handle that fine ...",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@dreamworld420/lazy-loading-in-next-js-a-deep-dive-with-examples-6cdaf5cb1611",
+    "name": "Lazy Loading in Next.js: A Deep Dive with Examples",
+    "snippet": "Best Practices · Use dynamic() for rarely used or heavy components . · Keep ssr: false only if your component depends on the browser (e.g., window ) ... Read more",
+    "host_name": "medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/vercel/next.js/issues/49454",
+    "name": "React lazy or next dynamic don't reduce an app route's \"",
+    "snippet": "May 8, 2023 — I implemented lazy loading for both Heavy Components : Heavy Client Component dynamically loads the Client Component from the Server ... Read more",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "May 8, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://apiko.com/blog/nextjs-lazy-loading",
+    "name": "Lazy Loading in Next.JS: Methods of Implementation - Apiko",
+    "snippet": "Mar 25, 2025 — Lazy loading in Next.js gives you the tools to defer non-essential components and scripts and keep your pages lean, fast, and responsive.",
+    "host_name": "apiko.com",
+    "rank": 4,
+    "date": "Mar 25, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.freecodecamp.org/news/a-developers-guide-to-lazy-loading-in-react-and-nextjs",
+    "name": "A Developer's Guide to Lazy Loading in React and Next.js",
+    "snippet": "Apr 14, 2026 — Lazy loading helps solve this problem by splitting your code into smaller chunks and loading them only when they are needed. Lazy loading is a ...",
+    "host_name": "www.freecodecamp.org",
+    "rank": 5,
+    "date": "Apr 14, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://javascript.plainenglish.io/day-15-mastering-code-splitting-and-lazy-loading-for-high-performance-react-next-js-apps-c8eb036783ce",
+    "name": "Day 15: Mastering Code Splitting and Lazy Loading for",
+    "snippet": "Apr 30, 2025 — In this post, we'll explore how to implement code splitting and lazy loading in React and Next.js , focusing on both the App Router and Pages ... Read more",
+    "host_name": "javascript.plainenglish.io",
+    "rank": 6,
+    "date": "Apr 30, 2025",
+    "favicon": ""
+  }
+]

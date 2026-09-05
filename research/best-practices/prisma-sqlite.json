@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://developer.android.com/topic/performance/sqlite-performance-best-practices",
+    "name": "Best practices for SQLite performance | App quality",
+    "snippet": "Optimize your Android app's performance by following best practices for SQLite databases, including configuration, schema design, query optimization, ...",
+    "host_name": "developer.android.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://powersync.com/blog/sqlite-optimizations-for-ultra-high-performance",
+    "name": "SQLite Optimizations For Ultra High-Performance",
+    "snippet": "May 25, 2023 — # 1: Enable Write-Ahead Logging (WAL ) And Disable Synchronous Mode · # 2: Reduce Binding Overhead · # 3: Wrap Writes Into Transactions · # 4: Run ... Read more",
+    "host_name": "powersync.com",
+    "rank": 1,
+    "date": "May 25, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/prisma/prisma/discussions/15966",
+    "name": "SQLite - prisma connection management and WAL file",
+    "snippet": "I would recommend trying out calling $disconnect explicitly to observe the behaviour and check if the wal file gets removed or not.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.prisma.io/docs/orm/v7/prisma-client/queries/advanced/query-optimization-performance",
+    "name": "Query optimization | Prisma Documentation",
+    "snippet": "Query Insights is built into Prisma Postgres and shows you which queries are slow, how expensive they are, and what to fix. It works out of the box for raw SQL, ... Read more",
+    "host_name": "www.prisma.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gazar.dev/database/indexes-unleashing-database-performance",
+    "name": "Database Performance and Indexes in Prisma ORM - Gazar",
+    "snippet": "May 5, 2024 — Don't index everything. Each index costs storage and slows down writes. Every INSERT, UPDATE, and DELETE must update every index on that table. Read more",
+    "host_name": "gazar.dev",
+    "rank": 4,
+    "date": "May 5, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@firmanbrilian/best-practices-for-managing-schema-indexes-and-storage-in-sqlite-for-data-engineering-c74f71056518",
+    "name": "Best Practices for Managing Schema, Indexes, and",
+    "snippet": "Indexes can make or break performance in data workflows . ✅ Create Indexes on Query-Critical Columns Identify columns frequently used in WHERE , ...",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://phiresky.github.io/blog/2020/sqlite-performance-tuning",
+    "name": "SQLite performance tuning",
+    "snippet": "Jul 31, 2022 — WAL mode has some issues where depending on the write pattern, the WAL size can grow to infinity, slowing down performance a lot. I think ... Read more",
+    "host_name": "phiresky.github.io",
+    "rank": 6,
+    "date": "Jul 31, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/1i9zvyy/warning_think_twice_before_using_prisma_in_large",
+    "name": "Warning: Think twice before using Prisma in large projects",
+    "snippet": "Prisma, though probably not good for large codebases , does the best job at creating relational schemas with minimal debug time. That was the ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

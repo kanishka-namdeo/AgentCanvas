@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.aitmpl.com/component/commands/nextjs-vercel/nextjs-bundle-analyzer",
+    "name": "Nextjs Bundle Analyzer — Commands for Claude Code | AI Templates",
+    "snippet": "Analyze and optimize Next.js bundle size ... Optimize imports: Use tree-shaking friendly import patterns ... Optimization Opportunities: Specific recommendations ...",
+    "host_name": "www.aitmpl.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/zyna-b/Nextjs-Ecommerce-CMS-Dashboard",
+    "name": "Next.js E-commerce CMS Dashboard - GitHub",
+    "snippet": "Bundle Size: Optimized with tree-shaking and code splitting. Built-in Analytics Features. Revenue Tracking: Real-time sales analytics with visual charts ...",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://leonardo007-code-semanainformatica2025.mintlify.app/development/building",
+    "name": "Building for Production - DEV WEEK 2025 Documentation",
+    "snippet": "Tree Shaking: Unused code is eliminated; Minification: JavaScript and CSS are minified; Asset Optimization: Images and other assets are optimized. ​. Build ...",
+    "host_name": "leonardo007-code-semanainformatica2025.mintlify.app",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gitlab.meu-solutions.com/vanhoangit/vcci-news/blob/4b4dbccb859598ae1090d0d0f77ae746f8de6f83/.agents/skills/vercel-react-best-practices/AGENTS.md",
+    "name": ".agents/skills/vercel-react-best-practices/AGENTS.md  - GitLab",
+    "snippet": "May 10, 2026 · Bundle Size Optimization. Impact: CRITICAL. Reducing initial bundle size improves Time to Interactive and Largest Contentful Paint. 2.1 Avoid ...",
+    "host_name": "gitlab.meu-solutions.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://hackernoon.com/compilation-of-the-most-common-reactjs-interview-questions",
+    "name": "Compilation of the Most Common React.js Interview Questions",
+    "snippet": "Sep 26, 2024 · Minimize Bundle Size: Use tree shaking, remove unused code, and optimize third-party libraries to reduce the final bundle size. Use the ...",
+    "host_name": "hackernoon.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/hassaansiraj_webdevelopment-javascript-frontend-activity-7483422719775203328-oIoO",
+    "name": "Minification vs Compression in Web Development | Hassaan Siraj",
+    "snippet": "Jul 16, 2026 · ... Lucide-react | Supabase | Next Js. 1mo. Report this post; Close menu ... Tree-shaking only works when your code, and your dependencies ...",
+    "host_name": "www.linkedin.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/Onemind-Services-LLC/react-icons-ng",
+    "name": "Onemind-Services-LLC/react-icons-ng - GitHub",
+    "snippet": "Popular setups include: Next.js (SSR): import icons directly in server and client components; CRA/Vite/Webpack: fully tree‑shakeable with default configs ...",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jsdelivr.com/package/npm/@asafarim/react-themes",
+    "name": "asafarim/react-themes - A CDN for npm and GitHub - jsDelivr",
+    "snippet": "Lightweight: Minimal bundle size impact (~8KB gzipped); Tree-shakeable: Import only what you need. Developer Experience. TypeScript First: Full type ...",
+    "host_name": "www.jsdelivr.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

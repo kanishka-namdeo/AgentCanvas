@@ -21,7 +21,7 @@
 //     readouts; Variables live in the Properties panel's empty state.)
 //   - Right-click menu: Delete, Rename, Duplicate.
 
-import { useState, useEffect, useMemo, useRef, useCallback, type ReactNode, type ComponentType } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, memo, type ReactNode, type ComponentType } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape, LayerType } from '@/lib/canvas/types';
@@ -196,7 +196,15 @@ function saveCollapsed(docId: string, collapsed: Set<string>): void {
 // outer strip owns navigation) and expand/collapse moves into the search
 // row. Uncontrolled (no props) the panel behaves exactly as before — the
 // unit tests render it standalone and drive ⌥1/⌥2 via CustomEvent.
-export function LayersPanel({
+// memoized (perf pass, task 4): the panel still re-renders on every canvas
+// patch flush — necessarily, it subscribes to `document`/`selectedIds` and
+// renders the layer tree — but memo() stops the Home-cascade re-renders for
+// page state this panel doesn't subscribe to (agentBusy, connected,
+// viewerCount, dialog open states, zen toggles…). Rows themselves are inline
+// closures (renderShape), so the panel export is the leaf memo unit.
+// Requires a stable `onTabChange` prop — page.tsx passes the state setter
+// directly (previously an inline lambda, which would have defeated this).
+export const LayersPanel = memo(function LayersPanel({
   tab,
   onTabChange,
 }: {
@@ -1308,4 +1316,4 @@ export function LayersPanel({
       </div>
     </div>
   );
-}
+});

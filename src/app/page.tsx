@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -13,10 +14,7 @@ import { AppMenu } from '@/components/canvas/AppMenu';
 import { LayersPanel } from '@/components/canvas/LayersPanel';
 import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
 import { AgentPanel } from '@/components/canvas/AgentPanel';
-import { CommandPalette, type PaletteCommand } from '@/components/canvas/CommandPalette';
-import { KeyboardShortcutsDialog } from '@/components/canvas/KeyboardShortcutsDialog';
-import { DesignSystemPicker } from '@/components/design-systems/DesignSystemPicker';
-import { SettingsDialog } from '@/components/settings/SettingsDialog';
+import type { PaletteCommand } from '@/components/canvas/CommandPalette';
 import { useSettings } from '@/lib/settings/store';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
@@ -28,7 +26,6 @@ import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl 
 import { exportBackgroundColor } from '@/lib/canvas/theme-colors';
 import { SessionSidebar } from '@/components/sessions/SessionSidebar';
 import { SessionHeader } from '@/components/sessions/SessionHeader';
-import { RunHistoryPanel } from '@/components/sessions/RunHistoryPanel';
 import { RunStopButton } from '@/components/sessions/RunStopButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePenFile } from '@/components/canvas/PenFileMenu';
@@ -45,6 +42,75 @@ import { toast } from 'sonner';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
+
+// ── Code-split dialog/tab-gated heavy components ─────────────────────────
+//
+// These components are NOT part of initial paint: four dialogs gated behind
+// `open` props plus a non-default right-panel tab (History — the default tab
+// is Chat). next/dynamic keeps them (and their exclusive dependencies —
+// ShortcutsReference, the design-system registry hooks, the settings
+// catalog, the MCP/plugins fetch surfaces…) out of the initial page chunk.
+// The page is a client component, so `ssr: false` is allowed. Mounting is
+// deferred until first open via useDeferredMount below; afterwards the
+// component stays mounted so its internal state (active settings section,
+// palette query…) survives close/reopen exactly as it did when statically
+// imported — zero behavior change beyond the one-time chunk fetch on first
+// open.
+//
+// Deliberately NOT split: Canvas/Toolbar/AppMenu/LayersPanel/PropertiesPanel/
+// AgentPanel/SessionSidebar/SessionHeader — all visible on initial load.
+
+/// Minimal skeleton shown while a lazy chunk loads. Uses the app's ac-*
+/// surface tokens so it adapts to light/dark; appears once, on first open.
+function LoadingFallback(): ReactNode {
+  return (
+    <div className="flex h-full min-h-[80px] w-full items-center justify-center p-4" aria-hidden="true">
+      <div className="h-6 w-6 animate-pulse rounded ac-surface-2" />
+    </div>
+  );
+}
+
+const CommandPalette = dynamic(
+  () => import('@/components/canvas/CommandPalette').then((m) => m.CommandPalette),
+  { ssr: false, loading: () => <LoadingFallback /> },
+);
+const SettingsDialog = dynamic(
+  () => import('@/components/settings/SettingsDialog').then((m) => m.SettingsDialog),
+  { ssr: false, loading: () => <LoadingFallback /> },
+);
+const KeyboardShortcutsDialog = dynamic(
+  () => import('@/components/canvas/KeyboardShortcutsDialog').then((m) => m.KeyboardShortcutsDialog),
+  { ssr: false, loading: () => <LoadingFallback /> },
+);
+const DesignSystemPicker = dynamic(
+  () => import('@/components/design-systems/DesignSystemPicker').then((m) => m.DesignSystemPicker),
+  { ssr: false, loading: () => <LoadingFallback /> },
+);
+// History is a right-panel tab, not the default — loads on first visit.
+const RunHistoryPanel = dynamic(
+  () => import('@/components/sessions/RunHistoryPanel').then((m) => m.RunHistoryPanel),
+  { ssr: false, loading: () => <LoadingFallback /> },
+);
+
+/// Mount-on-first-open gate for the lazily-loaded dialogs above: returns
+/// false until `open` goes true once, then stays true for the rest of the
+/// session. This defers the dynamic chunk fetch until the user actually
+/// opens the dialog (max savings) while preserving the always-mounted
+/// semantics the components were written against (state survives
+/// close/reopen; no pre-open store subscription is required by any of
+/// them — verified: the palette/shortcuts/picker read store state only
+/// while open, and SettingsDialog's sections mount inside DialogContent).
+function useDeferredMount(open: boolean): boolean {
+  const [mounted, setMounted] = useState(false);
+  if (open && !mounted) {
+    // Adjust-state-during-render (react.dev "You Might Not Need an Effect"
+    // pattern): React discards this pass and re-renders immediately with
+    // mounted=true, so the dialog mounts on the exact render where it
+    // opens — no extra frame, no effect timing gap.
+    setMounted(true);
+  }
+  return mounted;
+}
 
 type RightTab = 'chat' | 'design' | 'history';
 /// UI-audit round 2: Assets is a top-level tab now — the left column has
@@ -128,6 +194,13 @@ export default function Home() {
   // generation. Mounted via View → "Design Systems…".
   const [designSystemsOpen, setDesignSystemsOpen] = useState(false);
 
+  // First-open mount gates for the code-split dialogs (see useDeferredMount
+  // above): chunk + component mount are deferred until the first open.
+  const paletteMounted = useDeferredMount(paletteOpen);
+  const settingsMounted = useDeferredMount(settingsOpen);
+  const shortcutsMounted = useDeferredMount(shortcutsOpen);
+  const designSystemsMounted = useDeferredMount(designSystemsOpen);
+
   // Mobile detection (P3-8) — drives auto-collapse + wider panel sizes on
   // touch devices. SSR-safe (returns false during SSR; the effect syncs to
   // the real media-query match on mount).
@@ -182,9 +255,11 @@ export default function Home() {
   // 'production'` guard). The bench runner (scripts/dom-renderer-bench/run.ts)
   // uses these to inject synthetic documents and drive patches from outside
   // the React tree; when the hooks are absent (production CI), the runner
-  // falls back to driving `__canvasStore` directly (always exposed in
-  // store.ts:1920). Keeping these as named hooks documents the bench's surface
-  // area so the canvas app and the runner don't drift.
+  // falls back to driving `__canvasStore` directly — which since the task-4
+  // perf pass is itself dev/test-only too (see store.ts:3914), so the
+  // production-branch fallback degrades to a warning. Keeping these as named
+  // hooks documents the bench's surface area so the canvas app and the runner
+  // don't drift.
   useEffect(() => {
     if (process.env.NODE_ENV === 'production') return;
     if (typeof window === 'undefined') return;
@@ -1067,32 +1142,36 @@ export default function Home() {
       </div>
 
       {/* ⌘K command palette — commands + preset prompts (UI-audit round 2) */}
-      <CommandPalette
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-        commands={paletteCommands}
-        onRouteToComposer={(text) =>
-          window.dispatchEvent(new CustomEvent('agentcanvas:composer-prefill', { detail: text }))
-        }
-      />
+      {paletteMounted && (
+        <CommandPalette
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+          commands={paletteCommands}
+          onRouteToComposer={(text) =>
+            window.dispatchEvent(new CustomEvent('agentcanvas:composer-prefill', { detail: text }))
+          }
+        />
+      )}
 
       {/* .pen file input + busy overlay (headless usePenFile chrome) */}
       {penFile.chrome}
 
       {/* Settings dialog — agent behavior, LLM provider, sessions, appearance, data, shortcuts */}
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      {settingsMounted && <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />}
+      {shortcutsMounted && <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />}
 
       {/* Design-System Registry picker — View → "Design Systems…" */}
-      <DesignSystemPicker
-        open={designSystemsOpen}
-        onOpenChange={setDesignSystemsOpen}
-        onPick={(name) => {
-          toast.success(`Design system set to ${name}`, {
-            description: 'The agent will use this pack for all UI generation this session.',
-          });
-        }}
-      />
+      {designSystemsMounted && (
+        <DesignSystemPicker
+          open={designSystemsOpen}
+          onOpenChange={setDesignSystemsOpen}
+          onPick={(name) => {
+            toast.success(`Design system set to ${name}`, {
+              description: 'The agent will use this pack for all UI generation this session.',
+            });
+          }}
+        />
+      )}
     </TooltipProvider>
   );
 }
@@ -1160,11 +1239,13 @@ function LeftTabbedPanel({
       {/* Active panel body — full vertical space.
           UI-audit round 2: Layers/Assets render the SAME panel in controlled
           mode — the outer strip owns the tab (the panel's inner tab strip is
-          hidden; expand/collapse rides in its search row). */}
+          hidden; expand/collapse rides in its search row).
+          Perf: pass the stable parent prop directly (not a lambda) so the
+          memoized LayersPanel bails out of unrelated re-renders. */}
       <div className="flex-1 min-h-0">
         {tab === 'chats' && <SessionSidebar />}
         {(tab === 'layers' || tab === 'assets') && (
-          <LayersPanel tab={tab} onTabChange={(t) => onTabChange(t)} />
+          <LayersPanel tab={tab} onTabChange={onTabChange} />
         )}
       </div>
     </div>

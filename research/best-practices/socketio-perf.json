@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://socket.io",
+    "name": "Performance tuning",
+    "snippet": "Jun 18, 2026 — Performance tuning. Here are some tips to improve the performance of your Socket.IO server : at the Socket.IO level; at the OS level. Read more",
+    "host_name": "socket.io",
+    "rank": 0,
+    "date": "Jun 18, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.pixelfreestudio.com",
+    "name": "Best Practices for Optimizing WebSockets Performance",
+    "snippet": "Optimize the frequency of messages sent over WebSockets . Sending too many messages can lead to congestion and increased latency. Use techniques like message ... Read more",
+    "host_name": "blog.pixelfreestudio.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.cantremember.com",
+    "name": "Optimizing Socket.io Performance with Binary Mode",
+    "snippet": "Aug 23, 2015 — Batching Messages. Another refinement would be to send messages in batches. Each WebSocket message introduces CPU overhead beyond what is needed ... Read more",
+    "host_name": "blog.cantremember.com",
+    "rank": 2,
+    "date": "Aug 23, 2015",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.videosdk.live",
+    "name": "Socket IO Polling in 2025: Deep Dive, Protocols, and",
+    "snippet": "Jul 7, 2025 — Explore how socket io polling works for real-time communication in 2025. Covers protocol, architecture, performance optimization, code examples, ... Read more",
+    "host_name": "www.videosdk.live",
+    "rank": 3,
+    "date": "Jul 7, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "Some thought about performance data · socketio socket.io",
+    "snippet": "It is very hard to find the performance data about socket . io , e.g. the peak number of connection, the memory usage, etc. The only article I find, ... Read more",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://namastedev.com",
+    "name": "Socket.io Best Practices and Performance Optimizing Real-",
+    "snippet": "Learn best practices for Socket.io in production performance optimization, memory management, connection limits, and monitoring for large-scale real-time ...",
+    "host_name": "namastedev.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to",
+    "name": "Real-time communication with WebSockets and Socket.IO",
+    "snippet": "Oct 2, 2024 — Using Socket.IO to simplify WebSocket implementation . Examples of real-world use cases. What Are WebSockets? WebSockets are a protocol that ... Read more",
+    "host_name": "dev.to",
+    "rank": 6,
+    "date": "Oct 2, 2024",
+    "favicon": ""
+  }
+]

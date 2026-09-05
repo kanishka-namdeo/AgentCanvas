@@ -17,7 +17,7 @@
 // Mirrors the sidebar patterns used by v0, Bolt.new, Lovable, and Cursor
 // Composer (see research notes §6).
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, memo } from 'react';
 import { useSessionStore } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
@@ -70,7 +70,17 @@ function highlight(text: string, q: string): React.ReactNode {
   );
 }
 
-export function SessionSidebar() {
+// Stable empty-array ref — `session.tags ?? []` would mint a fresh [] per
+// render and defeat the memoized TagEditorInline rows below.
+const NO_TAGS: string[] = [];
+
+// memoized (perf pass, task 4): the sidebar takes no props but re-rendered
+// on EVERY Home re-render (the page subscribes to `document`/`selectedIds`,
+// so every canvas patch flush cascaded here and re-rendered the whole chat
+// list). With memo, this panel only re-renders when its own subscriptions
+// fire (sessionsMap, activeSessionId, agentBusy, documentId) or local state
+// changes — the row list is shielded from canvas patch flushes.
+export const SessionSidebar = memo(function SessionSidebar() {
   const documentId = useCanvasStore((s) => s.documentId);
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
   const switchSession = useCanvasStore((s) => s.switchSession);
@@ -423,7 +433,7 @@ export function SessionSidebar() {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {/* Tag editor inline — quick add/remove */}
-                        <TagEditorInline sessionId={session.id} tags={session.tags ?? []} onSet={(tags) => setSessionTags(session.id, tags)} />
+                        <TagEditorInline sessionId={session.id} tags={session.tags ?? NO_TAGS} setTags={setSessionTags} />
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="py-1.5" disabled={agentBusy} onClick={() => {
                           // Busy guard — the fork switches chats (the store
@@ -635,19 +645,22 @@ export function SessionSidebar() {
       </Dialog>
     </div>
   );
-}
+});
 
 /// Inline tag editor rendered inside the session-row context menu.
 /// A small combobox: shows existing tags as removable chips, plus a text
-/// input that adds a new tag on Enter. Submitting calls onSet with the
-/// full new array (full replacement — the store's setSessionTags sends
-/// the whole array to the server, not a delta).
-function TagEditorInline({
-  sessionId, tags, onSet,
+/// input that adds a new tag on Enter. Submitting calls setTags with the
+/// full new array (full replacement — the store's setSessionTags sends the
+/// whole array to the server, not a delta).
+// memoized — takes the stable store action `setSessionTags` + the row's
+// sessionId instead of a per-row lambda, so its props stay referentially
+/// equal across parent re-renders.
+const TagEditorInline = memo(function TagEditorInline({
+  sessionId, tags, setTags,
 }: {
   sessionId: string;
   tags: string[];
-  onSet: (tags: string[]) => void;
+  setTags: (sessionId: string, tags: string[]) => void;
 }) {
   const [newTag, setNewTag] = useState('');
   // Reset the input whenever this editor re-mounts (the dropdown menu item
@@ -663,11 +676,11 @@ function TagEditorInline({
       setNewTag('');
       return;
     }
-    onSet([...tags, v]);
+    setTags(sessionId, [...tags, v]);
     setNewTag('');
   };
   const removeTag = (t: string) => {
-    onSet(tags.filter((x) => x !== t));
+    setTags(sessionId, tags.filter((x) => x !== t));
   };
 
   return (
@@ -708,4 +721,4 @@ function TagEditorInline({
       />
     </div>
   );
-}
+});

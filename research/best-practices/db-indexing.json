@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.reddit.com/r/SQL/comments/s2w4ia/sqlite_what_are_the_best_practices_for_indexing",
+    "name": "SQLite, what are the best practices for indexing? : r/SQL",
+    "snippet": "Hello, What columns are usually a good idea for an index?\n\nIs index a good idea on string columns that will be often queried with the 'like' keyword? ...",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dbschema.com/blog/sqlite/index/?srsltid=AfmBOopBtfclyysTf3Vz3X0jkexFSc6bobs-lHMOKWjQ1HjHU9g6KCtJ",
+    "name": "CREATE INDEX, EXPLAIN QUERY PLAN, and Tuning Tips",
+    "snippet": "The trick is to add them based on real query patterns , validate them with EXPLAIN QUERY PLAN , and avoid indexing every column by default.",
+    "host_name": "dbschema.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alessandroferrini.com/posts/sql-index-performance",
+    "name": "EXPLAIN QUERY PLAN, composite indexes, and when not to",
+    "snippet": "Jan 25, 2026 — Learn how SQLite indexes work , how to read EXPLAIN QUERY PLAN, when composite indexes help, and when an index slows writes more than it ...",
+    "host_name": "www.alessandroferrini.com",
+    "rank": 2,
+    "date": "Jan 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/71190984/when-to-create-multi-column-indices-in-sqlite",
+    "name": "indexing - When to create multi-column indices in SQLite?",
+    "snippet": "Assume I have a table in an SQLite database: CopyCREATE TABLE orders ( id INTEGER PRIMARY KEY, price INTEGER NOT NULL, updateTime INTEGER NOT ...",
+    "host_name": "stackoverflow.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://oneuptime.com/blog/post/2026-01-30-composite-index-design/view",
+    "name": "How to Build Composite Index Design",
+    "snippet": "Jan 30, 2026 — 1. Put equality conditions before range conditions · 2. Consider selectivity for equality columns · 3. Include sort columns last · Mistake 3: ... Read more",
+    "host_name": "oneuptime.com",
+    "rank": 4,
+    "date": "Jan 30, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://coddy.tech/docs/sqlite/composite-indexes",
+    "name": "Runnable SQLite Docs: Composite Indexes",
+    "snippet": "May 2, 2026 — Use a composite index when queries regularly filter or sort on the same combination of columns together. Separate single-column indexes work ...",
+    "host_name": "coddy.tech",
+    "rank": 5,
+    "date": "May 2, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://leapcell.medium.com/sql-composite-indexes-when-to-use-1718a9161241",
+    "name": "SQL Composite Indexes: When to Use? | by Leapcell - Medium",
+    "snippet": "When query conditions involve multiple columns, a composite index is more efficient than multiple single-column indexes. Index design should ... Read more",
+    "host_name": "leapcell.medium.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://milanjovanovic.tech/blog/how-to-design-the-right-sql-index",
+    "name": "From 17ms to 0.04ms: How to Design the Right SQL Index",
+    "snippet": "Aug 22, 2026 — Design indexes from your queries, not your tables. · Composite indexes need the right column order : equality columns first, then the sort column. Read more",
+    "host_name": "milanjovanovic.tech",
+    "rank": 7,
+    "date": "Aug 22, 2026",
+    "favicon": ""
+  }
+]

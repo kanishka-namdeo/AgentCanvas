@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://nextjs.org/docs/app/guides/package-bundling",
+    "name": "Optimizing package bundling",
+    "snippet": "Jun 1, 2026 — Smaller bundles load faster, reduce JavaScript execution time , improve Core Web Vitals , and lower server cold start times. Next.js ... Read more",
+    "host_name": "nextjs.org",
+    "rank": 0,
+    "date": "Jun 1, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.stackademic.com/the-secret-to-shrinking-your-next-js-bundle-without-breaking-everything-5d742e5417fa",
+    "name": "The Secret to Shrinking Your Next.js Bundle (Without",
+    "snippet": "Dec 1, 2025 — in this post, I'll show you the exact steps I take now whenever I need to reduce my Next . js bundle size — fast. Split Libraries or Use Edge- ...",
+    "host_name": "blog.stackademic.com",
+    "rank": 1,
+    "date": "Dec 1, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/1hmqu8q/any_useful_nextjs_library_to_improve_performance",
+    "name": "Any useful Next.js library to improve performance, bundle",
+    "snippet": "Any useful Next.js library to improve performance, bundle size or anything significant? Looked at some awesome lists, but I couldn't find anything that ...",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@jigsz6391/how-to-reduce-bundle-size-in-next-js-501ead37460b",
+    "name": "How to Reduce Bundle Size in Next js | by JigsDev",
+    "snippet": "How to Reduce Bundle Size in Next js · Step 1: Analyze Your Bundle · Step 2: Import Smarter · Step 3: Use Dynamic Imports · Step 4: Keep Heavy Code ... Read more",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.geeksforgeeks.org/nextjs/next-js-reducing-javascript-size",
+    "name": "Next.js Reducing Bundle Size",
+    "snippet": "Jul 23, 2025 — Next . js offers an easy and efficient way to reduce the size of your JavaScript bundle by using code splitting.",
+    "host_name": "www.geeksforgeeks.org",
+    "rank": 4,
+    "date": "Jul 23, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "http://www.catchmetrics.io/blog/reducing-nextjs-bundle-size-with-nextjs-bundle-analyzer",
+    "name": "Reducing Next.js Bundle Size with Next.js Bundle Analyzer",
+    "snippet": "Use HTTP/2 and Brotli compression to minimize the size of files sent from the server to the client. This reduces load times significantly, especially for larger ... Read more",
+    "host_name": "www.catchmetrics.io",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/74374615/how-to-reduce-nextjs-bundle-size",
+    "name": "How to reduce NextJs bundle size? - javascript",
+    "snippet": "I've just created my NextJS app, and the first load bundle size is about 1.5Mb. This is my first time using Nextjs, and from what I understand ...",
+    "host_name": "stackoverflow.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/vipul-maurya_nextjs-nextjs16-reactjs-activity-7396409752592769024-53DZ",
+    "name": "How to fix large bundle size in Next.js 16 apps",
+    "snippet": "A recruiter recently asked me: “How do you fix performance when a Next . js 16 app has a large bundle size ?” My answer was simple and ...",
+    "host_name": "www.linkedin.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

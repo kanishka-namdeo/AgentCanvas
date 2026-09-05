@@ -27,6 +27,10 @@ model Document {
 
   shapes    Shape[]
   actions   AgentAction[]
+
+  // GET /api/documents lists orderBy updatedAt desc (take 50) — index the
+  // sort column so the switcher's list query avoids a filesort.
+  @@index([updatedAt])
 }
 
 /// A single visual node on the canvas — rectangle, ellipse, text, line, etc.
@@ -215,8 +219,14 @@ model Session {
   messages   SessionMessage[]
   runs       SessionRun[]
 
-  @@index([documentId])
-  @@index([status])
+  // GET /api/sessions list query: findMany({ documentId, status },
+  // orderBy lastOpenedAt desc) — equality columns first, sort column last.
+  // Prefix-covers the old single-column [documentId] index (tags route /
+  // document-scoped reads). The old [status]-only index was dropped: the
+  // only status-filtered reader is this route, and every client call site
+  // (server-sync.ts) always passes documentId — the status-alone shape is
+  // only reachable via manual curl health checks on a tiny table.
+  @@index([documentId, status, lastOpenedAt])
 }
 
 /// A message in a session — either user prompt or agent response.
@@ -244,7 +254,14 @@ model SessionMessage {
 
   attachments SessionAttachment[]
 
-  @@index([sessionId])
+  // Two read shapes:
+  //   1. messages route / session GET include: findMany({ sessionId },
+  //      orderBy createdAt asc) — [sessionId, createdAt] (replaces the
+  //      single-column [sessionId] index; prefix-covered).
+  //   2. boot-recovery: findMany({ status: 'streaming', createdAt lt }) —
+  //      [status, createdAt] (equality + range).
+  @@index([sessionId, createdAt])
+  @@index([status, createdAt])
 }
 
 /// An image attachment on a user message (paste / paperclip / drop /
@@ -296,7 +313,14 @@ model SessionRun {
   costUsd    Float    @default(0)
   createdAt  DateTime @default(now())
 
-  @@index([sessionId])
+  // Two read shapes:
+  //   1. session GET include: runs orderBy createdAt asc — [sessionId,
+  //      createdAt] (replaces the single-column [sessionId] index;
+  //      prefix-covered).
+  //   2. boot-recovery: findMany({ status in [queued, in_progress,
+  //      awaiting_tool, cancelling], createdAt lt }) — [status, createdAt].
+  @@index([sessionId, createdAt])
+  @@index([status, createdAt])
 }
 
 /// A canvas snapshot — point-in-time capture of a DOCUMENT (shared canvas
@@ -340,7 +364,18 @@ model DocumentSnapshot {
   tombstones String?
   createdAt  DateTime @default(now())
 
-  @@index([documentId])
-  @@index([sessionId])
+  // Read shapes (journal-fold + snapshots API), equality columns first /
+  // sort column last:
+  //   1. checkpoint probe: findFirst({ documentId, source: 'server' },
+  //      orderBy createdAt desc) — [documentId, source, createdAt].
+  //   2. hydration + timeline list: findFirst/findMany({ documentId },
+  //      orderBy createdAt desc) — [documentId, createdAt] (prefix-covers
+  //      the old single-column [documentId] index).
+  //   3. fold base: findFirst({ documentId, lastSeq not null }) — the
+  //      [documentId, lastSeq] index is kept for this shape.
+  // The old [sessionId] index was dropped: sessionId is provenance only
+  // (no FK, no reader greps anywhere in src/) — pure write tax.
+  @@index([documentId, source, createdAt])
+  @@index([documentId, createdAt])
   @@index([documentId, lastSeq])
 }

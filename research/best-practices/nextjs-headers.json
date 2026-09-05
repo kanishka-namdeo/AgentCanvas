@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://agilitycms.com/blog/addressing-the-critical-next-js-vulnerability-updates-to-agility-cms-example-repos-and-starters",
+    "name": "Addressing the Critical Next.js Vulnerability: Updates to",
+    "snippet": "Mar 24, 2025 — Path Rewriting and Security Headers: Improved path rewriting mechanisms to prevent attackers from reaching protected endpoints. Reinforced ... Read more",
+    "host_name": "agilitycms.com",
+    "rank": 0,
+    "date": "Mar 24, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.socure.com/riskos/docs/content-security-policy",
+    "name": "Content Security Policy Configuration",
+    "snippet": "Make sure to tailor the provided CSP header example to match your application's specific needs while following best security practices.",
+    "host_name": "help.socure.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://kmmshost.com/2025/04/15/celadonsoft-next-js-security-best-practices-for-robust-web-solutions",
+    "name": "Celadonsoft Next.js Security Best Practices for Robust Web",
+    "snippet": "Apr 15, 2025 — Set a Content Security Policy (CSP ) A strong CSP reduces the chance of harmful scripts being executed — even if they slip into the DOM. Lock ... Read more",
+    "host_name": "kmmshost.com",
+    "rank": 2,
+    "date": "Apr 15, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.stackademic.com/next-js-security-vulnerabilities-and-mitigation-strategie-3c7b8ab4c2f4",
+    "name": "Next.js Security Vulnerabilities and Mitigation Strategies",
+    "snippet": "Jun 30, 2024 — Secure Headers: Configure secure HTTP headers to protect against common web vulnerabilities.",
+    "host_name": "blog.stackademic.com",
+    "rank": 3,
+    "date": "Jun 30, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/mysticwillz_youre-in-a-frontend-interview-they-ask-activity-7363514123122278401-JsxD",
+    "name": "You're in a frontend interview. | Eze Williams",
+    "snippet": "4. Use Content Security Policy (CSP) headers to restrict script execution. 5. Keep dependencies updated and avoid insecure libraries. Read more",
+    "host_name": "www.linkedin.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/reactjs/comments/1akxmja/jwt_token_security_nextjs_vs_react",
+    "name": "JWT Token Security NextJS vs React : r/reactjs",
+    "snippet": "As long as you never use Reacts dangerouslySetInnerHTML coupled with a strong CSP header when NextJS returns your pages, you should be fine. Read more",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://anotherwrapper.com/blog/supabase-auth-nextjs",
+    "name": "Supabase Auth NextJS: Secure and Seamless",
+    "snippet": "Apr 29, 2025 — CSP headers can lead to data leaks . Define an exact origin list. Add a strict CSP header to block inline scripts and external domains … add CSP ...",
+    "host_name": "anotherwrapper.com",
+    "rank": 6,
+    "date": "Apr 29, 2025",
+    "favicon": ""
+  }
+]

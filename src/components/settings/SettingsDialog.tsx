@@ -1051,7 +1051,10 @@ const CATEGORY_LABELS: Record<PluginInfo['category'], string> = {
 };
 
 function PluginsSection() {
-  const settings = useSettings();
+  // Fine-grained selector — the old whole-store `useSettings()` subscription
+  // re-rendered this section on EVERY settings change (theme, temperature…).
+  // Only the plugins-enabled list is read here.
+  const enabledPlugins = useSettings((s) => s.enabledPlugins);
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
   const [loading, setLoading] = useState(true);
   // D5: plugin toggles reshape the NEXT prompt's tool surface (settings are
@@ -1069,10 +1072,10 @@ function PluginsSection() {
       .catch(() => setLoading(false));
   }, []);
 
-  const enabledSet = new Set(settings.enabledPlugins ?? plugins.filter((p) => p.defaultEnabled).map((p) => p.pluginId));
+  const enabledSet = new Set(enabledPlugins ?? plugins.filter((p) => p.defaultEnabled).map((p) => p.pluginId));
 
   const togglePlugin = (pluginId: string, enabled: boolean) => {
-    const current = new Set(settings.enabledPlugins ?? plugins.filter((p) => p.defaultEnabled).map((p) => p.pluginId));
+    const current = new Set(enabledPlugins ?? plugins.filter((p) => p.defaultEnabled).map((p) => p.pluginId));
     if (enabled) current.add(pluginId);
     else current.delete(pluginId);
     useSettings.getState().set('enabledPlugins', Array.from(current));
@@ -1161,8 +1164,10 @@ function PluginsSection() {
 type McpServerEntry = McpServerConfig;
 
 function McpSection() {
-  const settings = useSettings();
-  const servers = settings.mcpServers ?? [];
+  // Fine-grained selector — see PluginsSection note. Only the MCP server
+  // list is read here.
+  const mcpServers = useSettings((s) => s.mcpServers);
+  const servers = mcpServers ?? [];
   const [showAddForm, setShowAddForm] = useState(false);
   // D5: connect/disconnect mutates SERVER-side connection state an
   // in-flight mcp_* tool call may be using — gate while a run is live.

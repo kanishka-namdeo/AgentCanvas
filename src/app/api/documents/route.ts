@@ -19,7 +19,10 @@ export async function GET(req: NextRequest) {
   try {
     // List documents ordered by updatedAt desc. The list excludes the
     // `viewport` / `background` columns — the canvas store already has the
-    // live values; the switcher only needs id + name + timestamps.
+    // live values; the switcher only needs id + name + timestamps. (A former
+    // `_count: { shapes, actions }` subselect was removed — Shape and
+    // AgentAction have had zero writers since inception, so both counts were
+    // constant 0 and no client code reads them.)
     const documents = await db.document.findMany({
       orderBy: { updatedAt: 'desc' },
       take: MAX_DOCUMENTS_RETURNED,
@@ -28,10 +31,6 @@ export async function GET(req: NextRequest) {
         name: true,
         createdAt: true,
         updatedAt: true,
-        // Denormalized counts so the switcher can show "demo · 5 chats · 23 shapes".
-        _count: {
-          select: { shapes: true, actions: true },
-        },
       },
     });
     return NextResponse.json({ documents });

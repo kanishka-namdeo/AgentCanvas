@@ -54,13 +54,14 @@ export interface ServerDocSnapshot {
 
 /// A server-side document row returned by GET /api/documents.
 /// `viewport` and `background` are NOT returned by the list endpoint
-/// (the switcher only needs id + name + timestamps + counts).
+/// (the switcher only needs id + name + timestamps). The former optional
+/// `_count: { shapes, actions }` mirror was removed with the server-side
+/// subselect — both tables have zero writers and no client read them.
 export interface ServerDocument {
   id: string;
   name: string;
   createdAt: string;
   updatedAt: string;
-  _count?: { shapes: number; actions: number };
   viewport?: string;
   background?: string;
 }

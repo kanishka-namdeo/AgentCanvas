@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://bun.com/guides/ecosystem/nextjs",
+    "name": "Build an app with Next.js and Bun | Bun Guides",
+    "snippet": "Bun installs packages fast and can run Next.js development and production servers. Create a new Next.js app. Use the interactive CLI to scaffold a new Next.",
+    "host_name": "bun.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/1pnggh9/running_nextjs_using_bun_instead_of_node_sounds",
+    "name": "Running Nextjs using bun instead of node: Sounds like a no brainer",
+    "snippet": "Dec 15, 2025 · So apparently all you need to do is change. `next dev` to `bun run --bun next dev`. `next build` to `bun run --bun next build`. How do you deploy a small business web app (Next.js + Bun API + ... Is next faster with bun? : r/nextjs - Reddit More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=f--3aG0XfCw",
+    "name": "Next.js at the speed of Bun - YouTube",
+    "snippet": "Dec 15, 2025 · Next.js + Bun unlocks a whole new level of developer productivity and performance. Learn how Bun's fast runtime, built-in tooling, ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/vercel/next.js/discussions/14339",
+    "name": "Understanding next build and the deployment process #14339",
+    "snippet": "Jun 18, 2020 · Hi all, I'm wondering if someone can help me \"think in Next.js\" around the process of build & deployment. My question is, I think, ... Docs: Bun runtime support · vercel next.js · Discussion #55272 How do I deploy Bun.js applications · oven-sh bun · Discussion #559 More results from github.com",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/imamdev_/complete-guide-to-deploying-nextjs-standalone-with-bun-and-docker-1fc9",
+    "name": "Complete Guide to Deploying Next.js Standalone with Bun and Docker",
+    "snippet": "Oct 1, 2023 · This guide includes a step-by-step walkthrough, tackling common errors, and more.",
+    "host_name": "dev.to",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://nextjs.org/docs/pages/getting-started/deploying",
+    "name": "Getting Started: Deploying - Next.js",
+    "snippet": "Apr 22, 2025 · While Docker is excellent for production deployments, consider using local development ( npm run dev ) instead of Docker during development on ...",
+    "host_name": "nextjs.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://oneuptime.com/blog/post/2026-01-31-bun-production-deployment/view",
+    "name": "How to Deploy Bun Applications to Production - OneUptime",
+    "snippet": "Jan 31, 2026 · Best Practices Summary · Use multi-stage Docker builds · Implement proper health checks · Configure graceful shutdown · Use non-root containers ...",
+    "host_name": "oneuptime.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.vercel.com/t/how-to-run-next-js-that-deployed-on-vercel-with-bun/3246",
+    "name": "How to run next.js that deployed on vercel with bun?",
+    "snippet": "Dec 16, 2024 · When I deploy my next.js on vercel, it runs my next.js program on node.js. Now bun.js is of stable version and it's known for its high ...",
+    "host_name": "community.vercel.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -35,7 +35,9 @@ export const metadata: Metadata = {
   keywords: ["Pi Agent SDK", "Figma", "AI agent", "canvas", "design tool", "Next.js"],
   authors: [{ name: "AgentCanvas" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    // Local copy of the logo (public/logo.svg — identical to the CDN asset)
+    // so the favicon doesn't depend on a cross-origin request at startup.
+    icon: "/logo.svg",
   },
 };
 

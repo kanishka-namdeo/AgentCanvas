@@ -24,7 +24,7 @@
 // Mirrors patterns from Bolt.new's workbench, Cursor's agent log,
 // and Replit's checkpoint timeline (see research notes §4 + §9).
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { useSessionStore } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
 import type { Run, ToolCallRecord, Snapshot } from '@/lib/sessions';
@@ -233,17 +233,14 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
     }
   }, []);
 
-  if (!session) {
-    return (
-      <div className="flex flex-col h-full ac-surface-0">
-        <div className="px-3 py-2.5 border-b ac-border-subtle text-[11px] ac-text-4 ac-surface-1 text-center">
-          No active chat
-        </div>
-      </div>
-    );
-  }
-
-  const handleRestoreSnapshot = (snap: Snapshot) => {
+  // Stabilized snapshot-action callbacks — passed to the memoized
+  // SnapshotCard rows so their props stay referentially equal across
+  // re-renders of this panel (which fires on every canvas patch via the
+  // `document` subscription above). Each takes the snapshot as its
+  // argument; the card closes over its own `snapshot` prop when invoking.
+  // (useCallback — kept ABOVE the `!session` early return to respect the
+  // Rules of Hooks.)
+  const handleRestoreSnapshot = useCallback((snap: Snapshot) => {
     // Canvas-store action: appends a 'restore' snapshot (append-only), swaps
     // the shared document, and broadcasts document:restore so every viewer
     // follows. Remote (metadata-only) entries are fetched from the server.
@@ -261,9 +258,9 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
       .catch(() => {
         toast.error('Restore failed', { description: 'Could not fetch the snapshot from the server.' });
       });
-  };
+  }, []);
 
-  const handleDeleteSnapshot = (snap: Snapshot) => {
+  const handleDeleteSnapshot = useCallback((snap: Snapshot) => {
     if (snap.bookmarked) {
       toast.message('Snapshot is bookmarked', { description: 'Unbookmark it before deleting.' });
       return;
@@ -278,7 +275,21 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
     }
     useSessionStore.getState().deleteSnapshot(snap.id);
     toast.success('Snapshot deleted');
-  };
+  }, []);
+
+  const handleBookmarkSnapshot = useCallback((snap: Snapshot) => {
+    useSessionStore.getState().bookmarkSnapshot(snap.id);
+  }, []);
+
+  if (!session) {
+    return (
+      <div className="flex flex-col h-full ac-surface-0">
+        <div className="px-3 py-2.5 border-b ac-border-subtle text-[11px] ac-text-4 ac-surface-1 text-center">
+          No active chat
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full ac-surface-0 ac-hide-scrollbar">
@@ -367,11 +378,11 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
                   snapshot={snap}
                   sourceLabel={snapshotSource(snap)}
                   isActive={i === 0}
-                  onRestore={() => handleRestoreSnapshot(snap)}
-                  onDelete={() => handleDeleteSnapshot(snap)}
-                  onBookmark={() => useSessionStore.getState().bookmarkSnapshot(snap.id)}
-                  onRename={() => openRenameSnapshot(snap)}
-                  onExportPen={() => handleExportSnapshotPen(snap)}
+                  onRestore={handleRestoreSnapshot}
+                  onDelete={handleDeleteSnapshot}
+                  onBookmark={handleBookmarkSnapshot}
+                  onRename={openRenameSnapshot}
+                  onExportPen={handleExportSnapshotPen}
                 />
               ))}
             </>
@@ -452,7 +463,11 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
   );
 }
 
-function RunCard({ run }: { run: Run }) {
+// memoized: the panel re-renders on every canvas patch flush (its `document`
+// subscription drives the capture-snapshot button), but the run rows only
+// change when their `run` record does — stable store references let these
+// bail out of the per-patch re-render entirely.
+const RunCard = memo(function RunCard({ run }: { run: Run }) {
   const [open, setOpen] = useState(false);
   const toolCallsMap = useSessionStore((s) => s.toolCalls);
   // agentBusy — read from the canvas store so we can DISABLE the Retry
@@ -763,9 +778,9 @@ function RunCard({ run }: { run: Run }) {
       </ContextMenuContent>
     </ContextMenu>
   );
-}
+});
 
-function ToolCallCard({ tc }: { tc: ToolCallRecord }) {
+const ToolCallCard = memo(function ToolCallCard({ tc }: { tc: ToolCallRecord }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="rounded ac-surface-1 border ac-border-subtle px-2 py-1">
@@ -792,19 +807,22 @@ function ToolCallCard({ tc }: { tc: ToolCallRecord }) {
       )}
     </div>
   );
-}
+});
 
-function SnapshotCard({
+// memoized — see the RunCard note. The callbacks take the snapshot as an
+// argument (stable useCallback'd identities from the panel) instead of the
+// old per-row no-arg closures, which would have defeated the memo.
+const SnapshotCard = memo(function SnapshotCard({
   snapshot, isActive, sourceLabel, onRestore, onDelete, onBookmark, onRename, onExportPen,
 }: {
   snapshot: Snapshot;
   isActive: boolean;
   sourceLabel: string;
-  onRestore: () => void;
-  onDelete: () => void;
-  onBookmark: () => void;
-  onRename: () => void;
-  onExportPen: () => void;
+  onRestore: (snap: Snapshot) => void;
+  onDelete: (snap: Snapshot) => void;
+  onBookmark: (snap: Snapshot) => void;
+  onRename: (snap: Snapshot) => void;
+  onExportPen: (snap: Snapshot) => void;
 }) {
   // Busy gate (2026-09-05 contract — the three restore paths share ONE
   // rule with the VersionHistoryDialog).
@@ -856,7 +874,7 @@ function SnapshotCard({
               size="sm"
               variant="outline"
               className="h-5 text-[9px] px-1.5 ac-border-default ac-text-2 hover:ac-surface-1 ac-transition ac-busy"
-              onClick={onRestore}
+              onClick={() => onRestore(snapshot)}
               disabled={isActive || agentBusy}
               title={agentBusy ? `${BUSY_LOCK_HINT} — restoring mid-run yanks the canvas under the agent` : 'Restore the shared canvas to this snapshot'}
             >
@@ -867,7 +885,7 @@ function SnapshotCard({
               size="sm"
               variant="ghost"
               className="h-5 w-5 p-0 ml-auto ac-text-4 hover:ac-text-1 hover:ac-surface-1 ac-transition"
-              onClick={onBookmark}
+              onClick={() => onBookmark(snapshot)}
               title={snapshot.bookmarked ? 'Remove bookmark' : 'Bookmark'}
             >
               {snapshot.bookmarked
@@ -883,30 +901,30 @@ function SnapshotCard({
           covers the semantics. "Set as current" is a one-click restore alias
           surfaced as a separate menu verb for parity with v0 / Linear.) */}
       <ContextMenuContent>
-        <ContextMenuItem onClick={onRestore} disabled={isActive || agentBusy}>
+        <ContextMenuItem onClick={() => onRestore(snapshot)} disabled={isActive || agentBusy}>
           <CheckCircle2 className="h-3 w-3 mr-2" />
           Set as current
         </ContextMenuItem>
-        <ContextMenuItem onClick={onRestore} disabled={isActive || agentBusy}>
+        <ContextMenuItem onClick={() => onRestore(snapshot)} disabled={isActive || agentBusy}>
           <RotateCcw className="h-3 w-3 mr-2" />
           Restore
         </ContextMenuItem>
-        <ContextMenuItem onClick={onBookmark}>
+        <ContextMenuItem onClick={() => onBookmark(snapshot)}>
           {snapshot.bookmarked
             ? <BookmarkCheck className="h-3 w-3 mr-2" />
             : <Bookmark className="h-3 w-3 mr-2" />}
           {snapshot.bookmarked ? 'Remove bookmark' : 'Bookmark'}
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onClick={onRename}>
+        <ContextMenuItem onClick={() => onRename(snapshot)}>
           <Pencil className="h-3 w-3 mr-2" />
           Rename snapshot
         </ContextMenuItem>
-        <ContextMenuItem onClick={onExportPen}>
+        <ContextMenuItem onClick={() => onExportPen(snapshot)}>
           <FileDown className="h-3 w-3 mr-2" />
           Export as .pen
         </ContextMenuItem>
-        <ContextMenuItem onClick={onDelete} disabled={agentBusy} className="ac-text-danger">
+        <ContextMenuItem onClick={() => onDelete(snapshot)} disabled={agentBusy} className="ac-text-danger">
           <Trash2 className="h-3 w-3 mr-2" />
           Delete snapshot
         </ContextMenuItem>
@@ -921,4 +939,4 @@ function SnapshotCard({
       </ContextMenuContent>
     </ContextMenu>
   );
-}
+});

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.digitalapplied.com/blog/prisma-orm-production-guide-nextjs",
+    "name": "Prisma ORM Production Guide: Next.js Complete Setup 2025",
+    "snippet": "Oct 21, 2025 — Schema Best Practices · 1. Use Native Database Types · 2. Strategic Indexing · 3. Cascade Deletes · 4. Timestamps · 5. Table Naming. Read more",
+    "host_name": "www.digitalapplied.com",
+    "rank": 0,
+    "date": "Oct 21, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.prisma.io/docs/orm/v7/prisma-client/queries/advanced/query-optimization-performance",
+    "name": "Query optimization | Prisma Documentation",
+    "snippet": "This page covers identifying and optimizing query performance with Prisma ORM . Common causes of slow queries: Over-fetching data Missing indexes Not caching ...",
+    "host_name": "www.prisma.io",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://planetscale.com/docs/vitess/tutorials/prisma-best-practices",
+    "name": "Prisma best practices",
+    "snippet": "This document provides various best practices for getting the most out of Prisma , a next-generation ORM for Node.js and TypeScript, and PlanetScale.",
+    "host_name": "planetscale.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/1i9zvyy/warning_think_twice_before_using_prisma_in_large",
+    "name": "Warning: Think twice before using Prisma in large projects",
+    "snippet": "The Prisma Client API is optimized for the majority (> 80%) of queries an application developers needs to write and should be sufficient for ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tech-insider.org/prisma-orm-tutorial-typescript-postgres-13-steps-2026",
+    "name": "Prisma ORM Tutorial: Build a Type-Safe API in 13 Steps [2026]",
+    "snippet": "May 14, 2026 — Prisma ORM tutorial : build a type-safe Postgres REST API in 13 steps with Prisma 7, TypeScript, Express. 3x faster, Rust-free, 6000+ words.",
+    "host_name": "tech-insider.org",
+    "rank": 4,
+    "date": "May 14, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/prisma/prisma/discussions/15270",
+    "name": "Strategy for ensuring all queries have indexes #15270",
+    "snippet": "We could indeed. Is it good practice though to enforce indexes everywhere, you should also make sure that an existing index covers it, or create a new index .",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gazar.dev/database/indexes-unleashing-database-performance",
+    "name": "Database Performance and Indexes in Prisma ORM - Gazar",
+    "snippet": "May 5, 2024 — Each index costs storage and slows down writes. Every INSERT, UPDATE, and DELETE must update every index on that table. Indexes make reads ...",
+    "host_name": "gazar.dev",
+    "rank": 6,
+    "date": "May 5, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://levelup.gitconnected.com/sql-performance-tuning-in-prisma-orm-postgresql-for-beginners-9b60e4d1041d",
+    "name": "SQL Performance Tuning in Prisma ORM, PostgreSQL for",
+    "snippet": "May 30, 2025 — In this article, I will share steps to improve SQL query performance , specifically using Prisma ORM and PostgreSQL. Prerequisites. First, you ... Read more",
+    "host_name": "levelup.gitconnected.com",
+    "rank": 7,
+    "date": "May 30, 2025",
+    "favicon": ""
+  }
+]

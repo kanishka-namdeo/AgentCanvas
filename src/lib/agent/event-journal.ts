@@ -82,28 +82,44 @@ export interface JournalRow {
 
 // ---- seq management ---------------------------------------------------------
 //
-// NOTE (Phase C, R2 prerequisite): there is NO in-memory seq counter anymore.
-// `insertRowAtFreshSeq` below allocates every row's seq from a fresh DB head
-// read (with collision retry) because this module exists in MULTIPLE runtime
+// NOTE (Phase C, R2 prerequisite): there is NO blindly-incremented in-memory
+// seq counter. `insertRowAtFreshSeq` below allocates every row's seq from
+// the journal head — with a per-document head-seq cache (see knownHeadSeq)
+// that is invalidated the moment a unique violation proves another runtime
+// instance won a race — because this module exists in MULTIPLE runtime
 // instances (instrumentation bundle vs route-handler bundles) whose cached
 // counters would otherwise collide on @@unique([documentId, seq]) and
 // silently drop rows. See the comment on insertRowAtFreshSeq.
+
+// ---- head-seq cache ------------------------------------------------------------
+//
+// Memoized journal head (highest seq) per document, from the last successful
+// insert in THIS module instance. The writeChain serializes all journal
+// writes within one bundle, so between two of our inserts the head only
+// moves if ANOTHER runtime instance wrote — which surfaces as a
+// @@unique([documentId, seq]) violation on our insert, invalidates the
+// cache, and falls back to the head re-read + retry. Net effect: the
+// findFirst head read is skipped for every consecutive insert (halving the
+// SQL statements per journal flush) while cross-bundle correctness is
+// preserved by the retry path. Keyed per documentId — the journal head is
+// per-document and the single writeChain interleaves documents.
+const knownHeadSeq = new Map<string, number>();
 
 // ---- serialized write chain ---------------------------------------------------
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-/// Insert one row, allocating its seq from the CURRENT journal head on
-/// every attempt. The head is re-read per write (not cached across writes)
-/// because this module has MULTIPLE runtime instances: Next.js compiles
-/// instrumentation.ts (socket service) and each route handler into separate
-/// module graphs, so `seqCounters` here is per-bundle and a cached counter
-/// silently collides on the `@@unique([documentId, seq])` index — the losing
-/// write used to vanish into the writeChain's `.catch` with no error and no
-/// gap in the seq sequence. Re-reading the head + retrying on unique
-/// violations makes cross-bundle interleavings correct regardless of module
-/// duplication; the writeChain below still serializes writes WITHIN one
-/// instance so per-instance enqueue order is preserved.
+/// Insert one row, allocating its seq from the CURRENT journal head. The
+/// head is read fresh when unknown and MEMOIZED after a successful insert
+/// (see knownHeadSeq above) because this module has MULTIPLE runtime
+/// instances: Next.js compiles instrumentation.ts (socket service) and each
+/// route handler into separate module graphs, so any cached counter here is
+/// per-bundle. A stale cache value surfaces as a `@@unique([documentId, seq])`
+/// violation on the insert attempt — the cache is invalidated, the head is
+/// re-read, and the write retries — which makes cross-bundle interleavings
+/// correct regardless of module duplication; the writeChain below still
+/// serializes writes WITHIN one instance so per-instance enqueue order is
+/// preserved.
 async function insertRowAtFreshSeq(
   documentId: string,
   type: string,
@@ -114,16 +130,25 @@ async function insertRowAtFreshSeq(
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 8; attempt++) {
     let seq: number;
-    try {
-      const last = await db.agentEvent.findFirst({
-        where: { documentId },
-        orderBy: { seq: 'desc' },
-        select: { seq: true },
-      });
-      seq = (last?.seq ?? 0) + 1;
-    } catch (err) {
-      // Head read failed (db unavailable) — surface to the chain's catch.
-      throw err;
+    const cachedHead = knownHeadSeq.get(documentId);
+    if (cachedHead !== undefined) {
+      // Cache hit: writeChain serialization means no in-bundle writer moved
+      // the head since our last insert — try cachedHead + 1 directly and
+      // skip the head read. A unique violation below invalidates and
+      // re-reads on the next attempt.
+      seq = cachedHead + 1;
+    } else {
+      try {
+        const last = await db.agentEvent.findFirst({
+          where: { documentId },
+          orderBy: { seq: 'desc' },
+          select: { seq: true },
+        });
+        seq = (last?.seq ?? 0) + 1;
+      } catch (err) {
+        // Head read failed (db unavailable) — surface to the chain's catch.
+        throw err;
+      }
     }
     try {
       await db.agentEvent.create({
@@ -135,10 +160,13 @@ async function insertRowAtFreshSeq(
           payload,
         },
       });
+      knownHeadSeq.set(documentId, seq);
       return;
     } catch (err) {
       // Unique violation on (documentId, seq) — another writer instance won
-      // the race for this seq. Retry with a freshly re-read head.
+      // the race for this seq (or our cached head was stale). Invalidate the
+      // cache and retry with a freshly re-read head.
+      knownHeadSeq.delete(documentId);
       lastError = err;
       continue;
     }
@@ -289,17 +317,6 @@ export async function getJournalOldestSeq(documentId: string): Promise<number | 
     select: { seq: true },
   });
   return first?.seq ?? null;
-}
-
-/// DEBUG CLONE — exact body copy of getJournalLastSeq.
-export async function getJournalLastSeq2(documentId: string): Promise<number> {
-  const { db } = await import('../db');
-  const last = await db.agentEvent.findFirst({
-    where: { documentId },
-    orderBy: { seq: 'desc' },
-    select: { seq: true },
-  });
-  return last?.seq ?? 0;
 }
 
 /// Compaction (Phase C, R2): delete every row with seq ≤ upToSeq for a
