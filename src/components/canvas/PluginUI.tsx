@@ -205,7 +205,7 @@ function ApprovalDialog() {
               {agentBusy && (
                 <span className="flex items-center gap-1 text-[10px] ac-text-4">
                   <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                  agent paused
+                  Waiting for your approval
                 </span>
               )}
             </div>
@@ -345,7 +345,7 @@ function BackgroundTaskList() {
             <div className="flex-1 min-w-0">
               <div className="text-[11px] ac-text-2 truncate">{t.description}</div>
               <div className="text-[10px] ac-text-4 mt-0.5">
-                {t.status === 'started' ? 'Running...' : t.summary ?? 'Done'}
+                {t.status === 'started' ? 'Running…' : t.summary ?? 'Done'}
               </div>
             </div>
           </div>

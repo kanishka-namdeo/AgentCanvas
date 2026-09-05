@@ -413,12 +413,12 @@ export default function Home() {
         //   - never hijack ⌘Z from text inputs (the user means "undo my
         //     typing", native textarea behavior — clipboard shortcuts below
         //     guard the same way; this one was missing).
-        //   - never run while the agent is streaming (undoing under the agent
-        //     corrupts its working document — the Toolbar buttons are already
-        //     disabled in that state; this keyboard path must match).
+        //   - while the agent runs, the STORE's undo/redo guard refuses with
+        //     feedback ("Canvas editing is paused") — the keyboard path used
+        //     to silently no-op, disagreeing with the disabled toolbar
+        //     buttons for the same action (2026-09-05 contract).
         if (e.key === 'z' || e.key === 'Z') {
           if (isEditable) return;
-          if (state.agentBusy) return;
           e.preventDefault();
           if (e.shiftKey) { state.redo(); } else { state.undo(); }
           return;
@@ -767,8 +767,8 @@ export default function Home() {
     { id: 'file.settings', label: 'Settings…', group: 'File', shortcut: '⌘,', keywords: 'config', run: () => setSettingsOpen(true) },
     { id: 'file.clear', label: 'Clear canvas…', group: 'File', icon: Trash2, danger: true, keywords: 'delete remove all', run: () => { if (confirm('Clear all shapes from the canvas?')) useCanvasStore.getState().sendPatch({ op: 'clear', summary: 'Cleared canvas' }); } },
     // Edit
-    { id: 'edit.undo', label: 'Undo', group: 'Edit', icon: Undo2, shortcut: '⌘Z', keywords: 'history', run: () => { const s = useCanvasStore.getState(); if (!s.agentBusy) s.undo(); } },
-    { id: 'edit.redo', label: 'Redo', group: 'Edit', icon: Redo2, shortcut: '⌘⇧Z', keywords: 'history', run: () => { const s = useCanvasStore.getState(); if (!s.agentBusy) s.redo(); } },
+    { id: 'edit.undo', label: 'Undo', group: 'Edit', icon: Undo2, shortcut: '⌘Z', keywords: 'history', run: () => { useCanvasStore.getState().undo(); } },
+    { id: 'edit.redo', label: 'Redo', group: 'Edit', icon: Redo2, shortcut: '⌘⇧Z', keywords: 'history', run: () => { useCanvasStore.getState().redo(); } },
     { id: 'edit.duplicate', label: 'Duplicate selection', group: 'Edit', icon: Copy, shortcut: '⌘D', run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) s.sendPatch({ op: 'duplicate', shapeIds: s.selectedIds, summary: `Duplicated ${s.selectedIds.length} shape(s)` }); } },
     { id: 'edit.paste', label: 'Paste', group: 'Edit', icon: ClipboardPaste, shortcut: '⌘V', run: () => clipboard.paste() },
     { id: 'edit.select-all', label: 'Select all layers', group: 'Edit', shortcut: '⌘A', run: () => clipboard.selectAll() },

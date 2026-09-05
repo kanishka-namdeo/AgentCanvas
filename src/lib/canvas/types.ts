@@ -609,8 +609,13 @@ export type SyncEvent =
   | { type: 'agent:skill_selected'; category: string; confidence: number; method: string; toolCount: number }
   | { type: 'agent:plan'; steps: Array<{ step: number; description: string; skill: string; status: string }> }
   | { type: 'agent:plan_step_update'; step: number; status: string }
-  | { type: 'agent:subagent_dispatch'; subAgentType: string; task: string }
-  | { type: 'agent:subagent_result'; subAgentType: string; success: boolean; summary: string; toolCalls: number }
+  // `dispatchId` (additive, 2026-09-05): stable identity for ONE sub-agent
+  // dispatch. The multitask runner dispatches N parallel workers that ALL
+  // share subAgentType 'multitask_worker' — matching results by type+status
+  // resolved every row on the first result. Emitters that predate the field
+  // (single-instance sub-agents) omit it and fall back to type matching.
+  | { type: 'agent:subagent_dispatch'; subAgentType: string; task: string; dispatchId?: string }
+  | { type: 'agent:subagent_result'; subAgentType: string; success: boolean; summary: string; toolCalls: number; dispatchId?: string }
   | { type: 'agent:context_update'; tokenCount: number; contextWindow: number; compacted?: boolean; usage?: { input: number; output: number; cacheRead: number; cacheWrite: number; cost: number }; model?: string }
   // Emitted by the runner right after the LLM model is resolved (and again if
   // the z.ai sandbox fallback swaps the model mid-run). Carries the RESOLVED

@@ -41,6 +41,8 @@ import { toast } from 'sonner';
 import { PluginUI } from './PluginUI';
 import { MarkdownMessage } from './Markdown';
 import { ModelSwitcher } from './ModelSwitcher';
+import { StatusBadge } from '@/components/sessions/StatusBadge';
+import { RUN_PHASE_LABEL } from '@/lib/canvas/run-phase';
 import { suggestFollowUps } from '@/lib/agent/followups';
 import {
   matchCommands, resolveCommand, parseCommandInput, COMMAND_MENU_LIMIT, resolvePackName,
@@ -447,10 +449,16 @@ function PlanCard({ plan }: { plan: NonNullable<ChatTurn['plan']> }) {
 /// Sub-agent card — the pi-agent pipeline dispatches focused sub-agents
 /// (e.g. a "designer" for layout passes). One row per dispatch with live
 /// status; completed rows carry the summary + tool-call count.
+/// 2026-09-05 contract: rows reuse the shared StatusBadge (running /
+/// completed / failed — the SAME component, enum and vocabulary as the
+/// session header and run history), replacing the bespoke per-row
+/// Loader2/CheckCircle2/XCircle trio so sub-agent status reads identically
+/// to main-agent status everywhere in the app.
 function SubAgentsCard({ subAgents }: { subAgents: NonNullable<ChatTurn['subAgents']> }) {
   const anyRunning = subAgents.some((sa) => sa.status === 'running');
   const [override, setOverride] = useState<boolean | null>(null);
   const expanded = override ?? anyRunning;
+  const runningCount = subAgents.filter((sa) => sa.status === 'running').length;
   return (
     <div className="rounded-md border ac-border-subtle ac-surface-1 overflow-hidden">
       <button
@@ -461,8 +469,11 @@ function SubAgentsCard({ subAgents }: { subAgents: NonNullable<ChatTurn['subAgen
         <BotIcon className="h-3 w-3 ac-text-4 flex-shrink-0" />
         <span className="font-medium flex-shrink-0">
           Sub-agents <span className="ac-text-4 font-normal">{subAgents.length}</span>
+          {anyRunning && (
+            <span className="ac-text-4 font-normal"> · {RUN_PHASE_LABEL.thinking.replace('…', '')} {runningCount}</span>
+          )}
         </span>
-        {anyRunning && <Loader2 className="h-2.5 w-2.5 animate-spin ac-text-4 flex-shrink-0" />}
+        {anyRunning && <Loader2 className="h-2.5 w-2.5 animate-spin ac-text-4 flex-shrink-0" aria-hidden="true" />}
         <ChevronRight
           className={`h-3 w-3 ac-text-4 ml-auto flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
         />
@@ -470,14 +481,11 @@ function SubAgentsCard({ subAgents }: { subAgents: NonNullable<ChatTurn['subAgen
       {expanded && (
         <div className="px-2 pb-1.5 pt-1 space-y-1 border-t ac-border-subtle">
           {subAgents.map((sa, i) => (
-            <div key={`${sa.type}-${i}`} className="flex items-start gap-1.5">
-              {sa.status === 'running' ? (
-                <Loader2 className="h-3 w-3 mt-px flex-shrink-0 ac-text-info animate-spin" />
-              ) : sa.status === 'completed' ? (
-                <CheckCircle2 className="h-3 w-3 mt-px flex-shrink-0 ac-text-success" />
-              ) : (
-                <XCircle className="h-3 w-3 mt-px flex-shrink-0 ac-text-danger" />
-              )}
+            <div key={sa.dispatchId ?? `${sa.type}-${i}`} className="flex items-start gap-1.5">
+              <StatusBadge
+                status={sa.status === 'running' ? 'in_progress' : sa.status === 'completed' ? 'completed' : 'failed'}
+                size="sm"
+              />
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] ac-text-2">
                   <span className="font-medium">{sa.type}</span>
@@ -803,27 +811,34 @@ function SkillChip({ skillInfo }: { skillInfo: NonNullable<ChatTurn['skillInfo']
 
 /// Live busy row — replaces the static "agent is working…" with WHAT the
 /// agent is doing right now + HOW LONG it's been going (Cursor 1.3 pattern:
-/// per-row spinners + an aggregate status line with elapsed time).
+/// per-row spinners + an aggregate status line with elapsed time). The
+/// Stop button flips to a disabled "Stopping…" chip in the 'cancelling'
+/// phase (2026-09-05 contract — same intermediate state as the header's
+/// RunStopButton) until the server confirms the abort.
 function BusyRow({ onStop }: { onStop: () => void }) {
   const turns = useCanvasStore((s) => s.turns);
+  const runPhase = useCanvasStore((s) => s.runPhase);
   const last = turns[turns.length - 1];
   const activity = useMemo(() => {
-    if (!last || last.role !== 'assistant') return 'agent is working…';
+    if (runPhase === 'cancelling') return RUN_PHASE_LABEL.cancelling;
+    if (runPhase === 'awaiting_input') return RUN_PHASE_LABEL.awaiting_input;
+    if (!last || last.role !== 'assistant') return 'Thinking…';
     if (last.thinking && !last.thinkingEndedAt) return 'Thinking…';
     const running = [...last.toolCalls].reverse().find((tc) => tc.success === undefined);
     if (running) return `Running ${running.name}…`;
     const lastSummary = [...last.toolCalls].reverse().find((tc) => tc.summary)?.summary;
     if (lastSummary) return lastSummary;
     if (last.toolCalls.length > 0) return 'Writing response…';
-    return 'agent is working…';
-  }, [last]);
+    return 'Thinking…';
+  }, [last, runPhase]);
   const startedAt = last?.startedAt;
+  const stopping = runPhase === 'cancelling';
   return (
     <div className="flex items-center justify-between gap-2 text-xs ac-text-4 px-1 py-1">
       <div className="flex items-center gap-1.5 min-w-0">
-        <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />
+        <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" aria-hidden="true" />
         <span className="truncate" aria-live="polite">{activity}</span>
-        {startedAt !== undefined && (
+        {startedAt !== undefined && !stopping && (
           <>
             <span className="flex-shrink-0">·</span>
             <ElapsedTimer since={startedAt} className="flex-shrink-0" />
@@ -837,12 +852,13 @@ function BusyRow({ onStop }: { onStop: () => void }) {
         variant="destructive"
         size="sm"
         onClick={onStop}
-        title="Stop the agent (Esc also works)"
+        disabled={stopping}
+        title={stopping ? RUN_PHASE_LABEL.cancelling : 'Stop the agent (Esc)'}
         aria-label="Stop agent"
         className="h-6 text-[10px] px-2 py-0 gap-1 flex-shrink-0"
       >
         <Square className="h-2.5 w-2.5 fill-current" />
-        Stop
+        {stopping ? RUN_PHASE_LABEL.cancelling : 'Stop'}
       </Button>
     </div>
   );
@@ -1497,13 +1513,25 @@ export function AgentPanel() {
                 {activePrompts.map((p, i) => (
                   <button
                     key={i}
-                    onClick={() => promptAgent(p)}
-                    disabled={agentBusy}
-                    className="group/prompt block w-full text-left text-[11px] px-2.5 py-1.5 rounded-md border ac-border-subtle hover:ac-surface-1 hover:ac-border-default ac-text-2 disabled:opacity-50 ac-transition ac-focus-ring flex items-center gap-2"
+                    onClick={() => {
+                      // Prompt surfaces QUEUE while the agent runs (2026-09-05
+                      // contract — one entry semantic everywhere: composer,
+                      // slash commands, palette and chips all queue; the
+                      // button stays clickable so the affordance matches the
+                      // composer's).
+                      if (agentBusy) {
+                        queuePrompt(p);
+                        toast.message('Queued', { description: 'Runs when the current turn finishes.' });
+                        return;
+                      }
+                      promptAgent(p);
+                    }}
+                    className="group/prompt block w-full text-left text-[11px] px-2.5 py-1.5 rounded-md border ac-border-subtle hover:ac-surface-1 hover:ac-border-default ac-text-2 ac-transition ac-focus-ring flex items-center gap-2"
+                    title={agentBusy ? 'Queued — sends when the current turn finishes' : undefined}
                   >
                     <span className="flex-1">{p}</span>
                     <span className="opacity-0 group-hover/prompt:opacity-100 ac-text-4 transition-opacity flex-shrink-0">
-                      <Send className="h-2.5 w-2.5" />
+                      {agentBusy ? <ListPlus className="h-2.5 w-2.5" /> : <Send className="h-2.5 w-2.5" />}
                     </span>
                   </button>
                 ))}
@@ -1613,12 +1641,17 @@ export function AgentPanel() {
           <div className="mb-1.5 rounded-lg border ac-border-default ac-surface-0 shadow-lg overflow-hidden" role="listbox" aria-label="Slash commands">
             {matchingCommands.map((c, i) => {
               const isSel = i === Math.min(cmdIndex, matchingCommands.length - 1);
+              // Prompt-kind commands stay clickable while busy (they QUEUE —
+              // same doctrine as the composer); action-kind commands are
+              // disabled with the standard .ac-busy affordance (they mutate
+              // canvas/app state and would race the agent's patches).
+              const cmdGated = agentBusy && c.kind === 'action';
               return (
                 <button
                   key={c.cmd}
                   role="option"
                   aria-selected={isSel}
-                  disabled={agentBusy}
+                  disabled={cmdGated}
                   onClick={() => {
                     // Action commands run immediately on click. Prompt commands
                     // fill the input with `/cmd ` so the user can add arguments
@@ -1637,9 +1670,10 @@ export function AgentPanel() {
                     }
                   }}
                   onMouseEnter={() => setCmdIndex(i)}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left ac-transition border-l-2 disabled:opacity-50 ${
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left ac-transition border-l-2 ac-busy ${
                     isSel ? 'ac-surface-1 ac-border-l-[color:var(--ac-accent)]' : 'ac-border-transparent'
                   }`}
+                  title={cmdGated ? 'Wait for the agent to finish — this command edits directly' : undefined}
                 >
                   <code className={`text-[11px] font-mono px-1 py-0.5 rounded ac-surface-2 ${isSel ? 'ac-text-1' : 'ac-text-2'}`}>{c.cmd}</code>
                   <span className="flex-1 text-[10px] ac-text-3 truncate">{c.hint}</span>
@@ -1867,13 +1901,15 @@ export function AgentPanel() {
               {/* Canvas snapshot attach (v0/Figma-Make pattern) — renders the
                   current canvas to a PNG and stages it as an image attachment.
                   Disabled while the agent runs: the canvas is mid-mutation,
-                  a snapshot would capture a half-applied state. */}
+                  a snapshot would capture a half-applied state. (The handler
+                  always guarded on this — the button just never LOOKED
+                  disabled: one disabled mechanism, one visual language.) */}
               <button
                 onClick={() => void attachCanvasSnapshot()}
-                disabled={snapshotBusy || attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
-                title="Attach a snapshot of the canvas as an image reference"
+                disabled={agentBusy || snapshotBusy || attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
+                title={agentBusy ? 'Snapshots resume when the agent is idle' : 'Attach a snapshot of the canvas as an image reference'}
                 aria-label="Attach canvas snapshot"
-                className="p-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+                className="p-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring ac-busy"
               >
                 {snapshotBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
@@ -1884,7 +1920,7 @@ export function AgentPanel() {
                 disabled={attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
                 title={`Attach images (${attachments.length}/${MAX_ATTACHMENTS_PER_MESSAGE}) — paste or drop works too`}
                 aria-label="Attach images"
-                className="p-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+                className="p-1 rounded ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring ac-busy"
               >
                 <Paperclip className="h-3.5 w-3.5" />
               </button>
@@ -2433,6 +2469,10 @@ function DiffSummaryCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  // Busy gate (2026-09-05 contract — the three restore paths share ONE
+  // rule; this card used to bypass it): restoring yanks the document out
+  // from under in-flight agent patches.
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
 
   // Look up the snapshot captured at the end of THIS turn — its
   // parentSnapshotId is the "before this turn" state. Snapshots are
@@ -2463,10 +2503,10 @@ function DiffSummaryCard({
   const reviewMode = approvalMode === 'review';
   const showRestoreProminent = reviewMode && hasDestructive;
 
-  const canRestore = !!parentSnapshot && !restoring;
+  const canRestore = !!parentSnapshot && !restoring && !agentBusy;
 
   const handleRestore = async () => {
-    if (!parentSnapshot || !documentId) return;
+    if (!parentSnapshot || !documentId || agentBusy) return;
     setRestoring(true);
     try {
       const restored = useSessionStore.getState().restoreSnapshot(documentId, parentSnapshot.id);
@@ -2505,9 +2545,9 @@ function DiffSummaryCard({
           <button
             onClick={handleRestore}
             disabled={!canRestore}
-            className="text-[10px] px-2 py-0.5 rounded font-medium ac-surface-0 hover:opacity-90 ac-transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="text-[10px] px-2 py-0.5 rounded font-medium ac-surface-0 hover:opacity-90 ac-transition disabled:opacity-40 disabled:cursor-not-allowed ac-busy"
             style={{ color: 'var(--ac-warning)' }}
-            title={parentSnapshot ? `Restore to snapshot ${parentSnapshot.id.slice(0, 8)} (before this turn)` : 'No before-this-turn snapshot available'}
+            title={agentBusy ? 'Stop the agent before restoring' : parentSnapshot ? `Restore to snapshot ${parentSnapshot.id.slice(0, 8)} (before this turn)` : 'No before-this-turn snapshot available'}
           >
             {restoring ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RotateCcw className="h-2.5 w-2.5 inline mr-0.5" />}
             Restore from before this turn
@@ -2578,8 +2618,8 @@ function DiffSummaryCard({
             <button
               onClick={handleRestore}
               disabled={!canRestore}
-              className="mt-1 w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded text-[10px] ac-text-2 ac-surface-2 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed border ac-border-subtle"
-              title={`Restore to snapshot ${parentSnapshot.id.slice(0, 8)} — the canvas state before this turn ran`}
+              className="mt-1 w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded text-[10px] ac-text-2 ac-surface-2 hover:ac-surface-1 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed ac-busy border ac-border-subtle"
+              title={agentBusy ? 'Stop the agent before restoring' : `Restore to snapshot ${parentSnapshot.id.slice(0, 8)} — the canvas state before this turn ran`}
             >
               {restoring ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RotateCcw className="h-2.5 w-2.5" />}
               <span>Restore from before this turn</span>

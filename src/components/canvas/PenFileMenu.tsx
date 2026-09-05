@@ -20,7 +20,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Download, Upload } from 'lucide-react';
+import { Download, Loader2, Upload } from 'lucide-react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { toast } from 'sonner';
 
@@ -121,14 +121,19 @@ export function usePenFile() {
 
       {busy && (
         <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-md ac-surface-0 border ac-border-default shadow-lg text-xs ac-text-2">
+          {/* Contract spinner: Loader2 animate-spin for control-level busy
+              (the old pulsing ACTION ICON was the one off-pattern animation
+              left in the busy zoo). */}
           {busy === 'export' ? (
             <>
-              <Download className="h-3.5 w-3.5 animate-pulse" />
+              <Download className="h-3.5 w-3.5" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin ac-text-4" />
               <span>Exporting .pen…</span>
             </>
           ) : (
             <>
-              <Upload className="h-3.5 w-3.5 animate-pulse" />
+              <Upload className="h-3.5 w-3.5" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin ac-text-4" />
               <span>Importing .pen…</span>
             </>
           )}

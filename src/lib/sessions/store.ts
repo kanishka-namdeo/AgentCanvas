@@ -156,6 +156,10 @@ interface SessionStoreState {
   // ---- Mutations: Runs ----
   startRun: (sessionId: string, prompt: string, trigger?: RunTrigger, model?: string) => Run;
   endRun: (runId: string, status: RunStatus, errorMessage?: string) => void;
+  /// Non-terminal status transition for a LIVE run ('awaiting_tool' /
+  /// 'cancelling' / 'in_progress') — drives the StatusBadge phases. Terminal
+  /// runs ignore it; see the implementation for the full rationale.
+  setRunStatus: (runId: string, status: RunStatus) => void;
   /// Patch arbitrary Run fields (cost, tokens, model). Used by the canvas
   /// store's per-run cost accumulator (agent:context_update handler). Only
   /// touches the supplied fields — never rewrites status/error/dates.
@@ -829,6 +833,25 @@ export const useSessionStore = create<SessionStoreState>()(
           });
         }
         return run;
+      },
+
+      // Non-terminal status transition for a LIVE run (2026-09-05
+      // consistency contract): 'awaiting_tool' when a tool call starts,
+      // 'cancelling' the instant the user hits Stop, 'in_progress' when a
+      // tool batch ends. Terminal statuses are endRun's job — a terminal run
+      // ignores this, and non-terminal status values are rejected so the
+      // honest history can never be rewritten here. Deliberately NOT synced
+      // to the server: these are ephemeral UI states; endRun persists the
+      // final status (server rows stay on the persisted enum).
+      setRunStatus: (runId, status) => {
+        const run = get().runs[runId];
+        if (!run) return;
+        if (TERMINAL_RUN_STATUSES.has(run.status)) return;
+        if (status !== 'awaiting_tool' && status !== 'cancelling' && status !== 'in_progress') return;
+        if (run.status === status) return;
+        set((s) => ({
+          runs: { ...s.runs, [runId]: { ...s.runs[runId], status } },
+        }));
       },
 
       endRun: (runId, status, errorMessage) => {

@@ -238,9 +238,10 @@ export function SessionSidebar() {
           </div>
           <button
             onClick={() => newSession()}
-            title="New chat (⌘N)"
+            title={agentBusy ? 'Stop the agent before starting a new chat' : 'New chat (⌘N)'}
             aria-label="New chat"
-            className="flex items-center gap-1 h-6 px-2 rounded text-[11px] font-medium ac-text-2 ac-surface-1 ac-border-subtle border hover:ac-text-1 hover:ac-border-default ac-transition ac-focus-ring flex-shrink-0"
+            aria-disabled={agentBusy}
+            className={`flex items-center gap-1 h-6 px-2 rounded text-[11px] font-medium ac-text-2 ac-surface-1 ac-border-subtle border hover:ac-text-1 hover:ac-border-default ac-transition ac-focus-ring flex-shrink-0 ac-busy ${agentBusy ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             <Plus className="h-3 w-3" />
             New
@@ -422,7 +423,10 @@ export function SessionSidebar() {
                         {/* Tag editor inline — quick add/remove */}
                         <TagEditorInline sessionId={session.id} tags={session.tags ?? []} onSet={(tags) => setSessionTags(session.id, tags)} />
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="py-1.5" onClick={() => {
+                        <DropdownMenuItem className="py-1.5" disabled={agentBusy} onClick={() => {
+                          // Busy guard — the fork switches chats (the store
+                          // backstops with a toast; the affordance matches).
+                          if (agentBusy) return;
                           // Fork the session whose row this menu was opened on,
                           // NOT the currently-active session. Then switch to the fork.
                           const fork = useSessionStore.getState().forkSession(session.id, null);
@@ -494,7 +498,11 @@ export function SessionSidebar() {
                           <Copy className="h-3 w-3 mr-2" /> Copy prompt summary
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="py-1.5" onClick={() => {
+                        <DropdownMenuItem className="py-1.5" disabled={agentBusy && isActive} onClick={() => {
+                          // Busy guard — archiving the ACTIVE session while the
+                          // agent streams into it corrupts the run's transcript
+                          // landing. Non-active rows archive freely.
+                          if (agentBusy && isActive) return;
                           useSessionStore.getState().archiveSession(session.id);
                           toast.success(`Archived "${session.title}"`, { description: 'Find it in the Archived section below.' });
                         }}>
@@ -503,7 +511,9 @@ export function SessionSidebar() {
                         <DropdownMenuItem
                           variant="destructive"
                           className="py-1.5"
+                          disabled={agentBusy && isActive}
                           onClick={() => {
+                            if (agentBusy && isActive) return;
                             if (confirm(`Delete "${session.title}"? This cannot be undone.`)) {
                               useSessionStore.getState().deleteSession(session.id);
                               toast.success(`Deleted "${session.title}"`);
@@ -529,8 +539,11 @@ export function SessionSidebar() {
               {archivedSessions.map((session) => (
                 <div
                   key={session.id}
-                  className="group relative cursor-pointer rounded-md px-2.5 py-1.5 hover:ac-surface-1 ac-transition"
+                  aria-disabled={agentBusy}
+                  title={agentBusy ? 'Stop the agent before switching chats' : undefined}
+                  className={`group relative rounded-md px-2.5 py-1.5 ac-transition ac-busy ${agentBusy ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:ac-surface-1'}`}
                   onClick={() => {
+                    if (agentBusy) return; // switchSession's guard backstops
                     useSessionStore.getState().unarchiveSession(session.id);
                     switchSession(session.id);
                   }}

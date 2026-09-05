@@ -19,6 +19,7 @@
 import { useCanvasStore } from '@/lib/canvas/store';
 import type { CanvasPatch, LayerType } from '@/lib/canvas/types';
 import { Button } from '@/components/ui/button';
+import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import {
   Square,
   Circle,
@@ -88,9 +89,14 @@ export function Toolbar() {
     sendPatch(patch);
   };
 
-  // Shared button class for shape-creation tools.
+  // Shared button class for shape-creation tools. `.ac-busy` is the one
+  // disabled affordance (2026-09-05 contract) — replaces the ad-hoc
+  // `disabled:opacity-30` (two opacity values for the same semantic was
+  // part of the busy-style zoo).
   const btnCls =
-    'h-8 w-8 ac-text-2 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring rounded-full';
+    'h-8 w-8 ac-text-2 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring rounded-full ac-busy';
+  const shapeTitle = (label: string) =>
+    agentBusy ? `${label} — ${BUSY_LOCK_HINT}` : label;
 
   // Select/Pan/Scale toggle button class — active state gets a filled background.
   // Dark-mode audit fix: surface-3 (not 2) so the active pill stays clearly
@@ -161,8 +167,8 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Frame (F)"
+          className={btnCls}
+          title={shapeTitle('Frame (F)')}
           aria-label="Add frame"
           disabled={agentBusy}
           onClick={() => createShape('frame')}
@@ -172,8 +178,8 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Section (⇧S)"
+          className={btnCls}
+          title={shapeTitle('Section (⇧S)')}
           aria-label="Add section"
           disabled={agentBusy}
           onClick={() => createShape('section')}
@@ -188,8 +194,8 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Rectangle (R)"
+          className={btnCls}
+          title={shapeTitle('Rectangle (R)')}
           aria-label="Add rectangle"
           disabled={agentBusy}
           onClick={() => createShape('rectangle')}
@@ -199,8 +205,8 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Ellipse (O)"
+          className={btnCls}
+          title={shapeTitle('Ellipse (O)')}
           aria-label="Add ellipse"
           disabled={agentBusy}
           onClick={() => createShape('ellipse')}
@@ -210,8 +216,8 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Line (L)"
+          className={btnCls}
+          title={shapeTitle('Line (L)')}
           aria-label="Add line"
           disabled={agentBusy}
           onClick={() => createShape('line')}
@@ -226,8 +232,8 @@ export function Toolbar() {
         <Button
           variant="ghost"
           size="icon"
-          className={`${btnCls} disabled:opacity-30 disabled:cursor-not-allowed`}
-          title="Text (T)"
+          className={btnCls}
+          title={shapeTitle('Text (T)')}
           aria-label="Add text"
           disabled={agentBusy}
           onClick={() => createShape('text')}

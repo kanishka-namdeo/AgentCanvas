@@ -464,6 +464,15 @@ function RunCard({ run }: { run: Run }) {
     // prompt. The original transcript stays untouched — the user can compare
     // the new attempt against the original. Mirrors v0 / Cursor consensus.
     const canvasStore = useCanvasStore.getState();
+    // Busy guard (2026-09-05 contract, audit C2): this path used to reach
+    // promptAgent UNGATED — a mid-run re-run created the fork, switchSession
+    // blocked the switch (orphan row), and the deferred promptAgent started
+    // a SECOND concurrent run. The Retry button was already disabled for
+    // exactly this; the context menu now agrees.
+    if (canvasStore.agentBusy) {
+      toast.warning('Agent is running', { description: 'Stop the agent before re-running.' });
+      return;
+    }
     const sessStore = useSessionStore.getState();
     // Find the user message that owns this run — the message whose runId
     // matches and role === 'user'.
@@ -666,11 +675,17 @@ function RunCard({ run }: { run: Run }) {
         <ContextMenuItem onClick={() => setOpen((v) => !v)}>
           {open ? 'Collapse' : 'Expand'}
         </ContextMenuItem>
-        <ContextMenuItem onClick={handleRerun}>
+        <ContextMenuItem onClick={handleRerun} disabled={agentBusy}>
           <PlayCircle className="h-3 w-3 mr-2" />
           Re-run from here
         </ContextMenuItem>
         <ContextMenuItem onClick={() => {
+          // Busy guard — same rule as Re-run (the fork + switch below would
+          // strand an orphan session while a run is live).
+          if (useCanvasStore.getState().agentBusy) {
+            toast.warning('Agent is running', { description: 'Stop the agent before forking.' });
+            return;
+          }
           // Fork from this run — fork at the run's user message so the new
           // chat has the prefix up to & including the prompt (no auto-send).
           const sessStore = useSessionStore.getState();
@@ -773,6 +788,9 @@ function SnapshotCard({
   onRename: () => void;
   onExportPen: () => void;
 }) {
+  // Busy gate (2026-09-05 contract — the three restore paths share ONE
+  // rule with the VersionHistoryDialog).
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
   const sourceColor: Record<Snapshot['source'], string> = {
     turn_end: 'ac-text-3 ac-surface-2',
     fork: 'ac-status-info',
@@ -819,10 +837,10 @@ function SnapshotCard({
             <Button
               size="sm"
               variant="outline"
-              className="h-5 text-[9px] px-1.5 ac-border-default ac-text-2 hover:ac-surface-1 ac-transition"
+              className="h-5 text-[9px] px-1.5 ac-border-default ac-text-2 hover:ac-surface-1 ac-transition ac-busy"
               onClick={onRestore}
-              disabled={isActive}
-              title="Restore the shared canvas to this snapshot"
+              disabled={isActive || agentBusy}
+              title={agentBusy ? 'Stop the agent before restoring' : 'Restore the shared canvas to this snapshot'}
             >
               <RotateCcw className="h-2.5 w-2.5 mr-0.5" />
               Restore
@@ -847,11 +865,11 @@ function SnapshotCard({
           covers the semantics. "Set as current" is a one-click restore alias
           surfaced as a separate menu verb for parity with v0 / Linear.) */}
       <ContextMenuContent>
-        <ContextMenuItem onClick={onRestore} disabled={isActive}>
+        <ContextMenuItem onClick={onRestore} disabled={isActive || agentBusy}>
           <CheckCircle2 className="h-3 w-3 mr-2" />
           Set as current
         </ContextMenuItem>
-        <ContextMenuItem onClick={onRestore} disabled={isActive}>
+        <ContextMenuItem onClick={onRestore} disabled={isActive || agentBusy}>
           <RotateCcw className="h-3 w-3 mr-2" />
           Restore
         </ContextMenuItem>

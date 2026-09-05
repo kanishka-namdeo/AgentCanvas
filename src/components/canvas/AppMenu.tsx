@@ -57,6 +57,11 @@ export function AppMenu(props: AppMenuProps) {
   const document = useCanvasStore((s) => s.document);
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
+  // 2026-09-05 consistency contract: the menu's document-mutating verbs
+  // (Clear / Undo / Redo) carry the SAME busy gate as the toolbar buttons,
+  // ⌘Z and the slash commands — the store guard backstops every handler,
+  // the disabled affordance states the rule.
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
   const pixelGridVisible = useCanvasStore((s) => s.pixelGridVisible);
   const snapToPixel = useCanvasStore((s) => s.snapToPixel);
   const outlineMode = useCanvasStore((s) => s.outlineMode);
@@ -141,7 +146,7 @@ export function AppMenu(props: AppMenuProps) {
         <DropdownMenuContent align="start" className="text-[11px] min-w-[248px] max-h-[70vh] overflow-y-auto ac-hide-scrollbar">
           {/* ==== File ==== */}
           <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">File</DropdownMenuLabel>
-          <DropdownMenuItem onClick={props.onNewChat}>
+          <DropdownMenuItem onClick={props.onNewChat} disabled={agentBusy}>
             New chat <DropdownMenuShortcut>⌘N</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={props.onImportPen}>
@@ -208,9 +213,10 @@ export function AppMenu(props: AppMenuProps) {
             Settings… <DropdownMenuShortcut>⌘,</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={document.shapes.length === 0}
+            disabled={document.shapes.length === 0 || agentBusy}
             className="ac-text-danger"
             onClick={() => {
+              if (agentBusy) return; // store guard backstops
               if (confirm('Clear all shapes from the canvas?')) {
                 sendPatch({ op: 'clear', summary: 'Cleared canvas' });
               }
@@ -222,10 +228,10 @@ export function AppMenu(props: AppMenuProps) {
 
           {/* ==== Edit ==== */}
           <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">Edit</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => undo()}>
+          <DropdownMenuItem onClick={() => undo()} disabled={agentBusy}>
             Undo <DropdownMenuShortcut>⌘Z</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => redo()}>
+          <DropdownMenuItem onClick={() => redo()} disabled={agentBusy}>
             Redo <DropdownMenuShortcut>⌘⇧Z</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => {

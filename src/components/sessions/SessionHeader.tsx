@@ -24,6 +24,7 @@ import { StatusBadge } from './StatusBadge';
 import { DocumentSwitcher } from './DocumentSwitcher';
 import type { RunStatus } from '@/lib/sessions';
 import { useEffect, useState } from 'react';
+import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 
 /// Statuses worth a permanent header chip — anything actively in-flight or
 /// abnormal. 'completed' (the resting state) renders nothing.
@@ -37,6 +38,7 @@ export function SessionHeader() {
   const session = useSessionStore((s) => (activeSessionId ? s.sessions[activeSessionId] : undefined));
   const runsMap = useSessionStore((s) => s.runs);
   const forkActiveSession = useCanvasStore((s) => s.forkActiveSession);
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState('');
@@ -101,9 +103,10 @@ export function SessionHeader() {
       <Button
         size="sm"
         variant="outline"
-        className="h-6 w-6 p-0 ac-text-2 ac-border-default hover:ac-surface-1 ac-transition flex-shrink-0"
+        className="h-6 w-6 p-0 ac-text-2 ac-border-default hover:ac-surface-1 ac-transition ac-busy flex-shrink-0"
         onClick={() => forkActiveSession(null)}
-        title="Fork this chat"
+        disabled={agentBusy}
+        title={agentBusy ? `Fork this chat — ${BUSY_LOCK_HINT}` : 'Fork this chat'}
         aria-label="Fork this chat"
       >
         <GitFork className="h-3 w-3" />

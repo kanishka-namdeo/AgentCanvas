@@ -87,6 +87,17 @@ export function Canvas() {
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const select = useCanvasStore((s) => s.select);
   const toolMode = useCanvasStore((s) => s.toolMode);
+  // 2026-09-05 consistency contract: Esc stops the agent while a run is live
+  // (the BusyRow's tooltip promises it — it was previously a lie), and the
+  // delete / text-edit chords are no-ops while busy (the store's sendPatch
+  // guard is the choke point; skipping here avoids the pointless
+  // window.prompt for text editing).
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
+  const stopAgent = useCanvasStore((s) => s.stopAgent);
+  // Ref mirror so the window-level keydown closure always sees the CURRENT
+  // busy state without re-binding the listener on every run start/end.
+  const agentBusyRef = useRef(agentBusy);
+  agentBusyRef.current = agentBusy;
   // Presence lane (R7): remote cursors/selections to render + this tab's
   // outbound presence emitter. `connected` gates the overlay (cursors are
   // dropped from the store on disconnect, but the gate keeps the render
@@ -329,6 +340,9 @@ export function Canvas() {
         setSpaceDown(true);
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (isEditableTarget(e.target)) return;
+        // Busy guard: deleting under the agent corrupts its working
+        // document (the store's sendPatch guard backstops this).
+        if (agentBusyRef.current) return;
         if (selectedIds.length > 0) {
           const patch: CanvasPatch = {
             op: 'remove',
@@ -339,9 +353,26 @@ export function Canvas() {
           select([]);
         }
       } else if (e.key === 'Escape') {
-        select([]);
+        // Esc semantics (2026-09-05 contract): stopping the agent wins while
+        // a run is live (NN/g user-control heuristic #3 — the canvas-scope
+        // escape hatch); with the agent idle it clears the selection as
+        // before. Skipped while a modal surface owns Esc (Radix dialogs lock
+        // body scroll; cmdk mounts its own root) or while editing text —
+        // those surfaces close themselves and must NOT also stop the agent.
+        const overlayOwnsEsc =
+          (typeof window !== 'undefined' &&
+            (window.document.body.matches('[data-scroll-locked]') ||
+              !!window.document.querySelector('[cmdk-root]'))) ||
+          isEditableTarget(e.target);
+        if (agentBusyRef.current && !overlayOwnsEsc) {
+          stopAgent();
+        } else {
+          select([]);
+        }
       } else {
         if (isEditableTarget(e.target)) return;
+        // Busy guard — skip the text-edit prompt under a live run.
+        if (agentBusyRef.current) return;
         // Task 4d — Enter on a single-selected text shape enters edit mode
         // (window.prompt for the new text content). Done BEFORE the
         // registry chords so a text shape doesn't fall through to the

@@ -1018,13 +1018,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       onTaskStart: (task, index, total) => {
         mtQueue.push([{
           kind: 'agent_event',
-          event: { type: 'agent:subagent_dispatch', subAgentType: 'multitask_worker', task: `(${index + 1}/${total}) Build "${task.title}" in parallel` } as any,
+          event: { type: 'agent:subagent_dispatch', subAgentType: 'multitask_worker', task: `(${index + 1}/${total}) Build "${task.title}" in parallel`, dispatchId: `mtw_${index}_${task.title.slice(0, 24)}` } as any,
         }]);
       },
       onTaskDone: (task, index, ok, detail) => {
         mtQueue.push([{
           kind: 'agent_event',
-          event: { type: 'agent:subagent_result', subAgentType: 'multitask_worker', success: ok, summary: `"${task.title}": ${detail}`, toolCalls: 1 } as any,
+          event: { type: 'agent:subagent_result', subAgentType: 'multitask_worker', success: ok, summary: `"${task.title}": ${detail}`, toolCalls: 1, dispatchId: `mtw_${index}_${task.title.slice(0, 24)}` } as any,
         }]);
       },
     });

@@ -43,6 +43,7 @@ import { useSettings } from '@/lib/settings/store';
 import { agentRunSettings } from '@/lib/settings/types';
 import { patchToOpRecord } from '@/lib/agent/turn-diff';
 import { getActivePack } from '@/hooks/use-design-systems';
+import { phaseFields, runStatusToPhase, type RunPhase } from '@/lib/canvas/run-phase';
 
 /// A single chat turn — either the user's prompt or the agent's response.
 /// This is the LIVE streaming buffer; the session store is the persistent
@@ -95,6 +96,9 @@ export interface ChatTurn {
     status: 'running' | 'completed' | 'failed';
     summary?: string;
     toolCalls?: number;
+    /// Stable per-dispatch identity (multitask dispatches N parallel
+    /// workers that share `type` — results match rows by this id).
+    dispatchId?: string;
   }>;
   /// Turn timing (epoch ms). Set when the assistant turn is created and
   /// finalized — powers the "N tools · Xs" footer on each turn.
@@ -227,6 +231,11 @@ interface CanvasState {
   localParticipant: { participantId: string; name: string; color: string };
   turns: ChatTurn[];
   agentBusy: boolean;
+  /// Canonical run phase (2026-09-05 UI-consistency contract) — the single
+  /// source of truth every busy-state control derives from. `agentBusy` is
+  /// kept as a lockstep mirror (live phase ⇔ true) written together via
+  /// phaseFields() so the two can never disagree. See run-phase.ts.
+  runPhase: RunPhase;
   /// Prompts submitted while the agent was busy — sent automatically, one
   /// per turn end, in submission order (Cursor-style message queueing).
   queuedPrompts: QueuedPrompt[];
@@ -523,6 +532,53 @@ let agentAbort: AbortController | null = null;
 /// survive untouched (the chips stay visible with a Send button). Consumed
 /// by the queue-flush sites in _onSync.
 let suppressQueueFlush = false;
+
+/// 2026-09-05 consistency-contract module state (all reset per-run / per-switch):
+/// - `abandonAbortEvents`: set when a DOCUMENT SWITCH aborts the in-flight
+///   HTTP-fallback run — the AbortError handler must NOT emit its synthetic
+///   terminal events (they would finalize a turn in the NEW document's
+///   transcript; the old run's rows are reconciled by the zombie sweep).
+let abandonAbortEvents = false;
+/// - `agentDrivenUndoRedo`: the agent's own undo/redo arrives as canvas:patch
+///   sync events (op 'undo'/'redo') — the user-facing undo/redo busy guard
+///   must not block the agent's own operations.
+let agentDrivenUndoRedo = false;
+/// - `blockedCanvasEditToastShown`: once-per-run feedback for the first
+///   user mutation blocked by the busy guard (subsequent blocked attempts
+///   stay silent — a mid-run drag fires dozens of sendPatch calls).
+let blockedCanvasEditToastShown = false;
+
+/// Reset the once-per-run blocked-edit toast flag — called at every phase
+/// arm/clear so a fresh run gets fresh feedback.
+function resetBlockedEditToast() {
+  blockedCanvasEditToastShown = false;
+}
+
+/// Toast shown when a user-initiated mutation is blocked by the busy guard.
+function noteBlockedCanvasEdit() {
+  if (blockedCanvasEditToastShown) return;
+  blockedCanvasEditToastShown = true;
+  try {
+    toast.info('Canvas editing is paused', {
+      description:
+        'The agent is working — direct edits would race its changes. Send a prompt to steer it, or press Stop to edit directly.',
+    });
+  } catch {
+    // sonner unavailable in this environment — stay silent.
+  }
+}
+
+/// Toast for structure operations refused while a run is live (new chat /
+/// fork / switch / restore) — the “why” the disabled affordance also carries.
+function toastBusyStructure(action: string) {
+  try {
+    toast.warning('Agent is running', {
+      description: `Stop the agent before ${action}.`,
+    });
+  } catch {
+    // sonner unavailable.
+  }
+}
 
 /// Idempotent agent-patch application (client side of the C1 dedup): every
 /// agent patch is keyed by toolCallId + content hash; a verbatim duplicate
@@ -1210,6 +1266,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   localParticipant: localParticipantIdentity,
   turns: [],
   agentBusy: false,
+  runPhase: 'idle',
   queuedPrompts: [],
   contextTokens: 0,
   contextWindow: 128_000,
@@ -1454,6 +1511,27 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // Same shape as the session-snapshot document hydration below: load on
     // init, save on mutation. Single slot shared across sessions (guides are
     // per-canvas chrome state, not per-session content).
+    //
+    // C4 (2026-09-05 consistency contract): switching documents mid-run used
+    // to STRAND the busy state — the old run's terminal event never arrives
+    // on the new subscription, leaving Stop / BusyRow / mutation-gating stuck
+    // ON forever (a later Stop even finalized the NEW document's turn as
+    // cancelled). Reset the live phase + queue here. The old document's run
+    // keeps running server-side; switching back re-arms via the status
+    // endpoint + journal catch-up below. The queue is cleared because its
+    // prompts belonged to the old document's conversation flow.
+    if (isDocumentSwitch) {
+      if (agentAbort) {
+        // Detach the in-flight HTTP-fallback run (it belongs to the OLD
+        // document) WITHOUT the synthetic terminal events — see
+        // abandonAbortEvents above.
+        abandonAbortEvents = true;
+        agentAbort.abort();
+        agentAbort = null;
+      }
+      resetBlockedEditToast();
+      set({ agentBusy: false, runPhase: 'idle', queuedPrompts: [] });
+    }
     get().loadGuides();
 
     // Hydrate from the session store: pick (or create) the active session
@@ -1631,7 +1709,21 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   sendPatch: (patch) => {
-    const { socket, connected, documentId } = get();
+    const { socket, connected, documentId, agentBusy } = get();
+    // Busy-guard (2026-09-05 contract, audit C1): user-initiated document
+    // mutations are PAUSED while the agent runs. The toolbar buttons and ⌘Z
+    // were already gated for exactly this reason (“undoing under the agent
+    // corrupts its working document”) — but the SAME mutations flowed
+    // unguarded through keyboard chords, panels, gestures and menus.
+    // Enforcing the rule at this one choke point makes every surface agree
+    // without per-callback guards. Agent patches ride canvas:patch sync
+    // events and never pass through sendPatch; `select` ops are UI state
+    // (never mutation-bearing) and stay live — Figma parity: viewport,
+    // selection and inspection remain fully interactive during a run.
+    if (agentBusy && isMutationBearingPatch(patch)) {
+      noteBlockedCanvasEdit();
+      return;
+    }
     // Mutation identity (R1): every canvas-MUTATING patch is stamped with the
     // stable clientId + a contiguous clientMutationId so the server journals
     // it exactly-once. `select` ops are UI state (presence-like) — never
@@ -1701,10 +1793,22 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   select: (ids) => set({ selectedIds: ids }),
 
   promptAgent: (text, images, selection) => {
+    // Busy-guard (2026-09-05 contract, audit C2): a direct promptAgent call
+    // while a run is live would start a SECOND concurrent run (the "Re-run
+    // from here" path used to reach here ungated, overwriting the server's
+    // run registry). Every legitimate entry either calls queuePrompt while
+    // busy (composer / chips / palette — the queue doctrine) or flushes the
+    // queue AFTER the terminal event cleared the busy flag, so arriving here
+    // busy means an ungated UI entry: route it into the queue instead.
+    if (get().agentBusy) {
+      get().queuePrompt(text, images, selection);
+      return;
+    }
     // Delta-batching ordering guard (R9b): land any text still buffered from
     // the previous turn BEFORE the new user turn is appended — otherwise the
     // flush would find a user turn as `last` and drop the tail.
     flushAssistantDeltas();
+    resetBlockedEditToast();
     const { socket, connected, documentId, activeSessionId, document } = get();
 
     // Ensure we have an active session.
@@ -1759,7 +1863,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     };
     set((s) => ({
       turns: [...s.turns, userTurn, assistantTurn],
-      agentBusy: true,
+      ...phaseFields('thinking'),
     }));
 
     // If WebSocket is connected, route through it (live broadcast to all
@@ -1858,6 +1962,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         get()._onSync({ type: 'agent:turn_end' });
       } catch (err: any) {
         if (err?.name === 'AbortError') {
+          if (abandonAbortEvents) {
+            // Document-switch detachment (see init): swallow the synthetic
+            // terminal events — they belong to the OLD document's transcript.
+            abandonAbortEvents = false;
+            return;
+          }
           // User clicked Stop — finalize as CANCELLED (not completed: the old
           // synthetic turn_end here marked stopped runs 'completed' in the
           // session store). The server side also aborts (the request signal
@@ -1877,6 +1987,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   stopAgent: () => {
     const { agentBusy, documentId, socket, connected } = get();
     if (!agentBusy) return;
+    // Phase → 'cancelling' (contract: intermediate stop state). The Stop
+    // controls flip to "Stopping…" until the server-side turn_cancelled
+    // confirms; the local fallback below and the event handler both settle
+    // on 'cancelled'. Also mark the session-store run 'cancelling' so the
+    // StatusBadge's existing config finally goes live.
+    resetBlockedEditToast();
+    set(phaseFields('cancelling'));
+    {
+      const lastRun = get().turns[get().turns.length - 1];
+      if (lastRun?.runId) {
+        useSessionStore.getState().setRunStatus(lastRun.runId, 'cancelling');
+      }
+    }
     // Stop ≠ turn end for the QUEUE: don't auto-send the next queued prompt
     // when the synthetic turn_cancelled lands (see suppressQueueFlush above).
     suppressQueueFlush = true;
@@ -1930,7 +2053,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         if (li && li.role === 'assistant') {
           turns[turns.length - 1] = { ...li, streaming: false, endedAt: Date.now() };
         }
-        return { turns, agentBusy: false };
+        return { turns, ...phaseFields('cancelled') };
       });
     }
   },
@@ -2045,6 +2168,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   undo: () => {
+    if (get().agentBusy && !agentDrivenUndoRedo) {
+      // User-initiated undo is refused mid-run (same rule as the toolbar's
+      // disabled Undo): the agent's journal patches assume an untouched
+      // baseline. The agent's own pen_undo tool arrives as canvas:patch sync
+      // events and bypasses this guard via agentDrivenUndoRedo.
+      noteBlockedCanvasEdit();
+      return;
+    }
     const { undoStack, document, redoStack, guideUndoStack, guideRedoStack, guideLines } = get();
     // Document mutations take precedence — preserve chronology within the
     // document stack. Only when the document stack is empty do we fall
@@ -2071,6 +2202,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   redo: () => {
+    if (get().agentBusy && !agentDrivenUndoRedo) {
+      noteBlockedCanvasEdit();
+      return;
+    }
     const { redoStack, document, undoStack, guideRedoStack, guideUndoStack, guideLines } = get();
     // Mirror of undo: document redo stack takes precedence; fall through to
     // the guide redo stack only when the document stack is empty.
@@ -2154,7 +2289,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   newSession: () => {
-    const { documentId } = get();
+    const { documentId, agentBusy } = get();
+    // Guard BEFORE create (audit C5): creating first and letting
+    // switchSession's guard block the switch used to strand an empty ORPHAN
+    // session row + a warning toast on every "new chat" entry during a run.
+    if (agentBusy) {
+      toastBusyStructure('starting a new chat');
+      return null;
+    }
     const ss = useSessionStore.getState();
     const session = ss.createSession(documentId, { title: 'New chat' });
     // switchSession no longer swaps the canvas — the new chat simply
@@ -2165,8 +2307,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   forkActiveSession: (fromMessageId) => {
-    const { activeSessionId } = get();
+    const { activeSessionId, agentBusy } = get();
     if (!activeSessionId) return null;
+    // Guard BEFORE create (audit C5) — same orphan-session rationale as
+    // newSession above.
+    if (agentBusy) {
+      toastBusyStructure('forking this chat');
+      return null;
+    }
     // Conversation fork (shared canvas): the fork gets a copy of the parent's
     // message prefix and shares the live document. No snapshot lookup — the
     // canvas timeline is document-scoped and never forked.
@@ -2177,7 +2325,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   restoreSnapshot: async (snapshotId) => {
-    const { documentId, socket, connected } = get();
+    const { documentId, socket, connected, agentBusy } = get();
+    // Busy-guard (audit C8 — three restore paths, one rule): VersionHistory
+    // gated, RunHistory + this action unguarded. Restoring mid-run would
+    // yank the document out from under the agent's in-flight patches.
+    if (agentBusy) {
+      toastBusyStructure('restoring a snapshot');
+      return;
+    }
     const ss = useSessionStore.getState();
     const snap = ss.getSnapshot(snapshotId);
     if (!snap || snap.documentId !== documentId) return;
@@ -2385,11 +2540,23 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // coalescer queue, so a queued undo stays well-formed against the
         // current document state.
         if (event.patch.op === 'undo') {
-          get().undo();
+          // Agent-driven undo (the pen_undo tool rides a canvas:patch sync
+          // event): bypass the user-facing busy guard.
+          agentDrivenUndoRedo = true;
+          try {
+            get().undo();
+          } finally {
+            agentDrivenUndoRedo = false;
+          }
           break;
         }
         if (event.patch.op === 'redo') {
-          get().redo();
+          agentDrivenUndoRedo = true;
+          try {
+            get().redo();
+          } finally {
+            agentDrivenUndoRedo = false;
+          }
           break;
         }
         // Idempotent agent-patch application (C1): skip a verbatim duplicate
@@ -2613,7 +2780,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // agentBusy only clears when the finalized turn is the LAST turn —
         // a foreign viewer replaying old turns must not unbusy its own state.
         if (isLastTurn) {
-          set((s) => (s.agentBusy ? { agentBusy: false } : s));
+          set((s) =>
+            s.agentBusy
+              ? phaseFields(runStatusToPhase(event.status))
+              : s,
+          );
+          resetBlockedEditToast();
         }
         break;
       }
@@ -2641,9 +2813,27 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           };
           set((s) => ({ turns: [...s.turns, placeholder] }));
         }
+        // C3 re-arm (2026-09-05 contract): foreign viewers and reload /
+        // reconnect catch-up never ran promptAgent, so their `agentBusy`
+        // used to stay false while the server was mid-run — no Stop button,
+        // mutation guards open, double-prompt trivial. message_start is
+        // journaled and replayed, so arming here heals every viewer. Also
+        // re-arms after the critique loop's mid-run turn_end (busy flipped
+        // false; the fix turn's message_start flips it back). Idempotent
+        // when already armed (per-LLM-iteration message_start events land
+        // while busy).
+        if (!get().agentBusy) {
+          resetBlockedEditToast();
+          set(phaseFields('thinking'));
+        }
         break;
       }
       case 'agent:message_delta': {
+        // Phase: first streamed text after reasoning → 'finalizing' (the
+        // BusyRow / status surfaces share the canonical vocabulary).
+        if (get().runPhase === 'thinking') {
+          set({ runPhase: 'finalizing' });
+        }
         // Batched (R9b): accumulate the chunk and land it in ONE set() per
         // ~32ms window (see the module-level buffer docs). In test mode the
         // flush is synchronous, preserving the dispatch-then-assert
@@ -2719,6 +2909,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
       case 'agent:plan_proposed': {
         // PLAN mode: the agent submitted a plan and is blocked on approval.
+        // Phase → 'awaiting_input' (busy-but-interactive: the approval triad
+        // stays live, everything else stays gated).
+        if (get().agentBusy) set({ runPhase: 'awaiting_input' });
         // Attach the proposal to the streaming assistant turn — the
         // PlanApprovalCard renders the triad (Build it / Keep planning).
         set((s) => {
@@ -2745,7 +2938,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
       case 'agent:plan_resolved': {
         // The plan gate closed (decision client POSTs; every viewer gets
-        // the fan-out). Update the card state so buttons disable and the
+        // the fan-out). Phase: resume 'thinking' (the agent continues).
+        if (get().runPhase === 'awaiting_input') set({ runPhase: 'thinking' });
+        // Update the card state so buttons disable and the
         // outcome (approved → building / revising with feedback) shows.
         set((s) => {
           const turns = [...s.turns];
@@ -2812,6 +3007,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           }
           return { turns };
         });
+        // Phase: 'tool' (drives the BusyRow / status vocabulary). Deliberately
+        // OUTSIDE the session-store mirror below — foreign/replayed runs have
+        // no local Run row, but every viewer still sees the phase.
+        if (get().agentBusy && get().runPhase !== 'awaiting_input') {
+          set({ runPhase: 'tool' });
+        }
         // Mirror to session store. Foreign/replayed runs have no local Run
         // row (turn_final stamps the runId onto a replayed turn) — the
         // mirror is a BEST-EFFORT record for the run's ToolCall timeline,
@@ -2824,6 +3025,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             event.toolName,
             event.argsPreview,
           );
+          // The session run's StatusBadge goes 'awaiting_tool' (its config
+          // existed but was never assigned — dead until now).
+          useSessionStore.getState().setRunStatus(last.runId, 'awaiting_tool');
         }
         break;
       }
@@ -2850,6 +3054,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           event.summary,
           event.summary,
         );
+        // Phase: back from 'tool' to 'thinking' (more reasoning / streaming
+        // may follow); the session run's StatusBadge returns to 'running'.
+        if (get().runPhase === 'tool') {
+          set({ runPhase: 'thinking' });
+        }
+        {
+          const lastT = get().turns[get().turns.length - 1];
+          if (lastT?.runId && useSessionStore.getState().runs[lastT.runId]) {
+            useSessionStore.getState().setRunStatus(lastT.runId, 'in_progress');
+          }
+        }
         break;
       }
       case 'agent:tool_progress': {
@@ -2876,13 +3091,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
       case 'agent:turn_end': {
         const { documentId } = get();
+        resetBlockedEditToast();
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
           if (last && last.role === 'assistant') {
             turns[turns.length - 1] = { ...last, streaming: false, endedAt: Date.now() };
           }
-          return { turns, agentBusy: false };
+          return { turns, ...phaseFields('completed') };
         });
         // Capture a snapshot of the canvas at end of turn, and finalize the
         // run in the session store. Guard against duplicate turn_end events
@@ -2989,13 +3205,27 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // flush. promptAgent re-arms agentBusy, so exactly one queued
         // message is sent per completion. Suppressed after an explicit Stop
         // (the queue survives for manual send).
+        //
+        // Mid-run-turn_end guard (2026-09-05): the critique loop emits a
+        // turn_end BEFORE its fix-turn — flushing same-tick would double-run
+        // the agent. DEFER by 350ms and re-check: the fix turn's first event
+        // (message_start / tool_call_start) re-arms busy within the window
+        // and cancels the flush (the chip re-queues at the head, order kept).
         if (suppressQueueFlush) {
           suppressQueueFlush = false;
         } else {
           const next = get().queuedPrompts[0];
           if (next) {
             set((s) => ({ queuedPrompts: s.queuedPrompts.slice(1) }));
-            get().promptAgent(next.text, next.images, next.selection);
+            setTimeout(() => {
+              if (get().agentBusy) {
+                // The run is live again (fix-turn / concurrent entry) — put
+                // the prompt back at the head; the REAL turn_end flushes it.
+                set((s) => ({ queuedPrompts: [next, ...s.queuedPrompts] }));
+                return;
+              }
+              get().promptAgent(next.text, next.images, next.selection);
+            }, 350);
           }
         }
         break;
@@ -3012,7 +3242,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           if (last && last.role === 'assistant') {
             turns[turns.length - 1] = { ...last, streaming: false, endedAt: Date.now() };
           }
-          return { turns, agentBusy: false };
+          return { turns, ...phaseFields('cancelled') };
         });
         const last = get().turns[get().turns.length - 1];
         if (last?.messageId) {
@@ -3060,7 +3290,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               endedAt: Date.now(),
             };
           }
-          return { turns, agentBusy: false };
+          return { turns, ...phaseFields('stuck') };
         });
         const last = get().turns[get().turns.length - 1];
         if (last?.messageId) {
@@ -3093,7 +3323,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               // made partial responses unreadable and uncopyable).
             };
           }
-          return { turns, agentBusy: false };
+          resetBlockedEditToast();
+          return { turns, ...phaseFields('failed') };
         });
         const last = get().turns[get().turns.length - 1];
         if (last?.messageId) {
@@ -3124,6 +3355,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         });
         // A failed turn still frees the agent — flush the next queued
         // prompt (Cursor queues survive a failed turn and retry in order).
+        // Deferred + busy re-checked (same guard as the turn_end flush — see
+        // the mid-run-turn_end comment there).
         if (!suppressQueueFlush) {
           const next = get().queuedPrompts[0];
           if (next) {
@@ -3132,6 +3365,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             // appends its placeholder turns (avoids a same-tick mutation race
             // with the error reducer above).
             setTimeout(() => {
+              if (get().agentBusy) {
+                set((s) => ({ queuedPrompts: [next, ...s.queuedPrompts] }));
+                return;
+              }
               get().promptAgent(next.text, next.images, next.selection);
             }, 0);
           }
@@ -3222,7 +3459,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'agent:subagent_dispatch': {
-        // Show the sub-agent dispatch in the chat.
+        // Show the sub-agent dispatch in the chat. dispatchId keys the row
+        // when the emitter provides one (parallel multitask workers share
+        // subAgentType — without it the first result resolved EVERY row).
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
@@ -3231,6 +3470,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               type: event.subAgentType,
               task: event.task,
               status: 'running' as const,
+              ...(event.dispatchId ? { dispatchId: event.dispatchId } : {}),
             }];
             turns[turns.length - 1] = { ...last, subAgents };
           }
@@ -3239,13 +3479,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'agent:subagent_result': {
-        // Update the sub-agent result.
+        // Update the sub-agent result. Match by dispatchId when present
+        // (exact per-dispatch resolution); fall back to the legacy
+        // type+running match for emitters that predate the field.
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
           if (last?.subAgents) {
+            const matches = (sa: NonNullable<ChatTurn['subAgents']>[number]) =>
+              event.dispatchId
+                ? sa.dispatchId === event.dispatchId
+                : sa.type === event.subAgentType && sa.status === 'running';
             const subAgents = last.subAgents.map((sa) =>
-              sa.type === event.subAgentType && sa.status === 'running'
+              matches(sa)
                 ? {
                     ...sa,
                     status: event.success ? ('completed' as const) : ('failed' as const),

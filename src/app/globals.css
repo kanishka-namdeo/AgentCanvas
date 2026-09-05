@@ -380,6 +380,22 @@
   .ac-dot-warning  { background-color: var(--ac-warning); }
   .ac-dot-danger   { background-color: var(--ac-danger); }
   .ac-dot-neutral  { background-color: var(--ac-neutral); }
+
+  /* ─── Busy-state control affordance (2026-09-05 consistency contract) ────
+     ONE disabled mechanism for every control gated while the agent or a
+     sub-agent runs. Native `disabled` elements and `aria-disabled` rows
+     (divs that must stay in the tab order — MDN's recommendation for
+     discoverable inactive controls) share the SAME visual language:
+     opacity .4 + no-allow cursor. Pair with a title/tooltip that explains
+     WHY the control is inactive ("Stop the agent first").
+     Use as: <Button className="ac-busy" disabled={agentBusy} …/>
+             <div className="ac-busy" aria-disabled={agentBusy} …>        */
+  .ac-busy:disabled,
+  .ac-busy[aria-disabled='true'] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 }
 
 /* Keyframes — used by the empty-canvas drop zone and other subtle entrances */

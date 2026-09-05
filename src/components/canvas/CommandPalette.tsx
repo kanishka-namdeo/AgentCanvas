@@ -38,6 +38,7 @@ import {
   Smartphone, GitBranch, LayoutDashboard, Palette, Activity, Layers,
   CornerDownLeft, Search, Terminal,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface PromptGroup {
   id: string;
@@ -146,6 +147,7 @@ export function CommandPalette({
   onRouteToComposer?: (text: string) => void;
 }) {
   const promptAgent = useCanvasStore((s) => s.promptAgent);
+  const queuePrompt = useCanvasStore((s) => s.queuePrompt);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const [query, setQuery] = useState('');
 
@@ -161,8 +163,19 @@ export function CommandPalette({
   }
 
   const runPrompt = (text: string) => {
-    if (!text.trim() || agentBusy) return;
-    promptAgent(text.trim());
+    if (!text.trim()) return;
+    // Prompt surfaces QUEUE while the agent runs (2026-09-05 contract — one
+    // entry semantic everywhere: composer, chips, slash commands and this
+    // palette all queue; a disabled item here contradicted the composer's
+    // affordance for the same action).
+    if (agentBusy) {
+      queuePrompt(text.trim());
+      try {
+        toast('Queued', { description: 'Runs when the current turn finishes.' });
+      } catch { /* sonner unavailable */ }
+    } else {
+      promptAgent(text.trim());
+    }
     onOpenChange(false);
   };
 
@@ -296,12 +309,14 @@ export function CommandPalette({
                       key={prompt}
                       value={prompt}
                       onSelect={() => runPrompt(prompt)}
-                      disabled={agentBusy}
-                      className="gap-2 px-3 py-2 cursor-pointer aria-disabled:opacity-50 aria-disabled:cursor-not-allowed"
+                      className="gap-2 px-3 py-2 cursor-pointer"
                     >
                       <Icon className="h-3 w-3 ac-text-3 flex-shrink-0" />
                       <span className="text-[12px] ac-text-1 flex-1 line-clamp-2 leading-snug">
                         {prompt}
+                      </span>
+                      <span className="text-[10px] ac-text-4 flex-shrink-0">
+                        {agentBusy ? 'queues' : ''}
                       </span>
                       <CornerDownLeft className="h-3 w-3 ac-text-4 flex-shrink-0 opacity-0 group-aria-selected:opacity-100" />
                     </CommandItem>
