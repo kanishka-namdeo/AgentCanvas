@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.linkedin.com/posts/protogeridis_uidesign-designsystems-productdesign-activity-7302603024038830081-ecro",
+    "name": "How to structure color scales and tokens in design systems",
+    "snippet": "Consistency in color builds brand recognition and makes the design memorable. • Designers often use primary brand colors for key elements like ... Read more",
+    "host_name": "www.linkedin.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://imperavi.com/blog/designing-semantic-colors-for-your-system",
+    "name": "Designing semantic colors for your system",
+    "snippet": "Dec 23, 2024 — Semantic colors are colors assigned to convey specific meanings or states , My naming system and token structure can work for designs of any ...",
+    "host_name": "imperavi.com",
+    "rank": 1,
+    "date": "Dec 23, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://zeroheight.com/learn/naming-your-design-tokens-a-practical-guide",
+    "name": "Naming your design tokens: a practical guide",
+    "snippet": "Jun 15, 2026 — Learn how to name design tokens well — three structural approaches, tier-by-tier conventions, and the mistakes that cause naming debt.",
+    "host_name": "zeroheight.com",
+    "rank": 2,
+    "date": "Jun 15, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.designsystemscollective.com/color-token-naming-what-works-what-fails-the-best-approach-for-your-design-system-50f844d25f01",
+    "name": "Color Token Naming: What Works, What Fails & The Best",
+    "snippet": "Feb 16, 2025 — This article will explore the challenges of naming color tokens in design systems, examine common pitfalls, and provide actionable strategies ...",
+    "host_name": "www.designsystemscollective.com",
+    "rank": 3,
+    "date": "Feb 16, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/Design/comments/1e9rcwz/naming_scales_colour_properties_in_a_design",
+    "name": "Naming Scales; Colour properties in a design system",
+    "snippet": "Try to articulate how each semantic token is meant to be used in it's name , like interaction, interaction-active, divider, text-default etc.",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://brainy.ink/paper/design-tokens",
+    "name": "Design Tokens: How Real Design Systems Stay Consistent",
+    "snippet": "May 29, 2026 — You audit the semantic palette in one place and guarantee that color-text-default always clears 4.5:1 contrast against color-surface-default , ...",
+    "host_name": "brainy.ink",
+    "rank": 5,
+    "date": "May 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alwaystwisted.com/articles/design-token-naming-conventions.html",
+    "name": "Design Token Naming Conventions: A Practical Guide",
+    "snippet": "Apr 23, 2026 — A practical guide to naming design tokens , including token tiers, common conventions , and rules that keep systems consistent and scalable.",
+    "host_name": "www.alwaystwisted.com",
+    "rank": 6,
+    "date": "Apr 23, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.uxpin.com/studio/blog/color-consistency-design-systems",
+    "name": "Color Consistency in Design Systems",
+    "snippet": "Dec 23, 2025 — Tame the chaos of inconsistent color usage with semantic color tokens – a method that organizes colors based on their purpose, not their ... Read more",
+    "host_name": "www.uxpin.com",
+    "rank": 7,
+    "date": "Dec 23, 2025",
+    "favicon": ""
+  }
+]

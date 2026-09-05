@@ -213,7 +213,7 @@ function PackCard({
         {pack.bestFor.slice(0, 3).map((tag) => (
           <span
             key={tag}
-            className="text-[9px] uppercase tracking-wide ac-text-2 ac-surface-2 px-1.5 py-0.5 rounded"
+            className="text-[10px] font-medium ac-text-3 ac-surface-2 px-1.5 py-0.5 rounded uppercase tracking-wide"
           >
             {tag}
           </span>

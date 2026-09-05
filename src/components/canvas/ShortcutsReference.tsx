@@ -55,7 +55,7 @@ export function ShortcutsReference({ query = '' }: { query?: string }) {
     <>
       {groups.map((group) => (
         <div key={group.scope} className="mb-4">
-          <div className="text-[10px] uppercase tracking-wide ac-text-4 font-semibold mb-1.5">{group.title}</div>
+          <div className="ac-label mb-1.5">{group.title}</div>
           <div className="space-y-0.5">
             {group.entries.map((s) => (
               <div key={s.action} className="flex items-center justify-between text-xs px-2 py-1 rounded hover:ac-surface-1">
@@ -68,7 +68,7 @@ export function ShortcutsReference({ query = '' }: { query?: string }) {
                     <span className="text-[9px] ac-text-4 font-mono flex-shrink-0">also {s.also.join(' / ')}</span>
                   )}
                 </div>
-                <kbd className="font-mono text-[10px] ac-text-3 ac-surface-2 px-1.5 py-0.5 rounded flex-shrink-0">
+                <kbd className="ac-kbd flex-shrink-0">
                   {chordFor(s, platform)}
                 </kbd>
               </div>

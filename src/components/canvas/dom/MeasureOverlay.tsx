@@ -41,7 +41,14 @@ export interface MeasureOverlayProps {
   zoom: number;
 }
 
-const RED = '#ff6b6b';
+// Color/font are token-driven (2026-09-06 design-consistency pass): the
+// redline red is --ac-canvas-measure (light 0.55L / dark 0.75L — both AA on
+// their pill) and the label pill is the canvas surface itself, so the overlay
+// adapts to dark mode instead of glaring white. SVG presentation attributes
+// cannot carry var(), so colors ride the style prop.
+const MEASURE_COLOR = 'var(--ac-canvas-measure)';
+const PILL_FILL = 'var(--ac-canvas-bg)';
+const LABEL_FONT_FAMILY = 'var(--font-geist-mono), ui-monospace, monospace';
 const LABEL_FONT_SIZE = 11;
 const LABEL_HEIGHT = 14;
 const LABEL_PADDING_X = 4;
@@ -156,26 +163,25 @@ export function MeasureOverlay({
                 y1={sy1}
                 x2={sx2}
                 y2={sy2}
-                stroke={RED}
+                style={{ stroke: MEASURE_COLOR }}
                 strokeWidth={1}
               />
-              {/* White background pill behind the label for readability on
-                  any node fill color. */}
+              {/* Label pill = canvas surface color for readability on any node
+                  fill — and correct in BOTH modes (was hardcoded white). */}
               <rect
                 x={lx - labelWidth / 2}
                 y={ly - LABEL_HEIGHT / 2}
                 width={labelWidth}
                 height={LABEL_HEIGHT}
-                fill="#ffffff"
+                style={{ fill: PILL_FILL }}
                 opacity={0.9}
                 rx={2}
               />
               <text
                 x={lx}
                 y={ly}
-                fill={RED}
+                style={{ fill: MEASURE_COLOR, fontFamily: LABEL_FONT_FAMILY }}
                 fontSize={LABEL_FONT_SIZE}
-                fontFamily="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
                 textAnchor="middle"
                 dominantBaseline="middle"
               >

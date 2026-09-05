@@ -220,6 +220,13 @@
   --ac-canvas-highlight:   oklch(0.75 0.16 70);   /* hover highlight (amber) */
   --ac-canvas-autolayout:  oklch(0.65 0.16 150);  /* auto-layout indicator (emerald) */
   --ac-canvas-handle-fill: oklch(1 0 0);          /* selection handle interior */
+  --ac-canvas-measure:     oklch(0.55 0.21 25);   /* measure redlines + labels (danger family, AA on light pill) */
+
+  /* Brand mark gradient (header logo chip, AgentPanel avatar).
+     violet-500 → fuchsia-500 in OKLCH; same in both modes — the brand mark
+     does not invert. Consume via the .ac-brand-gradient utility. */
+  --ac-brand-from: oklch(0.606 0.25 292.717);
+  --ac-brand-to:   oklch(0.667 0.295 327.153);
 }
 
 /* ---------------------------------------------------------------------------
@@ -297,6 +304,7 @@
   --ac-canvas-highlight:   oklch(0.78 0.16 70);
   --ac-canvas-autolayout:  oklch(0.72 0.16 150);
   --ac-canvas-handle-fill: oklch(0.97 0.005 264);
+  --ac-canvas-measure:     oklch(0.75 0.16 25);   /* brighter red: readable on the dark pill */
 }
 
 /* Utility classes — semantic, used everywhere in the app */
@@ -395,6 +403,49 @@
     opacity: 0.4;
     cursor: not-allowed;
     pointer-events: none;
+  }
+
+  /* ─── Keyboard-key chip (2026-09-06 design-consistency pass) ──────────────
+     ONE recipe for every <kbd> hint in the app (shortcut rows, palette
+     footers, empty-state hints, header hint chips). Mono 10px on a raised
+     surface with a hairline border — the Figma/Linear/GitHub key-chip
+     pattern. Deliberately NOT density-remapped: key hints never shrink
+     below 10px legibility. Use as: <kbd className="ac-kbd">⌘K</kbd>
+     (add layout-only classes like flex-shrink-0 / ml-1 alongside).        */
+  .ac-kbd {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--ac-text-tertiary);
+    background-color: var(--ac-surface-2);
+    border: 1px solid var(--ac-border-subtle);
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  /* ─── Overline / section label (2026-09-06 design-consistency pass) ───────
+     ONE recipe for panel section headers and group overlines (the uppercase
+     eyebrow above lists). Was 3 competing recipes (9px, 10px semibold,
+     10–11px medium) across 10 files. Form FIELD labels in rename dialogs
+     are a different role (10px medium, no eyebrow color) and keep their own
+     recipe. Use as: <div className="ac-label mb-1.5">Pages</div>.          */
+  .ac-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em; /* tracking-wide */
+    color: var(--ac-text-quaternary);
+  }
+
+  /* Brand-mark gradient (violet → fuchsia) — replaces the duplicated
+     from-violet-500 to-fuchsia-500 palette classes. */
+  .ac-brand-gradient {
+    background-image: linear-gradient(
+      to bottom right,
+      var(--ac-brand-from),
+      var(--ac-brand-to)
+    );
   }
 }
 

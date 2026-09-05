@@ -354,7 +354,7 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
           {providerModels.length > 0 && (
             <div className="space-y-0.5">
               {providerSource !== 'error' && providerModels.length > 0 && zaiAvailable && (
-                <div className="px-2 pt-1 pb-0.5 text-[9px] uppercase tracking-wide ac-text-4">
+                <div className="px-2 pt-1 pb-0.5 ac-label">
                   {providerLabel}
                 </div>
               )}
@@ -372,7 +372,7 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
           {/* z.ai sandbox models — always-available escape hatch */}
           {zaiModels.length > 0 && (
             <div className="mt-1.5 pt-1.5 border-t ac-border-subtle">
-              <div className="px-2 pb-0.5 text-[9px] uppercase tracking-wide ac-text-4">
+              <div className="px-2 pb-0.5 ac-label">
                 z.ai sandbox {zaiAvailable ? '· no key needed' : '· unavailable'}
               </div>
               {zaiModels.map((m) => (

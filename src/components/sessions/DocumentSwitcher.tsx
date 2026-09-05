@@ -244,7 +244,7 @@ export function DocumentSwitcher() {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="text-[11px] min-w-[220px]">
-          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">
+          <DropdownMenuLabel className="ac-label">
             Documents
           </DropdownMenuLabel>
           <DropdownMenuSeparator />

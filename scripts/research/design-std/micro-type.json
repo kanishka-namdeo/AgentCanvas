@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.reddit.com/r/UXDesign/comments/1bxho5b/accessible_typeface_sizing_in_a_ui_what_are_you",
+    "name": "Accessible typeface sizing in a UI. What are you using?",
+    "snippet": "There's seems to be a pretty big contradiction in the 'rule of thumb' and 'what everyone is actually doing' in regards to font sizes on web UIs.\n\nIt seems ...",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stephaniewalter.design/blog/what-minimum-font-size-for-a-high-density-data-web-app-do-you-suggest",
+    "name": "What minimum font-size for a high-density data web app do",
+    "snippet": "Feb 11, 2020 — In my humble opinion 10px and even 12px is usually really small in many cases. BUT this depends on a few things. It depends on the font itself. Read more",
+    "host_name": "stephaniewalter.design",
+    "rank": 1,
+    "date": "Feb 11, 2020",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/design-bootcamp/font-size-usage-in-ui-ux-design-web-mobile-tablet-52a9e17c16ce",
+    "name": "Font Size Usage in UI/UX Design: Web, Mobile & Tablet",
+    "snippet": "Accessibility (WCAG) Font sizes should ensure: Minimum text size of 16px for body copy. Readable line height (at least 1.5x the font size). ...",
+    "host_name": "medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ux.stackexchange.com/questions/211/is-there-an-optimal-font-size",
+    "name": "website design - Is there an optimal font size?",
+    "snippet": "Aug 11, 2010 — For most website projects I've been involved with, the font size for the bulk text is usually 12px - 13px, but I'm wondering if this is a good size. I ...",
+    "host_name": "ux.stackexchange.com",
+    "rank": 3,
+    "date": "Aug 11, 2010",
+    "favicon": ""
+  },
+  {
+    "url": "https://designsystem.digital.gov/components/typography",
+    "name": "Typography | U.S. Web Design System (USWDS) - Digital.gov",
+    "snippet": "For most text, including body copy, use at least an effective size of 16px ( font - size 5). ... Consider using letterspacing 1 when using font size micro or font ... Read more",
+    "host_name": "designsystem.digital.gov",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://accessiblyapp.com/web-accessibility/font-size",
+    "name": "Accessible Font Sizes",
+    "snippet": "Minimum Font Size for Accessibility. In general, 12pt (16px) font is often recommended as the minimum font size for the body text of a website to be accessible. Read more",
+    "host_name": "accessiblyapp.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://learnui.design/blog/mobile-desktop-website-font-size-guidelines.html",
+    "name": "The Responsive Website Font Size Guidelines",
+    "snippet": "May 30, 2024 — 1. Body fonts should be about 16-20px · 2. Text input sizes should be at least 16px · 3. Secondary text should be about 2 sizes smaller than your ... Read more",
+    "host_name": "learnui.design",
+    "rank": 6,
+    "date": "May 30, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://pimpmytype.com/font-size",
+    "name": "What's the right font size in web design?",
+    "snippet": "Sep 21, 2021 — On mobile: 32px or 2em or smaller, since it uses up too much space. On Desktop: go up until 64px or 4em. I use this as the maximum for my font ... Read more",
+    "host_name": "pimpmytype.com",
+    "rank": 7,
+    "date": "Sep 21, 2021",
+    "favicon": ""
+  }
+]

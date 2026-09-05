@@ -1014,7 +1014,7 @@ export function LayersPanel({
           page-children patch op that doesn't exist yet. */}
       {pages.length > 0 && (
         <div className="w-24 flex-shrink-0 border-r ac-border-subtle flex flex-col" data-ac-pages-column>
-          <div className="px-2 py-2 border-b ac-border-subtle text-[9px] font-semibold uppercase tracking-wide ac-text-4">
+          <div className="px-2 py-2 border-b ac-border-subtle ac-label">
             Pages
           </div>
           <div
@@ -1254,7 +1254,7 @@ export function LayersPanel({
                   </div>
                   <p className="text-[11px] font-medium ac-text-3 mb-1">No components yet</p>
                   <p className="text-[11px] ac-text-4 leading-relaxed">
-                    Create a component via the agent (<kbd className="text-[9px] px-1 rounded ac-surface-2">{platformChord('⌥⌘K')}</kbd>)
+                    Create a component via the agent (<kbd className="ac-kbd">{platformChord('⌥⌘K')}</kbd>)
                     or the <code className="text-[10px] px-1 rounded ac-surface-2">pen_create_component</code> tool,
                     then drag a card onto the canvas to place an instance.
                   </p>

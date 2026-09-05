@@ -18,6 +18,15 @@ Component tree root. Owns the shared ThemeToggle component directly, and indexes
   - **Vocabulary**: `RUN_PHASE_LABEL` is the only source of busy strings ("Thinking…", "Running <tool>…", "Writing response…", "Stopping…", "Waiting for you…"; terminal: Completed / Stopped / Run failed / Stuck). StatusBadge inputs (session run status) carry the same words.
   - **Entry semantics**: prompt surfaces (composer, preset chips, palette, slash prompt commands) QUEUE while busy — never disable; document mutations (toolbar shapes, keyboard chords, panels, undo/redo, clear, restore, snapshot-attach) are gated at the STORE choke points (`sendPatch` / `undo` / `redo` / `restoreSnapshot` / `promptAgent`), so keyboard/menu/panel paths can never disagree with the buttons; conversation structure (new chat / fork / switch / re-run) guards BEFORE creating anything (no orphan rows); viewport, selection, inspection and Stop/Steer stay live (Figma parity).
   - **Sub-agent rows** reuse `StatusBadge` (running / completed / failed) keyed by `dispatchId` — same component and vocabulary as the session header and run history.
+- **Visual-recipe consistency contract (2026-09-06)** — one recipe per semantic role; raw values in components are a defect:
+  - **Keyboard-key chips**: `<kbd className="ac-kbd">` (globals.css) — mono 10px, surface-2 fill, hairline subtle border, px-1.5/py-0.5, 4px radius, ac-text-3. Never re-compose a kbd from Tailwind classes (was 6 drifting recipes). Deliberately exempt from compact-density remaps — key hints never shrink below 10px.
+  - **Overline/section labels**: `ac-label` — 10px semibold uppercase tracking-wide ac-text-4 (was 9px/10px/11px × medium/semibold drift across 10 files). Form FIELD labels in rename dialogs (10px medium) are a different role and stay hand-composed.
+  - **Brand mark**: `ac-brand-gradient` (tokens `--ac-brand-from/--ac-brand-to`, violet→fuchsia) — never raw `from-violet-500 to-fuchsia-500` palette classes.
+  - **Guide red**: `DEFAULT_GUIDE_COLOR` from `canvas/dom/Guides.tsx` is the single source (Rulers drag-preview, Canvas addGuideAction, Guides default). Do not re-type `#f24822`.
+  - **Measure overlay**: `--ac-canvas-measure` + `--ac-canvas-bg` pill (both modes adapt; SVG attrs can't carry var() — use the style prop).
+  - **Font sizes**: dense micro-type scale 9/10/11/12/13px only — 8px is forbidden (below dense-UI floor), 14px section headings forbidden in SettingsDialog (13px contract). `text-[10px]`+ sizes; compact density remaps 11→10, 12→11, 13→12.
+  - **Spacing**: Tailwind 4px-grid scale classes only (`p-2`, `px-3`, `gap-1.5`…); arbitrary `p-[Npx]` is a defect in app chrome (shadcn upstream primitives exempt).
+  - **Color**: no raw hex/oklch/hsl in component chrome — use `--ac-*`/shadcn tokens without literal fallbacks (globals.css always loads). Canvas CONTENT (shape fills, icon-island defaults, pack tokens) is artwork, not chrome — exempt by design.
 
 ## Work Guidance
 

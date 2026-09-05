@@ -1,0 +1,870 @@
+URL: https://www.designtokens.org/TR/2025.10/format
+TITLE: Design Tokens Format Module 2025.10
+
+Design Tokens Format Module 2025.10 
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+
+ 
+ 
+
+ ↑ Jump to Table of Contents ← Collapse Sidebar 
+ 
+ 
+ 
+ 
+ light 
+ 
+ 
+ dark 
+ 
+ 
+ auto 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ Design Tokens Format Module 2025.10
+ 
+ 
+ Final Community Group Report 
+ 28 October 2025 
+ 
+
+ 
+ This version: 
+ https://www.designtokens.org/TR/2025.10/format/ 
+ 
+ Latest published version: 
+ https://www.designtokens.org/TR/2025.10/format/ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Editors: 
+ Louis Chenais 
+ 
+ Kathleen McMahon 
+ 
+ Drew Powers 
+ 
+ Matthew Ström-Awn 
+ 
+ Donna Vitan 
+ 
+ 
+ Authors: 
+ Daniel Banks 
+ 
+ Mike Kamminga 
+ 
+ Ayesha Mazrana (Mazumdar) 
+ 
+ James Nash 
+ 
+ Adekunle Oduye 
+ 
+ Kevin Powell 
+ 
+ Feedback: 
+ GitHub design-tokens/community-group 
+ ( pull requests ,
+ new issue ,
+ open issues )
+ 
+ 
+ 
+ 
+ 
+ 
+ Copyright 
+ ©
+ 2025
+ 
+ the Contributors to the Design Tokens Resolver Module 2025.10
+ Specification, published by the
+ Design Tokens Community Group under the
+ W3C Community Final Specification Agreement (FSA) . A human-readable
+ summary 
+ is available.
+ 
+ 
+
+ 
+ 
+
+ 
+
+ Abstract
+
+ 
+ This document describes the technical specification for a file format to
+ exchange design tokens between different tools.
+ 
+
+ 
+
+ Status of This Document
+ 
+ This specification was published by the
+ Design Tokens Community Group . It is not a W3C Standard nor is it
+ on the W3C Standards Track.
+ 
+ Please note that under the
+ W3C Community Final Specification Agreement (FSA) 
+ other conditions apply.
+ 
+ Learn more about
+ W3C Community and Business Groups .
+ 
+
+ 
+ This section describes the status of this document at the time of its
+ publication. Other documents may supersede this document. A list of
+ current W3C Community Group reports and the latest revision of this
+ report can be found in the W3C Community Group reports index at
+ https://www.w3.org/community/reports/ .
+ 
+
+ 
+ This document was published by the DTCG as a
+ Candidate Recommendation 
+ following the definitions provided by the W3C process. Contributions to
+ this draft are governed by
+ 
+ Community Contributor License Agreement (CLA) , as specified by the
+ W3C Community Group Process .
+ 
+
+ 
+ While not a W3C recommendation, this classification is intended to
+ clarify that, after extensive consensus-building, this specification is
+ intended for implementation.
+ 
+
+ 
+ This specification is considered stable . Further
+ updates will be provided in superseding specifications.
+ 
+
+ 
+ GitHub Issues are preferred for
+ discussion of this specification.
+ 
+ 
+ 
+ Table of Contents
+ Abstract 
+ Status of This Document 
+ 1. Conformance 
+ 2. Introduction 
+ 3. Terminology 3.1 (Design) Token 
+ 3.2 (Design) Token Properties 
+ 3.3 Design tool 
+ 3.4 Translation tool 
+ 3.5 Documentation tool 
+ 3.6 Type 
+ 3.7 Group 
+ 3.8 Alias (Reference) 
+ 3.9 Composite (Design) Token 
+ 
+ 4. File format 4.1 Media type (MIME type) 
+ 4.2 File extensions 
+ 
+ 5. Design token 5.1 Name and value 5.1.1 Character restrictions 
+ 
+ 5.2 Additional properties 5.2.1 Description 
+ 5.2.2 Type 
+ 5.2.3 Extensions 
+ 5.2.4 Deprecated 
+ 
+ 
+ 6. Groups 6.1 Group Structure 
+ 6.2 Root Tokens in Groups 
+ 6.3 Group Properties 6.3.1 $deprecated
+ 
+ 6.3.2 $extensions
+ 
+ 
+ 6.4 Extending Groups 6.4.1 Equivalence to JSON Schema $ref
+ 
+ 6.4.2 Reference Resolution and Evaluation 
+ 6.4.3 Inheritance Semantics 
+ 6.4.4 Circular Reference Prevention 
+ 6.4.5 Supported Reference Formats 
+ 6.4.6 Error Conditions 
+ 6.4.7 Implementation Guidance 
+ 6.4.8 Relationship to JSON Schema Specifications 
+ 
+ 6.5 Empty Groups 
+ 6.6 References and JSON Pointer Integration 6.6.1 Current Reference Syntax (Recommended) 
+ 6.6.2 JSON Pointer Support 
+ 
+ 6.7 Processing Rules 6.7.1 Token Resolution Order 
+ 6.7.2 Path Construction 
+ 6.7.3 Type Inheritance 
+ 6.7.4 Circular Reference Detection 
+ 
+ 6.8 Migration and Compatibility 
+ 6.9 Examples 6.9.1 Basic Group with Root Token 
+ 6.9.2 Group Extension with Override Example 
+ 6.9.3 Complex Hierarchical Structure 
+ 
+ 6.10 Use-cases 6.10.1 File authoring & organization 
+ 6.10.2 GUI tools 
+ 6.10.3 Translation tools 
+ 
+ 
+ 7. Aliases / References 7.1 Reference Syntax 7.1.1 Curly Brace Syntax (Token References) 
+ 7.1.2 JSON Pointer Syntax (Required Support) 
+ 
+ 7.2 Reference Resolution 7.2.1 Resolution Algorithms 
+ 7.2.2 Chained References 
+ 7.2.3 Circular References 
+ 
+ 7.3 Property-Level References 7.3.1 Color Component References 
+ 7.3.2 Dimension Component References 
+ 7.3.3 Typography Component References 
+ 
+ 7.4 JSON Pointer Path Construction and Resolution 7.4.1 Path Construction Rules 
+ 7.4.2 Token Value Access Patterns 
+ 7.4.3 Resolution Algorithm for JSON Pointer 
+ 7.4.4 Curly Brace Resolution Algorithm 
+ 7.4.5 Error Conditions 
+ 7.4.6 Path Examples 
+ 
+ 7.5 Implementation Guidance 7.5.1 For Tool Authors 
+ 7.5.2 Disambiguation Examples 
+ 7.5.3 Error Conditions 
+ 
+ 7.6 Relationship to JSON Schema 
+ 
+ 8. Types 8.1 Color 
+ 8.2 Dimension 8.2.1 Validation 
+ 
+ 8.3 Font family 
+ 8.4 Font weight 
+ 8.5 Duration 8.5.1 Validation 
+ 
+ 8.6 Cubic Bézier 
+ 8.7 Number 
+ 8.8 Additional types 
+ 
+ 9. Composite types 9.1 Array aliasing in composite types 
+ 9.2 Groups versus composite tokens 
+ 9.3 Stroke style 9.3.1 String value 
+ 9.3.2 Object value 
+ 9.3.3 Fallbacks 
+ 
+ 9.4 Border 
+ 9.5 Transition 
+ 9.6 Shadow 
+ 9.7 Gradient 
+ 9.8 Typography 
+ 
+ A. Issue summary 
+ B. References B.1 Normative references 
+ 
+ 
+
+ 1. Conformance
+ 
+ As well as sections marked as non-normative, all authoring guidelines, diagrams, examples, and notes in this specification are non-normative. Everything else in this specification is normative.
+ 
+ The key words MAY , MUST , MUST NOT , SHOULD , and SHOULD NOT in this document
+ are to be interpreted as described in
+ BCP 14 
+ [ RFC2119 ] [ RFC8174 ]
+ when, and only when, they appear in all
+ capitals, as shown here.
+ 
+ 
+
+ 2. Introduction
+ 
+
+ 
+
+ 
+ This section is non-normative. 
+ 
+
+ 
+ Design tokens are a methodology for expressing design decisions in a
+ platform-agnostic way so that they can be shared across different
+ disciplines, tools, and technologies. They help establish a common
+ vocabulary across organizations.
+ 
+
+ 
+ There is a growing ecosystem of tools for design system maintainers and
+ consumers that incorporate design token functionality, or would benefit
+ from doing so:
+ 
+
+ 
+ 
+ Design tools have begun allowing designers to label and reference
+ shared values for design properties like colors and sizes.
+ 
+
+ 
+ Translation tools exist that can convert source design token data
+ into platform-specific source code that can directly be used by
+ developers.
+ 
+
+ 
+ Documentation tools can display design token names rather than the
+ raw values in design specs and style guides.
+ 
+
+ 
+ 
+ It is often desirable for design system teams to integrate such tools
+ together, so that design token data can flow between design and
+ development tools.
+ 
+
+ For example:
+
+ 
+ 
+ Extracting design tokens from design files and feeding them into
+ translation tools to then be converted into platform-specific code
+ 
+
+ 
+ Maintaining a "single source of truth" for design tokens and
+ automatically keeping design and development tools in sync with it
+ 
+
+ 
+ 
+ While many tools now offer APIs to access design tokens or the ability
+ to export design tokens as a file, these are all tool-specific. The
+ burden is therefore on design system teams to create and maintain their
+ own, bespoke "glue" code or workflows. Furthermore, if teams want to
+ migrate to different tools, they will need to update those integrations.
+ 
+
+ 
+ This specification aims to facilitate better interoperability between
+ tools and thus lower the work design system teams need to do to
+ integrate them by defining a standard file format for expressing design
+ token data.
+ 
+
+ 
+
+ 3. Terminology
+ 
+
+ These definitions are focused on the technical aspects of the specification, aimed at implementers such as design tool vendors. Definitions for designers and developers are available at designtokens.org .
+
+ 3.1 (Design) Token
+ 
+
+ A (Design) Token is information associated with a human readable name, at minimum a name/value pair.
+
+ For example:
+
+ 
+ color-text-primary: #000000;
+
+ font-size-heading-level-1: 44px;
+
+ 
+ The name may be associated with additional Token Properties .
+
+ 3.2 (Design) Token Properties
+ 
+
+ Information associated with a token name.
+
+ For example:
+
+ 
+ Value
+
+ Type
+
+ Description
+
+ 
+ Additional metadata may be added by tools and design systems to extend the format as needed.
+
+ 3.3 Design tool 
+ 
+
+ A design tool is a tool for visual design creation and editing.
+
+ For example:
+
+ 
+ Bitmap image manipulation programs: 
+ Photoshop 
+
+ Affinity Photo 
+
+ Paint.net 
+
+ 
+
+ Vector graphics tools: 
+ Illustrator 
+
+ Inkscape 
+
+ 
+
+ UI design, wireframing and prototyping tools: 
+ Adobe XD 
+
+ UXPin 
+
+ Sketch 
+
+ Figma 
+
+ ...
+
+ 
+
+ 
+ 3.4 Translation tool 
+ 
+
+ Design token translation tools translate token data from one format to another.
+
+ For example:
+
+ 
+ Style Dictionary 
+
+ Terrazzo 
+
+ ...
+
+ 
+ 3.5 Documentation tool 
+ 
+
+ A documentation tool is a tool for documenting design tokens usage.
+
+ For example:
+
+ 
+ Storybook 
+
+ Zeroheight 
+
+ Backlight 
+
+ Supernova 
+
+ Knapsack 
+
+ ...
+
+ 
+ 3.6 Type
+ 
+
+ A token's type is a predefined categorization applied to the token's value.
+
+ For example:
+
+ 
+ Color
+
+ Size
+
+ Duration
+
+ 
+ Token tools can use Types to infer the purpose of a token.
+
+ For example:
+
+ 
+ A translation tool might reference a token's type to convert the source value into the correct platform-specific format.
+
+ A visual design tool might reference type to present tokens in the appropriate part of their UI - as in, color tokens are listed in the color picker, font tokens in the text styling UI's fonts list, and so on.
+
+ 
+ 3.7 Group
+ 
+
+ A group is a set of tokens belonging to a specific category.
+
+ For example:
+
+ 
+ Brand
+
+ Alert
+
+ Layout
+
+ 
+ Groups are arbitrary and tools SHOULD NOT use them to infer the type or purpose of design tokens.
+
+ 3.8 Alias (Reference)
+ 
+
+ A design token's value can be a reference to another token. The same value can have multiple names or aliases .
+
+ The following Sass example illustrates this concept:
+
+ $color-palette-black: #000000;
+$color-text-primary: $color-palette-black;
+
+ The value of $color-text-primary
+ is #000000
+, because $color-text-primary
+ references $color-palette-black
+ . We can also say $color-text-primary
+ is an alias for $color-palette-black.
+
+ 3.9 Composite (Design) Token
+ 
+
+ A design token whose value is made up of multiple, named child values. Composite tokens are useful for closely related style properties that are always applied together. For example, a typography style might be made up of a font name, font size, line height, and color.
+
+ Here's an example of a composite shadow token :
+
+ { 
+ "shadow-token" : { 
+ "$type" : "shadow" , 
+ "$value" : { 
+ "color" : { 
+ "$type" : "color" , 
+ "$value" : { 
+ "colorSpace" : "srgb" , 
+ "components" : [ 0 , 0 , 0 ] , 
+ "alpha" : 0.5 , 
+ "hex" : "#000000" 
+ } 
+ } , 
+ "offsetX" : { "value" : 0.5 , "unit" : "rem" } , 
+ "offsetY" : { "value" : 0.5 , "unit" : "rem" } , 
+ "blur" : { "value" : 1.5 , "unit" : "rem" } , 
+ "spread" : { "value" : 0 , "unit" : "rem" } 
+ } 
+ } 
+ } 
+
+ 
+
+ 4. File format
+ 
+
+ Design token files are JSON ( https://www.json.org/ ) files that adhere to the structure described in this specification.
+
+ JSON was chosen as an interchange format on the basis of:
+
+ 
+ Broad support in many programming languages' standard libraries. This is expected to lower barriers to entry for developers writing software that supports design token files.
+
+ Current popularity and widespread use. This is expected to lower the learning curve as many people will already be familiar with JSON.
+
+ Being text-based (rather than binary) allows hand-editing design token files without needing specialized software other than a basic text editor. It also means the files are somewhat human-readable.
+
+ 
+ 4.1 Media type (MIME type)
+ 
+
+ When serving design token files via HTTP / HTTPS or in any other scenario where a media type (formerly known as MIME type) needs to be specified, the following MIME type SHOULD be used for design token files:
+
+ 
+ application/design-tokens+json
+
+ 
+ However, since every design token file is a valid JSON file, they MAY be served using the JSON media type: application/json
+. The above, more specific media type is preferred and SHOULD be used wherever possible.
+
+ Tools that can open design token files MUST support both media types.
+
+ 4.2 File extensions
+ 
+
+ When saving design token files on a local file system, it can be useful to have a distinct file extension as this makes them easier to spot in file browsers. It may also help to associate a file icon and a preferred application for opening those files. The following file extensions are recommended by this spec:
+
+ 
+ .tokens
+
+ .tokens.json
+
+ 
+ The former is more succinct. However, until this format is widely adopted and supported, the latter might be useful to make design token files open in users' preferred JSON editors.
+
+ Tools that can open design token files MAY filter available files (e.g. in an open file dialog) to only show ones using those extensions. It is recommended to also provide users with a way of opening files that do not use those extensions (e.g. a "show all files" option or similar).
+
+ Tools that can save design token files SHOULD append one of the recommended file extensions to the filename when saving.
+
+ Editor's note : JSON schema 
+ 
+ The group is currently exploring the addition of a JSON Schema to support the spec.
+
+ Editor's note : JSON file size limitations 
+ 
+ A concern about file size limitations of JSON files was raised by one of the vendors. The working group continues to gather feedback about any limitations the JSON format imposes.
+
+ 
+
+ 5. Design token
+ 
+
+ 5.1 Name and value
+ 
+
+ 
+ Example 1 : Minimal file with single design token 
+ 
+
+ { 
+ "token name" : { 
+ "$type" : "color" , 
+ "$value" : { 
+ "colorSpace" : "srgb" , 
+ "components" : [ 1 , 0 , 0 ] 
+ } 
+ } 
+ } 
+
+ 
+
+ An object with a $value
+ property is a token. Thus, $value
+ is a reserved word in our spec, meaning you can't have a token whose name is "$value". The parent object's key is the token name.
+
+ A token's name MUST be a valid JSON string as defined in [ RFC8259 ].
+
+ The example above therefore defines 1 design token with the following properties:
+
+ 
+ Name: "token name"
+
+ Type: "color"
+
+ Value: 
+ Color Space: "srgb"
+
+ Components: [1, 0, 0]
+
+ 
+
+ 
+ Name and value are both required .
+
+ Token names are case-sensitive, so the following example with 2 tokens in the same group whose names only differ in case is valid:
+
+ 
+ Example 2 
+ 
+
+ { 
+ "font-size" : { 
+ "$value" : { "value" : 3 , "unit" : "rem" } , 
+ "$type" : "dimension" 
+ } , 
+
+ "FONT-SIZE" : { 
+ "$value" : { 
+ "value" : 16 , 
+ "unit" : "px" 
+ } , 
+ "$type" : "dimension" 
+ } 
+ } 
+
+ 
+
+ However, some tools MAY need to transform names when exporting to other languages or displaying names to the user, so having token names that differ only in case is likely to cause identical and undesirable duplicates in the output. For example, a translation tool that converts these tokens to Sass code would generate problematic output like this:
+
+ 
+ Example 3 
+ 
+
+ $font-size: 3rem;
+$font-size: 16px;
+
+// The 2nd $font-size overrides the 1st one, so the 1st token
+// has essentially been lost.
+
+ 
+
+ Tools MAY display a warning when token names differ only by case.
+
+ 5.1.1 Character restrictions
+ 
+
+ All properties defined by this format are prefixed with the dollar sign ( $
+). This convention will also be used for any new properties introduced by future versions of this spec. Therefore, token and group names MUST NOT begin with the $
+ character.
+
+ Furthermore, due to the syntax used for token aliases the following characters MUST NOT be used anywhere in a token or group name:
+
+ 
+ {
+ (left curly bracket)
+
+ }
+ (right curly bracket)
+
+ .
+ (period)
+
+ 
+ 5.2 Additional properties
+ 
+
+ While $value
+ is the only required property for a token, a number of additional properties MAY be added:
+
+ 5.2.1 Description
+ 
+
+ A plain text description explaining the token's purpose can be provided via the optional $description
+ property. Tools MAY use the description in various ways.
+
+ For example:
+
+ 
+ Style guide generators MAY display the description text alongside a visual preview of the token
+
+ IDEs MAY display the description as a tooltip for auto-completion (similar to how API docs are displayed)
+
+ Design tools MAY display the description as a tooltip or alongside tokens wherever they can be selected
+
+ Translation tools MAY render the description to a source code comment alongside the variable or constant they export.
+
+ 
+ The value of the $description
+ property MUST be a plain JSON string, for example:
+
+ 
+ Example 4 
+ 
+
+ { 
+ "Button background" : { 
+ "$type" : "color" , 
+ "$description" : "The background color for buttons in their normal state." , 
+ "$value" : { 
+ "colorSpace" : "srgb" , 
+ "components" : [ 0.467 , 0.467 , 0.467 ] 
+ } 
+ } 
+ } 
+
+ 
+
+ 5.2.2 Type
+ 
+
+ Design tokens always have an unambiguous type, so that tools can reliably interpret their value.
+
+ A token's type can be specified by the optional $type
+ property. If the $type
+ property is not set on a token, then the token's type MUST be determined as follows:
+
+ 
+ If the token's value is a reference, then its type is the resolved type of the token being referenced.
+
+ Otherwise, if any of the token's parent groups have a $type
+ property, then the token's type is inherited from the closest parent group with a $type
+ property.
+
+ Otherwise, if none of the parent groups have a $type
+ property, the token's type cannot be determined and the token MUST be considered invalid.
+
+ 
+ Tools MUST NOT attempt to guess the type of a token by inspecting the contents of its value.
+
+ The $type
+ property can be set on different levels:
+
+ 
+ at the group level
+
+ at the token level
+
+ 
+ The $type
+ property MUST be a plain JSON string, whose value is one of the values specified in this specification's respective type definitions. The value of $type
+ is case-sensitive.
+
+ For example:
+
+ 
+ Example 5 
+ 
+
+ { 
+ "Button background" : { 
+ "$type" : "color" , 
+ "$value" : { 
+ "colorSpace" : "srgb" , 
+ "components" : [ 0.467 , 0.467 , 0.467 ] 
+ } 
+ } 
+ } 
+
+ 
+
+ 5.2.3 Extensions
+ 
+
+ The optional $extensions
+ property is an object where tools MAY add proprietary, user-, team- or vendor-specific data to a design token. When doing so, each tool MUST use a vendor-specific key whose value MAY be any valid JSON data.
+
+ 
+ The keys SHOULD be chosen such that they avoid the likelihood of a naming clash with another vendor's data. The reverse domain name notation is recommended for this purpose.
+
+ Tools that process design token files MUST preserve any extension data they do not themselves understand. For example, if a design token contains extension data from tool A and the file containing that data is opened by tool B, then tool B MUST include the original tool A extension data whenever it saves a new design token file containing that token.
+
+ 
+ 
+ Example 6 
+ 
+
+ { 
+ "Button background" : { 
+ "$type" : "color" , 
+ "$value" : { 
+ "colorSpace" : "srgb" , 
+ "components" : [ 0.467 , 0.467 , 0.467 ] 
+ } , 
+ "$extensions" : { 
+ "org.example.tool-a" : 42 , 
+ "org.example.tool-b" : { 
+ "turn-up-to-11" : true 
+ } 
+ } 
+ } 
+ } 
+
+ 
+
+ In order to maintain interoperability between tools that support this format, teams and tools SHOULD restrict their usage of extension data to optional meta-data that is not crucial to understanding that token's value.
+
+ Tool vendors are encouraged to publicly share specifications of their extension data wherever possible. That way other tools can add support for them without needing to reverse engineer the extension data. Popular extensions could also be incorporated as standardized features in future revisions of this specification.
+
+ Editor's note : Extensions section 
+ 
+ The extensions section is not limited to vendors. All token users can add additional data in this section for their own purposes.
+
+ 5.2.4

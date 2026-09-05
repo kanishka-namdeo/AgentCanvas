@@ -1,0 +1,1051 @@
+URL: https://ui.shadcn.com/colors
+TITLE: Tailwind Colors in Every Format - shadcn/ui
+
+Tailwind Colors in Every Format - shadcn/ui 
+ 
+ Toggle Menu 
+ Menu Home Docs Components Blocks Charts Directory Typeset Create Search documentation... Search... 
+ 
+ 
+ 123k 
+ 
+ 
+ 
+ 
+ 
+ 
+ Toggle theme 
+ 
+ Get Code 
+ 
+ 
+ 
+ 
+ 
+ New 
+
+ New Questionnaire component 
+ 
+ Tailwind Colors in Every Format
+ The complete Tailwind color palette in HEX, RGB, HSL, CSS variables, and classes. Ready to copy and paste into your project.
+ Browse Colors Documentation 
+
+ neutral stone zinc slate gray mauve olive mist taupe red orange amber yellow lime green emerald teal cyan sky blue indigo violet purple fuchsia pink rose 
+
+ neutral
+
+ Format: hsl 
+ 
+ 
+ 
+ neutral-50 50 
+ 
+ 
+ neutral-100 100 
+ 
+ 
+ neutral-200 200 
+ 
+ 
+ neutral-300 300 
+ 
+ 
+ neutral-400 400 
+ 
+ 
+ neutral-500 500 
+ 
+ 
+ neutral-600 600 
+ 
+ 
+ neutral-700 700 
+ 
+ 
+ neutral-800 800 
+ 
+ 
+ neutral-900 900 
+ 
+ 
+ neutral-950 950 
+ 
+
+ stone
+
+ Format: hsl 
+ 
+ 
+ 
+ stone-50 50 
+ 
+ 
+ stone-100 100 
+ 
+ 
+ stone-200 200 
+ 
+ 
+ stone-300 300 
+ 
+ 
+ stone-400 400 
+ 
+ 
+ stone-500 500 
+ 
+ 
+ stone-600 600 
+ 
+ 
+ stone-700 700 
+ 
+ 
+ stone-800 800 
+ 
+ 
+ stone-900 900 
+ 
+ 
+ stone-950 950 
+ 
+
+ zinc
+
+ Format: hsl 
+ 
+ 
+ 
+ zinc-50 50 
+ 
+ 
+ zinc-100 100 
+ 
+ 
+ zinc-200 200 
+ 
+ 
+ zinc-300 300 
+ 
+ 
+ zinc-400 400 
+ 
+ 
+ zinc-500 500 
+ 
+ 
+ zinc-600 600 
+ 
+ 
+ zinc-700 700 
+ 
+ 
+ zinc-800 800 
+ 
+ 
+ zinc-900 900 
+ 
+ 
+ zinc-950 950 
+ 
+
+ slate
+
+ Format: hsl 
+ 
+ 
+ 
+ slate-50 50 
+ 
+ 
+ slate-100 100 
+ 
+ 
+ slate-200 200 
+ 
+ 
+ slate-300 300 
+ 
+ 
+ slate-400 400 
+ 
+ 
+ slate-500 500 
+ 
+ 
+ slate-600 600 
+ 
+ 
+ slate-700 700 
+ 
+ 
+ slate-800 800 
+ 
+ 
+ slate-900 900 
+ 
+ 
+ slate-950 950 
+ 
+
+ gray
+
+ Format: hsl 
+ 
+ 
+ 
+ gray-50 50 
+ 
+ 
+ gray-100 100 
+ 
+ 
+ gray-200 200 
+ 
+ 
+ gray-300 300 
+ 
+ 
+ gray-400 400 
+ 
+ 
+ gray-500 500 
+ 
+ 
+ gray-600 600 
+ 
+ 
+ gray-700 700 
+ 
+ 
+ gray-800 800 
+ 
+ 
+ gray-900 900 
+ 
+ 
+ gray-950 950 
+ 
+
+ mauve
+
+ Format: hsl 
+ 
+ 
+ 
+ mauve-50 50 
+ 
+ 
+ mauve-100 100 
+ 
+ 
+ mauve-200 200 
+ 
+ 
+ mauve-300 300 
+ 
+ 
+ mauve-400 400 
+ 
+ 
+ mauve-500 500 
+ 
+ 
+ mauve-600 600 
+ 
+ 
+ mauve-700 700 
+ 
+ 
+ mauve-800 800 
+ 
+ 
+ mauve-900 900 
+ 
+ 
+ mauve-950 950 
+ 
+
+ olive
+
+ Format: hsl 
+ 
+ 
+ 
+ olive-50 50 
+ 
+ 
+ olive-100 100 
+ 
+ 
+ olive-200 200 
+ 
+ 
+ olive-300 300 
+ 
+ 
+ olive-400 400 
+ 
+ 
+ olive-500 500 
+ 
+ 
+ olive-600 600 
+ 
+ 
+ olive-700 700 
+ 
+ 
+ olive-800 800 
+ 
+ 
+ olive-900 900 
+ 
+ 
+ olive-950 950 
+ 
+
+ mist
+
+ Format: hsl 
+ 
+ 
+ 
+ mist-50 50 
+ 
+ 
+ mist-100 100 
+ 
+ 
+ mist-200 200 
+ 
+ 
+ mist-300 300 
+ 
+ 
+ mist-400 400 
+ 
+ 
+ mist-500 500 
+ 
+ 
+ mist-600 600 
+ 
+ 
+ mist-700 700 
+ 
+ 
+ mist-800 800 
+ 
+ 
+ mist-900 900 
+ 
+ 
+ mist-950 950 
+ 
+
+ taupe
+
+ Format: hsl 
+ 
+ 
+ 
+ taupe-50 50 
+ 
+ 
+ taupe-100 100 
+ 
+ 
+ taupe-200 200 
+ 
+ 
+ taupe-300 300 
+ 
+ 
+ taupe-400 400 
+ 
+ 
+ taupe-500 500 
+ 
+ 
+ taupe-600 600 
+ 
+ 
+ taupe-700 700 
+ 
+ 
+ taupe-800 800 
+ 
+ 
+ taupe-900 900 
+ 
+ 
+ taupe-950 950 
+ 
+
+ red
+
+ Format: hsl 
+ 
+ 
+ 
+ red-50 50 
+ 
+ 
+ red-100 100 
+ 
+ 
+ red-200 200 
+ 
+ 
+ red-300 300 
+ 
+ 
+ red-400 400 
+ 
+ 
+ red-500 500 
+ 
+ 
+ red-600 600 
+ 
+ 
+ red-700 700 
+ 
+ 
+ red-800 800 
+ 
+ 
+ red-900 900 
+ 
+ 
+ red-950 950 
+ 
+
+ orange
+
+ Format: hsl 
+ 
+ 
+ 
+ orange-50 50 
+ 
+ 
+ orange-100 100 
+ 
+ 
+ orange-200 200 
+ 
+ 
+ orange-300 300 
+ 
+ 
+ orange-400 400 
+ 
+ 
+ orange-500 500 
+ 
+ 
+ orange-600 600 
+ 
+ 
+ orange-700 700 
+ 
+ 
+ orange-800 800 
+ 
+ 
+ orange-900 900 
+ 
+ 
+ orange-950 950 
+ 
+
+ amber
+
+ Format: hsl 
+ 
+ 
+ 
+ amber-50 50 
+ 
+ 
+ amber-100 100 
+ 
+ 
+ amber-200 200 
+ 
+ 
+ amber-300 300 
+ 
+ 
+ amber-400 400 
+ 
+ 
+ amber-500 500 
+ 
+ 
+ amber-600 600 
+ 
+ 
+ amber-700 700 
+ 
+ 
+ amber-800 800 
+ 
+ 
+ amber-900 900 
+ 
+ 
+ amber-950 950 
+ 
+
+ yellow
+
+ Format: hsl 
+ 
+ 
+ 
+ yellow-50 50 
+ 
+ 
+ yellow-100 100 
+ 
+ 
+ yellow-200 200 
+ 
+ 
+ yellow-300 300 
+ 
+ 
+ yellow-400 400 
+ 
+ 
+ yellow-500 500 
+ 
+ 
+ yellow-600 600 
+ 
+ 
+ yellow-700 700 
+ 
+ 
+ yellow-800 800 
+ 
+ 
+ yellow-900 900 
+ 
+ 
+ yellow-950 950 
+ 
+
+ lime
+
+ Format: hsl 
+ 
+ 
+ 
+ lime-50 50 
+ 
+ 
+ lime-100 100 
+ 
+ 
+ lime-200 200 
+ 
+ 
+ lime-300 300 
+ 
+ 
+ lime-400 400 
+ 
+ 
+ lime-500 500 
+ 
+ 
+ lime-600 600 
+ 
+ 
+ lime-700 700 
+ 
+ 
+ lime-800 800 
+ 
+ 
+ lime-900 900 
+ 
+ 
+ lime-950 950 
+ 
+
+ green
+
+ Format: hsl 
+ 
+ 
+ 
+ green-50 50 
+ 
+ 
+ green-100 100 
+ 
+ 
+ green-200 200 
+ 
+ 
+ green-300 300 
+ 
+ 
+ green-400 400 
+ 
+ 
+ green-500 500 
+ 
+ 
+ green-600 600 
+ 
+ 
+ green-700 700 
+ 
+ 
+ green-800 800 
+ 
+ 
+ green-900 900 
+ 
+ 
+ green-950 950 
+ 
+
+ emerald
+
+ Format: hsl 
+ 
+ 
+ 
+ emerald-50 50 
+ 
+ 
+ emerald-100 100 
+ 
+ 
+ emerald-200 200 
+ 
+ 
+ emerald-300 300 
+ 
+ 
+ emerald-400 400 
+ 
+ 
+ emerald-500 500 
+ 
+ 
+ emerald-600 600 
+ 
+ 
+ emerald-700 700 
+ 
+ 
+ emerald-800 800 
+ 
+ 
+ emerald-900 900 
+ 
+ 
+ emerald-950 950 
+ 
+
+ teal
+
+ Format: hsl 
+ 
+ 
+ 
+ teal-50 50 
+ 
+ 
+ teal-100 100 
+ 
+ 
+ teal-200 200 
+ 
+ 
+ teal-300 300 
+ 
+ 
+ teal-400 400 
+ 
+ 
+ teal-500 500 
+ 
+ 
+ teal-600 600 
+ 
+ 
+ teal-700 700 
+ 
+ 
+ teal-800 800 
+ 
+ 
+ teal-900 900 
+ 
+ 
+ teal-950 950 
+ 
+
+ cyan
+
+ Format: hsl 
+ 
+ 
+ 
+ cyan-50 50 
+ 
+ 
+ cyan-100 100 
+ 
+ 
+ cyan-200 200 
+ 
+ 
+ cyan-300 300 
+ 
+ 
+ cyan-400 400 
+ 
+ 
+ cyan-500 500 
+ 
+ 
+ cyan-600 600 
+ 
+ 
+ cyan-700 700 
+ 
+ 
+ cyan-800 800 
+ 
+ 
+ cyan-900 900 
+ 
+ 
+ cyan-950 950 
+ 
+
+ sky
+
+ Format: hsl 
+ 
+ 
+ 
+ sky-50 50 
+ 
+ 
+ sky-100 100 
+ 
+ 
+ sky-200 200 
+ 
+ 
+ sky-300 300 
+ 
+ 
+ sky-400 400 
+ 
+ 
+ sky-500 500 
+ 
+ 
+ sky-600 600 
+ 
+ 
+ sky-700 700 
+ 
+ 
+ sky-800 800 
+ 
+ 
+ sky-900 900 
+ 
+ 
+ sky-950 950 
+ 
+
+ blue
+
+ Format: hsl 
+ 
+ 
+ 
+ blue-50 50 
+ 
+ 
+ blue-100 100 
+ 
+ 
+ blue-200 200 
+ 
+ 
+ blue-300 300 
+ 
+ 
+ blue-400 400 
+ 
+ 
+ blue-500 500 
+ 
+ 
+ blue-600 600 
+ 
+ 
+ blue-700 700 
+ 
+ 
+ blue-800 800 
+ 
+ 
+ blue-900 900 
+ 
+ 
+ blue-950 950 
+ 
+
+ indigo
+
+ Format: hsl 
+ 
+ 
+ 
+ indigo-50 50 
+ 
+ 
+ indigo-100 100 
+ 
+ 
+ indigo-200 200 
+ 
+ 
+ indigo-300 300 
+ 
+ 
+ indigo-400 400 
+ 
+ 
+ indigo-500 500 
+ 
+ 
+ indigo-600 600 
+ 
+ 
+ indigo-700 700 
+ 
+ 
+ indigo-800 800 
+ 
+ 
+ indigo-900 900 
+ 
+ 
+ indigo-950 950 
+ 
+
+ violet
+
+ Format: hsl 
+ 
+ 
+ 
+ violet-50 50 
+ 
+ 
+ violet-100 100 
+ 
+ 
+ violet-200 200 
+ 
+ 
+ violet-300 300 
+ 
+ 
+ violet-400 400 
+ 
+ 
+ violet-500 500 
+ 
+ 
+ violet-600 600 
+ 
+ 
+ violet-700 700 
+ 
+ 
+ violet-800 800 
+ 
+ 
+ violet-900 900 
+ 
+ 
+ violet-950 950 
+ 
+
+ purple
+
+ Format: hsl 
+ 
+ 
+ 
+ purple-50 50 
+ 
+ 
+ purple-100 100 
+ 
+ 
+ purple-200 200 
+ 
+ 
+ purple-300 300 
+ 
+ 
+ purple-400 400 
+ 
+ 
+ purple-500 500 
+ 
+ 
+ purple-600 600 
+ 
+ 
+ purple-700 700 
+ 
+ 
+ purple-800 800 
+ 
+ 
+ purple-900 900 
+ 
+ 
+ purple-950 950 
+ 
+
+ fuchsia
+
+ Format: hsl 
+ 
+ 
+ 
+ fuchsia-50 50 
+ 
+ 
+ fuchsia-100 100 
+ 
+ 
+ fuchsia-200 200 
+ 
+ 
+ fuchsia-300 300 
+ 
+ 
+ fuchsia-400 400 
+ 
+ 
+ fuchsia-500 500 
+ 
+ 
+ fuchsia-600 600 
+ 
+ 
+ fuchsia-700 700 
+ 
+ 
+ fuchsia-800 800 
+ 
+ 
+ fuchsia-900 900 
+ 
+ 
+ fuchsia-950 950 
+ 
+
+ pink
+
+ Format: hsl 
+ 
+ 
+ 
+ pink-50 50 
+ 
+ 
+ pink-100 100 
+ 
+ 
+ pink-200 200 
+ 
+ 
+ pink-300 300 
+ 
+ 
+ pink-400 400 
+ 
+ 
+ pink-500 500 
+ 
+ 
+ pink-600 600 
+ 
+ 
+ pink-700 700 
+ 
+ 
+ pink-800 800 
+ 
+ 
+ pink-900 900 
+ 
+ 
+ pink-950 950 
+ 
+
+ rose
+
+ Format: hsl 
+ 
+ 
+ 
+ rose-50 50 
+ 
+ 
+ rose-100 100 
+ 
+ 
+ rose-200 200 
+ 
+ 
+ rose-300 300 
+ 
+ 
+ rose-400 400 
+ 
+ 
+ rose-500 500 
+ 
+ 
+ rose-600 600 
+ 
+ 
+ rose-700 700 
+ 
+ 
+ rose-800 800 
+ 
+ 
+ rose-900 900 
+ 
+ 
+ rose-950 950 
+ 
+
+ 
+
+ Built by shadcn at Vercel . The source code is available on GitHub .

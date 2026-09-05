@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://smithery.ai/skills/gopherguides/tailwind-best-practices",
+    "name": "tailwind-best-practices - Skill",
+    "snippet": "Tailwind CSS v4 Best Practices . You have access to up-to-date Tailwind CSS documentation via MCP tools. Use these tools to provide accurate, ... Read more",
+    "host_name": "smithery.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/webdev/comments/174qr8y/5_best_practices_to_keep_your_tailwind_css",
+    "name": "5 best practices to keep your Tailwind CSS project",
+    "snippet": "No tailwind is meant to solve the need of adding semantics to your css when it's not necessary. Also it's just a lot faster to write the same ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://webkul.com/blog/tailwind-css-best-practices",
+    "name": "Tailwind Css Best Practices and Techniques",
+    "snippet": "Let's dive into some advanced topics and best practices of Tailwind . To help you harness the full potential of this ground breaking CSS framework. Read more",
+    "host_name": "webkul.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.bootstrapdash.com/blog/tailwind-css-best-practices",
+    "name": "How to Master Tailwind CSS: Best Practices 2025",
+    "snippet": "Mar 6, 2025 — Best practices include managing global styles efficiently , following a utility-first workflow, and keeping styles modular. Implementing Tailwind ... Read more",
+    "host_name": "www.bootstrapdash.com",
+    "rank": 3,
+    "date": "Mar 6, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/hexa-home/best-practices-for-writing-code-in-tailwind-css-19lg",
+    "name": "Best Practices for Writing Code in Tailwind CSS!",
+    "snippet": "Jan 2, 2025 — By extending the default theme , you can add custom colors, fonts, and other design tokens that streamline your styling process. For instance:. Read more",
+    "host_name": "dev.to",
+    "rank": 4,
+    "date": "Jan 2, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.codewalnut.com/learn/7-tailwind-css-best-practices-you-need-to-follow",
+    "name": "7 Tailwind CSS Best Practices You Need to Follow",
+    "snippet": "Tailwind CSS is the ultimate guide to a utility-first approach, using utility classes to build responsive UI components. By reusing styles for specific HTML ... Read more",
+    "host_name": "www.codewalnut.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://skills.rest/skill/tailwind-design-system-everhouse",
+    "name": "Create design systems with Tailwind CSS v4 using",
+    "snippet": "Use the tailwind-design-system skill to effortlessly create design systems with tailwind css v 4 using css-first configuration and design tokens.",
+    "host_name": "skills.rest",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/tailwindcss/comments/rgx0cu/design_tips_for_tailwind",
+    "name": "Design tips for Tailwind : r/tailwindcss",
+    "snippet": "What are their best practices ? I think the bootstrap grid 12 column is still one of the best systems. It is simple and flexible. For spacing ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

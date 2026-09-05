@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://ui.shadcn.com/docs/theming",
+    "name": "Theming - shadcn/ui",
+    "snippet": "Use shadcn/create to preview colors, Dark mode works by overriding the same tokens inside a .dark selector. The base token controls the surface color. The ... Token Convention · Theme Tokens · Adding New Tokens",
+    "host_name": "ui.shadcn.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.designsystemscollective.com/how-i-organize-colors-in-shadcn-ui-806965608479",
+    "name": "How I Organize Color Tokens in shadcn/ui | by Sophie",
+    "snippet": "May 30, 2026 · Keep dark mode aligned with the same visual mood. When designing a dark theme, the goal is not simply to invert colors, but to preserve the same ...",
+    "host_name": "www.designsystemscollective.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ui.shadcn.com/colors",
+    "name": "Tailwind Colors in Every Format - shadcn/ui",
+    "snippet": "The complete Tailwind color palette in HEX, RGB, HSL, CSS variables, and classes. Ready to copy and paste into your project. Built by shadcn at Vercel. Neutral · Stone · Gray",
+    "host_name": "ui.shadcn.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=g8obw6jEhNs",
+    "name": "Shadcn UI Crash Course #5 - Colour Themes - YouTube",
+    "snippet": "Nov 3, 2023 · Access the course files on GitHub: https://github.com/iamshaunjp/shadcn-ui-crash-course Next.js Masterclass: ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@sureshdotariya/customizing-shadcn-ui-themes-without-breaking-updates-a3140726ca1e",
+    "name": "Customizing shadcn/ui Themes Without Breaking Updates - Medium",
+    "snippet": "Oct 6, 2025 · To create your own theme, adjust the values or add new variables. For example, if your brand colour is teal, set --primary to its OKLCH ...",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://shadcn.obra.studio/documentation/colors",
+    "name": "Colors - Documentation - Obra shadcn/ui Figma kit",
+    "snippet": "How colors work in the Obra shadcn/ui kit: semantic variables, dark mode, multi-brand theming, and the relationship to the shadcn/ui CSS variables.",
+    "host_name": "shadcn.obra.studio",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.shadcndesign.com/blog/how-semantic-colors-work-in-shadcn-ui",
+    "name": "How semantic colors work in shadcn/ui - shadcndesign",
+    "snippet": "Mar 5, 2026 · Learn how semantic colors work in shadcn/ui — why naming colors by role instead of hue keeps your UI consistent, accessible, and easy to theme ...",
+    "host_name": "www.shadcndesign.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/reactjs/comments/1u3mx0x/i_built_a_visual_oklch_theme_builder_for_shadcnui",
+    "name": "I built a visual OKLCH theme builder for shadcn/ui - Reddit",
+    "snippet": "Jun 12, 2026 · What it does: Pick a brand color or start from a preset. Adjust sliders for surface tint, radius, fonts, etc.",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

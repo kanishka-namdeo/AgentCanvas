@@ -766,7 +766,7 @@ function ModeSelector({ mode, onModeChange }: { mode: AgentMode; onModeChange: (
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-72">
-        <div className="px-2 py-1 text-[9px] font-medium ac-text-4 uppercase tracking-wide border-b ac-border-subtle">
+        <div className="px-2 py-1 ac-label border-b ac-border-subtle">
           Agent mode — what the agent can do
         </div>
         <DropdownMenuRadioGroup value={mode} onValueChange={(v) => onModeChange(v as AgentMode)}>
@@ -2221,7 +2221,7 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div className="group flex gap-2">
-          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+          <div className="w-6 h-6 rounded-md ac-brand-gradient flex items-center justify-center flex-shrink-0 shadow-sm">
             <Bot className="h-3 w-3 text-white" />
           </div>
           <div className="flex-1 min-w-0 space-y-2">
@@ -2575,7 +2575,7 @@ function DiffSummaryCard({
       {/* Review-mode banner — surfaces the restore action prominently when
           the turn had destructive ops and the user is in 'review' mode. */}
       {showRestoreProminent && (
-        <div className="px-2 py-1.5 flex items-center gap-2 border-b ac-border-subtle bg-[var(--ac-warning-soft,hsl(38,95%,95%))]">
+        <div className="px-2 py-1.5 flex items-center gap-2 border-b ac-border-subtle bg-[var(--ac-warning-soft)]">
           <TriangleAlert className="h-3 w-3 flex-shrink-0" style={{ color: 'var(--ac-warning)' }} />
           <span className="text-[10px] ac-text-2 flex-1 min-w-0">
             Agent ran <span className="font-medium">{diff.deleted + (diff.cleared ? 1 : 0)} destructive op{(diff.deleted + (diff.cleared ? 1 : 0)) === 1 ? '' : 's'}</span> this turn.
@@ -2968,7 +2968,7 @@ function FollowUps({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>[
 
   return (
     <div className="pt-1 space-y-1">
-      <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide ac-text-4 px-0.5">
+      <div className="flex items-center gap-1 ac-label px-0.5">
         <ChevronRight className="h-3 w-3" />
         What next?
       </div>

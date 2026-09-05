@@ -26,6 +26,7 @@
 
 import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { CanvasDocument } from '@/lib/canvas/types';
+import { DEFAULT_GUIDE_COLOR } from './dom/Guides';
 
 export interface RulersProps {
   /// Pan offset (screen pixels) — the world div's translate() values.
@@ -311,7 +312,7 @@ export function Rulers({ panX, panY, zoom, width, height, onAddGuide }: RulersPr
         height: '100%',
         pointerEvents: 'none',
         zIndex: 50,
-        color: 'var(--ac-canvas-default-text, #475569)',
+        color: 'var(--ac-canvas-default-text)',
         fontFamily: 'var(--font-inter, Inter), system-ui, sans-serif',
         fontSize: LABEL_SIZE,
         userSelect: 'none',
@@ -326,9 +327,9 @@ export function Rulers({ panX, panY, zoom, width, height, onAddGuide }: RulersPr
           left: 0,
           width: RULER_SIZE,
           height: RULER_SIZE,
-          background: 'var(--ac-canvas-bg, #f8fafc)',
-          borderBottom: '1px solid var(--ac-canvas-default-stroke, #cbd5e1)',
-          borderRight: '1px solid var(--ac-canvas-default-stroke, #cbd5e1)',
+          background: 'var(--ac-canvas-bg)',
+          borderBottom: '1px solid var(--ac-canvas-default-stroke)',
+          borderRight: '1px solid var(--ac-canvas-default-stroke)',
         }}
       />
 
@@ -341,8 +342,8 @@ export function Rulers({ panX, panY, zoom, width, height, onAddGuide }: RulersPr
           left: RULER_SIZE,
           right: 0,
           height: RULER_SIZE,
-          background: 'var(--ac-canvas-bg, #f8fafc)',
-          borderBottom: '1px solid var(--ac-canvas-default-stroke, #cbd5e1)',
+          background: 'var(--ac-canvas-bg)',
+          borderBottom: '1px solid var(--ac-canvas-default-stroke)',
           overflow: 'hidden',
           cursor: 'default',
         }}
@@ -391,8 +392,8 @@ export function Rulers({ panX, panY, zoom, width, height, onAddGuide }: RulersPr
           left: 0,
           bottom: 0,
           width: RULER_SIZE,
-          background: 'var(--ac-canvas-bg, #f8fafc)',
-          borderRight: '1px solid var(--ac-canvas-default-stroke, #cbd5e1)',
+          background: 'var(--ac-canvas-bg)',
+          borderRight: '1px solid var(--ac-canvas-default-stroke)',
           overflow: 'hidden',
           cursor: 'default',
         }}
@@ -457,7 +458,7 @@ export function Rulers({ panX, panY, zoom, width, height, onAddGuide }: RulersPr
                 y1={preview.position * zoom + panY}
                 x2={width}
                 y2={preview.position * zoom + panY}
-                stroke="#f24822"
+                style={{ stroke: DEFAULT_GUIDE_COLOR }}
                 strokeWidth={1}
                 strokeDasharray="4 3"
               />
@@ -467,7 +468,7 @@ export function Rulers({ panX, panY, zoom, width, height, onAddGuide }: RulersPr
                 y1={0}
                 x2={preview.position * zoom + panX}
                 y2={height}
-                stroke="#f24822"
+                style={{ stroke: DEFAULT_GUIDE_COLOR }}
                 strokeWidth={1}
                 strokeDasharray="4 3"
               />

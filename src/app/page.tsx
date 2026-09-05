@@ -865,7 +865,7 @@ export default function Home() {
               onOpenDesignSystems={() => setDesignSystemsOpen(true)}
             />
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-sm">
+              <div className="w-6 h-6 rounded-md ac-brand-gradient flex items-center justify-center shadow-sm">
                 <PenTool className="h-3.5 w-3.5 text-white" />
               </div>
               <span className="font-semibold text-[13px] tracking-tight ac-text-1 hidden sm:inline">AgentCanvas</span>
@@ -889,7 +889,7 @@ export default function Home() {
             >
               <Search className="h-3 w-3" />
               <span className="hidden md:inline">Search or ask…</span>
-              <kbd className="hidden md:inline text-[10px] ac-text-5 px-1 py-0 rounded ac-surface-2 font-mono ml-1">{platformChord('⌘K')}</kbd>
+              <kbd className="hidden md:inline ac-kbd ml-1">{platformChord('⌘K')}</kbd>
             </Button>
 
             <RunStopButton />

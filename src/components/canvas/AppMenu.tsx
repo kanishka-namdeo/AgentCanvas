@@ -146,7 +146,7 @@ export function AppMenu(props: AppMenuProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="text-[11px] min-w-[248px] max-h-[70vh] overflow-y-auto ac-hide-scrollbar">
           {/* ==== File ==== */}
-          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">File</DropdownMenuLabel>
+          <DropdownMenuLabel className="ac-label">File</DropdownMenuLabel>
           <DropdownMenuItem onClick={props.onNewChat} disabled={agentBusy}>
             New chat <DropdownMenuShortcut>⌘N</DropdownMenuShortcut>
           </DropdownMenuItem>
@@ -228,7 +228,7 @@ export function AppMenu(props: AppMenuProps) {
           <DropdownMenuSeparator />
 
           {/* ==== Edit ==== */}
-          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">Edit</DropdownMenuLabel>
+          <DropdownMenuLabel className="ac-label">Edit</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => undo()} disabled={agentBusy}>
             Undo <DropdownMenuShortcut>⌘Z</DropdownMenuShortcut>
           </DropdownMenuItem>
@@ -277,7 +277,7 @@ export function AppMenu(props: AppMenuProps) {
           <DropdownMenuSeparator />
 
           {/* ==== View ==== */}
-          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">View</DropdownMenuLabel>
+          <DropdownMenuLabel className="ac-label">View</DropdownMenuLabel>
           <DropdownMenuItem onClick={props.onToggleLeftPanel}>
             Toggle layers panel <DropdownMenuShortcut>{chord('toggle-left-panel')}</DropdownMenuShortcut>
           </DropdownMenuItem>
@@ -325,7 +325,7 @@ export function AppMenu(props: AppMenuProps) {
           {/* ==== Insert ==== (D9: insertion mutates the canvas — gated like
               the toolbar's shape buttons, so the menu can't offer enabled-
               looking mutations the sendPatch guard would silently drop.) */}
-          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">Insert</DropdownMenuLabel>
+          <DropdownMenuLabel className="ac-label">Insert</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => dropShapeAtCenter('rectangle')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Rectangle <DropdownMenuShortcut>R</DropdownMenuShortcut>
           </DropdownMenuItem>
@@ -356,7 +356,7 @@ export function AppMenu(props: AppMenuProps) {
           <DropdownMenuSeparator />
 
           {/* ==== Object ==== (D9: same mutation gating as Edit/Insert.) */}
-          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">Object</DropdownMenuLabel>
+          <DropdownMenuLabel className="ac-label">Object</DropdownMenuLabel>
           <DropdownMenuItem onClick={groupSel} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Group <DropdownMenuShortcut>⌘G</DropdownMenuShortcut>
           </DropdownMenuItem>
@@ -428,7 +428,7 @@ export function AppMenu(props: AppMenuProps) {
           <DropdownMenuSeparator />
 
           {/* ==== Help ==== */}
-          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">Help</DropdownMenuLabel>
+          <DropdownMenuLabel className="ac-label">Help</DropdownMenuLabel>
           <DropdownMenuItem onClick={props.onOpenShortcuts}>
             Keyboard shortcuts <DropdownMenuShortcut>⌘/</DropdownMenuShortcut>
           </DropdownMenuItem>

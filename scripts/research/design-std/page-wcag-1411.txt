@@ -1,0 +1,838 @@
+URL: https://www.w3.org/WAI/WCAG21/Understanding/non-text-contrast.html
+TITLE: Understanding Success Criterion 1.4.11: Non-text Contrast | WAI
+
+Understanding Success Criterion 1.4.11: Non-text Contrast | WAI | W3C 
+	
+
+ 
+ 
+
+ 
+
+ 
+ 
+
+ Skip to content 
+ 
+ 
+ 
+ 
+ WCAG 2.1 Understanding Docs 
+ 
+
+ 
+ Informative explanations, not required to meet WCAG
+
+ 
+ 
+ About WCAG Understanding Docs 
+ 
+
+ 
+
+ 
+ 
+ 
+ W3C homepage 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Web Accessibility Initiative (WAI) homepage 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ All Understanding Docs 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Guideline: Distinguishable
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ Previous SC: Reflow
+ 
+ 
+
+ 
+ 
+ 
+ 
+ Next SC: Text Spacing
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+ 
+ Page Contents 
+ 
+ 
+ In Brief 
+
+ Success Criterion 
+
+ Intent 
+
+ Benefits 
+
+ Examples 
+
+ Related Resources 
+
+ Techniques 
+
+ Key Terms 
+
+ 
+ 
+ 
+
+ 
+
+ 
+ 
+ 
+ 
+ Understanding
+ SC 1.4.11 
+ Non-text Contrast (Level AA)
+
+ 
+ In Brief
+
+ 
+ Goal Important visual information meets the same minimum contrast required for larger text. 
+ What to do Ensure meaningful visual cues achieve 3:1 against the background. 
+ Why it's important Some people cannot see elements with low contrast. 
+ 
+
+ 
+ 
+
+ 
+ Success Criterion (SC)
+
+ The visual presentation of the following have a contrast ratio of at least 3:1 against adjacent color(s):
+
+ 
+ 
+ 
+ User Interface Components 
+ 
+ Visual information required to identify user interface components and states , except for inactive components or where the appearance of the component is determined by the user agent and not modified by the author; 
+ 
+ Graphical Objects 
+ 
+ Parts of graphics required to understand the content, except when a particular presentation of graphics is essential to the information being conveyed. 
+ 
+ 
+
+ 
+	
+
+ 
+ Intent
+
+ The intent of this success criterion is to ensure that user interface components (i.e., controls) and meaningful graphics are distinguishable by people with moderately low vision. The requirements and rationale are similar to those for large text in 1.4.3 Contrast (Minimum) . Note that this requirement does not apply to inactive user interface components.
+
+ Low contrast controls are more difficult to perceive, and may be completely missed by people with a visual impairment. Similarly, if a graphic is needed to understand the content or functionality of the web page then it should be perceivable by people with low vision or other impairments without the need for contrast-enhancing assistive technology.
+
+ 
+ Note
+
+ 
+ The 3:1 contrast ratios referenced in this success criterion is intended to be treated as threshold values. When comparing the computed contrast ratio to the success criterion ratio, the computed values should not be rounded (e.g. 2.999:1 would not meet the 3:1 threshold).
+
+ 
+
+ 
+
+ 
+ Note
+
+ 
+ Because authors do not have control over user settings for font smoothing and anti-aliasing, when evaluating this
+ Success Criterion, refer to the colors obtained from the user agent, or the underlying
+ markup and stylesheets, rather than the non-text elements as presented on screen.
+
+ Due to anti-aliasing, particularly thin lines and shapes of non-text elements may be rendered by user agents with
+ a much fainter color than the actual color defined in the underlying CSS. This can lead to situations where
+ non-text elements have a contrast ratio that nominally passes the Success Criterion, but have a much lower contrast
+ in practice. In these cases, best practice would be for authors to avoid particularly thin lines and shapes,
+ or to use a combination of colors that exceeds the normative requirements of this success criterion.
+ 
+
+ 
+
+ 
+
+ 
+ User Interface Components
+
+ Unless the control is inactive , any visual information provided that is necessary for a user to identify that a control is present and how to operate it must have a minimum 3:1 contrast ratio with the adjacent colors. Also, any visual information necessary to indicate state, such as whether a component is selected or focused must also ensure that the information used to identify the control in that state has a minimum 3:1 contrast ratio.
+
+ This success criterion does not require that changes in color that differentiate between states of an individual component meet the 3:1 contrast ratio when they do not appear next to each other. For example, there is not a new requirement that visited links contrast with the default color, or that mouse hover indicators contrast with the default state. However, the component must not lose contrast with the adjacent colors, and non-text indicators such as the check in a checkbox, or an arrow graphic indicating a menu is selected or open must have sufficient contrast to the adjacent colors.
+
+ Boundaries
+
+ This success criterion does not require that controls have a visual boundary indicating the hit area. If a control has visible content (such as text or a sufficiently contrasting icon), which helps users identify the presence of the control, then a border or other indication of the overall boundary of the hit area is not required, as is therefore not subject to non-text contrast requirements. Having a visual boundary indicating the hit area is only required when there is no other visual way to identify the presence of the control – and in those cases, the boundary must have sufficient non-text contrast in order to pass this success criterion.
+
+ 
+ Note
+
+ Even when a control does not need to have a visual boundary indicating its hit area, it will still need to have a sufficiently contrasting focus indication.
+
+ 
+
+ 
+ Note
+
+ For people with cognitive disabilities, it is a best practice to delineate the boundary of all controls, even those that have visible content, to aid in the recognition of controls and the completion of activities.
+
+ 
+
+ 
+ 
+ Two buttons, the first with no visual indicator except text saying ‘button’. The second is the same but with an added grey border. 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ Figure 1. 
+ Pass: A button without a visual boundary – the button's text is sufficient to indicate the presence of the control. The same button, when focused, still has a sufficiently contrasting focus indicator (grey #949494
+ against white, with a contrast ratio of 3:1).
+ 
+ 
+
+ Adjacent colors
+
+ For user interface components 'adjacent colors' means the colors adjacent to the component. For example, if an input has a white internal background, dark border, and white external background the 'adjacent color' to the component would be the white external background.
+
+ 
+ 
+ Standard text input with a label, white internal and external background with a dark border. 
+ 
+ 
+
+ 
+ 
+
+ Figure 2. 
+ Pass: A standard text input with a grey border ( #767676
+) and white adjacent color outside the component
+ 
+ 
+
+ If components use several colors, any color which does not interfere with identifying the component can be ignored for the purpose of measuring contrast ratio. For example, a 3D drop-shadow on an input, or a dark border line between contrasting backgrounds is considered to be subsumed into the color closest in brightness (perceived luminance).
+
+ The following example shows an input that has a light background on the inside and a dark background around it. The input also has a dark grey border which is considered to be subsumed into the dark background. The border does not interfere with identifying the component, so the contrast ratio is taken between the white background and dark blue background.
+
+ 
+ 
+ A text box with a dark background and light border, with a white background. 
+ 
+ 
+
+ 
+ 
+ 
+
+ Figure 3. 
+ Pass: The contrast of the input background (white) and color adjacent to the control (dark blue #003366
+) is sufficient. There is also a border (silver) on the component that is not required to contrast with either.
+ 
+ 
+
+ For visual information required to identify a state, such as the check in a checkbox or the thumb of a slider, that part might be within the component so the adjacent color might be another part of the component.
+
+ 
+ 
+ A purple box with a light grey check. 
+ 
+ 
+ 
+
+ 
+
+ Figure 4. 
+ Pass: A customized checkbox with light grey check ( #E5E5E5
+), which has a contrast ratio of 5.6:1 with the purple box ( #6221EA
+).
+ 
+ 
+
+ It is possible to use a flat design where the status indicator fills the component and does not contrast with the component, but does contrast with the colors adjacent to the component.
+
+ 
+ 
+ Four radio buttons, the first is a plain circle labelled ‘Not selected’. The second shows the circle filled with a darker color than the border. The third is filled with the same color as the border. The fourth has an inner filled circle with a gap between it and the outer border. 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+
+ Figure 5. 
+ Pass: The first radio button shows the default state with a grey ( #949494
+) circle. The second and third show the radio button selected and filled with a color that contrasts with the color adjacent to the component. The last example shows the state indicator contrasting with the component colors.
+ 
+ 
+
+ Relationship with Use of Color
+
+ The Use of Color success criterion addresses changing only the color (hue) of an object or text without otherwise altering the object's form. The principle is that contrast ratio (the difference in brightness) can be used to distinguish text or graphics. For example, G183: Using a contrast ratio of at least 3:1 to distinguish inline text links from surrounding text is a technique to use a contrast ratio of 3:1 with surrounding text to distinguish links and controls. In that case the Working Group regards a link color that meets the 3:1 contrast ratio relative to the non-linked text color as satisfying the Success Criterion 1.4.1 Use of color since it is relying on contrast ratio as well as color (hue) to convey that the text is a link.
+
+ Non-text information within controls that uses a change of hue alone to convey the value or state of an input, such as a 1-5 star indicator with a black outline for each star filled with either yellow (full) or white (empty) is likely to fail the Use of color criterion rather than this one.
+
+ 
+ 
+ Two star ratings, one uses a black outline (on white) with a black fill to indicate it is checked. The second has a yellow fill and a thicker dark border. 
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ Figure 6. 
+ Pass: Two examples which pass this success criterion, using either a solid fill to indicate a checked-state that has contrast, or a thicker border as well as yellow fill.
+ 
+ 
+ 
+ 
+ 
+ Two star ratings, the first uses 5 stars with a black outline and a yellow or white fill, where yellow indicates checked. The second uses only pale yellow stars on white. 
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ Figure 7. 
+ Fail: The first example fails the Use of color criterion due to relying on yellow and white hues. The second example fails the Non-text contrast criterion due to the yellow ( #FFF000
+) to white contrast ratio of 1.2:1.
+ 
+ 
+ 
+
+ Using a change of contrast for focus and other states is a technique to differentiate the states. This is the basis for G195: Using an author-supplied, visible focus indicator , and more techniques are being added.
+
+ Relationship with Focus Visible
+
+ In combination with 2.4.7 Focus Visible , the visual focus indicator for a component must have sufficient contrast against the adjacent background when the component is focused, except where the appearance of the component is determined by the user agent and not modified by the author.
+
+ Most focus indicators appear outside the component - in that case it needs to contrast with the background that the component is on. Other cases include focus indicators which are:
+
+ 
+ only inside the component and need to contrast with the adjacent color(s) within the component.
+
+ the border of the component (inside the component and adjacent to the outside) and need to contrast with both adjacent colors.
+
+ partly inside and partly outside, where either part of the focus indicator can contrast with the adjacent colors.
+
+ 
+
+ 
+ 
+ Three blue buttons, the middle has a thick yellow outline well inside the border of the button. 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ Figure 8. 
+ Pass: The internal yellow indicator ( #FFFF00
+) contrasts with the blue button background ( #4189B9
+).
+ 
+ 
+ 
+
+ 
+ 
+ Three blue buttons on a white background, the middle has a light yellow outline outside of the button’s non-focused boundary. 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ Figure 9. 
+ Fail: The external yellow indicator ( #FFFF00
+) does not contrast with the white background ( #FFF
+) which the component is on.
+ 
+ 
+ 
+
+ 
+ 
+ Three blue buttons on a white background, the middle has a dark green outline outside of the button’s non-focused boundary. 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ Figure 10. 
+ Pass: The external green indicator ( #008000
+) does contrast with the white background ( #FFF
+) which the component is on. It does not need to contrast with both the component background and the component, as visually the effect is that the button is noticeably larger, and it's not necessary for a user to be able to discern this extra border in isolation. Although this passes non-text contrast, it is not a good indicator unless it is very thick. .
+ 
+ 
+ 
+
+ If an indicator is partly inside and partly outside the component, either part of the indicator could provide contrast.
+
+ 
+ 
+ Three blue buttons on a white background, the middle has the outline of a yellow rectangle that is partly inside the button’s boundary, and partly outside on the white background. 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ Figure 11. 
+ Pass: The focus indicator is partially inside, partially outside the button. The internal part of the yellow indicator ( #FFFF00
+) contrasts with the blue button background ( #4189B9
+).
+ 
+ 
+ 
+
+ If the focus indicator changes the border of the component within the visible boundary it must contrast with the component. Typically an outline goes around (outside) the visible boundary of the component, in this case changing the border is just inside the visible edge of the component.
+
+ 
+ 
+ Three blue buttons on a white background, the center button has a green border exactly on the outer boundary of the button. 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ Figure 12. 
+ Fail: The border of the control changes from blue ( #4189B9
+) to green ( #4B933A
+). This is within the component and does not contrast with the inside background of the component.
+ 
+ 
+ 
+
+ 
+ 
+ Three blue buttons with a black border on a white background, the center button has a green border inside, adjacent to the inner background and black border. 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ Figure 13. 
+ Fail: An inner border of dark green ( #008000
+) does contrast with the black border, but does not contrast with the blue component background.
+ 
+ 
+ 
+
+ 
+ 
+ Three blue buttons with a black border on a white background, the center button has a white border inside, adjacent to the inner background and black border. 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ Figure 14. 
+ Pass: An inner border of white contrasts with the black border and the blue component background.
+ 
+ 
+ 
+
+ Note that this success criterion does not directly compare the focused and unfocused states of a control - if the focus state relies on a change of color (e.g., changing only the background color of a button), this success criterion does not define any requirement for the difference in contrast between the two states.
+
+ 
+ 
+ Three blue buttons, the center button is a darker blue than the others. 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+
+ 
+
+ Figure 15. 
+ Not in scope: The change of background within the component is not in scope of non-text contrast. However, this would not pass Use of color .
+ 
+ 
+ 
+
+ 
+ Hover states
+
+ The language of Non-text Contrast specifically calls out "visual information required to identify...states." When users talk about a hover state, they are normally referring to a visual effect that takes place when the pointer is positioned over a control. However, there are a number of HTML components (such as buttons, checkboxes, radio buttons, and selects) which do not by default display any additional visual effects when the user moves a pointer control over them. The pointer itself, via its location, is the indicator of whether the user is hovering on a component. Therefore, additional author-supplied visual treatments for hover are not "required to identify" the hover state. Those treatments can be considered supplemental and do not themselves need to contrast 3:1 against the background.
+
+ This is not to say that other hover effects are discouraged. For instance, some native components alter the shape of the pointer when it is hovering over a control; the pointer becomes an I-beam when it hovers over text inputs and text areas. There will be cases where some users may benefit from additional visual hover effects, such as bolding text or use of drop shadows. However, other users may find strong hover effects distracting. The key consideration for any hover effect is that it does not cause a component itself to lose sufficient contrast against adjacent colors, or cause the visual indicators for other states, such as focus or selection, to lose sufficient contrast.
+
+ 
+
+ 
+ User Interface Component Examples
+
+ For designing focus indicators, selection indicators and user interface components that need to be perceived clearly, the following are examples that have sufficient contrast.
+
+ Passing User Interface Component Examples
+
+ 
+
+ 
+ Link text
+
+ 
+ 
+ 
+ A browser-default styled link, blue with an underline. 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ Figure 16. 
+ Pass: The browser's default link text color
+ is covered by 1.4.3 Contrast
+ (Minimum) . Since the underline is the same color as the
+ text, which must meet at least 3:1 to pass, the default
+ underline will always pass the requirements of Non-text
+ Contrast.
+ 
+ 
+ 
+ 
+
+ 
+ Default focus style
+
+ 
+ 
+ 
+ A browser-default styled link, with a solid mid-blue outline around the link. 
+ 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ Figure 17. 
+ Pass: Links are required to have a visible
+ focus indicator by 2.4.7 Focus
+ Visible . Where the focus style of the user agent is not
+ adjusted on interactive controls (such as links, form fields
+ or buttons) by the website (author), the default focus style
+ is exempt from contrast requirements (but must still be
+ visible).
+ 
+ 
+ 
+ 
+
+ 
+ Buttons
+
+ 
+ 
+ 
+ Button with a faint blue background. 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ Figure 18. 
+ Pass: A button which has a distinguishing
+ indicator such as position, text style, or context does not
+ need a contrasting visual indicator to show that it
+ is a button, although some users are likely to identify a
+ button with an outline that meets contrast requirements more
+ easily.
+ 
+ 
+ 
+ 
+
+ 
+ Text input (minimal)
+
+ 
+ 
+ 
+ A label with a text input shown by a bottom border and faint grey background. 
+ 
+ 
+
+ 
+ 
+
+ 
+ 
+
+ 
+
+ 
+
+ 
+
+ Figure 19. 
+ Pass: Where a text-input has a visual
+ indicator to show it is an input, such as a bottom border
+ ( #767676
+), that indicator must meet 3:1 contrast
+ ratio.
+ 
+ 
+ 
+ 
+
+ 
+ Text input
+
+ 
+ 
+ 
+ Standard text input with a label, white internal and external background with a dark border. 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ Figure 20. 
+ Pass: Where a text-input has an indicator
+ such as a complete border ( #767676
+), that
+ indicator must meet 3:1 contrast ratio.
+ 
+ 
+ 
+ 
+
+ 
+ Text input focus style
+
+ 
+ 
+ 
+ A label with a text input with a faint gray outline and a visible cursor/caret. 
+ 
+ 
+
+ 
+ 
+ 
+ 
+
+ 
+
+ Figure 21. 
+ Pass: A focus indicator is required. While in
+ this case the additional gray ( #CCC
+) outline has
+ an insufficient contrast of 1.6:1 against the white
+ ( #FFF
+) background, the cursor/caret which is
+ displayed when the input receives focus does provide
+ a sufficiently strong visual indication.
+ 
+ 
+ 
+ 
+
+ 
+ Text input using background color
+
+ 
+ 
+ 
+ A label with a text input shown by a dark blue page background, and white box. 
+ 
+ 
+
+ 
+ 
+
+ 
+
+ Figure 22. 
+ Pass: Text inputs that have no border and are
+ differentiated only by a background color must have a 3:1
+ contrast ratio to the adjacent background
+ ( #043464
+).
+ 
+ 
+ 
+ 
+
+ 
+ Toggle button
+
+ 
+ 
+ 
+ Dark blue oval toggle button with light blue internal indicator. 
+ 
+ 
+ 
+ 
+
+ 
+
+ Figure 23. 
+ Pass: The toggle button's internal background
+ ( #070CD5
+) has a good contrast with the external
+ white background. A

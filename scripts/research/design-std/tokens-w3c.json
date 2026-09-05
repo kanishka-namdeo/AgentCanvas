@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version",
+    "name": "Design Tokens specification reaches first stable version - W3C",
+    "snippet": "Oct 28, 2025 · W3C Community Group bringing together designers, developers, and tool makers to standardize how design tokens are defined and exchanged. What's New In 2025.10 · Production-Ready Ecosystem · Get Started",
+    "host_name": "www.w3.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.w3.org/community/design-tokens",
+    "name": "Design Tokens Community Group - W3C",
+    "snippet": "Feb 5, 2022 · In October 2025, we announced the first stable version of the Design Tokens specification. Industry-leading tools such as Figma, Penpot, Sketch, ...",
+    "host_name": "www.w3.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.designtokens.org/TR/2025.10/format",
+    "name": "Design Tokens Format Module 2025.10",
+    "snippet": "Oct 28, 2025 · This document describes the technical specification for a file format to exchange design tokens between different tools. Status of This Document.",
+    "host_name": "www.designtokens.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/design-tokens/community-group",
+    "name": "design-tokens/community-group: This is the official DTCG  - GitHub",
+    "snippet": "This is the official DTCG repository for the design tokens specification (W3C community group page). Design tokens Design tokens are indivisible pieces of a  ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zeroheight.com/learn/the-design-tokens-spec-dtcg-explained",
+    "name": "The design tokens spec (DTCG) explained - Zeroheight",
+    "snippet": "Jun 12, 2026 · It's a W3C community effort to define a standard format for design tokens: a shared JSON structure that tools can agree on,",
+    "host_name": "zeroheight.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.tokens.studio/manage-settings/token-format",
+    "name": "Token Format - W3C DTCG vs Legacy - Tokens Studio for Figma",
+    "snippet": "Tokens Community Group (DTCG), you can choose a Design Token Format (how tokens are written in their JSON files) from within the Tokens Studio Plugin.",
+    "host_name": "docs.tokens.studio",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.digitalapplied.com/blog/design-systems-2026-scale-ui-without-chaos-methodology",
+    "name": "Design Systems in 2026: Scale UI Without the Chaos - Digital Applied",
+    "snippet": "Jun 15, 2026 · W3C Design Tokens Community Group shipped its first stable spec in October 2025. That standardization turns a token-driven, cross-platform ...",
+    "host_name": "www.digitalapplied.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.designtokens.org",
+    "name": "Design Tokens Community Group",
+    "snippet": "The Design Tokens W3C Community Group (DTCG) is a community of designers, developers, and tooling vendors standardizing how design tokens are defined and ...",
+    "host_name": "www.designtokens.org",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

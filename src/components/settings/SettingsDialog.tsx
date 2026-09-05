@@ -379,7 +379,7 @@ function LLMSection() {
 
   return (
     <>
-      <h2 className="text-[14px] font-semibold ac-text-1 mb-1.5">LLM provider</h2>
+      <h2 className="text-[13px] font-semibold ac-text-1 mb-1">LLM provider</h2>
       <p className="text-[12px] ac-text-4 mb-5 leading-relaxed">
         Choose which LLM backend powers the agent. Supports 28 popular providers —
         OpenAI, Anthropic, Google Gemini, Mistral, Groq, Together, DeepSeek,

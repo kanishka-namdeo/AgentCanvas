@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.w3.org/WAI/WCAG21/Understanding/non-text-contrast.html",
+    "name": "Understanding Success Criterion 1.4.11: Non-text Contrast",
+    "snippet": "Understanding SC 1.4.11 Non - text Contrast (Level AA). In Brief. Goal: Important visual information meets the same minimum contrast required for larger text. Read more",
+    "host_name": "www.w3.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.w3.org/TR/WCAG22",
+    "name": "Web Content Accessibility Guidelines (WCAG) 2.2",
+    "snippet": "Dec 12, 2024 — Criterion 1.4.11 Non - text Contrast . User Interface Components Visual information required to identify user interface components and states, ...",
+    "host_name": "www.w3.org",
+    "rank": 1,
+    "date": "Dec 12, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html",
+    "name": "Understanding Success Criterion 1.4.3: Contrast (Minimum)",
+    "snippet": "A contrast ratio of 3:1 is the minimum level recommended by [ISO-9241-3] and [ANSI-HFES-100-1988] for standard text and vision. The 4.5:1 ratio is used in this ... Read more",
+    "host_name": "www.w3.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.digitala11y.com/understanding-sc-1-4-11-non-text-contrast",
+    "name": "Understanding WCAG SC 1.4.11 Non-text Contrast",
+    "snippet": "This success criterion sets out to ensure that the luminosity contrast of such elements meet a minimum contrast ratio of 3:1 with their adjacent color. Read more",
+    "host_name": "www.digitala11y.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://testparty.ai/blog/wcag-non-text-contrast-guide",
+    "name": "What Is WCAG 1.4.11 Non-Text Contrast and How Do You",
+    "snippet": "Dec 16, 2025 — WCAG 1.4.11 Non - Text Contrast requires that user interface components and meaningful graphical objects have a contrast ratio of at least 3:1 ... Read more",
+    "host_name": "testparty.ai",
+    "rank": 4,
+    "date": "Dec 16, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.getstark.co/wcag-explained/perceivable/distinguishable/non-text-contrast",
+    "name": "WCAG Non-text Contrast Explained",
+    "snippet": "This guideline requires a minimum contrast ratio of 3:1 for essential graphical elements and user interface components against their adjacent colors. It ... Read more",
+    "host_name": "www.getstark.co",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://silktide.com/accessibility-guide/the-wcag-standard/1-4/distinguishable/1-4-11-non-text-contrast",
+    "name": "WCAG 1.4.11: Non-text contrast (Level AA)",
+    "snippet": "How to meet Non-Text Contrast. Ensure at least a 3:1 contrast ratio for UI components : Make sure buttons, form fields, and other essential interactive elements ... Read more",
+    "host_name": "silktide.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dequeuniversity.com/resources/wcag2.1/1.4.11-non-text-contrast",
+    "name": "1.4.11 Non-Text Contrast (AA) | New Success Criteria in",
+    "snippet": "The visual presentation of the following have a contrast ratio of at least 3:1 against adjacent color(s):. User Interface Components : Visual information ... Read more",
+    "host_name": "dequeuniversity.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

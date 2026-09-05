@@ -340,7 +340,7 @@ export function PackShowcase({ pack, variant = 'full', className }: PackShowcase
       style={{
         width: '100%',
         height: `${iframeHeight}px`,
-        border: '1px solid var(--ac-border-default, #e4e4e7)',
+        border: '1px solid var(--ac-border-default)',
         borderRadius: '8px',
         background: pack.palette.background,
       }}

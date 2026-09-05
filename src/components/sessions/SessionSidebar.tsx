@@ -362,7 +362,7 @@ export function SessionSidebar() {
                           </button>
                         ))}
                         {(session.tags ?? []).length > 3 && (
-                          <span className="text-[8px] ac-text-4">+{session.tags.length - 3}</span>
+                          <span className="text-[9px] ac-text-4">+{session.tags.length - 3}</span>
                         )}
                       </div>
                     )}
@@ -407,7 +407,7 @@ export function SessionSidebar() {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="text-[11px] min-w-[200px]" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4 truncate">
+                        <DropdownMenuLabel className="ac-label truncate">
                           {session.title}
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
@@ -545,7 +545,7 @@ export function SessionSidebar() {
           {/* Archived section */}
           {archivedSessions.length > 0 && (
             <>
-              <div className="px-2.5 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wide ac-text-4">
+              <div className="px-2.5 pt-4 pb-1 ac-label">
                 Archived · {archivedSessions.length}
               </div>
               {archivedSessions.map((session) => (
@@ -672,7 +672,7 @@ function TagEditorInline({
 
   return (
     <div className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
-      <div className="text-[9px] font-semibold uppercase tracking-wide ac-text-4 mb-1 flex items-center gap-1">
+      <div className="ac-label mb-1 flex items-center gap-1">
         <TagIcon className="h-2.5 w-2.5" /> Tags
       </div>
       {tags.length > 0 && (

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.reddit.com/r/UXDesign/comments/xfyr1p/is_it_always_important_to_follow_a_8px_or_4x_grid",
+    "name": "Is it always important to follow a 8px or 4x grid system?",
+    "snippet": "I’m working in a start up firm and I designed a flow with a 8px system spacing and everything and today my boss asked me to run it by some other designer ...",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxdesign.cc/the-4px-baseline-grid-the-present-89485012dea6",
+    "name": "The 4px baseline grid — the present | by Ethan Wang",
+    "snippet": "May 29, 2019 — To me, using the 4px baseline grid is a balance between visual accuracy (for users) and design efficiency (for me). In the Problem section, I ... Read more",
+    "host_name": "uxdesign.cc",
+    "rank": 1,
+    "date": "May 29, 2019",
+    "favicon": ""
+  },
+  {
+    "url": "https://gridmakerpro.com/learn/web-design-grid-systems-12-column-baseline-8pt",
+    "name": "The 8pt grid, 12-column layout and baseline grid explained",
+    "snippet": "May 16, 2026 — The current best practice is a small set of named scale steps ... The 8 px scale becomes spacing -1 ( 8 px ), spacing -2 (16 px), spacing -3 ... Read more",
+    "host_name": "gridmakerpro.com",
+    "rank": 2,
+    "date": "May 16, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/nbabich_ui-uidesign-productdesign-activity-7327274737221451777-iKyo",
+    "name": "💡8px Grid System in UI Design | Nick Babich",
+    "snippet": "Solution: Define a spacing system ( 4px , 8px , or whatever scale suits your product) and stick to it across the design . Pro tip: Use Figma's Auto ...",
+    "host_name": "www.linkedin.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/461999237551673/posts/2397888947296016",
+    "name": "What is the best UI spacing for 4px layout projects?",
+    "snippet": "1. Use consistent spacing : Follow a 4px or 8px scale (e.g. padding: 16px 24px;, gap: 8px /16px). 2. Use grid systems : Structure pages with CSS  ...",
+    "host_name": "www.facebook.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@disco_lu/saying-bye-to-4px-spacing-and-hello-to-fibonacci-58477e3ecca3",
+    "name": "Saying bye to 4px spacing and hello to Fibonacci",
+    "snippet": "The issue I have with the even number 4px calculation grid systems is that they can feel a bit loose, either vertically or horizontally. Read more",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.prototypr.io/the-8pt-grid-consistent-spacing-in-ui-design-with-sketch-577e4f0fd520",
+    "name": "The 8pt Grid: Consistent Spacing in UI Design with Sketch",
+    "snippet": "Nov 28, 2017 — To begin, set out base numbers for your grid . I use material design principles so divisions of 8: 8px / 16px / 24px / 32px / 40px / 48px / 56px ... Read more",
+    "host_name": "blog.prototypr.io",
+    "rank": 6,
+    "date": "Nov 28, 2017",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.designary.com/p/layout-basics-grid-systems-and-the-4px-grid",
+    "name": "Basics: Grid systems and the 4px grid",
+    "snippet": "Aug 23, 2022 — Traditionally, 8px was used as the most popular baseline grid in product design . It has now been succeeded by the 4px grid in popularity, due to ... Read more",
+    "host_name": "blog.designary.com",
+    "rank": 7,
+    "date": "Aug 23, 2022",
+    "favicon": ""
+  }
+]

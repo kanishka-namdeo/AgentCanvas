@@ -226,7 +226,7 @@ export function CommandPalette({
               onValueChange={setQuery}
               className="h-11 text-[13px] flex-1"
             />
-            <kbd className="text-[10px] ac-text-4 px-1.5 py-0.5 rounded border ac-border-default ac-surface-1 font-mono flex-shrink-0">
+            <kbd className="ac-kbd flex-shrink-0">
               ↵
             </kbd>
           </div>
@@ -240,7 +240,7 @@ export function CommandPalette({
                   >
                     Draft <span className="ac-text-1 font-medium">&ldquo;{trimmed}&rdquo;</span> in the chat composer
                     <span className="block text-[10px] ac-text-4 mt-0.5">
-                      Click or press <kbd className="px-1 py-0.5 rounded ac-surface-2 font-mono">↵</kbd> — review, attach, then send
+                      Click or press <kbd className="ac-kbd">↵</kbd> — review, attach, then send
                     </span>
                   </button>
                 ) : (
@@ -254,7 +254,7 @@ export function CommandPalette({
               <CommandGroup
                 key={group}
                 heading={group}
-                className="text-[10px] ac-text-4 uppercase tracking-wide font-medium"
+                className="ac-label"
               >
                 {items.map((c) => {
                   const Icon = c.icon ?? Terminal;
@@ -316,7 +316,7 @@ export function CommandPalette({
                 <CommandGroup
                   key={group.id}
                   heading={`Prompt · ${group.label}`}
-                  className="text-[10px] ac-text-4 uppercase tracking-wide font-medium"
+                  className="ac-label"
                 >
                   {filtered.map((prompt) => (
                     <CommandItem

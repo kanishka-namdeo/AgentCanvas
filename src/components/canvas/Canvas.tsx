@@ -50,7 +50,7 @@ import { resolveCanvasBackground } from '@/lib/canvas/theme-colors';
 import { useSettings } from '@/lib/settings/store';
 import { DomCanvas } from './dom/DomCanvas';
 import { Rulers } from './Rulers';
-import { Guides } from './dom/Guides';
+import { Guides, DEFAULT_GUIDE_COLOR } from './dom/Guides';
 import { newGuideId } from '@/lib/canvas/store';
 import { MIN_SIZE, type ResizeHandle } from './handleMath';
 import { PackTokensStyle } from './PackTokensStyle';
@@ -1285,7 +1285,7 @@ export function Canvas() {
           }}
         >
           <div className="text-[12px] ac-text-3 leading-relaxed text-center px-6">
-            Describe what to build in the chat — or press <kbd className="text-[10px] px-1 py-0 rounded ac-surface-2 ac-text-4 font-mono">{platformChord('⌘K')}</kbd> for presets
+            Describe what to build in the chat — or press <kbd className="ac-kbd">{platformChord('⌘K')}</kbd> for presets
           </div>
         </div>
       )}
@@ -1337,7 +1337,7 @@ export function Canvas() {
               id: newGuideId(),
               axis,
               position,
-              color: '#f24822',
+              color: DEFAULT_GUIDE_COLOR,
             })
           }
         />
