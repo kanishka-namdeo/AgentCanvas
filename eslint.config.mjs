@@ -44,6 +44,15 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-useless-escape": "off",
   },
 }, {
+  // CommonJS scripts (scripts/**/*.cjs): `require()` is the correct idiom —
+  // never flag it with the TS-module rules. Node tooling scripts (journal
+  // queries, one-off migrations) don't go through a bundler.
+  files: ["**/*.cjs"],
+  rules: {
+    "@typescript-eslint/no-require-imports": "off",
+    "@typescript-eslint/no-var-requires": "off",
+  },
+}, {
   ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills", "download/**", "scripts/research/**", "research-scan/**"]
 }];
 

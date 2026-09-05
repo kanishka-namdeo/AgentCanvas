@@ -50,7 +50,6 @@ function renderViaWorker(svg: string, width: number, _height: number): Promise<B
     } catch {
       try {
         // Last resort: the repo checkout layout (dev server runs from cwd).
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const path = require('node:path') as typeof import('node:path');
         const fs = require('node:fs') as typeof import('node:fs');
         const candidate = path.join(process.cwd(), 'src', 'lib', 'canvas', 'render-worker.mjs');

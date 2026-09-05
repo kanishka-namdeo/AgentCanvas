@@ -41,7 +41,8 @@
 //   - ffmpeg on PATH
 
 import { chromium, type Browser, type Page } from 'playwright-core';
-import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
+import { spawn, type ChildProcessByStdio } from 'child_process';
+import type { Writable } from 'node:stream';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -96,7 +97,7 @@ async function canvasCenter(page: Page) {
 // Spawn an ffmpeg process that reads raw MJPEG frames from stdin and writes
 // H.264 ultrafast CRF 18 to the output path. This is the "capture pass" — it
 // must NEVER fall behind realtime, so we use the fastest possible preset.
-function startCaptureFfmpeg(outPath: string): ChildProcessWithoutNullStreams {
+function startCaptureFfmpeg(outPath: string): ChildProcessByStdio<Writable, null, null> {
   const args = [
     '-loglevel', 'error',
     '-f', 'image2pipe',

@@ -31,7 +31,7 @@ async function main() {
   // Same normalize path the eval uses: resolves the .pen tree and rebuilds
   // the derived shapes[] cache of resolved render layers.
   const doc = normalizeCanvas(raw);
-  const shapes = (doc.shapes ?? []) as AnyLayer[];
+  const shapes = (doc.shapes ?? []) as unknown as AnyLayer[];
   console.log(`[render] ${docPath}: tree-children=${doc.children?.length ?? 0} resolved-layers=${shapes.length}`);
 
   // Bounding box over all visible layers.
@@ -65,7 +65,9 @@ async function main() {
   );
 
   // Shift layers so the frame starts at 0,0 (keep relative positions).
-  const shifted = shapes.map((s) => ({
+  // (annotate the mapper return — TS spread drops AnyLayer's index
+  // signature, which would break the fontSize access below)
+  const shifted = shapes.map((s): AnyLayer => ({
     ...s,
     x: Number(s.x ?? 0) - frameX,
     y: Number(s.y ?? 0) - frameY,
@@ -78,14 +80,14 @@ async function main() {
   const outH = Math.round(frameH * scale);
   const scaled = (scale === 1
     ? shifted
-    : shifted.map((s) => ({
+    : shifted.map((s): AnyLayer => ({
         ...s,
         x: Number(s.x ?? 0) * scale,
         y: Number(s.y ?? 0) * scale,
         width: Number(s.width ?? 0) * scale,
         height: Number(s.height ?? 0) * scale,
         fontSize: s.fontSize != null ? Number(s.fontSize) * scale : undefined,
-      }))) as Parameters<typeof renderCanvasToPng>[0];
+      }))) as unknown as Parameters<typeof renderCanvasToPng>[0];
 
   const png = await renderCanvasToPng(scaled, outW, outH);
   writeFileSync(outPath, png);

@@ -13,8 +13,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createEmptyCanvasDocument } from '@/lib/canvas/types';
-import type { PenChild, PenFrame, PenText, CanvasDocument } from '@/lib/pen/types';
+import { createEmptyCanvasDocument, type CanvasDocument } from '@/lib/canvas/types';
+import type { PenChild, PenFrame, PenText } from '@/lib/pen/types';
 import {
   resolvePenTreeDetailed,
   parseCssColor,
@@ -69,7 +69,7 @@ function textOnFrame(textFill: string, frameFill: string, fontSize = 14, fontWei
   const doc = createEmptyCanvasDocument('test');
   const label: PenText = {
     id: 't1', type: 'text', x: 8, y: 8, width: 120, height: 20,
-    content: 'Read me', fill: textFill, fontSize, fontWeight,
+    content: 'Read me', fill: textFill, fontSize, fontWeight: String(fontWeight),
   } as PenText;
   const frame: PenFrame = {
     id: 'f1', type: 'frame', x: 0, y: 0, width: 200, height: 100,
@@ -125,7 +125,7 @@ describe('contrast_failure lint', () => {
     } as PenChild;
     const label: PenText = {
       id: 'btn-label', type: 'text', x: 12, y: 12, width: 120, height: 16,
-      content: 'Get Started', fill: '#ffffff', fontSize: 14, fontWeight: 600,
+      content: 'Get Started', fill: '#ffffff', fontSize: 14, fontWeight: '600',
     } as PenText;
     const { warnings } = resolvePenTreeDetailed({ ...doc, children: [btn, label] });
     expect(warnings.find((x) => x.kind === 'contrast_failure' && x.nodeId === 'btn-label')).toBeUndefined();
@@ -141,11 +141,14 @@ describe('contrast_failure lint', () => {
       id: 'hero-title', type: 'text', x: 8, y: 8, width: 200, height: 40,
       content: 'Hero', fill: '#ffffff', fontSize: 32,
     } as PenText;
-    const hero: PenFrame = {
+    // PenFrame's public type routes gradients through the fill union — the
+    // resolver also tolerates a legacy top-level `gradient` key (skip path),
+    // so cast through unknown instead of annotating the literal.
+    const hero = {
       id: 'hero', type: 'frame', x: 0, y: 0, width: 300, height: 120,
-      gradient: { type: 'linear', angle: 135, stops: [{ offset: 0, color: '#0ea5e9' }, { offset: 1, color: '#6366f1' }] } as never,
+      gradient: { type: 'linear', angle: 135, stops: [{ offset: 0, color: '#0ea5e9' }, { offset: 1, color: '#6366f1' }] },
       children: [label],
-    };
+    } as unknown as PenFrame;
     const { warnings } = resolvePenTreeDetailed({ ...doc, children: [hero] });
     expect(warnings.find((x) => x.kind === 'contrast_failure')).toBeUndefined();
   });
@@ -157,7 +160,7 @@ describe('contrast_failure lint', () => {
     const doc1 = textOnFrame('#475569', '#ffffff');
     expect(resolvePenTreeDetailed(doc1).warnings.find((x) => x.kind === 'contrast_failure')).toBeUndefined();
     const frame2 = { ...(doc1.children[0] as PenFrame), fill: '#f8fafc' } as PenFrame; // bg closer to text
-    const label2 = { ...((doc1.children[0] as PenFrame).children[0] as PenText), fill: '#94a3b8' } as PenText;
+    const label2 = { ...((doc1.children[0] as PenFrame).children![0] as PenText), fill: '#94a3b8' } as PenText;
     frame2.children = [label2];
     const { warnings } = resolvePenTreeDetailed({ ...doc1, children: [frame2] });
     expect(warnings.find((x) => x.kind === 'contrast_failure')).toBeDefined();

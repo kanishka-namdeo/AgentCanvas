@@ -22,7 +22,8 @@
 // Run: bun run scripts/video-demos/record-core-videos.ts
 
 import { chromium, type Browser, type Page } from 'playwright-core';
-import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
+import { spawn, type ChildProcessByStdio } from 'child_process';
+import type { Writable } from 'node:stream';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -68,7 +69,7 @@ async function canvasCenter(page: Page) {
   return { x: VIEWPORT.width / 2, y: VIEWPORT.height / 2 };
 }
 
-function startCaptureFfmpeg(outPath: string): ChildProcessWithoutNullStreams {
+function startCaptureFfmpeg(outPath: string): ChildProcessByStdio<Writable, null, null> {
   const args = [
     '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg',
     '-r', String(CAPTURE_FPS), '-i', 'pipe:0', '-an',

@@ -1,6 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# ---- Dependencies ----
 node_modules
 /.pnp
 .pnp.*
@@ -10,91 +10,80 @@ node_modules
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# ---- Testing ----
 /coverage
+/playwright-report/
+/test-results/
+/test-results-*.json
+/TEST_RESULTS_WORKLOG.md
 
-# next.js
+# ---- Next.js / builds ----
 /.next/
 /out/
-
-# production
 /build
+/.turbo/
+*.tsbuildinfo
+next-env.d.ts
 
-# misc
+# ---- Environment (can opt-in for committing if needed) ----
+.env*
+
+# ---- OS / editor ----
 .DS_Store
+Thumbs.db
 *.pem
+.claude
 
-# debug
+# ---- Logs (global) ----
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+dev.out
 
-# env files (can opt-in for committing if needed)
-.env*
+# ---- Process IDs (dev server, watchdog, mini-services) ----
+*.pid
 
-# vercel
-.vercel
-
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# ---- Sandbox / local runtime ----
 local-*
-.claude
 .z-ai-config
-*.log
 dev.log
-dev.out.log
-test
-prompt
-
 server.log
-# Skills directory
 /skills/
+/upload/
+/tool-results/
+/agent-ctx/
 
-# Database (binary, sandbox-specific)
+# ---- Database (binary, sandbox-specific) ----
 db/
 *.db
 *.db-journal
 
-# Sandbox runtime files
-.zscripts/dev.pid
+# ---- pi runtime state (skills are tracked; session/tmp state is not) ----
+.pi/tmp/
+
+# ---- Sandbox-only scripts' runtime artifacts ----
 .zscripts/mini-service-*.log
 
-# Cloned reference repo (nested git) — do not commit
+# ---- Design-pattern memory (user-specific RAG store) ----
+data/
+
+# ---- Cloned reference repo (nested git) — do not commit ----
 download/AgentCanvas/
 
-# Worklog (session-specific)
+# ---- Worklog (session-specific) ----
 worklog.md
-# Dev server artifacts (P0 menu implementation)
-.dev.pid
-.dev-watchdog.pid
-dev.out
-dev.log
-server.log
-# Design-pattern memory (user-specific RAG store)
-data/
-dev.pid
-dev.log
 
-# Sandbox-only directories
-/upload/
-/tool-results/
-/test-results-*.json
-server.log
-
-# Playwright + bench artifacts (Phase 4 — scripts/dom-renderer-bench/run.ts)
+# ---- Bench artifacts (Phase 4 — scripts/dom-renderer-bench/run.ts) ----
 /scripts/dom-renderer-bench/results.json
-/playwright-report/
-/test-results/
 
-# Session artifacts (transient)
-/TEST_RESULTS_WORKLOG.md
-
-# Third-party research clones (agent-durability research 2026-08-28)
+# ---- Third-party research clones (agent-durability research 2026-08-28) ----
 /research-scan/
 
-# Prompt-tuning artifacts (task 2026-08-31): keep eval logs, drop editor .bak files
+# ---- Prompt-tuning artifacts (task 2026-08-31): keep eval logs, drop editor .bak files ----
 !download/prompt-tuning/eval-*.log
 download/prompt-tuning/*.bak
+
+# ---- Vercel ----
+.vercel

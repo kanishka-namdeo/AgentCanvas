@@ -32,7 +32,8 @@ const CAPTURE_FPS = 25;
 const APP_URL = 'http://127.0.0.1:81/';
 const SCENE_BUDGET_MS = 80_000; // dashboard generation takes ~30-40s (brief + LLM + 128 shapes)
 
-import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
+import { spawn, type ChildProcessByStdio } from 'child_process';
+import type { Writable } from 'node:stream';
 import type { Browser, Page } from 'playwright-core';
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
@@ -50,7 +51,7 @@ async function waitReady(page: Page) {
   await sleep(2500);
 }
 
-function startCaptureFfmpeg(outPath: string): ChildProcessWithoutNullStreams {
+function startCaptureFfmpeg(outPath: string): ChildProcessByStdio<Writable, null, null> {
   const args = [
     '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg',
     '-r', String(CAPTURE_FPS), '-i', 'pipe:0', '-an',
