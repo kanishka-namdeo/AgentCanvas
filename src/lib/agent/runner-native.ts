@@ -126,6 +126,44 @@ import { submitPlanTool, SUBMIT_PLAN_TOOL_NAME } from './plan-tools';
 import { consumeApprovedPlan, hasApprovedPlanSince } from './plan-gate';
 import { hydrateSubtreeChildren, type RawSubtreeNode } from './tools';
 
+// ---- SDK auto-compaction settings (native sessions) -------------------------
+//
+// 2026-09-05 flip: the native path previously ran `compaction: { enabled:
+// false }` on the (stale) assumption that our context-manager.ts handled
+// truncation — but compactToolResults() is only wired into runner-legacy
+// (the test-only path), so production sessions grew unbounded. The SDK's
+// compaction (findCutPoint → turn-aligned cuts, LLM summary with iterative
+// previousSummary merge, retry-wrapped summarization) replaces it here.
+// The translator already renders compaction_start/end as
+// agent:context_update + a "[Context compacted: ~N tokens saved]" notice.
+//
+// Tuned ABOVE the SDK defaults (16K reserve / 20K keep-recent) because our
+// design turns are tool-heavy: a full turn (88 tool schemas + brief +
+// subtree patches + critique loop) commonly spans 15-30K tokens.
+//   reserveTokens 32768 → fires at ~98K of the 128K window (33K headroom
+//     so the post-compaction turn + its tool schemas always fit)
+//   keepRecentTokens 40000 → the active design turn + its critique fixes
+//     survive every compaction intact (never cut mid-fix)
+// Credentials for the summarization call resolve through the SAME
+// ModelRuntime.getAuth() path as the main loop — keyless sandbox
+// credentials work unchanged.
+// Ops override: AGENT_COMPACTION_RESERVE_TOKENS / AGENT_COMPACTION_KEEP_RECENT_TOKENS
+// tune the thresholds without a code change (and let verification runs lower
+// the trigger to force a compaction on a normal-size turn). Invalid values
+// fall back to the defaults.
+export function parseEnvTokens(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 1000 ? Math.floor(n) : fallback;
+}
+
+export const NATIVE_COMPACTION_SETTINGS = {
+  enabled: true,
+  reserveTokens: parseEnvTokens('AGENT_COMPACTION_RESERVE_TOKENS', 32_768),
+  keepRecentTokens: parseEnvTokens('AGENT_COMPACTION_KEEP_RECENT_TOKENS', 40_000),
+};
+
 // ---- Cross-turn conversation history (audit 1 P3) ---------------------------
 //
 // Replay the last few journaled user/assistant text pairs into the first user
@@ -1482,10 +1520,9 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     //              are visible to the LLM (mirrors the legacy runner's filterToolSpecs).
     //     - sessionManager: in-memory (we don't want file-based session journaling;
     //                       AgentCanvas has its own Zustand+localStorage session store).
-    //     - settingsManager: in-memory with auto-compaction disabled (we have
-    //                       our own context-manager; we don't want the SDK
-    //                       compacting mid-turn without our translator knowing).
-    //                       Re-enable later if we want native auto-compaction.
+    //     - settingsManager: in-memory with SDK auto-compaction ENABLED
+    //                       (NATIVE_COMPACTION_SETTINGS — see the constant's
+    //                       doc block above for the tuning rationale).
     //
     //     Task 7-e Fix 3: `session` is declared in the OUTER scope (before
     //     the attempt loop) so the critique loop can REUSE it for the
@@ -1526,12 +1563,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         resourceLoader,
         sessionManager: SessionManager.inMemory(process.cwd()),
         settingsManager: SettingsManager.inMemory({
-          // Disable auto-compaction for now — our context-manager.ts already
-          // handles truncation, and enabling SDK compaction would emit
-          // compaction_start/end events that the UI doesn't yet render
-          // meaningfully. Re-enable when we're ready to surface "Compacting…"
-          // as a proper UI state.
-          compaction: { enabled: false },
+          // SDK auto-compaction (2026-09-05 flip): turn-aligned cuts + LLM
+          // summary + iterative merge. The translator renders the events
+          // (agent:context_update + "[Context compacted…]") — see
+          // NATIVE_COMPACTION_SETTINGS for thresholds.
+          compaction: NATIVE_COMPACTION_SETTINGS,
           retry: { enabled: true, maxRetries: 2 },
         } as any),
       });
@@ -2119,7 +2155,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         resourceLoader,
         sessionManager: SessionManager.inMemory(process.cwd()),
         settingsManager: SettingsManager.inMemory({
-          compaction: { enabled: false },
+          compaction: NATIVE_COMPACTION_SETTINGS,
           retry: { enabled: true, maxRetries: 2 },
         } as any),
       });

@@ -377,10 +377,20 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
 
     // ---- Compaction ----
     case 'compaction_start': {
-      // We don't have a "compaction_start" SyncEvent; we'll emit a
-      // context_update event after compaction_end (below) when we know
-      // the new token count. Could emit a `agent:message_delta` notice
-      // here, but that would pollute the chat — keep it silent.
+      // The summarization call runs 10-30s with zero wire activity — the
+      // same "frozen app" dead-air class as auto-retry. Surface it through
+      // the agent:status_note mechanism (BusyRow shows it while nothing
+      // else is happening; any later event clears it). Not a chat
+      // message_delta — compaction is runtime telemetry, not design
+      // content (the journal-replay marker stripper would have to know
+      // about it otherwise).
+      out.push({
+        kind: 'agent_event',
+        event: {
+          type: 'agent:status_note',
+          text: 'Compacting context — summarizing earlier turns…',
+        },
+      });
       break;
     }
 
@@ -389,6 +399,9 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
       const result = e.result;
       const tokensBefore: number = result?.tokensBefore ?? 0;
       const tokensAfter: number = result?.estimatedTokensAfter ?? 0;
+      // Clear the "Compacting context…" status note from compaction_start —
+      // deterministic (don't rely on the next tool call / delta arriving).
+      out.push({ kind: 'agent_event', event: { type: 'agent:status_note', text: '' } });
       out.push({
         kind: 'agent_event',
         event: {

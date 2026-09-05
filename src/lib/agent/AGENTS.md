@@ -56,7 +56,7 @@ User prompt
 - `runner-types.ts` — shared `AgentStreamEvent` / `LLMClient` / `AgentRunOptions` types, extracted to break the runner↔translator circular import.
 - `classifier.ts` — intent classifier (keyword pass + LLM fallback at confidence < 0.7). Routes prompts to skill categories.
 - `planner.ts` — plan module. Generates step lists for multi-step tasks (LLM-based; keyword fallback when no client).
-- `context-manager.ts` — token estimation + lightweight in-place compaction of old tool results (on top of pi SDK `estimateTokens`/`shouldCompact`).
+- `context-manager.ts` — token estimation + lightweight in-place compaction of old tool results. LEGACY-path only (runner-legacy.ts); the native production path uses the pi SDK's auto-compaction (`NATIVE_COMPACTION_SETTINGS` in runner-native.ts — turn-aligned cuts, LLM summary, iterative merge).
 - `pattern-memory.ts` — filesystem JSONL RAG store (`data/design-patterns.jsonl`) behind the pen_* design-pattern tools.
 - `llm-retry.ts` — shared LLM call helper with exponential backoff (5s→40s, 5 attempts) on 429/transient errors.
 - `agent-session-translator.ts` — translates SDK `AgentSessionEvent`s into `AgentStreamEvent`s; extracts patches from tool-result `details`. Carries a `TranslatorState` per prompt cycle that suppresses duplicate closing events (`message_end` fires only when a message is open; `turn_end` fires exactly once even when the SDK re-fires `agent_end` or runs retry loops).
@@ -224,7 +224,7 @@ Extended SyncEvent types (in `src/lib/canvas/types.ts`):
 - `agent:critique_skipped` — adaptive critique gate declined the critic pass (with reason + saved-LLM-calls estimate)
 - `agent:subagent_dispatch` / `agent:subagent_result` — sub-agent lifecycle
 - `agent:thinking_delta` — model thinking tokens
-- `agent:context_update` — context compaction happened
+- `agent:context_update` — context compaction happened (SDK auto-compaction; `compaction_start` also raises an `agent:status_note` "Compacting context…" so the 10-30s summarization call isn't dead air)
 - `agent:ask_user_question` / `agent:ask_user_answered` — blocking question flow (resolved via `/api/agent/answers`)
 - `agent:todo_update` — plugin todo list changed
 - `agent:background_task_started` / `agent:background_task_complete` — background tasks
