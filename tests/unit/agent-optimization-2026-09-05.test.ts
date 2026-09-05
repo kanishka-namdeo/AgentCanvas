@@ -326,7 +326,10 @@ describe('2026-09-05: system prompt optimization', () => {
 
   it('PROMPT_VERSION is stamped for this pass', async () => {
     const { PROMPT_VERSION } = await import('@/lib/agent/runner-legacy');
-    expect(PROMPT_VERSION).toBe('2026-09-05.3');
+    // Depth-research 3-a/3-b pass (2026-09-05.4): auto-layout sizing matrix,
+    // WCAG contrast floor + palette defaults, delta-anatomy edit contract,
+    // contrast_failure/hug_fill_conflict/fill_without_parent warnings.
+    expect(PROMPT_VERSION).toBe('2026-09-05.4');
   });
 
   it('one canonical construction hierarchy exists (subtree canonical, insert_html demoted)', () => {

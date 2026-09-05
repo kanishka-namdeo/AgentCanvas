@@ -6716,7 +6716,7 @@ function buildWireframe(template: string, oxIn: number, oyIn: number): Wireframe
   const PRIMARY = '#0ea5e9';     // $color.primary — CTAs, active states
   const ACCENT = '#6366f1';      // $color.accent — secondary accent
   const TEXT_MUTED = '#475569';  // $color.text-muted
-  const TEXT_SUBTLE = '#94a3b8'; // $color.text-subtle
+  const TEXT_SUBTLE = '#64748b'; // $color.text-subtle (slate-500 — the WCAG 4.5:1 floor on white; 94a3b8 is borders-only)
   const SUCCESS = '#10b981';     // $color.success
   const DANGER = '#ef4444';      // $color.danger
   const add = (s: Partial<Shape> & { id: string }) => shapes.push(s);

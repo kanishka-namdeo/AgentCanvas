@@ -20,8 +20,8 @@ import type { PenChild, PenFrame, PenComponent, PenRef, PenText } from '@/lib/pe
 
 function nestedDoc(): CanvasDocument {
   const doc = createEmptyCanvasDocument('test');
-  const label: PenText = { id: 'label-1', type: 'text', x: 0, y: 0, width: 80, height: 20, content: 'Card title' };
-  const badge: PenText = { id: 'badge-1', type: 'text', x: 0, y: 0, width: 40, height: 16, content: 'NEW' };
+  const label: PenText = { id: 'label-1', type: 'text', x: 0, y: 0, width: 80, height: 20, content: 'Card title', fill: '#0f172a' };
+  const badge: PenText = { id: 'badge-1', type: 'text', x: 0, y: 0, width: 40, height: 16, content: 'NEW', fill: '#334155' };
   const inner: PenFrame = {
     id: 'inner-frame',
     type: 'frame',

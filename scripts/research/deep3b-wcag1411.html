@@ -1,0 +1,1817 @@
+<!DOCTYPE html><html lang="en"><head>
+		<meta charset="UTF-8">
+		<title>Understanding Success Criterion 1.4.11: Non-text Contrast | WAI | W3C</title>
+	
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://w3.org/WAI/assets/css/style.css">
+
+  <link rel="stylesheet" href="base.css">
+
+
+
+</head>
+	<body dir="ltr">
+
+<a href="#main" class="button button--skip-link">Skip to content</a>
+<div class="minimal-header-container default-grid">
+  <header id="site-header" class="minimal-header">
+    <div class="minimal-header-info">
+      <div class="minimal-header-title">
+        <a href="https://www.w3.org/WAI/WCAG21/Understanding/">WCAG 2.1 Understanding Docs</a>
+      </div>
+      
+      <p class="minimal-header-subtitle">Informative explanations, not required to meet WCAG</p>
+      
+      <div class="minimal-header-link">
+        <a href="https://www.w3.org/WAI/WCAG21/Understanding/about">About WCAG Understanding Docs</a>
+      </div>
+    </div>
+    <div class="minimal-header-logo">
+      <div class="logos">
+        <a lang="en" class="home w3c" href="https://www.w3.org/">
+          <svg role="img" width="46" height="46" version="1.1" viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" aria-labelledby="w3c-homepage-title"><title id="w3c-homepage-title">W3C homepage</title><g><path d="M306.80028,149.60422c-6.57831-5.22164-16.18258-4.11126-21.40437,2.46705-6.46763,8.15442-12.34209,13.06271-19.03895,15.91953-12.3507,5.25562-22.8198,3.03441-32.94112-6.99345-9.91806-9.82474-19.58153-20.53078-28.95701-30.90671-4.58604-5.07758-9.18023-10.16361-13.83407-15.19045-7.95131-8.58691-15.94475-17.14014-23.93018-25.70183l-.70385-.7546c-17.36893-18.58955-35.32287-37.81514-52.64105-57.12546-13.73244-15.31775-34.95002-22.90466-55.36241-19.83598-20.86179,3.11957-37.73072,16.47071-47.50442,37.58651-9.41762,20.33598-6.23039,43.44391,8.30724,60.30423,25.57483,29.66072,47.14864,54.18407,72.41783,77.24986,10.33349,9.42608,22.83701,14.44431,36.15387,14.51211,8.6381.04258,21.65838-.93219,34.94171-9.87548,5.81526-3.91601,11.23186-7.94285,13.6139-14.08852,2.42447-6.28959.16098-13.52028-5.51838-17.59771-5.51007-3.9672-12.74075-3.68767-17.99637.67804-.66142.55074-1.38204,1.18679-2.17002,1.87358-8.2565,7.23069-18.53079,16.23288-39.47715,1.1948-19.19132-13.78333-34.05106-31.84751-51.26776-52.7682-5.6117-6.8157-11.41836-13.86835-17.62338-21.07381-6.62906-7.68825-8.06169-18.26729-3.73841-27.61741,3.77239-8.13766,11.05382-18.25913,24.37958-20.25096,10.09566-1.51765,21.41238,2.5172,28.16859,10.04507,17.4624,19.47975,35.55195,38.85772,53.04802,57.58302,8.1973,8.77371,16.39415,17.55557,24.54902,26.36326,4.56927,4.93366,9.0789,9.92608,13.65633,14.99535,9.61287,10.63868,19.54755,21.63315,30.04203,32.0343,18.94578,18.7759,42.49435,23.53152,66.33996,13.38482,11.45233-4.89123,21.29399-12.83408,30.95745-25.01519,5.21304-6.56941,4.11126-16.16552-2.46661-21.39577Z" id="path1"></path><path d="M330.6361,64.98331c9.85011-4.6709,17.59815-13.46152,18.33554-24.12543,1.87344-18.51314-13.36805-36.22984-35.78948-38.96811-13.76627-1.74599-26.541,2.33145-35.59408,9.83349-4.84019,4.02639-6.14582,11.4777-1.94984,16.73332,4.58589,5.46749,9.87548,6.42505,18.53064,1.67002,3.10236-1.7632,7.76481-3.22981,12.89328-2.87403,9.67207.67003,12.44387,9.38409,12.17266,13.34268-.04258.58501.01706,14.07992-13.60529,13.13912l-5.13707-.35579c-5.72179-.39021-11.44387,4.95888-11.86746,11.07889-.45801,6.51066,4.30622,12.19832,10.23127,12.6139l6.31526.43219c17.37798,1.20385,15.56374,15.95335,15.19935,18.31017-.33902,6.78143-11.22355,18.28435-30.6355,5.20443-6.58662-4.43322-53.56538-63.44072-53.56538-63.44072-22.26001-28.77883-60.0839-33.84809-89.93097-12.0455-3.2804,2.3988-5.44226,5.93366-6.06941,9.9605-.61884,4.01779.35593,8.04448,2.75503,11.32488,2.3988,3.2804,5.93381,5.44226,9.95189,6.06941,4.04316.62745,8.05279-.35593,11.33349-2.75503,20.36135-14.87665,38.51024-6.01022,47.84315,6.06111,0,0,50.43765,64.87335,63.4241,71.74796,8.42608,4.45903,17.22516,7.03588,26.168,7.65487,27.44827,1.89866,44.16438-13.22414,48.67445-33.94142,2.958-13.57992-5.82387-30.55048-19.68361-36.67093Z" id="path2"></path></g><g><path d="M7.65638,245.62164h18.68735c1.9807,0,3.61006.4556,4.88419,1.35908s2.13515,2.09267,2.59075,3.56759l16.64873,65.1509c.96139,3.3977,1.86874,7.33594,2.71816,11.80701.45174-2.20851.90348-4.31662,1.35908-6.33208.45174-2.00773.98842-3.86102,1.61391-5.55987l19.70666-65.06596c.45174-1.30503,1.32819-2.44789,2.63322-3.44403,1.30116-.98842,2.85716-1.48263,4.67184-1.48263h6.54057c1.9807,0,3.57917.44016,4.79925,1.31275,1.21622.88031,2.08109,2.08495,2.59075,3.61392l19.70666,65.1509c.56371,1.6448,1.08881,3.43631,1.57144,5.39771.47877,1.94596.94595,4.00002,1.40155,6.15447.39382-2.15445.80695-4.19307,1.23167-6.11586s.86101-3.70658,1.31661-5.35138l16.64873-65.23585c.39382-1.30503,1.25869-2.44789,2.59075-3.44403,1.32819-.98842,2.89963-1.48263,4.71431-1.48263h17.49816l-33.46735,112.80365h-20.21632l-22.33988-75.00423c-.33977-.96526-.66796-2.03862-.97684-3.22782-.31274-1.1892-.61004-2.43244-.8919-3.73747-.28572,1.30503-.5946,2.54828-.93437,3.73747s-.65251,2.26256-.93437,3.22782l-22.76459,75.00423h-20.13137L7.65638,245.62164Z" id="path3"></path><path d="M212.19794,244.34751c5.20852,0,9.8958.76448,14.05798,2.29345,4.16218,1.52897,7.6873,3.61392,10.57534,6.23941,2.88805,2.64094,5.10813,5.72204,6.66799,9.26646,1.55599,3.5367,2.33592,7.31278,2.33592,11.33596,0,3.56759-.38224,6.71046-1.14672,9.42862s-1.88418,5.09655-3.35523,7.13517c-1.47491,2.03862-3.28573,3.76836-5.43632,5.18149-2.15445,1.41313-4.5869,2.57916-7.30506,3.48264,12.85335,4.36296,19.28195,13.05026,19.28195,26.07735,0,5.72204-1.03475,10.74909-3.1004,15.07343-2.06951,4.33979-4.84172,7.97687-8.32437,10.91897s-7.53286,5.1506-12.14678,6.62552c-4.61778,1.47491-9.47109,2.20851-14.56764,2.20851-5.38227,0-10.1236-.62549-14.22787-1.86874-4.10813-1.24325-7.70274-3.12743-10.7877-5.65254-3.08882-2.51739-5.74906-5.64482-7.9846-9.38229-2.23939-3.73747-4.1506-8.06954-5.73362-12.9962l9.00391-3.82241c2.37839-.96526,4.59848-1.20464,6.66799-.71815,2.06565.47877,3.52511,1.59846,4.37454,3.35137,1.01931,1.92279,2.09267,3.72203,3.22782,5.38999,1.13128,1.67568,2.42086,3.15059,3.86488,4.41701,1.44402,1.28186,3.1004,2.28573,4.96914,3.01932s4.01932,1.10425,6.45563,1.10425c3.00001,0,5.61779-.49421,7.85718-1.48263,2.23553-.99614,4.08882-2.30117,5.56373-3.90736,1.47105-1.62163,2.5753-3.44403,3.31276-5.48265.73359-2.03862,1.10425-4.07724,1.10425-6.11586,0-2.60233-.24324-4.98072-.72201-7.13517-.48263-2.15445-1.55985-3.9923-3.22782-5.52126-1.67182-1.52897-4.11971-2.71816-7.34753-3.56759s-7.6178-1.27414-13.16609-1.27414v-14.52517c4.64095-.05405,8.45178-.47877,11.42477-1.27414s5.30891-1.91507,7.00776-3.35137c1.69885-1.45174,2.85716-3.15832,3.48264-5.14288.62162-1.98457.93437-4.19307.93437-6.62552,0-5.1506-1.28958-9.03479-3.86488-11.63712-2.57916-2.60233-6.18922-3.90736-10.83017-3.90736-4.13516,0-7.59077,1.15831-10.36299,3.48264-2.77608,2.32434-4.70273,5.18149-5.77609,8.57919-.90734,2.60233-2.11198,4.30118-3.61006,5.09655-1.50194.79537-3.64094.96526-6.41316.50966l-10.7877-1.86874c.79151-5.49037,2.29345-10.29349,4.50195-14.40162,2.20851-4.10041,4.98072-7.52899,8.32437-10.27032,3.33978-2.74905,7.14675-4.81856,11.42477-6.20853,4.27415-1.38225,8.87649-2.07723,13.80316-2.07723Z" id="path4"></path><path d="M335.38002,331.07381c1.1892,0,2.20851.4556,3.05793,1.35908l8.91896,9.5985c-4.07724,5.72204-9.18923,10.07727-15.33212,13.08115-6.14675,3.00388-13.43636,4.50195-21.8727,4.50195-7.64483,0-14.52517-1.42858-20.64103-4.29346-6.11586-2.85716-11.3128-6.84945-15.58695-11.96917-4.27801-5.12744-7.55988-11.21241-9.85333-18.27036-2.29345-7.04251-3.44017-14.76455-3.44017-23.14297,0-8.4402,1.23167-16.17769,3.695-23.23564,2.46333-7.04251,5.93053-13.11976,10.40546-18.21631,4.47106-5.09655,9.82244-9.05796,16.05413-11.89195,6.22783-2.83399,13.08115-4.24713,20.55609-4.24713,7.58691,0,14.29737,1.34364,20.13137,4.03863,5.83014,2.68727,10.70276,6.23941,14.61011,10.65642l-7.47494,10.44793c-.50966.62549-1.09267,1.1892-1.74132,1.69885-.65251.50966-1.57144.76448-2.76063.76448s-2.33592-.4556-3.44017-1.35908-2.46333-1.89962-4.07724-2.97299-3.64094-2.06951-6.07339-2.97299c-2.43631-.90348-5.55215-1.35908-9.34368-1.35908-4.13516,0-7.89965.86487-11.29735,2.59461-3.3977,1.72202-6.31663,4.24713-8.74908,7.55216-2.43631,3.32048-4.32048,7.36683-5.64868,12.1545-1.33205,4.77995-1.99615,10.23171-1.99615,16.34757,0,6.16991.73359,11.66801,2.20851,16.47885,1.47105,4.81083,3.4672,8.87263,5.98845,12.19311,2.51739,3.30504,5.47879,5.83014,8.87649,7.55216,3.3977,1.72974,7.05023,2.59461,10.95758,2.59461,2.32047,0,4.41701-.12355,6.28575-.3861,1.86874-.24711,3.61006-.70271,5.22396-1.35908,1.61391-.64865,3.12743-1.48263,4.54442-2.50194,1.41313-1.01931,2.83013-2.29345,4.24713-3.82241.56371-.4556,1.14672-.83398,1.74132-1.15058.5946-.30888,1.20078-.46332,1.82626-.46332Z" id="path5"></path></g></svg>
+        </a>
+        <a lang="en" class="home wai" href="https://www.w3.org/WAI/">
+          <svg role="img" width="162.5" height="45.9" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 162.5 45.9" aria-labelledby="wai-homepage-title"><title id="wai-homepage-title">Web Accessibility Initiative (WAI) homepage</title><g><path d="M1.2 24.5h160" stroke="#eed009" stroke-linecap="square" stroke-width="2"></path><g><path d="M15.741 15.5h-1.816L11.14 6.145c-.41-1.394-.65-2.334-.722-2.823-.104.749-.332 1.71-.684 2.881L7.04 15.5H5.223L1.444 1.223H3.32l2.217 8.72c.3 1.14.527 2.272.684 3.399.143-1.068.397-2.237.761-3.506l2.52-8.613h1.855l2.627 8.681c.339 1.127.6 2.272.781 3.438.105-.899.336-2.038.694-3.418l2.207-8.701h1.875zm10.127.195c-1.608 0-2.87-.486-3.784-1.46-.915-.973-1.372-2.312-1.372-4.018 0-1.719.426-3.088 1.279-4.107.853-1.019 2.005-1.528 3.457-1.528 1.348 0 2.422.435 3.223 1.304.8.869 1.2 2.046 1.2 3.53v1.064h-7.343c.033 1.218.342 2.142.928 2.774.586.631 1.416.947 2.49.947a8.46 8.46 0 001.631-.151c.514-.101 1.116-.298 1.807-.591v1.543a8.506 8.506 0 01-1.67.537c-.521.104-1.136.156-1.846.156zm-.44-9.677c-.84 0-1.503.27-1.992.81-.488.54-.778 1.292-.869 2.256h5.46c-.014-1.003-.245-1.764-.694-2.285-.45-.521-1.084-.781-1.904-.781zm12.237-1.416c1.413 0 2.503.486 3.271 1.46.769.973 1.153 2.332 1.153 4.077 0 1.77-.39 3.14-1.172 4.106-.781.967-1.865 1.45-3.252 1.45-.723 0-1.367-.13-1.934-.39a3.384 3.384 0 01-1.386-1.162h-.137a48.165 48.165 0 01-.362 1.357h-1.26V.305h1.759v3.691c0 .736-.033 1.471-.098 2.207h.098c.722-1.068 1.829-1.601 3.32-1.601zm-.293 1.455c-1.08 0-1.856.306-2.324.918-.47.612-.703 1.647-.703 3.105v.078c0 1.465.239 2.512.717 3.14.479.628 1.262.942 2.349.942.963 0 1.681-.353 2.153-1.06.472-.706.708-1.726.708-3.06 0-1.355-.237-2.37-.713-3.048-.475-.677-1.204-1.015-2.187-1.015zM59.286 15.5l-1.719-4.424h-5.664l-1.7 4.424h-1.816l5.577-14.336h1.62L61.152 15.5zM57.03 9.484L55.43 5.158l-.684-2.138c-.195.78-.4 1.494-.615 2.138l-1.621 4.326zm10.137 6.211c-1.543 0-2.744-.473-3.604-1.42-.86-.948-1.289-2.307-1.289-4.078 0-1.797.435-3.182 1.304-4.155.87-.973 2.108-1.46 3.716-1.46.52 0 1.037.054 1.548.161.51.108.932.246 1.264.415l-.537 1.465c-.905-.338-1.676-.508-2.314-.508-1.081 0-1.879.34-2.393 1.02-.514.681-.771 1.695-.771 3.043 0 1.295.257 2.287.771 2.973.514.687 1.276 1.03 2.285 1.03.944 0 1.872-.208 2.783-.624v1.562c-.742.384-1.663.576-2.763.576zm9.6 0c-1.544 0-2.745-.473-3.604-1.42-.86-.948-1.29-2.307-1.29-4.078 0-1.797.435-3.182 1.305-4.155.869-.973 2.107-1.46 3.715-1.46.521 0 1.037.054 1.548.161.511.108.933.246 1.265.415l-.537 1.465c-.905-.338-1.677-.508-2.315-.508-1.08 0-1.878.34-2.392 1.02-.515.681-.772 1.695-.772 3.043 0 1.295.257 2.287.772 2.973.514.687 1.276 1.03 2.285 1.03.944 0 1.872-.208 2.783-.624v1.562c-.742.384-1.663.576-2.764.576zm9.863 0c-1.608 0-2.87-.486-3.784-1.46-.915-.973-1.373-2.312-1.373-4.018 0-1.719.427-3.088 1.28-4.107.853-1.019 2.005-1.528 3.457-1.528 1.347 0 2.422.435 3.222 1.304.801.869 1.202 2.046 1.202 3.53v1.064H83.29c.032 1.218.342 2.142.928 2.774.586.631 1.416.947 2.49.947a8.46 8.46 0 001.63-.151c.515-.101 1.117-.298 1.807-.591v1.543a8.506 8.506 0 01-1.67.537c-.52.104-1.136.156-1.845.156zm-.44-9.677c-.84 0-1.504.27-1.992.81s-.778 1.292-.87 2.256h5.46c-.013-1.003-.244-1.764-.693-2.285-.45-.521-1.084-.781-1.905-.781zm14.14 6.523c0 1.003-.373 1.779-1.122 2.33-.749.55-1.8.824-3.154.824-1.413 0-2.536-.224-3.37-.674V13.42c1.179.573 2.315.86 3.409.86.885 0 1.53-.144 1.933-.43.404-.287.606-.671.606-1.153 0-.423-.194-.781-.581-1.074-.388-.293-1.076-.628-2.066-1.006-1.009-.39-1.719-.724-2.129-1-.41-.277-.711-.588-.903-.933-.192-.345-.288-.765-.288-1.26 0-.88.358-1.572 1.074-2.08.716-.508 1.7-.762 2.95-.762a8.17 8.17 0 013.417.723L99.511 6.7c-1.088-.456-2.068-.683-2.94-.683-.73 0-1.282.115-1.66.346-.378.231-.566.549-.566.952 0 .391.162.715.488.972.325.257 1.084.614 2.275 1.07.892.331 1.551.64 1.978.927.426.287.74.609.942.967.202.358.303.788.303 1.289zm9.58 0c0 1.003-.373 1.779-1.122 2.33-.749.55-1.8.824-3.154.824-1.413 0-2.536-.224-3.37-.674V13.42c1.179.573 2.315.86 3.409.86.885 0 1.53-.144 1.933-.43.404-.287.606-.671.606-1.153 0-.423-.194-.781-.581-1.074-.388-.293-1.076-.628-2.066-1.006-1.009-.39-1.719-.724-2.129-1-.41-.277-.71-.588-.903-.933-.192-.345-.288-.765-.288-1.26 0-.88.358-1.572 1.074-2.08.716-.508 1.7-.762 2.95-.762a8.17 8.17 0 013.417.723l-.595 1.396c-1.088-.456-2.067-.683-2.94-.683-.729 0-1.282.115-1.66.346-.378.231-.566.549-.566.952 0 .391.162.715.488.972.325.257 1.084.614 2.275 1.07.892.331 1.551.64 1.978.927.426.287.74.609.942.967.202.358.303.788.303 1.289zm4.356 2.959h-1.757V4.777h1.757zm-1.894-13.623c0-.39.1-.674.298-.85.198-.175.444-.263.737-.263.273 0 .513.088.718.263.205.176.307.46.307.85 0 .384-.102.667-.307.85a1.047 1.047 0 01-.718.273 1.05 1.05 0 01-.737-.273c-.199-.183-.298-.466-.298-.85zm10.371 2.725c1.413 0 2.503.486 3.271 1.46.769.973 1.153 2.332 1.153 4.077 0 1.77-.39 3.14-1.172 4.106-.781.967-1.865 1.45-3.252 1.45-.723 0-1.367-.13-1.934-.39a3.384 3.384 0 01-1.386-1.162h-.137a48.244 48.244 0 01-.361 1.357h-1.26V.305h1.758v3.691c0 .736-.033 1.471-.098 2.207h.098c.722-1.068 1.83-1.601 3.32-1.601zm-.293 1.455c-1.08 0-1.855.306-2.324.918-.469.612-.703 1.647-.703 3.105v.078c0 1.465.239 2.512.717 3.14.479.628 1.262.942 2.35.942.963 0 1.68-.353 2.152-1.06.472-.706.708-1.726.708-3.06 0-1.355-.237-2.37-.713-3.048-.475-.677-1.204-1.015-2.187-1.015zm9.277 9.443h-1.757V4.777h1.757zm-1.894-13.623c0-.39.1-.674.298-.85.198-.175.444-.263.737-.263.273 0 .513.088.718.263.205.176.307.46.307.85 0 .384-.102.667-.307.85a1.047 1.047 0 01-.718.273 1.05 1.05 0 01-.737-.273c-.199-.183-.298-.466-.298-.85zm7.05 13.623h-1.757V.305h1.758zm5.157 0h-1.758V4.777h1.758zm-1.895-13.623c0-.39.1-.674.298-.85.199-.175.444-.263.737-.263.274 0 .513.088.718.263.205.176.308.46.308.85 0 .384-.103.667-.308.85a1.047 1.047 0 01-.718.273 1.05 1.05 0 01-.737-.273c-.198-.183-.298-.466-.298-.85zm8.877 12.383c.228 0 .495-.023.801-.069.306-.045.537-.097.693-.156v1.348c-.162.071-.415.141-.756.21a5.29 5.29 0 01-1.04.102c-2.097 0-3.145-1.103-3.145-3.31v-6.24h-1.514v-.84l1.534-.703.703-2.286h1.045v2.461h3.095v1.368h-3.095v6.19c0 .62.148 1.095.444 1.427.296.332.708.498 1.235.498zm1.953-9.483h1.885l2.315 6.104c.488 1.328.787 2.301.898 2.92h.078c.059-.241.192-.692.4-1.353.209-.66.385-1.19.528-1.587l2.178-6.084h1.894l-4.619 12.207c-.45 1.185-.983 2.035-1.602 2.55-.618.514-1.383.77-2.294.77-.489 0-.974-.055-1.456-.165v-1.397c.326.078.717.117 1.172.117.56 0 1.035-.154 1.426-.463.39-.31.71-.787.957-1.431l.557-1.426zM7.157 45.5H2.001v-1.035l1.68-.381V32.658l-1.68-.4v-1.035h5.156v1.035l-1.68.4v11.426l1.68.38zm9.824 0v-6.855c0-.873-.193-1.522-.58-1.949-.388-.426-.995-.64-1.822-.64-1.1 0-1.9.305-2.398.914-.498.608-.747 1.6-.747 2.973V45.5H9.677V34.777h1.416l.263 1.465h.098a3.31 3.31 0 011.396-1.225 4.492 4.492 0 011.983-.435c1.315 0 2.292.319 2.93.957.638.638.957 1.63.957 2.979V45.5zm6.817 0H22.04V34.777h1.758zm-1.895-13.623c0-.39.1-.674.298-.85.199-.175.444-.263.737-.263.274 0 .513.088.718.263.205.176.308.46.308.85 0 .384-.103.667-.308.85a1.047 1.047 0 01-.718.273 1.05 1.05 0 01-.737-.273c-.199-.183-.298-.466-.298-.85zM30.78 44.26c.228 0 .495-.023.8-.069.307-.045.538-.097.694-.156v1.348c-.163.071-.415.141-.757.21a5.29 5.29 0 01-1.04.102c-2.096 0-3.144-1.103-3.144-3.31v-6.24h-1.514v-.84l1.533-.703.703-2.286H29.1v2.461h3.096v1.368H29.1v6.19c0 .62.149 1.095.445 1.427.296.332.708.498 1.235.498zm5.39 1.24h-1.757V34.777h1.758zm-1.894-13.623c0-.39.1-.674.298-.85.199-.175.444-.263.737-.263.274 0 .513.088.718.263.205.176.308.46.308.85 0 .384-.103.667-.308.85a1.047 1.047 0 01-.718.273 1.05 1.05 0 01-.737-.273c-.199-.183-.298-.466-.298-.85zM46.19 45.5l-.342-1.523h-.078c-.534.67-1.066 1.124-1.596 1.362-.53.237-1.2.356-2.007.356-1.055 0-1.882-.276-2.48-.83-.6-.553-.9-1.334-.9-2.344 0-2.174 1.716-3.313 5.147-3.417l1.817-.069V38.4c0-.813-.176-1.414-.528-1.801-.351-.388-.914-.581-1.689-.581-.566 0-1.102.084-1.606.253-.505.17-.979.359-1.421.567l-.537-1.318a7.958 7.958 0 011.767-.674 7.642 7.642 0 011.895-.244c1.295 0 2.259.286 2.89.859.632.573.948 1.484.948 2.734V45.5zm-3.623-1.22c.983 0 1.756-.266 2.32-.797.563-.53.844-1.284.844-2.26v-.967l-1.582.068c-1.23.046-2.127.241-2.69.586-.563.345-.845.889-.845 1.631 0 .56.171.99.513 1.29.342.299.822.448 1.44.448zm11.807-.02c.228 0 .495-.023.8-.069.307-.045.538-.097.694-.156v1.348c-.163.071-.415.141-.757.21a5.29 5.29 0 01-1.04.102c-2.096 0-3.144-1.103-3.144-3.31v-6.24h-1.514v-.84l1.533-.703.703-2.286h1.045v2.461h3.096v1.368h-3.096v6.19c0 .62.148 1.095.444 1.427.297.332.708.498 1.236.498zm5.39 1.24h-1.757V34.777h1.757zM57.87 31.877c0-.39.1-.674.298-.85.198-.175.444-.263.737-.263.274 0 .513.088.718.263.205.176.307.46.307.85 0 .384-.102.667-.307.85a1.047 1.047 0 01-.718.273 1.05 1.05 0 01-.737-.273c-.199-.183-.298-.466-.298-.85zM65.526 45.5l-4.062-10.723h1.884l2.276 6.319c.45 1.27.736 2.216.86 2.842h.077a11.495 11.495 0 01.176-.64c.04-.127.28-.861.723-2.202l2.285-6.319h1.875L67.548 45.5zm12.354.195c-1.608 0-2.87-.486-3.784-1.46-.915-.973-1.373-2.312-1.373-4.018 0-1.719.427-3.088 1.28-4.107.853-1.019 2.005-1.528 3.457-1.528 1.347 0 2.422.435 3.222 1.304.801.869 1.202 2.046 1.202 3.53v1.064H74.54c.032 1.218.342 2.142.928 2.774.586.631 1.416.947 2.49.947a8.46 8.46 0 001.63-.151c.515-.101 1.117-.298 1.807-.591v1.543a8.506 8.506 0 01-1.67.537c-.52.104-1.136.156-1.845.156zm-.44-9.677c-.84 0-1.504.27-1.992.81s-.778 1.292-.87 2.256h5.46c-.013-1.003-.244-1.764-.693-2.285-.45-.521-1.084-.781-1.905-.781zM137.741 45.5h-1.816l-2.784-9.355c-.41-1.394-.65-2.334-.722-2.823-.104.749-.332 1.71-.684 2.881L129.04 45.5h-1.817l-3.779-14.277h1.875l2.217 8.72c.3 1.14.527 2.272.684 3.399.143-1.068.397-2.237.761-3.506l2.52-8.613h1.855l2.627 8.681c.339 1.127.6 2.272.781 3.438.105-.899.336-2.038.694-3.418l2.207-8.701h1.875zm14.57 0l-1.718-4.424h-5.664l-1.7 4.424h-1.816l5.576-14.336h1.621l5.567 14.336zm-2.256-6.016l-1.601-4.326-.684-2.138c-.195.78-.4 1.494-.615 2.138l-1.621 4.326zm10.098 6.016h-5.156v-1.035l1.68-.381V32.658l-1.68-.4v-1.035h5.156v1.035l-1.68.4v11.426l1.68.38z"></path></g></g></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+</div>
+
+
+<div class="default-grid nav-container nav-page-specific">
+  <div class="nav">
+    <nav class="nav standalone-resource-pager" aria-label="Understanding Docs">
+      <ul>
+        <li class="nav__item">
+          
+          <a href=".">All Understanding Docs</a>
+          
+        </li>
+        
+        
+        <li class="nav__item">
+          <a href="distinguishable">
+            <svg alt="up" focusable="false" aria-hidden="true" class="icon-arrow-up-thin pager-icon" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M8 12a.5.5 0 0 0 .5-.5V5.707l2.146 2.147a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0l-3 3a.5.5 0 1 0 .708.708L7.5 5.707V11.5a.5.5 0 0 0 .5.5z"></path>
+            </svg>
+            Guideline: Distinguishable
+          </a>
+        </li>
+        
+        
+        <li class="nav__item">
+          <a href="reflow">
+            <svg focusable="false" aria-hidden="true" class="icon-arrow-left-thin pager-icon" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z"></path>
+            </svg>
+            Previous SC: Reflow
+          </a>
+        </li>
+        
+        
+        <li class="nav__item">
+          <a href="text-spacing">
+            Next SC: Text Spacing
+            <svg focusable="false" aria-hidden="true" class="icon-arrow-right-thin pager-icon" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"></path>
+            </svg>
+          </a>
+        </li>
+        
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<div class="default-grid with-gap leftcol">
+<aside class="box nav-hack sidebar standalone-resource__sidebar">
+    <header class="box-h">Page Contents</header>
+    <div class="box-i">
+      <nav aria-label="page contents" class="navtoc">
+        <ul><li><a href="#brief">In Brief</a></li>
+<li><a href="#success-criterion">Success Criterion</a></li>
+<li><a href="#intent">Intent</a></li>
+<li><a href="#benefits">Benefits</a></li>
+<li><a href="#examples">Examples</a></li>
+<li><a href="#resources">Related Resources</a></li>
+<li><a href="#techniques">Techniques</a></li>
+<li><a href="#key-terms">Key Terms</a></li>
+</ul>
+      </nav>
+    </div>
+</aside>
+
+<main id="main" class="standalone-resource__main">
+		
+<h1>
+  <span class="standalone-resource__type-of-guidance">
+    Understanding
+    <a href="https://w3.org/TR/WCAG21#non-text-contrast">SC 1.4.11</a>
+  </span>Non-text Contrast (Level AA)
+</h1>
+
+
+
+		<section id="brief">
+			<h2>In Brief</h2>
+			<dl>
+				<dt>Goal</dt><dd>Important visual information meets the same minimum contrast required for larger text.</dd>
+				<dt>What to do</dt><dd>Ensure meaningful visual cues achieve 3:1 against the background.</dd>
+				<dt>Why it's important</dt><dd>Some people cannot see elements with low contrast.</dd>
+			</dl>
+
+		</section>
+		
+
+<section id="success-criterion" class="box">
+	<h2 class="box-h box-h-icon">Success Criterion (SC)</h2>
+	<div class="box-i"><p>The visual <a href="#dfn-presentation">presentation</a> of the following have a <a href="#dfn-contrast-ratio">contrast ratio</a> of at least 3:1 against adjacent color(s):</p>
+   					
+   <dl>
+      						
+      <dt>User Interface Components</dt>
+      						
+     <dd>Visual information required to identify <a href="#dfn-user-interface-component">user interface components</a> and <a href="#dfn-state">states</a>, except for inactive components or where the appearance of the component is determined by the <a href="#dfn-user-agent">user agent</a> and not modified by the author;</dd>
+      						
+      <dt>Graphical Objects</dt>
+      						
+      <dd>Parts of graphics required to understand the content, except when a particular presentation of graphics is <a href="#dfn-essential">essential</a> to the information being conveyed.</dd>
+      						
+   </dl></div>
+</section>
+	
+
+<section id="intent">
+			<h2>Intent</h2>
+
+			<p>The intent of this success criterion is to ensure that user interface components (i.e., controls) and meaningful graphics are distinguishable by people with moderately low vision. The requirements and rationale are similar to those for large text in <a href="contrast-minimum">1.4.3 Contrast (Minimum)</a>. Note that this requirement does not apply to <em>inactive</em> user interface components.</p>
+
+			<p>Low contrast controls are more difficult to perceive, and may be completely missed by people with a visual impairment. Similarly, if a graphic is needed to understand the content or functionality of the web page then it should be perceivable by people with low vision or other impairments without the need for contrast-enhancing assistive technology.</p>
+
+			<div class="note">
+				<p class="note-title marker">Note</p>
+				<div>
+				<p>The 3:1 contrast ratios referenced in this success criterion is intended to be treated as threshold values. When comparing the computed contrast ratio to the success criterion ratio, the computed values should not be rounded (e.g. 2.999:1 would not meet the 3:1 threshold).</p>
+			</div>
+			</div>
+
+			<div class="note">
+				<p class="note-title marker">Note</p>
+				<div>
+				<p>Because authors do not have control over user settings for font smoothing and anti-aliasing, when evaluating this
+					Success Criterion, refer to the colors obtained from the user agent, or the underlying
+					markup and stylesheets, rather than the non-text elements as presented on screen.</p>
+				<p>Due to anti-aliasing, particularly thin lines and shapes of non-text elements may be rendered by user agents with
+					a much fainter color than the actual color defined in the underlying CSS. This can lead to situations where
+					non-text elements have a contrast ratio that nominally passes the Success Criterion, but have a much lower contrast
+					in practice. In these cases, best practice would be for authors to avoid particularly thin lines and shapes,
+					or to use a combination of colors that exceeds the normative requirements of this success criterion.
+				</p>
+			</div>
+			</div>
+
+			<section id="user-interface-components">
+				<h3>User Interface Components</h3>
+
+				<p>Unless the control is <em>inactive</em>, any visual information provided that is necessary for a user to identify that a control is present and how to operate it must have a minimum 3:1 contrast ratio with the adjacent colors. Also, any visual information necessary to indicate state, such as whether a component is selected or focused must also ensure that the information used to identify the control in that state has a minimum 3:1 contrast ratio.</p>
+
+				<p>This success criterion does not require that changes in color that differentiate between states of an individual component meet the 3:1 contrast ratio when they do not appear next to each other. For example, there is not a new requirement that visited links contrast with the default color, or that mouse hover indicators contrast with the default state. However, the component must not lose contrast with the adjacent colors, and non-text indicators such as the check in a checkbox, or an arrow graphic indicating a menu is selected or open must have sufficient contrast to the adjacent colors.</p>
+
+				<h4 id="boundaries">Boundaries</h4>
+
+				<p>This success criterion does not require that controls have a visual boundary indicating the hit area. If a control has visible content (such as text or a sufficiently contrasting icon), which helps users identify the presence of the control, then a border or other indication of the overall boundary of the hit area is not required, as is therefore not subject to non-text contrast requirements. Having a visual boundary indicating the hit area is only required when there is no other visual way to identify the presence of the control – and in those cases, the boundary must have sufficient non-text contrast in order to pass this success criterion.</p>
+				<div class="note">
+				<p class="note-title marker">Note</p>
+				<p>Even when a control does not need to have a visual boundary indicating its hit area, it will still need to have a sufficiently contrasting focus indication.</p>
+			</div>
+				<div class="note">
+				<p class="note-title marker">Note</p>
+				<p>For people with cognitive disabilities, it is a best practice to delineate the boundary of all controls, even those that have visible content, to aid in the recognition of controls and the completion of activities.</p>
+			</div>
+
+				<figure id="figure-buttons-no-visual-indicator">
+					<svg role="img" width="228" height="68" viewBox="0 0 228 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Two buttons, the first with no visual indicator except text saying ‘button’. The second is the same but with an added grey border.</title>
+  <rect width="228" height="68" fill="#fff"></rect>
+  <path d="M38.91 32.72q1.23 0 1.92-.34 1.07-.54 1.07-1.94t-1.14-1.9q-.64-.26-1.91-.26h-3.47v4.44zm.66 6.62q1.79 0 2.55-1.04.48-.65.48-1.58 0-1.56-1.4-2.13-.74-.3-1.96-.3h-3.86v5.05zm-6.1-12.69h6.17q2.52 0 3.58 1.5.63.9.63 2.06 0 1.36-.78 2.22-.4.46-1.15.84 1.1.42 1.65.95.97.94.97 2.59a4 4 0 0 1-.87 2.51Q42.37 41 39.54 41h-6.06zm14.92 3.9v6.93q0 .8.25 1.31.47.94 1.75.94 1.84 0 2.5-1.64.36-.88.36-2.41v-5.14h1.76V41h-1.66l.02-1.54a4 4 0 0 1-.85 1q-1 .82-2.44.82-2.24 0-3.05-1.5-.44-.8-.44-2.13v-7.1zm9.72-2.93h1.78v2.92h1.67v1.44H59.9v6.82q0 .55.37.74.2.1.69.1h.27q.15 0 .34-.03V41q-.3.09-.63.13t-.7.04q-1.24 0-1.68-.63t-.44-1.64v-6.92H56.7v-1.44h1.41zm5.57 0h1.78v2.92h1.67v1.44h-1.67v6.82q0 .55.37.74.2.1.68.1h.27q.15 0 .35-.03V41q-.3.09-.64.13-.32.04-.7.04-1.23 0-1.67-.63t-.44-1.64v-6.92h-1.42v-1.44h1.42zm9.37 12.25q1.74 0 2.39-1.32.65-1.33.65-2.95 0-1.47-.47-2.38-.74-1.45-2.56-1.45-1.6 0-2.34 1.23T70 35.97q0 1.67.73 2.78.73 1.12 2.33 1.12m.06-9.63q2.03 0 3.42 1.35 1.4 1.34 1.4 3.96 0 2.53-1.23 4.18t-3.82 1.65q-2.16 0-3.43-1.45-1.27-1.47-1.27-3.93 0-2.64 1.34-4.2t3.6-1.56m6.9.3h1.68v1.49q.74-.92 1.57-1.32a4 4 0 0 1 1.85-.4q2.22 0 3 1.55.43.85.43 2.43V41h-1.78v-6.6q0-.95-.29-1.53-.47-.98-1.7-.98-.62 0-1.02.13-.73.21-1.27.86-.44.51-.58 1.07-.12.55-.12 1.57V41h-1.76z" fill="#000"></path>
+  <rect x="119.5" y="13.5" width="95" height="41" rx="6.5" stroke="#949494" stroke-width="3"></rect>
+  <path d="M144.91 32.72q1.23 0 1.92-.34 1.07-.54 1.07-1.94t-1.14-1.9q-.64-.26-1.91-.26h-3.47v4.44zm.66 6.62q1.78 0 2.55-1.04.48-.65.48-1.58 0-1.56-1.4-2.13-.74-.3-1.96-.3h-3.86v5.05zm-6.1-12.69h6.17q2.52 0 3.58 1.5.63.9.63 2.06 0 1.36-.78 2.22-.4.46-1.15.84 1.1.42 1.65.95.97.94.97 2.59 0 1.39-.87 2.51-1.3 1.68-4.13 1.68h-6.06zm14.92 3.9v6.93q0 .8.25 1.31.47.94 1.75.94 1.83 0 2.5-1.64.36-.88.36-2.41v-5.14h1.76V41h-1.66l.02-1.54a4 4 0 0 1-.85 1q-1 .82-2.44.82-2.24 0-3.05-1.5-.44-.8-.44-2.13v-7.1zm9.72-2.93h1.78v2.92h1.67v1.44h-1.67v6.82q0 .55.37.74.2.1.69.1h.27q.14 0 .34-.03V41q-.3.09-.63.13a6 6 0 0 1-.7.04q-1.24 0-1.68-.63t-.44-1.64v-6.92h-1.41v-1.44h1.41zm5.57 0h1.78v2.92h1.67v1.44h-1.67v6.82q0 .55.37.74.2.1.68.1h.28q.14 0 .34-.03V41q-.3.09-.64.13a6 6 0 0 1-.7.04q-1.23 0-1.67-.63t-.44-1.64v-6.92h-1.42v-1.44h1.42zm9.37 12.25q1.74 0 2.39-1.32.65-1.33.65-2.95 0-1.47-.47-2.38-.74-1.45-2.56-1.45-1.6 0-2.34 1.23t-.73 2.97q0 1.67.73 2.78.73 1.12 2.33 1.12m.06-9.63q2.03 0 3.42 1.35 1.4 1.34 1.4 3.96 0 2.53-1.23 4.18t-3.82 1.65q-2.16 0-3.43-1.45-1.27-1.47-1.27-3.93 0-2.64 1.34-4.2t3.6-1.56m6.9.3h1.68v1.49q.74-.92 1.57-1.32a4 4 0 0 1 1.85-.4q2.22 0 3 1.55.43.85.43 2.43V41h-1.78v-6.6q0-.95-.29-1.53-.47-.98-1.7-.98-.62 0-1.02.13-.72.21-1.27.86-.44.51-.58 1.07-.12.55-.12 1.57V41h-1.76z" fill="#000"></path>
+</svg>
+
+					<figcaption><p><span>Figure 1.</span> 
+						<strong>Pass:</strong> A button without a visual boundary – the button's text is sufficient to indicate the presence of the control. The same button, when focused, still has a sufficiently contrasting focus indicator (grey <code>#949494</code> against white, with a contrast ratio of 3:1).</p></figcaption>
+				</figure>
+
+				<h4 id="adjacent-colors">Adjacent colors</h4>
+				<p>For user interface components 'adjacent colors' means the colors adjacent to the component. For example, if an input has a white internal background, dark border, and white external background the 'adjacent color' to the component would be the white external background.</p>
+				<figure id="figure-standard-text-adjacent-white">
+					<svg role="img" width="296" height="96" viewBox="0 0 296 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Standard text input with a label, white internal and external background with a dark border.</title>
+  <rect width="296" height="96" fill="#fff"></rect>
+  <path d="M13.52 16.65h2.3l7.24 11.63V16.64h1.85V31h-2.18l-7.35-11.61V31h-1.86zM29.1 28.22q0 .76.56 1.2.55.44 1.32.44.92 0 1.8-.43 1.46-.72 1.46-2.34v-1.41q-.33.2-.83.34-.51.14-1 .2l-1.06.13q-.96.13-1.44.4-.81.46-.81 1.47m4.26-3.56q.6-.08.8-.5.13-.24.13-.68 0-.9-.65-1.3-.63-.4-1.82-.4-1.38 0-1.96.73-.32.41-.42 1.22H27.8q.05-1.93 1.25-2.68 1.21-.76 2.8-.76 1.85 0 3 .7 1.14.7 1.14 2.19v6.02q0 .28.11.44.12.17.48.17l.26-.01.32-.05v1.3a5 5 0 0 1-.63.15q-.21.03-.59.03-.9 0-1.31-.65-.22-.34-.3-.97-.54.7-1.55 1.22-1 .52-2.22.52-1.45 0-2.38-.88t-.92-2.21q0-1.46.91-2.26t2.38-.99zm5.53-4.12h1.73v1.49q.63-.77 1.14-1.13a3.4 3.4 0 0 1 1.97-.6q1.25 0 2.01.62.43.35.78 1.04.59-.84 1.38-1.24t1.78-.41q2.1 0 2.87 1.52.4.82.4 2.2V31h-1.82v-7.27q0-1.04-.53-1.43-.51-.4-1.27-.4-1.03 0-1.78.7-.74.7-.74 2.32V31H45v-6.83q0-1.06-.25-1.55-.4-.73-1.49-.73-1 0-1.82.77-.8.77-.8 2.8V31h-1.76zm21.01-.23q1.11 0 2.16.52 1.04.52 1.6 1.35.52.8.7 1.85.15.72.15 2.3h-7.67q.05 1.6.76 2.56.7.96 2.17.96 1.38 0 2.2-.91.47-.53.67-1.22h1.72q-.06.58-.45 1.29-.38.7-.86 1.15-.8.78-1.99 1.06a6 6 0 0 1-1.43.15q-1.96 0-3.31-1.41-1.36-1.43-1.36-3.99 0-2.52 1.37-4.1 1.36-1.56 3.57-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.4-1.27-1.22 0-2.04.88-.82.87-.87 2.22z" fill="#000"></path>
+  <rect x="12.5" y="40.5" width="271" height="43" stroke="#767676"></rect>
+</svg>
+
+					<figcaption><p><span>Figure 2.</span> 
+						<strong>Pass:</strong> A standard text input with a grey border (<code>#767676</code>) and white adjacent color outside the component</p></figcaption>
+				</figure>
+
+				<p>If components use several colors, any color which does not interfere with identifying the component can be ignored for the purpose of measuring contrast ratio. For example, a 3D drop-shadow on an input, or a dark border line between contrasting backgrounds is considered to be subsumed into the color closest in brightness (perceived luminance).</p>
+
+				<p>The following example shows an input that has a light background on the inside and a dark background around it. The input also has a dark grey border which is considered to be subsumed into the dark background. The border does not interfere with identifying the component, so the contrast ratio is taken between the white background and dark blue background.</p>
+
+				<figure id="figure-text-box-dark-bg-light-border">
+					<svg role="img" width="296" height="96" viewBox="0 0 296 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>A text box with a dark background and light border, with a white background.</title>
+  <rect width="296" height="96" fill="#036"></rect>
+  <path d="M13.52 16.65h2.3l7.24 11.63V16.64h1.85V31h-2.18l-7.35-11.61V31h-1.86zM29.1 28.22q0 .76.56 1.2.55.44 1.32.44.92 0 1.8-.43 1.46-.72 1.46-2.34v-1.41q-.33.2-.83.34-.51.14-1 .2l-1.06.13q-.96.13-1.44.4-.81.46-.81 1.47m4.26-3.56q.6-.08.8-.5.13-.24.13-.68 0-.9-.65-1.3-.63-.4-1.82-.4-1.38 0-1.96.73-.32.41-.42 1.22H27.8q.05-1.93 1.25-2.68 1.21-.76 2.8-.76 1.85 0 3 .7 1.14.7 1.14 2.19v6.02q0 .28.11.44.12.17.48.17l.26-.01.32-.05v1.3a5 5 0 0 1-.63.15q-.21.03-.59.03-.9 0-1.31-.65-.22-.34-.3-.97-.54.7-1.55 1.22-1 .52-2.22.52-1.45 0-2.38-.88t-.92-2.21q0-1.46.91-2.26t2.38-.99zm5.53-4.12h1.73v1.49q.63-.77 1.14-1.13a3.4 3.4 0 0 1 1.97-.6q1.25 0 2.01.62.43.35.78 1.04.59-.84 1.38-1.24t1.78-.41q2.1 0 2.87 1.52.4.82.4 2.2V31h-1.82v-7.27q0-1.04-.53-1.43-.51-.4-1.27-.4-1.03 0-1.78.7-.74.7-.74 2.32V31H45v-6.83q0-1.06-.25-1.55-.4-.73-1.49-.73-1 0-1.82.77-.8.77-.8 2.8V31h-1.76zm21.01-.23q1.11 0 2.16.52 1.04.52 1.6 1.35.52.8.7 1.85.15.72.15 2.3h-7.67q.05 1.6.76 2.56.7.96 2.17.96 1.38 0 2.2-.91.47-.53.67-1.22h1.72q-.06.58-.45 1.29-.38.7-.86 1.15-.8.78-1.99 1.06a6 6 0 0 1-1.43.15q-1.96 0-3.31-1.41-1.36-1.43-1.36-3.99 0-2.52 1.37-4.1 1.36-1.56 3.57-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.4-1.27-1.22 0-2.04.88-.82.87-.87 2.22z" fill="#fff"></path>
+  <rect x="13" y="41" width="270" height="42" fill="#fff"></rect>
+  <rect x="13" y="41" width="270" height="42" stroke="#6e6e6e" stroke-width="2"></rect>
+</svg>
+
+					<figcaption><p><span>Figure 3.</span> 
+						<strong>Pass:</strong> The contrast of the input background (white) and color adjacent to the control (dark blue <code>#003366</code>) is sufficient. There is also a border (silver) on the component that is not required to contrast with either.</p></figcaption>
+				</figure>
+
+				<p>For visual information required to identify a state, such as the check in a checkbox or the thumb of a slider, that part might be within the component so the adjacent color might be another part of the component.</p>
+
+				<figure id="figure-purple-box-light-check">
+					<svg role="img" width="98" height="98" viewBox="0 0 98 98" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>A purple box with a light grey check.</title>
+  <rect width="98" height="98" fill="#e5e5e5"></rect>
+  <rect x="24" y="24" width="50" height="50" rx="6" fill="#6221ea"></rect>
+  <path d="m34 49 10 10 20-20" stroke="#e5e5e5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+
+					<figcaption><p><span>Figure 4.</span> 
+						<strong>Pass:</strong> A customized checkbox with light grey check (<code>#E5E5E5</code>), which has a contrast ratio of 5.6:1 with the purple box (<code>#6221EA</code>).</p></figcaption>
+				</figure>
+
+				<p>It is possible to use a flat design where the status indicator fills the component and does not contrast with the component, but does contrast with the colors adjacent to the component.</p>
+
+				<figure id="figure-three-radios">
+					<svg role="img" width="469" height="332" viewBox="0 0 469 332" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Four radio buttons, the first is a plain circle labelled ‘Not selected’. The second shows the circle filled with a darker color than the border. The third is filled with the same color as the border. The fourth has an inner filled circle with a gap between it and the outer border.</title>
+  <rect width="469" height="332" fill="#fff"></rect>
+  <circle cx="46" cy="46" r="30" stroke="#949494" stroke-width="8"></circle>
+  <path d="M104.88 22.1h7.34l23.19 37.18V22.1h5.9V68h-6.97l-23.53-37.16V68h-5.93zm58.78 42.28q5.59 0 7.65-4.22 2.1-4.25 2.1-9.44 0-4.69-1.5-7.63-2.38-4.62-8.2-4.62-5.15 0-7.5 3.94t-2.34 9.5q0 5.34 2.35 8.9 2.34 3.56 7.44 3.57m.22-30.82q6.46 0 10.93 4.32 4.47 4.3 4.47 12.68 0 8.1-3.94 13.38t-12.22 5.28q-6.9 0-10.96-4.66-4.07-4.69-4.07-12.56 0-8.44 4.28-13.44t11.5-5m23.25-8.37h5.7v9.34h5.34v4.6h-5.35v21.84q0 1.75 1.19 2.34.66.35 2.19.35h.87q.47-.03 1.1-.1V68q-.97.28-2.04.4a19 19 0 0 1-2.25.13q-3.93 0-5.34-2-1.4-2.03-1.4-5.25V39.13h-4.54v-4.6h4.53zm37.85 32.31q.25 2.81 1.4 4.31 2.13 2.72 7.38 2.72 3.13 0 5.5-1.34 2.38-1.38 2.38-4.22 0-2.16-1.91-3.28-1.22-.7-4.81-1.6l-4.47-1.12q-4.28-1.06-6.31-2.38-3.63-2.28-3.63-6.3 0-4.76 3.4-7.7 3.44-2.93 9.23-2.93 7.56 0 10.9 4.43 2.1 2.82 2.03 6.07h-5.31a6.5 6.5 0 0 0-1.34-3.47q-1.94-2.22-6.72-2.22-3.2 0-4.85 1.22-1.62 1.22-1.62 3.22 0 2.18 2.16 3.5 1.25.78 3.68 1.37l3.72.9q6.06 1.48 8.13 2.85 3.28 2.16 3.28 6.78 0 4.47-3.4 7.72-3.38 3.25-10.32 3.25-7.47 0-10.6-3.37-3.09-3.41-3.3-8.41zm42.6-23.72q3.56 0 6.9 1.69 3.34 1.66 5.1 4.31 1.68 2.53 2.24 5.9.5 2.32.5 7.38h-24.53q.16 5.1 2.4 8.19 2.26 3.06 6.98 3.06 4.4 0 7.03-2.9a10 10 0 0 0 2.12-3.91h5.53q-.22 1.84-1.46 4.13-1.22 2.25-2.75 3.68-2.57 2.5-6.35 3.38-2.03.5-4.6.5-6.24 0-10.59-4.53-4.34-4.57-4.34-12.75 0-8.07 4.38-13.1t11.43-5.03m8.97 14.81q-.34-3.65-1.6-5.84-2.3-4.06-7.71-4.06-3.88 0-6.5 2.81-2.63 2.78-2.78 7.1zm12.88-26.5h5.62V68h-5.62zm28.03 11.7q3.56 0 6.9 1.68 3.35 1.65 5.1 4.31 1.68 2.53 2.25 5.9.5 2.32.5 7.38h-24.53q.15 5.1 2.4 8.19 2.25 3.06 6.97 3.06 4.4 0 7.03-2.9a10 10 0 0 0 2.13-3.91h5.53q-.22 1.84-1.47 4.12-1.22 2.25-2.75 3.7-2.56 2.5-6.34 3.37-2.03.5-4.6.5-6.25 0-10.6-4.53-4.33-4.57-4.33-12.75 0-8.07 4.37-13.1t11.44-5.03m8.97 14.81q-.35-3.65-1.6-5.84-2.31-4.06-7.72-4.06-3.87 0-6.5 2.81-2.62 2.78-2.78 7.1zm25.62-15.03q5.66 0 9.19 2.75 3.56 2.75 4.28 9.47h-5.47q-.5-3.1-2.28-5.12-1.78-2.07-5.72-2.07-5.37 0-7.69 5.25-1.5 3.41-1.5 8.41 0 5.03 2.13 8.47t6.69 3.44q3.5 0 5.53-2.13 2.06-2.16 2.84-5.87h5.47q-.94 6.65-4.69 9.75-3.75 3.06-9.6 3.06-6.55 0-10.46-4.78-3.9-4.82-3.9-12 0-8.82 4.27-13.72 4.29-4.9 10.91-4.9m20.22-8.38h5.69v9.34h5.34v4.6h-5.34v21.84q0 1.75 1.18 2.34.66.35 2.2.35h.87q.47-.03 1.1-.1V68q-.98.28-2.04.4-1.03.13-2.25.13-3.94 0-5.34-2-1.41-2.03-1.41-5.25V39.13h-4.53v-4.6h4.53zm30.63 8.6q3.56 0 6.9 1.68 3.35 1.65 5.1 4.31 1.68 2.53 2.25 5.9.5 2.32.5 7.38h-24.54q.16 5.1 2.41 8.19 2.25 3.06 6.97 3.06 4.4 0 7.03-2.9a10 10 0 0 0 2.13-3.91h5.53q-.22 1.84-1.47 4.12-1.22 2.25-2.75 3.7-2.57 2.5-6.35 3.37-2.03.5-4.59.5-6.25 0-10.6-4.53-4.34-4.57-4.34-12.75 0-8.07 4.38-13.1t11.43-5.03m8.97 14.81q-.34-3.65-1.59-5.84-2.31-4.06-7.72-4.06-3.87 0-6.5 2.81-2.62 2.78-2.78 7.1zm16.29 3.07q0 5.37 2.28 9t7.3 3.62q3.92 0 6.42-3.34 2.53-3.38 2.53-9.66 0-6.34-2.6-9.37-2.6-3.07-6.4-3.07-4.25 0-6.91 3.25-2.62 3.25-2.62 9.57m8.46-17.72q3.85 0 6.44 1.62 1.5.94 3.4 3.28v-16.9h5.41V68h-5.06v-4.66q-1.97 3.1-4.65 4.47-2.7 1.38-6.16 1.38-5.6 0-9.69-4.69-4.1-4.72-4.1-12.53 0-7.31 3.73-12.66 3.75-5.37 10.68-5.37" fill="#000"></path>
+  <circle cx="46" cy="126" r="30" fill="#797979" stroke="#949494" stroke-width="8"></circle>
+  <path d="M108.94 133.19q.22 3.9 1.84 6.34 3.1 4.56 10.9 4.56 3.5 0 6.38-1 5.57-1.93 5.57-6.93 0-3.75-2.35-5.35-2.37-1.56-7.44-2.72l-6.21-1.4q-6.1-1.38-8.63-3.03-4.37-2.88-4.37-8.6 0-6.19 4.28-10.15 4.28-3.97 12.12-3.97 7.22 0 12.25 3.5 5.06 3.47 5.06 11.12h-5.84q-.47-3.69-2-5.65-2.84-3.6-9.66-3.6-5.5 0-7.9 2.31t-2.4 5.38q0 3.37 2.8 4.94 1.85 1 8.35 2.5l6.43 1.47q4.66 1.06 7.2 2.9 4.37 3.22 4.37 9.35 0 7.62-5.56 10.9-5.53 3.28-12.88 3.28-8.56 0-13.4-4.37-4.85-4.34-4.76-11.78zm51.81-19.4q3.56 0 6.9 1.68 3.35 1.65 5.1 4.31 1.69 2.53 2.25 5.9.5 2.32.5 7.38h-24.53q.15 5.1 2.4 8.19 2.25 3.06 6.97 3.06 4.41 0 7.03-2.9a10 10 0 0 0 2.13-3.91h5.53q-.22 1.84-1.47 4.12-1.22 2.25-2.75 3.7-2.56 2.5-6.34 3.37-2.03.5-4.6.5-6.24 0-10.59-4.53-4.34-4.57-4.34-12.75 0-8.07 4.37-13.1t11.44-5.03m8.97 14.81q-.34-3.65-1.6-5.84-2.3-4.06-7.71-4.06-3.88 0-6.5 2.81-2.63 2.78-2.78 7.1zm12.87-26.5h5.63V148h-5.63zm28.04 11.7q3.56 0 6.9 1.68 3.35 1.65 5.1 4.31 1.68 2.53 2.25 5.9.5 2.32.5 7.38h-24.54q.16 5.1 2.41 8.19 2.25 3.06 6.97 3.06 4.4 0 7.03-2.9a10 10 0 0 0 2.13-3.91h5.53q-.22 1.84-1.47 4.12-1.22 2.25-2.75 3.7-2.56 2.5-6.35 3.37-2.03.5-4.59.5-6.25 0-10.6-4.53-4.34-4.57-4.34-12.75 0-8.07 4.38-13.1t11.44-5.03m8.96 14.81q-.34-3.65-1.59-5.84-2.31-4.06-7.72-4.06-3.87 0-6.5 2.81-2.62 2.78-2.78 7.1zm25.63-15.03q5.66 0 9.19 2.75 3.56 2.75 4.28 9.47h-5.47q-.5-3.1-2.28-5.12-1.78-2.07-5.72-2.07-5.38 0-7.69 5.25-1.5 3.41-1.5 8.41 0 5.03 2.13 8.47t6.68 3.44q3.5 0 5.54-2.13 2.06-2.16 2.84-5.87h5.47q-.94 6.65-4.69 9.75-3.75 3.06-9.6 3.06-6.56 0-10.46-4.78-3.9-4.82-3.9-12 0-8.82 4.27-13.72 4.28-4.9 10.9-4.9m20.23-8.38h5.69v9.34h5.34v4.6h-5.34v21.84q0 1.75 1.18 2.34.66.35 2.19.35h.88l1.09-.1V148a12 12 0 0 1-2.03.4 19 19 0 0 1-2.25.13q-3.94 0-5.35-2-1.4-2.03-1.4-5.25v-22.15h-4.53v-4.6h4.53zm30.62 8.6q3.57 0 6.9 1.68 3.35 1.65 5.1 4.31 1.7 2.53 2.25 5.9.5 2.32.5 7.38h-24.53q.16 5.1 2.4 8.19 2.26 3.06 6.98 3.06 4.4 0 7.03-2.9a10 10 0 0 0 2.12-3.91h5.53q-.22 1.84-1.46 4.12-1.22 2.25-2.75 3.7-2.57 2.5-6.35 3.37-2.03.5-4.6.5-6.24 0-10.59-4.53-4.34-4.57-4.34-12.75 0-8.07 4.38-13.1t11.43-5.03m8.97 14.81q-.34-3.65-1.6-5.84-2.3-4.06-7.71-4.06-3.88 0-6.5 2.81-2.63 2.78-2.78 7.1zm16.28 3.07q0 5.37 2.28 9 2.29 3.62 7.32 3.62 3.9 0 6.4-3.34 2.53-3.38 2.53-9.66 0-6.34-2.59-9.37-2.6-3.07-6.4-3.07-4.26 0-6.91 3.25-2.63 3.25-2.63 9.57m8.47-17.72q3.85 0 6.44 1.62 1.5.94 3.4 3.28v-16.9h5.41V148h-5.06v-4.66q-1.97 3.1-4.66 4.47-2.68 1.38-6.15 1.38-5.6 0-9.7-4.69-4.08-4.72-4.08-12.53 0-7.31 3.71-12.66 3.75-5.37 10.7-5.37" fill="#000"></path>
+  <circle cx="46" cy="206" r="30" fill="#949494" stroke="#949494" stroke-width="8"></circle>
+  <path d="M108.94 213.19q.22 3.9 1.84 6.34 3.1 4.56 10.9 4.56 3.5 0 6.38-1 5.57-1.93 5.57-6.93 0-3.75-2.35-5.35-2.37-1.56-7.44-2.72l-6.21-1.4q-6.1-1.38-8.63-3.03-4.37-2.88-4.37-8.6 0-6.18 4.28-10.15t12.12-3.97q7.22 0 12.25 3.5 5.06 3.47 5.06 11.12h-5.84q-.47-3.69-2-5.65-2.84-3.6-9.66-3.6-5.5 0-7.9 2.31t-2.4 5.38q0 3.37 2.8 4.94 1.85 1 8.35 2.5l6.43 1.47q4.66 1.06 7.2 2.9 4.37 3.22 4.37 9.35 0 7.62-5.56 10.9-5.53 3.28-12.88 3.28-8.56 0-13.4-4.37-4.85-4.35-4.76-11.78zm51.81-19.4q3.56 0 6.9 1.68 3.35 1.65 5.1 4.31 1.69 2.53 2.25 5.9.5 2.32.5 7.38h-24.53q.15 5.1 2.4 8.19 2.25 3.06 6.97 3.06 4.41 0 7.03-2.9a10 10 0 0 0 2.13-3.91h5.53q-.22 1.84-1.47 4.12-1.22 2.25-2.75 3.7-2.56 2.5-6.34 3.37-2.03.5-4.6.5-6.24 0-10.59-4.53-4.34-4.57-4.34-12.75 0-8.07 4.37-13.1t11.44-5.03m8.97 14.81q-.34-3.65-1.6-5.84-2.3-4.06-7.71-4.06-3.88 0-6.5 2.81-2.63 2.78-2.78 7.1zm12.87-26.5h5.63V228h-5.63zm28.04 11.7q3.56 0 6.9 1.68 3.35 1.65 5.1 4.31 1.68 2.53 2.25 5.9.5 2.32.5 7.38h-24.54q.16 5.1 2.41 8.19 2.25 3.06 6.97 3.06 4.4 0 7.03-2.9a10 10 0 0 0 2.13-3.91h5.53q-.22 1.84-1.47 4.12-1.22 2.25-2.75 3.7-2.56 2.5-6.35 3.37-2.03.5-4.59.5-6.25 0-10.6-4.53-4.34-4.57-4.34-12.75 0-8.07 4.38-13.1t11.44-5.03m8.96 14.81q-.34-3.65-1.59-5.84-2.31-4.06-7.72-4.06-3.87 0-6.5 2.81-2.62 2.78-2.78 7.1zm25.63-15.03q5.66 0 9.19 2.75 3.56 2.75 4.28 9.47h-5.47q-.5-3.1-2.28-5.12-1.78-2.07-5.72-2.07-5.38 0-7.69 5.25-1.5 3.41-1.5 8.41 0 5.03 2.13 8.47t6.68 3.44q3.5 0 5.54-2.13 2.06-2.16 2.84-5.87h5.47q-.94 6.65-4.69 9.75-3.75 3.06-9.6 3.06-6.56 0-10.46-4.78-3.9-4.82-3.9-12 0-8.82 4.27-13.72 4.28-4.9 10.9-4.9m20.23-8.38h5.69v9.34h5.34v4.6h-5.34v21.84q0 1.75 1.18 2.34.66.35 2.19.35h.88l1.09-.1V228a12 12 0 0 1-2.03.4 19 19 0 0 1-2.25.13q-3.94 0-5.35-2-1.4-2.03-1.4-5.25v-22.15h-4.53v-4.6h4.53zm30.62 8.6q3.57 0 6.9 1.68 3.35 1.65 5.1 4.31 1.7 2.53 2.25 5.9.5 2.32.5 7.38h-24.53q.16 5.1 2.4 8.19 2.26 3.06 6.98 3.06 4.4 0 7.03-2.9a10 10 0 0 0 2.12-3.91h5.53q-.22 1.84-1.46 4.12-1.22 2.25-2.75 3.7-2.57 2.5-6.35 3.37-2.03.5-4.6.5-6.24 0-10.59-4.53-4.34-4.57-4.34-12.75 0-8.07 4.38-13.1t11.43-5.03m8.97 14.81q-.34-3.65-1.6-5.84-2.3-4.06-7.71-4.06-3.88 0-6.5 2.81-2.63 2.78-2.78 7.1zm16.28 3.07q0 5.37 2.28 9 2.29 3.62 7.32 3.62 3.9 0 6.4-3.34 2.53-3.38 2.53-9.66 0-6.34-2.59-9.37-2.6-3.07-6.4-3.07-4.26 0-6.91 3.25-2.63 3.25-2.63 9.57m8.47-17.72q3.85 0 6.44 1.62 1.5.94 3.4 3.28v-16.9h5.41V228h-5.06v-4.66q-1.97 3.1-4.66 4.47-2.68 1.38-6.15 1.38-5.6 0-9.7-4.69-4.08-4.72-4.08-12.53 0-7.31 3.71-12.66 3.75-5.37 10.7-5.37" fill="#000"></path>
+  <circle cx="46" cy="286" r="20" fill="#797979"></circle>
+  <circle cx="46" cy="286" r="30" stroke="#949494" stroke-width="8"></circle>
+  <path d="M108.94 293.19q.22 3.9 1.84 6.34 3.1 4.56 10.9 4.56 3.5 0 6.38-1 5.57-1.93 5.57-6.93 0-3.75-2.35-5.35-2.37-1.56-7.44-2.72l-6.21-1.4q-6.1-1.38-8.63-3.03-4.37-2.88-4.37-8.6 0-6.18 4.28-10.15t12.12-3.97q7.22 0 12.25 3.5 5.06 3.47 5.06 11.12h-5.84q-.47-3.68-2-5.65-2.84-3.6-9.66-3.6-5.5 0-7.9 2.32-2.4 2.3-2.4 5.37 0 3.38 2.8 4.94 1.85 1 8.35 2.5l6.43 1.47q4.66 1.06 7.2 2.9 4.37 3.22 4.37 9.35 0 7.62-5.56 10.9-5.53 3.28-12.88 3.28-8.56 0-13.4-4.37-4.85-4.35-4.76-11.78zm51.81-19.4q3.56 0 6.9 1.68 3.35 1.65 5.1 4.31 1.69 2.53 2.25 5.9.5 2.32.5 7.38h-24.53q.15 5.1 2.4 8.19 2.25 3.06 6.97 3.06 4.41 0 7.03-2.9a10 10 0 0 0 2.13-3.91h5.53q-.22 1.84-1.47 4.13-1.22 2.25-2.75 3.68-2.56 2.5-6.34 3.38-2.03.5-4.6.5-6.24 0-10.59-4.53-4.34-4.57-4.34-12.75 0-8.07 4.37-13.1t11.44-5.03m8.97 14.81q-.34-3.65-1.6-5.84-2.3-4.06-7.71-4.06-3.88 0-6.5 2.81-2.63 2.78-2.78 7.1zm12.87-26.5h5.63V308h-5.63zm28.04 11.7q3.56 0 6.9 1.68 3.35 1.65 5.1 4.31 1.68 2.53 2.25 5.9.5 2.32.5 7.38h-24.54q.16 5.1 2.41 8.19 2.25 3.06 6.97 3.06 4.4 0 7.03-2.9a10 10 0 0 0 2.13-3.91h5.53q-.22 1.84-1.47 4.13-1.22 2.25-2.75 3.68-2.56 2.5-6.35 3.38-2.03.5-4.59.5-6.25 0-10.6-4.53-4.34-4.57-4.34-12.75 0-8.07 4.38-13.1t11.44-5.03m8.96 14.81q-.34-3.65-1.59-5.84-2.31-4.06-7.72-4.06-3.87 0-6.5 2.81-2.62 2.78-2.78 7.1zm25.63-15.03q5.66 0 9.19 2.75 3.56 2.75 4.28 9.47h-5.47q-.5-3.1-2.28-5.12-1.78-2.07-5.72-2.07-5.38 0-7.69 5.25-1.5 3.41-1.5 8.41 0 5.03 2.13 8.47t6.68 3.44q3.5 0 5.54-2.13 2.06-2.15 2.84-5.87h5.47q-.94 6.65-4.69 9.75-3.75 3.06-9.6 3.06-6.56 0-10.46-4.78-3.9-4.82-3.9-12 0-8.82 4.27-13.72 4.28-4.9 10.9-4.9m20.23-8.38h5.69v9.34h5.34v4.6h-5.34v21.84q0 1.75 1.18 2.34.66.35 2.19.35h.88l1.09-.1V308a12 12 0 0 1-2.03.4 19 19 0 0 1-2.25.13q-3.94 0-5.35-2-1.4-2.03-1.4-5.25v-22.15h-4.53v-4.6h4.53zm30.62 8.6q3.57 0 6.9 1.68 3.35 1.65 5.1 4.31 1.7 2.53 2.25 5.9.5 2.32.5 7.38h-24.53q.16 5.1 2.4 8.19 2.26 3.06 6.98 3.06 4.4 0 7.03-2.9a10 10 0 0 0 2.12-3.91h5.53q-.22 1.84-1.46 4.13-1.22 2.25-2.75 3.68-2.57 2.5-6.35 3.38-2.03.5-4.6.5-6.24 0-10.59-4.53-4.34-4.57-4.34-12.75 0-8.07 4.38-13.1t11.43-5.03m8.97 14.81q-.34-3.65-1.6-5.84-2.3-4.06-7.71-4.06-3.88 0-6.5 2.81-2.63 2.78-2.78 7.1zm16.28 3.07q0 5.37 2.28 9 2.29 3.62 7.32 3.62 3.9 0 6.4-3.34 2.53-3.38 2.53-9.66 0-6.34-2.59-9.37-2.6-3.07-6.4-3.07-4.26 0-6.91 3.25-2.63 3.25-2.63 9.57m8.47-17.72q3.85 0 6.44 1.62 1.5.94 3.4 3.28v-16.9h5.41V308h-5.06v-4.66q-1.97 3.1-4.66 4.47-2.68 1.38-6.15 1.38-5.6 0-9.7-4.69-4.08-4.72-4.08-12.53 0-7.31 3.71-12.66 3.75-5.37 10.7-5.37" fill="#000"></path>
+</svg>
+
+					<figcaption><p><span>Figure 5.</span> 
+						<strong>Pass:</strong> The first radio button shows the default state with a grey (<code>#949494</code>) circle. The second and third show the radio button selected and filled with a color that contrasts with the color adjacent to the component. The last example shows the state indicator contrasting with the component colors.</p></figcaption>
+				</figure>
+
+				<h4 id="related-color">Relationship with Use of Color</h4>
+
+				<p>The <a href="use-of-color">Use of Color</a> success criterion addresses changing <strong>only the color</strong> (hue) of an object or text without otherwise altering the object's form. The principle is that contrast ratio (the difference in brightness) can be used to distinguish text or graphics. For example, <a href="https://www.w3.org/WAI/WCAG21/Techniques/general/G183">G183: Using a contrast ratio of at least 3:1 to distinguish inline text links from surrounding text</a> is a technique to use a contrast ratio of 3:1 with surrounding text to distinguish links and controls. In that case the Working Group regards a link color that meets the 3:1 contrast ratio relative to the non-linked text color as satisfying the Success Criterion <a href="use-of-color">1.4.1 Use of color</a> since it is relying on contrast ratio as well as color (hue) to convey that the text is a link.</p>
+
+				<p>Non-text information within controls that uses a change of hue alone to convey the value or state of an input, such as a 1-5 star indicator with a black outline for each star filled with either yellow (full) or white (empty) is likely to fail the Use of color criterion rather than this one.</p>
+
+				<figure id="figure-two-star-ratings">
+					<svg role="img" width="321" height="146" viewBox="0 0 321 146" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Two star ratings, one uses a black outline (on white) with a black fill to indicate it is checked. The second has a yellow fill and a thicker dark border.</title>
+  <rect width="321" height="146" fill="#fff"></rect>
+  <path d="M44.6 21.85a2 2 0 0 1 3.8 0l5.3 16.3h17.14a2 2 0 0 1 1.18 3.62L58.15 51.85l5.3 16.3a2 2 0 0 1-3.08 2.23L46.5 60.31 32.63 70.38a2 2 0 0 1-3.08-2.23l5.3-16.3-13.87-10.08a2 2 0 0 1 1.18-3.62H39.3zm57 0a2 2 0 0 1 3.8 0l5.3 16.3h17.14a2 2 0 0 1 1.18 3.62l-13.87 10.08 5.3 16.3a2 2 0 0 1-3.08 2.23L103.5 60.31 89.63 70.38a2 2 0 0 1-3.08-2.23l5.3-16.3-13.87-10.08a2 2 0 0 1 1.18-3.62H96.3z" fill="#000"></path>
+  <path d="M160.02 22.32a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9l-13.87 10.08-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56l-13.87-10.08-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04zm57 0a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9l-13.87 10.08-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56l-13.87-10.08-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04zm57 0a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9l-13.87 10.08-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56l-13.87-10.08-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04z" stroke="#000" stroke-width="3" stroke-linejoin="round"></path>
+  <path d="m51.32 94.93.56 1.72H69.3l-12.62 9.17-1.47 1.07.56 1.73 4.83 14.83-12.63-9.17-1.47-1.06-1.47 1.07-12.63 9.16 4.83-14.83.56-1.73-1.47-1.07-12.62-9.17h17.42l.56-1.72 4.82-14.84zm57 0 .56 1.72h17.42l-12.62 9.17-1.47 1.07.56 1.73 4.83 14.83-12.63-9.17-1.47-1.06-1.47 1.07-12.63 9.16 4.83-14.83.56-1.73-1.47-1.07-12.62-9.17h17.42l.56-1.72 4.82-14.84z" fill="#fff000" stroke="#000" stroke-width="5" stroke-linejoin="round"></path>
+  <path d="M160.02 78.32a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9l-13.87 10.08-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56l-13.87-10.08-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04zm57 0a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9l-13.87 10.08-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56l-13.87-10.08-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04zm57 0a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9l-13.87 10.08-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56l-13.87-10.08-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04z" stroke="#000" stroke-width="3" stroke-linejoin="round"></path>
+</svg>
+
+					<figcaption><p><span>Figure 6.</span> 
+						<strong>Pass:</strong> Two examples which pass this success criterion, using either a solid fill to indicate a checked-state that has contrast, or a thicker border as well as yellow fill.
+					</p></figcaption>
+				</figure>
+				<figure id="figure-two-star-ratings-failing">
+					<svg role="img" width="321" height="146" viewBox="0 0 321 146" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Two star ratings, the first uses 5 stars with a black outline and a yellow or white fill, where yellow indicates checked. The second uses only pale yellow stars on white.</title>
+  <rect width="321" height="146" fill="#fff"></rect>
+  <path d="M46.02 22.32a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9L57.27 50.64l-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56L47.38 59.09l-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04zm57 0a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9l-13.87 10.08-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56l-13.87-10.08-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04z" fill="#fff000" stroke="#000" stroke-width="3" stroke-linejoin="round"></path>
+  <path d="M160.02 22.32a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9l-13.87 10.08-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56l-13.87-10.08-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04zm57 0a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9l-13.87 10.08-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56l-13.87-10.08-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04zm57 0a.5.5 0 0 1 .96 0l5.3 16.3.33 1.03h18.23a.5.5 0 0 1 .3.9l-13.87 10.08-.88.64.33 1.04 5.3 16.3a.5.5 0 0 1-.77.56l-13.87-10.08-.88-.64-.88.64-13.87 10.08a.5.5 0 0 1-.77-.56l5.3-16.3.33-1.04-.88-.64-13.87-10.07a.5.5 0 0 1 .3-.9h18.23l.34-1.04z" stroke="#000" stroke-width="3" stroke-linejoin="round"></path>
+  <path d="M44.6 77.85a2 2 0 0 1 3.8 0l5.3 16.3h17.14a2 2 0 0 1 1.18 3.62l-13.87 10.08 5.3 16.3a2 2 0 0 1-3.08 2.23L46.5 116.31l-13.87 10.07a2 2 0 0 1-3.08-2.23l5.3-16.3-13.87-10.08a2 2 0 0 1 1.18-3.62H39.3zm57 0a2 2 0 0 1 3.8 0l5.3 16.3h17.14a2 2 0 0 1 1.18 3.62l-13.87 10.08 5.3 16.3a2 2 0 0 1-3.08 2.23l-13.87-10.07-13.87 10.07a2 2 0 0 1-3.08-2.23l5.3-16.3-13.87-10.08a2 2 0 0 1 1.18-3.62H96.3z" fill="#fff000"></path>
+</svg>
+
+					<figcaption><p><span>Figure 7.</span> 
+						<strong>Fail:</strong> The first example fails the Use of color criterion due to relying on yellow and white hues. The second example fails the Non-text contrast criterion due to the yellow (<code>#FFF000</code>) to white contrast ratio of 1.2:1.
+					</p></figcaption>
+				</figure>
+
+				<p>Using a change of contrast for focus and other states is a technique to differentiate the states. This is the basis for <a href="https://www.w3.org/WAI/WCAG21/Techniques/general/G195">G195: Using an author-supplied, visible focus indicator</a>, and more techniques are being added.</p>
+
+
+				<h4 id="related-focus">Relationship with Focus Visible</h4>
+
+				<p>In combination with <a href="focus-visible" class="sc">2.4.7 Focus Visible</a>, the visual focus indicator for a component <em>must</em> have sufficient contrast against the adjacent background when the component is focused, except where the appearance of the component is determined by the user agent and not modified by the author.</p>
+
+				<p>Most focus indicators appear outside the component - in that case it needs to contrast with the background that the component is on. Other cases include focus indicators which are:</p>
+
+				<ul>
+					<li>only inside the component and need to contrast with the adjacent color(s) within the component.</li>
+					<li>the border of the component (inside the component and adjacent to the outside) and need to contrast with both adjacent colors.</li>
+					<li>partly inside and partly outside, where either part of the focus indicator can contrast with the adjacent colors.</li>
+				</ul>
+
+				<figure id="figure-focus-inner">
+					<svg role="img" width="417" height="76" viewBox="0 0 417 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Three blue buttons, the middle has a thick yellow outline well inside the border of the button.</title>
+  <rect width="417" height="76" fill="#fff"></rect>
+  <rect x="12.5" y="12.5" width="122" height="51" fill="#4189b9"></rect>
+  <rect x="12.5" y="12.5" width="122" height="51" stroke="#000"></rect>
+  <path d="M43.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM56.12 45h-3.47l-1.83-3.2-1.85 3.2H45.6l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.4.32V45H64a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97H57.4q.09-1.4.78-2.3m2.06 7.5q.4.32.96.32.9 0 1.65-.53.76-.52.79-1.92v-1.04q-.26.17-.54.28a5 5 0 0 1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.35-1.38a4 4 0 0 1 1.92-.44q.7 0 1.38.27.69.28 1.24.96.45.56.61 1.37.1.54.1 1.57L84.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.67v1.57q.45-.7.95-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.56-2.18t-1.82-.95q-1.51 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.59.4 1.4.4.86 0 1.4-.48.29-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="147.5" y="12.5" width="122" height="51" fill="#4189b9"></rect>
+  <rect x="147.5" y="12.5" width="122" height="51" stroke="#000"></rect>
+  <path d="M178.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM191.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L219.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.99 1.93-1.36 1.55-3.82 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.62.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="154" y="19" width="109" height="38" stroke="#ff0" stroke-width="4"></rect>
+  <rect x="282.5" y="12.5" width="122" height="51" fill="#4189b9"></rect>
+  <rect x="282.5" y="12.5" width="122" height="51" stroke="#000"></rect>
+  <path d="M313.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM326.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L354.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+</svg>
+
+					<figcaption><p><span>Figure 8.</span> 
+						<strong>Pass:</strong> The internal yellow indicator (<code>#FFFF00</code>) contrasts with the blue button background (<code>#4189B9</code>).
+					</p></figcaption>
+				</figure>
+
+
+				<figure id="figure-focus-outer-yellow">
+					<svg role="img" width="417" height="76" viewBox="0 0 417 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Three blue buttons on a white background, the middle has a light yellow outline outside of the button’s non-focused boundary.</title>
+  <rect width="417" height="76" fill="#fff"></rect>
+  <rect x="12.5" y="12.5" width="122" height="51" fill="#4189b9"></rect>
+  <rect x="12.5" y="12.5" width="122" height="51" stroke="#000"></rect>
+  <path d="M43.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM56.12 45h-3.47l-1.83-3.2-1.85 3.2H45.6l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.4.32V45H64a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97H57.4q.09-1.4.78-2.3m2.06 7.5q.4.32.96.32.9 0 1.65-.53.76-.52.79-1.92v-1.04q-.26.17-.54.28a5 5 0 0 1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.35-1.38a4 4 0 0 1 1.92-.44q.7 0 1.38.27.69.28 1.24.96.45.56.61 1.37.1.54.1 1.57L84.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.67v1.57q.45-.7.95-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.56-2.18t-1.82-.95q-1.51 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.59.4 1.4.4.86 0 1.4-.48.29-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="147.5" y="12.5" width="122" height="51" fill="#4189b9"></rect>
+  <rect x="147.5" y="12.5" width="122" height="51" stroke="#000"></rect>
+  <path d="M178.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM191.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L219.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.99 1.93-1.36 1.55-3.82 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.62.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="145" y="10" width="127" height="56" stroke="#ff0" stroke-width="4"></rect>
+  <rect x="282.5" y="12.5" width="122" height="51" fill="#4189b9"></rect>
+  <rect x="282.5" y="12.5" width="122" height="51" stroke="#000"></rect>
+  <path d="M313.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM326.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L354.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+</svg>
+
+					<figcaption><p><span>Figure 9.</span> 
+						<strong>Fail:</strong> The external yellow indicator (<code>#FFFF00</code>) does not contrast with the white background (<code>#FFF</code>) which the component is on.
+					</p></figcaption>
+				</figure>
+
+				<figure id="figure-focus-outer-green">
+					<svg role="img" width="417" height="76" viewBox="0 0 417 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Three blue buttons on a white background, the middle has a dark green outline outside of the button’s non-focused boundary.</title>
+  <rect width="417" height="76" fill="#fff"></rect>
+  <rect width="123" height="52" transform="translate(12 12)" fill="#4189b9"></rect>
+  <path d="M43.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM56.12 45h-3.47l-1.83-3.2-1.85 3.2H45.6l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.4.32V45H64a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97H57.4q.09-1.4.78-2.3m2.06 7.5q.4.32.96.32.9 0 1.65-.53.76-.52.79-1.92v-1.04q-.26.17-.54.28a5 5 0 0 1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.35-1.38a4 4 0 0 1 1.92-.44q.7 0 1.38.27.69.28 1.24.96.45.56.61 1.37.1.54.1 1.57L84.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.67v1.57q.45-.7.95-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.56-2.18t-1.82-.95q-1.51 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.59.4 1.4.4.86 0 1.4-.48.29-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="144.5" y="9.5" width="128" height="57" fill="#4189b9"></rect>
+  <rect x="144.5" y="9.5" width="128" height="57" stroke="green" stroke-width="5"></rect>
+  <path d="M178.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM191.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L219.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.99 1.93-1.36 1.55-3.82 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.62.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect width="123" height="52" transform="translate(282 12)" fill="#4189b9"></rect>
+  <path d="M313.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM326.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L354.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+</svg>
+
+					<figcaption><p><span>Figure 10.</span> 
+						<strong>Pass:</strong> The external green indicator (<code>#008000</code>) does contrast with the white background (<code>#FFF</code>) which the component is on. It does not need to contrast with both the component background and the component, as visually the effect is that the button is noticeably larger, and it's not necessary for a user to be able to discern this extra border in isolation. Although this passes non-text contrast, it is not a good indicator unless it is very thick. .
+					</p></figcaption>
+				</figure>
+
+				<p>If an indicator is partly inside and partly outside the component, either part of the indicator could provide contrast.</p>
+
+				<figure id="figure-focus-outer-inner">
+					<svg role="img" width="417" height="76" viewBox="0 0 417 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Three blue buttons on a white background, the middle has the outline of a yellow rectangle that is partly inside the button’s boundary, and partly outside on the white background.</title>
+  <rect width="417" height="76" fill="#fff"></rect>
+  <rect x="12.5" y="12.5" width="122" height="51" fill="#4189b9"></rect>
+  <rect x="12.5" y="12.5" width="122" height="51" stroke="#000"></rect>
+  <path d="M43.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM56.12 45h-3.47l-1.83-3.2-1.85 3.2H45.6l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.4.32V45H64a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97H57.4q.09-1.4.78-2.3m2.06 7.5q.4.32.96.32.9 0 1.65-.53.76-.52.79-1.92v-1.04q-.26.17-.54.28a5 5 0 0 1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.35-1.38a4 4 0 0 1 1.92-.44q.7 0 1.38.27.69.28 1.24.96.45.56.61 1.37.1.54.1 1.57L84.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.67v1.57q.45-.7.95-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.56-2.18t-1.82-.95q-1.51 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.59.4 1.4.4.86 0 1.4-.48.29-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="147.5" y="12.5" width="122" height="51" fill="#4189b9"></rect>
+  <rect x="147.5" y="12.5" width="122" height="51" stroke="#000"></rect>
+  <path d="M178.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM191.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L219.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.99 1.93-1.36 1.55-3.82 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.62.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="153" y="8" width="111" height="60" stroke="#ff0" stroke-width="2"></rect>
+  <rect x="282.5" y="12.5" width="122" height="51" fill="#4189b9"></rect>
+  <rect x="282.5" y="12.5" width="122" height="51" stroke="#000"></rect>
+  <path d="M313.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM326.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L354.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+</svg>
+
+					<figcaption><p><span>Figure 11.</span> 
+						<strong>Pass:</strong> The focus indicator is partially inside, partially outside the button. The internal part of the yellow indicator (<code>#FFFF00</code>) contrasts with the blue button background (<code>#4189B9</code>).
+					</p></figcaption>
+				</figure>
+
+				<p>If the focus indicator changes the border of the component within the visible boundary it must contrast with the component. Typically an outline goes around (outside) the visible boundary of the component, in this case changing the border is just inside the visible edge of the component.</p>
+
+				<figure id="figure-focus-border">
+					<svg role="img" width="417" height="76" viewBox="0 0 417 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Three blue buttons on a white background, the center button has a green border exactly on the outer boundary of the button.</title>
+  <rect width="417" height="76" fill="#fff"></rect>
+  <rect width="123" height="52" transform="translate(12 12)" fill="#4189b9"></rect>
+  <path d="M43.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM56.12 45h-3.47l-1.83-3.2-1.85 3.2H45.6l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.4.32V45H64a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97H57.4q.09-1.4.78-2.3m2.06 7.5q.4.32.96.32.9 0 1.65-.53.76-.52.79-1.92v-1.04q-.26.17-.54.28a5 5 0 0 1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.35-1.38a4 4 0 0 1 1.92-.44q.7 0 1.38.27.69.28 1.24.96.45.56.61 1.37.1.54.1 1.57L84.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.67v1.57q.45-.7.95-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.56-2.18t-1.82-.95q-1.51 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.59.4 1.4.4.86 0 1.4-.48.29-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="148" y="13" width="121" height="50" fill="#4189b9"></rect>
+  <rect x="148" y="13" width="121" height="50" stroke="#4b933a" stroke-width="2"></rect>
+  <path d="M178.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM191.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L219.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.99 1.93-1.36 1.55-3.82 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.62.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect width="123" height="52" transform="translate(282 12)" fill="#4189b9"></rect>
+  <path d="M313.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM326.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L354.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+</svg>
+
+					<figcaption><p><span>Figure 12.</span> 
+						<strong>Fail:</strong> The border of the control changes from blue (<code>#4189B9</code>) to green (<code>#4B933A</code>). This is within the component and does not contrast with the inside background of the component.
+					</p></figcaption>
+				</figure>
+
+				<figure id="figure-focus-inner-green">
+					<svg role="img" width="417" height="76" viewBox="0 0 417 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Three blue buttons with a black border on a white background, the center button has a green border inside, adjacent to the inner background and black border.</title>
+  <rect width="417" height="76" fill="#fff"></rect>
+  <rect x="13" y="13" width="121" height="50" fill="#4189b9"></rect>
+  <rect x="13" y="13" width="121" height="50" stroke="#000" stroke-width="2"></rect>
+  <path d="M43.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM56.12 45h-3.47l-1.83-3.2-1.85 3.2H45.6l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.4.32V45H64a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97H57.4q.09-1.4.78-2.3m2.06 7.5q.4.32.96.32.9 0 1.65-.53.76-.52.79-1.92v-1.04q-.26.17-.54.28a5 5 0 0 1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.35-1.38a4 4 0 0 1 1.92-.44q.7 0 1.38.27.69.28 1.24.96.45.56.61 1.37.1.54.1 1.57L84.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.67v1.57q.45-.7.95-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.56-2.18t-1.82-.95q-1.51 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.59.4 1.4.4.86 0 1.4-.48.29-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="148" y="13" width="121" height="50" fill="#4189b9"></rect>
+  <rect x="148" y="13" width="121" height="50" stroke="#000" stroke-width="2"></rect>
+  <path d="M178.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM191.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L219.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.99 1.93-1.36 1.55-3.82 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.62.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="150" y="15" width="117" height="46" stroke="green" stroke-width="2"></rect>
+  <rect x="283" y="13" width="121" height="50" fill="#4189b9"></rect>
+  <rect x="283" y="13" width="121" height="50" stroke="#000" stroke-width="2"></rect>
+  <path d="M313.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM326.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L354.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+</svg>
+
+					<figcaption><p><span>Figure 13.</span> 
+						<strong>Fail:</strong> An inner border of dark green (<code>#008000</code>) does contrast with the black border, but does not contrast with the blue component background.
+					</p></figcaption>
+				</figure>
+
+				<figure id="figure-focus-inner-white">
+					<svg role="img" width="417" height="76" viewBox="0 0 417 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Three blue buttons with a black border on a white background, the center button has a white border inside, adjacent to the inner background and black border.</title>
+  <rect width="417" height="76" fill="#fff"></rect>
+  <rect x="13" y="13" width="121" height="50" fill="#4189b9"></rect>
+  <rect x="13" y="13" width="121" height="50" stroke="#000" stroke-width="2"></rect>
+  <path d="M43.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM56.12 45h-3.47l-1.83-3.2-1.85 3.2H45.6l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.4.32V45H64a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97H57.4q.09-1.4.78-2.3m2.06 7.5q.4.32.96.32.9 0 1.65-.53.76-.52.79-1.92v-1.04q-.26.17-.54.28a5 5 0 0 1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.35-1.38a4 4 0 0 1 1.92-.44q.7 0 1.38.27.69.28 1.24.96.45.56.61 1.37.1.54.1 1.57L84.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.67v1.57q.45-.7.95-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.56-2.18t-1.82-.95q-1.51 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.59.4 1.4.4.86 0 1.4-.48.29-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="148" y="13" width="121" height="50" fill="#4189b9"></rect>
+  <rect x="148" y="13" width="121" height="50" stroke="#000" stroke-width="2"></rect>
+  <path d="M178.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM191.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L219.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.99 1.93-1.36 1.55-3.82 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.62.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect x="150" y="15" width="117" height="46" stroke="#fff" stroke-width="2"></rect>
+  <rect x="283" y="13" width="121" height="50" fill="#4189b9"></rect>
+  <rect x="283" y="13" width="121" height="50" stroke="#000" stroke-width="2"></rect>
+  <path d="M313.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM326.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L354.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+</svg>
+
+					<figcaption><p><span>Figure 14.</span> 
+						<strong>Pass:</strong> An inner border of white contrasts with the black border and the blue component background.
+					</p></figcaption>
+				</figure>
+
+		        <p>Note that this success criterion does not directly compare the focused and unfocused states of a control - if the focus state relies on a change of color (e.g., changing <em>only</em> the background color of a button), this success criterion does not define any requirement for the difference in contrast between the two states.</p>
+
+				<figure id="figure-focus-background">
+					<svg role="img" width="417" height="76" viewBox="0 0 417 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Three blue buttons, the center button is a darker blue than the others.</title>
+  <rect width="417" height="76" fill="#fff"></rect>
+  <rect width="123" height="52" transform="translate(12 12)" fill="#4189b9"></rect>
+  <path d="M43.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM56.12 45h-3.47l-1.83-3.2-1.85 3.2H45.6l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.4.32V45H64a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97H57.4q.09-1.4.78-2.3m2.06 7.5q.4.32.96.32.9 0 1.65-.53.76-.52.79-1.92v-1.04q-.26.17-.54.28a5 5 0 0 1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.35-1.38a4 4 0 0 1 1.92-.44q.7 0 1.38.27.69.28 1.24.96.45.56.61 1.37.1.54.1 1.57L84.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.67v1.57q.45-.7.95-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.56-2.18t-1.82-.95q-1.51 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.59.4 1.4.4.86 0 1.4-.48.29-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect width="123" height="52" transform="translate(147 12)" fill="#1a599c"></rect>
+  <path d="M178.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM191.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L219.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.99 1.93-1.36 1.55-3.82 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.62.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+  <rect width="123" height="52" transform="translate(282 12)" fill="#4189b9"></rect>
+  <path d="M313.54 38.71h-6.99v3.7h7.97V45h-10.9V30.6h10.55v2.55h-7.62v3.06h7zM326.12 45h-3.47l-1.83-3.2-1.85 3.2h-3.38l3.64-5.39-3.48-5.23h3.4l1.79 3.08 1.73-3.09h3.31l-3.5 5.19zm2.05-9.5q1.1-1.4 3.8-1.4 1.74 0 3.1.7 1.35.69 1.35 2.61v4.88l.02 1.23q.03.55.17.75t.41.32V45h-3.03a3 3 0 0 1-.17-.6l-.08-.65a6 6 0 0 1-1.33 1.07q-.9.51-2.03.51-1.45 0-2.4-.82-.93-.83-.93-2.34 0-1.97 1.51-2.84.83-.48 2.44-.69l.95-.11q.77-.1 1.1-.25.6-.25.6-.79 0-.65-.46-.9-.45-.25-1.33-.25-.98 0-1.4.49-.29.36-.38.97h-2.69q.09-1.4.78-2.3m2.07 7.49q.4.32.96.32.9 0 1.65-.53.76-.52.8-1.92v-1.04q-.27.17-.55.28-.26.1-.73.18l-.62.12q-.88.16-1.26.38-.65.38-.65 1.18 0 .72.4 1.03m14.64-5.7q-.35-.78-1.38-.78-1.19 0-1.6.78-.22.44-.22 1.3V45h-2.82V34.38h2.7v1.55q.52-.83.98-1.18.8-.63 2.1-.63 1.22 0 1.97.54.6.5.92 1.28.54-.94 1.36-1.38a4 4 0 0 1 1.9-.44q.71 0 1.4.27.68.28 1.24.96.45.56.6 1.37.1.54.1 1.57L354.1 45h-2.85v-6.78q0-.6-.2-1-.37-.74-1.36-.74-1.16 0-1.6.96-.22.5-.22 1.22V45h-2.8v-6.34q0-.94-.2-1.37m20.73-1.8q1.3 1.38 1.3 4.05 0 2.81-1.28 4.29-1.26 1.47-3.25 1.47-1.27 0-2.1-.63-.47-.35-.9-1.03v5.55h-2.76V34.36h2.66v1.57q.45-.7.96-1.1.93-.7 2.2-.7 1.87 0 3.17 1.37m-1.58 4.18q0-1.23-.57-2.18-.55-.95-1.81-.95-1.52 0-2.08 1.44-.3.76-.3 1.93 0 1.86 1 2.6.58.45 1.38.45 1.16 0 1.77-.9t.61-2.4m4.95-9.06h2.79V45h-2.79zm14.62 11.26q-.1.95-.98 1.93-1.37 1.55-3.83 1.55a5.4 5.4 0 0 1-3.59-1.3q-1.55-1.32-1.55-4.26 0-2.77 1.4-4.24t3.64-1.48q1.33 0 2.4.5t1.75 1.57q.63.95.81 2.2.1.73.09 2.11h-7.29q.06 1.6 1 2.24.58.4 1.4.4.86 0 1.4-.48.28-.27.51-.74zm-2.75-3.26q-.07-1.1-.68-1.67-.6-.57-1.48-.57-.97 0-1.5.6t-.67 1.64z" fill="#fff"></path>
+</svg>
+
+					<figcaption><p><span>Figure 15.</span> 
+						<strong>Not in scope:</strong> The change of background within the component is not in scope of non-text contrast. However, this would not pass <a href="use-of-color.html">Use of color</a>.
+					</p></figcaption>
+				</figure>
+
+				<section id="hover-states">
+					<h3>Hover states</h3>
+					<p>The language of Non-text Contrast specifically calls out "visual information required to identify...states." When users talk about a hover state, they are normally referring to a visual effect that takes place when the pointer is positioned over a control. However, there are a number of HTML components (such as buttons, checkboxes, radio buttons, and selects) which do not by default display any additional visual effects when the user moves a pointer control over them. The pointer itself, via its location, is the indicator of whether the user is hovering on a component. Therefore, additional author-supplied visual treatments for hover are not "required to identify" the hover state. Those treatments can be considered supplemental and do not themselves need to contrast 3:1 against the background.</p>
+
+					<p>This is not to say that other hover effects are discouraged. For instance, some native components alter the shape of the pointer when it is hovering over a control; the pointer becomes an I-beam when it hovers over text inputs and text areas. There will be cases where some users may benefit from additional visual hover effects, such as bolding text or use of drop shadows. However, other users may find strong hover effects distracting. The key consideration for any hover effect is that it does not cause a component itself to lose sufficient contrast against adjacent colors, or cause the visual indicators for other states, such as focus or selection, to lose sufficient contrast.</p>
+				</section>
+
+				<section id="user-interface-component-examples">
+					<h3>User Interface Component Examples</h3>
+					<p>For designing focus indicators, selection indicators and user interface components that need to be perceived clearly, the following are examples that have sufficient contrast.</p>
+
+					<h4 id="passing-user-interface-component-examples">Passing User Interface Component Examples</h4>
+
+					<div class="figure-collection">
+
+						<article>
+							<h5>Link text</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="105" height="54" viewBox="0 0 105 53.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>A browser-default styled link, blue with an underline.</title>
+  <rect width="105" height="53.5" fill="#fff"></rect>
+  <path d="M16.52 18.65h1.95V31.3h7.26V33h-9.2zm10.9 3.94h1.79V33h-1.79zm0-3.94h1.79v2h-1.79zm4.45 3.9h1.67v1.47q.75-.91 1.58-1.31a4 4 0 0 1 1.84-.4q2.23 0 3.01 1.55.43.85.43 2.43V33h-1.79v-6.6q0-.95-.28-1.53-.47-.98-1.7-.98-.62 0-1.03.13-.72.21-1.27.86-.43.51-.57 1.07-.13.55-.13 1.57V33h-1.76zm11.1-3.9h1.69v8.33l4.5-4.44h2.26l-4 3.92L51.63 33H49.4l-3.26-5.27-1.47 1.34V33h-1.7zm15.96.97h1.77v2.92h1.67v1.44H60.7v6.82q0 .55.37.73.21.11.69.11h.27q.15 0 .34-.03V33q-.3.09-.63.13-.32.04-.7.04-1.24 0-1.68-.63t-.44-1.64v-6.92h-1.41v-1.44h1.42zm9.57 2.69q1.11 0 2.15.52 1.05.52 1.6 1.35.52.8.7 1.85.15.72.16 2.3h-7.67q.05 1.6.75 2.56t2.18.96q1.38 0 2.2-.91.47-.53.66-1.22h1.73q-.07.58-.46 1.29-.38.7-.86 1.15-.8.78-1.98 1.06a6 6 0 0 1-1.44.15q-1.95 0-3.3-1.41-1.37-1.43-1.37-3.99 0-2.52 1.37-4.1t3.58-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.41-1.27-1.21 0-2.03.88-.82.87-.87 2.22zm2.98-4.4h2.27l2.4 3.68 2.44-3.68 2.13.05L80 27.64 83.68 33h-2.24l-2.6-3.93L76.32 33h-2.23l3.68-5.36zm11.34-2.92h1.78v2.92h1.67v1.44H87.4v6.82q0 .55.37.74.2.1.69.1h.27q.15 0 .34-.03V33a4 4 0 0 1-.63.13q-.32.04-.7.04-1.24 0-1.68-.63t-.44-1.64v-6.92h-1.41v-1.44h1.41z" fill="#00e"></path>
+  <rect x="15" y="36" width="75" height="1.5" fill="#00e"></rect>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 16.</span> 
+									<strong>Pass:</strong> The browser's default link text color
+									is covered by <a href="contrast-minimum">1.4.3 Contrast
+									(Minimum)</a>. Since the underline is the same color as the
+									text, which must meet at least 3:1 to pass, the default
+									underline will always pass the requirements of Non-text
+									Contrast.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Default focus style</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="105" height="54" viewBox="0 0 105 53.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>A browser-default styled link, with a solid mid-blue outline around the link.</title>
+  <rect width="105" height="53.5" fill="#fff"></rect>
+  <rect x="13.5" y="13.5" width="78" height="26.5" rx="1.5" stroke="#007aff" stroke-width="3"></rect>
+  <path d="M16.52 18.65h1.95V31.3h7.26V33h-9.2zm10.9 3.94h1.79V33h-1.79zm0-3.94h1.79v2h-1.79zm4.45 3.9h1.67v1.47q.75-.91 1.58-1.31a4 4 0 0 1 1.84-.4q2.23 0 3.01 1.55.43.85.43 2.43V33h-1.79v-6.6q0-.95-.28-1.53-.47-.98-1.7-.98-.62 0-1.03.13-.72.21-1.27.86-.43.51-.57 1.07-.13.55-.13 1.57V33h-1.76zm11.1-3.9h1.69v8.33l4.5-4.44h2.26l-4 3.92L51.63 33H49.4l-3.26-5.27-1.47 1.34V33h-1.7zm15.96.97h1.77v2.92h1.67v1.44H60.7v6.82q0 .55.37.73.21.11.69.11h.27q.15 0 .34-.03V33q-.3.09-.63.13-.32.04-.7.04-1.24 0-1.68-.63t-.44-1.64v-6.92h-1.41v-1.44h1.42zm9.57 2.69q1.11 0 2.15.52 1.05.52 1.6 1.35.52.8.7 1.85.15.72.16 2.3h-7.67q.05 1.6.75 2.56t2.18.96q1.38 0 2.2-.91.47-.53.66-1.22h1.73q-.07.58-.46 1.29-.38.7-.86 1.15-.8.78-1.98 1.06a6 6 0 0 1-1.44.15q-1.95 0-3.3-1.41-1.37-1.43-1.37-3.99 0-2.52 1.37-4.1t3.58-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.41-1.27-1.21 0-2.03.88-.82.87-.87 2.22zm2.98-4.4h2.27l2.4 3.68 2.44-3.68 2.13.05L80 27.64 83.68 33h-2.24l-2.6-3.93L76.32 33h-2.23l3.68-5.36zm11.34-2.92h1.78v2.92h1.67v1.44H87.4v6.82q0 .55.37.74.2.1.69.1h.27q.15 0 .34-.03V33a4 4 0 0 1-.63.13q-.32.04-.7.04-1.24 0-1.68-.63t-.44-1.64v-6.92h-1.41v-1.44h1.41z" fill="#0068da"></path>
+  <rect x="15" y="36" width="75" height="1.5" fill="#0068da"></rect>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 17.</span> 
+									<strong>Pass:</strong> Links are required to have a visible
+									focus indicator by <a href="focus-visible.html">2.4.7 Focus
+									Visible</a>. Where the focus style of the user agent is not
+									adjusted on interactive controls (such as links, form fields
+									or buttons) by the website (author), the default focus style
+									is exempt from contrast requirements (but must still be
+									visible).
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Buttons</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="106" height="64" viewBox="0 0 106 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Button with a faint blue background.</title>
+  <rect width="106" height="64" fill="#fff"></rect>
+  <rect x="12.5" y="12.5" width="81" height="39" rx="2.5" fill="#ddf"></rect>
+  <rect x="12.5" y="12.5" width="81" height="39" rx="2.5" stroke="#eee"></rect>
+  <path d="M30.91 30.72q1.23 0 1.92-.34 1.07-.54 1.07-1.94t-1.14-1.9q-.64-.26-1.91-.26h-3.47v4.44zm.66 6.62q1.79 0 2.55-1.04.48-.65.48-1.58 0-1.56-1.4-2.13-.74-.3-1.96-.3h-3.86v5.05zm-6.1-12.69h6.17q2.52 0 3.58 1.5.63.9.63 2.06 0 1.36-.78 2.23-.4.45-1.15.84 1.1.42 1.65.94.97.94.97 2.59a4 4 0 0 1-.87 2.51Q34.37 39 31.54 39h-6.06zm14.92 3.9v6.93q0 .8.25 1.31.47.94 1.75.94 1.83 0 2.5-1.64.36-.88.36-2.41v-5.14h1.76V39h-1.66l.02-1.54a4 4 0 0 1-.85 1q-1 .82-2.44.82-2.24 0-3.05-1.5-.44-.8-.44-2.13v-7.1zm9.72-2.93h1.78v2.92h1.67v1.44H51.9v6.82q0 .55.37.74.2.1.68.1h.28q.14 0 .34-.03V39q-.3.09-.63.13t-.7.04q-1.24 0-1.68-.63t-.44-1.64v-6.92H48.7v-1.44h1.41zm5.57 0h1.78v2.92h1.67v1.44h-1.67v6.82q0 .55.37.74.2.1.68.1h.28q.14 0 .34-.03V39q-.3.09-.64.13-.32.04-.7.04-1.23 0-1.67-.63t-.44-1.64v-6.92h-1.42v-1.44h1.42zm9.37 12.25q1.74 0 2.39-1.32.65-1.33.65-2.95 0-1.47-.47-2.38-.74-1.45-2.56-1.45-1.6 0-2.34 1.23T62 33.97q0 1.67.73 2.78.73 1.12 2.33 1.12m.06-9.63q2.03 0 3.42 1.35 1.4 1.34 1.4 3.96 0 2.53-1.23 4.18t-3.82 1.65q-2.16 0-3.43-1.45-1.27-1.47-1.27-3.93 0-2.64 1.34-4.2t3.6-1.56m6.9.3h1.68v1.49q.74-.92 1.57-1.32a4 4 0 0 1 1.85-.4q2.22 0 3 1.55.43.85.43 2.43V39h-1.78v-6.6q0-.95-.29-1.53-.47-.98-1.7-.98-.62 0-1.02.13-.72.21-1.27.86-.44.51-.58 1.07-.12.55-.12 1.57V39h-1.76z" fill="#000"></path>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 18.</span> 
+									<strong>Pass:</strong> A button which has a distinguishing
+									indicator such as position, text style, or context does not
+									need a <em>contrasting</em> visual indicator to show that it
+									is a button, although some users are likely to identify a
+									button with an outline that meets contrast requirements more
+									easily.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Text input (minimal)</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="296" height="96" viewBox="0 0 296 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>A label with a text input shown by a bottom border and faint grey background.</title>
+  <rect width="296" height="96" fill="#fff"></rect>
+  <path d="M13.52 16.65h2.3l7.24 11.63V16.64h1.85V31h-2.18l-7.35-11.61V31h-1.86zM29.1 28.22q0 .76.56 1.2.55.44 1.32.44.92 0 1.8-.43 1.46-.72 1.46-2.34v-1.41q-.33.2-.83.34-.51.14-1 .2l-1.06.13q-.96.13-1.44.4-.81.46-.81 1.47m4.26-3.56q.6-.08.8-.5.13-.24.13-.68 0-.9-.65-1.3-.63-.4-1.82-.4-1.38 0-1.96.73-.32.41-.42 1.22H27.8q.05-1.93 1.25-2.68 1.21-.76 2.8-.76 1.85 0 3 .7 1.14.7 1.14 2.19v6.02q0 .28.11.44.12.17.48.17l.26-.01.32-.05v1.3a5 5 0 0 1-.63.15q-.21.03-.59.03-.9 0-1.31-.65-.22-.34-.3-.97-.54.7-1.55 1.22-1 .52-2.22.52-1.45 0-2.38-.88t-.92-2.21q0-1.46.91-2.26t2.38-.99zm5.53-4.12h1.73v1.49q.63-.77 1.14-1.13a3.4 3.4 0 0 1 1.97-.6q1.25 0 2.01.62.43.35.78 1.04.59-.84 1.38-1.24t1.78-.41q2.1 0 2.87 1.52.4.82.4 2.2V31h-1.82v-7.27q0-1.04-.53-1.43-.51-.4-1.27-.4-1.03 0-1.78.7-.74.7-.74 2.32V31H45v-6.83q0-1.06-.25-1.55-.4-.73-1.49-.73-1 0-1.82.77-.8.77-.8 2.8V31h-1.76zm21.01-.23q1.11 0 2.16.52 1.04.52 1.6 1.35.52.8.7 1.85.15.72.15 2.3h-7.67q.05 1.6.76 2.56.7.96 2.17.96 1.38 0 2.2-.91.47-.53.67-1.22h1.72q-.06.58-.45 1.29-.38.7-.86 1.15-.8.78-1.99 1.06a6 6 0 0 1-1.43.15q-1.96 0-3.31-1.41-1.36-1.43-1.36-3.99 0-2.52 1.37-4.1 1.36-1.56 3.57-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.4-1.27-1.22 0-2.04.88-.82.87-.87 2.22z" fill="#000"></path>
+  <mask id="a" fill="#fff">
+    <path d="M12 40h272v44H12z"></path>
+  </mask>
+  <path d="M12 40h272v44H12z" fill="#eee"></path>
+  <path d="M284 84v-1H12v2h272z" fill="#767676" mask="url(#a)"></path>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 19.</span> 
+									<strong>Pass:</strong> Where a text-input has a visual
+									indicator to show it is an input, such as a bottom border
+									(<code>#767676</code>), that indicator must meet 3:1 contrast
+									ratio.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Text input</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="296" height="96" viewBox="0 0 296 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Standard text input with a label, white internal and external background with a dark border.</title>
+  <rect width="296" height="96" fill="#fff"></rect>
+  <path d="M13.52 16.65h2.3l7.24 11.63V16.64h1.85V31h-2.18l-7.35-11.61V31h-1.86zM29.1 28.22q0 .76.56 1.2.55.44 1.32.44.92 0 1.8-.43 1.46-.72 1.46-2.34v-1.41q-.33.2-.83.34-.51.14-1 .2l-1.06.13q-.96.13-1.44.4-.81.46-.81 1.47m4.26-3.56q.6-.08.8-.5.13-.24.13-.68 0-.9-.65-1.3-.63-.4-1.82-.4-1.38 0-1.96.73-.32.41-.42 1.22H27.8q.05-1.93 1.25-2.68 1.21-.76 2.8-.76 1.85 0 3 .7 1.14.7 1.14 2.19v6.02q0 .28.11.44.12.17.48.17l.26-.01.32-.05v1.3a5 5 0 0 1-.63.15q-.21.03-.59.03-.9 0-1.31-.65-.22-.34-.3-.97-.54.7-1.55 1.22-1 .52-2.22.52-1.45 0-2.38-.88t-.92-2.21q0-1.46.91-2.26t2.38-.99zm5.53-4.12h1.73v1.49q.63-.77 1.14-1.13a3.4 3.4 0 0 1 1.97-.6q1.25 0 2.01.62.43.35.78 1.04.59-.84 1.38-1.24t1.78-.41q2.1 0 2.87 1.52.4.82.4 2.2V31h-1.82v-7.27q0-1.04-.53-1.43-.51-.4-1.27-.4-1.03 0-1.78.7-.74.7-.74 2.32V31H45v-6.83q0-1.06-.25-1.55-.4-.73-1.49-.73-1 0-1.82.77-.8.77-.8 2.8V31h-1.76zm21.01-.23q1.11 0 2.16.52 1.04.52 1.6 1.35.52.8.7 1.85.15.72.15 2.3h-7.67q.05 1.6.76 2.56.7.96 2.17.96 1.38 0 2.2-.91.47-.53.67-1.22h1.72q-.06.58-.45 1.29-.38.7-.86 1.15-.8.78-1.99 1.06a6 6 0 0 1-1.43.15q-1.96 0-3.31-1.41-1.36-1.43-1.36-3.99 0-2.52 1.37-4.1 1.36-1.56 3.57-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.4-1.27-1.22 0-2.04.88-.82.87-.87 2.22z" fill="#000"></path>
+  <rect x="12.5" y="40.5" width="271" height="43" stroke="#767676"></rect>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 20.</span> 
+									<strong>Pass:</strong> Where a text-input has an indicator
+									such as a complete border (<code>#767676</code>), that
+									indicator must meet 3:1 contrast ratio.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Text input focus style</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="296" height="96" viewBox="0 0 296 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>A label with a text input with a faint gray outline and a visible cursor/caret.</title>
+  <rect width="296" height="96" fill="#fff"></rect>
+  <path d="M13.52 16.65h2.3l7.24 11.63V16.64h1.85V31h-2.18l-7.35-11.61V31h-1.86zM29.1 28.22q0 .76.56 1.2.55.44 1.32.44.92 0 1.8-.43 1.46-.72 1.46-2.34v-1.41q-.33.2-.83.34-.51.14-1 .2l-1.06.13q-.96.13-1.44.4-.81.46-.81 1.47m4.26-3.56q.6-.08.8-.5.13-.24.13-.68 0-.9-.65-1.3-.63-.4-1.82-.4-1.38 0-1.96.73-.32.41-.42 1.22H27.8q.05-1.93 1.25-2.68 1.21-.76 2.8-.76 1.85 0 3 .7 1.14.7 1.14 2.19v6.02q0 .28.11.44.12.17.48.17l.26-.01.32-.05v1.3a5 5 0 0 1-.63.15q-.21.03-.59.03-.9 0-1.31-.65-.22-.34-.3-.97-.54.7-1.55 1.22-1 .52-2.22.52-1.45 0-2.38-.88t-.92-2.21q0-1.46.91-2.26t2.38-.99zm5.53-4.12h1.73v1.49q.63-.77 1.14-1.13a3.4 3.4 0 0 1 1.97-.6q1.25 0 2.01.62.43.35.78 1.04.59-.84 1.38-1.24t1.78-.41q2.1 0 2.87 1.52.4.82.4 2.2V31h-1.82v-7.27q0-1.04-.53-1.43-.51-.4-1.27-.4-1.03 0-1.78.7-.74.7-.74 2.32V31H45v-6.83q0-1.06-.25-1.55-.4-.73-1.49-.73-1 0-1.82.77-.8.77-.8 2.8V31h-1.76zm21.01-.23q1.11 0 2.16.52 1.04.52 1.6 1.35.52.8.7 1.85.15.72.15 2.3h-7.67q.05 1.6.76 2.56.7.96 2.17.96 1.38 0 2.2-.91.47-.53.67-1.22h1.72q-.06.58-.45 1.29-.38.7-.86 1.15-.8.78-1.99 1.06a6 6 0 0 1-1.43.15q-1.96 0-3.31-1.41-1.36-1.43-1.36-3.99 0-2.52 1.37-4.1 1.36-1.56 3.57-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.4-1.27-1.22 0-2.04.88-.82.87-.87 2.22z" fill="#000"></path>
+  <rect x="12.5" y="40.5" width="271" height="43" stroke="#767676"></rect>
+  <rect x="20" y="48" width="1" height="28" fill="#000"></rect>
+  <rect x="11" y="39" width="274" height="46" stroke="#ccc" stroke-width="2"></rect>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 21.</span> 
+									<strong>Pass:</strong> A focus indicator is required. While in
+									this case the additional gray (<code>#CCC</code>) outline has
+									an insufficient contrast of 1.6:1 against the white
+									(<code>#FFF</code>) background, the cursor/caret which is
+									displayed when the input receives focus <em>does</em> provide
+									a sufficiently strong visual indication.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Text input using background color</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="296" height="96" viewBox="0 0 296 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>A label with a text input shown by a dark blue page background, and white box.</title>
+  <rect width="296" height="96" fill="#036"></rect>
+  <path d="M13.52 16.65h2.3l7.24 11.63V16.64h1.85V31h-2.18l-7.35-11.61V31h-1.86zM29.1 28.22q0 .76.56 1.2.55.44 1.32.44.92 0 1.8-.43 1.46-.72 1.46-2.34v-1.41q-.33.2-.83.34-.51.14-1 .2l-1.06.13q-.96.13-1.44.4-.81.46-.81 1.47m4.26-3.56q.6-.08.8-.5.13-.24.13-.68 0-.9-.65-1.3-.63-.4-1.82-.4-1.38 0-1.96.73-.32.41-.42 1.22H27.8q.05-1.93 1.25-2.68 1.21-.76 2.8-.76 1.85 0 3 .7 1.14.7 1.14 2.19v6.02q0 .28.11.44.12.17.48.17l.26-.01.32-.05v1.3a5 5 0 0 1-.63.15q-.21.03-.59.03-.9 0-1.31-.65-.22-.34-.3-.97-.54.7-1.55 1.22-1 .52-2.22.52-1.45 0-2.38-.88t-.92-2.21q0-1.46.91-2.26t2.38-.99zm5.53-4.12h1.73v1.49q.63-.77 1.14-1.13a3.4 3.4 0 0 1 1.97-.6q1.25 0 2.01.62.43.35.78 1.04.59-.84 1.38-1.24t1.78-.41q2.1 0 2.87 1.52.4.82.4 2.2V31h-1.82v-7.27q0-1.04-.53-1.43-.51-.4-1.27-.4-1.03 0-1.78.7-.74.7-.74 2.32V31H45v-6.83q0-1.06-.25-1.55-.4-.73-1.49-.73-1 0-1.82.77-.8.77-.8 2.8V31h-1.76zm21.01-.23q1.11 0 2.16.52 1.04.52 1.6 1.35.52.8.7 1.85.15.72.15 2.3h-7.67q.05 1.6.76 2.56.7.96 2.17.96 1.38 0 2.2-.91.47-.53.67-1.22h1.72q-.06.58-.45 1.29-.38.7-.86 1.15-.8.78-1.99 1.06a6 6 0 0 1-1.43.15q-1.96 0-3.31-1.41-1.36-1.43-1.36-3.99 0-2.52 1.37-4.1 1.36-1.56 3.57-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.4-1.27-1.22 0-2.04.88-.82.87-.87 2.22z" fill="#fff"></path>
+  <rect width="272" height="44" transform="translate(12 40)" fill="#fff"></rect>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 22.</span> 
+									<strong>Pass:</strong> Text inputs that have no border and are
+									differentiated only by a background color must have a 3:1
+									contrast ratio to the adjacent background
+									(<code>#043464</code>).
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Toggle button</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="134" height="84" viewBox="0 0 134 84" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Dark blue oval toggle button with light blue internal indicator.</title>
+  <rect width="134" height="84" fill="#fff"></rect>
+  <rect x="12" y="12" width="110" height="60" rx="30" fill="#070cd5"></rect>
+  <circle cx="92" cy="42" r="20" fill="#7ac2ff"></circle>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 23.</span> 
+									<strong>Pass:</strong> The toggle button's internal background
+									(<code>#070CD5</code>) has a good contrast with the external
+									white background. Also, the round toggle within
+									(<code>#7AC2FF</code>) contrasts with the internal background.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Dropdown indicator</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="137" height="76" viewBox="0 0 137 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Button with the word Menu, and a down-arrow icon next to it.</title>
+  <rect width="137" height="76" fill="#fff"></rect>
+  <rect x="12" y="12" width="113" height="52" rx="6" fill="#6e747b"></rect>
+  <path d="M33.48 30.65h2.78l4.12 12.13 4.1-12.13h2.75V45h-1.85v-8.47l.02-1.45q.02-1.02.02-2.18L41.32 45H39.4l-4.12-12.1v.44l.02 1.61.03 1.58V45h-1.85zm20.83 3.66q1.1 0 2.15.52t1.6 1.35q.52.8.7 1.85.15.72.15 2.3h-7.66q.05 1.6.75 2.56t2.18.96q1.38 0 2.2-.91.47-.53.66-1.22h1.73q-.07.57-.46 1.29-.38.7-.86 1.15-.8.78-1.98 1.06a6 6 0 0 1-1.44.15q-1.95 0-3.3-1.42-1.37-1.42-1.37-3.98 0-2.52 1.37-4.1t3.58-1.56m2.8 4.62q-.1-1.14-.5-1.82-.72-1.27-2.41-1.27-1.21 0-2.03.88-.82.87-.87 2.21zm3.97-4.39h1.67v1.48q.74-.91 1.57-1.31a4 4 0 0 1 1.85-.4q2.23 0 3 1.55.44.85.44 2.43V45h-1.79v-6.6q0-.95-.28-1.53-.47-.98-1.7-.98-.63 0-1.03.13-.72.21-1.27.86-.44.51-.57 1.07-.13.55-.13 1.57V45h-1.76zm12.9 0v6.94q0 .8.25 1.31.46.94 1.75.94 1.83 0 2.5-1.64.36-.88.36-2.41v-5.14h1.75V45h-1.66l.02-1.54a4 4 0 0 1-.85 1q-1 .82-2.44.82-2.23 0-3.04-1.5-.44-.8-.44-2.13v-7.1zM105 34.5H91l7 7z" fill="#fff"></path>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 24.</span> 
+									<strong>Pass:</strong> The down-arrow is required to
+									understand that there is drop-down functionality, it has a
+									contrast of 4.7:1 for the white icon on dark gray
+									(<code>#6E747B</code>).
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Dropdown indicator</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="137" height="76" viewBox="0 0 137 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Text with the word Menu, and a down-arrow icon next to it.</title>
+  <rect width="137" height="76" fill="#fff"></rect>
+  <path d="M33.48 30.65h2.78l4.12 12.13 4.1-12.13h2.75V45h-1.85v-8.47l.02-1.45q.02-1.02.02-2.18L41.32 45H39.4l-4.12-12.1v.44l.02 1.61.03 1.58V45h-1.85zm20.83 3.66q1.1 0 2.15.52t1.6 1.35q.52.8.7 1.85.15.72.15 2.3h-7.66q.05 1.6.75 2.56t2.18.96q1.38 0 2.2-.91.47-.53.66-1.22h1.73q-.07.57-.46 1.29-.38.7-.86 1.15-.8.78-1.98 1.06a6 6 0 0 1-1.44.15q-1.95 0-3.3-1.42-1.37-1.42-1.37-3.98 0-2.52 1.37-4.1t3.58-1.56m2.8 4.62q-.1-1.14-.5-1.82-.72-1.27-2.41-1.27-1.21 0-2.03.88-.82.87-.87 2.21zm3.97-4.39h1.67v1.48q.74-.91 1.57-1.31a4 4 0 0 1 1.85-.4q2.23 0 3 1.55.44.85.44 2.43V45h-1.79v-6.6q0-.95-.28-1.53-.47-.98-1.7-.98-.63 0-1.03.13-.72.21-1.27.86-.44.51-.57 1.07-.13.55-.13 1.57V45h-1.76zm12.9 0v6.94q0 .8.25 1.31.46.94 1.75.94 1.83 0 2.5-1.64.36-.88.36-2.41v-5.14h1.75V45h-1.66l.02-1.54a4 4 0 0 1-.85 1q-1 .82-2.44.82-2.23 0-3.04-1.5-.44-.8-.44-2.13v-7.1zM105 34.5H91l7 7z" fill="#000"></path>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 25.</span> 
+									<strong>Pass:</strong> The down-arrow is required to
+									understand that there is drop-down functionality, it has a
+									contrast of 21:1 for the black icon on white.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Checkbox - empty</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="135" height="60" viewBox="0 0 135 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Black square border with a text label.</title>
+  <rect width="135" height="60" fill="#fff"></rect>
+  <rect x="12.5" y="22.5" width="19" height="19" stroke="#000"></rect>
+  <path d="M55.53 16.18h3.54V42h-3.54zm9.44 1.74h3.2v5.25h3v2.59h-3v12.28q0 .99.67 1.32.37.2 1.23.2h.5l.6-.06V42a7 7 0 0 1-1.14.23q-.58.07-1.26.07-2.22 0-3-1.13-.8-1.14-.8-2.95V25.76h-2.55v-2.59h2.55zm17.23 4.83q2 0 3.88.95 1.89.93 2.87 2.43.95 1.42 1.26 3.32.29 1.3.29 4.15H76.7q.08 2.86 1.35 4.6t3.92 1.73q2.48 0 3.96-1.64a5.5 5.5 0 0 0 1.2-2.2h3.1q-.12 1.04-.82 2.32-.69 1.27-1.55 2.08-1.44 1.4-3.57 1.9-1.14.28-2.58.28-3.52 0-5.96-2.55-2.44-2.57-2.44-7.17 0-4.54 2.46-7.37t6.43-2.83m5.04 8.33q-.19-2.05-.9-3.28-1.3-2.29-4.33-2.29-2.18 0-3.66 1.58-1.48 1.57-1.56 4zm7.16-7.9h3.13v2.67q1.12-1.4 2.04-2.03 1.56-1.07 3.55-1.07 2.25 0 3.62 1.1.77.64 1.4 1.87 1.06-1.5 2.48-2.23 1.43-.74 3.2-.74 3.8 0 5.17 2.74.74 1.48.74 3.98V42h-3.29V28.92q0-1.88-.95-2.58-.93-.7-2.28-.7-1.87 0-3.22 1.24-1.34 1.25-1.34 4.17V42h-3.21V29.71q0-1.91-.46-2.8-.72-1.31-2.69-1.31-1.8 0-3.27 1.39-1.46 1.39-1.46 5.03V42H94.4z" fill="#333"></path>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 26.</span> 
+									<strong>Pass:</strong> A black border on a white background
+									indicates the checkbox.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Checkbox - checked</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="135" height="60" viewBox="0 0 135 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Black square border with a tick inside, and a text label.</title>
+  <rect width="135" height="60" fill="#fff"></rect>
+  <rect x="12.5" y="22.5" width="19" height="19" stroke="#000"></rect>
+  <path d="M55.53 16.18h3.54V42h-3.54zm9.44 1.74h3.2v5.25h3v2.59h-3v12.28q0 .99.67 1.32.37.2 1.23.2h.5l.6-.06V42a7 7 0 0 1-1.14.23q-.58.07-1.26.07-2.22 0-3-1.13-.8-1.14-.8-2.95V25.76h-2.55v-2.59h2.55zm17.23 4.83q2 0 3.88.95 1.89.93 2.87 2.43.95 1.42 1.26 3.32.29 1.3.29 4.15H76.7q.08 2.86 1.35 4.6t3.92 1.73q2.48 0 3.96-1.64a5.5 5.5 0 0 0 1.2-2.2h3.1q-.12 1.04-.82 2.32-.69 1.27-1.55 2.08-1.44 1.4-3.57 1.9-1.14.28-2.58.28-3.52 0-5.96-2.55-2.44-2.57-2.44-7.17 0-4.54 2.46-7.37t6.43-2.83m5.04 8.33q-.19-2.05-.9-3.28-1.3-2.29-4.33-2.29-2.18 0-3.66 1.58-1.48 1.57-1.56 4zm7.16-7.9h3.13v2.67q1.12-1.4 2.04-2.03 1.56-1.07 3.55-1.07 2.25 0 3.62 1.1.77.64 1.4 1.87 1.06-1.5 2.48-2.23 1.43-.74 3.2-.74 3.8 0 5.17 2.74.74 1.48.74 3.98V42h-3.29V28.92q0-1.88-.95-2.58-.93-.7-2.28-.7-1.87 0-3.22 1.24-1.34 1.25-1.34 4.17V42h-3.21V29.71q0-1.91-.46-2.8-.72-1.31-2.69-1.31-1.8 0-3.27 1.39-1.46 1.39-1.46 5.03V42H94.4z" fill="#333"></path>
+  <path d="m15.5 32 4 4 9-9" stroke="#000" stroke-width="1.5"></path>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 27.</span> 
+									<strong>Pass:</strong> A black border on a white background
+									indicates the checkbox, the black tick shape indicates the
+									state of checked.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Checkbox - Subtle hover style</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="135" height="60" viewBox="0 0 135 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Checkbox with a black border and a circular grey background next to a text label.</title>
+  <rect width="135" height="60" fill="#fff"></rect>
+  <circle cx="22" cy="32" r="17.88" fill="#dedede" stroke="#999" stroke-width=".25"></circle>
+  <rect x="12.5" y="22.5" width="19" height="19" stroke="#000"></rect>
+  <path d="M55.53 16.18h3.54V42h-3.54zm9.44 1.74h3.2v5.25h3v2.59h-3v12.28q0 .99.67 1.32.37.2 1.23.2h.5l.6-.06V42a7 7 0 0 1-1.14.23q-.58.07-1.26.07-2.22 0-3-1.13-.8-1.14-.8-2.95V25.76h-2.55v-2.59h2.55zm17.23 4.83q2 0 3.88.95 1.89.93 2.87 2.43.95 1.42 1.26 3.32.29 1.3.29 4.15H76.7q.08 2.86 1.35 4.6t3.92 1.73q2.48 0 3.96-1.64a5.5 5.5 0 0 0 1.2-2.2h3.1q-.12 1.04-.82 2.32-.69 1.27-1.55 2.08-1.44 1.4-3.57 1.9-1.14.28-2.58.28-3.52 0-5.96-2.55-2.44-2.57-2.44-7.17 0-4.54 2.46-7.37t6.43-2.83m5.04 8.33q-.19-2.05-.9-3.28-1.3-2.29-4.33-2.29-2.18 0-3.66 1.58-1.48 1.57-1.56 4zm7.16-7.9h3.13v2.67q1.12-1.4 2.04-2.03 1.56-1.07 3.55-1.07 2.25 0 3.62 1.1.77.64 1.4 1.87 1.06-1.5 2.48-2.23 1.43-.74 3.2-.74 3.8 0 5.17 2.74.74 1.48.74 3.98V42h-3.29V28.92q0-1.88-.95-2.58-.93-.7-2.28-.7-1.87 0-3.22 1.24-1.34 1.25-1.34 4.17V42h-3.21V29.71q0-1.91-.46-2.8-.72-1.31-2.69-1.31-1.8 0-3.27 1.39-1.46 1.39-1.46 5.03V42H94.4z" fill="#333"></path>
+  <g filter="url(#a)">
+    <path d="M35.37 41.74a.5.5 0 0 1-.14.83l-3.43 1.46 3.13 7.36a.5.5 0 0 1-.27.66l-3.68 1.56a.5.5 0 0 1-.65-.27l-3.13-7.36-3.43 1.46a.5.5 0 0 1-.7-.48l.35-15.12a.5.5 0 0 1 .84-.35z" fill="#000"></path>
+    <path d="m34.8 42.07-3.82 1.62 3.32 7.83-3.45 1.46-3.32-7.82-3.83 1.62.34-14.65z" stroke="#fff" stroke-width="1.25"></path>
+  </g>
+  <defs>
+    <filter id="a" x="22.82" y="31.35" width="12.96" height="22.8" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood>
+      <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix>
+      <feOffset dy=".25"></feOffset>
+      <feGaussianBlur stdDeviation=".13"></feGaussianBlur>
+      <feComposite in2="hardAlpha" operator="out"></feComposite>
+      <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.4 0"></feColorMatrix>
+      <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_203_10"></feBlend>
+      <feBlend in="SourceGraphic" in2="effect1_dropShadow_203_10" result="shape"></feBlend>
+    </filter>
+  </defs>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 28.</span> 
+									<strong>Pass:</strong> A checkbox is visually identified by
+									its black border against a white background, but when the
+									mouse pointer hovers on the checkbox, a subtle grey background
+									is added (<code>#DEDEDE</code>). The black border has a 15:1
+									contrast ratio with the grey background, so the checkbox
+									continues to have good contrast. Note that the grey hover
+									effect does not itself need to contrast 3:1 with the page
+									background, since the pointer position is the primary
+									indicator of the hover state.
+								</p></figcaption>
+							</figure>
+						</article>
+
+					</div>
+
+					<h4 id="failing-user-interface-component-examples">Failing User Interface Component Examples</h4>
+
+					<p>The following are examples that have insufficient contrast.</p>
+
+					<div class="figure-collection">
+
+						<article>
+							<h5>Colored underline is the only indicator of a link</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="155" height="54" viewBox="0 0 155 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>White non-link and link text on an almost black background. The link text has a dull-red underline.</title>
+  <rect width="155" height="54" fill="#000"></rect>
+  <path d="M17.8 28.62q.06 1.22.57 1.98.97 1.43 3.4 1.43 1.1 0 2-.31 1.74-.6 1.74-2.17 0-1.17-.73-1.67-.75-.49-2.33-.85l-1.94-.44q-1.9-.43-2.7-.95-1.36-.9-1.36-2.68 0-1.94 1.33-3.18t3.8-1.24q2.25 0 3.82 1.1 1.58 1.08 1.58 3.47h-1.82q-.15-1.15-.63-1.76-.89-1.13-3.02-1.13-1.72 0-2.47.72-.75.73-.75 1.68 0 1.06.88 1.55.58.31 2.6.78l2.02.46q1.45.33 2.25.9 1.36 1.01 1.36 2.93 0 2.38-1.74 3.4-1.72 1.03-4.02 1.03-2.67 0-4.19-1.37-1.51-1.35-1.48-3.68zm15.98 3.5q1.75 0 2.4-1.32.65-1.33.65-2.95 0-1.47-.47-2.38-.74-1.45-2.56-1.45-1.61 0-2.34 1.23t-.74 2.97q0 1.67.74 2.78t2.32 1.12m.07-9.63q2.02 0 3.42 1.35 1.4 1.34 1.4 3.96 0 2.53-1.24 4.18t-3.82 1.65q-2.15 0-3.42-1.45-1.27-1.47-1.27-3.93 0-2.64 1.33-4.2 1.34-1.56 3.6-1.56m6.91.3h1.74v1.49q.63-.78 1.13-1.13a3.4 3.4 0 0 1 1.98-.6q1.25 0 2 .62.44.35.79 1.04.58-.84 1.38-1.24t1.77-.41q2.11 0 2.87 1.52.41.82.41 2.2v6.97h-1.82v-7.27q0-1.04-.53-1.43-.52-.4-1.27-.4-1.03 0-1.79.7-.74.7-.74 2.32v6.08H46.9v-6.83q0-1.06-.25-1.55-.4-.73-1.5-.73-.99 0-1.81.77-.81.77-.81 2.8v5.54h-1.76zm21.02-.23q1.11 0 2.15.52 1.05.52 1.6 1.35.52.8.7 1.85.16.72.16 2.3h-7.67q.05 1.6.75 2.56t2.18.96q1.38 0 2.2-.91.47-.53.66-1.22h1.73q-.07.58-.46 1.29-.38.7-.86 1.15-.8.78-1.98 1.06a6 6 0 0 1-1.44.15q-1.95 0-3.3-1.41-1.37-1.43-1.37-3.99 0-2.52 1.37-4.1 1.37-1.56 3.58-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.41-1.27-1.21 0-2.03.88-.82.87-.87 2.22zm8.76-8.54h1.76V33h-1.76zm4.4 3.94h1.79V33h-1.79zm0-3.94h1.79v2h-1.79zm4.45 3.9h1.67v1.47q.75-.91 1.58-1.31a4 4 0 0 1 1.84-.4q2.23 0 3.01 1.55.43.85.43 2.43V33h-1.79v-6.6q0-.95-.28-1.53-.47-.98-1.7-.98-.62 0-1.02.13-.73.21-1.27.86-.44.51-.58 1.07-.13.55-.13 1.57V33H82.2zm11.1-3.9h1.69v8.33l4.51-4.44h2.25l-4 3.92 4.22 6.54h-2.24l-3.27-5.27-1.47 1.34V33h-1.69zm15.96.97h1.77v2.92h1.67v1.44h-1.67v6.82q0 .55.37.73.2.11.69.11h.27q.15 0 .34-.03V33a4 4 0 0 1-.63.13 6 6 0 0 1-.7.04q-1.24 0-1.67-.63-.44-.63-.44-1.64v-6.92h-1.42v-1.44h1.42zm9.57 2.69q1.11 0 2.15.52 1.05.52 1.6 1.35.52.8.7 1.85.16.72.16 2.3h-7.67q.05 1.6.75 2.56t2.18.96q1.38 0 2.2-.91.47-.53.66-1.22h1.73q-.07.58-.46 1.29a5 5 0 0 1-.86 1.15q-.8.78-1.98 1.06a6 6 0 0 1-1.44.15q-1.95 0-3.3-1.41-1.37-1.43-1.37-3.99 0-2.52 1.37-4.1 1.37-1.56 3.58-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.41-1.27-1.21 0-2.03.88-.82.87-.87 2.22zm2.98-4.4h2.27l2.4 3.68 2.44-3.68 2.14.05-3.53 5.05L134 33h-2.24l-2.6-3.93-2.52 3.93h-2.23l3.68-5.36zm11.34-2.92h1.78v2.92h1.67v1.44h-1.67v6.82q0 .55.37.74.2.1.69.1h.27q.15 0 .34-.03V33q-.3.09-.63.13a6 6 0 0 1-.7.04q-1.24 0-1.68-.63t-.44-1.64v-6.92h-1.41v-1.44h1.41z" fill="#fff"></path>
+  <rect x="72" y="36" width="68" height="2" fill="#b1262b"></rect>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 29.</span> 
+									<strong>Fail:</strong> Link and non-link text are both white
+									on an almost-black (<code>#0D0F13</code>) background. The
+									link's custom underline (<code>#B1262B</code>) is the only way
+									to identify the link. The red underline contrasts less than
+									3:1 with the background color.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Checkbox - border color</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="135" height="60" viewBox="0 0 135 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Grey box on a white background with a black tick in the middle.</title>
+  <rect width="135" height="60" fill="#fff"></rect>
+  <rect x="12.5" y="22.5" width="19" height="19" stroke="#9d9d9d"></rect>
+  <path d="M55.53 16.18h3.54V42h-3.54zm9.44 1.74h3.2v5.25h3v2.59h-3v12.28q0 .99.67 1.32.37.2 1.23.2h.5l.6-.06V42a7 7 0 0 1-1.14.23q-.58.07-1.26.07-2.22 0-3-1.13-.8-1.14-.8-2.95V25.76h-2.55v-2.59h2.55zm17.23 4.83q2 0 3.88.95 1.89.93 2.87 2.43.95 1.42 1.26 3.32.29 1.3.29 4.15H76.7q.08 2.86 1.35 4.6t3.92 1.73q2.48 0 3.96-1.64a5.5 5.5 0 0 0 1.2-2.2h3.1q-.12 1.04-.82 2.32-.69 1.27-1.55 2.08-1.44 1.4-3.57 1.9-1.14.28-2.58.28-3.52 0-5.96-2.55-2.44-2.57-2.44-7.17 0-4.54 2.46-7.37t6.43-2.83m5.04 8.33q-.19-2.05-.9-3.28-1.3-2.29-4.33-2.29-2.18 0-3.66 1.58-1.48 1.57-1.56 4zm7.16-7.9h3.13v2.67q1.12-1.4 2.04-2.03 1.56-1.07 3.55-1.07 2.25 0 3.62 1.1.77.64 1.4 1.87 1.06-1.5 2.48-2.23 1.43-.74 3.2-.74 3.8 0 5.17 2.74.74 1.48.74 3.98V42h-3.29V28.92q0-1.88-.95-2.58-.93-.7-2.28-.7-1.87 0-3.22 1.24-1.34 1.25-1.34 4.17V42h-3.21V29.71q0-1.91-.46-2.8-.72-1.31-2.69-1.31-1.8 0-3.27 1.39-1.46 1.39-1.46 5.03V42H94.4z" fill="#333"></path>
+  <path d="m15.5 32 4 4 9-9" stroke="#000" stroke-width="1.5"></path>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 30.</span> 
+									<strong>Fail:</strong> The grey border color of the checkbox
+									(<code>#9D9D9D</code>) has a contrast ratio of 2.7:1 with the
+									white background, which is not sufficient for the visual
+									information required to identify the checkbox.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Checkbox - subtle focus style</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="135" height="60" viewBox="0 0 135 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Unchecked checkbox with a thick gray additional outline as focus indication.</title>
+  <rect width="135" height="60" fill="#fff"></rect>
+  <rect x="12.5" y="22.5" width="19" height="19" stroke="#000"></rect>
+  <path d="M55.53 16.18h3.54V42h-3.54zm9.44 1.74h3.2v5.25h3v2.59h-3v12.28q0 .99.67 1.32.37.2 1.23.2h.5l.6-.06V42a7 7 0 0 1-1.14.23q-.58.07-1.26.07-2.22 0-3-1.13-.8-1.14-.8-2.95V25.76h-2.55v-2.59h2.55zm17.23 4.83q2 0 3.88.95 1.89.93 2.87 2.43.95 1.42 1.26 3.32.29 1.3.29 4.15H76.7q.08 2.86 1.35 4.6t3.92 1.73q2.48 0 3.96-1.64a5.5 5.5 0 0 0 1.2-2.2h3.1q-.12 1.04-.82 2.32-.69 1.27-1.55 2.08-1.44 1.4-3.57 1.9-1.14.28-2.58.28-3.52 0-5.96-2.55-2.44-2.57-2.44-7.17 0-4.54 2.46-7.37t6.43-2.83m5.04 8.33q-.19-2.05-.9-3.28-1.3-2.29-4.33-2.29-2.18 0-3.66 1.58-1.48 1.57-1.56 4zm7.16-7.9h3.13v2.67q1.12-1.4 2.04-2.03 1.56-1.07 3.55-1.07 2.25 0 3.62 1.1.77.64 1.4 1.87 1.06-1.5 2.48-2.23 1.43-.74 3.2-.74 3.8 0 5.17 2.74.74 1.48.74 3.98V42h-3.29V28.92q0-1.88-.95-2.58-.93-.7-2.28-.7-1.87 0-3.22 1.24-1.34 1.25-1.34 4.17V42h-3.21V29.71q0-1.91-.46-2.8-.72-1.31-2.69-1.31-1.8 0-3.27 1.39-1.46 1.39-1.46 5.03V42H94.4z" fill="#333"></path>
+  <rect x="10.5" y="20.5" width="23" height="23" stroke="#aaa" stroke-width="3"></rect>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 31.</span> 
+									<strong>Fail:</strong> A focus indicator is required. If the
+									focus indicator is styled by the author, it must meet the 3:1
+									contrast ratio with adjacent colors. In this case, the gray
+									(<code>#AAA</code>) indicator has an insufficient ratio of
+									2.3:1 with the white (<code>#FFF</code>) adjacent background.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Text input - low contrast customized caret as only focus indication</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="296" height="96" viewBox="0 0 296 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>A text input with a light blue custom caret.</title>
+  <rect width="296" height="96" fill="#fff"></rect>
+  <path d="M13.52 16.65h2.3l7.24 11.63V16.64h1.85V31h-2.18l-7.35-11.61V31h-1.86zM29.1 28.22q0 .76.56 1.2.55.44 1.32.44.92 0 1.8-.43 1.46-.72 1.46-2.34v-1.41q-.33.2-.83.34-.51.14-1 .2l-1.06.13q-.96.13-1.44.4-.81.46-.81 1.47m4.26-3.56q.6-.08.8-.5.13-.24.13-.68 0-.9-.65-1.3-.63-.4-1.82-.4-1.38 0-1.96.73-.32.41-.42 1.22H27.8q.05-1.93 1.25-2.68 1.21-.76 2.8-.76 1.85 0 3 .7 1.14.7 1.14 2.19v6.02q0 .28.11.44.12.17.48.17l.26-.01.32-.05v1.3a5 5 0 0 1-.63.15q-.21.03-.59.03-.9 0-1.31-.65-.22-.34-.3-.97-.54.7-1.55 1.22-1 .52-2.22.52-1.45 0-2.38-.88t-.92-2.21q0-1.46.91-2.26t2.38-.99zm5.53-4.12h1.73v1.49q.63-.77 1.14-1.13a3.4 3.4 0 0 1 1.97-.6q1.25 0 2.01.62.43.35.78 1.04.59-.84 1.38-1.24t1.78-.41q2.1 0 2.87 1.52.4.82.4 2.2V31h-1.82v-7.27q0-1.04-.53-1.43-.51-.4-1.27-.4-1.03 0-1.78.7-.74.7-.74 2.32V31H45v-6.83q0-1.06-.25-1.55-.4-.73-1.49-.73-1 0-1.82.77-.8.77-.8 2.8V31h-1.76zm21.01-.23q1.11 0 2.16.52 1.04.52 1.6 1.35.52.8.7 1.85.15.72.15 2.3h-7.67q.05 1.6.76 2.56.7.96 2.17.96 1.38 0 2.2-.91.47-.53.67-1.22h1.72q-.06.58-.45 1.29-.38.7-.86 1.15-.8.78-1.99 1.06a6 6 0 0 1-1.43.15q-1.96 0-3.31-1.41-1.36-1.43-1.36-3.99 0-2.52 1.37-4.1 1.36-1.56 3.57-1.56m2.8 4.63q-.1-1.15-.5-1.83-.72-1.27-2.4-1.27-1.22 0-2.04.88-.82.87-.87 2.22z" fill="#000"></path>
+  <rect x="12.5" y="40.5" width="271" height="43" stroke="#767676"></rect>
+  <rect x="20" y="48" width="15" height="28" fill="#00c3ff"></rect>
+  <rect x="11" y="39" width="274" height="46" stroke="#ccc" stroke-width="2"></rect>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 32.</span> 
+									<strong>Fail:</strong> The only focus
+									indication provided by the input is the
+									customized caret / cursor; the light-blue
+									color (<code>#00C7FD</code>) has a contrast
+									lower than 3:1 against the interior white
+									background color of the input, so the focus
+									indication fails this criterion.
+								</p></figcaption>
+							</figure>
+						</article>
+
+						<article>
+							<h5>Text input - no label or other indication, low contrast border</h5>
+							<figure>
+								<div class="specimen">
+									<svg role="img" width="296" height="68" viewBox="0 0 296 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Standard text input without a label, white internal and external background with a light gray border.</title>
+  <rect width="296" height="68" fill="#fff"></rect>
+  <rect x="12.5" y="12.5" width="271" height="43" stroke="#aaa"></rect>
+</svg>
+
+								</div>
+								<figcaption><p><span>Figure 33.</span> 
+									<strong>Fail:</strong> The text input lacks
+									any form of label to hint at its presence.
+									The border color (<code>#AAA</code>) has
+									contrast lower than 3:1 against its adjacent
+									white background. As the border here is
+									required to identify the presence of the
+									input, it must have sufficient contrast to
+									pass this criterion.
+								</p></figcaption>
+							</figure>
+						</article>
+
+					</div>
+
+				</section>
+				<section id="inactive-controls">
+					<h4>Inactive User Interface Components</h4>
+
+					<p>User Interface Components that are not available for user interaction (e.g., a disabled control in HTML) are not required to meet contrast requirements. An inactive user interface component is visible but not currently operable. An example would be a submit button at the bottom of a form that is visible but cannot be activated until all the required fields in the form are completed.</p>
+					<figure id="figure-grey-button-and-text">
+						<svg role="img" width="171" height="64" viewBox="0 0 171 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Grey button with non-contrasting grey text.</title>
+  <rect width="171" height="64" fill="#fff"></rect>
+  <rect x="12.5" y="12.5" width="146" height="39" fill="#ccc"></rect>
+  <rect x="12.5" y="12.5" width="146" height="39" stroke="#bfbfbf"></rect>
+  <path d="M26.8 34.37q.06 1.22.57 1.98.97 1.43 3.4 1.43 1.1 0 2-.31 1.74-.6 1.74-2.17 0-1.17-.74-1.67-.74-.49-2.32-.85l-1.94-.44q-1.9-.43-2.7-.95-1.36-.9-1.36-2.68 0-1.94 1.33-3.18t3.8-1.24q2.25 0 3.82 1.1 1.58 1.08 1.58 3.47h-1.82q-.15-1.15-.63-1.76-.89-1.13-3.02-1.13-1.72 0-2.47.73-.75.72-.75 1.68 0 1.05.88 1.54.58.31 2.6.78l2.02.46q1.45.33 2.25.9Q36.4 33.08 36.4 35q0 2.38-1.74 3.4-1.72 1.03-4.02 1.03-2.67 0-4.19-1.37-1.51-1.35-1.48-3.68zm13.59-5.83v6.94q0 .8.25 1.31.47.94 1.75.94 1.83 0 2.5-1.64.36-.88.36-2.41v-5.14h1.76V39h-1.66l.02-1.54a4 4 0 0 1-.85 1q-1 .82-2.44.82-2.24 0-3.05-1.5-.44-.8-.44-2.13v-7.1zm9.24-3.93h1.7v5.2a4 4 0 0 1 1.38-1.14 4 4 0 0 1 1.74-.4q1.95 0 3.16 1.35 1.22 1.33 1.22 3.95 0 2.48-1.2 4.12t-3.33 1.64q-1.19 0-2-.57-.5-.35-1.05-1.1V39h-1.62zm4.56 13.17q1.43 0 2.14-1.13.7-1.14.7-3 0-1.64-.7-2.73-.7-1.08-2.09-1.08-1.2 0-2.1.89t-.9 2.93q0 1.47.37 2.4.7 1.72 2.59 1.72m6.7-9.24h1.73v1.49q.63-.77 1.14-1.13a3.4 3.4 0 0 1 1.97-.6q1.25 0 2.01.62.43.35.78 1.04.59-.84 1.38-1.24t1.78-.41q2.1 0 2.87 1.52.4.82.4 2.2V39h-1.82v-7.27q0-1.04-.53-1.43-.51-.4-1.27-.4-1.03 0-1.78.7t-.75 2.32V39h-1.78v-6.83q0-1.06-.26-1.55-.4-.73-1.5-.73-.99 0-1.8.77t-.82 2.8V39H60.9zm16.66.05h1.78V39h-1.78zm0-3.94h1.78v2h-1.78zm4.8.97h1.78v2.92h1.67v1.44h-1.67v6.82q0 .55.37.74.2.1.68.1h.28q.14 0 .34-.03V39q-.3.09-.64.13-.32.04-.7.04-1.23 0-1.67-.63t-.44-1.64v-6.92h-1.42v-1.44h1.42zm24.14 13.34-.98 1.18-2.21-1.69a8 8 0 0 1-1.74.7 7 7 0 0 1-2.03.27q-3.34 0-5.24-2.19-1.67-2.13-1.67-5.33 0-2.91 1.45-4.98 1.85-2.66 5.49-2.66 3.8 0 5.62 2.45 1.43 1.9 1.43 4.87 0 1.39-.35 2.66-.51 1.96-1.74 3.19zm-6.73-1.28a8 8 0 0 0 1.13-.08 3 3 0 0 0 .92-.33l-1.57-1.23.98-1.2 1.87 1.45a5.4 5.4 0 0 0 1.2-2.27q.33-1.26.33-2.41 0-2.53-1.33-4.08Q101.98 26 99.68 26q-2.32 0-3.68 1.49-1.36 1.47-1.36 4.55 0 2.59 1.3 4.12 1.31 1.53 3.83 1.53m10.7-9.14v6.94q0 .8.25 1.31.47.94 1.75.94 1.83 0 2.5-1.64.36-.88.36-2.41v-5.14h1.76V39h-1.66l.02-1.54a4 4 0 0 1-.85 1q-1.01.82-2.45.82-2.23 0-3.04-1.5-.44-.8-.44-2.13v-7.1zm13.73-.23q1.1 0 2.15.52t1.6 1.35q.52.8.7 1.85.15.72.15 2.3h-7.66q.05 1.6.75 2.56t2.18.96q1.38 0 2.2-.9.46-.54.66-1.23h1.73q-.07.58-.46 1.29a5 5 0 0 1-.86 1.15q-.8.78-1.98 1.06a6 6 0 0 1-1.44.15q-1.95 0-3.3-1.41-1.37-1.43-1.37-3.99 0-2.52 1.37-4.09t3.58-1.57m2.8 4.63q-.11-1.15-.5-1.83-.72-1.27-2.41-1.27-1.21 0-2.03.88-.82.87-.87 2.22zm4.02-4.4h1.67v1.8q.2-.52 1-1.27.8-.76 1.85-.76h.17l.4.05v1.85l-.3-.04h-.28q-1.32 0-2.04.85a3 3 0 0 0-.71 1.96V39h-1.76zm13.15 0h1.94q-.37 1-1.65 4.6a225 225 0 0 1-1.6 4.39q-1.52 4-2.15 4.88t-2.15.88q-.37 0-.58-.03l-.48-.1v-1.61q.46.13.66.16t.36.03q.5 0 .71-.17.24-.16.4-.4.05-.07.35-.8t.44-1.07l-3.87-10.76h2l2.8 8.52z" fill="#6d6d6d"></path>
+</svg>
+
+						<figcaption><p><span>Figure 34.</span>  An inactive button using default browser styles</p></figcaption>
+					</figure>
+					<p>Inactive components, such as disabled controls in HTML, are not available for user interaction. The decision to exempt inactive controls from the contrast requirements was based on a number of considerations. Although it would be beneficial to some people to discern inactive controls, a one-size-fits-all solution has been very difficult to establish. A method of varying the presentation of disabled controls, such as adding an icon for disabled controls, based on user preferences is anticipated as an advancement in the future.</p>
+				</section>
+			</section>
+
+
+			<section id="graphical-objects">
+				<h3>Graphical Objects</h3>
+
+
+				<p>The term "graphical object" applies to stand-alone icons such as a print icon (with no text), and the important parts of a more complex diagram such as each line in a graph. For simple graphics such as single-color icons the entire image is a graphical object. Images made up of multiple lines, colors and shapes will be made of multiple graphical objects, some of which are required for understanding.</p>
+
+				<p>Not every graphical object needs to contrast with its surroundings - only those that are required for a user to understand what the graphic is conveying. <a href="https://en.wikipedia.org/wiki/Gestalt_psychology#Pr.C3.A4gnanz">Gestalt principles</a> such as the "law of continuity" can be used to ignore minor overlaps with other graphical objects or colors.</p>
+
+				<div class="figure-collection" data-specimen-size="small">
+
+					<article>
+						<figure>
+							<div class="specimen">
+								<img src="img/contrast-phone.png" alt="An orange circle with a white telephone icon in the middle." height="80">
+							</div>
+							<figcaption>
+								<p><span>Figure 35.</span> 
+									The phone icon is a simple shape within the orange
+									(<code>#E3660E</code>) circle. The meaning can be understood
+									from that icon alone, the background behind the circle is
+									irrelevant. The orange background and the white icon have a
+									contrast ratio greater than 3:1, which passes.
+								</p>
+								<p>The graphical object is the white phone icon.</p>
+							</figcaption>
+						</figure>
+					</article>
+
+					<article>
+						<figure>
+							<div class="specimen">
+								<img src="img/contrast-magnet.png" alt="A red magnet with grey tips and a black outline." height="80">
+							</div>
+							<figcaption>
+								<p><span>Figure 36.</span> 
+									A magnet can be understood by the "U" shape with lighter colored
+									tips. Therefore to understand this graphic you should be able to
+									discern the overall shape (against the background) and the
+									lighter colored tips (against the rest of the U shape and the
+									background).
+								</p>
+								<p>
+									The graphical objects are the "U" shape (by outline or by the
+									solid red color #D0021B), and each tip of the magnet.
+								</p>
+							</figcaption>
+						</figure>
+					</article>
+
+					<article>
+						<figure>
+							<div class="specimen">
+								<img src="img/contrast-currency-down.png" alt="A yellow arrow pointing down with a pound sign (currency) in the middle." height="80">
+							</div>
+							<figcaption>
+								<p><span>Figure 37.</span> 
+									The symbol to show a currency (the £) going down can be
+									understood with recognition of the shape (down arrow) and the
+									currency symbol (pound icon with the shape which is part of the
+									graphic). To understand this graphic you need to discern the
+									arrow shape against the white background, and the pound icon
+									against the yellow background (<code>#F5A623</code>).
+								</p>
+								<p>
+									The graphical objects are the shape and the currency symbol.
+								</p>
+							</figcaption>
+						</figure>
+					</article>
+
+				</div>
+
+				<p>Taking the magnet image above as an example, the process for establishing the graphical object(s) is to:</p>
+				<ul>
+					<li>Assess what part of each image is needed to understand what it represents.<br>
+						The magnet's "U" shape can be conveyed by the outline or by the red background (either is acceptable). The white tips are also important (otherwise it would be a horseshoe), which needs to contrast with the red background.</li>
+					<li>Assume that the user could only see those aspects. Do they contrast with the adjacent colors?<br>
+						The outline of the magnet contrasts with the surrounding text (black/white), and the red and white between the tips also has sufficient contrast.</li>
+				</ul>
+
+				<p>Due to the strong contrast of the red and white, it would also be possible to only put the outline around the white tips of the magnet and it would still conform.</p>
+
+				<figure>
+					
+					<a href="img/simple-line-graph.png"><img src="img/simple-line-graph.png" alt="A line chart of votes across a region, with 4 lines of different colors tracking over time." width="958"></a>
+					<figcaption>
+						<p><span>Figure 38.</span> 
+							In order to understand the graph you need to discern the lines
+							and shapes for each condition. To perceive the values of each
+							line along the chart you need to discern the grey lines marking
+							the graduated 100 value increments.
+						</p>
+						<p>
+							The graphical objects are the lines in the graph, including the
+							background lines for the values, and the colored lines with
+							shapes.
+						</p>
+						<p>
+							The lines should have 3:1 contrast against their background, but
+							as there is little overlap with other lines they do not need to
+							contrast with each other or the graduated lines. (See the
+							<a href="#testing-principles">testing principles</a> below.)
+						</p>
+					</figcaption>
+				</figure>
+
+				<figure>
+					<a href="img/graphics-contrast_pie-chart_pass.png"><img src="img/graphics-contrast_pie-chart_pass.png" alt="A pie chart with small gaps between each slice showing the white background, and a dark outline around light colored slices." width="500"></a>
+					<figcaption>
+						<p><span>Figure 39.</span> 
+							To understand the pie chart you have to discern each slice of
+							the pie chart from the others.
+						</p>
+						<p>The graphical objects are the slices of the pie (chart).</p>
+						<p>
+							Note: If the values of the pie chart slices were also presented
+							in a conforming manner (see the <a href="#pie-charts">Pie Charts example</a> for details),
+							the slices would not be required for understanding.
+						</p>
+					</figcaption>
+				</figure>
+
+				<section id="required-for-understanding">
+				<h4>Required for Understanding</h4>
+
+				<p>The term "required for understanding" is used in the success criterion as many graphics do not need to meet the contrast requirements. If a person needs to perceive a graphic, or part of a graphic (a graphical object) in order to understand the content it should have sufficient contrast. However, that is not a requirement when:</p>
+				<ul>
+					<li>
+						<p>A graphic with text embedded or overlaid conveys the same information, such as labels <em>and</em> values on a chart.</p>
+						<div class="note">
+				<p class="note-title marker">Note</p>
+				<p>Text within a graphic must meet <a href="contrast-minimum" class="sc">1.4.3 Contrast (Minimum)</a>.</p>
+			</div>
+					</li>
+					<li> The graphic is for aesthetic purposes that does not require the user to see or understand it to understand the content or use the functionality.</li>
+					<li> The information is available in another form, such as in a table that follows the graph, which becomes visible when a "Long Description" button is pressed.</li>
+					<li> The graphic is part of a logo or brand name (which is considered "essential" to its presentation).</li>
+				</ul>
+				</section>
+
+				<section id="logos">
+				<h4>Logos</h4>
+
+				<p>Logos are exempted from contrast requirements, under the assumption that they must comply with stricter color choices mandated
+				by corporate identity or brand guidelines. However, this can be problematic when logos act as <a href="#dfn-user-interface-component">user interface components</a>
+				(such as a link or other interactive control). In these cases, as a best practice, authors should consider choosing a variant of
+				the logo that has sufficient contrast, if allowed by the corporate identity or brand guidelines.
+				Alternatively, authors should consider providing an equivalent <a href="#dfn-user-interface-component">user interface component</a> which serves the same purpose and meets
+				contrast requirements.</p>
+
+				<p>If logos are presented with an insufficient contrast, but their presentation was an author choice rather than
+				being mandated by corporate identity or brand guidelines, then that particular low contrast presentation is
+				<em>not</em> "essential", and the logo is <em>not</em> exempt from the contrast requirements.</p>
+
+				<figure id="figure-low-contrast-logos-author-choice">
+					<img src="img/1.4.11-ntc-author-choice-logos.png" alt="A heading: 'ACME tool is trusted by the world's most innovative companies.'; below the heading, a series of nine company logos, all presented as very dark grey logos on the page's black background, with very low contrast; one logo is hovered with the mouse, and is displayed in white, with high contrast against the page background.">
+					<figcaption><p><span>Figure 40.</span> An author chooses to present company logos with low contrast by default, until they are hovered; the fact that these are logos doesn't exempt this scenario from failing the requirements of this success criterion, as the initial low contrast presentation is not "essential"</p></figcaption>
+				</figure>
+
+				</section>
+				<section id="gradients">
+				<h4>Gradients</h4>
+
+				<p>Gradients can reduce the apparent contrast between areas, and make it more difficult to test. The general principles is to identify the graphical object(s) required for understanding, and take the central color of that area. If you remove the adjacent color which does not have sufficient contrast, can you still identify and understand the graphical object?</p>
+				<figure id="figure-blue-circle-i-versions">
+          <img src="img/contrast-gradient.png" alt="Two versions of a blue circle with an 'i' indicating information. The first example has a blue gradient background, the second is missing the upper half of the background which obscures the i." width="300">
+				<figcaption><p><span>Figure 41.</span> Removing the background which does not have sufficient contrast highlights that the graphical object (the "i") is not then understandable.</p></figcaption></figure>
+				</section>
+				<section id="dynamic-examples">
+				<h4>Dynamic Examples</h4>
+
+				<p>Some graphics may have interactions that either vary the contrast, or display the information as text when you mouseover/tap/focus each graphical object. In order for someone to discern the graphics exist at all, the unfocused default version must already have sufficiently contrasting colors or text. For the area that receives focus, information can then be made available dynamically as pop-up text, or be foregrounded dynamically by increasing the contrast.</p>
+
+				
+				<figure id="figure-pie-slice-hover-data">
+					<img alt="A pie chart with one slice highlighted and a box hovering next to it that shows the data and indicates the source in the key." src="img/dynamic-pie-chart.png" width="350">
+					<figcaption><p><span>Figure 42.</span> A dynamic chart where the current 'slice' is hovered or focused, which activates the associated text display of the values and highlights the series</p></figcaption>
+				</figure>
+				</section>
+				<section id="infographics">
+				<h4>Infographics</h4>
+
+				<p>Infographics can mean any graphic conveying data, such as a chart or diagram. On the web it is often used to indicate a large graphic with lots of statements, pictures, charts or other ways of conveying data. In the context of graphics contrast, each item within such an infographic should be treated as a set of graphical objects, regardless of whether it is in one file or separate files.</p>
+
+				<p>Infographics often fail to meet several WCAG level AA criteria including:</p>
+
+				<ul>
+					<li><a href="non-text-content" class="sc">1.1.1 Non-text Content</a></li>
+					<li><a href="use-of-color" class="sc">1.4.1 Use of Color</a></li>
+					<li><a href="contrast-minimum" class="sc">1.4.3 Contrast (Minimum)</a></li>
+					<li><a href="images-of-text" class="sc">1.4.5 Images of Text</a></li>
+				</ul>
+
+				<p>An infographic can use text which meets the other criteria to minimize the number of graphical objects required for understanding. For example, using text with sufficient contrast to provide the values in a chart. A long description would also be sufficient because then the infographic is not relied upon for understanding.</p>
+
+				</section>
+
+				<section id="symbolic-text-characters">
+					<h4>Symbolic text characters</h4>
+					<p>When text characters are used as symbols – used for their visual appearance, rather than <q>expressing something in human language</q> – they fall under the definition of <a href="#dfn-non-text-content">non-text content</a>.</p>
+					<figure id="figure-text-symbols">
+						<svg role="img" width="128" height="68" viewBox="0 0 128 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>A button using an uppercase ‘X’ and a button with a greater-than character</title>
+  <rect width="128" height="68" fill="#fff"></rect>
+  <rect x="12.5" y="12.5" width="43" height="43" rx="5.5" fill="#949494"></rect>
+  <rect x="12.5" y="12.5" width="43" height="43" rx="5.5" stroke="#000"></rect>
+  <path d="M40.43 41h-3.66l-2.73-4.9-2.89 4.9h-3.5l4.63-7.33-4.4-7.06h3.6l2.56 4.67 2.64-4.68h3.47l-4.4 6.95z" fill="#000"></path>
+  <rect x="72.5" y="12.5" width="43" height="43" rx="5.5" fill="#949494"></rect>
+  <rect x="72.5" y="12.5" width="43" height="43" rx="5.5" stroke="#000"></rect>
+  <path d="m96.6 33.7-8.21-2.9v-2.72l11.5 4.4v2.48l-11.5 4.37v-2.71z" fill="#000"></path>
+</svg>
+
+						<figcaption><p><span>Figure 43.</span> Even though the two buttons use text characters — an uppercase <q>X</q>, often used for "Close" buttons, and a <q>&gt;</q> character, to act as a right-pointing arrow — they count as non-text characters/symbols. Their contrast ratio of just above 3:1 passes this success criterion.</p></figcaption>
+					</figure>
+				</section>
+
+				<section id="essential-exception">
+					<h4>Essential Exception</h4>
+
+					<p>Graphical objects do not have to meet the contrast requirements when "a particular presentation of graphics is essential to the information being conveyed". The Essential exception is intended to apply when there is no way of presenting the graphic with sufficient contrast without undermining the meaning. For example:</p>
+					<ul>
+						<li><strong>Logos and logotypes</strong>: The brand logo of an organization or product is the representation of that organization, and is often
+							presented in the brand's specific colors; it is therefore exempt.</li>
+						<li><strong>Flags</strong>: Flags may not be identifiable if the colors are changed to have sufficient contrast.</li>
+						<li><strong>Sensory</strong>: There is no requirement to change pictures of real life scenes such as photos of people or scenery.</li>
+						<li><strong>Representing other things</strong>: If you cannot represent the graphic in any other way, it is essential. Examples include:
+							<ul>
+								<li>Screenshots to demonstrate how a website appeared.</li>
+								<li>Diagrams of medical information that use the colors found in biology (<a href="https://commons.wikimedia.org/wiki/File:Schematic_diagram_of_the_human_eye_it.svg">example medical schematic from Wikipedia</a>).</li>
+								<li>color gradients that represent a measurement, such as heat maps (<a href="https://commons.wikimedia.org/wiki/File:Eyetracking_heat_map_Wikipedia.jpg">example heatmap from Wikipedia</a>).</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+
+			<section id="testing-principles">
+					<h3>Testing Principles</h3>
+					<p>A summary of the high-level process for finding and assessing non-text content on a web page:</p>
+					<ul>
+						<li>Identify each user-interface component (link, button, form control) on the page and:
+							<ul>
+								<li>Identify the visual (non-text) indicators of the component that are required to identify that a control exists, and indicate the current state. In the default (on page load) state, test the contrast ratio against the adjacent colors.</li>
+								<li>Test those contrast indicators in each state.</li>
+							</ul>
+						</li>
+						<li>Identify each graphic on the page that includes information required for understanding the content (i.e., excluding graphics which have visible text for the same information, or are decorative) and:
+							<ul>
+								<li>Check the contrast of the graphical object against its adjacent colors;</li>
+								<li>If there are multiple colors and/or a gradient, choose the least contrasting area to test;</li>
+								<li>If it passes, move to the next graphical object;</li>
+								<li>If the least-contrasting area is less than 3:1, assume that area is invisible, is the graphical object still understandable?</li>
+								<li>If there is enough of the graphical object to understand, it passes, else fail.</li>
+							</ul>
+						</li>
+					</ul>
+					<p>The techniques below each have testing criteria, and the related criteria for <a href="focus-visible">Focus visible (2.4.7)</a>, <a href="use-of-color">Use of color (1.4.1)</a>, and <a href="contrast-minimum">Contrast minimum</a> also have techniques.</p>
+			</section>
+
+			</section>
+
+		</section>
+
+		<section id="benefits">
+			<h2>Benefits</h2>
+			<p>People with low vision often have difficulty perceiving graphics that have insufficient contrast. This can be exacerbated if the person has a color vision deficiency that lowers the contrast even further. Providing a <a href="https://www.w3.org/TR/2008/REC-WCAG20-20081211/#relativeluminancedef">relative luminance</a> (lightness difference) of 3:1 or greater can make these items more distinguishable when the person does not see a full range of colors.</p>
+		</section>
+
+		<section id="examples">
+			<h2>Examples</h2>
+			<ul>
+				<li>Status icons on an application's dashboard (without associated text) have a 3:1 minimum contrast ratio.</li>
+				<li>A text input has a dark border around the white editable area.</li>
+				<li>A graph uses a light background and ensures that the colors for each line have a 3:1 contrast ratio against the background.</li>
+			</ul>
+			<section class="example" id="pie-charts">
+				<h3>Pie Charts</h3>
+				<p>Pie charts make a good case study for the graphical objects part of this success criterion, the following pie charts are intended to convey the proportion of market share each browser has. Please Note: The actual figures are made up, these are not actual market shares. </p>
+				<figure id="figure-failing-pie-chart">
+					<img src="img/graphics-contrast_pie-chart_fail.png" alt="Failing pie chart">
+					<figcaption>
+						<p><span>Figure 44.</span> <strong>Fail:</strong> The pie chart has labels for each slice (so passes 1.4.1 Use of Color), but in order to understand the proportions of the slices you must discern the edges of the slices (the graphical objects conveying essential information), and the contrast between the slices is not  3:1 or greater. </p>
+					</figcaption>
+				</figure>
+				<figure id="figure-not-applicable-pie-chart">
+					<img src="img/graphics-contrast_pie-chart_na.png" alt="Not applicable pie chart">
+					<figcaption>
+						<p><span>Figure 45.</span> <strong>Not applicable:</strong> The pie chart has visible labels <em>and</em> values that convey equivalent information to the graphical objects (the pie slices). </p>
+					</figcaption>
+				</figure>
+				<figure id="figure-passing-pie-chart">
+					<img src="img/graphics-contrast_pie-chart_pass.png" alt="Passing pie chart">
+					<figcaption>
+						<p><span>Figure 46.</span> <strong>Pass:</strong> The pie chart has visible labels, and sufficient contrast around and between the slices of the pie chart (the graphical objects). A darker border has been added around the yellow slice in order to achieve the contrast level.</p>
+					</figcaption>
+				</figure>
+			</section>
+			<section class="example" id="infographics-2">
+				<h3>Infographics</h3>
+				<figure id="figure-infographic-light-circles">
+					<img src="img/infographic-fail.png" alt="An infographic showing lightly colored circles of various sizes to indicate the size of five different social networks">
+					<figcaption>
+						<p><span>Figure 47.</span> <strong>Fail:</strong> Discerning the circles is required to understand the size of network and discerning the icons in each circle is required to identify which network it shows.</p>
+					</figcaption>
+				</figure>
+				<p>The graphical objects are the circles (measured against the background) and the icons in each circle (measured against the circle's background).</p>
+				<figure id="figure-infographic-contrasting-text">
+					<img src="img/infographic-pass.png" alt="The same infographic with contrasting text, dark borders around the circles, and contrasting icons.">
+					<figcaption>
+						<p><span>Figure 48.</span> <strong>Pass:</strong> The circles have contrasting borders and the icons are a contrasting dark color against the light circle backgrounds.</p>
+					</figcaption>
+				</figure>
+				<p>There are many possible solutions to ensuring contrast, the example shows the use of borders. Other techniques are to use darker colors for the circle backgrounds, or to add text labels &amp; values for each item.</p>
+			</section>
+		</section>
+
+
+		<section id="resources">
+			<h2>Related Resources</h2>
+<p>Resources are for information purposes only, no endorsement implied.</p>
+
+
+			<ul>
+				<li><a href="http://w3c.github.io/low-vision-a11y-tf/requirements.html">Accessibility Requirements for People with Low Vision</a>.</li>
+				<li><a href="https://lists.w3.org/Archives/Public/public-low-vision-a11y-tf/2017May/0007.html">Smith Kettlewell Eye Research Institute</a> -  "If the text is better understood with the graphics, they should be equally visible as the text".</li>
+				<li><a href="https://lists.w3.org/Archives/Public/public-low-vision-a11y-tf/2017Jun/0054.html">Gordon Legge</a> - "Contrast requirements for form controls should be equivalent to contrast requirements for text".</li>
+			</ul>
+		</section>
+		
+		<section id="techniques">
+  <h2>Techniques</h2>
+  <p>
+    Each item in this section represents a technique or combination of techniques
+    that the Accessibility Guidelines Working Group deems sufficient for meeting this success criterion.
+    A technique may go beyond the minimum requirement of the criterion. There may be other ways of meeting the criterion not covered by these techniques.
+    For information on using other techniques, see
+    <a href="understanding-techniques">Understanding Techniques for WCAG Success Criteria</a>,
+    particularly the "Other Techniques" section.
+  </p>
+
+  
+    <section id="sufficient">
+      <h3>Sufficient Techniques</h3><p>
+  Select the situation below that matches your content.
+  Each situation includes techniques or combinations of techniques that are known and documented to be sufficient for that situation.
+</p>
+<section id="non-text-contrast-situation-0">
+      <h4>Situation A: Color is used to identify user interface components</h4>
+      <ul>
+  <li>
+    <p>Identifying user interface components
+        using
+         the following techniques:
+      </p>
+      <ul>
+  <li>
+    <a href="https://www.w3.org/WAI/WCAG21/Techniques/general/G174">G174: Providing a control with a sufficient contrast ratio that allows users to switch to a presentation that uses sufficient contrast</a></li>
+</ul>
+</li>
+</ul>
+
+      </section><section id="non-text-contrast-situation-1">
+      <h4>Situation B: Color is used to identify a user interface component's focus state</h4>
+      <ul>
+  <li>
+    <p>Identifying a user interface component's focus state
+        using
+         the following techniques:
+      </p>
+      <ul>
+  <li>
+    <a href="https://www.w3.org/WAI/WCAG21/Techniques/general/G195">G195: Using an author-supplied, visible focus indicator</a></li>
+
+  <li>
+    <a href="https://www.w3.org/WAI/WCAG21/Techniques/css/C40">C40: Creating a two-color focus indicator to ensure sufficient contrast with all components</a></li>
+</ul>
+</li>
+</ul>
+
+      </section><section id="non-text-contrast-situation-2">
+      <h4>Situation C: Color is required to understand graphical content</h4>
+      <ul>
+  <li>
+    <p>Making graphical content understandable
+        using
+         the following techniques:
+      </p>
+      <ul>
+  <li>
+    <a href="https://www.w3.org/WAI/WCAG21/Techniques/general/G207">G207: Ensuring that a contrast ratio of 3:1 is provided for icons</a></li>
+
+  <li>
+    <a href="https://www.w3.org/WAI/WCAG21/Techniques/general/G209">G209: Provide sufficient contrast at the boundaries between adjoining colors</a></li>
+</ul>
+</li>
+</ul>
+
+      </section></section>
+  
+    <section id="failure">
+      <h3>Failures</h3>
+      <p>
+  The following are common mistakes that are considered failures of this success criterion by the Accessibility Guidelines Working Group.
+</p>
+
+      <ul>
+  <li>
+    <a href="https://www.w3.org/WAI/WCAG21/Techniques/failures/F78">F78: Failure of Success Criterion 1.4.11 and 2.4.7 due to styling element outlines and borders in a way that
+      removes or renders non-visible the visual focus indicator</a></li>
+</ul>
+
+    </section>
+  </section>
+
+	
+
+
+
+
+<section id="key-terms">
+  <details>
+    <summary><h2>Key Terms</h2></summary>
+    <dl>
+      <dt id="dfn-ascii-art">ASCII art</dt><dd><p>picture created by a spatial arrangement of characters or glyphs (typically from the
+      95 printable characters defined by ASCII)
+   </p></dd>
+      <dt id="dfn-assistive-technology">assistive technology</dt><dd><p>hardware and/or software that acts as a <a href="#dfn-user-agent">user agent</a>, or along with a mainstream user agent, to provide functionality to meet the requirements
+      of users with disabilities that go beyond those offered by mainstream user agents
+   </p>
+   
+   <div class="note">
+				<p class="note-title marker">Note 1</p>
+				<p>functionality provided by assistive technology includes alternative presentations
+      (e.g., as synthesized speech or magnified content), alternative input methods (e.g.,
+      voice), additional navigation or orientation mechanisms, and content transformations
+      (e.g., to make tables more accessible).
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 2</p>
+				<p>Assistive technologies often communicate data and messages with mainstream user agents
+      by using and monitoring APIs.
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 3</p>
+				<p>The distinction between mainstream user agents and assistive technologies is not absolute.
+      Many mainstream user agents provide some features to assist individuals with disabilities.
+      The basic difference is that mainstream user agents target broad and diverse audiences
+      that usually include people with and without disabilities. Assistive technologies
+      target narrowly defined populations of users with specific disabilities. The assistance
+      provided by an assistive technology is more specific and appropriate to the needs
+      of its target users. The mainstream user agent may provide important functionality
+      to assistive technologies like retrieving web content from program objects or parsing
+      markup into identifiable bundles.
+   </p>
+			</div>
+   
+   <aside class="example"><p class="example-title marker">Example</p><p>Assistive technologies that are important in the context of this document include
+      the following:
+   </p></aside>
+   
+   <ul>
+      
+      <li>screen magnifiers, and other visual reading assistants, which are used by people with
+         visual, perceptual and physical print disabilities to change text font, size, spacing,
+         color, synchronization with speech, etc. in order to improve the visual readability
+         of rendered text and images;
+      </li>
+      
+      <li>screen readers, which are used by people who are blind to read textual information
+         through synthesized speech or braille;
+      </li>
+      
+      <li>text-to-speech software, which is used by some people with cognitive, language, and
+         learning disabilities to convert text into synthetic speech;
+      </li>
+      
+      <li>speech recognition software, which may be used by people who have some physical disabilities;</li>
+      
+      <li>alternative keyboards, which are used by people with certain physical disabilities
+         to simulate the keyboard (including alternate keyboards that use head pointers, single
+         switches, sip/puff and other special input devices.);
+      </li>
+      
+      <li>alternative pointing devices, which are used by people with certain physical disabilities
+         to simulate mouse pointing and button activations.
+      </li>
+      
+   </ul></dd>
+      <dt id="dfn-content">content</dt><dd><p>information and sensory experience to be communicated to the user by means of a <a href="#dfn-user-agent">user agent</a>, including code or markup that defines the content's <a href="#dfn-structure">structure</a>, <a href="#dfn-presentation">presentation</a>, and interactions
+   </p></dd>
+      <dt id="dfn-contrast-ratio">contrast ratio</dt><dd><p>(L1 + 0.05) / (L2 + 0.05), where</p>
+   
+   <ul>
+      
+      <li>L1 is the <a href="#dfn-relative-luminance">relative luminance</a> of the lighter of the colors, and
+      </li>
+      
+      <li>L2 is the <a href="#dfn-relative-luminance">relative luminance</a> of the darker of the colors.
+      </li>
+      
+   </ul>
+   
+   <div class="note">
+				<p class="note-title marker">Note 1</p>
+				<p>Contrast ratios can range from 1 to 21 (commonly written 1:1 to 21:1).</p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 2</p>
+				<p>Because authors do not have control over user settings as to how text is rendered
+      (for example font smoothing or anti-aliasing), the contrast ratio for text can be
+      evaluated with anti-aliasing turned off.
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 3</p>
+				<p>For the purpose of Success Criteria 1.4.3 and 1.4.6, contrast is measured with respect
+      to the specified background over which the text is rendered in normal usage. If no
+      background color is specified, then white is assumed.
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 4</p>
+				<p>Background color is the specified color of content over which the text is to be rendered
+      in normal usage. It is a failure if no background color is specified when the text
+      color is specified, because the user's default background color is unknown and cannot
+      be evaluated for sufficient contrast. For the same reason, it is a failure if no text
+      color is specified when a background color is specified.
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 5</p>
+				<p>When there is a border around the letter, the border can add contrast and would be
+      used in calculating the contrast between the letter and its background. A narrow border
+      around the letter would be used as the letter. A wide border around the letter that
+      fills in the inner details of the letters acts as a halo and would be considered background.
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 6</p>
+				<p>WCAG conformance should be evaluated for color pairs specified in the content that
+      an author would expect to appear adjacent in typical presentation. Authors need not
+      consider unusual presentations, such as color changes made by the user agent, except
+      where caused by authors' code.
+   </p>
+			</div></dd>
+      <dt id="dfn-essential">essential</dt><dd><p>if removed, would fundamentally change the information or functionality of the content,
+      <strong>and</strong> information and functionality cannot be achieved in another way that would conform
+   </p></dd>
+      <dt id="dfn-human-language">human language</dt><dd><p>language that is spoken, written or signed (through visual or tactile means) to communicate
+      with humans
+   </p>
+   
+   <div class="note">
+				<p class="note-title marker">Note</p>
+				<p>See also <a href="#dfn-sign-language">sign language</a>.
+   </p>
+			</div></dd>
+      <dt id="dfn-non-text-content">non-text content</dt><dd><p>any content that is not a sequence of characters that can be <a href="#dfn-programmatically-determined">programmatically determined</a> or where the sequence is not expressing something in <a href="#dfn-human-language">human language</a></p>
+   
+   <div class="note">
+				<p class="note-title marker">Note</p>
+				<p>This includes <a href="#dfn-ascii-art">ASCII art</a> (which is a pattern of characters), emoticons, leetspeak (which uses character substitution),
+      and images representing text
+   </p>
+			</div></dd>
+      <dt id="dfn-presentation">presentation</dt><dd><p>rendering of the <a href="#dfn-content">content</a> in a form to be perceived by users
+   </p></dd>
+      <dt id="dfn-programmatically-determined">programmatically determined</dt><dd><p>determined by software from author-supplied data provided in a way that different
+      <a href="#dfn-user-agent">user agents</a>, including <a href="#dfn-assistive-technology">assistive technologies</a>, can extract and present this information to users in different modalities
+   </p>
+   
+   <aside class="example"><p class="example-title marker">Example 1</p><p>Determined in a markup language from elements and attributes that are accessed directly
+      by commonly available assistive technology.
+   </p></aside>
+   
+      <aside class="example"><p class="example-title marker">Example 2</p><p>Determined from technology-specific data structures in a non-markup language and exposed
+      to assistive technology via an accessibility API that is supported by commonly available
+      assistive technology.
+      </p></aside></dd>
+      <dt id="dfn-relative-luminance">relative luminance</dt><dd><p>the relative brightness of any point in a colorspace, normalized to 0 for darkest
+      black and 1 for lightest white
+   </p>
+   
+  <div class="note">
+				<p class="note-title marker">Note 1</p>
+				<div>
+   <p>For the sRGB colorspace, the relative luminance of a color is defined as L = 0.2126
+      * <strong>R</strong> + 0.7152 * <strong>G</strong> + 0.0722 * <strong>B</strong> where <strong>R</strong>, <strong>G</strong> and <strong>B</strong> are defined as:
+   </p>
+   
+   <ul>
+      
+      <li>if RsRGB &lt;= 0.04045 then <strong>R</strong> = RsRGB/12.92 else <strong>R</strong> = ((RsRGB+0.055)/1.055) ^ 2.4
+      </li>
+      
+      <li>if GsRGB &lt;= 0.04045 then <strong>G</strong> = GsRGB/12.92 else <strong>G</strong> = ((GsRGB+0.055)/1.055) ^ 2.4
+      </li>
+      
+      <li>if BsRGB &lt;= 0.04045 then <strong>B</strong> = BsRGB/12.92 else <strong>B</strong> = ((BsRGB+0.055)/1.055) ^ 2.4
+      </li>
+      
+   </ul>
+   
+   <p>and RsRGB, GsRGB, and BsRGB are defined as:</p>
+   
+   <ul>
+      
+      <li>RsRGB = R8bit/255</li>
+      
+      <li>GsRGB = G8bit/255</li>
+      
+      <li>BsRGB = B8bit/255</li>
+      
+   </ul>
+   
+   <p>The "^" character is the exponentiation operator. (Formula taken from 
+      [<a href="https://webstore.iec.ch/publication/6169">SRGB</a>].)
+   </p>
+
+  </div>
+			</div>
+
+  <div class="note">
+				<p class="note-title marker">Note 2</p>
+				<p>Before May 2021 the value of 0.04045 in the definition was different (0.03928). It was taken from an older version of the specification and has been updated. It has no practical effect on the calculations in the context of these guidelines.</p>
+			</div>
+  
+   <div class="note">
+				<p class="note-title marker">Note 3</p>
+				<p>Almost all systems used today to view web content assume sRGB encoding. Unless it
+      is known that another color space will be used to process and display the content,
+      authors should evaluate using sRGB colorspace. If using other color spaces, see <a href="https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum">Understanding Success Criterion 1.4.3</a>.
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 4</p>
+				<p>If dithering occurs after delivery, then the source color value is used. For colors
+      that are dithered at the source, the average values of the colors that are dithered
+      should be used (average R, average G, and average B).
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 5</p>
+				<p>Tools are available that automatically do the calculations when testing contrast and
+      flash.
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 6</p>
+				<p>A <a href="relative-luminance.html">separate page giving the relative luminance definition using MathML</a> to display the formulas is available.
+   </p>
+			</div></dd>
+      <dt id="dfn-sign-language">sign language</dt><dd><p>a language using combinations of movements of the hands and arms, facial expressions,
+      or body positions to convey meaning
+   </p></dd>
+      <dt id="dfn-state">state</dt><dd><p>dynamic property expressing characteristics of a <a href="#dfn-user-interface-component">user interface component</a> that may change in response to user action or automated processes</p>
+	<p>States do not affect the nature of the component, but represent data associated with the component or user interaction possibilities. Examples include focus, hover, select, press, check, visited/unvisited, and expand/collapse.</p></dd>
+      <dt id="dfn-structure">structure</dt><dd><ul>
+      
+      <li>The way the parts of a <a href="#dfn-web-page">web page</a> are organized in relation to each other; and
+      </li>
+      
+      <li>The way a collection of <a href="#dfn-web-page">web pages</a> is organized
+      </li>
+      
+   </ul></dd>
+      <dt id="dfn-user-agent">user agent</dt><dd><p>any software that retrieves and presents web content for users</p>
+   
+   <aside class="example"><p class="example-title marker">Example</p><p>Web browsers, media players, plug-ins, and other programs — including <a href="#dfn-assistive-technology">assistive technologies</a> — that help in retrieving, rendering, and interacting with web content.
+   </p></aside></dd>
+      <dt id="dfn-user-interface-component">user interface component</dt><dd><p>a part of the content that is perceived by users as a single control for a distinct
+      function
+   </p>
+   
+   <div class="note">
+				<p class="note-title marker">Note 1</p>
+				<p>Multiple user interface components may be implemented as a single programmatic element.
+      "Components" here is not tied to programming techniques, but rather to what the user
+      perceives as separate controls.
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 2</p>
+				<p>User interface components include form elements and links as well as components generated
+      by scripts.
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 3</p>
+				<p>What is meant by "component" or "user interface component" here is also sometimes
+      called "user interface element".
+   </p>
+			</div>
+   
+   <aside class="example"><p class="example-title marker">Example</p><p>An applet has a "control" that can be used to move through content by line or page
+      or random access. Since each of these would need to have a name and be settable independently,
+      they would each be a "user interface component."
+   </p></aside></dd>
+      <dt id="dfn-web-page">web page</dt><dd><p>a non-embedded resource obtained from a single URI using HTTP plus any other resources
+      that are used in the rendering or intended to be rendered together with it by a <a href="#dfn-user-agent">user agent</a></p>
+   
+   <div class="note">
+				<p class="note-title marker">Note 1</p>
+				<p>Although any "other resources" would be rendered together with the primary resource,
+      they would not necessarily be rendered simultaneously with each other.
+   </p>
+			</div>
+   
+   <div class="note">
+				<p class="note-title marker">Note 2</p>
+				<p>For the purposes of conformance with these guidelines, a resource must be "non-embedded"
+      within the scope of conformance to be considered a web page.
+   </p>
+			</div>
+   
+   <aside class="example"><p class="example-title marker">Example 1</p><p>A web resource including all embedded images and media.</p></aside>
+   
+   <aside class="example"><p class="example-title marker">Example 2</p><p>A web mail program built using Asynchronous JavaScript and XML (AJAX). The program
+      lives entirely at http://example.com/mail, but includes an inbox, a contacts area
+      and a calendar. Links or buttons are provided that cause the inbox, contacts, or calendar
+      to display, but do not change the URI of the page as a whole.
+   </p></aside>
+   
+   <aside class="example"><p class="example-title marker">Example 3</p><p>A customizable portal site, where users can choose content to display from a set of
+      different content modules.
+   </p></aside>
+   
+   <aside class="example"><p class="example-title marker">Example 4</p><p>When you enter "http://shopping.example.com/" in your browser, you enter a movie-like
+      interactive shopping environment where you visually move around in a store dragging
+      products off of the shelves around you and into a visual shopping cart in front of
+      you. Clicking on a product causes it to be demonstrated with a specification sheet
+      floating alongside. This might be a single-page website or just one page within a
+      website.
+   </p></aside></dd></dl>
+  </details>
+</section>
+
+
+
+
+
+
+
+<a class="button button-backtotop" href="#top">
+  <span>
+    <svg focusable="false" aria-hidden="true" class="icon-arrow-up " viewBox="0 0 26 28">
+      <path d="M25.172 15.172c0 0.531-0.219 1.031-0.578 1.406l-1.172 1.172c-0.375 0.375-0.891 0.594-1.422 0.594s-1.047-0.219-1.406-0.594l-4.594-4.578v11c0 1.125-0.938 1.828-2 1.828h-2c-1.062 0-2-0.703-2-1.828v-11l-4.594 4.578c-0.359 0.375-0.875 0.594-1.406 0.594s-1.047-0.219-1.406-0.594l-1.172-1.172c-0.375-0.375-0.594-0.875-0.594-1.406s0.219-1.047 0.594-1.422l10.172-10.172c0.359-0.375 0.875-0.578 1.406-0.578s1.047 0.203 1.422 0.578l10.172 10.172c0.359 0.375 0.578 0.891 0.578 1.422z"></path>
+    </svg> Back to Top
+  </span>
+</a>
+
+</main>
+<aside class="box box-icon box-space-above" id="helpimprove" style="grid-column: 2 / 8; grid-row: 3">
+  <header class="box-h  box-h-icon box-h-space-above box-h-icon"> 
+    <svg focusable="false" aria-hidden="true" class="icon-comments" viewBox="0 0 28 28">
+      <path d="M22 12c0 4.422-4.922 8-11 8-0.953 0-1.875-0.094-2.75-0.25-1.297 0.922-2.766 1.594-4.344 2-0.422 0.109-0.875 0.187-1.344 0.25h-0.047c-0.234 0-0.453-0.187-0.5-0.453v0c-0.063-0.297 0.141-0.484 0.313-0.688 0.609-0.688 1.297-1.297 1.828-2.594-2.531-1.469-4.156-3.734-4.156-6.266 0-4.422 4.922-8 11-8s11 3.578 11 8zM28 16c0 2.547-1.625 4.797-4.156 6.266 0.531 1.297 1.219 1.906 1.828 2.594 0.172 0.203 0.375 0.391 0.313 0.688v0c-0.063 0.281-0.297 0.484-0.547 0.453-0.469-0.063-0.922-0.141-1.344-0.25-1.578-0.406-3.047-1.078-4.344-2-0.875 0.156-1.797 0.25-2.75 0.25-2.828 0-5.422-0.781-7.375-2.063 0.453 0.031 0.922 0.063 1.375 0.063 3.359 0 6.531-0.969 8.953-2.719 2.609-1.906 4.047-4.484 4.047-7.281 0-0.812-0.125-1.609-0.359-2.375 2.641 1.453 4.359 3.766 4.359 6.375z"></path>
+    </svg>
+    <h2>Help improve this page</h2>
+  </header>
+  <div class="box-i">
+  <p>Please share your ideas, suggestions, or comments via email to the publicly-archived list <a href="mailto:public-agwg-comments@w3.org?subject=%5BUnderstanding%20and%20Techniques%20Feedback%5D">public-agwg-comments@w3.org</a> or via GitHub</p>
+    <div class="button-group">
+      <a href="mailto:public-agwg-comments@w3.org?subject=%5BUnderstanding%20and%20Techniques%20Feedback%5D" class="button"><span>Email</span></a>
+      <a href="https://github.com/w3c/wcag/edit/main/understanding/21/non-text-contrast.html" class="button"><span>Fork &amp; Edit on GitHub</span></a>
+      <a href="https://github.com/w3c/wcag/issues/new" class="button"><span>New GitHub Issue</span></a>
+    </div>
+  </div>
+</aside>
+
+</div>
+<footer id="wai-site-footer" class="page-footer default-grid" aria-label="Page">
+  <div class="inner" style="grid-column: 2 / 8">
+    <p>
+      <strong>Date:</strong> Updated 15 June 2026.
+      <a href="https://github.com/w3c/wcag/commits/main/understanding/21/non-text-contrast.html">View this page's revision history.</a></p>
+    <p><strong>Developed by</strong>
+      <a href="https://www.w3.org/groups/wg/ag/participants">Accessibility Guidelines Working Group (AG WG) Participants</a>
+      (Co-Chairs: Adam Page, Alastair Campbell, Rachael Bradley Montgomery. W3C Staff Contact:
+      Michael Cooper).
+    </p>
+    <p>The content was developed as part of the
+      <a href="https://www.w3.org/WAI/about/projects/#us">WAI-Core projects</a> funded by U.S. Federal funds.
+      The user interface was designed by the Education and Outreach Working Group
+      (<a href="https://www.w3.org/groups/wg/eowg/participants">EOWG</a>) with contributions from
+      Shadi Abou-Zahra, Steve Lee, and Shawn Lawton Henry as part of the
+      <a href="https://www.w3.org/WAI/about/projects/wai-guide/">WAI-Guide</a> project,
+      co-funded by the European Commission.
+    </p>
+  </div>
+</footer>
+
+<footer class="w3c-global-footer wai-global-footer default-grid" aria-label="Site">
+  <div class="inner">
+    <div class="wai-global-footer__content">
+      <div class="wai-global-footer__subsite"><a href="https://www.w3.org/WAI/" lang="en" dir="auto" translate="no">W3C Web Accessibility Initiative (WAI)</a></div>
+      <div class="wai-global-footer__subsite-desc">Strategies, standards, resources to make the Web accessible to people with disabilities</div>
+      <div class="wai-global-footer__cta w3c-l-cluster w3c-l-cluster--vertical-align">
+        <ul class="w3c-clean-list" role="list">
+          <li class="w3c-with-icon--before w3c-with-icon--larger">
+            <img class="w3c-icon w3c-icon--larger" src="https://www.w3.org/WAI/assets/images/email.svg" width="30" height="30" alt="" aria-hidden="true">
+            <a href="https://www.w3.org/WAI/news/subscribe/">Get News in Email</a>
+          </li>
+          <li class="w3c-with-icon--before w3c-with-icon--larger">
+            <img class="w3c-icon w3c-icon--larger" src="https://www.w3.org/WAI/assets/images/social/linkedin.svg" width="30" height="30" alt="" aria-hidden="true">
+            <a href="https://www.linkedin.com/company/w3c-wai/" translate="no">LinkedIn</a>
+          </li>
+          <li class="w3c-with-icon--before w3c-with-icon--larger">
+            <img class="w3c-icon w3c-icon--larger" src="https://www.w3.org/assets/website-2021/svg/mastodon.svg" width="30" height="30" alt="" aria-hidden="true">
+            <a href="https://w3c.social/@wai" translate="no">Mastodon</a>
+          </li>
+          <li class="w3c-with-icon--before w3c-with-icon--larger">
+            <img class="w3c-icon w3c-icon--larger" src="https://www.w3.org/WAI/assets/images/social/youtube.svg" width="30" height="30" alt="" aria-hidden="true">
+            <a href="https://www.youtube.com/channel/UCU6ljj3m1fglIPjSjs2DpRA/playlists/" translate="no">YouTube</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="w3c-global-footer__links">
+      <div class="w3c-l-cluster">
+        <ul class="w3c-clean-list" role="list">
+          <li><a href="https://www.w3.org/WAI/">Home</a></li>
+          <li><a href="https://www.w3.org/WAI/about/contacting/">Contact</a></li>
+          <li><a href="https://www.w3.org/WAI/sitemap/">Site map</a></li>
+          <li><a href="https://www.w3.org/WAI/about/support/">Support WAI</a></li>
+          <li><a href="https://www.w3.org/WAI/news/">News</a></li>
+          <li><a href="https://www.w3.org/WAI/about/accessibility-statement/">Accessibility statement</a></li>
+          <li><a href="https://www.w3.org/WAI/translations/">All Translations</a></li>
+          <li><a href="https://www.w3.org/WAI/roles/">Resources for roles</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="w3c-copyright" translate="no">Copyright © 2026  <a href="https://www.w3.org/">World Wide Web	Consortium</a>.<br>
+      <abbr title="World Wide Web Consortium">W3C</abbr><sup>®</sup>
+      <a href="https://www.w3.org/policies/#disclaimers">liability</a>,
+      <a href="https://www.w3.org/policies/#trademarks">trademark</a> and
+      <a rel="license" href="https://www.w3.org/copyright/software-license/" title="W3C Software License">permissive license</a>
+      rules apply unless otherwise noted. See <a href="https://www.w3.org/WAI/about/using-wai-material/">Permission to Use WAI Material</a>.</p>
+  </div>
+</footer>
+
+<link rel="stylesheet" href="a11y-light.css">
+<script>
+  var translationStrings = {}; // prevent errors in WAI main.js t() calls
+</script>
+<script src="https://www.w3.org/WAI/assets/scripts/main.js"></script>
+
+</body></html>

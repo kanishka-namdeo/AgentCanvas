@@ -591,6 +591,13 @@ export type SyncEvent =
   // switch-past unknown agent events ignore it safely.
   | { type: 'agent:tool_progress'; toolCallId: string; text: string }
   | { type: 'agent:turn_end' }
+  // Depth-research 3-c (2026-09-05): transient run-status note — e.g. the
+  // pi SDK's auto-retry backoff ("Retrying 2/3 in 8s — provider hiccup").
+  // Emits when the agent loop is BETWEEN user-visible signals (the exact
+  // moments a chat otherwise looks frozen); any subsequent message/tool/
+  // terminal event clears it. Additive — clients that don't know the kind
+  // ignore it, and the store clears stale notes at terminal transitions.
+  | { type: 'agent:status_note'; text: string }
   // Emitted when the run was cancelled server-side (agent:stop client event
   // or an aborted HTTP request): the pi session was aborted, token spend
   // stopped, and the client must finalize the turn + run as 'cancelled'.

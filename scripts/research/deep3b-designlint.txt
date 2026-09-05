@@ -1,0 +1,321 @@
+GitHub - destefanis/design-lint: A design linting plugin for Figma. · GitHub
+Skip to content
+Navigation Menu
+Sign in Appearance settings
+Platform AI CODE CREATION GitHub Copilot Write better code with AI
+GitHub Copilot app Direct agents from issue to merge
+MCP Registry Integrate external tools
+DEVELOPER WORKFLOWS Actions Automate any workflow
+Codespaces Instant dev environments
+Issues Plan and track work
+Code Review Manage code changes
+Code Quality Enforce quality at merge
+APPLICATION SECURITY GitHub Advanced Security Find and fix vulnerabilities
+Code security Secure your code as you build
+Secret protection Stop leaks before they start
+EXPLORE Why GitHub
+Documentation
+Blog
+Changelog
+Marketplace
+View all features
+Solutions BY COMPANY SIZE Enterprises
+Small and medium teams
+Startups
+Nonprofits
+BY USE CASE App Modernization
+DevSecOps
+DevOps
+CI/CD
+View all use cases
+BY INDUSTRY Healthcare
+Financial services
+Manufacturing
+Government
+View all industries
+View all solutions
+Resources EXPLORE BY TOPIC AI
+Software Development
+DevOps
+Security
+View all topics
+EXPLORE BY TYPE Customer stories
+Events & webinars
+Ebooks & reports
+Business insights
+GitHub Skills
+SUPPORT & SERVICES Documentation
+Customer support
+Community forum
+Trust center
+Partners
+View all resources
+Open Source COMMUNITY GitHub Sponsors Fund open source developers
+PROGRAMS Security Lab
+Maintainer Community
+GitHub Stars
+Archive Program
+REPOSITORIES Topics
+Trending
+Collections
+Enterprise ENTERPRISE SOLUTIONS Enterprise platform AI-powered developer platform
+AVAILABLE ADD-ONS GitHub Advanced Security Enterprise-grade security features
+Copilot for Business Enterprise-grade AI features
+Premium Support Enterprise-grade 24/7 support
+Pricing
+Search /
+Sign in
+Sign up Appearance settings
+You signed in with another tab or window. Reload to refresh your session.
+You signed out in another tab or window. Reload to refresh your session.
+You switched accounts on another tab or window. Reload to refresh your session.
+Dismiss alert
+{{ message }}
+destefanis
+/
+design-lint
+Public
+Notifications
+You must be signed in to change notification settings
+Fork
+128
+Star
+518
+Code
+Issues
+2
+Pull requests
+5
+Actions
+Projects
+Security and quality
+0
+Insights
+Additional navigation options
+Code
+Issues
+Pull requests
+Actions
+Projects
+Security and quality
+Insights
+master
+5 Branches 0 Tags
+Go to file
+Code Open more actions menu
+Latest commit
+Daniel Destefanis
+Add a protection against null image styles
+Nov 16, 2023
+4c3c40c  ·  Nov 16, 2023
+History
+137 Commits Open commit details
+137 Commits
+Folders and files
+Name Name Last commit message
+Last commit date
+assets
+assets
+src
+src
+.gitignore
+.gitignore
+LICENSE
+LICENSE
+README.md
+README.md
+manifest.json
+manifest.json
+package.json
+package.json
+tsconfig.json
+tsconfig.json
+tslint.json
+tslint.json
+webpack.config.js
+webpack.config.js
+yarn.lock
+yarn.lock
+View all files
+Repository files navigation
+README
+MIT license
+More items
+Design Lint
+Find and fix errors in your designs with Design Lint, a plugin for Figma.
+View Plugin Page
+Design Lint finds missing styles within your designs on all your layers. Ensure your designs are ready for development or design collaboration by fixing inconsistencies.
+While it's running, Design Lint will update automatically as you fix errors. Clicking on layer will also select that layer in your design. Navigating between each error is fast and much easier than trying to find errors on your own.
+Features
+Selecting a layer with an error will also select the layer in Figma, letting you navigate your page and fix errors with full context.
+Design Lint polls for changes and will update as you fix errors.
+"Ignore" or "Ignore All" buttons let you skip special layers.
+Use the "Select All" option to fix multiple errors at once that share the same value.
+Need to skip layers like illustrations? Locked layers in Figma will be skipped from linting.
+Custom border radius values can be set within settings and are stored in Client Storage.
+Because Design Lint doesn't try and manage your library, there's no logging in, accounts, or syncing. This open source plugin is designed to make fixing errors easy and let you get back to designing. Want to write specific rules for your own organization? Feel free to fork this repo and edit to your liking!
+Install from the Figma Plugin Page
+Although this plugin is open source, for most users you'll want to install from the Figma plugin community page.
+View Plugin Page
+To Run Locally use following commands
+Run yarn to install dependencies.
+Run yarn build:watch to start webpack in watch mode.
+To Edit it
+The react code, components, and UI can be found here App.tsx .
+The Figma API, Storage, and Linting happens in controller.ts .
+Linting functions and rules can be found in lintingFunctions.ts .
+How the Linting Works
+Different layers (referred to as Nodes in the Figma API) have different properties to lint. First we loop through the layers the user has selected. For each layer we determine that layers type.
+function determineType ( node ) {
+switch ( node . type ) {
+case "SLICE" :
+case "GROUP" : {
+// Groups styles apply to their children so we can skip this node type.
+let errors = [ ] ;
+return errors ;
+}
+case "CIRCLE" :
+case "VECTOR" :
+case "STAR" :
+case "BOOLEAN_OPERATION" :
+case "SQUARE" : {
+return lintShapeRules ( node ) ;
+}
+case "FRAME" : {
+return lintFrameRules ( node ) ;
+}
+case "INSTANCE" :
+case "RECTANGLE" : {
+return lintRectangleRules ( node ) ;
+}
+case "COMPONENT" : {
+return lintComponentRules ( node ) ;
+}
+case "TEXT" : {
+return lintTextRules ( node ) ;
+}
+case "LINE" : {
+return lintLineRules ( node ) ;
+}
+default : {
+// Do nothing
+}
+}
+}
+Some of these node types have the same requirements so there are generic functions that call multiple linting functions which are imported from lintingFunctions.ts .
+function lintTextRules ( node ) {
+let errors = [ ] ;
+checkType ( node , errors ) ;
+checkFills ( node , errors ) ;
+checkEffects ( node , errors ) ;
+checkStrokes ( node , errors ) ;
+return errors ;
+}
+So for instance, this function runs the linting rules for typography, fills, effects, and strokes on this layer since its a piece of text, and text layers have all those properties. Where as a Frame only lints for fills, effects, and strokes, as it can't have any type styles.
+What does Design Lint check for by default?
+Out of the box, Design Lint only checks for layers that are not using styles . In Figma, best practice is to use styles (also referred to as design tokens) on all of your layers, so your type, colors, spacing etc are all consistent.
+That being said, Design Lint is ready for you to write custom rules for your team. For example, if you wanted to ensure that no text layers are using background specific colors, you could check for this, an example is provided below.
+Error Array
+Design Lint references one array of all the errors returned by the lint rules. Each error in the array is an object. A given layer in Figma can have multiple errors, let's say it's missing both a text style and using an incorrect fill color, so we use that layers unique ID (set by Figma) to identify which errors belong to it.
+Error Object
+When a linting function runs and finds an error, we return an error object. This object has the original nodes information, it's ID (which we use to select it), it's name, what kind of layer it is, etc. When writing a custom error, you can customize the messages it returns. Node and type (fill, text, effect, stroke, or radius) are required.
+return errors . push (
+createErrorObject (
+node , // Node object we use to reference the error (id, layer name, etc)
+"fill" , // Type of error (fill, text, effect, etc)
+"Missing Text Style" , // Large text to indicate what the error is.
+"Multiple Styles" // Some linting functions use another function here to return a fill HEX value or a number.
+)
+) ;
+Writing Custom Rules
+Until I have time to write a formal tutorial, I've added a placeholder linting function with comments that will guide you through creating some basic custom rules for your design team.
+// Custom Lint rule that isn't being used yet!
+// that ensures our text fills aren't using styles (design tokens) meant for backgrounds.
+export function customCheckTextFills ( node , errors ) {
+// Here we create an array of style keys (https://www.figma.com/plugin-docs/api/PaintStyle/#key)
+// that we want to make sure our text layers aren't using.
+const fillsToCheck = [
+"4b93d40f61be15e255e87948a715521c3ae957e6"
+// To collect style keys, use a plugin like Inspector, or use console commands like figma.getLocalPaintStyles();
+// in your design system file.
+] ;
+let nodeFillStyle = node . fillStyleId ;
+// If there are multiple text styles on a single text layer, we can't lint it
+// we can return an error instead. If this were a frame, rectangle, or other layer type, we could remove this check.
+if ( typeof nodeFillStyle === "symbol" ) {
+return errors . push (
+createErrorObject (
+node , // Node object we use to reference the error (id, layer name, etc)
+"fill" , // Type of error (fill, text, effect, etc)
+"Mixing two styles together" , // Message we show to the user
+"Multiple Styles" // Normally we return a hex value here
+)
+) ;
+}
+// We strip the additional style key characters so we can check
+// to see if the fill is being used incorrectly.
+nodeFillStyle = nodeFillStyle . replace ( "S:" , "" ) ;
+nodeFillStyle = nodeFillStyle . split ( "," ) [ 0 ] ;
+// If the node (layer) has a fill style, then check to see if there's an error.
+if ( nodeFillStyle !== "" ) {
+// If we find the layer has a fillStyle that matches in the array create an error.
+if ( fillsToCheck . includes ( nodeFillStyle ) ) {
+return errors . push (
+createErrorObject (
+node , // Node object we use to reference the error (id, layer name, etc)
+"fill" , // Type of error (fill, text, effect, etc)
+"Incorrect text color use" , // Message we show to the user
+"Using a background color on a text layer" // Determines the fill, so we can show a hex value.
+)
+) ;
+}
+// If there is no fillStyle on this layer,
+// check to see why with our default linting function for fills.
+} else {
+checkFills ( node , errors ) ;
+}
+}
+Import your function in controller.ts
+Once you've written some custom functions for checking specific rules, make sure to import your function here in the controller.ts file.
+Let's say we've written a custom rule for text layers, make sure to change what functions run for text layers here under the lintTextRules function.
+Changing the border radius default
+If you plan on using this app as a private plugin you'll likely want to change the default border radius values which are [0, 2, 4, 8, 16, 24, 32] . This can be acheived by changing these values in App.tsx and in controller.ts .
+Tooling
+This repo is using following:
+Figma Plugin React Template
+React + Webpack
+TypeScript
+TSLint
+Prettier precommit hook
+About
+A design linting plugin for Figma.
+lintyour.design
+Resources
+Readme
+MIT license
+Activity
+Stars
+518 stars
+Watchers
+10 watching
+Forks
+128 forks
+Report repository
+Releases
+Packages
+Used by
+Contributors
+Languages
+Footer
+© 2026 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Community
+Docs
+Contact
+Manage cookies
+Do not share my personal information
+You can’t perform that action at this time.

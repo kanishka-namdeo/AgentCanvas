@@ -1,0 +1,338 @@
+
+8 Essential Tips for Using Figma Make | Figma Blog
+Skip to main content
+Subscribe to Figma’s editorial newsletter
+Categories
+Maker Stories
+Working Well
+Inside Figma
+Insights
+Latest
+Topics
+Featured Topics
+News
+Get the latest on all things Figma
+Design systems
+Everything you need to know about building and scaling design systems in the age of AI
+Explore topics
+3D design
+Accessibility
+AI
+Behind the scenes
+Brainstorming
+Branding
+Career & education
+Case study
+Collaboration
+Config
+Culture
+Design
+Design thinking
+Dev Mode
+Diagramming
+Engineering
+Events
+FigJam
+Figma agent
+Figma Buzz
+Figma Design
+Figma Draw
+Figma Make
+Figma MCP
+Figma Sites
+Figma Slides
+Figma Weave
+Hiring
+Infrastructure
+Leadership
+Marketing
+Meetings
+Motion
+Operations
+Plugins & tooling
+Portfolio
+Product management
+Product updates
+Productivity
+Profiles & interviews
+Prototyping
+Quality & performance
+React
+Report
+Research
+Security
+Sightlines
+Social impact
+Strategy
+The Long & Short of It
+Thought leadership
+Tips & inspiration
+Typography
+UI/UX
+Wireframing
+Writing
+June 10, 2025
+8 essential tips for using Figma Make
+Alexia Danton
+Designer Advocate, Figma
+Working Well
+Design
+AI
+Tips & inspiration
+Productivity
+UI/UX
+Figma Make
+Here, we share our team’s favorite prompts, pro tips, and best practices for using Figma Make to help you get the most out of our recently launched prompt-to-code feature.
+Share 8 essential tips for using Figma Make
+At Config 2025, 
+we introduced Figma Make
+, our new prompt-to-app capability that allows designers and product teams to go from concept to functional prototype in just a few prompts. Figma's designer advocates, designers, and product managers have spent months diving deep into Figma Make, experimenting with its features and pushing its boundaries. Now, we’re taking this hands-on experience and translating it into eight practical tips and best practices—alongside some sample prompts for inspiration—designed to help you maximize Figma Make's potential.
+1. Front-load your first prompt with details
+The more detail you include about your design in the initial prompt, the fewer follow-up exchanges you’ll need to get the result you want. “It's better to get the initial generation as close to your vision as possible with only minor tweaks needed—fixing the output with multiple follow-up prompts takes much more time,” says Designer Advocate Ana Boyer.
+Since Figma Make uses Anthropic's Claude Sonnet 4, the same prompting best practices for Anthropic's models also apply to Figma Make. 
+Check out the best practices here.
+Here are some key details to include in your initial prompt:
+Task
+: What Figma Make should do
+Context
+: Where this flow or screen fits
+Key design elements: 
+Important features Figma Make should incorporate
+Expected behaviors:
+ What happens to those elements upon interaction
+Constraints:
+ Things like device, layout, or visual styling
+This front-loading strategy requires not only having a clear vision of your product flow and specs before prompting Figma Make, but also sharing that context with the right prompts. You can also leverage AI assistants to refine your prompts—they'll provide detailed guidance and ready to use code snippets to be pasted directly into your Make for advanced effects.
+Extra tip: 
+If your initial prompt doesn't give you the output you want, consider phrasing it differently. For example, rather than prompting 
+vertically align two elements
+, try reframing the request as 
+move this element down 20 pixels
+ or 
+add 16px of space between these buttons
+.
+Remember: If at first you fail, try again
+If you find yourself making too many adjustments, consider starting fresh with a new Figma Make file. Take what you've learned from your first attempt to craft a more comprehensive starting prompt.
+In practice
+Figma Designer Advocate Manager Greg Huntoon iterated with different approaches until landing on a prompt that yielded a working v1 for his mouse effect visualization kit. His most successful prompt contained:
+Project overview
+Platform specification
+Purpose and use case
+Core features list
+Design style guidance
+Technical specifications
+Greg also included this explicit first step in his prompt: 
+First step: Build the base grid overlay component with adjustable dimensions and placeholder hover states.
+Greg Huntoon's mouse effect visualization in Figma Make
+2. Clean up your design files before bringing them into Figma Make
+While Figma Make can create designs from scratch (0→1), it also excels at transforming your existing Figma designs into interactive prototypes (1→1). To help Figma Make generate the best result possible, spend time on file organization and hygiene, making sure to tidy up any frame you plan to copy-paste into the prompt box. The cleaner your design input, the better your output. Using the right frame constraints and Auto Layout settings is the most important parameter in making sure that your design files will translate well into Figma Make, but naming layers based on their content or purpose can help, too.
+You can use some of Figma Design’s existing AI features like 
+Suggest Auto Layout
+ and 
+Rename layers with AI
+, or even plugins like 
+Clean Document
+ to quickly tidy up your frames in preparation for bringing them into Figma Make.
+Extra tip: 
+Even with the best layers setup, Figma Make can sometimes translate design files a bit literally into its own constraints. If your design goes beyond the preview’s edges, follow up with a prompt like: 
+Scale this to the size of my screen and make it responsive.
+ Or, if you have specific dimensions in mind, try a prompt like: 
+Keep this mobile-sized
+.
+If you have any doubts about how to set up Auto Layout inside your frames, check out 
+this video
+ on auto layout best practices by Designer Advocate Lauren Byrne.
+In practice
+Figma Product Manager Holly Li successfully built the music player micro-interaction below in a single prompt, all thanks to setting it up with a robust Auto Layout structure in Figma Design first.
+Here's her prompt: 
+Please make this CD player interactive, CD should spin when I play a track. Thanks!
+The original design file with Auto Layout
+Figma Make bringing the design to life
+3. Break down complex projects into manageable steps
+Even with a solid first prompt, complex projects may require many additional follow-up prompts. Breaking down these follow-ups into smaller, focused steps yields better results than trying to fix everything all at once. “The smaller the scope, the more detailed the LLM can be," Product Designer Tammy Taabassum says. “How well Figma Make performs depends on how large or complicated your request is, and the specificity of your language."
+Your large and detailed first prompt will help establish a foundation to build on, and you’ll want to make small changes little by little from there. Taking this incremental approach after your initial prompt allows you to craft complex interfaces gradually, build multi-page flows frame by frame, and maintain control on the overall design direction.
+Extra tip: 
+Take this bite-sized approach further by explicitly prompting Figma Make to create separate code folders for each element. In doing so, you'll improve code organization, ensure maintainability over multiple prompts, and isolate potential errors in your most ambitious builds.
+In practice
+To create a fully functional financial dashboard with an onboarding flow, alpha tester 
+Antonella Rodriguez
+ ended up using over 150 prompts. She started with a broad description of the core features she needed, the desired layout, and a visual reference point, then cleaned up the v1 output and dove into the content of each individual page to populate them one piece at a time.
+A few of the follow-up prompts Antonella used:
+Add post-its on the journal page to add notes.
+Add a table with category, type of spending, amount in USD, amount in pesos, notes, date on the Finances page.
+Add a checkbox to explain which type of currency you are using, USD or ARS.
+Financial dashboard by user Antonella Rodriguez in Figma Make
+To create a 3D interactive world for this year's 
+Config London keynote
+, Product Designer Tammy Taabassum worked with several different elements. After an initial prompt to create a 3D London explorer with famous landmarks, Tammy prompted Figma Make to split each 3D landmark—Big Ben, London Eye, Tower Bridge, and more—into separate coded files. This made it easier and faster to refine individual components without affecting the entire file’s environment.
+Tammy’s prompt:
+Can you move Big Ben code into a new file?
+3D London explorer in Figma Make
+A single component being moved into a separate file in Figma Make
+4. Leverage your own components to ensure visual consistency
+When working in Figma Make, copy-pasting a component—or a frame with multiple components—can be very powerful. Components from your library, already equipped with Auto Layout and consistent layer naming, will often translate well into your Make.
+You can also paste components into Figma Make’s prompt box as a visual reference point for the design it will create. By getting a sense of what some of the interface looks like, Figma Make can match its style and spacing, effectively following your design system rules without needing additional explanation or clarification.
+Extra tip: 
+Figma Make’s point and edit feature is a great way to swap the generic components in your v1 with specific UI from your libraries. Select an element on the preview, paste your own component inside the prompt box, and enter the following prompt: 
+Replace this component by this design.
+In practice
+The designer advocate team built the productivity app below built using components from the newest 
+Material 3 Design Kit
+. To create this app, they pasted two components from the design system file into Figma Make followed by this prompt:
+Build a productivity app that will help users manage and prioritize tasks, stay on top of their calendar, and collect written notes and voice notes. Use the attached navigation component, with its content adapted as required. For the calendar tab, use the attached calendar component. The rest of the pages should visually match the style of those components.
+The team then enhanced the basic v1 by selecting components with point and edit, then prompted Figma Make to replace them with Material 3 design system variants.
+Replacing components with Material 3 Design Kit in Figma Make
+5. Make visual tweaks using the point and edit tool
+With the point and edit tool, you can also make quick, basic adjustments—like a color or font change—by pointing to an element, clicking it, and editing using either the toolbar or additional prompting. This direct manipulation lets you make immediate changes to visual properties like color, corner radius, spacing, and typography seamlessly.
+Extra tip: 
+When you select the point and edit tool, available editing options depend on the selected element type—text elements let you adjust fonts, colors, and formatting, while containers focus on background colors and spacing. Images have their own set of options, including the ability to upload replacements.
+In practice
+In the music player example below, point and edit is used to quickly tweak details like font size and formatting.
+6. Access the code tab for quick edits—no dev skills required
+When building in Figma Make, some small, non-visual changes are best edited inside the code. The 
+go to source
+ button is a shortcut that helps you find the code behind an element, so you can have a look behind-the-scenes and adjust its values. Figma Make labels all of its code in an easy to understand way, allowing those without coding experience to identify which part of the code controls which behaviors inside the build.
+Updated values inside the code will reflect right away inside your preview, without any refresh—and make it easy for you to quickly test multiple product behaviors.
+Extra tip:
+ If a page-level setup isn’t accessible using 
+go to source
+, try exploring the semantic layers inside a code folder by using the 
+cmd+F (Mac)
+ or 
+Ctrl+F (PC)
+ shortcut.
+In practice
+This method is great for quickly iterating on properties like animation. If we wanted to test the way the vinyl spins in Holly's music player file, we could simply jump to the element’s source code, quickly scan the code base for its speed parameter, and adjust speed manually from the code until it hits just the right feel inside the preview.
+Editing code base in Figma Make
+7. Integrate realistic data into your Make
+To bring a dynamic prototype to life, Figma Make allows you to build interfaces with custom or real-time data, from stock prices to weather forecasts. There are a couple different ways you can bring data into your Figma Make files without plugging it into APIs:
+Note:
+ We advise caution if you plan to incorporate a direct use of a 3P API via prompting, as it could introduce security and financial concerns, such as exposing your API keys and secrets. Simulating this data lets you get a rough idea of how it might work.
+Ask Figma Make for the type of data you’re expecting to see displayed.
+Explicitly prompt Figma Make to include a data import entry point inside your interface if you want more granular control over your data set.
+Extra tip: 
+Keep in mind that Figma Make can plug into any computer hardware that your browser has access to if needed. This opens the door to prototyping interactions involving different types of keyboard inputs, sound inputs, or even camera inputs, as illustrated by Product Designer Daniela Muntyan’s 
+mini photobooth app
+.
+In practice
+When Product Designer Ryan Reid built a New York City Subway time tracker using the 
+MTA API
+, Figma Make automatically collected data from subway lines and stations and smartly generated mock data that emulated real-time train arrivals—without any API connection.
+Ryan’s prompt: 
+Make me a website for tracking subway times in NYC, using the NYC MTA's APIs. The site should let you pick a subway line and subway station to view all train times, ordered chronologically. The site should be a single page, where selecting a line and station reveals more information to the right, to make navigation clean and simple.
+A mock website created in Figma Make showing MTA subway times
+Figma Make adding mock data that emulates real-time MTA train arrival times
+Similarly, the Figma advocacy team also generated a fake data set of running sessions using the internal GPT, downloaded it as a .CSV file, and prompted Figma Make to add an upload mechanic inside the marathon trainer. The result is a dashboard design that adapts dynamically to any .CSV database uploaded using the right formatting
+A sample of the prompt:
+I want to build an analytics dashboard that shows the progression of my marathon training over time.
+The dashboard should have a summary of my latest training, including key numbers and a line graph of my progression over time. X axis: training date, Y axis: distance running on each training date.
+Before any of the analytics appears, the page should be empty with a placeholder that invites me to upload a .csv file. You will then take that CSV file, which will be formatted with the following information, to turn them into the dashboard detailed above: date, distance_km, time_minutes, avg_pace, heart_rate, calories_burned, elevation_gain.
+Uploading data to a marathon analytics dashboard
+8. Turn Figma Make into a handoff assistant
+By prompting Make to create interfaces that generate production-ready code snippets, you can create your own handoff tool that generates design choices and creates code output to share with developers. This approach gives you more room to play, experiment, and iterate before moving on to the next phase.
+Extra tip: 
+If Figma Make's generated code doesn't fit your development needs, you can instead prompt it to give you specific elements and behaviors as generic pseudocode in the chat. A sample prompt might look like: 
+Keep the code exactly as it is, but describe to me how this piece is implemented in pseudo-code. If possible, detail specific platform considerations for (insert platform name)
+.
+In practice
+Designer Advocate Luis Ouriach used Figma Make as his handoff assistant when building his own OKLCH Palette Builder. His app lets you generate a complete color system starting from a primary brand color, and includes the resulting CSS Variables and Tailwind CSS output ready to hand off.
+Luis’s prompt:
+Create
+ a
+n OKLCH color palette builder where you add your primary brand color and it generates a fully formed ramp over common colors: green, blue, red, yellow, orange, and greys. You can decide how many colors within each ramp you want - for example, 3 of each in different shades.
+Code snippet changes as number of shades selection changes
+Similarly, Developer Advocate Jake Albaugh built his own mini app to refine the animations applied on a specific piece of UI—in this case, a luxury bank card. Jake asked Figma Make to include visual effect controls and JSON output of animation parameters, creating reusable code for another product he was building.
+One of Jake’s prompts: 
+Make it so there is a json code output describing all the parameters (including min max tilt on each axis) that changes when the input changes.
+Data output on the right changes as parameters on the left change
+Be patient with yourself as you explore
+As with any AI tool, prompting is a matter of trial and error until you find an approach that works for you. With the beta version of 
+Figma Make
+ now available to all Figma users with a Full seat, we’re excited to see the creative ways you’ll use this tool to bring new ideas to life.
+We're only just starting to scratch the surface of what's possible in this tool—and we’re excited to do it with you.
+Ready to dive deeper? We followed up with seven tips for using Figma Make credits more efficiently.
+Alexia is a designer advocate at Figma based out of Paris, France. Having worked across the spectrum of design for over 10 years, she is passionate about unlocking creative impact in organizations, building a more inclusive and diverse industry, and crafting magical “a-ha” moments along the way. When she’s not busy hanging out with fellow designers, you may find her traveling to tea fields or reviewing croissants.
+Subscribe to Figma’s editorial newsletter
+Enter email
+*
+I agree to opt-in to Figma's mailing list.
+*
+By clicking “Subscribe” you agree to our 
+TOS
+ and 
+Privacy Policy
+.
+Create and collaborate with Figma
+Get started for free
+Figma Socials
+Product
+Figma Design
+Figma Make
+Figma Weave
+New
+Dev Mode
+Figma Motion
+New
+FigJam
+Figma Slides
+Figma Draw
+Figma Sites
+Beta
+Figma Buzz
+Beta
+Design and explore
+Build and ship products
+AI workflows
+Release notes
+Downloads
+Plans
+Pricing
+Enterprise
+Organization
+Professional
+Use cases
+UI design
+UX design
+Wireframing
+Diagramming
+Prototyping
+Brainstorming
+Presentation Maker
+Online whiteboard
+Strategic planning
+Mind mapping
+AI website generator
+AI design generator
+AI app builder
+AI UI generator
+Weave AI tool
+AI design agent
+Resources
+Blog
+Best practices
+Gradient Library
+Gradient Generator
+GIF maker
+Color wheel
+Colors
+Color picker
+Font Library
+Templates
+Developers
+Integrations
+Affiliate program
+Resource library
+Reports and insights
+Support
+Status
+Legal and privacy
+Modern slavery statement
+Climate disclosure statement
+Impressum
+Company
+Events
+Customers
+Careers
+Newsroom
+Brand assets
+English

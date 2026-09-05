@@ -818,10 +818,15 @@ function SkillChip({ skillInfo }: { skillInfo: NonNullable<ChatTurn['skillInfo']
 function BusyRow({ onStop }: { onStop: () => void }) {
   const turns = useCanvasStore((s) => s.turns);
   const runPhase = useCanvasStore((s) => s.runPhase);
+  const statusNote = useCanvasStore((s) => s.statusNote);
   const last = turns[turns.length - 1];
   const activity = useMemo(() => {
     if (runPhase === 'cancelling') return RUN_PHASE_LABEL.cancelling;
     if (runPhase === 'awaiting_input') return RUN_PHASE_LABEL.awaiting_input;
+    // Depth-research 3-c: an explicit status note (auto-retry backoff, etc.)
+    // outranks every DERIVED label — it is the freshest truth about why the
+    // run is quiet, and it self-clears on the next message/tool event.
+    if (statusNote) return statusNote;
     if (!last || last.role !== 'assistant') return RUN_PHASE_LABEL.thinking;
     if (last.thinking && !last.thinkingEndedAt) return RUN_PHASE_LABEL.thinking;
     const running = [...last.toolCalls].reverse().find((tc) => tc.success === undefined);
@@ -830,7 +835,7 @@ function BusyRow({ onStop }: { onStop: () => void }) {
     if (lastSummary) return lastSummary;
     if (last.toolCalls.length > 0) return RUN_PHASE_LABEL.finalizing;
     return RUN_PHASE_LABEL.thinking;
-  }, [last, runPhase]);
+  }, [last, runPhase, statusNote]);
   const startedAt = last?.startedAt;
   const stopping = runPhase === 'cancelling';
   return (

@@ -123,7 +123,23 @@ export type ResolverWarningKind =
   /// container carries large absolute-style x/y — the layout engine IGNORES
   /// them, so the node renders in flow order, not at the coordinates. Pin it
   /// with layoutPosition:'absolute' or move it to the right flow index.
-  | 'flow_child_absolute_coords';
+  | 'flow_child_absolute_coords'
+  /// Depth-research 3-b #7 (2026-09-05): a text layer's resolved color fails
+  /// WCAG AA contrast against its effective backdrop (nearest solid-filled
+  /// ancestor, else a containing solid sibling painted below it, else the
+  /// light page surface). 4.5:1 for normal text, 3:1 for large text
+  /// (≥24px, or ≥19px bold). Programmatic arithmetic — runs BEFORE the VLM
+  /// critic so contrast is never a matter of opinion (A11YN pattern).
+  | 'contrast_failure'
+  /// Depth-research 3-b #1 (Figma auto-layout guide): a fit_content (hug)
+  /// container whose ONLY children are fill_container on that axis — the hug
+  /// has nothing to measure (Figma: a fill child makes the parent stop
+  /// hugging). Fix: fixed size on the parent, or a non-fill child.
+  | 'hug_fill_conflict'
+  /// Depth-research 3-b #1: fill_container sizing on a ROOT-level node — there
+  /// is no parent to fill, so the axis resolves to 0 (invisible). Fix: set an
+  /// explicit size or nest the node inside an auto-layout frame.
+  | 'fill_without_parent';
 
 export interface ResolverWarning {
   nodeId: string;
@@ -478,6 +494,24 @@ function computeIntrinsicSize(
       return true;
     });
 
+    // Depth-research 3-b #1 (Figma auto-layout guide): a hug (fit_content)
+    // axis whose ONLY children are fill_container on that axis has nothing to
+    // measure — in Figma a fill child makes the parent stop hugging (the
+    // parent goes Fixed); here the hug falls through to the placeholder.
+    // Fire only in the degenerate all-fill case — a healthy mix of fill and
+    // non-fill siblings resolves correctly (Phase A/B) and must stay quiet.
+    if (children.length > 0) {
+      const allFillW = isFitContent(w) && children.every((c) => isFillContainer(nodeWidth(c.node)));
+      const allFillH = isFitContent(h) && children.every((c) => isFillContainer(nodeHeight(c.node)));
+      if (allFillW || allFillH) {
+        const axis = allFillW && allFillH ? 'width and height' : allFillW ? 'width' : 'height';
+        warn?.(
+          'hug_fill_conflict',
+          `fit_content ${axis} with ONLY fill_container children — the hug has nothing to measure (a fill child cannot size its parent; Figma turns the parent Fixed). Give the parent an explicit ${axis === 'width and height' ? 'width/height' : axis}, or make at least one child non-fill`,
+        );
+      }
+    }
+
     if (layout === 'horizontal') {
       const main = nonFillKids.reduce((acc, c, i) => acc + c.width + (i > 0 ? gap : 0), 0);
       const cross = nonFillKids.reduce((acc, c) => Math.max(acc, c.height), 0);
@@ -738,6 +772,76 @@ function layoutChildren(
  * with absolute positions, expanded refs, and resolved variables/themes.
  * Thin wrapper over `resolvePenTreeDetailed` — identical behavior.
  */
+// ---- WCAG color utilities (depth-research 3-b: contrast as arithmetic) -----
+//
+// The contrast lint needs to turn resolved paint strings into numbers.
+// Accepts the color vocabulary the agent + variables actually emit
+// (#rgb / #rrggbb / #rrggbbaa / rgb() / rgba()); anything else (oklch(),
+// named colors, unresolved '$var' strings) parses to null and the check
+// silently skips — a lint that guesses is worse than one that stays quiet.
+
+export interface RgbaColor { r: number; g: number; b: number; a: number }
+
+/** Parse a CSS-ish color string to RGBA. Returns null when unsupported. */
+export function parseCssColor(input: unknown): RgbaColor | null {
+  if (typeof input !== 'string') return null;
+  const s = input.trim().toLowerCase();
+  if (s === '' || s.startsWith('$')) return null;
+  // #rgb / #rgba / #rrggbb / #rrggbbaa
+  if (s[0] === '#') {
+    const hex = s.slice(1);
+    if (!/^[0-9a-f]+$/.test(hex)) return null;
+    const expand = (h: string) => parseInt(h.length === 1 ? h + h : h, 16);
+    if (hex.length === 3 || hex.length === 4) {
+      return { r: expand(hex[0]), g: expand(hex[1]), b: expand(hex[2]), a: hex.length === 4 ? expand(hex[3]) / 255 : 1 };
+    }
+    if (hex.length === 6 || hex.length === 8) {
+      return { r: expand(hex.slice(0, 2)), g: expand(hex.slice(2, 4)), b: expand(hex.slice(4, 6)), a: hex.length === 8 ? expand(hex.slice(6, 8)) / 255 : 1 };
+    }
+    return null;
+  }
+  // rgb() / rgba() — comma or space separated.
+  const m = s.match(/^rgba?\(([^)]+)\)$/);
+  if (m) {
+    const parts = m[1].split(/[\s,/]+/).filter(Boolean);
+    if (parts.length < 3) return null;
+    const nums = parts.slice(0, 3).map((p) => (p.endsWith('%') ? (parseFloat(p) / 100) * 255 : parseFloat(p)));
+    if (nums.some((n) => !Number.isFinite(n))) return null;
+    const a = parts.length > 3 ? parseFloat(parts[3]) : 1;
+    return { r: nums[0], g: nums[1], b: nums[2], a: Number.isFinite(a) ? Math.max(0, Math.min(1, a)) : 1 };
+  }
+  return null; // oklch(), hsl(), named colors — unsupported, check skips
+}
+
+/** WCAG 2.x relative luminance of an opaque sRGB color. */
+export function relativeLuminance(c: RgbaColor): number {
+  const lin = (v: number) => {
+    const ch = Math.max(0, Math.min(255, v)) / 255;
+    return ch <= 0.04045 ? ch / 12.92 : Math.pow((ch + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+}
+
+/** WCAG contrast ratio between two colors (range 1..21). */
+export function contrastRatio(a: RgbaColor, b: RgbaColor): number {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  const [hi, lo] = la >= lb ? [la, lb] : [lb, la];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Alpha-composite `fg` over `bg` (both parsed colors). */
+function compositeOver(fg: RgbaColor, bg: RgbaColor): RgbaColor {
+  const a = fg.a + bg.a * (1 - fg.a);
+  if (a <= 0) return { r: 255, g: 255, b: 255, a: 0 };
+  return {
+    r: (fg.r * fg.a + bg.r * bg.a * (1 - fg.a)) / a,
+    g: (fg.g * fg.a + bg.g * bg.a * (1 - fg.a)) / a,
+    b: (fg.b * fg.a + bg.b * bg.a * (1 - fg.a)) / a,
+    a,
+  };
+}
+
 export function resolvePenTree(doc: CanvasDocument, opts?: ResolveOpts): Shape[] {
   return resolvePenTreeDetailed(doc, opts).layers;
 }
@@ -1004,6 +1108,19 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
       const n = rn.node;
       const parentContentW = parent ? parent.width - resolvePadding((parent.node as PenLayout).padding).left - resolvePadding((parent.node as PenLayout).padding).right : 0;
       const parentContentH = parent ? parent.height - resolvePadding((parent.node as PenLayout).padding).top - resolvePadding((parent.node as PenLayout).padding).bottom : 0;
+
+      // Depth-research 3-b #1: fill_container at the PAGE ROOT has no parent
+      // to fill, so the axis resolves to 0 (the node renders invisible).
+      // Fire before sizing so the agent learns the intent is unresolvable
+      // regardless of what the fallback does next.
+      if (!parent) {
+        if (isFillContainer(nodeWidth(n))) {
+          warn(n, 'fill_without_parent', `fill_container width on a ROOT-level node — there is no parent to fill, so it resolves to 0 and the node is invisible. Set an explicit width or nest it inside an auto-layout frame`);
+        }
+        if (isFillContainer(nodeHeight(n))) {
+          warn(n, 'fill_without_parent', `fill_container height on a ROOT-level node — there is no parent to fill, so it resolves to 0 and the node is invisible. Set an explicit height or nest it inside an auto-layout frame`);
+        }
+      }
 
       if (isContainerNode(n) && (n.children?.length ?? 0) > 0) {
         const kids = resolve(n.children!, rn, rn.theme);
@@ -1509,7 +1626,117 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
   }
 
   const tree = emit(resolved, null);
+
+  // ---- WCAG contrast lint (depth-research 3-b #7/#9) -------------------------
+  // Post-emit pass over the FLAT layer list — deliberately OUTSIDE emit so the
+  // R9c subtree cache can never replay a stale contrast verdict (the verdict
+  // depends on ancestor/sibling paints that the emit slot key does not cover).
+  // Contrast is arithmetic here, not a VLM opinion: text a user must read
+  // needs ≥4.5:1 (normal) / ≥3:1 (large ≥24px, or ≥19px bold) against its
+  // effective backdrop (A11YN: rules need a checker; NN/g + WCAG 2.x floors).
+  contrastLint(out, warn);
+
   return { layers: out, tree, warnings };
+}
+
+/// The light page surface every design sits on when no ancestor paints a
+/// backdrop (--ac-canvas-bg, slate-50). Text directly on the page is checked
+/// against this; dark-mode canvases carry their own root frames with fills, so
+/// the assumption only ever applies to bare page-level text.
+const PAGE_SURFACE: RgbaColor | null = parseCssColor('#f8fafc');
+
+/** Effective-backdrop resolution for one layer, or null when unknown. */
+function resolveBackdrop(
+  shape: Shape,
+  byId: Map<string, Shape>,
+): { color: RgbaColor; source: 'ancestor' | 'sibling' | 'page' } | null {
+  // Walk the ANCESTOR chain (nearest → farthest) compositing semi-transparent
+  // paints; a gradient or image anywhere in the chain makes the backdrop
+  // unknowable for everything below it (skip — the VLM critic owns visuals).
+  const chain: Shape[] = [];
+  let anc: Shape | undefined = shape.parentId ? byId.get(shape.parentId) : undefined;
+  let guard = 0;
+  while (anc && guard++ < 96) {
+    if (anc.gradient || anc.src) return null;
+    if (anc.opacity !== undefined && anc.opacity < 0.05) {
+      // fully transparent ancestor — keep walking
+    } else {
+      chain.push(anc);
+    }
+    anc = anc.parentId ? byId.get(anc.parentId) : undefined;
+  }
+  if (chain.length > 0) {
+    let acc = compositeOverShape(chain[chain.length - 1], PAGE_SURFACE);
+    for (let i = chain.length - 2; i >= 0; i--) {
+      acc = compositeOverShape(chain[i], acc);
+    }
+    if (acc) return { color: acc, source: 'ancestor' };
+  }
+
+  // Overlay pattern: text sitting ON a solid sibling painted earlier (classic
+  // button = rectangle + label as siblings). Only a backdrop that fully
+  // CONTAINS the text box counts; flow siblings (side-by-side) never do.
+  let best: { color: RgbaColor; zIndex: number } | null = null;
+  for (const other of byId.values()) {
+    if (other === shape) continue;
+    if (other.parentId !== shape.parentId) continue; // same stacking context
+    if (other.zIndex >= shape.zIndex) continue; // painted later = on top
+    if (other.type === 'text') continue; // text-on-text is mush, skip
+    if (other.gradient || other.src) continue;
+    if (other.opacity !== undefined && other.opacity < 0.9) continue;
+    const c = parseCssColor(other.fill);
+    if (!c || c.a < 0.9) continue; // solid backdrops only
+    if (
+      shape.x >= other.x - 4 &&
+      shape.y >= other.y - 4 &&
+      shape.x + shape.width <= other.x + other.width + 4 &&
+      shape.y + shape.height <= other.y + other.height + 4
+    ) {
+      if (!best || other.zIndex > best.zIndex) best = { color: c, zIndex: other.zIndex };
+    }
+  }
+  if (best) return { color: best.color, source: 'sibling' };
+
+  return PAGE_SURFACE ? { color: PAGE_SURFACE, source: 'page' } : null;
+}
+
+function compositeOverShape(shape: Shape, base: RgbaColor | null): RgbaColor | null {
+  const c = parseCssColor(shape.fill);
+  if (!c) return null;
+  if (base === null) return c.a >= 0.99 ? c : null;
+  return compositeOver(c, base);
+}
+
+function contrastLint(shapes: Shape[], warn: (node: { id?: unknown; type?: unknown }, kind: ResolverWarningKind, message: string) => void): void {
+  const byId = new Map<string, Shape>();
+  for (const s of shapes) if (typeof s.id === 'string') byId.set(s.id, s);
+  const textShapes = shapes.filter(
+    (s) => s.type === 'text' && s.text && s.visible !== false && (s.opacity === undefined || s.opacity >= 0.99),
+  );
+  for (const s of textShapes) {
+    const fg = parseCssColor(s.textColor);
+    if (!fg || fg.a <= 0.1) continue;
+    const backdrop = resolveBackdrop(s, byId);
+    if (!backdrop) continue;
+    const ratio = contrastRatio(fg, backdrop.color);
+    const fontSize = num(s.fontSize, 16);
+    const fontWeight = num(s.fontWeight, 400);
+    const large = fontSize >= 24 || (fontSize >= 18.66 && fontWeight >= 700);
+    const need = large ? 3 : 4.5;
+    if (ratio + 0.005 < need) {
+      const label = String(s.name ?? s.text ?? 'text').slice(0, 40);
+      const fgHex = `#${[fg.r, fg.g, fg.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+      const bgHex = `#${[backdrop.color.r, backdrop.color.g, backdrop.color.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+      const tokenNote = s.tokenBinding?.textToken
+        ? ` (this text is bound to $${s.tokenBinding.textToken} — change the variable's value or rebind the layer)`
+        : '';
+      warn(
+        s,
+        'contrast_failure',
+        `"${label}" (${Math.round(fontSize)}px text) is ${fgHex} on a ${bgHex} backdrop — contrast ${ratio.toFixed(2)}:1, below the WCAG AA floor of ${need}:1${large ? ' for large text' : ''}. Darken the text (e.g. $color.text-muted #475569 on light surfaces) or lighten/darken the backdrop${tokenNote}. Fix it at the TOKEN level when the layer is bound`,
+      );
+    }
+  }
 }
 
 // ---- Figma ontology v3 mirrors (spec Phase 6 part 1 — dual-field window) ---

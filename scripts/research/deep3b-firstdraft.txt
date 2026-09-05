@@ -1,0 +1,259 @@
+Use First Draft with Figma AI – Figma Learn - Help Center
+Figma Learn
+Get started
+Product documentation
+Administration
+Courses, tutorials, projects
+Help
+enter to select
+↑ ↓ to navigate
+esc to close
+Sign up
+Figma Design
+Design and prototype in one place
+Figma Make
+Prompt to code anything you can imagine
+Dev Mode
+Translate designs into code
+Figma Weave
+New
+AI workflows for imagery, video, and audio
+Figma Motion
+New
+Create precise, production-ready animations
+FigJam
+Collaborate with a digital whiteboard
+Figma Draw
+Illustrate with advanced vector tools
+Figma Slides
+Co-create presentations
+Figma Sites
+Beta
+Publish fully responsive websites
+Figma Buzz
+Beta
+Produce on-brand assets at scale
+AI
+Explore all Figma AI features
+Developer docs
+Work with APIs, embeds, and more
+For everyone
+Account
+Manage settings
+Change preferences
+Files and projects
+Use the file browser
+Manage files and projects
+For administration
+Billing
+Overview
+Manage seats
+Manage your plan
+Pay for Figma
+Teams
+Manage a team
+Organizations
+Overview
+Login and authentication
+Deploy Figma
+Members and guests
+Teams
+Libraries and resources
+Enterprise
+Billing groups
+Workspaces
+Security features
+Find out more
+Courses and collections
+New
+Level up your Figma skills with these comprehensive skill-based courses.
+Projects
+Get hands-on experience in Figma with these practical bite-sized projects.
+Tutorials
+Explore tools and features by watching and following along with these expert-led video tutorials.
+Get solutions
+Troubleshoot
+Get help with common issues and troubleshoot unexpected behavior.
+Work with support
+Submit a bug report, get help collecting log files, and find your system information.
+Common questions
+Get answers to frequently asked questions.
+Figma Community Forum
+Ask the community, share ideas, and connect with other Figma users.
+Get started
+Product documentation
+Products
+Figma Design
+Figma Make
+Dev Mode
+Figma Weave
+New
+Figma Motion
+New
+FigJam
+Figma Draw
+Figma Slides
+Figma Sites
+Beta
+Figma Buzz
+Beta
+Features
+AI
+Accessibility
+Developer docs
+Figma Community
+Administration
+For everyone
+Account
+Files and projects
+For administration
+Billing
+Teams
+Organizations
+Enterprise
+Courses, tutorials, projects
+Find out more
+Courses and collections
+Projects
+Tutorials
+Help
+Get solutions
+Troubleshoot
+Work with support
+Common questions
+Figma Community Forum
+In this article
+Figma Learn - Help Center
+Work across Figma
+Figma AI
+Generative tools
+Use First Draft with Figma AI
+Beginning May 20, 2026, Figma’s agent will be the new entry point for this functionality, offering a more powerful way to explore, iterate, and refine your designs. The agent is currently in beta and rolling out gradually. Learn more about the beta rollout.
+Before you start
+Who can use this feature
+Available in Figma Design
+Available on paid plans
+Requires can edit file access
+Learn more about who can access AI features in Figma .
+With First Draft, you can transform ideas into editable wireframes or designs in a couple of minutes. This helps you explore a wider range of design possibilities quickly and reduces the amount of effort needed to create early explorations from scratch.
+How it works
+Figma AI uses Figma-built wireframing and design libraries as the foundation for generating designs.
+Each library has a set of building blocks—or stacks of components—that are used to piece together your design based on the description you provide.
+The libraries excel at generating designs that match common design patterns on websites and mobile apps. But, you might find things go awry when generating concepts from outside these design frameworks.
+The following prompts typically generate strong outputs:
+A checkout page for a store that sells BBQs
+A food delivery app for pet food
+A marketing website for a content strategy consultancy
+Figma AI might struggle with these prompts, as they don’t use design patterns common to websites or mobile apps:
+A book layout for a novel
+A birthday party invitation
+A flyer in the shape of a fish
+Once you’ve generated a design, you can make changes to it using another prompt, or with a collection of style controls.
+Tip : It’s not possible to generate designs using your own design system, although we hope to make that functionality available soon.
+Make a first draft
+Click Actions in the toolbar.
+Select First Draft.
+If needed, click Library to make a website or mobile app wireframe or basic design. If you don’t choose a library, Figma AI will select the one best suited to the prompt.
+Enter a prompt, like: ‘A pricing page for a developer tools startup’, or click one of the available suggestions.
+Click Make it .
+Preview different themes by clicking the thumbnails underneath the prompt.
+If you’re happy with the design, close the actions menu. If you’d like to refine it further, click Make changes.
+Make changes to the design
+Note : Once you close Actions , you won’t be able to make changes to the design using First Draft libraries. Instead, you can keep editing your design by modifying its properties—just like with any other design.
+You have two options for modifying your design when you click Make changes :
+Use a prompt to describe your changes
+Use the style controls to customize the color, typography, spacing, and border radius
+You can switch back and forth between each option while making changes to a single design.
+Tip : Want to compare different riffs? Duplicate the selected frame using Control D on Windows or Command D on MacOS and then keep making changes.
+Use a prompt to customize the design
+Using a prompt, you can modify the theme, content, or structure of your design. Here are some examples:
+Theme
+Use a watermelon theme
+Try a different color scheme
+Make this more vibrant
+Content
+Change the settings icon to a gear
+Make this about audiobooks rather than podcasts
+Change the names of the customers in the customer testimonial section
+Structure
+Add another section under Top of the Charts called Trending in Germany
+Move the Featured section below the nav bar
+Tip : Select one or more parts of the design to only apply the prompt to the selected elements.
+Use style controls to customize the theme
+Adjust the theme using the style controls gives you control over the color, border radius, spacing, and typography of the design.
+Color
+Click or to toggle between light and dark mode. You can also apply a new color to the theme by choosing one of the preset colors or clicking the color wheel to choose your own color.
+Border radius
+Drag the slider to increase or decrease the border radius for eligible objects.
+Spacing
+Drag the slider to increase or decrease the spacing between items.
+Typography
+Click title , body , or label to select a group of text elements to change. Then, click a new font to preview it in the design.
+Tip : Something not working as expected? Check out our guide to Troubleshooting AI tools in Figma Design →
+Was this article helpful?
+Yes
+No
+Help Center feedback
+Got a second? Tell us what we’re doing well.
+Submit article feedback
+Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form .
+Help Center feedback
+Thanks for letting us know! What was the issue?
+-- Please choose an option --
+Incorrect or missing information
+Hard to understand
+There are typos or broken links
+Issues with images, GIFs, or videos
+I wish the feature worked a different way
+Something else
+Submit article feedback
+Your feedback helps us improve Figma’s Help Center. To get help from support, submit a request through our contact form .
+Thank you for helping us improve Figma’s Help Center!
+In this article
+0 min
+English (United States)
+Deutsch
+Español (Latinoamérica)
+Español (España)
+Français
+日本語
+한국어
+Nederlands (Nederland)
+Polski (Polska)
+Português do Brasil
+Use cases
+UI design
+UX design
+Prototyping
+Graphic design
+Wireframing
+Brainstorming
+Templates
+Remote design
+Explore
+Design features
+Prototyping features
+Design systems features
+Collaboration features
+FigJam
+Pricing
+Enterprise
+Students and educators
+Customers
+Security
+Integrations
+Contact
+Resources
+Blog
+Best practices
+Support
+Developers
+Learn design
+Downloads
+What's new
+Releases
+Careers
+About us
+Agency partners
+Privacy
+Status

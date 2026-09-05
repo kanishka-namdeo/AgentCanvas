@@ -236,6 +236,13 @@ interface CanvasState {
   /// kept as a lockstep mirror (live phase ⇔ true) written together via
   /// phaseFields() so the two can never disagree. See run-phase.ts.
   runPhase: RunPhase;
+  /// Transient run-status note (depth-research 3-c, 2026-09-05): set by the
+  /// additive `agent:status_note` event when the agent loop is between
+  /// user-visible signals (pi SDK auto-retry backoff). The BusyRow shows it
+  /// in place of the generic "Thinking…" label; any message/tool/terminal
+  /// event clears it. Empty-text notes clear it too. Never persisted, never
+  /// a phase — purely the honest "here is why nothing is moving" signal.
+  statusNote: string | null;
   /// Prompts submitted while the agent was busy — sent automatically, one
   /// per turn end, in submission order (Cursor-style message queueing).
   queuedPrompts: QueuedPrompt[];
@@ -556,6 +563,15 @@ let blockedCanvasEditToastShown = false;
 /// arm/clear so a fresh run gets fresh feedback.
 function resetBlockedEditToast() {
   blockedCanvasEditToastShown = false;
+}
+
+/// Clear the transient agent:status_note (depth-research 3-c). Called from
+/// every reducer that resumes user-visible activity or ends the run — the
+/// note is only meaningful while NOTHING else is moving (auto-retry backoff).
+function clearStatusNote() {
+  if (useCanvasStore.getState().statusNote !== null) {
+    useCanvasStore.setState({ statusNote: null });
+  }
 }
 
 /// Toast shown when a user-initiated mutation is blocked by the busy guard.
@@ -1306,6 +1322,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   turns: [],
   agentBusy: false,
   runPhase: 'idle',
+  statusNote: null,
   queuedPrompts: [],
   contextTokens: 0,
   contextWindow: 128_000,
@@ -2883,6 +2900,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           resetBlockedEditToast();
           set(phaseFields('thinking'));
         }
+        clearStatusNote();
         break;
       }
       case 'agent:message_delta': {
@@ -3033,6 +3051,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'agent:tool_call_start': {
+        clearStatusNote();
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
@@ -3146,9 +3165,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         });
         break;
       }
+      case 'agent:status_note': {
+        // Depth-research 3-c: transient stall note (auto-retry backoff).
+        // Empty text clears; non-empty replaces. Never touches runPhase —
+        // the note is a refinement of the live phase's label, not a phase.
+        set({ statusNote: event.text || null });
+        break;
+      }
       case 'agent:turn_end': {
         const { documentId } = get();
         resetBlockedEditToast();
+        clearStatusNote();
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
@@ -3289,6 +3316,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'agent:turn_cancelled': {
+        clearStatusNote();
         // Server-side Stop landed (agent:stop → canvas-sync aborts the run →
         // runner emits turn_cancelled). Finalize the turn + run as CANCELLED
         // for every viewer. Idempotent: endRun's terminal guard + the
@@ -3333,6 +3361,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'agent:stuck': {
+        clearStatusNote();
         // Stuck detector (C4): the same tool call failed identically N times
         // and the runner stopped the loop. Mark the message/run honestly —
         // 'stuck' is a distinct terminal status so history shows WHY the turn
@@ -3370,6 +3399,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'agent:error': {
+        clearStatusNote();
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];

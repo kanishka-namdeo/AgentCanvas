@@ -90,8 +90,9 @@ Rules:
   1. Pick ONE ramp (don't mix ramps — that creates the "5 different blues" failure).
   2. primaryColor = the 500 from your chosen ramp.
   3. accentColor = the 500 from a complementary ramp (e.g. Sky+Violet, Emerald+Indigo, Amber+Rose).
-  4. neutralPalette = 5-7 shades from a Slate/Tailwind neutral ramp (light→dark):
-       #f8fafc, #f1f5f9, #e2e8f0, #cbd5e1, #94a3b8, #475569, #0f172a
+  4. neutralPalette = 6-8 shades from a Slate/Tailwind neutral ramp (light→dark):
+       #f8fafc, #f1f5f9, #e2e8f0, #cbd5e1, #94a3b8 (BORDERS/DIVIDERS ONLY — never text,
+       it fails WCAG 4.5:1), #64748b (subtle-text floor), #475569, #0f172a
      This is the neutral system used for bg, surfaces, borders, text — it stays constant
      regardless of the chosen brand color so the design feels coherent.
   5. typography.fontFamily = "Inter, system-ui, sans-serif" (the design system's default font).
@@ -111,7 +112,7 @@ The JSON MUST have this shape:
 {
   "primaryColor": "#0ea5e9",
   "accentColor": "#6366f1",
-  "neutralPalette": ["#f8fafc", "#f1f5f9", "#e2e8f0", "#94a3b8", "#475569", "#0f172a"],
+  "neutralPalette": ["#f8fafc", "#f1f5f9", "#e2e8f0", "#cbd5e1", "#94a3b8", "#64748b", "#475569", "#0f172a"],
   "typography": {
     "fontFamily": "Inter, system-ui, sans-serif",
     "headingScale": "1.25 Major Third",
@@ -278,8 +279,8 @@ export function parseBriefJson(content: string): DesignBrief | undefined {
     primaryColor: typeof obj.primaryColor === 'string' ? obj.primaryColor : '#0ea5e9',
     accentColor: typeof obj.accentColor === 'string' ? obj.accentColor : '#6366f1',
     neutralPalette: Array.isArray(obj.neutralPalette)
-      ? obj.neutralPalette.filter((c: unknown) => typeof c === 'string').slice(0, 7)
-      : ['#f8fafc', '#f1f5f9', '#e2e8f0', '#94a3b8', '#475569', '#0f172a'],
+      ? obj.neutralPalette.filter((c: unknown) => typeof c === 'string').slice(0, 8)
+      : ['#f8fafc', '#f1f5f9', '#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#475569', '#0f172a'],
     typography: {
       fontFamily:
         obj.typography && typeof obj.typography.fontFamily === 'string'

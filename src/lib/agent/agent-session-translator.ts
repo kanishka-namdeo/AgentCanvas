@@ -423,25 +423,64 @@ export function translateAgentSessionEvent(event: AgentSessionEvent, state?: Tra
       break;
     }
 
+    // ---- Auto-retry (honest stall reporting — depth-research 3-c) ----------
+    // The SDK backs off silently on transient LLM failures (429/5xx): the
+    // chat shows "Thinking…" with zero wire events for up to ~40s, which
+    // reads as a frozen app (ChatGPT's documented stuck-stop failure class).
+    // Translate both events into the additive agent:status_note — the
+    // BusyRow surfaces it while nothing else is happening, and any later
+    // message/tool/terminal event clears it. auto_retry_end with success
+    // emits an EMPTY note to clear the stall text.
+    case 'auto_retry_start': {
+      const e = event as any;
+      const attempt = typeof e.attempt === 'number' ? e.attempt : 1;
+      const maxAttempts = typeof e.maxAttempts === 'number' ? e.maxAttempts : attempt;
+      const delay = typeof e.delayMs === 'number' ? Math.round(e.delayMs / 1000) : 0;
+      const reason = typeof e.errorMessage === 'string' ? ` — ${e.errorMessage}` : '';
+      out.push({
+        kind: 'agent_event',
+        event: {
+          type: 'agent:status_note',
+          text: `Retrying (${attempt}/${maxAttempts}) in ${delay}s${reason}`.slice(0, 220),
+        },
+      });
+      break;
+    }
+    case 'auto_retry_end': {
+      const e = event as any;
+      // Success → clear the note (the loop is visibly moving again). Failure
+      // → keep a short note; the SDK's error path (agent:error) follows with
+      // the honest terminal state.
+      const note = e.success === true ? '' : `Retry ${(e.attempt ?? '?')} failed${typeof e.finalError === 'string' ? ` — ${e.finalError}` : ''}`;
+      if (note) {
+        out.push({
+          kind: 'agent_event',
+          event: { type: 'agent:status_note', text: note.slice(0, 220) },
+        });
+      } else {
+        out.push({ kind: 'agent_event', event: { type: 'agent:status_note', text: '' } });
+      }
+      break;
+    }
+
     // ---- Things we deliberately drop ----
     case 'agent_start':
     case 'agent_settled':
     case 'session_info_changed':
     case 'thinking_level_changed':
     case 'queue_update':
-    case 'auto_retry_start':
-    case 'auto_retry_end':
     case 'summarization_retry_scheduled':
     case 'summarization_retry_attempt_start':
     case 'summarization_retry_finished':
     case 'bash_execution_update':
-      // These are TUI/CLI-oriented events that have no Web UI equivalent.
-      // Bash execution doesn't apply (we have noTools:'all' so the bash
-      // tool is never registered). Auto-retry is silent (the llm-retry
-      // module already handles user-visible backoff for the OpenAI-shaped
-      // LLM calls; the SDK's own retry is internal and shouldn't surface
-      // in chat). Queue updates (steer/followUp) are handled separately
-      // by the runner's own steer() integration.
+      // TUI/CLI-oriented events with no Web UI equivalent. Bash execution
+      // doesn't apply (noTools:'all'). Queue updates (steer/followUp) are
+      // the SDK's own queue — our queue-chip truth is the store's
+      // queuedPrompts + the runner's steer() integration, so forwarding the
+      // SDK's would double-count. agent_settled: our turn_end already fires
+      // once per prompt cycle (agent_end + turnEnded suppression above), and
+      // the run's true terminal state comes from the server's turn_final at
+      // teardown — forwarding settled would race that path.
       break;
 
     default: {

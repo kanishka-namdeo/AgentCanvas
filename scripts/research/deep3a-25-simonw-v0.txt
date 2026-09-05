@@ -1,0 +1,89 @@
+
+Leaked system prompts from Vercel v0
+Simon Willison’s Weblog
+Subscribe
+Sponsored by:
+ Portnox — Shadow AI is the new shadow IT. On Sept. 10, Forrester Research and Portnox share practical steps to regain AI agent visibility, access management, and policy enforcement. 
+Register today
+25th November 2024 - Link Blog
+Leaked system prompts from Vercel v0
+. 
+v0
+ is Vercel's entry in the increasingly crowded LLM-assisted development market - chat with a bot and have that bot build a full application for you.
+They've been iterating on it 
+since launching in October last year
+, making it one of the most mature products in this space.
+Somebody leaked the system prompts recently. Vercel CTO Malte Ubl 
+said this
+:
+When 
+@v0
+ first came out we were paranoid about protecting the prompt with all kinds of pre and post processing complexity.
+We completely pivoted to let it rip. A prompt without the evals, models, and especially UX is like getting a broken ASML machine without a manual
+Posted 
+25th November 2024
+ at 9:17 pm
+Recent articles
+The Pelican comparison grid for Astra is pretty interesting
+ - 4th September 2026
+OpenAI's rogue agents were caught communicating via public wikis
+ - 4th September 2026
+Claude's new system prompt really doesn't want to reproduce song lyrics
+ - 2nd September 2026
+This is a 
+link post
+ by Simon Willison, posted on 
+25th November 2024
+.
+            ai
+2,216
+            prompt-engineering
+197
+            prompt-injection
+162
+            generative-ai
+1,964
+            llms
+1,931
+            ai-assisted-programming
+405
+            vercel
+4
+            evals
+45
+            prompt-to-app
+39
+    Monthly briefing
+    Sponsor me for 
+$10/month
+ and get a curated email digest of the month's most important LLM developments.
+    Pay me to send you less!
+    Sponsor & subscribe
+Disclosures
+Colophon
+©
+2002
+2003
+2004
+2005
+2006
+2007
+2008
+2009
+2010
+2011
+2012
+2013
+2014
+2015
+2016
+2017
+2018
+2019
+2020
+2021
+2022
+2023
+2024
+2025
+2026

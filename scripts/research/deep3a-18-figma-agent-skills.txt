@@ -1,0 +1,288 @@
+
+Got Skills? Make the Figma Agent a Better Collaborator | Figma Blog
+Skip to main content
+Subscribe to Figma’s editorial newsletter
+Categories
+Maker Stories
+Working Well
+Inside Figma
+Insights
+Latest
+Topics
+Featured Topics
+News
+Get the latest on all things Figma
+Design systems
+Everything you need to know about building and scaling design systems in the age of AI
+Explore topics
+3D design
+Accessibility
+AI
+Behind the scenes
+Brainstorming
+Branding
+Career & education
+Case study
+Collaboration
+Config
+Culture
+Design
+Design thinking
+Dev Mode
+Diagramming
+Engineering
+Events
+FigJam
+Figma agent
+Figma Buzz
+Figma Design
+Figma Draw
+Figma Make
+Figma MCP
+Figma Sites
+Figma Slides
+Figma Weave
+Hiring
+Infrastructure
+Leadership
+Marketing
+Meetings
+Motion
+Operations
+Plugins & tooling
+Portfolio
+Product management
+Product updates
+Productivity
+Profiles & interviews
+Prototyping
+Quality & performance
+React
+Report
+Research
+Security
+Sightlines
+Social impact
+Strategy
+The Long & Short of It
+Thought leadership
+Tips & inspiration
+Typography
+UI/UX
+Wireframing
+Writing
+July 1, 2026
+Got skills? Make the Figma agent a better collaborator
+Sachi Shah
+Product Manager, Figma
+Sean Lee
+Product Manager, Figma
+Working Well
+Figma agent
+Figma Design
+Figma Make
+Figma MCP
+AI
+Tips & inspiration
+From sharing your best thinking to learning from your team’s go-to prompts, here’s what skills unlock in the Figma agent.
+Share Got skills? Make the Figma agent a better collaborator
+Every team has their own way of working.
+Maybe it’s how you capitalize product names, the way your PM formats specs, or the prompt your team swears by for design feedback. These are the workflows everyone relies on—easy to use, hard to explain, and often living in someone’s head.
+That’s where 
+skills
+ come in. A skill is a reusable set of instructions, written in plain English, that you teach the 
+Figma agent 
+Figma’s design agent, now with custom tools and greater context
+Prompting gets you started. Custom tools, real context, and skills take the design agent further—so what ends up on the canvas actually looks like you.
+once and can trigger in any chat with a forward slash (
+/
+). Instead of rewriting the same prompt or re-explaining the same process, you can publish a skill to your team or organization so the agent can use it.
+Since 
+launching skills in the Figma agent at Config
+Config 2026: New materials, new tools and a more expressive canvas
+Push past what you thought was possible with code layers, Figma Motion, shaders, generative plugins and Weave tools, all on the canvas.
+, we’ve been putting our own skills to work. Here’s what we’ve learned, and what using them looks like in practice.
+A second opinion, on demand
+/tip
+Skills and design systems are complementary. Your design system gives the agent the right components, patterns, and UI elements to build with. Skills layer on the rest of your team’s expertise, from applying your brand voice and compliance guidelines, to critiquing work, following review processes, or even calling your design system as part of a larger workflow.
+Skills can help you see work from a sharper angle. They can push on an idea, help you ask better questions, or critique a design through a specific lens. They can also help teams apply and uphold shared standards, from UX writing guidelines, to accessibility checks, to product principles. Here’s how we created some skills to uplevel our work:
+Simulate a stakeholder’s feedback style:
+ Feed the agent examples of how someone gives you feedback—public comments, past critiques, notes in a file—and prompt the agent to apply that skill to your work. We built one based on our CEO Dylan’s comments so designers can pressure-test their work before going into a review.
+Uphold UX writing standards:
+ Give the agent your style guide so it can take a first pass at catching inconsistencies. Figma's UX Writing team built one that follows our standards for capitalization, punctuation, and more, so our writers can focus on the meatier stuff.
+Get a new user’s perspective:
+ Run a skill to review an experience as a first-time user to help surface friction and missing context that is often invisible to anyone who knows the product deeply (e.g. the product designers).
+Our skill to simulate our CEO Dylan's perspective
+Our skill to uphold our UX writing style guide
+Build once, use everywhere
+Some skills make recurring team rituals easier to run. They can help onboard new teammates, prepare project spaces, or give new projects a consistent starting point. The pattern is simple: if your team does something the same way every time, it’s probably worth turning into a skill. Here are a few worth trying:
+A catch-me-up
+: Summarizes recent activity in a file or project so that anyone rejoining after time away can get up to speed without need to hunt through comment threads.
+A crit prep checklist
+: The agent interviews you about your project to gather context like persona, scope of work, and crit audience, then creates a crit page with guided discussion prompts. We built our skill to reference Nielsen Norman Group best practices for research questions, ensuring discussion questions drive deeper conversations.
+A crit recap
+: Takes the feedback from a critique and organizes it into a follow-up plan grouped by theme, including decisions made, action items, and deferred items. Our version of the skill creates a recap card that lives on the canvas or can be pasted into a Slack thread, so nothing gets lost and information flows to the right places after the meeting ends.
+Our /catch-me-up skill in action
+Connect the dots
+/tip
+Skills get even more useful when they can draw from the tools your team already uses. Skills work with 
+MCP connectors
+ to let the Figma agent interact with apps like Slack, Notion, Asana, and more, so it can bring in context like PRDs, product data, research notes, or project discussions as it works beside you.
+Skills work across both the 
+Figma agent
+The Figma design agent is here
+Starting today, work with an agent that is built for Figma—directly on the canvas.
+ and Figma Make, so the same reusable workflow is always available wherever you’re working. With 
+connectors
+, skills can also pull context from the tools your team already uses—bringing in information, logging decisions, or updating external systems without manual handoffs. And soon Figma skills will be available through 
+Figma's MCP server
+The TL;DR on MCP: Why context matters and how to put it to work
+Figma’s MCP server brings your design decisions into the tools where code gets written—so what gets built actually matches what was designed. Here’s what that unlocks for everyone who builds products.
+, so you'll be able to use them from any MCP-compatible client, extending the workflows you build in Figma beyond Figma itself. A few patterns for connecting your toolkit:
+Log and track feedback
+: After a review, a skill can take comments and feedback, and convert them into tasks in your project management tool so nothing falls through the gap between design and engineering.
+Bring research into the room
+: A skill can pull relevant user insights from your research libraries like HeyMarvin or Notion and surface supporting evidence to strengthen a design.
+Back a direction with data:
+ Feed a skill the right data source and it can pull relevant figures to support a design direction, sharpen a narrative, or fact-check a claim before it goes to stakeholders.
+Using our /create-tasks skill to log feedback as Asana tasks
+/tip
+Not every conversation should be shared. If you’re working on something sensitive, you can always switch an agent chat to private.
+One of our favorite updates to the Figma agent is that chats are now shared by default in collaborative files. Instead of agent work happening off to the side, you can see how teammates approach problems, which skills they use, and how they prompt to get there.
+That changes how people learn. Instead of asking, “How did you do that?” you can open the chat, follow their thinking, and try the approach in your own work.
+See your collaborators' prompt history
+Extending your team's context and creativity is now easier than ever, learn more about creating your own skills in our 
+help center
+.
+The 
+Figma design agent
+ is available in open beta for Full seat users on Professional, Organization, and Enterprise plans. Collab, Dev, and View seats can use the agent in their drafts. The agent is free to use during beta. Play around in the agent 
+playground file
+ or learn practical 
+ways to use AI
+ in your design workflow.
+Sachi Shah is a product manager at Figma. She came to product by way of a degree called Leadership in Creative Enterprise, which she designed at Carnegie Mellon. Outside work, she creates figurative oil paintings and trains in Muay Thai.
+LinkedIn
+Sean Lee is a product manager on Figma Make, focused on getting agents to sweat the pixel-level details. Previously, he worked on FigJam, Slides, and Figma's native mobile app.
+LinkedIn
+X
+Subscribe to Figma’s editorial newsletter
+Enter email
+*
+I agree to opt-in to Figma's mailing list.
+*
+By clicking “Subscribe” you agree to our 
+TOS
+ and 
+Privacy Policy
+.
+Related articles
+Figma’s design agent, now with custom tools and greater context
+June 24, 2026
+By Georgia Rust, Rodrigo Davies
+Prompting gets you started. Custom tools, real context, and skills take the design agent further—so what ends up on the canvas actually looks like you.
+Inside Figma
+Product updates
+Figma agent
+Figma Design
+Config
+AI
+News
+The Figma design agent is here
+May 20, 2026
+By Rodrigo Davies, Tammy Taabassum
+Starting today, work with an agent that is built for Figma—directly on the canvas.
+Inside Figma
+Product updates
+Figma agent
+Figma Design
+AI
+Design systems
+Design
+News
+4 ways we’re using our MCP server at Figma
+June 16, 2026
+By Mari Kong
+The Figma MCP server reaches further across the platform than it ever has. From updating a living deck to shipping a design to production—here's what that looks like in practice.
+Inside Figma
+Product updates
+Figma Slides
+FigJam
+Figma MCP
+Figma Make
+AI
+News
+Create and collaborate with Figma
+Get started for free
+Figma Socials
+Product
+Figma Design
+Figma Make
+Figma Weave
+New
+Dev Mode
+Figma Motion
+New
+FigJam
+Figma Slides
+Figma Draw
+Figma Sites
+Beta
+Figma Buzz
+Beta
+Design and explore
+Build and ship products
+AI workflows
+Release notes
+Downloads
+Plans
+Pricing
+Enterprise
+Organization
+Professional
+Use cases
+UI design
+UX design
+Wireframing
+Diagramming
+Prototyping
+Brainstorming
+Presentation Maker
+Online whiteboard
+Strategic planning
+Mind mapping
+AI website generator
+AI design generator
+AI app builder
+AI UI generator
+Weave AI tool
+AI design agent
+Resources
+Blog
+Best practices
+Gradient Library
+Gradient Generator
+GIF maker
+Color wheel
+Colors
+Color picker
+Font Library
+Templates
+Developers
+Integrations
+Affiliate program
+Resource library
+Reports and insights
+Support
+Status
+Legal and privacy
+Modern slavery statement
+Climate disclosure statement
+Impressum
+Company
+Events
+Customers
+Careers
+Newsroom
+Brand assets
+English

@@ -55,20 +55,27 @@ export interface VlmCritique {
 
 // ---- Sub-agent system prompt ----------------------------------------------
 //
-// Identical to /home/z/my-project/scripts/vlm-critique-prompt.txt — keeps the
-// "after" measurement directly comparable to the Task 7-a "before" baseline.
+// 2026-09-05 depth-research revision (Task 3-b): generalized beyond
+// dashboards (the old framing biased every non-dashboard design toward
+// "missing KPI cards"), grounded in the DesignBench defect taxonomy
+// (alignment / crowding / occlusion / overflow / contrast), and anchored to
+// concrete production references per dimension. The JSON SHAPE is unchanged —
+// downstream parsing (this file + runner merge) depends on the 8 keys.
+// scripts/vlm-critique-prompt.txt mirrors this text for manual A/B runs.
 
-const VLM_CRITIC_SYSTEM_PROMPT = `You are a senior UI/UX designer with 15 years of experience shipping production SaaS dashboards. Critique this AI-generated dashboard screenshot. Be specific and harsh.
+const VLM_CRITIC_SYSTEM_PROMPT = `You are a senior UI/UX designer with 15 years of experience shipping production web and mobile products. Critique this AI-generated UI design screenshot. Be specific and harsh — act like the design lead reviewing a junior's first draft.
 
 For EACH of these 8 dimensions, list every defect you see with a concrete fix:
-1. VISUAL HIERARCHY — what draws the eye first? Is it the right element? Are headings larger than body? Is the most important metric the visual focal point?
-2. SPACING & PADDING — cramped? inconsistent gutters? missing breathing room? elements touching edges?
-3. COLOR PALETTE — coherent or random? Is there a clear primary/accent/neutral system? Background too white? Cards have differentiated surface color?
-4. TYPOGRAPHY — font weights used correctly (body 400, labels 500, section heads 600, hero 700)? Letter spacing? Line heights? Alignment (left/center/right)?
-5. COMPONENT POLISH — do cards have shadow, rounded corners, border? Buttons look clickable (primary vs secondary distinction)? Inputs have border + placeholder?
-6. ALIGNMENT — do edges line up? Is there a grid? Are elements scattered or aligned?
-7. INFORMATION DENSITY — too sparse (lots of empty space, looks like a wireframe)? Too dense (cluttered, hard to scan)?
-8. OVERALL PROFESSIONALISM — does this look like a real product (Stripe, Linear, Vercel dashboard) or like a wireframe / child's drawing?
+1. VISUAL HIERARCHY — what draws the eye first? Is it the right element? Are headings larger than body? Is the single most important element (primary CTA, hero metric, key message) the visual focal point, or does everything shout equally?
+2. SPACING & PADDING — cramped? inconsistent gutters (same relationship, different gap)? missing breathing room? elements touching card edges or each other? padding smaller than the gaps between siblings (groups visually merge)?
+3. COLOR PALETTE — coherent or random? Is there a clear primary/accent/neutral system (60-30-10)? Background too white? Cards differentiated from the page? Or too many unrelated hues (the "5 different blues" failure)?
+4. TYPOGRAPHY — font weights used correctly (body 400, labels 500, section heads 600, hero 700)? Letter spacing? Line heights? Alignment (left/center/right) consistent? Text too small to read (<12px)?
+5. COMPONENT POLISH — do cards have shadow, rounded corners, border? Buttons look clickable (primary vs secondary distinction)? Inputs have border + placeholder? Icon-only affordances missing labels?
+6. ALIGNMENT — do edges line up? Is there a grid? Are elements scattered or aligned? Do text baselines align across columns? OVERLAP/OCCLUSION: any element covering another unintentionally, text clipped mid-word, or content escaping its container (overflow)?
+7. INFORMATION DENSITY — too sparse (large empty areas, looks like a wireframe, no real content)? Too dense (cluttered, crowding, hard to scan)? Are labels real content (real names, numbers) or filler ("Lorem ipsum", "Item 1")?
+8. OVERALL PROFESSIONALISM — does this look like a real product someone would pay for (the polish of Stripe, Linear, Vercel, Airbnb) or like a wireframe / template / rough sketch? Would a hiring manager put this in a portfolio?
+
+CONTRAST is checked separately by a programmatic WCAG pass — only flag contrast here when it is visually obvious (text that disappears into its background).
 
 Then give a single overall score 1-10 and a prioritized TOP-5 fix list (each fix = concrete action the AI agent or renderer should take).
 
