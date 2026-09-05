@@ -53,6 +53,7 @@ import {
 import { listProviders, getProviderMetadata } from '@/lib/llm';
 import { useSessionStore, estimateLocalStorageUsage, sweepIdleSessions } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
+import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import { toast } from 'sonner';
 import { useModelCatalog } from '@/hooks/use-model-catalog';
 import { modelSupportsImages } from '@/lib/agent/attachments';
@@ -813,6 +814,9 @@ function AppearanceSection() {
 // ── Section 5: Data & privacy ────────────────────────────────────────────
 function DataSection() {
   const [usage, setUsage] = useState(() => estimateLocalStorageUsage());
+  // D5: the danger-zone buttons gate on the live phase (visual + store
+  // backstop in the handlers).
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
 
   const refresh = () => setUsage(estimateLocalStorageUsage());
 
@@ -854,6 +858,16 @@ function DataSection() {
   };
 
   const handleClearChats = () => {
+    // D5 (2026-09-05 depth pass): the live run is still appending to the
+    // very rows this wipes — a mid-run clear diverges the transcript (the
+    // store keeps streaming into deleted ids) and torches the turn's
+    // restore points. Gate like every other destructive surface.
+    if (useCanvasStore.getState().agentBusy) {
+      toast.warning('Agent is running', {
+        description: `${BUSY_LOCK_HINT} — clearing chats mid-run would delete the transcript the agent is writing.`,
+      });
+      return;
+    }
     if (!confirm('Permanently delete ALL chats, runs, messages, and snapshots? This cannot be undone.')) return;
     const docId = useCanvasStore.getState().documentId;
     useSessionStore.getState().clearAllForDocument(docId);
@@ -862,6 +876,12 @@ function DataSection() {
   };
 
   const handleClearSnapshots = () => {
+    if (useCanvasStore.getState().agentBusy) {
+      toast.warning('Agent is running', {
+        description: `${BUSY_LOCK_HINT} — the current turn still needs its snapshots as restore points.`,
+      });
+      return;
+    }
     if (!confirm('Delete all non-bookmarked canvas snapshots? The snapshot timeline is shared across every chat on this canvas.')) return;
     const store = useSessionStore.getState();
     const docId = useCanvasStore.getState().documentId;
@@ -936,7 +956,9 @@ function DataSection() {
             variant="outline"
             size="sm"
             onClick={handleClearSnapshots}
-            className="h-8 w-full text-[11px] ac-border-default ac-text-warning ac-hover-warning hover:ac-text-warning"
+            disabled={agentBusy}
+            title={agentBusy ? BUSY_LOCK_HINT : 'Delete every non-bookmarked snapshot on this canvas'}
+            className="h-8 w-full text-[11px] ac-border-default ac-text-warning ac-hover-warning hover:ac-text-warning ac-busy"
           >
             <Trash2 className="h-3 w-3 mr-1.5" />
             Delete all non-bookmarked snapshots
@@ -945,7 +967,9 @@ function DataSection() {
             variant="outline"
             size="sm"
             onClick={handleClearChats}
-            className="h-8 w-full text-[11px] ac-border-default ac-text-danger ac-hover-danger hover:ac-text-danger"
+            disabled={agentBusy}
+            title={agentBusy ? BUSY_LOCK_HINT : 'Permanently delete every chat, run, message and snapshot on this canvas'}
+            className="h-8 w-full text-[11px] ac-border-default ac-text-danger ac-hover-danger hover:ac-text-danger ac-busy"
           >
             <Trash2 className="h-3 w-3 mr-1.5" />
             Clear ALL chats (cannot be undone)
@@ -1052,6 +1076,10 @@ function PluginsSection() {
   const settings = useSettings();
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  // D5: plugin toggles reshape the NEXT prompt's tool surface (settings are
+  // snapshotted per prompt), so they stay enabled mid-run — but the section
+  // tells the user when changes take effect instead of flipping silently.
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
 
   useEffect(() => {
     fetch('/api/plugins')
@@ -1096,6 +1124,11 @@ function PluginsSection() {
         Toggle which capabilities the agent has access to. Disabled plugins are
         removed from the agent&apos;s tool surface entirely.
       </p>
+      {agentBusy && (
+        <p className="mb-3 text-[10px] ac-text-4 italic">
+          Agent is running — plugin changes apply to the next prompt.
+        </p>
+      )}
       <div className="space-y-5">
         {Array.from(byCategory.entries()).map(([category, plist]) => (
           <div key={category}>
@@ -1153,6 +1186,9 @@ function McpSection() {
   const settings = useSettings();
   const servers = settings.mcpServers ?? [];
   const [showAddForm, setShowAddForm] = useState(false);
+  // D5: connect/disconnect mutates SERVER-side connection state an
+  // in-flight mcp_* tool call may be using — gate while a run is live.
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
   const [newServer, setNewServer] = useState<McpServerEntry>({
     id: '',
     name: '',
@@ -1180,6 +1216,15 @@ function McpSection() {
   };
 
   const connectServer = async (server: McpServerEntry) => {
+    // D5 (2026-09-05 depth pass): connection state is SERVER-shared — a
+    // connect/disconnect racing an in-flight mcp_* tool call breaks the
+    // call underneath the run.
+    if (useCanvasStore.getState().agentBusy) {
+      toast.warning('Agent is running', {
+        description: `${BUSY_LOCK_HINT} — connection changes can break the tools the run is using.`,
+      });
+      return;
+    }
     try {
       const r = await fetch(`/api/mcp/${encodeURIComponent(server.id)}`, {
         method: 'POST',
@@ -1194,6 +1239,12 @@ function McpSection() {
   };
 
   const disconnectServer = async (id: string) => {
+    if (useCanvasStore.getState().agentBusy) {
+      toast.warning('Agent is running', {
+        description: `${BUSY_LOCK_HINT} — disconnecting can break an in-flight mcp_* tool call.`,
+      });
+      return;
+    }
     try {
       await fetch(`/api/mcp/${encodeURIComponent(id)}`, {
         method: 'POST',
@@ -1325,11 +1376,25 @@ function McpSection() {
                 </div>
                 <div className="flex items-center gap-1">
                   {s.status === 'connected' ? (
-                    <Button size="sm" variant="ghost" onClick={() => disconnectServer(s.id)} className="h-7 text-[11px]">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => disconnectServer(s.id)}
+                      disabled={agentBusy}
+                      title={agentBusy ? BUSY_LOCK_HINT : 'Disconnect this MCP server'}
+                      className="h-7 text-[11px] ac-busy"
+                    >
                       Disconnect
                     </Button>
                   ) : (
-                    <Button size="sm" variant="ghost" onClick={() => connectServer(s)} className="h-7 text-[11px]">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => connectServer(s)}
+                      disabled={agentBusy}
+                      title={agentBusy ? BUSY_LOCK_HINT : 'Connect this MCP server'}
+                      className="h-7 text-[11px] ac-busy"
+                    >
                       Connect
                     </Button>
                   )}

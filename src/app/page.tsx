@@ -253,6 +253,23 @@ export default function Home() {
     if (agentBusy) setRightTab('chat');
   }, [agentBusy]);
 
+  // D10 (2026-09-05 depth pass) — beforeunload awareness guard, attached ONLY
+  // while a run is live (research: MDN + Replit/v0 conventions — a dynamically
+  // attached guard, never a permanent nag). Closing the tab does NOT kill the
+  // server-side run, so the user gets one warning that generation (and token
+  // spend) continues without them. Chrome/Edge show their own generic copy;
+  // the prevented default is what matters.
+  useEffect(() => {
+    if (!agentBusy) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Legacy requirement for older browsers to show the dialog.
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [agentBusy]);
+
   // When the user selects a node on the canvas, jump to the Design tab so they
   // can immediately edit properties. Skip if the agent is mid-run to avoid
   // yanking the user away from the streaming chat view.
@@ -758,21 +775,21 @@ export default function Home() {
   };
   const paletteCommands: PaletteCommand[] = [
     // File
-    { id: 'file.new-chat', label: 'New chat', group: 'File', icon: FilePlus2, shortcut: '⌘N', keywords: 'new session conversation', run: () => useCanvasStore.getState().newSession() },
-    { id: 'file.open-pen', label: 'Open .pen file…', group: 'File', keywords: 'import load', run: penFile.importPen },
+    { id: 'file.new-chat', label: 'New chat', group: 'File', icon: FilePlus2, shortcut: '⌘N', keywords: 'new session conversation', mutates: true, run: () => useCanvasStore.getState().newSession() },
+    { id: 'file.open-pen', label: 'Open .pen file…', group: 'File', keywords: 'import load', mutates: true, run: penFile.importPen },
     { id: 'file.export-pen', label: 'Export as .pen', group: 'File', keywords: 'save download', run: penFile.exportPen },
     { id: 'file.export-svg', label: 'Export as SVG', group: 'File', keywords: 'save download', run: () => void exportDoc('svg') },
     { id: 'file.export-png', label: 'Export as PNG', group: 'File', keywords: 'save download image', run: () => void exportDoc('png') },
     { id: 'file.export-json', label: 'Export as JSON', group: 'File', keywords: 'save download', run: () => void exportDoc('json') },
     { id: 'file.settings', label: 'Settings…', group: 'File', shortcut: '⌘,', keywords: 'config', run: () => setSettingsOpen(true) },
-    { id: 'file.clear', label: 'Clear canvas…', group: 'File', icon: Trash2, danger: true, keywords: 'delete remove all', run: () => { if (confirm('Clear all shapes from the canvas?')) useCanvasStore.getState().sendPatch({ op: 'clear', summary: 'Cleared canvas' }); } },
+    { id: 'file.clear', label: 'Clear canvas…', group: 'File', icon: Trash2, danger: true, keywords: 'delete remove all', mutates: true, run: () => { if (confirm('Clear all shapes from the canvas?')) useCanvasStore.getState().sendPatch({ op: 'clear', summary: 'Cleared canvas' }); } },
     // Edit
-    { id: 'edit.undo', label: 'Undo', group: 'Edit', icon: Undo2, shortcut: '⌘Z', keywords: 'history', run: () => { useCanvasStore.getState().undo(); } },
-    { id: 'edit.redo', label: 'Redo', group: 'Edit', icon: Redo2, shortcut: '⌘⇧Z', keywords: 'history', run: () => { useCanvasStore.getState().redo(); } },
-    { id: 'edit.duplicate', label: 'Duplicate selection', group: 'Edit', icon: Copy, shortcut: '⌘D', run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) s.sendPatch({ op: 'duplicate', shapeIds: s.selectedIds, summary: `Duplicated ${s.selectedIds.length} shape(s)` }); } },
-    { id: 'edit.paste', label: 'Paste', group: 'Edit', icon: ClipboardPaste, shortcut: '⌘V', run: () => clipboard.paste() },
+    { id: 'edit.undo', label: 'Undo', group: 'Edit', icon: Undo2, shortcut: '⌘Z', keywords: 'history', mutates: true, run: () => { useCanvasStore.getState().undo(); } },
+    { id: 'edit.redo', label: 'Redo', group: 'Edit', icon: Redo2, shortcut: '⌘⇧Z', keywords: 'history', mutates: true, run: () => { useCanvasStore.getState().redo(); } },
+    { id: 'edit.duplicate', label: 'Duplicate selection', group: 'Edit', icon: Copy, shortcut: '⌘D', mutates: true, run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) s.sendPatch({ op: 'duplicate', shapeIds: s.selectedIds, summary: `Duplicated ${s.selectedIds.length} shape(s)` }); } },
+    { id: 'edit.paste', label: 'Paste', group: 'Edit', icon: ClipboardPaste, shortcut: '⌘V', mutates: true, run: () => clipboard.paste() },
     { id: 'edit.select-all', label: 'Select all layers', group: 'Edit', shortcut: '⌘A', run: () => clipboard.selectAll() },
-    { id: 'edit.delete', label: 'Delete selection', group: 'Edit', icon: Trash2, shortcut: '⌫', danger: true, run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) { s.sendPatch({ op: 'remove', shapeIds: s.selectedIds, summary: `Deleted ${s.selectedIds.length} shape(s)` }); s.select([]); } } },
+    { id: 'edit.delete', label: 'Delete selection', group: 'Edit', icon: Trash2, shortcut: '⌫', danger: true, mutates: true, run: () => { const s = useCanvasStore.getState(); if (s.selectedIds.length) { s.sendPatch({ op: 'remove', shapeIds: s.selectedIds, summary: `Deleted ${s.selectedIds.length} shape(s)` }); s.select([]); } } },
     // View
     { id: 'view.zen', label: 'Toggle zen mode', group: 'View', icon: Eye, shortcut: chordLabel('zen'), keywords: 'focus hide ui', run: toggleZen },
     { id: 'view.dark', label: 'Toggle dark mode', group: 'View', icon: SunMoon, keywords: 'theme light night', run: toggleDarkMode },
@@ -785,12 +802,12 @@ export default function Home() {
     { id: 'view.outline', label: 'Toggle outline mode', group: 'View', shortcut: chordLabel('outline-mode'), run: () => useCanvasStore.getState().toggleViewFlag('outlineMode') },
     { id: 'view.design-systems', label: 'Design Systems…', group: 'View', keywords: 'pack registry', run: () => setDesignSystemsOpen(true) },
     // Insert
-    { id: 'insert.rectangle', label: 'Insert rectangle', group: 'Insert', icon: Square, shortcut: 'R', run: () => dropShapeAtCenter('rectangle') },
-    { id: 'insert.ellipse', label: 'Insert ellipse', group: 'Insert', icon: Circle, shortcut: 'O', run: () => dropShapeAtCenter('ellipse') },
-    { id: 'insert.text', label: 'Insert text', group: 'Insert', icon: Type, shortcut: 'T', run: () => dropShapeAtCenter('text') },
-    { id: 'insert.line', label: 'Insert line', group: 'Insert', icon: Minus, shortcut: 'L', run: () => dropShapeAtCenter('line') },
-    { id: 'insert.frame', label: 'Insert frame', group: 'Insert', icon: Frame, shortcut: 'F', run: () => dropShapeAtCenter('frame') },
-    { id: 'insert.section', label: 'Insert section', group: 'Insert', icon: SectionIcon, shortcut: '⇧S', run: () => dropShapeAtCenter('section') },
+    { id: 'insert.rectangle', label: 'Insert rectangle', group: 'Insert', icon: Square, shortcut: 'R', mutates: true, run: () => dropShapeAtCenter('rectangle') },
+    { id: 'insert.ellipse', label: 'Insert ellipse', group: 'Insert', icon: Circle, shortcut: 'O', mutates: true, run: () => dropShapeAtCenter('ellipse') },
+    { id: 'insert.text', label: 'Insert text', group: 'Insert', icon: Type, shortcut: 'T', mutates: true, run: () => dropShapeAtCenter('text') },
+    { id: 'insert.line', label: 'Insert line', group: 'Insert', icon: Minus, shortcut: 'L', mutates: true, run: () => dropShapeAtCenter('line') },
+    { id: 'insert.frame', label: 'Insert frame', group: 'Insert', icon: Frame, shortcut: 'F', mutates: true, run: () => dropShapeAtCenter('frame') },
+    { id: 'insert.section', label: 'Insert section', group: 'Insert', icon: SectionIcon, shortcut: '⇧S', mutates: true, run: () => dropShapeAtCenter('section') },
     // Panels
     { id: 'panel.left', label: 'Toggle left panel', group: 'Panels', icon: PanelLeftIcon, shortcut: chordLabel('toggle-left-panel'), run: () => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed) },
     { id: 'panel.right', label: 'Toggle right panel', group: 'Panels', icon: PanelRightIcon, shortcut: chordLabel('toggle-right-panel'), run: () => toggle(rightPanelRef, rightCollapsed, setRightCollapsed) },

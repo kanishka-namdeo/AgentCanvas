@@ -142,12 +142,27 @@ export function getAlwaysAllowSet(): string[] {
 
 /// Resolve (or time out) a pending approval. Safe to call for unknown ids
 /// (already resolved / never registered) — it's a no-op.
+/// D1 (2026-09-05 depth pass): EVERY resolution path — user decision here,
+/// timeout in requestApproval — emits the `agent:approval_resolved` fan-out
+/// so ALL viewers' dialogs close together. Previously the fan-out event
+/// existed in the store's switch but nobody emitted it: a second browser
+/// kept a zombie Allow/Deny dialog open after the first viewer decided, and
+/// after a timeout every viewer kept one forever.
 export function resolveApproval(toolCallId: string, approved: boolean): void {
   const p = pendingApprovals.get(toolCallId);
   if (!p) return;
   clearTimeout(p.timer);
   pendingApprovals.delete(toolCallId);
   p.resolve({ approved, timedOut: false });
+  emitEvent({ type: 'agent:approval_resolved', toolCallId, approved, outcome: 'user' });
+}
+
+/// True while the gate is still waiting for a decision. /api/agent/approvals
+/// checks this BEFORE resolving so a post-timeout / duplicate POST returns
+/// 409 instead of the pre-D1 false "Approved" toast for a decision that was
+/// already auto-denied.
+export function hasPendingApproval(toolCallId: string): boolean {
+  return pendingApprovals.has(toolCallId);
 }
 
 /// Currently-pending approval toolCallIds (for diagnostics / polling routes).
@@ -180,6 +195,15 @@ export function requestApproval(req: ApprovalRequest): Promise<ApprovalDecision>
     const timer = setTimeout(() => {
       pendingApprovals.delete(req.toolCallId);
       resolve({ approved: false, timedOut: true });
+      // D1: close every viewer's dialog — the timeout already resolved the
+      // gate as denied; without this fan-out the dialogs stay open with live
+      // Allow/Deny buttons that can never do anything.
+      emitEvent({
+        type: 'agent:approval_resolved',
+        toolCallId: req.toolCallId,
+        approved: false,
+        outcome: 'timeout',
+      });
     }, APPROVAL_TIMEOUT_MS);
     pendingApprovals.set(req.toolCallId, { resolve, timer, toolName: req.toolName });
   });

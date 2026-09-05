@@ -636,16 +636,22 @@ export type SyncEvent =
   // Emitted when the user submits answers (or cancels) to a pending
   // ask_user_question. The frontend POSTs to /api/agent/answers; the runner
   // resolves the pending tool call and continues the agent loop.
-  | { type: 'agent:ask_user_answered'; toolCallId: string; answers: string[][]; cancelled: boolean }
+  // D1 (2026-09-05 depth pass): emitted on EVERY resolution path — user
+  // answer, cancel AND the 5-minute timeout — so every viewer's dialog
+  // closes together (previously only the deciding client's did, and a
+  // timeout closed nobody's).
+  | { type: 'agent:ask_user_answered'; toolCallId: string; answers: string[][]; cancelled: boolean; timedOut?: boolean }
   // ---- Approval gate (destructive ops) --------------------------------------
   // Emitted by the approval-gate wrapper when the agent is about to run a
   // DESTRUCTIVE tool (pen_clear, pen_delete_shape, …). Blocks the agent
   // mid-turn until the user Allows or Denies via POST /api/agent/approvals
   // (Cursor's "Run command?" / Cline's Approve-button pattern).
   | { type: 'agent:approval_request'; toolCallId: string; toolName: string; description: string; details: string[] }
-  // Fan-out only (the deciding client's POST resolves the server-side gate;
-  // this event tells the OTHER viewers the gate closed).
-  | { type: 'agent:approval_resolved'; toolCallId: string; approved: boolean }
+  // Fan-out (the deciding client's POST resolves the server-side gate;
+  // this event tells the OTHER viewers the gate closed). D1: emitted on the
+  // user decision AND the timeout path (outcome='timeout', approved=false)
+  // so no viewer is left with a zombie Allow/Deny dialog.
+  | { type: 'agent:approval_resolved'; toolCallId: string; approved: boolean; outcome?: 'user' | 'timeout' }
   // ---- Client round-trip requests (spec §5.2 / Phase 3, M2-c) -------------
   // Emitted by pen_get_computed: asks the connected client for real
   // getComputedStyle + getBoundingClientRect data on live DOM nodes. The

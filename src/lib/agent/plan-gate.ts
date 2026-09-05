@@ -74,6 +74,11 @@ export function submitPlanProposal(proposal: PlanProposalInput): Promise<PlanDec
     const timer = setTimeout(() => {
       pendingPlans.delete(proposal.planId);
       resolve({ decision: 'timeout' });
+      // D1 (2026-09-05 depth pass): the timeout must fan out exactly like a
+      // user decision — otherwise every viewer's PlanApprovalCard stays at
+      // 'pending' with live Build/Keep-planning buttons that silently no-op
+      // (the gate already resolved as 'timeout' server-side).
+      emitEvent({ type: 'agent:plan_resolved', planId: proposal.planId, decision: 'timeout' });
     }, PLAN_APPROVAL_TIMEOUT_MS);
     pendingPlans.set(proposal.planId, { resolve, timer });
   });
@@ -94,6 +99,13 @@ export function resolvePlanProposal(planId: string, decision: 'build' | 'revise'
 /// Pending plan ids (diagnostics / polling).
 export function getPendingPlanProposals(): string[] {
   return Array.from(pendingPlans.keys());
+}
+
+/// True while the plan is still awaiting a decision. POST /api/agent/plans
+/// checks this BEFORE resolving so a post-timeout "Build it" returns 409
+/// instead of a silent no-op (the gate already resolved as 'timeout').
+export function hasPendingPlan(planId: string): boolean {
+  return pendingPlans.has(planId);
 }
 
 // ---- Approved-plan handoff (runner consumption) ------------------------------

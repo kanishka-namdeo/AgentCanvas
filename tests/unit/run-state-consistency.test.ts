@@ -135,7 +135,7 @@ describe('runPhase: single source of truth', () => {
     useCanvasStore.setState({
       turns: [{ id: 'u1', role: 'user', text: 'design a login', toolCalls: [], streaming: false }],
     });
-    dispatch({ type: 'agent:message_start' });
+    dispatch({ type: 'agent:message_start', role: 'assistant' });
     const s = useCanvasStore.getState();
     expect(s.agentBusy).toBe(true);
     expect(s.runPhase).toBe('thinking');
@@ -149,7 +149,7 @@ describe('runPhase: single source of truth', () => {
     dispatch({ type: 'agent:turn_end' });
     expect(useCanvasStore.getState().agentBusy).toBe(false);
     // …and the fix turn's message_start re-arms it.
-    dispatch({ type: 'agent:message_start' });
+    dispatch({ type: 'agent:message_start', role: 'assistant' });
     expect(useCanvasStore.getState().agentBusy).toBe(true);
     expect(useCanvasStore.getState().runPhase).toBe('thinking');
   });
@@ -386,7 +386,7 @@ describe('queue flush (mid-critique guard)', () => {
     expect(useCanvasStore.getState().queuedPrompts.length).toBe(0);
 
     // …the fix turn re-arms busy BEFORE the 350ms timer fires…
-    dispatch({ type: 'agent:message_start' });
+    dispatch({ type: 'agent:message_start', role: 'assistant' });
     expect(useCanvasStore.getState().agentBusy).toBe(true);
 
     // …so the flush re-queues instead of double-running.
@@ -395,5 +395,121 @@ describe('queue flush (mid-critique guard)', () => {
     expect(useCanvasStore.getState().queuedPrompts[0].text).toBe('follow-up prompt');
     // Still a single turn pair — no concurrent run was armed.
     expect(useCanvasStore.getState().turns.length).toBe(2);
+  });
+});
+
+// ---- 6. Depth-pass gates (D-series, 2026-09-05) -------------------------------
+//
+// The prior contract stopped at the phase model; the depth pass extends the
+// same "one state, every surface agrees" guarantee to the blocking gates
+// (approval / ask-user / plan) and the honest results of gated actions.
+
+describe('D1: blocking gates settle with the run (no zombie dialogs)', () => {
+  beforeEach(() => resetStore());
+
+  it('agent:turn_cancelled closes an open approval dialog', () => {
+    seedLiveRun();
+    dispatch({
+      type: 'agent:approval_request',
+      toolCallId: 'tc-approve-1',
+      toolName: 'pen_clear',
+      description: 'Clear the entire canvas',
+      details: ['All layers will be removed.'],
+    });
+    expect(useCanvasStore.getState().pendingApproval?.toolCallId).toBe('tc-approve-1');
+
+    dispatch({ type: 'agent:turn_cancelled' });
+    expect(useCanvasStore.getState().pendingApproval).toBeNull();
+    expect(useCanvasStore.getState().runPhase).toBe('cancelled');
+    expect(useCanvasStore.getState().agentBusy).toBe(false);
+  });
+
+  it('agent:error closes an open ask-user dialog', () => {
+    seedLiveRun();
+    dispatch({
+      type: 'agent:ask_user_question',
+      toolCallId: 'tc-ask-1',
+      questions: [{ question: 'Light or dark mode?', options: [{ label: 'Light' }, { label: 'Dark' }] }],
+    });
+    expect(useCanvasStore.getState().pendingQuestion?.toolCallId).toBe('tc-ask-1');
+
+    dispatch({ type: 'agent:error', message: 'endpoint unreachable' });
+    expect(useCanvasStore.getState().pendingQuestion).toBeNull();
+    expect(useCanvasStore.getState().runPhase).toBe('failed');
+  });
+
+  it('agent:stuck settles a still-pending plan proposal to timeout', () => {
+    seedLiveRun();
+    useCanvasStore.setState((s) => {
+      const turns = [...s.turns];
+      turns[turns.length - 1] = {
+        ...turns[turns.length - 1],
+        planProposal: {
+          planId: 'plan-1',
+          title: 'Redesign onboarding',
+          summary: 'Three steps',
+          steps: [{ step: 1, description: 'Wireframe the flow' }],
+          status: 'pending',
+        },
+      } as typeof turns[number];
+      return { turns };
+    });
+
+    dispatch({ type: 'agent:stuck', message: 'repeated tool failures' });
+    const last = lastTurn();
+    expect(last?.planProposal?.status).toBe('timeout');
+    expect(useCanvasStore.getState().runPhase).toBe('stuck');
+  });
+
+  it('agent:turn_end also closes any gate left open by a completed run', () => {
+    seedLiveRun();
+    dispatch({
+      type: 'agent:approval_request',
+      toolCallId: 'tc-approve-2',
+      toolName: 'pen_delete_shape',
+      description: 'Delete 3 layers',
+      details: [],
+    });
+    dispatch({ type: 'agent:turn_end' });
+    expect(useCanvasStore.getState().pendingApproval).toBeNull();
+  });
+
+  it('approval_resolved fan-out (timeout) closes the dialog for every viewer', () => {
+    useCanvasStore.setState({
+      pendingApproval: { toolCallId: 'tc-approve-3', toolName: 'pen_clear', description: 'Clear', details: [] },
+    });
+    dispatch({ type: 'agent:approval_resolved', toolCallId: 'tc-approve-3', approved: false, outcome: 'timeout' });
+    expect(useCanvasStore.getState().pendingApproval).toBeNull();
+  });
+
+  it('ask_user_answered (timedOut) closes the dialog', () => {
+    useCanvasStore.setState({
+      pendingQuestion: { toolCallId: 'tc-ask-2', questions: [] },
+    });
+    dispatch({ type: 'agent:ask_user_answered', toolCallId: 'tc-ask-2', answers: [], cancelled: false, timedOut: true });
+    expect(useCanvasStore.getState().pendingQuestion).toBeNull();
+  });
+});
+
+describe('D2/D3: gated actions report honest results', () => {
+  beforeEach(() => resetStore());
+
+  it('D3: sendPatch returns false for a mutation dropped by the busy guard, true when idle', () => {
+    const doc = makeDoc([makeShape('s1', 'Rect')]);
+    resetStore(doc);
+    seedLiveRun();
+    expect(useCanvasStore.getState().sendPatch({ op: 'remove', shapeIds: ['s1'], summary: 'delete' })).toBe(false);
+    expect(useCanvasStore.getState().document.shapes.length).toBe(1);
+
+    useCanvasStore.setState(phaseFields('idle'));
+    expect(useCanvasStore.getState().sendPatch({ op: 'remove', shapeIds: ['s1'], summary: 'delete' })).toBe(true);
+  });
+
+  it('D2: restoreSnapshot refuses (false) while the agent runs, without touching the document', async () => {
+    const doc = makeDoc([makeShape('s1', 'Rect')]);
+    resetStore(doc);
+    seedLiveRun();
+    await expect(useCanvasStore.getState().restoreSnapshot('any-snapshot')).resolves.toBe(false);
+    expect(useCanvasStore.getState().document.shapes.length).toBe(1);
   });
 });

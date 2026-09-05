@@ -48,8 +48,9 @@ import {
 import { toast } from 'sonner';
 import {
   ChevronRight, Wrench, Clock, History, Bookmark, BookmarkCheck, RotateCcw, Camera, MessageSquare, PlayCircle, FileText, Trash2,
-  Pencil, FileDown, CheckCircle2, AlertTriangle,
+  Pencil, FileDown, CheckCircle2, AlertTriangle, Loader2,
 } from 'lucide-react';
+import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import { StatusBadge } from './StatusBadge';
 import {
   exportRunMarkdown, updateDocumentSnapshot, fetchDocumentSnapshot,
@@ -246,11 +247,16 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
     // Canvas-store action: appends a 'restore' snapshot (append-only), swaps
     // the shared document, and broadcasts document:restore so every viewer
     // follows. Remote (metadata-only) entries are fetched from the server.
+    // D2: the action now resolves false on every early bail (busy-guard,
+    // missing snapshot, fetch failure) — toast success only when it actually
+    // restored (previously an early bail still toasted "Restored canvas …").
     useCanvasStore.getState().restoreSnapshot(snap.id)
-      .then(() => {
-        toast.success(`Restored canvas from ${relativeTime(snap.createdAt)}`, {
-          description: `${snap.nodeCount} nodes · shared across all chats`,
-        });
+      .then((ok) => {
+        if (ok) {
+          toast.success(`Restored canvas from ${relativeTime(snap.createdAt)}`, {
+            description: `${snap.nodeCount} nodes · shared across all chats`,
+          });
+        }
       })
       .catch(() => {
         toast.error('Restore failed', { description: 'Could not fetch the snapshot from the server.' });
@@ -260,6 +266,14 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
   const handleDeleteSnapshot = (snap: Snapshot) => {
     if (snap.bookmarked) {
       toast.message('Snapshot is bookmarked', { description: 'Unbookmark it before deleting.' });
+      return;
+    }
+    // D9: deleting restore points mid-run is inconsistent with the restore
+    // gate (C8) — the current turn may still need them as escape hatches.
+    if (useCanvasStore.getState().agentBusy) {
+      toast.warning('Agent is running', {
+        description: `${BUSY_LOCK_HINT} — the current turn still needs its restore points.`,
+      });
       return;
     }
     useSessionStore.getState().deleteSnapshot(snap.id);
@@ -398,11 +412,12 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
             </Button>
             <Button
               size="sm"
-              className="text-white border-0"
+              className="text-white border-0 ac-busy"
               style={{ backgroundColor: 'var(--ac-accent)' }}
               disabled={!renameValue.trim() || renameBusy}
               onClick={commitRenameSnapshot}
             >
+              {renameBusy && <Loader2 className="h-2.5 w-2.5 mr-1 animate-spin" />}
               Save
             </Button>
           </DialogFooter>
@@ -535,14 +550,16 @@ function RunCard({ run }: { run: Run }) {
     }
   }, [run.id, run.sessionId, run.prompt]);
 
-  // Retry button visibility (Task 4b-retry-turn): show only when the run is
-  // in a terminal FAILURE state (failed / incomplete / stuck) AND no other
-  // run is in flight (agentBusy guard — avoids stacking retries on top of
-  // a still-running turn). Reuses `handleRerun` so the semantics match the
-  // existing "Re-run from here" context-menu action (fork + auto-prompt).
+  // Retry button visibility (Task 4b-retry-turn): show when the run is in a
+  // terminal FAILURE state (failed / incomplete / stuck). D9 (2026-09-05
+  // depth pass): the button now stays VISIBLE (disabled + .ac-busy + hint)
+  // while another run is in flight instead of vanishing — an affordance
+  // that disappears violates the contract's "inactive controls need an
+  // explanation, never a dead gray button" rule (worse: not even a gray
+  // button). Reuses `handleRerun` so the semantics match the existing
+  // "Re-run from here" context-menu action (fork + auto-prompt).
   const canRetry =
-    (run.status === 'failed' || run.status === 'incomplete' || run.status === 'stuck') &&
-    !agentBusy;
+    run.status === 'failed' || run.status === 'incomplete' || run.status === 'stuck';
 
   // Error classification (Task 4b-retry-turn): when the run carries an
   // `errorMessage`, classify it as transient / permanent / unknown so the
@@ -602,13 +619,14 @@ function RunCard({ run }: { run: Run }) {
                       <Button
                         asChild
                         size="sm"
-                        className="h-5 px-1.5 text-[9px] border-0 text-white hover:opacity-90 ac-transition"
+                        className="h-5 px-1.5 text-[9px] border-0 text-white hover:opacity-90 ac-transition ac-busy"
                         style={{ backgroundColor: 'var(--ac-accent)' }}
                       >
                         <span
                           role="button"
-                          tabIndex={0}
-                          title="Retry this turn in a new chat"
+                          tabIndex={agentBusy ? -1 : 0}
+                          aria-disabled={agentBusy}
+                          title={agentBusy ? `${BUSY_LOCK_HINT} — retry starts a new run` : 'Retry this turn in a new chat'}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleRerun();
@@ -840,7 +858,7 @@ function SnapshotCard({
               className="h-5 text-[9px] px-1.5 ac-border-default ac-text-2 hover:ac-surface-1 ac-transition ac-busy"
               onClick={onRestore}
               disabled={isActive || agentBusy}
-              title={agentBusy ? 'Stop the agent before restoring' : 'Restore the shared canvas to this snapshot'}
+              title={agentBusy ? `${BUSY_LOCK_HINT} — restoring mid-run yanks the canvas under the agent` : 'Restore the shared canvas to this snapshot'}
             >
               <RotateCcw className="h-2.5 w-2.5 mr-0.5" />
               Restore
@@ -888,7 +906,7 @@ function SnapshotCard({
           <FileDown className="h-3 w-3 mr-2" />
           Export as .pen
         </ContextMenuItem>
-        <ContextMenuItem onClick={onDelete} className="ac-text-danger">
+        <ContextMenuItem onClick={onDelete} disabled={agentBusy} className="ac-text-danger">
           <Trash2 className="h-3 w-3 mr-2" />
           Delete snapshot
         </ContextMenuItem>

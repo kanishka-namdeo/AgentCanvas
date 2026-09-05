@@ -145,6 +145,12 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  // D7 (2026-09-05 depth pass): a mid-run selection must NOT clobber
+  // `activeModel` — the live run keeps using the model it started with, and
+  // the badge claiming otherwise is a lying control. The reset is deferred
+  // until the run goes idle; the popover footer says "applies after current
+  // turn" and now the badge agrees with it.
+  const deferredReset = useRef(false);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
@@ -190,6 +196,8 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
   // resolved-model state so the badge immediately reflects the selection,
   // and hide the context bar until the next turn reports real usage for the
   // new model (its window may differ).
+  // D7: while a run is live, defer that reset (see deferredSwitch above) —
+  // the badge keeps showing the model the in-flight turn is actually using.
   const handleSelect = (id: string, fromZaiSandbox: boolean) => {
     if (fromZaiSandbox) {
       setSetting('llmProvider', 'zai');
@@ -203,13 +211,27 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
     } else {
       setSetting('modelName', id);
     }
-    useCanvasStore.setState({
-      activeModel: null,
-      contextTokens: 0,
-      lastCompacted: false,
-    });
+    if (agentBusy) {
+      deferredReset.current = true;
+    } else {
+      useCanvasStore.setState({
+        activeModel: null,
+        contextTokens: 0,
+        lastCompacted: false,
+      });
+    }
     setOpen(false);
   };
+
+  // Apply the deferred model-badge reset the moment the run goes idle.
+  // External-store sync (zustand) — the effect never touches React state,
+  // which keeps it on the sanctioned side of the set-state-in-effect rule.
+  useEffect(() => {
+    if (!agentBusy && deferredReset.current) {
+      deferredReset.current = false;
+      useCanvasStore.setState({ activeModel: null, contextTokens: 0, lastCompacted: false });
+    }
+  }, [agentBusy]);
 
   // Filtered + sorted model lists — computed inline (lists are capped at
   // ~60-100 entries server-side; memoization isn't worth the compiler

@@ -22,7 +22,7 @@
 // decision (e.g. the user closed the tab mid-review).
 
 import { NextRequest } from 'next/server';
-import { getPendingPlanProposals, resolvePlanProposal } from '@/lib/agent/plan-gate';
+import { getPendingPlanProposals, resolvePlanProposal, hasPendingPlan } from '@/lib/agent/plan-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -59,6 +59,17 @@ export async function POST(req: NextRequest) {
       status: 400,
       headers: { 'content-type': 'application/json' },
     });
+  }
+
+  // D1 (2026-09-05 depth pass): an unknown planId means the gate already
+  // resolved (timeout wrapped it up, another viewer decided, or a stale
+  // replay). 200-ok made a post-timeout "Build it" silently no-op while the
+  // runner moved on — 409 lets the client report it honestly.
+  if (!hasPendingPlan(planId)) {
+    return new Response(
+      JSON.stringify({ error: 'not_pending', planId, note: 'The plan already resolved (timed out or decided by another viewer).' }),
+      { status: 409, headers: { 'content-type': 'application/json' } },
+    );
   }
 
   resolvePlanProposal(planId, decision, feedback);

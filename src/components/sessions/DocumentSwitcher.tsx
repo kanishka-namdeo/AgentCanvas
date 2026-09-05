@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { ChevronDown, FilePlus2, FileText, Trash2, Pencil } from 'lucide-react';
 import { useCanvasStore } from '@/lib/canvas/store';
+import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import {
   fetchServerDocuments, createServerDocument, updateServerDocument, deleteServerDocument,
   type ServerDocument,
@@ -61,6 +62,7 @@ function writeLocalCache(docs: LocalDoc[]) {
 export function DocumentSwitcher() {
   const documentId = useCanvasStore((s) => s.documentId);
   const document = useCanvasStore((s) => s.document);
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
   const init = useCanvasStore((s) => s.init);
   const setDocumentName = useCanvasStore((s) => s.setDocumentName);
 
@@ -146,6 +148,15 @@ export function DocumentSwitcher() {
       toast.message('Name required');
       return;
     }
+    // D5 (2026-09-05 depth pass): creating a document mid-run calls init(),
+    // which ABORTS an in-flight HTTP-fallback run (C4) — same family as the
+    // C5 newSession guard. Gate BEFORE the POST so no orphan rows appear.
+    if (useCanvasStore.getState().agentBusy) {
+      toast.warning('Agent is running', {
+        description: `${BUSY_LOCK_HINT} before creating a new document — switching canvases would abandon the run.`,
+      });
+      return;
+    }
     // Generate a safe id from the name (slug-style). If the slug is empty,
     // fall back to a cuid-like timestamp+random id.
     const slug = name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
@@ -182,6 +193,16 @@ export function DocumentSwitcher() {
   };
 
   const handleDelete = async (id: string, name: string) => {
+    // D5: deleting the ACTIVE document mid-run destroys the sessions /
+    // snapshots / canvas a server-side run is still writing into — the run's
+    // late patches + turn_end then land on a dead id. Non-active documents
+    // are safe (the run never touches them).
+    if (id === documentId && useCanvasStore.getState().agentBusy) {
+      toast.warning('Agent is running', {
+        description: `${BUSY_LOCK_HINT} — deleting this canvas would destroy the run's history.`,
+      });
+      return;
+    }
     if (!confirm(`Delete document "${name}"? This also deletes every session, snapshot, and canvas element on it.`)) return;
     const ok = await deleteServerDocument(id);
     if (!ok) {
@@ -247,7 +268,9 @@ export function DocumentSwitcher() {
           ))}
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="py-1.5"
+            className={`py-1.5 ${agentBusy ? 'ac-busy' : ''}`}
+            disabled={agentBusy}
+            title={agentBusy ? BUSY_LOCK_HINT : 'Create a separate canvas'}
             onClick={() => { setCreateOpen(true); setOpen(false); }}
           >
             <FilePlus2 className="h-3 w-3 mr-2" /> New document…
@@ -267,7 +290,9 @@ export function DocumentSwitcher() {
           </DropdownMenuItem>
           {documentId !== 'demo' && (
             <DropdownMenuItem
-              className="py-1.5 ac-text-danger"
+              className={`py-1.5 ac-text-danger ${agentBusy ? 'ac-busy' : ''}`}
+              disabled={agentBusy}
+              title={agentBusy ? BUSY_LOCK_HINT : 'Delete this document and all its history'}
               onClick={() => handleDelete(documentId, activeName)}
             >
               <Trash2 className="h-3 w-3 mr-2" /> Delete current…

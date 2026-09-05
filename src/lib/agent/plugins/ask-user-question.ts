@@ -36,6 +36,9 @@ const ASK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 /// Called by the /api/agent/answers route when the user submits answers.
 /// Resolves the pending tool call.
+/// D1 (2026-09-05 depth pass): emits the `agent:ask_user_answered` fan-out
+/// on EVERY user resolution (previously the event existed in the store's
+/// switch but was never emitted — other viewers' dialogs never closed).
 export function resolveAskUserQuestion(toolCallId: string, answers: string[][], cancelled: boolean): void {
   const p = pendingQuestions.get(toolCallId);
   if (!p) return; // Already timed out or never registered.
@@ -46,6 +49,14 @@ export function resolveAskUserQuestion(toolCallId: string, answers: string[][], 
   } else {
     p.resolve(answers);
   }
+  emitEvent({ type: 'agent:ask_user_answered', toolCallId, answers, cancelled });
+}
+
+/// True while the question is still pending. /api/agent/answers checks this
+/// BEFORE resolving so a post-timeout POST returns 409 instead of a silent
+/// no-op the user believes was delivered.
+export function hasPendingQuestion(toolCallId: string): boolean {
+  return pendingQuestions.has(toolCallId);
 }
 
 /// Get the list of currently-pending question toolCallIds (for the
@@ -69,6 +80,8 @@ export function awaitPendingUserAnswers(
     const timer = setTimeout(() => {
       pendingQuestions.delete(toolCallId);
       reject(new Error(`Ask-user-question timed out after ${Math.round(timeoutMs / 1000)}s`));
+      // D1: timeout closes every viewer's dialog too.
+      emitEvent({ type: 'agent:ask_user_answered', toolCallId, answers: [], cancelled: false, timedOut: true });
     }, timeoutMs);
     pendingQuestions.set(toolCallId, { resolve, reject, timer });
   });
@@ -169,6 +182,9 @@ const askUserQuestionTool = defineTool({
       const timer = setTimeout(() => {
         pendingQuestions.delete(toolCallId);
         reject(new Error('Ask-user-question timed out after 5 minutes'));
+        // D1: timeout closes every viewer's dialog — without this the dialog
+        // outlives the run that asked it (zombie modal with live buttons).
+        emitEvent({ type: 'agent:ask_user_answered', toolCallId, answers: [], cancelled: false, timedOut: true });
       }, ASK_TIMEOUT_MS);
       pendingQuestions.set(toolCallId, { resolve, reject, timer });
     });

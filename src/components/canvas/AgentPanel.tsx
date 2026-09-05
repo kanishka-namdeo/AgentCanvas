@@ -42,7 +42,7 @@ import { PluginUI } from './PluginUI';
 import { MarkdownMessage } from './Markdown';
 import { ModelSwitcher } from './ModelSwitcher';
 import { StatusBadge } from '@/components/sessions/StatusBadge';
-import { RUN_PHASE_LABEL } from '@/lib/canvas/run-phase';
+import { RUN_PHASE_LABEL, BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import { suggestFollowUps } from '@/lib/agent/followups';
 import {
   matchCommands, resolveCommand, parseCommandInput, COMMAND_MENU_LIMIT, resolvePackName,
@@ -76,7 +76,7 @@ import {
   RotateCcw, TriangleAlert, Copy, Camera, BoxSelect, GitCompareArrows,
   ThumbsUp, ThumbsDown, Pencil, Brain, ListChecks, AtSign, ListPlus, Circle,
   BadgeCheck, Bot as BotIcon, Hammer, MessageCircleQuestion, ClipboardList,
-  MessageSquareMore, Zap, ChevronDown,
+  MessageSquareMore, Zap, ChevronDown, Play,
 } from 'lucide-react';
 import {
   AGENT_MODES,
@@ -625,7 +625,7 @@ function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planPr
       </span>
     ) : proposal.status === 'revising' ? (
       <span className="inline-flex items-center gap-1 text-[10px] font-medium ac-text-warning flex-shrink-0">
-        <Loader2 className="h-3 w-3 animate-spin" /> Revising
+        <Loader2 className="h-3 w-3 animate-spin" /> {RUN_PHASE_LABEL.thinking}
       </span>
     ) : proposal.status === 'timeout' ? (
       <span className="inline-flex items-center gap-1 text-[10px] font-medium ac-text-4 flex-shrink-0">
@@ -633,7 +633,7 @@ function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planPr
       </span>
     ) : (
       <span className="inline-flex items-center gap-1 text-[10px] font-medium ac-text-info flex-shrink-0">
-        <Loader2 className="h-3 w-3 animate-spin" /> Awaiting your decision
+        <Loader2 className="h-3 w-3 animate-spin" /> {RUN_PHASE_LABEL.awaiting_input}
       </span>
     );
 
@@ -822,14 +822,14 @@ function BusyRow({ onStop }: { onStop: () => void }) {
   const activity = useMemo(() => {
     if (runPhase === 'cancelling') return RUN_PHASE_LABEL.cancelling;
     if (runPhase === 'awaiting_input') return RUN_PHASE_LABEL.awaiting_input;
-    if (!last || last.role !== 'assistant') return 'Thinking…';
-    if (last.thinking && !last.thinkingEndedAt) return 'Thinking…';
+    if (!last || last.role !== 'assistant') return RUN_PHASE_LABEL.thinking;
+    if (last.thinking && !last.thinkingEndedAt) return RUN_PHASE_LABEL.thinking;
     const running = [...last.toolCalls].reverse().find((tc) => tc.success === undefined);
     if (running) return `Running ${running.name}…`;
     const lastSummary = [...last.toolCalls].reverse().find((tc) => tc.summary)?.summary;
     if (lastSummary) return lastSummary;
-    if (last.toolCalls.length > 0) return 'Writing response…';
-    return 'Thinking…';
+    if (last.toolCalls.length > 0) return RUN_PHASE_LABEL.finalizing;
+    return RUN_PHASE_LABEL.thinking;
   }, [last, runPhase]);
   const startedAt = last?.startedAt;
   const stopping = runPhase === 'cancelling';
@@ -866,10 +866,18 @@ function BusyRow({ onStop }: { onStop: () => void }) {
 
 /// Queued-prompt chips — messages typed while the agent was busy (Cursor 3's
 /// default queueing). The store flushes them one-per-turn automatically;
-/// these rows make the queue VISIBLE and removable before it fires.
+/// these rows make the queue VISIBLE and manageable before it fires.
+/// D4 (2026-09-05 depth pass): each chip gained a ▶ send-now affordance —
+/// `sendQueuedPromptNow` existed in the store but had NO caller, so after a
+/// Stop (queue deliberately survives) or a stuck turn the only options were
+/// remove-or-ignore. Now: idle → ▶ fires it immediately (Replit "Steer now"
+/// / v0's run-now parity); busy → ▶ disabled with the .ac-busy contract + a
+/// tooltip explaining the auto-flush (the queue WILL send itself).
 function QueueChips() {
   const queuedPrompts = useCanvasStore((s) => s.queuedPrompts);
   const removeQueuedPrompt = useCanvasStore((s) => s.removeQueuedPrompt);
+  const sendQueuedPromptNow = useCanvasStore((s) => s.sendQueuedPromptNow);
+  const agentBusy = useCanvasStore((s) => s.agentBusy);
   if (queuedPrompts.length === 0) return null;
   return (
     <div className="mb-1.5 space-y-1" aria-label={`${queuedPrompts.length} queued prompt${queuedPrompts.length === 1 ? '' : 's'}`}>
@@ -888,6 +896,15 @@ function QueueChips() {
             <span className="text-[9px] ac-text-4 flex-shrink-0">@{q.selection.count}</span>
           )}
           <button
+            onClick={() => sendQueuedPromptNow(q.id)}
+            disabled={agentBusy}
+            aria-label={`Send queued prompt now: ${q.text.slice(0, 40)}`}
+            title={agentBusy ? 'Sends automatically when this turn ends' : 'Send now — starts a new turn immediately'}
+            className="p-0.5 rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring flex-shrink-0 ac-busy"
+          >
+            <Play className="h-2.5 w-2.5" />
+          </button>
+          <button
             onClick={() => removeQueuedPrompt(q.id)}
             aria-label={`Remove queued prompt: ${q.text.slice(0, 40)}`}
             title="Remove from queue"
@@ -904,6 +921,10 @@ function QueueChips() {
 export function AgentPanel() {
   const turns = useCanvasStore((s) => s.turns);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
+  // D4: phase-accurate composer copy. `agentBusy` alone can't distinguish
+  // 'cancelling' (the queue will NOT auto-send — the run is stopping) from a
+  // live turn (it will).
+  const runPhase = useCanvasStore((s) => s.runPhase);
   const promptAgent = useCanvasStore((s) => s.promptAgent);
   const stopAgent = useCanvasStore((s) => s.stopAgent);
   const contextTokens = useCanvasStore((s) => s.contextTokens);
@@ -1085,8 +1106,14 @@ export function AgentPanel() {
     }
     // Guard: action commands mutate canvas/app state — refuse mid-turn
     // instead of racing the agent's own patches.
+    // D9: refusal vocabulary unified with the store's toastBusyStructure
+    // family ("Agent is running" / "Stop the agent…") — the old
+    // error-toned "Agent is busy / Wait for the current turn…" was a third
+    // competing phrasing for the same concept.
     if (agentBusy) {
-      toast.error('Agent is busy', { description: 'Wait for the current turn to finish.' });
+      toast.warning('Agent is running', {
+        description: `${BUSY_LOCK_HINT} — this command edits the canvas directly.`,
+      });
       return;
     }
     const docName = (document.name || 'canvas').replace(/[^a-z0-9-_]+/gi, '-');
@@ -1673,7 +1700,7 @@ export function AgentPanel() {
                   className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left ac-transition border-l-2 ac-busy ${
                     isSel ? 'ac-surface-1 ac-border-l-[color:var(--ac-accent)]' : 'ac-border-transparent'
                   }`}
-                  title={cmdGated ? 'Wait for the agent to finish — this command edits directly' : undefined}
+                  title={cmdGated ? `${BUSY_LOCK_HINT} — this command edits the canvas directly` : undefined}
                 >
                   <code className={`text-[11px] font-mono px-1 py-0.5 rounded ac-surface-2 ${isSel ? 'ac-text-1' : 'ac-text-2'}`}>{c.cmd}</code>
                   <span className="flex-1 text-[10px] ac-text-3 truncate">{c.hint}</span>
@@ -1778,7 +1805,9 @@ export function AgentPanel() {
               }
             }}
             placeholder={agentBusy
-              ? 'Queue a follow-up message… it sends when this turn finishes'
+              ? runPhase === 'cancelling'
+                ? 'Queued messages stay here while the agent stops…'
+                : 'Queue a follow-up message… it sends when this turn finishes'
               : 'Ask the agent to design something…'}
             className="text-xs resize-none min-h-[44px] max-h-[120px] border-0 shadow-none focus-visible:ring-0 ac-text-2 placeholder:ac-text-4 bg-transparent"
             onKeyDown={(e) => {
@@ -2131,7 +2160,7 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
               <button
                 onClick={startEditing}
                 disabled={agentBusy}
-                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity self-start mt-0.5 h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring disabled:opacity-30 disabled:cursor-not-allowed"
+                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity self-start mt-0.5 h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring ac-busy"
                 title={agentBusy ? 'Edit is available when the agent is idle' : 'Edit and resend from here (discards what follows)'}
                 aria-label="Edit and resend"
               >
@@ -2141,8 +2170,10 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
             {!editing && turn.messageId && (
               <button
                 onClick={() => forkActiveSession(turn.messageId)}
-                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity self-start mt-0.5 h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring"
-                title="Fork chat from this message"
+                disabled={agentBusy}
+                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity self-start mt-0.5 h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring ac-busy"
+                title={agentBusy ? `${BUSY_LOCK_HINT} — forking mid-run snapshots a half-streamed chat` : 'Fork chat from this message'}
+                aria-label="Fork chat from this message"
               >
                 <GitBranch className="h-3.5 w-3.5" />
               </button>
@@ -2166,10 +2197,14 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
             Edit & resend
           </ContextMenuItem>
           {turn.messageId && (
-            <ContextMenuItem onClick={() => {
-              forkActiveSession(turn.messageId);
-              toast.message('Branched from this message');
-            }}>
+            <ContextMenuItem
+              disabled={agentBusy}
+              onClick={() => {
+                if (agentBusy) return;
+                forkActiveSession(turn.messageId);
+                toast.message('Branched from this message');
+              }}
+            >
               Fork from here
             </ContextMenuItem>
           )}
@@ -2266,8 +2301,8 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
                       toast.message('No preceding prompt to regenerate from');
                     }
                   }}
-                  className="h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="Regenerate response"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded ac-text-4 hover:ac-text-1 hover:ac-surface-2 ac-transition ac-focus-ring ac-busy"
+                  title={agentBusy ? `${BUSY_LOCK_HINT} — regenerate starts a new run` : 'Regenerate response'}
                   aria-label="Regenerate response"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -2276,8 +2311,8 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
             )}
             {turn.streaming && !turn.text && turn.toolCalls.length === 0 && (
               <div className="flex items-center gap-1.5 text-xs ac-text-4">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                thinking…
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                <span>{RUN_PHASE_LABEL.thinking}</span>
               </div>
             )}
             {/* Turn meta footer — tool count + duration + token usage +
@@ -2350,8 +2385,8 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
                         toast.message('No preceding prompt to retry from');
                       }
                     }}
-                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ac-text-2 ac-surface-2 hover:ac-text-1 ac-transition ac-focus-ring disabled:opacity-40 flex-shrink-0"
-                    title="Re-send the previous prompt (with its attachments)"
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ac-text-2 ac-surface-2 hover:ac-text-1 ac-transition ac-focus-ring ac-busy flex-shrink-0"
+                    title={agentBusy ? `${BUSY_LOCK_HINT} — retry starts a new run` : 'Re-send the previous prompt (with its attachments)'}
                   >
                     <RotateCcw className="h-2.5 w-2.5" />
                     Retry
@@ -2509,19 +2544,19 @@ function DiffSummaryCard({
     if (!parentSnapshot || !documentId || agentBusy) return;
     setRestoring(true);
     try {
-      const restored = useSessionStore.getState().restoreSnapshot(documentId, parentSnapshot.id);
-      if (restored) {
-        // Load the restored document into the live canvas — same pattern
-        // as RunHistoryPanel's handleRestoreSnapshot (with the document
-        // id preserved so the canvas's own id stays stable).
-        useCanvasStore.setState({
-          document: { ...restored.document, id: documentId },
-          selectedIds: [],
-        });
+      // D2 (2026-09-05 depth pass): route through the store's canonical
+      // restoreSnapshot — the pre-D2 direct useCanvasStore.setState({document})
+      // skipped the busy-guard backstop, the measuredBounds/checkpoints reset
+      // (stale overlays after restore) and the `document:restore` broadcast,
+      // so every OTHER viewer and the server journal desynced from this one.
+      const ok = await useCanvasStore.getState().restoreSnapshot(parentSnapshot.id);
+      if (ok) {
         toast.success('Restored from before this turn', {
           description: `${parentSnapshot.nodeCount} nodes · parent snapshot ${parentSnapshot.id.slice(0, 8)}`,
         });
       } else {
+        // The store already toasted the specific why (busy / fetch failure /
+        // missing snapshot) — this is the local fallback for the quiet bails.
         toast.error('Could not restore', { description: 'The before-this-turn snapshot is missing.' });
       }
     } catch (err) {

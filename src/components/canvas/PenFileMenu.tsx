@@ -22,6 +22,7 @@
 import { useRef, useState } from 'react';
 import { Download, Loader2, Upload } from 'lucide-react';
 import { useCanvasStore } from '@/lib/canvas/store';
+import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import { toast } from 'sonner';
 
 export function usePenFile() {
@@ -66,6 +67,18 @@ export function usePenFile() {
   }
 
   function importPen() {
+    // D3 (2026-09-05 depth pass): pre-gate the picker while a run is live.
+    // Importing applies patches through sendPatch — the C1 busy-guard
+    // silently DROPS them mid-run, but the old flow still toasted
+    // "Imported … N nodes loaded" (false success) after burning the upload.
+    // Blocking the entry point is honest and matches every other mutation
+    // affordance in the app.
+    if (useCanvasStore.getState().agentBusy) {
+      toast.warning('Agent is running', {
+        description: `${BUSY_LOCK_HINT} — import replaces the canvas the agent is editing.`,
+      });
+      return;
+    }
     fileInputRef.current?.click();
   }
 
@@ -83,10 +96,14 @@ export function usePenFile() {
       } catch {
         throw new Error('File is not valid JSON');
       }
+      // D3: use the LIVE document id (the old hardcoded 'demo' imported
+      // into the wrong document for every non-demo canvas — the server
+      // journal + other viewers desynced from the local patches).
+      const documentId = useCanvasStore.getState().documentId;
       const res = await fetch('/api/pen/import', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ pen, documentId: 'demo', mode: 'replace' }),
+        body: JSON.stringify({ pen, documentId, mode: 'replace' }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -94,12 +111,22 @@ export function usePenFile() {
       }
       const data = await res.json();
       // Apply each returned patch through the store so it's undoable + broadcast.
+      let applied = 0;
       for (const patch of data.patches ?? []) {
-        sendPatch(patch);
+        if (sendPatch(patch)) applied++;
       }
-      toast.success(`Imported ${file.name}`, {
-        description: `${data.document?.shapes?.length ?? 0} nodes loaded from .pen`,
-      });
+      // D3: honest feedback — count the patches the store actually accepted
+      // (the busy-guard drops user patches mid-run; a run could also have
+      // started between the picker and this POST).
+      if (applied === (data.patches ?? []).length) {
+        toast.success(`Imported ${file.name}`, {
+          description: `${applied} patches applied · ${data.document?.shapes?.length ?? 0} nodes loaded from .pen`,
+        });
+      } else {
+        toast.warning(`Imported ${file.name} — partially blocked`, {
+          description: `${applied} of ${data.patches?.length ?? 0} patches applied. Stop the agent to import the full file.`,
+        });
+      }
     } catch (e: any) {
       toast.error('Import failed', { description: e?.message ?? 'Unknown error' });
     } finally {

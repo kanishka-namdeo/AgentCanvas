@@ -430,7 +430,11 @@ interface CanvasState {
 
   // Actions ---------------------------------------------------------------
   init: (documentId: string) => () => void;
-  sendPatch: (patch: CanvasPatch) => void;
+  /// Send a canvas patch (mutation or select) through the busy-guarded,
+  /// journaled, coalesced pipeline. Returns whether the patch was ACCEPTED
+  /// (D3: false when the agent-busy guard dropped it — import feedback relies
+  /// on this; every other caller may ignore the value).
+  sendPatch: (patch: CanvasPatch) => boolean;
   /// Push this viewer's volatile presence state (cursor / selection / idle)
   /// to the server's presence lane (R7). Throttled internally — callers
   /// (Canvas mousemove, selection changes) fire freely.
@@ -495,7 +499,7 @@ interface CanvasState {
   /// snapshot (append-only), swaps the live document, and broadcasts a
   /// `document:restore` so every viewer follows. Remote (metadata-only)
   /// snapshots are fetched from the server first.
-  restoreSnapshot: (snapshotId: string) => Promise<void>;
+  restoreSnapshot: (snapshotId: string) => Promise<boolean>;
 
   // Internal — called by socket event handler
   _onSync: (event: SyncEvent) => void;
@@ -569,7 +573,7 @@ function noteBlockedCanvasEdit() {
 }
 
 /// Toast for structure operations refused while a run is live (new chat /
-/// fork / switch / restore) — the “why” the disabled affordance also carries.
+/// fork / switch / restore) — the "why" the disabled affordance also carries.
 function toastBusyStructure(action: string) {
   try {
     toast.warning('Agent is running', {
@@ -578,6 +582,41 @@ function toastBusyStructure(action: string) {
   } catch {
     // sonner unavailable.
   }
+}
+
+/// D1 (2026-09-05 depth pass) — terminal events end EVERY blocking gate.
+///
+/// A run that finishes (or dies via error / stop / stuck) must not leave
+/// zombie interaction surfaces behind: the approval Allow/Deny modal, the
+/// ask-user-question form, and a still-pending PlanApprovalCard all settle
+/// together with the turn that spawned them. Pre-D1 the store only cleared
+/// `pendingApproval` / `pendingQuestion` on the resolution events — a run
+/// that died mid-gate left the modal open with live buttons that could
+/// never do anything (a post-mortem POST would even toast "Approved").
+///
+/// Usage: terminal reducers pass their FINAL turns array (already patched
+/// with streaming:false / error fields); the returned fields spread into the
+/// same `set()` that finalizes the phase.
+function settleTerminalGates(turns: ChatTurn[]): {
+  pendingApproval: null;
+  pendingQuestion: null;
+  turns: ChatTurn[];
+} {
+  const last = turns[turns.length - 1];
+  if (
+    last &&
+    last.role === 'assistant' &&
+    last.planProposal &&
+    last.planProposal.status === 'pending'
+  ) {
+    const next = [...turns];
+    next[next.length - 1] = {
+      ...last,
+      planProposal: { ...last.planProposal, status: 'timeout' },
+    };
+    return { pendingApproval: null, pendingQuestion: null, turns: next };
+  }
+  return { pendingApproval: null, pendingQuestion: null, turns };
 }
 
 /// Idempotent agent-patch application (client side of the C1 dedup): every
@@ -1530,7 +1569,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         agentAbort = null;
       }
       resetBlockedEditToast();
-      set({ agentBusy: false, runPhase: 'idle', queuedPrompts: [] });
+      // D1: the switch also drops the old document's blocking gates (a
+      // pending approval/question modal would otherwise float over the NEW
+      // canvas with no run behind it) and its background-task rows.
+      set({
+        agentBusy: false,
+        runPhase: 'idle',
+        queuedPrompts: [],
+        pendingApproval: null,
+        pendingQuestion: null,
+        backgroundTasks: [],
+      });
     }
     get().loadGuides();
 
@@ -1722,7 +1771,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // selection and inspection remain fully interactive during a run.
     if (agentBusy && isMutationBearingPatch(patch)) {
       noteBlockedCanvasEdit();
-      return;
+      return false;
     }
     // Mutation identity (R1): every canvas-MUTATING patch is stamped with the
     // stable clientId + a contiguous clientMutationId so the server journals
@@ -1761,6 +1810,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // Socket emit ABOVE stays immediate — only the local apply + undo push
     // are coalesced, so multiplayer collaboration sees no extra latency.
     enqueuePatch(patch, true);
+    return true;
   },
 
   sendPresence: (patch) => {
@@ -2053,7 +2103,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         if (li && li.role === 'assistant') {
           turns[turns.length - 1] = { ...li, streaming: false, endedAt: Date.now() };
         }
-        return { turns, ...phaseFields('cancelled') };
+        // D1: local stop finalization settles gates too (the server-side
+        // turn_cancelled handler does the same on arrival).
+        return { ...settleTerminalGates(turns), ...phaseFields('cancelled') };
       });
     }
   },
@@ -2256,7 +2308,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // Switching chats abandons the queue — queued prompts belonged to the
     // PREVIOUS conversation's flow (Cursor drops queued messages when you
     // switch to a different chat pane too).
-    set({ activeSessionId: sessionId, queuedPrompts: [] });
+    // D1: also drop the old chat's blocking gates + background-task rows —
+    // they belong to a turn that will never resume in THIS pane.
+    set({ activeSessionId: sessionId, queuedPrompts: [], pendingApproval: null, pendingQuestion: null, backgroundTasks: [] });
     // Cross-device hydration: when this browser's localStorage cache has no
     // (or partial) messages for the session, pull the server copy — INCLUDING
     // image attachments (SessionAttachment rows) and turn-diff records —
@@ -2329,13 +2383,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // Busy-guard (audit C8 — three restore paths, one rule): VersionHistory
     // gated, RunHistory + this action unguarded. Restoring mid-run would
     // yank the document out from under the agent's in-flight patches.
+    // D2: returns false on every early exit so callers can toast honestly
+    // (previously they toasted success even when this bailed silently).
     if (agentBusy) {
       toastBusyStructure('restoring a snapshot');
-      return;
+      return false;
     }
     const ss = useSessionStore.getState();
     const snap = ss.getSnapshot(snapshotId);
-    if (!snap || snap.documentId !== documentId) return;
+    if (!snap || snap.documentId !== documentId) return false;
     // Resolve the target document. Remote (metadata-only) entries must be
     // fetched from the server first — the local placeholder is empty.
     let resolved: CanvasDocument | null = snap.remote ? null : snap.document;
@@ -2360,16 +2416,16 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             toast.error('Restore failed', { description: 'Could not fetch the snapshot from the server.' });
           });
         } catch { /* sonner unavailable */ }
-        return;
+        return false;
       }
     }
     // Type-level guard: both branches above guarantee a resolved document
     // (remote entries return early on fetch failure).
-    if (!resolved) return;
+    if (!resolved) return false;
     // Append-only restore on the document timeline (creates a new 'restore'
     // snapshot + server-syncs it).
     const restored = useSessionStore.getState().restoreSnapshot(documentId, snapshotId);
-    if (!restored) return;
+    if (!restored) return false;
     // Swap the shared document. Measured bounds + checkpoints reference the
     // previous content's ids — clear them (undo/redo stacks stay: undo can
     // still step back over the restore).
@@ -2389,6 +2445,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         document: get().document,
       } satisfies ClientEvent);
     }
+    return true;
   },
 
   _syncTurnsFromSession: () => {
@@ -3098,7 +3155,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           if (last && last.role === 'assistant') {
             turns[turns.length - 1] = { ...last, streaming: false, endedAt: Date.now() };
           }
-          return { turns, ...phaseFields('completed') };
+          // D1: a completed turn closes any gate it left open.
+          return { ...settleTerminalGates(turns), ...phaseFields('completed') };
         });
         // Capture a snapshot of the canvas at end of turn, and finalize the
         // run in the session store. Guard against duplicate turn_end events
@@ -3242,7 +3300,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           if (last && last.role === 'assistant') {
             turns[turns.length - 1] = { ...last, streaming: false, endedAt: Date.now() };
           }
-          return { turns, ...phaseFields('cancelled') };
+          // D1: stopping the run must also dismiss any open gate dialogs.
+          return { ...settleTerminalGates(turns), ...phaseFields('cancelled') };
         });
         const last = get().turns[get().turns.length - 1];
         if (last?.messageId) {
@@ -3290,7 +3349,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               endedAt: Date.now(),
             };
           }
-          return { turns, ...phaseFields('stuck') };
+          // D1: a stuck run's gates are dead — settle them with the turn.
+          return { ...settleTerminalGates(turns), ...phaseFields('stuck') };
         });
         const last = get().turns[get().turns.length - 1];
         if (last?.messageId) {
@@ -3324,7 +3384,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             };
           }
           resetBlockedEditToast();
-          return { turns, ...phaseFields('failed') };
+          // D1: a failed run's gates can never be answered — close them.
+          return { ...settleTerminalGates(turns), ...phaseFields('failed') };
         });
         const last = get().turns[get().turns.length - 1];
         if (last?.messageId) {
@@ -3639,7 +3700,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
       case 'agent:ask_user_answered': {
         // The user submitted answers (or cancelled). Clear the pending question.
+        // D1: the timeout path (timedOut) also lands here — the dialog must
+        // close for every viewer and the user must be told WHY.
         set({ pendingQuestion: null });
+        if (event.timedOut) {
+          toast.warning('Question timed out', {
+            description: 'No answer within 5 minutes — the agent proceeded without it.',
+          });
+        }
         break;
       }
       case 'agent:approval_request': {
@@ -3657,13 +3725,20 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'agent:approval_resolved': {
-        // The deciding client posted its decision — close the dialog for
-        // every OTHER viewer too (fan-out event).
+        // The deciding client posted its decision (or the gate timed out) —
+        // close the dialog for EVERY viewer (D1: the fan-out is now emitted
+        // on both resolution paths; previously nobody emitted this event at
+        // all, so other viewers kept a zombie dialog forever).
         set((s) =>
           s.pendingApproval?.toolCallId === event.toolCallId
             ? { pendingApproval: null }
             : {},
         );
+        if (event.outcome === 'timeout') {
+          toast.warning('Approval timed out', {
+            description: 'No decision within 5 minutes — the operation was cancelled for safety.',
+          });
+        }
         break;
       }
       case 'agent:todo_update': {
@@ -3714,11 +3789,20 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   submitQuestionAnswers: async (toolCallId, answers, cancelled) => {
     set({ pendingQuestion: null });
     try {
-      await fetch('/api/agent/answers', {
+      const res = await fetch('/api/agent/answers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ toolCallId, answers, cancelled }),
       });
+      // D1: a 409 means the gate already resolved (timeout auto-answered,
+      // another viewer decided) — say so instead of silently doing nothing.
+      if (res.status === 409) {
+        import('sonner').then(({ toast }) => {
+          toast.warning('Answer not delivered', {
+            description: 'The question had already timed out or been answered elsewhere.',
+          });
+        }).catch(() => {});
+      }
     } catch (err) {
       // Network error — the server's pending question will time out after 5 min.
       console.error('Failed to submit question answers:', err);
@@ -3733,6 +3817,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ toolCallId, approved, alwaysAllow: alwaysAllow === true && approved }),
       });
+      // D1: a 409 means the gate already resolved (timeout auto-denied,
+      // another viewer decided) — the old code toasted "Approved — the agent
+      // will run the operation" for a decision that never landed.
+      if (res.status === 409) {
+        import('sonner').then(({ toast }) => {
+          toast.warning('Decision not delivered', {
+            description: 'This gate had already timed out or been decided by another viewer.',
+          });
+        }).catch(() => {});
+        return;
+      }
       if (res.ok) {
         // Persist the always-allow preference locally so it survives
         // server restarts and is seeded into the next run's gate.

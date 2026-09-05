@@ -23,6 +23,7 @@
 
 import { useState, useRef, type ComponentType } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
+import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import {
   Command,
   CommandEmpty,
@@ -57,6 +58,12 @@ export interface PaletteCommand {
   shortcut?: string;
   keywords?: string;
   danger?: boolean;
+  /// D9 (2026-09-05 depth pass): true for commands that mutate the canvas /
+  /// session structure (clear, delete, paste, insert, undo…). While a run is
+  /// live these render disabled with the busy-lock hint — matching the menu
+  /// + toolbar affordances instead of offering enabled-looking mutations
+  /// the store guard would silently drop.
+  mutates?: boolean;
   run: () => void;
 }
 
@@ -251,18 +258,25 @@ export function CommandPalette({
               >
                 {items.map((c) => {
                   const Icon = c.icon ?? Terminal;
+                  const gated = agentBusy && c.mutates === true;
                   return (
                     <CommandItem
                       key={c.id}
                       value={`${c.label} ${c.keywords ?? ''} ${c.group}`}
+                      disabled={gated}
                       onSelect={() => {
+                        if (gated) return;
                         onOpenChange(false);
                         c.run();
                       }}
-                      className={`gap-2 px-3 py-2 cursor-pointer ${c.danger ? 'ac-text-danger' : ''}`}
+                      title={gated ? BUSY_LOCK_HINT : undefined}
+                      className={`gap-2 px-3 py-2 ${gated ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${c.danger ? 'ac-text-danger' : ''}`}
                     >
                       <Icon className="h-3 w-3 ac-text-3 flex-shrink-0" />
                       <span className={`text-[12px] flex-1 truncate ${c.danger ? '' : 'ac-text-1'}`}>{c.label}</span>
+                      {gated && (
+                        <span className="text-[10px] ac-text-4 flex-shrink-0">paused</span>
+                      )}
                       {c.shortcut && (
                         <span className="text-[10px] ac-text-4 font-mono flex-shrink-0">{c.shortcut}</span>
                       )}

@@ -13,6 +13,7 @@
 // Opened from the TopMenuBar's File → "Version history…".
 
 import { useCanvasStore } from '@/lib/canvas/store';
+import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import { timeAgo } from '@/lib/canvas/version-history';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -72,9 +73,9 @@ export function VersionHistoryDialog({ open, onOpenChange }: VersionHistoryDialo
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-6 px-2 text-[11px]"
+                    className="h-6 px-2 text-[11px] ac-busy"
                     disabled={agentBusy}
-                    title={agentBusy ? 'Stop the agent before restoring' : 'Restore this checkpoint'}
+                    title={agentBusy ? `${BUSY_LOCK_HINT} — restoring mid-run yanks the canvas under the agent` : 'Restore this checkpoint'}
                     onClick={() => {
                       const ok = restoreCheckpoint(cp.id);
                       if (ok) toast.success('Restored', { description: cp.label });
@@ -92,8 +93,9 @@ export function VersionHistoryDialog({ open, onOpenChange }: VersionHistoryDialo
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 text-[11px] ac-text-danger"
-            disabled={checkpoints.length === 0}
+            className="h-7 text-[11px] ac-text-danger ac-busy"
+            disabled={checkpoints.length === 0 || agentBusy}
+            title={agentBusy ? `${BUSY_LOCK_HINT} — the current turn still needs its checkpoints` : 'Remove every checkpoint'}
             onClick={() => clearCheckpoints()}
           >
             Clear

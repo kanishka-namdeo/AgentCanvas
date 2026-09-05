@@ -10,7 +10,7 @@
 //   - cancelled: true if the user dismissed the dialog without answering
 
 import { NextRequest } from 'next/server';
-import { resolveAskUserQuestion } from '@/lib/agent/plugins/ask-user-question';
+import { resolveAskUserQuestion, hasPendingQuestion } from '@/lib/agent/plugins/ask-user-question';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,6 +26,16 @@ export async function POST(req: NextRequest) {
       status: 400,
       headers: { 'content-type': 'application/json' },
     });
+  }
+
+  // D1 (2026-09-05 depth pass): an unknown toolCallId means the question
+  // already resolved (timed out, answered by another viewer, or a stale
+  // replay). 200-ok here was a silent no-op the user believed was delivered.
+  if (!hasPendingQuestion(toolCallId)) {
+    return new Response(
+      JSON.stringify({ error: 'not_pending', toolCallId, note: 'The question already resolved (timed out or answered by another viewer).' }),
+      { status: 409, headers: { 'content-type': 'application/json' } },
+    );
   }
 
   resolveAskUserQuestion(toolCallId, answers, cancelled);

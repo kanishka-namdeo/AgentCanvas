@@ -21,6 +21,7 @@ import {
   resolveApproval,
   addAlwaysAllow,
   getPendingToolName,
+  hasPendingApproval,
 } from '@/lib/agent/plugins/approval-gate';
 
 export const runtime = 'nodejs';
@@ -44,6 +45,18 @@ export async function POST(req: NextRequest) {
   // pending entry up until resolveApproval clears it... wait, it clears
   // first). Lookup BEFORE resolving.
   const toolName = alwaysAllow ? getPendingToolName(toolCallId) : undefined;
+
+  // D1 (2026-09-05 depth pass): an unknown toolCallId means the gate already
+  // resolved (timeout auto-denied, another viewer decided, or a stale
+  // reconnect replay). Returning 200 here made the client toast "Approved —
+  // the agent will run the operation" for a decision that never landed —
+  // lying feedback. 409 lets the client say what actually happened.
+  if (!hasPendingApproval(toolCallId)) {
+    return new Response(
+      JSON.stringify({ error: 'not_pending', toolCallId, note: 'The gate already resolved (timed out or decided by another viewer).' }),
+      { status: 409, headers: { 'content-type': 'application/json' } },
+    );
+  }
 
   resolveApproval(toolCallId, approved);
 

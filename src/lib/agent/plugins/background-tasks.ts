@@ -115,6 +115,15 @@ const backgroundEnqueueTool = defineTool({
   }),
   async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
     const typed = params as { taskType: string; description: string; payload?: Record<string, unknown> };
+    // D8 (2026-09-05 depth pass) — HONEST FAILURE at the source. This
+    // deployment has no background executor (registerTaskComplete has no
+    // production caller, /api/agent/background/[id] is status-only), so an
+    // enqueued task can never leave 'pending': the pre-D8 tool result
+    // claimed "the frontend will start the executor", the model told the
+    // user the task was running, and the task list rendered a spinner
+    // forever. Registering + failing immediately keeps the bookkeeping
+    // honest (the attempt is visible, terminally) while the tool result
+    // tells the model to do the work inline with the regular design tools.
     const task: BackgroundTask = {
       id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       taskType: typed.taskType,
@@ -126,12 +135,19 @@ const backgroundEnqueueTool = defineTool({
     tasks.push(task);
     sessionTasks.set(activeSessionId, tasks);
     emitTaskStarted(task);
-    // The actual task execution is dispatched via /api/agent/background.
-    // The frontend's AgentPanel subscribes to background_task_started events
-    // and POSTs to /api/agent/background/<id>/run to start the executor.
+    task.status = 'failed';
+    task.error = 'No background executor is configured in this deployment.';
+    task.completedAt = Date.now();
+    emitTaskComplete(task);
     return {
-      content: [{ type: 'text', text: `Task "${task.description}" enqueued. ID: ${task.id}\n\nThe frontend will start the executor; call background_status to check progress.` }],
-      details: { taskId: task.id, taskType: task.taskType },
+      content: [{
+        type: 'text',
+        text:
+          `No background executor is configured in this deployment, so "${typed.description}" was NOT started. ` +
+          'Do the work inline with the regular design tools instead — it is fine to spread it across multiple tool calls. Do not retry background_enqueue.',
+      }],
+      details: { taskId: task.id, taskType: task.taskType, started: false, reason: 'no_executor' },
+      isError: true,
     };
   },
 });

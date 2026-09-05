@@ -21,6 +21,7 @@
 
 import { useState } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
+import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { Shape } from '@/lib/canvas/types';
 import { exportSvg, exportPngDataUrl, exportJson, exportCode, downloadFile, downloadDataUrl, copyToClipboard } from '@/lib/canvas/export';
@@ -149,7 +150,7 @@ export function AppMenu(props: AppMenuProps) {
           <DropdownMenuItem onClick={props.onNewChat} disabled={agentBusy}>
             New chat <DropdownMenuShortcut>⌘N</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={props.onImportPen}>
+          <DropdownMenuItem onClick={props.onImportPen} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Open .pen file… <DropdownMenuShortcut>⌘O</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={props.onExportPen}>
@@ -237,7 +238,7 @@ export function AppMenu(props: AppMenuProps) {
           <DropdownMenuItem onClick={() => {
             const sel = selectedIds.map((id) => findShape(document, id)).filter((s): s is Shape => !!s);
             clipboard.cut(sel);
-          }}>
+          }} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Cut <DropdownMenuShortcut>⌘X</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => {
@@ -246,17 +247,17 @@ export function AppMenu(props: AppMenuProps) {
           }}>
             Copy <DropdownMenuShortcut>⌘C</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => clipboard.paste()}>
+          <DropdownMenuItem onClick={() => clipboard.paste()} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Paste <DropdownMenuShortcut>⌘V</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => clipboard.paste({ offset: { dx: 0, dy: 0 } })}>
+          <DropdownMenuItem onClick={() => clipboard.paste({ offset: { dx: 0, dy: 0 } })} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Paste in place <DropdownMenuShortcut>⌘⇧V</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => {
             if (selectedIds.length > 0) {
               sendPatch({ op: 'duplicate', shapeIds: selectedIds, summary: `Duplicated ${selectedIds.length} shape(s)` });
             }
-          }}>
+          }} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Duplicate <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => clipboard.selectAll()}>
@@ -270,7 +271,7 @@ export function AppMenu(props: AppMenuProps) {
               sendPatch({ op: 'remove', shapeIds: selectedIds, summary: `Deleted ${selectedIds.length} shape(s)` });
               select([]);
             }
-          }}>
+          }} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Delete <DropdownMenuShortcut>⌫</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -321,24 +322,26 @@ export function AppMenu(props: AppMenuProps) {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
 
-          {/* ==== Insert ==== */}
+          {/* ==== Insert ==== (D9: insertion mutates the canvas — gated like
+              the toolbar's shape buttons, so the menu can't offer enabled-
+              looking mutations the sendPatch guard would silently drop.) */}
           <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">Insert</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => dropShapeAtCenter('rectangle')}>
+          <DropdownMenuItem onClick={() => dropShapeAtCenter('rectangle')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Rectangle <DropdownMenuShortcut>R</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => dropShapeAtCenter('ellipse')}>
+          <DropdownMenuItem onClick={() => dropShapeAtCenter('ellipse')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Ellipse <DropdownMenuShortcut>O</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => dropShapeAtCenter('text')}>
+          <DropdownMenuItem onClick={() => dropShapeAtCenter('text')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Text <DropdownMenuShortcut>T</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => dropShapeAtCenter('line')}>
+          <DropdownMenuItem onClick={() => dropShapeAtCenter('line')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Line <DropdownMenuShortcut>L</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => dropShapeAtCenter('frame')}>
+          <DropdownMenuItem onClick={() => dropShapeAtCenter('frame')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Frame <DropdownMenuShortcut>F</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => dropShapeAtCenter('section')}>
+          <DropdownMenuItem onClick={() => dropShapeAtCenter('section')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Section <DropdownMenuShortcut>⇧S</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => toast.message('Pen / path tool — use the chat panel')}>
@@ -352,37 +355,37 @@ export function AppMenu(props: AppMenuProps) {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
 
-          {/* ==== Object ==== */}
+          {/* ==== Object ==== (D9: same mutation gating as Edit/Insert.) */}
           <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide ac-text-4">Object</DropdownMenuLabel>
-          <DropdownMenuItem onClick={groupSel}>
+          <DropdownMenuItem onClick={groupSel} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Group <DropdownMenuShortcut>⌘G</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={ungroupSel}>
+          <DropdownMenuItem onClick={ungroupSel} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Ungroup <DropdownMenuShortcut>⌘⇧G</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => zorder('forward')}>
+          <DropdownMenuItem onClick={() => zorder('forward')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Bring forward <DropdownMenuShortcut>⌘]</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => zorder('front')}>
+          <DropdownMenuItem onClick={() => zorder('front')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Bring to front <DropdownMenuShortcut>⌘⇧]</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => zorder('backward')}>
+          <DropdownMenuItem onClick={() => zorder('backward')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Send backward <DropdownMenuShortcut>⌘[</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => zorder('back')}>
+          <DropdownMenuItem onClick={() => zorder('back')} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Send to back <DropdownMenuShortcut>⌘⇧[</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={frameSelection}>
+          <DropdownMenuItem onClick={frameSelection} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Frame selection <DropdownMenuShortcut>{chord('frame-selection')}</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={selectedIds.length === 0}
+            disabled={selectedIds.length === 0 || agentBusy}
             onClick={() => flipSelection('flipX')}
           >
             Flip horizontal <DropdownMenuShortcut>⇧H</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={selectedIds.length === 0}
+            disabled={selectedIds.length === 0 || agentBusy}
             onClick={() => flipSelection('flipY')}
           >
             Flip vertical <DropdownMenuShortcut>⇧V</DropdownMenuShortcut>
@@ -411,7 +414,7 @@ export function AppMenu(props: AppMenuProps) {
               const s = findShape(document, selectedIds[0]);
               if (s) sendPatch({ op: 'update', shapeId: s.id, shape: { locked: !s.locked }, summary: `${s.locked ? 'Unlocked' : 'Locked'} ${s.name}` });
             }
-          }}>
+          }} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Lock <DropdownMenuShortcut>{chord('lock')}</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => {
@@ -419,7 +422,7 @@ export function AppMenu(props: AppMenuProps) {
               const s = findShape(document, selectedIds[0]);
               if (s) sendPatch({ op: 'update', shapeId: s.id, shape: { visible: !s.visible }, summary: `${s.visible ? 'Hid' : 'Showed'} ${s.name}` });
             }
-          }}>
+          }} disabled={agentBusy} title={agentBusy ? BUSY_LOCK_HINT : undefined}>
             Hide <DropdownMenuShortcut>{chord('hide')}</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

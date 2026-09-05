@@ -20,6 +20,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSessionStore } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
+import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -238,7 +239,7 @@ export function SessionSidebar() {
           </div>
           <button
             onClick={() => newSession()}
-            title={agentBusy ? 'Stop the agent before starting a new chat' : 'New chat (⌘N)'}
+            title={agentBusy ? `${BUSY_LOCK_HINT} — a new chat abandons the run's transcript` : 'New chat (⌘N)'}
             aria-label="New chat"
             aria-disabled={agentBusy}
             className={`flex items-center gap-1 h-6 px-2 rounded text-[11px] font-medium ac-text-2 ac-surface-1 ac-border-subtle border hover:ac-text-1 hover:ac-border-default ac-transition ac-focus-ring flex-shrink-0 ac-busy ${agentBusy ? 'opacity-40 cursor-not-allowed' : ''}`}
@@ -321,8 +322,9 @@ export function SessionSidebar() {
               <div
                 key={session.id}
                 onClick={() => { if (!agentBusy) switchSession(session.id); }}
-                title={agentBusy && !isActive ? 'Stop the agent before switching chats' : undefined}
-                className={`group relative rounded-md px-2.5 py-1.5 ac-transition ac-focus-ring ${
+                aria-disabled={agentBusy && !isActive}
+                title={agentBusy && !isActive ? `${BUSY_LOCK_HINT} — switching chats mid-run strands the stream` : undefined}
+                className={`group relative rounded-md px-2.5 py-1.5 ac-transition ac-focus-ring ac-busy ${
                   agentBusy && !isActive ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
                 } ${
                   isActive
@@ -438,11 +440,21 @@ export function SessionSidebar() {
                           <GitFork className="h-3 w-3 mr-2" /> Fork this chat
                         </DropdownMenuItem>
                         {/* P1-20: 5 new session-row items */}
-                        <DropdownMenuItem className="py-1.5" onClick={() => {
-                          // Duplicate: fork but don't switch — creates a sibling at the same tree level.
-                          const dup = useSessionStore.getState().forkSession(session.id, null);
-                          if (dup) toast.success(`Duplicated "${session.title}" → "${dup.title}"`);
-                        }}>
+                        {/* D5: Duplicate forks WITHOUT switching — safe for
+                            non-active rows, but duplicating the ACTIVE session
+                            mid-run snapshots a half-streamed transcript (and
+                            the fork guard family should behave alike). */}
+                        <DropdownMenuItem
+                          className={`py-1.5 ${agentBusy && isActive ? 'ac-busy' : ''}`}
+                          disabled={agentBusy && isActive}
+                          title={agentBusy && isActive ? BUSY_LOCK_HINT : 'Create a copy of this chat'}
+                          onClick={() => {
+                            if (agentBusy && isActive) return;
+                            // Duplicate: fork but don't switch — creates a sibling at the same tree level.
+                            const dup = useSessionStore.getState().forkSession(session.id, null);
+                            if (dup) toast.success(`Duplicated "${session.title}" → "${dup.title}"`);
+                          }}
+                        >
                           <Copy className="h-3 w-3 mr-2" /> Duplicate session
                         </DropdownMenuItem>
                         <DropdownMenuItem className="py-1.5" onClick={async () => {
@@ -540,7 +552,7 @@ export function SessionSidebar() {
                 <div
                   key={session.id}
                   aria-disabled={agentBusy}
-                  title={agentBusy ? 'Stop the agent before switching chats' : undefined}
+                  title={agentBusy ? `${BUSY_LOCK_HINT} — switching chats mid-run strands the stream` : undefined}
                   className={`group relative rounded-md px-2.5 py-1.5 ac-transition ac-busy ${agentBusy ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:ac-surface-1'}`}
                   onClick={() => {
                     if (agentBusy) return; // switchSession's guard backstops

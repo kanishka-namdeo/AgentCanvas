@@ -19,6 +19,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { useCanvasStore } from '@/lib/canvas/store';
+import { RUN_PHASE_LABEL } from '@/lib/canvas/run-phase';
+import { StatusBadge } from '@/components/sessions/StatusBadge';
+import type { RunStatus } from '@/lib/sessions';
 import {
   CheckCircle2, Circle, Loader2, AlertCircle, ListTodo, X, Plus, ShieldAlert,
 } from 'lucide-react';
@@ -205,7 +208,7 @@ function ApprovalDialog() {
               {agentBusy && (
                 <span className="flex items-center gap-1 text-[10px] ac-text-4">
                   <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                  Waiting for your approval
+                  {RUN_PHASE_LABEL.awaiting_input}
                 </span>
               )}
             </div>
@@ -323,6 +326,16 @@ function TodoOverlay() {
 
 // ── BackgroundTaskList ──────────────────────────────────────────────────────
 
+// D9 (2026-09-05 depth pass): task rows reuse StatusBadge (same enum, same
+// vocabulary, same icons as the run history + sub-agent rows) and the busy
+// label flows through RUN_PHASE_LABEL — the old hand-rolled 'Running…' was
+// the one string the contract header explicitly bans. Terminal rows show the
+// task's own summary line.
+function backgroundTaskStatus(t: { status: string; success?: boolean }): RunStatus {
+  if (t.status === 'started') return 'in_progress';
+  return t.success ? 'completed' : 'failed';
+}
+
 function BackgroundTaskList() {
   const tasks = useCanvasStore((s) => s.backgroundTasks);
   if (tasks.length === 0) return null;
@@ -335,17 +348,13 @@ function BackgroundTaskList() {
       <div className="space-y-1">
         {tasks.map((t) => (
           <div key={t.taskId} className="flex items-start gap-2">
-            {t.status === 'started' ? (
-              <Loader2 className="h-3 w-3 mt-0.5 flex-shrink-0 ac-text-info animate-spin" />
-            ) : t.success ? (
-              <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0 ac-text-success" />
-            ) : (
-              <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0 ac-text-danger" />
-            )}
+            <StatusBadge status={backgroundTaskStatus(t)} className="mt-0.5" />
             <div className="flex-1 min-w-0">
               <div className="text-[11px] ac-text-2 truncate">{t.description}</div>
               <div className="text-[10px] ac-text-4 mt-0.5">
-                {t.status === 'started' ? 'Running…' : t.summary ?? 'Done'}
+                {t.status === 'started'
+                  ? RUN_PHASE_LABEL.tool
+                  : t.summary ?? (t.success ? 'Task completed' : 'Task failed')}
               </div>
             </div>
           </div>
