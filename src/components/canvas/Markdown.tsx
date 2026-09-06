@@ -48,14 +48,19 @@ export const MarkdownMessage = memo(function MarkdownMessage({ text, streaming }
       <ReactMarkdown
         components={{
           // Tighten the default spacing for a chat panel.
-          p: ({ children }) => <p className="mb-1.5 last:mb-0 whitespace-pre-wrap">{children}</p>,
+          // UI-audit round 5 (2026-09 overflow fix): added [overflow-wrap:anywhere]
+          // to <p> so long unbroken tokens (URLs, base64, file paths) wrap inside
+          // the chat bubble instead of blowing out its width. This matches the
+          // user-turn bubble's pattern at AgentPanel.tsx:2107.
+          p: ({ children }) => <p className="mb-1.5 last:mb-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{children}</p>,
           ul: ({ children }) => <ul className="list-disc pl-4 mb-1.5 last:mb-0 space-y-0.5">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-4 mb-1.5 last:mb-0 space-y-0.5">{children}</ol>,
           li: ({ children }) => <li className="leading-relaxed">{children}</li>,
           strong: ({ children }) => <strong className="font-semibold ac-text-1">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
           a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noreferrer noopener" className="underline text-[color:var(--ac-accent)]">
+            // UI-audit round 5: break-all so long URLs don't overflow the bubble.
+            <a href={href} target="_blank" rel="noreferrer noopener" className="underline text-[color:var(--ac-accent)] break-all [overflow-wrap:anywhere]">
               {children}
             </a>
           ),
@@ -67,7 +72,10 @@ export const MarkdownMessage = memo(function MarkdownMessage({ text, streaming }
             const isBlock = /language-/.test(className ?? '') || String(children ?? '').includes('\n');
             if (isBlock) return <CodeBlock>{children}</CodeBlock>;
             return (
-              <code className="px-1 py-0.5 rounded ac-surface-2 text-[10px] font-mono ac-text-2">
+              // UI-audit round 5: break-all so long inline code strings (URLs,
+              // base64, JSON keys) wrap inside the bubble instead of pushing
+              // the bubble wider than the chat panel.
+              <code className="px-1 py-0.5 rounded ac-surface-2 text-[10px] font-mono ac-text-2 break-all [overflow-wrap:anywhere]">
                 {children}
               </code>
             );
@@ -85,9 +93,9 @@ export const MarkdownMessage = memo(function MarkdownMessage({ text, streaming }
             </div>
           ),
           th: ({ children }) => (
-            <th className="border px-1.5 py-0.5 text-left font-semibold ac-border-default ac-surface-1">{children}</th>
+            <th className="border px-1.5 py-0.5 text-left font-semibold ac-border-default ac-surface-1 break-words [overflow-wrap:anywhere]">{children}</th>
           ),
-          td: ({ children }) => <td className="border px-1.5 py-0.5 ac-border-subtle">{children}</td>,
+          td: ({ children }) => <td className="border px-1.5 py-0.5 ac-border-subtle break-words [overflow-wrap:anywhere]">{children}</td>,
         }}
       >
         {text}

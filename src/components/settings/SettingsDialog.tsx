@@ -91,8 +91,11 @@ export function SettingsDialog({
           Changes apply immediately.
         </DialogDescription>
         <div className="flex h-[80vh] max-h-[640px] min-h-[480px]">
-          {/* Left nav */}
-          <nav className="w-48 flex-shrink-0 border-r ac-border-subtle ac-surface-1 p-2 space-y-0.5">
+          {/* Left nav.
+              UI-audit round 5 (overflow fix): collapse to icon-only (w-12)
+              on narrow viewports (<sm) so the content area keeps usable
+              width on mobile/tablet. Labels reappear at sm+ (w-48). */}
+          <nav className="w-12 sm:w-48 flex-shrink-0 border-r ac-border-subtle ac-surface-1 p-2 space-y-0.5">
             {SECTIONS.map((s) => {
               const Icon = s.icon;
               const active = section === s.id;
@@ -100,14 +103,15 @@ export function SettingsDialog({
                 <button
                   key={s.id}
                   onClick={() => setSection(s.id)}
+                  title={s.label}
                   className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] font-medium ac-transition ac-focus-ring ${
                     active
                       ? 'ac-surface-0 ac-text-1 shadow-sm'
                       : 'ac-text-3 hover:ac-text-1 hover:ac-surface-2'
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  {s.label}
+                  <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline">{s.label}</span>
                 </button>
               );
             })}
@@ -121,10 +125,11 @@ export function SettingsDialog({
                     toast.success('Settings reset to defaults');
                   }
                 }}
+                title="Reset to defaults"
                 className="w-full justify-start gap-2 h-7 text-[11px] ac-text-3 hover:ac-text-1"
               >
-                <RotateCcw className="h-3 w-3" />
-                Reset to defaults
+                <RotateCcw className="h-3 w-3 flex-shrink-0" />
+                <span className="hidden sm:inline">Reset to defaults</span>
               </Button>
             </div>
           </nav>

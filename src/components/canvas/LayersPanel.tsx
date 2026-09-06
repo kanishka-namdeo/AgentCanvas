@@ -1021,7 +1021,11 @@ export const LayersPanel = memo(function LayersPanel({
           a same-named EMPTY page — copying a page's layer tree needs a
           page-children patch op that doesn't exist yet. */}
       {pages.length > 0 && (
-        <div className="w-24 flex-shrink-0 border-r ac-border-subtle flex flex-col" data-ac-pages-column>
+        // UI-audit round 5 (overflow fix): w-16 on narrow viewports, w-24 on
+        // sm+ — the 96px fixed width consumed too much of the left panel's
+        // already-narrow width (~230px at 1440px), leaving the Layers tree
+        // with insufficient space for typical layer names.
+        <div className="w-16 sm:w-24 flex-shrink-0 border-r ac-border-subtle flex flex-col" data-ac-pages-column>
           <div className="px-2 py-2 border-b ac-border-subtle ac-label">
             Pages
           </div>
@@ -1269,7 +1273,7 @@ export const LayersPanel = memo(function LayersPanel({
                 </div>
               ) : (
                 <div
-                  className="p-2 grid grid-cols-2 gap-2"
+                  className="p-2 grid grid-cols-1 sm:grid-cols-2 gap-2"
                   data-ac-assets-grid=""
                 >
                   {componentEntries.map(([id, node]) => {

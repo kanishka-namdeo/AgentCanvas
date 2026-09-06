@@ -101,7 +101,9 @@ export function Toolbar() {
     // Floating pill — absolutely positioned at bottom-center of the canvas container.
     // `pointer-events-none` on the wrapper means clicks pass through to the canvas
     // when not on a button; we re-enable pointer events on the pill itself.
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+    // UI-audit round 5 (overflow fix): added max-w-[calc(100%-1rem)] so the
+    // toolbar can't extend past the canvas edges on narrow viewports.
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none max-w-[calc(100%-1rem)]">
       <div
         className="pointer-events-auto flex items-center gap-0.5 px-1.5 py-1 rounded-full border ac-border-default shadow-lg ac-transition"
         style={{

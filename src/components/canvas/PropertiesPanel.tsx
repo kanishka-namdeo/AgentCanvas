@@ -934,7 +934,7 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
                     {/* Justify (alignX → justifyContent): start/center/end */}
                     <div className="mt-1">
                       <Label className="text-[10px] ac-text-3">Justify</Label>
-                      <div className="grid grid-cols-3 gap-1 mt-1">
+                      <div className="grid grid-cols-3 gap-1 mt-1 min-w-0">
                         {(['min', 'center', 'max'] as const).map((v) => (
                           <Button
                             key={v}
@@ -951,7 +951,7 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
                     {/* Align (alignY → alignItems): start/center/end */}
                     <div className="mt-1">
                       <Label className="text-[10px] ac-text-3">Align</Label>
-                      <div className="grid grid-cols-3 gap-1 mt-1">
+                      <div className="grid grid-cols-3 gap-1 mt-1 min-w-0">
                         {(['min', 'center', 'max'] as const).map((v) => (
                           <Button
                             key={v}
@@ -1009,7 +1009,7 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
                             value={current}
                             onValueChange={(v) => setNodeThemeAxis(axis, v)}
                           >
-                            <SelectTrigger size="sm" className="h-7 text-[11px] flex-1">
+                            <SelectTrigger size="sm" className="h-7 text-[11px] flex-1 min-w-0">
                               <SelectValue placeholder="inherit" />
                             </SelectTrigger>
                             <SelectContent>

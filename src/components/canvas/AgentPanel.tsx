@@ -383,7 +383,7 @@ function ThinkingBlock({ turn }: { turn: ChatTurn }) {
         />
       </button>
       {expanded && (
-        <div className="px-2 pb-1.5 pt-1 text-[10px] ac-text-4 italic whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto ac-hide-scrollbar border-t ac-border-subtle">
+        <div className="px-2 pb-1.5 pt-1 text-[10px] ac-text-4 italic whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto ac-hide-scrollbar break-words [overflow-wrap:anywhere] border-t ac-border-subtle">
           {turn.thinking}
         </div>
       )}
@@ -432,7 +432,7 @@ function PlanCard({ plan }: { plan: NonNullable<ChatTurn['plan']> }) {
         />
       </button>
       {expanded && (
-        <div className="px-2 pb-1.5 pt-1 space-y-1 border-t ac-border-subtle">
+        <div className="px-2 pb-1.5 pt-1 space-y-1 border-t ac-border-subtle max-h-60 overflow-y-auto ac-hide-scrollbar">
           {plan.map((p) => {
             const Icon = PLAN_STATUS_ICON[p.status] ?? Circle;
             const color = PLAN_STATUS_COLOR[p.status] ?? 'ac-text-4';
@@ -486,7 +486,7 @@ function SubAgentsCard({ subAgents }: { subAgents: NonNullable<ChatTurn['subAgen
         />
       </button>
       {expanded && (
-        <div className="px-2 pb-1.5 pt-1 space-y-1 border-t ac-border-subtle">
+        <div className="px-2 pb-1.5 pt-1 space-y-1 border-t ac-border-subtle max-h-60 overflow-y-auto ac-hide-scrollbar">
           {subAgents.map((sa, i) => (
             <div key={sa.dispatchId ?? `${sa.type}-${i}`} className="flex items-start gap-1.5">
               <StatusBadge
@@ -553,7 +553,7 @@ function CritiqueRow({ critique }: { critique: NonNullable<ChatTurn['critique']>
         />
       </button>
       {expanded && critique.defects.length > 0 && (
-        <ul className="px-2 pb-1.5 pt-1 space-y-0.5 border-t ac-border-subtle">
+        <ul className="px-2 pb-1.5 pt-1 space-y-0.5 border-t ac-border-subtle max-h-48 overflow-y-auto ac-hide-scrollbar">
           {critique.defects.map((d, i) => (
             <li key={i} className="flex items-start gap-1.5 text-[10px] ac-text-3 leading-snug">
               <span className="ac-text-warning flex-shrink-0">·</span>
@@ -679,7 +679,7 @@ function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planPr
           </div>
         )}
         {pending && !showFeedback && (
-          <div className="flex items-center gap-1.5 pt-0.5">
+          <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
             <Button
               size="sm"
               className="h-6 text-[11px] text-white flex-shrink-0"
@@ -765,7 +765,7 @@ function ModeSelector({ mode, onModeChange }: { mode: AgentMode; onModeChange: (
           <ChevronDown className="h-2.5 w-2.5 opacity-60" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="w-72">
+      <DropdownMenuContent side="top" align="start" className="w-72 max-w-[calc(100vw-1rem)]">
         <div className="px-2 py-1 ac-label border-b ac-border-subtle">
           Agent mode — what the agent can do
         </div>
@@ -1621,7 +1621,7 @@ export function AgentPanel() {
             title={`The agent will target ${targetingCount} layer${targetingCount === 1 ? '' : 's'} (canvas selection + @mentions — "these"/"those" in your prompt refers to them).`}
           >
             <BoxSelect className="h-3 w-3 flex-shrink-0 ac-text-info" />
-            <span className="text-[10px] ac-text-2 truncate flex-1">
+            <span className="text-[10px] ac-text-2 truncate flex-1 min-w-0">
               {targetingCount} layer{targetingCount === 1 ? '' : 's'} targeted{mentionedIds.length > 0 ? ' (incl. @mentions)' : ''} — agent will focus on them
             </span>
             {selectionCount > 0 && (
@@ -1643,7 +1643,7 @@ export function AgentPanel() {
         {agentMode === 'build' && !agentBusy && looksMultiScreen(input) && !planSuggestDismissed && (
           <div className="flex items-center gap-1.5 mb-1.5 px-2 py-1 rounded-md border ac-border-subtle ac-surface-1">
             <ClipboardList className="h-3 w-3 flex-shrink-0 ac-text-info" />
-            <span className="text-[10px] ac-text-2 truncate flex-1">
+            <span className="text-[10px] ac-text-2 truncate flex-1 min-w-0">
               Looks like a multi-screen build — plan first?
             </span>
             <button
@@ -1707,7 +1707,7 @@ export function AgentPanel() {
                   title={cmdGated ? `${BUSY_LOCK_HINT} — this command edits the canvas directly` : undefined}
                 >
                   <code className={`text-[11px] font-mono px-1 py-0.5 rounded ac-surface-2 ${isSel ? 'ac-text-1' : 'ac-text-2'}`}>{c.cmd}</code>
-                  <span className="flex-1 text-[10px] ac-text-3 truncate">{c.hint}</span>
+                  <span className="flex-1 text-[10px] ac-text-3 truncate min-w-0">{c.hint}</span>
                   {isSel && <CornerDownLeft className="h-2.5 w-2.5 ac-text-4 flex-shrink-0" />}
                 </button>
               );
@@ -1782,7 +1782,7 @@ export function AgentPanel() {
           {attachments.length > 0 && modelAcceptsImages === false && (
             <div className="flex items-center gap-1.5 mx-2 mt-2 px-2 py-1 rounded-md text-[10px] ac-text-warning ac-surface-1 border ac-border-subtle">
               <TriangleAlert className="h-3 w-3 flex-shrink-0" />
-              <span className="leading-snug">
+              <span className="leading-snug flex-1 min-w-0 break-words [overflow-wrap:anywhere]">
                 {guardModelId} doesn’t accept image input — switch to a vision model (Eye) to use attachments.
               </span>
             </div>
@@ -1930,7 +1930,11 @@ export function AgentPanel() {
                 void addFiles(files);
               }}
             />
-            <div className="flex items-center gap-1">
+            {/* UI-audit round 5 (2026-09 overflow fix): added flex-wrap + min-w-0
+                so the 6 controls (snapshot / attach / separator / mode / model /
+                thinking) wrap to a second row on narrow panels instead of
+                overflowing horizontally and pushing the Send button off-screen. */}
+            <div className="flex items-center gap-1 flex-wrap min-w-0">
               {/* Canvas snapshot attach (v0/Figma-Make pattern) — renders the
                   current canvas to a PNG and stages it as an image attachment.
                   Disabled while the agent runs: the canvas is mid-mutation,
@@ -2065,7 +2069,7 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
             {editing ? (
               /* Inline edit composer — ChatGPT/Claude edit-message pattern.
                  Enter saves & resends, Shift+Enter newlines, Esc cancels. */
-              <div className="flex-1 rounded-lg border ac-border-default ac-surface-0 p-2" style={{ borderColor: 'var(--ac-accent)' }}>
+              <div className="flex-1 min-w-0 rounded-lg border ac-border-default ac-surface-0 p-2" style={{ borderColor: 'var(--ac-accent)' }}>
                 <Textarea
                   autoFocus
                   value={editText}
@@ -2601,7 +2605,7 @@ function DiffSummaryCard({
       >
         <GitCompareArrows className="h-3 w-3 ac-text-4 flex-shrink-0" />
         <span className="ac-text-2 font-medium flex-shrink-0">Canvas changes</span>
-        <span className="flex items-center gap-1.5 flex-wrap">
+        <span className="flex items-center gap-1.5 flex-wrap min-w-0">
           {diff.cleared && (
             <span className="ac-text-danger font-medium" title="Canvas cleared">cleared</span>
           )}
@@ -2780,7 +2784,12 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
             }`}
           >
             <Wrench className="h-3 w-3 ac-text-4 flex-shrink-0" />
-            <code className="text-[10px] ac-surface-2 ac-text-2 px-1 py-0.5 rounded font-mono truncate flex-shrink-0">{tc.name}</code>
+            {/* UI-audit round 5 (overflow fix): replaced `flex-shrink-0` with
+                `min-w-0 max-w-[140px]` so the tool name truncates instead of
+                pushing the summary/duration/chevron off the row. The old
+                `truncate flex-shrink-0` combo was a no-op (truncate can't
+                engage when the element refuses to shrink). */}
+            <code className="text-[10px] ac-surface-2 ac-text-2 px-1 py-0.5 rounded font-mono truncate min-w-0 max-w-[140px]">{tc.name}</code>
             {/* Collapsed: the summary rides inline (one line, truncated) —
                 the ONLY detail visible without expanding. */}
             {!expanded && tc.summary && (

@@ -263,12 +263,16 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
           title={badgeTooltip}
           aria-haspopup="listbox"
           aria-label={`Model: ${modelId}. Click to switch models.`}
-          className={`flex items-center gap-0.5 px-1 py-0.5 rounded font-mono ac-transition hover:ac-surface-1 ac-focus-ring ${
+          className={`flex items-center gap-0.5 px-1 py-0.5 rounded font-mono ac-transition hover:ac-surface-1 ac-focus-ring min-w-0 ${
             usedFallback ? 'ac-text-warning' : 'ac-text-2'
           }`}
         >
           <Cpu className="h-3 w-3 flex-shrink-0" />
-          <span className="max-w-[110px] sm:max-w-[160px] lg:max-w-[200px] truncate">{modelId}</span>
+          {/* UI-audit round 5 (overflow fix): tightened the lg: cap from 200px
+              to 140px — 200px was too generous for a 22%-of-viewport right
+              panel and caused the ModelSwitcher + ModeSelector + Thinking
+              buttons to overflow the action row on narrow lg panels. */}
+          <span className="max-w-[110px] sm:max-w-[140px] lg:max-w-[140px] truncate min-w-0">{modelId}</span>
           {/* Vision indicator — Eye when the current model accepts image
               input (signals that the attach button / paste will work). */}
           {currentModelVision && (
