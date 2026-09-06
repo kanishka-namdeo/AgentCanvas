@@ -343,7 +343,10 @@ function LLMSection() {
   // model switcher uses. "Load live models" merges the endpoint's actual
   // model list into the dropdown below (falls back to curated popularModels
   // until clicked).
-  const { loading: modelsLoading, data: modelsData, error: modelsError, refresh: refreshModels } = useModelCatalog();
+  // UI-audit round 4 (2026-09): invalidateOnSettingsChange clears the shared
+  // cache when the user edits provider / apiKey / apiBaseUrl, so the dropdown
+  // never shows stale models from a previous configuration.
+  const { loading: modelsLoading, data: modelsData, error: modelsError, refresh: refreshModels } = useModelCatalog({ invalidateOnSettingsChange: true });
   const liveModelIds = (modelsData?.provider.models ?? []).map((m) => m.id);
   // Vision-capable live models — id set for the Eye icon in the dropdown
   // (same capability metadata the ModelSwitcher rows render).
@@ -361,14 +364,40 @@ function LLMSection() {
 
   // When the user switches providers, pre-fill the model + baseURL with the
   // new provider's defaults if the existing values don't match.
+  // UI-audit round 4 (2026-09 LLM-config pass): also clear apiKey when the
+  // new provider's env-var set differs (prevents stale key from provider A
+  // leaking to provider B), and clear apiBaseUrl when switching to a
+  // non-OpenAI-compatible provider (prevents stale custom URL from leaking
+  // to the Anthropic/Google native SDKs).
   const handleProviderChange = (newId: string) => {
     const newMeta = getProviderMetadata(newId);
-    set('llmProvider', newId as LLMProvider);
     const prevMeta = getProviderMetadata(normalizedProvider);
+    set('llmProvider', newId as LLMProvider);
+
+    // Clear apiKey if the new provider uses a different env-var set.
+    // (Same env-var set means the same key works — e.g. openai ↔ azure
+    // both read OPENAI_API_KEY. Different set means a key change is likely
+    // required, so wipe the stale value to avoid a runtime 401.)
+    const prevEnvVars = (prevMeta?.apiKeyEnvVars ?? []).join('|');
+    const newEnvVars = (newMeta?.apiKeyEnvVars ?? []).join('|');
+    if (prevEnvVars !== newEnvVars && apiKey !== '') {
+      set('apiKey', '');
+    }
+
+    // Reset modelName only if it was empty or matched the previous
+    // provider's default (i.e. the user hadn't typed a custom value).
     if (prevMeta && (modelName === '' || modelName === prevMeta.defaultModel)) {
       set('modelName', newMeta?.defaultModel ?? '');
     }
-    if (prevMeta && (apiBaseUrl === '' || apiBaseUrl === prevMeta.defaultBaseURL)) {
+
+    // Reset apiBaseUrl if it was empty/default-OR if the new provider is
+    // NOT OpenAI-compatible (stale custom URL must not leak to native SDKs).
+    const newIsOpenAICompat = newMeta?.openAICompatible ?? true;
+    const wasDefaultOrEmpty =
+      !prevMeta ||
+      apiBaseUrl === '' ||
+      apiBaseUrl === prevMeta.defaultBaseURL;
+    if (wasDefaultOrEmpty || !newIsOpenAICompat) {
       set('apiBaseUrl', newMeta?.defaultBaseURL ?? '');
     }
   };
@@ -376,6 +405,24 @@ function LLMSection() {
   const requiresKey = providerRequiresApiKey(normalizedProvider);
   const isLocalProvider = !requiresKey && (normalizedProvider === 'ollama' || normalizedProvider === 'lmstudio' || normalizedProvider === 'vllm');
   const isCustom = normalizedProvider === 'custom';
+
+  // UI-audit round 4: surface endpoint errors that were previously silently
+  // swallowed. The /api/models route returns HTTP 200 with `provider.source
+  // === 'error'` + `provider.error` when the endpoint is unreachable / returns
+  // an empty list / has a bad key. The old UI only checked `modelsError`
+  // (the top-level fetch failure), which stayed null on 200-with-error.
+  const endpointError =
+    modelsData?.provider.source === 'error' ? modelsData.provider.error : null;
+  // UI-audit round 4: disable the Live button when the custom provider has
+  // no base URL — the server returns an "Set the API base URL" error that
+  // was also silently swallowed. Better to block the click + show a tooltip.
+  const liveButtonDisabled =
+    modelsLoading ||
+    (isCustom && !apiBaseUrl.trim()) ||
+    (meta?.openAICompatible === true && !apiBaseUrl.trim() && !meta.defaultBaseURL);
+  const liveButtonTitle = liveButtonDisabled && !modelsLoading
+    ? (isCustom ? 'Enter an API base URL first' : 'Enter an API base URL first')
+    : 'Fetch the models actually available from the configured provider right now';
 
   return (
     <>
@@ -435,17 +482,26 @@ function LLMSection() {
           </Row>
         )}
 
-        {/* Model — always shown (every provider needs a model). */}
+        {/* Model — always shown (every provider needs a model).
+            UI-audit round 4 (2026-09): combobox pattern — show a Select
+            dropdown when there are popular or live models to pick from, but
+            ALSO render a plain Input below it so the user can always type a
+            custom model name (the previous design only showed the Input when
+            popularModels was empty, which made the `custom` provider — with
+            its single `kimi-k2-5` popularModel — impossible to configure for
+            any other model name without first succeeding at a Live fetch). */}
         <Row
           label="Model"
           description={
-            liveLoaded
-              ? modelsData?.provider.source === 'endpoint'
-                ? `Live from the endpoint: ${liveModelIds.length} models available.`
-                : `From the ${normalizedProvider} catalog (${liveModelIds.length} models).`
-              : meta && meta.popularModels.length > 0
-                ? `Popular: ${meta.popularModels.slice(0, 3).join(', ')}…  — or load the live list.`
-                : 'Type the model name your provider expects, or load the live list.'
+            endpointError
+              ? undefined
+              : liveLoaded
+                ? modelsData?.provider.source === 'endpoint'
+                  ? `Live from the endpoint: ${liveModelIds.length} models available.`
+                  : `From the ${normalizedProvider} catalog (${liveModelIds.length} models).`
+                : meta && meta.popularModels.length > 0
+                  ? `Popular: ${meta.popularModels.slice(0, 3).join(', ')}…  — or load the live list, or type a custom model name below.`
+                  : 'Type the model name your provider expects, or load the live list.'
           }
         >
           <div className="flex items-center gap-1.5 w-full sm:max-w-md">
@@ -501,15 +557,18 @@ function LLMSection() {
               )}
             </div>
             {/* Load-live-models button — probes the endpoint / catalog via
-                POST /api/models (same source as the AgentPanel switcher). */}
+                POST /api/models (same source as the AgentPanel switcher).
+                UI-audit round 4: disabled when apiBaseUrl is empty (custom)
+                to prevent the silent no-op that previously looked like
+                success. */}
             <button
               onClick={() => {
                 refreshModels();
                 toast.message('Loading available models…');
               }}
-              disabled={modelsLoading}
-              title="Fetch the models actually available from the configured provider right now"
-              className="flex-shrink-0 flex items-center gap-1 h-7 px-2 rounded-md border ac-border-subtle text-[10px] ac-text-2 ac-transition hover:ac-surface-1 disabled:opacity-50"
+              disabled={liveButtonDisabled}
+              title={liveButtonTitle}
+              className="flex-shrink-0 flex items-center gap-1 h-7 px-2 rounded-md border ac-border-subtle text-[10px] ac-text-2 ac-transition hover:ac-surface-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {modelsLoading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -519,9 +578,34 @@ function LLMSection() {
               Live
             </button>
           </div>
+          {/* UI-audit round 4: surface endpoint errors that were previously
+              silently swallowed. The /api/models route returns HTTP 200 with
+              `provider.source === 'error'` + `provider.error` when the
+              endpoint is unreachable / returns an empty list / has a bad
+              key. The old UI only checked `modelsError` (the top-level fetch
+              failure), which stayed null on 200-with-error. */}
+          {endpointError && (
+            <p className="mt-1 text-[10px] ac-text-warning flex items-start gap-1">
+              <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
+              <span>{endpointError}</span>
+            </p>
+          )}
           {modelsError && (
             <p className="mt-1 text-[10px] ac-text-warning">{modelsError}</p>
           )}
+          {/* UI-audit round 4: always allow typing a custom model name.
+              The previous design only showed the Input fallback when
+              popularModels was empty, which made the `custom` provider —
+              with its single `kimi-k2-5` popularModel — impossible to
+              configure for any other model name without first succeeding
+              at a Live fetch. Now the Input always renders below the
+              Select; typing in it overrides the dropdown's selection. */}
+          <Input
+            value={modelName}
+            onChange={(e) => set('modelName', e.target.value)}
+            placeholder={meta?.defaultModel || '…or type a custom model name here'}
+            className="h-7 w-full sm:max-w-md text-[11px] font-mono mt-1"
+          />
         </Row>
 
         {/* API base URL — shown for OpenAI-compatible providers + custom. */}
@@ -550,6 +634,48 @@ function LLMSection() {
             Credentials auto-resolve at runtime. Outside the sandbox, set{' '}
             <code className="font-mono ac-text-1">ZAI_API_KEY</code> in your{' '}
             <code className="font-mono ac-text-1">.env</code> file or paste it above.
+          </div>
+        )}
+
+        {/* UI-audit round 4 (2026-09): preflight warning for missing API key.
+            Previously the user would only discover the missing key at runtime
+            (a 401 from the provider). Now warn upfront — visible in the
+            Settings dialog itself + applies to every provider that requires
+            a key (openai, anthropic, google, mistral, etc.). */}
+        {requiresKey && !apiKey.trim() && (
+          <div
+            className="rounded-md border ac-surface-1 p-3 text-[12px] leading-relaxed flex items-start gap-2"
+            style={{ borderColor: 'var(--ac-warning-border)' }}
+          >
+            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 ac-text-warning" />
+            <div>
+              <strong className="ac-text-warning">API key required.</strong>{' '}
+              The <span className="font-medium ac-text-2">{meta?.label}</span> provider
+              needs an API key to authenticate. Set{' '}
+              <code className="font-mono ac-text-1">{meta?.apiKeyEnvVars.join(' or ')}</code>{' '}
+              in your <code className="font-mono ac-text-1">.env</code> file, or paste it
+              into the API key field above. Without it, the agent will fail with a 401 on
+              the first prompt.
+            </div>
+          </div>
+        )}
+
+        {/* UI-audit round 4 (2026-09): preflight warning for the custom
+            provider with no base URL — the agent runner throws at runtime
+            ("Provider "custom" needs a base URL"), so surface it here. */}
+        {isCustom && !apiBaseUrl.trim() && (
+          <div
+            className="rounded-md border ac-surface-1 p-3 text-[12px] leading-relaxed flex items-start gap-2"
+            style={{ borderColor: 'var(--ac-warning-border)' }}
+          >
+            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 ac-text-warning" />
+            <div>
+              <strong className="ac-text-warning">Base URL required.</strong>{' '}
+              The Custom provider needs an API base URL (e.g.{' '}
+              <code className="font-mono ac-text-1">https://api.openai.com/v1</code>)
+              to know where to send requests. Enter one in the API base URL
+              field above.
+            </div>
           </div>
         )}
 

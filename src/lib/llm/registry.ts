@@ -40,8 +40,13 @@ function openAICompatibleFactory(meta: LLMProviderMetadata): LLMClientFactory {
       }
     }
 
-    const baseURL = config.baseURL || meta.defaultBaseURL;
-    const model = config.model || meta.defaultModel;
+    // UI-audit round 4 (2026-09): trim defensively — the Live-fetch path
+    // already trims, so without this the agent-runner path would fail on a
+    // trailing space in apiBaseUrl or modelName while the Live button
+    // appeared to succeed. createOpenAICompatible() trims again, but this
+    // guards the empty-check below against a whitespace-only value.
+    const baseURL = (config.baseURL || meta.defaultBaseURL).trim();
+    const model = (config.model || meta.defaultModel).trim();
 
     if (!baseURL) {
       throw new Error(

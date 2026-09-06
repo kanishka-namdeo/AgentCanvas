@@ -74,8 +74,15 @@ async function fetchCatalog() {
 
 // ---- Hook -------------------------------------------------------------------
 
-export function useModelCatalog(opts?: { autoFetch?: boolean }) {
+export function useModelCatalog(opts?: {
+  autoFetch?: boolean;
+  /** UI-audit round 4 (2026-09): when true, clear the shared cache when the
+   * user changes provider / apiKey / apiBaseUrl. Prevents stale models from
+   * showing after the user edits a field but doesn't click "Live" again. */
+  invalidateOnSettingsChange?: boolean;
+}) {
   const autoFetch = opts?.autoFetch === true;
+  const invalidateOnSettingsChange = opts?.invalidateOnSettingsChange === true;
   // Re-render on shared-state changes (classic observer subscription).
   const [, bump] = useState(0);
   useEffect(() => {
@@ -97,6 +104,34 @@ export function useModelCatalog(opts?: { autoFetch?: boolean }) {
       void fetchCatalog();
     }
   }, [autoFetch]);
+
+  // UI-audit round 4 (2026-09 LLM-config pass): invalidate the shared cache
+  // when the user changes any of the settings that determine which models
+  // are listed. Without this, the dropdown shows stale models from the
+  // previous (provider, apiKey, apiBaseUrl) tuple after the user edits a
+  // field but doesn't click "Live" again. We read settings via
+  // useSettings.getState() (no re-render subscription) and key the effect
+  // on the actual values so it only fires when one of them changes.
+  // Exported separately as `invalidateOnSettingsChange` so callers
+  // (LLMSection, ModelSwitcher) can opt in — the capability guard in
+  // AgentPanel doesn't need to invalidate (it only reads modelSupportsImages
+  // for the active model).
+  const settings = useSettings.getState();
+  // Subscribe to the three fields we care about so this hook re-runs when
+  // any of them changes (and so the effect below fires).
+  useSettings((s) => s.llmProvider);
+  useSettings((s) => s.apiKey);
+  useSettings((s) => s.apiBaseUrl);
+  useEffect(() => {
+    if (!invalidateOnSettingsChange) return;
+    // Mark the cache as stale by clearing `data`. The next Live click or
+    // autoFetch will re-fetch. Don't auto-refetch here — that would fire a
+    // network request on every keystroke in the apiBaseUrl field.
+    if (shared.data !== null) {
+      setShared({ data: null, error: null });
+    }
+    void settings; // settings is read above for subscription; we don't use it here.
+  }, [settings.llmProvider, settings.apiKey, settings.apiBaseUrl, invalidateOnSettingsChange]);
 
   const refresh = useCallback(() => {
     return fetchCatalog();

@@ -1548,14 +1548,16 @@ export async function buildSubAgentLLMClient(settings?: AgentRunSettings): Promi
   }
 
   // Build config from user settings + provider defaults.
+  // UI-audit round 4 (2026-09 LLM-config pass): trim apiBaseUrl + apiKey +
+  // modelName to fix the asymmetric-whitespace bug where the Live fetch
+  // (model-catalog.ts:288 trims) succeeded but the agent runner (no trim)
+  // failed on a trailing space. Now both paths trim consistently.
   const config: LLMProviderConfig = {
     providerId,
-    apiKey: settings?.apiKey ?? '',
-    baseURL: settings?.apiBaseUrl || meta?.defaultBaseURL || '',
+    apiKey: (settings?.apiKey ?? '').trim(),
+    baseURL: (settings?.apiBaseUrl || meta?.defaultBaseURL || '').trim(),
     model:
-      settings?.modelName ||
-      meta?.defaultModel ||
-      providerDefaultModel(providerId),
+      (settings?.modelName || meta?.defaultModel || providerDefaultModel(providerId)).trim(),
     // Sub-agent completions can be legitimately long: whole-design JSON
     // specs (multi-minute generations under parallel load) and VLM critique
     // calls with base64 images. 120s aborted healthy 80s generations that

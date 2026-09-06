@@ -44,8 +44,14 @@ export interface OpenAICompatibleClientOptions {
 
 /// Build a minimal LLMClient that talks to any OpenAI-compatible endpoint.
 /// Used by every Tier-1 provider in the registry.
+// UI-audit round 4 (2026-09 LLM-config pass): trim baseURL defensively so a
+// trailing space from the Settings input doesn't produce an Invalid URL
+// TypeError. (The model-catalog Live-fetch path already trims; this brings
+// the agent-runner path to parity.)
 export function createOpenAICompatible(opts: OpenAICompatibleClientOptions): LLMClient {
-  const { apiKey, baseURL, model, extraHeaders, timeoutMs = 120_000 } = opts;
+  const { apiKey, baseURL: rawBaseURL, model: rawModel, extraHeaders, timeoutMs = 120_000 } = opts;
+  const baseURL = rawBaseURL.trim();
+  const model = rawModel.trim();
 
   if (!baseURL) {
     throw new Error('OpenAI-compatible client requires a baseURL');
