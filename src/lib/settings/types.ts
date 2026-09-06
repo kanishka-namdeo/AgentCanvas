@@ -241,10 +241,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // is no longer the default — it remains a registered provider id (`custom`)
   // selectable in Settings → LLM provider for users who want to bring their
   // own endpoint.
-  llmProvider: 'zai',
-  apiKey: '',
-  modelName: 'glm-5.3',
-  apiBaseUrl: '',
+  llmProvider: 'custom',
+  apiKey: '123456',
+  modelName: 'qwen3.7-plus',
+  apiBaseUrl: 'https://irhnglwoxe.a.pinggy.link/v1',
 
   snapshotCadence: 'every-turn',
   maxSessionsRetained: 100,

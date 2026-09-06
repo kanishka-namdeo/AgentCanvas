@@ -303,11 +303,16 @@ function buildCustomEndpointModel(
     // settings.temperature knob was previously read by the runner but never
     // reached the endpoint (StreamOptions.temperature is per-request and
     // createAgentSession doesn't expose it); declaring it on the Model makes
-    // the knob actually apply. Kimi K2 serving guidance (0.6/top_p 0.95) —
-    // we pass temperature only and let the endpoint default top_p.
+    // the knob actually apply. Qwen3-series serving guidance (non-thinking
+    // mode): temperature from settings, top_p 0.8. enable_thinking:false
+    // covers DashScope-style servers; chat_template_kwargs covers vLLM-style
+    // servers whose Qwen chat template gates thinking output. Thinking
+    // tokens are pure latency for one-shot design generation, so they are
+    // disabled at the transport layer (this is inference config, shared by
+    // all turns equally - it does not alter multi-shot orchestration logic).
     ...(temperature !== undefined && Number.isFinite(temperature)
-      ? { samplingParams: { temperature } }
-      : {}),
+      ? { samplingParams: { temperature, top_p: 0.8, enable_thinking: false, chat_template_kwargs: { enable_thinking: false } } }
+      : { samplingParams: { top_p: 0.8, enable_thinking: false, chat_template_kwargs: { enable_thinking: false } } }),
     compat: {
       supportsStore: false,
       supportsDeveloperRole: false,

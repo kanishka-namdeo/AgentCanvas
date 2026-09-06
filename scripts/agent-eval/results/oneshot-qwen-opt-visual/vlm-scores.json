@@ -1,0 +1,52 @@
+[
+  {
+    "target": "login-hifi",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 9,
+      "layout_structure": 8,
+      "typography": 7,
+      "color_cohesion": 9,
+      "component_polish": 7,
+      "overall_polish": 8,
+      "overall": 8
+    },
+    "defects": [
+      "The 'eye' icon in the password field is a generic 'slash' icon rather than a standard visibility toggle.",
+      "Social login buttons (Google/Apple) were not requested and clutter the primary flow.",
+      "Placeholder text 'you@example.com' is visible inside the input field, which is a common AI artifact for 'filled' states."
+    ],
+    "top_fixes": [
+      "Replace the password field's slash icon with a proper eye-off or eye icon to match standard UI patterns.",
+      "Remove or de-emphasize the social login buttons to focus on the requested email/password flow as per the prompt.",
+      "Ensure input fields show clean labels or empty states rather than placeholder text if aiming for a pristine high-fidelity look."
+    ],
+    "raw": "{\"prompt_fidelity\":9,\"layout_structure\":8,\"typography\":7,\"color_cohesion\":9,\"component_polish\":7,\"overall_polish\":8,\"overall\":8,\"defects\":[\"The 'eye' icon in the password field is a generic 'slash' icon rather than a standard visibility toggle.\",\"Social login buttons (Google/Apple) were not requested and clutter the primary flow.\",\"Placeholder text 'you@example.com' is visible inside the input field, which is a common AI artifact for 'filled' states.\"],\"top_fixes\":[\"Replace the password field's slash icon with a proper eye-off or eye icon to match standard UI patterns.\",\"Remove or de-emphasize the social login buttons to focus on the requested email/password flow as per the prompt.\",\"Ensure input fields show clean labels or empty states rather than placeholder text if aiming for a pristine high-fidelity look.\"]}"
+  },
+  {
+    "target": "dashboard-hifi",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 9,
+      "layout_structure": 7,
+      "typography": 6,
+      "color_cohesion": 8,
+      "component_polish": 7,
+      "overall_polish": 6,
+      "overall": 7
+    },
+    "defects": [
+      "Header bar is severely broken with overlapping translucent gray rectangles obscuring text and UI elements.",
+      "User name 'Sarah Chen' and other header elements are partially cut off or misaligned.",
+      "The layout lacks visual hierarchy; the header feels unfinished compared to the KPI cards.",
+      "Typography in the KPI cards is functional but generic (default sans-serif)."
+    ],
+    "top_fixes": [
+      "Remove the overlapping gray artifacts from the header to reveal the full navigation and user profile.",
+      "Ensure all text in the header is fully visible and properly aligned within the container.",
+      "Add subtle icons or visual indicators to the KPI cards to increase information density and polish.",
+      "Refine the type scale and font weights to create a stronger distinction between labels, values, and trends."
+    ],
+    "raw": "{\"prompt_fidelity\":9, \"layout_structure\":7, \"typography\":6, \"color_cohesion\":8, \"component_polish\":7, \"overall_polish\":6, \"overall\":7, \"defects\":[\"Header bar is severely broken with overlapping translucent gray rectangles obscuring text and UI elements.\", \"User name 'Sarah Chen' and other header elements are partially cut off or misaligned.\", \"The layout lacks visual hierarchy; the header feels unfinished compared to the KPI cards.\", \"Typography in the KPI cards is functional but generic (default sans-serif).\"], \"top_fixes\":[\"Remove the overlapping gray artifacts from the header to reveal the full navigation and user profile.\", \"Ensure all text in the header is fully visible and properly aligned within the container.\", \"Add subtle icons or visual indicators to the KPI cards to increase information density and polish.\", \"Refine the type scale and font weights to create a stronger distinction between labels, values, and trends.\"]}"
+  }
+]

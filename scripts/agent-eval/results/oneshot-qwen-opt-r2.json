@@ -1,0 +1,416 @@
+{
+  "runs": [
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "startedAt": "2026-09-06T21:21:08.211Z",
+      "durationMs": 238371,
+      "toolCallCount": 19,
+      "toolNames": [
+        [
+          "pen_update_node",
+          6
+        ],
+        [
+          "pen_search_icons",
+          4
+        ],
+        [
+          "pen_get_metadata",
+          3
+        ],
+        [
+          "pen_set_variables",
+          2
+        ],
+        [
+          "pen_create_subtree",
+          2
+        ],
+        [
+          "pen_list_variables",
+          1
+        ],
+        [
+          "pen_set_gradient_fill",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "22 layers"
+        },
+        {
+          "name": "uses a container/frame",
+          "pass": true,
+          "detail": "9 container(s)"
+        },
+        {
+          "name": "email + password copy present",
+          "pass": true,
+          "detail": "email=true password=true"
+        },
+        {
+          "name": "brand \"Vaultly\" present",
+          "pass": true,
+          "detail": "brand copy ok"
+        },
+        {
+          "name": "colorful design (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on elevated surfaces",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "Sign In action present",
+          "pass": true,
+          "detail": "CTA copy ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 19 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "19 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 12,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 22,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "startedAt": "2026-09-06T21:25:16.587Z",
+      "durationMs": 107477,
+      "toolCallCount": 8,
+      "toolNames": [
+        [
+          "pen_update_node",
+          4
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_create_subtree",
+          1
+        ],
+        [
+          "pen_set_variable",
+          1
+        ],
+        [
+          "pen_get_metadata",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "canvas has layers",
+          "pass": true,
+          "detail": "25 layers"
+        },
+        {
+          "name": "uses a container/frame",
+          "pass": true,
+          "detail": "12 container(s)"
+        },
+        {
+          "name": "email + password copy present",
+          "pass": true,
+          "detail": "email=true password=true"
+        },
+        {
+          "name": "brand \"Vaultly\" present",
+          "pass": true,
+          "detail": "brand copy ok"
+        },
+        {
+          "name": "colorful design (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on elevated surfaces",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "Sign In action present",
+          "pass": true,
+          "detail": "CTA copy ok"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 8 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "8 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 12,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 25,
+      "emptyTurn": false,
+      "repeat": 2
+    },
+    {
+      "id": "dashboard-hifi",
+      "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+      "startedAt": "2026-09-06T21:27:14.066Z",
+      "durationMs": 171193,
+      "toolCallCount": 17,
+      "toolNames": [
+        [
+          "pen_update_node",
+          10
+        ],
+        [
+          "pen_get_metadata",
+          3
+        ],
+        [
+          "pen_set_variables",
+          2
+        ],
+        [
+          "pen_create_subtree",
+          1
+        ],
+        [
+          "pen_set_variable",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "all 4 KPI values present",
+          "pass": true,
+          "detail": "all values found"
+        },
+        {
+          "name": "4 card-like containers in a row",
+          "pass": true,
+          "detail": "4 candidates, bands=[[144,4]]"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on cards",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 17 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "17 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 37,
+      "emptyTurn": false,
+      "repeat": 1
+    },
+    {
+      "id": "dashboard-hifi",
+      "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+      "startedAt": "2026-09-06T21:30:15.265Z",
+      "durationMs": 132914,
+      "toolCallCount": 8,
+      "toolNames": [
+        [
+          "pen_set_variables",
+          4
+        ],
+        [
+          "pen_get_metadata",
+          3
+        ],
+        [
+          "pen_create_subtree",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "all 4 KPI values present",
+          "pass": true,
+          "detail": "all values found"
+        },
+        {
+          "name": "4 card-like containers in a row",
+          "pass": true,
+          "detail": "4 candidates, bands=[[144,4]]"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows on cards",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 8 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "8 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 33,
+      "emptyTurn": false,
+      "repeat": 2
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "login-hifi",
+      "prompt": "Design a polished, high-fidelity mobile login screen for a fintech app called 'Vaultly' with an email field, a password field, and a Sign In button.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 13.5,
+        "min": 8,
+        "max": 19
+      },
+      "durationS": {
+        "mean": 172.924,
+        "min": 107.477,
+        "max": 238.371
+      },
+      "assertionsPassed": 24,
+      "assertionsTotal": 24,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "dashboard-hifi",
+      "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+      "heldOut": false,
+      "runs": 2,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 2,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 12.5,
+        "min": 8,
+        "max": 17
+      },
+      "durationS": {
+        "mean": 152.05349999999999,
+        "min": 132.914,
+        "max": 171.193
+      },
+      "assertionsPassed": 18,
+      "assertionsTotal": 18,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    }
+  ]
+}

@@ -54,19 +54,19 @@ export interface EndpointPreset {
 }
 
 /// BETA — the owner-configured test endpoint (2026-09-07). Same shape as
-/// the app's pre-v5 first-run defaults (kimi-k2-5 / pinggy tunnel / key
+/// the app's pre-v5 first-run defaults (qwen3.7-plus / pinggy tunnel / key
 /// '123456'), now opt-in as a named preset instead of a silent default.
 export const BETA_ENDPOINT: EndpointPreset = {
   id: 'beta',
   label: 'BETA',
   description:
-    'Owner-configured test endpoint: kimi-k2-5 behind a pinggy tunnel. ' +
+    'Owner-configured test endpoint: qwen3.7-plus behind a pinggy tunnel. ' +
     'Applies provider Custom + base URL + key + model in one click. ' +
     'Availability is flaky (ephemeral tunnel) — the runner falls back to the z.ai sandbox when it is down.',
   provider: 'custom',
   baseURL: 'https://irhnglwoxe.a.pinggy.link/v1',
   apiKey: '123456',
-  defaultModel: 'kimi-k2-5',
+  defaultModel: 'qwen3.7-plus',
 };
 
 /// All code-resident endpoint presets, in UI display order.

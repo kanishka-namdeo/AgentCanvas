@@ -534,6 +534,25 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const filteredTools = allTools.filter((t) =>
     categoryAllowedToolNames.has(t.name) && !aliasNames.has(t.name));
 
+  // ---- One-shot (empty-canvas build) tool-surface slimming -----------------
+  // The default-on plugin tools (ask_user_question, todo_*, memory_*) exist
+  // for long-horizon interactive sessions. On the FIRST build turn of an
+  // empty canvas they are pure prefix cost (~11 tool schemas in every
+  // request) and a latency trap (ask_user_question can pause the whole
+  // one-shot generation waiting for user input). They are dropped for that
+  // turn shape ONLY: mode==='build' AND empty canvas at turn start.
+  // Follow-up turns (canvas non-empty) and plan/ask turns keep the exact
+  // same tool surface as before - multi-shot behavior is unchanged.
+  const ONE_SHOT_DROP_TOOLS = new Set([
+    'ask_user_question',
+    'todo_create', 'todo_update', 'todo_add', 'todo_remove', 'todo_list',
+    'memory_write', 'memory_read', 'memory_search', 'scratchpad', 'memory_forget',
+  ]);
+  const isOneShotBuildTurn = mode === 'build' && turnStartShapeIds.size === 0;
+  const turnTools = isOneShotBuildTurn
+    ? filteredTools.filter((t) => !ONE_SHOT_DROP_TOOLS.has(t.name))
+    : filteredTools;
+
   // PLAN mode also needs the UNFILTERED build set for the post-approval
   // execution phase (a new session is created with it once the plan is
   // approved — same category filter, no mode restriction).
@@ -687,7 +706,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           ...(subAgentLLM ? { llm: subAgentLLM as any } : {}),
         });
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('brief pre-generation timed out')), 40_000));
+          setTimeout(() => reject(new Error('brief pre-generation timed out')), 25_000));
         const briefResult = await Promise.race([briefPromise, timeoutPromise]);
         if (briefResult?.brief) {
           return JSON.stringify(briefResult.brief, null, 2);
@@ -855,7 +874,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     });
 
   const orderedTools: ToolDefinition[] = assembleOrderedTools(
-    mode === 'plan' ? planCompletionBlocker(filteredTools) : filteredTools,
+    mode === 'plan' ? planCompletionBlocker(filteredTools) : turnTools,
   );
   // PLAN mode: the build-toolset session that executes the plan after
   // approval. Assembled NOW (wrappers close over turn-scoped state) so the

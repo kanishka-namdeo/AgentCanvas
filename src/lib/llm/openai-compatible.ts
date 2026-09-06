@@ -79,6 +79,16 @@ export function createOpenAICompatible(opts: OpenAICompatibleClientOptions): LLM
             body.tools = params.tools;
             body.tool_choice = params.tool_choice ?? 'auto';
           }
+          // Qwen3-series models served via OpenAI-compatible endpoints:
+          // disable server-side thinking mode for sub-agent calls (design
+          // brief / critic JSON). Thinking tokens are pure latency for
+          // fixed-schema JSON outputs. Both DashScope-style (enable_thinking)
+          // and vLLM-style (chat_template_kwargs) knobs are sent; servers
+          // that do not recognize a field ignore it.
+          if (/^qwen/i.test(model)) {
+            body.enable_thinking = false;
+            body.chat_template_kwargs = { enable_thinking: false };
+          }
 
           // Use AbortController for the timeout so we don't leak sockets.
           const controller = new AbortController();
