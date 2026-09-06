@@ -84,7 +84,17 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean } = {}) {
+export function RunHistoryPanel({
+  hideHeader = false,
+  view,
+}: {
+  hideHeader?: boolean;
+  /** UI-audit round 3 (2026-09): when hideHeader is true, the outer right
+   * tab strip controls which sub-view renders via this prop. When omitted
+   * (or when hideHeader is false), the panel manages its own internal
+   * `tab` state + renders the sub-tab strip. */
+  view?: 'runs' | 'snapshots';
+} = {}) {
   const activeSessionId = useCanvasStore((s) => s.activeSessionId);
   const documentId = useCanvasStore((s) => s.documentId);
   const document = useCanvasStore((s) => s.document);
@@ -119,7 +129,12 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
     return sessionsMap[snap.sessionId]?.title ?? 'deleted chat';
   };
 
-  const [tab, setTab] = useState<'runs' | 'snapshots'>('runs');
+  // UI-audit round 3 (2026-09): when `hideHeader` + `view` are passed, the
+  // outer right tab strip controls which sub-view renders. The internal
+  // `tab` state is kept for the non-hideHeader case (standalone panel use)
+  // but is overruled by `view` when the prop is present.
+  const [internalTab, setInternalTab] = useState<'runs' | 'snapshots'>('runs');
+  const tab = view ?? internalTab;
 
   // Rename-snapshot dialog state (P2-38). Lifted to RunHistoryPanel so a single
   // Dialog instance serves every SnapshotCard in the list — same pattern as
@@ -310,7 +325,7 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
           {/* Unified tabs — selected = filled dark, unselected = subtle ghost */}
           <div className="flex gap-1 p-0.5 ac-surface-2 rounded-md">
             <button
-              onClick={() => setTab('runs')}
+              onClick={() => setInternalTab('runs')}
               className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ${
                 tab === 'runs' ? 'ac-surface-0 ac-text-1 shadow-sm' : 'ac-text-3 hover:ac-text-1'
               }`}
@@ -318,7 +333,7 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
               Runs · {runs.length}
             </button>
             <button
-              onClick={() => setTab('snapshots')}
+              onClick={() => setInternalTab('snapshots')}
               className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ${
                 tab === 'snapshots' ? 'ac-surface-0 ac-text-1 shadow-sm' : 'ac-text-3 hover:ac-text-1'
               }`}
@@ -328,7 +343,11 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
           </div>
         </div>
       )}
-      {hideHeader && (
+      {/* UI-audit round 3 (2026-09): when `view` is passed (outer right tab
+          strip controls the sub-view), DON'T render the inner sub-tab strip
+          — that was the nested-tabs pattern we eliminated. Only render it
+          in the standalone (non-hideHeader) case. */}
+      {hideHeader && !view && (
         // UI-audit round 3 (2026-09): active sub-tab uses the same accent-soft
         // pill treatment as the outer right-panel tab strip + the left-panel
         // tab strip — three surfaces, one visual language. ARIA tablist for
@@ -337,7 +356,7 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
           <button
             role="tab"
             aria-selected={tab === 'runs'}
-            onClick={() => setTab('runs')}
+            onClick={() => setInternalTab('runs')}
             className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ac-focus-ring ${
               tab === 'runs' ? 'bg-[var(--ac-accent-soft)] ac-text-1' : 'ac-text-3 hover:ac-text-1 hover:ac-surface-2'
             }`}
@@ -347,7 +366,7 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
           <button
             role="tab"
             aria-selected={tab === 'snapshots'}
-            onClick={() => setTab('snapshots')}
+            onClick={() => setInternalTab('snapshots')}
             className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ac-focus-ring ${
               tab === 'snapshots' ? 'bg-[var(--ac-accent-soft)] ac-text-1' : 'ac-text-3 hover:ac-text-1 hover:ac-surface-2'
             }`}

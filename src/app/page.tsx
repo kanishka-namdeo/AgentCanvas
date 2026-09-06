@@ -36,6 +36,7 @@ import {
   FilePlus2, Undo2, Redo2, Copy, ClipboardPaste, Trash2, Eye, ZoomIn,
   SunMoon, Square, Circle, Type, Minus, Frame, Section as SectionIcon,
   PanelLeftClose as PanelLeftIcon, PanelRightClose as PanelRightIcon, Keyboard,
+  Camera,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -112,7 +113,13 @@ function useDeferredMount(open: boolean): boolean {
   return mounted;
 }
 
-type RightTab = 'chat' | 'design' | 'history';
+type RightTab = 'chat' | 'design' | 'runs' | 'snapshots';
+/// UI-audit round 3 (2026-09): the right column now has FOUR tabs —
+/// Design · Chat · Runs · Snapshots. The previous "History" tab with its
+/// nested Runs/Snapshots sub-tabs was folded up into the outer strip,
+/// eliminating the only nested-tabs pattern in the app (a round-3 audit
+/// finding). The RunHistoryPanel now accepts a `view` prop so the outer
+/// strip controls which sub-view renders.
 /// UI-audit round 2: Assets is a top-level tab now — the left column has
 /// ONE strip (Chats · Layers · Assets), Figma-UI3 style, instead of the old
 /// outer Chats/Layers strip + a second inner Layers/Assets strip inside the
@@ -1291,9 +1298,15 @@ function RightTabbedPanel({
     // is still one click away and auto-activates when the agent starts
     // streaming). Aligns with the auto-switch logic at line 328 + 352 which
     // already moves users to the right tab for the right moment.
-    { id: 'design',  label: 'Design',  icon: Sliders },
-    { id: 'chat',    label: 'Chat',    icon: MessageSquare },
-    { id: 'history', label: 'History', icon: HistoryIcon },
+    // UI-audit round 3 (2026-09): folded the nested Runs/Snapshots sub-tabs
+    // up into the outer strip (4 tabs: Design · Chat · Runs · Snapshots).
+    // The RunHistoryPanel now accepts a `view` prop ('runs' | 'snapshots')
+    // so the outer strip controls which sub-view renders — no more
+    // tabs-within-tabs.
+    { id: 'design',    label: 'Design',    icon: Sliders },
+    { id: 'chat',      label: 'Chat',      icon: MessageSquare },
+    { id: 'runs',      label: 'Runs',      icon: HistoryIcon },
+    { id: 'snapshots', label: 'Snapshots', icon: Camera },
   ];
   return (
     <div className={`@container flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
@@ -1347,11 +1360,15 @@ function RightTabbedPanel({
           Conditional mounting (not hidden) preserves the original behavior
           where switching tabs cleanly unmounts the previous panel — important
           so the AgentPanel doesn't keep a stale scroll listener / draft
-          autosave timer running while the user is on Design or History. */}
+          autosave timer running while the user is on Design or History.
+          UI-audit round 3 (2026-09): the old `history` tab is now split into
+          `runs` + `snapshots` tabs, controlled by the RunHistoryPanel's
+          `view` prop (no more nested sub-tabs). */}
       <div className="flex-1 min-h-0">
-        {tab === 'design'  && <PropertiesPanel />}
-        {tab === 'chat'    && <AgentPanel />}
-        {tab === 'history' && <RunHistoryPanel hideHeader />}
+        {tab === 'design'    && <PropertiesPanel />}
+        {tab === 'chat'      && <AgentPanel />}
+        {tab === 'runs'      && <RunHistoryPanel hideHeader view="runs" />}
+        {tab === 'snapshots' && <RunHistoryPanel hideHeader view="snapshots" />}
       </div>
     </div>
   );

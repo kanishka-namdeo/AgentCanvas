@@ -17,7 +17,7 @@
 // Mirrors the sidebar patterns used by v0, Bolt.new, Lovable, and Cursor
 // Composer (see research notes §6).
 
-import { useState, useMemo, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, memo, Fragment } from 'react';
 import { useSessionStore } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
@@ -186,6 +186,21 @@ export const SessionSidebar = memo(function SessionSidebar() {
     });
   }, [sessionsMap, documentId, search, hits, tagFilter]);
 
+  // UI-audit round 3 (2026-09): split the sorted sessions into Pinned +
+  // Recent groups for explicit section labels (Notion / Linear / Slack
+  // pattern). When no sessions are pinned, the whole list renders under
+  // "Recent" with no label (preserves the pre-existing flat-list UX).
+  // Search results always render as a flat list (no grouping) — the user
+  // is looking for a specific hit, not browsing.
+  const pinnedSessions = useMemo(
+    () => (hits !== null ? [] : sessions.filter((s) => s.pinned)),
+    [sessions, hits],
+  );
+  const recentSessions = useMemo(
+    () => (hits !== null ? sessions : sessions.filter((s) => !s.pinned)),
+    [sessions, hits],
+  );
+
   // Search-hit lookup by sessionId (for snippet + matchIn chip).
   const hitBySession = useMemo(() => {
     const m = new Map<string, ServerSessionSearchHit>();
@@ -315,7 +330,16 @@ export const SessionSidebar = memo(function SessionSidebar() {
         )}
       </div>
 
-      {/* Sessions list */}
+      {/* Sessions list.
+          UI-audit round 3 (2026-09): explicit "Pinned" + "Recent" group
+          labels when pinned sessions exist (Notion / Linear / Slack pattern).
+          The `sessions` array is already sorted pinned-first (see the
+          useMemo above), so we detect the pinned/recent boundary inline
+          and render a group label divider at the transition. When no
+          sessions are pinned, the whole list renders as a single unnamed
+          group (preserves the pre-existing flat-list UX). Search results
+          also render flat (no grouping) — the user is looking for a
+          specific hit, not browsing. */}
       <ScrollArea className="flex-1 min-h-0 ac-hide-scrollbar">
         <div className="p-2 space-y-0.5">
           {sessions.length === 0 && (
@@ -328,12 +352,31 @@ export const SessionSidebar = memo(function SessionSidebar() {
               )}
             </div>
           )}
+          {/* Pinned group label — only when pinned sessions exist + not searching */}
+          {pinnedSessions.length > 0 && (
+            <div className="px-1.5 pt-1.5 pb-0.5 text-[10px] font-medium ac-text-4 select-none">
+              Pinned
+            </div>
+          )}
           {sessions.map((session) => {
             const isActive = session.id === activeSessionId;
             const hit = hitBySession.get(session.id);
+            // UI-audit round 3: detect the pinned→recent boundary to render
+            // the "Recent" group label at the right place. The `sessions`
+            // array is sorted pinned-first, so the boundary is the first
+            // non-pinned session — but ONLY when we actually have pinned
+            // sessions (otherwise no label is shown).
+            const showRecentLabel =
+              pinnedSessions.length > 0 && !session.pinned &&
+              sessions.indexOf(session) === pinnedSessions.length;
             return (
+            <Fragment key={session.id}>
+              {showRecentLabel && (
+                <div className="px-1.5 pt-3 pb-0.5 text-[10px] font-medium ac-text-4 select-none">
+                  Recent
+                </div>
+              )}
               <div
-                key={session.id}
                 onClick={() => { if (!agentBusy) switchSession(session.id); }}
                 aria-disabled={agentBusy && !isActive}
                 title={agentBusy && !isActive ? `${BUSY_LOCK_HINT} — switching chats mid-run strands the stream` : undefined}
@@ -552,6 +595,7 @@ export const SessionSidebar = memo(function SessionSidebar() {
                   </div>
                 </div>
               </div>
+            </Fragment>
             );
           })}
 

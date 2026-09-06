@@ -509,7 +509,9 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
 
         <Separator />
 
-        {/* Position — P1-16: wrap X/Y in ContextMenu for Copy/Paste value */}
+        {/* Position — P1-16: wrap X/Y in ContextMenu for Copy/Paste value.
+            UI-audit round 3 (2026-09): reordered to follow Figma UI3 —
+            Position (X/Y) comes before Size, which comes before Appearance. */}
         <div className="grid grid-cols-2 gap-2">
           <ContextMenu>
             <ContextMenuTrigger asChild>
@@ -553,7 +555,12 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
 
         {/* Dimensions (spec Phase 7 — Appendix H §H.1: Figma's "dimensions"
             section with per-axis Fixed / Hug contents / Fill container
-            dropdowns writing the .pen sizing strings). */}
+            dropdowns writing the .pen sizing strings).
+            UI-audit round 3 (2026-09): the Auto Layout section now follows
+            immediately after this one (no Separator between them) — Figma
+            UI3 groups Size + Auto Layout together because sizing mode
+            (Fixed/Hug/Fill) is meaningful only in the context of the
+            parent's auto-layout. */}
         <div>
           <Label className="text-[11px] ac-text-3">Dimensions</Label>
         </div>
@@ -731,14 +738,18 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
 
         <Separator />
 
-        {/* Style — Fill + Stroke + Radius + Opacity, all in one collapsible.
+        {/* Appearance — Fill + Stroke + Radius + Opacity, all in one collapsible.
             Defaults to open. Reduces the always-visible block from ~5
-            sub-sections to just Name + Position/Size + a single Style row. */}
+            sub-sections to just Name + Position/Size + a single Appearance row.
+            UI-audit round 3 (2026-09): renamed from "Style" to "Appearance"
+            per Figma UI3 terminology (the right panel's appearance section
+            covers fill/stroke/effects/corner radius — "Style" was ambiguous
+            with the text-style section). */}
         <Collapsible defaultOpen>
           <CollapsibleTrigger asChild>
             <button type="button" className="group flex items-center gap-1.5 w-full text-left">
               <ChevronDown className="h-3 w-3 ac-text-4 transition-transform group-data-[state=closed]:-rotate-90" />
-              <Label className="text-[11px] ac-text-3">Style</Label>
+              <Label className="text-[11px] ac-text-3">Appearance</Label>
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 pt-2">
@@ -863,10 +874,12 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Auto Layout (for frame/group only) — maps to .pen flexbox */}
+        {/* Auto Layout (for frame/group only) — maps to .pen flexbox.
+            UI-audit round 3 (2026-09): no Separator before this section —
+            it visually groups with Dimensions above (Figma UI3 "Size +
+            Auto Layout" cluster). */}
         {!isMulti && (shape.type === 'frame' || shape.type === 'group') && (
           <>
-            <Separator />
             <Collapsible defaultOpen={hasAutoLayout}>
               <CollapsibleTrigger asChild>
                 <button type="button" className="group flex items-center gap-1.5 w-full text-left">
@@ -1085,7 +1098,9 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
           </>
         )}
 
-        {/* Text-specific */}
+        {/* Text — text-specific properties (content + font size + color).
+            UI-audit round 3 (2026-09): renamed from "Text-specific" to
+            "Text" for consistency with Figma UI3's section naming. */}
         {shape.type === 'text' && (
           <>
             <Separator />
