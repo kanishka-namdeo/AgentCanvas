@@ -48,6 +48,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* UI-audit round 6 (2026-09 dark-mode FOUC fix): inline blocking
+            script that reads the persisted theme preference from localStorage
+            + the OS prefers-color-scheme + applies the .dark class to
+            <html> BEFORE the body paints. Eliminates the white flash
+            dark-mode users saw on every page load (the previous ThemeToggle
+            useEffect ran AFTER first paint). Mirrors the next-themes /
+            shadcn color-scheme script pattern. */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var raw=localStorage.getItem('agentcanvas.settings.v1');var t=raw&&JSON.parse(raw)&&JSON.parse(raw).state&&JSON.parse(raw).state.themePreference;if(!t){t=localStorage.getItem('agentcanvas-theme');}var dark=t==='dark'||((t==='system'||!t)&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(dark){document.documentElement.classList.add('dark');}}catch(e){}})();` }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased bg-background text-foreground`}
       >

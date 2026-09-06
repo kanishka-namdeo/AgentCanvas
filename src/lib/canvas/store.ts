@@ -1857,7 +1857,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
   },
 
-  select: (ids) => set({ selectedIds: ids }),
+  // UI-audit round 6 (edge case): validate the argument — a non-array
+  // (undefined/null from a buggy caller) would set selectedIds = undefined,
+  // crashing every selectedIds.includes(...) consumer. Coerce to [].
+  select: (ids) => set({ selectedIds: Array.isArray(ids) ? ids : [] }),
 
   promptAgent: (text, images, selection) => {
     // Busy-guard (2026-09-05 contract, audit C2): a direct promptAgent call

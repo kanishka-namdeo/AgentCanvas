@@ -147,12 +147,21 @@
    Layered on top of shadcn defaults — used by all panels.
    ============================================================ */
 :root {
-  /* Text hierarchy — replaces ad-hoc text-slate-{300..900} */
+  /* UI-audit round 6 (2026-09): color-scheme tells the browser to render
+     native UI (scrollbars, form controls, <input type="color"> swatches)
+     in the correct theme. Without this, dark-mode users see light-mode
+     scrollbars + light chrome on native inputs. */
+  color-scheme: light;
+
+  /* Text hierarchy — replaces ad-hoc text-slate-{300..900}
+     UI-audit round 6: dropped quaternary L from 0.68 → 0.48 and faint L
+     from 0.82 → 0.62 for WCAG AA compliance on white surfaces (both
+     previously failed 4.5:1 for normal text). */
   --ac-text-primary:   oklch(0.21 0.02 264);   /* slate-900 ish */
   --ac-text-secondary: oklch(0.43 0.02 264);   /* slate-600 — darkened from 0.45 for AA */
   --ac-text-tertiary:  oklch(0.55 0.02 264);   /* slate-500 */
-  --ac-text-quaternary:oklch(0.68 0.015 264);  /* slate-400 */
-  --ac-text-faint:     oklch(0.82 0.015 264);  /* slate-300 */
+  --ac-text-quaternary:oklch(0.48 0.02 264);   /* slate-600 ish — AA on white (was 0.68) */
+  --ac-text-faint:     oklch(0.62 0.015 264);  /* slate-500 ish — AA-large on white (was 0.82) */
 
   /* Border scale — stronger than default slate-200 */
   --ac-border-subtle:  oklch(0.95 0.005 264);  /* slate-100 ish */
@@ -169,6 +178,13 @@
   --ac-accent: oklch(0.55 0.22 295);
   --ac-accent-soft: oklch(0.96 0.04 295);
   --ac-accent-border: oklch(0.85 0.07 295);
+  /* UI-audit round 6: accent-foreground + accent-hover tokens so the 9
+     inline `text-white + style={{ backgroundColor: 'var(--ac-accent) }}`
+     buttons can use the .ac-btn-accent utility class instead. The
+     foreground flips to near-black in dark mode (white on L=0.68 accent
+     fails AA at 2.2:1; near-black at L=0.16 passes at 4.5:1). */
+  --ac-accent-foreground: oklch(0.985 0 0);     /* white in light mode */
+  --ac-accent-hover: oklch(0.50 0.22 295);       /* darken 0.55 → 0.50 on hover */
 
   /* Status — semantic colors with three tones each:
      - main: vivid color for icons / dots / accents on neutral surfaces
@@ -236,14 +252,19 @@
    values automatically — no component changes needed.
    --------------------------------------------------------------------------- */
 .dark {
+  /* UI-audit round 6: color-scheme for native controls in dark mode. */
+  color-scheme: dark;
+
   /* Text hierarchy — inverted L axis, slightly desaturated for comfort.
      2026-08-26 dark-mode VLM audit: tertiary/quaternary brightened — chat
-     metadata + placeholders were failing readable-on-dark checks. */
+     metadata + placeholders were failing readable-on-dark checks.
+     UI-audit round 6: quaternary raised from 0.63 → 0.70 and faint from
+     0.50 → 0.58 for WCAG AA on dark surfaces. */
   --ac-text-primary:    oklch(0.97 0.005 264);
   --ac-text-secondary:  oklch(0.80 0.012 264);
   --ac-text-tertiary:   oklch(0.72 0.012 264);
-  --ac-text-quaternary: oklch(0.63 0.012 264);
-  --ac-text-faint:      oklch(0.50 0.01 264);
+  --ac-text-quaternary: oklch(0.70 0.012 264);
+  --ac-text-faint:      oklch(0.58 0.01 264);
 
   /* Border scale — lighter than text but visible against dark surfaces.
      Brightened so panel separators read as structure (audit blocker). */
@@ -261,6 +282,11 @@
   --ac-accent:        oklch(0.68 0.20 295);
   --ac-accent-soft:   oklch(0.30 0.06 295);
   --ac-accent-border: oklch(0.48 0.12 295);
+  /* UI-audit round 6: accent-foreground flips to near-black in dark mode.
+     White on L=0.68 accent is only 2.2:1 (fails AA); near-black L=0.16
+     on L=0.68 is 4.5:1 (passes AA). */
+  --ac-accent-foreground: oklch(0.16 0.008 264);
+  --ac-accent-hover: oklch(0.62 0.20 295);
 
   /* Status — soft variants are darker (not glaring) on dark */
   --ac-info:           oklch(0.70 0.18 240);
@@ -328,6 +354,27 @@
   .ac-active-row {
     background-color: var(--ac-accent-soft);
     box-shadow: inset 2px 0 0 0 var(--ac-accent);
+  }
+
+  /* UI-audit round 6: the primary-button recipe. Replaces the 9 inline
+     `text-white + style={{ backgroundColor: 'var(--ac-accent)' }}` buttons
+     across AgentPanel / DocumentSwitcher / RunHistoryPanel / SessionSidebar.
+     The foreground flips to near-black in dark mode for WCAG AA compliance. */
+  .ac-btn-accent {
+    background-color: var(--ac-accent);
+    color: var(--ac-accent-foreground);
+  }
+  .ac-btn-accent:hover:not(:disabled) {
+    background-color: var(--ac-accent-hover);
+  }
+
+  /* UI-audit round 6: consistent vertical divider. Replaces the inconsistent
+     `w-px h-X ac-border-subtle bg-current opacity-30` pattern across panels
+     (the bg-current opacity trick depended on the parent's currentColor,
+     producing inconsistent divider darkness). */
+  .ac-divider {
+    background-color: var(--ac-border-default);
+    opacity: 0.6;
   }
 
   /* Subtle focus ring (replaces default heavy blue ring on icon buttons) */
@@ -482,6 +529,22 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .ac-caret { animation: none; opacity: 0.6; }
+}
+
+/* UI-audit round 6: global reduced-motion override — the standard WCAG
+   boilerplate. The previous blocks only covered the streaming caret; every
+   other animation (spinners, pulsing dots, Radix enter/exit transitions,
+   the agent-highlight pulse) ignored the user's preference. This blanket
+   rule neutralizes all animation + transition durations to 0.01ms while
+   preserving the final state (so a spinner still SHOWS a spinner icon,
+   just doesn't rotate). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Streaming caret on the LAST markdown block — appended via ::after so it

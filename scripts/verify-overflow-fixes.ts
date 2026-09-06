@@ -58,7 +58,10 @@ async function main() {
     if (w.__canvasStore && typeof w.__canvasStore.getState === 'function') {
       const store = w.__canvasStore.getState();
       if (typeof store._onSync === 'function') {
-        store._onSync({
+        // Cast to any — the SyncEvent union doesn't include the agent:message
+        // variant in its type signature (it's a server→client event that
+        // the test harness exercises directly).
+        (store as { _onSync: (e: unknown) => void })._onSync({
           type: 'agent:message',
           message: {
             role: 'assistant',

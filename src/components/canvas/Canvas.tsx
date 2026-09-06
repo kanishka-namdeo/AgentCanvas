@@ -25,7 +25,7 @@
 // are rendered identically — there is no visual distinction between human
 // and agent edits at the canvas level, by design.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, Shape, Viewport } from '@/lib/canvas/types';
@@ -1027,14 +1027,12 @@ export function Canvas() {
 
   // ---- Render ---------------------------------------------------------------
   const { zoom, panX, panY } = viewport;
-  const selectedSet = new Set(selectedIds);
-  // Task 4d — `agentHighlightIds` is the per-shape set the agent most
-  // recently selected via canvas_select_shape; we reuse it as the "agent is
-  // mutating this shape" set for aria-busy (the closest per-shape busy
-  // signal we have without re-reading the store from DomCanvas — the
-  // global `agentBusy` boolean would over-broadcast to every shape at
-  // once).
-  const agentHighlightSet = new Set(agentHighlightIds);
+  // UI-audit round 6 (perf): deleted the dead `selectedSet` (never read) +
+  // memoized `agentHighlightSet` so it doesn't break DomCanvas memoization.
+  // Previously both were allocated fresh on every render — the
+  // agentHighlightSet's new identity would defeat React.memo on DomCanvas
+  // even if its contents were unchanged.
+  const agentHighlightSet = useMemo(() => new Set(agentHighlightIds), [agentHighlightIds]);
 
   // P0-01/02: onContextMenu — track the right-click position + the shape
   // under the cursor so the menu items can choose between variants.

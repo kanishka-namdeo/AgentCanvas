@@ -156,6 +156,14 @@ export function interpretWheel(e: { deltaX: number; deltaY: number; deltaMode: n
  * buttons clamped to 0.1–4 while gestures allowed 0.1–8.
  */
 export function clampZoom(z: number): number {
+  // UI-audit round 6 (edge case): guard against NaN. Math.min(8, NaN) === NaN,
+  // then Math.max(0.1, NaN) === NaN — a NaN zoom would silently freeze the
+  // canvas (every screenToCanvas divide-by-NaN produces NaN coordinates).
+  // Coerce NaN back to 1 (the default zoom) so the viewport stays stable
+  // even if a buggy gesture produces a NaN multiplier. Infinity is left
+  // alone — Math.min(8, Infinity) === 8, Math.max(0.1, -Infinity) === 0.1
+  // both clamp correctly without the guard.
+  if (Number.isNaN(z)) return 1;
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
 }
 

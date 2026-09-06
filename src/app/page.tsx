@@ -1000,6 +1000,8 @@ export default function Home() {
               <TooltipTrigger asChild>
                 <div
                   className="flex items-center gap-1.5 px-2 py-1 rounded-md ac-surface-1 ac-text-3 border ac-border-subtle cursor-default"
+                  role="status"
+                  aria-live="polite"
                   aria-label={connected ? `Live sync connected — ${viewerCount} viewer${viewerCount === 1 ? '' : 's'}` : 'Local-only — live sync unavailable'}
                 >
                   <Bot className="h-3.5 w-3.5" />

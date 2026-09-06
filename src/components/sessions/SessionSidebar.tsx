@@ -377,7 +377,16 @@ export const SessionSidebar = memo(function SessionSidebar() {
                 </div>
               )}
               <div
+                role="button"
+                tabIndex={0}
+                aria-label={`${session.title}${isActive ? ' (active)' : ''}`}
                 onClick={() => { if (!agentBusy) switchSession(session.id); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (!agentBusy) switchSession(session.id);
+                  }
+                }}
                 aria-disabled={agentBusy && !isActive}
                 title={agentBusy && !isActive ? `${BUSY_LOCK_HINT} — switching chats mid-run strands the stream` : undefined}
                 className={`group relative rounded-md px-2.5 py-1.5 ac-transition ac-focus-ring ac-busy ${

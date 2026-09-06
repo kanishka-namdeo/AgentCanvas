@@ -706,6 +706,7 @@ function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planPr
           <div className="space-y-1 pt-0.5">
             <Textarea
               value={feedback}
+              aria-label="Plan revision feedback"
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="What should change in the plan? (e.g. mobile-first, add a paywall screen, drop the pricing table)"
               className="min-h-[44px] text-[10px] ac-border-subtle ac-surface-2 resize-none"
@@ -815,10 +816,13 @@ function SkillChip({ skillInfo }: { skillInfo: NonNullable<ChatTurn['skillInfo']
 /// phase (2026-09-05 contract — same intermediate state as the header's
 /// RunStopButton) until the server confirms the abort.
 function BusyRow({ onStop }: { onStop: () => void }) {
-  const turns = useCanvasStore((s) => s.turns);
+  // UI-audit round 6 (perf): select only the LAST turn, not the whole
+  // turns array. Streaming flushes the buffer every 32ms, replacing the
+  // turns array → BusyRow re-rendered ~30×/sec. Now it only re-renders
+  // when the last turn's reference changes (once per turn, not per token).
+  const last = useCanvasStore((s) => s.turns[s.turns.length - 1]);
   const runPhase = useCanvasStore((s) => s.runPhase);
   const statusNote = useCanvasStore((s) => s.statusNote);
-  const last = turns[turns.length - 1];
   const activity = useMemo(() => {
     if (runPhase === 'cancelling') return RUN_PHASE_LABEL.cancelling;
     if (runPhase === 'awaiting_input') return RUN_PHASE_LABEL.awaiting_input;
@@ -1790,6 +1794,7 @@ export function AgentPanel() {
           <Textarea
             ref={inputRef}
             value={input}
+            aria-label={agentBusy ? 'Queue a follow-up message' : 'Message the agent'}
             onChange={(e) => {
               setInput(e.target.value);
               // Reopen the command menu if the user edits back to a command.
@@ -2072,6 +2077,7 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
               <div className="flex-1 min-w-0 rounded-lg border ac-border-default ac-surface-0 p-2" style={{ borderColor: 'var(--ac-accent)' }}>
                 <Textarea
                   autoFocus
+                  aria-label="Edit and resend this message"
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   onKeyDown={(e) => {

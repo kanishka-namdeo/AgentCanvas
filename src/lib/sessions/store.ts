@@ -532,20 +532,25 @@ export const useSessionStore = create<SessionStoreState>()(
       renameSession: (id, title) => {
         const trimmed = title.trim();
         if (!trimmed) return;
+        // UI-audit round 6 (edge case): cap at 100 chars. A 10k-char title
+        // would bloat the localStorage sessions blob (every throttled write
+        // is O(N) for the whole dataset), risk exceeding the 5MB quota, and
+        // break sidebar layout. Mirrors the Document PATCH 100-char cap.
+        const capped = trimmed.length > 100 ? trimmed.slice(0, 100) : trimmed;
         set((s) => {
           const session = s.sessions[id];
           if (!session) return s;
           return {
             sessions: {
               ...s.sessions,
-              [id]: { ...session, title: trimmed, updatedAt: nowISO() },
+              [id]: { ...session, title: capped, updatedAt: nowISO() },
             },
           };
         });
         // Sync to server.
         if (typeof window !== 'undefined') {
           import('./server-sync').then(({ updateServerSession }) => {
-            updateServerSession(id, { title: trimmed });
+            updateServerSession(id, { title: capped });
           });
         }
       },

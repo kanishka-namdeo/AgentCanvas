@@ -1073,8 +1073,16 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     for await (const ev of mtQueue.drain()) {
       yield ev;
     }
-    const mtResult = await mtPromise;
-    clearInterval(mtHeartbeat);
+    // UI-audit round 6 (perf/leak): wrap in try/finally so clearInterval
+    // runs even if mtPromise rejects (LLM failure, network blip). The
+    // previous code only cleared on the happy path — a rejected multitask
+    // promise leaked the 20s heartbeat interval forever.
+    let mtResult;
+    try {
+      mtResult = await mtPromise;
+    } finally {
+      clearInterval(mtHeartbeat);
+    }
 
     yield {
       kind: 'agent_event',
