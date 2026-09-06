@@ -13,7 +13,7 @@ Settings UI: the `SettingsDialog` component — a modal dialog with a left verti
 ### Sections (8)
 
 1. **Agent** — temperature slider, maxIterations slider, thinkingLevel select, planFirst toggle, defaultPalette select, skillSelectionMode select.
-2. **LLM provider** — provider select (dynamic list from `listProviders()` in `src/lib/llm` — 28 providers; legacy `zai-auto` values normalized via `normalizeLLMProvider`), API key, model name, base URL. Contextual: shows fields only relevant to the selected provider.
+2. **LLM provider** — provider select (dynamic list from `listProviders()` in `src/lib/llm` — 28 providers; legacy `zai-auto` values normalized via `normalizeLLMProvider`), **endpoint presets row** (chips from `ENDPOINT_PRESETS` in `src/lib/llm/endpoint-presets.ts` — BETA, 2026-09-07; one click applies `endpointPresetPatch()` = provider+baseURL+key+model via the store's `patch()`; active chip highlighted by `matchesEndpointPreset`; see the root AGENTS.md "LLM Endpoint Access Policy" for the no-direct-invocation rule), API key, model name, base URL. Contextual: shows fields only relevant to the selected provider.
 3. **Sessions** — snapshotCadence select, maxSnapshotsPerCanvas input (per-document snapshot cap, shared-canvas model), maxSessionsRetained input, autoArchiveIdleAfter select.
 4. **Appearance** — theme select (system / light / dark), density select (comfortable / compact), canvas renderer select (DOM (default) / SVG (compat) — the `renderer` settings flag consumed by `Canvas.tsx`, spec Phase 5: DOM is the default after the flip; SVG kept as compat/export-only mode). Applies theme immediately via `.dark` class toggle; renderer switch applies live. Also includes the DOM Culling Switch toggle (Phase 4 L4+L5 culling).
 5. **Data** — storage usage display (sessions/settings/theme bytes), Export all data (JSON download), Delete non-bookmarked snapshots, Clear ALL chats (danger zone).
@@ -49,6 +49,7 @@ Settings UI: the `SettingsDialog` component — a modal dialog with a left verti
 
 - `bunx tsc --noEmit` — typecheck.
 - Manual: open settings via gear icon or `⌘,`, verify all 8 sections render, change a setting, verify it persists after reload.
+- Manual: Settings → LLM provider → click the BETA preset chip → provider flips to Custom, base URL / API key / model fill in, the chip lights up as active (`ac-status-info`); clicking with different manual values replaces them.
 - Manual: Settings → Plugins loads the plugin manifest list from `GET /api/plugins`; Settings → MCP Servers can add a server (placeholder connect).
 - Manual: change theme to "dark" via Settings → verify ThemeToggle icon updates (no desync).
 - Manual: change density to "compact" → verify `data-density="compact"` on root div + smaller fonts.

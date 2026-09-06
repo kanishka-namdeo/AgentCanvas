@@ -120,6 +120,13 @@ When the user requests a durable behavior change, record it here or in the relev
 - The project directory is ephemeral across container restarts; `/home/sync/repo.tar` is the persistence layer and boot auto-runs `.zscripts/dev.sh`. After durable changes, refresh the archive: `bash scripts/setup-zai-sandbox.sh --archive`.
 - Never `bun run build` / `next start` in the sandbox — the boot flow supports the dev server on port 3000 only.
 
+## LLM Endpoint Access Policy
+
+- The **BETA endpoint** (owner-configured test endpoint; baseURL + key + model defined in `src/lib/llm/endpoint-presets.ts`) must **never be invoked directly** — no curl, bash, wget, fetch, or any other out-of-app tooling may send requests to its base URL. This is a durable user directive recorded 2026-09-07 and applies to every future event, session, and agent working in this repo.
+- All interaction with BETA flows through the app's own code and HTTP surface only: the Settings → LLM provider "Endpoint presets" chips, `POST /api/models` (the app's own endpoint preflight), and `POST /api/agent` (the app's own runner — the pi-ai resolver builds the synthetic openai-completions Model against the preset base URL).
+- Scripts that verify BETA (e.g. `scripts/verify-beta-endpoint.ts`) must import the preset from `@/lib/llm/endpoint-presets` and drive the app's API — never embed the URL or query the endpoint themselves. Endpoint health is measured exactly the way end users experience it: through the app.
+- The same no-direct-invocation rule applies to any future named endpoint presets added to `endpoint-presets.ts` unless the owner says otherwise.
+
 ## Child DOX Index
 
 | Path | Scope |
@@ -137,7 +144,7 @@ When the user requests a durable behavior change, record it here or in the relev
 | `src/lib/agent/subagents/AGENTS.md` | 5 isolated-context sub-agents (web-research, design-critic, design-critic-vlm, design-brief, variant-generator) + dispatch/timeout/wall-clock-budget contracts |
 | `src/lib/agent/plugins/AGENTS.md` | Plugin registry + 8 ported plugins (32 tools, gated by `settings.enabledPlugins`): ask-user-question, todo, memory, mega-compact, goal-list, background-tasks, mcp-adapter, subagents |
 | `src/lib/canvas/AGENTS.md` | Canvas state: Zustand store (toolMode, undo/redo, settings injection), types, patches, clipboard + export helpers, gestures hook, Socket.IO service |
-| `src/lib/llm/AGENTS.md` | LLM provider abstraction: 28 providers (26 OpenAI-compatible + 2 native), unified `LLMClient` interface, registry + factories |
+| `src/lib/llm/AGENTS.md` | LLM provider abstraction: 28 providers (26 OpenAI-compatible + 2 native), unified `LLMClient` interface, registry + factories; endpoint presets (`endpoint-presets.ts` — BETA; see LLM Endpoint Access Policy above) |
 | `src/lib/pen/AGENTS.md` | .pen format layer: canonical schema (v2.17, 20 node types, Pages abstraction), tree resolver (flexbox layout, variable/theme resolution, ref expansion, 10 agent-visible resolver-warning kinds incl. container/text overflow + flow-child coordinate contradictions), document helpers, converters |
 | `src/lib/settings/AGENTS.md` | Settings store: AppSettings + AgentRunSettings types (incl. thinkingLevel, enabledPlugins, mcpServers), Zustand persist, PALETTES |
 | `src/lib/sessions/AGENTS.md` | Session persistence: Zustand localStorage store + server-sync bridge (`/api/sessions*`), fork/restore, sweep/enforce helpers |

@@ -40,7 +40,10 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
   - Tool choice → `toolConfig.functionCallingConfig.mode` (AUTO/ANY/NONE + allowedFunctionNames).
   - Response: candidates → OpenAI `choices` with `content` + `tool_calls`. Normalizes `finishReason` → `finish_reason`. Auth: API key as query param `?key=`.
 
-- `index.ts` — Barrel export re-exporting all types + registry functions.
+- `index.ts` — Barrel export re-exporting all types + registry functions + the endpoint presets.
+
+- `endpoint-presets.ts` — Named OpenAI-compatible endpoint presets baked into app code (NOT registry providers — a preset is a filled-in configuration of the generic `custom` provider). Exports: `EndpointPreset` type, `BETA_ENDPOINT`, `ENDPOINT_PRESETS`, `getEndpointPreset(id)`, `endpointPresetPatch(preset)` (the 4-field `llmProvider`/`apiKey`/`modelName`/`apiBaseUrl` patch, shared shape with both AppSettings and AgentRunSettings), `matchesEndpointPreset(settings, preset)` (active-chip detection). Consumed by SettingsDialog's "Endpoint presets" row and by e2e scripts.
+  - **BETA** (2026-09-07): owner-configured test endpoint — kimi-k2-5 behind a pinggy tunnel, placeholder key baked into code per the owner's directive. Same values as the pre-v5 first-run defaults (see the settings store's v4→v5 migration), now opt-in as a named preset instead of a silent default.
 
 ## Local Contracts
 
@@ -61,6 +64,11 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
 - The canvas store's `promptAgent` injects settings into both WebSocket + HTTP paths.
 - The runner's `LLMClient` is created via `createLLMClient({ providerId: settings.llmProvider, apiKey: settings.apiKey, model: settings.modelName, baseURL: settings.apiBaseUrl })` — see `runner-legacy.ts` (production uses `pi-ai-model-resolver.ts` on top of the same settings).
 
+### Endpoint Presets & Access Rule (durable)
+- Presets live in `endpoint-presets.ts` only — do NOT duplicate their values elsewhere; other modules (SettingsDialog, e2e scripts) import from here or call `endpointPresetPatch()`.
+- **The BETA endpoint must never be invoked directly** — no curl/bash/fetch from any script, agent tool, or out-of-app process may talk to its base URL. All interaction flows through the app's own code and HTTP API (`POST /api/models`, `POST /api/agent`, the Settings preset chips). Root `AGENTS.md` "LLM Endpoint Access Policy" owns the project-wide version of this rule (owner directive 2026-09-07, applies to all future events).
+- Adding a preset: append an `EndpointPreset` to `ENDPOINT_PRESETS` (provider stays `'custom'` for OpenAI-compatible endpoints). Tests in `tests/unit/endpoint-presets-2026-09-07.test.ts` pin shape + wiring + the no-embed invariant for e2e scripts.
+
 ### Error Handling
 - All factories surface HTTP status + first 500 chars of error body.
 - Timeout: 120s default (configurable via `timeoutMs`).
@@ -77,13 +85,14 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
 ## Verification
 
 - `bunx tsc --noEmit` — typecheck.
-- `bun run test` — `tests/unit/llm-providers.test.ts` tests the registry + factory creation (mocked).
+- `bun run test` — `tests/unit/llm-providers.test.ts` tests the registry + factory creation (mocked); `tests/unit/endpoint-presets-2026-09-07.test.ts` pins the BETA preset shape, patch semantics, UI wiring, barrel exports, and the source-scan access-rule invariants.
+- BETA e2e (through the app only — see the access rule): `bun scripts/verify-beta-endpoint.ts` — preflights via `POST /api/models`, runs one agent turn via `POST /api/agent` with the preset run settings, and reports an honest verdict (FULL PASS / RESILIENT PASS via z.ai fallback / FAIL).
 - Manual: change provider in Settings → LLM provider, send a prompt — verify agent responds.
 - Manual: test `custom` provider with a local Ollama/LM Studio endpoint.
 - `bun run scripts/measure-tool-cost.ts` — measures token cost across providers.
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder is flat: `types.ts`, `registry.ts`, `openai-compatible.ts`, `anthropic.ts`, `gemini.ts`, `index.ts`.
+No child `AGENTS.md` files. This folder is flat: `types.ts`, `registry.ts`, `openai-compatible.ts`, `anthropic.ts`, `gemini.ts`, `endpoint-presets.ts`, `index.ts`.
 
 *Siblings: `../agent/AGENTS.md` (Agent layer), `../canvas/AGENTS.md` (Canvas state), `../sessions/AGENTS.md` (Session persistence), `../settings/AGENTS.md` (Settings store), `../pen/AGENTS.md` (.pen format), `../web/AGENTS.md` (Web search/fetch).*

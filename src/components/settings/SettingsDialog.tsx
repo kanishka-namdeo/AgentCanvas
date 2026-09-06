@@ -39,6 +39,7 @@ import {
   Bot, KeyRound, Sliders, History, Palette, ShieldCheck,
   Keyboard, RotateCcw, Download, Trash2, AlertTriangle,
   Plug, Server, Plus, X, CheckCircle2, XCircle, Loader2, RefreshCw, Eye,
+  FlaskConical, Check,
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings/store';
 import {
@@ -52,7 +53,7 @@ import {
   providerDefaultModel,
   providerDefaultBaseURL,
 } from '@/lib/settings/types';
-import { listProviders, getProviderMetadata } from '@/lib/llm';
+import { listProviders, getProviderMetadata, ENDPOINT_PRESETS, endpointPresetPatch, matchesEndpointPreset } from '@/lib/llm';
 import { useSessionStore, estimateLocalStorageUsage, sweepIdleSessions } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
@@ -373,6 +374,7 @@ function LLMSection() {
   const modelName = useSettings((s) => s.modelName);
   const apiBaseUrl = useSettings((s) => s.apiBaseUrl);
   const set = useSettings((s) => s.set);
+  const patchSettings = useSettings((s) => s.patch);
   // Live model listing from POST /api/models — the same source the AgentPanel
   // model switcher uses. "Load live models" merges the endpoint's actual
   // model list into the dropdown below (falls back to curated popularModels
@@ -495,6 +497,54 @@ function LLMSection() {
             </SelectContent>
           </Select>
         </Row>
+
+        {/* Endpoint presets — code-resident named endpoint configurations
+            (see src/lib/llm/endpoint-presets.ts). One click patches
+            provider + base URL + key + model together; the active preset
+            chip highlights when the current settings exactly match it.
+            Values are baked into app code per the owner's directive —
+            they are placeholders for a test endpoint, not secrets. */}
+        {ENDPOINT_PRESETS.length > 0 && (
+          <Row
+            label="Endpoint presets"
+            description="Known OpenAI-compatible endpoints stored in the app's code. Clicking one applies provider, base URL, API key, and model in a single step."
+          >
+            <div className="flex flex-wrap items-center gap-1.5">
+              {ENDPOINT_PRESETS.map((preset) => {
+                const active = matchesEndpointPreset(
+                  { llmProvider, apiKey, modelName, apiBaseUrl },
+                  preset,
+                );
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => {
+                      patchSettings(endpointPresetPatch(preset));
+                      toast.message(`${preset.label} endpoint applied`, {
+                        description: `${preset.defaultModel} @ ${preset.baseURL}`,
+                      });
+                    }}
+                    title={preset.description}
+                    aria-pressed={active}
+                    className={`flex items-center gap-1 h-7 px-2 rounded-md border text-[10px] font-medium ac-transition ${
+                      active
+                        ? 'ac-status-info'
+                        : 'ac-border-subtle ac-text-2 ac-surface-0 hover:ac-surface-1'
+                    }`}
+                  >
+                    {active ? (
+                      <Check className="h-3 w-3 flex-shrink-0" />
+                    ) : (
+                      <FlaskConical className="h-3 w-3 flex-shrink-0" />
+                    )}
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Row>
+        )}
 
         {/* API key — shown for every provider that requires one. */}
         {(requiresKey || isCustom) && (
