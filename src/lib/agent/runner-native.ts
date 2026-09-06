@@ -115,6 +115,7 @@ import { getJournalEvents, getJournalEventsByType } from './event-journal';
 // see download/research-modes/cursor-modes-research.md §4 for the design.
 import {
   normalizeAgentMode,
+  normalizeDesignCritiqueMode,
   modeToolAllowlist,
   modeSectionFor,
   shouldRunCritics,
@@ -2275,8 +2276,12 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     }
   }
 
-  // Task 7-c P1.3 / T2 + P1.4 / T10 — MANDATORY self-critique loop with
-  // pre-complete validation gate.
+  // Task 7-c P1.3 / T2 + P1.4 / T10 — self-critique loop with pre-complete
+  // validation gate (2026-09-06: invocation now MODE-GATED, not mandatory —
+  // see DesignCritiqueMode in modes.ts and Settings → Agent → Design
+  // critique; default 'manual' fires the critic subagents only on explicit
+  // user asks like /critique; 'auto' restores the adaptive ladder; 'off'
+  // never dispatches).
   //
   // The existing attempt loop above ran the agent's main turn (initial
   // design + tool calls). After it completes, we run a bounded outer loop:
@@ -2299,13 +2304,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   //        was disposed in the finally block above).
   //
   // Bounded by maxCritiqueIterations (default 2 — agent gets 1 chance to
-  // self-correct after the critic). The loop is OPT-IN only via
-  // settings.maxDesignCritiqueIterations === 0 (reverts to pre-7-c behavior).
+  // self-correct after the critic). The loop is disabled entirely when
+  // settings.maxDesignCritiqueIterations === 0, and its critic dispatches
+  // are gated by settings.designCritiqueMode ('manual' default — explicit
+  // user intent only; 'auto' — adaptive complexity ladder; 'off' — never).
   //
-  // This is CRITICAL because the existing pen_self_critique tool is OPT-IN —
-  // the agent never called it in the baseline. Making it MANDATORY is the
-  // architectural enforcement the 7-b research report identified as the
-  // single highest-leverage change.
+  // This was originally the architectural-enforcement answer to the
+  // pen_self_critique tool being opt-in (the agent never called it) — the
+  // 2026-09-06 mode gate re-balances that toward user control: deterministic
+  // validation (free) stays on every build turn, LLM critics are opt-in.
   //
   // Task 7-e Fix 3 — REUSE the main session for the fix-message re-prompt
   // (previously a NEW session was created per iteration, losing all
@@ -2321,6 +2328,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   //     during fix-turns (the agent already called pen_generate_design_brief
   //     in the main turn; we don't want to force another).
   const maxCritiqueIterations = settings?.maxDesignCritiqueIterations ?? 2;
+  // 2026-09-06 — design critique invocation mode (Settings → Agent → Design
+  // critique). Normalized here once; fed into shouldRunCritics below. The
+  // default ('manual') fires critics only when the user explicitly asks
+  // (/critique, critique/polish prompts) — invocations are manual, not
+  // compulsory. 'auto' restores the adaptive complexity ladder; 'off' never
+  // dispatches critic subagents.
+  const designCritiqueMode = normalizeDesignCritiqueMode(settings?.designCritiqueMode);
   let noOpFixAttempts = 0;
   // MODE GATE: the critique loop is a BUILD concern. Ask turns produced no
   // design output (nothing to critique); a PLAN turn that never executed
@@ -2429,6 +2443,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         validationReasonCount: validation.reasons.length,
         freshDocument: turnStartShapeIds.size === 0,
         promptWantsCritique: promptRequestsCritique(prompt),
+        critiqueMode: designCritiqueMode,
       });
       const runCritics = criticGate.runCritics;
 
@@ -2439,9 +2454,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       let vlmSeverity: 'low' | 'medium' | 'high' = 'low';
       let vlmScreenshotSource: 'client' | 'server' | undefined;
 
-      if (!runCritics && !critiqueSkipAnnounced) {
+      if (!runCritics && !critiqueSkipAnnounced && criticGate.skipReason !== 'critique_disabled') {
         // Surface the saving (research §4.7 "show cost intent"): one muted
         // row per turn — the store's reducer also dedupes by idempotence.
+        // ('off' mode is deliberately silent: the user chose to disable
+        // critics; a per-turn reminder would be noise, not information.)
         yield {
           kind: 'agent_event',
           event: {

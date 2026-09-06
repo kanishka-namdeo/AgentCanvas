@@ -47,10 +47,11 @@ This is the single source of truth for every setting the user can change in the 
 
 ### Agent-run subset (`AgentRunSettings`)
 
-The `/api/agent` route consumes ONLY these fields (extracted via `agentRunSettings()`) — 12 fields:
+The `/api/agent` route consumes ONLY these fields (extracted via `agentRunSettings()`) — 14 fields:
 - `temperature`, `maxIterations`, `thinkingLevel`, `planFirst`, `defaultPalette`, `skillSelectionMode`
 - `llmProvider`, `apiKey`, `modelName`, `apiBaseUrl`
 - `enabledPlugins`, `mcpServers`
+- `mode` (Cursor-style Build/Ask/Plan), `designCritiqueMode` (2026-09-06: 'manual' default | 'auto' | 'off' — when the design-critic subagents run; see `src/lib/agent/modes.ts` `DesignCritiqueMode`), plus `maxDesignCritiqueIterations` (iteration cap once the gate allows a run)
 
 The canvas store's `promptAgent()` calls `agentRunSettings(useSettings.getState())` and injects the result into both the WebSocket emit path and the HTTP fallback path.
 

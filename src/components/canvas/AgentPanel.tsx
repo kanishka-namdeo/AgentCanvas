@@ -532,7 +532,7 @@ function CritiqueRow({ critique }: { critique: NonNullable<ChatTurn['critique']>
       <button
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        title="The agent reviewed its own output before finishing (mandatory critique loop)"
+        title="The agent reviewed its own output before finishing (design-critique loop — invoked via /critique or the critique mode setting)"
         className="w-full flex items-center gap-1.5 px-2 py-1 text-[10px] ac-text-3 hover:ac-surface-1 ac-transition ac-focus-ring"
       >
         <BadgeCheck className={`h-3 w-3 flex-shrink-0 ${clean ? 'ac-text-success' : 'ac-text-warning'}`} />
@@ -566,19 +566,35 @@ function CritiqueRow({ critique }: { critique: NonNullable<ChatTurn['critique']>
   );
 }
 
-/// Self-review-skipped row — the adaptive critique ladder's visible saving
+/// Self-review-skipped row — the critique gate's visible saving
 /// (agent:critique_skipped): small/clean turns run deterministic validation
 /// only; the muted row says WHY the LLM critics were skipped + the estimated
-/// call saving (research §4.7 "show cost intent").
+/// call saving (research §4.7 "show cost intent"). The 2026-09-06 invocation
+/// modes add two reasons: 'manual_mode' (the user's Manual setting held back
+/// a critique that the adaptive ladder would have fired — the row offers the
+/// /critique escape hatch) and 'critique_disabled' ('off' mode; the runner
+/// stays silent in that case, but the mapping exists defensively).
 function CritiqueSkippedRow({ skipped }: { skipped: NonNullable<ChatTurn['critiqueSkipped']> }) {
   const reasonText =
     skipped.reason === 'small_clean_turn'
       ? 'small clean edit — deterministic checks passed'
-      : 'small turn — deterministic checks only';
+      : skipped.reason === 'small_turn_validators_only'
+        ? 'small turn — deterministic checks only'
+        : skipped.reason === 'manual_mode'
+          ? 'manual mode — critics held; run /critique to review'
+          : skipped.reason === 'critique_disabled'
+            ? 'critique disabled in Settings'
+            : 'skipped';
+  const title =
+    skipped.reason === 'manual_mode'
+      ? 'Design critique invocations are manual (Settings → Agent → Design critique): the critic subagents did not run automatically for this turn. Type /critique any time for a full review, or switch the mode to Automatic.'
+      : skipped.reason === 'critique_disabled'
+        ? 'Design critique is off (Settings → Agent → Design critique) — critic subagents never run. Deterministic validation still checks every turn.'
+        : 'The adaptive critique gate skipped the LLM critics for this turn (small/clean output). Deterministic validation still ran — run /critique any time for a full review.';
   return (
     <div
       className="flex items-center gap-1.5 px-2 py-1 rounded-md border ac-border-subtle ac-surface-1 text-[10px] ac-text-4"
-      title="The adaptive critique gate skipped the LLM critics for this turn (small/clean output). Deterministic validation still ran — run /critique any time for a full review."
+      title={title}
     >
       <BadgeCheck className="h-3 w-3 flex-shrink-0 opacity-60" />
       <span className="flex-shrink-0 font-medium">Self-review skipped</span>

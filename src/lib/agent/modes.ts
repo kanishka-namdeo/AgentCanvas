@@ -124,6 +124,35 @@ export function modeSectionFor(mode: AgentMode): string {
   return '';
 }
 
+// ---- Design critique invocation mode (2026-09-06) ----------------------------
+//
+// The critique loop previously fired the text + VLM critic subagents
+// COMPULSORILY on every complexity-eligible build turn (the adaptive ladder
+// below). Users asked for manual control (same pattern as Claude Code's
+// disable-model-invocation / user-only subagent invocation and Cursor's
+// post-hoc "Review" button): critics should run when the USER asks, not
+// because a heuristic says so. The mode is user-facing (Settings → Agent →
+// Design critique) and rides AgentRunSettings through the route allowlist
+// into the runner gate below.
+//   'manual' (default) — critic subagents fire ONLY on explicit user intent:
+//                        the /critique command or a prompt that itself asks
+//                        for critique/polish/review. The FREE deterministic
+//                        validation gate (Gate 0) still runs every build turn.
+//   'auto'              — the pre-2026-09-06 adaptive ladder: critics fire on
+//                        big builds / fresh docs / validator failures / asks.
+//   'off'               — critics never dispatch (hard kill-switch; the
+//                        deterministic validator still reports defects).
+export type DesignCritiqueMode = 'manual' | 'auto' | 'off';
+
+export const DESIGN_CRITIQUE_MODES: readonly DesignCritiqueMode[] = ['manual', 'auto', 'off'] as const;
+
+/// Coerce an arbitrary value (request body field, localStorage blob) to a
+/// valid DesignCritiqueMode. Unknown/absent → 'manual' — manual invocation
+/// is the product default (critique subagents are opt-in, not compulsory).
+export function normalizeDesignCritiqueMode(value: unknown): DesignCritiqueMode {
+  return value === 'auto' || value === 'off' || value === 'manual' ? value : 'manual';
+}
+
 // ---- Adaptive critique gate (research §4.4 — replaces always-on critique) ---
 //
 // The pre-mode runner dispatched text+VLM critics on EVERY design turn with
@@ -139,6 +168,9 @@ export function modeSectionFor(mode: AgentMode): string {
 //            user asked for critique/polish in the prompt (incl. /critique).
 //            Small/medium clean turns get validator-only repair — same
 //            quality floor, 2-5 fewer LLM calls per turn.
+//
+// The 'auto' mode below IS this ladder; 'manual' narrows it to the
+// prompt-intent arm; 'off' removes it entirely (see DesignCritiqueMode).
 //
 // Tune for recall over precision (Replit: "false positives are cheap" — a
 // redundant critique costs a call; a missed disaster ships). 2026-09-05
@@ -158,13 +190,21 @@ export interface CriticGateInput {
   freshDocument: boolean;
   /// True when the prompt itself asks for critique/polish (incl. /critique).
   promptWantsCritique: boolean;
+  /// Design critique invocation mode (Settings → Agent → Design critique).
+  /// Normalized inside the gate — absent/unknown → 'manual' (critique
+  /// subagents are opt-in; pass 'auto' to exercise the adaptive ladder).
+  critiqueMode?: DesignCritiqueMode;
 }
 
 export interface CriticGateDecision {
   /// Run the text + VLM critics (Gate 1)?
   runCritics: boolean;
   /// Machine-readable skip reason for the UI ("saved N LLM calls" row).
-  skipReason?: 'small_clean_turn' | 'small_turn_validators_only';
+  ///   small_clean_turn / small_turn_validators_only — auto-ladder skip.
+  ///   manual_mode — the user held the critics back (the auto ladder WOULD
+  ///     have fired); the UI surfaces the /critique escape hatch.
+  ///   critique_disabled — 'off' mode: critics never dispatch.
+  skipReason?: 'small_clean_turn' | 'small_turn_validators_only' | 'manual_mode' | 'critique_disabled';
 }
 
 /// LLM-calls the full critic path costs (text critic + VLM critic + one
@@ -172,7 +212,9 @@ export interface CriticGateDecision {
 /// gating saved (research §4.7 "show cost intent").
 export const CRITIC_PATH_ESTIMATED_LLM_CALLS = 3;
 
-export function shouldRunCritics(input: CriticGateInput): CriticGateDecision {
+/// The complexity/prompt-intent ladder — what 'auto' mode runs (and the
+/// historical pre-2026-09-06 behavior when no mode was set).
+function criticAutoLadder(input: CriticGateInput): CriticGateDecision {
   if (
     input.promptWantsCritique ||
     input.newShapeCount >= CRITIC_NODE_THRESHOLD ||
@@ -187,6 +229,32 @@ export function shouldRunCritics(input: CriticGateInput): CriticGateDecision {
       ? 'small_turn_validators_only'
       : 'small_clean_turn',
   };
+}
+
+/// The full critic gate — invocation-mode aware (see DesignCritiqueMode).
+/// The input's mode is NORMALIZED here (absent/unknown → 'manual') so every
+/// caller gets the product default without pre-normalizing:
+///   'off'   → never run (critique_disabled).
+///   'manual'→ run ONLY on explicit user intent (promptWantsCritique); when
+///             the auto ladder would have fired anyway, the skip reason is
+///             'manual_mode' so the UI can offer the /critique escape hatch
+///             instead of implying there was nothing to review.
+///   'auto'  → the adaptive ladder (criticAutoLadder). The RUNNERS pass the
+///             normalized settings value; callers testing the ladder itself
+///             pass 'auto' explicitly.
+export function shouldRunCritics(input: CriticGateInput): CriticGateDecision {
+  const mode = normalizeDesignCritiqueMode(input.critiqueMode);
+  if (mode === 'off') {
+    return { runCritics: false, skipReason: 'critique_disabled' };
+  }
+  if (mode === 'manual') {
+    if (input.promptWantsCritique) return { runCritics: true };
+    const autoDecision = criticAutoLadder(input);
+    return autoDecision.runCritics
+      ? { runCritics: false, skipReason: 'manual_mode' }
+      : { runCritics: false, skipReason: autoDecision.skipReason };
+  }
+  return criticAutoLadder(input);
 }
 
 /// Does the prompt itself request critique/polish? (Gate 1 user-trigger arm —

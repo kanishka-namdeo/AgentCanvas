@@ -46,7 +46,7 @@ import {
   type LLMProvider, type SnapshotCadence, type SkillSelectionMode,
   type AutoArchiveIdleAfter, type Density, type ThemePreference,
   type DefaultPalette, type ThinkingLevel, type McpServerConfig, type ApprovalMode,
-  type CanvasLayoutMode,
+  type CanvasLayoutMode, type DesignCritiqueMode,
   normalizeLLMProvider,
   providerRequiresApiKey,
   providerDefaultModel,
@@ -206,6 +206,7 @@ function AgentSection() {
   const defaultPalette = useSettings((s) => s.defaultPalette);
   const skillSelectionMode = useSettings((s) => s.skillSelectionMode);
   const approvalMode = useSettings((s) => s.approvalMode);
+  const designCritiqueMode = useSettings((s) => s.designCritiqueMode ?? 'manual');
   const set = useSettings((s) => s.set);
 
   return (
@@ -301,6 +302,25 @@ function AgentSection() {
                   {PALETTES[key].name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </Row>
+
+        <Row
+          label="Design critique"
+          description="When the design-critic subagents (text + vision review) run. 'Manual (default)' — only when you ask: the /critique command or a critique/polish prompt. 'Automatic' — also on large builds and validator failures (the previous behavior). 'Off' — never dispatch critics; the free deterministic checks still run every turn."
+        >
+          <Select
+            value={designCritiqueMode}
+            onValueChange={(v) => set('designCritiqueMode', v as DesignCritiqueMode)}
+          >
+            <SelectTrigger size="sm" className="h-7 w-40 text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="manual" className="text-[11px]">Manual — on /critique (recommended)</SelectItem>
+              <SelectItem value="auto" className="text-[11px]">Automatic — adaptive (old behavior)</SelectItem>
+              <SelectItem value="off" className="text-[11px]">Off — never run critics</SelectItem>
             </SelectContent>
           </Select>
         </Row>

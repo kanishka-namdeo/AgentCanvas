@@ -71,6 +71,17 @@ export async function POST(req: NextRequest) {
           body.settings.maxDesignCritiqueIterations <= 5
             ? body.settings.maxDesignCritiqueIterations
             : undefined,
+        // Design critique invocation mode (2026-09-06): 'manual' (default —
+        // critic subagents fire only on explicit asks like /critique), 'auto'
+        // (the adaptive complexity ladder), 'off' (never dispatch). Invalid/
+        // absent → undefined so the runner's normalizeDesignCritiqueMode
+        // applies the 'manual' product default.
+        designCritiqueMode:
+          body.settings.designCritiqueMode === 'manual' ||
+          body.settings.designCritiqueMode === 'auto' ||
+          body.settings.designCritiqueMode === 'off'
+            ? body.settings.designCritiqueMode
+            : undefined,
         planFirst: typeof body.settings.planFirst === 'boolean' ? body.settings.planFirst : DEFAULT_SETTINGS.planFirst,
         thinkingLevel: body.settings.thinkingLevel ?? DEFAULT_SETTINGS.thinkingLevel,
         defaultPalette: body.settings.defaultPalette ?? DEFAULT_SETTINGS.defaultPalette,

@@ -194,11 +194,16 @@ describe('modes: normalizeAgentMode + sections', () => {
 // ---- 3. Adaptive critique gate ---------------------------------------------------
 
 describe('modes: adaptive critique gate (shouldRunCritics)', () => {
+  // 2026-09-06: shouldRunCritics normalizes an absent critiqueMode to
+  // 'manual' (the opt-in product default). These tests exercise the ADAPTIVE
+  // LADDER itself — what the 'auto' invocation mode runs — so the base input
+  // pins critiqueMode: 'auto' explicitly.
   const base = {
     newShapeCount: 6,
     validationReasonCount: 0,
     freshDocument: false,
     promptWantsCritique: false,
+    critiqueMode: 'auto' as const,
   };
 
   it('small clean edit on a populated canvas → skip (small_clean_turn)', () => {

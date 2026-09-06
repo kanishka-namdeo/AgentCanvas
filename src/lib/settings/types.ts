@@ -20,6 +20,20 @@
 // migrated to the new ids by `normalizeLLMProvider()` below.
 
 import { listProviderIds, getProviderMetadata } from '@/lib/llm';
+import type { DesignCritiqueMode } from '@/lib/agent/modes';
+
+/// Design critique invocation mode (see src/lib/agent/modes.ts — the gate
+/// lives in shouldRunCritics so both runners + tests share one definition):
+///   - 'manual' (default): the design-critic subagents (text + VLM) dispatch
+///     ONLY when the user asks — the /critique command or a prompt that
+///     requests critique/polish/review. The free deterministic validator
+///     still runs every build turn.
+///   - 'auto': the adaptive ladder — critics also fire on complexity-eligible
+///     turns (big builds, fresh documents, validator failures).
+///   - 'off': critics never dispatch (hard kill-switch).
+/// Optional on AppSettings — pre-2026-09-06 persisted blobs lack it; read
+/// sites default to 'manual' (critique is opt-in, not compulsory).
+export type { DesignCritiqueMode };
 
 /// Thinking level for models that support extended thinking.
 /// Mirrors the pi-agent SDK's ThinkingLevel type.
@@ -191,6 +205,10 @@ export interface AppSettings {
   /// settings blobs lack it; read sites default to 'build' so the persisted
   /// blob needs no migration.
   agentMode?: AgentMode;
+  /// Design critique invocation mode (manual default / auto / off).
+  /// Written by Settings → Agent → Design critique; consumed by the runner's
+  /// critic gate via AgentRunSettings. See DesignCritiqueMode above.
+  designCritiqueMode?: DesignCritiqueMode;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -239,6 +257,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // Cursor-style mode system (see src/lib/agent/modes.ts). 'build' preserves
   // the pre-mode behavior for every existing user + test.
   agentMode: 'build' as AgentMode,
+  // 2026-09-06: critique subagents are opt-in by default — they fire when the
+  // USER asks (/critique, polish prompts), not on every complexity-eligible
+  // turn. Users who want the old adaptive auto-critique set 'auto'; 'off' is
+  // the hard kill-switch. See src/lib/agent/modes.ts (DesignCritiqueMode).
+  designCritiqueMode: 'manual' as DesignCritiqueMode,
 };
 
 /// Subset of settings that the /api/agent route consumes. Sent in the
@@ -272,8 +295,8 @@ export interface AgentRunSettings {
   /// assembly (ask/plan physically cannot see mutating tools). Absent →
   /// 'build' (pre-mode behavior).
   mode?: AgentMode;
-  /// Task 7-c P1.3 (T2): max iterations of the MANDATORY self-critique loop
-  /// that runs after the agent emits its final message. Each iteration:
+  /// Task 7-c P1.3 (T2): max iterations of the self-critique loop that runs
+  /// after the agent emits its final message. Each iteration:
   ///   1. Dispatches BOTH the text-based design critic
   ///      (`dispatchDesignCriticSubAgent`) AND the vision-based VLM critic
   ///      (`dispatchDesignCriticVlmSubAgent` — when T3 is wired in).
@@ -285,9 +308,18 @@ export interface AgentRunSettings {
   /// or (c) the iteration cap is hit.
   /// Default 2 — agent gets 1 chance to self-correct after the critic
   /// (1st critique → 1 fix turn → 2nd critique to verify → exit).
-  /// Set to 0 to disable the mandatory loop (reverts to the pre-7-c
-  /// behavior where pen_self_critique was opt-in).
+  /// Set to 0 to disable the loop entirely (reverts to the pre-7-c behavior
+  /// where pen_self_critique was opt-in).
+  /// NOTE (2026-09-06): WHEN the loop dispatches critics is now governed by
+  /// `designCritiqueMode` (manual default / auto / off) — this field only
+  /// bounds the iterations once the gate says "run".
   maxDesignCritiqueIterations?: number;
+  /// Design critique invocation mode — 'manual' (default: critics fire only
+  /// on explicit user intent — /critique or critique/polish prompts), 'auto'
+  /// (adaptive ladder: complexity-eligible turns also fire), 'off' (never).
+  /// Threaded from AppSettings → route allowlist → runner gate
+  /// (shouldRunCritics). Absent → 'manual'.
+  designCritiqueMode?: DesignCritiqueMode;
   /// Design-System Registry pack name (e.g. 'shadcn-default',
   /// 'vercel-geist', 'mantine-default'). When set, the runner:
   ///   1. Appends the design-system prompt fragment to the system prompt,
@@ -351,7 +383,12 @@ export function agentRunSettings(s: AppSettings): AgentRunSettings {
     // (modes.ts shouldRunCritics) — 2 stays the iteration CAP; which turns
     // run critics at all is complexity-gated (small clean turns get
     // validator-only repair, ~3 LLM calls saved per gated turn).
+    // NOTE (2026-09-06): the gate's invocation MODE is user-controlled —
+    // 'manual' (default) fires critics only on explicit asks (/critique,
+    // polish prompts); 'auto' restores the adaptive auto-critique; 'off'
+    // never dispatches. See DesignCritiqueMode in src/lib/agent/modes.ts.
     maxDesignCritiqueIterations: 2,
+    designCritiqueMode: s.designCritiqueMode ?? 'manual',
   };
 }
 

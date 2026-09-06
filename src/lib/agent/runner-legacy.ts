@@ -37,6 +37,7 @@ import { lucidePromptCatalog, LUCIDE_ICON_COUNT } from '@/lib/icons';
 import { resolvePenTree, resolvePenTreeDetailed, type ResolverWarning } from '../pen/resolve';
 import { getMeasuredBounds } from './client-roundtrip';
 import { formatShapeLine, formatShapeCollapsed } from './shape-line';
+import { normalizeDesignCritiqueMode, promptRequestsCritique } from './modes';
 
 // Re-export the shared types from runner-types.ts so existing imports
 // (`import { runAgent, type LLMClient } from '@/lib/agent/runner'`) keep
@@ -1989,7 +1990,23 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
       // When injectedLlm IS set (tests), we skip the critique loop entirely.
       // When injectedLlm is NOT set (production-fallback through legacy),
       // we run the loop — same default as runner-native.
-      const maxCritiqueIterations = (!injectedLlm && (settings?.maxDesignCritiqueIterations ?? 2)) || 0;
+      //
+      // 2026-09-06 — design critique invocation MODE mirror (runner-native is
+      // the source of truth; see DesignCritiqueMode in modes.ts): 'manual'
+      // (default) fires the text critic only on explicit user intent
+      // (/critique, critique/polish prompts); 'auto' keeps the unconditional
+      // legacy behavior; 'off' never dispatches. maxDesignCritiqueIterations
+      // still bounds the loop when the gate allows it.
+      const designCritiqueMode = normalizeDesignCritiqueMode(settings?.designCritiqueMode);
+      const critiqueModeAllows =
+        designCritiqueMode === 'off'
+          ? false
+          : designCritiqueMode === 'manual'
+            ? promptRequestsCritique(prompt)
+            : true; // 'auto' — the adaptive ladder is runner-native's refinement;
+                     // the legacy mirror keeps its simpler unconditional run.
+      const maxCritiqueIterations =
+        (!injectedLlm && critiqueModeAllows && (settings?.maxDesignCritiqueIterations ?? 2)) || 0;
 
       if (maxCritiqueIterations > 0) {
         // Sync canvas from the patches emitted above.
