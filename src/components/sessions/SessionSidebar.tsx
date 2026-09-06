@@ -242,7 +242,10 @@ export const SessionSidebar = memo(function SessionSidebar() {
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <MessageSquare className="h-3.5 w-3.5 ac-text-3 flex-shrink-0" />
-            <span className="text-[11px] font-semibold uppercase tracking-wide ac-text-2 truncate">Chats</span>
+            {/* UI-audit round 3 (2026-09): sentence case (not uppercase) per
+                Refactoring UI §3.3 — section headers in sidebars read better
+                as normal prose, not as overline labels. */}
+            <span className="text-[11px] font-semibold ac-text-2 truncate">Chats</span>
             {activeCount > 0 && (
               <span className="text-[10px] ac-text-4 ml-0.5">{activeCount}</span>
             )}

@@ -306,10 +306,10 @@ export function AppMenu(props: AppMenuProps) {
           {/* ==== View ==== */}
           <DropdownMenuLabel className="ac-label">View</DropdownMenuLabel>
           <DropdownMenuItem onClick={props.onToggleLeftPanel}>
-            Toggle layers panel <DropdownMenuShortcut>{chord('toggle-left-panel')}</DropdownMenuShortcut>
+            Toggle left panel <DropdownMenuShortcut>{chord('toggle-left-panel')}</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={props.onToggleRightPanel}>
-            Toggle chat panel <DropdownMenuShortcut>{chord('toggle-right-panel')}</DropdownMenuShortcut>
+            Toggle right panel <DropdownMenuShortcut>{chord('toggle-right-panel')}</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={props.onToggleZen}>
             Toggle zen / UI <DropdownMenuShortcut>{chord('zen')}</DropdownMenuShortcut>

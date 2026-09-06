@@ -182,7 +182,7 @@ export default function Home() {
   // Active tab in the left column (Chats / Layers).
   const [leftTab, setLeftTab] = useState<LeftTab>('chats');
   // Active tab in the right column (Chat / Design / History).
-  const [rightTab, setRightTab] = useState<RightTab>('chat');
+  const [rightTab, setRightTab] = useState<RightTab>('design');
   // ⌘K command palette visibility.
   const [paletteOpen, setPaletteOpen] = useState(false);
   // Settings dialog visibility.
@@ -691,6 +691,8 @@ export default function Home() {
         'align.left', 'align.top', 'align.bottom', 'align.right',
         'align.hcenter', 'align.vcenter', 'flip.h', 'flip.v',
         'panel.layers-tab', 'panel.assets-tab',
+        // UI-audit round 3 (2026-09): `/` focuses the chat input.
+        'chat.focus',
       ]);
       if (plainAction) {
         e.preventDefault();
@@ -757,6 +759,19 @@ export default function Home() {
             // ⌥2 — switch the left column to Assets.
             setLeftTab('assets');
             break;
+          case 'chat.focus': {
+            // UI-audit round 3 (2026-09): `/` focuses the chat input.
+            // First switch the right panel to Chat (in case the user is on
+            // Design or History), then call the AgentPanel's registered
+            // focus hook on the next tick (so the panel has mounted).
+            if (rightTab !== 'chat') setRightTab('chat');
+            // Defer to next tick so the AgentPanel mounts before we focus.
+            setTimeout(() => {
+              const w = globalThis as unknown as { __focusAgentInput?: () => void };
+              if (typeof w.__focusAgentInput === 'function') w.__focusAgentInput();
+            }, 0);
+            break;
+          }
         }
         return;
       }
@@ -1195,29 +1210,35 @@ function LeftTabbedPanel({
   ];
   return (
     // @container (Tailwind v4) — the tab labels below collapse to icon-only
-    // when the column is narrower than ~13rem, so three tabs never truncate
-    // at 1024px viewports (UI-audit round 2 verification finding).
+    // when the column is narrower than ~12rem, so three tabs never truncate
+    // at 1024px viewports. UI-audit round 3 (2026-09): breakpoint aligned
+    // with the right column (was 13rem; both now 12rem) for consistent
+    // collapse behavior across sidebars.
     <div className={`@container flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
-      {/* Tab strip — also serves as the panel header (collapse chevron on the right) */}
+      {/* Tab strip — also serves as the panel header (collapse chevron on the right).
+          UI-audit round 3 (2026-09): active tab uses the Material 3 "active
+          indicator" pattern — full-width pill with --ac-accent-soft fill —
+          matching the right panel for consistency. */}
       <div className="flex items-center gap-1 px-1.5 py-1.5 border-b ac-border-subtle ac-surface-0 flex-shrink-0">
-        <div className="flex gap-0.5 flex-1 min-w-0">
+        <div className="flex gap-0.5 flex-1 min-w-0" role="tablist" aria-label="Left panel">
           {tabs.map((t) => {
             const Icon = t.icon;
             const active = tab === t.id;
             return (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={active}
                 onClick={() => onTabChange(t.id)}
                 title={t.label}
                 className={`flex items-center gap-1.5 px-2.5 h-7 rounded-md text-[11px] font-medium ac-transition ac-focus-ring ${
                   active
-                    ? 'ac-surface-2 ac-text-1 shadow-sm'
+                    ? 'bg-[var(--ac-accent-soft)] ac-text-1'
                     : 'ac-text-3 hover:ac-text-1 hover:ac-surface-1'
                 }`}
-                aria-pressed={active}
               >
                 <Icon className="h-3 w-3" />
-                <span className="hidden @min-[13rem]:inline">{t.label}</span>
+                <span className="hidden @min-[12rem]:inline">{t.label}</span>
               </button>
             );
           })}
@@ -1265,43 +1286,56 @@ function RightTabbedPanel({
   onToggleCollapse: () => void;
 }) {
   const tabs: { id: RightTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'chat',    label: 'Chat',    icon: MessageSquare },
+    // UI-audit round 3 (2026-09): reordered to Design → Chat → History per
+    // Figma UI3 consensus (design-first tools default to Design tab; Chat
+    // is still one click away and auto-activates when the agent starts
+    // streaming). Aligns with the auto-switch logic at line 328 + 352 which
+    // already moves users to the right tab for the right moment.
     { id: 'design',  label: 'Design',  icon: Sliders },
+    { id: 'chat',    label: 'Chat',    icon: MessageSquare },
     { id: 'history', label: 'History', icon: HistoryIcon },
   ];
   return (
     <div className={`@container flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
-      {/* Tab strip — also serves as the panel header (collapse chevron on the right) */}
+      {/* Tab strip — also serves as the panel header (collapse chevron on the right).
+          UI-audit round 3 (2026-09): active tab uses the Material 3 "active
+          indicator" pattern — full-width pill with --ac-accent-soft fill —
+          instead of the previous ac-surface-2 + shadow-sm. More legible at a
+          glance + consistent with the active-row treatment in sidebars. */}
       <div className="flex items-center gap-1 px-1.5 py-1.5 border-b ac-border-subtle ac-surface-0 flex-shrink-0">
-        <div className="flex gap-0.5 flex-1 min-w-0">
+        <div className="flex gap-0.5 flex-1 min-w-0" role="tablist" aria-label="Right panel">
           {tabs.map((t) => {
             const Icon = t.icon;
             const active = tab === t.id;
             return (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={active}
+                aria-controls={`right-tab-${t.id}`}
                 onClick={() => onTabChange(t.id)}
                 title={t.label}
                 className={`flex items-center gap-1.5 px-2.5 h-7 rounded-md text-[11px] font-medium ac-transition ac-focus-ring ${
                   active
-                    ? 'ac-surface-2 ac-text-1 shadow-sm'
+                    ? 'bg-[var(--ac-accent-soft)] ac-text-1'
                     : 'ac-text-3 hover:ac-text-1 hover:ac-surface-1'
                 }`}
-                aria-pressed={active}
               >
                 <Icon className="h-3 w-3" />
-                <span className="hidden @min-[11rem]:inline">{t.label}</span>
+                <span className="hidden @min-[12rem]:inline">{t.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Collapse chevron on the panel header itself */}
+        {/* Collapse chevron on the panel header itself.
+            UI-audit round 3: fixed misleading tooltip (was ⌘3, actual
+            binding is ⌘2 per the keymap at line 488). */}
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleCollapse}
-          title="Toggle right panel (⌘3)"
+          title="Toggle right panel (⌘2)"
           aria-label="Toggle right panel"
           className="h-7 w-7 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring flex-shrink-0"
         >
@@ -1309,10 +1343,14 @@ function RightTabbedPanel({
         </Button>
       </div>
 
-      {/* Active panel body — full vertical space */}
+      {/* Active panel body — full vertical space.
+          Conditional mounting (not hidden) preserves the original behavior
+          where switching tabs cleanly unmounts the previous panel — important
+          so the AgentPanel doesn't keep a stale scroll listener / draft
+          autosave timer running while the user is on Design or History. */}
       <div className="flex-1 min-h-0">
-        {tab === 'chat' && <AgentPanel />}
-        {tab === 'design' && <PropertiesPanel />}
+        {tab === 'design'  && <PropertiesPanel />}
+        {tab === 'chat'    && <AgentPanel />}
         {tab === 'history' && <RunHistoryPanel hideHeader />}
       </div>
     </div>

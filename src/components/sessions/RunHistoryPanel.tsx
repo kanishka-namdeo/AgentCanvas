@@ -329,19 +329,27 @@ export function RunHistoryPanel({ hideHeader = false }: { hideHeader?: boolean }
         </div>
       )}
       {hideHeader && (
-        <div className="flex items-center gap-1 p-1.5 border-b ac-border-subtle ac-surface-1">
+        // UI-audit round 3 (2026-09): active sub-tab uses the same accent-soft
+        // pill treatment as the outer right-panel tab strip + the left-panel
+        // tab strip — three surfaces, one visual language. ARIA tablist for
+        // keyboard navigability.
+        <div className="flex items-center gap-1 p-1.5 border-b ac-border-subtle ac-surface-1" role="tablist" aria-label="History view">
           <button
+            role="tab"
+            aria-selected={tab === 'runs'}
             onClick={() => setTab('runs')}
-            className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ${
-              tab === 'runs' ? 'ac-surface-0 ac-text-1 shadow-sm' : 'ac-text-3 hover:ac-text-1'
+            className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ac-focus-ring ${
+              tab === 'runs' ? 'bg-[var(--ac-accent-soft)] ac-text-1' : 'ac-text-3 hover:ac-text-1 hover:ac-surface-2'
             }`}
           >
             Runs · {runs.length}
           </button>
           <button
+            role="tab"
+            aria-selected={tab === 'snapshots'}
             onClick={() => setTab('snapshots')}
-            className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ${
-              tab === 'snapshots' ? 'ac-surface-0 ac-text-1 shadow-sm' : 'ac-text-3 hover:ac-text-1'
+            className={`flex-1 px-2 py-1 rounded text-[10px] font-medium ac-transition ac-focus-ring ${
+              tab === 'snapshots' ? 'bg-[var(--ac-accent-soft)] ac-text-1' : 'ac-text-3 hover:ac-text-1 hover:ac-surface-2'
             }`}
           >
             Snapshots · {snapshots.length}

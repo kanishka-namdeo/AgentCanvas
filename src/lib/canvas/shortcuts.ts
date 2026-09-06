@@ -474,6 +474,12 @@ export const SHORTCUTS: ShortcutDef[] = [
   // Layers tree ↔ the Assets component grid).
   { action: 'panel.layers-tab', label: 'Switch left sidebar to Layers tab', mac: '⌥1', win: 'Alt+1', scope: 'app' },
   { action: 'panel.assets-tab', label: 'Switch left sidebar to Assets tab', mac: '⌥2', win: 'Alt+2', scope: 'app' },
+  // UI-audit round 3 (2026-09): `/` focuses the chat input (Slack/Discord/
+  // Linear convention). Calls window.__focusAgentInput() which is registered
+  // by AgentPanel.tsx on mount. No-op if the AgentPanel isn't mounted (e.g.
+  // when the user is on the Design or History tab) — but the handler also
+  // switches the right panel to Chat first so the focus lands.
+  { action: 'chat.focus', label: 'Focus the chat input', mac: '/', win: '/', scope: 'app' },
   { action: 'delete', label: 'Delete selection', mac: '⌫', win: 'Del / Backspace', scope: 'canvas' },
 ];
 

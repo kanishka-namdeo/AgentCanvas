@@ -7,7 +7,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 ## Ownership
 
 - `layout.tsx` — root layout. Sets up `<html>`, `<body>`, font loading, theme provider, toaster. Owned by this folder.
-- `page.tsx` — the main page. Renders the 3-column tabbed layout: `LeftTabbedPanel (Chats/Layers) | Canvas | RightTabbedPanel (Chat/Design/History)`. Also renders the top header bar with brand, document name, session title, command palette, run/stop button, connection status, zen mode, .pen file menu, settings, and theme toggle.
+- `page.tsx` — the main page. Renders the 3-column tabbed layout: `LeftTabbedPanel (Chats/Layers/Assets) | Canvas | RightTabbedPanel (Design/Chat/History)`. Also renders the top header bar with brand, document name, session title, command palette, run/stop button, connection status, zen mode, .pen file menu, settings, and theme toggle.
 - `globals.css` — global styles + the `--ac-*` design token system. Owned by this folder; consumed by every component.
 
 ## Local Contracts
@@ -19,7 +19,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 - Server component — do not add `'use client'` here.
 
 ### Page (`page.tsx`)
-- The layout is a **tabbed 3-column** split: `LeftTabbedPanel (Chats/Layers) | Canvas | RightTabbedPanel (Chat/Design/History)`. The previous 4-pane layout (sessions | layers | canvas | properties+chat+history) was decluttered into 3 columns with tabs.
+- The layout is a **tabbed 3-column** split: `LeftTabbedPanel (Chats/Layers/Assets) | Canvas | RightTabbedPanel (Design/Chat/History)`. The previous 4-pane layout (sessions | layers | canvas | properties+chat+history) was decluttered into 3 columns with tabs. UI-audit round 3 (2026-09) reordered the right sidebar tabs to **Design → Chat → History** (Figma UI3 consensus — design-first tools default to Design; Chat auto-activates when the agent starts streaming); the default right tab is now `Design` (was `Chat`).
 - Panels use `react-resizable-panels` v4 (`ResizablePanel` + `ResizableHandle`) with `collapsible` + `collapsedSize={0}`.
   - **v4 migration note**: the previous `autoSaveId="co-canvas-layout-h"` prop on the panel group is gone — v4 removed `autoSaveId` in favor of the `useDefaultLayout` hook. The hook returns `{ defaultLayout, onLayoutChanged }` which are passed to the `<ResizablePanelGroup>` (now backed by v4's `Group`).
   - **SSR safety**: `useDefaultLayout` defaults to `localStorage` for storage, which doesn't exist during SSR. We pass a `noopStorage` (`{ getItem: () => null, setItem: () => {} }`) initially, then swap to `window.localStorage` in a `useEffect` after mount. See `page.tsx` lines ~63–82.
@@ -29,7 +29,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 - Top header shows: AppMenu button (single app menu — File/Edit/View/Insert/Object/Help sections; UI-audit round 2 replaced the classic 28px menubar), brand, SessionHeader (document switcher + inline-editable chat title + exception-only StatusBadge + icon-only Fork), ⌘K "Search or ask…" button (command palette: app commands + preset prompts; free-form text routes to the chat composer), Stop RunStopButton (busy only), connection status (single Bot chip — green dot when live-synced, viewer count when >1), Zen mode, Settings (gear), ThemeToggle. Zen mode hides the header + edge buttons; a floating "Exit zen" pill is the way back.
 - Keyboard shortcuts (non-meta shortcuts suppressed when typing in inputs/textareas):
   - **Panel toggles**: `⌘1`/`⌘⇧1` left panel, `⌘2`/`⌘⇧2` right panel
-  - **Navigation**: `⌘K` command palette, `⌘,` settings, `⌘\` zen mode, `⌘/` shortcuts dialog
+  - **Navigation**: `⌘K` command palette, `⌘,` settings, `⌘\` zen mode, `⌘/` shortcuts dialog, `/` focus chat input (switches right panel to Chat + focuses the textarea — Slack/Discord/Linear convention)
   - **Undo/redo**: `⌘Z` undo, `⌘⇧Z` redo
   - **Clipboard**: `⌘C` copy, `⌘V` paste (+24 offset), `⌘⇧V` paste in place, `⌘X` cut, `⌘A` select all
   - **Grouping**: `⌘G` group, `⌘⇧G` ungroup

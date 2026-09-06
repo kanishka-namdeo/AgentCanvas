@@ -66,8 +66,9 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ### 🎨 Full design tool, not just a toy
 - **Infinite HTML/DOM canvas** — pan (middle-mouse / space-drag), zoom (wheel), 8-handle resize, drag-move, delete-to-remove. Real divs per node, inline `<svg>` islands for vector primitives (path/star/polygon), browser-native CSS for `box-shadow` / `filter: blur()` / `border-radius` / flexbox auto-layout. L4 `content-visibility` culling + L5 mount culling for ≥2k nodes per page.
+- **3-pane workspace** — left sidebar (Chats / Layers / Assets tabs) · center canvas · right sidebar (Design / Chat / History tabs). Both sidebars resizable + collapsible (⌘1 / ⌘2). Active-tab pill uses the Material 3 "active indicator" pattern — full-width accent-soft fill — consistent across all three tabstrips. Right sidebar defaults to Design (Figma UI3 consensus); auto-switches to Chat when the agent starts streaming, and to Design when a shape is selected.
 - **Manual toolbar** — rectangle, ellipse, text, line, frame, group; select / pan / clear modes.
-- **Properties inspector** — geometry, fill/stroke, radius, opacity, rotation, text, Auto Layout editor, multi-select align/distribute.
+- **Properties inspector** (Design tab) — geometry, fill/stroke, radius, opacity, rotation, text, Auto Layout editor, multi-select align/distribute.
 - **Layers panel** — z-order, visibility, lock, component-instance badges, token-binding dots, right-click context menu.
 - **Design tokens** — named colors + text styles; bind shapes to tokens so changing a token recolors everything bound to it.
 - **Dark mode** — full `--ac-*` token system, switchable via the header toggle.
