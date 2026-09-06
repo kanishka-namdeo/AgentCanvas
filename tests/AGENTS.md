@@ -67,10 +67,12 @@ Two kinds of tests live here:
 ### Vitest config (`vitest.config.ts` at repo root)
 - Environment: `jsdom`.
 - Globals: `true` (so `describe` / `it` / `expect` don't need imports — though our tests import them explicitly for clarity).
+- Pool: `'forks'` (Vitest 5 default; explicit so a future major bump doesn't silently flip isolation semantics — more reliable for jsdom + Next module mocks than the v4 `threads` default).
+- `restoreMocks: true` + `clearMocks: true` — auto-restore mock state between tests, closing the cleanup gap across ~10 test files that use `vi.fn()` without an explicit `afterEach(vi.restoreAllMocks)`.
 - Setup file: `tests/setup.ts`.
 - Include pattern: `tests/unit/**/*.test.{ts,tsx}` and `tests/integration/**/*.test.{ts,tsx}`.
 - Path alias: `@` → `./src` (mirrors `tsconfig.json`).
-- Coverage: includes `src/lib/canvas/patch.ts`, `src/lib/canvas/store.ts`, `src/lib/agent/tools.ts`, `src/components/canvas/Canvas.tsx`.
+- Coverage: includes `src/lib/canvas/patch.ts`, `src/lib/canvas/store.ts`, `src/lib/agent/tools.ts`, `src/components/canvas/Canvas.tsx`. Thresholds: `lines/functions/statements ≥ 80%`, `branches ≥ 70%` — turns the include list from advisory into a regression gate.
 - Snapshots: `tests/unit/__snapshots__/figma-ontology-contract.test.ts.snap` freezes the Figma-ontology enum tables (spec Phase 6 part 1). It MUST be committed — deleting it re-freezes the vocabulary silently. Update it ONLY via a deliberate `bunx vitest run -u tests/unit/figma-ontology-contract.test.ts` after an intentional vocabulary change.
 
 ## Local Contracts
@@ -124,7 +126,7 @@ Each prints a "passed" message on success and exits non-zero on failure.
 
 ## Verification
 
-- `bun run test` — should print "Test Files 96 passed (96)" and "Tests 2130 passed | 2 skipped" (verified 2026-08-31, ~135s; grows as tests are added).
+- `bun run test` — should print "Test Files 102 passed (102)" and "Tests 2285 passed | 2 skipped" (verified 2026-09-06 after Vitest 5 upgrade, ~130s; grows as tests are added).
 - `bash tests/python-runtime-build.sh` — should print "python runtime build tests passed".
 - `bash tests/database-runtime-build.sh` — should print the corresponding pass message.
 - `bunx tsc --noEmit` — typecheck (currently clean; `skills/` is excluded in tsconfig because the z.ai sandbox extracts sandbox-owned skill sources there).

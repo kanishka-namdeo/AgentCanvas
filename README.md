@@ -89,14 +89,14 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 | Layer | Tech |
 | --- | --- |
-| Framework | [Next.js 16](https://nextjs.org/) (App Router, standalone build) |
-| UI | [React 19](https://react.dev/), [TypeScript 5](https://www.typescriptlang.org/), [Tailwind 4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), [Radix UI](https://www.radix-ui.com/) |
-| State | [Zustand 5](https://zustand.docs.pmnd.rs/) (canvas store + session store, persisted to `localStorage`) |
-| Realtime | [Socket.IO 4](https://socket.io/) (in-process or standalone mini-service on port 3003) |
-| Database | [Prisma 7](https://www.prisma.io/) + SQLite (Documents, Shapes, AgentActions) — via `@prisma/adapter-libsql` driver adapter |
-| AI agent | [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) + [`z-ai-web-dev-sdk`](https://www.npmjs.com/package/z-ai-web-dev-sdk) (OpenAI-compatible LLM shim) |
-| Validation | [Zod 4](https://zod.dev/), [@sinclair/typebox](https://github.com/sinclairzx/typebox) (tool schemas) |
-| Testing | [Vitest 4](https://vitest.dev/) + [@testing-library/react](https://testing-library.com/) |
+| Framework | [Next.js 16.3](https://nextjs.org/) (App Router, standalone build, Turbopack, React Compiler 1.0 enabled) |
+| UI | [React 19](https://react.dev/), [TypeScript 5.9](https://www.typescriptlang.org/), [Tailwind 4](https://tailwindcss.com/) (CSS-first config via `@theme inline`), [shadcn/ui](https://ui.shadcn.com/), [Radix UI](https://www.radix-ui.com/) |
+| State | [Zustand 5](https://zustand.docs.pmnd.rs/) (canvas store + session store, persisted to `localStorage` via throttled storage adapter) |
+| Realtime | [Socket.IO 4](https://socket.io/) (in-process service on port 3003, broadcasts patches + agent_events to all viewers) |
+| Database | [Prisma 7.10](https://www.prisma.io/) + SQLite (Documents, Shapes, AgentActions) — via `@prisma/adapter-libsql` driver adapter |
+| AI agent | [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) + [`z-ai-web-dev-sdk`](https://www.npmjs.com/package/z-ai-web-dev-sdk) (default provider: z.ai sandbox / `glm-5.3`) |
+| Validation | [@sinclair/typebox](https://github.com/sinclairzx/typebox) (tool schemas) |
+| Testing | [Vitest 5](https://vitest.dev/) + [@testing-library/react](https://testing-library.com/) (pool: `forks`, restoreMocks + clearMocks, 80% coverage threshold on hot paths) |
 
 ---
 

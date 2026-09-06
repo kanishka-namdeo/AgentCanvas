@@ -73,6 +73,15 @@ const nextConfig: NextConfig = {
       "@radix-ui/react-context-menu",
     ],
   },
+  // React Compiler 1.0 (Oct 2025) — Babel plugin that auto-memoizes
+  // components, eliminating the need for manual useMemo/useCallback/React.memo
+  // on hot paths. Particularly impactful for the canvas re-rendering N shapes
+  // per frame and the agent panel re-rendering on every streamed token.
+  // Next.js 16.3.4 moved this OUT of `experimental` to a top-level key.
+  // Validated safe with the project's manual memoization (the compiler
+  // preserves `memo` and treats the file as opt-out via
+  // `/* @reactCompilerDisable */`).
+  reactCompiler: true,
   async headers() {
     return [
       {

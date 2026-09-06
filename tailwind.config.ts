@@ -1,28 +1,24 @@
 import type { Config } from "tailwindcss";
-import tailwindcssAnimate from "tailwindcss-animate";
 
-// Note: In Tailwind v4, color tokens are defined in `src/app/globals.css`
-// via the `@theme inline` block. The legacy `colors` section below is kept
-// only for backwards compatibility with any third-party packages that read
-// `tailwind.config.ts` directly. Tailwind v4 itself does not load these —
-// all real color tokens come from CSS variables in globals.css.
+// Tailwind v4 reads its config from CSS — see `src/app/globals.css` for the
+// authoritative `@theme inline` block (color tokens, border radius, fonts)
+// and the `@custom-variant dark (&:where(.dark, .dark *))` declaration
+// (the v4 way to enable class-based dark mode — replaces the legacy
+// `darkMode: "class"` JS config).
+//
+// This file is kept as a minimal stub for any third-party packages that
+// probe `tailwind.config.ts` directly (e.g. some shadcn/ui CLIs). It is NOT
+// loaded by the Tailwind v4 PostCSS plugin — `@tailwindcss/postcss` reads
+// only `globals.css`.
+//
+// Animation utilities live in `tw-animate-css` (imported in `globals.css`),
+// which is the Tailwind v4 successor to `tailwindcss-animate`. The legacy
+// `tailwindcss-animate` package was removed from `package.json` in the
+// 2026-09 cleanup pass — it duplicated `tw-animate-css` and its `plugins`
+// registration here was dead config under v4.
 const config: Config = {
-    darkMode: "class",
-    content: [
-        "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-        "./components/**/*.{js,ts,jsx,tsx,mdx}",
-        "./app/**/*.{js,ts,jsx,tsx,mdx}",
-        "./src/**/*.{js,ts,jsx,tsx,mdx}",
-    ],
-    theme: {
-        extend: {
-            borderRadius: {
-                lg: 'var(--radius)',
-                md: 'calc(var(--radius) - 2px)',
-                sm: 'calc(var(--radius) - 4px)'
-            }
-        }
-  },
-  plugins: [tailwindcssAnimate],
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
 };
 export default config;
