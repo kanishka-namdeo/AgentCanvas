@@ -15,7 +15,7 @@ import type { CanvasDocument, CanvasPatch, Shape, DesignTokens, ColorToken, Text
 import type { PenChild, PenVariableDef, PenTheme, PenRef, PenComponent, PenComponentSet, PenFrame } from '../pen/types';
 import { resolvePenTree } from '../pen/resolve';
 import { normalizePatchPayload, normalizePenNode } from '../pen/normalize';
-import { findNode, findNodeArray, insertNode, removeNode, updateNode, moveNode, deepCloneNode, newId, collectComponents, walkTree, getAncestorOffset, getAbsolutePosition, isDescendant, expandRef } from '../pen/document';
+import { findNode, findNodeArray, insertNode, removeNode, updateNode, moveNode, deepCloneNode, newId, collectComponents, walkTree, getAncestorOffset, getAbsolutePosition, isDescendant, expandRef, isContainerLike, isPromotableToContainer } from '../pen/document';
 
 // ---- Helpers --------------------------------------------------------------
 
@@ -1091,13 +1091,14 @@ function insertUnderParent(children: PenChild[], node: PenChild, parentId: strin
       if ('children' in c && Array.isArray(c.children)) {
         return { ...c, children: [...c.children, node] };
       }
+      // Structural promotion (2026-09-06): a non-container target becomes a
+      // frame so the insertion lands instead of silently dropping.
+      if (isPromotableToContainer(c)) {
+        return { ...c, type: 'frame' as const, children: [node] };
+      }
       return c;
     }
-    const isContainer =
-      c.type === 'frame' || c.type === 'group' ||
-      c.type === 'component' || c.type === 'component_set' ||
-      c.type === 'section' || c.type === 'boolean_operation';
-    if (isContainer && 'children' in c && Array.isArray(c.children)) {
+    if (isContainerLike(c) && 'children' in c && Array.isArray(c.children)) {
       const next = insertUnderParent(c.children as PenChild[], node, parentId);
       if (next !== c.children) return { ...c, children: next };
     }
@@ -1124,11 +1125,7 @@ function sizeValue(v: unknown, def: number): number | string {
 function replaceSiblings(children: PenChild[], oldArr: PenChild[], newArr: PenChild[]): PenChild[] {
   if (children === oldArr) return newArr;
   return children.map((c) => {
-    const isContainer =
-      c.type === 'frame' || c.type === 'group' ||
-      c.type === 'component' || c.type === 'component_set' ||
-      c.type === 'section' || c.type === 'boolean_operation';
-    if (isContainer && 'children' in c && c.children) {
+    if (isContainerLike(c) && 'children' in c && c.children) {
       if (c.children === oldArr) return { ...c, children: newArr };
       const next = replaceSiblings(c.children as PenChild[], oldArr, newArr);
       if (next !== c.children) return { ...c, children: next };
@@ -1170,6 +1167,20 @@ function normalizeToNode(partial: Partial<PenChild> & Record<string, unknown>, i
   if (type === 'frame' || type === 'group' || type === 'component' ||
       type === 'component_set' || type === 'section' || type === 'boolean_operation') {
     if (!Array.isArray(base.children)) base.children = [];
+  }
+  // Container promotion (2026-09-06 "card rectangle" fix). LLM-authored nodes
+  // of structural leaf types (rectangle/ellipse/star/polygon…) that carry a
+  // non-empty children array are the classic card pattern — promote them to
+  // 'frame' so the resolver, every tree walker, and the renderers treat the
+  // node as the container the model intended. Content leaves (text, icon,
+  // image, path…) are never promoted (PEN_CONTENT_LEAF_TYPES). Without this,
+  // an 18-node login subtree under a rectangle "card" resolved to 2 shapes —
+  // the 16 descendants existed in the tree but never rendered.
+  if (
+    Array.isArray(base.children) && base.children.length > 0 &&
+    isPromotableToContainer(base as PenChild)
+  ) {
+    base.type = 'frame' as PenChild['type'];
   }
   // Dual-carry normalization (spec Phase 6 part 1): populate canonical v3
   // fields (layoutMode/itemSpacing/fills/…) from any legacy spellings on the
@@ -1230,19 +1241,6 @@ function normalizeSubtree(
   const id = rootId;
   const node = normalizeToNode(partial as Partial<PenChild> & Record<string, unknown>, id);
   if (Array.isArray(children) && children.length > 0) {
-    // Stress test 2026-08-30: LLM-authored subtrees sometimes carry explicit
-    // width/height 0 on content containers (observed live: a "FeatureContent1"
-    // frame with width=0 collapsed and its 8 child text layers became
-    // unpaintable). A zero extent on a container that HAS children is never
-    // meaningful — treat it as hug-content sizing and let the resolver size
-    // the frame to its stack.
-    const t = node.type as string;
-    if (t === 'frame' || t === 'group' || t === 'component' || t === 'component_set' || t === 'section' || t === 'boolean_operation') {
-      const w = (node as { width?: number | string }).width;
-      const h = (node as { height?: number | string }).height;
-      if (w === 0 || w === '0') (node as { width?: number | string }).width = 'fit_content';
-      if (h === 0 || h === '0') (node as { height?: number | string }).height = 'fit_content';
-    }
     const kids: PenChild[] = [];
     for (let i = 0; i < children.length; i++) {
       const child = children[i] as Partial<Shape> & Record<string, unknown>;
@@ -1253,7 +1251,28 @@ function normalizeSubtree(
       const childId = typeof child.id === 'string' && child.id.length > 0 ? child.id : `${rootId}-${i + 1}`;
       kids.push(normalizeSubtree(child, childId));
     }
-    if (kids.length > 0) (node as { children?: PenChild[] }).children = kids;
+    if (kids.length > 0) {
+      // Promotion BEFORE the zero-extent hug fix below, so a "card rectangle"
+      // root with children becomes a frame and ALSO gets the 0-extent →
+      // fit_content treatment.
+      if (isPromotableToContainer(node)) {
+        (node as { type?: PenChild['type'] }).type = 'frame';
+      }
+      // Stress test 2026-08-30: LLM-authored subtrees sometimes carry explicit
+      // width/height 0 on content containers (observed live: a "FeatureContent1"
+      // frame with width=0 collapsed and its 8 child text layers became
+      // unpaintable). A zero extent on a container that HAS children is never
+      // meaningful — treat it as hug-content sizing and let the resolver size
+      // the frame to its stack.
+      const t = node.type as string;
+      if (t === 'frame' || t === 'group' || t === 'component' || t === 'component_set' || t === 'section' || t === 'boolean_operation') {
+        const w = (node as { width?: number | string }).width;
+        const h = (node as { height?: number | string }).height;
+        if (w === 0 || w === '0') (node as { width?: number | string }).width = 'fit_content';
+        if (h === 0 || h === '0') (node as { height?: number | string }).height = 'fit_content';
+      }
+      (node as { children?: PenChild[] }).children = kids;
+    }
   }
   return node;
 }
@@ -1272,11 +1291,7 @@ function replaceNodeInTree(children: PenChild[], id: string, newNode: PenChild):
       replaced = true;
       return newNode;
     }
-    const isContainer =
-      c.type === 'frame' || c.type === 'group' ||
-      c.type === 'component' || c.type === 'component_set' ||
-      c.type === 'section' || c.type === 'boolean_operation';
-    if (isContainer && 'children' in c && Array.isArray(c.children)) {
+    if (isContainerLike(c) && 'children' in c && Array.isArray(c.children)) {
       const next = replaceNodeInTree(c.children as PenChild[], id, newNode);
       if (next !== c.children) return { ...c, children: next };
     }
@@ -1295,11 +1310,7 @@ function removeFromTree(children: PenChild[], id: string): PenChild[] {
   if (filtered.length !== children.length) return filtered;
   // Not found at this level — recurse into containers.
   return children.map((c) => {
-    const isContainer =
-      c.type === 'frame' || c.type === 'group' ||
-      c.type === 'component' || c.type === 'component_set' ||
-      c.type === 'section' || c.type === 'boolean_operation';
-    if (isContainer && 'children' in c && Array.isArray(c.children)) {
+    if (isContainerLike(c) && 'children' in c && Array.isArray(c.children)) {
       const next = removeFromTree(c.children as PenChild[], id);
       if (next !== c.children) return { ...c, children: next };
     }

@@ -2868,15 +2868,34 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
     expectsCanvasOutput &&
     !lastSawToolCall &&
     (canvas.shapes?.length ?? 0) === turnStartShapeIds.size;
-  if (!lastPromptError && !lastSawErrorEvent && !wasAborted() && (!lastSawActivity || designTurnNeverDrew)) {
+  // stopReason-error surfacing (2026-09-06): a message that ends with
+  // stopReason 'error' (provider failure mid-iteration — observed live: the
+  // login one-shot e2e drew 18 nodes, then the wrap-up LLM round errored)
+  // resolves prompt() WITHOUT throwing, so every retry tier above skipped it
+  // and the turn exited "complete" with a half-built design. NOT retried
+  // automatically: the turn already drew (a full re-prompt against the
+  // partial canvas wastes tokens and risks rebuilds); instead the honest
+  // agent:error marks the run errored so the UI shows its retry banner and
+  // the user can immediately continue from the current state.
+  const stopReasonError = lastStopReason === 'error';
+  if (
+    !lastPromptError &&
+    !lastSawErrorEvent &&
+    !wasAborted() &&
+    (!lastSawActivity || designTurnNeverDrew || stopReasonError)
+  ) {
     const emptyMessage =
       designTurnNeverDrew && lastSawActivity
         ? 'The model responded with text but never called any tools — nothing was drawn on the canvas. ' +
           'This usually means the LLM provider connection dropped mid-generation (truncated output) or the model is rate-limited. ' +
           'Resend your prompt; if it keeps happening, switch to a different model in Settings.'
-        : 'The model returned an empty response (no text and no tool calls). ' +
-          'This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. ' +
-          'Wait about a minute and resend your prompt; if it keeps happening, try a different model in Settings.';
+        : stopReasonError
+          ? 'The model stopped mid-turn with a provider error (finish reason: error). ' +
+            'Everything built so far is on the canvas — resend your prompt and the agent will continue from the current state. ' +
+            'If it keeps happening, switch to a different model in Settings.'
+          : 'The model returned an empty response (no text and no tool calls). ' +
+            'This usually means the LLM provider is rate-limited (HTTP 429) or temporarily unavailable. ' +
+            'Wait about a minute and resend your prompt; if it keeps happening, try a different model in Settings.';
     const cls = classifyAgentError(emptyMessage);
     yield {
       kind: 'agent_event',

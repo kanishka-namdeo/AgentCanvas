@@ -16,6 +16,12 @@ The .pen format layer: canonical TypeScript schema for the pen.dev .pen file for
 
 ## Local Contracts
 
+### Structural container predicate + fill-cascade (2026-09-06 — one-shot/multi-shot e2e hardening)
+- **`isContainer`/`isContainerNode` are STRUCTURAL, not type-only**: a node of a non-container type that carries a non-empty `children` array and is not a pure content leaf (`PEN_CONTENT_LEAF_TYPES` in `types.ts`: text/note/context/prompt/icon/image/script/ref/path/line/slice) counts as a container. This heals LLM-authored "card rectangles" (rectangle roots with nested content) persisted BEFORE the ingest-side promotion in `canvas/patch.ts` — their descendants previously existed in the tree but never resolved, rendered, or received updates (observed live: an 18-node login subtree resolved to 2 shapes).
+- **`isPromotableToContainer`** (document.ts, exported): non-container + non-content-leaf → can be promoted to `frame` at ingest or on nested insert (Figma's nesting-into-a-rectangle behavior; `insertNode`/`insertUnderParent` promote instead of silently dropping).
+- **Fill-cascade in `layoutTree`**: fill_container children are re-sized TOP-DOWN against each parent's FINAL size before positioning. Phase B inside `computeIntrinsicSize` only fixes DIRECT children (the bottom-up pass sizes a parent after its children, so a fill GRANDCHILD resolved against the parent's pre-fill 0); without the cascade, fill chains ≥ 2 deep (Screen 1280 > Content fill > StatsRow fill) collapsed to w=0 — observed live: StatsRow/ChartArea/RecentActivity all 0-wide on the dashboard e2e.
+- Static-path fill semantics: `fill_container` = the parent's CONTENT area (real flex-sharing happens in the DOM native renderer). Pinned by `tests/unit/design-generation-hardening-2026-09-06.test.ts`.
+
 ### .pen Format Version
 - `PEN_FORMAT_VERSION = '2.17'` (legacy baseline, constant in `types.ts`) / `PEN_FORMAT_VERSION_V3 = '3.0'` (Figma-canonical export stamp). All import/export/converters reference these constants. `PenDocument.version` is a plain `string` (2.x or 3.x).
 

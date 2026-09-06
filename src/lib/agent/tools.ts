@@ -220,63 +220,58 @@ const ShapeInputSchema = Type.Object({
   radius: Type.Optional(Type.Number({ description: 'Border radius in px (rectangle/frame)' })),
   text: Type.Optional(Type.String({ description: 'Text content (type=text only)' })),
   fontSize: Type.Optional(Type.Number({ description: 'Font size for text shapes' })),
-  fontWeight: Type.Optional(Type.Number({ description: 'Font weight 100..900 (default 400). The system prompt asks for 400/500/600/700 — body 400, labels 500, section heads 600, page titles 700.' })),
-  fontFamily: Type.Optional(Type.String({ description: 'Font family CSS string. Default "Inter, system-ui, sans-serif" (Inter is loaded via next/font). Pass e.g. "Inter" or "Geist" to override.' })),
-  letterSpacing: Type.Optional(Type.Number({ description: 'Letter spacing in px (can be negative for tightening, e.g. -0.4 for headings).' })),
-  lineHeight: Type.Optional(Type.Number({ description: 'Line height as a unitless ratio (e.g. 1.6 for body, 1.25 for headings).' })),
-  textAlign: Type.Optional(Type.Union([Type.Literal('left'), Type.Literal('center'), Type.Literal('right'), Type.Literal('justify')], { description: 'Horizontal text alignment within the layer bounds. center for titles/buttons, right for numbers/dates, left for body.' })),
-  textTransform: Type.Optional(Type.Union([Type.Literal('none'), Type.Literal('uppercase'), Type.Literal('lowercase'), Type.Literal('capitalize')], { description: 'CSS text-transform. Use "uppercase" for KPI labels, table headers, and overlines — style the transform instead of retyping the string in caps.' })),
-  underline: Type.Optional(Type.Boolean({ description: 'Underline decoration (links).' })),
-  strikethrough: Type.Optional(Type.Boolean({ description: 'Strikethrough decoration.' })),
+  fontWeight: Type.Optional(Type.Number({ description: 'Font weight 100..900 — body 400, labels 500, heads 600, titles 700.' })),
+  fontFamily: Type.Optional(Type.String({ description: 'Font family CSS string (default "Inter, system-ui, sans-serif").' })),
+  letterSpacing: Type.Optional(Type.Number({ description: 'Letter spacing px (negative tightens, e.g. -0.4 headings).' })),
+  lineHeight: Type.Optional(Type.Number({ description: 'Line height ratio (e.g. 1.6 body, 1.25 headings).' })),
+  textAlign: Type.Optional(Type.Union([Type.Literal('left'), Type.Literal('center'), Type.Literal('right'), Type.Literal('justify')], { description: 'Text alignment. center for titles/buttons, right for numbers.' })),
+  textTransform: Type.Optional(Type.Union([Type.Literal('none'), Type.Literal('uppercase'), Type.Literal('lowercase'), Type.Literal('capitalize')], { description: 'CSS text-transform — "uppercase" for KPI labels/overlines.' })),
+  underline: Type.Optional(Type.Boolean({ description: 'Underline (links).' })),
+  strikethrough: Type.Optional(Type.Boolean({ description: 'Strikethrough.' })),
   textColor: Type.Optional(Type.String({ description: 'Text color hex' })),
   // Phase 5 extended fields:
-  src: Type.Optional(Type.String({ description: 'Image source URL (data URL or remote) — type=image only' })),
-  closed: Type.Optional(Type.Boolean({ description: 'For path shapes: close the path (fill it). Default false.' })),
-  blur: Type.Optional(Type.Number({ description: 'Gaussian blur radius in px' })),
-  // ---- Icon fields (type=icon — Lucide library glyphs, docs/lucide-icons.md) ----
-  icon: Type.Optional(Type.String({ description: 'Icon name from the Lucide catalog (type=icon only), e.g. "lock", "arrow-right", "chart-column". Call pen_search_icons to find names by meaning. NEVER invent a name.' })),
-  library: Type.Optional(Type.String({ description: 'Icon library. Only "lucide" is supported (default). Kept for .pen PenIcon spec compatibility.' })),
-  // ---- High-fidelity extended fields (so the LLM can create polished shapes in one call) ----
+  src: Type.Optional(Type.String({ description: 'Image source URL (type=image only)' })),
+  closed: Type.Optional(Type.Boolean({ description: 'Path shapes: close the path (fill it).' })),
+  blur: Type.Optional(Type.Number({ description: 'Gaussian blur radius px' })),
+  // ---- Icon fields (type=icon — Lucide library glyphs) ----
+  icon: Type.Optional(Type.String({ description: 'Lucide icon name (type=icon only), e.g. "lock". Find names via pen_search_icons; never invent one.' })),
+  library: Type.Optional(Type.String({ description: 'Icon library — only "lucide" (default).' })),
+  // ---- High-fidelity extended fields ----
   gradient: Type.Optional(Type.Object({
-    type: Type.Union([Type.Literal('linear'), Type.Literal('radial')], { description: 'Gradient type' }),
-    angle: Type.Optional(Type.Number({ description: 'Angle in degrees (linear). Default 90.' })),
+    type: Type.Union([Type.Literal('linear'), Type.Literal('radial')]),
+    angle: Type.Optional(Type.Number({ description: 'Degrees (linear, default 90)' })),
     stops: Type.Array(Type.Object({
       offset: Type.Number({ description: '0..1' }),
-      color: Type.String({ description: 'Hex color' }),
+      color: Type.String({ description: 'Hex' }),
     }), { description: 'Color stops (min 2)' }),
-  }, { description: 'Gradient fill (overrides solid fill). Use for hero areas, CTAs, logos.' })),
+  }, { description: 'Gradient fill (overrides solid). Heroes, CTAs, logos.' })),
   shadow: Type.Optional(Type.Object({
-    x: Type.Number({ description: 'X offset in px' }),
-    y: Type.Number({ description: 'Y offset in px' }),
-    blur: Type.Number({ description: 'Blur radius in px' }),
-    color: Type.String({ description: 'Shadow color hex with alpha, e.g. #0000001a for 10% black' }),
-    spread: Type.Optional(Type.Number({ description: 'Spread in px (default 0)' })),
-    inset: Type.Optional(Type.Boolean({ description: 'Inset shadow (default false)' })),
-  }, { description: 'Drop shadow. Use 0,4,6,#0000001a for cards; 0,2,4,#0000001a for buttons; 0,8,12,#00000033 for FABs.' })),
+    x: Type.Number({ description: 'X offset px' }),
+    y: Type.Number({ description: 'Y offset px' }),
+    blur: Type.Number({ description: 'Blur px' }),
+    color: Type.String({ description: 'Hex+alpha, e.g. #0000001a' }),
+    spread: Type.Optional(Type.Number({ description: 'Spread px' })),
+    inset: Type.Optional(Type.Boolean({ description: 'Inset (default false)' })),
+  }, { description: 'Drop shadow. Cards 0,4,6,#0000001a; buttons 0,2,4,#0000001a.' })),
   radii: Type.Optional(Type.Object({
-    topLeft: Type.Number({ description: 'Top-left radius in px' }),
-    topRight: Type.Number({ description: 'Top-right radius in px' }),
-    bottomRight: Type.Number({ description: 'Bottom-right radius in px' }),
-    bottomLeft: Type.Number({ description: 'Bottom-left radius in px' }),
-  }, { description: 'Per-corner border radii (overrides uniform radius). Use for toast cards, sheets.' })),
+    topLeft: Type.Number({ description: 'px' }),
+    topRight: Type.Number({ description: 'px' }),
+    bottomRight: Type.Number({ description: 'px' }),
+    bottomLeft: Type.Number({ description: 'px' }),
+  }, { description: 'Per-corner radii (overrides uniform radius).' })),
+  // autoLayout accepts BOTH vocabularies: legacy {direction,gap,padding,
+  // alignX,alignY} and Figma v3 {layoutMode,itemSpacing,paddingLeft…} — the
+  // v3 spellings are not declared here (schema-size cap, 2026-09-06) but
+  // pass validation as extra properties and are normalized by
+  // normalizeToolParams before execute runs.
   autoLayout: Type.Optional(Type.Object({
-    direction: Type.Optional(Type.Union([Type.Literal('horizontal'), Type.Literal('vertical')], { description: 'Layout direction (legacy spelling; v3: layoutMode)' })),
-    gap: Type.Optional(Type.Number({ description: 'Gap between children in px (default 8). v3 alias: itemSpacing.' })),
-    padding: Type.Optional(Type.Number({ description: 'Padding inside frame in px (default 16). v3 aliases: paddingLeft/Right/Top/Bottom (uniform during the window).' })),
-    alignX: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Horizontal alignment (default center)' })),
-    alignY: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Vertical alignment (default center)' })),
-    // Figma v3 spellings (spec Phase 6 / G.3 row 1) — normalized to the legacy
-    // fields above by normalizeToolParams before execute runs.
-    layoutMode: Type.Optional(Type.Union([Type.Literal('VERTICAL'), Type.Literal('HORIZONTAL'), Type.Literal('NONE'), Type.Literal('GRID')], { description: 'v3: VERTICAL | HORIZONTAL | NONE' })),
-    itemSpacing: Type.Optional(Type.Number({ description: 'v3: main-axis gap in px' })),
-    paddingLeft: Type.Optional(Type.Number({ description: 'v3: left padding' })),
-    paddingRight: Type.Optional(Type.Number({ description: 'v3: right padding' })),
-    paddingTop: Type.Optional(Type.Number({ description: 'v3: top padding' })),
-    paddingBottom: Type.Optional(Type.Number({ description: 'v3: bottom padding' })),
-    primaryAxisAlignItems: Type.Optional(Type.Union([Type.Literal('MIN'), Type.Literal('CENTER'), Type.Literal('MAX'), Type.Literal('SPACE_BETWEEN'), Type.Literal('SPACE_AROUND')], { description: 'v3: primary-axis alignment' })),
-    counterAxisAlignItems: Type.Optional(Type.Union([Type.Literal('MIN'), Type.Literal('CENTER'), Type.Literal('MAX')], { description: 'v3: counter-axis alignment' })),
-  }, { description: 'Auto Layout (flexbox) for frames — accepts legacy {direction,gap,padding,alignX,alignY} or Figma v3 {layoutMode,itemSpacing,paddingLeft…,primaryAxisAlignItems,counterAxisAlignItems}. Prefer over manual x/y for contained UI.' })),
-  parentId: Type.Optional(Type.String({ description: 'Parent frame/group ID. If omitted, the shape is a top-level layer. (Note: to MOVE an existing node into a frame, use pen_reparent_nodes instead.)' })),
+    direction: Type.Optional(Type.Union([Type.Literal('horizontal'), Type.Literal('vertical')], { description: 'Layout direction' })),
+    gap: Type.Optional(Type.Number({ description: 'Gap px (default 8)' })),
+    padding: Type.Optional(Type.Number({ description: 'Padding px (default 16)' })),
+    alignX: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Horizontal alignment' })),
+    alignY: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'Vertical alignment' })),
+  }, { description: 'Auto Layout (flexbox) for frames. Prefer over manual x/y for contained UI.' })),
+  parentId: Type.Optional(Type.String({ description: 'Parent frame/group ID (omit = top-level). To MOVE an existing node, use pen_reparent_nodes.' })),
 });
 
 /// LLMs occasionally pass a nested object param as a JSON STRING (observed
@@ -288,6 +283,54 @@ const ShapeInputSchema = Type.Object({
 /// chance to run.
 const LooseShapeInputSchema = Type.Union([ShapeInputSchema, Type.String()], {
   description: 'The fields to change, as an object (a JSON-encoded string is also accepted and parsed).',
+});
+
+/// Compact mutation-fields schema for `changes` params (2026-09-06 gateway
+/// token-cap fix). The z.ai sandbox gateway rejects requests whose total
+/// prompt (tools + messages) crosses ~24k tokens; the three heavy tools that
+/// inlined the full 40-field ShapeInputSchema (~7k chars EACH — 21k of
+/// duplicated schema bytes) pushed wireframe-category turns (83 tools) over
+/// the cap with a populated canvas, dying on the FIRST LLM round with
+/// 400 "Prompt exceeds max length" (observed live: the testimonials T4
+/// turn — 4 attempts, 0 tool calls). pen_create_node keeps the FULL
+/// canonical schema (the field reference the model reads); update-style
+/// tools advertise only the common edit fields. Unknown fields pass TypeBox
+/// validation (Type.Object permits extra properties) and are normalized at
+/// runtime by coerceShapeInput — full-field updates keep working.
+const CompactChangesSchema = Type.Union([
+  Type.Object({
+    name: Type.Optional(Type.String({ description: 'Layer name' })),
+    x: Type.Optional(Type.Number({ description: 'X position' })),
+    y: Type.Optional(Type.Number({ description: 'Y position' })),
+    width: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'Width px, or "fit_content"/"fill_container"' })),
+    height: Type.Optional(Type.Union([Type.Number(), Type.String()], { description: 'Height px, or "fit_content"/"fill_container"' })),
+    rotation: Type.Optional(Type.Number({ description: 'Degrees' })),
+    opacity: Type.Optional(Type.Number({ description: '0..1' })),
+    fill: Type.Optional(Type.String({ description: 'Fill hex, e.g. #ff0000' })),
+    stroke: Type.Optional(Type.String({ description: 'Stroke hex' })),
+    strokeWidth: Type.Optional(Type.Number({ description: 'Stroke px' })),
+    radius: Type.Optional(Type.Number({ description: 'Corner radius px' })),
+    text: Type.Optional(Type.String({ description: 'Text content (text nodes)' })),
+    fontSize: Type.Optional(Type.Number({ description: 'Font size' })),
+    fontWeight: Type.Optional(Type.Number({ description: '100..900 — body 400, labels 500, heads 600, titles 700' })),
+    fontFamily: Type.Optional(Type.String({ description: 'Font family' })),
+    letterSpacing: Type.Optional(Type.Number({ description: 'Letter spacing px (negatives tighten)' })),
+    lineHeight: Type.Optional(Type.Number({ description: 'Unitless line height ratio' })),
+    textAlign: Type.Optional(Type.Union([Type.Literal('left'), Type.Literal('center'), Type.Literal('right'), Type.Literal('justify')], { description: 'left|center|right|justify' })),
+    textTransform: Type.Optional(Type.Union([Type.Literal('none'), Type.Literal('uppercase'), Type.Literal('lowercase'), Type.Literal('capitalize')], { description: 'none|uppercase|lowercase|capitalize' })),
+    textColor: Type.Optional(Type.String({ description: 'Text hex' })),
+    parentId: Type.Optional(Type.String({ description: 'Move to parent frame (id)' })),
+    autoLayout: Type.Optional(Type.Object({
+      direction: Type.Optional(Type.Union([Type.Literal('horizontal'), Type.Literal('vertical')], { description: 'horizontal|vertical' })),
+      gap: Type.Optional(Type.Number({ description: 'Gap px' })),
+      padding: Type.Optional(Type.Number({ description: 'Padding px' })),
+      alignX: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'min|center|max' })),
+      alignY: Type.Optional(Type.Union([Type.Literal('min'), Type.Literal('center'), Type.Literal('max')], { description: 'min|center|max' })),
+    }, { description: 'Auto Layout (flexbox). Full field set incl. gradients/shadows: see pen_create_node.' })),
+  }, { description: 'Fields to change — full field set: see pen_create_node parameters.' }),
+  Type.String({ description: 'JSON-encoded object form is also accepted and parsed.' }),
+], {
+  description: 'The fields to change, as an object (JSON string accepted). Same fields as pen_create_node.',
 });
 
 function parseLooseShapeInput(
@@ -1538,7 +1581,7 @@ const createShape = defineTool({
       nodeId: Type.Optional(Type.String({ description: 'ID of the node to update (aliases: id, shapeId)' })),
       id: Type.Optional(Type.String({ description: 'Alias for nodeId' })),
       shapeId: Type.Optional(Type.String({ description: 'Legacy alias for nodeId' })),
-      changes: Type.Optional(LooseShapeInputSchema),
+      changes: Type.Optional(CompactChangesSchema),
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       // Tolerate LLMs that pass `id` or the legacy `shapeId` instead of `nodeId`
@@ -4588,7 +4631,7 @@ const createShape = defineTool({
       // 'Validation failed for tool "pen_bulk_update_by_filter"'). Accept
       // object OR JSON string and parse below; empty/unparseable input gets
       // an actionable error instead of a silent no-op.
-      changes: LooseShapeInputSchema,
+      changes: CompactChangesSchema,
     }),
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       let matches = ctx.getShapes();

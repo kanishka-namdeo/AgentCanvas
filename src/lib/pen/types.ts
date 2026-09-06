@@ -791,6 +791,32 @@ export const PEN_NODE_TYPES = [
 
 export type PenNodeType = (typeof PEN_NODE_TYPES)[number];
 
+/**
+ * Node types that are pure CONTENT leaves: nesting children under them is
+ * structurally meaningless (a text with children, an icon with children…),
+ * so they are NEVER promoted to containers — neither at patch ingest nor by
+ * the structural container predicates. Everything else (rectangle, ellipse,
+ * star, polygon, and any unknown/future type) that arrives carrying children
+ * is treated as a container ("card rectangle" promotion, 2026-09-06).
+ *
+ * 'image' is not in PEN_NODE_TYPES (it is accepted by the resolver's
+ * KNOWN_NODE_TYPES superset) but IS a content leaf — included here so the
+ * predicates agree with the resolver.
+ */
+export const PEN_CONTENT_LEAF_TYPES: ReadonlySet<string> = new Set<string>([
+  'text',
+  'note',
+  'context',
+  'prompt',
+  'icon',
+  'image',
+  'script',
+  'ref',
+  'path',
+  'line',
+  'slice',
+]);
+
 /** Type guard: is this object a .pen node? */
 export function isPenNode(value: unknown): value is PenChild {
   if (typeof value !== 'object' || value === null) return false;

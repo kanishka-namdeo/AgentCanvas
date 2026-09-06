@@ -240,6 +240,8 @@ Extended SyncEvent types (in `src/lib/canvas/types.ts`):
 
 ## Work Guidance
 
+- **Tool-schema byte budget (2026-09-06, z.ai sandbox gateway cap)**: the sandbox gateway rejects requests whose total prompt (tool schemas + messages) crosses ~24k tokens with `400 Prompt exceeds max length` — surfaced as `stopReason: 'error'` with empty usage. The tool payload is re-sent EVERY LLM round, so keep the serialized registry lean (~43k chars after the 2026-09-06 slimming; was 57k). `pen_create_node` owns the FULL canonical `ShapeInputSchema` (the field reference the model reads); update-style tools (`pen_update_node`, `pen_bulk_update_by_filter`) use `CompactChangesSchema` — unknown fields pass TypeBox validation (extra properties allowed) and are normalized at runtime by `coerceShapeInput`, so full-field updates keep working. When adding tools, prefer compact schemas + `see pen_create_node` pointers over re-inlining the full field set.
+- **stopReason 'error' surfacing**: a message ending with stopReason `error` resolves prompt() WITHOUT throwing, so the retry tiers skip it. The runner tail emits an honest `agent:error` (turn status `error` → the UI retry banner) instead of exiting "complete" with a half-built canvas. Deliberately NOT auto-retried: the turn already drew, and a full re-prompt against the partial canvas risks rebuild duplication.
 - When adding a tool: define it in `tools.ts`, add the `executeTool` case, add it to the relevant skill's `allowedTools` in `skills/registry.ts`, add it to `ALL_TOOL_NAMES`, update the system prompt if needed.
 - When adding a plugin tool: work in `plugins/` (see `plugins/AGENTS.md`) — do not add plugin tools to `tools.ts`.
 - When adding a skill: see `skills/AGENTS.md`.

@@ -30,7 +30,7 @@ import type {
   FigmaPaint,
   FigmaEffect,
 } from './types';
-import { PEN_NODE_TYPES } from './types';
+import { PEN_NODE_TYPES, PEN_CONTENT_LEAF_TYPES } from './types';
 import type { Shape, Layer, CanvasDocument, AutoLayout, GradientFill, ShadowEffect, CornerRadii } from '../canvas/types';
 import { collectComponents, expandRef, walkTree } from './document';
 import {
@@ -159,6 +159,17 @@ const KNOWN_NODE_TYPES: ReadonlySet<string> = new Set<string>([...PEN_NODE_TYPES
 // legacy types (frame, group) plus the new Figma-canonical container types:
 // section, component, component_set, boolean_operation.
 //
+// EXTENDED (2026-09-06 "card rectangle" fix): a node of a NON-container type
+// that structurally carries a non-empty children array and is not a pure
+// content leaf ALSO counts as a container. This is the resolver-side half of
+// the fix for LLM-authored "content containers" (rectangle "cards" with
+// title/input/CTA children): before, resolve() treated such nodes as leaves,
+// so their descendants never entered `shapes` — an 18-node login subtree
+// resolved to 2 shapes and the UI rendered an empty card. The patch ingest
+// (patch.ts normalizeToNode/normalizeSubtree) promotes NEW nodes to 'frame';
+// this structural branch heals trees persisted BEFORE that promotion (journal
+// folds, DB documents, snapshots).
+//
 // Acts as a TypeScript type guard so the compiler knows `node.children` is
 // accessible after this check.
 function isContainerNode(node: PenChild): node is
@@ -168,14 +179,19 @@ function isContainerNode(node: PenChild): node is
   | import('./types').PenComponent
   | import('./types').PenComponentSet
   | import('./types').PenBooleanOperation {
-  return (
+  if (
     node.type === 'frame' ||
     node.type === 'group' ||
     node.type === 'section' ||
     node.type === 'component' ||
     node.type === 'component_set' ||
     node.type === 'boolean_operation'
-  );
+  ) {
+    return true;
+  }
+  if (PEN_CONTENT_LEAF_TYPES.has(node.type)) return false;
+  const kids = (node as { children?: unknown }).children;
+  return Array.isArray(kids) && kids.length > 0;
 }
 
 // ---- Theme + variable resolution -----------------------------------------
@@ -1160,6 +1176,28 @@ export function resolvePenTreeDetailed(doc: CanvasDocument, opts?: ResolveOpts):
       const kids = rn._kids;
       if (kids && kids.length > 0) {
         const layout = normalizeLayoutDir((rn.node as PenLayout).layout);
+
+        // ---- Fill-cascade (2026-09-06) --------------------------------------
+        // Phase B inside computeIntrinsicSize re-sizes DIRECT fill_container
+        // children against the parent's computed size — but the bottom-up
+        // pass sizes the parent only AFTER its children, so a fill
+        // GRANDCHILD resolves against its parent's pre-fill width (0), and
+        // the parent's Phase B then propagates the stale 0. Fill chains two
+        // or more levels deep (Screen 1280 > Content fill > StatsRow fill)
+        // collapsed to w=0 — observed live in the dashboard one-shot e2e:
+        // StatsRow/ChartArea/RecentActivity all resolved 0 wide while their
+        // own fill children (StatCards) kept explicit widths. Re-resolving
+        // fill children HERE — top-down, before positioning, with the
+        // parent's FINAL size — cascades fill sizing to any depth, because
+        // each level corrects before its descendants are visited.
+        const fcPad = resolvePadding((rn.node as PenLayout).padding);
+        const fcW = Math.max(0, rn.width - fcPad.left - fcPad.right);
+        const fcH = Math.max(0, rn.height - fcPad.top - fcPad.bottom);
+        for (const k of kids) {
+          if (isFillContainer(nodeWidth(k.node)) && k.width !== fcW) k.width = fcW;
+          if (isFillContainer(nodeHeight(k.node)) && k.height !== fcH) k.height = fcH;
+        }
+
         // Both flex and absolute-positioning paths go through layoutChildren
         // (which handles constraints in the 'none' branch).
         layoutChildren(rn, kids, layout ?? 'none');

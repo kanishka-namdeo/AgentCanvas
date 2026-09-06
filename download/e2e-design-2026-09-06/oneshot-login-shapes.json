@@ -1,0 +1,146 @@
+[
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724",
+    "name": "Login Screen",
+    "type": "frame",
+    "x": 200,
+    "y": 50,
+    "w": 400,
+    "h": 100
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-1",
+    "name": "Welcome back title",
+    "type": "text",
+    "x": 232,
+    "y": -100,
+    "w": 180,
+    "h": 40
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-2",
+    "name": "Email input container",
+    "type": "frame",
+    "x": 232,
+    "y": -36,
+    "w": 320,
+    "h": 76
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-2-1",
+    "name": "Email label",
+    "type": "text",
+    "x": 232,
+    "y": -36,
+    "w": 100,
+    "h": 20
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-2-2",
+    "name": "Email input",
+    "type": "rectangle",
+    "x": 232,
+    "y": -8,
+    "w": 320,
+    "h": 48
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-3",
+    "name": "Password input container",
+    "type": "frame",
+    "x": 232,
+    "y": 64,
+    "w": 320,
+    "h": 76
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-3-1",
+    "name": "Password label",
+    "type": "text",
+    "x": 232,
+    "y": 64,
+    "w": 80,
+    "h": 20
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-3-2",
+    "name": "Password input",
+    "type": "rectangle",
+    "x": 232,
+    "y": 92,
+    "w": 320,
+    "h": 48
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-4",
+    "name": "Remember me row",
+    "type": "frame",
+    "x": 232,
+    "y": 164,
+    "w": 320,
+    "h": 20
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-4-1",
+    "name": "Remember me checkbox",
+    "type": "rectangle",
+    "x": 232,
+    "y": 164,
+    "w": 20,
+    "h": 20
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-4-2",
+    "name": "Remember me text",
+    "type": "text",
+    "x": 264,
+    "y": 164,
+    "w": 100,
+    "h": 20
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-5",
+    "name": "Primary login button",
+    "type": "frame",
+    "x": 232,
+    "y": 208,
+    "w": 320,
+    "h": 48
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-5-1",
+    "name": "Log in button text",
+    "type": "text",
+    "x": 342,
+    "y": 222,
+    "w": 100,
+    "h": 20
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-6",
+    "name": "Footer links",
+    "type": "frame",
+    "x": 232,
+    "y": 280,
+    "w": 320,
+    "h": 20
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-6-1",
+    "name": "Forgot password link",
+    "type": "text",
+    "x": 284,
+    "y": 280,
+    "w": 100,
+    "h": 20
+  },
+  {
+    "id": "778b07c6-0c37-4f52-a1c0-38f5226dd724-6-2",
+    "name": "Create account link",
+    "type": "text",
+    "x": 400,
+    "y": 280,
+    "w": 100,
+    "h": 20
+  }
+]

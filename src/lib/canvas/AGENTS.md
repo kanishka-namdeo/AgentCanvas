@@ -28,6 +28,10 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 
 ## Local Contracts
 
+### Container promotion at patch ingest (2026-09-06 — "card rectangle" fix)
+- `normalizeToNode` + `normalizeSubtree` PROMOTE structural leaf types (rectangle/ellipse/star/polygon/unknown) carrying a non-empty `children` array to `frame` — the classic LLM "card rectangle" pattern (a login screen authored as one add_subtree whose card is a rectangle with 16 descendants previously resolved to 2 shapes). Content leaves (`PEN_CONTENT_LEAF_TYPES`) are never promoted. `insertUnderParent` + the pen `insertNode` promote a NON-container parentId target instead of silently dropping the insert (Figma nesting behavior).
+- The four former local container-type copies (`insertUnderParent`, `replaceSiblings`, `replaceNodeInTree`, `removeFromTree`) now use the shared structural predicate `isContainerLike` from `pen/document.ts` — promotion semantics are defined in exactly one place.
+
 ### Phase C replication contract (R2 journal fold — the durability spine)
 
 - **Server-authoritative state**: `server document = newest fold checkpoint + journal tail`. User edits AND agent patches are journaled (Phase A/B); the fold replays them on every cold start, so a service restart no longer rolls the canvas back to the last client-POSTed snapshot. Verified live end-to-end by `scripts/e2e-phase-c-probe.ts` (user-added node survives a real dev-server restart).

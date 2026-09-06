@@ -1,0 +1,65 @@
+[
+  {
+    "prompt": "Create a pricing page: a header with the title \"Plans for every team\" and a short subtitle, then 3 pricing tier cards side by side named Starter, Pro, and Enterprise. Each tier has a plan name, a monthly price, 4 feature rows, and a CTA button. The middle Pro tier is the one I will iterate on.",
+    "shapesBefore": 0,
+    "shapesAfter": 62,
+    "idRetention": 1,
+    "targetedExisting": 0,
+    "toolCalls": 0,
+    "opCounts": {},
+    "diffSummary": "no canvas changes",
+    "durationMs": 66391,
+    "errors": [
+      "The model stopped mid-turn with a provider error (finish reason: error). Everything built so far is on the canvas — resend your prompt and the agent will continue from the current state. If it keeps happening, switch to a different model in Settings."
+    ],
+    "assistantText": ""
+  },
+  {
+    "prompt": "Add a \"MOST POPULAR\" badge above the Pro tier card and give the Pro card an accent border or background tint so it stands out from the other two tiers. Do not rebuild the other tiers.",
+    "shapesBefore": 62,
+    "shapesAfter": 64,
+    "idRetention": 1,
+    "targetedExisting": 1,
+    "toolCalls": 5,
+    "opCounts": {
+      "add": 2,
+      "update": 2
+    },
+    "diffSummary": "2 created · 2 updated",
+    "durationMs": 25257,
+    "errors": [],
+    "assistantText": "\nI'll add a \"MOST POPULAR\" badge above the Pro tier card and give the Pro card an accent border or background tint to make it stand out. Let me first get the current metadata to identify the exact node IDs.\n\nI can see the Pro card is at node ID `a3be885f-7569-4a04-8e18-a84ae0088ae0-2-2`. I need to:\n\n1. Add a \"MOST POPULAR\" badge above the Pro card\n2. Give the Pro card an accent border or background tint\n\nLet me first create the badge above the Pro card, then update the Pro card to make it stand out.\n\n\nNow I'll update the Pro card to add an accent border and background tint to make it stand out"
+  },
+  {
+    "prompt": "Switch the entire page to a dark theme: very dark background, light text, and a violet accent color. Keep every section, card, and piece of text — this is a restyle, not a rebuild.",
+    "shapesBefore": 64,
+    "shapesAfter": 64,
+    "idRetention": 1,
+    "targetedExisting": 29,
+    "toolCalls": 11,
+    "opCounts": {
+      "update": 2,
+      "update_many": 5,
+      "background": 1
+    },
+    "diffSummary": "30 updated",
+    "durationMs": 54077,
+    "errors": [],
+    "assistantText": "\nI can see the canvas is already in a dark theme with violet accent color, but there are several contrast issues that need to be fixed. The text is currently the same color as the background in many places, making it invisible. Let me fix these contrast issues and ensure the dark theme is properly applied.\n\n\n\n\n\n\n\n\n\n\n\nPerfect! I've successfully switched the entire page to a dark theme with violet accent color. Here's what I accomplished:\n\n1. **Fixed the container overflow** by setting the main Pricing Page frame to `fit_content` so it properly wraps all content\n2. **Applied proper text colors**"
+  },
+  {
+    "prompt": "Add a testimonials section below the pricing tiers: a section title \"Loved by builders\" and 2 quote cards, each with a circular avatar, a short quote text, and an author name. Keep everything above unchanged.",
+    "shapesBefore": 64,
+    "shapesAfter": 64,
+    "idRetention": 1,
+    "targetedExisting": 0,
+    "toolCalls": 1,
+    "opCounts": {},
+    "diffSummary": "no canvas changes",
+    "durationMs": 16428,
+    "errors": [
+      "The model stopped mid-turn with a provider error (finish reason: error). Everything built so far is on the canvas — resend your prompt and the agent will continue from the current state. If it keeps happening, switch to a different model in Settings."
+    ],
+    "assistantText": "\nI can see the current pricing page layout. The pricing cards end around y=620, so I'll add the testimonials section below them. Let me create the testimonials section with the title and two quote cards.\n"
+  }
+]

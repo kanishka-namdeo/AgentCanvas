@@ -1,0 +1,264 @@
+{
+  "generatedAt": "2026-09-06T17:29:12.184Z",
+  "scenarios": {
+    "oneshot-login": {
+      "passed": false,
+      "checks": [
+        {
+          "name": "turn completed (agent:turn_end)",
+          "ok": true
+        },
+        {
+          "name": "no agent errors (2 environmental retries)",
+          "ok": false
+        },
+        {
+          "name": "canvas populated (16 shapes >= 10)",
+          "ok": true
+        },
+        {
+          "name": "geometry sane (finite, positive sizes)",
+          "ok": true
+        },
+        {
+          "name": "manual critique default: no critic dispatch",
+          "ok": true
+        },
+        {
+          "name": "agent produced an assistant reply",
+          "ok": false
+        }
+      ],
+      "docId": "e2e-oneshot-login-1788706287873",
+      "shapes": 16,
+      "durationMs": 79418,
+      "toolCalls": 0,
+      "opCounts": {},
+      "diffSummary": "no canvas changes",
+      "errors": [
+        "The model stopped mid-turn with a provider error (finish reason: error). Everything built so far is on the canvas — resend your prompt and the agent will continue from the current state. If it keeps happening, switch to a different model in Settings."
+      ],
+      "assistantText": ""
+    },
+    "oneshot-dashboard": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "turn completed (agent:turn_end)",
+          "ok": true
+        },
+        {
+          "name": "no agent errors",
+          "ok": true
+        },
+        {
+          "name": "canvas populated (53 shapes >= 18)",
+          "ok": true
+        },
+        {
+          "name": "geometry sane (finite, positive sizes)",
+          "ok": true
+        },
+        {
+          "name": "manual critique default: no critic dispatch",
+          "ok": true
+        },
+        {
+          "name": "agent produced an assistant reply",
+          "ok": true
+        }
+      ],
+      "docId": "e2e-oneshot-dashboard-1788707971261",
+      "shapes": 53,
+      "durationMs": 264219,
+      "toolCalls": 0,
+      "opCounts": {
+        "add_subtree": 1
+      },
+      "diffSummary": "1 created",
+      "errors": [],
+      "assistantText": "Built 1 screen in parallel (Analytics Dashboard Overview) — 53 nodes placed in 1 region (201s total).\n1 screen generation(s) failed and were skipped — ask me to build them individually.\n\nDeterministic checks found 2 issue(s) — run /critique for a full review, or ask me to fix them."
+    },
+    "oneshot-pricing": {
+      "passed": false,
+      "checks": [
+        {
+          "name": "turn completed (agent:turn_end)",
+          "ok": true
+        },
+        {
+          "name": "no agent errors (3 environmental retries)",
+          "ok": false
+        },
+        {
+          "name": "canvas populated (72 shapes >= 16)",
+          "ok": true
+        },
+        {
+          "name": "geometry sane (finite, positive sizes)",
+          "ok": true
+        },
+        {
+          "name": "manual critique default: no critic dispatch",
+          "ok": true
+        },
+        {
+          "name": "agent produced an assistant reply",
+          "ok": false
+        }
+      ],
+      "docId": "e2e-oneshot-pricing-1788709412314",
+      "shapes": 72,
+      "durationMs": 66247,
+      "toolCalls": 0,
+      "opCounts": {},
+      "diffSummary": "no canvas changes",
+      "errors": [
+        "The model stopped mid-turn with a provider error (finish reason: error). Everything built so far is on the canvas — resend your prompt and the agent will continue from the current state. If it keeps happening, switch to a different model in Settings."
+      ],
+      "assistantText": ""
+    },
+    "multishot": {
+      "passed": false,
+      "checks": [
+        {
+          "name": "T1 (build): turn completed",
+          "ok": true
+        },
+        {
+          "name": "T1 (build): no errors",
+          "ok": false
+        },
+        {
+          "name": "T1 (build): manual critique (no auto critics)",
+          "ok": true
+        },
+        {
+          "name": "T2 (edit): turn completed",
+          "ok": true
+        },
+        {
+          "name": "T2 (edit): no errors",
+          "ok": true
+        },
+        {
+          "name": "T2 (edit): shape-id retention >= 90% (100%)",
+          "ok": true
+        },
+        {
+          "name": "T2 (edit): targeted pre-existing nodes (1 update/remove hits)",
+          "ok": true
+        },
+        {
+          "name": "T2 (edit): manual critique (no auto critics)",
+          "ok": true
+        },
+        {
+          "name": "T3 (restyle): turn completed",
+          "ok": true
+        },
+        {
+          "name": "T3 (restyle): no errors",
+          "ok": true
+        },
+        {
+          "name": "T3 (restyle): shape-id retention >= 75% (100%)",
+          "ok": true
+        },
+        {
+          "name": "T3 (restyle): count ratio in [0.7, 1.4] (1.00)",
+          "ok": true
+        },
+        {
+          "name": "T3 (restyle): targeted pre-existing nodes (29 update/remove hits)",
+          "ok": true
+        },
+        {
+          "name": "T3 (restyle): manual critique (no auto critics)",
+          "ok": true
+        },
+        {
+          "name": "T4 (extend): turn completed",
+          "ok": true
+        },
+        {
+          "name": "T4 (extend): no errors",
+          "ok": false
+        },
+        {
+          "name": "T4 (extend): shape-id retention >= 90% (100%)",
+          "ok": true
+        },
+        {
+          "name": "T4 (extend): grew by >= 4 shapes (+0)",
+          "ok": false
+        },
+        {
+          "name": "T4 (extend): manual critique (no auto critics)",
+          "ok": true
+        },
+        {
+          "name": "final canvas substantial (64 shapes >= 25)",
+          "ok": true
+        },
+        {
+          "name": "geometry sane",
+          "ok": true
+        }
+      ],
+      "docId": "e2e-multishot-1788709982380",
+      "totalDurationMs": 162153,
+      "turns": [
+        {
+          "shapes": 62,
+          "retention": 1,
+          "targeted": 0
+        },
+        {
+          "shapes": 64,
+          "retention": 1,
+          "targeted": 1
+        },
+        {
+          "shapes": 64,
+          "retention": 1,
+          "targeted": 29
+        },
+        {
+          "shapes": 64,
+          "retention": 1,
+          "targeted": 0
+        }
+      ],
+      "finalShapes": 64
+    },
+    "ui-real-path": {
+      "passed": true,
+      "method": "agent-browser (real UI: composer -> socket -> /api/agent -> canvas)",
+      "prompt": "Create a small login card: title, one email input, one password input, and a Log in button",
+      "checks": [
+        {
+          "name": "complete design rendered (Login Card frame + inputs + button)",
+          "ok": true
+        },
+        {
+          "name": "18 tool calls executed",
+          "ok": true
+        },
+        {
+          "name": "zero console/page errors",
+          "ok": true
+        },
+        {
+          "name": "assistant summary reply delivered",
+          "ok": true
+        },
+        {
+          "name": "socket path (delta context) stayed under gateway cap",
+          "ok": true
+        }
+      ],
+      "note": "The socket/delta path requests are far smaller than the harness HTTP full-snapshot path — real users fit comfortably under the sandbox gateway cap"
+    }
+  }
+}

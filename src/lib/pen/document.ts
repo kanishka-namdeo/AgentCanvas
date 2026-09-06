@@ -13,6 +13,7 @@ import type {
   PenComponentPropertyDefinitions,
   PenComponentPropertyValues,
 } from './types';
+import { PEN_CONTENT_LEAF_TYPES } from './types';
 
 // ---- Walk / find ----------------------------------------------------------
 
@@ -23,16 +24,57 @@ import type {
  * only descended into frames and groups, which caused components nested inside
  * component_sets to be invisible to the agent (e.g. swap_variant couldn't
  * locate a variant inside its set).
+ *
+ * EXTENDED (2026-09-06 "card rectangle" fix): a node whose TYPE is not a
+ * container but that structurally carries a non-empty `children` array (and
+ * is not a pure content leaf) is ALSO treated as a container. LLM-authored
+ * subtrees legitimately nest content under `rectangle` ("Centered Card
+ * Container" with title/inputs/CTA children — observed live in the login
+ * one-shot e2e: an 18-node tree resolved to 2 shapes because every walker
+ * descended only into type-containers, silently dropping 16 descendants).
+ * This structural branch keeps pre-promotion trees persisted BEFORE the
+ * ingest-side coercion rendering + patchable: walkTree/findNode/findNodeArray
+ * /insertNode/removeNode/updateNode/deepCloneNode all descend into them.
+ * New patches are additionally promoted at ingest (patch.ts normalizeToNode /
+ * normalizeSubtree) so freshly-authored trees carry an honest `frame` type.
  */
 function isContainer(node: PenChild): boolean {
-  return (
+  if (
     node.type === 'frame' ||
     node.type === 'group' ||
     node.type === 'section' ||
     node.type === 'component' ||
     node.type === 'component_set' ||
     node.type === 'boolean_operation'
-  );
+  ) {
+    return true;
+  }
+  if (PEN_CONTENT_LEAF_TYPES.has(node.type)) return false;
+  const kids = (node as { children?: unknown }).children;
+  return Array.isArray(kids) && kids.length > 0;
+}
+
+/** Exported alias for the structural container predicate (patch appliers use
+ * it in place of their former local type-list copies, so promotion semantics
+ * stay defined in exactly one place). */
+export const isContainerLike = isContainer;
+
+/** Can a node of this type be PROMOTED to a container when children arrive?
+ * Anything that is not already a type-container and not a content leaf
+ * (rectangle, ellipse, star, polygon, unknown/future types). Mirrors Figma:
+ * nesting content inside a rectangle turns the rectangle into a frame. */
+export function isPromotableToContainer(node: PenChild): boolean {
+  if (
+    node.type === 'frame' ||
+    node.type === 'group' ||
+    node.type === 'section' ||
+    node.type === 'component' ||
+    node.type === 'component_set' ||
+    node.type === 'boolean_operation'
+  ) {
+    return false; // already a container — nothing to promote
+  }
+  return !PEN_CONTENT_LEAF_TYPES.has(node.type);
 }
 
 /** Depth-first walk; callback receives (node, parent, depth). */
@@ -144,6 +186,13 @@ export function insertNode(
       if (index === undefined || index < 0 || index > kids.length) kids.push(stamped);
       else kids.splice(index, 0, stamped);
       return { ...c, children: kids };
+    }
+    // Promotion (2026-09-06): inserting under a NON-container structural node
+    // (rectangle/ellipse/…) converts the target into a frame — Figma does the
+    // same when you drop a layer into a plain rectangle. Without this the
+    // insert was silently dropped for any non-container parentId.
+    if (c.id === parentId && isPromotableToContainer(c)) {
+      return { ...c, type: 'frame' as const, children: [stamped] };
     }
     if (isContainer(c) && 'children' in c && Array.isArray(c.children)) {
       return { ...c, children: insertNode(c.children, stamped, parentId, index) };

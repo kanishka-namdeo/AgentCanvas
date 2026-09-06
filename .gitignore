@@ -87,3 +87,6 @@ download/prompt-tuning/*.bak
 
 # ---- Vercel ----
 .vercel
+
+# ---- e2e design-scenario harness state (2026-09-06) — per-turn checkpoints, scratch ----
+/scripts/.e2e-state/
