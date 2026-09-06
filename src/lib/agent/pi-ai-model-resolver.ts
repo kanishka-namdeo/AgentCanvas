@@ -334,8 +334,9 @@ function buildCustomEndpointModel(
 /// Throws if no auth is configured for a non-zai provider.
 export async function resolveModel(settings: AgentRunSettings | undefined): Promise<ResolvedModel> {
   // Settings-less callers (e.g. POST /api/agent with no `settings` field)
-  // get the app defaults — which since the endpoint migration point at the
-  // custom OpenAI-compatible server (kimi-k2-5), NOT the z.ai sandbox.
+  // get the app defaults — which point at the z.ai sandbox (provider 'zai',
+  // model 'glm-5.3', no key, no base URL). Inside the z.ai sandbox,
+  // ZAI.create() auto-resolves credentials below.
   const providerId = normalizeLLMProvider(settings?.llmProvider ?? DEFAULT_SETTINGS.llmProvider);
   const userApiKey = settings?.apiKey ?? DEFAULT_SETTINGS.apiKey;
   const userModelId = settings?.modelName ?? DEFAULT_SETTINGS.modelName;
@@ -349,9 +350,8 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
     // Our registry previously said zai's default is glm-4.6, but pi-ai's zai
     // catalog ships glm-4.7 (the successor). Existing user settings may still
     // hold glm-4.6 — map it so their config keeps resolving. The current
-    // default (DEFAULT_SETTINGS.modelName) is kimi-k2-5 on a custom endpoint,
-    // which never touches the pi-ai catalog (see the synthetic model path
-    // below); a stored 'glm-5.3' still resolves via the zai catalog.
+    // default (DEFAULT_SETTINGS.modelName) is glm-5.3 on the z.ai sandbox,
+    // which resolves through the zai catalog below.
     'glm-4.6': 'glm-4.7',
   };
   const requestedModelId =
@@ -381,20 +381,15 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
   let sandboxOverride: { baseUrl: string; headers: Record<string, string> } | undefined;
 
   if (providerId === 'zai') {
-    // ---- z.ai sandbox resolution (tool-calling reliability fix) -----------
+    // ---- z.ai sandbox resolution (default provider) -----------------------
     //
-    // Previously this branch was gated on `!effectiveApiKey` — but the app
-    // DEFAULT_SETTINGS pin a placeholder key ('123456', the legacy tunnel
-    // bearer) which the route injects whenever the client omits it. The
-    // gate was therefore ALWAYS false in practice, the sandbox bundle was
-    // never resolved, and a `provider: 'zai'` request silently resolved to
-    // the DEFAULT custom endpoint (the dead pinggy tunnel) carrying the
-    // placeholder key — preflight skipped (providerId==='zai'), zero safety
-    // nets, empty stream. Observed live: settings.llmProvider='zai' →
-    // model_info custom/kimi-k2-5.
-    //
-    // New rule: provider 'zai' ALWAYS attempts the sandbox bundle first —
-    // an explicit user key is only used when the sandbox is unavailable.
+    // The app's default inference provider is 'zai' — ZAI.create()
+    // auto-resolves credentials from ~/.z-ai-config / /etc/.z-ai-config /
+    // sandbox env. The OAuth-style header bundle (X-Token / X-User-Id /
+    // X-Chat-Id / X-Z-AI-From) is applied as a Model `headers` override
+    // when the sandbox reports an OAuth token. An explicit user-supplied
+    // API key (rare outside the sandbox) is used as a fallback only when
+    // ZAI.create() reports no credentials.
     try {
       const zai = await ZAI.create();
       // `config` is private on ZAI; cast to access at runtime. The shape is
@@ -427,10 +422,8 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
         };
       }
     } catch {
-      // Sandbox unavailable — fall through. The placeholder/default key is
-      // NOT used to build a bogus custom model for provider 'zai': the
-      // no-creds error below fires instead (unless the user supplied a real
-      // key AND a non-default baseUrl — the deliberate zai-proxy case).
+      // Sandbox unavailable — fall through. If the user supplied no key
+      // AND no sandbox override, the no-creds error below fires.
     }
   }
 
@@ -444,43 +437,45 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
           : ''),
     );
   }
-  // A placeholder/default key (e.g. the legacy tunnel bearer pinned in
-  // DEFAULT_SETTINGS) must not satisfy the z.ai provider on its own — if the
-  // sandbox resolution above failed AND the key is exactly the placeholder,
-  // treat it as missing so the honest no-creds error fires instead of
-  // pointing a zai-labeled request at the legacy endpoint.
+  // Belt-and-braces guard for provider 'zai' with NO real credentials: if
+  // the sandbox resolution above failed AND no user-supplied key is present
+  // AND no custom proxy URL is configured, the request has nothing to
+  // authenticate with — surface an honest error instead of silently
+  // routing to a dead endpoint. (Previously this guard caught the legacy
+  // '123456' placeholder key; with zai as the default, it catches the
+  // empty-key + empty-baseURL case where ZAI.create() reported no creds.)
   if (
     providerId === 'zai' &&
     !sandboxOverride &&
-    effectiveApiKey === DEFAULT_SETTINGS.apiKey &&
-    (settings?.apiBaseUrl?.trim() ?? DEFAULT_SETTINGS.apiBaseUrl.trim()) === DEFAULT_SETTINGS.apiBaseUrl.trim()
+    !effectiveApiKey &&
+    (settings?.apiBaseUrl?.trim() ?? DEFAULT_SETTINGS.apiBaseUrl.trim()) === ''
   ) {
     throw new Error(
-      'No z.ai credentials available for provider "zai" (the configured API key is the legacy endpoint placeholder). ' +
-        'Inside the z.ai sandbox, ensure ~/.z-ai-config exists (z-ai-web-dev-sdk auto-resolves it).',
+      'No z.ai credentials available for provider "zai" (ZAI.create() reported no sandbox credentials and no API key is configured). ' +
+        'Inside the z.ai sandbox, ensure ~/.z-ai-config exists (z-ai-web-dev-sdk auto-resolves it). ' +
+        'Outside the sandbox, set ZAI_API_KEY in .env or paste it into Settings → LLM provider.',
     );
   }
 
   // ---- Custom OpenAI-compatible endpoint path ------------------------------
   // An explicit apiBaseUrl from settings points the runner at a user-supplied
-  // endpoint (the DEFAULT since the endpoint migration: provider 'custom' →
-  // kimi-k2-5 behind an OpenAI-compatible proxy; also Ollama / LM Studio /
-  // vLLM / corporate proxies for any OpenAI-compatible provider). Checked
-  // BEFORE the z.ai sandbox override so the auto-detected sandbox endpoint
-  // still wins when running key-less inside the sandbox (where apiBaseUrl is
-  // empty and ZAI.create() resolves the internal endpoint). Non-OpenAI-
-  // compatible providers (anthropic / google) keep the legacy spread override
-  // below — their native APIs don't route through a synthetic
-  // openai-completions model.
+  // endpoint (provider 'custom' or any OpenAI-compatible provider with a
+  // user-supplied proxy URL — e.g. Ollama / LM Studio / vLLM / corporate
+  // proxies). The z.ai sandbox is the default provider, so this path is now
+  // opt-in: it fires only when the user explicitly configures a base URL.
+  // Checked AFTER the z.ai sandbox override above so the auto-detected
+  // sandbox endpoint still wins when running key-less inside the sandbox
+  // (where apiBaseUrl is empty and ZAI.create() resolves the internal
+  // endpoint). Non-OpenAI-compatible providers (anthropic / google) keep
+  // the legacy spread override below — their native APIs don't route
+  // through a synthetic openai-completions model.
   const customBaseUrl = settings?.apiBaseUrl?.trim() ?? DEFAULT_SETTINGS.apiBaseUrl.trim();
-  // The DEFAULT apiBaseUrl belongs to the legacy custom endpoint config
-  // (provider 'custom' → kimi-k2-5). When the user asked for provider 'zai',
-  // that stale default must NOT hijack the resolution (previously it did:
-  // the route injects the default whenever the client omits apiBaseUrl, so
-  // a zai request silently became a custom-endpoint request against the
-  // dead tunnel, with the preflight skipped because providerId==='zai').
-  // An explicit NON-default baseUrl on provider 'zai' is still honored —
-  // that's a deliberate zai-compatible proxy configuration.
+  // The DEFAULT apiBaseUrl is now '' (z.ai sandbox default). When the user
+  // asked for provider 'zai', an empty base URL is correct (the sandbox
+  // resolves its own endpoint via ZAI.create()) and must NOT route through
+  // the custom-endpoint path. An explicit NON-empty baseUrl on provider
+  // 'zai' is still honored — that's a deliberate zai-compatible proxy
+  // configuration.
   const isLegacyDefaultBaseUrl = customBaseUrl === DEFAULT_SETTINGS.apiBaseUrl.trim();
   const useCustomEndpoint =
     customBaseUrl !== '' &&
@@ -665,7 +660,7 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
 /// Build a label for logging without resolving the full model (lighter-weight
 /// helper for non-runner call sites that just want a display string).
 export function describeProvider(settings: AgentRunSettings | undefined): string {
-  const providerId = normalizeLLMProvider(settings?.llmProvider ?? 'custom');
+  const providerId = normalizeLLMProvider(settings?.llmProvider ?? DEFAULT_SETTINGS.llmProvider);
   const modelId = settings?.modelName || getProviderMetadata(providerId)?.defaultModel || providerDefaultModel(providerId);
   return `${providerId}/${modelId}`;
 }

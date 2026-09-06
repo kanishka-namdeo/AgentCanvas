@@ -213,15 +213,20 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // for container types).
   domCulling: true,
 
-  llmProvider: 'custom',
-  apiKey: '123456',
-  // Default inference endpoint: a custom OpenAI-compatible endpoint serving
-  // kimi-k2-5 (see pi-ai-model-resolver.ts — the resolver builds a synthetic
-  // openai-completions Model for custom endpoints because pi-ai's static
-  // catalog doesn't know them). The four fields are pinned explicitly so
-  // Settings shows the real endpoint/model on first run.
-  modelName: 'kimi-k2-5',
-  apiBaseUrl: 'https://irhnglwoxe.a.pinggy.link/v1',
+  // Default inference provider: the z.ai sandbox. Inside the z.ai sandbox,
+  // `z-ai-web-dev-sdk`'s `ZAI.create()` auto-resolves credentials from
+  // ~/.z-ai-config / /etc/.z-ai-config / sandbox env — no API key or base
+  // URL needed. Outside the sandbox, set `ZAI_API_KEY` in `.env` or paste
+  // it into Settings → LLM provider. The four fields are empty so the
+  // resolver uses the z.ai sandbox path verbatim (see pi-ai-model-resolver.ts).
+  // The custom OpenAI-compatible endpoint (kimi-k2-5 behind a pinggy tunnel)
+  // is no longer the default — it remains a registered provider id (`custom`)
+  // selectable in Settings → LLM provider for users who want to bring their
+  // own endpoint.
+  llmProvider: 'zai',
+  apiKey: '',
+  modelName: 'glm-5.3',
+  apiBaseUrl: '',
 
   snapshotCadence: 'every-turn',
   maxSessionsRetained: 100,

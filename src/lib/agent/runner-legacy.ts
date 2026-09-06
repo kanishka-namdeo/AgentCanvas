@@ -28,7 +28,7 @@ import { createFigmaTools, FIGMA_TOOL_NAMES } from './figma-tools';
 import { aliasTargetAllowed } from './tool-aliases';
 import type { CanvasDocument, CanvasPatch, Shape, SyncEvent } from '../canvas/types';
 import type { AgentRunSettings, DefaultPalette } from '../settings/types';
-import { PALETTES, normalizeLLMProvider, providerDefaultModel } from '../settings/types';
+import { PALETTES, DEFAULT_SETTINGS, normalizeLLMProvider, providerDefaultModel } from '../settings/types';
 import { createLLMClient, getProviderMetadata } from '../llm';
 import type { LLMClient as RegistryLLMClient, LLMProviderConfig } from '../llm';
 import { createEmptyCanvasDocument } from '../canvas/types';
@@ -1536,7 +1536,7 @@ import { calculateContextTokens, shouldCompact, compactToolResults, formatTokens
 // runner can pass the same client to the sub-agent as the legacy runner did.
 
 export async function buildSubAgentLLMClient(settings?: AgentRunSettings): Promise<LLMClient> {
-  const rawProvider = settings?.llmProvider ?? 'custom';
+  const rawProvider = settings?.llmProvider ?? DEFAULT_SETTINGS.llmProvider;
   const providerId = normalizeLLMProvider(rawProvider);
   const meta = getProviderMetadata(providerId);
 

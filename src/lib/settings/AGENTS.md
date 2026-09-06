@@ -28,10 +28,10 @@ This is the single source of truth for every setting the user can change in the 
 | `renderer` | `'dom'` (optional — only `'dom'` is a live value; legacy persisted `'svg'` is silently coerced to `'dom'` by the store's migrate function) | `'dom'` | 1 — Appearance (post-Phase-5 cleanup: the SVG renderer was deleted; the Settings UI no longer exposes a renderer picker. Kept on the type for forward compat with persisted blobs.) |
 | `canvasLayoutMode` | `'parity' \| 'native'` (optional — absent = `'parity'`) | `'parity'` | 1 — Appearance (DOM renderer layout strategy, spec Phase 2: `parity` uses resolver geometry; `native` uses browser CSS flexbox layout + measured-bounds readback) |
 | `domCulling` | `boolean` (optional — absent = `true`) | `true` | 1 — Appearance (Phase 4 scale hardening: L4 CSS containment + L5 mount culling when ≥2k nodes; toggle in Settings → Appearance → “DOM Culling Switch”) |
-| `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'custom'` | 2 — LLM provider |
-| `apiKey` | `string` | `'123456'` | 2 |
-| `modelName` | `string` | `'kimi-k2-5'` | 2 |
-| `apiBaseUrl` | `string` | `'https://irhnglwoxe.a.pinggy.link/v1'` | 2 |
+| `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'zai'` | 2 — LLM provider |
+| `apiKey` | `string` | `''` | 2 |
+| `modelName` | `string` | `'glm-5.3'` | 2 |
+| `apiBaseUrl` | `string` | `''` | 2 |
 | `snapshotCadence` | `'every-turn' \| 'every-3-turns' \| 'every-5-turns' \| 'manual'` | `'every-turn'` | 2 — Sessions |
 | `maxSessionsRetained` | `number` | `100` | 2 |
 | `maxSnapshotsPerCanvas` | `number` | `50` | 2 |
@@ -43,7 +43,7 @@ This is the single source of truth for every setting the user can change in the 
 
 `maxSnapshotsPerCanvas` (persist v4 rename of `maxSnapshotsPerSession`) is the per-document snapshot cap under the shared-canvas model — snapshots are document-scoped, and the oldest non-bookmarked ones are auto-deleted when the cap is exceeded.
 
-**Default LLM (testing)**: `llmProvider='custom'` + `modelName='kimi-k2-5'` + `apiBaseUrl='https://irhnglwoxe.a.pinggy.link/v1'` + `apiKey='123456'` — a custom OpenAI-compatible endpoint. `pi-ai-model-resolver.ts` builds a synthetic `openai-completions` Model for it (pi-ai's catalog doesn't know custom endpoints). An empty `modelName` falls back to the registry default (empty for `custom`). Legacy `glm-4.6` settings map to `glm-4.7` (zai catalog path).
+**Default LLM (testing)**: `llmProvider='zai'` + `modelName='glm-5.3'` + `apiKey=''` + `apiBaseUrl=''` — the z.ai sandbox. `pi-ai-model-resolver.ts` calls `ZAI.create()` which auto-resolves sandbox credentials from `~/.z-ai-config` / `/etc/.z-ai-config` / sandbox env. An empty `modelName` falls back to the registry default (`glm-5.3` for `zai`). Legacy `glm-4.6` settings map to `glm-4.7` (zai catalog path). The `custom` provider (kimi-k2-5 behind an OpenAI-compatible proxy) is no longer the default but remains a registered provider id selectable in Settings → LLM provider.
 
 ### Agent-run subset (`AgentRunSettings`)
 
@@ -56,7 +56,7 @@ The canvas store's `promptAgent()` calls `agentRunSettings(useSettings.getState(
 
 ### Persistence
 - `persist` middleware with `localStorage` key `agentcanvas.settings.v1`.
-- Schema version is `4`. v1 → v2 (endpoint migration): stored blobs that still look like the OLD first-run defaults (`zai` + `glm-5.3` + no key + no base URL) are migrated to the new default endpoint; anything user-customized is preserved untouched. v3 → v4: `maxSnapshotsPerSession` → `maxSnapshotsPerCanvas` (shared-canvas rename — value preserved, old key deleted). Bump + add `migrate` if the shape changes again.
+- Schema version is `5`. v4 → v5 (default-provider migration): stored blobs that still look like the OLD custom-endpoint first-run defaults (`custom` + `kimi-k2-5` + `https://irhnglwoxe.a.pinggy.link/v1` + `123456`) are migrated to the new z.ai-sandbox defaults (`zai` + `glm-5.3` + empty key + empty base URL); anything user-customized is preserved untouched. Earlier migrations (v1→v2 endpoint swap, v2→v3 SVG-renderer coerce, v3→v4 snapshot cap rename) are kept in the migrate chain for history. Bump + add `migrate` if the shape changes again.
 - `partialize` strips the setter functions (`set`, `patch`, `reset`, `replaceAll`) so only data is persisted.
 - The `apiKey` field is stored in localStorage (client-side only). It is NEVER written to disk on the server. For production multi-user deployments, swap the storage adapter to a server-side secrets manager.
 

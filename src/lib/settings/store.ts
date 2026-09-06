@@ -3,7 +3,7 @@
 // the agent runner + /api/agent route consume via agentRunSettings().
 //
 // Storage: localStorage key `agentcanvas.settings.v1`. Versioned so future
-// schema changes can migrate (currently v3 — see the `migrate` function
+// schema changes can migrate (currently v5 — see the `migrate` function
 // below; the key name is kept stable so stored values keep flowing through
 // `migrate` instead of being silently discarded by a key rename).
 
@@ -33,14 +33,14 @@ export const useSettings = create<SettingsStore>()(
     }),
     {
       name: 'agentcanvas.settings.v1',
-      version: 4,
+      version: 5,
       // Migrate chain:
       //   v1 → v2: the default inference endpoint moved from the z.ai sandbox
       //     (zai / glm-5.3 / no key / no base URL) to a custom OpenAI-compatible
-      //     endpoint. Browsers that still hold the OLD first-run defaults are
+      //     endpoint. Browsers that still held the OLD first-run defaults were
       //     migrated to the new default endpoint; anything a user actually
-      //     customized (their own provider, key, model, or URL) is preserved
-      //     untouched.
+      //     customized (their own provider, key, model, or URL) was preserved
+      //     untouched. [Superseded by v4 → v5 — kept here for history.]
       //   v2 → v3: SVG renderer was deleted (post-Phase-5 cleanup). Any
       //     persisted blob with `renderer: 'svg'` (set by a user before the
       //     cleanup) is coerced to 'dom' — the only live renderer. The
@@ -48,15 +48,27 @@ export const useSettings = create<SettingsStore>()(
       //   v3 → v4: snapshots became document-scoped (shared canvas model) —
       //     `maxSnapshotsPerSession` renamed to `maxSnapshotsPerCanvas` with
       //     the value preserved.
+      //   v4 → v5: the default inference provider moved BACK from the custom
+      //     OpenAI-compatible endpoint (kimi-k2-5 behind a pinggy tunnel) to
+      //     the z.ai sandbox (zai / glm-5.3 / no key / no base URL). Browsers
+      //     that still hold the OLD custom-endpoint defaults (provider 'custom'
+      //     + model 'kimi-k2-5' + the pinggy base URL + the placeholder key
+      //     '123456') are migrated to the new z.ai-sandbox defaults; anything
+      //     a user actually customized (their own provider, key, model, or
+      //     URL) is preserved untouched.
       migrate: (persisted, _version) => {
         const s = (persisted ?? {}) as Partial<AppSettings> & { maxSnapshotsPerSession?: number };
-        // v1 → v2: old-defaults inference-endpoint rewrite.
-        const looksLikeOldDefaults =
-          s.llmProvider === 'zai' &&
-          s.modelName === 'glm-5.3' &&
-          !s.apiKey &&
-          !s.apiBaseUrl;
-        const withLlm = looksLikeOldDefaults
+        // v4 → v5: old-defaults custom-endpoint rewrite.
+        // Detect the OLD first-run defaults (the kimi-k2-5 / pinggy / 123456
+        // shape) and rewrite them to the new z.ai-sandbox defaults. Any
+        // user customization — different provider, different model, a real
+        // API key, or a different base URL — is preserved untouched.
+        const looksLikeOldCustomDefaults =
+          s.llmProvider === 'custom' &&
+          s.modelName === 'kimi-k2-5' &&
+          s.apiKey === '123456' &&
+          s.apiBaseUrl === 'https://irhnglwoxe.a.pinggy.link/v1';
+        const withLlm = looksLikeOldCustomDefaults
           ? {
               ...s,
               llmProvider: DEFAULT_SETTINGS.llmProvider,

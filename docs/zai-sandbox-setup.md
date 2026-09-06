@@ -70,22 +70,23 @@ Companion scripts:
    cache.) If a standalone relay is ever needed again, extract a shared core
    from `src/lib/canvas/server.ts` instead of forking it.
 
-Bonus: the app's default LLM is now a custom OpenAI-compatible endpoint
-(`custom` / `kimi-k2-5` / `https://irhnglwoxe.a.pinggy.link/v1`, key `123456`
-— see `DEFAULT_SETTINGS` in `src/lib/settings/types.ts`), so no credentials
-are needed out of the box. `z-ai-web-dev-sdk` auto-resolves credentials inside
-the sandbox as a fallback for the `zai` provider — still no
-`ZAI_API_KEY` / `OPENAI_API_KEY` needed for that path.
+Bonus: the app's default LLM is the z.ai sandbox (`zai` / `glm-5.3` / no
+key / no base URL — see `DEFAULT_SETTINGS` in `src/lib/settings/types.ts`),
+so no credentials are needed out of the box. `z-ai-web-dev-sdk`'s `ZAI.create()`
+auto-resolves credentials inside the sandbox from `~/.z-ai-config` /
+`/etc/.z-ai-config` / sandbox env — no `ZAI_API_KEY` needed.
 
-**Automatic z.ai sandbox fallback (resilience):** when the configured endpoint
-is unreachable (network error, HTTP 5xx/429, 401/403, OR a 200 response with
-empty content + no tool calls), the runner automatically retries the SAME turn
-ONCE using `ZAI.create()` with model `glm-5.3`. This means agent turns SUCCEED
-even when the pinggy tunnel is down — the user gets resilient LLM access via
-the z.ai sandbox as the default fallback. Bounded to ONE retry per turn;
-skipped when the configured provider is already `zai`; skipped with a warn
-when `ZAI.create()` reports no sandbox creds (i.e. running outside the z.ai
-sandbox). Two layers cooperate:
+**Resilience fallback (still useful for non-zai providers):** when a user
+configures a NON-zai provider (OpenAI, Anthropic, a custom OpenAI-compatible
+endpoint, etc.) and that endpoint is unreachable (network error, HTTP
+5xx/429, 401/403, OR a 200 response with empty content + no tool calls), the
+runner automatically retries the SAME turn ONCE using `ZAI.create()` with
+model `glm-5.3`. This means agent turns SUCCEED even when a user-configured
+endpoint is down — the user gets resilient LLM access via the z.ai sandbox
+as a fallback. Bounded to ONE retry per turn; skipped when the configured
+provider is already `zai`; skipped with a warn when `ZAI.create()` reports
+no sandbox creds (i.e. running outside the z.ai sandbox). Two layers
+cooperate:
 
 1. **Preflight** (`src/lib/agent/pi-ai-model-resolver.ts`): a 4s GET against
    `${baseUrl}/models` BEFORE the session is created. Cached 60s per

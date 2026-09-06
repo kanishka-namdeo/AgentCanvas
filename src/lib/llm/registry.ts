@@ -857,7 +857,8 @@ export const PROVIDERS: Record<string, LLMProviderEntry> = {
       apiKeyEnvVars: [],
       defaultBaseURL: '',
       defaultModel: '',
-      // Suggested in the Settings UI; kimi-k2-5 is the app's default endpoint model.
+      // Suggested in the Settings UI for the custom provider (no longer the
+      // app default — the app now defaults to the z.ai sandbox / glm-5.3).
       popularModels: ['kimi-k2-5'],
       openAICompatible: true,
       capabilities: CAPS_TOOLS_OK,

@@ -1,19 +1,14 @@
 // verify-default-llm.ts — Verify the app's default LLM config end-to-end:
-//   1. resolveModel(DEFAULT_SETTINGS) → must resolve either:
-//        a. the custom OpenAI-compatible endpoint (provider 'custom',
-//           model kimi-k2-5, pinggy baseUrl) via the synthetic
-//           openai-completions Model — when the endpoint is UP, OR
-//        b. the z.ai sandbox fallback (provider 'zai', model glm-5.3,
-//           usedFallback=true) — when the preflight detects the configured
-//           endpoint as unreachable. The fallback is the safety net that
-//           keeps agent turns working even when the custom tunnel is down.
+//   1. resolveModel(DEFAULT_SETTINGS) → must resolve to the z.ai sandbox
+//      (provider 'zai', model 'glm-5.3', sandbox OAuth headers applied via
+//      ZAI.create()). The custom OpenAI-compatible endpoint (kimi-k2-5
+//      behind a pinggy tunnel) is no longer the default — the app ships
+//      with the z.ai sandbox as the default inference provider.
 //   2. A real completion through the resolved pi-ai Model (auth + endpoint
-//      + model) — works through EITHER the configured endpoint OR the
-//      z.ai sandbox fallback.
+//      + model) — works through the z.ai sandbox path.
 //   3. A custom-endpoint override unit check (apiBaseUrl flows into baseUrl)
-//      — only when the configured endpoint is UP (when it's DOWN, the
-//      preflight swaps to the z.ai fallback for the override too, so the
-//      override baseUrl doesn't survive — that's expected).
+//      — when a user explicitly configures a non-default endpoint, the
+//      synthetic custom Model is still built correctly.
 // Run: bun run scripts/verify-default-llm.ts
 
 import { resolveModel } from '../src/lib/agent/pi-ai-model-resolver';
@@ -34,51 +29,38 @@ async function main() {
   console.log('[1] sandbox headers present:', Object.keys(resolved.model.headers ?? {}));
   console.log('[1] usedFallback:', resolved.usedFallback ?? false);
 
+  // The default provider is 'zai'. The resolver calls ZAI.create() to
+  // auto-resolve sandbox credentials; inside the z.ai sandbox this yields
+  // an OAuth token + sandbox baseUrl that override the Model's headers.
+  // Outside the sandbox (no creds), the resolver throws — which is the
+  // correct "no creds" error, not a verification failure.
+  if (resolved.model.provider !== 'zai') {
+    throw new Error(`Expected provider 'zai', got ${resolved.model.provider}`);
+  }
+  if (resolved.model.id !== 'glm-5.3') {
+    throw new Error(`Expected model 'glm-5.3', got ${resolved.model.id}`);
+  }
+  if (resolved.model.api !== 'openai-completions') {
+    throw new Error(`Expected api 'openai-completions', got ${resolved.model.api}`);
+  }
+  // usedFallback is true ONLY when the resolver swapped to the z.ai sandbox
+  // because a non-zai configured endpoint was unreachable. With zai as the
+  // configured default, usedFallback should be false (no swap needed).
   if (resolved.usedFallback) {
-    // The preflight detected the configured endpoint as unreachable and
-    // swapped to the z.ai sandbox fallback. Verify the fallback shape.
-    console.log('[1] FALLBACK ACTIVE — verifying z.ai sandbox fallback shape');
-    if (resolved.model.provider !== 'zai') {
-      throw new Error(`Fallback expected provider 'zai', got ${resolved.model.provider}`);
-    }
-    if (resolved.model.api !== 'openai-completions') {
-      throw new Error(`Expected api openai-completions, got ${resolved.model.api}`);
-    }
-    // glm-5.3 is the documented fallback model. Resilience fallback to
-    // any available zai model is allowed — log which one we got.
-    console.log('[1] fallback model id:', resolved.model.id);
-    // Sandbox OAuth headers should be present when running inside the
-    // z.ai sandbox (the common case for this script).
-    if (Object.keys(resolved.model.headers ?? {}).length === 0) {
-      console.log('[1] NOTE: no sandbox OAuth headers — running outside the z.ai sandbox?');
-    }
-  } else {
-    // Endpoint is UP — verify the configured custom-endpoint shape.
-    if (resolved.model.id !== 'kimi-k2-5') {
-      throw new Error(`Expected model kimi-k2-5, got ${resolved.model.id}`);
-    }
-    if (resolved.model.provider !== 'custom') {
-      throw new Error(`Expected provider custom, got ${resolved.model.provider}`);
-    }
-    if (resolved.model.api !== 'openai-completions') {
-      throw new Error(`Expected api openai-completions, got ${resolved.model.api}`);
-    }
-    if (resolved.model.baseUrl !== 'https://irhnglwoxe.a.pinggy.link/v1') {
-      throw new Error(`Expected baseUrl https://irhnglwoxe.a.pinggy.link/v1, got ${resolved.model.baseUrl}`);
-    }
-    const compatFlags = resolved.model.compat as unknown as
-      | { thinkingFormat?: string; zaiToolStream?: boolean }
-      | undefined;
-    if (compatFlags?.thinkingFormat === 'zai' || compatFlags?.zaiToolStream) {
-      throw new Error('Synthetic custom-endpoint model must not carry z.ai compat flags');
-    }
+    throw new Error(
+      `Expected usedFallback=false (zai is the default, no swap needed), got true`,
+    );
+  }
+  // Sandbox OAuth headers should be present when running inside the
+  // z.ai sandbox (the common case for this script).
+  if (Object.keys(resolved.model.headers ?? {}).length === 0) {
+    console.log('[1] NOTE: no sandbox OAuth headers — running outside the z.ai sandbox?');
   }
 
   // 2. Real turn through the SAME path production uses: createAgentSession
   //    with the resolved model + session.subscribe (mirrors runner-native.ts),
-  //    proving endpoint + auth + model + the event loop all work. This
-  //    passes through EITHER the configured endpoint OR the z.ai sandbox
-  //    fallback — both must produce a non-empty completion.
+  //    proving endpoint + auth + model + the event loop all work via the
+  //    z.ai sandbox path.
   const { createAgentSession, SessionManager, SettingsManager } = await import(
     '@earendil-works/pi-coding-agent'
   );
@@ -110,14 +92,13 @@ async function main() {
     throw new Error('Empty completion from agent session');
   }
 
-  // 3. Custom-endpoint override unit check: apiBaseUrl must flow into baseUrl
-  //    (and the model id into the synthetic Model), for non-default endpoints
-  //    too. ONLY meaningful when the configured endpoint is UP — when it's
-  //    DOWN, the preflight swaps to the z.ai fallback for the override too,
-  //    so the override baseUrl doesn't survive (the override endpoint doesn't
-  //    exist, so the preflight correctly rejects it).
+  // 3. Custom-endpoint override unit check: when a user explicitly
+  //    configures a non-default apiBaseUrl + apiKey + modelName, the
+  //    synthetic custom Model is still built correctly (the custom path
+  //    remains supported — it's just no longer the default).
   const custom = await resolveModel({
     ...DEFAULT_SETTINGS,
+    llmProvider: 'custom',
     apiKey: 'sk-test',
     apiBaseUrl: 'https://my-proxy.example.com/v1',
     modelName: 'some-other-model',
