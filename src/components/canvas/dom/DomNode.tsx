@@ -263,4 +263,48 @@ export const DomNode = memo(function DomNode({
       ))}
     </div>
   );
-});
+}, areDomNodePropsEqual);
+
+// UI-audit round 7 (perf H-4): custom memo comparator. The default
+// React.memo shallow compare sees `childLayers` as a new array reference on
+// every DomCanvas render (the `childrenOf` Map is rebuilt per-patch, so
+// `getChildren(id)` returns a fresh array even when the children list is
+// unchanged). This defeats memoization — a 500-node canvas re-renders all
+// 500 nodes on every patch, even nodes whose subtree didn't change.
+//
+// This comparator checks `childLayers` by length + element-wise reference
+// (the only prop that needs custom comparison — all other props use the
+// default shallow compare via Object.is). This is the React-team-recommended
+// pattern: check only the prop(s) that need deep comparison, delegate the
+// rest to the default.
+//
+// IMPORTANT: callback props (onShapeMouseDown, onHover, etc.) are compared
+// by reference via the default loop. When Canvas's useCallback deps change
+// (e.g. selectedIds changes → onShapeMouseDown gets a new identity), this
+// comparator correctly detects the change and allows the re-render — so
+// the callback closure always sees fresh state. Skipping callback checks
+// would cause stale-closure bugs (the old callback with old selectedIds
+// stays attached).
+function areDomNodePropsEqual(prev: DomNodeProps, next: DomNodeProps): boolean {
+  // Check all props via shallow compare (Object.is). This covers layer,
+  // parentX, parentY, ariaBusy, layoutMode, AND all callback props.
+  const prevKeys = Object.keys(prev) as (keyof DomNodeProps)[];
+  for (const key of prevKeys) {
+    if (key === 'childLayers') continue; // handled below
+    const prevVal = prev[key];
+    const nextVal = next[key];
+    if (prevVal !== nextVal) return false;
+  }
+  // childLayers: compare by length + element-wise reference.
+  // Layer objects are stable refs from the resolved tree; if the refs
+  // match, the geometry/fill/text/style are guaranteed identical (the
+  // resolver produces a new Layer object on any mutation).
+  const prevChildren = prev.childLayers;
+  const nextChildren = next.childLayers;
+  if (prevChildren === nextChildren) return true;
+  if (prevChildren.length !== nextChildren.length) return false;
+  for (let i = 0; i < prevChildren.length; i++) {
+    if (prevChildren[i] !== nextChildren[i]) return false;
+  }
+  return true;
+}

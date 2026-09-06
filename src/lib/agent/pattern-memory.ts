@@ -17,12 +17,14 @@
 //   3. Faster convergence — the agent skips patterns the user has rejected.
 //
 // Storage: filesystem-backed JSONL file at `data/design-patterns.jsonl`.
-// Each line is a Pattern record. The store is append-only (records never
-// get deleted; they age out by recency_weight).
+// Each line is a Pattern record.
 //
-// Retrieval: simple lexical similarity (Jaccard on token sets) — good
-// enough for our scale (hundreds of patterns, not millions). For larger
-// stores we'd swap in a vector DB (e.g. hnswlib or chromadb).
+// UI-audit round 7 (perf H-5): the store is now capped at MAX_PATTERNS
+// (1000) entries — on write, if the file exceeds the cap, the oldest
+// entries are evicted. The in-memory tokenization cache avoids re-tokenizing
+// the whole file on every retrieval call (was O(N) disk + parse + tokenize
+// per turn; now O(N) only on first load or after a write, with O(1)
+// cache hits on subsequent retrievals).
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
@@ -55,6 +57,12 @@ export interface DesignPattern {
 const PATTERNS_DIR = path.join(process.cwd(), 'data');
 const PATTERNS_FILE = path.join(PATTERNS_DIR, 'design-patterns.jsonl');
 
+/// UI-audit round 7 (perf H-5): cap the store at 1000 entries. On write,
+/// if the file exceeds this cap, the oldest entries are evicted. Prevents
+/// the O(N) disk + parse + tokenize per-turn cost from growing unbounded
+/// on long-running installs.
+const MAX_PATTERNS = 1000;
+
 async function ensureStore(): Promise<void> {
   try {
     await fs.mkdir(PATTERNS_DIR, { recursive: true });
@@ -68,6 +76,11 @@ async function ensureStore(): Promise<void> {
 /**
  * Append a pattern to the store. Best-effort — silently swallows FS errors
  * (the agent shouldn't fail because the memory store is unwritable).
+ *
+ * UI-audit round 7: after appending, if the file exceeds MAX_PATTERNS lines,
+ * rewrites the file keeping only the newest MAX_PATTERNS entries. Also
+ * invalidates the in-memory tokenization cache so the next retrieval
+ * re-tokenizes the updated set.
  */
 export async function storeDesignPattern(pattern: Omit<DesignPattern, 'id' | 'createdAt'>): Promise<DesignPattern> {
   const full: DesignPattern = {
@@ -78,10 +91,41 @@ export async function storeDesignPattern(pattern: Omit<DesignPattern, 'id' | 'cr
   try {
     await ensureStore();
     await fs.appendFile(PATTERNS_FILE, JSON.stringify(full) + '\n', 'utf8');
+    // Cap the store: if it's grown past MAX_PATTERNS, trim the oldest.
+    await trimIfNeeded();
+    // Invalidate the tokenization cache so the next retrieval picks up
+    // the new pattern.
+    tokenCache = null;
   } catch (err) {
     console.warn('[design-pattern-memory] failed to persist pattern:', err);
   }
   return full;
+}
+
+/// UI-audit round 7: trim the JSONL file to MAX_PATTERNS entries if it
+/// has grown past the cap. Keeps the newest entries (highest createdAt).
+/// Best-effort — silently swallows FS errors.
+async function trimIfNeeded(): Promise<void> {
+  try {
+    const text = await fs.readFile(PATTERNS_FILE, 'utf8');
+    const lines = text.split('\n').filter(Boolean);
+    if (lines.length <= MAX_PATTERNS) return;
+    // Parse all, sort by createdAt descending, keep the newest MAX_PATTERNS.
+    const patterns: DesignPattern[] = [];
+    for (const line of lines) {
+      try { patterns.push(JSON.parse(line) as DesignPattern); } catch { /* skip */ }
+    }
+    patterns.sort((a, b) => b.createdAt - a.createdAt);
+    const kept = patterns.slice(0, MAX_PATTERNS);
+    await fs.writeFile(
+      PATTERNS_FILE,
+      kept.map((p) => JSON.stringify(p)).join('\n') + '\n',
+      'utf8',
+    );
+    console.log(`[design-pattern-memory] trimmed from ${lines.length} to ${MAX_PATTERNS} entries`);
+  } catch {
+    // Best-effort.
+  }
 }
 
 /**
@@ -121,6 +165,37 @@ function tokenize(text: string): Set<string> {
   return tokens;
 }
 
+/// UI-audit round 7 (perf H-5): in-memory tokenization cache. Avoids
+/// re-tokenizing the whole file on every retrieval call (was O(N) per
+/// turn). Invalidated on write (storeDesignPattern sets tokenCache = null).
+/// Keyed by pattern id so a cached pattern's tokens survive even if the
+/// patterns array is re-loaded from disk.
+interface TokenCacheEntry {
+  id: string;
+  tokens: Set<string>;
+  createdAt: number;
+}
+let tokenCache: { entries: TokenCacheEntry[]; byId: Map<string, Set<string>> } | null = null;
+
+/**
+ * UI-audit round 7: get the tokenized patterns, using the in-memory cache
+ * when possible. The cache is built once per load (or after a write), then
+ * reused on every subsequent retrieval call.
+ */
+async function getTokenizedPatterns(): Promise<TokenCacheEntry[]> {
+  if (tokenCache) return tokenCache.entries;
+  const patterns = await loadAllPatterns();
+  const entries: TokenCacheEntry[] = [];
+  const byId = new Map<string, Set<string>>();
+  for (const p of patterns) {
+    const tokens = tokenize(`${p.prompt} ${p.summary} ${p.category} ${p.parameters.join(' ')}`);
+    entries.push({ id: p.id, tokens, createdAt: p.createdAt });
+    byId.set(p.id, tokens);
+  }
+  tokenCache = { entries, byId };
+  return entries;
+}
+
 /**
  * Compute Jaccard similarity between two token sets:
  *   |A ∩ B| / |A ∪ B|
@@ -144,6 +219,9 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
  *
  * Recency boost: newer patterns get a small multiplier so the agent
  * prefers recently-successful designs.
+ *
+ * UI-audit round 7: uses the in-memory tokenization cache — O(N) only on
+ * first load or after a write, O(1) cache hits on subsequent calls.
  */
 export async function retrieveSimilarPatterns(
   queryPrompt: string,
@@ -152,11 +230,16 @@ export async function retrieveSimilarPatterns(
   const patterns = await loadAllPatterns();
   if (patterns.length === 0) return [];
 
+  const tokenized = await getTokenizedPatterns();
   const queryTokens = tokenize(queryPrompt);
 
-  const scored = patterns.map((p) => {
-    const patternTokens = tokenize(`${p.prompt} ${p.summary} ${p.category} ${p.parameters.join(' ')}`);
-    const lexical = jaccardSimilarity(queryTokens, patternTokens);
+  // Build a lookup so we can join the cached tokens back to the full pattern.
+  const patternById = new Map(patterns.map((p) => [p.id, p]));
+
+  const scored = tokenized.map((entry) => {
+    const p = patternById.get(entry.id);
+    if (!p) return null;
+    const lexical = jaccardSimilarity(queryTokens, entry.tokens);
     // Recency boost: patterns < 7 days old get +0.1, < 30 days +0.05.
     const ageDays = (Date.now() - p.createdAt) / (1000 * 60 * 60 * 24);
     const recencyBoost = ageDays < 7 ? 0.1 : ageDays < 30 ? 0.05 : 0;
@@ -166,7 +249,7 @@ export async function retrieveSimilarPatterns(
       ...p,
       score: lexical + recencyBoost + approvedBoost,
     };
-  });
+  }).filter((x): x is DesignPattern & { score: number } => x !== null);
 
   return scored
     .filter((p) => (p.score ?? 0) > 0.05)
@@ -197,6 +280,8 @@ export async function clearAllPatterns(): Promise<number> {
   try {
     const patterns = await loadAllPatterns();
     await fs.writeFile(PATTERNS_FILE, '', 'utf8');
+    // UI-audit round 7: invalidate the token cache.
+    tokenCache = null;
     return patterns.length;
   } catch {
     return 0;

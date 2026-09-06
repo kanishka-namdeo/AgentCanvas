@@ -16,7 +16,7 @@ import type { CanvasDocument, CanvasPatch } from '@/lib/canvas/types';
 import { penToCanvas } from '@/lib/pen/converters';
 import { resolvePenTree } from '@/lib/pen/resolve';
 import { variablesToTokens } from '@/lib/canvas/patch';
-import { isPenDocument } from '@/lib/pen/types';
+import { isPenDocument, validatePenDocument } from '@/lib/pen/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,6 +32,22 @@ export async function POST(req: NextRequest) {
       {
         error:
           'Invalid .pen document. Expected an object with a `version` string and a `children` array of nodes.',
+      },
+      { status: 400 },
+    );
+  }
+
+  // UI-audit round 7 (security H-3.6/H-7.1): deep-validate the .pen tree
+  // before importing. The shallow isPenDocument check only validates the
+  // top-level shape — it doesn't catch duplicate ids, cycles, non-finite
+  // numerics, or oversized trees. A malformed file could corrupt the canvas
+  // (duplicate ids → aliasing), infinite-loop the resolver (cycles), or
+  // freeze the UI (50k nodes). The deep validator returns specific errors.
+  const validation = validatePenDocument(pen);
+  if (!validation.ok) {
+    return NextResponse.json(
+      {
+        error: 'Invalid .pen document — validation failed:\n' + validation.errors.slice(0, 10).join('\n'),
       },
       { status: 400 },
     );

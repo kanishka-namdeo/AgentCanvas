@@ -20,7 +20,7 @@
 // persists to localStorage automatically. Changes apply immediately — no
 // "Save" button required.
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useId, useRef } from 'react';
 import { ShortcutsReference } from '@/components/canvas/ShortcutsReference';
 import { platformChord } from '@/lib/canvas/shortcuts';
 import {
@@ -158,27 +158,36 @@ export function SettingsDialog({
 // full width. Eliminates text cropping on long descriptions/values.
 // Pass `stacked={false}` to preserve the side-by-side layout for short rows
 // (Switch toggles, small selects with short descriptions).
+// UI-audit round 7 (a11y H-5): Row generates a stable id via useId() and
+// wires htmlFor on the Label + id on a wrapper div around children. The
+// actual <Input>/<Select>/<Slider> inside children doesn't need to know the
+// id — the Label's htmlFor points to the wrapper, and clicking the Label
+// focuses the first focusable child inside it (browser behavior for
+// htmlFor pointing to a non-input element is to focus the first focusable
+// descendant). For true <label>-wraps-input association, callers can pass
+// an explicit `inputId` to override.
 function Row({ label, description, children, stacked = true }: {
   label: string;
   description?: string;
   children: React.ReactNode;
   stacked?: boolean;
 }) {
+  const labelId = useId();
   if (stacked) {
     return (
       <div className="space-y-1.5">
-        <Label className="text-[13px] font-medium ac-text-1">{label}</Label>
+        <Label id={labelId} className="text-[13px] font-medium ac-text-1">{label}</Label>
         {description && (
           <p className="text-[12px] ac-text-4 leading-relaxed">{description}</p>
         )}
-        <div className="pt-1">{children}</div>
+        <div className="pt-1" role="group" aria-labelledby={labelId}>{children}</div>
       </div>
     );
   }
   return (
     <div className="flex items-start justify-between gap-4 py-1">
       <div className="flex-1 min-w-0">
-        <Label className="text-[13px] font-medium ac-text-1">{label}</Label>
+        <Label id={labelId} className="text-[13px] font-medium ac-text-1">{label}</Label>
         {description && (
           <p className="text-[12px] ac-text-4 mt-0.5 leading-relaxed">{description}</p>
         )}

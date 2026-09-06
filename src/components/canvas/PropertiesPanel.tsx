@@ -17,7 +17,7 @@
 // (doc.children) by the patch applier; the derived cache is recomputed
 // automatically on every mutation.
 
-import { useState, memo } from 'react';
+import { useState, useId, memo } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, AutoLayout, Shape } from '@/lib/canvas/types';
@@ -71,6 +71,16 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
   const sendPatch = useCanvasStore((s) => s.sendPatch);
   const select = useCanvasStore((s) => s.select);
   const clipboard = useClipboard();
+
+  // UI-audit round 7 (a11y H-5): generate stable ids for Label/htmlFor
+  // associations. Screen readers announce the label when the input gets
+  // focus — without the htmlFor/id link, the Label is just decorative text.
+  const nameId = useId();
+  const xId = useId();
+  const yId = useId();
+  const widthId = useId();
+  const heightId = useId();
+  const textContentId = useId();
 
   // P1-15: Color-swatch right-click helpers — Copy/Paste color + Copy as hex/rgba/hsl.
   // These wrap navigator.clipboard with a typed payload via useClipboard's
@@ -408,8 +418,9 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
         {/* Name */}
         {!isMulti && (
           <div>
-            <Label className="text-[11px] ac-text-3">Name</Label>
+            <Label htmlFor={nameId} className="text-[11px] ac-text-3">Name</Label>
             <Input
+              id={nameId}
               value={shape.name}
               onChange={(e) => update({ name: e.target.value })}
               className="h-7 mt-1 text-xs"
@@ -516,8 +527,9 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
           <ContextMenu>
             <ContextMenuTrigger asChild>
               <div>
-                <Label className="text-[11px] ac-text-3">X</Label>
+                <Label htmlFor={xId} className="text-[11px] ac-text-3">X</Label>
                 <Input
+                  id={xId}
                   type="number"
                   value={Math.round(shape.x)}
                   onChange={(e) => update({ x: parseFloat(e.target.value) || 0 })}
@@ -535,8 +547,9 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
           <ContextMenu>
             <ContextMenuTrigger asChild>
               <div>
-                <Label className="text-[11px] ac-text-3">Y</Label>
+                <Label htmlFor={yId} className="text-[11px] ac-text-3">Y</Label>
                 <Input
+                  id={yId}
                   type="number"
                   value={Math.round(shape.y)}
                   onChange={(e) => update({ y: parseFloat(e.target.value) || 0 })}
@@ -568,8 +581,9 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
           <ContextMenu>
             <ContextMenuTrigger asChild>
               <div>
-                <Label className="text-[11px] ac-text-3">Width</Label>
+                <Label htmlFor={widthId} className="text-[11px] ac-text-3">Width</Label>
                 <Input
+                  id={widthId}
                   type="number"
                   value={Math.round(shape.width)}
                   onChange={(e) => update({ width: Math.max(1, parseFloat(e.target.value) || 1) })}
@@ -587,8 +601,9 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
           <ContextMenu>
             <ContextMenuTrigger asChild>
               <div>
-                <Label className="text-[11px] ac-text-3">Height</Label>
+                <Label htmlFor={heightId} className="text-[11px] ac-text-3">Height</Label>
                 <Input
+                  id={heightId}
                   type="number"
                   value={Math.round(shape.height)}
                   onChange={(e) => update({ height: Math.max(1, parseFloat(e.target.value) || 1) })}
@@ -1105,8 +1120,9 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
           <>
             <Separator />
             <div>
-              <Label className="text-[11px] ac-text-3">Text Content</Label>
+              <Label htmlFor={textContentId} className="text-[11px] ac-text-3">Text Content</Label>
               <textarea
+                id={textContentId}
                 value={shape.text ?? ''}
                 onChange={(e) => update({ text: e.target.value })}
                 className="w-full mt-1 text-xs border ac-border-default rounded p-2 resize-none h-16"

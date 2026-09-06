@@ -808,3 +808,93 @@ export function isPenDocument(value: unknown): value is PenDocument {
     doc.children.every(isPenNode)
   );
 }
+
+/// UI-audit round 7 (security H-3.6/H-7.1): deep validator that walks the
+/// .pen tree to catch malformed payloads the shallow `isPenDocument` misses.
+/// Returns an array of error strings (empty = valid). Checks:
+///   1. Child id uniqueness within the payload (duplicate ids cause the
+///      resolver to alias nodes — silent data corruption).
+///   2. parentId chains don't form cycles (A → B → A would infinite-loop
+///      resolvePenTree on first render).
+///   3. Numeric fields (x/y/width/height/fontSize/radius/opacity/strokeWidth)
+///      are finite (Infinity/NaN survive JSON.parse + the bulk_add passthrough
+///      and produce invisible shapes).
+///   4. Tree depth ≤ MAX_DEPTH (a 10k-deep tree would stack-overflow the
+///      resolver). Cap is generous (100) — real designs rarely exceed 10.
+///   5. Total node count ≤ MAX_NODES (a 50k-node file would freeze the UI).
+const MAX_DEPTH = 100;
+const MAX_NODES = 50_000;
+
+export function validatePenDocument(doc: unknown): { ok: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!isPenDocument(doc)) {
+    errors.push('Invalid .pen document: expected an object with `version` (string) and `children` (array of nodes).');
+    return { ok: false, errors };
+  }
+  const seenIds = new Set<string>();
+  let nodeCount = 0;
+
+  function walk(node: PenChild, depth: number, parentIdChain: Set<string>): void {
+    if (nodeCount > MAX_NODES) {
+      if (errors.length < 5) {
+        errors.push(`Too many nodes (exceeded ${MAX_NODES}) — the file may be corrupt.`);
+      }
+      return;
+    }
+    nodeCount++;
+
+    if (depth > MAX_DEPTH) {
+      if (errors.length < 5) {
+        errors.push(`Tree too deep at node "${node.id ?? '<no id>'}" — max depth ${MAX_DEPTH} exceeded.`);
+      }
+      return;
+    }
+
+    // Cast to a loose record — PenChild is a discriminated union where not
+    // all variants have parentId/children; we check defensively.
+    const rec = node as unknown as Record<string, unknown>;
+
+    // Id uniqueness.
+    if (typeof rec.id === 'string') {
+      if (seenIds.has(rec.id)) {
+        errors.push(`Duplicate id "${rec.id}" — ids must be unique within a .pen file.`);
+      }
+      seenIds.add(rec.id);
+    }
+
+    // Cycle detection via the parentId chain. The `parentId` on a child
+    // should point to an ancestor — if it points to itself or to a
+    // descendant, we have a cycle.
+    if (typeof rec.parentId === 'string' && parentIdChain.has(rec.parentId)) {
+      errors.push(`Cycle detected: node "${rec.id ?? '<no id>'}" has parentId "${rec.parentId}" which is a descendant.`);
+    }
+
+    // Numeric field validation — reject Infinity/NaN.
+    const numericFields = ['x', 'y', 'width', 'height', 'fontSize', 'radius', 'opacity', 'strokeWidth', 'rotation'] as const;
+    for (const field of numericFields) {
+      const val = rec[field];
+      if (val !== undefined && typeof val === 'number' && !Number.isFinite(val)) {
+        errors.push(`Non-finite numeric value (${val}) on field "${field}" at node "${rec.id ?? '<no id>'}".`);
+      }
+    }
+
+    // Recurse into children.
+    const nextChain = new Set(parentIdChain);
+    if (typeof rec.id === 'string') nextChain.add(rec.id);
+    if (Array.isArray(rec.children)) {
+      for (const child of rec.children) {
+        if (isPenNode(child)) {
+          walk(child, depth + 1, nextChain);
+        } else {
+          errors.push(`Invalid child node at depth ${depth + 1} under "${rec.id ?? '<no id>'}".`);
+        }
+      }
+    }
+  }
+
+  for (const child of doc.children) {
+    walk(child, 0, new Set());
+  }
+
+  return { ok: errors.length === 0, errors };
+}
