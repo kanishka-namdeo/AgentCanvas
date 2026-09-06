@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://dev.to",
+    "name": "Structured Outputs vs Tool Calling: When Your Agent",
+    "snippet": "Apr 29, 2026 — The decision between structured outputs and tool calling isn't just semantics — it shapes your agent's behavior, reliability, and cost.",
+    "host_name": "dev.to",
+    "rank": 0,
+    "date": "Apr 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.adaline.ai",
+    "name": "Understanding LLMs and Tool Calling - Adaline.ai",
+    "snippet": "Feb 16, 2025 — Tool calling enables LLMs to interact with external tools through structured outputs . ... Parallel execution reduces latency and can outperform ... Read more",
+    "host_name": "www.adaline.ai",
+    "rank": 1,
+    "date": "Feb 16, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://codeant.ai",
+    "name": "Why Bad Tool Calling Makes LLMs Slow and Expensive",
+    "snippet": "Jan 19, 2026 — Learn how inefficient tool calling increases LLM cost and latency , and how to fix redundant calls, retries, and slow agent workflows.",
+    "host_name": "codeant.ai",
+    "rank": 2,
+    "date": "Jan 19, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.langchain.com",
+    "name": "Is there a way to enable tool calling and structured output",
+    "snippet": "Jan 12, 2026 — Short answer for now: you can have tools and structured output in the same “ agent ”, but you can't mix them the way you're doing with method=\" ... Read more",
+    "host_name": "forum.langchain.com",
+    "rank": 3,
+    "date": "Jan 12, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.trainmyagent.com",
+    "name": "What Is Tool Calling / Function Calling",
+    "snippet": "Dec 1, 2025 — Tool calling (also called function calling ) enables Large Language Models to request execution of external functions, APIs, and tools by ...",
+    "host_name": "www.trainmyagent.com",
+    "rank": 4,
+    "date": "Dec 1, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "A Natural Language Approach to Tool Calling In Large",
+    "snippet": "Oct 16, 2025 — We present Natural Language Tools (NLT), a framework that replaces programmatic JSON tool calling in large language models (LLMs) with natural ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 5,
+    "date": "Oct 16, 2025",
+    "favicon": ""
+  }
+]
