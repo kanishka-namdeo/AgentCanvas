@@ -35,7 +35,7 @@ import {
   clearOutbox,
   isMutationBearingPatch,
 } from '@/lib/canvas/client-mutations';
-import { checkpointSignature, newCheckpointId, MAX_CHECKPOINTS, type Checkpoint } from '@/lib/canvas/version-history';
+import { checkpointSignature, newCheckpointId, MAX_CHECKPOINTS, stripDerivedForSnapshot, rehydrateSnapshot, type Checkpoint } from '@/lib/canvas/version-history';
 import { resolvePenTree } from '@/lib/pen/resolve';
 import { useSessionStore, hydrateSessionStore } from '@/lib/sessions';
 import { TERMINAL_RUN_STATUSES } from '@/lib/sessions/types';
@@ -511,8 +511,10 @@ interface CanvasState {
   /// snapshots are fetched from the server first.
   restoreSnapshot: (snapshotId: string) => Promise<boolean>;
 
-  // Internal — called by socket event handler
-  _onSync: (event: SyncEvent) => void;
+  // Internal — called by socket event handler. `opts.immediate` bypasses
+  // the canvas:full burst coalescer (used by the coalescer's own trailing
+  // apply and by test/restore paths that must land synchronously).
+  _onSync: (event: SyncEvent, opts?: { immediate?: boolean }) => void;
   /// Internal — rebuild `turns` from session store messages.
   _syncTurnsFromSession: () => void;
 
@@ -985,6 +987,84 @@ export function __flushOutboxForTests(): void {
   flushOutboxNow(useCanvasStore.getState);
 }
 
+// ---- canvas:full burst coalescing (2026-09-08 perf, 12-b #8) ----------------
+//
+// Every non-restore `canvas:full` runs reconcileDocuments (O(nodes) +
+// resolvePenTree) + a full document set() + an outbox re-flush (re-emitting
+// every queued patch). The server sends one per (re)subscribe, so a
+// flapping connection repeats that whole pipeline per reconnect — and
+// bursts (duplicate subscribe replies, a restore-rebroadcast landing right
+// after a reconnect full, a full arriving during the socket-connect batch)
+// pay it N times back-to-back. Coalescing rule:
+//
+//   1. The FIRST full outside a burst window applies synchronously (unchanged
+//      behavior — single fulls stay synchronous for tests + first paint).
+//   2. Any further full inside FULL_SYNC_COALESCE_MS of the last APPLY (or
+//      while one is already pending) is STASHED — latest-wins: a newer full
+//      replaces an older pending one ("drop superseded").
+//   3. A single timer applies the pending full at the window's trailing edge
+//      via _onSync(event, { immediate: true }); canvas:patch events that
+//      arrived meanwhile applied against the pre-full document and simply
+//      win the merge (version+nonce reconcile keeps local-newer elements —
+//      the same rule that already governs offline edits racing a full).
+//   4. The outbox flush rides the apply — once per coalesced burst instead
+//      of once per full.
+//
+// Restore-reason fulls BYPASS the coalescer entirely (authoritative snapshot
+// swap, user-initiated, rare). Superseded-init fulls are dropped at fire
+// time via the generation token. NODE_ENV=test keeps the pre-coalescer
+// synchronous semantics unless a test explicitly opts in (every existing
+// suite drives canvas:full synchronously).
+const FULL_SYNC_COALESCE_MS = 120;
+let fullSyncLastAppliedAt = -Infinity;
+let fullSyncPending: { event: SyncEvent; generation: number } | null = null;
+let fullSyncTimer: ReturnType<typeof setTimeout> | null = null;
+let fullSyncCoalescerEnabledForTests = false;
+
+/// Decide (and stash) whether this non-restore canvas:full applies now or at
+/// the trailing edge. Returns true when the caller should do nothing (the
+/// event is coalesced).
+function shouldDeferFullSync(event: SyncEvent): boolean {
+  if (process.env.NODE_ENV === 'test' && !fullSyncCoalescerEnabledForTests) return false;
+  const now = Date.now();
+  if (fullSyncPending == null && now - fullSyncLastAppliedAt >= FULL_SYNC_COALESCE_MS) {
+    return false; // quiet window — apply synchronously
+  }
+  // Burst: latest-wins stash (older pending fulls are dropped — the newer
+  // document supersedes them).
+  fullSyncPending = { event, generation: initGeneration };
+  if (fullSyncTimer == null) {
+    fullSyncTimer = setTimeout(() => {
+      fullSyncTimer = null;
+      const pending = fullSyncPending;
+      fullSyncPending = null;
+      if (pending == null) return;
+      // Superseded init (document switch / re-init) — its socket is gone; the
+      // full belongs to a room this store no longer renders.
+      if (pending.generation !== initGeneration) return;
+      fullSyncLastAppliedAt = Date.now();
+      useCanvasStore.getState()._onSync(pending.event, { immediate: true });
+    }, FULL_SYNC_COALESCE_MS);
+  }
+  return true;
+}
+
+/// Test-only knobs for the coalescer's own unit tests: enable it inside
+/// NODE_ENV=test and reset the module state between cases.
+export function __setFullSyncCoalescerForTests(enabled: boolean): void {
+  fullSyncCoalescerEnabledForTests = enabled;
+}
+
+export function __resetFullSyncCoalescerForTests(): void {
+  fullSyncCoalescerEnabledForTests = false;
+  fullSyncLastAppliedAt = -Infinity;
+  fullSyncPending = null;
+  if (fullSyncTimer != null) {
+    clearTimeout(fullSyncTimer);
+    fullSyncTimer = null;
+  }
+}
+
 /// visibilitychange listener for the mutation-clock flush (R5) — shared
 /// reference so init's cleanup can remove it.
 function onVisibilityForClock(): void {
@@ -1105,8 +1185,11 @@ function flushPatchQueue() {
 
   useCanvasStore.setState((s) => ({
     document: finalDoc,
+    // (2026-09-08 perf, 12-d #14): undo pre-states enter the pool STRIPPED
+    // (derived caches dropped — rehydrated on undo); the live finalDoc keeps
+    // its caches.
     undoStack: mutatingPreStates.length > 0
-      ? [...s.undoStack, ...mutatingPreStates].slice(-50)
+      ? [...s.undoStack, ...mutatingPreStates.map(stripDerivedForSnapshot)].slice(-50)
       : s.undoStack,
     redoStack: mutatingPreStates.length > 0 ? [] : s.redoStack,
     agentHighlightIds: newHighlightIds ?? s.agentHighlightIds,
@@ -1512,7 +1595,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     if (sig === s.lastCheckpointSignature) return false;
     set({
       checkpoints: [
-        { id: newCheckpointId(), label, createdAt: Date.now(), auto, document: s.document },
+        // (2026-09-08 perf, 12-d #14): stripped snapshot + the layer count at
+        // capture (the dialog's "N layers" line reads shapeCount).
+        { id: newCheckpointId(), label, createdAt: Date.now(), auto, document: stripDerivedForSnapshot(s.document), shapeCount: s.document.shapes?.length ?? 0 },
         ...s.checkpoints,
       ].slice(0, MAX_CHECKPOINTS),
       lastCheckpointSignature: sig,
@@ -1536,13 +1621,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     get().addCheckpoint('Before restore', false);
     // 2. Same undo push sendPatch makes, so ⌘Z walks back out of a restore.
     const cur = get();
+    // (2026-09-08 perf, 12-d #14): the pool entry is stripped; the promoted
+    // document rehydrates its derived caches (signature computed from the
+    // REHYDRATED doc so it matches the original capture's signature — the
+    // skip-unchanged invariant stays coherent for the next auto-checkpoint).
+    const restored = rehydrateSnapshot(target.document, cur.measuredBounds);
     set({
-      undoStack: [...cur.undoStack, cur.document].slice(-50),
+      undoStack: [...cur.undoStack, stripDerivedForSnapshot(cur.document)].slice(-50),
       redoStack: [],
-      document: target.document,
+      document: restored,
       // The restored doc IS already checkpointed (the target itself) — keep
       // the skip-unchanged invariant coherent for the next auto-checkpoint.
-      lastCheckpointSignature: checkpointSignature(target.document),
+      lastCheckpointSignature: checkpointSignature(restored),
     });
     return true;
   },
@@ -1683,6 +1773,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // OLDER init drop events once a newer init has superseded them (a
     // disconnect is asynchronous; events already in flight still fire).
     const generation = ++initGeneration;
+    // (2026-09-08 perf, 12-b #8): a full stashed by the burst coalescer for
+    // the PREVIOUS init's room must never apply to this one — the fire-time
+    // generation check covers it, but dropping it here (and cancelling the
+    // timer) keeps the pending slot from leaking across a rapid switch.
+    if (fullSyncPending != null || fullSyncTimer != null) {
+      fullSyncPending = null;
+      if (fullSyncTimer != null) {
+        clearTimeout(fullSyncTimer);
+        fullSyncTimer = null;
+      }
+    }
     const supersededSocket = get().socket;
     if (supersededSocket) {
       try {
@@ -2514,9 +2615,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     if (undoStack.length > 0) {
       const prev = undoStack[undoStack.length - 1];
       set({
-        document: prev,
+        // (2026-09-08 perf, 12-d #14): pool entries are stripped — rehydrate
+        // the promoted document (recompute shapes/tokens) and strip the
+        // outgoing live document as it enters the redo pool.
+        document: rehydrateSnapshot(prev, get().measuredBounds),
         undoStack: undoStack.slice(0, -1),
-        redoStack: [...redoStack, document].slice(-50),
+        redoStack: [...redoStack, stripDerivedForSnapshot(document)].slice(-50),
       });
       return;
     }
@@ -2542,9 +2646,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     if (redoStack.length > 0) {
       const next = redoStack[redoStack.length - 1];
       set({
-        document: next,
+        // (2026-09-08 perf, 12-d #14): mirror of undo — rehydrate the
+        // promoted document, strip the outgoing one into the undo pool.
+        document: rehydrateSnapshot(next, get().measuredBounds),
         redoStack: redoStack.slice(0, -1),
-        undoStack: [...undoStack, document].slice(-50),
+        undoStack: [...undoStack, stripDerivedForSnapshot(document)].slice(-50),
       });
       return;
     }
@@ -2771,7 +2877,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set({ turns });
   },
 
-  _onSync: (event) => {
+  _onSync: (event, opts) => {
     // (2026-09-07 UI hardening): the journal catch-up adapter and the HTTP
     // fallback loop also feed this entry — guard the shape here so every
     // ingest path is covered, not just the socket listener.
@@ -2814,6 +2920,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           console.warn('[canvas-sync] dropped malformed canvas:full event');
           break;
         }
+        // (2026-09-08 perf, 12-b #8): burst coalescing for flapping
+        // reconnects — a non-restore full arriving inside a burst window (or
+        // while one is pending) is stashed latest-wins and applied ONCE at
+        // the trailing edge; restore-reason fulls stay immediate (see the
+        // coalescer's module docs for the ordering proof).
+        if (event.reason !== 'restore' && opts?.immediate !== true && shouldDeferFullSync(event)) {
+          break;
+        }
+        fullSyncLastAppliedAt = Date.now();
         // Normalize — older server builds may omit the derived caches.
         if (!doc.shapes || !Array.isArray(doc.shapes)) doc.shapes = resolvePenTree(doc);
         if (!doc.tokens || typeof doc.tokens !== 'object') doc.tokens = { colors: [], textStyles: [] };

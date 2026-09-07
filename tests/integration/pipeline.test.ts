@@ -468,7 +468,10 @@ describe('integration: simulated agent turn through _onSync', () => {
     expect(s.redoStack).toHaveLength(1); // pushed
     // The undo op itself must NOT push another entry to the undo stack —
     // _onSync intercepts op=undo and calls undo() before any pushing happens.
-    expect(s.redoStack[0].shapes).toHaveLength(1); // the doc-with-shape
+    // (2026-09-08 perf, 12-d #14): pool entries are cache-stripped — the
+    // content rides the children tree (rehydrated on redo).
+    expect(s.redoStack[0].shapes).toHaveLength(0); // stripped by design
+    expect(s.redoStack[0].children).toHaveLength(1); // the doc-with-shape
   });
 
   it('select patch does not push to undo stack', async () => {

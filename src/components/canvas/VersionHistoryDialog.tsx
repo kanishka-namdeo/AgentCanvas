@@ -67,7 +67,9 @@ export function VersionHistoryDialog({ open, onOpenChange }: VersionHistoryDialo
                       {cp.auto && <Badge variant="secondary" className="h-4 px-1 text-[9px]">auto</Badge>}
                     </div>
                     <span className="ac-text-3">
-                      {timeAgo(cp.createdAt)} · {cp.document.shapes?.length ?? 0} layers
+                      {/* (2026-09-08 perf, 12-d #14): snapshot documents are stored
+                          cache-stripped — the layer count rides the checkpoint. */}
+                      {timeAgo(cp.createdAt)} · {cp.shapeCount ?? cp.document.shapes?.length ?? 0} layers
                     </span>
                   </div>
                   <Button

@@ -23,6 +23,7 @@ import { useIsMobile } from '@/lib/canvas/use-is-mobile';
 import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types';
 import { SHORTCUTS_BY_ACTION, matchShortcut, chordFor, currentPlatform, isEditableTarget, inCompositeWidget, menuLayerOpen, platformChord } from '@/lib/canvas/shortcuts';
 import { dropShapeAtCenter } from '@/lib/canvas/drop-shape';
+import { createKeyRepeatCoalescer } from '@/lib/canvas/key-repeat-coalescer';
 import { exportSvg, exportPngDataUrl, exportJson, downloadFile, downloadDataUrl } from '@/lib/canvas/export';
 import { exportBackgroundColor } from '@/lib/canvas/theme-colors';
 import { SessionSidebar } from '@/components/sessions/SessionSidebar';
@@ -126,6 +127,49 @@ type RightTab = 'chat' | 'design' | 'runs' | 'snapshots';
 /// outer Chats/Layers strip + a second inner Layers/Assets strip inside the
 /// panel (~100px of stacked chrome before any content).
 type LeftTab = 'chats' | 'layers' | 'assets';
+
+// ---- Keyboard auto-repeat coalescing (2026-09-08 perf, 12-d #12) ----------
+//
+// ⌘Z/⌘⇧Z held fires the store undo/redo per OS key-repeat (~30/s); every call
+// swaps the document → buildWorld + full roots reconciliation per tick. Arrow
+// nudges run an O(sel×canvas) shape lookup (×2: shape + parent) plus a full
+// update_many apply + resolvePenTree PER KEYPRESS. The logic lives in
+// lib/canvas/key-repeat-coalescer.ts (testable, injectable timing); this
+// module-scope instance wires it to the store — the handlers read state at
+// DRAIN time, never at keydown time, so the wiring never goes stale.
+const keyRepeatCoalescer = createKeyRepeatCoalescer({
+  applyHistory: (op) => {
+    useCanvasStore.getState()[op]();
+  },
+  applyNudge: (dx, dy) => {
+    const st = useCanvasStore.getState();
+    if (st.selectedIds.length === 0) return;
+    // Map-ified lookup (12-d #12: findShape per id was O(sel×canvas));
+    // positions read from the CURRENT document, not accumulated stale ones.
+    const byId = new Map(st.document.shapes.map((s) => [s.id, s] as const));
+    const updates = st.selectedIds
+      .map((id) => {
+        const s = byId.get(id);
+        if (!s) return null;
+        // Subtract parent absolute position if nested (same fix as the
+        // drag handler).
+        let newX = s.x + dx;
+        let newY = s.y + dy;
+        if (s.parentId) {
+          const parent = byId.get(s.parentId);
+          if (parent) {
+            newX -= parent.x;
+            newY -= parent.y;
+          }
+        }
+        return { id, changes: { x: newX, y: newY } };
+      })
+      .filter((u): u is { id: string; changes: { x: number; y: number } } => u !== null);
+    if (updates.length > 0) {
+      st.sendPatch({ op: 'update_many', updates, summary: `Nudged ${updates.length} shape(s) by (${dx}, ${dy})` });
+    }
+  },
+});
 
 export default function Home() {
   // Multi-document support (P3-1): the page used to hard-code `documentId =
@@ -524,7 +568,10 @@ export default function Home() {
         if (e.key === 'z' || e.key === 'Z') {
           if (isEditable) return;
           e.preventDefault();
-          if (e.shiftKey) { state.redo(); } else { state.undo(); }
+          // (2026-09-08 perf, 12-d #12): counted, not dropped — the drain
+          // applies at most one undo per animation frame while ⌘Z is held.
+          if (e.shiftKey) keyRepeatCoalescer.queueRedo();
+          else keyRepeatCoalescer.queueUndo();
           return;
         }
 
@@ -800,24 +847,13 @@ export default function Home() {
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         if (state.selectedIds.length === 0) return;
         e.preventDefault();
+        // (2026-09-08 perf, 12-d #12): accumulate the frame's deltas — ONE
+        // update_many patch per animation frame with Map lookups at drain
+        // time (was: O(sel×canvas) findShape ×2 + a full apply per keypress).
         const step = e.shiftKey ? 10 : 1;
         const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
         const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
-        const updates = state.selectedIds.map((id) => {
-          const s = findShape(state.document, id);
-          if (!s) return null;
-          // Subtract parent absolute position if nested (same fix as the drag handler).
-          let newX = s.x + dx;
-          let newY = s.y + dy;
-          if (s.parentId) {
-            const parent = findShape(state.document, s.parentId);
-            if (parent) { newX -= parent.x; newY -= parent.y; }
-          }
-          return { id, changes: { x: newX, y: newY } };
-        }).filter((u): u is { id: string; changes: { x: number; y: number } } => u !== null);
-        if (updates.length > 0) {
-          state.sendPatch({ op: 'update_many', updates, summary: `Nudged ${updates.length} shape(s) by (${dx}, ${dy})` });
-        }
+        keyRepeatCoalescer.queueNudge(dx, dy);
         return;
       }
 
@@ -858,7 +894,13 @@ export default function Home() {
       }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      // (2026-09-08 perf): flush any coalesced key-repeat work still pending
+      // (the effect re-runs on panel toggles — a mid-frame toggle must not
+      // strand the last nudge/undo).
+      keyRepeatCoalescer.dispose();
+    };
   }, [leftCollapsed, rightCollapsed, toggleZen, clipboard]);
 
   // ⌘K palette command layer (UI-audit round 2). Built here where every

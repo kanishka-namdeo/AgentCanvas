@@ -99,10 +99,15 @@ describe('version-history: addCheckpoint', () => {
     const cps = useCanvasStore.getState().checkpoints;
     expect(cps).toHaveLength(2);
     expect(cps[0].label).toBe('Second'); // newest first
-    expect(cps[0].document).toBe(docB);
+    // (2026-09-08 perf, 12-d #14): snapshots are stored cache-stripped but
+    // structurally share the source tree; the layer count rides the entry.
+    expect(cps[0].document.children).toBe(docB.children);
+    expect(cps[0].document.shapes).toHaveLength(0);
+    expect(cps[0].shapeCount).toBe(2);
     expect(cps[0].auto).toBe(false);
     expect(cps[1].label).toBe('First');
-    expect(cps[1].document).toBe(docA);
+    expect(cps[1].document.children).toBe(docA.children);
+    expect(cps[1].shapeCount).toBe(1);
     expect(typeof cps[0].id).toBe('string');
     expect(cps[0].id).not.toBe(cps[1].id);
     expect(cps[0].createdAt).toBeGreaterThan(0);
@@ -162,14 +167,18 @@ describe('version-history: restoreCheckpoint', () => {
     expect(useCanvasStore.getState().restoreCheckpoint(targetId)).toBe(true);
 
     const s = useCanvasStore.getState();
-    expect(s.document).toBe(docA); // restored to the checkpoint's document
+    // (2026-09-08 perf, 12-d #14): restore promotes the stripped snapshot
+    // with rehydrated caches; pool entries are content-equal, not identical.
+    expect(s.document.children).toBe(docA.children); // restored to the checkpoint's content
+    expect(s.document.shapes.map((x) => x.id)).toEqual(['a']); // caches recomputed
     expect(s.undoStack).toHaveLength(1);
-    expect(s.undoStack[0]).toBe(docB); // pre-restore doc pushed for undo
+    expect(s.undoStack[0].children).toBe(docB.children); // pre-restore doc pushed for undo
+    expect(s.undoStack[0].shapes).toHaveLength(0); // stripped as it entered the pool
     expect(s.redoStack).toHaveLength(0); // cleared like any mutation
     // A 'Before restore' checkpoint captured the CURRENT (pre-restore) state.
     expect(s.checkpoints[0].label).toBe('Before restore');
     expect(s.checkpoints[0].auto).toBe(false);
-    expect(s.checkpoints[0].document).toBe(docB);
+    expect(s.checkpoints[0].document.children).toBe(docB.children);
     expect(s.checkpoints[1].label).toBe('Target');
   });
 
@@ -182,13 +191,15 @@ describe('version-history: restoreCheckpoint', () => {
     useCanvasStore.setState({ document: docB });
 
     useCanvasStore.getState().restoreCheckpoint(targetId);
-    expect(useCanvasStore.getState().document).toBe(docA);
+    expect(useCanvasStore.getState().document.children).toBe(docA.children);
 
     useCanvasStore.getState().undo();
     const s = useCanvasStore.getState();
-    expect(s.document).toBe(docB);
+    expect(s.document.children).toBe(docB.children);
+    expect(s.document.shapes.map((x) => x.id)).toEqual(['a', 'b']); // rehydrated
     expect(s.redoStack).toHaveLength(1);
-    expect(s.redoStack[0]).toBe(docA);
+    expect(s.redoStack[0].children).toBe(docA.children);
+    expect(s.redoStack[0].shapes).toHaveLength(0); // stripped as it entered the pool
   });
 });
 

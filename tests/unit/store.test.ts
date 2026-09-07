@@ -112,10 +112,15 @@ describe('store: undo() action', () => {
     useCanvasStore.getState().undo();
 
     const s = useCanvasStore.getState();
-    expect(s.document).toBe(docA);
+    // (2026-09-08 perf, 12-d #14): pool entries are cache-stripped clones that
+    // structurally share the source tree; the promoted document rehydrates
+    // its derived caches — assert CONTENT + sharing, not object identity.
+    expect(s.document.children).toBe(docA.children);
+    expect(s.document.shapes.map((x) => x.id)).toEqual(['a']); // caches rehydrated
     expect(s.undoStack).toHaveLength(0);
     expect(s.redoStack).toHaveLength(1);
-    expect(s.redoStack[0]).toBe(docB);
+    expect(s.redoStack[0].children).toBe(docB.children);
+    expect(s.redoStack[0].shapes).toHaveLength(0); // stripped as it entered the pool
   });
 
   it('is a no-op when the undo stack is empty', () => {
@@ -149,7 +154,7 @@ describe('store: undo() action', () => {
     const s = useCanvasStore.getState();
     // Redo should have grown by 1 then been sliced to 50.
     expect(s.redoStack).toHaveLength(50);
-    expect(s.redoStack[49]).toBe(doc); // current was pushed
+    expect(s.redoStack[49].children).toBe(doc.children); // current was pushed (stripped)
   });
 });
 
@@ -165,10 +170,13 @@ describe('store: redo() action', () => {
     useCanvasStore.getState().redo();
 
     const s = useCanvasStore.getState();
-    expect(s.document).toBe(docB);
+    // (2026-09-08 perf, 12-d #14): content + structural sharing, not identity.
+    expect(s.document.children).toBe(docB.children);
+    expect(s.document.shapes.map((x) => x.id)).toEqual(['a', 'b']); // caches rehydrated
     expect(s.redoStack).toHaveLength(0);
     expect(s.undoStack).toHaveLength(1);
-    expect(s.undoStack[0]).toBe(docA);
+    expect(s.undoStack[0].children).toBe(docA.children);
+    expect(s.undoStack[0].shapes).toHaveLength(0); // stripped as it entered the pool
   });
 
   it('is a no-op when the redo stack is empty', () => {
@@ -197,7 +205,7 @@ describe('store: redo() action', () => {
 
     const s = useCanvasStore.getState();
     expect(s.undoStack).toHaveLength(50);
-    expect(s.undoStack[49]).toBe(doc); // current was pushed
+    expect(s.undoStack[49].children).toBe(doc.children); // current was pushed (stripped)
   });
 });
 
@@ -215,7 +223,7 @@ describe('store: _onSync canvas:patch — undo/redo interception', () => {
       patch: patch({ op: 'undo' }),
     });
 
-    expect(useCanvasStore.getState().document).toBe(docA);
+    expect(useCanvasStore.getState().document.children).toBe(docA.children);
     expect(useCanvasStore.getState().undoStack).toHaveLength(0);
   });
 
@@ -230,7 +238,7 @@ describe('store: _onSync canvas:patch — undo/redo interception', () => {
       patch: patch({ op: 'redo' }),
     });
 
-    expect(useCanvasStore.getState().document).toBe(docB);
+    expect(useCanvasStore.getState().document.children).toBe(docB.children);
     expect(useCanvasStore.getState().redoStack).toHaveLength(0);
   });
 });
@@ -253,7 +261,10 @@ describe('store: _onSync canvas:patch — undo stack push behavior', () => {
 
     const s = useCanvasStore.getState();
     expect(s.undoStack).toHaveLength(1);
-    expect(s.undoStack[0]).toBe(docBefore); // the pre-mutation reference
+    // (2026-09-08 perf, 12-d #14): the pre-mutation document enters the pool
+    // cache-stripped but structurally shares the source tree.
+    expect(s.undoStack[0].children).toBe(docBefore.children);
+    expect(s.undoStack[0].shapes).toHaveLength(0);
     expect(s.document.shapes[0].fill).toBe('#00ff00'); // mutation applied
   });
 
@@ -316,8 +327,10 @@ describe('store: _onSync canvas:patch — undo stack push behavior', () => {
 
     const s = useCanvasStore.getState();
     expect(s.undoStack).toHaveLength(50); // capped
-    // The oldest entry should have been dropped; the newest should be `doc`.
-    expect(s.undoStack[49]).toBe(doc);
+    // The oldest entry should have been dropped; the newest should be `doc`
+    // (2026-09-08 perf, 12-d #14: pushed cache-stripped, tree shared).
+    expect(s.undoStack[49].children).toBe(doc.children);
+    expect(s.undoStack[49].shapes).toHaveLength(0);
     expect(s.undoStack[0]).not.toBe(undoDocs[0]); // oldest dropped
   });
 
@@ -334,21 +347,27 @@ describe('store: _onSync canvas:patch — undo stack push behavior', () => {
     const doc2 = useCanvasStore.getState().document;
     expect(doc2.shapes[0].fill).toBe('#00ff00');
     expect(useCanvasStore.getState().undoStack).toHaveLength(1);
-    expect(useCanvasStore.getState().undoStack[0]).toBe(doc1);
+    // (2026-09-08 perf, 12-d #14): pre-mutation doc enters the pool stripped;
+    // promotion rehydrates — assert content + structural sharing.
+    expect(useCanvasStore.getState().undoStack[0].children).toBe(doc1.children);
+    expect(useCanvasStore.getState().undoStack[0].shapes).toHaveLength(0);
 
     // Undo.
     useCanvasStore.getState().undo();
-    expect(useCanvasStore.getState().document).toBe(doc1);
+    expect(useCanvasStore.getState().document.children).toBe(doc1.children);
+    expect(useCanvasStore.getState().document.shapes[0].fill).toBe('#ff0000'); // rehydrated cache
     expect(useCanvasStore.getState().undoStack).toHaveLength(0);
     expect(useCanvasStore.getState().redoStack).toHaveLength(1);
-    expect(useCanvasStore.getState().redoStack[0]).toBe(doc2);
+    expect(useCanvasStore.getState().redoStack[0].children).toBe(doc2.children);
+    expect(useCanvasStore.getState().redoStack[0].shapes).toHaveLength(0);
 
     // Redo.
     useCanvasStore.getState().redo();
-    expect(useCanvasStore.getState().document).toBe(doc2);
+    expect(useCanvasStore.getState().document.children).toBe(doc2.children);
+    expect(useCanvasStore.getState().document.shapes[0].fill).toBe('#00ff00'); // rehydrated cache
     expect(useCanvasStore.getState().redoStack).toHaveLength(0);
     expect(useCanvasStore.getState().undoStack).toHaveLength(1);
-    expect(useCanvasStore.getState().undoStack[0]).toBe(doc1);
+    expect(useCanvasStore.getState().undoStack[0].children).toBe(doc1.children);
   });
 
   it('handles multiple sequential mutations then undoes back through them', () => {

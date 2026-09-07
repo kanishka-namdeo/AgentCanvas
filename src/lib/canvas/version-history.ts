@@ -12,7 +12,8 @@
 // measuredBounds pattern): not persisted, not part of undo snapshots, and
 // writing them never recomputes `document`.
 
-import type { CanvasDocument } from './types';
+import type { CanvasDocument, DesignTokens, Shape } from './types';
+import { recomputeDerived } from './patch';
 
 /// One named snapshot of the canvas. Newest-first in the store's
 /// `checkpoints` array (index 0 = most recent).
@@ -23,13 +24,68 @@ export interface Checkpoint {
   createdAt: number;
   /// true = captured automatically at an agent turn end; false = manual.
   auto: boolean;
-  /// Full document snapshot at capture time (stored by reference — the
-  /// store's document is treated immutably, so the snapshot stays frozen).
+  /// Document snapshot at capture time with the DERIVED caches stripped
+  /// (see stripDerivedForSnapshot — 2026-09-08 perf, 12-d #14). The store's
+  /// document is treated immutably, so the shared children/variables
+  /// structure stays frozen; rehydrateSnapshot recomputes the caches on
+  /// restore.
   document: CanvasDocument;
+  /// Layer count at capture time (the dialog's "N layers" line — the
+  /// stripped snapshot's shapes array is empty by design). Optional for
+  /// legacy/test fixtures that construct Checkpoints literally.
+  shapeCount?: number;
 }
 
 /// Max checkpoints kept. Oldest are dropped; index 0 (newest) always kept.
 export const MAX_CHECKPOINTS = 50;
+
+// ---- Snapshot pool memory (2026-09-08 perf, 12-d #14) -----------------------
+//
+// The store retains up to 150 full-document references at once (50
+// checkpoints + 50 undoStack + 50 redoStack). Each retained document used to
+// carry its DERIVED caches (`shapes` — an O(nodes) flat array produced by
+// resolvePenTree — plus `tokens`); on a 20k-node canvas with many distinct
+// turn-end states that duplicated cache graph alone was hundreds of MB,
+// while the SOURCE tree (children/variables) is structurally shared across
+// snapshots almost for free. The two helpers below strip the re-derivable
+// caches at pool entry and recompute them at pool exit:
+//
+//   capture:  stripDerivedForSnapshot(liveDoc)     → checkpoint/undo/redo slot
+//   promote:  rehydrateSnapshot(slot, bounds)      → live document
+//
+// Recompute cost on promote is one resolvePenTree — the same O(n) resolve a
+// patch apply performs — paid once per explicit undo/redo/restore action,
+// instead of retaining 150 × O(n) cache arrays permanently.
+
+/// Shared empty derived caches for stripped snapshots — frozen so an
+/// accidental in-place mutation fails loudly (documents are immutable by
+/// discipline everywhere; nothing writes these fields, and recomputeDerived
+/// REPLACES them rather than mutating).
+const STRIPPED_SHAPES: Shape[] = Object.freeze([]) as unknown as Shape[];
+const STRIPPED_TOKENS: DesignTokens = Object.freeze({ colors: [], textStyles: [] }) as unknown as DesignTokens;
+
+/// Strip the derived caches from a document entering a snapshot pool
+/// (checkpoints / undoStack / redoStack). The returned clone SHARES the
+/// immutable children/variables/pages structure with the live document —
+/// structural sharing is what makes retained snapshots cheap — and drops
+/// only the re-derivable `shapes`/`tokens` caches.
+export function stripDerivedForSnapshot(doc: CanvasDocument): CanvasDocument {
+  return { ...doc, shapes: STRIPPED_SHAPES, tokens: STRIPPED_TOKENS };
+}
+
+/// Recompute the derived caches on a snapshot being promoted back to the
+/// live document (undo / redo / restoreCheckpoint). Threads the store's
+/// measuredBounds the same way applyPatchToCanvas does (spec §3.8 hints —
+/// fit_content nodes pick up CURRENT measurements instead of stale ones). A
+/// document that still carries populated caches (legacy fixtures, live
+/// documents routed through by mistake) is returned unchanged.
+export function rehydrateSnapshot(
+  doc: CanvasDocument,
+  measuredBounds?: Record<string, { width: number; height: number }>,
+): CanvasDocument {
+  if (doc.shapes && doc.shapes.length > 0) return doc;
+  return recomputeDerived(doc, measuredBounds);
+}
 
 /// Cheap change detector for "has the document changed since the last
 /// checkpoint?" — a monotone-ish signature over the tree size, the derived

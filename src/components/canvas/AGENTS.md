@@ -26,7 +26,7 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
 - `KeyboardShortcutsDialog.tsx` — searchable modal listing all wired keyboard shortcuts, grouped by category (Panels, Navigation, Edit, Tools, Clipboard, Structure, Z-order, Canvas, Properties, Chat, File). Tier badges (P0/P1/P2/Existing) with color coding. Opens via ⌘/ (mirrors Figma's Ctrl+Shift+? cheat sheet). Filters by action, keys, category, or tier.
 - `Markdown.tsx` — markdown renderer for agent chat messages (react-markdown; lists, bold, tables, fenced code with click-to-copy).
 - `Rulers.tsx` — canvas rulers (Phase 7 §H.2) with drag-out guides (feeds `DEFAULT_GUIDE_COLOR`).
-- `VersionHistoryDialog.tsx` — version-history dialog (Phase 7 group C — defect D14); browses/restores version-history checkpoints.
+- `VersionHistoryDialog.tsx` — version-history dialog (Phase 7 group C — defect D14); browses/restores version-history checkpoints. The "N layers" line reads `cp.shapeCount` (captured at checkpoint time — snapshot documents are stored cache-stripped since 2026-09-08, so their `shapes` array is empty by design).
 - `ModelSwitcher.tsx` — the model badge in the AgentPanel header becomes a dropdown listing models the user can actually switch to (provider-aware availability).
 - `ShortcutsReference.tsx` — the ONE registry-driven shortcut table renderer (renders straight from `src/lib/canvas/shortcuts.ts` so the reference can never drift from the keymap).
 - `PackTokensStyle.tsx` — injects the active design-system pack's `tokens.css` into the canvas subtree as a `<style>` tag.

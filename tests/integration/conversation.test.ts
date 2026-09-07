@@ -352,8 +352,11 @@ describe('conversation: undo/redo via tools', () => {
     // (The undo itself does NOT push to the undo stack — _onSync intercepts it.)
     expect(useCanvasStore.getState().undoStack).toHaveLength(0);
     // And the redo stack now has the post-create state.
+    // (2026-09-08 perf, 12-d #14): pool entries are cache-stripped — the
+    // content rides the children tree (rehydrated on redo).
     expect(useCanvasStore.getState().redoStack).toHaveLength(1);
-    expect(useCanvasStore.getState().redoStack[0].shapes).toHaveLength(3);
+    expect(useCanvasStore.getState().redoStack[0].shapes).toHaveLength(0);
+    expect(useCanvasStore.getState().redoStack[0].children).toHaveLength(3);
   });
 
   it('pen_redo after pen_undo restores the change', async () => {

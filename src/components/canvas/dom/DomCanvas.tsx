@@ -368,6 +368,25 @@ export function DomCanvas({
     return () => ro.disconnect();
   }, []);
 
+  // (2026-09-08 perf, 12-d #9) Culling inputs are memoized on the identities
+  // that actually produce them: `roots`/`layers` come from the world-tree
+  // memo above (stable across pan/zoom renders — identity changes only on a
+  // patch), and the immune set only changes with selection/hover. Previously
+  // EVERY pan/zoom prop change rebuilt rootLayerRects (O(roots) fresh array),
+  // a fresh immune Set and the filtered array synchronously per input event
+  // (wheel ~60-120Hz); on a 100k-root canvas that was O(n) work at input
+  // rate. The O(roots) filter now runs INSIDE run() — at rAF/debounce
+  // cadence — so the per-event synchronous cost is viewport math + two
+  // identity comparisons.
+  const rootRects = useMemo(() => rootLayerRects(roots), [roots]);
+  // Selection / hover immunity — never cull a root the user is interacting
+  // with (placeholder swap would drop selection chrome + measured bounds).
+  const immuneIds = useMemo(() => {
+    const immune = new Set<string>(selectedIds);
+    if (hoveredId) immune.add(hoveredId);
+    return immune;
+  }, [selectedIds, hoveredId]);
+
   // Compute culling decision on pan/zoom / canvas-size / root-set changes.
   // Reads refs (canvasSize, prevCulled) and the roots array; writes state
   // (culledIds) only when the decision changed (cheap no-op when nothing
@@ -389,16 +408,14 @@ export function DomCanvas({
     const { w, h } = canvasSizeRef.current;
     if (w <= 0 || h <= 0) return; // not yet measured
     const vp = viewportFromPanZoom(panX, panY, zoom, w, h);
-    const rects = rootLayerRects(roots);
-    // Selection / hover immunity — never cull a root the user is interacting
-    // with (placeholder swap would drop selection chrome + measured bounds).
-    const immune = new Set<string>(selectedIds);
-    if (hoveredId) immune.add(hoveredId);
-    const filterableRects = rects.filter((r) => !immune.has(r.id));
     const nodeCount = layers.length;
 
     const run = () => {
       rafTokenRef.current = null;
+      // (2026-09-08 perf) — the O(roots) immune filter moved here (inside
+      // the rAF-throttled run) so bursts of pan/zoom events between frames
+      // pay it once, not per event.
+      const filterableRects = rootRects.filter((r) => !immuneIds.has(r.id));
       const decision = computeCullingDecision(vp, filterableRects, prevCulledRef.current, nodeCount);
       if (decision.changed) {
         prevCulledRef.current = decision.culledIds;
@@ -427,7 +444,7 @@ export function DomCanvas({
         rafTokenRef.current = null;
       }
     };
-  }, [l4Culling, panX, panY, zoom, roots, layers.length, selectedIds, hoveredId]);
+  }, [l4Culling, panX, panY, zoom, rootRects, layers.length, immuneIds]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Variable publishing (spec §3.6): every document variable becomes a
