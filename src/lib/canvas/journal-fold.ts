@@ -512,6 +512,13 @@ export async function journalDocumentRestore(
 /// Node ids changed since `sinceSeq` (per-turn canvas watermark) for the
 /// delta LLM context. Returns null when anything global happened (or the
 /// window is too big to enumerate) — callers fall back to a full snapshot.
+/// ALSO returns null when NOTHING changed since the watermark: a pure
+/// follow-up turn (no manual edits in between) would otherwise hand the
+/// runner an EMPTY delta, and since every turn runs in a fresh LLM session
+/// (SessionManager.inMemory per run — the model has never seen the canvas),
+/// a digest with zero expanded nodes leaves the model navigating by
+/// collapsed name-lines only. The full snapshot is the correct context for
+/// that turn shape (2026-09-07 follow-up-turn fix).
 export async function computeChangedNodeIdsSince(
   documentId: string,
   sinceSeq: number,
@@ -542,6 +549,9 @@ export async function computeChangedNodeIdsSince(
       if (page === 2) return { nodeIds: null, throughSeq };
     }
     if (scanned > 3000) return { nodeIds: null, throughSeq };
+    // Empty changed-set = pure follow-up turn (no intervening edits) — a
+    // zero-node digest would blind the fresh session. Full snapshot instead.
+    if (ids.size === 0) return { nodeIds: null, throughSeq };
     return { nodeIds: [...ids], throughSeq };
   } catch {
     return { nodeIds: null, throughSeq: sinceSeq };

@@ -408,6 +408,26 @@ describe('computeChangedNodeIdsSince (R9a delta context)', () => {
     const res = await computeChangedNodeIdsSince(DOC, 0);
     expect(res.nodeIds).toBeNull();
   });
+
+  // 2026-09-07 follow-up-turn fix: the classic app shape is turn 1 (build)
+  // → checkpoint watermark → turn 2 prompt with NO intervening edits. The
+  // only rows above the watermark are non-patch rows (user_message,
+  // message_end) — an empty ids set. An empty nodeIds array used to select
+  // the DELTA digest with ZERO expanded nodes, blinding the fresh per-turn
+  // session (it has never seen the canvas). It must fall back to null →
+  // full snapshot.
+  it('returns null on an EMPTY changed-set (pure follow-up turn, no edits since the watermark)', async () => {
+    // Turn 1's patches land BELOW the watermark (checkpointed at seq 3).
+    seedRow('patch', { patch: updatePatch('a', 1), toolCallId: 'tc1' });
+    seedRow('patch', { patch: updatePatch('b', 2), toolCallId: 'tc2' });
+    const watermark = seedRow('agent:user_message', { text: 'turn-2 prompt', sessionId: 's1' });
+    // Above the watermark: only non-mutation rows.
+    seedRow('agent:user_message', { text: 'turn-3 prompt', sessionId: 's1' });
+    seedRow('agent:message_end', { type: 'agent:message_end' });
+
+    const res = await computeChangedNodeIdsSince(DOC, watermark);
+    expect(res.nodeIds).toBeNull();
+  });
 });
 
 describe('tombstone lane (pure helpers)', () => {

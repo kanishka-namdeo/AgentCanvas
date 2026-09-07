@@ -1509,7 +1509,25 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // re-hydrates any collapsed node on demand (tldraw getChangesSince +
   // Linear late-enrichment). nodeIds:null (global op / oversized window)
   // and absent canvasDelta (HTTP fallback) both keep the full snapshot.
-  const delta = opts.canvasDelta?.nodeIds;
+  //
+  // 2026-09-07 follow-up-turn fix — delta mode is additionally gated on:
+  //   (a) a NON-EMPTY changed set: every turn runs in a FRESH session
+  //       (SessionManager.inMemory per run), so the model has NEVER seen
+  //       this canvas. An empty changed-set (pure follow-up prompt, no
+  //       intervening manual edits) would produce a digest with ZERO
+  //       expanded nodes — the model would have to hydrate its own canvas
+  //       blind via pen_get_metadata before every edit. Full snapshot
+  //       instead (this is exactly what the HTTP fallback path does).
+  //   (b) a LARGE canvas: below ~60 shapes the digest's token savings are
+  //       negligible (collapsed lines are nearly as long as full lines —
+  //       the savings come from hidden descendants), while the blindness
+  //       risk on edit turns is real. Small canvases always get the full
+  //       snapshot.
+  const DELTA_MIN_SHAPES = 60;
+  const deltaIds = opts.canvasDelta?.nodeIds;
+  const delta = deltaIds && deltaIds.length > 0 && (canvas.shapes?.length ?? 0) > DELTA_MIN_SHAPES
+    ? deltaIds
+    : undefined;
   const snapshotSection = delta
     ? `\n\nCURRENT CANVAS SNAPSHOT — DELTA since the last turn (unchanged subtrees are collapsed; call pen_get_metadata with a nodeId — detail:true — to expand any node's full fields):\n${canvasSnapshotDelta(canvas, delta)}`
     : `\n\nCURRENT CANVAS SNAPSHOT (at turn start — call pen_get_metadata for live state):\n${canvasSnapshot(canvas)}`;
