@@ -112,6 +112,11 @@ import { setActiveSession as setBackgroundTaskActiveSession } from './plugins/ba
 import { setActiveLLM as setSubagentActiveLLM, setActiveCanvas as setSubagentActiveCanvas } from './plugins/subagents';
 import { getMemoryContextForPrompt } from './plugins/memory';
 import { getJournalEvents, getJournalEventsByType } from './event-journal';
+// Cross-turn conversation history (audit 1 P3) — the replay pipeline lives
+// in the PURE history-replay.ts (multi-turn abuse hardening 2026-09-07:
+// history-marker neutralization + repeat-prompt loop breaker); the thin
+// journal-reading wrapper below re-exports it with the original signature.
+import { buildHistorySection, buildHistorySectionEx } from './history-replay';
 // Cursor-style modes (Build / Ask / Plan) + multitask + adaptive critique —
 // see download/research-modes/cursor-modes-research.md §4 for the design.
 import {
@@ -183,74 +188,40 @@ export const NATIVE_COMPACTION_SETTINGS = {
 // updated", from turn_final's payload) so the model knows WHAT each prior
 // turn changed without re-reading the whole canvas — the Cursor "Edited N
 // files" chip pattern, applied to prompt context.
-const HISTORY_MAX_TURNS = 6;
-const HISTORY_PER_MSG_CAP = 1200;
-const HISTORY_TOTAL_CAP = 6000;
-
-/// Strip system-injected italic markers (_[Design critic iteration 1/2…]_) from
-/// replayed assistant text — they are turn-runtime telemetry, not design
-/// decisions, and replaying them into later turns' context teaches the model
-/// to emit the same markers itself (observed in journal replays).
-function stripSystemMarkers(text: string): string {
-  return text.replace(/_\[[^\]]*\]_/g, ' ').replace(/\s+/g, ' ');
-}
-
-export async function buildConversationHistory(documentId: string): Promise<string> {
+//
+// 2026-09-07 multi-turn abuse hardening: the pairing / clipping / marker
+// neutralization / repeat-prompt loop breaker moved to the PURE module
+// history-replay.ts (unit-testable without the SDK / journal DB — the
+// prompt-intent.ts extraction pattern). This wrapper only reads the journal
+// rows and delegates; `currentPrompt` feeds the duplicate-row drop AND the
+// repeat-loop detection (see history-replay.ts).
+export async function buildConversationHistory(
+  documentId: string,
+  currentPrompt?: string,
+): Promise<string> {
   if (!documentId) return '';
-  let rows: Array<{ type: string; payload: any }> = [];
   try {
-    rows = await getJournalEventsByType(documentId, ['agent:user_message', 'agent:turn_final'], 64);
+    const rows = await getJournalEventsByType(documentId, ['agent:user_message', 'agent:turn_final'], 64);
+    return buildHistorySection(rows, currentPrompt);
   } catch {
     return '';
   }
-  const pairs: Array<{ user: string; assistant: string; diff: string }> = [];
-  let pendingUser: string | null = null;
-  for (const row of rows) {
-    if (row.type === 'agent:user_message') {
-      const text = typeof row.payload?.text === 'string' ? row.payload.text : '';
-      if (text.trim()) {
-        if (pendingUser !== null) pairs.push({ user: pendingUser, assistant: '', diff: '' });
-        pendingUser = text;
-      }
-    } else if (row.type === 'agent:turn_final' && pendingUser !== null) {
-      const text = typeof row.payload?.text === 'string' ? row.payload.text : '';
-      const diff = typeof row.payload?.diffSummary === 'string' && row.payload.diffSummary.trim()
-        ? row.payload.diffSummary.trim()
-        : '';
-      pairs.push({ user: pendingUser, assistant: text, diff });
-      pendingUser = null;
-    }
+}
+
+/// Ex variant: also reports the trailing repeat count (the runner flips
+/// expectsCanvasOutput on immediate re-sends — see the IMMEDIATE-REPEAT
+/// EXCEPTION at its definition).
+export async function buildConversationHistoryEx(
+  documentId: string,
+  currentPrompt?: string,
+): Promise<{ section: string; repeatCount: number }> {
+  if (!documentId) return { section: '', repeatCount: 1 };
+  try {
+    const rows = await getJournalEventsByType(documentId, ['agent:user_message', 'agent:turn_final'], 64);
+    return buildHistorySectionEx(rows, currentPrompt);
+  } catch {
+    return { section: '', repeatCount: 1 };
   }
-  if (pendingUser !== null) pairs.push({ user: pendingUser, assistant: '', diff: '' });
-  if (pairs.length === 0) return '';
-  // Drop the LAST pair when its user message is the CURRENT prompt (the
-  // journal row for this turn is written at run start, before the runner
-  // reads history — replaying it verbatim would duplicate the prompt).
-  const currentPromptRow = rows.filter((r) => r.type === 'agent:user_message').pop();
-  const lastPair = pairs[pairs.length - 1];
-  if (currentPromptRow && lastPair && lastPair.user === currentPromptRow.payload?.text && !lastPair.assistant) {
-    pairs.pop();
-  }
-  if (pairs.length === 0) return '';
-  const recent = pairs.slice(-HISTORY_MAX_TURNS);
-  const clip = (s: string): string => {
-    const t = s.replace(/\s+/g, ' ').trim();
-    return t.length > HISTORY_PER_MSG_CAP ? `${t.slice(0, HISTORY_PER_MSG_CAP)}…` : t;
-  };
-  const lines: string[] = [];
-  let total = 0;
-  for (const p of recent) {
-    // Diff chip (Cursor "Edited N files" pattern): tells the model WHAT the
-    // prior turn changed on the canvas, so a follow-up can target those
-    // regions without re-reading the whole tree.
-    const diffChip = p.diff ? ` [canvas: ${p.diff}]` : '';
-    const turn = `user: ${clip(p.user)}${p.assistant ? `\nassistant: ${clip(stripSystemMarkers(p.assistant))}${diffChip}` : ''}`;
-    if (total + turn.length > HISTORY_TOTAL_CAP && lines.length > 0) break;
-    lines.push(turn);
-    total += turn.length;
-  }
-  if (lines.length === 0) return '';
-  return `\n\n[CONVERSATION HISTORY — earlier turns on this canvas, most recent last. For context; the canvas snapshot below reflects the CURRENT state, so trust it over any geometry described in history:]\n${lines.join('\n---\n')}`;
 }
 
 // ---- Build the in-memory resource loader ----------------------------------
@@ -706,7 +677,18 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // MODE GATE: only BUILD turns "owe" canvas output. Ask/Plan turns
   // legitimately settle as prose (an answer / a plan via submit_plan), so
   // the silent-failure + retry guards must not harass them.
-  const expectsCanvasOutput = mode === 'build' && isDesignRequest(prompt) && !QUESTIONISH_PROMPT && !clarifyOnEmptyCanvas;
+  //
+  // IMMEDIATE-REPEAT EXCEPTION (multi-turn abuse hardening 2026-09-07): a
+  // prompt the user just re-sent verbatim does NOT owe canvas output either
+  // — the honest model reply is prose ("I already applied that — what
+  // specifically should change?"). Observed live in the abuse battery: the
+  // 2nd/3rd "make it pop" came back text-only (a correct push-back), but
+  // expectsCanvasOutput was still true, so the text-only-design-turn guard
+  // burned the entire provider-fallback ladder (4 attempts + sandbox swap)
+  // and ERRORED a turn whose answer was actually correct. Flipped below at
+  // the history read, where the repeat count (journal-derived) becomes
+  // available. `let`, not `const`, for exactly that flip.
+  let expectsCanvasOutput = mode === 'build' && isDesignRequest(prompt) && !QUESTIONISH_PROMPT && !clarifyOnEmptyCanvas;
 
   // Pre-generate the design brief for ALL design requests in build mode —
   // including ambiguous creations. The brief gives the LLM a deterministic
@@ -1409,7 +1391,18 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // before the current prompt, never in the system prompt (cache).
   let conversationHistorySection = '';
   try {
-    conversationHistorySection = await buildConversationHistory(documentId);
+    // currentPrompt feeds the duplicate-row drop + repeat-loop detection.
+    // The REPEAT signal rides back as a structured count: at ≥2 (an
+    // immediate re-send) a text-only reply is the turn's CORRECT terminal
+    // output — flip expectsCanvasOutput so the text-only-design-turn guards
+    // accept it instead of erroring the turn (see the IMMEDIATE-REPEAT
+    // EXCEPTION above; the [REPEAT PROMPT NOTE] itself fires at ≥3 inside
+    // history-replay.ts).
+    const historyResult = await buildConversationHistoryEx(documentId, prompt);
+    conversationHistorySection = historyResult.section;
+    if (historyResult.repeatCount >= 2) {
+      expectsCanvasOutput = false;
+    }
   } catch {
     // Journal unavailable (fresh doc / DB hiccup) — non-fatal.
   }

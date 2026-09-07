@@ -408,10 +408,14 @@ describe('2026-09-05.3: multi-shot conversation history (source invariants)', ()
   });
 
   it('history lines carry per-turn diff chips and strip system telemetry markers', () => {
-    expect(nativeSrc).toContain('diffChip');
-    expect(nativeSrc).toContain('[canvas: ${p.diff}]');
-    expect(nativeSrc).toContain('function stripSystemMarkers');
-    expect(nativeSrc).toContain("replace(/_\\[[^\\]]*\\]_/g, ' ')");
+    // 2026-09-07: the replay pipeline moved verbatim into history-replay.ts
+    // (multi-turn abuse hardening extraction — pure module, unit-testable).
+    const replaySrc = readFileSync(join(process.cwd(), 'src/lib/agent/history-replay.ts'), 'utf-8');
+    expect(nativeSrc).toContain('buildHistorySection');
+    expect(replaySrc).toContain('diffChip');
+    expect(replaySrc).toContain('[canvas: ${neutralizeHistoryMarkers(p.diff)}]');
+    expect(replaySrc).toContain('function stripSystemMarkers');
+    expect(replaySrc).toContain("replace(/_\\[[^\\]]*\\]_/g, ' ')");
   });
 
   it('route journals the turn diff summary on agent:turn_final', () => {

@@ -724,7 +724,15 @@ export type SyncEvent =
   // live agent run. Ephemeral UI feedback only — never journaled, never
   // touches turn/run state (unlike agent:error, which would finalize the
   // streaming turn).
-  | { type: 'agent:steer_rejected'; reason: string };
+  | { type: 'agent:steer_rejected'; reason: string }
+  // Prompt rejection (multi-turn abuse hardening 2026-09-07): the socket
+  // service refused to START a turn — busy (a run is already live on the
+  // canvas) or the prompt itself failed validation (junk/oversized). Emitted
+  // to the SENDER only. The prompting client has a pending streaming
+  // assistant turn — its handler finalizes that turn honestly instead of
+  // hanging; other viewers are untouched (agent:error broadcast would
+  // falsely mark the RUNNING turn errored on their screens). Never journaled.
+  | { type: 'agent:prompt_rejected'; reason: string };
 
 /// One collaborator's volatile presence state. `participantId` is a
 /// client-generated stable-per-tab id (survives socket reconnects, unlike

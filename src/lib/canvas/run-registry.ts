@@ -48,6 +48,36 @@ export function registerActiveRun(
   return info;
 }
 
+/// Multi-turn abuse hardening (2026-09-07): a registry entry older than this
+/// is presumed to belong to a wedged run that never unwound (the watchdog's
+/// abort-grace force path should always unregister within ~2.5 min, so 15
+/// minutes means the process state is already broken) — a new claim may take
+/// the slot over instead of locking the document forever.
+export const ACTIVE_RUN_STALE_MS = 15 * 60_000;
+
+/// ATOMIC claim: register the document's active run only when no live run
+/// holds it. Returns the identity token on success, or NULL when a run is
+/// already active (and not stale) — the caller MUST reject the request with
+/// an honest 409-style error, NOT overwrite the entry.
+///
+/// Why this exists: the registry used to be a blind `set()` — two rapid
+/// prompts (double-Enter, a buggy client, or a direct API caller spamming
+/// POSTs) silently overlapped two concurrent LLM sessions on one canvas:
+/// interleaved journal rows (user_message/turn_final pairing breaks —
+/// history cross-attributes replies), interleaved patches, and double token
+/// spend. The UI's agentBusy queue-gate covers the happy path; this covers
+/// every other client.
+export function tryRegisterActiveRun(
+  documentId: string,
+  meta: { sessionId?: string; runId?: string; promptPreview?: string } = {},
+): ActiveRunInfo | null {
+  const existing = registry.get(documentId);
+  if (existing && Date.now() - existing.startedAt < ACTIVE_RUN_STALE_MS) {
+    return null; // busy — caller rejects honestly
+  }
+  return registerActiveRun(documentId, meta);
+}
+
 /// Identity-checked unregister: a token from an older run never removes a
 /// newer run's entry (the same guard server.ts's activeRuns delete uses).
 export function unregisterActiveRun(documentId: string, token: ActiveRunInfo): void {

@@ -301,10 +301,32 @@ export function startCanvasSyncService() {
           break;
         }
         case 'agent:prompt': {
-          console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${event.prompt.slice(0, 80)}… (images: ${event.images?.length ?? 0})`);
+          // Multi-turn abuse hardening (2026-09-07): validate + single-run
+          // gate BEFORE any fanout or fetch. Previously a garbage/missing
+          // prompt crashed the handler's console.log `.slice`, and a prompt
+          // arriving while a run was live silently OVERWROTE activeRuns —
+          // two concurrent LLM sessions interleaving journal rows (history
+          // pairing cross-attribution) and patches. Rejections go to the
+          // SENDER ONLY as agent:prompt_rejected (the prompting client has a
+          // pending streaming turn to finalize; a broadcast agent:error
+          // would falsely error the RUNNING turn on other viewers).
+          const promptText = typeof event.prompt === 'string' ? event.prompt : '';
+          if (!promptText.trim()) {
+            socket.emit('sync', { type: 'agent:prompt_rejected', reason: 'prompt is required' } satisfies SyncEvent);
+            break;
+          }
+          if (promptText.length > 20_000) {
+            socket.emit('sync', { type: 'agent:prompt_rejected', reason: `prompt exceeds the 20,000-character limit (got ${promptText.length}); trim it and resend` } satisfies SyncEvent);
+            break;
+          }
+          if (activeRuns.has(event.documentId)) {
+            socket.emit('sync', { type: 'agent:prompt_rejected', reason: 'a turn is already running on this canvas — stop it or wait for it to finish' } satisfies SyncEvent);
+            break;
+          }
+          console.log(`[canvas-sync] agent prompt on ${event.documentId}: ${promptText.slice(0, 80)}… (images: ${event.images?.length ?? 0})`);
           driveAgent(
             event.documentId,
-            event.prompt,
+            promptText,
             event.settings,
             event.images,
             event.selection,
@@ -339,8 +361,22 @@ export function startCanvasSyncService() {
           // and its response streams through the normal event fan-out so
           // every viewer sees it. Previously this broadcast a fake
           // "[Steer: …]" delta while NOTHING reached the model.
-          console.log(`[canvas-sync] steer on ${event.documentId}: ${event.text.slice(0, 80)}…`);
-          const steered = await steerActiveSession(event.documentId, event.text);
+          //
+          // Multi-turn abuse hardening (2026-09-07): steer text is validated
+          // BEFORE the log (a non-string text used to crash the handler's
+          // `.slice`) — empty/oversized steers get an honest rejection
+          // instead of queueing junk into the live LLM turn.
+          const steerText = typeof event.text === 'string' ? event.text : '';
+          if (!steerText.trim()) {
+            socket.emit('sync', { type: 'agent:steer_rejected', reason: 'steer text is empty — nothing to send.' } satisfies SyncEvent);
+            break;
+          }
+          if (steerText.length > 20_000) {
+            socket.emit('sync', { type: 'agent:steer_rejected', reason: `steer text exceeds the 20,000-character limit (got ${steerText.length}).` } satisfies SyncEvent);
+            break;
+          }
+          console.log(`[canvas-sync] steer on ${event.documentId}: ${steerText.slice(0, 80)}…`);
+          const steered = await steerActiveSession(event.documentId, steerText);
           if (!steered) {
             // No live run — tell just the sender. Ephemeral feedback event,
             // deliberately NOT agent:error (that would finalize the streaming
@@ -575,7 +611,20 @@ async function driveAgent(
     });
 
     if (!res.ok || !res.body) {
-      fanout({ type: 'agent:error', message: `Agent HTTP ${res.status}` });
+      // Multi-turn abuse hardening (2026-09-07): surface the route's JSON
+      // error body (busy 409, caps, validation) instead of a bare
+      // "Agent HTTP 409" — the user sees the honest reason. The busy case
+      // is normally caught by the socket-layer pre-guard above; this is the
+      // race backstop (two prompts from different sockets inside the same
+      // tick).
+      let detail = `Agent HTTP ${res.status}`;
+      try {
+        const errBody = (await res.json()) as { error?: string };
+        if (errBody?.error) detail = errBody.error;
+      } catch {
+        // Non-JSON error body — keep the status-line message.
+      }
+      fanout({ type: 'agent:error', message: detail });
       return;
     }
 

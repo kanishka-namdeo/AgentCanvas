@@ -1999,7 +1999,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           }),
           signal,
         });
-        if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok || !res.body) {
+          // Multi-turn abuse hardening (2026-09-07): surface the route's JSON
+          // error body (busy 409, prompt/canvas caps) instead of a bare
+          // "HTTP 409" — the catch below renders this message on the turn.
+          let detail = `HTTP ${res.status}`;
+          try {
+            const errBody = (await res.json()) as { error?: string };
+            if (errBody?.error) detail = errBody.error;
+          } catch {
+            // Non-JSON body — keep the status-line message.
+          }
+          throw new Error(detail);
+        }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buf = '';
@@ -3491,6 +3503,57 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // Real-steer feedback (R8c): no live agent run accepted the message.
         // Ephemeral toast only — turn/run state must stay untouched.
         toast.warning(event.reason || 'Steer was not delivered — no agent run is active.');
+        break;
+      }
+      case 'agent:prompt_rejected': {
+        // Multi-turn abuse hardening (2026-09-07): the socket service refused
+        // to START the turn (busy / junk / oversized prompt) — emitted to the
+        // SENDER only. The prompting client has a pending streaming assistant
+        // turn from promptAgent; without this handler it would hang on
+        // "streaming" forever (agentBusy never clears — the run never
+        // started, so no terminal event will ever arrive). Finalize the turn
+        // honestly, free the busy flag, and let the queue doctrine resume.
+        set((s) => {
+          const turns = [...s.turns];
+          const last = turns[turns.length - 1];
+          if (last && last.role === 'assistant' && last.streaming) {
+            turns[turns.length - 1] = {
+              ...last,
+              streaming: false,
+              error: event.reason,
+            };
+          }
+          return { ...settleTerminalGates(turns), ...phaseFields('failed') };
+        });
+        {
+          const last = get().turns[get().turns.length - 1];
+          if (last?.messageId) {
+            useSessionStore.getState().finalizeAssistantMessage(last.messageId, 'error', event.reason);
+          }
+          if (last?.runId) {
+            const ss = useSessionStore.getState();
+            const run = ss.getRun(last.runId);
+            if (run && !TERMINAL_RUN_STATUSES.has(run.status)) {
+              ss.endRun(last.runId, 'failed', event.reason);
+            }
+          }
+        }
+        toast.warning('Prompt not started', {
+          description: event.reason?.slice(0, 200) ?? 'The prompt was rejected before the agent run started.',
+        });
+        // The turn never started, so nothing is busy anymore — flush any
+        // queued prompt (deferred + busy re-checked, same guard as agent:error).
+        const next = get().queuedPrompts[0];
+        if (next) {
+          set((s) => ({ queuedPrompts: s.queuedPrompts.slice(1) }));
+          setTimeout(() => {
+            if (get().agentBusy) {
+              set((s) => ({ queuedPrompts: [next, ...s.queuedPrompts] }));
+              return;
+            }
+            get().promptAgent(next.text, next.images, next.selection);
+          }, 0);
+        }
         break;
       }
       case 'agent:skill_selected': {
