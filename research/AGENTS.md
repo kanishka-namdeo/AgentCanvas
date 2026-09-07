@@ -25,14 +25,17 @@ Root-level JSON surveys (web-search result arrays):
 - `ai_design_scenarios.json` — articles on AI + design systems integration and MCP servers that informed the agent–design-system workflow.
 - `agent_function_calling.json` — survey of OpenAI Agents SDK and function-calling patterns that informed the runner's tool-calling protocol.
 - `pi_agent_sdk.json` — survey of the Pi Agent SDK surface that informed `src/lib/agent/`.
+- `search1-8.json` / `page1-4.json` — additional raw web-search/page result dumps (same shape as the surveys above; added 2026-08-26).
 
 Analysis reports (markdown):
 - `gap-analysis-2.md` — gap analysis v2: 10 missing LLM providers, 8 Figma ontology gaps, 7 runtime bugs, prioritized top-7 (drove Phase 2/3 work; regression-tested by `tests/unit/gap-fixes.test.ts`).
 - `spec-compliance-verification.md` — per-file compliance verification of LLM clients + Figma alignment against the cached specs.
+- `shared-canvas-spec.md` — the shared-canvas model spec (multi-session / one-document architecture).
 
 Cached snapshot trees:
 - `specs/` (~74 files) — API-reference snapshots: OpenAI/Anthropic/Gemini/Groq/Together/DeepSeek/OpenRouter/Mistral/Perplexity/Ollama + Figma REST/variables/plugins. Mix of `.txt` page dumps and `.json` reader/search dumps.
 - `specs/llm-providers/` (28 files) — web-search/page snapshots of OpenAI-compatible inference providers (novita, hyperbolic, chutes, sambanova, cerebras, deepinfra, siliconflow, aimlapi, atoma, inception, ...).
+- `best-practices/` (~18 files) — JSON research snapshots behind the 2026-09-05 perf pass (prisma-sqlite, prisma7-perf, react19-perf, react19-concurrent, zustand5, socketio-perf, tailwind4, nextjs-16-perf, nextjs-config/headers/dynamic/bundle, lucide-icons, react-markdown, bun-nextjs, db-indexing, prisma-logging) + the `OPTIMIZATION-SYNTHESIS.md` synthesis.
 
 ### Format
 - The root JSON surveys are JSON arrays of `{ url, name, snippet, host_name, rank, date, favicon }` objects — the shape returned by web search.
@@ -52,4 +55,4 @@ Cached snapshot trees:
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. Subfolders `specs/` and `specs/llm-providers/` are cached snapshot content, not contract boundaries.
+No child `AGENTS.md` files. Subfolders `specs/`, `specs/llm-providers/`, and `best-practices/` are cached snapshot content, not contract boundaries.

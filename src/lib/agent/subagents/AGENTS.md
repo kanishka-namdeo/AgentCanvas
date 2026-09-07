@@ -2,16 +2,17 @@
 
 ## Purpose
 
-Isolated-context sub-agents: single-purpose LLM calls that run OUTSIDE the main agent loop with their own system prompt, tool subset, and (where relevant) throwaway canvas state. Each returns a `SubAgentResult` summary, keeping tens of thousands of tokens of intermediate content out of the main context. Created when the folder held only web-research + design-critic; now 5 sub-agents.
+Isolated-context sub-agents: single-purpose LLM calls that run OUTSIDE the main agent loop with their own system prompt, tool subset, and (where relevant) throwaway canvas state. Each returns a `SubAgentResult` summary, keeping tens of thousands of tokens of intermediate content out of the main context. Created when the folder held only web-research + design-critic; now 5 dispatch sub-agents + the multitask decomposition path.
 
 ## Ownership
 
 - `index.ts` — barrel export.
 - `web-research.ts` — search+fetch synthesis. Own LLM context with ONLY `web_search` + `web_fetch`; 1-3 searches + 1-3 fetches (capped at 6 iterations); returns a synthesized SUMMARY (not raw page content — keeps 50K+ tokens of page content out of the main context). Dispatched when `web_research` is a secondary category AND `recommendPlan`; if the primary task IS web research, the summary IS the answer.
 - `design-critic.ts` — text reflection critic behind `pen_self_critique` (Phase 3, `docs/agentic-workflows.md`). Temperature 0.4 persona; strict output contract (`CRITIQUE:` bulleted list with `[BLOCKER]`/`[MAJOR]`/`[MINOR]`/`[PRAISE]` tags + `SCORE:` 1-10). Does NOT see the generation prompt (context isolation — reduces confirmation bias).
-- `design-critic-vlm.ts` — VLM screenshot critic (Task 7-c T3). Prefers the real client screenshot via the `agent:screenshot_request` round-trip (3s budget); falls back to server-side `renderCanvasToPng` (resvg). Critiques the actual rendered picture with the 8-dimension rubric. The mandatory critique loop (runner-native) dispatches text + VLM critics CONCURRENTLY and merges defects.
+- `design-critic-vlm.ts` — VLM screenshot critic (Task 7-c T3). Prefers the real client screenshot via the `agent:screenshot_request` round-trip (3s budget); falls back to server-side `renderCanvasToPng` (resvg). Critiques the actual rendered picture with the 8-dimension rubric. The critique loop (runner-native, when `designCritiqueMode` allows — 'manual' default since 2026-09-06) dispatches text + VLM critics CONCURRENTLY and merges defects.
 - `design-brief.ts` — pre-generation design brief (`pen_generate_design_brief` tool + runner pre-generation). Strict-JSON `DesignBrief` output (palette / typography / component count / layout grid / IA list). The runner pre-generates the brief BEFORE the main loop and injects it into the first user message (40s timeout race) — the tool-layer gate remains as fallback. SKIPPED on ambiguous-creation turns (the variant explorer must not have its palette pre-decided).
 - `variant-generator.ts` — K=3 parallel whole-design exploration behind `pen_generate_variants` ("go wide", R1 pattern 9 — Figma design directions / tldraw Fairies). See the contract below. Dispatched by the runner on ambiguous creation prompts (no direction pinned); the winner is applied, losers are discarded.
+- `multitask.ts` — the `/multitask` path (forces build mode): decomposes the prompt (one cheap LLM call → 2-5 screen tasks + sharedStyle), generates screen specs in parallel with disjoint region lanes, applies them as patches with Gate-0 validation; degrades to the single-agent path on <2 tasks or decomposition failure. Not an isolated-context critic — a parallel worker fan-out.
 
 ## Local Contracts
 
@@ -47,7 +48,7 @@ Result shape: winner applied via patch; the result embeds the winner's full id-m
 ## Verification
 
 - `bun run test` — variant-generator coverage lives in `tests/unit/todo-batch-variants.test.ts` (coercion, composites, budget races with hanging-LLM mocks; 26 tests).
-- `bun scripts/vlm-inspect/probe-variant-gen.ts` / `probe-variant-dispatch.ts` — live single-dispatch probes against the real kimi endpoint (model injected, 300s timeouts).
+- `bun scripts/vlm-inspect/probe-variant-gen.ts` / `probe-variant-dispatch.ts` — live single-dispatch probes (model injected, 300s timeouts). LEGACY: they predate the endpoint-preset access rule and carry a hard-coded kimi-k2-5 model string against the pinggy tunnel — the endpoint now serves qwen3.7-plus (BETA preset), so refresh the model string or route through the app's API before relying on them.
 - Final 14-turn matrix evidence: `download/vlm-exercise/final/` + `REPORT.md` (variant-gen fired on 6/14 creation turns; smoke-variants 8/10 with 0 missing elements).
 
 ## Child DOX Index

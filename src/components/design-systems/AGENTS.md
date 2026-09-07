@@ -21,5 +21,6 @@ rewrite every `:root` to a wrapper class. The iframe gives us a real
 ## Where to mount
 
 `DesignSystemPicker` is mounted in `src/app/page.tsx` (the only
-user-visible route). The TopMenuBar (`src/components/canvas/TopMenuBar.tsx`)
-has a "Design Systems…" item in the View menu that opens it.
+user-visible route). The AppMenu (`src/components/canvas/AppMenu.tsx`,
+which replaced the deleted TopMenuBar in UI-audit round 2) has a
+"Design Systems…" item in the View menu that opens it.

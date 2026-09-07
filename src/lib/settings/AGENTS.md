@@ -19,19 +19,23 @@ This is the single source of truth for every setting the user can change in the 
 |-------|------|---------|-------|
 | `temperature` | `number` | `0.6` | 1 — Agent behavior |
 | `maxIterations` | `number` | `30` | 1 |
-| `thinkingLevel` | `'low' \| 'medium' \| 'high'` | `'high'` | 5 — Agent behavior |
+| `thinkingLevel` | `'off' \| 'minimal' \| 'low' \| 'medium' \| 'high' \| 'xhigh' \| 'max'` | `'high'` | 5 — Agent behavior |
 | `planFirst` | `boolean` | `true` | 1 |
 | `defaultPalette` | `'slate' \| 'warm' \| 'forest' \| 'mono'` | `'slate'` | 1 |
-| `enabledPlugins` | `string[]` (plugin ids) | (14 default-enabled tools' plugins) | 5 — Plugins |
+| `approvalMode` | `'destructive' \| 'review' \| 'off'` | `'destructive'` | 1 — Agent behavior (gate for pen_clear / pen_delete_shape / figma_delete_page / pen_clear_pattern_memory) |
+| `alwaysAllowTools` | `string[]` (tools allowed via "Always allow" checkbox) | `[]` | 1 |
+| `agentMode` | `'build' \| 'ask' \| 'plan'` | `'build'` | 1 — Agent mode (Cursor-style; enforced at tool-registry assembly) |
+| `designCritiqueMode` | `'manual' \| 'auto' \| 'off'` | `'manual'` | 1 — Agent behavior (2026-09-06: critics fire only when the user asks) |
+| `enabledPlugins` | `string[]` (plugin ids; absent = each plugin's `defaultEnabled` flag) | (3 default-enabled plugins providing 11 tools) | 5 — Plugins |
 | `mcpServers` | `McpServerConfig[]` | `[]` | 5 — MCP |
 | `themePreference` | `'system' \| 'light' \| 'dark'` | `'system'` | 1 — Appearance |
 | `renderer` | `'dom'` (optional — only `'dom'` is a live value; legacy persisted `'svg'` is silently coerced to `'dom'` by the store's migrate function) | `'dom'` | 1 — Appearance (post-Phase-5 cleanup: the SVG renderer was deleted; the Settings UI no longer exposes a renderer picker. Kept on the type for forward compat with persisted blobs.) |
 | `canvasLayoutMode` | `'parity' \| 'native'` (optional — absent = `'parity'`) | `'parity'` | 1 — Appearance (DOM renderer layout strategy, spec Phase 2: `parity` uses resolver geometry; `native` uses browser CSS flexbox layout + measured-bounds readback) |
 | `domCulling` | `boolean` (optional — absent = `true`) | `true` | 1 — Appearance (Phase 4 scale hardening: L4 CSS containment + L5 mount culling when ≥2k nodes; toggle in Settings → Appearance → “DOM Culling Switch”) |
-| `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'zai'` | 2 — LLM provider |
-| `apiKey` | `string` | `''` | 2 |
-| `modelName` | `string` | `'glm-5.3'` | 2 |
-| `apiBaseUrl` | `string` | `''` | 2 |
+| `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'custom'` (BETA) | 2 — LLM provider |
+| `apiKey` | `string` | `'123456'` | 2 |
+| `modelName` | `string` | `'qwen3.7-plus'` | 2 |
+| `apiBaseUrl` | `string` | `'https://irhnglwoxe.a.pinggy.link/v1'` | 2 |
 | `snapshotCadence` | `'every-turn' \| 'every-3-turns' \| 'every-5-turns' \| 'manual'` | `'every-turn'` | 2 — Sessions |
 | `maxSessionsRetained` | `number` | `100` | 2 |
 | `maxSnapshotsPerCanvas` | `number` | `50` | 2 |
@@ -43,7 +47,7 @@ This is the single source of truth for every setting the user can change in the 
 
 `maxSnapshotsPerCanvas` (persist v4 rename of `maxSnapshotsPerSession`) is the per-document snapshot cap under the shared-canvas model — snapshots are document-scoped, and the oldest non-bookmarked ones are auto-deleted when the cap is exceeded.
 
-**Default LLM (testing)**: `llmProvider='zai'` + `modelName='glm-5.3'` + `apiKey=''` + `apiBaseUrl=''` — the z.ai sandbox. `pi-ai-model-resolver.ts` calls `ZAI.create()` which auto-resolves sandbox credentials from `~/.z-ai-config` / `/etc/.z-ai-config` / sandbox env. An empty `modelName` falls back to the registry default (`glm-5.3` for `zai`). Legacy `glm-4.6` settings map to `glm-4.7` (zai catalog path). The `custom` provider (kimi-k2-5 behind an OpenAI-compatible proxy) is no longer the default but remains a registered provider id selectable in Settings → LLM provider.
+**Default LLM (2026-09-07 BETA tuning)**: `llmProvider='custom'` + `modelName='qwen3.7-plus'` + `apiKey='123456'` + `apiBaseUrl='https://irhnglwoxe.a.pinggy.link/v1'` — the BETA endpoint preset (see `src/lib/llm/endpoint-presets.ts`; the Settings BETA chip lights on first run because the defaults match the preset). When the tunnel is down, `pi-ai-model-resolver.ts` falls back to the z.ai sandbox path — `ZAI.create()` auto-resolves credentials from `~/.z-ai-config` / `/etc/.z-ai-config` / sandbox env for provider `zai` with no API key. An empty `modelName` falls back to the registry default (`glm-5.3` for `zai`). Legacy `glm-4.6` settings map to `glm-4.7` (zai catalog path). Users can switch to `zai` (or any of the 28 registered providers) in Settings → LLM provider. Qwen3.7 sampling params (temperature 0.6, top_p 0.8, thinking-off via `enable_thinking` + `chat_template_kwargs`) are pinned in `pi-ai-model-resolver.ts`.
 
 ### Agent-run subset (`AgentRunSettings`)
 
@@ -57,7 +61,7 @@ The canvas store's `promptAgent()` calls `agentRunSettings(useSettings.getState(
 
 ### Persistence
 - `persist` middleware with `localStorage` key `agentcanvas.settings.v1`.
-- Schema version is `5`. v4 → v5 (default-provider migration): stored blobs that still look like the OLD custom-endpoint first-run defaults (`custom` + `kimi-k2-5` + `https://irhnglwoxe.a.pinggy.link/v1` + `123456`) are migrated to the new z.ai-sandbox defaults (`zai` + `glm-5.3` + empty key + empty base URL); anything user-customized is preserved untouched. Earlier migrations (v1→v2 endpoint swap, v2→v3 SVG-renderer coerce, v3→v4 snapshot cap rename) are kept in the migrate chain for history. Bump + add `migrate` if the shape changes again.
+- Schema version is `5`. v4 → v5 (default-provider migration): stored blobs that still look like the OLD custom-endpoint first-run defaults (`custom` + `kimi-k2-5` + `https://irhnglwoxe.a.pinggy.link/v1` + `123456`) are rewritten to the CURRENT `DEFAULT_SETTINGS` values — since the 2026-09-07 BETA tuning that target is `custom` + `qwen3.7-plus` + the same pinggy URL + `123456` (the migration rewrites kimi-k2-5 → qwen3.7-plus; the schema version stays `5` because the detection shape is unchanged); anything user-customized is preserved untouched, and blobs holding the v5-era z.ai-sandbox defaults (`zai` + `glm-5.3`) are also preserved (they remain on `zai` until the user picks a preset). Earlier migrations (v1→v2 endpoint swap, v2→v3 SVG-renderer coerce, v3→v4 snapshot cap rename) are kept in the migrate chain for history. Bump + add `migrate` if the shape changes again.
 - `partialize` strips the setter functions (`set`, `patch`, `reset`, `replaceAll`) so only data is persisted.
 - The `apiKey` field is stored in localStorage (client-side only). It is NEVER written to disk on the server. For production multi-user deployments, swap the storage adapter to a server-side secrets manager.
 

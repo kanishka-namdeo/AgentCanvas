@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Shared library layer root. Owns the Prisma client singleton and the shared UI utility directly, and indexes the seven lib subfolders that have their own AGENTS.md contracts.
+Shared library layer root. Owns the Prisma client singleton and the shared UI utility directly, and indexes the eight lib subfolders that have their own AGENTS.md contracts (plus the nested agent/skills, agent/plugins, agent/subagents child docs).
 
 ## Ownership
 
@@ -30,12 +30,14 @@ Shared library layer root. Owns the Prisma client singleton and the shared UI ut
 
 | Path | Scope |
 |------|-------|
-| `agent/AGENTS.md` | Agent layer: 88-tool surface (tools.ts + pen-tools + figma-tools), native Pi-SDK runner + legacy test runner, classifier/planner, plugin subsystem, sub-agents |
+| `agent/AGENTS.md` | Agent layer: 103-tool production surface (tools.ts 85 + pen-tools 8 + figma-tools 10), native Pi-SDK runner + legacy test runner, classifier/planner, plugin subsystem, sub-agents |
+| `agent/subagents/AGENTS.md` | Isolated-context sub-agents: web-research, design-critic (+vlm), design-brief, variant-generator, multitask |
 | `agent/skills/AGENTS.md` | Skill system: types, registry (7 skills), progressive disclosure levels |
 | `agent/plugins/AGENTS.md` | Plugin registry + 8 ported plugins (32 tools): ask-user-question, todo, memory, mega-compact, goal-list, background-tasks, mcp-adapter, subagents |
 | `canvas/AGENTS.md` | Canvas state: Zustand store, types/patches, clipboard, export utilities, gestures hook, Socket.IO service |
 | `llm/AGENTS.md` | LLM provider abstraction: 28 providers (26 OpenAI-compatible + 2 native), unified `LLMClient`, registry + factories |
 | `pen/AGENTS.md` | .pen format layer: canonical schema (v2.17), tree resolver, document helpers, converters, Pages abstraction |
+| `design-systems/AGENTS.md` | Design-system packs: registry, loader, token export, agent helper (5 packs: shadcn-default, radix-themes, vercel-geist, tailwind-catalyst, mantine-default) |
 | `sessions/AGENTS.md` | Session persistence: Zustand localStorage store + server-sync bridge, fork/restore, sweep/enforce |
 | `settings/AGENTS.md` | Settings store: AppSettings + AgentRunSettings types, defaults, PALETTES |
 | `web/AGENTS.md` | Web search + fetch: 4-provider search chain, 3-backend fetch pipeline, quality gates |

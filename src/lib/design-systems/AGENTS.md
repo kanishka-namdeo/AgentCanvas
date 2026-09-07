@@ -75,7 +75,7 @@ Agent generates Dashboard.tsx:
    the three-layer structure (primitive → semantic → component).
 2. Add a new entry to `registry.json` with palette, dependencies,
    importMap, fontStack, sampleComponents.
-3. Re-run `bun run test src/__tests__/design-systems.test.ts` to
+3. Re-run `bun run test tests/unit/design-systems.test.ts` to
    verify the loader picks it up.
 4. Cap: 7 packs max. Archive low-usage to `design-systems/_archived/`.
 

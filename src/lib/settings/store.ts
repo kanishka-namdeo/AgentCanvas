@@ -53,14 +53,20 @@ export const useSettings = create<SettingsStore>()(
       //     the z.ai sandbox (zai / glm-5.3 / no key / no base URL). Browsers
       //     that still hold the OLD custom-endpoint defaults (provider 'custom'
       //     + model 'kimi-k2-5' + the pinggy base URL + the placeholder key
-      //     '123456') are migrated to the new z.ai-sandbox defaults; anything
-      //     a user actually customized (their own provider, key, model, or
-      //     URL) is preserved untouched.
+      //     '123456') are rewritten to the CURRENT DEFAULT_SETTINGS values;
+      //     anything a user actually customized (their own provider, key,
+      //     model, or URL) is preserved untouched. [Since the 2026-09-07 BETA
+      //     tuning the rewrite target is the BETA endpoint (custom /
+      //     qwen3.7-plus / same pinggy URL / '123456') — the schema version
+      //     stays 5 because the detection shape (kimi-k2-5 defaults) is
+      //     unchanged. v5-era z.ai-sandbox blobs are NOT rewritten — they
+      //     stay on 'zai' until the user picks a preset.]
       migrate: (persisted, _version) => {
         const s = (persisted ?? {}) as Partial<AppSettings> & { maxSnapshotsPerSession?: number };
         // v4 → v5: old-defaults custom-endpoint rewrite.
         // Detect the OLD first-run defaults (the kimi-k2-5 / pinggy / 123456
-        // shape) and rewrite them to the new z.ai-sandbox defaults. Any
+        // shape) and rewrite them to the CURRENT DEFAULT_SETTINGS values
+        // (the BETA qwen3.7-plus endpoint since the 2026-09-07 tuning). Any
         // user customization — different provider, different model, a real
         // API key, or a different base URL — is preserved untouched.
         const looksLikeOldCustomDefaults =

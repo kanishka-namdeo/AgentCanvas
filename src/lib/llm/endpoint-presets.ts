@@ -2,9 +2,10 @@
 //
 // A preset is a one-click (UI) or one-import (script) configuration for a
 // SPECIFIC external OpenAI-compatible endpoint: provider id + base URL +
-// API key + default model. The first preset is BETA — a test endpoint
-// (kimi-k2-5 behind a pinggy tunnel) the repo owner configured on
-// 2026-09-07. The values are intentionally hardcoded per the owner's
+// API key + default model. The first preset is BETA — a test endpoint the
+// repo owner configured on 2026-09-07 (qwen3.7-plus behind a pinggy tunnel
+// since the BETA tuning; originally kimi-k2-5). The values are intentionally
+// hardcoded per the owner's
 // directive: "store these somewhere in the app's code as a custom openAI
 // endpoint called BETA".
 //

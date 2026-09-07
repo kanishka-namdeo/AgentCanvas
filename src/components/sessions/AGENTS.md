@@ -15,6 +15,7 @@ Shared-canvas model: the sidebar lists CONVERSATION CONTEXTS on one canvas ("Cha
 - `RunHistoryPanel.tsx` — right panel tab (History): tabbed (Runs / Snapshots). Expandable run cards with tool-call timeline. Snapshot cards (document-scoped list with per-chat provenance labels) with Restore / Bookmark — the "Fork from this snapshot" action was REMOVED (superseded by Restore). "Capture current state" button. Accepts `hideHeader` prop (compact tab strip when inside the right tabbed panel). Context menus on both run cards and snapshot cards. Toasts on Restore/Capture (Bookmark does not toast).
 - `RunStopButton.tsx` — header button. When idle: renders nothing (the ⌘K palette trigger is the single prompt entry point). When busy: shows "Stop" button with pulsing white dot. No props (the round-1 `onAsk` prop was dead and removed in round 2).
 - `StatusBadge.tsx` — color-coded status pill for runs / tool-calls / sessions. Three status maps (Run, ToolCall, Session). Includes a `StatusDot` variant.
+- `DocumentSwitcher.tsx` — the header's document picker (shared-canvas model: switching documents swaps the CANVAS; sits inside SessionHeader).
 
 ## Local Contracts
 
@@ -47,13 +48,9 @@ Shared-canvas model: the sidebar lists CONVERSATION CONTEXTS on one canvas ("Cha
 - Subtle scrollbars via `.ac-hide-scrollbar`.
 
 #### `SessionHeader.tsx`
-- Two variants via `compact` prop:
-  - **compact** (for the 44px top header): single row — small avatar (5×5) with optional status dot, inline-editable title (12px), StatusBadge, Fork button. Drops model + relative-time meta.
-  - **default/full**: avatar (6×6) with gradient + ring, inline-editable title (13px semibold), meta row (StatusBadge + fork indicator + relative time + model), Fork button.
+- No props; compact-only (the dead non-compact variant — ~100 lines incl. relative-time + per-session cost roll-up + gradient avatar — was removed in UI-audit round 2). Single row: DocumentSwitcher + inline-editable chat title + exception-only StatusBadge (running/failed/stuck/…; "completed" renders nothing) + icon-only Fork button.
 - Title is inline-editable (click to edit, Enter to save, Esc to cancel).
-- Branded bot avatar: violet-to-fuchsia gradient + Bot icon.
-- Metadata row uses consistent `·` dot separators.
-- Fork button is outline style (secondary action). It calls `forkActiveSession` — a conversation fork (copies the chat's message prefix; the canvas stays shared).
+- Fork button calls `forkActiveSession(null)` — a conversation fork (copies the chat's message prefix; the canvas stays shared).
 
 #### `RunHistoryPanel.tsx`
 - Two tabs: **Runs** and **Snapshots**.

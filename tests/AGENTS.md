@@ -126,7 +126,7 @@ Each prints a "passed" message on success and exits non-zero on failure.
 
 ## Verification
 
-- `bun run test` — should print "Test Files 102 passed (102)" and "Tests 2285 passed | 2 skipped" (verified 2026-09-06 after Vitest 5 upgrade, ~130s; grows as tests are added).
+- `bun run test` — should print "Test Files 106 passed (106)" and "Tests 2344 passed | 2 skipped" (verified 2026-09-07 after the follow-up delta fix, ~155s; unit = 94 files / 2215 tests, integration = 12 files / 129+2; grows as tests are added).
 - `bash tests/python-runtime-build.sh` — should print "python runtime build tests passed".
 - `bash tests/database-runtime-build.sh` — should print the corresponding pass message.
 - `bunx tsc --noEmit` — typecheck (currently clean; `skills/` is excluded in tsconfig because the z.ai sandbox extracts sandbox-owned skill sources there).

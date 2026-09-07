@@ -59,7 +59,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
     - `--ac-warning` / `-fg` / `-soft` / `-border` — warning / awaiting / incomplete.
     - `--ac-danger` / `-fg` / `-soft` / `-border` — error / failed / destructive.
     - `--ac-neutral` / `-fg` / `-soft` / `-border` — queued / cancelled / archived.
-  - **Canvas surface tokens** (for SVG elements in `Canvas.tsx` and shape defaults in `Toolbar.tsx`):
+  - **Canvas surface tokens** (for the DOM renderer's chrome overlay in `Canvas.tsx` / `dom/DomChrome.tsx` and shape defaults in `Toolbar.tsx`):
     - `--ac-canvas-bg` — default canvas background.
     - `--ac-canvas-grid` — dot grid color.
     - `--ac-canvas-default-fill` — default shape fill.
@@ -91,7 +91,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 - The toggle is `src/components/ThemeToggle.tsx` — cycles through **3 states**: `system → light → dark → system`. Subscribes to `useSettings((s) => s.themePreference)` so it stays in sync with Settings → Appearance changes. On `system`, follows OS `prefers-color-scheme` and re-applies on OS change.
 - Legacy compat: the toggle also writes to `localStorage['agentcanvas-theme']` (the pre-settings key) so `getInitialTheme()` can hydrate before the settings store loads.
 - **Density**: `[data-density="compact"]` rules in `globals.css` scale down fonts (text-[11px]→10px, text-[12px]→11px, text-[13px]→12px) + tighten padding on `.p-2`/`.p-3`/`.px-3`/`.py-2` + tighten `space-y-2`/`space-y-3` gaps. Controlled by the `density` setting; the root div's `data-density` attribute is reactively subscribed in `page.tsx`.
-- **The canvas surface tracks the UI theme** — `document.background` defaults to `var(--ac-canvas-bg)` (slate-50 in light, dark slate in dark mode). All SVG colors in `Canvas.tsx` (selection outline, component badges, hover highlights, auto-layout indicator, handle fills) use `--ac-canvas-*` tokens so the canvas adapts to dark mode alongside the rest of the chrome. Users can still override the canvas background via the Properties panel if they want a custom color.
+- **The canvas surface tracks the UI theme** — `document.background` defaults to `var(--ac-canvas-bg)` (slate-50 in light, dark slate in dark mode). All canvas chrome colors (selection outline, component badges, hover highlights, auto-layout indicator, handle fills — painted by the DOM renderer's screen-space overlay) use `--ac-canvas-*` tokens so the canvas adapts to dark mode alongside the rest of the chrome. Users can still override the canvas background via the Properties panel if they want a custom color.
 
 ### Tailwind
 - Tailwind 4 via `@tailwindcss/postcss` (no `tailwind.config.ts` content globs — Tailwind 4 auto-detects).

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Next.js Route Handlers. Five route families: the `/api/agent` endpoints that run the agent loop server-side (plus question-answers, background-task status, and pending-question polling), the `/api/sessions*` CRUD family for server-side session persistence (Prisma), the `/api/documents/[documentId]/snapshots*` family for the document-scoped canvas snapshot timeline (shared-canvas model — snapshots belong to the canvas, not to a chat), the `/api/plugins` + `/api/mcp` settings-support endpoints, the `/api` health check, and the `/api/pen/import` + `/api/pen/export` .pen file conversion endpoints.
+Next.js Route Handlers. Route families: the `/api/agent` endpoints that run the agent loop server-side (plus question-answers, background-task status, pending-question polling, plan approvals, destructive-op approvals, and client round-trip responses), the `/api/sessions*` CRUD + search/tags/attachments family for server-side session persistence (Prisma), the `/api/documents*` family (document CRUD, document-scoped snapshot timeline, journal events feed, agent-run status), the `/api/models` model-listing/preflight endpoint, the `/api/design-systems*` pack registry, the `/api/plugins` + `/api/mcp` settings-support endpoints, the `/api` health check, and the `/api/pen/import` + `/api/pen/export` .pen file conversion endpoints.
 
 ## Ownership
 
@@ -12,11 +12,24 @@ Next.js Route Handlers. Five route families: the `/api/agent` endpoints that run
 - `agent/pending/route.ts` — GET: `{ pending: [...] }` list of unanswered `ask_user_question` toolCallIds (frontend polls on reconnect); backed by `getPendingQuestions()`.
 - `agent/approvals/route.ts` — POST: resolves a pending destructive-op approval gate (`{toolCallId, decision, edits?}`); backed by the approval-gate plugin's pending map. Same idempotent no-op contract for unknown ids as `plans`.
 - `agent/plans/route.ts` — POST: resolves a pending PLAN-mode approval gate (`{planId, decision: 'build' | 'revise', feedback?}`; feedback required for `revise`) — the PlanApprovalCard submits here. GET: `{ pending: [...] }` list of plan ids awaiting a decision (diagnostics twin of `/api/agent/pending`); both backed by `src/lib/agent/plan-gate.ts`.
+- `agent/client-responses/route.ts` — POST: resolves the client round-trip pending map (`{toolCallId, kind: 'computed' | 'screenshot', payload}`); backed by `resolveComputedResponse`/`resolveScreenshotResponse` from `src/lib/agent/client-roundtrip.ts`.
 - `plugins/route.ts` — GET: all agent-plugin manifests (`pluginId, pluginName, description, category, defaultEnabled, toolCount, toolNames`) for Settings → Plugins; backed by `getAllPlugins()`. User toggles live client-side (`enabledPlugins` setting) — not persisted server-side.
 - `sessions/route.ts` — GET/POST: server-side session persistence (DB is source of truth, localStorage is cache). GET filters by `documentId` + `status` (default `active`), ordered `lastOpenedAt desc`, with message/run counts (the snapshot `_count` include was dropped — snapshots are document-scoped now); POST creates a session (`documentId` required, else 400).
+- `sessions/search/route.ts` — GET `?q=...&documentId=...&scope=all|document|session`: cross-session message/prompt search (drives the search palette).
 - `sessions/[id]/route.ts` — GET/PATCH/DELETE: fetch session with messages (asc) + runs (asc) (the snapshots include was dropped — snapshots are document-scoped now), 404 if missing; update title/status/pinned/counters/lastOpenedAt (`snapshotCount` dropped); cascade delete (messages + runs only — snapshots no longer cascade with their session).
 - `sessions/[id]/messages/route.ts` — GET/POST: list (asc) or append messages; POST with `messageId` updates an existing message (streaming → complete).
 - `sessions/[id]/runs/route.ts` — POST only: create a run, or update an existing one when `runId` is passed (status/errorMessage/toolCallCount/toolCalls); increments `runCount` + bumps `lastOpenedAt`.
+- `sessions/[id]/tags/route.ts` — GET: distinct tags across all sessions (sidebar tag filter).
+- `sessions/[id]/attachments/route.ts` — POST: persists a user message's image attachment (base64 → Attachment row).
+- `sessions/ensure-session.ts` — shared helper (not a route): creates the missing parent session shell for auto-heal writes.
+- `documents/route.ts` — GET: list documents (most recent first).
+- `documents/[documentId]/route.ts` — GET/PATCH (rename)/DELETE: one document (id + name + viewport).
+- `documents/[documentId]/agent/status/route.ts` — GET: live agent-run status for the document (run registry + event-journal tail; drives RunStopButton + reconnect recovery).
+- `documents/[documentId]/events/route.ts` — GET `?afterSeq=N&limit=M`: the append-only agent event journal feed (reconnect catch-up, mutation clocks).
+- `models/route.ts` — POST: lists models the user can switch to for the configured provider (endpoint preflight against the provider's `/models`; the BETA preset preflight path — see the LLM endpoint access rule).
+- `design-systems/route.ts` — GET: design-system pack registry (names + metadata).
+- `design-systems/[name]/route.ts` — GET: one pack's full metadata.
+- `design-systems/[name]/tokens/route.ts` — GET: one pack's tokens.css.
 - `documents/[documentId]/snapshots/route.ts` — GET/POST: the document-scoped snapshot timeline (shared-canvas model — snapshots belong to the canvas, not to any one chat). GET (`?limit=100`) lists snapshot METADATA only (document JSON excluded — too large; `createdAt desc`). POST creates/upserts a `DocumentSnapshot` from `{id, document, sessionId?, source?, runId?, messageId?, nodeCount?, label?, bookmarked?}` — IDEMPOTENT by the client-supplied `id` (an existing id returns the existing row); validates `document` is an object.
 - `documents/[documentId]/snapshots/[id]/route.ts` — GET/PATCH/DELETE: single snapshot. GET returns the snapshot INCLUDING the parsed `document` JSON (404 when missing — the fetch-on-demand path for restoring `remote` placeholders); PATCH updates `{label?, bookmarked?}`; DELETE refuses bookmarked snapshots (400).
 - `mcp/[id]/route.ts` — GET/POST: status + `{action: 'connect' | 'disconnect'}` control for one MCP server (placeholder registry via `src/lib/agent/plugins/mcp-adapter`; real MCP SDK wiring is a TODO in code). Used by Settings → MCP Servers.
@@ -34,12 +47,15 @@ Next.js Route Handlers. Five route families: the `/api/agent` endpoints that run
   documentId: string;          // defaults to 'default' if omitted
   prompt: string;              // required — returns 400 if empty
   canvasState: CanvasDocument; // snapshot of the canvas at request time (field name: canvasState)
+  selection?: { count: number; names: string[] };  // canvas-selection targeting context (validated like canvasDelta)
+  canvasDelta?: { sinceSeq: number; nodeIds: string[] | null };  // journal-derived delta context for follow-up turns (WS path threads it from the post-turn checkpoint watermark; nodeIds null/absent = full snapshot; the runner gates delta mode on non-empty nodeIds AND canvas > 60 shapes — see runner-native)
   settings?: AgentRunSettings; // optional — temperature, maxIterations, planFirst, defaultPalette,
                                //   skillSelectionMode, llmProvider, apiKey, modelName, apiBaseUrl,
                                //   thinkingLevel, enabledPlugins, mcpServers.
                                //   Falls back to DEFAULT_SETTINGS when omitted.
 }
 ```
+On EMPTY-canvas one-shot turns the route additionally runs the one-shot polish pass (`polishOneShotPatch` from `src/lib/canvas/oneshot-polish.ts` — 4px grid snap + duplicate dedupe) over the accumulated patch before broadcasting.
 
 **Response**: a chunked `application/x-ndjson`-style response (NOT a single JSON blob). Each line is a JSON object with a `type` field:
 - `{ type: 'patch', patch: CanvasPatch, toolCallId?: string }`
@@ -54,10 +70,10 @@ Next.js Route Handlers. Five route families: the `/api/agent` endpoints that run
 - The route is the ONLY server-side consumer of the runner. Do not call the runner from elsewhere.
 
 **HTTP fallback**:
-- The frontend canvas store calls this endpoint when the WebSocket connection to `mini-services/canvas-sync/` is unavailable. Both paths MUST produce identical event shapes — the canvas store does not branch on transport.
+- The frontend canvas store calls this endpoint when the WebSocket connection to the in-process canvas-sync service (`src/lib/canvas/server.ts`, port 3003) is unavailable. Both paths MUST produce identical event shapes — the canvas store does not branch on transport.
 - When the WebSocket IS available, the canvas store prefers it (lower latency, bidirectional). The HTTP path is the fallback.
 
-### `/api/agent/answers`, `/api/agent/pending`, `/api/agent/background/[id]`, `/api/agent/plans`, `/api/agent/approvals`
+### `/api/agent/answers`, `/api/agent/pending`, `/api/agent/client-responses`, `/api/agent/background/[id]`, `/api/agent/plans`, `/api/agent/approvals`
 - Backed by in-memory plugin state in `src/lib/agent/plugins/` (or `plan-gate.ts` for plans) — no DB. All exist so the browser can interact with blocking/background plugin tools while a run is in flight.
 - `/api/agent/answers` resolves the blocked `ask_user_question` tool call (the PluginUI dialog submits here via the canvas store's `submitQuestionAnswers`).
 - `/api/agent/pending` is polled on reconnect so a reload doesn't orphan an unanswered question.
@@ -150,7 +166,7 @@ Next.js Route Handlers. Five route families: the `/api/agent` endpoints that run
 
 ## Work Guidance
 
-- When changing the event stream shape: update `agent/route.ts`, `src/lib/agent/runner.ts` (`AgentStreamEvent`), `src/lib/canvas/store.ts` (`_onSync` handler), and `mini-services/canvas-sync/index.ts` (broadcast). All four are coupled.
+- When changing the event stream shape: update `agent/route.ts`, `src/lib/agent/runner.ts` (`AgentStreamEvent`), `src/lib/canvas/store.ts` (`_onSync` handler), and `src/lib/canvas/server.ts` (broadcast). All four are coupled.
 - When changing the session persistence shape: update the routes here, `src/lib/sessions/server-sync.ts` (client bridge), and `prisma/schema.prisma` together.
 - When adding auth: add it as a middleware in `src/middleware.ts` (does not exist yet), not per-route. The current app has no auth.
 - When debugging a stream that hangs: check that the runner is actually yielding events (add `console.error` in the runner), check that the response headers are set before the first write, check that no proxy between the client and the route is buffering (the dev server does not buffer; production behind Caddy might).
@@ -166,4 +182,4 @@ Next.js Route Handlers. Five route families: the `/api/agent` endpoints that run
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder contains: `agent/route.ts`, `agent/answers/route.ts`, `agent/approvals/route.ts`, `agent/background/[id]/route.ts`, `agent/client-responses/route.ts`, `agent/pending/route.ts`, `agent/plans/route.ts`, `plugins/route.ts`, `sessions/route.ts`, `sessions/[id]/route.ts`, `sessions/[id]/messages/route.ts`, `sessions/[id]/runs/route.ts`, `documents/[documentId]/snapshots/route.ts`, `documents/[documentId]/snapshots/[id]/route.ts`, `mcp/[id]/route.ts`, `route.ts`, `pen/import/route.ts`, `pen/export/route.ts`.
+No child `AGENTS.md` files. This folder contains: `agent/route.ts`, `agent/answers/route.ts`, `agent/approvals/route.ts`, `agent/background/[id]/route.ts`, `agent/client-responses/route.ts`, `agent/pending/route.ts`, `agent/plans/route.ts`, `models/route.ts`, `plugins/route.ts`, `sessions/route.ts`, `sessions/search/route.ts`, `sessions/ensure-session.ts`, `sessions/[id]/route.ts`, `sessions/[id]/messages/route.ts`, `sessions/[id]/runs/route.ts`, `sessions/[id]/tags/route.ts`, `sessions/[id]/attachments/route.ts`, `documents/route.ts`, `documents/[documentId]/route.ts`, `documents/[documentId]/agent/status/route.ts`, `documents/[documentId]/events/route.ts`, `documents/[documentId]/snapshots/route.ts`, `documents/[documentId]/snapshots/[id]/route.ts`, `design-systems/route.ts`, `design-systems/[name]/route.ts`, `design-systems/[name]/tokens/route.ts`, `mcp/[id]/route.ts`, `route.ts`, `pen/import/route.ts`, `pen/export/route.ts`.

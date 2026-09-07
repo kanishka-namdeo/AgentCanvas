@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Component tree root. Owns the shared ThemeToggle component directly, and indexes the four component subfolders (canvas, sessions, settings, ui) that have their own AGENTS.md contracts.
+Component tree root. Owns the shared ThemeToggle component directly, and indexes the five component subfolders (canvas, sessions, settings, design-systems, ui) that have their own AGENTS.md contracts.
 
 ## Ownership
 
@@ -42,7 +42,8 @@ Component tree root. Owns the shared ThemeToggle component directly, and indexes
 
 | Path | Scope |
 |------|-------|
-| `canvas/AGENTS.md` | Canvas UI: drawing surface, floating toolbar (+ undo/redo), command palette, layers panel, properties inspector, agent chat + PluginUI bundle, top menu bar, .pen file menu, shortcuts dialog |
-| `sessions/AGENTS.md` | Session UI: sidebar, header (compact + full), run history panel, run/stop button, status badges |
+| `canvas/AGENTS.md` | Canvas UI: drawing surface, floating toolbar (+ undo/redo), command palette, layers panel, properties inspector, agent chat + PluginUI bundle, app menu, .pen file menu, shortcuts dialog |
+| `sessions/AGENTS.md` | Session UI: sidebar, header (compact), run history panel, run/stop button, status badges |
 | `settings/AGENTS.md` | Settings dialog: 8-section modal (agent, LLM provider, sessions, appearance, data, shortcuts, plugins, MCP servers) |
-| `ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers, 48-component inventory |
+| `design-systems/AGENTS.md` | Design-system picker + pack showcase (the Design tab's pack browsing UI) |
+| `ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers, 26-component inventory |

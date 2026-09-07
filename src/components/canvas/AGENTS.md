@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Canvas UI components: the drawing surface, the floating toolbar, the command palette, the layers panel, the properties inspector, the agent chat panel (with the interactive plugin-UI bundle), the top menu bar, the .pen file menu, and the keyboard shortcuts dialog. These are the primary interactive surfaces the user sees and touches.
+Canvas UI components: the drawing surface, the floating toolbar, the command palette, the layers panel, the properties inspector, the agent chat panel (with the interactive plugin-UI bundle), the app menu, the .pen file menu, and the keyboard shortcuts dialog. These are the primary interactive surfaces the user sees and touches.
 
 ## Ownership
 
@@ -24,6 +24,12 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
 - `AppMenu.tsx` — the single application menu button in the header (UI-audit round 2 replaced the classic 28px six-menu menubar, Figma-UI3 style). ONE dropdown with labeled sections: File (new chat ⌘N, open .pen ⌘O, export .pen ⌘E / PNG / SVG / JSON, copy-as-code submenu, version history, settings, clear canvas), Edit (undo/redo, cut/copy/paste/paste-in-place, duplicate, select/deselect, delete), View (panel toggles, zen, dark mode — WIRED, grid/snap/outline/rulers, zoom, design systems), Insert (token-based `dropShapeAtCenter` drops: rectangle/ellipse/text/line/frame/section + path/image/component pointers), Object (group/ungroup, z-order, frame-selection, TOGGLING flip H/V, align/distribute submenus, lock/hide), Help (shortcuts, palette, .pen spec, GitHub, about). Every item is also in the ⌘K command palette (see page.tsx `paletteCommands`).
 - `PenFileMenu.tsx` — dropdown for .pen file operations. Export: POST `/api/pen/export` with live CanvasDocument, downloads as `.pen` blob. Import: file picker → JSON.parse → POST `/api/pen/import` → applies returned patches through the store (undoable + broadcast). Shows busy indicator during operations.
 - `KeyboardShortcutsDialog.tsx` — searchable modal listing all wired keyboard shortcuts, grouped by category (Panels, Navigation, Edit, Tools, Clipboard, Structure, Z-order, Canvas, Properties, Chat, File). Tier badges (P0/P1/P2/Existing) with color coding. Opens via ⌘/ (mirrors Figma's Ctrl+Shift+? cheat sheet). Filters by action, keys, category, or tier.
+- `Markdown.tsx` — markdown renderer for agent chat messages (react-markdown; lists, bold, tables, fenced code with click-to-copy).
+- `Rulers.tsx` — canvas rulers (Phase 7 §H.2) with drag-out guides (feeds `DEFAULT_GUIDE_COLOR`).
+- `VersionHistoryDialog.tsx` — version-history dialog (Phase 7 group C — defect D14); browses/restores version-history checkpoints.
+- `ModelSwitcher.tsx` — the model badge in the AgentPanel header becomes a dropdown listing models the user can actually switch to (provider-aware availability).
+- `ShortcutsReference.tsx` — the ONE registry-driven shortcut table renderer (renders straight from `src/lib/canvas/shortcuts.ts` so the reference can never drift from the keymap).
+- `PackTokensStyle.tsx` — injects the active design-system pack's `tokens.css` into the canvas subtree as a `<style>` tag.
 
 ## Local Contracts
 
@@ -112,12 +118,11 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
   - Accepts `hideHeader` prop (the compact `SessionHeader` component sits in the top header of the 3-column tabbed layout).
   - Inline Stop button appears next to streaming response when `agentBusy`.
   - Right-click context menus on user messages, assistant messages, and tool-call cards.
-- `TopMenuBar.tsx`:
-  - Accepts callback props for all menu actions (`onOpenSettings`, `onOpenCommandPalette`, `onToggleZen`, `onToggleTheme`, `onToggleLeftPanel`, `onToggleRightPanel`, `onNewChat`, `onExportPen`, `onImportPen`, `onOpenShortcuts`).
-  - Uses `useClipboard` hook for cut/copy/paste operations.
+- `AppMenu.tsx` (replaced the deleted `TopMenuBar.tsx` — UI-audit round 2):
+  - ONE dropdown button (Figma-UI3 style); sections documented in the Ownership row above.
   - Shared `dropShapeAtCenter` (lib/canvas/drop-shape.ts) places token-colored shapes at viewport center — used by the menu, ⌘K palette, and keyboard chords (UI-audit round 2: the old duplicated helpers hardcoded light-slate hexes that broke dark mode).
   - `zorder` helper emits z-order patches against current selection.
-  - All shortcut hints shown via `<DropdownMenuShortcut>` are wired in `src/app/page.tsx`'s keydown handler (⌘N/⌘O/⌘E included since round 2).
+  - All shortcut hints shown via `<DropdownMenuShortcut>` are wired in `src/app/page.tsx`'s keydown handler (⌘N/⌘O/⌘E included since round 2) and mirrored in the `src/lib/canvas/shortcuts.ts` registry.
 - `PenFileMenu.tsx`:
   - Reads `document` + `sendPatch` from canvas store.
   - Export: POST to `/api/pen/export`, downloads response as blob.
@@ -125,7 +130,7 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
   - Shows busy indicator (fixed bottom-right) during operations.
 - `KeyboardShortcutsDialog.tsx`:
   - Accepts `open` + `onOpenChange` props.
-  - `SHORTCUTS` array: 46 entries across P0/P1/P2/Existing tiers.
+  - Renders straight from the `SHORTCUTS` array in `src/lib/canvas/shortcuts.ts` (73 entries across P0/P1/P2/Existing tiers — the single source of truth, shared with the keymap and ShortcutsReference).
   - Filters by action, keys, category, or tier (case-insensitive).
   - Groups by category for display.
   - Tier badges color-coded: P0=rose, P1=amber, P2=blue, Existing=slate.
@@ -140,7 +145,7 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
 - When adding a new shape type: update `Canvas.tsx` (rendering), `LayersPanel.tsx` (icon in `TYPE_ICON`), `PropertiesPanel.tsx` (form fields), `tools.ts` (tool schema + `executeTool` case), `prisma/schema.prisma` (comment in the `type` field).
 - When changing the design system: edit `src/app/globals.css` first, then sweep components for hardcoded colors.
 - When adding a new panel: follow the 3-column tabbed layout in `src/app/page.tsx` — do not introduce a new column without restructuring.
-- When adding a new keyboard shortcut: add it to `KeyboardShortcutsDialog.tsx`'s `SHORTCUTS` array + wire it in `src/app/page.tsx`'s keydown handler + show it as a hint in `TopMenuBar.tsx` if applicable.
+- When adding a new keyboard shortcut: add it to the `SHORTCUTS` registry in `src/lib/canvas/shortcuts.ts` + wire it in `src/app/page.tsx`'s keydown handler + show it as a hint in `AppMenu.tsx` if applicable.
 - Capture before/after screenshots to `download/<feature-name>/` for any visual change.
 
 ## Verification

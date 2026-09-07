@@ -25,7 +25,7 @@ Every skill MUST have:
 - `name` — human-readable
 - `description` — Level 1 metadata (~100 tokens, always loaded). Must say WHAT + WHEN.
 - `body` — Level 2 instructions (loaded on activation, <5k tokens). Tool selection guide, argument rules, completion criteria.
-- `allowedTools` — which of the 87 LLM-visible canvas/web tools this skill exposes (from `ALL_TOOL_NAMES`)
+- `allowedTools` — which of the 94 LLM-visible canvas/web tools this skill exposes (from `ALL_TOOL_NAMES`)
 - `keywords` — for the intent classifier (case-insensitive match)
 
 ### Progressive disclosure levels
@@ -38,7 +38,7 @@ Every skill MUST have:
 
 ### Tool subset loading
 `getToolNamesForCategory(category)` returns core tools + skill-specific tools.
-For 'multi', returns ALL_TOOL_NAMES (the full 87-tool flat list — fallback; excludes the 10 always-loaded figma tools).
+For 'multi', returns ALL_TOOL_NAMES (the full 94-tool flat list — fallback; excludes the 10 always-loaded figma tools).
 
 ### Adding a new skill
 1. Add the category to `SkillCategory` in `types.ts`

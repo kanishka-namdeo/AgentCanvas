@@ -704,7 +704,7 @@ export function getSkill(category: SkillCategory): Skill | null {
 // ---- Get the tool names for a category ------------------------------------
 //
 // Returns the skill's allowedTools. For 'multi', returns ALL tool names
-// (the full 56-tool flat list — the fallback when intent is ambiguous).
+// (the full 94-tool flat list — the fallback when intent is ambiguous).
 
 export function getToolNamesForCategory(category: SkillCategory): string[] {
   if (category === 'multi') {

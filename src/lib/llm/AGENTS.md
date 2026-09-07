@@ -43,7 +43,7 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
 - `index.ts` — Barrel export re-exporting all types + registry functions + the endpoint presets.
 
 - `endpoint-presets.ts` — Named OpenAI-compatible endpoint presets baked into app code (NOT registry providers — a preset is a filled-in configuration of the generic `custom` provider). Exports: `EndpointPreset` type, `BETA_ENDPOINT`, `ENDPOINT_PRESETS`, `getEndpointPreset(id)`, `endpointPresetPatch(preset)` (the 4-field `llmProvider`/`apiKey`/`modelName`/`apiBaseUrl` patch, shared shape with both AppSettings and AgentRunSettings), `matchesEndpointPreset(settings, preset)` (active-chip detection). Consumed by SettingsDialog's "Endpoint presets" row and by e2e scripts.
-  - **BETA** (2026-09-07): owner-configured test endpoint — kimi-k2-5 behind a pinggy tunnel, placeholder key baked into code per the owner's directive. Same values as the pre-v5 first-run defaults (see the settings store's v4→v5 migration), now opt-in as a named preset instead of a silent default.
+  - **BETA** (2026-09-07): owner-configured test endpoint — qwen3.7-plus behind a pinggy tunnel (kimi-k2-5 before the BETA tuning), placeholder key baked into code per the owner's directive. Matches the current first-run defaults in `DEFAULT_SETTINGS` (the BETA chip lights on first run); the runner falls back to the z.ai sandbox when the tunnel is down. Qwen3.7 sampling params (temperature 0.6, top_p 0.8, thinking-off) are pinned in `pi-ai-model-resolver.ts`.
 
 ## Local Contracts
 
