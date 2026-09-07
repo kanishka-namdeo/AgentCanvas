@@ -46,6 +46,8 @@ Two kinds of tests live here:
 | `zoom-clamp.test.ts` | Zoom clamp unification (spec defect D6): the shared `clampZoom` helper + `MIN_ZOOM`/`MAX_ZOOM` constants exported from `src/lib/canvas/use-canvas-gestures.ts` — canonical range 0.1–8 for every zoom control (gestures, Canvas zoom buttons, context-menu items), plus a source-level guard that `Canvas.tsx` consumes the shared clamp instead of inline caps. |
 | `agent-performance-package.test.ts` | The Agent Performance Package (10 changes): `pen_create_subtree` multi-root `nodes[]` batches + full id-manifest + inline resolver warnings (kills the read-back round trip), `pen_duplicate_nodes` count/direction/spacing batches + the previously-silently-ignored offsetX/offsetY, `tool-execution-mode.ts` sequential-vs-parallel policy (`PARALLEL_SAFE_TOOL_NAMES`), legacy-alias filtering out of the LLM-visible catalog, `shouldStopAfterTurn` maxIterations wiring (mock-stream Agent probe), prompt-cache usage fields, canvas-snapshot placement, and the system-prompt emission/budget rules. |
 | `todo-batch-variants.test.ts` | Todo-batch semantics + the variant generator: `todo_update` BATCH transitions (multi-transition one call, WIP=1 auto-advance, full-list returns, single-step shim compatibility, prompt gating), variant-spec coercion (`extractSpecJson` parse-whole fast path, `coerceNodeTree` near-miss→node-tree salvage, invented types→KNOWN_TYPES, `stripDescriptorFields`), composite image assembly, `dispatchVariantGeneration` WALL-CLOCK BUDGET races against eternally-hanging LLM mocks (a 1.2s budget must return in ~1.2s), judge-timeout→heuristic degradation, and exhaustion→fallback-ladder notes. 26 tests. |
+| `followup-delta-2026-09-07.test.ts` | Source invariants for the follow-up delta fix (`922aa2b`): journal-fold's `computeChangedNodeIdsSince` returns `nodeIds: null` on empty changed-sets, runner-native's delta gate (non-empty nodeIds AND canvas > `DELTA_MIN_SHAPES` 60), and the `driveAgent` watermark guard. |
+| `poor-prompts-2026-09-07.test.ts` | Poor-prompt hardening invariants (battery: scripts/agent-eval/poor-prompts.ts): `looksLikeEditReference` pure unit matrix (anaphora true / concrete-artifact false), runner wiring scans (clarifyOnEmptyCanvas gate, brief stand-down, expectsCanvasOutput stand-down, EMPTY-CANVAS EDIT GUARD injection), and route scans (type-safe prompt/documentId extraction, 20k-char cap before runAgent, empty 400 kept). |
 
 ### Vitest integration tests (`tests/integration/`)
 
@@ -126,7 +128,7 @@ Each prints a "passed" message on success and exits non-zero on failure.
 
 ## Verification
 
-- `bun run test` — should print "Test Files 106 passed (106)" and "Tests 2344 passed | 2 skipped" (verified 2026-09-07 after the follow-up delta fix, ~155s; unit = 94 files / 2215 tests, integration = 12 files / 129+2; grows as tests are added).
+- `bun run test` — should print "Test Files 107 passed (107)" and "Tests 2371 passed | 2 skipped" (verified 2026-09-07 after the poor-prompt hardening, ~148s; unit = 95 files / 2242 tests, integration = 12 files / 129+2; grows as tests are added).
 - `bash tests/python-runtime-build.sh` — should print "python runtime build tests passed".
 - `bash tests/database-runtime-build.sh` — should print the corresponding pass message.
 - `bunx tsc --noEmit` — typecheck (currently clean; `skills/` is excluded in tsconfig because the z.ai sandbox extracts sandbox-owned skill sources there).

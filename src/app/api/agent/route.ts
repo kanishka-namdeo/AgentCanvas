@@ -6,9 +6,9 @@
 //   { "type": "patch", "patch": CanvasPatch, "toolCallId"?: string }
 //   { "type": "agent_event", "event": SyncEvent }
 //
-// The WebSocket mini-service (mini-services/canvas-sync) calls this route
-// and re-emits the events as socket.io `sync` messages so every viewer
-// sees the agent work in real time.
+// The in-process Socket.IO canvas-sync service (src/lib/canvas/server.ts,
+// port 3003) calls this route and re-emits the events as socket.io `sync`
+// messages so every viewer sees the agent work in real time.
 //
 // Settings (Phase 1+2+3 of the settings workflow) are passed in the request
 // body as `settings`. The runner reads them to override the previous
@@ -35,8 +35,13 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const documentId: string = body.documentId ?? 'default';
-  const prompt: string = body.prompt ?? '';
+  // Poor-prompt hardening (2026-09-07): TYPE-SAFE extraction. A malformed
+  // client (or a curious user poking the API with a number/object prompt)
+  // previously crashed `.trim()` below with a TypeError → an ugly 500.
+  // Non-strings normalize to '' → the existing 400 below fires instead.
+  const documentId: string =
+    typeof body.documentId === 'string' && body.documentId ? body.documentId : 'default';
+  const prompt: string = typeof body.prompt === 'string' ? body.prompt : '';
   const canvas: CanvasDocument = body.canvasState ?? {
     id: documentId,
     name: 'Untitled',
@@ -121,6 +126,26 @@ export async function POST(req: NextRequest) {
             : undefined,
       }
     : undefined;
+
+  // Poor-prompt hardening (2026-09-07): prompt LENGTH CAP. The sandbox
+  // gateway rejects total payloads over ~24k tokens with an opaque 400
+  // "Prompt exceeds max length" mid-run; a hard char cap keeps the failure
+  // at the door with an honest message instead. 20,000 chars ≈ the longest
+  // legitimate design spec (the poor-prompts battery's 4.5k-char ramble
+  // completed fine at 127 shapes); anything longer is a paste accident or
+  // abuse.
+  const MAX_PROMPT_CHARS = 20_000;
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    return new Response(
+      JSON.stringify({
+        error: `prompt exceeds the ${MAX_PROMPT_CHARS}-character limit (got ${prompt.length}); trim it and resend`,
+      }),
+      {
+        status: 400,
+        headers: { 'content-type': 'application/json' },
+      },
+    );
+  }
 
   if (!prompt.trim()) {
     return new Response(JSON.stringify({ error: 'prompt is required' }), {

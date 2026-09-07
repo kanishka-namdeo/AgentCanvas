@@ -44,8 +44,8 @@ Next.js Route Handlers. Route families: the `/api/agent` endpoints that run the 
 **Request**: `POST /api/agent` with JSON body:
 ```ts
 {
-  documentId: string;          // defaults to 'default' if omitted
-  prompt: string;              // required — returns 400 if empty
+  documentId: string;          // defaults to 'default' if omitted (non-strings also normalize to 'default')
+  prompt: string;              // required — returns 400 if empty/whitespace; non-strings normalize to '' (400, not a 500 crash); >20,000 chars returns 400 with an honest trim-it message (poor-prompt hardening 2026-09-07 — keeps the gateway's opaque ~24k-token prompt-length rejection at the door)
   canvasState: CanvasDocument; // snapshot of the canvas at request time (field name: canvasState)
   selection?: { count: number; names: string[] };  // canvas-selection targeting context (validated like canvasDelta)
   canvasDelta?: { sinceSeq: number; nodeIds: string[] | null };  // journal-derived delta context for follow-up turns (WS path threads it from the post-turn checkpoint watermark; nodeIds null/absent = full snapshot; the runner gates delta mode on non-empty nodeIds AND canvas > 60 shapes — see runner-native)

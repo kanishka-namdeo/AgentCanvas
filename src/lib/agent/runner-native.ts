@@ -79,6 +79,7 @@ import {
   type Plan,
 } from './skills';
 import { resolveModel, resolveZaiSandboxFallback } from './pi-ai-model-resolver';
+import { looksLikeEditReference } from './prompt-intent';
 import { subscribeAndTranslate, createEventQueue } from './agent-session-translator';
 import { registerActiveSession } from './active-sessions';
 import { dataUrlToImageContent } from './attachments';
@@ -585,6 +586,25 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // Skipped for tests (MockLLM doesn't have the brief scripted) — but the
   // native runner is only invoked when there's no injectedLlm, so this gate
   // is automatic.
+  // ---- Poor-prompt hardening (2026-09-07): edit-reference on EMPTY canvas --
+  //
+  // Real users open the app and type "make it blue", "change the color",
+  // "make it bigger" as their FIRST prompt. There is nothing to edit. The
+  // honest behavior is ONE short clarifying question — observed live
+  // (poor-prompts battery): the model reasoned "ambiguous on an empty
+  // canvas" and then built 8 shapes anyway (193s wasted, hallucinated
+  // design). When this fires we (a) inject an EMPTY-CANVAS EDIT GUARD into
+  // the first user message, (b) stand down the brief pre-generation (the
+  // injected "[PRE-GENERATED DESIGN BRIEF — build directly from this]"
+  // actively pushes the model to CREATE — it was the hallucination's
+  // accomplice), and (c) clear expectsCanvasOutput so the text-only- design-
+  // turn guards treat the clarification as the turn's correct terminal
+  // output instead of retrying/erroring it.
+  const clarifyOnEmptyCanvas =
+    mode === 'build' &&
+    turnStartShapeIds.size === 0 &&
+    looksLikeEditReference(prompt);
+
   const isDesignRequest = (text: string): boolean => {
     const t = text.toLowerCase();
     return /\b(design|dashboard|landing\s*page|app|ui|build|create|make|draw|scaffold|layout|interface|website|page|screen)\b/.test(t);
@@ -607,7 +627,8 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // call pen_generate_design_brief when the user explicitly requests a fresh
   // direction.
   const shouldEnforceBrief = isDesignRequest(prompt) && mode === 'build'
-    && turnStartShapeIds.size === 0;
+    && turnStartShapeIds.size === 0
+    && !clarifyOnEmptyCanvas;
 
   // ---- Agent Performance Package change 9: pre-generate the design brief --
   //
@@ -685,7 +706,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // MODE GATE: only BUILD turns "owe" canvas output. Ask/Plan turns
   // legitimately settle as prose (an answer / a plan via submit_plan), so
   // the silent-failure + retry guards must not harass them.
-  const expectsCanvasOutput = mode === 'build' && isDesignRequest(prompt) && !QUESTIONISH_PROMPT;
+  const expectsCanvasOutput = mode === 'build' && isDesignRequest(prompt) && !QUESTIONISH_PROMPT && !clarifyOnEmptyCanvas;
 
   // Pre-generate the design brief for ALL design requests in build mode —
   // including ambiguous creations. The brief gives the LLM a deterministic
@@ -1554,9 +1575,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // behavioral contract (what the (already-filtered) toolset enforces).
   const modeSection = modeSectionFor(mode);
   const perTurnSections = planSection + fileSkillsSection + memorySection;
+  // Poor-prompt hardening (2026-09-07): edit-shaped prompt on an EMPTY
+  // canvas → hard clarification contract. Placed immediately after the raw
+  // prompt in BOTH user-message arms so it binds to the request itself.
+  const clarifyGuardSection = clarifyOnEmptyCanvas
+    ? `\n\n[EMPTY-CANVAS EDIT GUARD: The canvas is EMPTY — zero layers, zero shapes, nothing to edit, restyle, resize, or recolor. The request above reads as an edit of existing content, but there IS no existing content. Do NOT invent or create any design this turn — a guessed design is a hallucination, not help. Instead, reply with ONE short, friendly clarifying question (a single sentence) asking what the user wants to build, offering a concrete example (e.g. "a login page? a dashboard? a pricing table?"). Then stop — the clarification is the correct and complete output for this turn.]`
+    : '';
   const userMessage = (webResearchSummary
-    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}`
-    : `${selectionNote}${prompt}`) + modeSection + briefSection + variantNudge + conversationHistorySection + snapshotSection + perTurnSections + promptVersionSection + packReminder;
+    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}${clarifyGuardSection}`
+    : `${selectionNote}${prompt}${clarifyGuardSection}`) + modeSection + briefSection + variantNudge + conversationHistorySection + snapshotSection + perTurnSections + promptVersionSection + packReminder;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;
