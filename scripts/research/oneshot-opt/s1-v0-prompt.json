@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/1k92ojw/full_leaked_v0_system_prompts_and_tools_updated",
+    "name": "FULL LEAKED v0 System Prompts and Tools [UPDATED]",
+    "snippet": "FULL updated v0 system prompt and internal tools info. Different prompts could use a smaller model versus a larger one depending on the ...",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/lets-code-future/i-built-a-full-client-website-using-v0-dev-with-just-a-few-prompts-25e96e4ee4e4",
+    "name": "I Built a Full Client Website Using V0.dev — With Just",
+    "snippet": "V0.dev lets you generate React code from a prompt . You just describe the UI, and it builds it for you using shadcn/ui components.",
+    "host_name": "medium.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com/blog/maximizing-outputs-with-v0-from-ui-generation-to-code-creation",
+    "name": "Maximizing outputs with v0: From UI generation to code",
+    "snippet": "Oct 23, 2024 — Learn prompt engineering best practices for working with v0's core functionality to get the best results. Read more",
+    "host_name": "vercel.com",
+    "rank": 2,
+    "date": "Oct 23, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.doingwith.ai/articles/exploring-the-v0-dev-system-prompt",
+    "name": "Exploring the V0.dev System Prompt - Doing With AI",
+    "snippet": "Aug 24, 2024 — This is a multimodal generative UI tool I've been using to build this site (text-to-react). It recently launched a premium tier, which runs on ... Read more",
+    "host_name": "www.doingwith.ai",
+    "rank": 3,
+    "date": "Aug 24, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://news.ycombinator.com/item?id=37510699",
+    "name": "v0: Generate UI with simple text prompts",
+    "snippet": "Sep 14, 2023 — You can use the prompt library (https:// v0 . dev /explore) and copy/paste any of those examples. We're going to be rolling out access to folks on ... Read more",
+    "host_name": "news.ycombinator.com",
+    "rank": 4,
+    "date": "Sep 14, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mindstudio.ai/blog/what-is-vercel-v0",
+    "name": "What Is Vercel v0? AI-Powered UI Generation Explained",
+    "snippet": "Apr 14, 2026 — Vercel v0 generates React components and UI layouts from text prompts . A UI generation tool that outputs real, usable frontend code from ...",
+    "host_name": "www.mindstudio.ai",
+    "rank": 5,
+    "date": "Apr 14, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://v0.dev/t/ueXiM7GOTaJ",
+    "name": "create a landing page for a ia ui design creator by simple",
+    "snippet": "This is a v0.app and shadcn/ui generation for the prompt: create a landing page for a ia ui design creator by simple text prompts and imagems, ...",
+    "host_name": "v0.dev",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gist.github.com/jasonkneen/22289f24ce343b1a33e1b163f834ea6d",
+    "name": "v0 System Prompt · GitHub",
+    "snippet": "UI Feedback: Showing generation status to users; Cancellation: Allowing users to stop generation ; Implementation: Using the streamText function from the AI ... Read more",
+    "host_name": "gist.github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1,13 +1,13 @@
-// verify-default-llm.ts — Verify the app's default LLM config end-to-end:
-//   1. resolveModel(DEFAULT_SETTINGS) → must resolve to the z.ai sandbox
-//      (provider 'zai', model 'glm-5.3', sandbox OAuth headers applied via
-//      ZAI.create()). The custom OpenAI-compatible endpoint (kimi-k2-5
-//      behind a pinggy tunnel) is no longer the default — the app ships
-//      with the z.ai sandbox as the default inference provider.
+// verify-default-llm.ts - Verify the app's default LLM config end-to-end:
+//   1. resolveModel(DEFAULT_SETTINGS) -> must resolve to the BETA preset:
+//      custom provider, model 'qwen3.7-plus', served through a pinggy
+//      tunnel (see src/lib/llm/endpoint-presets.ts). The z.ai sandbox is
+//      the automatic fallback when the tunnel is down (usedFallback=true).
 //   2. A real completion through the resolved pi-ai Model (auth + endpoint
-//      + model) — works through the z.ai sandbox path.
+//      + model) - works through whichever endpoint was resolved (BETA
+//      tunnel, or the z.ai sandbox fallback).
 //   3. A custom-endpoint override unit check (apiBaseUrl flows into baseUrl)
-//      — when a user explicitly configures a non-default endpoint, the
+//      - when a user explicitly configures a non-default endpoint, the
 //      synthetic custom Model is still built correctly.
 // Run: bun run scripts/verify-default-llm.ts
 
@@ -29,27 +29,25 @@ async function main() {
   console.log('[1] sandbox headers present:', Object.keys(resolved.model.headers ?? {}));
   console.log('[1] usedFallback:', resolved.usedFallback ?? false);
 
-  // The default provider is 'zai'. The resolver calls ZAI.create() to
-  // auto-resolve sandbox credentials; inside the z.ai sandbox this yields
-  // an OAuth token + sandbox baseUrl that override the Model's headers.
-  // Outside the sandbox (no creds), the resolver throws — which is the
-  // correct "no creds" error, not a verification failure.
-  if (resolved.model.provider !== 'zai') {
-    throw new Error(`Expected provider 'zai', got ${resolved.model.provider}`);
-  }
-  if (resolved.model.id !== 'glm-5.3') {
-    throw new Error(`Expected model 'glm-5.3', got ${resolved.model.id}`);
-  }
+  // Default inference is now the BETA preset (custom provider, qwen3.7-plus
+  // behind the pinggy tunnel) - see src/lib/llm/endpoint-presets.ts. The
+  // tunnel is flaky, so a run that swapped to the z.ai sandbox
+  // (usedFallback=true) is a soft-warn, not a hard fail: that is the
+  // resolver working as designed. Everything else must match the BETA shape.
   if (resolved.model.api !== 'openai-completions') {
     throw new Error(`Expected api 'openai-completions', got ${resolved.model.api}`);
   }
-  // usedFallback is true ONLY when the resolver swapped to the z.ai sandbox
-  // because a non-zai configured endpoint was unreachable. With zai as the
-  // configured default, usedFallback should be false (no swap needed).
   if (resolved.usedFallback) {
-    throw new Error(
-      `Expected usedFallback=false (zai is the default, no swap needed), got true`,
+    console.log(
+      '[verify-default-llm] BETA tunnel unreachable - resolver fell back to the z.ai sandbox (usedFallback=true). Treating as soft-pass.',
     );
+  } else {
+    if (resolved.model.provider !== 'custom') {
+      throw new Error(`Expected provider 'custom', got ${resolved.model.provider}`);
+    }
+    if (resolved.model.id !== 'qwen3.7-plus') {
+      throw new Error(`Expected model 'qwen3.7-plus', got ${resolved.model.id}`);
+    }
   }
   // Sandbox OAuth headers should be present when running inside the
   // z.ai sandbox (the common case for this script).

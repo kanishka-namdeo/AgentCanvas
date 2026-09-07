@@ -1,0 +1,374 @@
+{
+  "runs": [
+    {
+      "id": "analytics-chart",
+      "prompt": "Design a high-fidelity analytics dashboard card titled 'Monthly Revenue' containing a bar chart of Jan through Jun revenue — $42K, $48K, $45K, $56K, $61K, $68K — with a month label under each bar.",
+      "startedAt": "2026-09-07T05:56:58.355Z",
+      "durationMs": 128205,
+      "toolCallCount": 13,
+      "toolNames": [
+        [
+          "pen_bulk_update_by_filter",
+          4
+        ],
+        [
+          "pen_get_metadata",
+          3
+        ],
+        [
+          "pen_set_variables",
+          2
+        ],
+        [
+          "pen_update_node",
+          2
+        ],
+        [
+          "pen_create_chart",
+          1
+        ],
+        [
+          "pen_set_shadow",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "title + all 6 values present",
+          "pass": true,
+          "detail": "title and all values found"
+        },
+        {
+          "name": "6 month labels present",
+          "pass": true,
+          "detail": "jan-jun found"
+        },
+        {
+          "name": "6-bar chart structure (same width, common baseline, varying heights)",
+          "pass": true,
+          "detail": "6 rects at one baseline, 1 width band(s), 5 distinct heights"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "card has shadow",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 13 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "13 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 10,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 29,
+      "emptyTurn": false,
+      "canvasDump": "download/agent-eval/dumps-r2/analytics-chart-r1.canvas.json",
+      "repeat": 1
+    },
+    {
+      "id": "data-table",
+      "prompt": "Design a high-fidelity 'Recent Orders' table card with columns Order, Customer, Date, Status, Amount and 4 data rows with realistic values, status shown as color-coded text or badges.",
+      "startedAt": "2026-09-07T05:59:26.566Z",
+      "durationMs": 324854,
+      "toolCallCount": 20,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          5
+        ],
+        [
+          "pen_update_node",
+          5
+        ],
+        [
+          "pen_set_variables",
+          2
+        ],
+        [
+          "pen_create_table",
+          2
+        ],
+        [
+          "pen_apply_typography",
+          2
+        ],
+        [
+          "pen_apply_variable",
+          1
+        ],
+        [
+          "pen_apply_auto_layout",
+          1
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          1
+        ],
+        [
+          "pen_delete_nodes",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "all 5 column headers present",
+          "pass": true,
+          "detail": "all headers found"
+        },
+        {
+          "name": "4+ amount values",
+          "pass": false,
+          "detail": "only 3 $-amounts — 4 data rows not filled"
+        },
+        {
+          "name": "status color-coded (2+ text colors or badges)",
+          "pass": true,
+          "detail": "4 distinct status text colors, 2 badge pill(s)"
+        },
+        {
+          "name": "table rows as text layers",
+          "pass": true,
+          "detail": "26 text layers"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "card has shadow",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 20 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "20 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": false,
+          "detail": "errors: The model stopped mid-turn with a provider error (finish reason: error). Everything built so far is on the canvas — resend your prompt and the agent will continue from the current state. If it keeps h"
+        }
+      ],
+      "passed": 9,
+      "failed": 2,
+      "status": "fail",
+      "finalLayerCount": 37,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Recent Orders (title)",
+          "text": "Recent Orders"
+        },
+        {
+          "name": "Export CSV (button label)",
+          "text": "Export CSV"
+        },
+        {
+          "name": "header Order",
+          "text": "ORDER"
+        },
+        {
+          "name": "header Customer",
+          "text": "CUSTOMER"
+        },
+        {
+          "name": "header Date",
+          "text": "DATE"
+        },
+        {
+          "name": "header Status",
+          "text": "STATUS"
+        },
+        {
+          "name": "header Amount",
+          "text": "AMOUNT"
+        },
+        {
+          "name": "r0 c0",
+          "text": "ORD-7829"
+        },
+        {
+          "name": "r0 c1",
+          "text": "Alice Smith"
+        },
+        {
+          "name": "r0 c2",
+          "text": "Oct 24"
+        },
+        {
+          "name": "r0 c3",
+          "text": "Completed"
+        },
+        {
+          "name": "r0 c4",
+          "text": "$120.50"
+        },
+        {
+          "name": "r1 c0",
+          "text": "ORD-7830"
+        },
+        {
+          "name": "r1 c1",
+          "text": "Bob Jones"
+        },
+        {
+          "name": "r1 c2",
+          "text": "Oct 24"
+        },
+        {
+          "name": "r1 c3",
+          "text": "Processing"
+        },
+        {
+          "name": "r1 c4",
+          "text": "$85.00"
+        },
+        {
+          "name": "r2 c0",
+          "text": "ORD-7831"
+        },
+        {
+          "name": "r2 c1",
+          "text": "Carol White"
+        },
+        {
+          "name": "r2 c2",
+          "text": "Oct 23"
+        },
+        {
+          "name": "r2 c3",
+          "text": "Shipped"
+        },
+        {
+          "name": "r2 c4",
+          "text": "$210.25"
+        },
+        {
+          "name": "r3 c0",
+          "text": "ORD-7832"
+        },
+        {
+          "name": "r3 c1",
+          "text": "Dave Brown"
+        },
+        {
+          "name": "r3 c2",
+          "text": "Oct 23"
+        },
+        {
+          "name": "r3 c3",
+          "text": "Cancelled"
+        }
+      ],
+      "canvasDump": "download/agent-eval/dumps-r2/data-table-r1.canvas.json",
+      "repeat": 1
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "analytics-chart",
+      "prompt": "Design a high-fidelity analytics dashboard card titled 'Monthly Revenue' containing a bar chart of Jan through Jun revenue — $42K, $48K, $45K, $56K, $61K, $68K — with a month label under each bar.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 13,
+        "min": 13,
+        "max": 13
+      },
+      "durationS": {
+        "mean": 128.205,
+        "min": 128.205,
+        "max": 128.205
+      },
+      "assertionsPassed": 10,
+      "assertionsTotal": 10,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "data-table",
+      "prompt": "Design a high-fidelity 'Recent Orders' table card with columns Order, Customer, Date, Status, Amount and 4 data rows with realistic values, status shown as color-coded text or badges.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 1,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 20,
+        "min": 20,
+        "max": 20
+      },
+      "durationS": {
+        "mean": 324.854,
+        "min": 324.854,
+        "max": 324.854
+      },
+      "assertionsPassed": 9,
+      "assertionsTotal": 11,
+      "flakyAssertions": [
+        {
+          "name": "4+ amount values",
+          "passRate": 0
+        },
+        {
+          "name": "no agent errors",
+          "passRate": 0
+        }
+      ],
+      "emptyTurns": 0
+    }
+  ]
+}

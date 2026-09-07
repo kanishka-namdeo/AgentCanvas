@@ -233,7 +233,7 @@ to a different approach (do NOT loop on the same failing call).`,
       // critique loop is the primary authority; this is the manual re-check).
       'pen_visual_critique',
       // Audit 2-b T18: composite tools for the design-quality hot paths.
-      'pen_apply_design_system', 'pen_create_chart', 'pen_apply_typography',
+      'pen_apply_design_system', 'pen_create_chart', 'pen_create_table', 'pen_create_card_grid', 'pen_create_landing_page', 'pen_apply_typography',
       'pen_get_metadata',
     ],
     keywords: [
@@ -748,7 +748,7 @@ export const ALL_TOOL_NAMES = [
   // Analysis
   'pen_generate_copy', 'pen_audit_design', 'pen_visual_critique',
   // Audit 2-b T18 — composite tools
-  'pen_apply_design_system', 'pen_create_chart', 'pen_apply_typography',
+  'pen_apply_design_system', 'pen_create_chart', 'pen_create_table', 'pen_create_card_grid', 'pen_create_landing_page', 'pen_apply_typography',
   // Token binding
   'pen_bind_variable', 'pen_unbind_variable', 'pen_list_variables', 'pen_apply_variable',
   // .pen-aligned tools (variables, themes, refs, slots, export)

@@ -443,6 +443,208 @@ export const SCENARIOS: Scenario[] = [
     ],
   },
 
+  // ---- COMPLEX scenarios (2026-09-07 round 3 — chart / table / grid / page) --
+  //
+  // Structural pattern ladder beyond single-region screens: a chart is
+  // per-point geometry (bars share width + baseline, vary height), a table is
+  // repeated row structure, a product grid is a 2x2 card lattice, a landing
+  // page is a vertical stack of named section frames. Each maps to a recipe
+  // added to SYSTEM_PROMPT_TEMPLATE (BAR CHART / DATA TABLE / FORM CONTROL
+  // ROW / MARKETING SECTION STACK) — these scenarios measure whether the
+  // agent FOLLOWED the recipes, i.e. structure came out as structure.
+
+  {
+    id: 'analytics-chart',
+    prompt:
+      "Design a high-fidelity analytics dashboard card titled 'Monthly Revenue' containing a bar chart of Jan through Jun revenue — $42K, $48K, $45K, $56K, $61K, $68K — with a month label under each bar.",
+    visual: true,
+    assertions: [
+      (c) => {
+        const tc = textContent(c);
+        const wanted = ['Monthly Revenue', '42', '48', '45', '56', '61', '68'];
+        const missing = wanted.filter((w) => !tc.includes(w));
+        return assert('title + all 6 values present', missing.length === 0, 'title and all values found', `missing: ${missing.join(', ')}`);
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun'];
+        const missing = months.filter((m) => !tc.includes(m));
+        return assert('6 month labels present', missing.length === 0, 'jan-jun found', `missing months: ${missing.join(', ')}`);
+      },
+      (c) => {
+        // BARS ARE STRUCTURE: >= 6 sibling-ish rects sharing a width band
+        // (within 6px) AND a common baseline (clustered within 6px — grid
+        // snapping can shift individual baselines by up to 4px), with
+        // >= 4 distinct heights (real data varies).
+        const rects = ofTypes(c, ['rectangle']).filter((b) => b.width >= 12 && b.width <= 160 && b.height >= 16 && b.height <= 420);
+        const entries: Array<{ base: number; w: number; h: number }> = rects.map((b) => ({ base: b.y + b.height, w: b.width, h: b.height }));
+        // Cluster by baseline with 6px tolerance.
+        entries.sort((a, b) => a.base - b.base);
+        const clusters: Array<Array<{ base: number; w: number; h: number }>> = [];
+        for (const e of entries) {
+          const last = clusters[clusters.length - 1];
+          if (last && Math.abs(e.base - last[last.length - 1].base) <= 6) last.push(e);
+          else clusters.push([e]);
+        }
+        let best: Array<{ base: number; w: number; h: number }> = [];
+        for (const cl of clusters) if (cl.length > best.length) best = cl;
+        const widths = new Set(best.map((b) => Math.round(b.w / 6) * 6));
+        const heights = new Set(best.map((b) => Math.round(b.h / 12) * 12));
+        const isBars = best.length >= 6 && widths.size <= 2 && heights.size >= 4;
+        return assert(
+          '6-bar chart structure (same width, common baseline, varying heights)',
+          isBars,
+          `${best.length} rects at one baseline, ${widths.size} width band(s), ${heights.size} distinct heights`,
+          `best cluster: ${best.length} rects, ${widths.size} width band(s), ${heights.size} distinct heights — bars not built as per-point rects`,
+        );
+      },
+      (c) => assert('colorful (hi-fi)', colorfulLayers(c, 3), '3+ saturated layers', 'too grayscale for a hi-fi chart'),
+      (c) => assert('card has shadow', anyShadow(c), 'shadow present', 'no shadows — chart card is flat'),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(4),
+    ],
+  },
+
+  {
+    id: 'data-table',
+    prompt:
+      "Design a high-fidelity 'Recent Orders' table card with columns Order, Customer, Date, Status, Amount and 4 data rows with realistic values, status shown as color-coded text or badges.",
+    visual: true,
+    assertions: [
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const wanted = ['order', 'customer', 'date', 'status', 'amount'];
+        const missing = wanted.filter((w) => !tc.includes(w));
+        return assert('all 5 column headers present', missing.length === 0, 'all headers found', `missing headers: ${missing.join(', ')}`);
+      },
+      (c) => {
+        const tc = textContent(c);
+        const money = (tc.match(/\$\s?\d[\d,.]*/g) ?? []).length;
+        return assert('4+ amount values', money >= 4, `${money} $-amounts found`, `only ${money} $-amounts — 4 data rows not filled`);
+      },
+      (c) => {
+        // Status color-coding: >= 2 distinct saturated text colors among
+        // status-ish text layers, or badge pills (small pill-radius rects
+        // with tinted fills).
+        const statusish = texts(c).filter((t) => /paid|pending|refunded|shipped|processing|completed|cancelled|approved/i.test(t.text ?? ''));
+        const colorSet = new Set(statusish.map((t) => String(t.textColor ?? '').toLowerCase()).filter(Boolean));
+        const badges = visible(c).filter(
+          (l) => l.type === 'rectangle' && l.radius >= 999 && l.width <= 120 && l.height <= 32 && saturation(l.fill) >= 0.05 && l.fill.startsWith('#'),
+        );
+        return assert(
+          'status color-coded (2+ text colors or badges)',
+          colorSet.size >= 2 || badges.length >= 2,
+          `${colorSet.size} distinct status text colors, ${badges.length} badge pill(s)`,
+          `status text colors: ${colorSet.size}, badge pills: ${badges.length} — status column not color-coded`,
+        );
+      },
+      (c) => {
+        // Row structure: >= 4 rows means >= 4 text layers per data column —
+        // approximate with >= 20 text layers total (5 cols x 4 rows + title).
+        const n = texts(c).length;
+        return assert('table rows as text layers', n >= 20, `${n} text layers`, `only ${n} text layers — 4-row x 5-col table incomplete`);
+      },
+      (c) => assert('colorful (hi-fi)', colorfulLayers(c, 3), '3+ saturated layers', 'too grayscale for a hi-fi table'),
+      (c) => assert('card has shadow', anyShadow(c), 'shadow present', 'no shadows — table card is flat'),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(4),
+    ],
+  },
+
+  {
+    id: 'ecommerce-grid',
+    prompt:
+      "Design a high-fidelity e-commerce product grid, 4 product cards in a 2x2 layout, each card with a product image area, product name, price, and an Add to Cart button. Products: Aurora Lamp at $89, Drift Speaker at $129, Lumen Desk at $249, Arc Charger at $45.",
+    visual: true,
+    assertions: [
+      (c) => {
+        const tc = textContent(c);
+        const wanted = ['Aurora Lamp', 'Drift Speaker', 'Lumen Desk', 'Arc Charger'];
+        const missing = wanted.filter((w) => !tc.includes(w));
+        return assert('all 4 product names present', missing.length === 0, 'all names found', `missing: ${missing.join(', ')}`);
+      },
+      (c) => {
+        const tc = textContent(c);
+        const wanted = ['$89', '$129', '$249', '$45'];
+        const missing = wanted.filter((w) => !tc.includes(w));
+        return assert('all 4 prices present', missing.length === 0, 'all prices found', `missing: ${missing.join(', ')}`);
+      },
+      (c) => {
+        // 2x2 lattice: >= 4 similar-height card containers spread across >= 2
+        // distinct row bands AND >= 2 distinct column positions.
+        const cards = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.width >= 120 && b.width <= 480 && b.height >= 120 && b.height <= 640);
+        const bands = new Map<number, { y: number; x: number }[]>();
+        for (const b of cards) {
+          const band = Math.round(b.y / 40) * 40;
+          const arr = bands.get(band) ?? [];
+          arr.push({ y: b.y, x: b.x });
+          bands.set(band, arr);
+        }
+        const rowBands = [...bands.entries()].filter(([, arr]) => arr.length >= 2);
+        const twoCols = rowBands.length >= 2 && new Set(rowBands.flatMap(([, arr]) => arr.map((p) => Math.round(p.x / 60) * 60))).size >= 2;
+        return assert('2x2 card lattice', twoCols, `${rowBands.length} row band(s) with 2+ cards`, 'cards not arranged in a 2-row x 2-col grid');
+      },
+      (c) => {
+        const n = (textContent(c).match(/add to cart/gi) ?? []).length;
+        return assert('Add to Cart on each card', n >= 4, `${n} occurrences`, `only ${n} 'Add to Cart' labels — one per card expected`);
+      },
+      (c) => {
+        // Image areas: >= 4 non-text rects wider than 100px and taller than
+        // 80px inside the cards (photo/gradient areas).
+        const imgs = ofTypes(c, ['rectangle', 'frame']).filter((b) => b.width >= 100 && b.height >= 80 && !b.text);
+        return assert('4 product image areas', imgs.length >= 4, `${imgs.length} image-area rects`, `only ${imgs.length} image-area rects`);
+      },
+      (c) => assert('colorful (hi-fi)', colorfulLayers(c, 3), '3+ saturated layers', 'too grayscale for a hi-fi grid'),
+      (c) => assert('cards have shadows', anyShadow(c), 'shadow present', 'no shadows — flat look'),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(4),
+    ],
+  },
+
+  {
+    id: 'marketing-landing',
+    prompt:
+      "Design a high-fidelity SaaS landing page for 'Nimbus', a cloud monitoring tool: a navbar with the Nimbus logo, a hero section with the headline 'Monitor your cloud in real time', a short subheadline, and a Start Free Trial primary button, a features section with 3 feature cards, and a footer with a copyright line.",
+    visual: true,
+    assertions: [
+      (c) => {
+        const tc = textContent(c);
+        const wanted = ['Nimbus', 'Monitor your cloud in real time', 'Start Free Trial'];
+        const missing = wanted.filter((w) => !tc.includes(w));
+        return assert('brand + headline + CTA present', missing.length === 0, 'all key strings found', `missing: ${missing.join(', ')}`);
+      },
+      (c) => {
+        const n = (textContent(c).match(/nimbus/gi) ?? []).length;
+        return assert('brand repeated (navbar + footer/hero)', n >= 2, `${n} occurrences of Nimbus`, `only ${n} occurrences — brand only in one place`);
+      },
+      (c) => {
+        // Feature trio: >= 3 similar-height card containers in one row.
+        const cards = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.width >= 140 && b.width <= 480 && b.height >= 100 && b.height <= 400);
+        const bands = new Map<number, number>();
+        for (const b of cards) {
+          const band = Math.round(b.height / 40) * 40;
+          bands.set(band, (bands.get(band) ?? 0) + 1);
+        }
+        const hasRow = [...bands.values()].some((n) => n >= 3);
+        return assert('3 feature cards in a row', hasRow, `${cards.length} candidates, bands=${JSON.stringify([...bands])}`, 'no 3 similar-height feature cards');
+      },
+      (c) => {
+        // Page-scale + section stack: >= 3 wide (>800px) section-like
+        // containers stacked vertically.
+        const sections = ofTypes(c, ['frame', 'rectangle', 'section', 'component']).filter((b) => b.width >= 800);
+        const ys = sections.map((b) => b.y).sort((a, b) => a - b);
+        let stack = 0;
+        for (let i = 1; i < ys.length; i++) if (ys[i] - ys[i - 1] >= 40) stack++;
+        const okStack = sections.length >= 3 && stack >= 2;
+        return assert('landing page = stacked sections', okStack, `${sections.length} wide sections, ${stack + 1} vertical bands`, `sections=${sections.length}, bands=${stack + 1} — page not built as a section stack`);
+      },
+      (c) => assert('colorful (hi-fi)', colorfulLayers(c, 3), '3+ saturated layers', 'too grayscale for a hi-fi landing page'),
+      (c) => assert('shadows present', anyShadow(c), 'shadow present', 'no shadows — flat look'),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(4),
+    ],
+  },
+
   // ---- HELD-OUT scenarios (generalization measurement — see Scenario.heldOut) --
   //
   // These prompts were written AFTER the dev suite converged and are never

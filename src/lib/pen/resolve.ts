@@ -1771,7 +1771,7 @@ function contrastLint(shapes: Shape[], warn: (node: { id?: unknown; type?: unkno
       warn(
         s,
         'contrast_failure',
-        `"${label}" (${Math.round(fontSize)}px text) is ${fgHex} on a ${bgHex} backdrop — contrast ${ratio.toFixed(2)}:1, below the WCAG AA floor of ${need}:1${large ? ' for large text' : ''}. Darken the text (e.g. $color.text-muted #475569 on light surfaces) or lighten/darken the backdrop${tokenNote}. Fix it at the TOKEN level when the layer is bound`,
+        `"${label}" (${Math.round(fontSize)}px text) is ${fgHex} on a ${bgHex} backdrop — contrast ${ratio.toFixed(2)}:1, below the WCAG AA floor of ${need}:1${large ? ' for large text' : ''}. Darken the text (e.g. $color.text-muted #475569 on light surfaces) or lighten/darken the backdrop${tokenNote}. CAUTION: on a FILLED button/banner, darken the FILL token (primary → its ramp's 600/700 step) and keep light text — do NOT put dark text on a colored fill${tokenNote ? ' (fix it at the TOKEN level when the layer is bound)' : ''}.`,
       );
     }
   }

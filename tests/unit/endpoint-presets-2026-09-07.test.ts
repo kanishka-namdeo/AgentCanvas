@@ -1,9 +1,11 @@
 // Endpoint presets (BETA) — 2026-09-07 regression tests.
 //
-// The BETA endpoint (owner-configured, 2026-09-07: kimi-k2-5 behind a
+// The BETA endpoint (owner-configured, 2026-09-07: qwen3.7-plus behind a
 // pinggy tunnel, key '123456') is stored IN APP CODE as a named
-// OpenAI-compatible preset — `src/lib/llm/endpoint-presets.ts`. These
-// tests pin:
+// OpenAI-compatible preset — `src/lib/llm/endpoint-presets.ts`. The preset
+// was switched from kimi-k2-5 to qwen3.7-plus on 2026-09-07 (design-quality
+// tuning directive) and is ALSO the first-run default in DEFAULT_SETTINGS.
+// These tests pin:
 //   1. the preset's exact shape (values must not drift silently),
 //   2. endpointPresetPatch / matchesEndpointPreset semantics,
 //   3. UI wiring — SettingsDialog renders the presets row from the module,
@@ -50,7 +52,7 @@ describe('BETA endpoint preset shape', () => {
       provider: 'custom',
       baseURL: 'https://irhnglwoxe.a.pinggy.link/v1',
       apiKey: '123456',
-      defaultModel: 'kimi-k2-5',
+      defaultModel: 'qwen3.7-plus',
     });
     expect(BETA_ENDPOINT.description.length).toBeGreaterThan(20);
   });
@@ -73,7 +75,7 @@ describe('endpointPresetPatch', () => {
     expect(endpointPresetPatch(BETA_ENDPOINT)).toEqual({
       llmProvider: 'custom',
       apiKey: '123456',
-      modelName: 'kimi-k2-5',
+      modelName: 'qwen3.7-plus',
       apiBaseUrl: 'https://irhnglwoxe.a.pinggy.link/v1',
     });
   });
@@ -116,8 +118,13 @@ describe('matchesEndpointPreset', () => {
     expect(matchesEndpointPreset({ apiBaseUrl: BETA_ENDPOINT.baseURL }, BETA_ENDPOINT)).toBe(false);
   });
 
-  it('default settings (z.ai sandbox) never light the BETA chip', () => {
-    expect(matchesEndpointPreset(DEFAULT_SETTINGS, BETA_ENDPOINT)).toBe(false);
+  it('default settings light the BETA chip (BETA qwen3.7-plus is the 2026-09-07 default)', () => {
+    // The 0d8f002 tuning made the BETA endpoint the first-run default, so
+    // the chip is active on a fresh install. Deviating from any one field
+    // (e.g. pointing at the z.ai sandbox) deactivates it.
+    expect(matchesEndpointPreset(DEFAULT_SETTINGS, BETA_ENDPOINT)).toBe(true);
+    const sandbox = { ...DEFAULT_SETTINGS, llmProvider: 'zai', apiKey: '', modelName: '', apiBaseUrl: '' };
+    expect(matchesEndpointPreset(sandbox, BETA_ENDPOINT)).toBe(false);
   });
 });
 

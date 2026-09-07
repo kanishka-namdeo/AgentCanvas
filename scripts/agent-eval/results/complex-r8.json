@@ -1,0 +1,179 @@
+{
+  "runs": [
+    {
+      "id": "analytics-chart",
+      "prompt": "Design a high-fidelity analytics dashboard card titled 'Monthly Revenue' containing a bar chart of Jan through Jun revenue — $42K, $48K, $45K, $56K, $61K, $68K — with a month label under each bar.",
+      "startedAt": "2026-09-06T22:53:19.076Z",
+      "durationMs": 177948,
+      "toolCallCount": 16,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          6
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          4
+        ],
+        [
+          "pen_update_node",
+          3
+        ],
+        [
+          "pen_set_variables",
+          2
+        ],
+        [
+          "pen_create_chart",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "title + all 6 values present",
+          "pass": true,
+          "detail": "title and all values found"
+        },
+        {
+          "name": "6 month labels present",
+          "pass": true,
+          "detail": "jan-jun found"
+        },
+        {
+          "name": "6-bar chart structure (same width, common baseline, varying heights)",
+          "pass": false,
+          "detail": "best group: 5 rects, 1 width band(s), 4 distinct heights — bars not built as per-point rects"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "card has shadow",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 16 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "16 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 1,
+      "status": "fail",
+      "finalLayerCount": 23,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Monthly Revenue (title)",
+          "text": "Monthly Revenue"
+        },
+        {
+          "name": "Jan value",
+          "text": "$42K"
+        },
+        {
+          "name": "Jan (label)",
+          "text": "Jan"
+        },
+        {
+          "name": "Feb value",
+          "text": "$48K"
+        },
+        {
+          "name": "Feb (label)",
+          "text": "Feb"
+        },
+        {
+          "name": "Mar value",
+          "text": "$45K"
+        },
+        {
+          "name": "Mar (label)",
+          "text": "Mar"
+        },
+        {
+          "name": "Apr value",
+          "text": "$56K"
+        },
+        {
+          "name": "Apr (label)",
+          "text": "Apr"
+        },
+        {
+          "name": "May value",
+          "text": "$61K"
+        },
+        {
+          "name": "May (label)",
+          "text": "May"
+        },
+        {
+          "name": "Jun value",
+          "text": "$68K"
+        },
+        {
+          "name": "Jun (label)",
+          "text": "Jun"
+        }
+      ],
+      "canvasDump": "download/agent-eval/dumps/analytics-chart-r1.canvas.json",
+      "repeat": 1
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "analytics-chart",
+      "prompt": "Design a high-fidelity analytics dashboard card titled 'Monthly Revenue' containing a bar chart of Jan through Jun revenue — $42K, $48K, $45K, $56K, $61K, $68K — with a month label under each bar.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 1,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 16,
+        "min": 16,
+        "max": 16
+      },
+      "durationS": {
+        "mean": 177.948,
+        "min": 177.948,
+        "max": 177.948
+      },
+      "assertionsPassed": 9,
+      "assertionsTotal": 10,
+      "flakyAssertions": [
+        {
+          "name": "6-bar chart structure (same width, common baseline, varying heights)",
+          "passRate": 0
+        }
+      ],
+      "emptyTurns": 0
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://bazaarlink.ai/en/models/qwen-qwen3.7-plus",
+    "name": "Qwen3.7 Plus API Pricing, Context Window & Specs",
+    "snippet": "Compare Qwen3 . 7 Plus real-time API pricing, model specifications and capabilities through an OpenAI-compatible endpoint. 1000000-token context window .",
+    "host_name": "bazaarlink.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.aliyun.com/en/model-studio/qwen3-7-plus-us",
+    "name": "qwen3.7-plus-us Model Info-Alibaba Cloud Model Studio(Model",
+    "snippet": "Context Window . 1000000. Max Input Length (Thinking Mode). 983616 ; Max Output Length (Thinking Mode). 131072. Max Chain-of-Thought Length. 262144 ...",
+    "host_name": "help.aliyun.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://opencode.ai/data/compare/alibaba/qwen-plus/alibaba/qwen3-7-plus",
+    "name": "Qwen Plus vs Qwen3.7 Plus - AI Model Comparison",
+    "snippet": "Compare Qwen Plus from Alibaba and Qwen3 . 7 Plus from Alibaba on key metrics including benchmarks, price, context length, usage, and model features .",
+    "host_name": "opencode.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openrouter.ai/compare/qwen/qwen3.7-plus/aion-labs/aion-2.0",
+    "name": "Qwen3.7 Plus vs Aion-2.0 - AI Model Comparison",
+    "snippet": "7 Plus, from Qwen, has a 1,000,000-token context window and is priced at $0.32/M tokens input, $1.28/M tokens output on OpenRouter. Aion-2.0, from Aion Labs, ... Read more",
+    "host_name": "openrouter.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.puter.com/ai/qwen/qwen-plus",
+    "name": "Qwen-Plus - API, Specs, Playground & Pricing",
+    "snippet": "Qwen-Plus supports a context window of 1M tokens . For reference, that is roughly equivalent to 2,000 pages of text. What is the max output length of Qwen-Plus? Read more",
+    "host_name": "developer.puter.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://modelstudio.console.alibabacloud.com/cn-hongkong?tab=globalset",
+    "name": "ModelStudio Console",
+    "snippet": "Among the Qwen3 . 7 series, the cost-effective Plus model builds on its robust text capabilities while delivering a comprehensive upgrade to its vision‑language ... Read more",
+    "host_name": "modelstudio.console.alibabacloud.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://playground.roboflow.com/models/compare/qwen3-6-plus-vs-qwen3-7-plus",
+    "name": "Qwen3.6 Plus vs Qwen3.7 Plus: Vision Model Comparison",
+    "snippet": "It supports a 1 million token context window and up to 65,536 output tokens, with built-in reasoning capabilities. The model is available as a hosted, ... Read more",
+    "host_name": "playground.roboflow.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://llm-stats.com/models/compare/qwen3.7-max-vs-qwen3.7-plus",
+    "name": "Qwen3.7 Max vs Qwen3.7-Plus: Benchmarks, Pricing &",
+    "snippet": "Qwen3.7 Max supports 1.0M tokens and Qwen3 . 7 - Plus supports 1.0M tokens. A larger context window lets you process longer documents, conversations, or ... Read more",
+    "host_name": "llm-stats.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

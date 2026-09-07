@@ -1,0 +1,128 @@
+{
+  "runs": [
+    {
+      "id": "analytics-chart",
+      "prompt": "Design a high-fidelity analytics dashboard card titled 'Monthly Revenue' containing a bar chart of Jan through Jun revenue — $42K, $48K, $45K, $56K, $61K, $68K — with a month label under each bar.",
+      "startedAt": "2026-09-06T22:17:42.213Z",
+      "durationMs": 274996,
+      "toolCallCount": 30,
+      "toolNames": [
+        [
+          "pen_create_subtree",
+          8
+        ],
+        [
+          "pen_update_node",
+          6
+        ],
+        [
+          "pen_apply_variable",
+          5
+        ],
+        [
+          "pen_get_metadata",
+          4
+        ],
+        [
+          "pen_delete_nodes",
+          3
+        ],
+        [
+          "pen_set_variables",
+          2
+        ],
+        [
+          "pen_create_chart",
+          2
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "title + all 6 values present",
+          "pass": true,
+          "detail": "title and all values found"
+        },
+        {
+          "name": "6 month labels present",
+          "pass": true,
+          "detail": "jan-jun found"
+        },
+        {
+          "name": "6-bar chart structure (same width, common baseline, varying heights)",
+          "pass": true,
+          "detail": "6 rects at one baseline, 1 width band(s), 6 distinct heights"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "card has shadow",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 30 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "30 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 10,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 21,
+      "emptyTurn": false,
+      "canvasDump": "download/agent-eval/dumps/analytics-chart-r1.canvas.json",
+      "repeat": 1
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "analytics-chart",
+      "prompt": "Design a high-fidelity analytics dashboard card titled 'Monthly Revenue' containing a bar chart of Jan through Jun revenue — $42K, $48K, $45K, $56K, $61K, $68K — with a month label under each bar.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 30,
+        "min": 30,
+        "max": 30
+      },
+      "durationS": {
+        "mean": 274.996,
+        "min": 274.996,
+        "max": 274.996
+      },
+      "assertionsPassed": 10,
+      "assertionsTotal": 10,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    }
+  ]
+}

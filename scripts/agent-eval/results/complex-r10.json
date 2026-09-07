@@ -1,0 +1,136 @@
+{
+  "runs": [
+    {
+      "id": "ecommerce-grid",
+      "prompt": "Design a high-fidelity e-commerce product grid, 4 product cards in a 2x2 layout, each card with a product image area, product name, price, and an Add to Cart button. Products: Aurora Lamp at $89, Drift Speaker at $129, Lumen Desk at $249, Arc Charger at $45.",
+      "startedAt": "2026-09-06T23:02:47.366Z",
+      "durationMs": 365740,
+      "toolCallCount": 29,
+      "toolNames": [
+        [
+          "pen_update_node",
+          8
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          7
+        ],
+        [
+          "pen_create_subtree",
+          6
+        ],
+        [
+          "pen_get_metadata",
+          4
+        ],
+        [
+          "pen_delete_nodes",
+          2
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_apply_palette",
+          1
+        ]
+      ],
+      "assertions": [],
+      "passed": 0,
+      "failed": 0,
+      "status": "error",
+      "errorMessage": "scenario timed out after 6 min",
+      "finalLayerCount": 32,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Logo",
+          "text": "Shop"
+        },
+        {
+          "name": "Page Title",
+          "text": "New Arrivals"
+        },
+        {
+          "name": "Product Name",
+          "text": "Aurora Lamp"
+        },
+        {
+          "name": "Price",
+          "text": "$89"
+        },
+        {
+          "name": "Button Label",
+          "text": "Add to Cart"
+        },
+        {
+          "name": "Product Name",
+          "text": "Drift Speaker"
+        },
+        {
+          "name": "Price",
+          "text": "$129"
+        },
+        {
+          "name": "Button Label",
+          "text": "Add to Cart"
+        },
+        {
+          "name": "Product Name",
+          "text": "Lumen Desk"
+        },
+        {
+          "name": "Price",
+          "text": "$249"
+        },
+        {
+          "name": "Button Label",
+          "text": "Add to Cart"
+        },
+        {
+          "name": "Product Name",
+          "text": "Arc Charger"
+        },
+        {
+          "name": "Price",
+          "text": "$45"
+        },
+        {
+          "name": "Button Label",
+          "text": "Add to Cart"
+        }
+      ],
+      "canvasDump": "download/agent-eval/dumps/ecommerce-grid-r1.canvas.json",
+      "repeat": 1
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "ecommerce-grid",
+      "prompt": "Design a high-fidelity e-commerce product grid, 4 product cards in a 2x2 layout, each card with a product image area, product name, price, and an Add to Cart button. Products: Aurora Lamp at $89, Drift Speaker at $129, Lumen Desk at $249, Arc Charger at $45.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 0,
+        "error": 1
+      },
+      "toolCalls": {
+        "mean": 29,
+        "min": 29,
+        "max": 29
+      },
+      "durationS": {
+        "mean": 365.74,
+        "min": 365.74,
+        "max": 365.74
+      },
+      "assertionsPassed": 0,
+      "assertionsTotal": 0,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    }
+  ]
+}

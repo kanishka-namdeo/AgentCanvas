@@ -1,0 +1,129 @@
+{
+  "runs": [
+    {
+      "id": "data-table",
+      "prompt": "Design a high-fidelity 'Recent Orders' table card with columns Order, Customer, Date, Status, Amount and 4 data rows with realistic values, status shown as color-coded text or badges.",
+      "startedAt": "2026-09-07T06:48:46.556Z",
+      "durationMs": 145150,
+      "toolCallCount": 18,
+      "toolNames": [
+        [
+          "pen_update_node",
+          6
+        ],
+        [
+          "pen_get_metadata",
+          4
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          4
+        ],
+        [
+          "pen_set_variables",
+          2
+        ],
+        [
+          "pen_create_table",
+          1
+        ],
+        [
+          "pen_set_shadow",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "all 5 column headers present",
+          "pass": true,
+          "detail": "all headers found"
+        },
+        {
+          "name": "4+ amount values",
+          "pass": true,
+          "detail": "4 $-amounts found"
+        },
+        {
+          "name": "status color-coded (2+ text colors or badges)",
+          "pass": true,
+          "detail": "4 distinct status text colors, 3 badge pill(s)"
+        },
+        {
+          "name": "table rows as text layers",
+          "pass": true,
+          "detail": "27 text layers"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "card has shadow",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 18 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "18 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 11,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 38,
+      "emptyTurn": false,
+      "canvasDump": "download/agent-eval/dumps-r2/data-table-r1.canvas.json",
+      "repeat": 1
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "data-table",
+      "prompt": "Design a high-fidelity 'Recent Orders' table card with columns Order, Customer, Date, Status, Amount and 4 data rows with realistic values, status shown as color-coded text or badges.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 18,
+        "min": 18,
+        "max": 18
+      },
+      "durationS": {
+        "mean": 145.15,
+        "min": 145.15,
+        "max": 145.15
+      },
+      "assertionsPassed": 11,
+      "assertionsTotal": 11,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    }
+  ]
+}

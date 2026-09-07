@@ -1,0 +1,323 @@
+{
+  "runs": [
+    {
+      "id": "data-table",
+      "prompt": "Design a high-fidelity 'Recent Orders' table card with columns Order, Customer, Date, Status, Amount and 4 data rows with realistic values, status shown as color-coded text or badges.",
+      "startedAt": "2026-09-06T23:15:41.545Z",
+      "durationMs": 362685,
+      "toolCallCount": 29,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          10
+        ],
+        [
+          "pen_update_node",
+          7
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          6
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_create_table",
+          1
+        ],
+        [
+          "pen_list_variables",
+          1
+        ],
+        [
+          "pen_create_node",
+          1
+        ],
+        [
+          "pen_set_shadow",
+          1
+        ],
+        [
+          "pen_apply_typography",
+          1
+        ]
+      ],
+      "assertions": [],
+      "passed": 0,
+      "failed": 0,
+      "status": "error",
+      "errorMessage": "scenario timed out after 6 min",
+      "finalLayerCount": 38,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Recent Orders (title)",
+          "text": "Recent Orders"
+        },
+        {
+          "name": "View All (button label)",
+          "text": "View All"
+        },
+        {
+          "name": "header Order",
+          "text": "ORDER"
+        },
+        {
+          "name": "header Customer",
+          "text": "CUSTOMER"
+        },
+        {
+          "name": "header Date",
+          "text": "DATE"
+        },
+        {
+          "name": "header Status",
+          "text": "STATUS"
+        },
+        {
+          "name": "header Amount",
+          "text": "AMOUNT"
+        },
+        {
+          "name": "r0 c0",
+          "text": "ORD-7829"
+        },
+        {
+          "name": "r0 c1",
+          "text": "Alice Smith"
+        },
+        {
+          "name": "r0 c2",
+          "text": "Oct 24"
+        },
+        {
+          "name": "r0 c3",
+          "text": "Completed"
+        },
+        {
+          "name": "r0 c4",
+          "text": "$120.50"
+        },
+        {
+          "name": "r1 c0",
+          "text": "ORD-7830"
+        },
+        {
+          "name": "r1 c1",
+          "text": "Bob Jones"
+        },
+        {
+          "name": "r1 c2",
+          "text": "Oct 24"
+        },
+        {
+          "name": "r1 c3",
+          "text": "Processing"
+        },
+        {
+          "name": "r1 c4",
+          "text": "$85.00"
+        },
+        {
+          "name": "r2 c0",
+          "text": "ORD-7831"
+        },
+        {
+          "name": "r2 c1",
+          "text": "Charlie Day"
+        },
+        {
+          "name": "r2 c2",
+          "text": "Oct 23"
+        },
+        {
+          "name": "r2 c3",
+          "text": "Shipped"
+        },
+        {
+          "name": "r2 c4",
+          "text": "$210.25"
+        },
+        {
+          "name": "r3 c0",
+          "text": "ORD-7832"
+        },
+        {
+          "name": "r3 c1",
+          "text": "Diana Prince"
+        },
+        {
+          "name": "r3 c2",
+          "text": "Oct 22"
+        },
+        {
+          "name": "r3 c3",
+          "text": "Cancelled"
+        },
+        {
+          "name": "r3 c4",
+          "text": "$45.00"
+        }
+      ],
+      "canvasDump": "download/agent-eval/dumps/data-table-r1.canvas.json",
+      "repeat": 1
+    },
+    {
+      "id": "marketing-landing",
+      "prompt": "Design a high-fidelity SaaS landing page for 'Nimbus', a cloud monitoring tool: a navbar with the Nimbus logo, a hero section with the headline 'Monitor your cloud in real time', a short subheadline, and a Start Free Trial primary button, a features section with 3 feature cards, and a footer with a copyright line.",
+      "startedAt": "2026-09-06T23:21:54.234Z",
+      "durationMs": 192282,
+      "toolCallCount": 34,
+      "toolNames": [
+        [
+          "pen_update_node",
+          21
+        ],
+        [
+          "pen_search_icons",
+          3
+        ],
+        [
+          "pen_create_node",
+          3
+        ],
+        [
+          "pen_get_metadata",
+          3
+        ],
+        [
+          "pen_create_subtree",
+          2
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_set_variable",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "brand + headline + CTA present",
+          "pass": true,
+          "detail": "all key strings found"
+        },
+        {
+          "name": "brand repeated (navbar + footer/hero)",
+          "pass": true,
+          "detail": "2 occurrences of Nimbus"
+        },
+        {
+          "name": "3 feature cards in a row",
+          "pass": true,
+          "detail": "3 candidates, bands=[[160,3]]"
+        },
+        {
+          "name": "landing page = stacked sections",
+          "pass": true,
+          "detail": "6 wide sections, 5 vertical bands"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows present",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 34 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "34 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 11,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 35,
+      "emptyTurn": false,
+      "canvasDump": "download/agent-eval/dumps/marketing-landing-r1.canvas.json",
+      "repeat": 1
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "data-table",
+      "prompt": "Design a high-fidelity 'Recent Orders' table card with columns Order, Customer, Date, Status, Amount and 4 data rows with realistic values, status shown as color-coded text or badges.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 0,
+        "error": 1
+      },
+      "toolCalls": {
+        "mean": 29,
+        "min": 29,
+        "max": 29
+      },
+      "durationS": {
+        "mean": 362.685,
+        "min": 362.685,
+        "max": 362.685
+      },
+      "assertionsPassed": 0,
+      "assertionsTotal": 0,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    },
+    {
+      "id": "marketing-landing",
+      "prompt": "Design a high-fidelity SaaS landing page for 'Nimbus', a cloud monitoring tool: a navbar with the Nimbus logo, a hero section with the headline 'Monitor your cloud in real time', a short subheadline, and a Start Free Trial primary button, a features section with 3 feature cards, and a footer with a copyright line.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 34,
+        "min": 34,
+        "max": 34
+      },
+      "durationS": {
+        "mean": 192.282,
+        "min": 192.282,
+        "max": 192.282
+      },
+      "assertionsPassed": 11,
+      "assertionsTotal": 11,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    }
+  ]
+}

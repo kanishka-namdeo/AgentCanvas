@@ -56,6 +56,12 @@ const OUT = outArg ? outArg.split('=')[1] : 'results/eval';
 const DELAY_S = delayArg ? Number(delayArg.split('=')[1]) : 20;
 /// How many times each scenario runs (variance measurement). Default 1.
 const REPEATS = repeatsArg ? Math.max(1, Number(repeatsArg.split('=')[1]) || 1) : 1;
+/// --dump-canvas=DIR — write each run's final canvas document (JSON) to DIR
+/// as <id>-r<repeat>.canvas.json. The render pipeline (render-dumped-canvas.ts)
+/// turns these into PNGs for VLM visual scoring. Only one-shot (empty-seed)
+/// scenarios produce meaningful dumps.
+const dumpArg = args.find((a) => a.startsWith('--dump-canvas='));
+const DUMP_DIR = dumpArg ? dumpArg.split('=').slice(1).join('=') : null;
 const SCENARIO_TIMEOUT_MS = 6 * 60 * 1000; // 6 min per scenario (LLM + tools)
 const EMPTY_TURN_BACKOFF_MS = 90 * 1000; // wait before retrying an empty turn
 
@@ -148,7 +154,7 @@ function aggregateByScenario(results: ScenarioResult[], heldOutIds: Set<string>)
   return agg;
 }
 
-async function runScenario(sc: Scenario): Promise<ScenarioResult> {
+async function runScenario(sc: Scenario, runLabel = '1'): Promise<ScenarioResult> {
   let canvas: CanvasDocument = sc.seed
     ? normalizeCanvas(sc.seed)
     : createEmptyCanvasDocument(`eval-${sc.id}`, `Eval ${sc.id}`);
@@ -307,6 +313,17 @@ async function runScenario(sc: Scenario): Promise<ScenarioResult> {
       .filter((s) => s.type === 'text')
       .map((s) => ({ name: s.name, text: (s.text ?? '').slice(0, 80) }));
   }
+  // --dump-canvas: persist the final document for server-side rendering.
+  if (DUMP_DIR) {
+    try {
+      mkdirSync(DUMP_DIR, { recursive: true });
+      const dumpPath = join(DUMP_DIR, `${sc.id}-r${runLabel}.canvas.json`);
+      writeFileSync(dumpPath, JSON.stringify(finalCanvas));
+      (result as ScenarioResult & { canvasDump?: string }).canvasDump = dumpPath;
+    } catch (e) {
+      console.warn(`  ⚠ canvas dump failed: ${(e as Error).message}`);
+    }
+  }
   return result;
 }
 
@@ -462,7 +479,7 @@ async function main() {
         await new Promise((r) => setTimeout(r, DELAY_S * 1000));
       }
       console.log(`▶ ${sc.id}${REPEATS > 1 ? ` [run ${rep}/${REPEATS}]` : ''}${sc.heldOut ? ' [held-out]' : ''} — "${sc.prompt.slice(0, 70)}…"`);
-      let r = await runScenario(sc);
+      let r = await runScenario(sc, String(rep));
       r.repeat = rep;
       // Retry when the turn came back empty (429 rate-limit signature): wait
       // for the endpoint to actually answer a probe, then re-run (max 2 retries).
@@ -473,7 +490,7 @@ async function main() {
           console.log('  ✗ endpoint did not recover within wait window — giving up on retry');
           break;
         }
-        r = await runScenario(sc);
+        r = await runScenario(sc, String(rep));
         r.repeat = rep;
         if (!(r as ScenarioResult & { emptyTurn?: boolean }).emptyTurn) {
           console.log('  ✓ retry produced output');

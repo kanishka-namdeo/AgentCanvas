@@ -202,7 +202,11 @@ nodes to them. Never scatter raw hex across nodes; raw hex lives only in the var
   clears 4.5:1 only from the ramp's 700 step (sky-700 #0369a1 = 5.9:1; sky-600
   is 4.1:1 — large labels only): change $color.primary itself rather than
   scattering darker hex per node.)
-  $color.primary       brand accent, primary CTA (10%)         e.g. #0ea5e9 / #38bdf8
+  $color.primary       brand accent, primary CTA (10%)     e.g. #0284c7 (sky-600).
+                       Pick from the ramp's 600-700 step when primary-fg is white —
+                       a 500-step primary with white text fails the contrast floor
+                       (sky-500 #0ea5e9 = 2.8:1, sky-600 #0284c7 = 4.1:1 large-text,
+                       sky-700 #0369a1 = 5.9:1 AA). NEVER "fix" it by darkening the label.
   $color.primary-fg    text/icon on primary fill               e.g. #ffffff
   $color.accent        secondary accent, links                 e.g. #6366f1 / #818cf8
   $color.success       positive states, trends                 e.g. #10b981
@@ -550,15 +554,112 @@ never setting fontWeight/letterSpacing/textAlign on the 24 text shapes — VLM s
                NOT danger rose — rising expenses are a warning, not an error
       sparkline: pen_create_path — 6 points along the card bottom,
                stroke:$color.success, strokeWidth:2, fill:"transparent"
-  DATA TABLE (Recent Transactions — fills the lower viewport like a real product):
-    CARD container (radius:12, stroke:$color.border 1px, subtle shadow), 24px padding,
-    panel title 16px/600 + a small "Export CSV" ghost button (110×28, radius:8) top-right.
-      header row: UPPERCASE labels — 11-12px / fontWeight:600 / letterSpacing:0.5 /
-        textColor:#94a3b8 — columns DESCRIPTION | DATE | STATUS | AMOUNT
-      data rows (5): description 14px/400 $color.text; date 13px $color.text-muted;
-        status color-coded ($color.success / $color.warning); AMOUNT textAlign:"right",
-        signed (+ green / - red) so the digits column-align
-      dividers: 1px-high rectangles fill:"$color.border" between every row
+  DATA TABLE (Recent Transactions — ONE CALL, the table bread & butter):
+    PREFER pen_create_table — one call builds the complete card (radius 12,
+    border, shadow, title row + optional ghost action) + uppercase headers +
+    N data rows with 1px dividers + per-cell status pills:
+      pen_create_table { title:"Recent Orders", action:"Export CSV",
+        columns:[{header:"Order"},{header:"Customer"},{header:"Date"},
+                 {header:"Status"},{header:"Amount", align:"right"}],
+        rows:[[{text:"#ORD-7231"},{text:"Sarah Chen"},{text:"Sep 04"},
+               {text:"Paid", status:"success"},{text:"$1,284.00"}], ...],
+        x, y, width:640 }
+    STATUS CELLS: pass status:"success"|"warning"|"danger"|"info"|"muted" on
+    the cell — it renders as a tinted pill (color-coded, the industry table
+    convention). Amounts align right. Every cell's text is REALISTIC content.
+    NO INVENTED PAGINATION: add Previous/Next/pager rows ONLY when the request
+    asks for them — an unrequested pager row reads as clutter and misalignment.
+    Only hand-build rows when pen_create_table cannot express the layout
+    (then: header row UPPERCASE 11-12px/600/letterSpacing 0.5 $color.text-muted;
+    data rows 14px/400 $color.text; dividers 1px $color.border between rows).
+  BAR CHART (the analytics bread & butter — ONE CALL, values are content):
+    PREFER pen_create_chart — one call builds the complete card (radius 12,
+    border, shadow, $color tokens) + bars + gridlines + labels:
+      pen_create_chart { type:"bar", title:"Monthly Revenue", x, y, width:520, height:280,
+        data:[{label:"Jan", value:42}, ...one per month...],
+        color:"$color.primary", valuePrefix:"$", valueSuffix:"K",
+        highlightIndex: <peak/current month index> }
+    VALUE LABELS ARE MANDATORY: every requested number ($42K, $68K, …) must
+    appear as a text layer — pass valuePrefix/valueSuffix so labels read like
+    the request. The numbers are CONTENT FIDELITY, not decoration: a chart
+    where the values only exist as bar heights is a failed chart.
+    Only hand-build bars (BAR RECTS as SIBLINGS, equal width, heights that
+    VARY with the data, one $color.accent highlight) when pen_create_chart
+    cannot express the layout.
+    CHART STABILITY RULE: pen_create_chart output is COMPLETE and correctly
+    positioned — do NOT reposition its bars/labels/axis with pen_update_node.
+    If pen_get_metadata reports warnings on chart children, fix fontSize or
+    width only, NEVER x/y (the labels sit at exact bar-top offsets; nudging
+    them breaks the data-label alignment the chart already has).
+  LINE CHART (trend): pen_create_chart { type:"line", ... } — path + points +
+    month labels in one call. DONUT: pen_create_chart { type:"donut", ... }.
+  FORM CONTROL ROW (settings/profile — label ABOVE, control below):
+      label:   text 13px/500 $color.text, 6px above the control
+      control: rect 320×44, radius:6, fill:"$color.surface-2",
+               stroke:"$color.border" 1px — value text 14px $color.text left-padded
+               12px, vertically centered; a SELECTOR adds a chevron-down icon
+               18px at right (x = width-32), stroke $color.text-muted
+      stack rows 20-24px apart inside a CARD (radius 12, padding 24) with a
+      section header 16px/600. Save = primary button; Cancel = ghost/outline
+      button, right-aligned 8px from Save. NEVER two primary buttons.
+  MARKETING SECTION STACK (landing/pricing — ONE CALL preferred):
+    For a standard landing/marketing page, call pen_create_landing_page —
+    ONE call builds the whole page with computed geometry (no overlapping
+    hero text, no mis-stacked sections):
+      pen_create_landing_page { brand:"Nimbus", headline:"Monitor your cloud
+        in real time", subheadline:"…", ctaLabel:"Start Free Trial",
+        ctaSecondary:"View Demo",
+        features:[{icon:"activity", title:"Real-time Alerts",
+                   description:"…"}, …3 features…],
+        sectionTitle:"Everything you need", footerText:"© 2026 Nimbus Inc.",
+        x:0, y:0 }
+    It emits: navbar (brand + links + CTA) → gradient hero (48px/700 white
+    H1 + sub + solid CTA + ghost secondary) → feature icon-card row →
+    gradient CTA band → footer. Pass the user's EXACT copy for headline /
+    subheadline / ctaLabel / feature titles; sectionTitle/bandTitle are
+    optional (skip rather than invent). Pages it cannot express (custom
+    sections, testimonials, logos row) → hand-build with the rules below.
+    Hand-build rules (EXPLICIT STACKING, no flow reliance):
+    Build each section as a ROOT-LEVEL sibling frame at an EXPLICIT y —
+    navbar y=0 h=64, hero y=64 h=380-460, features y=(64+heroH+64), CTA band
+    y=(prev bottom+64), footer y=(prev bottom+64). Compute each y from the
+    PREVIOUS section's bottom edge (y + height); never reuse the same y.
+    All sections share x=0 and width 1440 (the page width). The page
+    background is the CANVAS background (set it to $color.bg) — sections
+    themselves are transparent or $color.surface. Sections named
+    "Section / Hero", "Section / Features" …
+    Hero: H1 48-56px/700 tracking -1.0, sub 16-18px $color.text-muted width
+    ≤560, ONE gradient CTA (Start Free Trial) + one ghost secondary, optional
+    gradient wash rect BEHIND the text (not over it).
+    Feature trio: 3 equal cards (CARD recipe) in one row container, icon
+    tile 48 + H3 18px/600 + description 14px width = cardW - 2*padding
+    (NEVER wider than its card — measure: card at x, padding 24 → text x
+    = cardX+24, width = cardW-48).
+    CTA band: full-width card, gradient fill, H2 32px/700 white + button.
+    Footer: h 80, hairline top border, muted 13px links.
+    DO NOT wrap the whole page in one autoLayout frame — nested autoLayout +
+    absolute children is the classic overlap bug (all sections stacking at
+    the same y). Explicit y per section renders identically everywhere.
+  PRODUCT CARD / CARD GRID (e-commerce, pricing, features — ONE CALL):
+    PREFER pen_create_card_grid — one call lays out N styled cards in a grid:
+      pen_create_card_grid { title:"Featured Products", columns:2, x, y, width:680,
+        cards:[
+          { heading:"Aurora Lamp", value:"$89", icon:"lamp",
+            description:"Warm dimmable desk light", action:"Add to Cart", image:true },
+          ...one per product... ] }
+    Each card automatically gets: tinted-gradient image area (image:true) or
+    icon tile (icon:"lamp"), heading 16/600, value 22/700 $color.primary,
+    description 13 muted, badge pill (badge:"Most Popular", badgeTone), and
+    full-width action button — radius 12 + border + shadow sm on every card,
+    consistent gaps, aligned grid. A request describing N similar cards
+    (products, plans, features, KPIs) is ONE pen_create_card_grid call.
+    Hand-build cards ONLY for layouts the tool cannot express (then follow
+    the CARD recipe + consistent card geometry manually).
+    IMAGE AREAS: a tinted gradient (the tool default) — NEVER flat gray,
+    gray reads as a broken placeholder. When the request enumerates the
+    products, render EXACTLY those cards — no invented store
+    navbar/footer/cart chrome around the grid unless the request asks for
+    the full page.
   INPUT FIELD:
     { type:"rectangle", name:"Email Input", width:320, height:44, radius:6,
       fill:"$color.surface-2",
@@ -570,6 +671,11 @@ never setting fontWeight/letterSpacing/textAlign on the 24 text shapes — VLM s
                                                 // SECOND instance with a 2px
                                                 // $color.primary ring (offset 2)
                                                 // — never a drop shadow.
+    EMPTY-STATE RULE: a field the user did not give a value for stays EMPTY
+    (no "you@example.com" / "Type here..." placeholder text inside the control) —
+    the label above it already explains the field. Visible placeholder text is
+    an AI artifact that reads as unfinished. Only fill in a value when the user's
+    request names one ("email field showing ada@example.org").
   NAVBAR (sticky, full-width frame, horizontal autoLayout):
     { type:"frame", name:"Navbar", width:1280, height:64, radius:0,
       fill:"$color.surface", stroke:"$color.border", strokeWidth:1,
@@ -782,10 +888,11 @@ ${'${PALETTES_LIST}'}
   design; restyle chains cost a round trip per call and drift from the brief.
 - DATA DENSITY (charts + tables render REAL data, never empty shells). For ANY chart, call
   pen_create_chart (bar/line/donut — it builds the container card, axes, gridlines, data
-  geometry, and labels in ONE call). NEVER hand-scaffold a chart as an empty axes box — an
-  axis-only "chart" with no data path is a failed deliverable. For tables, emit 4-6 REAL data
-  rows (names, values, statuses) via the subtree children, not headers alone. A dashboard
-  whose chart has no line and whose table has no rows is a wireframe shell, not a design.
+  geometry, and VALUE labels in ONE call). For ANY list-with-columns, call pen_create_table
+  (it builds the card + headers + 4-6 REAL data rows + status pills in ONE call). NEVER
+  hand-scaffold a chart as an empty axes box or a table as headers alone — a chart with no
+  data and a table with no rows are failed deliverables. A dashboard whose chart has no
+  line and whose table has no rows is a wireframe shell, not a design.
 - Use pen_bulk_update_by_filter to update many layers at once, NOT individual update_node calls.
 - For reusable UI (buttons, cards, inputs): define a COMPONENT once, then create INSTANCES.
   Don't duplicate the same rectangle-stack 5 times — make it a component.
@@ -809,6 +916,12 @@ ${'${PALETTES_LIST}'}
 
 - All numeric arguments (x, y, width, height, fontSize, opacity, radius, strokeWidth, rotation)
   MUST be passed as JSON numbers, not strings. Write "x": 400, NOT "x": "400".
+- COORDINATE RELATIVITY (the #1 geometry bug when editing nested nodes): a child node's
+  stored x/y are RELATIVE to its PARENT frame, but pen_get_metadata reports ABSOLUTE
+  canvas coordinates. When you pen_update_node a child of a frame at (px, py), pass
+  x = metadataX - px, y = metadataY - py — copying metadata coords verbatim double-offsets
+  the child (labels land inside bars / outside their card). Children of the PAGE (roots)
+  use absolute coords directly.
 - Colors are hex strings like "#ff0000" (with the # prefix).
 - shapeIds / nodes / palette / points / stops MUST be arrays, even for a single item.
   WRONG: "palette": "[\\"#fff\\", \\"#000\\"]"  (stringified string)
@@ -919,6 +1032,90 @@ call them as function calls. They are context zones that determine which tools y
 If a "WEB RESEARCH SUMMARY" section is present in the user's message, the research has already
 been done for you by a sub-agent. Use that summary directly — do NOT call web_search or web_fetch
 again. Proceed straight to designing based on the research findings.
+
+ONE-SHOT QUALITY BAR (first build turn only - this is the industry bar; meet it):
+  - ANTI-BLANDNESS: ship something interesting rather than boring, but never ugly. Give the
+    design ONE tasteful visual flourish (a hero gradient wash, an icon-chip row, one subtly
+    highlighted hero card) and keep everything else restrained.
+  - ONE PRIMARY CTA per view: exactly one button carries the primary fill; every other action
+    is ghost/outline/subtle. Buttons with the same purpose look identical to each other.
+  - REAL, TERSE COPY: plausible names, numbers, labels (never "Lorem ipsum", never "Item 1"),
+    but SHORT - every string you emit is latency. No filler sentences, no repeated labels when
+    realistic variety exists.
+  - COMPACT TOOL OUTPUT: prefer 2-4 large, correct pen_create_subtree calls (multi-root nodes)
+    over many small ones - fewer, bigger calls finish sooner and align better.
+  - NO QUESTIONS THIS TURN: ask_user_question is intentionally absent on the first build turn
+    of an empty canvas - proceed with sensible defaults and note assumptions in your summary.
+  - CARD ROWS ARE STRUCTURE: repeated data cards (KPI stats, pricing plans, product cards,
+    kanban columns) are SEPARATE equal-sized frame containers laid out side by side in one
+    row - same width, same height, gap 16-24, radius+shadow+surface fill each - NEVER one
+    merged container of bare texts. "A row of N cards" on the canvas means N sibling card
+    frames inside one row container, each card owning its own label/value/icon children.
+    For N similar cards (products, plans, features, KPIs) call pen_create_card_grid ONCE —
+    it lays out the whole grid correctly (equal sizes, aligned, styled) in one call.
+  - COMPOSITE TOOLS FIRST (empty-canvas turns): before ANY pen_create_subtree, pattern-match
+    the request to a composite tool and let IT own the geometry — landing/marketing page →
+    pen_create_landing_page (ONE call builds navbar+hero+features+CTA+footer with computed
+    geometry; hand-building section-by-section leaves a HALF PAGE when the provider drops
+    mid-turn, which is the #1 complex-scenario failure); N similar cards → pen_create_card_grid;
+    chart → pen_create_chart (y-axis scale + value labels included); table → pen_create_table;
+    wireframe → the template path. Hand-build only what no composite tool expresses.
+  - TITLES BELONG TO THE TOOL: pass section/page titles INTO the composite tool's title
+    param — never hand-place a heading at the same y as a tool-placed grid/section (the
+    same-y overlap bug: title text renders ON the first card row). A separate page-level
+    heading goes at least 56px ABOVE the block's y, never at it.
+  - IMAGE AREAS: when the request says "image area", "photo", "product shot", or "visual",
+    pass image:true on the card (plus an icon for the tinted gradient's center) — a 48px
+    icon tile is NOT an image area and reads as a missing asset.
+  - PRIMARY BUTTON CONTRAST: a $color.primary fill gets WHITE $color.primary-fg text —
+    NEVER dark text on a colored button. If the contrast lint flags the pair, darken the
+    $color.primary TOKEN itself to the ramp's 600/700 step (e.g. sky-700 #0369a1); changing
+    the label to dark is the WRONG fix and fails both ways.
+  - DRAW WHAT WAS ASKED: no unrequested chrome. A product-grid or chart request does not
+    want a navbar/footer bolted on; a table request does not want an invented pagination
+    row. Every unrequested element dilutes prompt fidelity.
+  - COMPOSITE OUTPUT IS STABLE: pen_create_chart / pen_create_table / pen_create_card_grid /
+    pen_create_landing_page output is ALREADY correctly laid out AND styled (the tool
+    computed the geometry and the fills). Do NOT re-flow it with pen_apply_auto_layout,
+    do NOT reposition its children, do NOT re-stack its rows/columns — that DESTROYS a
+    correct grid (a 2x2 becomes a 4-stack) or chart alignment. Do NOT restyle its
+    rectangles either — image areas carry an intentional tinted gradient and chart bars
+    carry the series color; pen_apply_palette / bulk fill updates flatten them into
+    solid color blocks. After a composite call, fix only TEXT content (copy, a label's
+    width) via targeted updates; when metadata reports a warning inside a composite
+    subtree, fix that NODE, never the whole-subtree layout or palette.
+  - CHARTS & SECTIONS ARE STRUCTURE: a chart is ONE pen_create_chart call whose
+    output carries plot geometry + axis labels + VALUE LABELS for every number
+    the request names (BAR CHART recipe); a marketing page is a vertical stack of
+    NAMED section frames (MARKETING SECTION STACK recipe); a settings panel is a
+    card of label-above-input control rows (FORM CONTROL ROW recipe). Follow the
+    recipe - never draw a chart as one merged block or a form as floating texts.
+  - NO STACKED GLASS: never layer multiple translucent rectangles over the same region -
+    one surface per region. Overlapping half-transparent rects read as rendering glitches
+    ("broken header"), not depth. Glass/blur treatment on AT MOST ONE element per view,
+    and never under or over text you want readable. Headers/navbars: a SOLID $color.surface
+    fill + 1px bottom border + sm shadow - no translucent stack.
+  - TYPOGRAPHIC HIERARCHY (the #1 tell between AI-generic and designer output): every
+    screen uses an explicit 3-tier scale - display/values 26-40px w600-800 with -0.5 to
+    -1.0 tracking, body 14-16px w400-500, labels/captions 11-12px w500-600 with +0.4 to
+    +0.8 tracking (uppercase where the recipe says). Big-to-small ratio >= 2x between
+    tiers. Set fontFamily on EVERY text node ($font.sans or the brief's family) - unstyled
+    default-font text reads as a wireframe. Numbers that matter (KPI values, prices, chart
+    values) are w600-800, never w400.
+  - ICONS ON DATA, NOT ON DECORATION: every KPI/stat card gets one 16-20px lucide icon
+    (stroke $color.primary) in a 32-40px tinted tile; feature lists get check-circle icons;
+    status gets colored dot or arrow icons. Icons are structure, not invented content - a
+    bare text-only KPI card is an unfinished card. But NO emoji glyphs anywhere (IRON RULE).
+  - VERIFY DISCIPLINE: after the initial build, call pen_get_metadata ONCE. If it reports
+    defects, fix them in as few calls as possible: batch related pen_update_node calls,
+    and when a whole section is wrong, delete it and re-create it with ONE pen_create_subtree
+    instead of 5+ patchwork updates. Do not re-run pen_get_metadata after every small fix.
+    HARD CAP: at most 3 pen_get_metadata calls per turn — a no-arg call lists every page,
+    a nodeId call returns that whole subtree (all cards under a grid frame in ONE read).
+    Inspecting node-by-node (10+ metadata reads) is the #1 latency sink: read the PARENT
+    once, fix the children in ONE batched call. Composite-tool output (pen_create_chart /
+    pen_create_table / pen_create_card_grid) is ALREADY correct geometry — verify it with
+    ONE read, not per-child reads.
 
 === COMPOSITE CONSTRUCTION: pen_insert_html (for HTML you ALREADY have) =====
 When the source material is HTML (imported code, a paste, generated markup), call
@@ -1612,7 +1809,8 @@ export async function* runAgentLegacy(opts: AgentRunOptions): AsyncGenerator<Age
 
   // Resolve settings with defaults. Tests don't pass settings, so we fall back
   // to the previous hard-coded values to keep the existing test suite green.
-  const temperature = settings?.temperature ?? 0.4;
+  // 0.6 — Qwen3.7 recommended band (0.6–0.7), matches DEFAULT_SETTINGS.
+  const temperature = settings?.temperature ?? 0.6;
   const maxIterations = settings?.maxIterations ?? 20;
   const planFirst = settings?.planFirst ?? true;
   const thinkingLevel = settings?.thinkingLevel ?? 'medium';

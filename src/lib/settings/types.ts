@@ -231,20 +231,18 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // for container types).
   domCulling: true,
 
-  // Default inference provider: the z.ai sandbox. Inside the z.ai sandbox,
+  // Default inference provider: the BETA endpoint (2026-09-07 tuning) —
+  // custom OpenAI-compatible qwen3.7-plus behind a pinggy tunnel, key
+  // '123456'. Matches BETA_ENDPOINT in src/lib/llm/endpoint-presets.ts, so
+  // the BETA chip lights on first run. When the tunnel is down the runner
+  // falls back to the z.ai sandbox path (see pi-ai-model-resolver.ts); users
+  // can also switch to `zai` in Settings → LLM provider, where
   // `z-ai-web-dev-sdk`'s `ZAI.create()` auto-resolves credentials from
-  // ~/.z-ai-config / /etc/.z-ai-config / sandbox env — no API key or base
-  // URL needed. Outside the sandbox, set `ZAI_API_KEY` in `.env` or paste
-  // it into Settings → LLM provider. The four fields are empty so the
-  // resolver uses the z.ai sandbox path verbatim (see pi-ai-model-resolver.ts).
-  // The custom OpenAI-compatible endpoint (kimi-k2-5 behind a pinggy tunnel)
-  // is no longer the default — it remains a registered provider id (`custom`)
-  // selectable in Settings → LLM provider for users who want to bring their
-  // own endpoint.
-  llmProvider: 'zai',
-  apiKey: '',
-  modelName: 'glm-5.3',
-  apiBaseUrl: '',
+  // ~/.z-ai-config / /etc/.z-ai-config / sandbox env.
+  llmProvider: 'custom',
+  apiKey: '123456',
+  modelName: 'qwen3.7-plus',
+  apiBaseUrl: 'https://irhnglwoxe.a.pinggy.link/v1',
 
   snapshotCadence: 'every-turn',
   maxSessionsRetained: 100,

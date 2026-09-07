@@ -1,0 +1,96 @@
+[
+  {
+    "target": "analytics-chart",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 9,
+      "layout_structure": 8,
+      "typography": 7,
+      "color_cohesion": 6,
+      "component_polish": 7,
+      "overall_polish": 7,
+      "overall": 7
+    },
+    "defects": [
+      "The 'Jun' bar is colored purple (#A56BFF) while all other bars are blue (#1DA1F2), creating an unexplained visual inconsistency.",
+      "The Y-axis labels ($17K, $34K, $51K, $68K) are left-aligned rather than right-aligned, causing a visual gap between the currency symbols and the gridlines.",
+      "The data value labels ($42K, $48K, etc.) are positioned with inconsistent vertical spacing relative to the tops of their respective bars."
+    ],
+    "top_fixes": [
+      "Change the color of the 'Jun' bar to match the primary blue used for Jan-May to maintain color cohesion.",
+      "Right-align the Y-axis text labels so the numbers align vertically with the horizontal gridlines.",
+      "Ensure consistent padding between the top of each bar and its corresponding value label."
+    ],
+    "raw": "```json\n{\"prompt_fidelity\":9, \"layout_structure\":8, \"typography\":7, \"color_cohesion\":6, \"component_polish\":7, \"overall_polish\":7, \"overall\":7, \"defects\":[\"The 'Jun' bar is colored purple (#A56BFF) while all other bars are blue (#1DA1F2), creating an unexplained visual inconsistency.\", \"The Y-axis labels ($17K, $34K, $51K, $68K) are left-aligned rather than right-aligned, causing a visual gap between the currency symbols and the gridlines.\", \"The data value labels ($42K, $48K, etc.) are positioned with inconsistent vertical spacing relative to the tops of their respective bars.\"], \"top_fixes\":[\"Change the color of the 'Jun' bar to match the primary blue used for Jan-May to maintain color cohesion.\", \"Right-align the Y-axis text labels so the numbers align vertically with the horizontal gridlines.\", \"Ensure consistent padding between the top of each bar and its corresponding value label.\"]}\n```"
+  },
+  {
+    "target": "data-table",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 10,
+      "layout_structure": 9,
+      "typography": 8,
+      "color_cohesion": 9,
+      "component_polish": 8,
+      "overall_polish": 9,
+      "overall": 9
+    },
+    "defects": [
+      "The 'Export CSV' button lacks a visible icon or clear affordance, appearing as a plain text label inside a border.",
+      "Status badges have inconsistent padding and vertical alignment relative to the row text (e.g., 'Processing' vs 'Shipped').",
+      "Row background colors (alternating white/light gray) lack sufficient contrast for accessibility."
+    ],
+    "top_fixes": [
+      "Add an icon to the 'Export CSV' button and ensure it has a defined hover/active state style.",
+      "Standardize the status badge padding (e.g., 6px horizontal, 4px vertical) and ensure perfect vertical centering within the row height.",
+      "Increase the contrast of the alternating row background color or add subtle dividers between rows for better scannability."
+    ],
+    "raw": "{\"prompt_fidelity\":10,\"layout_structure\":9,\"typography\":8,\"color_cohesion\":9,\"component_polish\":8,\"overall_polish\":9,\"overall\":9,\"defects\":[\"The 'Export CSV' button lacks a visible icon or clear affordance, appearing as a plain text label inside a border.\",\"Status badges have inconsistent padding and vertical alignment relative to the row text (e.g., 'Processing' vs 'Shipped').\",\"Row background colors (alternating white/light gray) lack sufficient contrast for accessibility.\"],\"top_fixes\":[\"Add an icon to the 'Export CSV' button and ensure it has a defined hover/active state style.\",\"Standardize the status badge padding (e.g., 6px horizontal, 4px vertical) and ensure perfect vertical centering within the row height.\",\"Increase the contrast of the alternating row background color or add subtle dividers between rows for better scannability.\"]}"
+  },
+  {
+    "target": "ecommerce-grid",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 9,
+      "layout_structure": 9,
+      "typography": 8,
+      "color_cohesion": 8,
+      "component_polish": 7,
+      "overall_polish": 8,
+      "overall": 8
+    },
+    "defects": [
+      "The product image area for the 'Aurora Lamp' (top-left card) is missing its icon, appearing as an empty light-blue container while the other three cards have centered icons.",
+      "The 'Add to Cart' buttons lack hover/active states or subtle shadows, making them look slightly flat compared to modern e-commerce standards."
+    ],
+    "top_fixes": [
+      "Add a lamp icon (or placeholder graphic) to the top-left card's image area to maintain visual consistency with the other three cards.",
+      "Apply a slight drop shadow or border to the 'Add to Cart' buttons to increase tactile affordance and visual depth."
+    ],
+    "raw": "{\"prompt_fidelity\":9,\"layout_structure\":9,\"typography\":8,\"color_cohesion\":8,\"component_polish\":7,\"overall_polish\":8,\"overall\":8,\"defects\":[\"The product image area for the 'Aurora Lamp' (top-left card) is missing its icon, appearing as an empty light-blue container while the other three cards have centered icons.\",\"The 'Add to Cart' buttons lack hover/active states or subtle shadows, making them look slightly flat compared to modern e-commerce standards.\"],\"top_fixes\":[\"Add a lamp icon (or placeholder graphic) to the top-left card's image area to maintain visual consistency with the other three cards.\",\"Apply a slight drop shadow or border to the 'Add to Cart' buttons to increase tactile affordance and visual depth.\"]}"
+  },
+  {
+    "target": "marketing-landing",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 9,
+      "layout_structure": 9,
+      "typography": 8,
+      "color_cohesion": 8,
+      "component_polish": 7,
+      "overall_polish": 7,
+      "overall": 8
+    },
+    "defects": [
+      "The 'Start Free Trial' button in the hero section (top left) uses a white background with blue text, which lacks visual weight and contrast against the bright blue hero background, making it look like a secondary action rather than the primary CTA requested.",
+      "The first feature card ('Real-time Analytics') is missing its icon, showing only a faint placeholder square where the other two cards have distinct icons (bell and user group).",
+      "Text in the feature card descriptions is truncated at the right edge (e.g., 'service' in the first card, 'response' in the third card), indicating an overflow or container width issue."
+    ],
+    "top_fixes": [
+      "Change the hero CTA button to a solid dark color (like navy or black) or a high-contrast style to make it pop as the primary action.",
+      "Add a relevant icon (e.g., a chart or graph) to the first feature card to match the visual consistency of the other two cards.",
+      "Increase the width of the feature cards or adjust text wrapping to ensure all description text is fully visible without truncation."
+    ],
+    "raw": "{\"prompt_fidelity\":9,\"layout_structure\":9,\"typography\":8,\"color_cohesion\":8,\"component_polish\":7,\"overall_polish\":7,\"overall\":8,\"defects\":[\"The 'Start Free Trial' button in the hero section (top left) uses a white background with blue text, which lacks visual weight and contrast against the bright blue hero background, making it look like a secondary action rather than the primary CTA requested.\",\"The first feature card ('Real-time Analytics') is missing its icon, showing only a faint placeholder square where the other two cards have distinct icons (bell and user group).\",\"Text in the feature card descriptions is truncated at the right edge (e.g., 'service' in the first card, 'response' in the third card), indicating an overflow or container width issue.\"],\"top_fixes\":[\"Change the hero CTA button to a solid dark color (like navy or black) or a high-contrast style to make it pop as the primary action.\",\"Add a relevant icon (e.g., a chart or graph) to the first feature card to match the visual consistency of the other two cards.\",\"Increase the width of the feature cards or adjust text wrapping to ensure all description text is fully visible without truncation.\"]}"
+  }
+]

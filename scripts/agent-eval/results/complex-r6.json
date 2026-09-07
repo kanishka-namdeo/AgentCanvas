@@ -1,0 +1,125 @@
+{
+  "runs": [
+    {
+      "id": "marketing-landing",
+      "prompt": "Design a high-fidelity SaaS landing page for 'Nimbus', a cloud monitoring tool: a navbar with the Nimbus logo, a hero section with the headline 'Monitor your cloud in real time', a short subheadline, and a Start Free Trial primary button, a features section with 3 feature cards, and a footer with a copyright line.",
+      "startedAt": "2026-09-06T22:36:57.476Z",
+      "durationMs": 207413,
+      "toolCallCount": 24,
+      "toolNames": [
+        [
+          "pen_update_node",
+          15
+        ],
+        [
+          "pen_get_metadata",
+          4
+        ],
+        [
+          "pen_set_variables",
+          2
+        ],
+        [
+          "pen_create_subtree",
+          2
+        ],
+        [
+          "pen_set_variable",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "brand + headline + CTA present",
+          "pass": true,
+          "detail": "all key strings found"
+        },
+        {
+          "name": "brand repeated (navbar + footer/hero)",
+          "pass": true,
+          "detail": "2 occurrences of Nimbus"
+        },
+        {
+          "name": "3 feature cards in a row",
+          "pass": true,
+          "detail": "3 candidates, bands=[[160,3]]"
+        },
+        {
+          "name": "landing page = stacked sections",
+          "pass": true,
+          "detail": "8 wide sections, 3 vertical bands"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows present",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 24 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "24 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 11,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 35,
+      "emptyTurn": false,
+      "canvasDump": "download/agent-eval/dumps/marketing-landing-r1.canvas.json",
+      "repeat": 1
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "marketing-landing",
+      "prompt": "Design a high-fidelity SaaS landing page for 'Nimbus', a cloud monitoring tool: a navbar with the Nimbus logo, a hero section with the headline 'Monitor your cloud in real time', a short subheadline, and a Start Free Trial primary button, a features section with 3 feature cards, and a footer with a copyright line.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 24,
+        "min": 24,
+        "max": 24
+      },
+      "durationS": {
+        "mean": 207.413,
+        "min": 207.413,
+        "max": 207.413
+      },
+      "assertionsPassed": 11,
+      "assertionsTotal": 11,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    }
+  ]
+}

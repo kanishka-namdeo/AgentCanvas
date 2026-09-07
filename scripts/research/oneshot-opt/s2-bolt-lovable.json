@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.linkedin.com/posts/amanberkeley_how-ai-prototyping-tools-actually-work-a-activity-7346636215221129216-mK2t",
+    "name": "How Bolt and Lovable hit $100M with simple AI prompts",
+    "snippet": "Lovable , Bolt etc. are good for very high-level mockups. UI /UX development capabilities ・ the quality of the UI would increase 10 fold ・ ...",
+    "host_name": "www.linkedin.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://support.bolt.new/best-practices/prompting-effectively",
+    "name": "Prompt effectively",
+    "snippet": "Tips for writing better prompts . When building with Bolt, the quality of your results will often depend less on how well you know code and more on how clearly ... Read more",
+    "host_name": "support.bolt.new",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.rapidnative.com/blogs/prompt-engineering-tips",
+    "name": "Practical Prompt Engineering Tips for Mobile Product Teams",
+    "snippet": "Oct 28, 2025 — Discover prompt engineering tips to streamline mobile UI design, boost productivity, and accelerate delivery. Click to learn more.",
+    "host_name": "www.rapidnative.com",
+    "rank": 2,
+    "date": "Oct 28, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://lovable.dev/blog/2025-01-16-lovable-prompting-handbook",
+    "name": "The Lovable Prompting Bible",
+    "snippet": "Jan 16, 2025 — UI /UX best practices to define how components should adjust for varying screen sizes, utilizing ShadCN and Tailwind's standard breakpoints. Use ...",
+    "host_name": "lovable.dev",
+    "rank": 3,
+    "date": "Jan 16, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://designwithai.substack.com/p/i-ran-the-same-prompt-through-three-ai-prototyping-tools",
+    "name": "I ran the same prompt through three popular AI prototyping tools",
+    "snippet": "A common opinion online is that V0 has the best UI quality , Bolt's UX is clunky, and Lovable is the best product on the market by far. I don't ... Read more",
+    "host_name": "designwithai.substack.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/lovable/comments/1rd5df8/how_are_people_writing_oneshot_prompts_that",
+    "name": "How are people writing “one-shot” prompts that generate",
+    "snippet": "I keep seeing people mention that if you’re smart with your prompts in Lovable, you can generate a full website (multi-page, components, styling, logic) ...",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.nxcode.io/resources/news/lovable-vs-bolt-new-2026-ai-app-builder-comparison",
+    "name": "Lovable vs Bolt.new 2026: Which AI App Builder Should",
+    "snippet": "Mar 29, 2026 — Lovable is better for beginners and non-technical builders : Its chat-first interface, structured planning stages, and deep Supabase integration ...",
+    "host_name": "www.nxcode.io",
+    "rank": 6,
+    "date": "Mar 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.codecademy.com/article/prompt-engineering-101-understanding-zero-shot-one-shot-and-few-shot",
+    "name": "Prompt Engineering 101: Understanding Zero-Shot, One-",
+    "snippet": "Learn about effective prompting techniques to craft high-quality prompts, maximizing your use of generative AI. Read more",
+    "host_name": "www.codecademy.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

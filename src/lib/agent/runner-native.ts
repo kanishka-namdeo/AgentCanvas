@@ -301,7 +301,8 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const { documentId, prompt, canvas: initialCanvas, signal, settings } = opts;
 
   // Resolve settings with defaults (mirror the legacy runner).
-  const temperature = settings?.temperature ?? 0.4;
+  // 0.6 — Qwen3.7 recommended band (0.6–0.7), matches DEFAULT_SETTINGS.
+  const temperature = settings?.temperature ?? 0.6;
   const maxIterations = settings?.maxIterations ?? 20;
   const planFirst = settings?.planFirst ?? true;
   const thinkingLevel = settings?.thinkingLevel ?? 'medium';
@@ -534,6 +535,25 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const filteredTools = allTools.filter((t) =>
     categoryAllowedToolNames.has(t.name) && !aliasNames.has(t.name));
 
+  // ---- One-shot (empty-canvas build) tool-surface slimming -----------------
+  // The default-on plugin tools (ask_user_question, todo_*, memory_*) exist
+  // for long-horizon interactive sessions. On the FIRST build turn of an
+  // empty canvas they are pure prefix cost (~11 tool schemas in every
+  // request) and a latency trap (ask_user_question can pause the whole
+  // one-shot generation waiting for user input). They are dropped for that
+  // turn shape ONLY: mode==='build' AND empty canvas at turn start.
+  // Follow-up turns (canvas non-empty) and plan/ask turns keep the exact
+  // same tool surface as before - multi-shot behavior is unchanged.
+  const ONE_SHOT_DROP_TOOLS = new Set([
+    'ask_user_question',
+    'todo_create', 'todo_update', 'todo_add', 'todo_remove', 'todo_list',
+    'memory_write', 'memory_read', 'memory_search', 'scratchpad', 'memory_forget',
+  ]);
+  const isOneShotBuildTurn = mode === 'build' && turnStartShapeIds.size === 0;
+  const turnTools = isOneShotBuildTurn
+    ? filteredTools.filter((t) => !ONE_SHOT_DROP_TOOLS.has(t.name))
+    : filteredTools;
+
   // PLAN mode also needs the UNFILTERED build set for the post-approval
   // execution phase (a new session is created with it once the plan is
   // approved — same category filter, no mode restriction).
@@ -687,7 +707,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           ...(subAgentLLM ? { llm: subAgentLLM as any } : {}),
         });
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('brief pre-generation timed out')), 40_000));
+          setTimeout(() => reject(new Error('brief pre-generation timed out')), 25_000));
         const briefResult = await Promise.race([briefPromise, timeoutPromise]);
         if (briefResult?.brief) {
           return JSON.stringify(briefResult.brief, null, 2);
@@ -780,11 +800,143 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       })
       : baseTools;
 
+    // ---- One-shot verify-budget guard (2026-09-07 complex-scenario round) ---
+    //
+    // The complex-scenario eval measured the #1 one-shot latency sink as the
+    // post-build verification LOOP: pen_get_metadata ×10-18 (inspecting node
+    // by node), each a full LLM round trip on the BETA tunnel. Prompt rules
+    // ("VERIFY DISCIPLINE ... HARD CAP 3") decay under warning pressure, so
+    // this wrapper enforces the cap architecturally — after 4 metadata reads
+    // on a one-shot build turn the tool returns a terminal "verify budget
+    // spent" error that tells the model to proceed to its summary. Multi-shot
+    // turns (canvas non-empty at turn start) never hit this wrapper.
+    let metadataReads = 0;
+    const ONE_SHOT_METADATA_CAP = 4;
+
+    // ---- One-shot child-coordinate auto-correction (2026-09-07 round) ------
+    //
+    // Measured defect class (analytics r1 + data-table r13): the model reads
+    // pen_get_metadata's ABSOLUTE coords and passes them as a child's
+    // RELATIVE x/y (or double-subtracts the parent origin) — value labels
+    // land inside bars, table rows scatter to y=-3.5 / y=631 inside a 300px
+    // card. Rather than trusting the model's arithmetic, this wrapper picks
+    // the PLAUSIBLE interpretation of each incoming coordinate: among
+    // {as-passed, as-passed - parentOrigin, as-passed + parentOrigin} it
+    // keeps the candidate inside the parent's content range and closest to
+    // the node's current relative position. Legitimate in-parent moves keep
+    // working (the as-passed value wins when the shifted candidates fall out
+    // of range or are farther from current). Root-level nodes (no parent)
+    // are untouched — absolute is correct there. One-shot turns only.
+    const currentShapes = () => {
+      try { return (ctx.getShapes?.() ?? []) as Array<{ id?: string; parentId?: string | null; x?: number; y?: number; width?: number; height?: number }>; }
+      catch { return []; }
+    };
+    const plausibleCoord = (passed: number, curRel: number, p0: number, p1: number, origin: number): number => {
+      const span = p1 - p0;
+      const inRange = (v: number) => v >= p0 - Math.max(64, span * 0.1) && v <= p1 + Math.max(64, span * 0.1);
+      const candidates = [passed, passed - origin, passed + origin].filter(inRange);
+      if (candidates.length === 0) return passed; // out of any plausible range — trust the model
+      let best = candidates[0];
+      let bestDist = Math.abs(best - curRel);
+      for (const cand of candidates) {
+        const d = Math.abs(cand - curRel);
+        if (d < bestDist) { best = cand; bestDist = d; }
+      }
+      return best;
+    };
+    const correctNodeCoords = (params: any): any => {
+      try {
+        const nodeId = params?.nodeId;
+        const changes = params?.changes;
+        if (typeof nodeId !== 'string' || !changes || typeof changes !== 'object') return params;
+        if (typeof changes.x !== 'number' && typeof changes.y !== 'number') return params;
+        const shapes = currentShapes();
+        const node = shapes.find((s) => s.id === nodeId);
+        if (!node || !node.parentId) return params;
+        const parent = shapes.find((s) => s.id === node.parentId);
+        if (!parent) return params;
+        const px = Number(parent.x ?? 0), py = Number(parent.y ?? 0);
+        const pw = Number(parent.width ?? 0), ph = Number(parent.height ?? 0);
+        if (typeof changes.x === 'number') {
+          changes.x = plausibleCoord(changes.x, Number(node.x ?? 0) - px, 0, pw, px);
+        }
+        if (typeof changes.y === 'number') {
+          changes.y = plausibleCoord(changes.y, Number(node.y ?? 0) - py, 0, ph, py);
+        }
+        return params;
+      } catch { return params; }
+    };
+
+    // One-shot mutation budget: stop the patchwork death spiral (r13:
+    // 22 post-build mutation calls progressively destroyed a correct
+    // deterministic table). After 12 mutations the wrapper redirects to
+    // delete+recreate or summarize.
+    let oneShotMutations = 0;
+    const ONE_SHOT_MUTATION_CAP = 12;
+    const MUTATION_TOOLS = new Set(['pen_update_node', 'pen_bulk_update_by_filter', 'pen_delete_nodes']);
+
+    const verifyCapped: ToolDefinition[] = isOneShotBuildTurn
+      ? enforcementWrapped.map((t) => {
+        if (t.name !== 'pen_get_metadata' && !MUTATION_TOOLS.has(t.name)) return t;
+        const toolAny = t as any;
+        const origExecute = toolAny.execute;
+        if (typeof origExecute !== 'function') return t;
+        if (t.name === 'pen_get_metadata') {
+          return {
+            ...t,
+            execute: async (toolCallId: string, params: any, signal: any, onUpdate: any, ctx: any) => {
+              metadataReads += 1;
+              if (metadataReads > ONE_SHOT_METADATA_CAP) {
+                return {
+                  content: [{
+                    type: 'text' as const,
+                    text:
+                      'VERIFY BUDGET SPENT: this is metadata read #' + metadataReads +
+                      ' — the one-shot turn is capped at ' + ONE_SHOT_METADATA_CAP +
+                      ' verification reads. Composite-tool output (pen_create_chart / pen_create_table /' +
+                      ' pen_create_card_grid) carries correct geometry by construction. STOP VERIFYING: ' +
+                      'apply any remaining fixes in ONE batched call, then write your 1-2 sentence summary ' +
+                      'and END THE TURN.',
+                  }],
+                  details: { error: 'verify_budget_spent', toolName: t.name, reads: metadataReads },
+                  isError: true as any,
+                };
+              }
+              return origExecute(toolCallId, params, signal, onUpdate, ctx);
+            },
+          } as unknown as ToolDefinition;
+        }
+        return {
+          ...t,
+          execute: async (toolCallId: string, params: any, signal: any, onUpdate: any, ctx: any) => {
+            oneShotMutations += 1;
+            if (oneShotMutations > ONE_SHOT_MUTATION_CAP) {
+              return {
+                content: [{
+                  type: 'text' as const,
+                  text:
+                    'MUTATION BUDGET SPENT: ' + oneShotMutations + ' patchwork mutations this one-shot turn ' +
+                    '(cap ' + ONE_SHOT_MUTATION_CAP + '). Progressive small fixes are DEGRADING a built design. ' +
+                    'If a whole section is wrong, delete it and re-create it with ONE call (pen_create_subtree / ' +
+                    'pen_create_table / pen_create_chart / pen_create_card_grid). Otherwise STOP: write your ' +
+                    '1-2 sentence summary and END THE TURN.',
+                }],
+                details: { error: 'mutation_budget_spent', toolName: t.name, mutations: oneShotMutations },
+                isError: true as any,
+              };
+            }
+            const corrected = correctNodeCoords(params);
+            return origExecute(toolCallId, corrected, signal, onUpdate, ctx);
+          },
+        } as unknown as ToolDefinition;
+      })
+      : enforcementWrapped;
+
     // ---- Destructive-op approval gate (Cursor "Run command?" / Cline Approve)
     const approvalWrapped: ToolDefinition[] =
       approvalMode === 'off' || approvalMode === 'review'
-        ? enforcementWrapped
-        : enforcementWrapped.map((t) => {
+        ? verifyCapped
+        : verifyCapped.map((t) => {
           if (!DESTRUCTIVE_TOOLS.has(t.name)) return t;
           const toolAny = t as any;
           const origExecute = toolAny.execute;
@@ -855,7 +1007,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     });
 
   const orderedTools: ToolDefinition[] = assembleOrderedTools(
-    mode === 'plan' ? planCompletionBlocker(filteredTools) : filteredTools,
+    mode === 'plan' ? planCompletionBlocker(filteredTools) : turnTools,
   );
   // PLAN mode: the build-toolset session that executes the plan after
   // approval. Assembled NOW (wrappers close over turn-scoped state) so the

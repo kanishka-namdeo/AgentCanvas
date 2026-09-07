@@ -1,0 +1,104 @@
+[
+  {
+    "target": "analytics-chart",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 9,
+      "layout_structure": 8,
+      "typography": 7,
+      "color_cohesion": 6,
+      "component_polish": 7,
+      "overall_polish": 7,
+      "overall": 7.5
+    },
+    "defects": [
+      "The bar for June ($68K) has a visible white line or artifact at its base, breaking the visual continuity of the chart.",
+      "The color palette is extremely flat and monochromatic, lacking the visual hierarchy expected in a high-fidelity dashboard (e.g., no axis lines, gridlines, or subtle background variations).",
+      "Data labels are placed directly above bars without sufficient padding, making the layout feel slightly cramped."
+    ],
+    "top_fixes": [
+      "Remove the rendering artifact at the base of the June bar to ensure all bars align perfectly with the x-axis.",
+      "Introduce a subtle grid system or axis lines to provide structural context for the data values.",
+      "Add a secondary accent color (e.g., for the highest value) or use a gradient to improve visual interest and data readability."
+    ],
+    "raw": "{\"prompt_fidelity\":9,\"layout_structure\":8,\"typography\":7,\"color_cohesion\":6,\"component_polish\":7,\"overall_polish\":7,\"overall\":7.5,\"defects\":[\"The bar for June ($68K) has a visible white line or artifact at its base, breaking the visual continuity of the chart.\",\"The color palette is extremely flat and monochromatic, lacking the visual hierarchy expected in a high-fidelity dashboard (e.g., no axis lines, gridlines, or subtle background variations).\",\"Data labels are placed directly above bars without sufficient padding, making the layout feel slightly cramped.\"],\"top_fixes\":[\"Remove the rendering artifact at the base of the June bar to ensure all bars align perfectly with the x-axis.\",\"Introduce a subtle grid system or axis lines to provide structural context for the data values.\",\"Add a secondary accent color (e.g., for the highest value) or use a gradient to improve visual interest and data readability.\"]}"
+  },
+  {
+    "target": "data-table",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 9,
+      "layout_structure": 8,
+      "typography": 7,
+      "color_cohesion": 7,
+      "component_polish": 6,
+      "overall_polish": 7,
+      "overall": 7.5
+    },
+    "defects": [
+      "Status badges lack sufficient contrast and padding for accessibility",
+      "Amount column lacks right-alignment (standard financial practice)",
+      "Zebra striping is too subtle and inconsistent with the card background",
+      "Typography hierarchy is flat; headers need more weight/size differentiation"
+    ],
+    "top_fixes": [
+      "Right-align the Amount column to improve data readability",
+      "Increase status badge font weight and background opacity for better visibility",
+      "Add more distinct zebra striping or use horizontal dividers to separate rows clearly",
+      "Increase header font weight or size to establish a clearer visual hierarchy"
+    ],
+    "raw": "{\"prompt_fidelity\":9, \"layout_structure\":8, \"typography\":7, \"color_cohesion\":7, \"component_polish\":6, \"overall_polish\":7, \"overall\":7.5, \"defects\":[\"Status badges lack sufficient contrast and padding for accessibility\",\"Amount column lacks right-alignment (standard financial practice)\",\"Zebra striping is too subtle and inconsistent with the card background\",\"Typography hierarchy is flat; headers need more weight/size differentiation\"], \"top_fixes\":[\"Right-align the Amount column to improve data readability\",\"Increase status badge font weight and background opacity for better visibility\",\"Add more distinct zebra striping or use horizontal dividers to separate rows clearly\",\"Increase header font weight or size to establish a clearer visual hierarchy\"]}"
+  },
+  {
+    "target": "ecommerce-grid",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 8,
+      "layout_structure": 9,
+      "typography": 7,
+      "color_cohesion": 7,
+      "component_polish": 6,
+      "overall_polish": 6,
+      "overall": 7
+    },
+    "defects": [
+      "Product images are replaced by generic icons inside small rounded squares, failing the 'product image area' requirement for a high-fidelity e-commerce look.",
+      "Excessive whitespace between the product details and the 'Add to Cart' button creates poor visual hierarchy and disconnects the action from the product.",
+      "The first product card (Aurora Lamp) is missing its icon entirely, leaving an empty placeholder.",
+      "Lacks visual depth (shadows, hover states, or micro-interactions) expected in high-fidelity designs."
+    ],
+    "top_fixes": [
+      "Replace the icon placeholders with actual high-quality product photography or realistic 3D renders to match the 'high-fidelity' prompt.",
+      "Reduce the internal padding of the cards or move the 'Add to Cart' button closer to the price/description to improve layout density and usability.",
+      "Ensure all four cards have consistent graphical elements (fix the missing Aurora Lamp icon).",
+      "Add subtle card shadows and button hover states to increase the perceived polish and 'high-fidelity' feel."
+    ],
+    "raw": "{\"prompt_fidelity\":8,\"layout_structure\":9,\"typography\":7,\"color_cohesion\":7,\"component_polish\":6,\"overall_polish\":6,\"overall\":7,\"defects\":[\"Product images are replaced by generic icons inside small rounded squares, failing the 'product image area' requirement for a high-fidelity e-commerce look.\",\"Excessive whitespace between the product details and the 'Add to Cart' button creates poor visual hierarchy and disconnects the action from the product.\",\"The first product card (Aurora Lamp) is missing its icon entirely, leaving an empty placeholder.\",\"Lacks visual depth (shadows, hover states, or micro-interactions) expected in high-fidelity designs.\"],\"top_fixes\":[\"Replace the icon placeholders with actual high-quality product photography or realistic 3D renders to match the 'high-fidelity' prompt.\",\"Reduce the internal padding of the cards or move the 'Add to Cart' button closer to the price/description to improve layout density and usability.\",\"Ensure all four cards have consistent graphical elements (fix the missing Aurora Lamp icon).\",\"Add subtle card shadows and button hover states to increase the perceived polish and 'high-fidelity' feel.\"]}"
+  },
+  {
+    "target": "marketing-landing",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 8,
+      "layout_structure": 5,
+      "typography": 6,
+      "color_cohesion": 7,
+      "component_polish": 4,
+      "overall_polish": 4,
+      "overall": 5
+    },
+    "defects": [
+      "Severe text overlap in the hero section where a second headline 'everything you need to monitor your infrastructure' is layered directly over the subheadline and CTA button.",
+      "The primary CTA ('Start Free Trial') lacks visual weight (no background color or border), making it look like plain text rather than an actionable button.",
+      "Feature card descriptions are abruptly truncated at the right edge of the cards, indicating poor container sizing or text wrapping.",
+      "The layout lacks vertical rhythm; the hero section feels cramped while the feature section floats awkwardly without proper spacing or a section header."
+    ],
+    "top_fixes": [
+      "Remove the duplicate overlapping headline and ensure the CTA button has a solid background color (e.g., the brand blue) with sufficient padding.",
+      "Fix the text overflow on the feature cards by adjusting the container width or font size so descriptions are fully visible.",
+      "Add a 'Features' section heading above the three cards to establish a clear visual hierarchy.",
+      "Increase whitespace between the hero and features sections to improve readability and breathing room."
+    ],
+    "raw": "{\"prompt_fidelity\":8,\"layout_structure\":5,\"typography\":6,\"color_cohesion\":7,\"component_polish\":4,\"overall_polish\":4,\"overall\":5,\"defects\":[\"Severe text overlap in the hero section where a second headline 'everything you need to monitor your infrastructure' is layered directly over the subheadline and CTA button.\",\"The primary CTA ('Start Free Trial') lacks visual weight (no background color or border), making it look like plain text rather than an actionable button.\",\"Feature card descriptions are abruptly truncated at the right edge of the cards, indicating poor container sizing or text wrapping.\",\"The layout lacks vertical rhythm; the hero section feels cramped while the feature section floats awkwardly without proper spacing or a section header.\"],\"top_fixes\":[\"Remove the duplicate overlapping headline and ensure the CTA button has a solid background color (e.g., the brand blue) with sufficient padding.\",\"Fix the text overflow on the feature cards by adjusting the container width or font size so descriptions are fully visible.\",\"Add a 'Features' section heading above the three cards to establish a clear visual hierarchy.\",\"Increase whitespace between the hero and features sections to improve readability and breathing room.\"]}"
+  }
+]

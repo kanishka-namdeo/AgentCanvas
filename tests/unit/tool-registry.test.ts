@@ -98,7 +98,7 @@ describe('tool-registry: alias targets exist + snapshot', () => {
     }
   });
 
-  it('snapshots the sorted canonical names (freeze guard — 100 registered tools: 97 + the 3 audit-2026-08-30 composite tools pen_apply_design_system / pen_create_chart / pen_apply_typography)', () => {
+  it('snapshots the sorted canonical names (freeze guard — 103 registered tools: 97 + the 3 audit-2026-08-30 composite tools pen_apply_design_system / pen_create_chart / pen_apply_typography + the 3 oneshot-2026-09-07 composite tools pen_create_card_grid / pen_create_landing_page / pen_create_table)', () => {
     const names = allTools().map((t) => (t as any).name).sort();
     expect(names).toEqual([
       'pen_add_variant', 'pen_align_shapes', 'pen_apply_auto_layout', 'pen_apply_design_system',
@@ -106,10 +106,11 @@ describe('tool-registry: alias targets exist + snapshot', () => {
       'pen_bake_layout', 'pen_bind_variable',
       'pen_boolean_op', 'pen_bring_to_front', 'pen_bulk_update_by_filter', 'pen_clear',
       'pen_clear_pattern_memory', 'pen_combine_as_variants', 'pen_convert_to_component',
-      'pen_copy_as_code', 'pen_create_chart', 'pen_create_component', 'pen_create_component_set',
+      'pen_copy_as_code', 'pen_create_card_grid', 'pen_create_chart', 'pen_create_component', 'pen_create_component_set',
+      'pen_create_landing_page',
       'pen_create_node',
       'pen_create_page', 'pen_create_path', 'pen_create_ref', 'pen_create_section',
-      'pen_create_subtree',
+      'pen_create_subtree', 'pen_create_table',
       'pen_delete_nodes', 'pen_delete_page', 'pen_detach_instance', 'pen_duplicate_nodes',
       'pen_export_json', 'pen_export_pen', 'pen_export_png', 'pen_export_svg', 'pen_find_nodes',
       'pen_find_replace_text', 'pen_generate_copy', 'pen_generate_design_brief',

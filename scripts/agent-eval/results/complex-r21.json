@@ -1,0 +1,225 @@
+{
+  "runs": [
+    {
+      "id": "ecommerce-grid",
+      "prompt": "Design a high-fidelity e-commerce product grid, 4 product cards in a 2x2 layout, each card with a product image area, product name, price, and an Add to Cart button. Products: Aurora Lamp at $89, Drift Speaker at $129, Lumen Desk at $249, Arc Charger at $45.",
+      "startedAt": "2026-09-07T06:12:39.930Z",
+      "durationMs": 225403,
+      "toolCallCount": 23,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          6
+        ],
+        [
+          "pen_apply_auto_layout",
+          5
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          4
+        ],
+        [
+          "pen_apply_variable",
+          2
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_create_card_grid",
+          1
+        ],
+        [
+          "pen_set_variable",
+          1
+        ],
+        [
+          "pen_apply_palette",
+          1
+        ],
+        [
+          "pen_list_variables",
+          1
+        ],
+        [
+          "pen_update_node",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "all 4 product names present",
+          "pass": true,
+          "detail": "all names found"
+        },
+        {
+          "name": "all 4 prices present",
+          "pass": true,
+          "detail": "all prices found"
+        },
+        {
+          "name": "2x2 card lattice",
+          "pass": false,
+          "detail": "cards not arranged in a 2-row x 2-col grid"
+        },
+        {
+          "name": "Add to Cart on each card",
+          "pass": true,
+          "detail": "4 occurrences"
+        },
+        {
+          "name": "4 product image areas",
+          "pass": true,
+          "detail": "9 image-area rects"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "cards have shadows",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 23 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "23 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 11,
+      "failed": 1,
+      "status": "fail",
+      "finalLayerCount": 34,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Featured Products (section title)",
+          "text": "Featured Products"
+        },
+        {
+          "name": "heading",
+          "text": "Aurora Lamp"
+        },
+        {
+          "name": "value",
+          "text": "$89"
+        },
+        {
+          "name": "description",
+          "text": "Warm dimmable desk light"
+        },
+        {
+          "name": "action label",
+          "text": "Add to Cart"
+        },
+        {
+          "name": "heading",
+          "text": "Drift Speaker"
+        },
+        {
+          "name": "value",
+          "text": "$129"
+        },
+        {
+          "name": "description",
+          "text": "Portable Bluetooth speaker"
+        },
+        {
+          "name": "action label",
+          "text": "Add to Cart"
+        },
+        {
+          "name": "heading",
+          "text": "Lumen Desk"
+        },
+        {
+          "name": "value",
+          "text": "$249"
+        },
+        {
+          "name": "description",
+          "text": "Adjustable standing desk"
+        },
+        {
+          "name": "action label",
+          "text": "Add to Cart"
+        },
+        {
+          "name": "heading",
+          "text": "Arc Charger"
+        },
+        {
+          "name": "value",
+          "text": "$45"
+        },
+        {
+          "name": "description",
+          "text": "Fast wireless charger"
+        },
+        {
+          "name": "action label",
+          "text": "Add to Cart"
+        }
+      ],
+      "canvasDump": "download/agent-eval/dumps-r2/ecommerce-grid-r1.canvas.json",
+      "repeat": 1
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "ecommerce-grid",
+      "prompt": "Design a high-fidelity e-commerce product grid, 4 product cards in a 2x2 layout, each card with a product image area, product name, price, and an Add to Cart button. Products: Aurora Lamp at $89, Drift Speaker at $129, Lumen Desk at $249, Arc Charger at $45.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 1,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 23,
+        "min": 23,
+        "max": 23
+      },
+      "durationS": {
+        "mean": 225.403,
+        "min": 225.403,
+        "max": 225.403
+      },
+      "assertionsPassed": 11,
+      "assertionsTotal": 12,
+      "flakyAssertions": [
+        {
+          "name": "2x2 card lattice",
+          "passRate": 0
+        }
+      ],
+      "emptyTurns": 0
+    }
+  ]
+}

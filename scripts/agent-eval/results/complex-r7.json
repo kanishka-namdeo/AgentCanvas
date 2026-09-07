@@ -1,0 +1,274 @@
+{
+  "runs": [
+    {
+      "id": "analytics-chart",
+      "prompt": "Design a high-fidelity analytics dashboard card titled 'Monthly Revenue' containing a bar chart of Jan through Jun revenue — $42K, $48K, $45K, $56K, $61K, $68K — with a month label under each bar.",
+      "startedAt": "2026-09-06T22:44:28.284Z",
+      "durationMs": 101378,
+      "toolCallCount": 9,
+      "toolNames": [
+        [
+          "pen_get_metadata",
+          3
+        ],
+        [
+          "pen_set_variables",
+          2
+        ],
+        [
+          "pen_update_node",
+          2
+        ],
+        [
+          "pen_create_chart",
+          1
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "title + all 6 values present",
+          "pass": false,
+          "detail": "missing: 42, 48, 45, 56, 61, 68"
+        },
+        {
+          "name": "6 month labels present",
+          "pass": true,
+          "detail": "jan-jun found"
+        },
+        {
+          "name": "6-bar chart structure (same width, common baseline, varying heights)",
+          "pass": true,
+          "detail": "6 rects at one baseline, 1 width band(s), 6 distinct heights"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "card has shadow",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 9 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "9 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 9,
+      "failed": 1,
+      "status": "fail",
+      "finalLayerCount": 15,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Monthly Revenue (title)",
+          "text": "Monthly Revenue"
+        },
+        {
+          "name": "Jan (label)",
+          "text": "Jan"
+        },
+        {
+          "name": "Feb (label)",
+          "text": "Feb"
+        },
+        {
+          "name": "Mar (label)",
+          "text": "Mar"
+        },
+        {
+          "name": "Apr (label)",
+          "text": "Apr"
+        },
+        {
+          "name": "May (label)",
+          "text": "May"
+        },
+        {
+          "name": "Jun (label)",
+          "text": "Jun"
+        }
+      ],
+      "canvasDump": "download/agent-eval/dumps/analytics-chart-r1.canvas.json",
+      "repeat": 1
+    },
+    {
+      "id": "marketing-landing",
+      "prompt": "Design a high-fidelity SaaS landing page for 'Nimbus', a cloud monitoring tool: a navbar with the Nimbus logo, a hero section with the headline 'Monitor your cloud in real time', a short subheadline, and a Start Free Trial primary button, a features section with 3 feature cards, and a footer with a copyright line.",
+      "startedAt": "2026-09-06T22:46:19.667Z",
+      "durationMs": 342026,
+      "toolCallCount": 30,
+      "toolNames": [
+        [
+          "pen_update_node",
+          21
+        ],
+        [
+          "pen_get_metadata",
+          4
+        ],
+        [
+          "pen_create_subtree",
+          2
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          2
+        ],
+        [
+          "pen_set_variables",
+          1
+        ]
+      ],
+      "assertions": [
+        {
+          "name": "brand + headline + CTA present",
+          "pass": true,
+          "detail": "all key strings found"
+        },
+        {
+          "name": "brand repeated (navbar + footer/hero)",
+          "pass": true,
+          "detail": "2 occurrences of Nimbus"
+        },
+        {
+          "name": "3 feature cards in a row",
+          "pass": true,
+          "detail": "3 candidates, bands=[[160,3]]"
+        },
+        {
+          "name": "landing page = stacked sections",
+          "pass": true,
+          "detail": "6 wide sections, 6 vertical bands"
+        },
+        {
+          "name": "colorful (hi-fi)",
+          "pass": true,
+          "detail": "3+ saturated layers"
+        },
+        {
+          "name": "shadows present",
+          "pass": true,
+          "detail": "shadow present"
+        },
+        {
+          "name": "realistic copy (no placeholders)",
+          "pass": true,
+          "detail": "no placeholder text"
+        },
+        {
+          "name": "no failed tool calls",
+          "pass": true,
+          "detail": "all 30 tool calls succeeded"
+        },
+        {
+          "name": "no duplicate consecutive calls",
+          "pass": true,
+          "detail": "no repeated identical calls"
+        },
+        {
+          "name": "reasonable tool-call count",
+          "pass": true,
+          "detail": "30 tool calls"
+        },
+        {
+          "name": "no agent errors",
+          "pass": true,
+          "detail": "clean turn"
+        }
+      ],
+      "passed": 11,
+      "failed": 0,
+      "status": "pass",
+      "finalLayerCount": 33,
+      "emptyTurn": false,
+      "canvasDump": "download/agent-eval/dumps/marketing-landing-r1.canvas.json",
+      "repeat": 1
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "analytics-chart",
+      "prompt": "Design a high-fidelity analytics dashboard card titled 'Monthly Revenue' containing a bar chart of Jan through Jun revenue — $42K, $48K, $45K, $56K, $61K, $68K — with a month label under each bar.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 1,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 9,
+        "min": 9,
+        "max": 9
+      },
+      "durationS": {
+        "mean": 101.378,
+        "min": 101.378,
+        "max": 101.378
+      },
+      "assertionsPassed": 9,
+      "assertionsTotal": 10,
+      "flakyAssertions": [
+        {
+          "name": "title + all 6 values present",
+          "passRate": 0
+        }
+      ],
+      "emptyTurns": 0
+    },
+    {
+      "id": "marketing-landing",
+      "prompt": "Design a high-fidelity SaaS landing page for 'Nimbus', a cloud monitoring tool: a navbar with the Nimbus logo, a hero section with the headline 'Monitor your cloud in real time', a short subheadline, and a Start Free Trial primary button, a features section with 3 feature cards, and a footer with a copyright line.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 1,
+      "statusSpread": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0
+      },
+      "toolCalls": {
+        "mean": 30,
+        "min": 30,
+        "max": 30
+      },
+      "durationS": {
+        "mean": 342.026,
+        "min": 342.026,
+        "max": 342.026
+      },
+      "assertionsPassed": 11,
+      "assertionsTotal": 11,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    }
+  ]
+}

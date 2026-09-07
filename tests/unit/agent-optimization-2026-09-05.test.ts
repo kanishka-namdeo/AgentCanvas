@@ -375,7 +375,12 @@ describe('2026-09-05: system prompt optimization', () => {
 describe('2026-09-05: temperature reaches the custom endpoint model', () => {
   it('buildCustomEndpointModel declares samplingParams and the resolver passes settings.temperature', () => {
     const resolverSrc = readFileSync(join(process.cwd(), 'src/lib/agent/pi-ai-model-resolver.ts'), 'utf-8');
-    expect(resolverSrc).toContain('samplingParams: { temperature }');
+    // 2026-09-07 (Qwen3.7 BETA tuning): samplingParams now carries the
+    // recommended Qwen3.7 shape — temperature + top_p 0.8 + thinking-off
+    // (both via the field and chat_template_kwargs).
+    expect(resolverSrc).toContain(
+      'samplingParams: { temperature, top_p: 0.8, enable_thinking: false, chat_template_kwargs: { enable_thinking: false } }',
+    );
     expect(resolverSrc).toContain('buildCustomEndpointModel(customBaseUrl, modelId, userTemperature)');
     // Temperature participates in the resolved-model cache key (no stale Model).
     expect(resolverSrc).toContain("::${userTemperature ?? 'default'}");
@@ -412,8 +417,9 @@ describe('2026-09-05.3: multi-shot conversation history (source invariants)', ()
   it('route journals the turn diff summary on agent:turn_final', () => {
     expect(routeSrc).toContain('patchToOpRecord');
     expect(routeSrc).toContain('diffSummary: formatDiffSummary(summarizeTurnDiff(turnPatchRecords))');
-    // Only SANITIZED patches count toward the diff (dropped patches excluded).
-    expect(routeSrc).toMatch(/const diffRec = patchToOpRecord\(sanitized\);\s*\n\s*if \(diffRec\) turnPatchRecords\.push\(diffRec\);/);
+    // Only POLISHED patches count toward the diff (sanitizer + one-shot
+    // polish + dropped patches excluded — 2026-09-07 tuning).
+    expect(routeSrc).toMatch(/const diffRec = patchToOpRecord\(polished\);\s*\n\s*if \(diffRec\) turnPatchRecords\.push\(diffRec\);/);
   });
 
   it('brief-first gating is skipped on non-empty canvases (multi-shot style drift fix)', () => {

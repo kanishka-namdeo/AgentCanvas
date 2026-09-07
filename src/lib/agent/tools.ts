@@ -882,6 +882,64 @@ export function applyTextOverrides(
   return applied;
 }
 
+// ---- Composite-tool output protection (2026-09-07 complex-scenario r2) ------
+//
+// Failure mode (observed in evals r20/r21/r25 and a live patch capture): after
+// pen_create_table / pen_create_card_grid / pen_create_chart / pen_create_
+// landing_page build a correctly-computed 2D subtree, the model "tidies" it
+// with pen_update_node {autoLayout:{vertical}} or pen_apply_auto_layout — the
+// resolver then re-flows ALL children in ARRAY ORDER (stacking a table's cells
+// into a vertical list, collapsing a 2x2 grid into a 4-stack). The prompt's
+// COMPOSITE OUTPUT IS STABLE rule reduces this, but prompts are advisory.
+//
+// Deterministic enforcement: composite tools stamp their structural frames
+// with metadata.composite = true; pen_update_node / pen_apply_auto_layout /
+// pen_bulk_update_by_filter REFUSE to set autoLayout/layout on stamped nodes
+// and return an actionable error instead. The stamp rides the `metadata`
+// passthrough (toPenNodePartial keeps it; normalizeToNode spreads it).
+
+/// Stamp a subtree node as composite-tool output (call on the emitted shape).
+function stampComposite<T extends Record<string, unknown>>(shape: T): T {
+  return { ...shape, metadata: { ...(shape.metadata as Record<string, unknown> | undefined ?? {}), composite: true } };
+}
+
+/// True when the pen node with this id carries the composite stamp. Looks the
+/// node up in the LIVE document tree (ctx.getDocument) — resolved Shape[]
+/// don't carry passthrough metadata.
+function isCompositePenNode(id: string | undefined, ctx: CanvasToolContext): boolean {
+  if (!id) return false;
+  const doc = ctx.getDocument?.() as { children?: unknown[] } | undefined;
+  if (!doc || !Array.isArray(doc.children)) return false;
+  const stack: unknown[] = [...doc.children];
+  while (stack.length > 0) {
+    const n = stack.pop() as Record<string, unknown> | null;
+    if (!n || typeof n !== 'object') continue;
+    if (n.id === id) {
+      const meta = n.metadata as Record<string, unknown> | undefined;
+      return meta?.composite === true;
+    }
+    if (Array.isArray(n.children)) stack.push(...(n.children as unknown[]));
+  }
+  return false;
+}
+
+/// Does a changes payload attempt to set auto-layout (either the legacy
+/// autoLayout object or the .pen layout string)?
+function changesSetAutoLayout(changes: Record<string, unknown> | null | undefined): boolean {
+  if (!changes || typeof changes !== 'object') return false;
+  return changes.autoLayout !== undefined || changes.layout !== undefined;
+}
+
+const COMPOSITE_LAYOUT_REFUSAL =
+  'This container is COMPOSITE TOOL OUTPUT (pen_create_table / pen_create_chart / ' +
+  'pen_create_card_grid / pen_create_landing_page): its children are absolutely ' +
+  'positioned with computed 2D geometry. Applying Auto Layout would re-flow them ' +
+  'in array order and DESTROY the layout (table cells collapse into a vertical list, ' +
+  'grids collapse into stacks). The geometry is final — edit CONTENT (text, colors, ' +
+  'a single node) instead. If the user truly wants a different arrangement, delete ' +
+  'the subtree and re-create it with the composite tool (e.g. pen_create_card_grid ' +
+  'columns:1).';
+
 export function createCanvasTools(ctx: CanvasToolContext) {
   // =====================================================================
   // CORE CANVAS OPS (existing)
@@ -1602,6 +1660,17 @@ const createShape = defineTool({
         const { nodeId: _n, shapeId: _s, id: _i, changes: _c, ...rest } = params as any;
         rawChanges = rest;
       }
+      // Composite-output guard (2026-09-07): refuse autoLayout/layout changes
+      // on composite-tool subtree roots — re-flowing destroys the computed 2D
+      // geometry (table cells stack into a list, grids collapse). See the
+      // protection block near createCanvasTools for the full rationale.
+      if (changesSetAutoLayout(rawChanges as Record<string, unknown>) && isCompositePenNode(shapeId, ctx)) {
+        return {
+          content: [{ type: 'text', text: `Error: refusing to set Auto Layout on "${existing.name}" — ${COMPOSITE_LAYOUT_REFUSAL}` }],
+          details: { error: 'composite_layout_refused', nodeId: shapeId },
+          isError: true as any,
+        };
+      }
       // Figma-hierarchy safety net: the LLM may pass `parent` or `parentId`
       // in the changes (a natural intuition — pen.dev uses `parent`). The
       // update patch applier silently DROPS this field because ShapeInputSchema
@@ -2188,6 +2257,17 @@ const createShape = defineTool({
         return {
           content: [{ type: 'text', text: `Error: no frame with id ${params.frameId}` }],
           details: { error: 'not_found' },
+          isError: true as any,
+        };
+      }
+      // Composite-output guard (2026-09-07): applying Auto Layout to a
+      // composite-tool subtree re-flows its computed 2D geometry in array
+      // order — table cells stack into a list, 2x2 grids collapse into
+      // 4-stacks (eval-observed r21/r25). Refuse with an actionable error.
+      if (isCompositePenNode(params.frameId, ctx)) {
+        return {
+          content: [{ type: 'text', text: `Error: refusing Auto Layout on "${frame.name}" — ${COMPOSITE_LAYOUT_REFUSAL}` }],
+          details: { error: 'composite_layout_refused', frameId: params.frameId },
           isError: true as any,
         };
       }
@@ -4668,6 +4748,20 @@ const createShape = defineTool({
         };
       }
       const updates = matches.map((s) => ({ id: s.id, changes: coerced }));
+      // Composite-output guard (2026-09-07): a bulk autoLayout change would
+      // re-flow composite-tool subtrees (tables/charts/grids/landing
+      // sections) in array order and destroy their computed geometry. Skip
+      // stamped nodes and say so — the model self-corrects to content edits.
+      if (changesSetAutoLayout(coerced as Record<string, unknown>)) {
+        const blocked = matches.filter((s) => isCompositePenNode(s.id, ctx));
+        if (blocked.length > 0) {
+          return {
+            content: [{ type: 'text', text: `Skipped ${blocked.length} composite-tool container(s) (${blocked.slice(0, 3).map((s) => `"${s.name}"`).join(', ')}${blocked.length > 3 ? ', …' : ''}) — ${COMPOSITE_LAYOUT_REFUSAL}` }],
+            details: { error: 'composite_layout_refused', blocked: blocked.map((s) => s.id), count: blocked.length },
+            isError: true as any,
+          };
+        }
+      }
       const patch: CanvasPatch = { op: 'update_many', updates, summary: `Bulk-updated ${matches.length} shape(s): ${Object.keys(coerced).join(', ')}` };
       ctx.applyPatch(patch);
       const guardNote = excludedCount > 0 ? ` (${excludedCount} prior-turn node(s) excluded by scope guard)` : '';
@@ -5858,6 +5952,9 @@ const createShape = defineTool({
       height: Type.Optional(Type.Number({ description: 'Card height in px (default 280).' })),
       color: Type.Optional(Type.String({ description: 'Data-series hex color (default #0ea5e9). Use $color.primary when tokens exist.' })),
       horizontal: Type.Optional(Type.Boolean({ description: 'bar only: draw horizontal bars (default false).' })),
+      valuePrefix: Type.Optional(Type.String({ description: 'Prefix rendered before each value label (e.g. "$"). Values are ALWAYS labeled — the numbers are content.' })),
+      valueSuffix: Type.Optional(Type.String({ description: 'Suffix rendered after each value label (e.g. "K", "%", "ms").' })),
+      highlightIndex: Type.Optional(Type.Number({ description: 'bar only: 0-based data index to highlight with $color.accent (the peak / current month — one focal bar).' })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const W = Math.max(240, params.width ?? 420);
@@ -5866,6 +5963,7 @@ const createShape = defineTool({
       const data = params.data.slice(0, 24);
       const values = data.map((d) => Number(d.value) || 0);
       const maxV = Math.max(...values, 1);
+      const fmt = (v: number): string => `${params.valuePrefix ?? ''}${v}${params.valueSuffix ?? ''}`;
       const children: Array<Record<string, unknown>> = [];
 
       // Title.
@@ -5887,18 +5985,61 @@ const createShape = defineTool({
             const w = Math.max(2, (Number(d.value) / maxV) * (plotW - 120));
             children.push({ type: 'text', name: `${d.label} (label)`, x: 24, y: y + rowH / 2 - 8, width: 90, height: 16, fontSize: 12, text: d.label, textColor: '$color.text-muted' });
             children.push({ type: 'rectangle', name: `${d.label} bar`, x: 120, y, width: w, height: rowH, fill: series, radius: 4 });
-            children.push({ type: 'text', name: `${d.label} value`, x: 124 + w, y: y + rowH / 2 - 8, width: 56, height: 16, fontSize: 12, fontWeight: 600, text: String(d.value), textColor: '$color.text' });
+            children.push({ type: 'text', name: `${d.label} value`, x: 124 + w, y: y + rowH / 2 - 8, width: 56, height: 16, fontSize: 12, fontWeight: 600, text: fmt(Number(d.value)), textColor: '$color.text' });
           });
         } else {
-          const barW = Math.max(8, (plotW - (n - 1) * gap) / n);
+          // 2026-09-07 r2: a bare bar chart with no scale reads as decoration,
+          // not data (VLM r1's #1 defect: "impossible to verify values — no
+          // Y-axis or gridlines"). Vertical bars now get a left Y-AXIS GUTTER
+          // with tick labels at 100/75/50/25% of max, 4 gridlines + baseline,
+          // and value labels above bars (n <= 12). Geometry is computed so
+          // bar height stays linear in value (data-ink honesty) and all
+          // gridlines sit BEHIND bars (baseline drawn after bars left a
+          // visible line across the bar bases — VLM-judged artifact).
+          const AXIS_W = 40; // left gutter for y-tick labels
+          const plotX = 24 + AXIS_W;
+          const barPlotW = plotW - AXIS_W;
+          const barW = Math.max(8, (barPlotW - (n - 1) * gap) / n);
+          const showValues = n <= 12;
+          const headroom = showValues ? 18 : 6;
+          const barAreaH = plotH - headroom;
+          // Tick label: compact value at fraction g of max (skip 0 — the
+          // baseline is visually implied; 4 ticks max keeps it calm).
+          const tickText = (g: number): string => {
+            const v = maxV * g;
+            const rounded = v >= 100 ? Math.round(v) : Math.round(v * 10) / 10;
+            return fmt(rounded);
+          };
+          // Gridlines at 25/50/75/100% + y-tick labels, BEHIND bars.
+          for (const g of [0.25, 0.5, 0.75, 1]) {
+            children.push({ type: 'rectangle', name: `gridline ${(g * 100).toFixed(0)}%`, x: plotX, y: top + plotH - barAreaH * g, width: barPlotW, height: 1, fill: '$color.border' });
+            children.push({ type: 'text', name: `y-tick ${(g * 100).toFixed(0)}%`, x: 24, y: top + plotH - barAreaH * g - 7, width: AXIS_W - 6, height: 14, fontSize: 10, textAlign: 'right', text: tickText(g), textColor: '$color.text-muted' });
+          }
+          children.push({ type: 'rectangle', name: 'x-axis', x: plotX, y: top + plotH, width: barPlotW, height: 1, fill: '$color.border' });
+          // Auto-highlight the peak bar (focal point) when no explicit index.
+          const maxIdx = values.indexOf(Math.max(...values));
+          const highlight = params.highlightIndex ?? (n >= 4 ? maxIdx : -1);
           data.forEach((d, i) => {
-            const h = Math.max(2, (Number(d.value) / maxV) * (plotH - 20));
-            const x = 24 + i * (barW + gap);
-            children.push({ type: 'rectangle', name: `${d.label} bar`, x, y: top + plotH - h, width: barW, height: h, fill: series, radius: 4 });
+            const h = Math.max(2, (Number(d.value) / maxV) * barAreaH);
+            const x = plotX + i * (barW + gap);
+            const highlighted = highlight === i;
+            children.push({
+              type: 'rectangle',
+              name: `${d.label} bar`,
+              x, y: top + plotH - h, width: barW, height: h,
+              fill: highlighted ? '$color.accent' : series,
+              radius: 4,
+            });
+            if (showValues) {
+              children.push({
+                type: 'text', name: `${d.label} value`,
+                x: x - 8, y: top + plotH - h - 18, width: barW + 16, height: 14,
+                fontSize: 11, fontWeight: 600, textAlign: 'center',
+                text: fmt(Number(d.value)), textColor: highlighted ? '$color.accent' : '$color.text',
+              });
+            }
             children.push({ type: 'text', name: `${d.label} (label)`, x: x - 8, y: top + plotH + 8, width: barW + 16, height: 14, fontSize: 11, textAlign: 'center', text: d.label, textColor: '$color.text-muted' });
           });
-          // Baseline.
-          children.push({ type: 'rectangle', name: 'x-axis', x: 24, y: top + plotH, width: plotW, height: 1, fill: '$color.border' });
         }
       } else if (params.type === 'line') {
         const n = data.length;
@@ -5952,10 +6093,12 @@ const createShape = defineTool({
       // (a sibling `patch.nodes` field is silently dropped). The root must
       // NOT use autoLayout: chart geometry is absolutely positioned, and an
       // auto-layout parent would restack area/line/points into a column.
+      // metadata.composite: update paths refuse autoLayout changes on this
+      // subtree (see the composite protection block above).
       const patch: CanvasPatch = {
         op: 'add_subtree',
         shapeId: id,
-        shape: {
+        shape: stampComposite({
           id,
           type: 'frame',
           name: `${params.title ?? params.type} chart`,
@@ -5969,7 +6112,7 @@ const createShape = defineTool({
           radius: 12,
           shadow: { x: 0, y: 1, blur: 2, color: '#0000000d' },
           children,
-        },
+        }),
         summary: `Created ${params.type} chart${params.title ? ` "${params.title}"` : ''} (${data.length} points, ${children.length} nodes)`,
       } as any;
       ctx.applyPatch(patch);
@@ -5978,6 +6121,513 @@ const createShape = defineTool({
         // details.patch is what the session translator fans out to clients /
         // the journal — omitting it silently loses the whole subtree.
         details: { patch, frameId: id, childCount: children.length, type: params.type },
+      };
+    },
+  });
+
+  const createTable = defineTool({
+    name: 'pen_create_table',
+    label: 'Create Data Table',
+    description:
+      'Create a complete data-table card in ONE call: container card (radius 12, border, shadow), optional title row with a ' +
+      'ghost action button, uppercase column headers, N data rows with 1px dividers, and optional per-cell STATUS color-coding ' +
+      'rendered as tinted pill badges. Replaces ~25 hand-assembled calls — use it for transactions, orders, users, invoices, ' +
+      'and any list-with-columns request.',
+    promptSnippet: 'Create a styled data table from columns + rows in one call.',
+    parameters: Type.Object({
+      title: Type.Optional(Type.String({ description: 'Table title (e.g. "Recent Transactions"). Rendered 16px/600 at the card top.' })),
+      action: Type.Optional(Type.String({ description: 'Ghost button label at the title row right (e.g. "Export CSV"). Omit for none.' })),
+      columns: Type.Array(Type.Object({
+        header: Type.String({ description: 'Column header text (rendered uppercase).' }),
+        align: Type.Optional(Type.Union([Type.Literal('left'), Type.Literal('right'), Type.Literal('center')], { description: 'Cell alignment (default left; amounts → right).' })),
+        width: Type.Optional(Type.Number({ description: 'Relative column width (default: equal). The largest width fills the remaining card width.' })),
+      }), { minItems: 2, maxItems: 8, description: 'Column definitions.' }),
+      rows: Type.Array(Type.Array(Type.Object({
+        text: Type.String({ description: 'Cell text (realistic copy — the content).' }),
+        status: Type.Optional(Type.Union([
+          Type.Literal('success'), Type.Literal('warning'), Type.Literal('danger'), Type.Literal('info'), Type.Literal('muted'),
+        ], { description: 'Render this cell as a tinted pill badge: success=green, warning=amber, danger=rose, info=blue, muted=gray.' })),
+      })), { minItems: 1, maxItems: 12, description: 'Data rows; each row has exactly one cell per column, in order.' }),
+      x: Type.Number({ description: 'Canvas-space X for the card.' }),
+      y: Type.Number({ description: 'Canvas-space Y for the card.' }),
+      width: Type.Optional(Type.Number({ description: 'Card width in px (default 640).' })),
+      rowHeight: Type.Optional(Type.Number({ description: 'Data row height (default 44).' })),
+      zebra: Type.Optional(Type.Boolean({ description: 'Subtle alternating row tint for readability (default true). Pass false for divider-only rows.' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const W = Math.max(360, params.width ?? 640);
+      const rowH = Math.min(72, Math.max(32, params.rowHeight ?? 44));
+      const PAD = 24;
+      const cols = params.columns.slice(0, 8);
+      const rows = params.rows.slice(0, 12);
+      // Status pill palette — literal hex (deterministic, token-independent).
+      const STATUS: Record<string, { bg: string; fg: string }> = {
+        success: { bg: '#ecfdf5', fg: '#059669' },
+        warning: { bg: '#fffbeb', fg: '#b45309' },
+        danger: { bg: '#fef2f2', fg: '#be123c' },
+        info: { bg: '#eff6ff', fg: '#2563eb' },
+        muted: { bg: '#f1f5f9', fg: '#475569' },
+      };
+
+      const children: Array<Record<string, unknown>> = [];
+      let cy = PAD;
+
+      // Title row.
+      if (params.title) {
+        children.push({ type: 'text', name: `${params.title} (title)`, x: PAD, y: cy, width: W - PAD * 2 - (params.action ? 130 : 0), height: 24, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, text: params.title, textColor: '$color.text' });
+        if (params.action) {
+          children.push({ type: 'rectangle', name: `${params.action} (ghost button)`, x: W - PAD - 110, y: cy - 4, width: 110, height: 28, radius: 8, fill: 'none', stroke: '$color.border', strokeWidth: 1 });
+          children.push({ type: 'text', name: `${params.action} (button label)`, x: W - PAD - 110, y: cy + 1, width: 110, height: 18, fontSize: 12, fontWeight: 500, textAlign: 'center', text: params.action, textColor: '$color.text-muted' });
+        }
+        cy += 40;
+      }
+
+      // Column x-offsets from relative widths (equal by default).
+      const relW = cols.map((c) => Math.max(0.2, c.width ?? 1));
+      const totalRel = relW.reduce((a, b) => a + b, 0);
+      const contentW = W - PAD * 2;
+      let cx = PAD;
+      const colX: number[] = [];
+      const colW: number[] = [];
+      for (const r of relW) {
+        colX.push(cx);
+        const w = (r / totalRel) * contentW;
+        colW.push(w);
+        cx += w;
+      }
+
+      // Header row (uppercase micro-labels; weight 700 for VLM-judged
+      // hierarchy). Financial-ish columns auto-right-align (amount/price/…) —
+      // the industry convention the model forgets to pass.
+      const autoAlign = (header: string, firstCell?: string): 'left' | 'right' => {
+        const h = header.toLowerCase();
+        if (/amount|price|total|cost|balance|value|revenue|spend/.test(h)) return 'right';
+        if (firstCell && /^[+$\u2212-]/.test(firstCell)) return 'right';
+        return 'left';
+      };
+      cols.forEach((c, i) => {
+        const align = c.align ?? autoAlign(c.header, rows[0]?.[i]?.text);
+        children.push({
+          type: 'text', name: `header ${c.header}`,
+          x: colX[i], y: cy + 8, width: colW[i], height: 14,
+          fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
+          textAlign: align,
+          text: c.header.toUpperCase(), textColor: '$color.text-muted',
+        });
+        (c as { _align?: 'left' | 'right' | 'center' })._align = align;
+      });
+      cy += 36;
+
+      // Data rows + dividers (+ subtle zebra tint for scan-ability).
+      rows.forEach((row, rIdx) => {
+        if (params.zebra !== false && rIdx % 2 === 1) {
+          children.push({ type: 'rectangle', name: `zebra r${rIdx}`, x: 0, y: cy, width: W, height: rowH, fill: '#f1f5f9' });
+        }
+        row.slice(0, cols.length).forEach((cell, i) => {
+          const align = (cols[i] as { _align?: 'left' | 'right' | 'center' })._align ?? cols[i].align ?? 'left';
+          if (cell.status && STATUS[cell.status]) {
+            const st = STATUS[cell.status];
+            const pillW = Math.max(64, Math.min(96, colW[i] - 8));
+            children.push({ type: 'rectangle', name: `r${rIdx} c${i} pill`, x: colX[i], y: cy + (rowH - 24) / 2, width: pillW, height: 24, radius: 9999, fill: st.bg });
+            children.push({
+              type: 'text', name: `r${rIdx} c${i}`, x: colX[i], y: cy + (rowH - 24) / 2 + 5, width: pillW, height: 16,
+              fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textAlign: 'center',
+              text: cell.text, textColor: st.fg,
+            });
+          } else {
+            children.push({
+              type: 'text', name: `r${rIdx} c${i}`,
+              x: colX[i], y: cy + (rowH - 18) / 2, width: colW[i] - 8, height: 18,
+              fontSize: 14, fontWeight: 400, textAlign: align,
+              text: cell.text, textColor: '$color.text',
+            });
+          }
+        });
+        cy += rowH;
+        if (rIdx < rows.length - 1) {
+          children.push({ type: 'rectangle', name: `divider r${rIdx}`, x: PAD, y: cy - 1, width: contentW, height: 1, fill: '$color.border' });
+        }
+      });
+
+      const H = cy + PAD;
+      const id = crypto.randomUUID();
+      // add_subtree contract: children nested under shape.children; root is
+      // absolutely positioned (no autoLayout — table geometry is computed).
+      // metadata.composite: the update paths refuse autoLayout changes on
+      // this subtree (see the composite protection block above).
+      const patch: CanvasPatch = {
+        op: 'add_subtree',
+        shapeId: id,
+        shape: stampComposite({
+          id,
+          type: 'frame',
+          name: `${params.title ?? 'Data'} table`,
+          x: Number(params.x) || 0,
+          y: Number(params.y) || 0,
+          width: W,
+          height: H,
+          fill: '$color.surface',
+          stroke: '$color.border',
+          strokeWidth: 1,
+          radius: 12,
+          shadow: { x: 0, y: 1, blur: 2, color: '#0000000d' },
+          children,
+        }),
+        summary: `Created data table${params.title ? ` "${params.title}"` : ''} (${cols.length} columns × ${rows.length} rows, ${children.length} nodes)`,
+      } as any;
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Created a data table card at (${params.x}, ${params.y}), ${W}x${H} — ${cols.length} columns × ${rows.length} rows (${children.length} child nodes) under frame id=${id}. Refine cells with pen_update_node { nodeId, changes }.` }],
+        details: { patch, frameId: id, childCount: children.length, type: 'table' },
+      };
+    },
+  });
+
+  const createCardGrid = defineTool({
+    name: 'pen_create_card_grid',
+    label: 'Create Card Grid',
+    description:
+      'Create a complete grid of styled cards in ONE call: N cards in a responsive column layout (product grids, ' +
+      'pricing tiers, feature trios, KPI rows). Each card: optional tinted-gradient image area with icon, heading, ' +
+      'big value (price/KPI), description, optional badge pill, and optional full-width action button. ' +
+      'Card container styling (radius 12, border, shadow sm, $color.surface) is applied automatically. ' +
+      'Replaces the 20-30 call hand-assembly that times out — use it whenever the request describes N similar cards.',
+    promptSnippet: 'Create a styled grid of cards (product/pricing/feature/KPI) in one call.',
+    parameters: Type.Object({
+      title: Type.Optional(Type.String({ description: 'Section title above the grid (e.g. "Featured Products"). 18px/600.' })),
+      cards: Type.Array(Type.Object({
+        heading: Type.String({ description: 'Card heading — product name, plan name, or KPI label.' }),
+        value: Type.Optional(Type.String({ description: 'Big value line — price or KPI value (e.g. "$89"). Rendered 22px/700 in $color.primary.' })),
+        description: Type.Optional(Type.String({ description: 'Muted description line under the heading (13px/400).' })),
+        badge: Type.Optional(Type.String({ description: 'Badge pill text (e.g. "Most Popular", "+12.5%").' })),
+        badgeTone: Type.Optional(Type.Union([
+          Type.Literal('primary'), Type.Literal('success'), Type.Literal('warning'), Type.Literal('danger'), Type.Literal('info'), Type.Literal('muted'),
+        ], { description: 'Badge tint (default primary).' })),
+        icon: Type.Optional(Type.String({ description: 'Lucide icon name for the icon tile / image area center.' })),
+        action: Type.Optional(Type.String({ description: 'Full-width action button label (e.g. "Add to Cart").' })),
+        image: Type.Optional(Type.Boolean({ description: 'Add a tinted-gradient image area (180px) at the card top. Default false.' })),
+      }), { minItems: 1, maxItems: 8, description: 'Card specs (1-8 cards).' }),
+      columns: Type.Optional(Type.Number({ description: 'Cards per row (default: 3, or cards.length when fewer).' })),
+      x: Type.Number({ description: 'Canvas-space X for the grid.' }),
+      y: Type.Number({ description: 'Canvas-space Y for the grid.' }),
+      width: Type.Optional(Type.Number({ description: 'Total grid width in px (default 800).' })),
+      cardHeight: Type.Optional(Type.Number({ description: 'Card height in px (default 300, min 180).' })),
+      gap: Type.Optional(Type.Number({ description: 'Gap between cards (default 24).' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const cards = params.cards.slice(0, 8);
+      const cols = Math.max(1, Math.min(8, params.columns ?? Math.min(3, cards.length)));
+      const W = Math.max(320, params.width ?? 800);
+      const GAP = Math.min(48, Math.max(12, params.gap ?? 24));
+      const cardW = (W - (cols - 1) * GAP) / cols;
+      const PAD = 20;
+      // Content-driven card height: the earlier fixed default (300) collided
+      // with bottom-anchored action buttons on image cards (image 180 + text
+      // stack 100+ > 300 - 58). Compute per-card need, take the max, and
+      // never shrink below the requested height.
+      const needH = (card: (typeof cards)[number]): number => {
+        let h = card.image ? 180 + 16 : card.icon ? PAD + 48 + 12 : PAD;
+        h += 30; // heading
+        if (card.value) h += 38;
+        if (card.description) h += 26;
+        if (card.action) h += 58;
+        return h + PAD;
+      };
+      const contentNeed = Math.max(...cards.map(needH));
+      const cardH = Math.max(180, params.cardHeight ?? 300, contentNeed);
+      const TONE: Record<string, { bg: string; fg: string }> = {
+        primary: { bg: '#eff6ff', fg: '#2563eb' },
+        success: { bg: '#ecfdf5', fg: '#059669' },
+        warning: { bg: '#fffbeb', fg: '#b45309' },
+        danger: { bg: '#fef2f2', fg: '#be123c' },
+        info: { bg: '#eff6ff', fg: '#2563eb' },
+        muted: { bg: '#f1f5f9', fg: '#475569' },
+      };
+
+      const children: Array<Record<string, unknown>> = [];
+      const rows = Math.ceil(cards.length / cols);
+      const gridH = rows * cardH + (rows - 1) * GAP;
+
+      // 2026-09-07 r2: the image-area gradient previously emitted raw
+      // '$color.primary-100' / '$color.accent-100' token refs — tints the
+      // model often never defines, leaving unresolved_variable warnings and
+      // a garbage-colored rect. Resolve them NOW against the session's
+      // variables; when a tint is undefined, derive it deterministically
+      // from the base token (mix toward white) so the gradient always
+      // renders as a calm tinted stand-in for a product photo.
+      const docVars = (ctx.getDocument?.() as { variables?: Record<string, { value?: unknown }> } | undefined)?.variables ?? {};
+      const mixTowardWhite = (hex: string, t: number): string => {
+        const m = hex.replace('#', '');
+        if (m.length !== 6) return hex;
+        const ch = [0, 2, 4].map((i) => parseInt(m.slice(i, i + 2), 16));
+        const mixed = ch.map((c) => Math.round(c + (255 - c) * t));
+        return `#${mixed.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+      };
+      const tokenTint = (tintName: string, baseName: string): string => {
+        for (const key of [`color.${tintName}`, tintName]) {
+          const v = docVars[key]?.value;
+          if (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)) return v;
+        }
+        for (const key of [`color.${baseName}`, baseName]) {
+          const v = docVars[key]?.value;
+          if (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)) return mixTowardWhite(v, 0.86);
+        }
+        return tintName.startsWith('accent') ? '#ffe4e6' : '#e0f2fe';
+      };
+      const imgTintA = tokenTint('primary-100', 'primary');
+      const imgTintB = tokenTint('accent-100', 'accent');
+
+      cards.forEach((card, idx) => {
+        const col = idx % cols;
+        const row = Math.floor(idx / cols);
+        const cx = col * (cardW + GAP);
+        const cy = row * (cardH + GAP);
+        const cardKids: Array<Record<string, unknown>> = [];
+        let cursorY = 0;
+        // Image area (tinted gradient — reads as an intentional stand-in).
+        if (card.image) {
+          cardKids.push({
+            type: 'rectangle', name: 'image area',
+            x: 0, y: 0, width: cardW, height: 180,
+            radii: { topLeft: 12, topRight: 12, bottomRight: 0, bottomLeft: 0 },
+            gradient: { type: 'linear', angle: 135, stops: [{ offset: 0, color: imgTintA }, { offset: 1, color: imgTintB }] },
+          });
+          if (card.icon) {
+            cardKids.push({ type: 'icon', name: 'image icon', icon: card.icon, x: (cardW - 56) / 2, y: (180 - 56) / 2, width: 56, height: 56, stroke: '$color.primary', strokeWidth: 1.5 });
+          }
+          cursorY = 180 + 16;
+        } else if (card.icon) {
+          // Icon tile lead-in.
+          cardKids.push({ type: 'rectangle', name: 'icon tile', x: PAD, y: PAD, width: 48, height: 48, radius: 12, fill: '$color.primary-50' });
+          cardKids.push({ type: 'icon', name: 'tile icon', icon: card.icon, x: PAD + 12, y: PAD + 12, width: 24, height: 24, stroke: '$color.primary', strokeWidth: 2 });
+          cursorY = PAD + 48 + 12;
+        } else {
+          cursorY = PAD;
+        }
+        // Badge pill (top-right of the image area or the card).
+        if (card.badge) {
+          const tone = TONE[card.badgeTone ?? 'primary'] ?? TONE.primary;
+          const badgeW = Math.max(64, Math.min(120, card.badge.length * 7 + 24));
+          cardKids.push({ type: 'rectangle', name: 'badge', x: cardW - badgeW - PAD, y: 16, width: badgeW, height: 24, radius: 9999, fill: tone.bg });
+          cardKids.push({ type: 'text', name: 'badge label', x: cardW - badgeW - PAD, y: 21, width: badgeW, height: 16, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textAlign: 'center', text: card.badge, textColor: tone.fg });
+        }
+        // Heading.
+        cardKids.push({ type: 'text', name: 'heading', x: PAD, y: cursorY, width: cardW - PAD * 2, height: 22, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, text: card.heading, textColor: '$color.text' });
+        cursorY += 30;
+        // Value (big, primary).
+        if (card.value) {
+          cardKids.push({ type: 'text', name: 'value', x: PAD, y: cursorY, width: cardW - PAD * 2, height: 30, fontSize: 22, fontWeight: 700, letterSpacing: -0.5, text: card.value, textColor: '$color.primary' });
+          cursorY += 38;
+        }
+        // Description.
+        if (card.description) {
+          cardKids.push({ type: 'text', name: 'description', x: PAD, y: cursorY, width: cardW - PAD * 2, height: 18, fontSize: 13, fontWeight: 400, text: card.description, textColor: '$color.text-muted' });
+          cursorY += 26;
+        }
+        // Action button (bottom-anchored full width).
+        if (card.action) {
+          cardKids.push({ type: 'rectangle', name: 'action button', x: PAD, y: cardH - 58, width: cardW - PAD * 2, height: 38, radius: 8, fill: '$color.primary', shadow: { x: 0, y: 1, blur: 2, color: '#0000000d' } });
+          cardKids.push({ type: 'text', name: 'action label', x: PAD, y: cardH - 58 + 10, width: cardW - PAD * 2, height: 18, fontSize: 13, fontWeight: 600, letterSpacing: 0.2, textAlign: 'center', text: card.action, textColor: '$color.primary-fg' });
+        }
+        children.push(stampComposite({
+          type: 'frame', name: `Card / ${card.heading}`,
+          x: cx, y: cy, width: cardW, height: cardH,
+          fill: '$color.surface', stroke: '$color.border', strokeWidth: 1,
+          radius: 12, shadow: { x: 0, y: 1, blur: 2, color: '#0000000d' },
+          children: cardKids,
+        }));
+      });
+
+      // Section title (above the grid) + root container.
+      const rootKids: Array<Record<string, unknown>> = [];
+      let titleH = 0;
+      if (params.title) {
+        rootKids.push({ type: 'text', name: `${params.title} (section title)`, x: 0, y: 0, width: W, height: 26, fontSize: 18, fontWeight: 600, letterSpacing: -0.3, text: params.title, textColor: '$color.text' });
+        titleH = 26 + 24;
+      }
+      for (const cardFrame of children) {
+        (cardFrame as Record<string, unknown>).y = Number((cardFrame as Record<string, unknown>).y) + titleH;
+        rootKids.push(cardFrame);
+      }
+
+      const id = crypto.randomUUID();
+      const patch: CanvasPatch = {
+        op: 'add_subtree',
+        shapeId: id,
+        shape: stampComposite({
+          id,
+          type: 'frame',
+          name: `${params.title ?? 'Card'} grid`,
+          x: Number(params.x) || 0,
+          y: Number(params.y) || 0,
+          width: W,
+          height: gridH + titleH,
+          fill: 'none',
+          children: rootKids,
+        }),
+        summary: `Created card grid: ${cards.length} cards × ${cols} columns (${W}x${gridH + titleH})`,
+      } as any;
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Created a ${cols}-column card grid at (${params.x}, ${params.y}), ${W}x${gridH + titleH} — ${cards.length} cards under frame id=${id}. Refine cards with pen_update_node { nodeId, changes }.` }],
+        details: { patch, frameId: id, cardCount: cards.length, type: 'card-grid' },
+      };
+    },
+  });
+
+  const createLandingPage = defineTool({
+    name: 'pen_create_landing_page',
+    label: 'Create Landing Page',
+    description:
+      'Create a complete high-fidelity SaaS landing page in ONE call: navbar with brand + links, gradient hero with ' +
+      'headline/subheadline/primary CTA, feature section with N icon cards, gradient CTA band, and footer. All section ' +
+      'geometry is computed (no overlap, exact vertical rhythm). Use for landing pages / marketing sites — the hand-built ' +
+      'alternative reliably produces overlapping hero text and mis-stacked sections.',
+    promptSnippet: 'Create a complete landing page (navbar/hero/features/CTA/footer) in one call.',
+    parameters: Type.Object({
+      brand: Type.String({ description: 'Brand name (navbar wordmark + footer).' }),
+      navLinks: Type.Optional(Type.Array(Type.String(), { maxItems: 6, description: 'Navbar links (default Features, Pricing, Docs).' })),
+      headline: Type.String({ description: 'Hero H1 (rendered 48px/700 white on the gradient).' }),
+      subheadline: Type.String({ description: 'Hero sub copy (18px, white 80%).' }),
+      ctaLabel: Type.String({ description: 'Primary CTA button label (solid white button, primary text).' }),
+      ctaSecondary: Type.Optional(Type.String({ description: 'Secondary ghost button label next to the CTA.' })),
+      features: Type.Array(Type.Object({
+        icon: Type.String({ description: 'Lucide icon name.' }),
+        title: Type.String({ description: 'Feature title (18px/600).' }),
+        description: Type.String({ description: 'Feature description (14px muted, stays inside the card).' }),
+      }), { minItems: 2, maxItems: 6, description: 'Feature cards (rendered as an equal-width icon-card row).' }),
+      footerText: Type.Optional(Type.String({ description: 'Footer line (e.g. "© 2026 Nimbus Inc.").' })),
+      sectionTitle: Type.Optional(Type.String({ description: 'Features section title (e.g. "Everything you need to ship faster"). Omit to skip the row.' })),
+      bandTitle: Type.Optional(Type.String({ description: 'CTA band heading. Omit to derive "Start with <brand> today".' })),
+      bandSub: Type.Optional(Type.String({ description: 'CTA band subtext (e.g. "Free 14-day trial"). Omit to skip.' })),
+      x: Type.Number({ description: 'Canvas-space X.' }),
+      y: Type.Number({ description: 'Canvas-space Y.' }),
+      width: Type.Optional(Type.Number({ description: 'Page width (default 1440).' })),
+      heroHeight: Type.Optional(Type.Number({ description: 'Hero height (default 420, min 320).' })),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const W = Math.max(960, params.width ?? 1440);
+      const heroH = Math.max(320, params.heroHeight ?? 420);
+      const feats = params.features.slice(0, 6);
+      const PAD = Math.max(48, Math.round(W * 0.066)); // 96 at 1440
+
+      const sections: Array<Record<string, unknown>> = [];
+
+      // ---- Navbar (solid surface + hairline bottom) -------------------------
+      const nav: Array<Record<string, unknown>> = [
+        { type: 'text', name: 'brand wordmark', x: PAD, y: 22, width: 220, height: 24, fontSize: 18, fontWeight: 700, letterSpacing: -0.3, text: params.brand, textColor: '$color.text' },
+      ];
+      const links = (params.navLinks?.length ? params.navLinks : ['Features', 'Pricing', 'Docs']).slice(0, 6);
+      const linkW = 88;
+      links.forEach((l, i) => {
+        nav.push({ type: 'text', name: `nav link ${l}`, x: W - PAD - 128 - (links.length - i) * linkW, y: 24, width: linkW, height: 18, fontSize: 13, fontWeight: 500, textAlign: 'center', text: l, textColor: '$color.text-muted' });
+      });
+      nav.push({ type: 'rectangle', name: 'nav CTA', x: W - PAD - 128, y: 14, width: 128, height: 36, radius: 8, fill: '$color.primary', shadow: { x: 0, y: 1, blur: 2, color: '#0000000d' } });
+      nav.push({ type: 'text', name: 'nav CTA label', x: W - PAD - 128, y: 24, width: 128, height: 18, fontSize: 13, fontWeight: 600, textAlign: 'center', text: params.ctaLabel.split(' ').slice(0, 2).join(' '), textColor: '$color.primary-fg' });
+      nav.push({ type: 'rectangle', name: 'nav divider', x: 0, y: 63, width: W, height: 1, fill: '$color.border' });
+      sections.push({ type: 'frame', name: 'Section / Navbar', x: 0, y: 0, width: W, height: 64, fill: '$color.surface', children: nav });
+
+      // ---- Hero (gradient, white type, ONE solid CTA + ghost) ---------------
+      // 2026-09-07 r2: H1/sub widths are MEASURED from the copy (chars ×
+      // fontSize × factor) instead of fixed 760/560 — a fixed width narrower
+      // than the text fires text_overflow warnings in pen_get_metadata and
+      // sends the model into a 20+-update "fix" cascade that stretches the
+      // deterministic section rhythm (r22: Section/Features resized 288→852).
+      const h1W = Math.min(W - PAD * 2, Math.max(560, Math.ceil(params.headline.length * 48 * 0.6)));
+      const subW = Math.min(W - PAD * 2, Math.max(420, Math.ceil(params.subheadline.length * 18 * 0.56)));
+      const hero: Array<Record<string, unknown>> = [
+        { type: 'text', name: 'hero H1', x: PAD, y: 96, width: h1W, height: 120, fontSize: 48, fontWeight: 700, letterSpacing: -1.0, lineHeight: 1.15, text: params.headline, textColor: '#ffffff' },
+        { type: 'text', name: 'hero sub', x: PAD, y: 232, width: subW, height: 56, fontSize: 18, fontWeight: 400, lineHeight: 1.5, text: params.subheadline, textColor: '#ffffffe6' },
+        { type: 'rectangle', name: 'hero CTA', x: PAD, y: 312, width: 188, height: 48, radius: 8, fill: '$color.surface', shadow: { x: 0, y: 4, blur: 6, color: '#00000026' } },
+        { type: 'text', name: 'hero CTA label', x: PAD, y: 326, width: 188, height: 20, fontSize: 15, fontWeight: 600, textAlign: 'center', text: params.ctaLabel, textColor: '$color.primary' },
+      ];
+      if (params.ctaSecondary) {
+        hero.push({ type: 'rectangle', name: 'hero CTA secondary', x: PAD + 204, y: 312, width: 150, height: 48, radius: 8, fill: 'none', stroke: '#ffffff66', strokeWidth: 1 });
+        hero.push({ type: 'text', name: 'hero CTA secondary label', x: PAD + 204, y: 326, width: 150, height: 20, fontSize: 15, fontWeight: 500, textAlign: 'center', text: params.ctaSecondary, textColor: '#ffffff' });
+      }
+      sections.push({
+        type: 'frame', name: 'Section / Hero', x: 0, y: 64, width: W, height: heroH,
+        gradient: { type: 'linear', angle: 135, stops: [{ offset: 0, color: '$color.primary' }, { offset: 1, color: '$color.accent' }] },
+        children: hero,
+      });
+
+      // ---- Features (equal-width icon card row) ------------------------------
+      let fy = 64 + heroH + 80;
+      const inner = W - PAD * 2;
+      const featGap = 24;
+      const featW = (inner - (feats.length - 1) * featGap) / feats.length;
+      const featH = 220;
+      const featSection: Array<Record<string, unknown>> = [];
+      let sectionTitleH = 0;
+      if (params.sectionTitle) {
+        featSection.push({ type: 'text', name: 'features section title', x: PAD, y: fy, width: inner, height: 36, fontSize: 30, fontWeight: 600, letterSpacing: -0.4, textAlign: 'center', text: params.sectionTitle, textColor: '$color.text' });
+        sectionTitleH = 36 + 32;
+      }
+      const cardTop = fy + sectionTitleH;
+      feats.forEach((f, i) => {
+        const fx = PAD + i * (featW + featGap);
+        const kids: Array<Record<string, unknown>> = [
+          { type: 'rectangle', name: 'feature icon tile', x: 24, y: 24, width: 48, height: 48, radius: 12, fill: '$color.primary-50' },
+          { type: 'icon', name: 'feature icon', icon: f.icon, x: 36, y: 36, width: 24, height: 24, stroke: '$color.primary', strokeWidth: 2 },
+          { type: 'text', name: 'feature title', x: 24, y: 92, width: featW - 48, height: 24, fontSize: 18, fontWeight: 600, letterSpacing: -0.2, text: f.title, textColor: '$color.text' },
+          { type: 'text', name: 'feature description', x: 24, y: 124, width: featW - 48, height: 72, fontSize: 14, fontWeight: 400, lineHeight: 1.5, text: f.description, textColor: '$color.text-muted' },
+        ];
+        featSection.push({ type: 'frame', name: `Feature card / ${f.title}`, x: fx, y: cardTop, width: featW, height: featH, fill: '$color.surface', stroke: '$color.border', strokeWidth: 1, radius: 12, shadow: { x: 0, y: 1, blur: 2, color: '#0000000d' }, children: kids });
+      });
+      sections.push({ type: 'frame', name: 'Section / Features', x: 0, y: fy, width: W, height: sectionTitleH + featH, fill: 'none', children: featSection });
+      fy = fy + sectionTitleH + featH + 80;
+
+      // ---- CTA band (gradient, centered) --------------------------------------
+      const bandH = 160;
+      const band: Array<Record<string, unknown>> = [
+        { type: 'text', name: 'band H2', x: PAD, y: 36, width: inner, height: 40, fontSize: 32, fontWeight: 700, letterSpacing: -0.5, textAlign: 'center', text: params.bandTitle ?? `Start with ${params.brand} today`, textColor: '#ffffff' },
+      ];
+      if (params.bandSub) {
+        band.push({ type: 'text', name: 'band sub', x: PAD, y: 82, width: inner, height: 20, fontSize: 15, fontWeight: 400, textAlign: 'center', text: params.bandSub, textColor: '#ffffffb3' });
+      }
+      band.push(
+        { type: 'rectangle', name: 'band CTA', x: (W - 188) / 2, y: 110, width: 188, height: 40, radius: 8, fill: '$color.surface', shadow: { x: 0, y: 4, blur: 6, color: '#00000033' } },
+        { type: 'text', name: 'band CTA label', x: (W - 188) / 2, y: 121, width: 188, height: 20, fontSize: 14, fontWeight: 600, textAlign: 'center', text: params.ctaLabel, textColor: '$color.primary' },
+      );
+      sections.push({
+        type: 'frame', name: 'Section / CTA band', x: PAD, y: fy, width: inner, height: bandH, radius: 16,
+        gradient: { type: 'linear', angle: 135, stops: [{ offset: 0, color: '$color.primary' }, { offset: 1, color: '$color.accent' }] },
+        children: band,
+      });
+      fy = fy + bandH + 80;
+
+      // ---- Footer ---------------------------------------------------------------
+      const footer: Array<Record<string, unknown>> = [
+        { type: 'rectangle', name: 'footer hairline', x: 0, y: 0, width: W, height: 1, fill: '$color.border' },
+        { type: 'text', name: 'footer text', x: 0, y: 32, width: W, height: 18, fontSize: 13, fontWeight: 400, textAlign: 'center', text: params.footerText ?? `© 2026 ${params.brand}. All rights reserved.`, textColor: '$color.text-muted' },
+      ];
+      sections.push({ type: 'frame', name: 'Section / Footer', x: 0, y: fy, width: W, height: 80, fill: 'none', children: footer });
+      const totalH = fy + 80;
+
+      const id = crypto.randomUUID();
+      // Stamp every SECTION frame + the page root as composite output — the
+      // update paths refuse autoLayout changes on them (protection block).
+      const stampedSections = sections.map((s) => stampComposite(s as Record<string, unknown>));
+      const patch: CanvasPatch = {
+        op: 'add_subtree',
+        shapeId: id,
+        shape: stampComposite({
+          id,
+          type: 'frame',
+          name: `Landing / ${params.brand}`,
+          x: Number(params.x) || 0,
+          y: Number(params.y) || 0,
+          width: W,
+          height: totalH,
+          fill: 'none',
+          children: stampedSections,
+        }),
+        summary: `Created ${params.brand} landing page (${W}x${totalH}): navbar + hero + ${feats.length} features + CTA band + footer`,
+      } as any;
+      ctx.applyPatch(patch);
+      return {
+        content: [{ type: 'text', text: `Created the ${params.brand} landing page at (${params.x}, ${params.y}), ${W}x${totalH} — 5 sections under frame id=${id}. Refine with pen_update_node { nodeId, changes }.` }],
+        details: { patch, frameId: id, type: 'landing-page', sections: 5 },
       };
     },
   });
@@ -6179,6 +6829,9 @@ const createShape = defineTool({
     // Audit 2-b T18 — composite tools (design-quality hot paths)
     applyDesignSystem,      // design-system pack → $color.* tokens in one call
     createChart,            // bar/line/donut chart subtree in one call
+    createTable,            // data-table card (headers + rows + status pills) in one call
+    createCardGrid,         // product/pricing/feature/KPI card grids in one call
+    createLandingPage,      // navbar/hero/features/CTA/footer landing page in one call
     applyTypography,        // batch typography roles on text layers
   ];
 }

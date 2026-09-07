@@ -44,9 +44,9 @@
 //    params (e.g. z.ai `thinking`/`tool_stream` fields).
 
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
-import { createProvider, envApiKeyAuth } from '@earendil-works/pi-ai';
+import { createProvider, envApiKeyAuth, createAssistantMessageEventStream } from '@earendil-works/pi-ai';
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy';
-import type { Model, Api } from '@earendil-works/pi-ai';
+import type { Model, Api, AssistantMessageEvent, ProviderStreams, AssistantMessage } from '@earendil-works/pi-ai';
 import ZAI from 'z-ai-web-dev-sdk';
 import { normalizeLLMProvider, providerDefaultModel, DEFAULT_SETTINGS } from '../settings/types';
 import { getProviderMetadata } from '../llm';
@@ -55,6 +55,115 @@ import type { AgentRunSettings } from '../settings/types';
 /// Provider id used for the synthetic dispatch model on custom endpoints.
 /// Registered on the per-turn ModelRuntime so `prepareRequest()` can find it.
 const CUSTOM_PROVIDER_ID = 'custom';
+
+// ---- Mid-stream transport retry (2026-09-07 complex-scenario r2) -----------
+//
+// Failure mode observed repeatedly on the BETA tunnel (qwen3.7-plus behind
+// pinggy): the HTTP request succeeds, the SSE stream opens, and the server
+// then terminates the round-trip with finish_reason "error" (vLLM-style
+// mid-stream drop) — pi-ai maps that to an `error` event and the whole agent
+// turn stops with a half-built canvas ("The model stopped mid-turn with a
+// provider error"). HTTP-level retries (pi-ai's retryProviderRequest) can't
+// see this; it happens AFTER the response starts streaming.
+//
+// This wrapper adds ONE transparent retry, safe by construction:
+//   - Events are buffered (NOT forwarded) until the first CONTENT event
+//     (text/thinking/toolcall) arrives — a stream that errors before any
+//     content has contributed nothing to the conversation, so replaying the
+//     identical request cannot duplicate anything.
+//   - Once content has been forwarded, retry is impossible — the error
+//     propagates exactly as before.
+//   - `aborted` never retries (user cancellation).
+// This is inference-transport behavior on the custom provider only, applied
+// identically to every turn (one-shot and multi-shot alike) — no turn-loop
+// or EDIT TURNS logic is touched.
+
+const RETRY_DELAY_MS = 1500;
+const hasResult = (s: { result?: unknown }): s is { result: () => Promise<AssistantMessage | undefined> } =>
+  typeof s.result === 'function';
+const isContentEvent = (ev: AssistantMessageEvent): boolean =>
+  ev.type === 'text_start' || ev.type === 'text_delta' || ev.type === 'text_end' ||
+  ev.type === 'thinking_start' || ev.type === 'thinking_delta' || ev.type === 'thinking_end' ||
+  ev.type === 'toolcall_start' || ev.type === 'toolcall_delta' || ev.type === 'toolcall_end';
+
+function withMidStreamRetry(streams: ProviderStreams): ProviderStreams {
+  const wrapped: Record<string, unknown> = { ...streams };
+  for (const method of ['stream', 'streamSimple'] as const) {
+    const orig = (streams as unknown as Record<string, unknown>)[method];
+    if (typeof orig !== 'function') continue;
+    wrapped[method] = (model: Model<Api>, context: unknown, options: unknown) => {
+      const outer = createAssistantMessageEventStream();
+      const run = async (attempt: number): Promise<void> => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const inner = (orig as any)(model, context, options) as AsyncIterable<AssistantMessageEvent> & { result?: unknown };
+        const buffered: AssistantMessageEvent[] = [];
+        let live = false;
+        try {
+          for await (const ev of inner as AsyncIterable<AssistantMessageEvent>) {
+            if (!live) {
+              if (ev.type === 'error') {
+                // Clean-retryable only when NOTHING was forwarded yet.
+                if (ev.reason === 'error' && attempt < 1) {
+                  console.warn(
+                    `[llm-retry] provider stream dropped before any content (attempt ${attempt + 1}/2) — retrying in ${RETRY_DELAY_MS}ms: ${ev.error?.errorMessage?.slice(0, 160) ?? 'unknown error'}`,
+                  );
+                  await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+                  return run(attempt + 1);
+                }
+                for (const b of buffered) outer.push(b);
+                live = true;
+                outer.push(ev);
+                outer.end(ev.error);
+                return;
+              }
+              buffered.push(ev);
+              if (isContentEvent(ev)) {
+                for (const b of buffered) outer.push(b);
+                live = true;
+              }
+            } else {
+              outer.push(ev);
+            }
+          }
+          // Stream completed without a terminal event in the loop (or with
+          // `done` already queued): flush anything left and mirror
+          // forwardStream's end() contract.
+          if (!live) {
+            for (const b of buffered) outer.push(b);
+          }
+          outer.end(hasResult(inner) ? await inner.result() : undefined);
+        } catch (e) {
+          // Mirrors lazyStream's setup-failure shape.
+          const message = e instanceof Error ? e : String(e);
+          const errEv = {
+            type: 'error' as const,
+            reason: 'error' as const,
+            error: {
+              role: 'assistant' as const,
+              content: [],
+              api: model.api,
+              provider: model.provider,
+              model: model.id,
+              usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+              stopReason: 'error' as const,
+              errorMessage: message instanceof Error ? message.message : String(message),
+              timestamp: Date.now(),
+            },
+          };
+          if (!live) for (const b of buffered) outer.push(b);
+          outer.push(errEv);
+          outer.end(errEv.error);
+        }
+      };
+      run(0).catch(() => {
+        /* run() handles its own errors; a throw here only means the outer
+           stream was already terminated — nothing further to do. */
+      });
+      return outer;
+    };
+  }
+  return wrapped as unknown as ProviderStreams;
+}
 
 // ---- Public types ----------------------------------------------------------
 
@@ -303,11 +412,16 @@ function buildCustomEndpointModel(
     // settings.temperature knob was previously read by the runner but never
     // reached the endpoint (StreamOptions.temperature is per-request and
     // createAgentSession doesn't expose it); declaring it on the Model makes
-    // the knob actually apply. Kimi K2 serving guidance (0.6/top_p 0.95) —
-    // we pass temperature only and let the endpoint default top_p.
+    // the knob actually apply. Qwen3-series serving guidance (non-thinking
+    // mode): temperature from settings, top_p 0.8. enable_thinking:false
+    // covers DashScope-style servers; chat_template_kwargs covers vLLM-style
+    // servers whose Qwen chat template gates thinking output. Thinking
+    // tokens are pure latency for one-shot design generation, so they are
+    // disabled at the transport layer (this is inference config, shared by
+    // all turns equally - it does not alter multi-shot orchestration logic).
     ...(temperature !== undefined && Number.isFinite(temperature)
-      ? { samplingParams: { temperature } }
-      : {}),
+      ? { samplingParams: { temperature, top_p: 0.8, enable_thinking: false, chat_template_kwargs: { enable_thinking: false } } }
+      : { samplingParams: { top_p: 0.8, enable_thinking: false, chat_template_kwargs: { enable_thinking: false } } }),
     compat: {
       supportsStore: false,
       supportsDeveloperRole: false,
@@ -558,7 +672,11 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
       // the env list is just a documented fallback for headless callers.
       auth: { apiKey: envApiKeyAuth('Custom endpoint API key', ['CUSTOM_API_KEY']) },
       models: [customModel],
-      api: openAICompletionsApi(),
+      // 2026-09-07 r2: wrapped with a single mid-stream-error retry — the
+      // BETA tunnel intermittently terminates streams with finish_reason
+      // "error" BEFORE any content; one replay completes the round-trip
+      // transparently (see withMidStreamRetry above for the safety argument).
+      api: withMidStreamRetry(openAICompletionsApi()),
     });
     modelRuntime.registerNativeProvider(customProvider);
 

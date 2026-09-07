@@ -1,0 +1,204 @@
+{
+  "runs": [
+    {
+      "id": "data-table",
+      "prompt": "Design a high-fidelity 'Recent Orders' table card with columns Order, Customer, Date, Status, Amount and 4 data rows with realistic values, status shown as color-coded text or badges.",
+      "startedAt": "2026-09-06T22:22:26.480Z",
+      "durationMs": 368215,
+      "toolCallCount": 28,
+      "toolNames": [
+        [
+          "pen_apply_variable",
+          11
+        ],
+        [
+          "pen_update_node",
+          7
+        ],
+        [
+          "pen_find_nodes",
+          3
+        ],
+        [
+          "pen_set_variable",
+          2
+        ],
+        [
+          "pen_set_variables",
+          1
+        ],
+        [
+          "pen_create_subtree",
+          1
+        ],
+        [
+          "pen_bulk_update_by_filter",
+          1
+        ],
+        [
+          "pen_list_variables",
+          1
+        ],
+        [
+          "pen_get_metadata",
+          1
+        ]
+      ],
+      "assertions": [],
+      "passed": 0,
+      "failed": 0,
+      "status": "error",
+      "errorMessage": "scenario timed out after 6 min",
+      "finalLayerCount": 47,
+      "emptyTurn": false,
+      "textLayers": [
+        {
+          "name": "Title",
+          "text": "Recent Orders"
+        },
+        {
+          "name": "View All Link",
+          "text": "View All"
+        },
+        {
+          "name": "Col Order",
+          "text": "ORDER"
+        },
+        {
+          "name": "Col Customer",
+          "text": "CUSTOMER"
+        },
+        {
+          "name": "Col Date",
+          "text": "DATE"
+        },
+        {
+          "name": "Col Status",
+          "text": "STATUS"
+        },
+        {
+          "name": "Col Amount",
+          "text": "AMOUNT"
+        },
+        {
+          "name": "Order ID",
+          "text": "ORD-7829"
+        },
+        {
+          "name": "Customer Name",
+          "text": "Alice Smith"
+        },
+        {
+          "name": "Order Date",
+          "text": "Oct 24, 2024"
+        },
+        {
+          "name": "Status Text Completed",
+          "text": "Completed"
+        },
+        {
+          "name": "Amount Value",
+          "text": "$120.50"
+        },
+        {
+          "name": "Order ID",
+          "text": "ORD-7830"
+        },
+        {
+          "name": "Customer Name",
+          "text": "Bob Jones"
+        },
+        {
+          "name": "Order Date",
+          "text": "Oct 24, 2024"
+        },
+        {
+          "name": "Status Text Processing",
+          "text": "Processing"
+        },
+        {
+          "name": "Amount Value",
+          "text": "$85.00"
+        },
+        {
+          "name": "Order ID",
+          "text": "ORD-7831"
+        },
+        {
+          "name": "Customer Name",
+          "text": "Charlie Day"
+        },
+        {
+          "name": "Order Date",
+          "text": "Oct 23, 2024"
+        },
+        {
+          "name": "Status Text Pending",
+          "text": "Pending"
+        },
+        {
+          "name": "Amount Value",
+          "text": "$210.25"
+        },
+        {
+          "name": "Order ID",
+          "text": "ORD-7832"
+        },
+        {
+          "name": "Customer Name",
+          "text": "Diana Prince"
+        },
+        {
+          "name": "Order Date",
+          "text": "Oct 23, 2024"
+        },
+        {
+          "name": "Status Text Cancelled",
+          "text": "Cancelled"
+        },
+        {
+          "name": "Amount Value",
+          "text": "$45.00"
+        },
+        {
+          "name": "Prev Label",
+          "text": "Previous"
+        },
+        {
+          "name": "Next Label",
+          "text": "Next"
+        }
+      ],
+      "canvasDump": "download/agent-eval/dumps/data-table-r1.canvas.json",
+      "repeat": 1
+    }
+  ],
+  "aggregate": [
+    {
+      "id": "data-table",
+      "prompt": "Design a high-fidelity 'Recent Orders' table card with columns Order, Customer, Date, Status, Amount and 4 data rows with realistic values, status shown as color-coded text or badges.",
+      "heldOut": false,
+      "runs": 1,
+      "passRate": 0,
+      "statusSpread": {
+        "pass": 0,
+        "fail": 0,
+        "error": 1
+      },
+      "toolCalls": {
+        "mean": 28,
+        "min": 28,
+        "max": 28
+      },
+      "durationS": {
+        "mean": 368.215,
+        "min": 368.215,
+        "max": 368.215
+      },
+      "assertionsPassed": 0,
+      "assertionsTotal": 0,
+      "flakyAssertions": [],
+      "emptyTurns": 0
+    }
+  ]
+}

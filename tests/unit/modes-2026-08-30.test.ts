@@ -753,8 +753,11 @@ describe('submit_plan: approved result is a hard stop (no in-session execution)'
 describe('runner source invariants: post-approval tool blocker', () => {
   it('wraps the PLANNING toolset with planCompletionBlocker (plan mode only)', () => {
     const src = read('lib/agent/runner-native.ts');
+    // 2026-09-07 (oneshot tuning): the non-plan arm became turnTools (the
+    // turn-scoped toolset incl. one-shot composites); the plan arm still
+    // wraps the filtered set in the blocker.
     expect(src).toMatch(
-      /mode === 'plan' \? planCompletionBlocker\(filteredTools\) : filteredTools/,
+      /mode === 'plan' \? planCompletionBlocker\(filteredTools\) : turnTools/,
     );
     // The blocker consults the gate scoped to THIS run.
     expect(src).toMatch(/hasApprovedPlanSince\(runStartedAt\)/);

@@ -24,6 +24,7 @@ import { patchToOpRecord, summarizeTurnDiff, formatDiffSummary, type PatchOpReco
 import { classifyAgentError, agentErrorMessage } from '@/lib/agent-error';
 import { sanitizeAgentPatch } from '@/lib/canvas/patch-sanitizer';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
+import { polishOneShotPatch } from '@/lib/canvas/oneshot-polish';
 import type { CanvasDocument } from '@/lib/canvas/types';
 import type { AgentRunSettings } from '@/lib/settings/types';
 import { DEFAULT_SETTINGS } from '@/lib/settings/types';
@@ -315,6 +316,11 @@ export async function POST(req: NextRequest) {
       // the canvas state the PRECEDING patches produced (a create-then-update
       // sequence must not have its update dropped because the initial canvas
       // didn't know the new id yet).
+      // One-shot polish gate: empty canvas at request start == first-creation
+      // turn. Deterministic geometry fixes (oneshot-polish.ts) run only for
+      // that turn shape; multi-shot turns take the identical path as before.
+      const isOneShotTurn =
+        (canvas.children?.length ?? 0) === 0 && (canvas.shapes?.length ?? 0) === 0;
       let liveCanvas = canvas;
 
       // Whether a terminal agent event (turn_end / turn_cancelled /
@@ -438,19 +444,20 @@ export async function POST(req: NextRequest) {
               });
               continue;
             }
+            const polished = isOneShotTurn ? polishOneShotPatch(sanitized) : sanitized;
             try {
-              liveCanvas = applyPatchToCanvas(liveCanvas, sanitized);
+              liveCanvas = applyPatchToCanvas(liveCanvas, polished);
             } catch {
               // Applier rejected it after all — treat as a dropped patch.
               appendSyntheticJournalEvent(documentId, 'patch_dropped', ev.toolCallId, {
                 reason: ['applier threw'],
-                patch: sanitized,
+                patch: polished,
               });
               continue;
             }
-            send({ type: 'patch', patch: sanitized, toolCallId: ev.toolCallId });
-            journalAgentEvent(documentId, { kind: 'patch', patch: sanitized, toolCallId: ev.toolCallId });
-            const diffRec = patchToOpRecord(sanitized);
+            send({ type: 'patch', patch: polished, toolCallId: ev.toolCallId });
+            journalAgentEvent(documentId, { kind: 'patch', patch: polished, toolCallId: ev.toolCallId });
+            const diffRec = patchToOpRecord(polished);
             if (diffRec) turnPatchRecords.push(diffRec);
           } else {
             send({ type: 'agent_event', event: ev.event });

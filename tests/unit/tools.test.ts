@@ -1365,9 +1365,9 @@ describe('tools: pen_set_constraints', () => {
 // ---- Tool registration sanity ------------------------------------------------
 
 describe('tools: registration sanity', () => {
-  it('returns 82 tools total (79 + the three audit-2026-08-30 composite tools: pen_apply_design_system, pen_create_chart, pen_apply_typography)', () => {
+  it('returns 85 tools total (79 + the three audit-2026-08-30 composite tools pen_apply_design_system / pen_create_chart / pen_apply_typography + the three oneshot-2026-09-07 composite tools pen_create_card_grid / pen_create_landing_page / pen_create_table)', () => {
     const tools = createCanvasTools(h.ctx);
-    expect(tools).toHaveLength(82);
+    expect(tools).toHaveLength(85);
   });
 
   it('every tool has a unique name', () => {

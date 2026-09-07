@@ -1,0 +1,108 @@
+[
+  {
+    "target": "analytics-chart",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 3,
+      "layout_structure": 2,
+      "typography": 4,
+      "color_cohesion": 6,
+      "component_polish": 1,
+      "overall_polish": 2,
+      "overall": 2
+    },
+    "defects": [
+      "Data-ink ratio is broken: bar heights do not correspond to the data values (e.g., Mar $45K is shorter than Jan $42K).",
+      "Data labels are catastrophically misaligned: values are scattered randomly inside and outside the bars, breaking the visual link between label and data point.",
+      "Missing visual hierarchy: no Y-axis, gridlines, or baseline to help the user gauge scale.",
+      "Chart is right-heavy: bars for Apr-Jun are significantly wider than Jan-Mar, creating a distorted, unbalanced layout."
+    ],
+    "top_fixes": [
+      "Strictly map bar heights to a linear scale based on the provided data values ($42K-$68K).",
+      "Position data labels consistently (e.g., centered above each bar) and remove the orphaned labels floating on the right.",
+      "Ensure uniform bar widths and equal spacing across all six months to create a balanced rhythm.",
+      "Add a subtle Y-axis or grid lines to provide context for the revenue magnitude."
+    ],
+    "raw": "{\"prompt_fidelity\":3,\"layout_structure\":2,\"typography\":4,\"color_cohesion\":6,\"component_polish\":1,\"overall_polish\":2,\"overall\":2,\"defects\":[\"Data-ink ratio is broken: bar heights do not correspond to the data values (e.g., Mar $45K is shorter than Jan $42K).\",\"Data labels are catastrophically misaligned: values are scattered randomly inside and outside the bars, breaking the visual link between label and data point.\",\"Missing visual hierarchy: no Y-axis, gridlines, or baseline to help the user gauge scale.\",\"Chart is right-heavy: bars for Apr-Jun are significantly wider than Jan-Mar, creating a distorted, unbalanced layout.\"],\"top_fixes\":[\"Strictly map bar heights to a linear scale based on the provided data values ($42K-$68K).\",\"Position data labels consistently (e.g., centered above each bar) and remove the orphaned labels floating on the right.\",\"Ensure uniform bar widths and equal spacing across all six months to create a balanced rhythm.\",\"Add a subtle Y-axis or grid lines to provide context for the revenue magnitude.\"]}"
+  },
+  {
+    "target": "data-table",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 9,
+      "layout_structure": 8,
+      "typography": 7,
+      "color_cohesion": 7,
+      "component_polish": 6,
+      "overall_polish": 7,
+      "overall": 7.5
+    },
+    "defects": [
+      "Status badges lack sufficient padding and border-radius consistency (some look slightly squashed).",
+      "Pagination component ('1 of 5') is misaligned vertically with the 'Previous' and 'Next' buttons.",
+      "Header actions ('All Status', 'Export CSV') are floating without clear alignment or grouping logic.",
+      "Table rows lack hover states or subtle zebra-striping for better readability."
+    ],
+    "top_fixes": [
+      "Increase padding inside status badges and ensure uniform border-radius across all states.",
+      "Vertically center the pagination text or place it in a dedicated container to align with buttons.",
+      "Add a subtle background color to alternate rows or define a clear hover state for interactivity.",
+      "Refine the header layout to group the title and actions into a proper flex/grid system."
+    ],
+    "raw": "{\"prompt_fidelity\":9, \"layout_structure\":8, \"typography\":7, \"color_cohesion\":7, \"component_polish\":6, \"overall_polish\":7, \"overall\":7.5, \"defects\":[\"Status badges lack sufficient padding and border-radius consistency (some look slightly squashed).\",\"Pagination component ('1 of 5') is misaligned vertically with the 'Previous' and 'Next' buttons.\",\"Header actions ('All Status', 'Export CSV') are floating without clear alignment or grouping logic.\",\"Table rows lack hover states or subtle zebra-striping for better readability.\"], \"top_fixes\":[\"Increase padding inside status badges and ensure uniform border-radius across all states.\",\"Vertically center the pagination text or place it in a dedicated container to align with buttons.\",\"Add a subtle background color to alternate rows or define a clear hover state for interactivity.\",\"Refine the header layout to group the title and actions into a proper flex/grid system.\"]}"
+  },
+  {
+    "target": "ecommerce-grid",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 8,
+      "layout_structure": 7,
+      "typography": 6,
+      "color_cohesion": 5,
+      "component_polish": 5,
+      "overall_polish": 5,
+      "overall": 6
+    },
+    "defects": [
+      "Product image areas are empty gray placeholders instead of actual product visuals.",
+      "The background behind the grid has an inconsistent light blue tint that looks like a layout artifact.",
+      "Typography lacks a clear visual hierarchy; the price is too large and heavy compared to the product name.",
+      "Button styling is generic with flat colors and basic border-radius, lacking micro-interactions or depth.",
+      "The 'ShopFlow' header and cart icon feel like leftover app chrome rather than part of the requested design."
+    ],
+    "top_fixes": [
+      "Replace empty placeholders with high-quality product photography or 3D renders to match the 'high-fidelity' requirement.",
+      "Refine the type scale: reduce price font weight/size and increase name prominence for better hierarchy.",
+      "Add subtle shadows, hover states, or gradients to the buttons and cards to increase perceived polish.",
+      "Ensure the background is a clean, consistent white or very light neutral to focus attention on the products."
+    ],
+    "raw": "{\"prompt_fidelity\":8, \"layout_structure\":7, \"typography\":6, \"color_cohesion\":5, \"component_polish\":5, \"overall_polish\":5, \"overall\":6, \"defects\":[\"Product image areas are empty gray placeholders instead of actual product visuals.\", \"The background behind the grid has an inconsistent light blue tint that looks like a layout artifact.\", \"Typography lacks a clear visual hierarchy; the price is too large and heavy compared to the product name.\", \"Button styling is generic with flat colors and basic border-radius, lacking micro-interactions or depth.\", \"The 'ShopFlow' header and cart icon feel like leftover app chrome rather than part of the requested design.\"], \"top_fixes\":[\"Replace empty placeholders with high-quality product photography or 3D renders to match the 'high-fidelity' requirement.\", \"Refine the type scale: reduce price font weight/size and increase name prominence for better hierarchy.\", \"Add subtle shadows, hover states, or gradients to the buttons and cards to increase perceived polish.\", \"Ensure the background is a clean, consistent white or very light neutral to focus attention on the products.\"]}"
+  },
+  {
+    "target": "marketing-landing",
+    "model": "glm-5v-turbo",
+    "scores": {
+      "prompt_fidelity": 4,
+      "layout_structure": 5,
+      "typography": 6,
+      "color_cohesion": 6,
+      "component_polish": 7,
+      "overall_polish": 4,
+      "overall": 4
+    },
+    "defects": [
+      "Missing Navbar and Nimbus logo",
+      "Missing Hero section with specific headline 'Monitor your cloud in real time' and CTA button",
+      "Headline text is generic ('Everything you need...') instead of the requested specific copy",
+      "Text truncation/overflow issues visible in feature card descriptions (e.g., 'exceed th', 'drag-and-M', 'collab-rate')",
+      "Layout is cropped/incomplete, showing only the middle section of the page"
+    ],
+    "top_fixes": [
+      "Add the top navigation bar with the Nimbus logo as requested.",
+      "Implement the Hero section with the exact headline, subheadline, and 'Start Free Trial' button to establish the page's primary value proposition.",
+      "Fix the text overflow/truncation in the feature cards so descriptions are fully readable.",
+      "Ensure the full page layout is generated and visible, including proper spacing between sections."
+    ],
+    "raw": "{\"prompt_fidelity\":4,\"layout_structure\":5,\"typography\":6,\"color_cohesion\":6,\"component_polish\":7,\"overall_polish\":4,\"overall\":4,\"defects\":[\"Missing Navbar and Nimbus logo\",\"Missing Hero section with specific headline 'Monitor your cloud in real time' and CTA button\",\"Headline text is generic ('Everything you need...') instead of the requested specific copy\",\"Text truncation/overflow issues visible in feature card descriptions (e.g., 'exceed th', 'drag-and-M', 'collab-rate')\",\"Layout is cropped/incomplete, showing only the middle section of the page\"],\"top_fixes\":[\"Add the top navigation bar with the Nimbus logo as requested.\",\"Implement the Hero section with the exact headline, subheadline, and 'Start Free Trial' button to establish the page's primary value proposition.\",\"Fix the text overflow/truncation in the feature cards so descriptions are fully readable.\",\"Ensure the full page layout is generated and visible, including proper spacing between sections.\"]}"
+  }
+]
