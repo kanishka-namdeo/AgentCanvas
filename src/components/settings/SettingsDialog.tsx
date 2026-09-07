@@ -210,6 +210,17 @@ function AgentSection() {
   const designCritiqueMode = useSettings((s) => s.designCritiqueMode ?? 'manual');
   const set = useSettings((s) => s.set);
 
+  // (2026-09-07 UI hardening, 12-c#3) render guards: the store's rehydrate
+  // merge sanitizes persisted values, but defend the numeric render sites
+  // anyway — a non-finite temperature would crash `.toFixed(1)` and take the
+  // whole app down (there is no error boundary anywhere in src/).
+  const safeTemperature = Number.isFinite(temperature)
+    ? Math.min(2, Math.max(0, temperature))
+    : DEFAULT_SETTINGS.temperature;
+  const safeMaxIterations = Number.isFinite(maxIterations)
+    ? Math.min(50, Math.max(1, Math.round(maxIterations)))
+    : 24;
+
   return (
     <>
       <h2 className="text-[13px] font-semibold ac-text-1 mb-1">Agent behavior</h2>
@@ -222,10 +233,10 @@ function AgentSection() {
         <div>
           <div className="flex items-center justify-between mb-1">
             <Label className="text-[12px] font-medium ac-text-1">Temperature</Label>
-            <span className="text-[11px] font-mono ac-text-2">{temperature.toFixed(1)}</span>
+            <span className="text-[11px] font-mono ac-text-2">{safeTemperature.toFixed(1)}</span>
           </div>
           <Slider
-            value={[temperature]}
+            value={[safeTemperature]}
             onValueChange={(v) => set('temperature', v[0])}
             min={0}
             max={1}
@@ -233,17 +244,17 @@ function AgentSection() {
           />
           <p className="text-[10px] ac-text-4 mt-1">
             Lower = deterministic + faithful to spec. Higher = more creative + varied.
-            Default 0.4.
+            Default 0.6.
           </p>
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-1">
             <Label className="text-[12px] font-medium ac-text-1">Max tool calls per turn</Label>
-            <span className="text-[11px] font-mono ac-text-2">{maxIterations}</span>
+            <span className="text-[11px] font-mono ac-text-2">{safeMaxIterations}</span>
           </div>
           <Slider
-            value={[maxIterations]}
+            value={[safeMaxIterations]}
             onValueChange={(v) => set('maxIterations', v[0])}
             min={5}
             max={40}
@@ -1044,14 +1055,30 @@ function DataSection() {
   }
 
   const handleExport = () => {
-    const sessionsData = localStorage.getItem('agentcanvas.sessions.v1') ?? '{}';
+    // (2026-09-07 UI hardening, 12-c#8) a corrupted/truncated sessions blob
+    // used to throw inside this handler (unguarded JSON.parse) — the click
+    // died silently: no toast, no download. Parse defensively and fail
+    // honestly instead.
+    let sessionsData: unknown;
+    try {
+      sessionsData = JSON.parse(localStorage.getItem('agentcanvas.sessions.v1') ?? '{}');
+    } catch {
+      toast.error('Export failed', {
+        description: 'The saved chats data in this browser is corrupted and could not be read. Nothing was downloaded.',
+      });
+      return;
+    }
     const settingsData = useSettings.getState();
     // Strip setter functions from settings.
     const { set: _s, patch: _p, reset: _r, replaceAll: _ra, ...settingsPlain } = settingsData as any;
+    // (2026-09-07 UI hardening, 12-c#7) redact the API key by default — the
+    // export is a shareable/backup artifact and the plaintext key used to
+    // ride along in it. (Re-enter the key after importing on a new machine.)
+    settingsPlain.apiKey = '';
     const payload = {
       exportedAt: new Date().toISOString(),
       version: 1,
-      sessions: JSON.parse(sessionsData),
+      sessions: sessionsData,
       settings: settingsPlain,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -1155,7 +1182,8 @@ function DataSection() {
           </Button>
           <p className="text-[10px] ac-text-4 leading-relaxed">
             Downloads a single JSON file containing all sessions, runs, messages,
-            tool calls, snapshots, and your current settings.
+            tool calls, snapshots, and your current settings. Your API key is
+            NOT included (redacted).
           </p>
         </div>
 
@@ -1267,6 +1295,10 @@ function PluginsSection() {
   const enabledPlugins = useSettings((s) => s.enabledPlugins);
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  // (2026-09-07 UI hardening, 12-c#15) honest error state: a failing
+  // /api/plugins (500 JSON error body) used to render as an empty "no
+  // plugins" list. Check res.ok and surface the reason inline instead.
+  const [fetchError, setFetchError] = useState<string | null>(null);
   // D5: plugin toggles reshape the NEXT prompt's tool surface (settings are
   // snapshotted per prompt), so they stay enabled mid-run — but the section
   // tells the user when changes take effect instead of flipping silently.
@@ -1274,12 +1306,21 @@ function PluginsSection() {
 
   useEffect(() => {
     fetch('/api/plugins')
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => null) as { error?: unknown } | null;
+          throw new Error(typeof body?.error === 'string' ? body.error : `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then((data) => {
         setPlugins(data.plugins ?? []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((e) => {
+        setFetchError(e instanceof Error ? e.message : 'Failed to load plugins');
+        setLoading(false);
+      });
   }, []);
 
   const enabledSet = new Set(enabledPlugins ?? plugins.filter((p) => p.defaultEnabled).map((p) => p.pluginId));
@@ -1296,6 +1337,16 @@ function PluginsSection() {
       <div className="flex items-center gap-2 text-[12px] ac-text-3">
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
         Loading plugins...
+      </div>
+    );
+  }
+
+  // (2026-09-07 UI hardening, 12-c#15) failed fetch ≠ "no plugins" — say so.
+  if (fetchError) {
+    return (
+      <div className="flex items-start gap-2 text-[12px] ac-text-3">
+        <XCircle className="h-3.5 w-3.5 flex-shrink-0 ac-text-warning mt-0.5" />
+        <span>Couldn’t load the plugin list: {fetchError}</span>
       </div>
     );
   }

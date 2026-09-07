@@ -104,6 +104,25 @@ function makeSession(documentId: string, partial?: Partial<Session>): Session {
   };
 }
 
+/// (2026-09-07 UI hardening, 12-c#11) lastOpenedAt comparator that tolerates
+/// malformed rows: a session with a missing/non-string `lastOpenedAt` sorts
+/// LAST in newest-first lists instead of crashing `localeCompare` on
+/// undefined — a poisoned `agentcanvas.sessions.v1` row used to white-screen
+/// the sidebar sort right after init() hydrated (no error boundary in src/).
+/// Shared by listSessions, the sidebar, and enforceSessionCap so every sort
+/// site agrees.
+export function compareByLastOpenedDesc(
+  a: { lastOpenedAt?: unknown },
+  b: { lastOpenedAt?: unknown },
+): number {
+  const at = typeof a?.lastOpenedAt === 'string' ? a.lastOpenedAt : null;
+  const bt = typeof b?.lastOpenedAt === 'string' ? b.lastOpenedAt : null;
+  if (at === null && bt === null) return 0;
+  if (at === null) return 1; // missing/non-string sorts last
+  if (bt === null) return -1;
+  return bt.localeCompare(at);
+}
+
 // ---- Store interface --------------------------------------------------------
 
 interface SessionStoreState {
@@ -414,10 +433,11 @@ export const useSessionStore = create<SessionStoreState>()(
           const q = filter.search.toLowerCase();
           list = list.filter((s) => s.title.toLowerCase().includes(q));
         }
-        // Sort: pinned first, then lastOpenedAt desc.
+        // Sort: pinned first, then lastOpenedAt desc (comparator tolerates
+        // malformed rows — 12-c#11).
         return [...list].sort((a, b) => {
           if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-          return b.lastOpenedAt.localeCompare(a.lastOpenedAt);
+          return compareByLastOpenedDesc(a, b);
         });
       },
 
@@ -644,6 +664,7 @@ export const useSessionStore = create<SessionStoreState>()(
       },
 
       archiveSession: (id) => {
+        const existed = !!get().sessions[id];
         set((s) => {
           const session = s.sessions[id];
           if (!session) return s;
@@ -659,9 +680,19 @@ export const useSessionStore = create<SessionStoreState>()(
             activeSessionByDoc: active,
           };
         });
+        // (2026-09-07 UI hardening, 12-c#4) mirror the status server-side —
+        // updateServerSession existed but archive/unarchive never called it,
+        // so archived rows came back as 'active' after a browser clear
+        // (hydrateSessionStore re-adopts the server row's status).
+        if (typeof window !== 'undefined' && existed) {
+          import('./server-sync').then(({ updateServerSession }) => {
+            updateServerSession(id, { status: 'archived' });
+          });
+        }
       },
 
       unarchiveSession: (id) => {
+        const existed = !!get().sessions[id];
         set((s) => {
           const session = s.sessions[id];
           if (!session) return s;
@@ -673,9 +704,17 @@ export const useSessionStore = create<SessionStoreState>()(
             },
           };
         });
+        // (2026-09-07 UI hardening, 12-c#4) same server-side status mirror as
+        // archiveSession — see the note above.
+        if (typeof window !== 'undefined' && existed) {
+          import('./server-sync').then(({ updateServerSession }) => {
+            updateServerSession(id, { status: 'active' });
+          });
+        }
       },
 
       deleteSession: (id) => {
+        const existed = !!get().sessions[id];
         set((s) => {
           const session = s.sessions[id];
           if (!session) return s;
@@ -699,6 +738,18 @@ export const useSessionStore = create<SessionStoreState>()(
           if (active[session.documentId] === id) delete active[session.documentId];
           return { sessions, runs, messages, toolCalls, activeSessionByDoc: active };
         });
+        // (2026-09-07 UI hardening, 12-c#4) the delete used to be LOCAL-ONLY —
+        // deleteServerSession had ZERO call sites, so the server's
+        // SessionRun/SessionMessage/Session rows survived and
+        // hydrateSessionStore's incoming merge re-adopted any session with
+        // content on next boot (deleted chats resurrected). Fire-and-forget
+        // server delete (client-only guard); the local delete above stays
+        // immediate so the UI never waits on the network.
+        if (typeof window !== 'undefined' && existed) {
+          import('./server-sync').then(({ deleteServerSession }) => {
+            void deleteServerSession(id).catch(() => {});
+          });
+        }
       },
 
       forkSession: (parentId, fromMessageId) => {
@@ -1705,18 +1756,29 @@ export const useSessionStore = create<SessionStoreState>()(
           toolCalls?: Record<string, ToolCallRecord>;
           activeSessionByDoc?: Record<string, string>;
         };
-        const sessions = { ...(s.sessions ?? {}) };
-        const snapshots = { ...(s.snapshots ?? {}) };
-        for (const snap of Object.values(snapshots)) {
+        // (2026-09-07 UI hardening, 12-c#9) typeof-object guards in BOTH
+        // loops: a poisoned v1 blob can carry primitive rows (e.g.
+        // `snapshots: "abc"` spreads to {'0':'a',…}) — assigning
+        // `snap.documentId` on a primitive THROWS in strict mode, zustand's
+        // toThenable catch swallows it, and the ENTIRE persisted dataset
+        // silently drops to defaults (data loss with zero user signal).
+        // Skip malformed entries instead of assigning.
+        const sessions: typeof s.sessions = {};
+        for (const [id, sess] of Object.entries(s.sessions ?? {})) {
+          if (typeof sess !== 'object' || sess === null) continue;
+          delete (sess as Partial<Session> & { currentSnapshotId?: string | null }).currentSnapshotId;
+          delete (sess as Partial<Session> & { snapshotIds?: string[] }).snapshotIds;
+          sessions[id] = sess;
+        }
+        const snapshots: typeof s.snapshots = {};
+        for (const [id, snap] of Object.entries(s.snapshots ?? {})) {
+          if (typeof snap !== 'object' || snap === null) continue;
           if (!snap.documentId) {
             const owner = snap.sessionId ? sessions[snap.sessionId] : undefined;
             snap.documentId = owner?.documentId ?? 'demo';
           }
           snap.remote = false;
-        }
-        for (const sess of Object.values(sessions)) {
-          delete (sess as Partial<Session> & { currentSnapshotId?: string | null }).currentSnapshotId;
-          delete (sess as Partial<Session> & { snapshotIds?: string[] }).snapshotIds;
+          snapshots[id] = snap;
         }
         return {
           sessions,
@@ -1725,6 +1787,52 @@ export const useSessionStore = create<SessionStoreState>()(
           messages: s.messages ?? {},
           toolCalls: s.toolCalls ?? {},
           activeSessionByDoc: s.activeSessionByDoc ?? {},
+        };
+      },
+      // (2026-09-07 UI hardening, 12-c#11) custom merge: sanitize the
+      // persisted dataset as it lands. The default shallow merge trusted
+      // poisoned rows — a session missing its string documentId/id (or a
+      // primitive row in any map) crashed the sidebar sort right after
+      // init() hydrated. Drop rows that aren't plain objects, and
+      // sessions/snapshots rows missing a string id + documentId.
+      merge: (persistedState, currentState) => {
+        const p = (typeof persistedState === 'object' && persistedState !== null
+          ? persistedState
+          : {}) as {
+          sessions?: unknown;
+          runs?: unknown;
+          messages?: unknown;
+          toolCalls?: unknown;
+          snapshots?: unknown;
+          activeSessionByDoc?: unknown;
+        };
+        const keepObjectRows = <T>(raw: unknown, isValid: (row: T) => boolean): Record<string, T> => {
+          const out: Record<string, T> = {};
+          if (typeof raw !== 'object' || raw === null) return out;
+          for (const [id, row] of Object.entries(raw)) {
+            if (typeof row !== 'object' || row === null) continue;
+            if (!isValid(row as T)) continue;
+            out[id] = row as T;
+          }
+          return out;
+        };
+        const active = (typeof p.activeSessionByDoc === 'object' && p.activeSessionByDoc !== null
+          ? Object.fromEntries(
+              Object.entries(p.activeSessionByDoc).filter(
+                ([, v]) => typeof v === 'string',
+              ),
+            )
+          : {}) as Record<string, string>;
+        return {
+          ...currentState,
+          sessions: keepObjectRows<Session>(p.sessions, (row) =>
+            typeof row.id === 'string' && typeof row.documentId === 'string'),
+          runs: keepObjectRows<Run>(p.runs, () => true),
+          messages: keepObjectRows<Message>(p.messages, () => true),
+          toolCalls: keepObjectRows<ToolCallRecord>(p.toolCalls, () => true),
+          snapshots: keepObjectRows<Snapshot>(p.snapshots, (row) =>
+            typeof row.id === 'string' && typeof row.documentId === 'string'),
+          activeSessionByDoc: active,
         };
       },
       // Next.js SSR safety: skip auto-hydration on the server. The client
@@ -1890,7 +1998,7 @@ export function enforceSessionCap(maxRetained: number): number {
   const store = useSessionStore.getState();
   const active = Object.values(store.sessions)
     .filter((s) => s.status === 'active')
-    .sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt)); // newest first
+    .sort((a, b) => compareByLastOpenedDesc(a, b)); // newest first (safe — 12-c#11)
   if (active.length <= maxRetained) return 0;
   // Protect pinned + starred sessions from auto-archive.
   const candidates = active.filter((s) => !s.pinned && !s.starred);

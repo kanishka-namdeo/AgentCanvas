@@ -20,12 +20,14 @@
 // directly. page.tsx wires ⌘C/V/X/A and calls into this hook.
 
 import { useCallback } from 'react';
+import { toast } from 'sonner';
 import { useCanvasStore } from '@/lib/canvas/store';
 import type { Shape, CanvasPatch } from '@/lib/canvas/types';
 import {
   serializeShapes,
   deserializeShapes,
   offsetShapes,
+  MAX_PASTE_RAW_CHARS,
   type ClipboardPayload,
 } from '@/lib/canvas/clipboard';
 
@@ -91,6 +93,17 @@ export function useClipboard() {
   const paste = useCallback(async (opts?: { offset?: { dx: number; dy: number } }) => {
     const raw = await readClipboard();
     if (!raw) return;
+    // (2026-09-07 UI hardening, 12-d#1): honest failure surface for the
+    // raw-size cap — a silent skip here would leave the user wondering why
+    // ⌘V did nothing after copying something huge. deserializeShapes enforces
+    // the same cap (plus count/per-shape guards) as the belt-and-braces path
+    // for localStorage-fallback reads; it reports via console.warn.
+    if (raw.length > MAX_PASTE_RAW_CHARS) {
+      toast.error('Paste rejected — clipboard payload too large', {
+        description: `${(raw.length / 1_000_000).toFixed(1)}MB of text exceeds the 2MB paste cap. Copy fewer shapes before pasting.`,
+      });
+      return;
+    }
     const shapes = deserializeShapes(raw);
     if (shapes.length === 0) return;
     const dx = opts?.offset?.dx ?? 24;

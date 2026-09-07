@@ -161,9 +161,15 @@ export function DocumentSwitcher() {
     // fall back to a cuid-like timestamp+random id.
     const slug = name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
     const id = slug || `doc-${Date.now().toString(36)}`;
-    const doc = await createServerDocument({ id, name });
+    const { document: doc, error: createError } = await createServerDocument({ id, name });
     if (!doc) {
-      toast.error('Failed to create document', { description: 'A document with that id may already exist.' });
+      // (2026-09-07 UI hardening, 12-c#12) surface the server's JSON error
+      // body (e.g. the 100-char name cap 400) instead of always claiming
+      // "id may already exist". createError is null when the network itself
+      // failed — fall back to the generic message then.
+      toast.error('Failed to create document', {
+        description: createError ?? 'A document with that id may already exist.',
+      });
       return;
     }
     init(id);
@@ -202,6 +208,31 @@ export function DocumentSwitcher() {
         description: `${BUSY_LOCK_HINT} — deleting this canvas would destroy the run's history.`,
       });
       return;
+    }
+    // (2026-09-07 UI hardening, 12-c#2) the guard above only covers the
+    // ACTIVE doc + the CLIENT's agentBusy — after a mid-run switch agentBusy
+    // resets, so the document owning the LIVE server-side run (non-active)
+    // was fully deletable. Ask the server's run registry before deleting:
+    // GET /api/documents/[id]/agent/status (same endpoint boot hydration
+    // uses — store.ts init()); block when `active` is truthy. An unreachable
+    // status check falls through — the delete itself fails honestly when
+    // the server is down.
+    try {
+      const res = await fetch(
+        `/api/documents/${encodeURIComponent(id)}/agent/status`,
+        { cache: 'no-store', headers: { accept: 'application/json' } },
+      );
+      if (res.ok) {
+        const status = await res.json().catch(() => null) as { active?: unknown } | null;
+        if (status?.active) {
+          toast.warning('A run is live on this document', {
+            description: 'Stop it first — deleting now would destroy the history the run is still writing.',
+          });
+          return;
+        }
+      }
+    } catch {
+      // Status check failed (offline / aborted) — fall through to the delete.
     }
     if (!confirm(`Delete document "${name}"? This also deletes every session, snapshot, and canvas element on it.`)) return;
     const ok = await deleteServerDocument(id);

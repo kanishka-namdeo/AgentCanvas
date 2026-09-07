@@ -849,7 +849,12 @@ export function isPenDocument(value: unknown): value is PenDocument {
 ///      resolver). Cap is generous (100) — real designs rarely exceed 10.
 ///   5. Total node count ≤ MAX_NODES (a 50k-node file would freeze the UI).
 const MAX_DEPTH = 100;
-const MAX_NODES = 50_000;
+// (2026-09-07 UI hardening, 12-d#8): lowered 50k → 20k to align with the
+// HTTP canvasState cap (the /api routes reject > 20k shapes) — the old 50k
+// cap accepted 2.5× what every other ingest surface allows, and 50k nodes
+// freeze the UI anyway (bulk_add insertNode is O(N²)). Exported so tests +
+// callers can pin the contract.
+export const MAX_NODES = 20_000;
 
 export function validatePenDocument(doc: unknown): { ok: boolean; errors: string[] } {
   const errors: string[] = [];

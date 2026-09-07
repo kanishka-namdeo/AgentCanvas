@@ -25,6 +25,13 @@ import { useCanvasStore } from '@/lib/canvas/store';
 import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import { toast } from 'sonner';
 
+// (2026-09-07 UI hardening, 12-d#8 — .pen import bomb): the client used to
+// `file.text()` + JSON.parse ANY chosen file — a 300MB .pen froze the tab in
+// the parse before the server ever saw the upload. Size is known BEFORE any
+// read, so gate on file.size and fail with an honest toast instead.
+/** Client-side cap on .pen imports: 25MB (file.size is metadata — no read needed). */
+export const MAX_PEN_IMPORT_BYTES = 25_000_000;
+
 export function usePenFile() {
   const canvasDoc = useCanvasStore((s) => s.document);
   const sendPatch = useCanvasStore((s) => s.sendPatch);
@@ -86,6 +93,16 @@ export function usePenFile() {
     const file = e.target.files?.[0];
     e.target.value = ''; // allow re-selecting the same file
     if (!file) return;
+
+    // (2026-09-07 UI hardening, 12-d#8): reject oversized .pen files BEFORE
+    // file.text()/JSON.parse — a multi-hundred-MB pick would freeze the tab
+    // locally long before the server's validators ran.
+    if (file.size > MAX_PEN_IMPORT_BYTES) {
+      toast.error('Import rejected — file too large', {
+        description: `${(file.size / 1_000_000).toFixed(1)}MB exceeds the 25MB .pen import cap.`,
+      });
+      return;
+    }
 
     setBusy('import');
     try {

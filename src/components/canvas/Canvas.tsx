@@ -882,6 +882,11 @@ export function Canvas() {
         if (dragState.nested) {
           // Recurse: any shape with an intersecting ANCESTOR joins the
           // selection (Figma's nested marquee grabs whole subtrees).
+          // (2026-09-07 UI hardening, 12-d#10): the ancestor walk used
+          // `shapes.find` (linear) INSIDE the per-shape while loop — a ⌘-drag
+          // over a deeply-nested 10k-node canvas was up to 10⁸+ comparisons
+          // on mouseup. One Map before the loop, O(1) ancestor lookups.
+          const byId = new Map(shapes.map((s) => [s.id, s]));
           for (const s of shapes) {
             if (hitIds.has(s.id)) continue;
             let p = s.parentId;
@@ -890,7 +895,7 @@ export function Canvas() {
                 hitIds.add(s.id);
                 break;
               }
-              const parent = shapes.find((x) => x.id === p);
+              const parent = byId.get(p);
               p = parent?.parentId ?? null;
             }
           }

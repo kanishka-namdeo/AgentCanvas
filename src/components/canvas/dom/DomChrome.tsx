@@ -13,6 +13,7 @@
 // Root carries `data-ac-chrome` — the integration-test selector for
 // chrome-level assertions (multi-select outline counts etc.).
 
+import { useMemo } from 'react';
 import type { Layer, Shape } from '@/lib/canvas/types';
 import { cursorForHandle, handlePosition, type ResizeHandle } from '../handleMath';
 import { MeasureOverlay } from './MeasureOverlay';
@@ -47,6 +48,18 @@ const HANDLES: ResizeHandle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
 const HANDLE_PX = 8;
 
+// (2026-09-07 UI hardening, 12-d#2 — selection-handle bomb): 8 handle divs
+// (each with its own onMouseDown closure) used to render PER SELECTED layer,
+// so a rubber-band ⌘-drag over 10k nodes reconciled 80k handle divs on every
+// viewport/selection change (sustained multi-second freeze). Figma parity:
+// multi-select shows bbox-level handles only — here per-node handles render
+// while the selection is small (≤ HANDLE_SELECTION_MAX); larger selections
+// keep the per-layer outlines (section 1) and suppress handles entirely
+// (there is no selection-bbox resize path in this codebase — synthesizing a
+// bbox pseudo-shape would feed a nonexistent shape into the resize pipeline).
+// Single-selection behavior is IDENTICAL to before.
+const HANDLE_SELECTION_MAX = 4;
+
 export function DomChrome({
   layers,
   selectedIds,
@@ -59,8 +72,13 @@ export function DomChrome({
   onResizeHandleMouseDown,
 }: DomChromeProps) {
   const { zoom, panX, panY } = viewport;
-  const byId = new Map(layers.map((l) => [l.id, l]));
-  const selectedSet = new Set(selectedIds);
+  // (2026-09-07 UI hardening, 12-d#2): hoisted lookups — `new Map(layers)` /
+  // `new Set(ids)` were rebuilt on EVERY render (every pan/zoom tick) just to
+  // answer a handful of id lookups; memoized on the prop identities so a
+  // viewport change re-uses the previous maps.
+  const byId = useMemo(() => new Map(layers.map((l) => [l.id, l])), [layers]);
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const highlightSet = useMemo(() => new Set(highlightIds), [highlightIds]);
 
   // canvas → screen conversion (spec §3.3 — same math the shell's
   // screenToCanvas inverts).
@@ -73,7 +91,6 @@ export function DomChrome({
   const highlightedLayers = highlightIds
     .map((id) => byId.get(id))
     .filter((l): l is Layer => !!l);
-  const highlightSet = new Set(highlightIds);
 
   // Task 4d — focused layer (only when the focus moved to a shape the
   // selection set doesn't already cover, so the existing selection outline
@@ -137,8 +154,13 @@ export function DomChrome({
         />
       )}
 
-      {/* 2. Resize handles — handlePosition ported to screen space. */}
-      {selectedLayers.map((l) =>
+      {/* 2. Resize handles — handlePosition ported to screen space.
+              (2026-09-07 UI hardening, 12-d#2): rendered ONLY while the
+              selection is small (≤ HANDLE_SELECTION_MAX, Figma parity) —
+              see HANDLE_SELECTION_MAX above for the bomb this prevents.
+              Single-selection rendering is byte-identical to the old path. */}
+      {selectedLayers.length <= HANDLE_SELECTION_MAX &&
+        selectedLayers.map((l) =>
         HANDLES.map((h) => {
           const pos = handlePosition(l, h);
           return (

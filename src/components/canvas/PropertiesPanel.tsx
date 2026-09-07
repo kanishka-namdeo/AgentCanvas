@@ -17,7 +17,7 @@
 // (doc.children) by the patch applier; the derived cache is recomputed
 // automatically on every mutation.
 
-import { useState, useId, memo } from 'react';
+import { useState, useId, useMemo, memo } from 'react';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useClipboard } from '@/hooks/use-clipboard';
 import type { CanvasPatch, AutoLayout, Shape } from '@/lib/canvas/types';
@@ -116,8 +116,17 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
     else { toast.message('No numeric value in clipboard'); }
   };
 
+  // (2026-09-07 UI hardening, 12-d#3 — O(selection × canvas) lookup): the
+  // old `selectedIds.map(id => document.shapes.find(...))` re-scanned the
+  // whole shape cache PER selected id on every document/selection change —
+  // ⌘A on a 20k-node canvas was 400M comparisons in the render phase.
+  // One Map per document identity, then O(1) lookups.
+  const shapeById = useMemo(
+    () => new Map(document.shapes.map((s) => [s.id, s] as const)),
+    [document],
+  );
   const selected = selectedIds
-    .map((id) => document.shapes.find((s) => s.id === id))
+    .map((id) => shapeById.get(id))
     .filter((s): s is NonNullable<typeof s> => !!s);
 
   // Local state for the Slot section's "Mark as slot…" editing flow.

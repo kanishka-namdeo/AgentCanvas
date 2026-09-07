@@ -34,6 +34,14 @@ let shared: ModelCatalogState = {
 };
 const listeners = new Set<() => void>();
 let inFlight = false;
+// (2026-09-07 UI hardening, 12-c#6) request-sequence token: every
+// fetchCatalog call (and every invalidate) bumps it; a response whose token
+// is no longer the latest is DISCARDED. Fixes stale-response-over-newer-
+// selection: a fetch started under provider/endpoint A used to resolve
+// AFTER the user applied preset B (invalidate had cleared shared.data, then
+// A's response re-populated it) — the dropdown showed the OLD endpoint's
+// models with a fresh "live" look.
+let requestSeq = 0;
 
 function notify() {
   for (const l of listeners) l();
@@ -45,6 +53,9 @@ function setShared(patch: Partial<ModelCatalogState>) {
 }
 
 async function fetchCatalog() {
+  // Bump FIRST — even when the inFlight guard returns early, this marks any
+  // in-flight response as stale (the new call represents newer intent).
+  const token = ++requestSeq;
   if (inFlight) return;
   inFlight = true;
   setShared({ loading: true, error: null });
@@ -61,15 +72,32 @@ async function fetchCatalog() {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = (await res.json()) as ModelsListing;
+    // Stale response (superseded by a newer call or an invalidate) — discard
+    // so it can't re-populate the cache for the WRONG provider.
+    if (token !== requestSeq) return;
     setShared({ loading: false, data, error: null });
   } catch (err) {
+    if (token !== requestSeq) return;
     setShared({
       loading: false,
       error: err instanceof Error ? err.message : 'Failed to load models',
     });
   } finally {
     inFlight = false;
+    // A discarded response must not leave the loading flag stuck — no newer
+    // fetch is actually running (refresh() was a no-op while inFlight), so
+    // clear the spinner without touching data/error.
+    if (token !== requestSeq) setShared({ loading: false });
   }
+}
+
+/// (2026-09-07 UI hardening, 12-c#6) invalidate the shared catalog AND any
+/// in-flight fetch: clears `data` + `error` and bumps the request-sequence
+/// token so a response started under the OLD (provider, apiKey, apiBaseUrl)
+/// tuple is discarded instead of re-populating the just-cleared cache.
+function invalidateCatalog() {
+  requestSeq++;
+  setShared({ data: null, error: null });
 }
 
 // ---- Hook -------------------------------------------------------------------
@@ -124,11 +152,12 @@ export function useModelCatalog(opts?: {
   useSettings((s) => s.apiBaseUrl);
   useEffect(() => {
     if (!invalidateOnSettingsChange) return;
-    // Mark the cache as stale by clearing `data`. The next Live click or
-    // autoFetch will re-fetch. Don't auto-refetch here — that would fire a
-    // network request on every keystroke in the apiBaseUrl field.
-    if (shared.data !== null) {
-      setShared({ data: null, error: null });
+    // Mark the cache as stale by clearing `data` AND discarding any
+    // in-flight response (invalidateCatalog bumps the request-sequence
+    // token — 12-c#6). Don't auto-refetch here — that would fire a network
+    // request on every keystroke in the apiBaseUrl field.
+    if (shared.data !== null || inFlight) {
+      invalidateCatalog();
     }
     void settings; // settings is read above for subscription; we don't use it here.
   }, [settings.llmProvider, settings.apiKey, settings.apiBaseUrl, invalidateOnSettingsChange]);

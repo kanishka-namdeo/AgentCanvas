@@ -17,6 +17,7 @@ import { AgentPanel } from '@/components/canvas/AgentPanel';
 import type { PaletteCommand } from '@/components/canvas/CommandPalette';
 import { useSettings } from '@/lib/settings/store';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { useIsMobile } from '@/lib/canvas/use-is-mobile';
 import type { CanvasDocument, CanvasPatch, Shape } from '@/lib/canvas/types';
@@ -540,8 +541,12 @@ export default function Home() {
         ]);
         if (metaAction) {
           e.preventDefault();
+          // (2026-09-07 UI hardening): O(1) Map lookup instead of findShape's
+          // linear scan PER selected id (⌘A on a 20k-node canvas used to burn
+          // 400M comparisons before the switch even ran).
+          const byId = new Map(state.document.shapes.map((s) => [s.id, s] as const));
           const sel = state.selectedIds
-            .map((id) => findShape(state.document, id))
+            .map((id) => byId.get(id))
             .filter((s): s is Shape => !!s);
           switch (metaAction) {
             case 'group':
@@ -639,7 +644,11 @@ export default function Home() {
         if (e.key === 'c' || e.key === 'C') {
           if (isEditable) return; // don't hijack copy-in-input
           e.preventDefault();
-          const sel = state.selectedIds.map((id) => findShape(state.document, id)).filter((s): s is Shape => !!s);
+          // (2026-09-07 UI hardening): O(1) Map lookup — ⌘C after select-all
+          // on 10k+ nodes used to run a 10k×findShape scan + a full
+          // JSON.stringify block before the clipboard write.
+          const byId = new Map(state.document.shapes.map((s) => [s.id, s] as const));
+          const sel = state.selectedIds.map((id) => byId.get(id)).filter((s): s is Shape => !!s);
           clipboard.copy(sel);
           return;
         }
@@ -657,7 +666,10 @@ export default function Home() {
         if (e.key === 'x' || e.key === 'X') {
           if (isEditable) return;
           e.preventDefault();
-          const sel = state.selectedIds.map((id) => findShape(state.document, id)).filter((s): s is Shape => !!s);
+          // (2026-09-07 UI hardening): O(1) Map lookup — same ⌘A+⌘X hazard
+          // as copy above.
+          const byId = new Map(state.document.shapes.map((s) => [s.id, s] as const));
+          const sel = state.selectedIds.map((id) => byId.get(id)).filter((s): s is Shape => !!s);
           clipboard.cut(sel);
           return;
         }
@@ -934,6 +946,11 @@ export default function Home() {
   ];
 
   return (
+    // (2026-09-07 UI hardening): the app-level error boundary — before this,
+    // ANY render-time crash (poisoned persisted settings, malformed store
+    // state) unmounted the whole tree = white screen. See
+    // src/components/ErrorBoundary.tsx.
+    <ErrorBoundary>
     <TooltipProvider delayDuration={300}>
       <div
         className="h-screen w-screen flex flex-col ac-surface-1 ac-text-1 overflow-hidden"
@@ -1196,7 +1213,8 @@ export default function Home() {
           }}
         />
       )}
-    </TooltipProvider>
+      </TooltipProvider>
+    </ErrorBoundary>
   );
 }
 

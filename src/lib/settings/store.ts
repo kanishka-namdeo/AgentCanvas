@@ -22,6 +22,51 @@ interface SettingsStore extends AppSettings {
   replaceAll: (next: AppSettings) => void;
 }
 
+/// Sanitize a persisted settings blob field-by-field (2026-09-07 UI
+/// hardening, 12-c#3). Zustand v5's default merge does NO shape validation,
+/// so a poisoned `agentcanvas.settings.v1` (manual edit / another tab
+/// writing garbage) with a string/null `temperature` flowed straight into
+/// the store and crashed `temperature.toFixed(1)` in SettingsDialog — a
+/// white screen with no error boundary anywhere in src/. Only keys PRESENT
+/// in the blob are emitted, so absent fields keep the in-store (default)
+/// value. Returns a partial suitable for spreading over the current state.
+export function sanitizePersistedSettings(persisted: unknown): Partial<AppSettings> {
+  if (typeof persisted !== 'object' || persisted === null) return {};
+  const s = persisted as Record<string, unknown>;
+  const out: Partial<AppSettings> = {};
+  // Numbers: temperature must be a finite number clamped to [0,2] (fallback
+  // 0.6 = DEFAULT_SETTINGS.temperature); maxIterations a finite int in
+  // [1,50] (fallback 24). Non-number types (string/null/undefined) fall back
+  // rather than coercing — a poisoned "0.6" string should not silently pass
+  // as a number.
+  if ('temperature' in s) {
+    const v = s.temperature;
+    out.temperature =
+      typeof v === 'number' && Number.isFinite(v)
+        ? Math.min(2, Math.max(0, v))
+        : 0.6;
+  }
+  if ('maxIterations' in s) {
+    const v = s.maxIterations;
+    out.maxIterations =
+      typeof v === 'number' && Number.isFinite(v)
+        ? Math.min(50, Math.max(1, Math.round(v)))
+        : 24;
+  }
+  // String fields (provider/model/endpoint ids, apiKey, baseUrl): anything
+  // non-string coerces to '' (an unknown provider id is normalized
+  // downstream by normalizeLLMProvider; empty model/baseUrl mean "provider
+  // default").
+  for (const key of ['llmProvider', 'apiKey', 'modelName', 'apiBaseUrl'] as const) {
+    if (key in s) out[key] = typeof s[key] === 'string' ? s[key] : '';
+  }
+  // Booleans → Boolean(x). Optional booleans (domCulling) only coerce when
+  // the key is present, so a missing flag keeps the consumer default.
+  if ('planFirst' in s) out.planFirst = Boolean(s.planFirst);
+  if ('domCulling' in s) out.domCulling = Boolean(s.domCulling);
+  return out;
+}
+
 export const useSettings = create<SettingsStore>()(
   persist(
     (set) => ({
@@ -94,6 +139,26 @@ export const useSettings = create<SettingsStore>()(
           maxSnapshotsPerCanvas: rest.maxSnapshotsPerCanvas ?? legacyCap ?? DEFAULT_SETTINGS.maxSnapshotsPerCanvas,
         };
         return withCanvasCap as AppSettings;
+      },
+      // (2026-09-07 UI hardening, 12-c#3) custom merge: sanitize the persisted
+      // state (post-migrate — v5 migration semantics are untouched) before it
+      // lands in the store. The default shallow merge trusted the blob's
+      // shape, so a wrong-typed temperature crashed SettingsDialog's
+      // `.toFixed(1)` on rehydrate. Unknown fields still flow through (the
+      // sanitize list only covers the fields the UI renders numerically /
+      // crashes on); the sanitized overrides land last.
+      merge: (persistedState, currentState) => {
+        const raw = typeof persistedState === 'object' && persistedState !== null
+          ? (persistedState as Record<string, unknown>)
+          : {};
+        // Strip the action functions (same keys partialize omits) so a
+        // poisoned blob can't clobber the store's API.
+        const { set: _s, patch: _p, reset: _r, replaceAll: _ra, ...data } = raw;
+        return {
+          ...currentState,
+          ...data,
+          ...sanitizePersistedSettings(data),
+        };
       },
       // Only persist the data fields, not the setter functions.
       partialize: ({ set: _set, patch: _patch, reset: _reset, replaceAll: _replaceAll, ...data }) => data,

@@ -13,7 +13,7 @@
 // for boolean_operation nodes.
 
 import type { Layer } from '@/lib/canvas/types';
-import { createElement } from 'react';
+import { createElement, useState } from 'react';
 import { lucideIconElements, LUCIDE_DEFAULT_STROKE_WIDTH } from '@/lib/icons';
 
 /// Render the island/content child for a vector, image, icon, or boolean node.
@@ -193,12 +193,53 @@ function iconIsland(layer: Layer): React.ReactNode {
 /// `image` — plain <img> content; corner radius/clipping is handled by the
 /// node wrapper (styleFor sets borderRadius + overflow:hidden), matching the
 /// SVG renderer's inset(0 round Npx) clip.
-function imageContent(layer: Layer): React.ReactNode {
+/// (2026-09-07 UI hardening, 12-d#13 — image decode bomb): image nodes used
+/// to render a plain `<img src>` with no decoded-dimension guard. The server
+/// caps the ENCODED dataUrl (≤ 7.5M chars), not the pixels — a 20000×20000
+/// PNG dataUrl decodes to ~1.6GP (GPU/RAM spike). After load, images whose
+/// natural size exceeds MAX_IMAGE_DIMENSION on either axis are swapped for a
+/// neutral placeholder box (the node wrapper keeps the layout footprint).
+const MAX_IMAGE_DIMENSION = 4096;
+
+function ImageContent({ layer }: { layer: Layer }) {
+  const [oversized, setOversized] = useState(false);
+  if (oversized) {
+    // Neutral fallback: dashed box + short label, same footprint, no giant
+    // bitmap blitted into the canvas (mirrors the unknown-icon placeholder
+    // pattern above).
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          border: '1.5px dashed var(--ac-canvas-highlight)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 10,
+          color: 'var(--ac-canvas-highlight)',
+          overflow: 'hidden',
+          pointerEvents: 'none',
+        }}
+      >
+        {`image hidden — over ${MAX_IMAGE_DIMENSION}px`}
+      </div>
+    );
+  }
   return (
     <img
       src={layer.src ?? undefined}
       alt=""
       draggable={false}
+      onLoad={(e) => {
+        const img = e.currentTarget;
+        if (
+          img.naturalWidth > MAX_IMAGE_DIMENSION ||
+          img.naturalHeight > MAX_IMAGE_DIMENSION
+        ) {
+          setOversized(true);
+        }
+      }}
       style={{
         width: '100%',
         height: '100%',
@@ -208,6 +249,12 @@ function imageContent(layer: Layer): React.ReactNode {
       }}
     />
   );
+}
+
+function imageContent(layer: Layer): React.ReactNode {
+  // key on src: a NEW source remounts the component, resetting any oversized
+  // placeholder state carried over from a previous decode.
+  return <ImageContent key={layer.src ?? 'no-src'} layer={layer} />;
 }
 
 /// `boolean_operation` — placeholder visual port (SVG parity): the node div

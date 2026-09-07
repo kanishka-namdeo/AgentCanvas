@@ -62,6 +62,23 @@ interface DocState {
 
 const documents = new Map<string, DocState>();
 
+// (2026-09-07 UI hardening) — WS writer validation caps. The HTTP route has
+// long had a door check on canvasState (20k shapes / 32MB body); the socket
+// writer path had NONE: any scripted client could journal + relay whatever
+// it wanted. These caps mirror the route's contract at the socket door.
+// NOTE: no op whitelist — patch.ts's switch owns ~40 ops (pages, components,
+// variants, zorder…) and its default case no-ops unknowns; validating the
+// op string + the bulk fields + the serialized size is the durable contract.
+/// Per-patch serialized size cap (512KB — the client's paste guard allows
+/// 2MB raw JSON for 2k shapes; a single patch beyond this is abuse/bug).
+const MAX_PATCH_JSON_CHARS = 512 * 1024;
+/// Max shapes per bulk_add (mirrors the client's MAX_PASTE_SHAPES).
+const MAX_PATCH_BULK_SHAPES = 2000;
+
+/// Per-socket presence relay throttle state (2026-09-07 UI hardening).
+const presenceRelayAt = new Map<string, number>();
+const PRESENCE_RELAY_MIN_MS = 40;
+
 /// In-flight agent runs, keyed by documentId — the handle behind the
 /// server-visible Stop (`agent:stop` client event). Aborting the fetch also
 /// aborts the /api/agent request server-side, whose request signal
@@ -218,6 +235,36 @@ export function startCanvasSyncService() {
           }
           if (!state || !docId) break;
 
+          // (2026-09-07 UI hardening): the WS patch writer is now validated
+          // like the HTTP route's canvasState door — a malformed/oversized
+          // patch from a buggy or SCRIPTED client used to be journaled and
+          // relayed to every viewer, and a garbage patch crashed the server's
+          // own applier (unhandled throw out of applyAndTrack → the relay
+          // dies for everyone). Validate op + arrays + size before anything.
+          const patch = event.patch;
+          if (!patch || typeof patch.op !== 'string') {
+            console.warn(`[canvas-sync] dropped malformed canvas:patch from ${socket.id}`);
+            break;
+          }
+          if (patch.op === 'bulk_add' && (!Array.isArray(patch.shapes) || patch.shapes.length > MAX_PATCH_BULK_SHAPES)) {
+            console.warn(`[canvas-sync] dropped canvas:patch bulk_add with invalid/oversized shapes (${patch.shapes?.length ?? 'n/a'}) from ${socket.id}`);
+            break;
+          }
+          if (patch.op === 'add_subtree' && ((patch as { subtree?: unknown }).subtree === null || typeof (patch as { subtree?: unknown }).subtree !== 'object')) {
+            console.warn(`[canvas-sync] dropped canvas:patch add_subtree without a subtree from ${socket.id}`);
+            break;
+          }
+          let patchSize = 0;
+          try {
+            patchSize = JSON.stringify(patch).length;
+          } catch {
+            patchSize = Number.POSITIVE_INFINITY;
+          }
+          if (patchSize > MAX_PATCH_JSON_CHARS) {
+            console.warn(`[canvas-sync] dropped canvas:patch of ${patchSize} chars from ${socket.id} (cap ${MAX_PATCH_JSON_CHARS})`);
+            break;
+          }
+
           // R1 exactly-once path: mutations carrying identity are journaled
           // (`user_patch` row + MutationClock bump) before apply/broadcast,
           // and the sender gets a per-mutation ack. `select` ops are UI
@@ -228,13 +275,13 @@ export function startCanvasSyncService() {
           if (
             event.clientId &&
             typeof event.clientMutationId === 'number' &&
-            event.patch?.op !== 'select'
+            patch.op !== 'select'
           ) {
             const decision = await acceptUserMutation(
               docId,
               event.clientId,
               event.clientMutationId,
-              event.patch,
+              patch,
             );
             socket.emit('sync', {
               type: 'mutation:ack',
@@ -250,8 +297,8 @@ export function startCanvasSyncService() {
               break;
             }
           }
-          applyAndTrack(state, event.patch);
-          broadcast(state, { type: 'canvas:patch', patch: event.patch }, socket.id);
+          applyAndTrack(state, patch);
+          broadcast(state, { type: 'canvas:patch', patch }, socket.id);
           break;
         }
         case 'canvas:request_full': {
@@ -270,9 +317,17 @@ export function startCanvasSyncService() {
           // journaled, never replayed by the journal catch-up, never fanned
           // to the agent. A participant whose socket disconnects is evicted
           // by the disconnect handler below.
+          // (2026-09-07 UI hardening): per-socket relay throttle — a scripted
+          // client streaming presence pings at wire rate used to be relayed
+          // 1:1 (every viewer re-renders per event). 40ms ≈ the client's own
+          // 33ms send throttle, so honest cursors are unaffected.
           const state = documents.get(event.documentId);
           const p = event.participant;
           if (!state || !p || typeof p.participantId !== 'string') break;
+          const lastRelay = presenceRelayAt.get(socket.id) ?? 0;
+          const now = Date.now();
+          if (now - lastRelay < PRESENCE_RELAY_MIN_MS) break;
+          presenceRelayAt.set(socket.id, now);
           const { socketId: _drop, ...participant } = p as PresenceParticipant & { socketId?: string };
           state.participants.set(participant.participantId, { ...participant, socketId: socket.id });
           broadcast(state, { type: 'presence:update', participant }, socket.id);
@@ -283,8 +338,17 @@ export function startCanvasSyncService() {
           // snapshot. Replace the in-memory state and rebroadcast the full
           // document to EVERY subscriber (including the sender — the replace
           // is idempotent) so all viewers + the WS doc stay in sync.
+          // (2026-09-07 UI hardening): a peer restore with a garbage
+          // document (null / non-array children) used to be adopted and
+          // REBROADCAST verbatim as canvas:full — crashing every viewer's
+          // ingest. Validate before adopting + rebroadcasting.
+          const restoreDoc = event.document;
+          if (!restoreDoc || typeof restoreDoc !== 'object' || !Array.isArray(restoreDoc.children)) {
+            console.warn(`[canvas-sync] dropped malformed document:restore from ${socket.id}`);
+            break;
+          }
           const state = ensureDocument(event.documentId);
-          state.document = event.document;
+          state.document = restoreDoc;
           // A restore voids prior deletions (the restored snapshot may bring
           // deleted nodes back) — reset the tombstone lane rather than
           // resurrect-suppressing the restore itself.
@@ -293,7 +357,7 @@ export function startCanvasSyncService() {
           // Journal the restore (Phase C R2): snapshot row + document_restore
           // event, so the fold replays it after a restart instead of seeding
           // from "newest snapshot" (which a restore never created).
-          await journalDocumentRestore(event.documentId, event.document);
+          await journalDocumentRestore(event.documentId, restoreDoc);
           // Next agent turn gets a FULL canvas snapshot — everything changed.
           state.lastTurnSeq = 0;
           broadcast(state, { type: 'canvas:full', document: state.document, reason: 'restore' } satisfies SyncEvent);
@@ -408,6 +472,9 @@ export function startCanvasSyncService() {
 
     socket.on('disconnect', () => {
       console.log(`[canvas-sync] disconnected: ${socket.id}`);
+      // (2026-09-07 UI hardening): release the per-socket presence relay
+      // throttle state so the map doesn't grow with connection churn.
+      presenceRelayAt.delete(socket.id);
       for (const [, state] of documents) {
         let touched = state.subscribers.delete(socket.id);
         if (touched) {

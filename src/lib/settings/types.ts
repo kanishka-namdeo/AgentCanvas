@@ -106,7 +106,7 @@ export type CanvasLayoutMode = 'parity' | 'native';
 export interface AppSettings {
   // ── Phase 1: Agent behavior ──────────────────────────────────────────────
   /// LLM sampling temperature. 0.0 = deterministic, 1.0 = very creative.
-  /// Default 0.4 matches the previous hard-coded value in runner.ts.
+  /// Default 0.6 (2026-09-07 BETA tuning; previously 0.4 in runner.ts).
   temperature: number;
   /// Max LLM iterations per turn (each iteration = one tool-call round).
   /// Default 20 matches the previous MAX_ITERATIONS const.

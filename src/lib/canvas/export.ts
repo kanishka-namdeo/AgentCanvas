@@ -16,6 +16,72 @@ function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
+/// (2026-09-07 UI hardening, 12-d#6 — SVG export attribute injection): shape
+/// fields (fill / stroke / src / textColor / gradient stops) are
+/// attacker-controllable via clipboard paste (see clipboard.ts guards) and
+/// .pen import; they are interpolated into the downloadable .svg, so a fill
+/// like `x"><script>…` used to inject raw markup into the exported file.
+/// Every user-derived attribute value now passes through this escaper
+/// (store.ts's escapeAttrValue is querySelector-specific and unexported —
+/// this is the XML-attribute twin: & → &amp;, " → &quot;, < → &lt;, > → &gt;).
+export function escapeAttr(v: string): string {
+  return v
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// (2026-09-07 UI hardening, 12-d#5 — export raster bomb): the SVG-projection
+// fallback used to allocate `canvas.width = round(bbox.w × scale)` with NO
+// pixel cap — exporting a widely-spread canvas (agent multi-screen at ±50k
+// coords) at scale 2 allocated hundreds of megapixels → GPU/RAM spike, blank
+// export, or tab crash. Total raster pixels are now clamped to a 64MP budget
+// by reducing the effective scale, the bbox is NaN-guarded before allocation,
+// and both rasterization paths carry a 30s rejection timeout.
+
+/** Total raster pixel budget for the PNG fallback path (64 megapixels). */
+export const MAX_RASTER_PIXELS = 64_000_000;
+
+/** Rejection timeout for the toPng / SVG-projection rasterization paths. */
+export const RASTER_TIMEOUT_MS = 30_000;
+
+/// (2026-09-07 UI hardening, 12-d#5) Compute offscreen-canvas raster
+/// dimensions for a (w × h) export bbox at the requested scale. Returns null
+/// when w/h are non-finite or ≤ 0 (NaN guard — never allocate). When
+/// w·h·scale² exceeds `budget` the scale is REDUCED to fit (never increased —
+/// floor() on the clamped dims so rounding can't re-exceed the budget).
+export function computeRasterSize(
+  w: number,
+  h: number,
+  scale: number,
+  budget: number = MAX_RASTER_PIXELS,
+): { width: number; height: number; scale: number } | null {
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return null;
+  const s = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  let width = Math.max(1, Math.round(w * s));
+  let height = Math.max(1, Math.round(h * s));
+  if (width * height > budget) {
+    const clampedScale = Math.sqrt(budget / (w * h));
+    width = Math.max(1, Math.floor(w * clampedScale));
+    height = Math.max(1, Math.floor(h * clampedScale));
+    return { width, height, scale: clampedScale };
+  }
+  return { width, height, scale: s };
+}
+
+/// (2026-09-07 UI hardening, 12-d#5) setTimeout rejection guard — a hung
+/// toPng / image-decode used to leave the export promise pending forever.
+function withTimeout<T>(p: Promise<T>, ms: number = RASTER_TIMEOUT_MS): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Rasterization timed out')), ms);
+    p.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
 export interface ExportOptions {
   /// If provided, export only shapes inside this frame (by shape ID).
   frameId?: string;
@@ -106,7 +172,7 @@ function paintAttrs(s: Shape, uid: string): { defs: string[]; attrs: string } {
   if (s.gradient && s.gradient.stops?.length >= 2) {
     const gid = `grad-${uid}`;
     const stops = s.gradient.stops
-      .map((st) => `<stop offset="${st.offset}" stop-color="${st.color}"/>`)
+      .map((st) => `<stop offset="${st.offset}" stop-color="${escapeAttr(st.color)}"/>`)
       .join('');
     if (s.gradient.type === 'radial') {
       defs.push(`<radialGradient id="${gid}">${stops}</radialGradient>`);
@@ -130,7 +196,7 @@ function paintAttrs(s: Shape, uid: string): { defs: string[]; attrs: string } {
     }
     defs.push(
       `<filter id="${fid}" x="-50%" y="-50%" width="200%" height="200%">` +
-      `<feDropShadow dx="${s.shadow.x ?? 0}" dy="${s.shadow.y ?? 0}" stdDeviation="${(s.shadow.blur ?? 0) / 2}" flood-color="${rgba}"/>` +
+      `<feDropShadow dx="${s.shadow.x ?? 0}" dy="${s.shadow.y ?? 0}" stdDeviation="${(s.shadow.blur ?? 0) / 2}" flood-color="${escapeAttr(rgba)}"/>` +
       `</filter>`,
     );
     attrs += ` filter="url(#${fid})"`;
@@ -176,11 +242,14 @@ function polygonPoints(s: Shape): string {
 
 /// Render a single shape as an SVG element string (+ any defs it needs).
 function shapeToSvg(s: Shape, uid: string): { el: string; defs: string[] } {
-  const stroke = s.strokeWidth > 0 ? ` stroke="${s.stroke}" stroke-width="${s.strokeWidth}"` : '';
+  // (2026-09-07 UI hardening, 12-d#6): every user-derived attribute value
+  // (fill/stroke/textColor/src) is escaped below — unescaped interpolation
+  // let a pasted fill like `x"><script>…` inject markup into the .svg export.
+  const stroke = s.strokeWidth > 0 ? ` stroke="${escapeAttr(s.stroke)}" stroke-width="${s.strokeWidth}"` : '';
   const { defs, attrs } = paintAttrs(s, uid);
   // When a gradient/shadow is present the paint attrs already carry
   // fill/filter; otherwise use the solid fill.
-  const fill = attrs.includes('fill=') ? '' : ` fill="${s.fill}"`;
+  const fill = attrs.includes('fill=') ? '' : ` fill="${escapeAttr(s.fill)}"`;
   const base = `${fill}${stroke}${attrs}`;
   switch (s.type) {
     case 'rectangle':
@@ -192,21 +261,21 @@ function shapeToSvg(s: Shape, uid: string): { el: string; defs: string[] } {
     case 'ellipse':
       return { el: `  <ellipse cx="${s.x + s.width / 2}" cy="${s.y + s.height / 2}" rx="${s.width / 2}" ry="${s.height / 2}"${base}/>`, defs };
     case 'line':
-      return { el: `  <line x1="${s.x}" y1="${s.y}" x2="${s.x + s.width}" y2="${s.y + s.height}" stroke="${s.fill}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round"${attrs}/>`, defs };
+      return { el: `  <line x1="${s.x}" y1="${s.y}" x2="${s.x + s.width}" y2="${s.y + s.height}" stroke="${escapeAttr(s.fill)}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round"${attrs}/>`, defs };
     case 'text':
-      return { el: `  <text x="${s.x}" y="${s.y + s.fontSize}" font-size="${s.fontSize}" fill="${s.textColor}" font-family="Inter, sans-serif"${attrs}>${escapeXml(s.text ?? '')}</text>`, defs };
+      return { el: `  <text x="${s.x}" y="${s.y + s.fontSize}" font-size="${s.fontSize}" fill="${escapeAttr(s.textColor)}" font-family="Inter, sans-serif"${attrs}>${escapeXml(s.text ?? '')}</text>`, defs };
     case 'path':
       if (!s.points || s.points.length === 0) return { el: '', defs };
       const pts = s.points.map((p) => `${p.x},${p.y}`).join(' ');
       return s.closed
         ? { el: `  <polygon points="${pts}"${base}/>`, defs }
-        : { el: `  <polyline points="${pts}" fill="none" stroke="${s.stroke}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"${attrs}/>`, defs };
+        : { el: `  <polyline points="${pts}" fill="none" stroke="${escapeAttr(s.stroke)}" stroke-width="${Math.max(2, s.strokeWidth)}" stroke-linecap="round" stroke-linejoin="round"${attrs}/>`, defs };
     case 'star':
       return { el: `  <polygon points="${starPoints(s)}"${base}/>`, defs };
     case 'polygon':
       return { el: `  <polygon points="${polygonPoints(s)}"${base}/>`, defs };
     case 'image':
-      return { el: `  <image x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" href="${s.src ?? ''}"${attrs}/>`, defs };
+      return { el: `  <image x="${s.x}" y="${s.y}" width="${s.width}" height="${s.height}" href="${escapeAttr(s.src ?? '')}"${attrs}/>`, defs };
     case 'icon': {
       // Lucide glyph: stroke-painted <g> positioned + scaled from the 24-grid
       // (docs/lucide-icons.md). Stroke falls back through stroke → textColor →
@@ -327,7 +396,11 @@ export async function exportPngDataUrl(
     }
     try {
       const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(captureTarget, {
+      // (2026-09-07 UI hardening, 12-d#5): 30s rejection guard — a hung
+      // toPng (foreign elements, giant subtree) used to leave the export
+      // promise pending forever; on timeout we fall through to the clamped
+      // SVG-projection fallback below instead of hanging the export UI.
+      const dataUrl = await withTimeout(toPng(captureTarget, {
         pixelRatio: scale,
         backgroundColor: opts.backgroundColor,
         // Skip the ruler/guides/measure chrome overlays — they're screen-space,
@@ -343,7 +416,7 @@ export async function exportPngDataUrl(
           if (node.dataset?.acDropTarget !== undefined) return false;
           return true;
         },
-      });
+      }));
       return dataUrl;
     } catch {
       // html-to-image unavailable or capture failed — fall through to the
@@ -358,14 +431,21 @@ export async function exportPngDataUrl(
     const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(withSize.svg)}`;
     const img = new Image();
     img.decoding = 'async';
-    await new Promise<void>((resolve, reject) => {
+    await withTimeout(new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
       img.onerror = () => reject(new Error('SVG rasterization failed'));
       img.src = url;
-    });
+    }));
+    // (2026-09-07 UI hardening, 12-d#5): NaN/zero bbox guard + 64MP raster
+    // budget — the raw `round(bbox.w × scale)` allocation used to size the
+    // offscreen canvas at hundreds of megapixels on spread-out documents.
+    // Returns null (no export) on non-finite/negative dims; reduces the
+    // effective scale when the requested raster would exceed the budget.
+    const size = computeRasterSize(withSize.w, withSize.h, scale);
+    if (!size) return null;
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(withSize.w * scale));
-    canvas.height = Math.max(1, Math.round(withSize.h * scale));
+    canvas.width = size.width;
+    canvas.height = size.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);

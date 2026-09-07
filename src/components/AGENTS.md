@@ -6,6 +6,7 @@ Component tree root. Owns the shared ThemeToggle component directly, and indexes
 
 ## Ownership
 
+- `ErrorBoundary.tsx` — app-level React error boundary (2026-09-07 UI hardening; wrapped around the page in `app/page.tsx`). Catches any render-time crash (poisoned persisted settings, malformed store state) that slips past the ingest guards, logs to console, and renders a neutral "Something broke" fallback with a one-click reload — previously ANY render crash unmounted the whole tree (white screen, no boundary existed anywhere in src/).
 - `ThemeToggle.tsx` — header button cycling system → light → dark; writes `themePreference` to the settings store (plus legacy `agentcanvas-theme` localStorage key for pre-settings installs) and toggles the `.dark` class on `<html>`; follows OS `prefers-color-scheme` in system mode. The single UI entry point for theme switching — Settings → Appearance writes the same `themePreference` field, so both controls stay in sync.
 
 ## Local Contracts

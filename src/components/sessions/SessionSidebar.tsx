@@ -37,9 +37,14 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { searchServerSessions, exportSessionMarkdown, type ServerSessionSearchHit } from '@/lib/sessions/server-sync';
+import { compareByLastOpenedDesc } from '@/lib/sessions/store';
 
 function relativeTime(iso: string): string {
+  // (2026-09-07 UI hardening, 12-c#11) malformed session rows can carry a
+  // non-string/invalid timestamp — `new Date(x).getTime()` is NaN and this
+  // used to render "Invalid Date". Show an honest dash instead.
   const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return '—';
   const now = Date.now();
   const diff = Math.max(0, now - then);
   const sec = Math.floor(diff / 1000);
@@ -136,9 +141,17 @@ export const SessionSidebar = memo(function SessionSidebar() {
 
   // Debounced server content search — fires 350ms after the last keystroke.
   // Empty q (< 2 chars) clears the hits and reverts to local-only filtering.
+  // (2026-09-07 UI hardening, 12-c#10) request-sequence token: only the
+  // LATEST query's response may land in setHits — the response for an older
+  // query (slow fetch, e.g. "ab" resolving after "abc") used to overwrite
+  // the newer one.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchSeqRef = useRef(0);
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    // Bump the sequence on EVERY effect run so any in-flight response is
+    // already stale by the time the input changes.
+    searchSeqRef.current++;
     const q = search.trim();
     if (q.length < 2) {
       setHits(null);
@@ -146,8 +159,12 @@ export const SessionSidebar = memo(function SessionSidebar() {
       return;
     }
     setSearchLoading(true);
+    const token = searchSeqRef.current;
     debounceRef.current = setTimeout(async () => {
       const serverHits = await searchServerSessions({ q, documentId, scope: 'document' });
+      // Stale response (the user kept typing / cleared the box / switched
+      // documents) — discard so it can't clobber the newer query's result.
+      if (token !== searchSeqRef.current) return;
       setHits(serverHits);
       setSearchLoading(false);
     }, 350);
@@ -171,7 +188,7 @@ export const SessionSidebar = memo(function SessionSidebar() {
         .filter((s) => hitIds.has(s.id))
         .sort((a, b) => {
           if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-          return b.lastOpenedAt.localeCompare(a.lastOpenedAt);
+          return compareByLastOpenedDesc(a, b);
         });
     }
     const searched = search.trim()
@@ -182,7 +199,7 @@ export const SessionSidebar = memo(function SessionSidebar() {
       : searched;
     return [...tagFinal].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      return b.lastOpenedAt.localeCompare(a.lastOpenedAt);
+      return compareByLastOpenedDesc(a, b);
     });
   }, [sessionsMap, documentId, search, hits, tagFilter]);
 

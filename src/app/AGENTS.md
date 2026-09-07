@@ -7,7 +7,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 ## Ownership
 
 - `layout.tsx` — root layout. Sets up `<html>`, `<body>`, font loading, theme provider, toaster. Owned by this folder.
-- `page.tsx` — the main page. Renders the 3-column tabbed layout: `LeftTabbedPanel (Chats/Layers/Assets) | Canvas | RightTabbedPanel (Design/Chat/History)`. Also renders the top header bar with brand, document name, session title, command palette, run/stop button, connection status, zen mode, .pen file menu, settings, and theme toggle.
+- `page.tsx` — the main page. Renders the 3-column tabbed layout: `LeftTabbedPanel (Chats/Layers/Assets) | Canvas | RightTabbedPanel (Design/Chat/History)`. Also renders the top header bar with brand, document name, session title, command palette, run/stop button, connection status, zen mode, .pen file menu, settings, and theme toggle. UI hardening (2026-09-07): the whole app is wrapped in `<ErrorBoundary>` (`src/components/ErrorBoundary.tsx`) — any render-time crash now shows a reload affordance instead of a white screen; the ⌘C/⌘X/meta-action selection paths build a `Map<id, shape>` once instead of `findShape` per selected id (O(selection × canvas) → O(canvas); ⌘A + copy on a 10k-node canvas used to block for seconds).
 - `globals.css` — global styles + the `--ac-*` design token system. Owned by this folder; consumed by every component.
 
 ## Local Contracts

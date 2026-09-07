@@ -116,6 +116,22 @@ function fmtInt(n: number): string {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
+/// (2026-09-07 UI hardening) — client mirror of the server's prompt-length
+/// cap (/api/agent and canvas-sync both reject > 20,000 chars). Checked in
+/// submit() BEFORE the composer clears so an oversized prompt never loses
+/// the user's text. fmtInt above keeps the toast locale-stable.
+const MAX_PROMPT_CHARS = 20_000;
+
+/// (2026-09-07 UI hardening) — validation-class rejection errors: retrying
+/// the IDENTICAL prompt fails identically (a dead-end Retry loop), so the
+/// failed-turn row hides its Retry affordance for these and the cap message
+/// ("trim it and resend") stays the actionable instruction. Exported for the
+/// ui-abuse test battery.
+export function isValidationRejection(error: string | undefined | null): boolean {
+  if (typeof error !== 'string') return false;
+  return /20,000-character limit|prompt is required/i.test(error);
+}
+
 /// Compact duration formatter for tool-call / thinking chips: 940 → "940ms",
 /// 4200 → "4.2s", 75000 → "1m 15s".
 function formatMs(ms: number): string {
@@ -900,6 +916,7 @@ function BusyRow({ onStop }: { onStop: () => void }) {
 function QueueChips() {
   const queuedPrompts = useCanvasStore((s) => s.queuedPrompts);
   const removeQueuedPrompt = useCanvasStore((s) => s.removeQueuedPrompt);
+  const clearQueuedPrompts = useCanvasStore((s) => s.clearQueuedPrompts);
   const sendQueuedPromptNow = useCanvasStore((s) => s.sendQueuedPromptNow);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   if (queuedPrompts.length === 0) return null;
@@ -938,6 +955,18 @@ function QueueChips() {
           </button>
         </div>
       ))}
+      {/* (2026-09-07 UI hardening) — queue cap is 20 (store QUEUE_MAX); a
+          full queue previously took 20 clicks to empty after a Stop. */}
+      {queuedPrompts.length > 1 && (
+        <button
+          onClick={() => clearQueuedPrompts()}
+          aria-label={`Clear all ${queuedPrompts.length} queued prompts`}
+          title="Clear the whole queue"
+          className="ml-1 text-[9px] ac-text-4 hover:ac-text-danger ac-transition ac-focus-ring"
+        >
+          Clear all ({queuedPrompts.length})
+        </button>
+      )}
     </div>
   );
 }
@@ -1457,6 +1486,19 @@ export function AgentPanel() {
     // A prompt with ONLY images (no text) still needs a non-empty prompt for
     // the runner — fall back to a minimal ask.
     const promptText = text || 'What do you see in this image? Describe it in detail.';
+    // (2026-09-07 UI hardening): mirror the server's 20k-char prompt cap
+    // BEFORE the composer clears — an oversized prompt used to be rejected
+    // only after the fact, so the user's text/images had already vanished
+    // from the input (recoverable only by copying the failed user-turn
+    // bubble). Keeping the text makes the trim actionable.
+    if (promptText.length > MAX_PROMPT_CHARS) {
+      toast.error('Prompt too long', {
+        description:
+          `${fmtInt(promptText.length)} characters — the limit is ` +
+          `${fmtInt(MAX_PROMPT_CHARS)}. Trim it and resend (the text is kept in the composer).`,
+      });
+      return;
+    }
     // Reset the composer regardless of where the prompt goes.
     setInput('');
     setAttachments([]);
@@ -2389,7 +2431,11 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
             {/* Failed turn — inline Retry affordance. The error message lives
                 on the turn (NOT spliced into the markdown text anymore); this
                 row is its surface, with the full message (wrapped, not
-                truncated — errors name the problem so the user can act). */}
+                truncated — errors name the problem so the user can act).
+                (2026-09-07 UI hardening): validation-class rejections (prompt
+                cap / empty prompt) HIDE the Retry button — re-sending the
+                identical prompt would fail identically (dead-end loop); the
+                error text itself carries the actionable instruction. */}
             {turn.error && !turn.streaming && (
               <div className="rounded-md border ac-border-subtle ac-surface-1 px-2 py-1.5">
                 <div className="flex items-center justify-between gap-2">
@@ -2397,6 +2443,7 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
                     <TriangleAlert className="h-3 w-3 flex-shrink-0" />
                     Turn failed
                   </span>
+                  {!isValidationRejection(turn.error) && (
                   <button
                     disabled={agentBusy}
                     onClick={() => {
@@ -2421,6 +2468,7 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
                     <RotateCcw className="h-2.5 w-2.5" />
                     Retry
                   </button>
+                  )}
                 </div>
                 <div className="mt-1 text-[10px] ac-text-danger/90 break-words leading-snug opacity-80">
                   {turn.error}

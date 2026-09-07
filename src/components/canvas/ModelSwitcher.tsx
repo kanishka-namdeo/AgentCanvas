@@ -140,7 +140,12 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
   const configuredModel = useSettings((s) => s.modelName);
   const setSetting = useSettings((s) => s.set);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
-  const { loading, data, error, refresh } = useModelCatalog();
+  // (2026-09-07 UI hardening, 12-c#6) opt into settings-change invalidation:
+  // a preset switch (Settings → LLM provider) or picking a z.ai model here
+  // mid-fetch now clears the shared catalog AND discards any in-flight
+  // response from the OLD endpoint, instead of rendering the previous
+  // provider's list after the change.
+  const { loading, data, error, refresh } = useModelCatalog({ invalidateOnSettingsChange: true });
 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -163,6 +168,13 @@ export function ModelSwitcher({ activeModel, badgeTooltip }: ModelSwitcherProps)
   // Fetch on first open (and keep the last listing on re-open — a manual
   // refresh button re-probes the endpoint).
   const fetchedOnce = useRef(false);
+  // (2026-09-07 UI hardening, 12-c#6) re-arm the fetch-on-open: when the
+  // catalog was invalidated (data cleared, nothing loading), the NEXT open
+  // re-fetches instead of showing the empty/stale state until the user
+  // finds the refresh button.
+  useEffect(() => {
+    if (data === null && !loading) fetchedOnce.current = false;
+  }, [data, loading]);
   useEffect(() => {
     if (open && !fetchedOnce.current) {
       fetchedOnce.current = true;

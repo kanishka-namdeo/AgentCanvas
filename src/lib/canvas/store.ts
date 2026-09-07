@@ -472,6 +472,9 @@ interface CanvasState {
   /// meaningful while the agent is idle — e.g. after the user stopped the
   /// previous turn and the queue survived.
   sendQueuedPromptNow: (id: string) => void;
+  /// Drop every queued prompt (the "Clear all" affordance on the queue
+  /// chips — 2026-09-07 UI hardening).
+  clearQueuedPrompts: () => void;
   /// Edit a user turn in place and re-send it (Cursor's edit-and-resend):
   /// truncates every turn AFTER the edited user message (live buffer AND
   /// the session store's messages) and starts a fresh run with the edited
@@ -759,6 +762,7 @@ export function __resetPresenceForTests(): void {
 // enqueuePatch precedent) so existing store tests keep their
 // dispatch-then-assert contract.
 let pendingAssistantDeltas = '';
+let pendingThinkingDeltas = '';
 let assistantDeltaTimer: ReturnType<typeof setTimeout> | null = null;
 const ASSISTANT_DELTA_FLUSH_MS = 32;
 
@@ -767,29 +771,49 @@ function flushAssistantDeltas() {
     clearTimeout(assistantDeltaTimer);
     assistantDeltaTimer = null;
   }
-  if (!pendingAssistantDeltas) return;
   const text = pendingAssistantDeltas;
+  const thinking = pendingThinkingDeltas;
+  if (!text && !thinking) return;
   pendingAssistantDeltas = '';
+  pendingThinkingDeltas = '';
   useCanvasStore.setState((s) => {
     const turns = [...s.turns];
     const last = turns[turns.length - 1];
     if (last && last.role === 'assistant') {
       turns[turns.length - 1] = {
         ...last,
-        text: last.text + text,
-        // First answer text after thinking → close the thinking phase
-        // (the UI collapses "Thinking…" into "Thought for Ns").
-        ...(last.thinking && !last.thinkingEndedAt
-          ? { thinkingEndedAt: Date.now() }
+        ...(text
+          ? {
+              text: last.text + text,
+              // First answer text after thinking → close the thinking phase
+              // (the UI collapses "Thinking…" into "Thought for Ns").
+              ...(last.thinking && !last.thinkingEndedAt
+                ? { thinkingEndedAt: Date.now() }
+                : {}),
+            }
+          : {}),
+        // Thinking rides the same 32ms window (2026-09-07 UI hardening):
+        // one set() per flush instead of one per token chunk — a
+        // thinking-heavy model used to re-render (and re-serialize the whole
+        // persisted sessions dataset) per reasoning token.
+        ...(thinking
+          ? {
+              thinking: (last.thinking ?? '') + thinking,
+              ...(last.thinkingStartedAt === undefined
+                ? { thinkingStartedAt: Date.now() }
+                : {}),
+            }
           : {}),
       };
     }
     return { turns };
   });
   // Mirror to session store — ONE append per flush instead of one per token.
-  const last = useCanvasStore.getState().turns[useCanvasStore.getState().turns.length - 1];
-  if (last?.messageId) {
-    useSessionStore.getState().appendAssistantText(last.messageId, text);
+  if (text) {
+    const last = useCanvasStore.getState().turns[useCanvasStore.getState().turns.length - 1];
+    if (last?.messageId) {
+      useSessionStore.getState().appendAssistantText(last.messageId, text);
+    }
   }
 }
 
@@ -801,6 +825,123 @@ function scheduleAssistantDeltaFlush() {
 /// Test hook: synchronously land any buffered streaming text.
 export function __flushAssistantDeltasForTests(): void {
   flushAssistantDeltas();
+}
+
+// ---- UI abuse hardening (2026-09-07, Task 12) --------------------------------
+//
+// The client ingest boundary (socket 'sync' → _onSync, journal catch-up,
+// HTTP-fallback NDJSON) used to trust the wire COMPLETELY: one malformed
+// canvas:full (document:null), presence roster (non-array), plan steps
+// (missing) or a non-string message threw out of the socket handler —
+// socket.io-client does not catch handler errors and there was no React
+// error boundary, so one garbage event white-screened the app. The guards
+// below are ingest-side defense-in-depth: coerce or drop, never throw.
+
+/// Coerce an untrusted event field into a bounded, display-safe string
+/// (non-strings become '' instead of crashing a later .slice/.toLowerCase,
+/// or rendering literal "undefined" into the transcript).
+function safeText(value: unknown, max = 4096): string {
+  return typeof value === 'string' ? value.slice(0, max) : '';
+}
+
+/// Whitelist an untrusted severity field to the critique union.
+function asSeverity(value: unknown): 'low' | 'medium' | 'high' {
+  return value === 'medium' || value === 'high' ? value : 'low';
+}
+
+/// Init generation token: every init() captures the current generation and
+/// its socket listeners / async adapters drop events once a NEWER init has
+/// superseded them. The old code leaked the previous document's socket on
+/// every switch (init never disconnected it; the switcher discarded the
+/// disposer), so a mid-run switch left the OLD room's events flowing into
+/// the NEW document's store — agent:message_start even re-armed agentBusy
+/// with no run behind it — and N switches accumulated N live sockets.
+let initGeneration = 0;
+
+/// Queued-prompt cap: Enter-spam used to grow the queue unboundedly and
+/// every entry auto-fires a full LLM turn. 20 ≈ a deliberately long queue.
+const QUEUE_MAX = 20;
+
+/// Remote-presence roster cap: a malicious/buggy peer relay could otherwise
+/// grow remotePresence without bound.
+const MAX_REMOTE_PRESENCE = 64;
+
+// Receive-side presence coalescing: a peer spamming cursor pings at wire
+// rate used to trigger one set() (full re-render) per event. Batched per
+// window — mirrors the client's own 33ms send throttle on the receive side.
+let pendingPresenceUpdates: Record<string, PresenceParticipant> = {};
+let presenceApplyTimer: ReturnType<typeof setTimeout> | null = null;
+const PRESENCE_APPLY_MS = 50;
+
+function flushPresenceUpdates() {
+  if (presenceApplyTimer) {
+    clearTimeout(presenceApplyTimer);
+    presenceApplyTimer = null;
+  }
+  const batch = pendingPresenceUpdates;
+  pendingPresenceUpdates = {};
+  if (Object.keys(batch).length === 0) return;
+  useCanvasStore.setState((s) => ({ remotePresence: { ...s.remotePresence, ...batch } }));
+}
+
+function schedulePresenceApply() {
+  if (presenceApplyTimer) return;
+  presenceApplyTimer = setTimeout(flushPresenceUpdates, PRESENCE_APPLY_MS);
+}
+
+// ---- Run-arm watchdog ---------------------------------------------------------
+//
+// A WS prompt whose emit was lost (socket died between emit and server
+// receipt) or whose server-side fan-out crashed before the first event
+// leaves the client armed busy FOREVER: BusyRow "Thinking…" + elapsed timer
+// with no escape except Stop/Esc. The watchdog finalizes the turn as failed
+// when NO agent event (streaming, tool, terminal) arrived within the window.
+// Cleared by the first agent:* event — slow first tokens are fine (tool_call
+// / thinking events land early); the stuck/error terminal paths own any run
+// that DID start.
+let armWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
+const ARM_WATCHDOG_MS = 45_000;
+
+function clearArmWatchdog(): void {
+  if (armWatchdogTimer) {
+    clearTimeout(armWatchdogTimer);
+    armWatchdogTimer = null;
+  }
+}
+
+function armRunWatchdog(): void {
+  clearArmWatchdog();
+  armWatchdogTimer = setTimeout(() => {
+    armWatchdogTimer = null;
+    const s = useCanvasStore.getState();
+    if (!s.agentBusy) return;
+    const last = s.turns[s.turns.length - 1];
+    // Only rescue the "never started" shape: busy + a streaming assistant
+    // turn with NO content of any kind. If anything landed (text, thinking,
+    // tools), a run is live and the watchdog stands down.
+    if (!last || last.role !== 'assistant' || !last.streaming) return;
+    if (last.text || last.thinking || last.toolCalls.length > 0) return;
+    const message =
+      'Run never started — no agent events arrived. The connection may have dropped after sending; retry.';
+    useCanvasStore.setState((st) => {
+      const turns = [...st.turns];
+      const li = turns[turns.length - 1];
+      if (li && li.role === 'assistant') {
+        turns[turns.length - 1] = { ...li, streaming: false, error: message, endedAt: Date.now() };
+      }
+      return { ...settleTerminalGates(turns), ...phaseFields('failed') };
+    });
+    const li = useCanvasStore.getState().turns[useCanvasStore.getState().turns.length - 1];
+    if (li?.messageId) {
+      useSessionStore.getState().finalizeAssistantMessage(li.messageId, 'error', message);
+    }
+    if (li?.runId) {
+      useSessionStore.getState().endRun(li.runId, 'failed', message);
+    }
+    toast.error('Run never started', {
+      description: 'No agent events arrived — the connection may have dropped. Retry.',
+    });
+  }, ARM_WATCHDOG_MS);
 }
 
 // ---- Offline outbox flush (R5: Figma's fresh-copy + reapply contract) --------
@@ -1159,10 +1300,16 @@ function readComputedForNode(
 
 /// agent:computed_request handler — read live DOM, POST results.
 function handleComputedRequest(event: Extract<SyncEvent, { type: 'agent:computed_request' }>): void {
+  // (2026-09-07 UI hardening): nodeIds arrive unvalidated — a missing array
+  // used to throw at .map, and non-string ids crashed escapeAttrValue's
+  // .replace downstream.
+  const nodeIds = Array.isArray(event.nodeIds)
+    ? event.nodeIds.filter((id): id is string => typeof id === 'string')
+    : [];
   const { worldElement, document } = useCanvasStore.getState();
   const worldRect = worldElement ? worldElement.getBoundingClientRect() : null;
   const zoom = document.viewport?.zoom ?? 1;
-  const results = event.nodeIds.map((id) => readComputedForNode(id, worldRect ? { x: worldRect.x, y: worldRect.y } : null, zoom, event.properties));
+  const results = nodeIds.map((id) => readComputedForNode(id, worldRect ? { x: worldRect.x, y: worldRect.y } : null, zoom, event.properties));
   // Missing nodes (SVG renderer / unmounted) are simply omitted — the tool
   // falls back to resolver data per node.
   const found = results.filter((r): r is Exclude<typeof r, { missing: true }> => !('missing' in r));
@@ -1374,6 +1521,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   restoreCheckpoint: (id) => {
+    // (2026-09-07 UI hardening): restoring under the agent corrupts its
+    // working document — the dialog button was gated but the STORE action
+    // was reachable from any future caller (the sendPatch choke-point rule
+    // that already governs undo/redo and gestures). Refuse while busy.
+    if (get().agentBusy) {
+      noteBlockedCanvasEdit();
+      return false;
+    }
     const target = get().checkpoints.find((c) => c.id === id);
     if (!target) return false;
     // 1. Capture the CURRENT state first — restoring is never destructive.
@@ -1519,6 +1674,24 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const previousDocumentId = get().documentId;
     const isDocumentSwitch = previousDocumentId !== documentId;
 
+    // (2026-09-07 UI hardening) — socket lifecycle: init() used to LEAK the
+    // previous socket (never disconnected; the doc switcher discards init's
+    // disposer), so a mid-run switch left the OLD room's events flowing
+    // into the NEW document's store and N switches accumulated N live
+    // sockets. Two guards: (a) disconnect the superseded socket NOW;
+    // (b) a generation token — listeners and async adapters captured by an
+    // OLDER init drop events once a newer init has superseded them (a
+    // disconnect is asynchronous; events already in flight still fire).
+    const generation = ++initGeneration;
+    const supersededSocket = get().socket;
+    if (supersededSocket) {
+      try {
+        supersededSocket.disconnect();
+      } catch {
+        // Already dead — nothing to do.
+      }
+    }
+
     // Hydrate the persisted session store from localStorage (client-only).
     // This is a no-op on the server.
     hydrateSessionStore();
@@ -1586,6 +1759,24 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         agentAbort = null;
       }
       resetBlockedEditToast();
+      // (2026-09-07 UI hardening): the switch also drops the OLD document's
+      // streaming buffers, watchdog and pending coalesced work — within the
+      // 32ms delta window a switch otherwise applied the old doc's streaming
+      // text to the NEW document (persisted via appendAssistantText), and a
+      // lost-emit run left the new doc's watchdog armed.
+      clearArmWatchdog();
+      suppressQueueFlush = false;
+      if (assistantDeltaTimer) {
+        clearTimeout(assistantDeltaTimer);
+        assistantDeltaTimer = null;
+      }
+      pendingAssistantDeltas = '';
+      pendingThinkingDeltas = '';
+      if (presenceApplyTimer) {
+        clearTimeout(presenceApplyTimer);
+        presenceApplyTimer = null;
+      }
+      pendingPresenceUpdates = {};
       // D1: the switch also drops the old document's blocking gates (a
       // pending approval/question modal would otherwise float over the NEW
       // canvas with no run behind it) and its background-task rows.
@@ -1659,8 +1850,20 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // lastSeq. The fetch is bounded — offline/failed starts fall through to
     // the plain socket path (whose own catch-up covers everything else).
     const makeCatchUpAdapter = (): CatchUpAdapter => ({
-      dispatch: (ev) => get()._onSync(ev),
+      dispatch: (ev) => {
+        // (2026-09-07 UI hardening): a stale init's catch-up replay must
+        // never land in a NEWER document's store (rapid switch-spam raced
+        // the status fetch), and a malformed journal row must never throw
+        // out of the replay loop.
+        if (generation !== initGeneration) return;
+        try {
+          get()._onSync(ev);
+        } catch (err) {
+          console.warn('[canvas-sync] dropped malformed journal row', (ev as { type?: unknown })?.type, err);
+        }
+      },
       onMutationClock: (changes) => {
+        if (generation !== initGeneration) return;
         const mine = changes[getClientId()];
         if (mine !== undefined) {
           pruneOutboxUpTo(documentId, mine);
@@ -1733,6 +1936,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         presenceTimer = null;
       }
       presencePending = null;
+      // (2026-09-07 UI hardening): drop the receive-side presence batch too —
+      // coalesced updates from a dead connection are stale ghosts.
+      if (presenceApplyTimer) {
+        clearTimeout(presenceApplyTimer);
+        presenceApplyTimer = null;
+      }
+      pendingPresenceUpdates = {};
       set({ connected: false, remotePresence: {} });
     });
     // Observability (micro-adopt): log transport-level failures so a dead
@@ -1759,7 +1969,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       document.addEventListener('visibilitychange', onVisibilityForClock);
     }
     socket.on('sync', (event: SyncEvent) => {
-      get()._onSync(event);
+      // (2026-09-07 UI hardening): (a) generation guard — this listener
+      // belongs to a superseded init (its socket should be dead, but an
+      // event already in flight still fires); (b) a malformed event must
+      // never throw out of the socket handler — socket.io-client does NOT
+      // catch handler errors, and one garbage canvas:full/presence event
+      // used to take the whole app down (no error boundary existed).
+      if (generation !== initGeneration) return;
+      if (!event || typeof event.type !== 'string') return;
+      try {
+        get()._onSync(event);
+      } catch (err) {
+        console.warn(`[canvas-sync] dropped malformed ${event.type} event:`, err);
+      }
     });
 
     return () => {
@@ -1972,6 +2194,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         userMessageId: userMsg.id,
         assistantMessageId: assistantMsg.id,
       } satisfies ClientEvent);
+      // (2026-09-07 UI hardening): if this emit is lost (socket died between
+      // emit and server receipt) or the server fans out nothing, the run-arm
+      // watchdog finalizes the turn honestly instead of an eternal
+      // "Thinking…" spinner. The first agent:* event stands it down.
+      armRunWatchdog();
       return;
     }
 
@@ -2075,6 +2302,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // on 'cancelled'. Also mark the session-store run 'cancelling' so the
     // StatusBadge's existing config finally goes live.
     resetBlockedEditToast();
+    // (2026-09-07 UI hardening): a stop also stands the run-arm watchdog
+    // down — the local finalization below owns the turn from here.
+    clearArmWatchdog();
     set(phaseFields('cancelling'));
     {
       const lastRun = get().turns[get().turns.length - 1];
@@ -2184,6 +2414,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // Queueing is a busy-state concept. When the agent is idle the UI calls
     // promptAgent directly — but keep this safe if invoked programmatically.
     if (!agentBusy || !text.trim()) return;
+    // (2026-09-07 UI hardening): Enter-spam used to grow the queue unboundedly
+    // (each entry auto-fires a full LLM turn on the next turn_end). Cap it
+    // with an honest toast — the queue is visible and per-chip removable.
+    if (get().queuedPrompts.length >= QUEUE_MAX) {
+      toast.warning('Prompt queue is full', {
+        description: `At most ${QUEUE_MAX} prompts can wait while a turn runs. Remove one or wait for the current turn to finish.`,
+      });
+      return;
+    }
     const q: QueuedPrompt = {
       id: `q_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
       text: text.trim(),
@@ -2196,6 +2435,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   removeQueuedPrompt: (id) => {
     set((s) => ({ queuedPrompts: s.queuedPrompts.filter((q) => q.id !== id) }));
+  },
+
+  /// (2026-09-07 UI hardening) — the queue's "Clear all" affordance (the
+  /// chips previously offered only per-entry removal, so a 20-entry queue
+  /// took 20 clicks to empty after a Stop).
+  clearQueuedPrompts: () => {
+    set({ queuedPrompts: [] });
   },
 
   sendQueuedPromptNow: (id) => {
@@ -2526,6 +2772,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   _onSync: (event) => {
+    // (2026-09-07 UI hardening): the journal catch-up adapter and the HTTP
+    // fallback loop also feed this entry — guard the shape here so every
+    // ingest path is covered, not just the socket listener.
+    if (!event || typeof event.type !== 'string') return;
+    // First agent event = the run is alive — stand the run-arm watchdog
+    // down (cheap null-check on the hot path).
+    if (event.type.startsWith('agent:')) clearArmWatchdog();
     const state = get();
     // Delta-batching ordering guard (R9b): every non-delta event first lands
     // any buffered streaming text — terminal events (message_end /
@@ -2533,7 +2786,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // a new turn must never receive the previous turn's buffered tail. In
     // test mode the buffer is always empty (synchronous flush), so this is a
     // cheap string check.
-    if (event.type !== 'agent:message_delta') {
+    if (event.type !== 'agent:message_delta' && event.type !== 'agent:thinking_delta') {
       flushAssistantDeltas();
     }
     // Live-terminal watermark advance (journal catch-up bookkeeping): when
@@ -2553,12 +2806,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
     switch (event.type) {
       case 'canvas:full': {
-        // Normalize — older server builds may omit the derived caches.
+        // (2026-09-07 UI hardening): a relayed document:restore with a
+        // garbage document (null / non-array children) used to throw at
+        // doc.children below and take the whole app down. Drop it instead.
         const doc = event.document;
-        if (!doc.children) doc.children = [];
-        if (!doc.shapes) doc.shapes = resolvePenTree(doc);
-        if (!doc.tokens) doc.tokens = { colors: [], textStyles: [] };
-        if (!doc.viewport) doc.viewport = { zoom: 1, panX: 120, panY: 80 };
+        if (!doc || typeof doc !== 'object' || !Array.isArray(doc.children)) {
+          console.warn('[canvas-sync] dropped malformed canvas:full event');
+          break;
+        }
+        // Normalize — older server builds may omit the derived caches.
+        if (!doc.shapes || !Array.isArray(doc.shapes)) doc.shapes = resolvePenTree(doc);
+        if (!doc.tokens || typeof doc.tokens !== 'object') doc.tokens = { colors: [], textStyles: [] };
+        if (!doc.viewport || typeof doc.viewport !== 'object') doc.viewport = { zoom: 1, panX: 120, panY: 80 };
         const local = get().document;
         const incomingEmpty = doc.children.length === 0 && doc.shapes.length === 0;
         const localEmpty = (local.children?.length ?? 0) === 0 && local.shapes.length === 0;
@@ -2624,6 +2883,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'canvas:patch': {
+        // (2026-09-07 UI hardening): patches arrive peer-relayed with no
+        // shape guarantees — a null/garbage patch used to throw at
+        // event.patch.op below (out of the socket handler = app down).
+        if (!event.patch || typeof event.patch.op !== 'string') {
+          console.warn('[canvas-sync] dropped malformed canvas:patch event');
+          break;
+        }
         // Intercept undo/redo — these require access to the undo/redo stacks
         // directly (not the document). They run IMMEDIATELY, not through the
         // coalescer queue, so a queued undo stays well-formed against the
@@ -2712,6 +2978,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'mutation:ack': {
+        // (2026-09-07 UI hardening): an ack whose status is none of the three
+        // known verdicts (malformed relay / buggy server) must be a NO-OP —
+        // the old fall-through treated ANY unknown status as rejected and
+        // dropped the ENTIRE outbox of queued offline edits.
+        if (event.status !== 'accepted' && event.status !== 'duplicate' && event.status !== 'rejected') {
+          console.warn(`[canvas-sync] ignored mutation:ack with unknown status: ${String(event.status)}`);
+          break;
+        }
         // Exactly-once verdict for one of OUR mutations (R1/R5). Accepted or
         // duplicate → the effect is durably server-side: prune every queued
         // entry with id <= lastMutationId (the Replicache rule) and, if newer
@@ -2733,7 +3007,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // drop, so restarting at lastMutationId is safe — a max()-only
         // anchor would leave the counter ahead forever and every later id
         // would gap-reject).
-        resetMutationCounter(event.lastMutationId);
+        if (typeof event.lastMutationId === 'number') {
+          resetMutationCounter(event.lastMutationId);
+        }
         const dropped = clearOutbox(get().documentId);
         if (dropped > 0) {
           toast.error('Offline canvas edits could not be synced', {
@@ -2741,6 +3017,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               `${dropped} queued edit${dropped === 1 ? '' : 's'} arrived out of order and ` +
               'were dropped to keep the canvas consistent.',
           });
+        }
+        // (2026-09-07 UI hardening): a reject means local and server truth
+        // DIVERGED — the optimistic edit stayed applied locally while the
+        // server dropped it. Request a full canvas re-sync so reconcile
+        // resolves against server truth instead of a permanent desync.
+        {
+          const { socket: resyncSocket, connected: resyncConnected, documentId: resyncDoc } = get();
+          if (resyncSocket && resyncConnected) {
+            resyncSocket.emit('client', {
+              type: 'canvas:request_full',
+              documentId: resyncDoc,
+            } satisfies ClientEvent);
+          }
         }
         break;
       }
@@ -2928,7 +3217,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // ~32ms window (see the module-level buffer docs). In test mode the
         // flush is synchronous, preserving the dispatch-then-assert
         // contract used across the store/bridge suites.
-        pendingAssistantDeltas += event.text;
+        // (2026-09-07 UI hardening): non-string text is dropped rather than
+        // appended (undefined used to render as literal "undefined" and
+        // persist into the transcript).
+        if (typeof event.text === 'string') {
+          pendingAssistantDeltas += event.text;
+        }
         if (process.env.NODE_ENV === 'test') {
           flushAssistantDeltas();
         } else {
@@ -2957,20 +3251,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // buffer and rendered as a collapsible dimmed block above the answer
         // (Cursor "thought bubble" / Claude thinking pattern). Previously
         // this event had no reducer case and the tokens were dropped.
-        set((s) => {
-          const turns = [...s.turns];
-          const last = turns[turns.length - 1];
-          if (last && last.role === 'assistant') {
-            turns[turns.length - 1] = {
-              ...last,
-              thinking: (last.thinking ?? '') + event.text,
-              ...(last.thinkingStartedAt === undefined
-                ? { thinkingStartedAt: Date.now() }
-                : {}),
-            };
+        //
+        // (2026-09-07 UI hardening): thinking now rides the SAME 32ms batch
+        // buffer as message deltas (R9b) — one set() per flush window
+        // instead of one per token chunk — and non-string text is dropped.
+        if (typeof event.text === 'string' && event.text) {
+          pendingThinkingDeltas += event.text;
+          if (process.env.NODE_ENV === 'test') {
+            flushAssistantDeltas();
+          } else {
+            scheduleAssistantDeltaFlush();
           }
-          return { turns };
-        });
+        }
         break;
       }
       case 'agent:critique': {
@@ -2985,11 +3277,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             turns[turns.length - 1] = {
               ...last,
               critique: {
-                iteration: event.iteration,
-                defects: event.defects,
-                textSeverity: event.textSeverity,
-                vlmSeverity: event.vlmSeverity,
-                ...(event.vlmScore !== undefined ? { vlmScore: event.vlmScore } : {}),
+                iteration: typeof event.iteration === 'number' ? event.iteration : 0,
+                // (2026-09-07 UI hardening): array passthroughs are coerced —
+                // a malformed critique event used to crash the render tree
+                // (critique.defects.length in AgentPanel). Severities are
+                // whitelisted to their union (unknown → 'low', never crash).
+                defects: Array.isArray(event.defects) ? event.defects : [],
+                textSeverity: asSeverity(event.textSeverity),
+                vlmSeverity: asSeverity(event.vlmSeverity),
+                ...(typeof event.vlmScore === 'number' ? { vlmScore: event.vlmScore } : {}),
               },
             };
           }
@@ -3002,6 +3298,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // Phase → 'awaiting_input' (busy-but-interactive: the approval triad
         // stays live, everything else stays gated).
         if (get().agentBusy) set({ runPhase: 'awaiting_input' });
+        // (2026-09-07 UI hardening): steps arrive unvalidated — missing or
+        // non-array steps used to crash steps.map in the reducer. `step` is a
+        // 1-based index — malformed entries fall back to their position.
+        const steps = (Array.isArray(event.steps) ? event.steps : [])
+          .map((st, i) => ({
+            step: typeof st?.step === 'number' ? st.step : i + 1,
+            description: typeof st?.description === 'string' ? st.description.slice(0, 2000) : '',
+          }))
+          .filter((st) => st.description || st.step > 0);
         // Attach the proposal to the streaming assistant turn — the
         // PlanApprovalCard renders the triad (Build it / Keep planning).
         set((s) => {
@@ -3012,10 +3317,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               ...last,
               planProposal: {
                 planId: event.planId,
-                title: event.title,
-                summary: event.summary,
-                steps: event.steps.map((st) => ({ step: st.step, description: st.description })),
-                ...(event.openQuestions && event.openQuestions.length > 0
+                title: safeText(event.title, 200),
+                summary: safeText(event.summary, 4000),
+                steps,
+                ...(Array.isArray(event.openQuestions) && event.openQuestions.length > 0
                   ? { openQuestions: event.openQuestions }
                   : {}),
                 status: 'pending',
@@ -3398,23 +3703,28 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         });
         const last = get().turns[get().turns.length - 1];
         if (last?.messageId) {
-          useSessionStore.getState().finalizeAssistantMessage(last.messageId, 'error', event.message);
+          useSessionStore.getState().finalizeAssistantMessage(last.messageId, 'error', safeText(event.message) || 'Agent stuck');
         }
         if (last?.runId) {
           const ss = useSessionStore.getState();
           const run = ss.getRun(last.runId);
           if (run && !TERMINAL_RUN_STATUSES.has(run.status)) {
-            ss.endRun(last.runId, 'stuck', event.message);
+            ss.endRun(last.runId, 'stuck', safeText(event.message) || 'Agent stuck');
           }
         }
         toast.warning('Agent stuck', {
-          description: event.message?.slice(0, 200) ?? 'Repeated identical tool failures.',
+          description: safeText(event.message, 200) || 'Repeated identical tool failures.',
         });
         suppressQueueFlush = false;
         break;
       }
       case 'agent:error': {
         clearStatusNote();
+        // (2026-09-07 UI hardening): non-string messages are coerced (a
+        // number/truthy object passed the old optional chain and crashed
+        // .slice), and an EMPTY message gets an honest default — the turn's
+        // error row used to render nothing (a completed-looking empty turn).
+        const errorMessage = safeText(event.message) || 'Run failed';
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
@@ -3422,7 +3732,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             turns[turns.length - 1] = {
               ...last,
               streaming: false,
-              error: event.message,
+              error: errorMessage,
               // The error is surfaced by the turn's dedicated error row —
               // NOT spliced into the markdown text (polluting the answer
               // made partial responses unreadable and uncopyable).
@@ -3437,18 +3747,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           useSessionStore.getState().finalizeAssistantMessage(
             last.messageId,
             'error',
-            event.message,
+            errorMessage,
           );
         }
         if (last?.runId) {
-          useSessionStore.getState().endRun(last.runId, 'failed', event.message);
+          useSessionStore.getState().endRun(last.runId, 'failed', errorMessage);
         }
         // Classified error surfacing (D4): the server attaches code/retryable
         // when it can (typed error envelope); the client classifier covers
         // raw HTTP failures where only the message exists. Distinct toast per
         // class so auth vs rate-limit vs network failures are distinguishable
         // at a glance instead of everything reading "Agent error".
-        const errClass = classifyAgentError(event.message);
+        const errClass = classifyAgentError(errorMessage);
         const wireClass = agentErrorClassForCode(event.code);
         const effectiveClass =
           event.code && event.code !== 'unknown'
@@ -3456,13 +3766,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             : errClass;
         toast.error(effectiveClass.title, {
           description:
-            (event.message?.slice(0, 180) ?? 'Unknown error') +
+            (safeText(event.message, 180) || 'Unknown error') +
             (effectiveClass.retryable ? ' — you can retry.' : ''),
         });
         // A failed turn still frees the agent — flush the next queued
         // prompt (Cursor queues survive a failed turn and retry in order).
         // Deferred + busy re-checked (same guard as the turn_end flush — see
         // the mid-run-turn_end comment there).
+        // (2026-09-07 UI hardening): CONSUME the suppression flag here too —
+        // a Stop whose confirmation never arrived (run already done
+        // server-side → silent no-op) used to leave it armed so the NEXT
+        // successful turn silently skipped its auto-flush (a queued prompt
+        // stalled with no explanation).
         if (!suppressQueueFlush) {
           const next = get().queuedPrompts[0];
           if (next) {
@@ -3478,6 +3793,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               get().promptAgent(next.text, next.images, next.selection);
             }, 0);
           }
+        } else {
+          suppressQueueFlush = false;
         }
         break;
       }
@@ -3488,15 +3805,34 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       case 'presence:roster': {
         // Full roster snapshot (subscribe reply / participant leave): replace
         // the whole remote-presence map — idempotent, churn-proof.
+        // (2026-09-07 UI hardening): non-iterable rosters used to throw; the
+        // roster is validated + capped so a buggy/malicious relay can't
+        // grow remotePresence unboundedly.
         const next: Record<string, PresenceParticipant> = {};
-        for (const p of event.roster) next[p.participantId] = p;
+        const roster = Array.isArray(event.roster) ? event.roster : [];
+        for (const p of roster) {
+          if (p && typeof p.participantId === 'string' && Object.keys(next).length < MAX_REMOTE_PRESENCE) {
+            next[p.participantId] = p;
+          }
+        }
         set({ remotePresence: next });
         break;
       }
       case 'presence:update': {
         // One participant's volatile state (cursor/selection/idle).
+        // (2026-09-07 UI hardening): non-object participants dropped; the
+        // update COALESCES through the 50ms receive-side window (one set()
+        // per window instead of one re-render per event under a peer's
+        // cursor-ping flood). Test mode applies synchronously (the
+        // dispatch-then-assert contract).
         const p = event.participant;
-        set((s) => ({ remotePresence: { ...s.remotePresence, [p.participantId]: p } }));
+        if (!p || typeof p.participantId !== 'string') break;
+        if (process.env.NODE_ENV === 'test') {
+          useCanvasStore.setState((s) => ({ remotePresence: { ...s.remotePresence, [p.participantId]: p } }));
+        } else {
+          pendingPresenceUpdates[p.participantId] = p;
+          schedulePresenceApply();
+        }
         break;
       }
       case 'agent:steer_rejected': {
@@ -3513,6 +3849,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // "streaming" forever (agentBusy never clears — the run never
         // started, so no terminal event will ever arrive). Finalize the turn
         // honestly, free the busy flag, and let the queue doctrine resume.
+        const reason = safeText(event.reason) || 'The prompt was rejected before the agent run started.';
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
@@ -3520,7 +3857,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             turns[turns.length - 1] = {
               ...last,
               streaming: false,
-              error: event.reason,
+              error: reason,
             };
           }
           return { ...settleTerminalGates(turns), ...phaseFields('failed') };
@@ -3528,31 +3865,42 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         {
           const last = get().turns[get().turns.length - 1];
           if (last?.messageId) {
-            useSessionStore.getState().finalizeAssistantMessage(last.messageId, 'error', event.reason);
+            useSessionStore.getState().finalizeAssistantMessage(last.messageId, 'error', reason);
           }
           if (last?.runId) {
             const ss = useSessionStore.getState();
             const run = ss.getRun(last.runId);
             if (run && !TERMINAL_RUN_STATUSES.has(run.status)) {
-              ss.endRun(last.runId, 'failed', event.reason);
+              ss.endRun(last.runId, 'failed', reason);
             }
           }
         }
         toast.warning('Prompt not started', {
-          description: event.reason?.slice(0, 200) ?? 'The prompt was rejected before the agent run started.',
+          description: reason.slice(0, 200),
         });
+        // (2026-09-07 UI hardening): consume any stale Stop suppression so
+        // the next real turn's auto-flush isn't silently skipped.
+        suppressQueueFlush = false;
         // The turn never started, so nothing is busy anymore — flush any
         // queued prompt (deferred + busy re-checked, same guard as agent:error).
-        const next = get().queuedPrompts[0];
-        if (next) {
-          set((s) => ({ queuedPrompts: s.queuedPrompts.slice(1) }));
-          setTimeout(() => {
-            if (get().agentBusy) {
-              set((s) => ({ queuedPrompts: [next, ...s.queuedPrompts] }));
-              return;
-            }
-            get().promptAgent(next.text, next.images, next.selection);
-          }, 0);
+        // EXCEPT when the rejection reason is BUSY (a foreign run is live —
+        // e.g. tab 2 prompting while tab 1's long run holds the document):
+        // auto-flushing would machine-gun rejections (each queued prompt sent
+        // → rejected → next flushed → N failed turns + N toasts). Keep the
+        // queue for manual send instead.
+        const foreignRunBusy = /already running/i.test(reason);
+        if (!foreignRunBusy) {
+          const next = get().queuedPrompts[0];
+          if (next) {
+            set((s) => ({ queuedPrompts: s.queuedPrompts.slice(1) }));
+            setTimeout(() => {
+              if (get().agentBusy) {
+                set((s) => ({ queuedPrompts: [next, ...s.queuedPrompts] }));
+                return;
+              }
+              get().promptAgent(next.text, next.images, next.selection);
+            }, 0);
+          }
         }
         break;
       }
@@ -3578,18 +3926,22 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
       case 'agent:plan': {
         // Store the plan for UI display.
+        // (2026-09-07 UI hardening): steps arrive unvalidated — missing or
+        // non-array steps used to crash steps.map in the reducer.
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
           if (last && last.role === 'assistant') {
             turns[turns.length - 1] = {
               ...last,
-              plan: event.steps.map((st) => ({
-                step: st.step,
-                description: st.description,
-                skill: st.skill as any,
-                status: st.status as any,
-              })),
+              plan: (Array.isArray(event.steps) ? event.steps : [])
+                .filter((st) => st && typeof st === 'object')
+                .map((st, i) => ({
+                  step: typeof st.step === 'number' ? st.step : i + 1,
+                  description: typeof st.description === 'string' ? st.description.slice(0, 2000) : '',
+                  skill: typeof st.skill === 'string' ? st.skill.slice(0, 120) : '',
+                  status: st.status as any,
+                })),
             };
           }
           return { turns };
@@ -3791,7 +4143,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // The agent is asking the user a structured question. Store it;
         // the AgentPanel renders a dialog. Cleared when the user submits
         // answers via submitQuestionAnswers().
-        set({ pendingQuestion: { toolCallId: event.toolCallId, questions: event.questions } });
+        // (2026-09-07 UI hardening): array passthroughs are coerced — a
+        // malformed event used to crash the PluginUI render tree.
+        set({
+          pendingQuestion: {
+            toolCallId: event.toolCallId,
+            questions: Array.isArray(event.questions) ? event.questions : [],
+          },
+        });
         break;
       }
       case 'agent:ask_user_answered': {
@@ -3810,12 +4169,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // The approval gate wrapped a destructive tool — the agent is BLOCKED
         // mid-turn until the user Allows or Denies (POST /api/agent/approvals
         // resolves the server-side promise).
+        // (2026-09-07 UI hardening): array passthroughs are coerced — a
+        // malformed event used to crash the PluginUI render tree.
         set({
           pendingApproval: {
             toolCallId: event.toolCallId,
-            toolName: event.toolName,
-            description: event.description,
-            details: event.details,
+            toolName: safeText(event.toolName, 120) || 'unknown_tool',
+            description: safeText(event.description, 2000),
+            details: Array.isArray(event.details) ? event.details : [],
           },
         });
         break;
@@ -3838,7 +4199,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         break;
       }
       case 'agent:todo_update': {
-        set({ todos: event.todos });
+        // (2026-09-07 UI hardening): array passthroughs are coerced — a
+        // malformed event used to crash the PluginUI render tree.
+        set({ todos: Array.isArray(event.todos) ? event.todos : [] });
         break;
       }
       case 'agent:background_task_started': {

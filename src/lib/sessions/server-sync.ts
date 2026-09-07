@@ -453,22 +453,33 @@ export async function fetchServerDocuments(): Promise<ServerDocument[]> {
 
 /// Create a new document. Idempotent by `id` (returns the existing row if
 /// already present). `id` is validated server-side against `^[A-Za-z0-9_-]{1,64}$`.
+/// (2026-09-07 UI hardening, 12-c#12) returns `{ document, error }` — `error`
+/// surfaces the server's JSON error body (e.g. the 100-char name cap) so the
+/// UI can show the REAL reason instead of always guessing "id may already
+/// exist". `error` is null on network failure (the caller's generic fallback
+/// covers that case).
 export async function createServerDocument(payload: {
   id?: string;
   name?: string;
   background?: string;
-}): Promise<ServerDocument | null> {
+}): Promise<{ document: ServerDocument | null; error: string | null }> {
   try {
     const res = await fetch('/api/documents', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = await res.json().catch(() => null) as { error?: unknown } | null;
+      return {
+        document: null,
+        error: typeof body?.error === 'string' ? body.error : `HTTP ${res.status}`,
+      };
+    }
     const data = await res.json();
-    return data.document ?? null;
+    return { document: data.document ?? null, error: null };
   } catch {
-    return null;
+    return { document: null, error: null };
   }
 }
 

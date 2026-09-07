@@ -235,11 +235,31 @@ function replayRow(row: JournalRowWire, adapter: CatchUpAdapter): boolean {
   return TERMINAL_JOURNAL_TYPES.has(row.type);
 }
 
+/// One in-flight catch-up per document (2026-09-07 UI hardening): the
+/// REST-first mount path and the socket 'connect' handler can both fire a
+/// catch-up within milliseconds of each other (and again on every reconnect
+/// flap) — concurrent runs re-fetched and re-replayed a window the first was
+/// still processing.
+const catchUpInFlight = new Set<string>();
+
 /// Run the reconnect catch-up for a document. Called on every socket
 /// (re)connect (first connect included — it establishes the baseline) and,
 /// REST-first (R4), once on mount BEFORE the socket attaches when the status
 /// endpoint reports a live run.
 export async function runJournalCatchUp(
+  documentId: string,
+  adapter: CatchUpAdapter,
+): Promise<void> {
+  if (catchUpInFlight.has(documentId)) return;
+  catchUpInFlight.add(documentId);
+  try {
+    await runJournalCatchUpInner(documentId, adapter);
+  } finally {
+    catchUpInFlight.delete(documentId);
+  }
+}
+
+async function runJournalCatchUpInner(
   documentId: string,
   adapter: CatchUpAdapter,
 ): Promise<void> {
@@ -310,7 +330,14 @@ export async function runJournalCatchUp(
   // Advance to the probed lastSeq (not just the last replayed row): rows we
   // deliberately skipped (patches, post-terminal foreign turns) are accounted
   // for — the next reconnect window starts cleanly at "now".
-  if (lastSeq > loadWatermark(documentId)) saveWatermark(documentId, lastSeq);
+  // (2026-09-07 UI hardening) — EXCEPT when the window is STILL truncated
+  // after the 20-page cap: saving the journal HEAD would skip the unfetched
+  // tail rows forever (silent transcript loss on gaps > 4k rows). Persist
+  // the last REPLAYED row's seq instead — the next reconnect resumes exactly
+  // where this run stopped.
+  const stillTruncated = res !== null && res.truncated;
+  const target = stillTruncated ? watermark : lastSeq;
+  if (target > loadWatermark(documentId)) saveWatermark(documentId, target);
 }
 
 function reportMutationClock(page: EventsResponse, adapter: CatchUpAdapter): void {
