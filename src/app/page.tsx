@@ -15,6 +15,7 @@ import { LayersPanel } from '@/components/canvas/LayersPanel';
 import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
 import { AgentPanel } from '@/components/canvas/AgentPanel';
 import type { PaletteCommand } from '@/components/canvas/CommandPalette';
+import { useOnboarding } from '@/lib/onboarding/store';
 import { useSettings } from '@/lib/settings/store';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -38,7 +39,7 @@ import {
   FilePlus2, Undo2, Redo2, Copy, ClipboardPaste, Trash2, Eye, ZoomIn,
   SunMoon, Square, Circle, Type, Minus, Frame, Section as SectionIcon,
   PanelLeftClose as PanelLeftIcon, PanelRightClose as PanelRightIcon, Keyboard,
-  Camera,
+  Camera, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -88,6 +89,10 @@ const KeyboardShortcutsDialog = dynamic(
 const DesignSystemPicker = dynamic(
   () => import('@/components/design-systems/DesignSystemPicker').then((m) => m.DesignSystemPicker),
   { ssr: false, loading: () => <LoadingFallback /> },
+);
+const OnboardingDialog = dynamic(
+  () => import('@/components/onboarding/OnboardingDialog').then((m) => m.OnboardingDialog),
+  { ssr: false, loading: () => null },
 );
 // History is a right-panel tab, not the default — loads on first visit.
 const RunHistoryPanel = dynamic(
@@ -252,6 +257,13 @@ export default function Home() {
   const settingsMounted = useDeferredMount(settingsOpen);
   const shortcutsMounted = useDeferredMount(shortcutsOpen);
   const designSystemsMounted = useDeferredMount(designSystemsOpen);
+
+  // Onboarding dialog mount gate. The dialog is shown when
+  // useOnboarding.hasCompleted is false (first visit). Mount the chunk
+  // eagerly when onboarding hasn't been completed so the dialog appears
+  // without a chunk-fetch delay on first paint.
+  const onboardingHasCompleted = useOnboarding((s) => s.hasCompleted);
+  const onboardingMounted = useDeferredMount(!onboardingHasCompleted);
 
   // Mobile detection (P3-8) — drives auto-collapse + wider panel sizes on
   // touch devices. SSR-safe (returns false during SSR; the effect syncs to
@@ -970,6 +982,7 @@ export default function Home() {
     { id: 'view.pixel-grid', label: 'Toggle pixel grid', group: 'View', shortcut: chordLabel('pixel-grid'), run: () => useCanvasStore.getState().toggleViewFlag('pixelGridVisible') },
     { id: 'view.outline', label: 'Toggle outline mode', group: 'View', shortcut: chordLabel('outline-mode'), run: () => useCanvasStore.getState().toggleViewFlag('outlineMode') },
     { id: 'view.design-systems', label: 'Design Systems…', group: 'View', keywords: 'pack registry', run: () => setDesignSystemsOpen(true) },
+    { id: 'view.onboarding', label: 'Replay onboarding', group: 'View', icon: Sparkles, keywords: 'welcome tour intro', run: () => useOnboarding.getState().reset() },
     // Insert
     { id: 'insert.rectangle', label: 'Insert rectangle', group: 'Insert', icon: Square, shortcut: 'R', mutates: true, run: () => dropShapeAtCenter('rectangle') },
     { id: 'insert.ellipse', label: 'Insert ellipse', group: 'Insert', icon: Circle, shortcut: 'O', mutates: true, run: () => dropShapeAtCenter('ellipse') },
@@ -1253,6 +1266,17 @@ export default function Home() {
               description: 'The agent will use this pack for all UI generation this session.',
             });
           }}
+        />
+      )}
+
+      {/* Onboarding dialog — shown once per browser on first visit.
+          Uses the same composer-prefill event as the CommandPalette so the
+          selected template's prompt lands in the chat input. */}
+      {onboardingMounted && (
+        <OnboardingDialog
+          onSelectTemplate={(prompt) =>
+            window.dispatchEvent(new CustomEvent('agentcanvas:composer-prefill', { detail: prompt }))
+          }
         />
       )}
       </TooltipProvider>

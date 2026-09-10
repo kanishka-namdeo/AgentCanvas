@@ -342,9 +342,17 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   if (settings?.maxIterations === undefined) {
     maxIterations = TIER_MAX_ITERATIONS[tier];
   }
+  // Telemetry only — emit as tool_progress (not status_note) so it doesn't
+  // surface in the user-facing BusyRow activity label. tool_progress with
+  // toolCallId='tier-telemetry' is silently consumed by the store (no matching
+  // tool-call entry, no statusNote).
   yield {
     kind: 'agent_event',
-    event: { type: 'agent:status_note', text: `tier: ${tier} (maxIter=${maxIterations})` } as any,
+    event: {
+      type: 'agent:tool_progress',
+      toolCallId: 'tier-telemetry',
+      text: `tier: ${tier} (maxIter=${maxIterations})`,
+    } as any,
   };
 
   // Multi-screen prior-content bookkeeping (stress-test fix): the shapes that
@@ -1863,10 +1871,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         : filteredTools.filter((t) =>
             !aliasNames.has(t.name) && (isOneShotBuildTurn ? !ONE_SHOT_DROP_TOOLS.has(t.name) : true));
       orderedTools = assembleOrderedTools(widenedTools);
+      // Telemetry only — emit as tool_progress (not status_note) so the
+      // developer-only message doesn't surface in the user-facing BusyRow.
       yield {
         kind: 'agent_event',
         event: {
-          type: 'agent:status_note',
+          type: 'agent:tool_progress',
+          toolCallId: 'tier-telemetry',
           text: `tier widened to full category allowlist (tool-not-found escape hatch)`,
         } as any,
       };
