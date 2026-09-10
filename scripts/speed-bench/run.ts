@@ -108,8 +108,10 @@ const REPEATS = repeatsArg ? Math.max(1, Number(repeatsArg.split('=')[1]) || 1) 
 const PROVIDER = providerArg ? providerArg.split('=')[1] : DEFAULT_SETTINGS.llmProvider;
 const THINKING = thinkingArg ? thinkingArg.split('=')[1] : DEFAULT_SETTINGS.thinkingLevel;
 
-const SCENARIO_TIMEOUT_MS = 4 * 60 * 1000; // 4 min cap per scenario (real completions run 9-130s)
-const COOLDOWN_S = 10; // shorter cooldown — z.ai sandbox doesn't rate-limit like custom tunnels
+const SCENARIO_TIMEOUT_MS = 6 * 60 * 1000; // 6 min cap per scenario (multi-chart hit 4min in after-P0)
+const COOLDOWN_S = 30; // z.ai sandbox rate-limit window needs ~30s between scenarios
+                       // (was 10s — too short, caused rate-limit ladder to fire on
+                       // simple-pricing + multi-chart in the after-P0 bench)
 
 // ---- single scenario run ----------------------------------------------------
 

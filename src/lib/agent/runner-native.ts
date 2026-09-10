@@ -2201,7 +2201,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       rateLimitSignature
     ) {
       sameModelRetries++;
-      const backoffMs = sameModelRetries === 1 ? 20_000 : 45_000;
+      // Speed-parity P1: shorter backoff for the z.ai sandbox provider — it's
+      // the auto-credential fallback and rate-limits frequently under shared
+      // load, but the window clears faster than a custom endpoint's per-account
+      // quota. 10s + 20s = 30s worst-case (was 20s + 45s = 65s). Custom
+      // endpoints keep the longer backoff (per-account quota windows are longer).
+      const isZaiProvider = providerId === 'zai' || currentModel.usedFallback === true;
+      const backoffMs = isZaiProvider
+        ? (sameModelRetries === 1 ? 10_000 : 20_000)
+        : (sameModelRetries === 1 ? 20_000 : 45_000);
       console.warn(
         `[llm-retry] attempt ${attempt + 2} after ${backoffMs / 1000}s — provider rate-limited ` +
           `(${currentModel.label} produced zero message_delta + zero tool_call events` +
