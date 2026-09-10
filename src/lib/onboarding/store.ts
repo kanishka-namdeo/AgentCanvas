@@ -46,25 +46,60 @@ const DEFAULT_STATE: OnboardingState = {
   selectedTemplateId: null,
 };
 
+/// Analytics stub — emits a structured console event when onboarding is
+/// completed or skipped. Replace with a real analytics SDK call when one
+/// is integrated. The event shape is stable so a future analytics adapter
+/// can consume it without changing the store.
+function emitAnalyticsEvent(event: {
+  type: 'onboarding_completed' | 'onboarding_skipped' | 'onboarding_reset';
+  templateId: string | null;
+  timestamp: number;
+}): void {
+  if (typeof console !== 'undefined' && typeof console.info === 'function') {
+    console.info('[onboarding-analytics]', event);
+  }
+}
+
 export const useOnboarding = create<OnboardingStore>()(
   persist(
     (set) => ({
       ...DEFAULT_STATE,
-      complete: (templateId = null) =>
+      complete: (templateId = null) => {
+        const timestamp = Date.now();
         set({
           hasCompleted: true,
           skipped: false,
-          completedAt: Date.now(),
+          completedAt: timestamp,
           selectedTemplateId: templateId,
-        }),
-      skip: () =>
+        });
+        emitAnalyticsEvent({
+          type: 'onboarding_completed',
+          templateId,
+          timestamp,
+        });
+      },
+      skip: () => {
+        const timestamp = Date.now();
         set({
           hasCompleted: true,
           skipped: true,
-          completedAt: Date.now(),
+          completedAt: timestamp,
           selectedTemplateId: null,
-        }),
-      reset: () => set({ ...DEFAULT_STATE }),
+        });
+        emitAnalyticsEvent({
+          type: 'onboarding_skipped',
+          templateId: null,
+          timestamp,
+        });
+      },
+      reset: () => {
+        set({ ...DEFAULT_STATE });
+        emitAnalyticsEvent({
+          type: 'onboarding_reset',
+          templateId: null,
+          timestamp: Date.now(),
+        });
+      },
     }),
     {
       name: 'agentcanvas.onboarding.v1',
@@ -115,9 +150,27 @@ export const ONBOARDING_TEMPLATES: OnboardingTemplate[] = [
     gradient: 'from-emerald-500 to-teal-600',
   },
   {
+    id: 'data-table',
+    label: 'Data Table',
+    description: 'Sortable table with headers, rows, and pagination',
+    prompt:
+      'Design a data table for a user management page: 5 columns (Name, Email, Role, Status, Last Active), 6 rows with realistic data, a header row with sort indicators, and a pagination footer showing 1-6 of 24.',
+    tier: 'Standard',
+    gradient: 'from-slate-500 to-gray-600',
+  },
+  {
+    id: 'bar-chart',
+    label: 'Bar Chart',
+    description: 'Monthly revenue chart with 6 bars and value labels',
+    prompt:
+      "Create a card containing a bar chart titled 'Monthly Revenue' with six bars for Jan to Jun showing 12k, 18k, 15k, 24k, 29k and 33k, with value labels above each bar.",
+    tier: 'Fast',
+    gradient: 'from-amber-500 to-orange-600',
+  },
+  {
     id: 'landing',
     label: 'Landing Page',
-    description: 'Hero section with headline, CTAs, and feature grid',
+    description: 'Full marketing page with hero, features, and footer',
     prompt:
       "Design a marketing landing page for an AI design tool called 'Prism': sticky nav with logo + 4 links + Sign Up CTA, a hero with headline + subhead + 2 CTAs + product mockup, a 3-feature grid, a testimonials carousel (2 cards visible), a pricing teaser (2 plans), and a footer with 4 link columns.",
     tier: 'Detailed',
@@ -131,6 +184,24 @@ export const ONBOARDING_TEMPLATES: OnboardingTemplate[] = [
       'Create a kanban board with three columns — To Do, In Progress, Done — each column with a header and two task cards with realistic task titles.',
     tier: 'Standard',
     gradient: 'from-cyan-500 to-blue-600',
+  },
+  {
+    id: 'mobile-profile',
+    label: 'Mobile Profile',
+    description: 'User profile card with avatar, stats, and action buttons',
+    prompt:
+      "Design a mobile user profile screen: a circular avatar at the top, the name 'Maya Chen', the job title 'Product Designer', a row of three stats (128 Followers, 342 Following, 56 Posts), and two buttons 'Edit Profile' and 'Share Profile'.",
+    tier: 'Fast',
+    gradient: 'from-pink-500 to-rose-600',
+  },
+  {
+    id: 'design-system',
+    label: 'Design System',
+    description: 'Color palette + typography + button variants',
+    prompt:
+      'Design a design-system starter page: a color palette section with 6 swatches (primary, secondary, accent, success, warning, danger) each labeled with hex codes, a typography section showing 4 text styles (H1, H2, body, caption) with font sizes, and a button variants section showing primary, secondary, and ghost buttons.',
+    tier: 'Detailed',
+    gradient: 'from-indigo-500 to-blue-600',
   },
   {
     id: 'onboarding-flow',

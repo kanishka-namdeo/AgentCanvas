@@ -269,8 +269,9 @@ function TemplateStep({
         </Button>
       </div>
 
-      {/* Template grid */}
-      <div className="grid grid-cols-2 gap-3 p-4 overflow-y-auto">
+      {/* Template grid — 2 columns on narrow, 3 on wider modal.
+          10 templates fit in 4 rows of 3 (with one row of 1) or 5 rows of 2. */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 overflow-y-auto">
         {ONBOARDING_TEMPLATES.map((template) => (
           <TemplateCard
             key={template.id}

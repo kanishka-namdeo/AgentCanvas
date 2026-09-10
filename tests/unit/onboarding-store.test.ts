@@ -62,8 +62,8 @@ describe('useOnboarding store', () => {
 });
 
 describe('ONBOARDING_TEMPLATES', () => {
-  it('has exactly 6 templates', () => {
-    expect(ONBOARDING_TEMPLATES).toHaveLength(6);
+  it('has exactly 10 templates', () => {
+    expect(ONBOARDING_TEMPLATES).toHaveLength(10);
   });
 
   it('every template has all required fields', () => {
