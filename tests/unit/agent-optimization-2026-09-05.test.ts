@@ -427,7 +427,9 @@ describe('2026-09-05.3: multi-shot conversation history (source invariants)', ()
   });
 
   it('brief-first gating is skipped on non-empty canvases (multi-shot style drift fix)', () => {
-    expect(nativeSrc).toMatch(/isDesignRequest\(prompt\) && mode === 'build'\s*\n?\s*&& turnStartShapeIds\.size === 0/);
+    // Speed-parity P0.5: shouldEnforceBrief now uses isMultiSectionDesignRequest
+    // (was isDesignRequest — broad, matched trivial "draw" prompts).
+    expect(nativeSrc).toMatch(/isMultiSectionDesignRequest\(prompt\) && mode === 'build'\s*\n?\s*&& turnStartShapeIds\.size === 0/);
   });
 
   it('pure edit turns still run deterministic validation on touched nodes', () => {

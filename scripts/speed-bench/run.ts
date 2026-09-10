@@ -156,7 +156,7 @@ async function runScenario(
     status: 'error',
   };
 
-  const seed = scenario.seed ?? createEmptyCanvasDocument();
+  const seed = scenario.seed ?? createEmptyCanvasDocument(`bench-${scenario.id}`);
   const canvas = normalizeCanvas(seed);
 
   const body = {

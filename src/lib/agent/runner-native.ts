@@ -69,6 +69,13 @@ import { applyPatchToCanvas } from '../canvas/patch';
 import { wrapToolsWithPriorContentGuard } from './prior-content-guard';
 import { classifyIntent } from './classifier';
 import { generatePlan, formatPlanForPrompt } from './planner';
+import {
+  classifyTier,
+  getTierAllowlist,
+  TIER_MAX_ITERATIONS,
+  TIER_MAX_CRITIQUE_ITERATIONS,
+  type DesignTier,
+} from './tier-allowlists';
 import { dispatchWebResearchSubAgent } from './subagents/web-research';
 import {
   getToolNamesForCategory,
@@ -275,7 +282,12 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // Resolve settings with defaults (mirror the legacy runner).
   // 0.6 — Qwen3.7 recommended band (0.6–0.7), matches DEFAULT_SETTINGS.
   const temperature = settings?.temperature ?? 0.6;
-  const maxIterations = settings?.maxIterations ?? 20;
+  // Speed-parity P0.7: tier-aware maxIterations. The classifier runs below
+  // (it needs the canvas state), but the tier-aware fallback is computed
+  // here so the budget is available everywhere it's read. The actual tier
+  // is computed after canvas normalization; this `let` is updated there.
+  let tier: DesignTier = 'multi';
+  let maxIterations = settings?.maxIterations ?? TIER_MAX_ITERATIONS.multi;
   const planFirst = settings?.planFirst ?? true;
   const thinkingLevel = settings?.thinkingLevel ?? 'medium';
   const defaultPalette = settings?.defaultPalette ?? 'slate';
@@ -314,6 +326,26 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
 
   // 1. Normalize canvas + build tool context (identical to legacy runner).
   let canvas: CanvasDocument = normalizeCanvas(initialCanvas);
+
+  // Speed-parity P0.2: classify the design-complexity tier. This is INDEPENDENT
+  // of the skill classifier below — it's a deterministic keyword + length +
+  // canvas-size heuristic that drives tool-allowlist slimming + tier-aware
+  // iteration budgets. See docs/speed-parity-spec/06-agent-tools-simplification.md.
+  //
+  // Trivial prompts ("draw a red rectangle") get a 6-tool catalog + 4-iter
+  // budget; complex prompts ("design a 3-screen onboarding flow") get the
+  // full toolset + 24-iter budget. The classifier never returns `trivial`
+  // for prompts with multi-section keywords — see tests/unit/tier-allowlists.test.ts.
+  tier = classifyTier(prompt, (canvas.shapes ?? []).length);
+  // Override the placeholder maxIterations with the tier-aware value (unless
+  // the caller explicitly set settings.maxIterations — that wins).
+  if (settings?.maxIterations === undefined) {
+    maxIterations = TIER_MAX_ITERATIONS[tier];
+  }
+  yield {
+    kind: 'agent_event',
+    event: { type: 'agent:status_note', text: `tier: ${tier} (maxIter=${maxIterations})` } as any,
+  };
 
   // Multi-screen prior-content bookkeeping (stress-test fix): the shapes that
   // exist at TURN START are the user's prior deliverables (screens from
@@ -522,9 +554,29 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     'memory_write', 'memory_read', 'memory_search', 'scratchpad', 'memory_forget',
   ]);
   const isOneShotBuildTurn = mode === 'build' && turnStartShapeIds.size === 0;
-  const turnTools = isOneShotBuildTurn
+
+  // ---- Speed-parity P0.3: tier-aware tool slimming ------------------------
+  //
+  // The tier allowlist (trivial=6 / simple=27 / multi=52 / complex=83 /
+  // enterprise=null) is intersected with the existing categoryAllowlist.
+  // Trivial prompts see ONLY 6 tools → static prefix drops from ~45K → ~12-15K
+  // tokens → ~2-2.5s prefill saved on the FIRST iteration of every trivial turn.
+  //
+  // The escape hatch (P0.4): if the model errors with "tool not found" on
+  // attempt 1, the runner widens to the full categoryAllowlist on attempt 2.
+  // Tracked via `tierWidened` (declared below near the attempt loop).
+  //
+  // Plan/Ask modes have their own modeToolAllowlist intersection above; the
+  // tier filter still applies on top (e.g. an Ask turn on a trivial prompt
+  // still gets the trivial-tier slimming — Ask has only read tools, so the
+  // intersection is naturally smaller anyway).
+  const tierAllowlist = getTierAllowlist(tier);
+  const oneShotFiltered = isOneShotBuildTurn
     ? filteredTools.filter((t) => !ONE_SHOT_DROP_TOOLS.has(t.name))
     : filteredTools;
+  const turnTools = tierAllowlist
+    ? oneShotFiltered.filter((t) => tierAllowlist.has(t.name))
+    : oneShotFiltered;
 
   // PLAN mode also needs the UNFILTERED build set for the post-approval
   // execution phase (a new session is created with it once the plan is
@@ -580,6 +632,30 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     const t = text.toLowerCase();
     return /\b(design|dashboard|landing\s*page|app|ui|build|create|make|draw|scaffold|layout|interface|website|page|screen)\b/.test(t);
   };
+
+  // Speed-parity P0.5: a stricter design-request predicate for the brief
+  // pre-generation race. The broad isDesignRequest above matches trivial
+  // prompts ("draw a red rectangle" matches `draw`) — pre-generating a brief
+  // (palette / typography / IA) for a single rectangle is pure waste: the
+  // sub-agent consumes 3-25s of wall-clock and ~1.3K tokens of context for a
+  // design that needs zero design-system thinking.
+  //
+  // The brief pre-generation race now requires a MULTI-SECTION signal:
+  // prompt length > 12 words AND at least one of (dashboard|landing|page|
+  // screen|app|website|onboarding|flow|wizard|kanban|pricing|table|chart|grid|
+  // navbar|sidebar|hero|section|panel|footer|header). Single-shape prompts
+  // and short "design a button" prompts skip the brief entirely — the model
+  // improvises the palette (the system prompt's FIDELITY POLICY section
+  // already names canonical palettes). The brief tool itself stays available;
+  // the model can call pen_generate_design_brief explicitly if it decides it
+  // needs the brief.
+  const isMultiSectionDesignRequest = (text: string): boolean => {
+    const t = text.toLowerCase();
+    const wordCount = t.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 12) return false;
+    return /\b(dashboard|landing\s*page|page|screen|app|website|onboarding|flow|wizard|kanban|pricing|table|chart|grid|navbar|sidebar|hero|section|panel|footer|header|board|carousel|tab|accordion|drawer|modal|dialog|sheet|calendar|timeline|menu|toolbar|widget|kpi|metric|stat\s*card)\b/.test(t);
+  };
+
   // MODE GATE: the brief-first contract is a BUILD-mode concern. Ask turns
   // answer questions; Plan turns produce a plan (the plan IS the brief for
   // the execution phase — hasGeneratedBrief is pre-set there).
@@ -597,7 +673,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // standard). The brief tool itself stays available; the model can still
   // call pen_generate_design_brief when the user explicitly requests a fresh
   // direction.
-  const shouldEnforceBrief = isDesignRequest(prompt) && mode === 'build'
+  //
+  // SPEED-PARITY P0.5: predicate narrowed from `isDesignRequest` (broad,
+  // matches "draw") to `isMultiSectionDesignRequest` (strict — requires 12+
+  // words AND a multi-section keyword). Trivial prompts skip the brief race.
+  // The tool-layer brief gate below still fires for non-trivial design
+  // requests that need a brief.
+  const shouldEnforceBrief = isMultiSectionDesignRequest(prompt) && mode === 'build'
     && turnStartShapeIds.size === 0
     && !clarifyOnEmptyCanvas;
 
@@ -709,8 +791,12 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           originalPrompt: prompt,
           ...(subAgentLLM ? { llm: subAgentLLM as any } : {}),
         });
+        // Speed-parity P0.6: brief timeout lowered from 25s → 12s. The brief
+        // is best-effort; the tool-layer brief gate (assembleOrderedTools
+        // below) is the recovery path. Real brief sub-agent success time
+        // on most providers is 3-8s; 12s leaves a 50% safety margin.
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('brief pre-generation timed out')), 25_000));
+          setTimeout(() => reject(new Error('brief pre-generation timed out')), 12_000));
         const briefResult = await Promise.race([briefPromise, timeoutPromise]);
         if (briefResult?.brief) {
           return JSON.stringify(briefResult.brief, null, 2);
@@ -1009,7 +1095,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       } as unknown as ToolDefinition;
     });
 
-  const orderedTools: ToolDefinition[] = assembleOrderedTools(
+  // Speed-parity P0.4: escape hatch — if attempt 1 errored with a tool-not-found
+  // signature (the model reached for a tool not in its tier-allowlist), widen
+  // to the full categoryAllowlist on attempt 2. Tracked via `tierWidened`.
+  // Declared outside the attempt loop so attempt N+1 can read attempt N's flag.
+  let tierWidened = false;
+  // Mutable copy of orderedTools so attempt 2 can swap in a widened set.
+  let orderedTools: ToolDefinition[] = assembleOrderedTools(
     mode === 'plan' ? planCompletionBlocker(filteredTools) : turnTools,
   );
   // PLAN mode: the build-toolset session that executes the plan after
@@ -1532,12 +1624,14 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   //       expanded nodes — the model would have to hydrate its own canvas
   //       blind via pen_get_metadata before every edit. Full snapshot
   //       instead (this is exactly what the HTTP fallback path does).
-  //   (b) a LARGE canvas: below ~60 shapes the digest's token savings are
-  //       negligible (collapsed lines are nearly as long as full lines —
-  //       the savings come from hidden descendants), while the blindness
-  //       risk on edit turns is real. Small canvases always get the full
-  //       snapshot.
-  const DELTA_MIN_SHAPES = 60;
+  //   (b) a LARGE canvas: the digest's token savings are real once the
+  //       canvas has enough collapsed subtrees to matter. Speed-parity P0.10
+  //       lowered this threshold from 60 → 20 — small canvases (20-60 shapes)
+  //       now also use the delta digest on follow-up turns, saving 2-5K
+  //       tokens of snapshot per turn. The empty-changed-set fallback below
+  //       still kicks in (renders full when delta is empty), so edit turns
+  //       on small canvases still see the full picture.
+  const DELTA_MIN_SHAPES = 20;
   const deltaIds = opts.canvasDelta?.nodeIds;
   const delta = deltaIds && deltaIds.length > 0 && (canvas.shapes?.length ?? 0) > DELTA_MIN_SHAPES
     ? deltaIds
@@ -1710,7 +1804,32 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     let sawActivity = false;
     let sawToolCall = false;
     let sawErrorEvent = false;
+    // Speed-parity P0.4: detect tool-not-found errors so attempt 2 can widen
+    // the tier-allowlist. The model sometimes reaches for a tool not in its
+    // tier-allowlist (e.g. a trivial-tier prompt that needs pen_apply_typography);
+    // the SDK surfaces this as a tool execution error with "tool not found"
+    // / "unknown tool" / "not in tool list" in the message.
+    let sawToolNotFound = false;
     let promptError: any = undefined;
+
+    // Speed-parity P0.4 escape hatch: if the previous attempt errored with
+    // tool-not-found, widen to the full categoryAllowlist (drop the tier filter)
+    // and rebuild orderedTools. This is a one-shot widening — once widened, the
+    // tier filter stays off for the rest of the run.
+    if (tierWidened && tierAllowlist) {
+      const widenedTools = mode === 'plan'
+        ? planCompletionBlocker(filteredTools)
+        : filteredTools.filter((t) =>
+            !aliasNames.has(t.name) && (isOneShotBuildTurn ? !ONE_SHOT_DROP_TOOLS.has(t.name) : true));
+      orderedTools = assembleOrderedTools(widenedTools);
+      yield {
+        kind: 'agent_event',
+        event: {
+          type: 'agent:status_note',
+          text: `tier widened to full category allowlist (tool-not-found escape hatch)`,
+        } as any,
+      };
+    }
 
     // 12. Construct the AgentSession.
     //     - noTools: 'all' → disable all built-in coding tools (bash, read, edit, write).
@@ -1940,7 +2059,17 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
             withheldTurnEnd = true;
             continue;
           }
-          if (ev.event.type === 'agent:error') sawErrorEvent = true;
+          if (ev.event.type === 'agent:error') {
+            sawErrorEvent = true;
+            // Speed-parity P0.4: detect tool-not-found signature so the next
+            // attempt widens the tier-allowlist. The SDK + tool layer both
+            // surface this with phrases like "tool not found" / "unknown tool"
+            // / "not in tool list" / "isError: true, toolName: <name>".
+            const errMsg = (ev.event as any)?.message ?? '';
+            if (/tool\s+not\s+found|unknown\s+tool|not\s+in\s+tool\s+list|tool\s+does\s+not\s+exist/i.test(errMsg)) {
+              sawToolNotFound = true;
+            }
+          }
           // ---- Stuck detector feed (C4) -----------------------------------
           if (ev.event.type === 'agent:tool_call_start') {
             sawToolCall = true;
@@ -2163,6 +2292,18 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       (currentModel.usedFallback === true || providerId === 'zai') &&
       ((textOnlyDesignTurn && !promptError) || (!sawActivity && !rateLimitSignature));
 
+    // Speed-parity P0.4 escape hatch: if this attempt errored with a tool-not-
+    // found signature AND the tier filter is still active, widen it for the
+    // next attempt. One-shot — the next iteration's tierWidened check above
+    // rebuilds orderedTools with the full categoryAllowlist. This is a separate
+    // retry path from shouldFallback / shouldRetrySameModel — tool-not-found is
+    // NOT a model problem, it's a toolset-visibility problem.
+    if (sawToolNotFound && !tierWidened && tierAllowlist && attempt < 3) {
+      tierWidened = true;
+      // Loop continues to the next attempt with the widened toolset.
+      continue;
+    }
+
     // Emit the deferred prompt error now when we are NOT retrying — this is
     // the only honest exit for a mid-stream death that no safety net caught.
     // (When we ARE retrying, the error stays deferred: the next attempt's
@@ -2205,12 +2346,22 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       );
       currentModel = fallbackModel;
     } else {
+      // Speed-parity P0.8: drop the legacy 8s sleep when the failure IS
+      // rate-limit-shaped (the 20s+45s backoff tier above already handled
+      // that case). Only sleep for non-rate-limit transient failures (e.g.
+      // fetch-blips), and only when NOT already on z.ai sandbox (z.ai is
+      // the auto-credential fallback; a same-model retry on a dead endpoint
+      // rarely recovers).
+      const isRateLimitShaped = rateLimitSignature;
+      const skipSleep = providerId === 'zai' || isRateLimitShaped;
       console.warn(
         `[llm-fallback] ${currentModel.label} (already the fallback) produced ${
           sawActivity ? 'text-only output with zero tool calls' : 'no output'
-        } — legacy net: 8s backoff, then one retry on the same model`,
+        } — legacy net: ${skipSleep ? 'skipping 8s sleep (rate-limit-shaped or z.ai provider)' : '8s backoff, then one retry on the same model'}`,
       );
-      await new Promise((r) => setTimeout(r, 8_000));
+      if (!skipSleep) {
+        await new Promise((r) => setTimeout(r, 8_000));
+      }
     }
     didFallback = true;
     // Loop continues to the next attempt with the fallback (or same) model.
@@ -2517,7 +2668,14 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   //   - inCritiqueReprrompt flag: disables the brief-first enforcement
   //     during fix-turns (the agent already called pen_generate_design_brief
   //     in the main turn; we don't want to force another).
-  const maxCritiqueIterations = settings?.maxDesignCritiqueIterations ?? 2;
+  // Speed-parity P0.7: tier-aware maxCritiqueIterations. The shouldRunCritics
+  // gate already exempts trivial turns (manual critique mode + thresholds), but
+  // this is belt-and-suspenders — also short-circuits the FREE deterministic
+  // validation gate's iteration count. Trivial=0, simple=1, multi/complex/
+  // enterprise=2. Explicit user override (settings.maxDesignCritiqueIterations)
+  // wins.
+  const maxCritiqueIterations = settings?.maxDesignCritiqueIterations
+    ?? TIER_MAX_CRITIQUE_ITERATIONS[tier];
   // 2026-09-06 — design critique invocation mode (Settings → Agent → Design
   // critique). Normalized here once; fed into shouldRunCritics below. The
   // default ('manual') fires critics only when the user explicitly asks

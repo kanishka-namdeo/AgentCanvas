@@ -35,7 +35,8 @@ describe('2026-09-07 follow-up-turn fix: runner delta gating (source invariants)
 
   it('gates delta mode on a NON-EMPTY changed-set (empty array must NOT select the digest)', () => {
     // The guard: deltaIds.length > 0 must gate the delta selection.
-    expect(runnerSrc).toContain('const DELTA_MIN_SHAPES = 60;');
+    // Speed-parity P0.10: DELTA_MIN_SHAPES lowered 60 → 20.
+    expect(runnerSrc).toContain('const DELTA_MIN_SHAPES = 20;');
     expect(runnerSrc).toMatch(
       /const delta = deltaIds && deltaIds\.length > 0 && \(canvas\.shapes\?\.length \?\? 0\) > DELTA_MIN_SHAPES/,
     );

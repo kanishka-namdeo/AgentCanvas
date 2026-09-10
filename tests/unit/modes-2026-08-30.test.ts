@@ -486,7 +486,10 @@ describe('runner-native source invariants (mode enforcement)', () => {
   });
 
   it('gates the brief-first contract, canvas-output expectation, and variant nudge to build mode', () => {
-    expect(runnerSrc).toContain("isDesignRequest(prompt) && mode === 'build'");
+    // Speed-parity P0.5: shouldEnforceBrief narrowed from isDesignRequest →
+    // isMultiSectionDesignRequest (trivial prompts skip the brief race).
+    // expectsCanvasOutput still uses the broad isDesignRequest predicate.
+    expect(runnerSrc).toContain("isMultiSectionDesignRequest(prompt) && mode === 'build'");
     expect(runnerSrc).toContain("mode === 'build' && isDesignRequest(prompt)");
     expect(runnerSrc).toMatch(/isAmbiguousCreation && mode === 'build'/);
   });

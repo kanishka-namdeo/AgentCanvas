@@ -71,8 +71,10 @@ describe('runner-native — empty-canvas edit guard wiring (source invariants)',
   });
 
   it('brief pre-generation stands down on clarify turns (the hallucination accomplice)', () => {
+    // Speed-parity P0.5: predicate narrowed from isDesignRequest → isMultiSectionDesignRequest.
+    // Trivial prompts ("draw a red rectangle") skip the brief race entirely.
     expect(runnerSrc).toMatch(
-      /shouldEnforceBrief = isDesignRequest\(prompt\) && mode === 'build'\s*&& turnStartShapeIds\.size === 0\s*&& !clarifyOnEmptyCanvas;/,
+      /shouldEnforceBrief = isMultiSectionDesignRequest\(prompt\) && mode === 'build'\s*&& turnStartShapeIds\.size === 0\s*&& !clarifyOnEmptyCanvas;/,
     );
   });
 

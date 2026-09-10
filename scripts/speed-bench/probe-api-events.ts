@@ -9,7 +9,7 @@ import { createEmptyCanvasDocument } from '../../src/lib/canvas/types';
 import { DEFAULT_SETTINGS } from '../../src/lib/settings/types';
 import { normalizeCanvas } from '../../src/lib/agent/runner-legacy';
 
-const canvas = normalizeCanvas(createEmptyCanvasDocument());
+const canvas = normalizeCanvas(createEmptyCanvasDocument('probe-events'));
 
 const body = {
   prompt,

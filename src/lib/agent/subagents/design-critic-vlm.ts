@@ -134,10 +134,21 @@ export async function dispatchDesignCriticVlmSubAgent(
     // world element). 3s budget; on timeout / no sink fall back to the
     // server-side resvg render — the D8 fallback discipline (the critic
     // must still run, just on the approximate picture).
+    //
+    // Speed-parity P0.9: skip the client round-trip for SMALL canvases
+    // (≤20 shapes). The server-side resvg render is now isolated in a
+    // child process (so native panics can't kill the dev server) and the
+    // canvasSnapshot's measured-bounds already threads real browser sizes
+    // into the resolver — so resvg's geometry is accurate enough on small
+    // canvases. Saves 3s per critic dispatch on small canvases. The
+    // `screenshotSource: 'server'` telemetry is preserved so users can
+    // see when the critic judged the approximation.
+    const SMALL_CANVAS_THRESHOLD = 20;
+    const useClientScreenshot = hasSink() && shapes.length > SMALL_CANVAS_THRESHOLD;
     let base64: string;
     let screenshotSource: 'client' | 'server' = 'server';
     const roundtripId = `vlm-critic-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const shot = hasSink()
+    const shot = useClientScreenshot
       ? await awaitClientResponse<{ dataUrl?: string; error?: string }>(
           roundtripId,
           () => emitEvent({ type: 'agent:screenshot_request', toolCallId: roundtripId, scale: 2 }),
