@@ -385,12 +385,53 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     }
   };
 
+  /// Speed-parity P2.2: extract all node ids touched by a patch (for
+  /// computed-cache invalidation). Mirrors collectTouchedIds but RETURNS
+  /// the ids as an array (instead of mutating turnTouchedIds) so the cache
+  /// invalidation loop can iterate without side effects.
+  const extractTouchedNodeIds = (patch: CanvasPatch): string[] => {
+    const ids: string[] = [];
+    try {
+      if (patch.op === 'update' && typeof (patch as any).shapeId === 'string') {
+        ids.push((patch as any).shapeId);
+      } else if (Array.isArray(patch.updates)) {
+        for (const u of patch.updates) {
+          if (u && typeof (u as any).id === 'string') ids.push((u as any).id);
+        }
+      }
+      // Also invalidate nodes whose children were modified (parent layout
+      // may shift). The patch shapeId for subtree creates is the parent.
+      if (typeof (patch as any).shapeId === 'string' && !ids.includes((patch as any).shapeId)) {
+        ids.push((patch as any).shapeId);
+      }
+    } catch {
+      // Non-fatal.
+    }
+    return ids;
+  };
+
+  // Speed-parity P2.2: per-turn computed-cache for pen_get_computed. The
+  // model often re-reads the same node after a styling change (2s round-trip
+  // each). Cache hits skip the round-trip entirely. Entries expire after 5s
+  // AND are invalidated when applyPatch touches the cached node's id.
+  const computedCache = new Map<string, { value: unknown; expiresAt: number }>();
+  const invalidateComputedCache = (nodeId: string): void => {
+    computedCache.delete(nodeId);
+  };
+
   const ctx: CanvasToolContext = {
     getShapes: () => canvas.shapes ?? [],
     getTokens: () => canvas.tokens ?? { colors: [], textStyles: [] },
     getDocument: () => canvas,
+    computedCache,
+    invalidateComputedCache,
     applyPatch(patch: CanvasPatch): CanvasPatch {
       collectTouchedIds(patch);
+      // Invalidate computed-cache entries for touched nodes (P2.2).
+      try {
+        const touchedIds = extractTouchedNodeIds(patch);
+        for (const id of touchedIds) invalidateComputedCache(id);
+      } catch { /* non-fatal — cache is best-effort */ }
       canvas = applyPatchToCanvas(canvas, patch);
       return patch;
     },

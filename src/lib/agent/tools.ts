@@ -114,6 +114,16 @@ export interface CanvasToolContext {
   /// Read-only snapshot of the full document (background, viewport, etc.).
   /// Used by export tools. Optional — the runner always provides it.
   getDocument?: () => import('../canvas/types').CanvasDocument;
+  /// Per-turn LRU cache for pen_get_computed results (Speed-parity P2.2).
+  /// Keyed by nodeId; entries expire after 5s OR on the next mutation that
+  /// touches that node. The runner creates a fresh Map per turn and invalidates
+  /// entries inside applyPatch. Saves 2-4 redundant 2s client round-trips per
+  /// complex turn (the model often re-reads the same node after styling).
+  computedCache?: Map<string, { value: unknown; expiresAt: number }>;
+  /// Invalidate a computed-cache entry for a specific node (called by
+  /// applyPatch when a mutation touches the node). Optional — tools that
+  /// don't use the cache don't need to implement this.
+  invalidateComputedCache?: (nodeId: string) => void;
 }
 
 // ---- Multi-screen collision guard --------------------------------------------
@@ -4548,18 +4558,56 @@ const createShape = defineTool({
       const shapes = ctx.getShapes();
       const byId = new Map(shapes.map((s) => [s.id, s] as const));
 
-      // Round-trip first (≤2s). No sink (outside a turn) → straight fallback.
+      // Speed-parity P2.2: per-turn computed-cache. The model often re-reads
+      // the same node after a styling change. Cache hits skip the 2s client
+      // round-trip entirely. Cache is invalidated by applyPatch when a node is
+      // mutated, and entries expire after 5s (layout may shift on unrelated
+      // changes). Only cache when no `properties` filter is specified (the
+      // model requests the default ~33-prop subset) — filtered queries are
+      // rare and the cache key would need to include the filter list.
+      const cache = ctx.computedCache;
+      const cacheable = !!cache && (!params.properties || params.properties.length === 0);
+      const now = Date.now();
+      const CACHE_TTL_MS = 5_000;
+
+      // Split nodeIds into cached (hit) + uncached (need round-trip).
+      const cachedResults: Array<ComputedResult> = [];
+      const uncachedIds: string[] = [];
+      if (cacheable) {
+        for (const id of params.nodeIds) {
+          const entry = cache!.get(id);
+          if (entry && entry.expiresAt > now) {
+            cachedResults.push({ ...(entry.value as ComputedResult), measured: true });
+          } else {
+            uncachedIds.push(id);
+          }
+        }
+      } else {
+        uncachedIds.push(...params.nodeIds);
+      }
+
+      // Round-trip only for the uncached ids (≤2s). No sink (outside a turn) → straight fallback.
       let clientResults: ComputedResult[] | null = null;
-      if (hasSink()) {
+      if (hasSink() && uncachedIds.length > 0) {
         clientResults = await awaitClientResponse<ComputedResult[]>(
           toolCallId,
-          () => emitEvent({ type: 'agent:computed_request', toolCallId, nodeIds: params.nodeIds, properties: params.properties }),
+          () => emitEvent({ type: 'agent:computed_request', toolCallId, nodeIds: uncachedIds, properties: params.properties }),
           ROUNDTRIP_DEFAULTS.computedTimeoutMs,
         );
       }
       const byClient = new Map((clientResults ?? []).map((r) => [r.id, r] as const));
 
-      const results: ComputedResult[] = params.nodeIds.map((id) => {
+      // Write fresh results back to the cache.
+      if (cacheable) {
+        for (const r of byClient.values()) {
+          cache!.set(r.id, { value: r, expiresAt: now + CACHE_TTL_MS });
+        }
+      }
+
+      // Merge: cached hits + fresh client results + resolver fallback.
+      const allResults: ComputedResult[] = params.nodeIds.map((id) => {
+        const cached = cachedResults.find((r) => r.id === id);
+        if (cached) return cached;
         const live = byClient.get(id);
         if (live) return { ...live, measured: true };
         const s = byId.get(id);
@@ -4572,6 +4620,7 @@ const createShape = defineTool({
         };
       });
 
+      const results = allResults;
       const liveCount = results.filter((r) => r.measured).length;
       const summaryLine = liveCount === params.nodeIds.length
         ? `All ${results.length} node(s) read from the LIVE DOM (measured: true).`
@@ -4592,7 +4641,7 @@ const createShape = defineTool({
       const unknown = results.filter((r) => !byId.get(r.id) && !byClient.get(r.id));
       const text = [summaryLine, ...blocks].join('\n\n') +
         (unknown.length > 0 ? `\n\nUnknown node id(s) (not in canvas or DOM): ${unknown.map((u) => u.id).join(', ')}` : '');
-      return { content: [{ type: 'text', text }], details: { measured: liveCount > 0, liveCount, results } };
+      return { content: [{ type: 'text', text }], details: { measured: liveCount > 0, liveCount, results: allResults } };
     },
   });
 

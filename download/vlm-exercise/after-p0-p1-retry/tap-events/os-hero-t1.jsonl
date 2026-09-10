@@ -1,0 +1,10 @@
+{"t":1789037173058,"event":{"type":"canvas:full","shapeCount":0}}
+{"t":1789037173058,"event":{"type":"presence:roster","roster":[{"participantId":"p-2d00c89f","name":"Guest 2D00","color":"#6366f1","cursor":null}]}}
+{"t":1789037173925,"event":{"type":"presence:update","participant":{"participantId":"p-2d00c89f","name":"Guest 2D00","color":"#6366f1","cursor":null,"idle":false}}}
+{"t":1789037188924,"event":{"type":"presence:update","participant":{"participantId":"p-2d00c89f","name":"Guest 2D00","color":"#6366f1","cursor":null,"idle":false}}}
+{"t":1789037203925,"event":{"type":"presence:update","participant":{"participantId":"p-2d00c89f","name":"Guest 2D00","color":"#6366f1","cursor":null,"idle":false}}}
+{"t":1789037218925,"event":{"type":"presence:update","participant":{"participantId":"p-2d00c89f","name":"Guest 2D00","color":"#6366f1","cursor":null,"idle":false}}}
+{"t":1789037233924,"event":{"type":"presence:update","participant":{"participantId":"p-2d00c89f","name":"Guest 2D00","color":"#6366f1","cursor":null,"idle":true}}}
+{"t":1789037248925,"event":{"type":"presence:update","participant":{"participantId":"p-2d00c89f","name":"Guest 2D00","color":"#6366f1","cursor":null,"idle":true}}}
+{"t":1789037263925,"event":{"type":"presence:update","participant":{"participantId":"p-2d00c89f","name":"Guest 2D00","color":"#6366f1","cursor":null,"idle":true}}}
+{"t":1789037278924,"event":{"type":"presence:update","participant":{"participantId":"p-2d00c89f","name":"Guest 2D00","color":"#6366f1","cursor":null,"idle":true}}}
