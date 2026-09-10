@@ -1,0 +1,81 @@
+{
+  "startedAt": "2026-09-10T10:27:08.888Z",
+  "finishedAt": "2026-09-10T10:29:25.193Z",
+  "provider": "zai",
+  "thinking": "low",
+  "repeats": 1,
+  "runs": [
+    {
+      "id": "trivial-shape",
+      "tier": "trivial",
+      "prompt": "Draw a red rounded rectangle, 240x120, in the top-left area of the canvas.",
+      "startedAt": "2026-09-10T10:27:08.888Z",
+      "repeatIndex": 0,
+      "ttftMs": null,
+      "t2fpMs": null,
+      "t2cMs": 48471,
+      "toolCallCount": 0,
+      "patchCount": 0,
+      "errorEvents": [
+        "agent:error:"
+      ],
+      "modelUsed": null,
+      "usedFallback": false,
+      "finalLayerCount": 0,
+      "status": "complete",
+      "toolNames": []
+    },
+    {
+      "id": "multi-dashboard",
+      "tier": "multi",
+      "prompt": "Design a high-fidelity analytics dashboard header bar plus a row of 4 KPI stat cards showing Revenue $128.4K, Active Users 8,421, Churn 2.1%, and NPS 62.",
+      "startedAt": "2026-09-10T10:28:27.362Z",
+      "repeatIndex": 0,
+      "ttftMs": null,
+      "t2fpMs": null,
+      "t2cMs": 57826,
+      "toolCallCount": 0,
+      "patchCount": 0,
+      "errorEvents": [
+        "agent:error:"
+      ],
+      "modelUsed": null,
+      "usedFallback": false,
+      "finalLayerCount": 0,
+      "status": "complete",
+      "toolNames": []
+    }
+  ],
+  "tierAgg": {
+    "trivial": {
+      "tier": "trivial",
+      "n": 1,
+      "ttftP50": null,
+      "ttftP95": null,
+      "t2fpP50": null,
+      "t2fpP95": null,
+      "t2cP50": 48471,
+      "t2cP95": 48471,
+      "toolCallsP50": 0,
+      "toolCallsP95": 0,
+      "patchesP50": 0,
+      "completeRate": 1,
+      "fallbackRate": 0
+    },
+    "multi": {
+      "tier": "multi",
+      "n": 1,
+      "ttftP50": null,
+      "ttftP95": null,
+      "t2fpP50": null,
+      "t2fpP95": null,
+      "t2cP50": 57826,
+      "t2cP95": 57826,
+      "toolCallsP50": 0,
+      "toolCallsP95": 0,
+      "patchesP50": 0,
+      "completeRate": 1,
+      "fallbackRate": 0
+    }
+  }
+}

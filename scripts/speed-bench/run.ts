@@ -131,6 +131,7 @@ interface ScenarioMetrics {
   usedFallback: boolean;
   finalLayerCount: number;
   status: 'complete' | 'error' | 'timeout';
+  toolNames: Array<[string, number]>;  // tool-name histogram (for diagnosing read-back loops)
 }
 
 async function runScenario(
@@ -156,7 +157,12 @@ async function runScenario(
     usedFallback: false,
     finalLayerCount: 0,
     status: 'error',
+    toolNames: [],
   };
+
+  // Tool-name histogram (for diagnosing read-back loops). Populated from
+  // agent:tool_call_start events.
+  const toolNameMap = new Map<string, number>();
 
   const seed = scenario.seed ?? createEmptyCanvasDocument(`bench-${scenario.id}`);
   const canvas = normalizeCanvas(seed);
@@ -250,6 +256,11 @@ async function runScenario(
           if ((innerType === 'agent:tool_call_start' || innerType === 'tool_call_start') && metrics.ttftMs === null) {
             metrics.ttftMs = now - t0;
           }
+          if (innerType === 'agent:tool_call_start' || innerType === 'tool_call_start') {
+            // Track tool-name histogram for diagnosing read-back loops.
+            const name = inner.toolName ?? '(unknown)';
+            toolNameMap.set(name, (toolNameMap.get(name) ?? 0) + 1);
+          }
           if (innerType === 'agent:tool_call_start' || innerType === 'agent:tool_call_end' || innerType === 'tool_call_start' || innerType === 'tool_call_end') {
             metrics.toolCallCount++;
           }
@@ -286,6 +297,9 @@ async function runScenario(
     clearTimeout(timeout);
   }
 
+  // Finalize the tool-name histogram (sorted by count descending).
+  metrics.toolNames = [...toolNameMap.entries()].sort((a, b) => b[1] - a[1]);
+
   return metrics;
 }
 
@@ -320,6 +334,11 @@ async function main() {
       console.log(`▶ ${sc.id.padEnd(20)} [tier=${sc.tier.padEnd(8)}] r${r + 1}/${REPEATS}  ${summary}`);
       if (m.errorEvents.length > 0) {
         console.log(`    errors: ${m.errorEvents.slice(0, 3).join(' | ')}`);
+      }
+      // Tool-name histogram (for diagnosing read-back loops).
+      if (m.toolNames.length > 0) {
+        const top3 = m.toolNames.slice(0, 3).map(([n, c]) => `${n}×${c}`).join(' ');
+        console.log(`    tools: ${top3}${m.toolNames.length > 3 ? ` (+${m.toolNames.length - 3} more)` : ''}`);
       }
       // cooldown between runs to dodge rate limits
       if (!(sc === scenarios[scenarios.length - 1] && r === REPEATS - 1)) {
@@ -440,6 +459,18 @@ async function main() {
   md.push('|---|---|---|---|---|---|---|---|---|---|');
   for (const r of allRuns) {
     md.push(`| ${r.id} | ${r.tier} | ${r.repeatIndex} | ${r.ttftMs ?? '-'} | ${r.t2fpMs ?? '-'} | ${r.t2cMs ?? '-'} | ${r.toolCallCount} | ${r.patchCount} | ${r.status} | ${r.modelUsed ?? '-'} |`);
+  }
+  // Tool-name histogram (for diagnosing read-back loops).
+  md.push('\n## Tool-name histogram (per run)\n');
+  md.push('> Helps diagnose read-back loops (e.g. pen_get_metadata called 10× = the agent is stuck reading instead of building).\n');
+  for (const r of allRuns) {
+    if (r.toolNames.length === 0) continue;
+    md.push(`\n### ${r.id} r${r.repeatIndex} (${r.toolCallCount} calls, ${r.patchCount} patches)\n`);
+    md.push('| Tool | Count |');
+    md.push('|---|---|');
+    for (const [name, count] of r.toolNames) {
+      md.push(`| ${name} | ${count} |`);
+    }
   }
   writeFileSync(mdPath, md.join('\n'));
   console.log(`Wrote: ${mdPath}`);

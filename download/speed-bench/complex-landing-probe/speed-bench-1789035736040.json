@@ -1,0 +1,46 @@
+{
+  "startedAt": "2026-09-10T10:20:51.922Z",
+  "finishedAt": "2026-09-10T10:22:16.040Z",
+  "provider": "zai",
+  "thinking": "low",
+  "repeats": 1,
+  "runs": [
+    {
+      "id": "complex-landing",
+      "tier": "complex",
+      "prompt": "Design a marketing landing page for an AI design tool called 'Prism': sticky nav with logo + 4 links + Sign Up CTA, a hero with headline + subhead + 2 CTAs + product mockup, a 3-feature grid, a testimonials carousel (2 cards visible), a pricing teaser (2 plans), and a footer with 4 link columns.",
+      "startedAt": "2026-09-10T10:20:51.922Z",
+      "repeatIndex": 0,
+      "ttftMs": null,
+      "t2fpMs": null,
+      "t2cMs": 84115,
+      "toolCallCount": 0,
+      "patchCount": 0,
+      "errorEvents": [
+        "agent:error:"
+      ],
+      "modelUsed": null,
+      "usedFallback": false,
+      "finalLayerCount": 0,
+      "status": "complete",
+      "toolNames": []
+    }
+  ],
+  "tierAgg": {
+    "complex": {
+      "tier": "complex",
+      "n": 1,
+      "ttftP50": null,
+      "ttftP95": null,
+      "t2fpP50": null,
+      "t2fpP95": null,
+      "t2cP50": 84115,
+      "t2cP95": 84115,
+      "toolCallsP50": 0,
+      "toolCallsP95": 0,
+      "patchesP50": 0,
+      "completeRate": 1,
+      "fallbackRate": 0
+    }
+  }
+}
