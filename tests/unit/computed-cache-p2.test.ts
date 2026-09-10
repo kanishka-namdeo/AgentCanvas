@@ -79,7 +79,7 @@ function makeHarness(): TestHarness {
       computedCache.clear();
     },
     addShape(s: Partial<Shape> & { id: string }): Shape {
-      const shape = { id: s.id, type: s.type ?? 'rect', name: s.name ?? s.id, ...s } as Shape;
+      const shape = { type: 'rect', name: s.id, ...s } as Shape;
       doc.shapes = [...(doc.shapes ?? []), shape];
       return shape;
     },
@@ -109,7 +109,7 @@ describe('P2.2: per-turn computed-cache for pen_get_computed', () => {
     expect(cache.size).toBe(2);
 
     // Apply a patch that touches node-1.
-    h.addShape({ id: 'node-1', type: 'rect', x: 0, y: 0, width: 100, height: 100 });
+    h.addShape({ id: 'node-1', type: 'frame' as const, x: 0, y: 0, width: 100, height: 100 });
     const patch = {
       id: 'p1',
       op: 'update' as const,
@@ -142,9 +142,9 @@ describe('P2.2: per-turn computed-cache for pen_get_computed', () => {
 
   it('multiple mutations in one turn each invalidate their respective nodes', () => {
     const cache = h.ctx.computedCache!;
-    h.addShape({ id: 'a', type: 'rect', x: 0, y: 0, width: 50, height: 50 });
-    h.addShape({ id: 'b', type: 'rect', x: 100, y: 0, width: 50, height: 50 });
-    h.addShape({ id: 'c', type: 'rect', x: 200, y: 0, width: 50, height: 50 });
+    h.addShape({ id: 'a', type: 'frame' as const, x: 0, y: 0, width: 50, height: 50 });
+    h.addShape({ id: 'b', type: 'frame' as const, x: 100, y: 0, width: 50, height: 50 });
+    h.addShape({ id: 'c', type: 'frame' as const, x: 200, y: 0, width: 50, height: 50 });
 
     cache.set('a', { value: { id: 'a' }, expiresAt: Date.now() + 5000 });
     cache.set('b', { value: { id: 'b' }, expiresAt: Date.now() + 5000 });

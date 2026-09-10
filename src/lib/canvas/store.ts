@@ -3583,6 +3583,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // audit). Update the matching tool-call entry's progress text — the
         // pending tool card renders it so the user sees the tool working
         // instead of a silent spinner for minutes.
+        //
+        // Speed-parity P2.3: when the toolCallId is 'llm-retry' (the rate-limit
+        // backoff heartbeat from runner-native.ts), there's no real tool-call
+        // entry — surface it as a statusNote banner instead so the user sees
+        // "Rate-limited — retrying in Ns" prominently.
+        if (event.toolCallId === 'llm-retry') {
+          set({ statusNote: event.text || null });
+          break;
+        }
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
