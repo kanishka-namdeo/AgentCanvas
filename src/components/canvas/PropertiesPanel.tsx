@@ -139,6 +139,13 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
   const [newVariableType, setNewVariableType] = useState<'color' | 'number' | 'string'>('color');
   const [newVariableValue, setNewVariableValue] = useState('');
 
+  // Local state for the Add-Property dialog (Component Properties section).
+  const [addPropertyOpen, setAddPropertyOpen] = useState(false);
+  const [newPropertyName, setNewPropertyName] = useState('');
+  const [newPropertyType, setNewPropertyType] = useState<'boolean' | 'text' | 'variant'>('text');
+  const [newPropertyDefault, setNewPropertyDefault] = useState<string | boolean>('');
+  const [newPropertyOptions, setNewPropertyOptions] = useState('');
+
   const update = (patch: Partial<typeof selected[number]>) => {
     if (selected.length === 0) return;
     for (const shape of selected) {
@@ -553,6 +560,53 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
               onChange={(e) => update({ name: e.target.value })}
               className="h-7 mt-1 text-xs"
             />
+          </div>
+        )}
+
+        {/* Component Properties section (when component is selected) */}
+        {shape.type === 'component' && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Component className="h-3 w-3 ac-text-4" />
+              <Label className="text-[11px] ac-text-3">Component Properties</Label>
+            </div>
+            {(() => {
+              const props = (shape as any).componentPropertyDefinitions ?? {};
+              const entries = Object.entries(props);
+              if (entries.length === 0) {
+                return (
+                  <div className="text-[10px] ac-text-4 px-2 py-2 border border-dashed ac-border-subtle rounded text-center">
+                    No properties defined.
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-1">
+                  {entries.map(([name, def]) => {
+                    const d = def as any;
+                    return (
+                      <div key={name} className="flex items-center gap-2 text-[10px]">
+                        <span className="ac-text-2 font-mono">{name}</span>
+                        <Badge variant="outline" className="text-[9px] px-1 py-0">
+                          {d.type}
+                        </Badge>
+                        <span className="ac-text-4 ml-auto">
+                          {d.type === 'boolean' ? (d.defaultValue ? '✓' : '✗') : String(d.defaultValue)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-[10px] w-full mt-2"
+              onClick={() => setAddPropertyOpen(true)}
+            >
+              + Add Property
+            </Button>
           </div>
         )}
 
@@ -1277,6 +1331,104 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
               </div>
             </div>
           </>
+        )}
+
+        {/* Add Property Dialog — reachable only from the single-select
+            branch (Component Properties section under shape.type ===
+            'component'), so it renders inside this return (per plan
+            ruling, same pattern as the Add-Variable dialog). */}
+        {addPropertyOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-lg p-4 w-80 space-y-3">
+              <h3 className="text-sm font-semibold">Add Component Property</h3>
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-[11px]">Name (kebab-case)</Label>
+                  <Input
+                    value={newPropertyName}
+                    onChange={(e) => setNewPropertyName(e.target.value)}
+                    placeholder="show-icon"
+                    className="h-7 text-xs mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px]">Type</Label>
+                  <Select value={newPropertyType} onValueChange={(v) => setNewPropertyType(v as any)}>
+                    <SelectTrigger className="h-7 text-xs mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="boolean">Boolean</SelectItem>
+                      <SelectItem value="text">Text</SelectItem>
+                      <SelectItem value="variant">Variant</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[11px]">Default Value</Label>
+                  {newPropertyType === 'boolean' ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="checkbox"
+                        checked={newPropertyDefault === true}
+                        onChange={(e) => setNewPropertyDefault(e.target.checked)}
+                      />
+                      <span className="text-xs">Enabled</span>
+                    </div>
+                  ) : (
+                    <Input
+                      value={String(newPropertyDefault)}
+                      onChange={(e) => setNewPropertyDefault(e.target.value)}
+                      placeholder={newPropertyType === 'variant' ? 'default' : 'Submit'}
+                      className="h-7 text-xs mt-1"
+                    />
+                  )}
+                </div>
+                {newPropertyType === 'variant' && (
+                  <div>
+                    <Label className="text-[11px]">Variant Options (comma-separated)</Label>
+                    <Input
+                      value={newPropertyOptions}
+                      onChange={(e) => setNewPropertyOptions(e.target.value)}
+                      placeholder="default, hover, disabled"
+                      className="h-7 text-xs mt-1"
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setAddPropertyOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={!newPropertyName}
+                  onClick={() => {
+                    sendPatch({
+                      op: 'set_component_property',
+                      shapeId: shape.id,
+                      componentProperty: {
+                        name: newPropertyName,
+                        type: newPropertyType,
+                        defaultValue: newPropertyDefault,
+                        variantOptions: newPropertyType === 'variant' && newPropertyOptions
+                          ? newPropertyOptions.split(',').map((s) => s.trim())
+                          : undefined,
+                      },
+                      summary: `Added property ${newPropertyName}`,
+                    });
+                    setAddPropertyOpen(false);
+                    setNewPropertyName('');
+                    setNewPropertyDefault('');
+                    setNewPropertyOptions('');
+                    toast.success(`Added property ${newPropertyName}`);
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -102,3 +102,82 @@ describe('Token Editor UI', () => {
     );
   });
 });
+
+describe('Component Properties UI', () => {
+  const componentDoc = {
+    id: 'test',
+    name: 'Test',
+    version: '2.17',
+    children: [
+      {
+        id: 'comp1',
+        type: 'component',
+        name: 'Button',
+        reusable: true,
+        componentPropertyDefinitions: {
+          'show-icon': { type: 'boolean', defaultValue: true },
+          'label-text': { type: 'text', defaultValue: 'Submit' },
+        },
+      },
+    ],
+    viewport: { zoom: 1, panX: 0, panY: 0 },
+    background: '#f8fafc',
+    shapes: [
+      {
+        id: 'comp1',
+        type: 'component',
+        name: 'Button',
+        componentId: 'comp1',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 40,
+        fill: '#ffffff',
+        stroke: '#000000',
+        strokeWidth: 1,
+        radius: 0,
+        opacity: 1,
+        componentPropertyDefinitions: {
+          'show-icon': { type: 'boolean', defaultValue: true },
+          'label-text': { type: 'text', defaultValue: 'Submit' },
+        },
+      },
+    ],
+    tokens: { colors: [], textStyles: [] },
+  } as unknown as CanvasDocument;
+
+  it('renders Component Properties section when component is selected', () => {
+    useCanvasStore.setState({
+      document: componentDoc,
+      selectedIds: ['comp1'],
+    });
+
+    render(<PropertiesPanel />);
+    expect(screen.getByText(/Component Properties/i)).toBeInTheDocument();
+    expect(screen.getByText(/show-icon/i)).toBeInTheDocument();
+    expect(screen.getByText(/label-text/i)).toBeInTheDocument();
+  });
+
+  it('emits set_component_property patch from the Add Property dialog', () => {
+    const patches: CanvasPatch[] = [];
+    useCanvasStore.setState({
+      document: componentDoc,
+      selectedIds: ['comp1'],
+      sendPatch: (p: CanvasPatch) => {
+        patches.push(p);
+        return true;
+      },
+    });
+
+    render(<PropertiesPanel />);
+    fireEvent.click(screen.getByText('+ Add Property'));
+    fireEvent.change(screen.getByPlaceholderText('show-icon'), { target: { value: 'size' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/ }));
+    expect(patches).toHaveLength(1);
+    expect(patches[0]).toMatchObject({
+      op: 'set_component_property',
+      shapeId: 'comp1',
+      componentProperty: { name: 'size', type: 'text' },
+    });
+  });
+});
