@@ -12,7 +12,7 @@
 // fields to their .pen equivalents before inserting into the tree.
 
 import type { CanvasDocument, CanvasPatch, Shape, DesignTokens, ColorToken, TextStyleToken, Constraints } from './types';
-import type { PenChild, PenVariableDef, PenTheme, PenRef, PenComponent, PenComponentSet, PenFrame } from '../pen/types';
+import type { PenChild, PenVariableDef, PenTheme, PenRef, PenComponent, PenComponentSet, PenFrame, PenPage } from '../pen/types';
 import { resolvePenTree } from '../pen/resolve';
 import { normalizePatchPayload, normalizePenNode } from '../pen/normalize';
 import { findNode, findNodeArray, insertNode, removeNode, updateNode, moveNode, deepCloneNode, newId, collectComponents, walkTree, getAncestorOffset, getAbsolutePosition, isDescendant, expandRef, isContainerLike, isPromotableToContainer } from '../pen/document';
@@ -235,6 +235,14 @@ export function applyPatchToCanvas(
     viewport: { ...canvas.viewport },
   };
 
+  // Page-target tracking (designer-workflow-parity spec §4.1): set by the
+  // add_subtree/bulk_add cases when the patch inserted into a NON-active page
+  // (that page object is rebuilt immutably inside the op). The D1 write-back
+  // at the tail then skips the active page. null = active-tree semantics
+  // (untargeted, or the target IS the active page) — byte-identical to the
+  // pre-page-target applier.
+  let targetWriteBackIndex: number | null = null;
+
   switch (patch.op) {
     case 'add': {
       if (!patch.shape) break;
@@ -245,10 +253,23 @@ export function applyPatchToCanvas(
     }
     case 'bulk_add': {
       if (!patch.shapes || patch.shapes.length === 0) break;
+      const pageTarget = resolvePageInsertTarget(next, patch);
+      if (pageTarget.kind === 'noop') break;
+      // Untargeted, or the resolved target IS the active page: insert into the
+      // active tree — byte-identical to the pre-page-target applier. A resolved
+      // NON-active page receives the nodes in ITS children instead; the active
+      // tree (`next.children`) is left untouched (no viewport reveal).
+      let sink: PenChild[] = pageTarget.kind === 'page' ? pageTarget.children : next.children;
       for (const partial of patch.shapes) {
         const penPartial = toPenNodePartial(partial);
         const node = normalizeToNode(penPartial, partial.id ?? newId());
-        next.children = insertNode(next.children, node, (partial as any).parentId ?? null);
+        sink = insertNode(sink, node, (partial as any).parentId ?? null);
+      }
+      if (pageTarget.kind === 'page') {
+        next.pages = next.pages!.map((p, i) => (i === pageTarget.index ? { ...p, children: sink } : p));
+        targetWriteBackIndex = pageTarget.index;
+      } else {
+        next.children = sink;
       }
       break;
     }
@@ -260,10 +281,25 @@ export function applyPatchToCanvas(
       // gradient/shadow/…), defaults (name/x/y/w/h), and fresh ids for id-less
       // descendants. Atomic semantics: one undo step, one broadcast, one
       // recomputeDerived at the end of the applier.
+      //
+      // PAGE TARGET (designer-workflow-parity spec §4.1): a `pageName`/`pageId`
+      // on the patch (the same fields the page ops resolve via findPageIndex)
+      // inserts the subtree into THAT page — the variant-parking workflow emits
+      // `{ op:'add_subtree', shape, pageName:'Explorations' }` — leaving the
+      // active tree untouched. No target, or the target IS the active page:
+      // byte-identical to the legacy insert below.
       if (!patch.shape) break;
+      const pageTarget = resolvePageInsertTarget(next, patch);
+      if (pageTarget.kind === 'noop') break;
       const rootId = patch.shapeId ?? (patch.shape as any).id ?? newId();
       const node = normalizeSubtree(patch.shape, rootId);
-      next.children = insertNode(next.children, node, (patch.shape as any).parentId ?? null);
+      if (pageTarget.kind === 'page') {
+        const kids = insertNode(pageTarget.children, node, (patch.shape as any).parentId ?? null);
+        next.pages = next.pages!.map((p, i) => (i === pageTarget.index ? { ...p, children: kids } : p));
+        targetWriteBackIndex = pageTarget.index;
+      } else {
+        next.children = insertNode(next.children, node, (patch.shape as any).parentId ?? null);
+      }
       break;
     }
     case 'update': {
@@ -1020,7 +1056,15 @@ export function applyPatchToCanvas(
   // Immutable: the pages array + the active page object are copied, never
   // mutated in place (the input document's pages stay untouched).
   const activeIndex = next.activePageIndex;
-  if (next.pages && activeIndex !== undefined && activeIndex >= 0 && activeIndex < next.pages.length) {
+  if (targetWriteBackIndex !== null && targetWriteBackIndex !== activeIndex) {
+    // Off-page insert (add_subtree/bulk_add with a pageName/pageId target that
+    // is not the active page): the TARGET page object was already rebuilt
+    // immutably inside the op — its children carry the inserted nodes — and
+    // `next.children` (the ACTIVE page's tree) was never mutated, so the
+    // active-page write-back below must be skipped. recomputeDerived() keeps
+    // deriving `shapes` from the untouched active tree, so off-page inserts
+    // never surface in the render cache (no viewport reveal — desired).
+  } else if (next.pages && activeIndex !== undefined && activeIndex >= 0 && activeIndex < next.pages.length) {
     next.pages = next.pages.map((p, i) => (i === activeIndex ? { ...p, children: next.children } : p));
   }
 
@@ -1079,6 +1123,55 @@ function findPageIndex(
     if (idx >= 0) return idx;
   }
   return -1;
+}
+
+/// Resolution for a page-targeted tree insert (add_subtree / bulk_add).
+/// - 'active': no page target on the patch, or the target IS the active page —
+///   insert into the active tree, byte-identical to the legacy applier.
+/// - 'page': insert into the resolved NON-active page's children (`index` into
+///   `next.pages`); may be a page JUST auto-created by this resolver.
+/// - 'noop': unresolvable target (a pageId that matches no page and no name to
+///   derive one from) — silent no-op per the applier's null-safe convention.
+type PageInsertResolution =
+  | { kind: 'active' }
+  | { kind: 'page'; index: number; children: PenChild[] }
+  | { kind: 'noop' };
+
+/**
+ * Resolve the page a tree-insert op targets. Spec §4.1 (designer-workflow
+ * parity): `add_subtree` / `bulk_add` patches may carry `pageName`/`pageId`
+ * (the same fields the page ops resolve via `findPageIndex`) to park variants
+ * on a non-active page.
+ *
+ * The ONLY mutation is to `next.pages` — always immutable (a new array) —
+ * when it AUTO-CREATES a page for an unknown `pageName` (deterministic id
+ * `page-<lowercased-name-with-hyphens-for-spaces>`, matching the id convention
+ * of the implicit "Page 1" migration in `add_page`). Auto-create is a
+ * deliberate DEFENSE, never the happy path: the tool layer emits `add_page`
+ * before parking variants, and the applier is null-safe by contract (it cannot
+ * throw on agent data), so an unknown name lands here instead of hard-erroring.
+ * An unknown `pageId` with no name to derive a page from is a silent no-op.
+ */
+function resolvePageInsertTarget(next: CanvasDocument, patch: CanvasPatch): PageInsertResolution {
+  if (!patch.pageName && !patch.pageId) return { kind: 'active' };
+  const pages = next.pages ?? [];
+  const idx = findPageIndex(pages, patch);
+  if (idx >= 0) {
+    // The target IS the active page → legacy path (byte-identical).
+    if (idx === next.activePageIndex) return { kind: 'active' };
+    return { kind: 'page', index: idx, children: pages[idx].children ?? [] };
+  }
+  if (patch.pageName) {
+    const created: PenPage = {
+      id: `page-${patch.pageName.toLowerCase().replace(/\s+/g, '-')}`,
+      name: patch.pageName,
+      children: [],
+      viewport: { zoom: 1, panX: 120, panY: 80 },
+    };
+    next.pages = [...pages, created];
+    return { kind: 'page', index: next.pages.length - 1, children: created.children };
+  }
+  return { kind: 'noop' };
 }
 
 /// Insert a node from a patch into the tree. Used by the new Figma ontology
