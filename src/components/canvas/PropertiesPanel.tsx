@@ -441,7 +441,17 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setAddVariableOpen(false)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // F3: reset all dialog state on close.
+                    setAddVariableOpen(false);
+                    setNewVariableName('');
+                    setNewVariableType('color');
+                    setNewVariableValue('');
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button
@@ -449,18 +459,28 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
                   disabled={!newVariableName || !newVariableValue}
                   onClick={() => {
                     const key = newVariableName.startsWith('$') ? newVariableName.slice(1) : newVariableName;
+                    // F2: reject name collisions BEFORE emitting any patch.
+                    if (document.variables?.[key]) {
+                      toast.error(`Variable $${key} already exists`);
+                      return;
+                    }
+                    // F1: emit the type-aware `set_variable` op (NOT the
+                    // color-hardcoding `tokens` op). Numbers are parsed so the
+                    // variable stores a real numeric value; color/string stay
+                    // strings. Color-typed variables still surface in the
+                    // tokens display via variablesToTokens().
+                    const variableValue: string | number =
+                      newVariableType === 'number' ? Number(newVariableValue) : newVariableValue;
                     sendPatch({
-                      op: 'tokens',
-                      tokens: {
-                        colors: [
-                          ...(document.tokens?.colors ?? []),
-                          { name: key, key, value: newVariableValue },
-                        ],
-                      },
+                      op: 'set_variable',
+                      variableKey: key,
+                      variableType: newVariableType,
+                      variableValue,
                       summary: `Added variable $${key}`,
                     });
                     setAddVariableOpen(false);
                     setNewVariableName('');
+                    setNewVariableType('color');
                     setNewVariableValue('');
                     toast.success(`Added $${key}`);
                   }}
@@ -1456,7 +1476,19 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
                 </div>
                 <div>
                   <Label className="text-[11px]">Type</Label>
-                  <Select value={newPropertyType} onValueChange={(v) => setNewPropertyType(v as any)}>
+                  <Select
+                    value={newPropertyType}
+                    onValueChange={(v) => {
+                      // F3: reset stale state when the type switches — boolean
+                      // gets a false default, text/variant get an empty-string
+                      // default, and leaving variant clears the options input.
+                      const t = v as 'boolean' | 'text' | 'variant';
+                      setNewPropertyType(t);
+                      if (t === 'boolean') setNewPropertyDefault(false);
+                      else setNewPropertyDefault('');
+                      if (t !== 'variant') setNewPropertyOptions('');
+                    }}
+                  >
                     <SelectTrigger className="h-7 text-xs mt-1">
                       <SelectValue />
                     </SelectTrigger>
@@ -1500,13 +1532,42 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
                 )}
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setAddPropertyOpen(false)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // F3: reset all dialog state on close.
+                    setAddPropertyOpen(false);
+                    setNewPropertyName('');
+                    setNewPropertyType('text');
+                    setNewPropertyDefault('');
+                    setNewPropertyOptions('');
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button
                   size="sm"
-                  disabled={!newPropertyName}
+                  disabled={
+                    !newPropertyName ||
+                    (newPropertyType === 'variant' &&
+                      newPropertyOptions.split(',').map((s) => s.trim()).filter(Boolean).length === 0)
+                  }
                   onClick={() => {
+                    // F2: reject collisions / invalid variants BEFORE emitting
+                    // any patch.
+                    if ((shape as any).componentPropertyDefinitions?.[newPropertyName]) {
+                      toast.error(`Property "${newPropertyName}" already exists`);
+                      return;
+                    }
+                    const options =
+                      newPropertyType === 'variant'
+                        ? newPropertyOptions.split(',').map((s) => s.trim()).filter(Boolean)
+                        : undefined;
+                    if (newPropertyType === 'variant' && (!options || options.length === 0)) {
+                      toast.error('Variant properties need at least one option');
+                      return;
+                    }
                     sendPatch({
                       op: 'set_component_property',
                       shapeId: shape.id,
@@ -1514,14 +1575,13 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
                         name: newPropertyName,
                         type: newPropertyType,
                         defaultValue: newPropertyDefault,
-                        variantOptions: newPropertyType === 'variant' && newPropertyOptions
-                          ? newPropertyOptions.split(',').map((s) => s.trim())
-                          : undefined,
+                        variantOptions: options,
                       },
                       summary: `Added property ${newPropertyName}`,
                     });
                     setAddPropertyOpen(false);
                     setNewPropertyName('');
+                    setNewPropertyType('text');
                     setNewPropertyDefault('');
                     setNewPropertyOptions('');
                     toast.success(`Added property ${newPropertyName}`);

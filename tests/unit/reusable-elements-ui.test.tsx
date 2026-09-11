@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
 import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
@@ -58,6 +58,31 @@ describe('remove_variable patch op', () => {
   });
 });
 
+// jsdom lacks pointer-capture APIs + scrollIntoView, which Radix Select calls.
+beforeAll(() => {
+  (Element.prototype as any).hasPointerCapture = () => false;
+  (Element.prototype as any).setPointerCapture = () => {};
+  (Element.prototype as any).releasePointerCapture = () => {};
+  (Element.prototype as any).scrollIntoView = () => {};
+});
+
+// Radix Select needs a pointer-down/up sequence to open + commit in jsdom.
+function stubPointerCapture(el: HTMLElement) {
+  (el as any).hasPointerCapture = () => false;
+  (el as any).setPointerCapture = () => {};
+  (el as any).releasePointerCapture = () => {};
+  (el as any).scrollIntoView = () => {};
+}
+async function pickSelectOption(trigger: HTMLElement, optionLabel: string) {
+  stubPointerCapture(trigger);
+  fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse', ctrlKey: false });
+  fireEvent.pointerUp(trigger, { button: 0, pointerType: 'mouse', ctrlKey: false });
+  const option = await screen.findByRole('option', { name: optionLabel });
+  stubPointerCapture(option);
+  fireEvent.pointerDown(option, { button: 0, pointerType: 'mouse' });
+  fireEvent.pointerUp(option, { button: 0, pointerType: 'mouse' });
+}
+
 describe('Token Editor UI', () => {
   const emptyDoc = {
     id: 'test',
@@ -100,6 +125,50 @@ describe('Token Editor UI', () => {
     expect(sendPatch).toHaveBeenCalledWith(
       expect.objectContaining({ op: 'remove_variable', variableKey: 'color.primary' }),
     );
+  });
+
+  it('adding a number-typed variable emits set_variable with variableType number and numeric value', async () => {
+    const sendPatch = vi.fn(() => true);
+    useCanvasStore.setState({
+      document: { ...emptyDoc, tokens: { colors: [{ name: 'x', key: 'x', value: '#000000' }], textStyles: [] } },
+      selectedIds: [],
+      sendPatch,
+    });
+
+    render(<PropertiesPanel />);
+    fireEvent.click(screen.getByText('+ Add Variable'));
+    fireEvent.change(screen.getByPlaceholderText('color.primary'), { target: { value: 'spacing.md' } });
+    await pickSelectOption(screen.getByRole('combobox'), 'Number');
+    fireEvent.change(screen.getByPlaceholderText('16'), { target: { value: '16' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/ }));
+    expect(sendPatch).toHaveBeenCalledTimes(1);
+    expect(sendPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        op: 'set_variable',
+        variableKey: 'spacing.md',
+        variableType: 'number',
+        variableValue: 16,
+      }),
+    );
+  });
+
+  it('duplicate token name does NOT emit a patch', () => {
+    const sendPatch = vi.fn(() => true);
+    useCanvasStore.setState({
+      document: {
+        ...emptyDoc,
+        tokens: { colors: [{ name: 'color.primary', key: 'color.primary', value: '#0ea5e9' }], textStyles: [] },
+        variables: { 'color.primary': { type: 'color', value: '#0ea5e9' } },
+      },
+      selectedIds: [],
+      sendPatch,
+    });
+
+    render(<PropertiesPanel />);
+    fireEvent.click(screen.getByText('+ Add Variable'));
+    fireEvent.change(screen.getByPlaceholderText('color.primary'), { target: { value: 'color.primary' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/ }));
+    expect(sendPatch).not.toHaveBeenCalled();
   });
 });
 
@@ -179,6 +248,30 @@ describe('Component Properties UI', () => {
       shapeId: 'comp1',
       componentProperty: { name: 'size', type: 'text' },
     });
+  });
+
+  it('variant property with empty options does NOT emit a patch', async () => {
+    const sendPatch = vi.fn(() => true);
+    useCanvasStore.setState({
+      document: componentDoc,
+      selectedIds: ['comp1'],
+      sendPatch,
+    });
+
+    render(<PropertiesPanel />);
+    fireEvent.click(screen.getByText('+ Add Property'));
+    fireEvent.change(screen.getByPlaceholderText('show-icon'), { target: { value: 'size' } });
+    // Two comboboxes render here (Parent picker + property Type) — pick the
+    // property Type one, whose SelectValue shows the current type 'Text'.
+    const typeTrigger = screen
+      .getAllByRole('combobox')
+      .find((el) => el.textContent === 'Text');
+    expect(typeTrigger).toBeDefined();
+    await pickSelectOption(typeTrigger!, 'Variant');
+    const addBtn = screen.getByRole('button', { name: /^Add$/ });
+    expect(addBtn).toBeDisabled();
+    fireEvent.click(addBtn);
+    expect(sendPatch).not.toHaveBeenCalled();
   });
 });
 
