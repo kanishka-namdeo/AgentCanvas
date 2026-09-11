@@ -22,6 +22,36 @@
 
 ---
 
+## Surface Coverage Map
+
+Every surface the three features touch, and where it's handled:
+
+| Surface | Change | Task |
+|---|---|---|
+| `src/lib/agent/validators.ts` + runner flags | Rule 8 + template/component-tool exemptions | 1 |
+| `src/lib/agent/runner-legacy.ts` prompt | Component-first rule, PROMPT_VERSION | 2 |
+| `src/lib/canvas/patch.ts` | `add_subtree`/`bulk_add` page target + targeted write-back | 3 |
+| `src/lib/agent/tools.ts` + `variant-parking.ts` | Runner-up parking patches + thumbnails + alternatives event emit | 4 |
+| `src/lib/canvas/types.ts` SyncEvents | `agent:alternatives_parked` + `kind` on `agent:plan_proposed` | 5, 10 |
+| `src/lib/canvas/store.ts` `_onSync` | Both event cases + card-state sanitization | 5, 10 |
+| `src/app/api/agent/route.ts` | Forwarding cases for both events | 5 |
+| `src/components/canvas/AgentPanel.tsx` | `AlternativesCard` + `PlanApprovalCard` layout kind | 5, 10 |
+| `src/lib/sessions/types.ts` + sessions store | **Persist `alternatives` on assistant messages** so the card survives reload/session-switch (spec: card persists in transcript; `planProposal` is live-buffer-only and stays that way) | 5 |
+| `src/lib/canvas/variant-promote.ts` + promote route | Pure swap + `POST /api/documents/[id]/variants/promote` | 6 |
+| `src/lib/canvas/run-registry.ts` | Read-only `hasActiveRun(documentId)` helper for the 409 check (add if missing) | 6 |
+| `src/lib/canvas/journal-fold.ts` + event journal | `variant_promote` row kind fold case + tombstones | 6 |
+| Prisma schema | **No migration** — the journal table's `type` is a plain string column; verified in Task 6 | — |
+| `src/lib/agent/prompt-intent.ts` | `shouldOfferStagedFlow` | 7 |
+| `src/lib/agent/layout-gate.ts` + `plan-gate.ts` | `submit_layout_approval` tool, lo-fi allowlist, `kind` discriminator | 8 |
+| `src/lib/agent/runner-native.ts` + `modes.ts` | Staged detection/directive/toolset/execution-session; **force-include `ask_user_question`** (plugin slimming + plugin disable must not strip the staged ask's vehicle) | 9 |
+| `src/components/canvas/LayersPanel.tsx` | **No code change** — already renders the pages surface; Task 11 verifies the Explorations page appears and switches there | 11 |
+| Client undo / turn-diff | **No change** — off-page adds don't enter `document.shapes` (active-page derived), so no viewport reveal; diff chips may show parking creates (desirable) | — |
+| Export (`pen_export_pen`, copy-as-code) | **No change** — parked sections export with their page; noted in DOX | 11 |
+| Settings | **No change** — per user decision, no staged-flow toggle | — |
+| DOX + eval | All affected AGENTS.md files + staged eval scenario | 11 |
+
+---
+
 ### Task 1: Repeated-structure validator rule (spec §5.2)
 
 **Files:**
@@ -332,13 +362,14 @@ git commit -m "feat(variants): park runner-up designs on the Explorations page w
 **Files:**
 - Modify: `src/lib/canvas/types.ts` (SyncEvent union near line 704; ChatTurn alternatives field near `planProposal`)
 - Modify: `src/lib/canvas/store.ts` (`_onSync` case near line 3432)
+- Modify: `src/lib/sessions/types.ts` + `src/lib/sessions/store.ts` (persist `alternatives` on assistant messages)
 - Modify: `src/app/api/agent/route.ts` (forwarding case — mirror `agent:plan_proposed`)
 - Modify: `src/components/canvas/AgentPanel.tsx` (new `AlternativesCard` + render next to `<PlanApprovalCard>` at line ~2295)
 - Test: `tests/unit/alternatives-parked-event.test.ts`
 
 **Interfaces:**
 - Event: `{ type: 'agent:alternatives_parked'; page: string; sections: string[]; alternatives: Array<{ id: string; label: string; score: number; thumbnail?: string }>; toolCallId?: string }`.
-- Store: `ChatTurn.alternatives?: { page: string; alternatives: Array<{ id; label; score; thumbnail? }>; status: 'idle' | 'promoting' | 'promoted' }`.
+- Store: `ChatTurn.alternatives?: { page: string; alternatives: Array<{ id; label; score; thumbnail? }>; status: 'idle' | 'promoting' | 'promoted' }`. **Persistence contract:** `planProposal` lives only in the live turns buffer, but the alternatives card MUST survive reload and session switches (spec §4.3: "the card persists in the transcript") — mirror `alternatives` into the session store's assistant-message type (`src/lib/sessions/types.ts`) in the same mirroring path that persists message text, and restore it in `_syncTurnsFromSession`. Add a test that a rebuilt transcript (switch away + back) still carries the card.
 - Card: `AlternativesCard({ alternatives, onPromote })` — thumbnail (or gray placeholder), label, score, "Use this" per row. Promote handler: `POST /api/documents/${documentId}/variants/promote` (Task 6) `{ sectionId: alt.id }` → on ok, `socket.emit('client', { type: 'document:restore', documentId, document: resp.document })` — reuses the EXISTING restore fan-out (server adopts + broadcasts `canvas:full`, clients clear the offline outbox). This replaces the spec's new broadcast reason with the existing restore path — a deliberate simplification; record it in the DOX pass (Task 11).
 
 - [ ] **Step 1: Write the failing test** — store-level: dispatch a synthetic `agent:alternatives_parked` event through the store's `_onSync` (follow the pattern in existing store tests for `agent:plan_proposed`, grep `tests/unit` for `plan_proposed` to find the harness); assert the last assistant turn gains `alternatives` with sanitized fields; a second identical event is idempotent by `toolCallId`.
@@ -360,6 +391,7 @@ git commit -m "feat(ui): alternatives-parked event + promote card with Use-this 
 - Create: `src/lib/canvas/variant-promote.ts` (PURE swap)
 - Create: `src/app/api/documents/[id]/variants/promote/route.ts`
 - Modify: `src/lib/canvas/journal-fold.ts` (fold case near lines 223-258)
+- Modify: `src/lib/canvas/run-registry.ts` (add a read-only `hasActiveRun(documentId): boolean` if no non-claiming read exists — the 409 check must NOT take over the run slot)
 - Test: `tests/unit/variant-promote.test.ts`
 
 **Interfaces:**
@@ -368,7 +400,7 @@ git commit -m "feat(ui): alternatives-parked event + promote card with Use-this 
 - [ ] **Step 1: Write the failing test** — three tests: (a) pure swap moves the parked variant to the main page root and wraps the previous main design as a labeled section appended to Explorations; (b) `hydrateDocumentFromJournal` on a temp SQLite journal containing a `variant_promote` row reproduces the swapped document (follow the existing user-patch-journal/journal-fold temp-SQLite test pattern — raw `CREATE TABLE` + `process.env.DATABASE_URL` at module scope); (c) route returns 409 with a registered active run and 404 with an unknown sectionId (mock `@/lib/canvas/run-registry` the way route tests mock statically-imported deps — see the TEST-STRATEGY WARNING in `src/lib/canvas/AGENTS.md`).
 - [ ] **Step 2: Run to verify it fails** — `bunx vitest run tests/unit/variant-promote.test.ts` → FAIL.
 - [ ] **Step 3: Implement the pure swap** — find the parked section (Explorations page, by section id); extract its single child (the variant root); position it where the CURRENT main design's root sat (first root of the active page: copy its x/y); active page children = `[variantRoot]`; Explorations children = remaining parked sections + `{ type:'section', name:'Previous — applied design', children: [oldMainRoot] }`; return the payload for the journal row.
-- [ ] **Step 4: Implement the route** — `POST`: read `params.id`; `tryRegisterActiveRun`-style check via the run-registry's read API (grep `run-registry.ts` exports; if only the atomic claim exists, use a non-claiming `has` check — add one if missing, 3 lines); `hydrateDocumentFromJournal(documentId)`; `swapVariantWithMain`; `appendSyntheticJournalEvent(documentId, 'variant_promote', payload)` (event-journal.ts:226); return `{ ok: true, document }`. Body validation mirrors the plans route (string checks, 400s).
+- [ ] **Step 4: Implement the route** — `POST`: read `params.id`; `hasActiveRun(documentId)` check (Task 6's new read-only run-registry helper) → 409 "a design run is active" when true; `hydrateDocumentFromJournal(documentId)`; `swapVariantWithMain`; `appendSyntheticJournalEvent(documentId, 'variant_promote', payload)` (event-journal.ts:226); return `{ ok: true, document }`. Body validation mirrors the plans route (string checks, 400s). **Schema check:** confirm the event-journal table's `type` column is a plain string in `prisma/schema.prisma` — if so, no migration for the new row kind; if it's an enum, add `variant_promote` in this commit.
 - [ ] **Step 5: Implement the fold case** — in journal-fold.ts where `row.type` is switched: `variant_promote` → apply `payload` to the folded document exactly as the pure swap does (shared helper — import `applyVariantPromotePayload(doc, payload)` from variant-promote.ts so fold and route can't drift), update the tombstone lane for removed ids.
 - [ ] **Step 6: Verify + commit**
 
@@ -482,6 +514,7 @@ git commit -m "feat(gate): submit_layout_approval tool + lo-fi toolset allowlist
 
   a. **Detection** (after the variant-dispatch decision exists, before the brief race): `const stagedFlow = shouldOfferStagedFlow({ prompt, canvasEmpty: normalizedCanvas-is-empty, mode, repeatCount, variantDispatchPlanned }) ? 'lofi' : 'direct'`.
   b. **Directive injection**: when `'lofi'`, append `stagedFlowSection('lofi')` to the first user message (same injection channel as the design brief): instructs the agent to FIRST call `ask_user_question` with exactly two options ("Lo-fi layout first (recommended)" / "Straight to hi-fi"), and — only after a lo-fi choice — build the gray-box skeleton and call `submit_layout_approval`; if the user picks hi-fi, proceed as a normal build turn.
+  b2. **ask_user_question availability guard (surface gap):** `ask_user_question` is a PLUGIN tool — `settings.enabledPlugins` can disable it, and the runner's empty-canvas tool slimming (runner-native.ts ~592-601) can drop it. On staged turns (`stagedFlow === 'lofi'`), force-include `ask_user_question` in the toolset regardless of both (bypass slimming for this one tool on these turns — it is the staged ask's vehicle), and the directive adds the fallback: "if ask_user_question is somehow unavailable, ask the question in plain text and end your turn; do not generate before the user replies."
   c. **Lo-fi toolset**: when `stagedFlow === 'lofi'`, the toolset assembly (line ~479 area) uses `lofiToolNames()`-filtered tools + `submitLayoutApprovalTool`; wrap with `planCompletionBlocker` exactly like the plan-mode branch at line 1157.
   d. **Execution session**: after the lo-fi session drains, extend the existing approved-plan block (~2537): `consumeApprovedPlan` now also returns layout approvals; when `approvedPlan.kind === 'layout'`, create the second session with the FULL build toolset (existing `execOrderedTools` path) and the first message: original prompt + "APPROVED LAYOUT —" summary/steps + design brief + the instruction: "Apply the hi-fi pass to this approved structure. Do not change the information architecture, layout skeleton, or section ordering — upgrade fidelity only (palette, typography, spacing, shadows, real content, components)." Drain it like the existing execution block.
   e. **Revise**: no runner change needed — the gate returns feedback into the lo-fi session (same as submit_plan revise).
@@ -522,7 +555,7 @@ git commit -m "feat(ui): layout-approval flavor of the plan approval card"
 
 - [ ] **Step 1: Run the full verification sweep** — `bunx tsc --noEmit && bun run lint && bun run test && bun run scripts/eval-agent.ts` (classifier gate ≥80% — the new helper is not classifier-routed, must stay 95%) `&& bun run scripts/measure-tool-cost.ts` (registry budget ~43k chars — `submit_layout_approval` must keep it there).
 - [ ] **Step 2: Agent-eval** — `bun scripts/agent-eval/run-eval.ts` with the new scenario (requires the configured LLM endpoint; if the BETA endpoint is rate-limited, record the attempt and run the MockLLM-trajectory unit coverage instead — never curl the endpoint directly per the LLM Endpoint Access Policy).
-- [ ] **Step 3: Manual visual pass** — dev server + browser: staged ask → lo-fi → revise → approve → hi-fi; variant run → card → promote → swap back (the visual-test.sh pattern).
+- [ ] **Step 3: Manual visual pass** — dev server + browser: staged ask → lo-fi → revise → approve → hi-fi; variant run → card → promote → swap back (the visual-test.sh pattern). **Plus two surface verifications:** (a) the LayersPanel's existing page surface lists the Explorations page and switching to it shows the parked sections (no code expected — if the page surface doesn't render sections, fix rendering here); (b) `pen_export_pen` includes the Explorations page with parked sections (acceptable, note it in the canvas DOX — no code change).
 - [ ] **Step 4: DOX pass** — per the spec §7 list: agent/AGENTS.md (staged flow section under Local Contracts + tool counts 104→105), subagents/AGENTS.md (parking), canvas/AGENTS.md (page-target patch op, variant_promote fold row, alternatives_parked SyncEvent, document the restore-path reuse for promote broadcast), components/canvas/AGENTS.md (AlternativesCard + card kind), api/AGENTS.md (promote route), docs/AGENTS.md unchanged unless scope rows shift; spec front-matter Status → Implemented.
 - [ ] **Step 5: Commit**
 
