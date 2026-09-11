@@ -1,6 +1,6 @@
 # Designer Workflow Parity — Staged Design Flow, Explorations Parking, Component-First Construction
 
-- **Status**: Proposed (spec approved 2026-09-12; implementation not started)
+- **Status**: Proposed (spec approved 2026-09-12; research-grounded 2026-09-12, §9; implementation not started)
 - **Spec source**: Brainstorming session 2026-09-12 ("match the canvas and agent's capabilities to a designer's Figma dashboard process"). Approach B approved: reuse the PLAN-mode gate pattern for the staged flow.
 - **Code touchpoints**:
   - `src/lib/agent/runner-native.ts` (staged-flow detection + directive injection + approval flow), `src/lib/agent/modes.ts` / `src/lib/agent/prompt-intent.ts` (detection helper), `src/lib/agent/plan-tools.ts` + `plan-gate.ts` (`submit_layout_approval` gate tool), `src/lib/agent/runner-legacy.ts` (system prompt + PROMPT_VERSION bump)
@@ -154,3 +154,28 @@ Implementation sequencing (approved): **§5 component-first first** (isolated, s
 | Variants | Unit: parking serialization (sections named + scored, FIFO prune at 5), thumbnail budget drop behavior |
 | E2E | Agent-eval: staged-flow dashboard scenario asserting lo-fi → approval → hi-fi trajectory; existing `dashboard-hifi` scenario stays green (one-shot path) |
 | Manual | Browser run-through: staged ask → lo-fi → revise → approve → hi-fi; variant run → card → promote → swap back |
+
+## 9. Research grounding (2026-09-12)
+
+Each design pillar was validated against current AI-design products and research literature on 2026-09-12. Citations inline; findings recorded as of that date.
+
+### 9.1 Staged lo-fi → approval → hi-fi (§3) — VALIDATED
+
+- **Academic precedent for the exact decoupling**: *"Towards Human-AI Synergy in UI Design"* (arXiv:2412.20071, ACM) describes high-fidelity prototype generation "through a decoupled generation process" — wireframes generated from high-level descriptions first, with editable, customizable prototypes produced **at each stage**. This is §3.3–3.4 almost verbatim: a lo-fi artifact the human can inspect/edit before the hi-fi pass runs. *GUIDE: LLM-Driven GUI Generation Decomposition for Automated Prototyping* (2025) independently decomposes GUI generation into staged LLM steps for the same reason — stage separation improves controllability and output quality.
+- **Product precedent for the per-turn ask**: UX Pilot makes the designer explicitly choose fidelity (wireframe vs hi-fi) and screens-per-generation before each generation — staged control as a user decision, not a forced pipeline. Our §3.2 ask ("Lo-fi layout first, or straight to hi-fi?") is the same control surface. The human-in-the-loop "propose → review → approve/edit/reject" pattern (AI UX Playground; AI/TLDR) is the recognized AI-UX gate for consequential, hard-to-undo transitions — an approved layout skeleton qualifies.
+- **Honest contrast (why the ask is per-turn, not a default)**: the mainstream AI code-gen tools — v0, Lovable, bolt.new — all generate a hi-fi first draft in one shot and iterate conversationally; none gates on a lo-fi stage. Their users value speed-of-first-draft. This is precisely why the spec keeps one-shot as the default path (§6: byte-identical when detection doesn't fire or the user picks hi-fi) and makes staging a per-prompt choice (§2 non-goals: no global setting). Figma's own First Draft framing ("editable wireframes or designs in a couple of minutes") also treats lo-fi as one of two equally-first-class entry points — not a mandatory stage.
+
+### 9.2 Explorations parking + promote (§4) — VALIDATED
+
+- **Figma**: the Figma agent's stated workflow is to "generate new design directions… **compare multiple directions side by side**" (figma.com/ai); First Draft exists to "explore a wider range of design possibilities" (Figma help). Side-by-side comparison of alternatives is the industry-standard purpose of exploration — our current discard-the-losers behavior is the outlier. Parking runner-ups as labeled, reviewable artifacts (§4.1) restores that comparison surface in a canvas-native way (page sections + thumbnails + chat card).
+- **Google Stitch**: the AI-native canvas is explicitly built to "explore ideas and iterate… regenerate screens, tweak themes, explore multiple design directions." Stitch accepts sketches/wireframes as input and treats direction exploration as a first-class activity, exported onward to Figma.
+- Variant-generator's existing K=3 + VLM-judge design already matches this pattern; §4 only changes what happens to the losers (park, don't discard) and adds the swap-back affordance.
+
+### 9.3 Component-first construction (§5) — VALIDATED
+
+- **Figma community consensus**: the canonical workflow is build the component with auto layout **first**, then place instances into screens; styling the main component propagates to all instances (Figma Learn auto-layout guide; component-construction walkthroughs across Design Systems Collective / UX Planet / DOOR3). Designing screens directly and extracting components afterward is the anti-pattern our §5.1 rule and §5.2 validator guard against — bespoke duplicated subtrees are exactly what instances exist to prevent.
+- This also matches the repo's own design-systems doctrine ("no hardcoded values — everything through tokens"; components/instances/variants shipped in the component system) — §5 closes the gap between having the component tooling and the agent actually using it.
+
+### 9.4 Research-driven design confirmations
+
+No structural changes resulted. Research confirmed two decisions explicitly: (1) staging must be a **user-controlled choice** (per-turn ask), because the one-shot hi-fi draft is the dominant industry pattern for speed while staged control is the designer-grade pattern for quality — the ask reconciles both; (2) alternatives must remain **visible and comparable** after generation (parked sections + card), not collapsed into a single winner.
