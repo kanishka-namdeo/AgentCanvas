@@ -744,6 +744,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // below stays as the fallback for when pre-generation fails (endpoint
   // down / parse error / timeout).
   let preGeneratedBrief: string | null = null;
+  let briefPreGenerationFailed = false;
   // ---- Audit 2-c S11: RACE the brief against everything else ----------------
   //
   // The brief sub-agent used to be AWAITED here, before classification,
@@ -851,8 +852,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           return JSON.stringify(briefResult.brief, null, 2);
         }
         return null;
-      } catch {
+      } catch (err) {
         // Pre-generation failed — fall back to the tool-layer brief gate.
+        briefPreGenerationFailed = true;
+        console.warn('[design-brief] pre-generation failed:', err instanceof Error ? err.message : String(err));
         return null;
       }
     })();
@@ -1695,7 +1698,9 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const promptVersionSection = `\n\n[SYSTEM META: prompt v${PROMPT_VERSION}]`;
   const briefSection = preGeneratedBrief
     ? `\n\n[PRE-GENERATED DESIGN BRIEF — the palette / typography / layout source of truth for this whole turn. Do NOT call pen_generate_design_brief; build directly from this brief:]\n${preGeneratedBrief}`
-    : '';
+    : briefPreGenerationFailed
+      ? '\n\n[DESIGN BRIEF NOTE: Brief pre-generation was attempted but did not complete (the sub-agent failed or timed out). You may call pen_generate_design_brief yourself to produce a brief, OR define your own color/typography tokens using pen_set_variable with dotted keys (e.g. key:"color.primary") before creating nodes. Do NOT invent or hallucinate a reason for the missing brief — this note is the actual explanation.]'
+      : '';
   // Ambiguous-creation nudge: steer the first tool call to the parallel
   // explorer (one call = 2-3 whole-design variants, VLM-judged, winner
   // applied) instead of the model guessing one direction. Build mode only —

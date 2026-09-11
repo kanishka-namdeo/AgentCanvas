@@ -8,6 +8,8 @@ Shared library layer root. Owns the Prisma client singleton and the shared UI ut
 
 - `db.ts` — Prisma 7 client singleton using the `@prisma/adapter-libsql` driver adapter. Reads `DATABASE_URL` (default `file:./db/custom.db`; the z.ai sandbox forces the absolute `file:/home/z/my-project/db/custom.db` — see `docs/zai-sandbox-setup.md`). Caches the client on `globalThis` in dev to survive Next.js hot reloads. Shared by all Prisma-touching API routes (`/api/sessions*`).
 - `utils.ts` — the shadcn `cn()` class-merge helper (clsx + tailwind-merge), the most-imported UI utility in the component tree.
+- `storage/quota-aware.ts` — shared localStorage write wrapper: detects QuotaExceededError (DOMException name/codes 22 + 1014, string fallback), tracks consecutive failures, escalates toast severity (first failure → warning toast + optional emergency callback; 3+ → persistent banner). Non-quota errors re-throw. Consumed by `sessions/store.ts` (throttled persist) + `settings/store.ts` (custom persist storage). SSR-safe (returns false when `window` is absent). Guarded by `tests/unit/quota-aware.test.ts`.
+- `validation/status-enums.ts` — canonical status unions + type guards (`isValidSessionStatus` / `isValidMessageStatus` / `isValidRunStatus` / `isValidToolCallStatus`) mirroring `src/lib/sessions/types.ts`; enforced at the sessions PATCH + messages/runs POST API boundaries (invalid → 400). Guarded by `tests/unit/status-enums.test.ts`.
 
 ## Local Contracts
 

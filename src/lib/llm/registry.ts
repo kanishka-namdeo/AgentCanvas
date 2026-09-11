@@ -862,9 +862,11 @@ export const PROVIDERS: Record<string, LLMProviderEntry> = {
       apiKeyEnvVars: [],
       defaultBaseURL: '',
       defaultModel: '',
-      // Suggested in the Settings UI for the custom provider (no longer the
-      // app default — the app now defaults to the z.ai sandbox / glm-5.3).
-      popularModels: ['kimi-k2-5'],
+      // Suggested in the Settings UI for the custom provider. The BETA
+      // endpoint (qwen3.7-plus) is the app default; this list surfaces a
+      // sensible placeholder when the user picks Custom without loading the
+      // live model list.
+      popularModels: ['qwen3.7-plus'],
       openAICompatible: true,
       capabilities: CAPS_TOOLS_OK,
       apiKeyRequired: false,

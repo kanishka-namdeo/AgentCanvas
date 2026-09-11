@@ -76,6 +76,7 @@ import {
   deprecationNotice,
   normalizeAutoLayoutV3,
   normalizeToolParams,
+  repairArrayArgs,
   resolveToolName,
   type AliasToolLike,
 } from './tool-aliases';
@@ -475,6 +476,84 @@ function walkSubtree(node: RawSubtreeNode, fn: (n: RawSubtreeNode) => void): voi
       if (k && typeof k === 'object') walkSubtree(k as RawSubtreeNode, fn);
     }
   }
+}
+
+/// Collect all `$variable` references from a parsed subtree node (recursive).
+/// Checks the fields the resolver resolves: `fill`, `stroke`, `textColor`.
+/// Returns a map: `$ref` → count of nodes using it.
+function collectVariableReferences(node: RawSubtreeNode, acc: Map<string, number> = new Map()): Map<string, number> {
+  const checkString = (v: unknown) => {
+    if (typeof v === 'string' && v.startsWith('$')) {
+      acc.set(v, (acc.get(v) ?? 0) + 1);
+    }
+  };
+  checkString(node.fill);
+  checkString(node.stroke);
+  checkString(node.textColor);
+  // fill/stroke can also be arrays of objects with `color` property
+  for (const field of ['fill', 'stroke'] as const) {
+    const v = node[field];
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        if (item && typeof item === 'object') {
+          checkString((item as Record<string, unknown>).color);
+        }
+      }
+    }
+  }
+  const kids = node.children;
+  if (Array.isArray(kids)) {
+    for (const k of kids) {
+      if (k && typeof k === 'object') collectVariableReferences(k as RawSubtreeNode, acc);
+    }
+  }
+  return acc;
+}
+
+/// Build a warning string for unresolved `$variable` references in a subtree.
+/// Returns empty string when all references resolve.
+function buildUnresolvedVariableWarning(
+  refs: Map<string, number>,
+  variables: { [key: string]: unknown } | undefined,
+): string {
+  if (!variables || refs.size === 0) return '';
+  const unresolved: Array<{ ref: string; count: number; suggestion: string | null }> = [];
+  const definedKeys = Object.keys(variables);
+  for (const [ref, count] of refs) {
+    const key = ref.slice(1); // strip leading '$'
+    if (variables[key]) continue; // resolves fine
+    // Try to suggest a close match: exact suffix match first, then substring.
+    let suggestion: string | null = null;
+    // If ref is "$color.primary" and "primary" exists, suggest "$primary"
+    const lastDot = key.lastIndexOf('.');
+    if (lastDot >= 0) {
+      const shortKey = key.slice(lastDot + 1);
+      if (variables[shortKey]) {
+        suggestion = `$${shortKey}`;
+      }
+    }
+    // Fallback: any defined key that ends with the same segment
+    if (!suggestion) {
+      for (const dk of definedKeys) {
+        if (dk.endsWith('.' + key) || dk === key.replace(/\./g, '')) {
+          suggestion = `$${dk}`;
+          break;
+        }
+      }
+    }
+    unresolved.push({ ref, count, suggestion });
+  }
+  if (unresolved.length === 0) return '';
+  const lines = unresolved.map((u) => {
+    const nodeWord = u.count === 1 ? '1 node' : `${u.count} nodes`;
+    const sug = u.suggestion ? ` Did you mean "${u.suggestion}"?` : '';
+    return `  \u2022 "${u.ref}" used in ${nodeWord} \u2014 no variable "${u.ref.slice(1)}" defined.${sug}`;
+  });
+  return (
+    `\n\u26a0 VARIABLE REFERENCES: ${unresolved.length} reference(s) point to undefined variables:\n` +
+    lines.join('\n') +
+    '\nDefine variables first with pen_set_variable using dotted keys (e.g. key:"color.primary").'
+  );
 }
 
 /// Hard cap on nodes per add_subtree call. A runaway model emitting a
@@ -1002,6 +1081,26 @@ const createShape = defineTool({
         coerced.iconName = resolved.name;
         coerced.iconLibrary = 'lucide';
       }
+      // Variable-reference pre-flight: warn about $references that don't
+      // resolve against the document's defined variables (same check as
+      // pen_create_subtree — the agent often misses resolver warnings).
+      const nodeVarRefs = new Map<string, number>();
+      const checkNodeField = (v: unknown) => {
+        if (typeof v === 'string' && v.startsWith('$')) nodeVarRefs.set(v, (nodeVarRefs.get(v) ?? 0) + 1);
+      };
+      checkNodeField(coerced.fill);
+      checkNodeField(coerced.stroke);
+      checkNodeField(coerced.textColor);
+      for (const field of ['fill', 'stroke'] as const) {
+        const v = (coerced as Record<string, unknown>)[field];
+        if (Array.isArray(v)) {
+          for (const item of v) {
+            if (item && typeof item === 'object') checkNodeField((item as Record<string, unknown>).color);
+          }
+        }
+      }
+      const nodeVarWarning = buildUnresolvedVariableWarning(nodeVarRefs, ctx.getDocument?.()?.variables);
+
       // Multi-screen collision guard: a new TOP-LEVEL frame that would stack
       // on an existing screen is auto-placed to the right of all screens
       // (see resolveTopLevelFramePlacement). Children (parentId set) and
@@ -1055,7 +1154,7 @@ const createShape = defineTool({
         content: [
           {
             type: 'text',
-            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.${iconNote}${placementNote}${overflowNote}`,
+            text: `Created ${coerced.type} with id ${id}. Coordinates: (${coerced.x ?? 0}, ${coerced.y ?? 0}), size ${coerced.width ?? 100}×${coerced.height ?? 100}.${iconNote}${placementNote}${overflowNote}${nodeVarWarning}`,
           },
         ],
         details: { shapeId: id, patch },
@@ -1211,6 +1310,17 @@ const createShape = defineTool({
         return { content: [{ type: 'text', text: iconFailure.error.text }], details: iconFailure.error.details, isError: true as any };
       }
 
+      // Variable-reference pre-flight: warn about $references that don't
+      // resolve against the document's defined variables. NOT an error —
+      // nodes are still created — but the warning is prominent so the agent
+      // fixes the reference instead of silently rendering garbage colors.
+      const allVarRefs = new Map<string, number>();
+      for (const root of rawRoots) {
+        collectVariableReferences(root, allVarRefs);
+      }
+      const docVariables = ctx.getDocument?.()?.variables;
+      const varRefWarning = buildUnresolvedVariableWarning(allVarRefs, docVariables);
+
       // Snapshot the pre-existing ids — the post-apply diff is the manifest.
       const preIds = new Set(ctx.getShapes().map((s) => s.id));
 
@@ -1317,7 +1427,7 @@ const createShape = defineTool({
         content: [
           {
             type: 'text',
-            text: summaryLine + manifestText + warningsNote + placementNote,
+            text: summaryLine + manifestText + warningsNote + placementNote + varRefWarning,
           },
         ],
         details: {
@@ -7000,62 +7110,7 @@ export async function executeTool(
   }
 }
 
-/// Repair arguments where the LLM passed an array as a stringified JSON string.
-///
-/// Known-affected parameters (from the assess-skills test):
-///   - palette (pen_apply_palette, pen_generate_palette)
-///   - shapeIds (pen_align_shapes, pen_group_shapes, etc.)
-///   - nodes (pen_generate_diagram)
-///   - updates (pen_bulk_update_by_filter)
-///   - stops (pen_set_gradient_fill)
-///   - points (pen_create_path)
-///
-/// For each of these, if the value is a string that looks like a JSON array,
-/// parse it into a real array.
-function repairArrayArgs(args: any): any {
-  if (!args || typeof args !== 'object') return args;
-  const repaired = { ...args };
-
-  // True array params — accept either a real array OR a stringified JSON array.
-  // The LLM occasionally passes `palette="[\"#fff\",\"#000\"]"` instead of
-  // `palette=["#fff","#000"]`. Detect + parse.
-  const arrayParams = ['palette', 'shapeIds', 'nodeIds', 'nodes', 'updates', 'stops', 'points', 'axes', 'componentIds', 'parameters', 'modes'];
-  for (const param of arrayParams) {
-    const val = (repaired as any)[param];
-    if (typeof val === 'string' && val.trim().startsWith('[')) {
-      try {
-        const parsed = JSON.parse(val);
-        if (Array.isArray(parsed)) {
-          (repaired as any)[param] = parsed;
-        }
-      } catch {
-        // Not valid JSON — leave as-is and let the tool handle the error.
-      }
-    }
-  }
-
-  // String params that the LLM sometimes wraps in a stringified JSON array.
-  // Example: shapeId="[\"abc-123\"]" (the LLM got confused because some
-  // tools take `shapeIds` plural). Unwrap to the first element.
-  // This was the root cause of the "no shape with id [\"abc\"]" loop where
-  // the agent retried the same failing call 16+ times.
-  const stringParams = ['shapeId', 'nodeId', 'instanceId', 'variantComponentId', 'parentId', 'groupId', 'newParentId', 'maskId', 'variableId', 'collectionId'];
-  for (const param of stringParams) {
-    const val = (repaired as any)[param];
-    if (typeof val === 'string' && val.trim().startsWith('[')) {
-      try {
-        const parsed = JSON.parse(val);
-        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
-          (repaired as any)[param] = parsed[0];
-        }
-      } catch {
-        // Not valid JSON — leave as-is.
-      }
-    }
-  }
-
-  return repaired;
-}
+// repairArrayArgs moved to tool-aliases.ts (shared with applyToolAliases for the native runner)
 
 // ---- Wireframe / user-flow / diagram builders ------------------------------
 //
@@ -7109,14 +7164,16 @@ function applyHighFidelityStyling(
   palette: HifiPalette,
 ): void {
   const { PRIMARY, ACCENT } = palette;
-  // Card shadow — Task 8-a (VLM fix #2): subtle resting elevation,
-  // 0 1px 2px rgba(0,0,0,0.05). The old 4px-y Material shadow read as
-  // "heavy wireframe drop-shadow"; this is the modern fintech card look.
-  const SHADOW_CARD = { x: 0, y: 1, blur: 2, color: '#0000000d', spread: 0, inset: false };
-  // Soft button shadow (Material 1dp-ish): 0 2 4 -1 rgba(0,0,0,0.10)
-  const SHADOW_BUTTON = { x: 0, y: 2, blur: 4, color: '#0000001a', spread: -1, inset: false };
-  // FAB / modal shadow (Material 8dp-ish): 0 8 12 -4 rgba(0,0,0,0.20)
-  const SHADOW_FAB = { x: 0, y: 8, blur: 12, color: '#00000033', spread: -4, inset: false };
+  // Card shadow — industry-standard elevation (blur >= 8, alpha >= 0x33).
+  // 0 4px 8px -2px rgba(0,0,0,0.20). Meets the shadow visibility floor:
+  // visible on light backgrounds, no longer reads as wireframe-flat.
+  const SHADOW_CARD = { x: 0, y: 4, blur: 8, color: '#00000033', spread: -2, inset: false };
+  // Button shadow — matched to card floor (blur 8, alpha 0x33, y-offset 4).
+  // 0 4px 8px -2px rgba(0,0,0,0.20).
+  const SHADOW_BUTTON = { x: 0, y: 4, blur: 8, color: '#00000033', spread: -2, inset: false };
+  // FAB / modal shadow — stronger elevation (blur 16, alpha 0x4d ~30%).
+  // 0 12px 16px -4px rgba(0,0,0,0.30). Clearly floating above the surface.
+  const SHADOW_FAB = { x: 0, y: 12, blur: 16, color: '#0000004d', spread: -4, inset: false };
 
   for (const s of shapes) {
     const name = (s.name ?? '').toLowerCase();

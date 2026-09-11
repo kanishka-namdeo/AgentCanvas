@@ -155,32 +155,33 @@ describe('shouldRunCritics — design critique invocation mode', () => {
     expect(shouldRunCritics({ ...bigTurn, promptWantsCritique: true, critiqueMode: 'auto' }).runCritics).toBe(true);
   });
 
-  it('absent mode → manual (invocations are opt-in by default)', () => {
+  it('absent mode → off (critics disabled by default)', () => {
     expect(shouldRunCritics({ ...bigTurn }).runCritics).toBe(false);
-    expect(shouldRunCritics({ ...bigTurn }).skipReason).toBe('manual_mode');
-    expect(shouldRunCritics({ ...bigTurn, promptWantsCritique: true }).runCritics).toBe(true);
+    expect(shouldRunCritics({ ...bigTurn }).skipReason).toBe('critique_disabled');
+    // Even explicit prompts don't override 'off' mode
+    expect(shouldRunCritics({ ...bigTurn, promptWantsCritique: true }).runCritics).toBe(false);
   });
 });
 
 // ---- 2. Normalizer + mode union ---------------------------------------------------
 
 describe('normalizeDesignCritiqueMode', () => {
-  it('accepts the three valid modes and defaults everything else to manual', () => {
+  it('accepts the three valid modes and defaults everything else to off', () => {
     for (const m of DESIGN_CRITIQUE_MODES) {
       expect(normalizeDesignCritiqueMode(m)).toBe(m);
     }
-    expect(normalizeDesignCritiqueMode(undefined)).toBe('manual');
-    expect(normalizeDesignCritiqueMode(null)).toBe('manual');
-    expect(normalizeDesignCritiqueMode('always')).toBe('manual');
-    expect(normalizeDesignCritiqueMode(42)).toBe('manual');
+    expect(normalizeDesignCritiqueMode(undefined)).toBe('off');
+    expect(normalizeDesignCritiqueMode(null)).toBe('off');
+    expect(normalizeDesignCritiqueMode('always')).toBe('off');
+    expect(normalizeDesignCritiqueMode(42)).toBe('off');
   });
 });
 
 // ---- 3. Settings threading (client store → request body) --------------------------
 
 describe('settings threading — designCritiqueMode', () => {
-  it('the product default is manual (critique subagents opt-in, not compulsory)', () => {
-    expect(DEFAULT_SETTINGS.designCritiqueMode).toBe('manual');
+  it('the product default is off (critics disabled unless user opts in)', () => {
+    expect(DEFAULT_SETTINGS.designCritiqueMode).toBe('off');
   });
 
   it('agentRunSettings passes the mode through', () => {
@@ -190,10 +191,10 @@ describe('settings threading — designCritiqueMode', () => {
     expect(agentRunSettings(off).designCritiqueMode).toBe('off');
   });
 
-  it('pre-2026-09-06 persisted blobs (field absent) resolve to manual', () => {
+  it('pre-2026-09-06 persisted blobs (field absent) resolve to off', () => {
     const legacyBlob = { ...DEFAULT_SETTINGS } as AppSettings;
     delete (legacyBlob as Partial<AppSettings>).designCritiqueMode;
-    expect(agentRunSettings(legacyBlob).designCritiqueMode).toBe('manual');
+    expect(agentRunSettings(legacyBlob).designCritiqueMode).toBe('off');
   });
 });
 
@@ -269,8 +270,8 @@ describe('UI wiring (source invariants)', () => {
     expect(settingsSrc).toMatch(/<SelectItem value="off"/);
   });
 
-  it('the settings picker defaults persisted blobs without the field to manual', () => {
-    expect(settingsSrc).toMatch(/s\.designCritiqueMode \?\? 'manual'/);
+  it('the settings picker defaults persisted blobs without the field to off', () => {
+    expect(settingsSrc).toMatch(/s\.designCritiqueMode \?\? 'off'/);
   });
 
   it("AgentPanel maps the new skip reasons (manual_mode / critique_disabled)", () => {

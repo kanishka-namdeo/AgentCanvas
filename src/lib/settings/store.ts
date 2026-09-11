@@ -8,8 +8,10 @@
 // `migrate` instead of being silently discarded by a key rename).
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { toast } from 'sonner';
 import { AppSettings, DEFAULT_SETTINGS } from './types';
+import { quotaAwareSetItem } from '@/lib/storage/quota-aware';
 
 interface SettingsStore extends AppSettings {
   /// Replace a single field. Use this for atomic updates.
@@ -79,6 +81,27 @@ export const useSettings = create<SettingsStore>()(
     {
       name: 'agentcanvas.settings.v1',
       version: 5,
+      // Quota-aware storage: wraps localStorage.setItem with error detection
+      // and toast notifications instead of silent failures (2026-09-11 fix).
+      storage: createJSONStorage(() => ({
+        getItem: (name: string) => {
+          try {
+            return window.localStorage.getItem(name);
+          } catch {
+            return null;
+          }
+        },
+        setItem: (name: string, value: string) => {
+          quotaAwareSetItem(name, value, { toast });
+        },
+        removeItem: (name: string) => {
+          try {
+            window.localStorage.removeItem(name);
+          } catch {
+            // ignore
+          }
+        },
+      })),
       // Migrate chain:
       //   v1 → v2: the default inference endpoint moved from the z.ai sandbox
       //     (zai / glm-5.3 / no key / no base URL) to a custom OpenAI-compatible

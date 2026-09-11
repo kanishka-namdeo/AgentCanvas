@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { ensureSession } from '../../ensure-session';
+import { isValidMessageStatus, VALID_MESSAGE_STATUSES } from '@/lib/validation/status-enums';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,6 +36,15 @@ export async function POST(
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const { role, content, status, error, runId, messageId, documentId, diffSummary } = body;
+
+  // Status enum validation (2026-09-11 fix): reject invalid status strings
+  // before they reach Prisma.
+  if (status !== undefined && !isValidMessageStatus(status)) {
+    return NextResponse.json(
+      { error: `status must be one of: ${VALID_MESSAGE_STATUSES.join(', ')}` },
+      { status: 400 },
+    );
+  }
 
   try {
     // If messageId is provided, update the existing message (streaming →

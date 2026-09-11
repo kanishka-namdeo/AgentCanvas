@@ -36,14 +36,19 @@ export interface ValidationResult {
  *   2. Typography: < 50% of text shapes have non-default fontWeight (≠ 400)
  *      → fail ("no typographic hierarchy — apply H1=700 / H2=600 / body=400
  *      per the LETTER SPACING RULES").
- *   3. Elevation: < 30% of card-shaped rectangles have shadow → fail
+ *   3. Elevation: < 50% of card-shaped rectangles have shadow → fail
  *      ("most cards lack shadow — add shadow to all card containers per
- *      COMPONENT RECIPES").
+ *      COMPONENT RECIPES"). Industry standard: >= 50% of elevated surfaces
+ *      must carry a visible shadow (blur >= 8, alpha >= 0x33).
  *   4. Layout: zero shapes with autoLayout set → fail
  *      ("no autoLayout — add autoLayout=true to layout containers (cards,
  *      sidebars, topbars)").
+ *   5. Child overflow: layers extending >40px below their parent frame → fail.
+ *   6. Contrast: text with <4.5:1 contrast ratio against background → fail (WCAG AA).
+ *   7. Root frame clipping: root frame with FIXED height whose children
+ *      extend beyond it → fail ("use fit_content").
  *
- * The thresholds are deliberately lenient (50% / 30% / 1) so the gate
+ * The thresholds are deliberately set to industry standards (50% / 50% / 1) so the gate
  * catches the wireframe-only failure mode without forcing perfection.
  * The mandatory critique loop (T2) handles higher-bar polish.
  *
@@ -93,11 +98,12 @@ export function validateCanvasBeforeComplete(
   // Rule 3: missing card shadows.
   if (cardShapes.length > 0) {
     const pct = cardShapesWithShadow.length / cardShapes.length;
-    if (pct < 0.3) {
+    if (pct < 0.5) {
       reasons.push(
-        `Most card-shaped rectangles lack shadow (${cardShapesWithShadow.length}/${cardShapes.length} = ${Math.round(pct * 100)}% have shadow). ` +
-        `Add shadow to all card containers per COMPONENT RECIPES — use pen_set_shadow with {x:0, y:4, blur:6, color:"#0000001a"} for resting cards, ` +
-        `{x:0, y:8, blur:12, color:"#00000033"} for FABs/modals. ` +
+        `Most card-shaped rectangles lack shadow (${cardShapesWithShadow.length}/${cardShapes.length} = ${Math.round(pct * 100)}% have shadow — industry standard requires >= 50%). ` +
+        `Add shadow to all card containers per COMPONENT RECIPES — use pen_set_shadow with {x:0, y:4, blur:8, color:"#00000033"} for resting cards, ` +
+        `{x:0, y:12, blur:16, color:"#0000004d"} for FABs/modals. ` +
+        `Every card, panel, modal, and elevated surface MUST have a visible shadow. No exceptions. ` +
         `A flat card with no shadow looks like a wireframe div, not a finished component.`,
       );
     }
@@ -153,12 +159,12 @@ export function validateCanvasBeforeComplete(
     );
   }
 
-  // Rule 6: near-invisible text contrast (deterministic WCAG check — free,
-  // catches the grey-on-grey defect class before any LLM critic runs).
-  // Threshold 2.0:1 is intentionally lenient — the app's own text-subtle
-  // token (#94a3b8 on #ffffff = 2.5:1) is a deliberate caption style; this
-  // rule targets text the eye genuinely cannot read (ratio < 2), including
-  // text whose color equals its container fill exactly.
+  // Rule 6: insufficient text contrast (deterministic WCAG AA check — free,
+  // catches low-contrast defects before any LLM critic runs).
+  // Threshold 4.5:1 matches WCAG 2.x Level AA for normal text. Large text
+  // (>=18pt bold or >=24pt regular) requires 3:1; we use the stricter 4.5:1
+  // floor because the validator has no font-size awareness and the agent's
+  // system prompt targets 4.5:1 universally.
   const byIdForContrast = new Map(shapes.map((s) => [s.id, s] as const));
   const lowContrast: Array<{ name: string; ratio: number; fg: string; bg: string }> = [];
   for (const s of shapes) {
@@ -167,7 +173,7 @@ export function validateCanvasBeforeComplete(
     if (!isCheckableHex(tc)) continue; // token refs / unset → skip
     const bg = effectiveBackground(s, byIdForContrast);
     const ratio = contrastRatioOf(tc.slice(0, 7), bg);
-    if (ratio !== null && ratio < 2) {
+    if (ratio !== null && ratio < 4.5) {
       lowContrast.push({
         name: s.name ?? s.id,
         ratio: Math.round(ratio * 10) / 10,
@@ -182,11 +188,44 @@ export function validateCanvasBeforeComplete(
       .map((o) => `"${o.name}" ${o.fg} on ${o.bg} = ${o.ratio}:1`)
       .join('; ');
     reasons.push(
-      `${lowContrast.length} text layer(s) are nearly invisible — contrast < 2:1 against their background (${examples}). ` +
-      `This is the grey-on-grey defect class: the text renders but the eye cannot read it. ` +
-      `Fix with pen_update_node changes: { textColor: "#0f172a" } (or another color with WCAG contrast — target 4.5:1 for body, ` +
-      `3:1 for large text) on each flagged layer.`,
+      `${lowContrast.length} text layer(s) have insufficient contrast (< 4.5:1 WCAG AA) against their background (${examples}). ` +
+      `WCAG AA requires >= 4.5:1 for normal text and >= 3:1 for large text (bold >= 18pt or regular >= 24pt). ` +
+      `Fix with pen_update_node changes: { textColor: "#0f172a" } (or another color meeting WCAG AA contrast) on each flagged layer.`,
     );
+  }
+
+  // Rule 7: root frame with FIXED height clipping children. A root/page frame
+  // with a numeric (FIXED) height whose children extend beyond it creates a
+  // visible artifact — the frame's background paints only up to its fixed
+  // height while children flow further, producing a dark bar or clipped content.
+  // The fix is always to use height:"fit_content" on the root frame.
+  const allIds = new Set(shapes.map((s) => s.id));
+  const rootFrames = shapes.filter(
+    (s) =>
+      s.type === 'frame' &&
+      typeof s.height === 'number' && // FIXED height (not fit_content / fill_container)
+      (!(s as any).parentId || !allIds.has((s as any).parentId)), // root-level
+  );
+  for (const root of rootFrames) {
+    const rootBottom = root.y + (root.height as number);
+    const overflowingChildren = shapes.filter((child) => {
+      if ((child as any).parentId !== root.id) return false;
+      const childH = (child as any).height ?? 0;
+      return child.y + childH > rootBottom + 40; // 40px tolerance
+    });
+    if (overflowingChildren.length > 0) {
+      const maxOverflow = Math.max(
+        ...overflowingChildren.map((c) => {
+          const cH = (c as any).height ?? 0;
+          return c.y + cH - rootBottom;
+        }),
+      );
+      reasons.push(
+        `Root frame "${root.name ?? root.id}" has fixed height ${root.height}px but ${overflowingChildren.length} child(ren) ` +
+        `extend up to ${Math.round(maxOverflow)}px beyond it — use height:"fit_content" instead of a fixed numeric height. ` +
+        `Fixed-height root frames clip their children and create visible artifacts (dark bars, truncated content).`,
+      );
+    }
   }
 
   return {

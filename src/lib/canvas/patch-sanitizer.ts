@@ -41,7 +41,7 @@ const KNOWN_OPS: ReadonlySet<string> = new Set([
   'bulk_add', 'add_subtree', 'update_many', 'duplicate',
   'group', 'ungroup', 'align', 'tokens', 'zorder', 'reorder',
   'viewport', 'undo', 'redo',
-  'set_theme_axis', 'set_node_theme', 'set_variable', 'mark_slot',
+  'set_theme_axis', 'set_node_theme', 'set_variable', 'remove_variable', 'mark_slot',
   'reparent', 'set_constraints',
   'add_page', 'delete_page', 'rename_page', 'set_active_page', 'add_section',
   'create_component', 'create_component_set', 'add_variant',

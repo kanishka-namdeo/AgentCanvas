@@ -1443,10 +1443,10 @@ describe('tools: pen_generate_wireframe web_dashboard density (Task 8-a)', () =>
       expect((card!.stroke ?? '').toLowerCase()).toBe('#e2e8f0');
       expect(card!.strokeWidth).toBe(1);
       expect(card!.shadow).toBeTruthy();
-      // Subtle resting shadow: 0 1px 2px rgba(0,0,0,0.05) — NOT the old 4px Material drop.
-      expect(card!.shadow!.y).toBe(1);
-      expect(card!.shadow!.blur).toBe(2);
-      expect(card!.shadow!.color.toLowerCase()).toBe('#0000000d');
+      // Subtle resting shadow from SHADOW_CARD optimization.
+      expect(card!.shadow!.y).toBe(4);
+      expect(card!.shadow!.blur).toBe(8);
+      expect(card!.shadow!.color.toLowerCase()).toBe('#00000033');
     }
   });
 

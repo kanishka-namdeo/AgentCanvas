@@ -112,6 +112,8 @@ Default section order:
 
 When the user requests a durable behavior change, record it here or in the relevant child [AGENTS.md](http://AGENTS.md)
 
+- **Subagent-driven work**: All user requests must be actively fulfilled using subagents. Whether the task is implementing features, fixing bugs, refactoring code, researching questions, writing documentation, analyzing data, planning work, or any other kind of user-requested work, dispatch subagents to handle the actual work rather than doing it directly in the main agent context. The main agent coordinates, reviews, and integrates results; subagents do the hands-on work.
+
 ## z.ai Sandbox Operations
 
 - This repo targets the z.ai sandbox, where the project root is `/home/z/my-project` — never a subdirectory. The one-shot bring-up runbook (scaffold replacement, `DATABASE_URL` override, process-survival rules, gateway ports, restart persistence, verification) is in `docs/zai-sandbox-setup.md`. Read it before any sandbox bring-up or restart debugging.
@@ -152,11 +154,11 @@ When the user requests a durable behavior change, record it here or in the relev
 | `src/lib/sessions/AGENTS.md` | Session persistence: Zustand localStorage store + server-sync bridge (`/api/sessions*`), fork/restore, sweep/enforce helpers |
 | `src/lib/web/AGENTS.md` | Web search + fetch: 4-provider search chain (z.ai → DDG → Startpage → Jina), 3-backend fetch pipeline (readability → z.ai page_reader → Jina), quality gates |
 | `.zscripts/AGENTS.md` | Sandbox boot/build runtime: `dev.sh` boot flow (auto-run at container start), deploy artifact pipeline, `start.sh` production entrypoint |
-| `docs/AGENTS.md` | Durable docs: z.ai sandbox runbook, phase design docs (design-systems, agentic-workflows, agent-performance, html-dom-renderer spec), menu-specs P0–P2 trackers |
+| `docs/AGENTS.md` | Durable docs: z.ai sandbox runbook, phase design docs (design-systems, agentic-workflows, agent-performance, html-dom-renderer spec), menu-specs P0–P2 trackers, superpowers plans/specs |
 | `examples/websocket/AGENTS.md` | Reference Socket.IO demo (gateway routing pattern; port-collision warning) |
 | `prisma/AGENTS.md` | Prisma schema: Document, Shape, AgentAction + session models (Session, SessionMessage, SessionRun) + DocumentSnapshot (document-scoped canvas timeline, shared-canvas model) |
 | `scripts/AGENTS.md` | Dev scripts: dev-server + sandbox one-shot bring-up launchers, screenshot automation, intent classifier eval, token cost measurement, DOM-renderer bench corpus generator, agent-eval scenario suite, VLM output-inspection harness (vlm-inspect) |
-| `tests/AGENTS.md` | Test suite: Vitest 5 unit/integration tests (106 files / 2344 passed + 2 skipped), shell smoke tests, CI notes |
+| `tests/AGENTS.md` | Test suite: Vitest 5 unit/integration tests (121 files / 2611 passed), shell smoke tests, CI notes |
 | `research/AGENTS.md` | Read-only research: 7 web-research JSON surveys, gap-analysis + spec-compliance + shared-canvas-spec reports, `specs/` API snapshot cache (~74 refs) + `specs/llm-providers/` (28 provider snapshots) + `best-practices/` (18 perf research snapshots) |
 
 - Root-owned files: `README.md`, `LICENSE`, root tool/config files (`package.json`, `bun.lock`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `vitest.config.ts`, `prisma.config.ts`, `components.json`, `instrumentation.ts`, `Caddyfile`, `.env.example`, `.gitignore`), `public/` static assets (logo.svg, robots.txt), and root-level project documentation. Session artifacts (`worklog.md`, `TEST_RESULTS_WORKLOG.md`, `test-results-*.json`, `tool-results/`) are transient and gitignored — do not commit them.

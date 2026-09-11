@@ -63,14 +63,17 @@ export const MAX_CHECKPOINTS = 50;
 /// REPLACES them rather than mutating).
 const STRIPPED_SHAPES: Shape[] = Object.freeze([]) as unknown as Shape[];
 const STRIPPED_TOKENS: DesignTokens = Object.freeze({ colors: [], textStyles: [] }) as unknown as DesignTokens;
+const STRIPPED_BACKGROUND = '#f8fafc'; // default canvas background
 
 /// Strip the derived caches from a document entering a snapshot pool
 /// (checkpoints / undoStack / redoStack). The returned clone SHARES the
 /// immutable children/variables/pages structure with the live document —
 /// structural sharing is what makes retained snapshots cheap — and drops
-/// only the re-derivable `shapes`/`tokens` caches.
+/// only the re-derivable `shapes`/`tokens`/`background` caches.
+/// 2026-09-11: Also strips `background` (derived from variables) to save
+/// memory — it's recomputed by recomputeDerived on restore.
 export function stripDerivedForSnapshot(doc: CanvasDocument): CanvasDocument {
-  return { ...doc, shapes: STRIPPED_SHAPES, tokens: STRIPPED_TOKENS };
+  return { ...doc, shapes: STRIPPED_SHAPES, tokens: STRIPPED_TOKENS, background: STRIPPED_BACKGROUND };
 }
 
 /// Recompute the derived caches on a snapshot being promoted back to the
@@ -99,6 +102,9 @@ export function rehydrateSnapshot(
 /// signature, so the auto-checkpoint at turn end was SKIPPED despite real
 /// changes. A light content stamp (fills + text of the first 40 root nodes,
 /// hashed into a number) catches property-only turns while staying O(roots).
+///
+/// 2026-09-11: Enhanced to cover deep tree changes (depth ≤ 2) to detect
+/// reparenting, deep restyles, and structural changes beyond the first 40 roots.
 export function checkpointSignature(doc: CanvasDocument): string {
   let stamp = 0;
   const roots = (doc.children ?? []).slice(0, 40);
@@ -110,7 +116,26 @@ export function checkpointSignature(doc: CanvasDocument): string {
       stamp = (stamp * 31 + frag.charCodeAt(j)) | 0;
     }
   }
-  return `${doc.children?.length ?? 0}:${doc.shapes?.length ?? 0}:${JSON.stringify(doc.variables ?? {}).length}:${stamp}`;
+
+  // Deep tree hash (depth ≤ 2): catches reparenting, deep restyles, and
+  // structural changes beyond the first 40 roots.
+  let deepStamp = 0;
+  const walkDeep = (nodes: any[], depth: number) => {
+    if (depth > 2) return;
+    for (const node of nodes) {
+      if (!node) continue;
+      const frag = `${node.id ?? ''}|${node.type ?? ''}|${node.fill ?? ''}|${node.name ?? ''}|${(node.children ?? []).length}`;
+      for (let j = 0; j < frag.length; j++) {
+        deepStamp = (deepStamp * 31 + frag.charCodeAt(j)) | 0;
+      }
+      if (Array.isArray(node.children) && node.children.length > 0) {
+        walkDeep(node.children, depth + 1);
+      }
+    }
+  };
+  walkDeep(doc.children ?? [], 0);
+
+  return `${doc.children?.length ?? 0}:${doc.shapes?.length ?? 0}:${JSON.stringify(doc.variables ?? {}).length}:${stamp}:${deepStamp}`;
 }
 
 /// New checkpoint id. crypto.randomUUID when available, fallback elsewhere

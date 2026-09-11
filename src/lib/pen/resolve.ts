@@ -235,6 +235,11 @@ export function resolveThemedValue(def: PenVariableDef, theme: PenTheme): string
     // Single value — resolve nested $refs one level.
     return value as string | number | boolean;
   }
+  // 2026-09-11: Guard against empty themed value arrays — return empty string
+  // instead of undefined to prevent downstream issues.
+  if (value.length === 0) {
+    return '';
+  }
   // Themed values: the LAST value whose theme is satisfied wins; default = first.
   let winner: PenThemedValue<string | number | boolean> | undefined = value[0] as any;
   for (const tv of value as PenThemedValue<string | number | boolean>[]) {

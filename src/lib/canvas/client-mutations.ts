@@ -226,10 +226,55 @@ export function isMutationBearingPatch(patch: CanvasPatch): boolean {
   return patch?.op !== 'select';
 }
 
+// ---- pending acks (in-flight mutation tracking) -------------------------------
+
+// 2026-09-11: Track mutations that have been sent but not yet acknowledged.
+// On reconnect, re-emit any entries older than 5 seconds to close the window
+// between "server received mutation" and "server wrote to journal". The
+// server's exactly-once dedup handles the rest.
+
+const PENDING_ACKS_CAP = 100;
+const PENDING_ACK_TIMEOUT_MS = 5000; // 5 seconds
+
+interface PendingAck {
+  clientMutationId: number;
+  sentAt: number;
+}
+
+let pendingAcks: PendingAck[] = [];
+
+/// Record a mutation that has been sent to the server.
+export function recordPendingAck(clientMutationId: number): void {
+  pendingAcks.push({ clientMutationId, sentAt: Date.now() });
+  // Drop-oldest cap.
+  if (pendingAcks.length > PENDING_ACKS_CAP) {
+    pendingAcks = pendingAcks.slice(-PENDING_ACKS_CAP);
+  }
+}
+
+/// Clear a pending ack (called on mutation:ack).
+export function clearPendingAck(clientMutationId: number): void {
+  pendingAcks = pendingAcks.filter((a) => a.clientMutationId !== clientMutationId);
+}
+
+/// Get pending acks that are older than the timeout and should be re-emitted.
+export function getStalePendingAcks(): number[] {
+  const now = Date.now();
+  return pendingAcks
+    .filter((a) => now - a.sentAt > PENDING_ACK_TIMEOUT_MS)
+    .map((a) => a.clientMutationId);
+}
+
+/// Clear all pending acks (called on document switch or full reconnect).
+export function clearAllPendingAcks(): void {
+  pendingAcks = [];
+}
+
 /// Test hook — reset all module caches + storage slots (full suite isolation).
 export function __resetClientMutationsForTests(): void {
   clientIdCache = null;
   counter = null;
+  pendingAcks = [];
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(CLIENT_ID_KEY);

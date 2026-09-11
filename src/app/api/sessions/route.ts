@@ -45,21 +45,43 @@ function validateIdField(name: string, v: unknown): string | null {
 export async function GET(req: NextRequest) {
   const documentId = req.nextUrl.searchParams.get('documentId');
   const status = req.nextUrl.searchParams.get('status') ?? 'active';
+  // Cursor-based pagination (2026-09-11 fix): the cursor is the `lastOpenedAt`
+  // ISO timestamp of the last item from the previous page. When absent, returns
+  // the first page. Returns `{ sessions, nextCursor }` where nextCursor is null
+  // when there are no more pages.
+  const cursor = req.nextUrl.searchParams.get('cursor');
 
   try {
+    // Build the where clause: filter by documentId (if provided) + status +
+    // cursor (lastOpenedAt < cursor for pagination).
+    const where: Record<string, unknown> = { status };
+    if (documentId) where.documentId = documentId;
+    if (cursor) {
+      // Cursor is an ISO timestamp — fetch sessions older than this.
+      const cursorDate = new Date(cursor);
+      if (!Number.isNaN(cursorDate.getTime())) {
+        where.lastOpenedAt = { lt: cursorDate.toISOString() };
+      }
+    }
+
+    // Fetch one extra to detect whether there's a next page.
     const sessions = await db.session.findMany({
-      where: {
-        ...(documentId ? { documentId } : {}),
-        status,
-      },
+      where,
       orderBy: { lastOpenedAt: 'desc' },
-      take: MAX_SESSIONS_RETURNED,
+      take: MAX_SESSIONS_RETURNED + 1,
       include: {
         _count: { select: { messages: true, runs: true } },
       },
     });
 
-    return NextResponse.json({ sessions });
+    // If we got more than MAX_SESSIONS_RETURNED, there's a next page.
+    const hasMore = sessions.length > MAX_SESSIONS_RETURNED;
+    const page = hasMore ? sessions.slice(0, MAX_SESSIONS_RETURNED) : sessions;
+    const nextCursor = hasMore && page.length > 0
+      ? page[page.length - 1].lastOpenedAt
+      : null;
+
+    return NextResponse.json({ sessions: page, nextCursor });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown database error';
     return NextResponse.json({ error: `Failed to list sessions: ${message}` }, { status: 500 });

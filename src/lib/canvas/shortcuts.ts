@@ -467,13 +467,15 @@ export const SHORTCUTS: ShortcutDef[] = [
   { action: 'shortcuts-dialog', label: 'Open the keyboard shortcuts cheat sheet', mac: '⌘/', win: 'Ctrl+/', scope: 'app' },
   { action: 'toggle-left-panel', label: 'Toggle left panel', mac: '⌘⇧1', win: 'Ctrl+Shift+1', scope: 'app', also: ['⌘1'] },
   { action: 'toggle-right-panel', label: 'Toggle right panel', mac: '⌘⇧2', win: 'Ctrl+Shift+2', scope: 'app', also: ['⌘2'] },
-  // --- Sidebar tab selection (Appendix H §H.3 deviation #1) ---
-  // Figma's ⌥1/⌥2/⌥3 select the Layers/Assets/Templates tabs INSIDE the
-  // left sidebar. Our top-level panel toggles stay ⌘⇧1/⌘⇧2 (legacy muscle
-  // memory); these chords switch the LayersPanel's internal Tabs (the
-  // Layers tree ↔ the Assets component grid).
-  { action: 'panel.layers-tab', label: 'Switch left sidebar to Layers tab', mac: '⌥1', win: 'Alt+1', scope: 'app' },
-  { action: 'panel.assets-tab', label: 'Switch left sidebar to Assets tab', mac: '⌥2', win: 'Alt+2', scope: 'app' },
+  // --- Tools-panel tab selection (Appendix H §H.3 deviation #1) ---
+  // ⌥1–⌥4 switch the RIGHT-side tools panel tabs (Layers / Properties /
+  // Design Systems / Assets), mirroring Figma's per-panel tab chords. Our
+  // top-level panel toggles stay ⌘⇧1/⌘⇧2 (legacy muscle memory). The LEFT
+  // sidebar is Sessions-only and has no tab strip.
+  { action: 'panel.layers', label: 'Show Layers tab in the tools panel', mac: '⌥1', win: 'Alt+1', scope: 'app' },
+  { action: 'panel.properties', label: 'Show Properties tab in the tools panel', mac: '⌥2', win: 'Alt+2', scope: 'app' },
+  { action: 'panel.design-systems', label: 'Show Design Systems tab in the tools panel', mac: '⌥3', win: 'Alt+3', scope: 'app' },
+  { action: 'panel.assets', label: 'Show Assets tab in the tools panel', mac: '⌥4', win: 'Alt+4', scope: 'app' },
   // UI-audit round 3 (2026-09): `/` focuses the chat input (Slack/Discord/
   // Linear convention). Calls window.__focusAgentInput() which is registered
   // by AgentPanel.tsx on mount. No-op if the AgentPanel isn't mounted (e.g.

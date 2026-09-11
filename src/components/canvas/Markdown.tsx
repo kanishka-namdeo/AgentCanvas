@@ -44,7 +44,7 @@ function CodeBlock({ children }: { children: ReactNode }) {
 
 export const MarkdownMessage = memo(function MarkdownMessage({ text, streaming }: { text: string; streaming?: boolean }) {
   return (
-    <div className={`text-xs ac-text-1 leading-relaxed markdown-chat ${streaming ? 'is-streaming' : ''}`}>
+    <div className={`text-xs ac-text-1 leading-relaxed markdown-chat break-words [overflow-wrap:anywhere] ${streaming ? 'is-streaming' : ''}`}>
       <ReactMarkdown
         components={{
           // Tighten the default spacing for a chat panel.
@@ -52,10 +52,10 @@ export const MarkdownMessage = memo(function MarkdownMessage({ text, streaming }
           // to <p> so long unbroken tokens (URLs, base64, file paths) wrap inside
           // the chat bubble instead of blowing out its width. This matches the
           // user-turn bubble's pattern at AgentPanel.tsx:2107.
-          p: ({ children }) => <p className="mb-1.5 last:mb-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{children}</p>,
+          p: ({ children }) => <p className="mb-1.5 last:mb-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{children}</p>,
           ul: ({ children }) => <ul className="list-disc pl-4 mb-1.5 last:mb-0 space-y-0.5">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-4 mb-1.5 last:mb-0 space-y-0.5">{children}</ol>,
-          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+          li: ({ children }) => <li className="leading-relaxed break-words [overflow-wrap:anywhere]">{children}</li>,
           strong: ({ children }) => <strong className="font-semibold ac-text-1">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
           a: ({ href, children }) => (

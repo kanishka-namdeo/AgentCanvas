@@ -255,11 +255,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // Cursor-style mode system (see src/lib/agent/modes.ts). 'build' preserves
   // the pre-mode behavior for every existing user + test.
   agentMode: 'build' as AgentMode,
-  // 2026-09-06: critique subagents are opt-in by default — they fire when the
-  // USER asks (/critique, polish prompts), not on every complexity-eligible
-  // turn. Users who want the old adaptive auto-critique set 'auto'; 'off' is
-  // the hard kill-switch. See src/lib/agent/modes.ts (DesignCritiqueMode).
-  designCritiqueMode: 'manual' as DesignCritiqueMode,
+  // 2026-09-11: critique subagents are OFF by default — no automatic
+  // self-critique. Users opt in via /critique or Settings → 'manual' (prompt
+  // triggers only) / 'auto' (adaptive ladder). See src/lib/agent/modes.ts.
+  designCritiqueMode: 'off' as DesignCritiqueMode,
 };
 
 /// Subset of settings that the /api/agent route consumes. Sent in the
@@ -381,12 +380,11 @@ export function agentRunSettings(s: AppSettings): AgentRunSettings {
     // (modes.ts shouldRunCritics) — 2 stays the iteration CAP; which turns
     // run critics at all is complexity-gated (small clean turns get
     // validator-only repair, ~3 LLM calls saved per gated turn).
-    // NOTE (2026-09-06): the gate's invocation MODE is user-controlled —
-    // 'manual' (default) fires critics only on explicit asks (/critique,
-    // polish prompts); 'auto' restores the adaptive auto-critique; 'off'
-    // never dispatches. See DesignCritiqueMode in src/lib/agent/modes.ts.
+    // NOTE (2026-09-11): critics are OFF by default. 'manual' fires only on
+    // explicit asks (/critique, polish prompts); 'auto' restores the adaptive
+    // ladder. See DesignCritiqueMode in src/lib/agent/modes.ts.
     maxDesignCritiqueIterations: 2,
-    designCritiqueMode: s.designCritiqueMode ?? 'manual',
+    designCritiqueMode: s.designCritiqueMode ?? 'off',
   };
 }
 

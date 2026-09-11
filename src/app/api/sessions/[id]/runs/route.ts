@@ -26,6 +26,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { ensureSession } from '../../ensure-session';
+import { isValidRunStatus, VALID_RUN_STATUSES } from '@/lib/validation/status-enums';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -83,6 +84,15 @@ export async function POST(
 
   const body = await req.json().catch(() => ({}));
   const { prompt, status, runId, documentId } = body;
+
+  // Status enum validation (2026-09-11 fix): reject invalid status strings
+  // before they reach Prisma.
+  if (status !== undefined && !isValidRunStatus(status)) {
+    return NextResponse.json(
+      { error: `status must be one of: ${VALID_RUN_STATUSES.join(', ')}` },
+      { status: 400 },
+    );
+  }
 
   // Fix 2: validate the client-supplied runId (if any) against the same
   // regex the sessions route uses for `id`.

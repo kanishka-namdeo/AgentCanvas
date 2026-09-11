@@ -18,6 +18,7 @@
 // Composer (see research notes §6).
 
 import { useState, useMemo, useEffect, useRef, useCallback, memo, Fragment } from 'react';
+import dynamic from 'next/dynamic';
 import { useSessionStore } from '@/lib/sessions';
 import { useCanvasStore } from '@/lib/canvas/store';
 import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
@@ -27,7 +28,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   Plus, Search, MoreHorizontal, Pin, PinOff, GitFork, Archive, Trash2, Pencil, MessageSquare, Wrench, Star, Tag as TagIcon, X,
-  Copy, FileJson, FileText,
+  Copy, FileJson, FileText, ChevronRight, History as HistoryIcon,
 } from 'lucide-react';
 import { StatusDot } from './StatusBadge';
 import {
@@ -38,6 +39,11 @@ import {
 } from '@/components/ui/dialog';
 import { searchServerSessions, exportSessionMarkdown, type ServerSessionSearchHit } from '@/lib/sessions/server-sync';
 import { compareByLastOpenedDesc } from '@/lib/sessions/store';
+
+const RunHistoryPanel = dynamic(
+  () => import('./RunHistoryPanel').then((m) => m.RunHistoryPanel),
+  { ssr: false }
+);
 
 function relativeTime(iso: string): string {
   // (2026-09-07 UI hardening, 12-c#11) malformed session rows can carry a
@@ -98,6 +104,7 @@ export const SessionSidebar = memo(function SessionSidebar() {
   const [search, setSearch] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [historyExpanded, setHistoryExpanded] = useState(false);
 
   // Content-search state — populated by the debounced server fetch.
   // When `hits` is non-null, we render server hits; when null (server
@@ -664,6 +671,24 @@ export const SessionSidebar = memo(function SessionSidebar() {
                 </div>
               ))}
             </>
+          )}
+        </div>
+
+        {/* Run History section */}
+        <div className="border-t ac-border-subtle mt-2 pt-2">
+          <button
+            onClick={() => setHistoryExpanded(!historyExpanded)}
+            className="flex items-center gap-1.5 px-2 py-1.5 w-full text-left text-[11px] font-medium ac-text-2 hover:ac-text-1 ac-transition"
+          >
+            <ChevronRight className={`h-3 w-3 transition-transform ${historyExpanded ? 'rotate-90' : ''}`} />
+            <HistoryIcon className="h-3 w-3" />
+            Run History
+          </button>
+
+          {historyExpanded && (
+            <div className="px-2 py-1">
+              <RunHistoryPanel hideHeader view="runs" />
+            </div>
           )}
         </div>
       </ScrollArea>

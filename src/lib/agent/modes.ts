@@ -147,10 +147,10 @@ export type DesignCritiqueMode = 'manual' | 'auto' | 'off';
 export const DESIGN_CRITIQUE_MODES: readonly DesignCritiqueMode[] = ['manual', 'auto', 'off'] as const;
 
 /// Coerce an arbitrary value (request body field, localStorage blob) to a
-/// valid DesignCritiqueMode. Unknown/absent → 'manual' — manual invocation
-/// is the product default (critique subagents are opt-in, not compulsory).
+/// valid DesignCritiqueMode. Unknown/absent → 'off' — critics are disabled
+/// by default (opt-in via /critique or Settings → 'manual'/'auto').
 export function normalizeDesignCritiqueMode(value: unknown): DesignCritiqueMode {
-  return value === 'auto' || value === 'off' || value === 'manual' ? value : 'manual';
+  return value === 'auto' || value === 'off' || value === 'manual' ? value : 'off';
 }
 
 // ---- Adaptive critique gate (research §4.4 — replaces always-on critique) ---

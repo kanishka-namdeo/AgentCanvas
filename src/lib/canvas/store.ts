@@ -1881,6 +1881,16 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       // D1: the switch also drops the old document's blocking gates (a
       // pending approval/question modal would otherwise float over the NEW
       // canvas with no run behind it) and its background-task rows.
+      // D2 (2026-09-11): also reset undo/redo stacks — the old document's
+      // undo history would otherwise apply to the NEW document if the user
+      // hits Ctrl+Z after switching.
+      // D3 (2026-09-11): clear highlightTimeout — the old document's highlight
+      // timeout would otherwise fire after the switch and clear highlights on
+      // the NEW document.
+      if (highlightTimeout) {
+        clearTimeout(highlightTimeout);
+        highlightTimeout = undefined;
+      }
       set({
         agentBusy: false,
         runPhase: 'idle',
@@ -1888,6 +1898,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         pendingApproval: null,
         pendingQuestion: null,
         backgroundTasks: [],
+        undoStack: [],
+        redoStack: [],
+        guideUndoStack: [],
+        guideRedoStack: [],
       });
     }
     get().loadGuides();
@@ -2668,7 +2682,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   setToolMode: (mode) => set({ toolMode: mode }),
 
   setDocumentName: (name) =>
-    set((s) => ({ document: { ...s.document, name } })),
+    set((s) => {
+      const prev = stripDerivedForSnapshot(s.document);
+      return {
+        document: { ...s.document, name },
+        undoStack: [...s.undoStack, prev].slice(-50),
+        redoStack: [],  // clear redo on new mutation
+      };
+    }),
 
   switchSession: (sessionId) => {
     const { documentId, agentBusy } = get();

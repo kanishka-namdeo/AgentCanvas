@@ -35,6 +35,7 @@
 import { create } from 'zustand';
 import { persist, type PersistStorage } from 'zustand/middleware';
 import { v4 as uuid } from 'uuid';
+import { toast } from 'sonner';
 import type { CanvasDocument } from '@/lib/canvas/types';
 import type {
   Session, Run, Message, ToolCallRecord, Snapshot,
@@ -42,6 +43,7 @@ import type {
   RunStatus, RunTrigger, ToolCallStatus, SnapshotSource,
 } from './types';
 import { TERMINAL_RUN_STATUSES } from './types';
+import { quotaAwareSetItem } from '@/lib/storage/quota-aware';
 
 // ---- ID + time helpers ------------------------------------------------------
 
@@ -339,11 +341,28 @@ function throttledFlush(): void {
   throttledPending = null;
   if (!pending || typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(pending.name, JSON.stringify(pending.value));
-    throttledLastWriteAt = Date.now();
+    const serialized = JSON.stringify(pending.value);
+    // Quota-aware write: detects QuotaExceededError and surfaces it to the
+    // user via toast instead of silently swallowing (2026-09-11 fix).
+    const success = quotaAwareSetItem(pending.name, serialized, {
+      onFirstFailure: () => {
+        // Emergency: attempt to sync the active session to the server before
+        // the user loses their data. Fire-and-forget — if this fails too,
+        // the toast already told the user.
+        if (typeof window !== 'undefined') {
+          import('./server-sync').then(({ syncActiveSessionToServer }) => {
+            syncActiveSessionToServer();
+          }).catch(() => {});
+        }
+      },
+      toast,
+    });
+    if (success) {
+      throttledLastWriteAt = Date.now();
+    }
   } catch {
-    // Quota / privacy-mode failures were silently swallowed by the previous
-    // createJSONStorage path too — persisting must never break the app.
+    // Non-quota errors (e.g., serialization failure) — persisting must
+    // never break the app. Swallow silently.
   }
 }
 
@@ -361,6 +380,12 @@ if (typeof window !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') throttledFlush();
   });
+
+  // Initialize the persistent offline sync queue (Task 2 fix).
+  // Flushes queued server syncs on reconnect.
+  import('./sync-queue').then(({ initSyncQueue }) => {
+    initSyncQueue();
+  }).catch(() => {});
 }
 
 function createThrottledJSONStorage(): PersistStorage<unknown> {
@@ -851,6 +876,7 @@ export const useSessionStore = create<SessionStoreState>()(
           outputTokens: 0,
           costUsd: 0,
           createdAt: ts,
+          updatedAt: ts,
           startedAt: ts,
           completedAt: null,
           cancelledAt: null,
@@ -905,8 +931,9 @@ export const useSessionStore = create<SessionStoreState>()(
         if (TERMINAL_RUN_STATUSES.has(run.status)) return;
         if (status !== 'awaiting_tool' && status !== 'cancelling' && status !== 'in_progress') return;
         if (run.status === status) return;
+        const ts = nowISO();
         set((s) => ({
-          runs: { ...s.runs, [runId]: { ...s.runs[runId], status } },
+          runs: { ...s.runs, [runId]: { ...s.runs[runId], status, updatedAt: ts } },
         }));
       },
 
@@ -935,6 +962,7 @@ export const useSessionStore = create<SessionStoreState>()(
           completedAt: status === 'completed' || status === 'failed' || status === 'incomplete' ? ts : run.completedAt,
           cancelledAt: status === 'cancelled' ? ts : run.cancelledAt,
           durationMs,
+          updatedAt: ts,
         };
         set((s) => {
           const session = s.sessions[run.sessionId];
@@ -974,9 +1002,11 @@ export const useSessionStore = create<SessionStoreState>()(
       updateRun: (runId, patch) => {
         const run = get().runs[runId];
         if (!run) return;
+        const ts = nowISO();
         const updated: Run = {
           ...run,
           ...patch,
+          updatedAt: ts,
         };
         set((s) => ({
           runs: { ...s.runs, [runId]: updated },
@@ -1053,11 +1083,14 @@ export const useSessionStore = create<SessionStoreState>()(
         const state = get();
         // Runs stuck in a live-looking state whose last activity predates
         // the cutoff → 'incomplete' (resumable, honest).
+        // Use updatedAt (2026-09-11 fix) instead of createdAt — a run that's
+        // been alive for 30 minutes with recent tool calls should NOT be
+        // marked stale. Only runs with no recent activity are truly stuck.
         for (const run of Object.values(state.runs)) {
           if (
             (run.status === 'in_progress' || run.status === 'awaiting_tool' ||
              run.status === 'queued' || run.status === 'cancelling') &&
-            new Date(run.createdAt).getTime() < cutoff
+            new Date(run.updatedAt ?? run.createdAt).getTime() < cutoff
           ) {
             get().endRun(run.id, 'incomplete', 'Interrupted — no agent activity for 10+ minutes');
             report.runs++;
@@ -1468,6 +1501,7 @@ export const useSessionStore = create<SessionStoreState>()(
                 toolCallIds: [...run.toolCallIds, tc.id],
                 stepCount: run.toolCallIds.length + 1,
                 status: 'awaiting_tool' as RunStatus,
+                updatedAt: ts,
               },
             },
             sessions: session
@@ -1863,10 +1897,11 @@ export function hydrateSessionStore() {
     const docIds = new Set(Object.values(store.sessions).map((s) => s.documentId));
     for (const docId of docIds) {
       // ---- Session merge ----
-      // STRICT fetch: null = server unreachable (keep cache as-is), array =
+      // STRICT fetch: null = server unreachable (keep cache as-is), object =
       // authoritative server state for this document (safe to reconcile).
-      fetchServerSessionsStrict(docId).then((serverSessions) => {
-        if (serverSessions === null) return;
+      fetchServerSessionsStrict(docId).then((result) => {
+        if (result === null) return;
+        const serverSessions = result.sessions;
         // Merge: add server sessions that don't exist in localStorage.
         //
         // IMPORTANT (bug fix): we insert the server session DIRECTLY into the
@@ -2002,9 +2037,7 @@ export function enforceSessionCap(maxRetained: number): number {
   if (active.length <= maxRetained) return 0;
   // Protect pinned + starred sessions from auto-archive.
   const candidates = active.filter((s) => !s.pinned && !s.starred);
-  // Archive from the END (oldest) of the candidates list.
-  const toArchive = candidates.slice(maxRetained - active.length > 0 ? 0 : 0);
-  // Simpler: archive the oldest candidates until we're under the cap.
+  // Archive the oldest candidates until we're under the cap.
   // active.length - maxRetained = how many we need to remove.
   const excess = active.length - maxRetained;
   let archived = 0;

@@ -50,7 +50,6 @@ import { MarkdownMessage } from './Markdown';
 import { ModelSwitcher } from './ModelSwitcher';
 import { StatusBadge } from '@/components/sessions/StatusBadge';
 import { RUN_PHASE_LABEL, BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
-import { suggestFollowUps } from '@/lib/agent/followups';
 import {
   matchCommands, resolveCommand, parseCommandInput, COMMAND_MENU_LIMIT, resolvePackName,
   type ChatCommand,
@@ -1527,7 +1526,7 @@ export function AgentPanel() {
 
   return (
     <div
-      className="relative flex flex-col h-full ac-surface-0 ac-hide-scrollbar"
+      className="relative flex flex-col h-full min-h-0 overflow-hidden ac-surface-0 ac-hide-scrollbar"
       // Drag-and-drop images anywhere onto the chat (ChatGPT/Claude pattern).
       onDragOver={(e) => {
         if (Array.from(e.dataTransfer.types).includes('Files')) {
@@ -1565,7 +1564,7 @@ export function AgentPanel() {
       {/* Conversation — aria-live so screen readers announce streaming
           assistant output (a11y pattern from the chat-UI anatomy research). */}
       <div className="relative flex-1 min-h-0">
-        <ScrollArea ref={scrollRef} className="h-full ac-hide-scrollbar">
+        <ScrollArea ref={scrollRef} className="h-full ac-hide-scrollbar" viewportClassName="agent-panel-scroll">
           <div className="p-3 space-y-3" role="log" aria-live="polite" aria-label="Agent conversation">
           {turns.length === 0 && (
             <div className="space-y-3">
@@ -1634,17 +1633,6 @@ export function AgentPanel() {
           {turns.map((turn) => (
             <TurnBubble key={turn.id} turn={turn} />
           ))}
-          {/* Follow-up suggestions — shown after the LAST completed assistant
-              turn while idle (v0 / Lovable “what next?” pattern). Contextual:
-              derived from the turn's tool trajectory + current canvas. Hidden
-              on errored turns — suggesting next steps after a failure is noise. */}
-          {!agentBusy &&
-            turns.length >= 2 &&
-            turns[turns.length - 1].role === 'assistant' &&
-            !turns[turns.length - 1].streaming &&
-            !turns[turns.length - 1].error && (
-            <FollowUps turn={turns[turns.length - 1]} />
-          )}
           {agentBusy && <BusyRow onStop={() => stopAgent()} />}
           {agentBusy && <SteerInput />}
           </div>
@@ -1670,7 +1658,7 @@ export function AgentPanel() {
           Send/Queue appears when there's text OR staged attachments. The
           composer STAYS ENABLED while the agent runs — Enter queues the
           message (Cursor 3 default) instead of dead-ending. */}
-      <div className="border-t ac-border-subtle p-2 ac-surface-0">
+      <div className="flex-shrink-0 border-t ac-border-subtle p-2 ac-surface-0">
         {/* Queued prompts (typed while busy) — visible + removable; the store
             auto-flushes one per completed turn. */}
         <QueueChips />
@@ -3015,59 +3003,6 @@ function SteerInput() {
       >
         Steer
       </button>
-    </div>
-  );
-}
-
-/// FollowUps — contextual "what next?" chips after the last completed turn.
-/// Suggestions come from the pure engine in src/lib/agent/followups.ts,
-/// derived from the turn's tool trajectory + the current canvas state.
-function FollowUps({ turn }: { turn: ReturnType<typeof useCanvasStore.getState>['turns'][number] }) {
-  const promptAgent = useCanvasStore((s) => s.promptAgent);
-  const document = useCanvasStore((s) => s.document);
-  const turns = useCanvasStore((s) => s.turns);
-  const agentBusy = useCanvasStore((s) => s.agentBusy);
-
-  const suggestions = useMemo(() => {
-    // Find the user prompt that triggered this assistant turn.
-    const idx = turns.findIndex((t) => t.id === turn.id);
-    const userTurn = idx > 0 ? turns[idx - 1] : null;
-    return suggestFollowUps({
-      tools: turn.toolCalls.map((tc) => ({ name: tc.name, success: tc.success !== false })),
-      assistantText: turn.text ?? '',
-      userPrompt: userTurn?.text ?? '',
-      shapes: document.shapes ?? [],
-      hasColorVariables: Object.values(document.variables ?? {}).some(
-        (v) => (v as { type?: string })?.type === 'color',
-      ),
-    });
-  }, [turn, turns, document]);
-
-  if (agentBusy) return null;
-
-  return (
-    <div className="pt-1 space-y-1">
-      <div className="flex items-center gap-1 ac-label px-0.5">
-        <ChevronRight className="h-3 w-3" />
-        What next?
-      </div>
-      <div className="flex flex-col gap-1">
-        {suggestions.map((s) => (
-          <button
-            key={s}
-            onClick={() => {
-              pushPromptHistory(s);
-              promptAgent(s);
-            }}
-            disabled={agentBusy}
-            className="group/fu flex items-center gap-1.5 w-full text-left text-[11px] px-2 py-1.5 rounded-md border ac-border-subtle ac-surface-1 hover:ac-surface-0 hover:ac-border-default ac-text-2 disabled:opacity-50 ac-transition ac-focus-ring"
-          >
-            <Sparkles className="h-2.5 w-2.5 ac-text-4 group-hover/fu:text-[color:var(--ac-accent)] transition-colors flex-shrink-0" />
-            <span className="flex-1 truncate">{s}</span>
-            <Send className="h-2.5 w-2.5 opacity-0 group-hover/fu:opacity-100 ac-text-4 transition-opacity flex-shrink-0" />
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

@@ -246,6 +246,65 @@ export function normalizeToolParams(toolName: string, params: any): any {
   return out;
 }
 
+// ---- Stringified-JSON array arg repair --------------------------------------
+
+/// Repair arguments where the LLM passed an array as a stringified JSON string.
+///
+/// Known-affected parameters (from the assess-skills test):
+///   - palette (pen_apply_palette, pen_generate_palette)
+///   - shapeIds (pen_align_shapes, pen_group_shapes, etc.)
+///   - nodes (pen_generate_diagram)
+///   - updates (pen_bulk_update_by_filter)
+///   - stops (pen_set_gradient_fill)
+///   - points (pen_create_path)
+///
+/// For each of these, if the value is a string that looks like a JSON array,
+/// parse it into a real array.
+export function repairArrayArgs(args: any): any {
+  if (!args || typeof args !== 'object') return args;
+  const repaired = { ...args };
+
+  // True array params — accept either a real array OR a stringified JSON array.
+  // The LLM occasionally passes `palette="[\"#fff\",\"#000\"]"` instead of
+  // `palette=["#fff","#000"]`. Detect + parse.
+  const arrayParams = ['palette', 'shapeIds', 'nodeIds', 'nodes', 'updates', 'stops', 'points', 'axes', 'componentIds', 'parameters', 'modes'];
+  for (const param of arrayParams) {
+    const val = (repaired as any)[param];
+    if (typeof val === 'string' && val.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) {
+          (repaired as any)[param] = parsed;
+        }
+      } catch {
+        // Not valid JSON — leave as-is and let the tool handle the error.
+      }
+    }
+  }
+
+  // String params that the LLM sometimes wraps in a stringified JSON array.
+  // Example: shapeId="[\"abc-123\"]" (the LLM got confused because some
+  // tools take `shapeIds` plural). Unwrap to the first element.
+  // This was the root cause of the "no shape with id [\"abc\"]" loop where
+  // the agent retried the same failing call 16+ times.
+  const stringParams = ['shapeId', 'nodeId', 'instanceId', 'variantComponentId', 'parentId', 'groupId', 'newParentId', 'maskId', 'variableId', 'collectionId'];
+  for (const param of stringParams) {
+    const val = (repaired as any)[param];
+    if (typeof val === 'string' && val.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+          (repaired as any)[param] = parsed[0];
+        }
+      } catch {
+        // Not valid JSON — leave as-is.
+      }
+    }
+  }
+
+  return repaired;
+}
+
 // ---- Alias exposure helpers --------------------------------------------------
 
 /** Minimal structural type of a `defineTool` result we need to wrap/clone. */
@@ -284,7 +343,7 @@ export function aliasToolEntries<T extends AliasToolLike>(tools: T[]): T[] {
         name: legacyName,
         description: `[deprecated: use ${tool.name}] ${tool.description}`,
         execute: async (toolCallId: string, params: any, signal: any, onUpdate: any, ctx: any) => {
-          const result = await origExecute(toolCallId, normalizeToolParams(tool.name, params), signal, onUpdate, ctx);
+          const result = await origExecute(toolCallId, repairArrayArgs(normalizeToolParams(tool.name, params)), signal, onUpdate, ctx);
           return appendNoticeToResult(result, deprecationNotice(legacyName, alias));
         },
       } as unknown as T);
@@ -306,7 +365,7 @@ export function applyToolAliases<T extends AliasToolLike>(tools: T[]): T[] {
     return {
       ...tool,
       execute: async (toolCallId: string, params: any, signal: any, onUpdate: any, ctx: any) =>
-        origExecute(toolCallId, normalizeToolParams(tool.name, params), signal, onUpdate, ctx),
+        origExecute(toolCallId, repairArrayArgs(normalizeToolParams(tool.name, params)), signal, onUpdate, ctx),
     } as unknown as T;
   });
   return [...wrapped, ...aliasToolEntries(wrapped)];

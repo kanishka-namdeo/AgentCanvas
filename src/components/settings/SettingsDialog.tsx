@@ -207,7 +207,7 @@ function AgentSection() {
   const defaultPalette = useSettings((s) => s.defaultPalette);
   const skillSelectionMode = useSettings((s) => s.skillSelectionMode);
   const approvalMode = useSettings((s) => s.approvalMode);
-  const designCritiqueMode = useSettings((s) => s.designCritiqueMode ?? 'manual');
+  const designCritiqueMode = useSettings((s) => s.designCritiqueMode ?? 'off');
   const set = useSettings((s) => s.set);
 
   // (2026-09-07 UI hardening, 12-c#3) render guards: the store's rehydrate
@@ -320,7 +320,7 @@ function AgentSection() {
 
         <Row
           label="Design critique"
-          description="When the design-critic subagents (text + vision review) run. 'Manual (default)' — only when you ask: the /critique command or a critique/polish prompt. 'Automatic' — also on large builds and validator failures (the previous behavior). 'Off' — never dispatch critics; the free deterministic checks still run every turn."
+          description="When the design-critic subagents (text + vision review) run. 'Off (default)' — never dispatch critics; the free deterministic checks still run every turn. 'Manual' — only when you ask: the /critique command or a critique/polish prompt. 'Automatic' — also on large builds and validator failures."
         >
           <Select
             value={designCritiqueMode}
@@ -330,9 +330,9 @@ function AgentSection() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="manual" className="text-[11px]">Manual — on /critique (recommended)</SelectItem>
-              <SelectItem value="auto" className="text-[11px]">Automatic — adaptive (old behavior)</SelectItem>
-              <SelectItem value="off" className="text-[11px]">Off — never run critics</SelectItem>
+              <SelectItem value="off" className="text-[11px]">Off — never run critics (recommended)</SelectItem>
+              <SelectItem value="manual" className="text-[11px]">Manual — on /critique only</SelectItem>
+              <SelectItem value="auto" className="text-[11px]">Automatic — adaptive</SelectItem>
             </SelectContent>
           </Select>
         </Row>
@@ -582,9 +582,9 @@ function LLMSection() {
             dropdown when there are popular or live models to pick from, but
             ALSO render a plain Input below it so the user can always type a
             custom model name (the previous design only showed the Input when
-            popularModels was empty, which made the `custom` provider — with
-            its single `kimi-k2-5` popularModel — impossible to configure for
-            any other model name without first succeeding at a Live fetch). */}
+            popularModels was empty, which made the `custom` provider
+            impossible to configure for any other model name without first
+            succeeding at a Live fetch). */}
         <Row
           label="Model"
           description={
@@ -690,11 +690,11 @@ function LLMSection() {
           )}
           {/* UI-audit round 4: always allow typing a custom model name.
               The previous design only showed the Input fallback when
-              popularModels was empty, which made the `custom` provider —
-              with its single `kimi-k2-5` popularModel — impossible to
-              configure for any other model name without first succeeding
-              at a Live fetch. Now the Input always renders below the
-              Select; typing in it overrides the dropdown's selection. */}
+              popularModels was empty, which made the `custom` provider
+              impossible to configure for any other model name without
+              first succeeding at a Live fetch. Now the Input always
+              renders below the Select; typing in it overrides the
+              dropdown's selection. */}
           <Input
             value={modelName}
             onChange={(e) => set('modelName', e.target.value)}

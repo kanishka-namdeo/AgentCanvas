@@ -232,13 +232,14 @@ export const LayersPanel = memo(function LayersPanel({
     return () => window.removeEventListener('ac:layers-rename', onRenameRequest);
   }, []);
 
-  // ---- ⌥1 / ⌥2 tab switching (spec Phase 7 §H.1, Appendix H §H.3 #1) --------
-  // page.tsx dispatches `ac:layers-set-tab` when the registry matches the
-  // 'panel.layers-tab' (⌥1) or 'panel.assets-tab' (⌥2) action. We keep the
-  // tab state LOCAL to the panel session (no store field) — Figma tracks it
-  // per-session too; on reload it resets to Layers (the default).
-  // Controlled mode (`tab` prop): the outer strip owns the state; the event
-  // still fires so the parent can sync (page.tsx listens and setLeftTab).
+  // ---- Layers ⇄ Assets tab (spec Phase 7 §H.1, Appendix H §H.3 #1) ----------
+  // Tab switching now lives LOCALLY in this panel: uncontrolled, it keeps its
+  // own `internalTab` and reacts to the `ac:layers-set-tab` CustomEvent. The
+  // parent no longer owns a left-column tab state (`setLeftTab` is gone) —
+  // RightToolsPanel mounts the panel controlled per right-panel tab
+  // (`tab="layers"` / `tab="assets"`). On reload it resets to Layers (default).
+  // Controlled mode (`tab` prop): the outer tab strip owns navigation; the
+  // event still fires locally so the panel can switch when driven that way.
   const [internalTab, setInternalTab] = useState<'layers' | 'assets'>('layers');
   const activeTab = tab ?? internalTab;
   const setActiveTab = (t: 'layers' | 'assets') => {
@@ -312,22 +313,28 @@ export const LayersPanel = memo(function LayersPanel({
     return shapes.filter((s) => visible.has(s.id));
   }, [shapes, searchQuery]);
 
-  const sortedTop = useMemo(
-    () => [...filteredShapes].filter((s) => !s.parentId).sort((a, b) => b.zIndex - a.zIndex),
-    [filteredShapes],
-  );
-  const childrenOf = useCallback(
-    (id: string) =>
-      filteredShapes.filter((s) => s.parentId === id).sort((a, b) => b.zIndex - a.zIndex),
-    [filteredShapes],
-  );
-
   // Containers (frame / group) can be expanded/collapsed and are valid drop
   // targets for reparent.
   const isContainer = (s: Shape) =>
     s.type === 'frame' || s.type === 'group' ||
     s.type === 'section' || s.type === 'component' ||
     s.type === 'component_set' || s.type === 'boolean_operation';
+
+  const sortedTop = useMemo(() => {
+    const byId = new Map(filteredShapes.map((s) => [s.id, s]));
+    return [...filteredShapes]
+      .filter((s) => {
+        if (!s.parentId) return true;
+        const parent = byId.get(s.parentId);
+        return !parent || !isContainer(parent);
+      })
+      .sort((a, b) => b.zIndex - a.zIndex);
+  }, [filteredShapes]);
+  const childrenOf = useCallback(
+    (id: string) =>
+      filteredShapes.filter((s) => s.parentId === id).sort((a, b) => b.zIndex - a.zIndex),
+    [filteredShapes],
+  );
 
   const toggleExpand = (id: string) => {
     const next = new Set(collapsed);
@@ -1114,16 +1121,17 @@ export const LayersPanel = memo(function LayersPanel({
         </div>
       )}
 
-      {/* ---- Layers column — tabs (Layers tree / Assets grid) -------------------
-          Phase 7 §H.1 — the left sidebar's Layers/Assets tabs. Tab state lives
-          in the panel (see `activeTab` above) so the cheat-sheet ⌥1/⌥2 chords
-          can drive it via the `ac:layers-set-tab` CustomEvent without a store
-          round-trip. Radix Tabs unmounts the inactive content so the grid
-          never pays for tree reconciliation while the user is on Layers, and
-          vice-versa.
-          UI-audit round 2: when CONTROLLED (`tab` prop — the outer Chats ·
-          Layers · Assets strip owns navigation), this whole inner strip is
-          skipped; expand/collapse rides in the search row instead. */}
+      {/* ---- Layers body — tabs (Layers tree / Assets grid) --------------------
+          Phase 7 §H.1 — Layers/Assets tab state lives in the panel (see
+          `activeTab` above); uncontrolled it is driven locally by the
+          `ac:layers-set-tab` CustomEvent without a store round-trip. The
+          parent no longer owns a left-column tab state — RightToolsPanel
+          mounts this panel controlled, one tab per right-panel tab. Radix Tabs
+          unmounts the inactive content so the grid never pays for tree
+          reconciliation while the user is on Layers, and vice-versa.
+          UI-audit round 2: when CONTROLLED (`tab` prop — the right tools panel
+          strip owns navigation), this whole inner strip is skipped;
+          expand/collapse rides in the search row instead. */}
       <div className="flex flex-col flex-1 min-w-0 ac-hide-scrollbar">
         <Tabs
           value={activeTab}

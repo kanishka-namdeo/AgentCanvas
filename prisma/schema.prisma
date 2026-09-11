@@ -312,6 +312,11 @@ model SessionRun {
   /// Stored as Float so 0.0012-cent increments accumulate without rounding loss.
   costUsd    Float    @default(0)
   createdAt  DateTime @default(now())
+  /// Auto-updated on every mutation (2026-09-11 fix for stale activity
+  /// reconciliation — uses updatedAt instead of createdAt to detect truly
+  /// inactive runs, not just old ones with recent activity). Optional to
+  /// allow migration of existing rows.
+  updatedAt  DateTime?
 
   // Two read shapes:
   //   1. session GET include: runs orderBy createdAt asc — [sessionId,

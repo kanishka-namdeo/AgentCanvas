@@ -32,6 +32,7 @@ These `src/components/ui/` files were hand-edited to absorb breaking changes fro
 ### Style overrides
 - The primitives consume CSS variables defined in `src/app/globals.css` (e.g. `--background`, `--foreground`, `--primary`, `--radius`). The `--ac-*` design tokens layer ON TOP of these — components in `canvas/` and `sessions/` use `--ac-*` for semantic spacing/border/text roles.
 - Do not introduce a second design token system. If the shadcn variables are insufficient, extend `--ac-*` in `globals.css`.
+- **`scroll-area.tsx` — added optional `viewportClassName` prop (2026-09-11).** `className` lands on Radix's `Root`, which is only `position: relative` (not scrollable); the inner `[data-radix-scroll-area-viewport]` carries `overflow: scroll` and is the real scroll container. `viewportClassName` lets a caller tag that inner viewport (e.g. `AgentPanel`'s `.agent-panel-scroll`) so an external `document.querySelector(...).scrollBy()` in `src/app/page.tsx` (⌘↑/⌘↓ chat navigation) scrolls messages. Optional — all existing call sites unaffected.
 
 ### Component inventory
 - 26 primitives: `avatar`, `badge`, `button`, `card`, `checkbox`, `collapsible`, `command`, `context-menu`, `dialog`, `dropdown-menu`, `input`, `label`, `popover`, `resizable`, `scroll-area`, `select`, `separator`, `slider`, `sonner`, `switch`, `table`, `tabs`, `textarea`, `toast`, `toaster`, `tooltip`. (`carousel`/`sidebar` were listed here previously but never existed as files; the 20 zero-import primitives named above were deleted in the 2026-09 dependency-hygiene pass.)

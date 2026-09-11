@@ -12,8 +12,11 @@
 // The server is the source of truth for persistence.
 //
 // All functions are safe to call from the client (they use fetch).
-// If the server is unreachable, they silently fail — the localStorage cache
-// keeps working.
+// If the server is unreachable, they queue the request for retry via
+// the persistent offline queue (sync-queue.ts) — the localStorage cache
+// keeps working, and the queue flushes on reconnect.
+
+import { enqueueSync } from './sync-queue';
 
 interface ServerSession {
   id: string;
@@ -90,14 +93,25 @@ export interface ServerTagSuggestion {
 }
 
 /// Fetch sessions from the server for a given document.
-export async function fetchServerSessions(documentId: string): Promise<ServerSession[]> {
+/// Supports cursor-based pagination: pass `cursor` (the `lastOpenedAt` of the
+/// last item from the previous page) to fetch the next page. Returns the
+/// sessions array and a `nextCursor` (null when no more pages).
+export async function fetchServerSessions(
+  documentId: string,
+  cursor?: string | null,
+): Promise<{ sessions: ServerSession[]; nextCursor: string | null }> {
   try {
-    const res = await fetch(`/api/sessions?documentId=${encodeURIComponent(documentId)}`);
-    if (!res.ok) return [];
+    const params = new URLSearchParams({ documentId });
+    if (cursor) params.set('cursor', cursor);
+    const res = await fetch(`/api/sessions?${params.toString()}`);
+    if (!res.ok) return { sessions: [], nextCursor: null };
     const data = await res.json();
-    return data.sessions ?? [];
+    return {
+      sessions: data.sessions ?? [],
+      nextCursor: data.nextCursor ?? null,
+    };
   } catch {
-    return [];
+    return { sessions: [], nextCursor: null };
   }
 }
 
@@ -105,12 +119,20 @@ export async function fetchServerSessions(documentId: string): Promise<ServerSes
 /// and the (possibly empty) session array on success. Callers use this to
 /// distinguish "server says this document has no sessions" (safe to reconcile
 /// deletions) from "could not ask the server" (must keep the local cache).
-export async function fetchServerSessionsStrict(documentId: string): Promise<ServerSession[] | null> {
+export async function fetchServerSessionsStrict(
+  documentId: string,
+  cursor?: string | null,
+): Promise<{ sessions: ServerSession[]; nextCursor: string | null } | null> {
   try {
-    const res = await fetch(`/api/sessions?documentId=${encodeURIComponent(documentId)}`);
+    const params = new URLSearchParams({ documentId });
+    if (cursor) params.set('cursor', cursor);
+    const res = await fetch(`/api/sessions?${params.toString()}`);
     if (!res.ok) return null;
     const data = await res.json();
-    return data.sessions ?? [];
+    return {
+      sessions: data.sessions ?? [],
+      nextCursor: data.nextCursor ?? null,
+    };
   } catch {
     return null;
   }
@@ -128,22 +150,29 @@ export async function createServerSession(session: {
   parentId?: string | null;
   tags?: string[];
 }): Promise<ServerSession | null> {
+  const payload = {
+    id: session.id,
+    documentId: session.documentId,
+    title: session.title,
+    parentSessionId: session.parentId ?? undefined,
+    tags: session.tags,
+  };
   try {
     const res = await fetch('/api/sessions', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        id: session.id,
-        documentId: session.documentId,
-        title: session.title,
-        parentSessionId: session.parentId ?? undefined,
-        tags: session.tags,
-      }),
+      body: JSON.stringify(payload),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Queue for retry on non-OK response.
+      enqueueSync({ endpoint: '/api/sessions', method: 'POST', body: JSON.stringify(payload) });
+      return null;
+    }
     const data = await res.json();
     return data.session ?? null;
   } catch {
+    // Queue for retry on network failure.
+    enqueueSync({ endpoint: '/api/sessions', method: 'POST', body: JSON.stringify(payload) });
     return null;
   }
 }
@@ -153,23 +182,36 @@ export async function updateServerSession(
   id: string,
   updates: Partial<Pick<ServerSession, 'title' | 'status' | 'pinned' | 'runCount' | 'toolCallCount' | 'lastOpenedAt'>> & { tags?: string[] },
 ): Promise<void> {
+  const endpoint = `/api/sessions/${id}`;
+  const body = JSON.stringify(updates);
   try {
-    await fetch(`/api/sessions/${id}`, {
+    const res = await fetch(endpoint, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(updates),
+      body,
     });
+    if (!res.ok) {
+      // Queue for retry on non-OK response.
+      enqueueSync({ endpoint, method: 'PATCH', body });
+    }
   } catch {
-    // Silent fail — localStorage cache is still valid.
+    // Queue for retry on network failure.
+    enqueueSync({ endpoint, method: 'PATCH', body });
   }
 }
 
 /// Delete a session on the server.
 export async function deleteServerSession(id: string): Promise<void> {
+  const endpoint = `/api/sessions/${id}`;
   try {
-    await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
+    const res = await fetch(endpoint, { method: 'DELETE' });
+    if (!res.ok) {
+      // Queue for retry on non-OK response.
+      enqueueSync({ endpoint, method: 'DELETE', body: null });
+    }
   } catch {
-    // Silent fail.
+    // Queue for retry on network failure.
+    enqueueSync({ endpoint, method: 'DELETE', body: null });
   }
 }
 
@@ -184,16 +226,25 @@ export async function appendServerMessage(
   message: { role: 'user' | 'assistant'; content: string; status?: string; error?: string; runId?: string; messageId?: string; diffSummary?: string },
   documentId?: string,
 ): Promise<string | null> {
+  const endpoint = `/api/sessions/${sessionId}/messages`;
+  const payload = { ...message, documentId };
+  const body = JSON.stringify(payload);
   try {
-    const res = await fetch(`/api/sessions/${sessionId}/messages`, {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ...message, documentId }),
+      body,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Queue for retry on non-OK response.
+      enqueueSync({ endpoint, method: 'POST', body });
+      return null;
+    }
     const data = await res.json();
     return data.message?.id ?? null;
   } catch {
+    // Queue for retry on network failure.
+    enqueueSync({ endpoint, method: 'POST', body });
     return null;
   }
 }
@@ -282,16 +333,24 @@ export async function syncServerRun(
   sessionId: string,
   run: { prompt: string; status?: string; runId?: string; errorMessage?: string; toolCallCount?: number; toolCalls?: any[]; documentId?: string; inputTokens?: number; outputTokens?: number; costUsd?: number },
 ): Promise<string | null> {
+  const endpoint = `/api/sessions/${sessionId}/runs`;
+  const body = JSON.stringify(run);
   try {
-    const res = await fetch(`/api/sessions/${sessionId}/runs`, {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(run),
+      body,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Queue for retry on non-OK response.
+      enqueueSync({ endpoint, method: 'POST', body });
+      return null;
+    }
     const data = await res.json();
     return data.run?.id ?? null;
   } catch {
+    // Queue for retry on network failure.
+    enqueueSync({ endpoint, method: 'POST', body });
     return null;
   }
 }
@@ -311,23 +370,32 @@ export async function captureDocumentSnapshot(payload: {
   nodeCount?: number;
   label?: string | null;
 }): Promise<boolean> {
+  const endpoint = `/api/documents/${encodeURIComponent(payload.documentId)}/snapshots`;
+  const body = JSON.stringify({
+    id: payload.id,
+    sessionId: payload.sessionId ?? undefined,
+    document: payload.document,
+    source: payload.source,
+    runId: payload.runId ?? undefined,
+    messageId: payload.messageId ?? undefined,
+    nodeCount: payload.nodeCount,
+    label: payload.label ?? undefined,
+  });
   try {
-    const res = await fetch(`/api/documents/${encodeURIComponent(payload.documentId)}/snapshots`, {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        id: payload.id,
-        sessionId: payload.sessionId ?? undefined,
-        document: payload.document,
-        source: payload.source,
-        runId: payload.runId ?? undefined,
-        messageId: payload.messageId ?? undefined,
-        nodeCount: payload.nodeCount,
-        label: payload.label ?? undefined,
-      }),
+      body,
     });
-    return res.ok;
+    if (!res.ok) {
+      // Queue for retry on non-OK response.
+      enqueueSync({ endpoint, method: 'POST', body });
+      return false;
+    }
+    return true;
   } catch {
+    // Queue for retry on network failure.
+    enqueueSync({ endpoint, method: 'POST', body });
     return false;
   }
 }
@@ -556,6 +624,50 @@ export async function fetchServerTagSuggestions(sessionId: string): Promise<Serv
   } catch {
     return [];
   }
+}
+
+// ---------------------------------------------------------------------------
+// Emergency sync (quota failure recovery) — called when localStorage quota
+// is exceeded. Attempts to sync the active session to the server before
+// the user loses their data. Fire-and-forget.
+// ---------------------------------------------------------------------------
+
+/// Emergency sync: push each document's active session metadata to the server.
+/// Called by the quota-aware persist handler when localStorage writes fail.
+/// This is a best-effort attempt to preserve data before the tab is closed.
+export function syncActiveSessionToServer(): void {
+  // Dynamic import to avoid circular dependency (store.ts imports this file).
+  import('./store').then(({ useSessionStore }) => {
+    const state = useSessionStore.getState();
+
+    // Sync every document's active session (activeSessionByDoc maps
+    // documentId → sessionId).
+    for (const sessionId of Object.values(state.activeSessionByDoc)) {
+      const session = state.sessions[sessionId];
+      if (!session) continue;
+
+      // Fire-and-forget: create or update the session on the server.
+      // If this fails, the toast already told the user storage is full.
+      createServerSession({
+        id: session.id,
+        documentId: session.documentId,
+        title: session.title,
+        parentId: session.parentId,
+        tags: session.tags,
+      }).then(() => {
+        // Sync counts if the session was created successfully.
+        updateServerSession(session.id, {
+          runCount: session.runCount,
+          toolCallCount: session.toolCallCount,
+          lastOpenedAt: new Date().toISOString(),
+        });
+      }).catch(() => {
+        // Silent fail — the toast already warned the user.
+      });
+    }
+  }).catch(() => {
+    // Silent fail — store import failed (shouldn't happen in practice).
+  });
 }
 
 // ---------------------------------------------------------------------------

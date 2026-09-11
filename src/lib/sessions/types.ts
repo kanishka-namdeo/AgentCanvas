@@ -148,6 +148,7 @@ export interface Run {
 
   /// ISO strings. `durationMs` is computed on completion.
   createdAt: string;
+  updatedAt: string;
   startedAt: string | null;
   completedAt: string | null;
   cancelledAt: string | null;

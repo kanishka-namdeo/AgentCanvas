@@ -11,8 +11,6 @@ import { useDefaultLayout, type PanelImperativeHandle, type LayoutStorage } from
 import { Canvas } from '@/components/canvas/Canvas';
 import { Toolbar } from '@/components/canvas/Toolbar';
 import { AppMenu } from '@/components/canvas/AppMenu';
-import { LayersPanel } from '@/components/canvas/LayersPanel';
-import { PropertiesPanel } from '@/components/canvas/PropertiesPanel';
 import { AgentPanel } from '@/components/canvas/AgentPanel';
 import type { PaletteCommand } from '@/components/canvas/CommandPalette';
 import { useOnboarding } from '@/lib/onboarding/store';
@@ -34,14 +32,15 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePenFile } from '@/components/canvas/PenFileMenu';
 import {
   PenTool, Bot, PanelLeft, PanelRight, PanelLeftClose, PanelRightClose,
-  Maximize2, Minimize2, MessageSquare, Sliders, History as HistoryIcon,
+  Maximize2, Minimize2, MessageSquare, Sliders,
   Layers as LayersIcon, Boxes, Search, Settings, Users,
   FilePlus2, Undo2, Redo2, Copy, ClipboardPaste, Trash2, Eye, ZoomIn,
   SunMoon, Square, Circle, Type, Minus, Frame, Section as SectionIcon,
   PanelLeftClose as PanelLeftIcon, PanelRightClose as PanelRightIcon, Keyboard,
-  Camera, Sparkles,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RightToolsPanel } from '@/components/canvas/RightToolsPanel';
 import { toast } from 'sonner';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -94,11 +93,6 @@ const OnboardingDialog = dynamic(
   () => import('@/components/onboarding/OnboardingDialog').then((m) => m.OnboardingDialog),
   { ssr: false, loading: () => null },
 );
-// History is a right-panel tab, not the default — loads on first visit.
-const RunHistoryPanel = dynamic(
-  () => import('@/components/sessions/RunHistoryPanel').then((m) => m.RunHistoryPanel),
-  { ssr: false, loading: () => <LoadingFallback /> },
-);
 
 /// Mount-on-first-open gate for the lazily-loaded dialogs above: returns
 /// false until `open` goes true once, then stays true for the rest of the
@@ -120,18 +114,7 @@ function useDeferredMount(open: boolean): boolean {
   return mounted;
 }
 
-type RightTab = 'chat' | 'design' | 'runs' | 'snapshots';
-/// UI-audit round 3 (2026-09): the right column now has FOUR tabs —
-/// Design · Chat · Runs · Snapshots. The previous "History" tab with its
-/// nested Runs/Snapshots sub-tabs was folded up into the outer strip,
-/// eliminating the only nested-tabs pattern in the app (a round-3 audit
-/// finding). The RunHistoryPanel now accepts a `view` prop so the outer
-/// strip controls which sub-view renders.
-/// UI-audit round 2: Assets is a top-level tab now — the left column has
-/// ONE strip (Chats · Layers · Assets), Figma-UI3 style, instead of the old
-/// outer Chats/Layers strip + a second inner Layers/Assets strip inside the
-/// panel (~100px of stacked chrome before any content).
-type LeftTab = 'chats' | 'layers' | 'assets';
+type RightTab = 'layers' | 'properties' | 'design-systems' | 'assets';
 
 // ---- Keyboard auto-repeat coalescing (2026-09-08 perf, 12-d #12) ----------
 //
@@ -197,6 +180,7 @@ export default function Home() {
   const document = useCanvasStore((s) => s.document);
   const agentBusy = useCanvasStore((s) => s.agentBusy);
   const selectedIds = useCanvasStore((s) => s.selectedIds);
+  const turnCount = useCanvasStore((s) => s.turns.length);
 
   // Headless .pen export/import — handlers feed the File menu; `chrome` is
   // the hidden file input + busy toast (rendered once, always mounted).
@@ -226,8 +210,19 @@ export default function Home() {
       setLayoutStorage(window.localStorage);
     }
   }, []);
+  // Layout persistence — v2 key forces reset after the three-zone restructure
+  // (added vertical split in center panel). Old v1 layout would cause errors
+  // or unexpected sizing since the panel tree structure changed.
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
-    id: 'co-canvas-layout-h',
+    id: 'co-canvas-layout-h-v2',
+    storage: layoutStorage,
+    onlySaveAfterUserInteractions: true,
+  });
+
+  // Vertical (canvas ⇄ chat) split persistence — separate group id so the
+  // canvas/chat ratio survives reloads independently of the column widths.
+  const { defaultLayout: defaultLayoutV, onLayoutChanged: onLayoutChangedV } = useDefaultLayout({
+    id: 'co-canvas-layout-v-v1',
     storage: layoutStorage,
     onlySaveAfterUserInteractions: true,
   });
@@ -236,10 +231,14 @@ export default function Home() {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
 
-  // Active tab in the left column (Chats / Layers).
-  const [leftTab, setLeftTab] = useState<LeftTab>('chats');
-  // Active tab in the right column (Chat / Design / History).
-  const [rightTab, setRightTab] = useState<RightTab>('design');
+  // Active tab in the right column (Layers / Properties / Design Systems / Assets).
+  const [rightTab, setRightTab] = useState<RightTab>('layers');
+  // Chat panel collapse state (vertical split below canvas).
+  const [chatPanelCollapsed, setChatPanelCollapsed] = useState(false);
+  const chatPanelRef = useRef<PanelImperativeHandle>(null);
+  // Unread chat indicator — set when new messages arrive while the Chat tab
+  // is not active; cleared when the user switches to Chat.
+  const [hasUnreadChat, setHasUnreadChat] = useState(false);
   // ⌘K command palette visibility.
   const [paletteOpen, setPaletteOpen] = useState(false);
   // Settings dialog visibility.
@@ -311,6 +310,10 @@ export default function Home() {
       rightPanelRef.current.collapse();
       setRightCollapsed(true);
     }
+    if (chatPanelRef.current && !chatPanelRef.current.isCollapsed?.()) {
+      chatPanelRef.current.collapse();
+      setChatPanelCollapsed(true);
+    }
   }, [isMobile]);
 
   // Phase 4 — DOM-renderer bench test hooks (spec Appendix F).
@@ -373,6 +376,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const openDesignSystems = () => setDesignSystemsOpen(true);
+    window.addEventListener('agentcanvas:open-design-systems', openDesignSystems);
+    return () => window.removeEventListener('agentcanvas:open-design-systems', openDesignSystems);
+  }, []);
+
+  useEffect(() => {
     import('@/lib/sessions').then(({ sweepIdleSessions, enforceSessionCap }) => {
       const settings = useSettings.getState();
       const idleN = sweepIdleSessions(settings.autoArchiveIdleAfter);
@@ -388,8 +397,33 @@ export default function Home() {
   }, []);
 
   // When the user starts a run, jump to the Chat tab so they see streaming output.
+  // Also auto-expand the right panel if it was collapsed — otherwise the user
+  // clicks Run and sees nothing happen (the output is hidden in a collapsed panel).
+  // Use a ref to read the current collapsed state without re-running the effect
+  // when it changes (we only want to expand once per run, not fight the user if
+  // they explicitly collapse the panel while the agent is running).
+  const rightCollapsedRef = useRef(rightCollapsed);
   useEffect(() => {
-    if (agentBusy) setRightTab('chat');
+    rightCollapsedRef.current = rightCollapsed;
+  }, [rightCollapsed]);
+
+  // Track chat panel collapsed state via ref (same pattern as rightCollapsedRef).
+  const chatPanelCollapsedRef = useRef(chatPanelCollapsed);
+  useEffect(() => {
+    chatPanelCollapsedRef.current = chatPanelCollapsed;
+  }, [chatPanelCollapsed]);
+
+  // When agent becomes busy, expand the chat panel so user sees streaming output.
+  // Also expand the right panel if it was collapsed (user may want to see properties).
+  useEffect(() => {
+    if (agentBusy) {
+      if (chatPanelCollapsedRef.current) {
+        toggle(chatPanelRef, chatPanelCollapsedRef.current, setChatPanelCollapsed);
+      }
+      if (rightCollapsedRef.current) {
+        toggle(rightPanelRef, rightCollapsedRef.current, setRightCollapsed);
+      }
+    }
   }, [agentBusy]);
 
   // D10 (2026-09-05 depth pass) — beforeunload awareness guard, attached ONLY
@@ -409,12 +443,35 @@ export default function Home() {
     return () => window.removeEventListener('beforeunload', warn);
   }, [agentBusy]);
 
-  // When the user selects a node on the canvas, jump to the Design tab so they
-  // can immediately edit properties. Skip if the agent is mid-run to avoid
-  // yanking the user away from the streaming chat view.
+  // When the user selects a node, surface Properties — but do NOT fight a user
+  // who manually chose another tab (e.g. reorganizing in Layers). The guard
+  // resets when the selection clears, so the next fresh selection shows
+  // Properties again.
+  const userPickedTabRef = useRef(false);
   useEffect(() => {
-    if (selectedIds.length > 0 && !agentBusy) setRightTab('design');
+    if (selectedIds.length === 0) {
+      userPickedTabRef.current = false;
+      return;
+    }
+    if (!agentBusy && !userPickedTabRef.current) setRightTab('properties');
   }, [selectedIds, agentBusy]);
+
+  // Unread chat indicator — when new turns arrive (or the agent becomes busy)
+  // and the Chat tab is not active, flag it so the tab icon shows a dot.
+  // Cleared as soon as the user switches to the Chat tab.
+  const prevTurnCountRef = useRef(turnCount);
+  useEffect(() => {
+    const prev = prevTurnCountRef.current;
+    prevTurnCountRef.current = turnCount;
+    if (chatPanelCollapsed && (turnCount > prev || agentBusy)) {
+      setHasUnreadChat(true);
+    }
+  }, [turnCount, agentBusy, chatPanelCollapsed]);
+
+  // Clear the unread indicator when the user expands the chat panel.
+  useEffect(() => {
+    if (!chatPanelCollapsed) setHasUnreadChat(false);
+  }, [chatPanelCollapsed]);
 
   // Zen mode — collapse all peripheral panels for a focused canvas view.
   // Shortcut: ⌘\ (Cmd/Ctrl + Backslash). Toggle again to restore.
@@ -427,6 +484,7 @@ export default function Home() {
   const zenSnapshot = useRef<{
     leftCollapsed: boolean;
     rightCollapsed: boolean;
+    chatCollapsed: boolean;
     leftSize: number;
     rightSize: number;
   } | null>(null);
@@ -435,13 +493,16 @@ export default function Home() {
       zenSnapshot.current = {
         leftCollapsed,
         rightCollapsed,
+        chatCollapsed: chatPanelCollapsed,
         leftSize: leftPanelRef.current?.getSize()?.asPercentage ?? 18,
         rightSize: rightPanelRef.current?.getSize()?.asPercentage ?? 28,
       };
       leftPanelRef.current?.collapse();
       rightPanelRef.current?.collapse();
+      chatPanelRef.current?.collapse();
       setLeftCollapsed(true);
       setRightCollapsed(true);
+      setChatPanelCollapsed(true);
       setZenMode(true);
     } else {
       const snap = zenSnapshot.current;
@@ -450,8 +511,11 @@ export default function Home() {
         else leftPanelRef.current?.expand();
         if (snap.rightCollapsed) rightPanelRef.current?.collapse();
         else rightPanelRef.current?.expand();
+        if (snap.chatCollapsed) chatPanelRef.current?.collapse();
+        else chatPanelRef.current?.expand();
         setLeftCollapsed(snap.leftCollapsed);
         setRightCollapsed(snap.rightCollapsed);
+        setChatPanelCollapsed(snap.chatCollapsed);
         requestAnimationFrame(() => {
           // v4: numeric sizes are pixels; we want percentages, so append "%".
           if (!snap.leftCollapsed) leftPanelRef.current?.resize(`${snap.leftSize}%`);
@@ -460,12 +524,14 @@ export default function Home() {
       } else {
         leftPanelRef.current?.expand();
         rightPanelRef.current?.expand();
+        chatPanelRef.current?.expand();
         setLeftCollapsed(false);
         setRightCollapsed(false);
+        setChatPanelCollapsed(false);
       }
       setZenMode(false);
     }
-  }, [zenMode, leftCollapsed, rightCollapsed]);
+  }, [zenMode, leftCollapsed, rightCollapsed, chatPanelCollapsed]);
 
   // Keyboard shortcuts — registry-driven (spec Phase 7 / Appendix H §H.2).
   //   The single registry (lib/canvas/shortcuts.ts) drives BOTH this keymap
@@ -558,6 +624,12 @@ export default function Home() {
         if (e.key === '\\') { e.preventDefault(); toggleZen(); return; }
         // P1-30: ⌘/ opens the keyboard shortcuts cheat sheet.
         if (e.key === '/') { e.preventDefault(); setShortcutsOpen((v) => !v); return; }
+        // ⌘J — toggle the chat panel (vertical split below the canvas).
+        if (e.key === 'j' || e.key === 'J') {
+          e.preventDefault();
+          toggle(chatPanelRef, chatPanelCollapsed, setChatPanelCollapsed);
+          return;
+        }
         // P2-47: ⌘↑ / ⌘↓ navigate chat messages (scroll the chat panel).
         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
           if (isEditable) return;
@@ -758,6 +830,14 @@ export default function Home() {
       if (menuLayerOpen() || inComposite) return;
       if (isEditable) return;
 
+      // ⌥1-4 — switch right panel tabs (Layers / Properties / Design Systems / Assets).
+      if (e.altKey && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        if (e.key === '1') { e.preventDefault(); userPickedTabRef.current = true; setRightTab('layers'); return; }
+        if (e.key === '2') { e.preventDefault(); userPickedTabRef.current = true; setRightTab('properties'); return; }
+        if (e.key === '3') { e.preventDefault(); userPickedTabRef.current = true; setRightTab('design-systems'); return; }
+        if (e.key === '4') { e.preventDefault(); userPickedTabRef.current = true; setRightTab('assets'); return; }
+      }
+
       // ---- Phase 7 registry chords (non-meta family) -----------------------
       // Tools (V/H/K/F/⇧S/S/R/O/L/T), align (⌥A/W/S/D, ⌥H/⌥V) and flip
       // (⇧H/⇧V). Exact modifier matching means plain 'h' still switches the
@@ -768,7 +848,6 @@ export default function Home() {
         'tool.slice', 'tool.rectangle', 'tool.ellipse', 'tool.line', 'tool.text',
         'align.left', 'align.top', 'align.bottom', 'align.right',
         'align.hcenter', 'align.vcenter', 'flip.h', 'flip.v',
-        'panel.layers-tab', 'panel.assets-tab',
         // UI-audit round 3 (2026-09): `/` focuses the chat input.
         'chat.focus',
       ]);
@@ -829,20 +908,11 @@ export default function Home() {
           case 'flip.v':
             flipSelection('flipY');
             break;
-          case 'panel.layers-tab':
-            // ⌥1 — switch the left column to Layers (top-level tab now).
-            setLeftTab('layers');
-            break;
-          case 'panel.assets-tab':
-            // ⌥2 — switch the left column to Assets.
-            setLeftTab('assets');
-            break;
           case 'chat.focus': {
             // UI-audit round 3 (2026-09): `/` focuses the chat input.
-            // First switch the right panel to Chat (in case the user is on
-            // Design or History), then call the AgentPanel's registered
+            // Expand the chat panel if collapsed, then call the AgentPanel's registered
             // focus hook on the next tick (so the panel has mounted).
-            if (rightTab !== 'chat') setRightTab('chat');
+            if (chatPanelCollapsed) toggle(chatPanelRef, chatPanelCollapsed, setChatPanelCollapsed);
             // Defer to next tick so the AgentPanel mounts before we focus.
             setTimeout(() => {
               const w = globalThis as unknown as { __focusAgentInput?: () => void };
@@ -913,7 +983,7 @@ export default function Home() {
       // strand the last nudge/undo).
       keyRepeatCoalescer.dispose();
     };
-  }, [leftCollapsed, rightCollapsed, toggleZen, clipboard]);
+  }, [leftCollapsed, rightCollapsed, chatPanelCollapsed, toggleZen, clipboard]);
 
   // ⌘K palette command layer (UI-audit round 2). Built here where every
   // callback/ref lives; the palette renders them above the preset prompts.
@@ -993,9 +1063,11 @@ export default function Home() {
     // Panels
     { id: 'panel.left', label: 'Toggle left panel', group: 'Panels', icon: PanelLeftIcon, shortcut: chordLabel('toggle-left-panel'), run: () => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed) },
     { id: 'panel.right', label: 'Toggle right panel', group: 'Panels', icon: PanelRightIcon, shortcut: chordLabel('toggle-right-panel'), run: () => toggle(rightPanelRef, rightCollapsed, setRightCollapsed) },
-    { id: 'panel.chats', label: 'Show Chats', group: 'Panels', icon: MessageSquare, keywords: 'sessions sidebar', run: () => { setLeftTab('chats'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
-    { id: 'panel.layers', label: 'Show Layers', group: 'Panels', icon: LayersIcon, shortcut: platformChord('⌥1'), keywords: 'tree', run: () => { setLeftTab('layers'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
-    { id: 'panel.assets', label: 'Show Assets', group: 'Panels', icon: Boxes, shortcut: platformChord('⌥2'), keywords: 'components', run: () => { setLeftTab('assets'); if (leftCollapsed) toggle(leftPanelRef, leftCollapsed, setLeftCollapsed); } },
+    { id: 'panel.chat', label: 'Toggle chat panel', group: 'Panels', icon: MessageSquare, shortcut: platformChord('⌘J'), keywords: 'agent conversation', run: () => toggle(chatPanelRef, chatPanelCollapsed, setChatPanelCollapsed) },
+    { id: 'panel.layers', label: 'Show Layers', group: 'Panels', icon: LayersIcon, shortcut: platformChord('⌥1'), keywords: 'tree', run: () => { userPickedTabRef.current = true; setRightTab('layers'); } },
+    { id: 'panel.properties', label: 'Show Properties', group: 'Panels', icon: Sliders, shortcut: platformChord('⌥2'), keywords: 'inspector', run: () => { userPickedTabRef.current = true; setRightTab('properties'); } },
+    { id: 'panel.design-systems', label: 'Show Design Systems', group: 'Panels', icon: Boxes, shortcut: platformChord('⌥3'), keywords: 'pack registry', run: () => { userPickedTabRef.current = true; setRightTab('design-systems'); } },
+    { id: 'panel.assets', label: 'Show Assets', group: 'Panels', icon: Boxes, shortcut: platformChord('⌥4'), keywords: 'components', run: () => { userPickedTabRef.current = true; setRightTab('assets'); } },
     // Help
     { id: 'help.shortcuts', label: 'Keyboard shortcuts', group: 'Help', icon: Keyboard, shortcut: platformChord('⌘/'), run: () => setShortcutsOpen(true) },
   ];
@@ -1127,59 +1199,72 @@ export default function Home() {
         <div className="relative flex-1 min-h-0">
         <ResizablePanelGroup
           orientation="horizontal"
-          id="co-canvas-layout-h"
+          id="co-canvas-layout-h-v2"
           defaultLayout={defaultLayout}
           onLayoutChanged={onLayoutChanged}
           className="h-full"
         >
-          {/* Col 1 — Left: single tabbed panel (Chats / Layers) */}
-          {/* v4 API note: numeric sizes are PIXELS in v4 (was % in v3).
-              We want percentages, so use strings like "20%".
-              Mobile (P3-8): widen the min/max so an opened panel covers ~85%
-              of the screen — otherwise the panel would be unusably narrow at
-              375px viewport width. */}
+          {/* Left: Sessions only (no tabs) */}
           <ResizablePanel
             panelRef={leftPanelRef}
-            defaultSize={isMobile ? '85%' : '20%'}
-            minSize={isMobile ? '70%' : '16%'}
-            maxSize={isMobile ? '95%' : '32%'}
+            defaultSize={isMobile ? '85%' : '18%'}
+            minSize={isMobile ? '70%' : '14%'}
+            maxSize={isMobile ? '95%' : '25%'}
             collapsible
             collapsedSize="0%"
             onResize={(size) => setLeftCollapsed(size.inPixels === 0)}
           >
-            <LeftTabbedPanel
-              tab={leftTab}
-              onTabChange={setLeftTab}
-              collapsed={leftCollapsed}
-              onToggleCollapse={() => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed)}
-            />
+            <LeftPanel collapsed={leftCollapsed} onToggleCollapse={() => toggle(leftPanelRef, leftCollapsed, setLeftCollapsed)} />
           </ResizablePanel>
 
           <ResizableHandle />
 
-          {/* Col 2 — Center: canvas (toolbar floats over it, bottom-center) */}
-          <ResizablePanel defaultSize={isMobile ? '100%' : '52%'} minSize={isMobile ? '40%' : '36%'}>
-            <div className="relative h-full">
-              <Canvas />
-              <Toolbar />
-            </div>
+          {/* Center: Canvas + Chat (vertical split) */}
+          <ResizablePanel defaultSize={isMobile ? '100%' : '54%'} minSize="40%">
+            <ResizablePanelGroup
+              orientation="vertical"
+              id="co-canvas-layout-v-v1"
+              defaultLayout={defaultLayoutV}
+              onLayoutChanged={onLayoutChangedV}
+            >
+              <ResizablePanel defaultSize="60%" minSize="35%">
+                <div className="relative h-full">
+                  <Canvas />
+                  <Toolbar />
+                </div>
+              </ResizablePanel>
+              <ResizableHandle />
+              <ResizablePanel
+                panelRef={chatPanelRef}
+                defaultSize="40%"
+                minSize="25%"
+                collapsible
+                collapsedSize="0%"
+                onResize={(size) => setChatPanelCollapsed(size.inPixels === 0)}
+              >
+                <ChatPanel
+                  collapsed={chatPanelCollapsed}
+                  onToggleCollapse={() => toggle(chatPanelRef, chatPanelCollapsed, setChatPanelCollapsed)}
+                />
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </ResizablePanel>
 
           <ResizableHandle />
 
-          {/* Col 3 — Right: single tabbed panel (Chat / Design / History) */}
+          {/* Right: Tools panel */}
           <ResizablePanel
             panelRef={rightPanelRef}
             defaultSize={isMobile ? '85%' : '28%'}
-            minSize={isMobile ? '70%' : '22%'}
-            maxSize={isMobile ? '95%' : '42%'}
+            minSize={isMobile ? '70%' : '20%'}
+            maxSize={isMobile ? '95%' : '35%'}
             collapsible
             collapsedSize="0%"
             onResize={(size) => setRightCollapsed(size.inPixels === 0)}
           >
-            <RightTabbedPanel
+            <RightToolsPanel
               tab={rightTab}
-              onTabChange={setRightTab}
+              onTabChange={(t) => { userPickedTabRef.current = true; setRightTab(t); }}
               collapsed={rightCollapsed}
               onToggleCollapse={() => toggle(rightPanelRef, rightCollapsed, setRightCollapsed)}
             />
@@ -1217,6 +1302,25 @@ export default function Home() {
             className="absolute top-1/2 -translate-y-1/2 right-0 z-30 flex items-center justify-center h-16 w-5 rounded-l-md border border-r-0 ac-border-default ac-surface-0 shadow-md hover:ac-surface-1 ac-transition ac-focus-ring"
           >
             <PanelRight className="h-3.5 w-3.5 ac-text-2" />
+          </button>
+        )}
+
+        {/* Chat panel collapsed → show expand button at bottom-right of canvas area.
+            Positioned at the bottom-right so it doesn't conflict with the left/right
+            edge buttons (which are vertically centered). */}
+        {!zenMode && chatPanelCollapsed && (
+          <button
+            onClick={() => toggle(chatPanelRef, chatPanelCollapsed, setChatPanelCollapsed)}
+            title="Show chat panel (J)"
+            aria-label="Show chat panel"
+            className="absolute bottom-4 right-20 z-30 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border ac-border-default ac-surface-0 shadow-md hover:ac-surface-1 ac-transition ac-focus-ring backdrop-blur"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--ac-surface-0) 88%, transparent)' }}
+          >
+            <MessageSquare className="h-3.5 w-3.5 ac-text-2" />
+            <span className="text-[11px] ac-text-2">Chat</span>
+            {hasUnreadChat && (
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--ac-accent)]" aria-label="unread messages" />
+            )}
           </button>
         )}
         {/* Exit-zen pill — the single chrome affordance while zen is active
@@ -1284,177 +1388,52 @@ export default function Home() {
   );
 }
 
-// ───────────────────────── Left column — tabbed ─────────────────────────
-// Merges Sessions + Layers into a single panel with tabs. Gives whichever is
-// active the full vertical space of the left column — instead of permanently
-// splitting it in half.
-function LeftTabbedPanel({
-  tab, onTabChange, collapsed, onToggleCollapse,
-}: {
-  tab: LeftTab;
-  onTabChange: (t: LeftTab) => void;
-  collapsed: boolean;
-  onToggleCollapse: () => void;
-}) {
-  const tabs: { id: LeftTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'chats',  label: 'Chats',  icon: MessageSquare },
-    { id: 'layers', label: 'Layers', icon: LayersIcon },
-    { id: 'assets', label: 'Assets', icon: Boxes },
-  ];
+// ───────────────────────── Left panel — Sessions only ─────────────────────────
+function LeftPanel({ collapsed, onToggleCollapse }: { collapsed: boolean; onToggleCollapse: () => void }) {
   return (
-    // @container (Tailwind v4) — the tab labels below collapse to icon-only
-    // when the column is narrower than ~12rem, so three tabs never truncate
-    // at 1024px viewports. UI-audit round 3 (2026-09): breakpoint aligned
-    // with the right column (was 13rem; both now 12rem) for consistent
-    // collapse behavior across sidebars.
-    <div className={`@container flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
-      {/* Tab strip — also serves as the panel header (collapse chevron on the right).
-          UI-audit round 3 (2026-09): active tab uses the Material 3 "active
-          indicator" pattern — full-width pill with --ac-accent-soft fill —
-          matching the right panel for consistency. */}
-      <div className="flex items-center gap-1 px-1.5 py-1.5 border-b ac-border-subtle ac-surface-0 flex-shrink-0">
-        <div className="flex gap-0.5 flex-1 min-w-0" role="tablist" aria-label="Left panel">
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                role="tab"
-                aria-selected={active}
-                onClick={() => onTabChange(t.id)}
-                title={t.label}
-                className={`flex items-center gap-1.5 px-2.5 h-7 rounded-md text-[11px] font-medium ac-transition ac-focus-ring ${
-                  active
-                    ? 'bg-[var(--ac-accent-soft)] ac-text-1'
-                    : 'ac-text-3 hover:ac-text-1 hover:ac-surface-1'
-                }`}
-              >
-                <Icon className="h-3 w-3" />
-                <span className="hidden @min-[12rem]:inline">{t.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Collapse chevron on the panel header itself */}
+    <div className={`flex flex-col h-full ac-surface-0 overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
+      <div className="flex items-center justify-between px-2 py-1.5 border-b ac-border-subtle ac-surface-0 flex-shrink-0">
+        <span className="text-[11px] font-medium ac-text-2">Sessions</span>
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleCollapse}
           title="Toggle left panel (⌘1)"
           aria-label="Toggle left panel"
-          className="h-7 w-7 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring flex-shrink-0"
+          className="h-7 w-7 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring"
         >
           {collapsed ? <PanelRight className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
         </Button>
       </div>
-
-      {/* Active panel body — full vertical space.
-          UI-audit round 2: Layers/Assets render the SAME panel in controlled
-          mode — the outer strip owns the tab (the panel's inner tab strip is
-          hidden; expand/collapse rides in its search row).
-          Perf: pass the stable parent prop directly (not a lambda) so the
-          memoized LayersPanel bails out of unrelated re-renders. */}
       <div className="flex-1 min-h-0">
-        {tab === 'chats' && <SessionSidebar />}
-        {(tab === 'layers' || tab === 'assets') && (
-          <LayersPanel tab={tab} onTabChange={onTabChange} />
-        )}
+        <SessionSidebar />
       </div>
     </div>
   );
 }
 
-// ───────────────────────── Right column — tabbed ─────────────────────────
-// Replaces the previous Properties (top) + Chat (middle) + History (bottom)
-// vertical stack with a single panel that uses tabs. Gives whichever panel is
-// active the full vertical space of the right column.
-function RightTabbedPanel({
-  tab, onTabChange, collapsed, onToggleCollapse,
-}: {
-  tab: RightTab;
-  onTabChange: (t: RightTab) => void;
-  collapsed: boolean;
-  onToggleCollapse: () => void;
-}) {
-  const tabs: { id: RightTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    // UI-audit round 3 (2026-09): reordered to Design → Chat → History per
-    // Figma UI3 consensus (design-first tools default to Design tab; Chat
-    // is still one click away and auto-activates when the agent starts
-    // streaming). Aligns with the auto-switch logic at line 328 + 352 which
-    // already moves users to the right tab for the right moment.
-    // UI-audit round 3 (2026-09): folded the nested Runs/Snapshots sub-tabs
-    // up into the outer strip (4 tabs: Design · Chat · Runs · Snapshots).
-    // The RunHistoryPanel now accepts a `view` prop ('runs' | 'snapshots')
-    // so the outer strip controls which sub-view renders — no more
-    // tabs-within-tabs.
-    { id: 'design',    label: 'Design',    icon: Sliders },
-    { id: 'chat',      label: 'Chat',      icon: MessageSquare },
-    { id: 'runs',      label: 'Runs',      icon: HistoryIcon },
-    { id: 'snapshots', label: 'Snapshots', icon: Camera },
-  ];
+// ───────────────────────── Chat panel — Agent chat below canvas ─────────────────────────
+function ChatPanel({ collapsed, onToggleCollapse }: { collapsed: boolean; onToggleCollapse: () => void }) {
   return (
-    <div className={`@container flex flex-col h-full ac-surface-0 ac-hide-scrollbar overflow-hidden min-w-0 ${collapsed ? 'hidden' : ''}`}>
-      {/* Tab strip — also serves as the panel header (collapse chevron on the right).
-          UI-audit round 3 (2026-09): active tab uses the Material 3 "active
-          indicator" pattern — full-width pill with --ac-accent-soft fill —
-          instead of the previous ac-surface-2 + shadow-sm. More legible at a
-          glance + consistent with the active-row treatment in sidebars. */}
-      <div className="flex items-center gap-1 px-1.5 py-1.5 border-b ac-border-subtle ac-surface-0 flex-shrink-0">
-        <div className="flex gap-0.5 flex-1 min-w-0" role="tablist" aria-label="Right panel">
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                role="tab"
-                aria-selected={active}
-                aria-controls={`right-tab-${t.id}`}
-                onClick={() => onTabChange(t.id)}
-                title={t.label}
-                className={`flex items-center gap-1.5 px-2.5 h-7 rounded-md text-[11px] font-medium ac-transition ac-focus-ring ${
-                  active
-                    ? 'bg-[var(--ac-accent-soft)] ac-text-1'
-                    : 'ac-text-3 hover:ac-text-1 hover:ac-surface-1'
-                }`}
-              >
-                <Icon className="h-3 w-3" />
-                <span className="hidden @min-[12rem]:inline">{t.label}</span>
-              </button>
-            );
-          })}
+    <div className={`flex flex-col h-full ac-surface-0 border-t ac-border-subtle overflow-hidden ${collapsed ? 'hidden' : ''}`}>
+      <div className="flex items-center justify-between px-2 py-1 border-b ac-border-subtle flex-shrink-0">
+        <div className="flex items-center gap-1.5">
+          <MessageSquare className="h-3 w-3 ac-text-2" />
+          <span className="text-[11px] font-medium ac-text-2">Agent Chat</span>
         </div>
-
-        {/* Collapse chevron on the panel header itself.
-            UI-audit round 3: fixed misleading tooltip (was ⌘3, actual
-            binding is ⌘2 per the keymap at line 488). */}
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleCollapse}
-          title="Toggle right panel (⌘2)"
-          aria-label="Toggle right panel"
-          className="h-7 w-7 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring flex-shrink-0"
+          title="Collapse chat panel"
+          aria-label="Collapse chat panel"
+          className="h-6 w-6 p-0 ac-text-3 hover:ac-text-1 hover:ac-surface-1 ac-transition ac-focus-ring"
         >
-          {collapsed ? <PanelLeft className="h-3.5 w-3.5" /> : <PanelRightClose className="h-3.5 w-3.5" />}
+          <PanelRightClose className="h-3 w-3" />
         </Button>
       </div>
-
-      {/* Active panel body — full vertical space.
-          Conditional mounting (not hidden) preserves the original behavior
-          where switching tabs cleanly unmounts the previous panel — important
-          so the AgentPanel doesn't keep a stale scroll listener / draft
-          autosave timer running while the user is on Design or History.
-          UI-audit round 3 (2026-09): the old `history` tab is now split into
-          `runs` + `snapshots` tabs, controlled by the RunHistoryPanel's
-          `view` prop (no more nested sub-tabs). */}
       <div className="flex-1 min-h-0">
-        {tab === 'design'    && <PropertiesPanel />}
-        {tab === 'chat'      && <AgentPanel />}
-        {tab === 'runs'      && <RunHistoryPanel hideHeader view="runs" />}
-        {tab === 'snapshots' && <RunHistoryPanel hideHeader view="snapshots" />}
+        <AgentPanel />
       </div>
     </div>
   );

@@ -236,14 +236,14 @@ describe('2026-09-05: deterministic contrast validator', () => {
     visible: true, ...over,
   }) as unknown as Shape;
 
-  it('flags near-invisible grey-on-grey text (< 2:1)', () => {
+  it('flags text with insufficient contrast (< 4.5:1 WCAG AA)', () => {
     const shapes = [
       { id: 'f1', type: 'frame', name: 'Screen', x: 0, y: 0, width: 375, height: 812, fill: '#ffffff', zIndex: 0, locked: false, visible: true } as unknown as Shape,
       baseText({ id: 't1', parentId: 'f1', textColor: '#e2e8f0' }), // 1.23:1 on white
     ];
     const r = validateCanvasBeforeComplete(shapes, { relaxMinCount: true });
     expect(r.ok).toBe(false);
-    expect(r.reasons.some((x) => x.includes('nearly invisible'))).toBe(true);
+    expect(r.reasons.some((x) => x.includes('insufficient contrast'))).toBe(true);
     expect(r.reasons.some((x) => x.includes('#e2e8f0'))).toBe(true);
   });
 
@@ -253,7 +253,7 @@ describe('2026-09-05: deterministic contrast validator', () => {
       baseText({ id: 't2', parentId: 'f2', textColor: '#f1f5f9' }), // 1:1
     ];
     const r = validateCanvasBeforeComplete(shapes, { relaxMinCount: true });
-    expect(r.reasons.some((x) => x.includes('nearly invisible'))).toBe(true);
+    expect(r.reasons.some((x) => x.includes('insufficient contrast'))).toBe(true);
   });
 
   it('passes normal text (muted slate on white = 7.5:1) and token refs', () => {
@@ -262,13 +262,13 @@ describe('2026-09-05: deterministic contrast validator', () => {
       baseText({ id: 't4', textColor: '$color.text-muted' }), // token → skipped
     ];
     const r = validateCanvasBeforeComplete(shapes, { relaxMinCount: true });
-    expect(r.reasons.some((x) => x.includes('nearly invisible'))).toBe(false);
+    expect(r.reasons.some((x) => x.includes('insufficient contrast'))).toBe(false);
   });
 
-  it('design-system text-subtle (#94a3b8 on white, 2.5:1) is NOT flagged (intentional caption style)', () => {
+  it('flags design-system text-subtle (#94a3b8 on white, 2.5:1) — below WCAG AA 4.5:1', () => {
     const shapes = [baseText({ id: 't5', textColor: '#94a3b8' })];
     const r = validateCanvasBeforeComplete(shapes, { relaxMinCount: true });
-    expect(r.reasons.some((x) => x.includes('nearly invisible'))).toBe(false);
+    expect(r.reasons.some((x) => x.includes('insufficient contrast'))).toBe(true);
   });
 
   it('white text on a dark parent frame passes (dark-mode designs)', () => {
@@ -277,7 +277,7 @@ describe('2026-09-05: deterministic contrast validator', () => {
       baseText({ id: 't6', parentId: 'f3', textColor: '#f1f5f9' }),
     ];
     const r = validateCanvasBeforeComplete(shapes, { relaxMinCount: true });
-    expect(r.reasons.some((x) => x.includes('nearly invisible'))).toBe(false);
+    expect(r.reasons.some((x) => x.includes('insufficient contrast'))).toBe(false);
   });
 });
 

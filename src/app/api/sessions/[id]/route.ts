@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { isValidSessionStatus, VALID_SESSION_STATUSES } from '@/lib/validation/status-enums';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -69,6 +70,16 @@ export async function PATCH(
   if (idErr) return idErr;
   const body = await req.json().catch(() => ({}));
   const { title, status, pinned, runCount, toolCallCount, lastOpenedAt, tags } = body;
+
+  // Status enum validation (2026-09-11 fix): reject invalid status strings
+  // before they reach Prisma. Without this, a buggy client could write
+  // `status: 'banana'` and crash the UI on render.
+  if (status !== undefined && !isValidSessionStatus(status)) {
+    return NextResponse.json(
+      { error: `status must be one of: ${VALID_SESSION_STATUSES.join(', ')}` },
+      { status: 400 },
+    );
+  }
 
   // Validate `tags` if provided: must be an array of strings (we serialize
   // to JSON for the String column). Reject malformed payloads instead of
