@@ -133,6 +133,12 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
   const [slotEditing, setSlotEditing] = useState(false);
   const [slotInput, setSlotInput] = useState('');
 
+  // Local state for the Token Editor's Add-Variable dialog (Variables panel).
+  const [addVariableOpen, setAddVariableOpen] = useState(false);
+  const [newVariableName, setNewVariableName] = useState('');
+  const [newVariableType, setNewVariableType] = useState<'color' | 'number' | 'string'>('color');
+  const [newVariableValue, setNewVariableValue] = useState('');
+
   const update = (patch: Partial<typeof selected[number]>) => {
     if (selected.length === 0) return;
     for (const shape of selected) {
@@ -291,7 +297,8 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
 
           <Separator />
 
-          {/* Variables panel (Figma "Variables" — was "Design Tokens") */}
+          {/* Variables panel with editor (Figma "Variables" — add/delete
+              variables inline; add via dialog, delete via hover ×) */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Palette className="h-3 w-3 ac-text-4" />
@@ -299,21 +306,52 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
               <span className="text-[10px] ac-text-4 ml-auto">{(document.tokens?.colors ?? []).length} color(s)</span>
             </div>
             {(document.tokens?.colors ?? []).length === 0 ? (
-              <div className="text-[10px] ac-text-4 px-2 py-3 border border-dashed ac-border-subtle rounded text-center">
-                No variables yet. Ask the agent: <em>&quot;Generate a triadic palette from #0ea5e9&quot;</em>
+              <div className="text-[10px] ac-text-4 px-2 py-3 border border-dashed ac-border-subtle rounded text-center space-y-2">
+                <p>No variables yet.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-[10px]"
+                  onClick={() => setAddVariableOpen(true)}
+                >
+                  + Add Variable
+                </Button>
               </div>
             ) : (
               <div className="space-y-1">
                 {(document.tokens?.colors ?? []).map((c) => (
-                  <div key={c.key} className="flex items-center gap-2 text-[10px]">
+                  <div key={c.key} className="flex items-center gap-2 text-[10px] group">
                     <div
                       className="w-4 h-4 rounded border ac-border-default flex-shrink-0"
                       style={{ background: c.value }}
                     />
                     <span className="ac-text-2 font-mono">{c.key}</span>
                     <span className="ac-text-4 ml-auto font-mono">{c.value}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100"
+                      onClick={() => {
+                        sendPatch({
+                          op: 'remove_variable',
+                          variableKey: c.key,
+                          summary: `Removed variable ${c.key}`,
+                        });
+                        toast.success(`Removed $${c.key}`);
+                      }}
+                    >
+                      ×
+                    </Button>
                   </div>
                 ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-[10px] w-full mt-2"
+                  onClick={() => setAddVariableOpen(true)}
+                >
+                  + Add Variable
+                </Button>
               </div>
             )}
           </div>
@@ -345,6 +383,87 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
             Select a node to edit its properties.
           </div>
         </div>
+
+        {/* Add Variable Dialog — reachable only from the empty-state Variables
+            panel, so it renders inside the empty-state return (per plan
+            ruling); after Add, the variables list renders and this unmounts. */}
+        {addVariableOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-lg p-4 w-80 space-y-3">
+              <h3 className="text-sm font-semibold">Add Variable</h3>
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-[11px]">Name</Label>
+                  <Input
+                    value={newVariableName}
+                    onChange={(e) => setNewVariableName(e.target.value)}
+                    placeholder="color.primary"
+                    className="h-7 text-xs mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px]">Type</Label>
+                  <Select value={newVariableType} onValueChange={(v) => setNewVariableType(v as 'color' | 'number' | 'string')}>
+                    <SelectTrigger className="h-7 text-xs mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="color">Color</SelectItem>
+                      <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="string">String</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[11px]">Value</Label>
+                  {newVariableType === 'color' ? (
+                    <input
+                      type="color"
+                      value={newVariableValue || '#0ea5e9'}
+                      onChange={(e) => setNewVariableValue(e.target.value)}
+                      className="h-7 w-full rounded border ac-border-default cursor-pointer mt-1"
+                    />
+                  ) : (
+                    <Input
+                      value={newVariableValue}
+                      onChange={(e) => setNewVariableValue(e.target.value)}
+                      placeholder={newVariableType === 'number' ? '16' : 'value'}
+                      className="h-7 text-xs mt-1"
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setAddVariableOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={!newVariableName || !newVariableValue}
+                  onClick={() => {
+                    const key = newVariableName.startsWith('$') ? newVariableName.slice(1) : newVariableName;
+                    sendPatch({
+                      op: 'tokens',
+                      tokens: {
+                        colors: [
+                          ...(document.tokens?.colors ?? []),
+                          { name: key, key, value: newVariableValue },
+                        ],
+                      },
+                      summary: `Added variable $${key}`,
+                    });
+                    setAddVariableOpen(false);
+                    setNewVariableName('');
+                    setNewVariableValue('');
+                    toast.success(`Added $${key}`);
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
