@@ -371,6 +371,24 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   let hasGeneratedBrief = false;
   let inCritiqueReprrompt = false;
 
+  // Repeated-structure validator inputs (designer-workflow-parity spec §5.2).
+  // `generatorCallsThisTurn` counts one-shot generator tool calls observed in
+  // this run's event stream — this function IS one prompt cycle, so a `let`
+  // here is the prompt-start reset. `toolNameByCallId` bridges start→end:
+  // agent:tool_call_end carries only the toolCallId, the name rides
+  // agent:tool_call_start.
+  let generatorCallsThisTurn = 0;
+  const GENERATOR_TOOL_NAMES = new Set([
+    'pen_generate_wireframe',
+    'pen_create_card_grid',
+    'pen_create_landing_page',
+    'pen_create_table',
+  ]);
+  const COMPONENT_TOOL_NAMES = new Set(['figma_create_component', 'pen_convert_to_component']);
+  const toolNameByCallId = new Map<string, string>();
+  const hasComponentTool = (tools: { name: string }[]): boolean =>
+    tools.some((t) => COMPONENT_TOOL_NAMES.has(t.name));
+
   // 2026-09-05 multi-shot: nodes MUTATED (not created) by THIS turn. Pure edit
   // turns ("make it dark theme") create zero new shapes, which used to skip
   // the ENTIRE post-turn validation phase — a recolored label could break
@@ -1445,7 +1463,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       let validationNote = '';
       try {
         const { validateCanvasBeforeComplete } = await import('./validators');
-        const validation = validateCanvasBeforeComplete(newShapes, { relaxMinCount: true });
+        const validation = validateCanvasBeforeComplete(newShapes, {
+          relaxMinCount: true,
+          repeatedStructures: {
+            usedTemplateGeneration: generatorCallsThisTurn > 0,
+            componentToolsVisible: hasComponentTool(orderedTools),
+          },
+        });
         validationNote = validation.ok
           ? ''
           : `\n\nDeterministic checks found ${validation.reasons.length} issue(s) — run /critique for a full review, or ask me to fix them.`;
@@ -2131,9 +2155,15 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           if (ev.event.type === 'agent:tool_call_start') {
             sawToolCall = true;
             stuckTracker.onStart(ev.event.toolCallId, ev.event.toolName, ev.event.argsPreview);
+            toolNameByCallId.set(ev.event.toolCallId, ev.event.toolName);
           }
           if (ev.event.type === 'agent:tool_call_end') {
             stuckTracker.onEnd(ev.event.toolCallId, ev.event.success);
+            // Repeated-structure counter: a completed one-shot generator call
+            // marks this turn as template-generated (validator Rule 8 exempt).
+            const endedToolName = toolNameByCallId.get(ev.event.toolCallId) ?? '';
+            toolNameByCallId.delete(ev.event.toolCallId);
+            if (GENERATOR_TOOL_NAMES.has(endedToolName)) generatorCallsThisTurn++;
             if (
               !stuckTracker.stuck &&
               stuckTracker.streak >= STUCK_STREAK &&
@@ -2639,6 +2669,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
               execSawActivity = true;
               everSawMessageEnd = true; // an execution-phase message exists
             }
+            // Repeated-structure counter (validator Rule 8): the exec session's
+            // generator calls count too — tool_call_end is not observed in this
+            // drain, so a STARTED generator call marks the turn template-
+            // generated (conservative: exempts rather than false-positives).
+            if (ev.event.type === 'agent:tool_call_start' && GENERATOR_TOOL_NAMES.has(ev.event.toolName)) {
+              generatorCallsThisTurn++;
+            }
             if (ev.event.type === 'agent:message_end') everSawMessageEnd = true;
             if (ev.event.type === 'agent:turn_end') {
               withheldTurnEnd = true;
@@ -2756,6 +2793,17 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // One critique_skipped notice per TURN (not per iteration) — a fix sequence
   // on a gated turn shouldn't re-announce the saving every iteration.
   let critiqueSkipAnnounced = false;
+  // Repeated-structure rule inputs (validator Rule 8, spec §5.2), computed
+  // once per turn: the rule fires only when NO one-shot generator ran
+  // (template output is exempt) AND a component-creation tool was in the
+  // LLM-visible toolset. The construction toolset is the exec session's for
+  // approved-plan turns, the main session's otherwise.
+  const repeatedStructures = {
+    usedTemplateGeneration: generatorCallsThisTurn > 0,
+    componentToolsVisible: hasComponentTool(
+      planExecuted && execOrderedTools ? execOrderedTools : orderedTools,
+    ),
+  };
   try {
   if (maxCritiqueIterations > 0 && critiqueEligible && session && !wasAborted()) {
     for (let critiqueIteration = 0; critiqueIteration < maxCritiqueIterations; critiqueIteration++) {
@@ -2793,6 +2841,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
             const { validateCanvasBeforeComplete } = await import('./validators');
             const editValidation = validateCanvasBeforeComplete(touchedShapes, {
               relaxMinCount: true,
+              repeatedStructures,
             });
             if (!editValidation.ok && editValidation.reasons.length > 0) {
               yield {
@@ -2831,6 +2880,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       const { validateCanvasBeforeComplete } = await import('./validators');
       const validation = validateCanvasBeforeComplete(newShapesForCritique, {
         relaxMinCount: true,
+        repeatedStructures,
       });
 
       // ---- Agent Performance Package change 8 → ADAPTIVE CRITIQUE LADDER ----

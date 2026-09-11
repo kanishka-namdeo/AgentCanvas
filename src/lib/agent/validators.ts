@@ -47,6 +47,11 @@ export interface ValidationResult {
  *   6. Contrast: text with <4.5:1 contrast ratio against background → fail (WCAG AA).
  *   7. Root frame clipping: root frame with FIXED height whose children
  *      extend beyond it → fail ("use fit_content").
+ *   8. Repeated structures: ≥3 siblings in one parent group sharing one
+ *      structural signature → fail ("build ONE component and place
+ *      instances"). Only evaluated when the runner threads
+ *      `opts.repeatedStructures` AND neither exemption applies — see
+ *      `RepeatedStructuresOpts`.
  *
  * The thresholds are deliberately set to industry standards (50% / 50% / 1) so the gate
  * catches the wireframe-only failure mode without forcing perfection.
@@ -56,9 +61,16 @@ export interface ValidationResult {
  * to a turn's NEW shapes only (multi-screen shared canvas): an edit turn that
  * legitimately adds only a few shapes must not be told to pad the canvas.
  */
+export interface RepeatedStructuresOpts {
+  /** True when a one-shot generator tool (pen_generate_wireframe / pen_create_card_grid / pen_create_landing_page / pen_create_table) ran this turn. */
+  usedTemplateGeneration: boolean;
+  /** True when the turn's LLM-visible toolset included a component-creation tool (figma_create_component or pen_convert_to_component). */
+  componentToolsVisible: boolean;
+}
+
 export function validateCanvasBeforeComplete(
   shapes: Layer[],
-  opts?: { relaxMinCount?: boolean },
+  opts?: { relaxMinCount?: boolean; repeatedStructures?: RepeatedStructuresOpts },
 ): ValidationResult {
   const reasons: string[] = [];
   const totalShapes = shapes.length;
@@ -228,6 +240,51 @@ export function validateCanvasBeforeComplete(
     }
   }
 
+  // Rule 8: repeated structures without components (designer-workflow-parity
+  // spec §5.2 — component-first construction). ≥3 siblings under one parent
+  // sharing one structural signature (node-type tree shape; child order
+  // stabilized by x then y; text content, fills, names, and geometry values
+  // ignored) means the agent hand-duplicated a subtree instead of building
+  // ONE component + instances. DEFAULT-OFF: fires only when the runner
+  // threads `repeatedStructures` AND neither exemption applies — template
+  // output (a generator tool ran this turn) is exempt, and the rule stays
+  // silent when no component-creation tool was in the turn's visible toolset
+  // (the agent could not comply with the fix it would be told to make).
+  const rs = opts?.repeatedStructures;
+  if (rs && !rs.usedTemplateGeneration && rs.componentToolsVisible) {
+    // Group siblings by parent ('root' for parentless shapes).
+    const groups = new Map<string, Layer[]>();
+    for (const s of shapes) {
+      const key = (s as { parentId?: string | null }).parentId ?? 'root';
+      const group = groups.get(key);
+      if (group) group.push(s);
+      else groups.set(key, [s]);
+    }
+    for (const members of groups.values()) {
+      if (members.length < 3) continue;
+      // Bucket by structural signature within the group.
+      const buckets = new Map<string, Layer[]>();
+      for (const member of members) {
+        const sig = structuralSignature(member, shapes);
+        const bucket = buckets.get(sig);
+        if (bucket) bucket.push(member);
+        else buckets.set(sig, [member]);
+      }
+      for (const [sig, bucket] of buckets) {
+        if (bucket.length < 3) continue;
+        // Exempt when ANY sibling (or one of its descendants) is a component
+        // instance — the group already follows the component-first model.
+        if (bucket.some((m) => subtreeHasComponentInstance(m, shapes))) continue;
+        const sigPreview = sig.length > 96 ? `${sig.slice(0, 93)}...` : sig;
+        reasons.push(
+          `${bucket.length} repeated structures with identical layout (${sigPreview}) — build ONE component ` +
+          `(figma_create_component or pen_convert_to_component) and place instances (pen_place_component_instance) ` +
+          `instead of duplicating bespoke subtrees. Restyle the main component; instances inherit.`,
+        );
+      }
+    }
+  }
+
   return {
     ok: reasons.length === 0,
     reasons,
@@ -240,6 +297,41 @@ export function validateCanvasBeforeComplete(
       autoLayoutContainers: autoLayoutContainers.length,
     },
   };
+}
+
+// ---- Rule 8: structural signature ------------------------------------------
+
+/**
+ * Ordered node-type tree shape of `node`'s subtree — the Rule 8
+ * repeated-structure signature. Children are looked up in `shapes` by
+ * `parentId` and ordered by x then y (position-stabilized); text content,
+ * fills, names, and exact geometry values are ignored, so two subtrees with
+ * the same type tree share one signature regardless of styling or copy.
+ * `depth` caps how many descendant levels contribute (default 4).
+ */
+export function structuralSignature(node: Layer, shapes: Layer[], depth = 4): string {
+  const childrenOf = (id: string) =>
+    shapes
+      .filter((s) => (s as { parentId?: string | null }).parentId === id)
+      .sort((a, b) => a.x - b.x || a.y - b.y);
+  const walk = (n: Layer, d: number): string => {
+    const kids = d <= 0 ? [] : childrenOf(n.id);
+    return `${n.type}(${kids.map((k) => walk(k, d - 1)).join(',')})`;
+  };
+  return walk(node, depth);
+}
+
+/**
+ * True when `node` or any of its descendants (looked up in `shapes` by
+ * `parentId`) is a component instance (`componentId` set). Depth-capped like
+ * `structuralSignature` to guard against cycles in malformed trees.
+ */
+function subtreeHasComponentInstance(node: Layer, shapes: Layer[], depth = 8): boolean {
+  if ((node as { componentId?: string | null }).componentId) return true;
+  if (depth <= 0) return false;
+  return shapes
+    .filter((s) => (s as { parentId?: string | null }).parentId === node.id)
+    .some((c) => subtreeHasComponentInstance(c, shapes, depth - 1));
 }
 
 // ---- Helpers ---------------------------------------------------------------
