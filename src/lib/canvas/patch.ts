@@ -544,6 +544,16 @@ export function applyPatchToCanvas(
       }
       break;
     }
+    case 'remove_variable': {
+      // Delete a variable by key (Token Editor / agent token deletion).
+      // `next.variables` is already the shallow copy made at applier entry,
+      // so the delete never mutates the input document. Derived caches
+      // (`tokens`, `background`) recompute via recomputeDerived() below.
+      // Missing key or a doc with no variables is a no-op.
+      if (!patch.variableKey || !next.variables) break;
+      delete next.variables[patch.variableKey];
+      break;
+    }
     case 'set_theme_axis': {
       if (!patch.themeAxis || !patch.themeValues) break;
       if (!next.themes) next.themes = {};

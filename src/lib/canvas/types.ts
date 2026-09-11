@@ -409,6 +409,7 @@ export interface CanvasPatch {
     | 'set_theme_axis'
     | 'set_node_theme'
     | 'set_variable'
+    | 'remove_variable'
     | 'mark_slot'
     // Figma-hierarchy ops:
     | 'reparent'
@@ -479,7 +480,7 @@ export interface CanvasPatch {
   themeAxis?: string;                    // for set_theme_axis
   themeValues?: string[];                // for set_theme_axis
   theme?: PenTheme;                      // for set_node_theme
-  variableKey?: string;                  // for set_variable
+  variableKey?: string;                  // for set_variable / remove_variable
   variableType?: 'color' | 'number' | 'string' | 'boolean' | 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
   variableValue?: string | number | boolean | Array<{ value: string | number | boolean; theme?: PenTheme }>;
   slotComponents?: string[];             // for mark_slot
