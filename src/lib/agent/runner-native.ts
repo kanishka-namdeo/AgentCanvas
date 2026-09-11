@@ -1467,7 +1467,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
           relaxMinCount: true,
           repeatedStructures: {
             usedTemplateGeneration: generatorCallsThisTurn > 0,
-            componentToolsVisible: hasComponentTool(orderedTools),
+            // Provenance caveat (designer-workflow-parity review ⚠️b): these
+            // shapes were built by multitask sub-agents whose visible toolsets
+            // are NOT proven to mirror the main session's — Rule 8 stays
+            // silent here rather than false-fire on subagent-built shapes.
+            componentToolsVisible: false,
           },
         });
         validationNote = validation.ok
@@ -2793,23 +2797,31 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // One critique_skipped notice per TURN (not per iteration) — a fix sequence
   // on a gated turn shouldn't re-announce the saving every iteration.
   let critiqueSkipAnnounced = false;
-  // Repeated-structure rule inputs (validator Rule 8, spec §5.2), computed
-  // once per turn: the rule fires only when NO one-shot generator ran
-  // (template output is exempt) AND a component-creation tool was in the
-  // LLM-visible toolset. The construction toolset is the exec session's for
-  // approved-plan turns, the main session's otherwise.
-  const repeatedStructures = {
-    usedTemplateGeneration: generatorCallsThisTurn > 0,
-    componentToolsVisible: hasComponentTool(
-      planExecuted && execOrderedTools ? execOrderedTools : orderedTools,
-    ),
-  };
+  // Repeated-structure rule input (validator Rule 8, spec §5.2): a component-
+  // creation tool must be in the LLM-visible toolset for the rule to fire.
+  // Stable across the whole turn — the visible toolset cannot change during
+  // the critique loop (tier-widening only runs in the attempt loop above).
+  // The construction toolset is the exec session's for approved-plan turns,
+  // the main session's otherwise.
+  const componentToolsVisible = hasComponentTool(
+    planExecuted && execOrderedTools ? execOrderedTools : orderedTools,
+  );
   try {
   if (maxCritiqueIterations > 0 && critiqueEligible && session && !wasAborted()) {
     for (let critiqueIteration = 0; critiqueIteration < maxCritiqueIterations; critiqueIteration++) {
       // A stopped run never enters (or continues) the critique loop — critics
       // and fix-turns would spend more tokens after the user said Stop.
       if (wasAborted()) break;
+      // Repeated-structure flags are re-read PER ITERATION (never frozen
+      // pre-loop): a critique fix-turn may itself call a one-shot generator
+      // (e.g. rebuild a grid via pen_create_card_grid), and the NEXT
+      // iteration's validation must see usedTemplateGeneration:true — the
+      // binding "zero template-generation calls this turn" condition is
+      // evaluated against the live counter at each validation use.
+      const repeatedStructures = {
+        usedTemplateGeneration: generatorCallsThisTurn > 0,
+        componentToolsVisible,
+      };
       // Sync the local canvas with whatever patches the agent emitted.
       // (canvas is updated by ctx.applyPatch above as patches flow through.)
       const shapesForCritique = canvas.shapes ?? [];
@@ -3211,6 +3223,12 @@ Apply ALL fixes via tool calls, then end your turn with a 1-sentence summary.`;
             if (ev.event.type === 'agent:tool_call_start') {
               fixSawActivity = true;
               fixSawToolCall = true;
+              // Rule 8 feed: a fix-turn generator call (e.g. rebuilding a grid
+              // via pen_create_card_grid) must exempt the NEXT critique
+              // iteration's validation. This drain observes only
+              // tool_call_start — mirror the plan-exec drain's start-only seam
+              // (conservative: exempts rather than false-positives).
+              if (GENERATOR_TOOL_NAMES.has(ev.event.toolName)) generatorCallsThisTurn++;
             }
             // Same turn_end withholding as the main drain loop — the
             // fix-turn's agent_end must not close the client's turn while

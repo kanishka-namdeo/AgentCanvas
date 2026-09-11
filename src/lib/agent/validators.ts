@@ -273,7 +273,13 @@ export function validateCanvasBeforeComplete(
       for (const [sig, bucket] of buckets) {
         if (bucket.length < 3) continue;
         // Exempt when ANY sibling (or one of its descendants) is a component
-        // instance — the group already follows the component-first model.
+        // instance. NOTE: deliberately MORE LENIENT than the spec's
+        // sibling-only wording ("none of those siblings is a component
+        // instance") — descendants count too, so a partially-converted group
+        // never trips the rule. Rationale: the stricter sibling-only reading
+        // would false-fire on groups already following the component-first
+        // model and demand re-conversion of instance-bearing subtrees,
+        // causing fix loops. Lenient direction = no false positives.
         if (bucket.some((m) => subtreeHasComponentInstance(m, shapes))) continue;
         const sigPreview = sig.length > 96 ? `${sig.slice(0, 93)}...` : sig;
         reasons.push(
