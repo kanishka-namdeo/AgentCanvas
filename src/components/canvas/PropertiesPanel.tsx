@@ -700,6 +700,109 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
           </div>
         )}
 
+        {/* Instance Overrides section (when instance is selected) */}
+        {isComponentInstance && (() => {
+          const master = document.shapes.find(s => s.id === shape.componentId);
+          const masterProps = (master as any)?.componentPropertyDefinitions ?? {};
+          const instanceProps = (shape as any)?.componentProperties ?? {};
+          const overrideEntries = Object.entries(instanceProps).filter(([name]) => name in masterProps);
+
+          if (overrideEntries.length === 0 && Object.keys(masterProps).length === 0) {
+            return null; // No properties defined on master
+          }
+
+          return (
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Component className="h-3 w-3 ac-text-4" />
+                <Label className="text-[11px] ac-text-3">Instance Overrides</Label>
+              </div>
+              <div className="space-y-2">
+                {Object.entries(masterProps).map(([name, def]) => {
+                  const d = def as any;
+                  const overriddenValue = instanceProps[name];
+                  const isOverridden = overriddenValue !== undefined && overriddenValue !== d.defaultValue;
+
+                  return (
+                    <div key={name} className="flex items-center gap-2 text-[10px]">
+                      <span className="ac-text-2 font-mono">{name}</span>
+                      {d.type === 'boolean' ? (
+                        <input
+                          type="checkbox"
+                          checked={isOverridden ? overriddenValue === true : d.defaultValue === true}
+                          onChange={(e) => {
+                            sendPatch({
+                              op: 'set_instance_property',
+                              shapeId: shape.id,
+                              instancePropertyName: name,
+                              instancePropertyValue: e.target.checked,
+                              summary: `Set ${name} = ${e.target.checked}`,
+                            });
+                          }}
+                        />
+                      ) : d.type === 'variant' && d.variantOptions ? (
+                        <Select
+                          value={isOverridden ? String(overriddenValue) : String(d.defaultValue)}
+                          onValueChange={(v) => {
+                            sendPatch({
+                              op: 'set_instance_property',
+                              shapeId: shape.id,
+                              instancePropertyName: name,
+                              instancePropertyValue: v,
+                              summary: `Set ${name} = ${v}`,
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="h-6 text-[10px] w-20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {d.variantOptions.map((opt: string) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          value={isOverridden ? String(overriddenValue) : String(d.defaultValue)}
+                          onChange={(e) => {
+                            sendPatch({
+                              op: 'set_instance_property',
+                              shapeId: shape.id,
+                              instancePropertyName: name,
+                              instancePropertyValue: e.target.value,
+                              summary: `Set ${name} = ${e.target.value}`,
+                            });
+                          }}
+                          className="h-6 text-[10px] w-20"
+                        />
+                      )}
+                      {isOverridden && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 text-[10px]"
+                          onClick={() => {
+                            sendPatch({
+                              op: 'set_instance_property',
+                              shapeId: shape.id,
+                              instancePropertyName: name,
+                              instancePropertyValue: d.defaultValue,
+                              summary: `Reset ${name} to default`,
+                            });
+                          }}
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
         <Separator />
 
         {/* Position — P1-16: wrap X/Y in ContextMenu for Copy/Paste value.
