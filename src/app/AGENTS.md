@@ -7,7 +7,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 ## Ownership
 
 - `layout.tsx` — root layout. Sets up `<html>`, `<body>`, font loading, theme provider, toaster. Owned by this folder.
-- `page.tsx` — the main page. Renders the 3-column tabbed layout: `LeftTabbedPanel (Chats/Layers/Assets) | Canvas | RightTabbedPanel (Design/Chat/History)`. Also renders the top header bar with brand, document name, session title, command palette, run/stop button, connection status, zen mode, .pen file menu, settings, and theme toggle. UI hardening (2026-09-07): the whole app is wrapped in `<ErrorBoundary>` (`src/components/ErrorBoundary.tsx`) — any render-time crash now shows a reload affordance instead of a white screen; the ⌘C/⌘X/meta-action selection paths build a `Map<id, shape>` once instead of `findShape` per selected id (O(selection × canvas) → O(canvas); ⌘A + copy on a 10k-node canvas used to block for seconds). Key-repeat coalescing (2026-09-08, 12-d #12): the ⌘Z/⌘⇧Z and arrow-nudge keydown paths route through a module-scope `keyRepeatCoalescer` (lib/canvas/key-repeat-coalescer.ts) — undo keydowns are COUNTED (at most one store undo per animation frame, intent never dropped), nudges accumulate (dx,dy) per frame into ONE `update_many` patch with Map-based shape/parent lookups at drain time (was: O(sel×canvas) findShape ×2 + a full apply + resolvePenTree per keypress); the keydown effect's cleanup flushes pending work (a mid-frame panel toggle can't strand the last op).
+- `app/page.tsx` — the main workspace page (2026-09-13 landing-page plan Task 2: moved verbatim from the root `page.tsx` to serve `/app`; `/` returns 404 until Task 8 lands the landing page. Its one functional edit from the move: the header brand block is wrapped in `<Link href="/">` back to the landing page). Renders the 3-column tabbed layout: `LeftTabbedPanel (Chats/Layers/Assets) | Canvas | RightTabbedPanel (Design/Chat/History)`. Also renders the top header bar with brand, document name, session title, command palette, run/stop button, connection status, zen mode, .pen file menu, settings, and theme toggle. UI hardening (2026-09-07): the whole app is wrapped in `<ErrorBoundary>` (`src/components/ErrorBoundary.tsx`) — any render-time crash now shows a reload affordance instead of a white screen; the ⌘C/⌘X/meta-action selection paths build a `Map<id, shape>` once instead of `findShape` per selected id (O(selection × canvas) → O(canvas); ⌘A + copy on a 10k-node canvas used to block for seconds). Key-repeat coalescing (2026-09-08, 12-d #12): the ⌘Z/⌘⇧Z and arrow-nudge keydown paths route through a module-scope `keyRepeatCoalescer` (lib/canvas/key-repeat-coalescer.ts) — undo keydowns are COUNTED (at most one store undo per animation frame, intent never dropped), nudges accumulate (dx,dy) per frame into ONE `update_many` patch with Map-based shape/parent lookups at drain time (was: O(sel×canvas) findShape ×2 + a full apply + resolvePenTree per keypress); the keydown effect's cleanup flushes pending work (a mid-frame panel toggle can't strand the last op).
 - `globals.css` — global styles + the `--ac-*` design token system. Owned by this folder; consumed by every component.
 
 ## Local Contracts
@@ -18,7 +18,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 - Renders the `<Toaster />`. No theme provider — `ThemeToggle` manages the `.dark` class directly via `localStorage` (no `next-themes` Provider is wired up, though the dep is installed).
 - Server component — do not add `'use client'` here.
 
-### Page (`page.tsx`)
+### Page (`app/page.tsx`)
 - The layout is a **tabbed 3-column** split: `LeftTabbedPanel (Chats/Layers/Assets) | Canvas | RightTabbedPanel (Design/Chat/History)`. The previous 4-pane layout (sessions | layers | canvas | properties+chat+history) was decluttered into 3 columns with tabs. UI-audit round 3 (2026-09) reordered the right sidebar tabs to **Design → Chat → History** (Figma UI3 consensus — design-first tools default to Design; Chat auto-activates when the agent starts streaming); the default right tab is now `Design` (was `Chat`).
 - Selecting a node auto-surfaces the Properties tab. A manual tab pick (right-panel tab click, `⌥1`–`⌥4`, or the ⌘K "Show Layers/Properties/…" commands) sets a sticky guard that suppresses the auto-switch until the selection clears, so the page never fights a user reorganizing in Layers.
 - Panels use `react-resizable-panels` v4 (`ResizablePanel` + `ResizableHandle`) with `collapsible` + `collapsedSize={0}`.
@@ -103,7 +103,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 
 ## Work Guidance
 
-- When changing the layout structure: update `page.tsx`, update the layout diagram in this doc, capture before/after screenshots.
+- When changing the layout structure: update `app/page.tsx`, update the layout diagram in this doc, capture before/after screenshots.
 - When adding a new design token: add it to `globals.css` under the right group, add a utility class if it will be used in more than one component, document it here.
 - When changing fonts: update `layout.tsx` (font import + `<body>` className) and `globals.css` (the `--font-*` variables if used).
 - The page must render without layout shift on first paint — the session store hydrates after mount, so the initial render shows the empty state.
@@ -113,7 +113,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
 - `bunx tsc --noEmit` — typecheck.
 - `bun run lint` — ESLint.
 - `bun run build` — production build (note: `ignoreBuildErrors: true` in `next.config.ts` means build will NOT fail on type errors — run `tsc` separately). Not for the z.ai sandbox — see the root AGENTS.md "z.ai Sandbox Operations" section (dev server only).
-- Manual: open `http://127.0.0.1:3000/`, verify the 3-column tabbed layout renders, no console errors, no layout shift.
+- Manual: open `http://127.0.0.1:3000/app` (the workspace; `/` 404s until the Task 8 landing page), verify the 3-column tabbed layout renders, no console errors, no layout shift.
 - `bunx tsx scripts/screenshot-ui-after.ts` — captures the initial state.
 
 ## Child DOX Index
