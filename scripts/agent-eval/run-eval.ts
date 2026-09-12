@@ -247,6 +247,16 @@ async function runScenario(sc: Scenario, runLabel = '1'): Promise<ScenarioResult
               }
               break;
             }
+            case 'agent:plan_proposed': {
+              // Capture plan-proposed events for staged-flow assertions (kind:'layout' vs 'plan').
+              const arr = (traj.planProposed ??= []);
+              arr.push({
+                planId: String((e as { planId?: string }).planId ?? ''),
+                kind: ((e as { kind?: 'plan' | 'layout' }).kind) || 'plan',
+                title: String((e as { title?: string }).title ?? ''),
+              });
+              break;
+            }
             case 'agent:error':
               traj.errors.push(e.message);
               break;

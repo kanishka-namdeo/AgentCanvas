@@ -24,6 +24,10 @@ export interface Trajectory {
   errors: string[];
   messageText: string;
   durationMs: number;
+  /// Plan-proposed events captured from the NDJSON stream (staged-flow scenarios).
+  /// Each entry carries the `kind` discriminator ('plan' | 'layout') so assertions
+  /// can verify the staged design flow's layout gate fired before styling tools.
+  planProposed?: Array<{ planId: string; kind?: 'plan' | 'layout'; title: string }>;
 }
 
 export interface AssertionResult {
@@ -413,6 +417,86 @@ export const SCENARIOS: Scenario[] = [
       },
       (c) => assert('colorful (hi-fi)', colorfulLayers(c, 3), '3+ saturated layers', 'too grayscale for a hi-fi dashboard'),
       (c) => assert('shadows on cards', anyShadow(c), 'shadow present', 'no shadows — flat look'),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(4),
+    ],
+  },
+
+  // ---- STAGED-FLOW scenario (2026-09-12 — designer-workflow-parity Tasks 7–10) --
+  //
+  // The staged design flow: agent asks lo-fi-vs-hifi, builds a gray-box layout,
+  // calls submit_layout_approval (kind:'layout'), waits for user approval, then
+  // runs the hi-fi upgrade pass. This scenario asserts the flow fired correctly:
+  // (1) a plan_proposed event with kind:'layout' appeared BEFORE any hi-fi styling
+  // tool, (2) the turn completed (hi-fi pass ran), (3) the final canvas has the
+  // dashboard structure (KPI cards, chart, sidebar) with hi-fi styling applied.
+
+  {
+    id: 'staged-dashboard',
+    prompt: "Build me a SaaS dashboard with KPI cards, a chart, and a sidebar",
+    visual: true,
+    assertions: [
+      // STAGED FLOW: plan_proposed with kind:'layout' must exist
+      (_c, t) => {
+        const plans = t.planProposed ?? [];
+        const layoutPlan = plans.find((p) => p.kind === 'layout');
+        return assert(
+          'staged flow: plan_proposed with kind:layout fired',
+          !!layoutPlan,
+          layoutPlan ? `layout plan "${layoutPlan.title.slice(0, 40)}" found` : 'no layout plan',
+          `no plan_proposed event with kind:'layout' — staged flow did not fire (saw ${plans.length} plan event(s): ${plans.map((p) => p.kind).join(',') || 'none'})`,
+        );
+      },
+      // STAGED FLOW: layout plan must come BEFORE hi-fi styling tools
+      (_c, t) => {
+        const plans = t.planProposed ?? [];
+        const layoutIdx = plans.findIndex((p) => p.kind === 'layout');
+        if (layoutIdx < 0) return fail('layout plan before styling', 'no layout plan found');
+        // Hi-fi styling tools: pen_apply_design_system, pen_apply_typography, pen_set_shadow, gradient/variable tools
+        const hiFiTools = ['pen_apply_design_system', 'pen_apply_typography'];
+        const firstHiFiIdx = t.toolCalls.findIndex((tc) => hiFiTools.includes(tc.name));
+        if (firstHiFiIdx < 0) return ok('layout plan before styling', 'no hi-fi styling tools called (lo-fi only or hi-fi pass not run yet)');
+        // The layout plan is an event, not a tool call — we can't directly compare indices.
+        // Instead, assert that submit_layout_approval was called (the gate tool).
+        const submitIdx = t.toolCalls.findIndex((tc) => tc.name === 'submit_layout_approval');
+        if (submitIdx < 0) return fail('layout plan before styling', 'no submit_layout_approval call found');
+        return assert(
+          'layout plan before styling',
+          submitIdx < firstHiFiIdx,
+          `submit_layout_approval at tool #${submitIdx}, first hi-fi tool at #${firstHiFiIdx}`,
+          `submit_layout_approval at tool #${submitIdx} came AFTER first hi-fi tool at #${firstHiFiIdx} — flow order violated`,
+        );
+      },
+      // STRUCTURE: dashboard has KPI cards, chart, sidebar
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        // KPI cards: look for stat-like text (numbers, $, %)
+        const hasKPI = /\$?\d[\d,.]*\s*(k|m|b)?/.test(tc) || /\d+%/.test(tc) || /\d+,\d+/.test(tc);
+        return assert('KPI card data present', hasKPI, 'KPI data found', 'no KPI-like numeric data in text layers');
+      },
+      (c) => {
+        // Chart: bar chart structure (>= 4 rects sharing a baseline)
+        const rects = ofTypes(c, ['rectangle']).filter((b) => b.width >= 12 && b.width <= 160 && b.height >= 16 && b.height <= 420);
+        const entries = rects.map((b) => ({ base: b.y + b.height, w: b.width, h: b.height }));
+        entries.sort((a, b) => a.base - b.base);
+        const clusters: Array<typeof entries> = [];
+        for (const e of entries) {
+          const last = clusters[clusters.length - 1];
+          if (last && Math.abs(e.base - last[last.length - 1].base) <= 6) last.push(e);
+          else clusters.push([e]);
+        }
+        let best = clusters[0] ?? [];
+        for (const cl of clusters) if (cl.length > best.length) best = cl;
+        return assert('chart structure present', best.length >= 4, `${best.length} rects at one baseline`, `no chart structure (best cluster: ${best.length} rects)`);
+      },
+      (c) => {
+        // Sidebar: tall narrow container on the left (x < 300, width < 300, height > 400)
+        const sidebar = ofTypes(c, ['frame', 'rectangle', 'section']).filter((b) => b.x < 300 && b.width < 300 && b.height > 400);
+        return assert('sidebar present', sidebar.length >= 1, `${sidebar.length} sidebar candidate(s)`, 'no tall narrow container on the left (sidebar)');
+      },
+      // HI-FI: after approval, the hi-fi pass should have applied styling
+      (c) => assert('colorful (hi-fi pass ran)', colorfulLayers(c, 3), '3+ saturated layers', 'too grayscale — hi-fi pass may not have run'),
+      (c) => assert('shadows present (hi-fi pass ran)', anyShadow(c), 'shadow present', 'no shadows — hi-fi pass may not have run'),
       (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
       ...trajectoryChecks(4),
     ],

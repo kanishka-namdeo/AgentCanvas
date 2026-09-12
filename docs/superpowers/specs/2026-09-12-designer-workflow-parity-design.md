@@ -1,6 +1,6 @@
 # Designer Workflow Parity — Staged Design Flow, Explorations Parking, Component-First Construction
 
-- **Status**: Proposed (spec approved 2026-09-12; research-grounded 2026-09-12, §9; implementation not started)
+- **Status**: Implemented (2026-09-12)
 - **Spec source**: Brainstorming session 2026-09-12 ("match the canvas and agent's capabilities to a designer's Figma dashboard process"). Approach B approved: reuse the PLAN-mode gate pattern for the staged flow.
 - **Code touchpoints**:
   - `src/lib/agent/runner-native.ts` (staged-flow detection + directive injection + approval flow), `src/lib/agent/modes.ts` / `src/lib/agent/prompt-intent.ts` (detection helper), `src/lib/agent/plan-tools.ts` + `plan-gate.ts` (`submit_layout_approval` gate tool), `src/lib/agent/runner-legacy.ts` (system prompt + PROMPT_VERSION bump)
