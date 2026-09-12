@@ -7,7 +7,7 @@
 Chat in plain English → the agent reasons, calls tools, and draws the design for you. Live, on an infinite HTML/DOM canvas with inline SVG islands for vector primitives, with real-time multiplayer presence.
 
 [![CI](https://github.com/kanishka-namdeo/co-canvas/actions/workflows/ci.yml/badge.svg)](https://github.com/kanishka-namdeo/co-canvas/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)](https://www.typescriptlang.org/)
@@ -362,7 +362,7 @@ model AgentAction {
 
 ## 🤝 Contributing
 
-Contributions are welcome! This is an MIT-licensed open-source project.
+Contributions are welcome! This is an AGPL-3.0-licensed open-source project.
 
 1. Fork the repo
 2. Create a feature branch: `git checkout -b feat/my-cool-thing`
@@ -381,7 +381,7 @@ For bug reports and feature requests, please use [GitHub Issues](https://github.
 
 ## 📄 License
 
-[MIT](./LICENSE) © 2026 kanishka-namdeo
+[AGPL-3.0](./LICENSE) © 2026 kanishka-namdeo
 
 ---
 
