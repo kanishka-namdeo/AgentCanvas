@@ -133,6 +133,9 @@ export interface ChatTurn {
   /// PLAN mode: the plan the agent submitted for approval (agent:plan_proposed)
   /// + its resolution state. Rendered as the PlanApprovalCard with the
   /// approval triad (Build it / Keep planning).
+  /// The `kind` field distinguishes layout-kind proposals (hi-fi layout) from
+  /// plan-kind proposals (traditional plan). Layout-kind renders with different
+  /// labels ("Layout approval", "Apply hi-fi", "Revise layout").
   planProposal?: {
     planId: string;
     title: string;
@@ -141,6 +144,7 @@ export interface ChatTurn {
     openQuestions?: string[];
     status: 'pending' | 'approved' | 'revising' | 'timeout';
     feedback?: string;
+    kind?: 'plan' | 'layout';
   };
   /// Adaptive critique gating: the runner skipped the LLM critics on this
   /// turn (small/clean — deterministic validation only). Rendered as a muted
@@ -3641,6 +3645,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           .filter((st) => st.description || st.step > 0);
         // Attach the proposal to the streaming assistant turn — the
         // PlanApprovalCard renders the triad (Build it / Keep planning).
+        // The `kind` field (layout vs plan) rides through from the event
+        // payload (Task 8's gate tool emits it via recordApprovedPlan).
         set((s) => {
           const turns = [...s.turns];
           const last = turns[turns.length - 1];
@@ -3656,6 +3662,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
                   ? { openQuestions: event.openQuestions }
                   : {}),
                 status: 'pending',
+                ...(event.kind ? { kind: event.kind } : {}),
               },
             };
           }

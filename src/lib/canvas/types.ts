@@ -701,7 +701,9 @@ export type SyncEvent =
   // BLOCKED awaiting the user's decision. The frontend renders the
   // PlanApprovalCard (approval triad: Build it / Keep planning). Resolved via
   // POST /api/agent/plans (same pending-map pattern as agent:approval_request).
-  | { type: 'agent:plan_proposed'; planId: string; title: string; summary: string; steps: Array<{ step: number; description: string }>; openQuestions?: string[] }
+  // The `kind` field distinguishes layout-kind proposals (hi-fi layout) from
+  // plan-kind proposals (traditional plan).
+  | { type: 'agent:plan_proposed'; planId: string; title: string; summary: string; steps: Array<{ step: number; description: string }>; openQuestions?: string[]; kind?: 'plan' | 'layout' }
   // Fan-out (the deciding client's POST resolves the server-side gate; this
   // event tells every viewer the gate closed and how).
   | { type: 'agent:plan_resolved'; planId: string; decision: 'build' | 'revise' | 'timeout'; feedback?: string }

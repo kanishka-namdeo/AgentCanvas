@@ -624,6 +624,9 @@ function CritiqueSkippedRow({ skipped }: { skipped: NonNullable<ChatTurn['critiq
 /// build-toolset session executing the plan verbatim; "Keep planning" returns
 /// the feedback to the agent for revision. Statuses settle via
 /// agent:plan_resolved so every viewer converges.
+/// Layout-kind proposals (kind === 'layout') render with different labels:
+/// "Layout approval", "Layout summary", "Layout sections", "Apply hi-fi",
+/// "Revise layout" — distinguishing hi-fi layout proposals from traditional plans.
 function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planProposal']> }) {
   const [busy, setBusy] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -632,6 +635,14 @@ function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planPr
   // agent run is BLOCKED inside submit_plan waiting for THIS decision (the
   // turn is "busy" but interactive), so agentBusy must NOT disable the triad.
   const pending = proposal.status === 'pending' && !busy;
+
+  // Layout-kind proposals render with different labels (spec §3.4, Task 10).
+  const isLayout = proposal.kind === 'layout';
+  const headerLabel = isLayout ? 'Layout approval' : 'Plan approval';
+  const summaryLabel = isLayout ? 'Layout summary' : 'Plan summary';
+  const stepsLabel = isLayout ? 'Layout sections' : 'Plan steps';
+  const approveButtonText = isLayout ? 'Apply hi-fi' : 'Build it';
+  const reviseButtonText = isLayout ? 'Revise layout' : 'Keep planning';
 
   const post = async (decision: 'build' | 'revise', feedbackText?: string) => {
     setBusy(true);
@@ -681,19 +692,26 @@ function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planPr
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <ClipboardList className="h-3.5 w-3.5 ac-text-info flex-shrink-0" />
+            <span className="text-[10px] font-medium ac-text-4 flex-shrink-0">{headerLabel}</span>
             <span className="text-[11px] font-semibold ac-text-1 truncate">{proposal.title}</span>
           </div>
           {statusChip}
         </div>
-        <p className="text-[10px] ac-text-3 leading-snug">{proposal.summary}</p>
-        <ol className="space-y-1">
-          {proposal.steps.map((s) => (
-            <li key={s.step} className="flex items-start gap-1.5 text-[10px] ac-text-2 leading-snug">
-              <span className="ac-text-4 font-medium flex-shrink-0">{s.step}.</span>
-              <span>{s.description}</span>
-            </li>
-          ))}
-        </ol>
+        <div className="space-y-0.5">
+          <span className="text-[9px] font-medium ac-text-4 uppercase tracking-wide">{summaryLabel}</span>
+          <p className="text-[10px] ac-text-3 leading-snug">{proposal.summary}</p>
+        </div>
+        <div className="space-y-0.5">
+          <span className="text-[9px] font-medium ac-text-4 uppercase tracking-wide">{stepsLabel}</span>
+          <ol className="space-y-1">
+            {proposal.steps.map((s) => (
+              <li key={s.step} className="flex items-start gap-1.5 text-[10px] ac-text-2 leading-snug">
+                <span className="ac-text-4 font-medium flex-shrink-0">{s.step}.</span>
+                <span>{s.description}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
         {proposal.openQuestions && proposal.openQuestions.length > 0 && (
           <details className="text-[10px] ac-text-4">
             <summary className="cursor-pointer select-none">Assumptions ({proposal.openQuestions.length})</summary>
@@ -716,20 +734,20 @@ function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planPr
               className="h-6 text-[11px] text-white flex-shrink-0"
               style={{ backgroundColor: 'var(--ac-accent)' }}
               onClick={() => void post('build')}
-              title="Approve the plan — the run switches to Build mode and executes it step by step"
+              title={isLayout ? 'Approve the layout — the run switches to Build mode and applies the hi-fi layout' : 'Approve the plan — the run switches to Build mode and executes it step by step'}
             >
               <Hammer className="h-3 w-3 mr-1" />
-              Build it
+              {approveButtonText}
             </Button>
             <Button
               size="sm"
               variant="outline"
               className="h-6 text-[11px] flex-shrink-0"
               onClick={() => setShowFeedback(true)}
-              title="Send the plan back with revision notes — the agent revises and re-submits"
+              title={isLayout ? 'Send the layout back with revision notes — the agent revises and re-submits' : 'Send the plan back with revision notes — the agent revises and re-submits'}
             >
               <MessageSquareMore className="h-3 w-3 mr-1" />
-              Keep planning
+              {reviseButtonText}
             </Button>
           </div>
         )}
@@ -737,9 +755,9 @@ function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planPr
           <div className="space-y-1 pt-0.5">
             <Textarea
               value={feedback}
-              aria-label="Plan revision feedback"
+              aria-label={isLayout ? 'Layout revision feedback' : 'Plan revision feedback'}
               onChange={(e) => setFeedback(e.target.value)}
-              placeholder="What should change in the plan? (e.g. mobile-first, add a paywall screen, drop the pricing table)"
+              placeholder={isLayout ? 'What should change in the layout? (e.g. spacing, alignment, responsive breakpoints)' : 'What should change in the plan? (e.g. mobile-first, add a paywall screen, drop the pricing table)'}
               className="min-h-[44px] text-[10px] ac-border-subtle ac-surface-2 resize-none"
               rows={2}
             />
