@@ -205,13 +205,15 @@ describe('agent:alternatives_parked store case', () => {
         { label: 'no id', score: 50 }, // id-less row → dropped
         null, // garbage row → dropped
         { id: 'sec-no-thumb', label: '', score: Number.NaN }, // empty label → honest default; NaN → 0
+        { id: 'sec-remote', label: 'remote', score: 30, thumbnail: 'https://evil.example/track.png' }, // remote URL → dropped (data:image/ allowlist)
+        { id: 'sec-html', label: 'html', score: 40, thumbnail: 'data:text/html;base64,PHNjcmlwdD4=' }, // data: but non-image mime → dropped
       ],
     } as unknown as SyncEvent);
     const card = useCanvasStore.getState().turns[0].alternatives;
     expect(card).toBeDefined();
     expect(card!.page).toBe(''); // non-string page coerced
     expect(card!.pageId).toBeUndefined(); // non-string pageId dropped
-    expect(card!.alternatives).toHaveLength(3);
+    expect(card!.alternatives).toHaveLength(5);
     const [first, second, third] = card!.alternatives;
     expect(first.label).toBe('Variant 1'); // honest default for the empty label
     expect(first.score).toBe(0);
@@ -222,6 +224,10 @@ describe('agent:alternatives_parked store case', () => {
     expect(third.id).toBe('sec-no-thumb'); // id-less + null rows dropped, this one kept
     expect(third.label).toBe('Variant 5'); // positional fallback uses the ORIGINAL index
     expect(third.score).toBe(0); // NaN → 0
+    const remote = card!.alternatives.find((a) => a.id === 'sec-remote')!;
+    expect(remote.thumbnail).toBeUndefined(); // remote URL dropped — the <img> must never fetch the network
+    const html = card!.alternatives.find((a) => a.id === 'sec-html')!;
+    expect(html.thumbnail).toBeUndefined(); // data: but non-image mime dropped too
   });
 
   it('caps the alternatives list (array passthrough coercion)', () => {
@@ -344,6 +350,47 @@ describe('alternatives card session persistence', () => {
     const rebuilt = useCanvasStore.getState().turns.find((t) => t.messageId === assistant.id);
     expect(rebuilt!.alternatives!.status).toBe('idle'); // buttons usable again
   });
+
+  it('a successful promote RE-MIRRORS the status — a rebuild shows promoted, not idle (no resurrected buttons)', async () => {
+    const docId = 'doc-alts-status-mirror';
+    const { assistant } = seedSessionTurns(docId);
+    sync(PARKED_EVENT);
+    useCanvasStore.setState({ documentId: docId });
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(JSON.stringify({ ok: true, document: makeDoc(docId, [makeShape('variant-root')]) }), { status: 200 })));
+    const ok = await useCanvasStore.getState().promoteAlternative('sec-a');
+    expect(ok).toBe(true);
+    // The persisted message tracks the live card (not the ingest-time 'idle').
+    expect(useSessionStore.getState().messages[assistant.id].alternatives!.status).toBe('promoted');
+    // Reload / session switch → the rebuilt transcript keeps 'promoted': the
+    // "Use this" buttons must NOT resurrect for an already-swapped design.
+    useCanvasStore.setState({ turns: [] });
+    useCanvasStore.getState()._syncTurnsFromSession();
+    const rebuilt = useCanvasStore.getState().turns.find((t) => t.messageId === assistant.id);
+    expect(rebuilt!.alternatives!.status).toBe('promoted');
+  });
+
+  it('a failed promote persists the reset too (promoting lands in the message row, 409 resets it to idle)', async () => {
+    const docId = 'doc-alts-status-fail';
+    const { assistant } = seedSessionTurns(docId);
+    sync(PARKED_EVENT);
+    useCanvasStore.setState({ documentId: docId });
+    let resolveFetch!: (r: Response) => void;
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((res) => { resolveFetch = res; })));
+    const pending = useCanvasStore.getState().promoteAlternative('sec-a');
+    // Mid-flight the 'promoting' status is persisted as well — a page death
+    // here is exactly what the rebuild's promoting→idle normalization covers.
+    expect(useSessionStore.getState().messages[assistant.id].alternatives!.status).toBe('promoting');
+    resolveFetch(new Response(JSON.stringify({ error: 'a design run is active' }), { status: 409 }));
+    const ok = await pending;
+    expect(ok).toBe(false);
+    // The reset lands in the PERSISTED copy: a rebuild is 'idle', never stuck.
+    expect(useSessionStore.getState().messages[assistant.id].alternatives!.status).toBe('idle');
+    useCanvasStore.setState({ turns: [] });
+    useCanvasStore.getState()._syncTurnsFromSession();
+    const rebuilt = useCanvasStore.getState().turns.find((t) => t.messageId === assistant.id);
+    expect(rebuilt!.alternatives!.status).toBe('idle');
+  });
 });
 
 // ---- 4. promoteAlternative (restoreSnapshot pattern) ---------------------------
@@ -430,6 +477,17 @@ describe('promoteAlternative', () => {
     expect(ok).toBe(false);
     expect(useCanvasStore.getState().turns[0].alternatives!.status).toBe('idle');
     expect(useCanvasStore.getState().document.shapes).toHaveLength(0); // document untouched
+  });
+
+  it('takes the failure ladder when a 2xx body reports ok:false (envelope beats HTTP status)', async () => {
+    seedCardTurn();
+    useCanvasStore.setState({ documentId: 'doc-promo' });
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(JSON.stringify({ ok: false, error: 'section no longer parked' }), { status: 200 })));
+    const ok = await useCanvasStore.getState().promoteAlternative('sec-a');
+    expect(ok).toBe(false);
+    expect(useCanvasStore.getState().turns[0].alternatives!.status).toBe('idle');
+    expect(useCanvasStore.getState().document.shapes).toHaveLength(0); // document untouched — never adopted off a failed body
   });
 
   it('resets to idle on other non-ok responses (promote route missing mid-series)', async () => {

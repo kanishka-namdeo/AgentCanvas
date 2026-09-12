@@ -897,10 +897,16 @@ function sanitizeAlternativesCard(
       if (!id) return null;
       const label = safeText(row.label, 200) || `Variant ${i + 1}`;
       const score = typeof row.score === 'number' && Number.isFinite(row.score) ? row.score : 0;
+      // DATA-URL ALLOWLIST: this string becomes a transcript <img> src — a
+      // remote URL (https://…) would let a compromised relay make every
+      // viewer's browser fetch attacker-chosen resources (tracking pixel,
+      // CSRF-by-img). Only image data URLs survive; everything else drops
+      // (the row keeps its label/score — parking never fails on thumbs).
       const thumbnail =
         typeof row.thumbnail === 'string' &&
         row.thumbnail.length > 0 &&
-        row.thumbnail.length <= MAX_ALTERNATIVE_THUMBNAIL_CHARS
+        row.thumbnail.length <= MAX_ALTERNATIVE_THUMBNAIL_CHARS &&
+        row.thumbnail.startsWith('data:image/')
           ? row.thumbnail
           : undefined;
       return { id, label, score, ...(thumbnail ? { thumbnail } : {}) };
@@ -2946,6 +2952,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         turns[idx] = { ...turns[idx], alternatives: { ...turns[idx].alternatives!, status } };
         return { turns };
       });
+      // RE-MIRROR the status to the session store — the ingest path attaches
+      // the card once at 'idle', so without this the persisted copy never
+      // hears about 'promoting'/'promoted' and a reload / session-switch
+      // rebuild resurrects "Use this" buttons on an already-swapped design.
+      // The 'promoting' write landing in the persisted copy is what makes
+      // _syncTurnsFromSession's promoting→idle normalization load-bearing
+      // (a page death mid-POST can only freeze a card the mirror recorded).
+      const turn = get().turns.find((t) => t.alternatives?.alternatives.some((a) => a.id === sectionId));
+      if (turn?.messageId && turn.alternatives) {
+        useSessionStore.getState().attachAlternatives(turn.messageId, turn.alternatives);
+      }
     };
     setCardStatus('promoting');
     try {
@@ -2968,7 +2985,21 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         setCardStatus('idle');
         return false;
       }
-      const data = (await res.json().catch(() => null)) as { document?: CanvasDocument } | null;
+      const data = (await res.json().catch(() => null)) as
+        { ok?: boolean; error?: unknown; document?: CanvasDocument } | null;
+      // ENVELOPE CHECK: a 2xx body that explicitly reports ok:false takes the
+      // FAILURE ladder — the HTTP status alone is not the contract (proxies /
+      // interceptors can rewrite statuses; the envelope is the truth). A body
+      // the server marked failed must never adopt a document.
+      if (data && data.ok === false) {
+        const description =
+          typeof data.error === 'string' && data.error ? data.error : 'The server rejected the swap.';
+        try {
+          toast.error('Cannot swap design', { description });
+        } catch { /* sonner unavailable */ }
+        setCardStatus('idle');
+        return false;
+      }
       const doc = data?.document;
       // The canvas:full entry guard's rule: never adopt a malformed document
       // (null / non-array children would crash the render tree downstream).
