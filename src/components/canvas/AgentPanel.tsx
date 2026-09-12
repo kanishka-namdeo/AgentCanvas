@@ -764,6 +764,93 @@ function PlanApprovalCard({ proposal }: { proposal: NonNullable<ChatTurn['planPr
   );
 }
 
+/// Alternatives promote card (agent:alternatives_parked, spec §4.3) —
+/// pen_generate_variants parked the judged runner-up designs as labeled
+/// sections on the Explorations page. Each row carries the thumbnail (or a
+/// gray placeholder), the label, the judge score and a "Use this" swap
+/// action; "View on canvas" jumps to the parking page (pageId is
+/// advisory-only, read at click time). Promotion goes through the store
+/// action — components NEVER emit socket events — so the busy guard, the
+/// document swap and the document:restore broadcast all live in
+/// `promoteAlternative`. The status field settles the card for every viewer.
+function AlternativesCard({ card }: { card: NonNullable<ChatTurn['alternatives']> }) {
+  const promoting = card.status === 'promoting';
+  const promoted = card.status === 'promoted';
+
+  const promote = (sectionId: string) => {
+    void useCanvasStore.getState().promoteAlternative(sectionId);
+  };
+  const viewOnCanvas = () => {
+    if (!card.pageId) return;
+    useCanvasStore.getState().sendPatch({ op: 'set_active_page', pageId: card.pageId, summary: 'Viewing parked designs' });
+  };
+
+  return (
+    <div className="rounded-md border ac-border-subtle ac-surface-1 overflow-hidden">
+      <div className="px-2 py-1.5 space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Layers className="h-3.5 w-3.5 ac-text-info flex-shrink-0" />
+            <span className="text-[11px] font-semibold ac-text-1 truncate">
+              Alternative designs{card.page ? ` — parked on "${card.page}"` : ''}
+            </span>
+          </div>
+          {promoted ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium ac-text-success flex-shrink-0">
+              <CheckCircle2 className="h-3 w-3" /> Swapped in
+            </span>
+          ) : promoting ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium ac-text-warning flex-shrink-0">
+              <Loader2 className="h-3 w-3 animate-spin" /> Swapping…
+            </span>
+          ) : null}
+        </div>
+        <ul className="space-y-1">
+          {card.alternatives.map((alt) => (
+            <li key={alt.id} className="flex items-center gap-2 min-w-0">
+              {alt.thumbnail ? (
+                <img
+                  src={alt.thumbnail}
+                  alt=""
+                  className="h-9 w-12 rounded border ac-border-subtle object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="h-9 w-12 rounded border ac-border-subtle ac-surface-2 flex-shrink-0" aria-hidden="true" />
+              )}
+              <span className="text-[10px] ac-text-2 truncate flex-1 min-w-0" title={alt.label}>{alt.label}</span>
+              <span className="text-[10px] ac-text-3 flex-shrink-0" title="Judge score">{alt.score}</span>
+              {!promoted && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[11px] flex-shrink-0"
+                  disabled={promoting}
+                  onClick={() => promote(alt.id)}
+                  title="Swap this parked design in as the main design"
+                >
+                  Use this
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+        {!promoted && card.pageId && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 text-[11px]"
+            disabled={promoting}
+            onClick={viewOnCanvas}
+            title="Open the page where the parked designs live"
+          >
+            View on canvas
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /// Mode picker (Cursor mode-pill pattern) — a compact dropdown in the
 /// composer's action row. Mode = what the agent is ALLOWED to do (not a
 /// model tier): Build designs/edits, Ask answers read-only, Plan proposes
@@ -2293,6 +2380,10 @@ const TurnBubble = memo(function TurnBubble({ turn }: { turn: ChatTurn }) {
             {/* PLAN-mode approval card — the triad renders while the agent
                 blocks inside submit_plan; agent:plan_resolved settles it. */}
             {turn.planProposal && <PlanApprovalCard proposal={turn.planProposal} />}
+            {/* Variant-parking promote card (spec §4.3) — "Use this" swaps a
+                parked alternative in as the main design via the store action;
+                the state persists on the session message. */}
+            {turn.alternatives && <AlternativesCard card={turn.alternatives} />}
             {/* Tool calls — collapsed to ONE summary row per completed turn
                 (ChatGPT "Used N tools" pattern); expands for the details.
                 While any call is pending the cluster stays open so the user

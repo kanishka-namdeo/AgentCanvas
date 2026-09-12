@@ -62,6 +62,14 @@ const JOURNALED_AGENT_EVENT_TYPES = new Set<string>([
   'agent:plan_proposed',
   'agent:plan_resolved',
   'agent:critique_skipped',
+  // Variant parking (spec §4.3): the promote card MUST be journaled —
+  // reconnect catch-up replay rebuilds the AlternativesCard from this row
+  // (journal-catchup auto-dispatches journaled agent:-prefixed rows). Note:
+  // thumbnails ride the payload and the 65K row cap truncates
+  // thumbnail-heavy rows — such rows fail safeParse's type check in
+  // replayRow and are skipped there (the prompting client's own card
+  // persists via the session store, so this only affects foreign viewers).
+  'agent:alternatives_parked',
   'agent:tool_progress',
   'agent:todo_update',
   'agent:background_task_started',

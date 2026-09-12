@@ -236,6 +236,7 @@ Extended SyncEvent types (in `src/lib/canvas/types.ts`):
 - `agent:skill_selected` — intent classifier picked a skill
 - `agent:plan` / `agent:plan_step_update` — plan module lifecycle
 - `agent:plan_proposed` / `agent:plan_resolved` — PLAN-mode approval gate (PlanApprovalCard ↔ `/api/agent/plans`)
+- `agent:alternatives_parked` — pen_generate_variants parked the judged runner-up designs on the Explorations page (emitted after the parking patches; journaled). The frontend renders the AlternativesCard promote card from it; `alternatives[].id` is the parked section node id (the promote route's key) and `pageId` is advisory-only. Journaled via `JOURNALED_AGENT_EVENT_TYPES` (reconnect catch-up replays it; thumbnail-heavy rows can exceed the 65K journal row cap and are skipped by replay — the prompting client's card persists via the session store).
 - `agent:critique_skipped` — adaptive critique gate declined the critic pass (with reason + saved-LLM-calls estimate)
 - `agent:subagent_dispatch` / `agent:subagent_result` — sub-agent lifecycle
 - `agent:thinking_delta` — model thinking tokens

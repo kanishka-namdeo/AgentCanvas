@@ -36,7 +36,7 @@ import { create } from 'zustand';
 import { persist, type PersistStorage } from 'zustand/middleware';
 import { v4 as uuid } from 'uuid';
 import { toast } from 'sonner';
-import type { CanvasDocument } from '@/lib/canvas/types';
+import type { CanvasDocument, AlternativesCardState } from '@/lib/canvas/types';
 import type {
   Session, Run, Message, ToolCallRecord, Snapshot,
   SessionFilter, SessionStats, SessionStatus,
@@ -212,6 +212,12 @@ interface SessionStoreState {
   /// Record one canvas mutation against the assistant message whose turn
   /// applied it (roll-up input for the turn-diff summary card).
   appendPatchOp: (messageId: string, record: import('../agent/turn-diff').PatchOpRecord) => void;
+  /// Attach the variant-parking promote card state (spec §4.3) to the
+  /// assistant message whose turn parked the alternatives. Persisted on the
+  /// message (localStorage) so the card survives reloads / session switches
+  /// — the canvas store's `_syncTurnsFromSession` rehydrates it into the
+  /// rebuilt turn. Idempotent overwrite (same card, latest wins).
+  attachAlternatives: (messageId: string, alternatives: AlternativesCardState) => void;
   /// Re-sync a finalized message to the server with its CURRENT diff
   /// records. Needed because the pi SDK emits `message_end` BEFORE the
   /// tools execute (and the critique loop appends more patches after the
@@ -1267,6 +1273,19 @@ export const useSessionStore = create<SessionStoreState>()(
             messages: {
               ...s.messages,
               [messageId]: { ...msg, patchOps: [...(msg.patchOps ?? []), record] },
+            },
+          };
+        });
+      },
+
+      attachAlternatives: (messageId, alternatives) => {
+        set((s) => {
+          const msg = s.messages[messageId];
+          if (!msg) return s;
+          return {
+            messages: {
+              ...s.messages,
+              [messageId]: { ...msg, alternatives },
             },
           };
         });

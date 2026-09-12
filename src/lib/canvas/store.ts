@@ -14,7 +14,7 @@
 import { create } from 'zustand';
 import { io, type Socket } from 'socket.io-client';
 import { toast } from 'sonner';
-import type { CanvasDocument, CanvasPatch, ClientEvent, Shape, SyncEvent, GuideLine } from '@/lib/canvas/types';
+import type { CanvasDocument, CanvasPatch, ClientEvent, Shape, SyncEvent, GuideLine, AlternativesCardState } from '@/lib/canvas/types';
 import { createEmptyCanvasDocument } from '@/lib/canvas/types';
 import { applyPatchToCanvas, applyPatchesToCanvas } from '@/lib/canvas/patch';
 import { reconcileDocuments } from '@/lib/canvas/reconcile';
@@ -146,6 +146,13 @@ export interface ChatTurn {
   /// turn (small/clean — deterministic validation only). Rendered as a muted
   /// "self-review skipped" row with the saved-call estimate.
   critiqueSkipped?: { reason: string; savedLlmCalls: number };
+  /// Variant parking (spec §4.3): the alternatives promote card state from
+  /// `agent:alternatives_parked` — pen_generate_variants parked the judged
+  /// runner-up designs as labeled sections on the Explorations page, each
+  /// row a "Use this" swap action. Mirrored to the session-store Message
+  /// (attachAlternatives) so the card survives reloads / session switches
+  /// (planProposal deliberately stays live-buffer-only; this one persists).
+  alternatives?: AlternativesCardState;
 }
 
 /// A prompt the user submitted WHILE the agent was busy (Cursor 3's default
@@ -510,6 +517,16 @@ interface CanvasState {
   /// `document:restore` so every viewer follows. Remote (metadata-only)
   /// snapshots are fetched from the server first.
   restoreSnapshot: (snapshotId: string) => Promise<boolean>;
+  /// Promote a parked alternative (spec §4.3): POSTs the section id to
+  /// /api/documents/[id]/variants/promote (the Task 6 swap route), adopts
+  /// the returned document (restoreSnapshot reset semantics), broadcasts a
+  /// `document:restore` ClientEvent so every viewer follows, and settles the
+  /// card's status (promoting → promoted / back to idle on failure). Refused
+  /// while the agent is busy (restoreSnapshot's busy rule — a swap mid-run
+  /// would yank the document out from under the in-flight patches). Returns
+  /// false on every early exit; components never emit the restore event
+  /// themselves.
+  promoteAlternative: (sectionId: string) => Promise<boolean>;
 
   // Internal — called by socket event handler. `opts.immediate` bypasses
   // the canvas:full burst coalescer (used by the coalescer's own trailing
@@ -849,6 +866,57 @@ function safeText(value: unknown, max = 4096): string {
 /// Whitelist an untrusted severity field to the critique union.
 function asSeverity(value: unknown): 'low' | 'medium' | 'high' {
   return value === 'medium' || value === 'high' ? value : 'low';
+}
+
+/// Row cap for the alternatives card — Task 4 parks ≤ a handful of
+/// runner-ups; the cap mirrors the ingest-side array-coercion rule (a
+/// malicious/buggy relay must not grow the persisted message without bound).
+const MAX_ALTERNATIVES = 12;
+/// Thumbnail cap — Task 4 emits ≤150_000-char data URLs; anything larger is
+/// dropped (the row keeps its label/score — parking never fails on thumbs).
+const MAX_ALTERNATIVE_THUMBNAIL_CHARS = 200_000;
+
+/// Sanitize an untrusted `agent:alternatives_parked` event into the
+/// AlternativesCardState stored on the turn / session Message (spec §4.3).
+/// Wire data is never trusted (live fan-out AND journal replay land here):
+/// labels via safeText (empty → an honest positional default), scores
+/// coerced numeric (NaN/absent → 0), non-string/oversized thumbnails
+/// dropped, id-less rows dropped. Returns null when nothing usable remains
+/// (no empty card) — the caller treats that as "no attachment".
+function sanitizeAlternativesCard(
+  event: Extract<SyncEvent, { type: 'agent:alternatives_parked' }>,
+): AlternativesCardState | null {
+  const raw: unknown[] = Array.isArray((event as { alternatives?: unknown }).alternatives)
+    ? (event.alternatives as unknown[])
+    : [];
+  const alternatives = raw
+    .map((entry, i): AlternativesCardState['alternatives'][number] | null => {
+      if (!entry || typeof entry !== 'object') return null;
+      const row = entry as Record<string, unknown>;
+      const id = typeof row.id === 'string' && row.id ? row.id.slice(0, 128) : '';
+      if (!id) return null;
+      const label = safeText(row.label, 200) || `Variant ${i + 1}`;
+      const score = typeof row.score === 'number' && Number.isFinite(row.score) ? row.score : 0;
+      const thumbnail =
+        typeof row.thumbnail === 'string' &&
+        row.thumbnail.length > 0 &&
+        row.thumbnail.length <= MAX_ALTERNATIVE_THUMBNAIL_CHARS
+          ? row.thumbnail
+          : undefined;
+      return { id, label, score, ...(thumbnail ? { thumbnail } : {}) };
+    })
+    .filter((row): row is AlternativesCardState['alternatives'][number] => row !== null)
+    .slice(0, MAX_ALTERNATIVES);
+  if (alternatives.length === 0) return null;
+  const pageId = safeText(event.pageId, 128);
+  const toolCallId = safeText(event.toolCallId, 128);
+  return {
+    page: safeText(event.page, 200),
+    ...(pageId ? { pageId } : {}),
+    alternatives,
+    status: 'idle',
+    ...(toolCallId ? { toolCallId } : {}),
+  };
 }
 
 /// Init generation token: every init() captures the current generation and
@@ -2853,6 +2921,96 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     return true;
   },
 
+  promoteAlternative: async (sectionId) => {
+    const { documentId, socket, connected, agentBusy } = get();
+    // Busy-guard (the restoreSnapshot rule): swapping the parked variant in
+    // mid-run would yank the document out from under the agent's in-flight
+    // patches. The card's buttons disable on 'promoting' too, but the guard
+    // lives HERE so every entry point is covered.
+    if (agentBusy) {
+      toastBusyStructure('swapping the design');
+      return false;
+    }
+    // Guard: no turn carries this section id — nothing to promote (a stale
+    // card from a previous transcript, or an unknown id).
+    if (!get().turns.some((t) => t.alternatives?.alternatives.some((a) => a.id === sectionId))) {
+      return false;
+    }
+    // Status lives on the turn's card; re-derive the turn on every write so
+    // a turns-array replacement between awaits can't strand a stale index.
+    const setCardStatus = (status: 'idle' | 'promoting' | 'promoted') => {
+      set((s) => {
+        const idx = s.turns.findIndex((t) => t.alternatives?.alternatives.some((a) => a.id === sectionId));
+        if (idx === -1 || !s.turns[idx].alternatives) return {};
+        const turns = [...s.turns];
+        turns[idx] = { ...turns[idx], alternatives: { ...turns[idx].alternatives!, status } };
+        return { turns };
+      });
+    };
+    setCardStatus('promoting');
+    try {
+      const res = await fetch(`/api/documents/${encodeURIComponent(documentId)}/variants/promote`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sectionId }),
+      });
+      if (!res.ok) {
+        // Parse the error body honestly (Task 6's route may 409 while a run
+        // is active / 404 when the section isn't parked; until it exists the
+        // dev server 404s — the card degrades back to idle with a toast).
+        const data = (await res.json().catch(() => ({}))) as { error?: unknown };
+        const description =
+          typeof data?.error === 'string' && data.error ? data.error : `HTTP ${res.status}`;
+        try {
+          if (res.status === 409) toast.warning('Cannot swap design', { description });
+          else toast.error('Cannot swap design', { description });
+        } catch { /* sonner unavailable */ }
+        setCardStatus('idle');
+        return false;
+      }
+      const data = (await res.json().catch(() => null)) as { document?: CanvasDocument } | null;
+      const doc = data?.document;
+      // The canvas:full entry guard's rule: never adopt a malformed document
+      // (null / non-array children would crash the render tree downstream).
+      if (!doc || typeof doc !== 'object' || !Array.isArray(doc.children)) {
+        try {
+          toast.error('Cannot swap design', { description: 'The server returned an invalid document.' });
+        } catch { /* sonner unavailable */ }
+        setCardStatus('idle');
+        return false;
+      }
+      // Adopt the swapped document. Same reset semantics as restoreSnapshot:
+      // measured bounds + checkpoints reference the previous content's ids
+      // (undo/redo stacks stay — undo can still step back over the swap).
+      set({
+        document: { ...doc, id: documentId },
+        measuredBounds: {},
+        checkpoints: [],
+        lastCheckpointSignature: null,
+      });
+      // Broadcast the swapped state so other viewers + the in-memory WS doc
+      // follow (the server rebroadcasts it as canvas:full to all subscribers,
+      // including us — an idempotent replace). Exact restoreSnapshot shape.
+      if (socket && connected) {
+        socket.emit('client', {
+          type: 'document:restore',
+          documentId,
+          document: get().document,
+        } satisfies ClientEvent);
+      }
+      setCardStatus('promoted');
+      return true;
+    } catch (err) {
+      try {
+        toast.error('Cannot swap design', {
+          description: err instanceof Error ? err.message : String(err),
+        });
+      } catch { /* sonner unavailable */ }
+      setCardStatus('idle');
+      return false;
+    }
+  },
+
   _syncTurnsFromSession: () => {
     const { activeSessionId } = get();
     if (!activeSessionId) {
@@ -2886,6 +3044,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         // Turn-diff records persist on the message too — rehydrate so the
         // "+12 −3 ~5" card survives reloads / session switches.
         ...(m.patchOps && m.patchOps.length > 0 ? { patchOps: m.patchOps } : {}),
+        // Alternatives card state persists on the message (spec §4.3) —
+        // the promote card survives reloads / session switches. A 'promoting'
+        // status can never survive the rebuild (its fetch died with the old
+        // page) — normalize it back to idle so the card can't get stuck.
+        ...(m.alternatives
+          ? { alternatives: { ...m.alternatives, status: m.alternatives.status === 'promoting' ? ('idle' as const) : m.alternatives.status } }
+          : {}),
         toolCalls,
         streaming: m.status === 'streaming',
         error: m.error,
@@ -3488,6 +3653,46 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           }
           return { turns };
         });
+        break;
+      }
+      case 'agent:alternatives_parked': {
+        // Variant parking (spec §4.3): pen_generate_variants parked the
+        // judged runner-up designs on the Explorations page — attach the
+        // sanitized promote card to the streaming assistant turn (the
+        // AlternativesCard renders it; the patches themselves ride the
+        // tool-result details.patches lane like every other patch).
+        const lastBefore = get().turns[get().turns.length - 1];
+        let attached: AlternativesCardState | null = null;
+        if (lastBefore && lastBefore.role === 'assistant') {
+          // Idempotence (replay safety): live fan-out AND journal catch-up
+          // deliver this event, so a redelivery must be a no-op — the
+          // toolCallId keys the dedup, and a call-id-less re-delivery
+          // attaches once (the critiqueSkipped guard pattern). Re-attaching
+          // would clobber a card the user already interacted with (a
+          // promoting/promoted status would silently reset to idle).
+          const incomingCallId = typeof event.toolCallId === 'string' ? event.toolCallId : '';
+          const existing = lastBefore.alternatives;
+          const duplicate = !!existing && (incomingCallId ? existing.toolCallId === incomingCallId : true);
+          if (!duplicate) {
+            attached = sanitizeAlternativesCard(event);
+          }
+        }
+        if (attached) {
+          set((s) => {
+            const turns = [...s.turns];
+            const last = turns[turns.length - 1];
+            if (!(last && last.role === 'assistant')) return { turns };
+            turns[turns.length - 1] = { ...last, alternatives: attached as AlternativesCardState };
+            return { turns };
+          });
+          // Mirror to the session store so the card survives reloads and
+          // session switches (Message.alternatives — the patchOps extras
+          // pattern; _syncTurnsFromSession restores it).
+          const last = useCanvasStore.getState().turns[useCanvasStore.getState().turns.length - 1];
+          if (last?.messageId && last.alternatives) {
+            useSessionStore.getState().attachAlternatives(last.messageId, last.alternatives);
+          }
+        }
         break;
       }
       case 'agent:critique_skipped': {

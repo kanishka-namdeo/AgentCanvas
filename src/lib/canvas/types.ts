@@ -743,6 +743,32 @@ export type SyncEvent =
   // falsely mark the RUNNING turn errored on their screens). Never journaled.
   | { type: 'agent:prompt_rejected'; reason: string };
 
+/// One parked alternative in the agent:alternatives_parked promote card
+/// (spec §4.3). `id` is the parked SECTION node id — the stable promote key
+/// (the promote route's `sectionId`).
+export interface AlternativeOption {
+  id: string;
+  label: string;
+  score: number;
+  thumbnail?: string;
+}
+
+/// Turn/message-level state of the alternatives promote card (spec §4.3).
+/// Persisted on the session-store Message (the patchOps extras pattern) so
+/// the card survives reloads / session switches. `toolCallId` keys the
+/// store's idempotence (a replayed event must not reset a promoting /
+/// promoted status). `pageId` is ADVISORY ONLY — `add_page` derives a fresh
+/// id per application (runner-local read-back, unstable across journal
+/// re-folds), so it is used solely for the "View on canvas" convenience
+/// jump, never as a durable key.
+export interface AlternativesCardState {
+  page: string;
+  pageId?: string;
+  alternatives: AlternativeOption[];
+  status: 'idle' | 'promoting' | 'promoted';
+  toolCallId?: string;
+}
+
 /// One collaborator's volatile presence state. `participantId` is a
 /// client-generated stable-per-tab id (survives socket reconnects, unlike
 /// socket.id); `color` is the cursor's identity color chosen by the client.

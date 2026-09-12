@@ -20,7 +20,7 @@
 // JSON blob under `agentcanvas.sessions.v1`). Swap to Prisma/Postgres later
 // by replacing the storage adapter — the store API stays the same.
 
-import type { CanvasDocument } from '@/lib/canvas/types';
+import type { CanvasDocument, AlternativesCardState } from '@/lib/canvas/types';
 
 // ---- Session ----------------------------------------------------------------
 
@@ -180,6 +180,12 @@ export interface Message {
   /// turn-diff summary card. Mirrored to the server message row's
   /// diffSummary column.
   patchOps?: import('../agent/turn-diff').PatchOpRecord[];
+  /// Variant-parking promote card state (spec §4.3) attached by the
+  /// agent:alternatives_parked event — persisted so the card survives
+  /// reloads / session switches (the patchOps extras pattern; client-local,
+  /// deliberately NOT server-synced — thumbnails are ≤150KB data URLs and
+  /// the transcript row must stay small).
+  alternatives?: AlternativesCardState;
   /// Tool calls emitted by this message (assistant messages only).
   toolCalls: ToolCallRecord[];
   status: MessageStatus;
