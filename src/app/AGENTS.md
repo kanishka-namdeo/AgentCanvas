@@ -85,6 +85,7 @@ The Next.js App Router entry point: the root layout, the main page (the 3-column
   - `.ac-hide-scrollbar` — invisible-but-functional scrollbar.
 - Keyframes:
   - `ac-fade-in` — opacity 0→1 + 4px upward translate (240ms ease-out). Used by the empty-canvas drop zone and other subtle entrances.
+  - `marquee` / `marquee-vertical` — infinite linear translateX/translateY over `calc(-100% - var(--gap))`, wired through the `--animate-marquee` / `--animate-marquee-vertical` `@theme` vars (CLI-appended for the Magic UI `marquee` primitive, landing-page plan Task 1). Consumed by `src/components/ui/marquee.tsx` via its `animate-marquee` / `animate-marquee-vertical` classes.
 - Do NOT introduce a parallel token system. Extend `--ac-*` if needed.
 
 ### Dark mode

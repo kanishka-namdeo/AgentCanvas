@@ -60,6 +60,7 @@ Two kinds of tests live here:
 | `resolve-themed.test.ts` | `resolveThemedValue` (`src/lib/pen/resolve.ts`): single-value passthrough (string/number/boolean), first-value default when no theme matches, LAST-matching-theme-wins, and the empty-themed-array guard returning `''` instead of `undefined` (2026-09-11). |
 | `client-mutations-pending-acks.test.ts` | Pending-ack tracking (`src/lib/canvas/client-mutations.ts`, 2026-09-11): `recordPendingAck` freshness (nothing stale immediately), 5s staleness boundary, `clearPendingAck` surgical removal (incl. no-op on unknown ids + double-clear), `clearAllPendingAcks`, and the 100-entry drop-oldest cap. |
 | `reusable-elements-ui.test.ts` | The `remove_variable` patch op (`applyPatchToCanvas`, 2026-09-12 reusable-elements-ui plan Task 1 — the data-layer primitive for the Token Editor UI): deletes a variable by `variableKey` (other variables preserved) and is a no-op when the key doesn't exist. |
+| `landing-assets.test.ts` | The landing-page asset + dependency contract (2026-09-13 landing-page plan Task 1): the 6 files in `public/landing/` exist (4 PNGs + 2 MP4s), the 5 landing deps are declared in package.json (`motion`, `lenis`, `react-type-animation`, `@number-flow/react`, `react-wrap-balancer`), `motion` is pinned to the `^12` line, and the 5 Magic UI primitives exist under `src/components/ui/` (`marquee`, `bento-grid`, `border-beam`, `blur-fade`, `scroll-progress`). 9 tests (6 asset `it.each` rows + 3). |
 
 ### Vitest integration tests (`tests/integration/`)
 
@@ -140,7 +141,7 @@ Each prints a "passed" message on success and exits non-zero on failure.
 
 ## Verification
 
-- `bun run test` — should print ~"Test Files 119 passed (121)" and "Tests 2611 passed | 2 skipped" (verified 2026-09-11 after the reliability pass, ~105s; 121 files total). **Two PRE-EXISTING failures (not regressions — confirmed identical on a stashed clean tree): `agent-optimization-2026-09-05.test.ts` (TURN FLOW prompt invariants) and `design-consistency-2026-09-06.test.ts` (guide-red token scan).** Under full-suite parallel load a few tool/mode files can flake on worker contention — rerun them in isolation before treating a failure as real.
+- `bun run test` — verified 2026-09-13 (landing-page plan Task 1 baseline): **133 test files; 2718 passed | 2 skipped**. Known PRE-EXISTING failures (not regressions): `agent-optimization-2026-09-05.test.ts` (TURN FLOW prompt invariants), `design-consistency-2026-09-06.test.ts` (guide-red token scan + .ac-label overline scan), and `chat-features.test.ts` (fails at import time — it imports `src/lib/agent/followups`, a module deleted from the repo; stale test file). `modes-2026-08-30.test.ts` can flake on worker-contention timeouts under full-suite parallel load — rerun in isolation before treating a failure as real.
 - `bash tests/python-runtime-build.sh` — should print "python runtime build tests passed".
 - `bash tests/database-runtime-build.sh` — should print the corresponding pass message.
 - `bunx tsc --noEmit` — typecheck (currently clean; `skills/` is excluded in tsconfig because the z.ai sandbox extracts sandbox-owned skill sources there).

@@ -6,9 +6,10 @@ shadcn/ui primitives: Radix UI wrappers styled with `class-variance-authority` a
 
 ## Ownership
 
-- Every file in this folder is a shadcn/ui component generated via `bunx shadcn@latest add <component>`.
+- Every file in this folder is a CLI-generated component — either a shadcn/ui component (`bunx shadcn@latest add <component>`) or a Magic UI primitive (`npx shadcn@latest add -y "https://magicui.design/r/<name>.json"`).
 - The component inventory is registered in `components.json`.
 - Owned by the shadcn/ui upstream + the project's `components.json` config. Not owned by any individual feature.
+- The Magic UI primitives (`blur-fade`, `border-beam`, `bento-grid`, `marquee`, `scroll-progress`) depend on `motion` — which is PINNED to the `^12` line as a project decision (the shadcn CLI may try to bump it to latest when re-running Magic UI installs; re-pin with `bun add 'motion@^12.43.0'` afterwards). `marquee` additionally requires the `marquee`/`marquee-vertical` keyframes in `src/app/globals.css` (appended automatically by the CLI).
 
 ## Local Contracts
 
@@ -35,8 +36,9 @@ These `src/components/ui/` files were hand-edited to absorb breaking changes fro
 - **`scroll-area.tsx` — added optional `viewportClassName` prop (2026-09-11).** `className` lands on Radix's `Root`, which is only `position: relative` (not scrollable); the inner `[data-radix-scroll-area-viewport]` carries `overflow: scroll` and is the real scroll container. `viewportClassName` lets a caller tag that inner viewport (e.g. `AgentPanel`'s `.agent-panel-scroll`) so an external `document.querySelector(...).scrollBy()` in `src/app/page.tsx` (⌘↑/⌘↓ chat navigation) scrolls messages. Optional — all existing call sites unaffected.
 
 ### Component inventory
-- 26 primitives: `avatar`, `badge`, `button`, `card`, `checkbox`, `collapsible`, `command`, `context-menu`, `dialog`, `dropdown-menu`, `input`, `label`, `popover`, `resizable`, `scroll-area`, `select`, `separator`, `slider`, `sonner`, `switch`, `table`, `tabs`, `textarea`, `toast`, `toaster`, `tooltip`. (`carousel`/`sidebar` were listed here previously but never existed as files; the 20 zero-import primitives named above were deleted in the 2026-09 dependency-hygiene pass.)
-- Adding a new primitive: `bunx shadcn@latest add <name>`, then verify the import path resolves and the component renders.
+- 26 shadcn/ui primitives: `avatar`, `badge`, `button`, `card`, `checkbox`, `collapsible`, `command`, `context-menu`, `dialog`, `dropdown-menu`, `input`, `label`, `popover`, `resizable`, `scroll-area`, `select`, `separator`, `slider`, `sonner`, `switch`, `table`, `tabs`, `textarea`, `toast`, `toaster`, `tooltip`. (`carousel`/`sidebar` were listed here previously but never existed as files; the 20 zero-import primitives named above were deleted in the 2026-09 dependency-hygiene pass.)
+- 5 Magic UI primitives (2026-09-13, landing-page plan Task 1): `blur-fade` (in-view blur+fade entrance), `border-beam` (animated border beam, motion-driven), `bento-grid` (`BentoGrid` + `BentoCard`; uses `@radix-ui/react-icons` + the shadcn `button`), `marquee` (infinite scroll; needs the `marquee`/`marquee-vertical` keyframes in globals.css), `scroll-progress` (fixed top scroll-progress bar). All motion-backed except `marquee`.
+- Adding a new shadcn primitive: `bunx shadcn@latest add <name>`. Adding a Magic UI primitive: `npx shadcn@latest add -y "https://magicui.design/r/<name>.json"` (pipe `printf 'n\n' |` into the command when it pulls a registry dependency that already exists, so the overwrite prompt answers "no" non-interactively). Then verify the import path resolves and the component renders.
 
 ## Work Guidance
 
