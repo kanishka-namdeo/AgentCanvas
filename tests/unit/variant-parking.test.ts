@@ -15,14 +15,20 @@
 //     sections land on the Explorations page.
 //   - The FIFO test setup was rewritten for clarity (controller ruling) and
 //     uses the full 3-variant array so "4 existing + 2 new" holds; it also
-//     applies the patches to pin the runtime prune (the builder brackets the
-//     `remove` with `set_active_page` because the applier's remove op prunes
-//     the ACTIVE tree only).
+//     applies the patches to pin the runtime prune: the `remove` is
+//     PAGE-TARGETED (controller ruling extending the Task 3 page target to
+//     `remove`), so it prunes the non-active Explorations page directly and
+//     the user's active page is never touched (no set_active_page dance).
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildParkingPatches } from '@/lib/agent/variant-parking';
 import { applyPatchToCanvas } from '@/lib/canvas/patch';
 import { emptyDocument } from '@/lib/canvas/journal-fold';
+// Static import: pulling the heavy tools.ts module graph into the FILE's
+// module-evaluation phase (repo convention — tool-registry.test.ts) instead of
+// the test body, where a dynamic import used to flirt with the 5s test
+// timeout under full-suite worker contention.
+import { createCanvasTools } from '@/lib/agent/tools';
 
 // The wiring test below drives pen_generate_variants.execute with a MOCKED
 // dispatch (no LLM) — pinned contract: the parking patches ride the tool
@@ -52,6 +58,9 @@ describe('buildParkingPatches', () => {
     expect(sectionPatches.every((p) => (p as any).pageName === 'Explorations')).toBe(true);
     expect(parked.map((p) => p.label)).toEqual(['Variant B — 7', 'Variant C — 6']);
     expect(parked.every((p) => p.id.length > 0)).toBe(true);
+    // The builder NEVER touches the active page (controller ruling: no
+    // set_active_page dance / restore — the FIFO remove is page-targeted).
+    expect(patches.every((p) => p.op !== 'set_active_page')).toBe(true);
   });
 
   it('applies cleanly to a document (runner-ups land off the active page)', () => {
@@ -89,17 +98,17 @@ describe('buildParkingPatches', () => {
     const removePatches = patches.filter((p) => p.op === 'remove');
     expect(removePatches).toHaveLength(1); // 4 + 2 = 6 > 5 → drop the oldest
     expect((removePatches[0] as any).shapeIds).toEqual(['old0']);
-    // Runtime verification: the applier's remove op prunes the ACTIVE tree
-    // only, so the builder brackets the prune with set_active_page patches —
-    // after the sequence the prune actually happened and the user's page is
-    // restored.
+    expect((removePatches[0] as any).pageName).toBe('Explorations'); // page-targeted prune
+    expect(patches.every((p) => p.op !== 'set_active_page')).toBe(true); // no active-page dance
+    // Runtime verification: the page-targeted remove prunes the NAMED page
+    // directly — the user's active page (Page 1) is never touched.
     let applied: any = doc;
     for (const p of patches) applied = applyPatchToCanvas(applied, p as any);
     const explorations = applied.pages.find((p: any) => p.name === 'Explorations');
     expect(explorations.children).toHaveLength(5);
     expect(explorations.children.map((c: any) => c.id)).not.toContain('old0');
     expect(explorations.children[0].id).toBe('old1');
-    expect(applied.activePageIndex).toBe(0); // user's page restored
+    expect(applied.activePageIndex).toBe(0); // user's page unchanged
     expect(applied.children).toHaveLength(0);
   });
 
@@ -173,7 +182,6 @@ describe('pen_generate_variants parking wiring', () => {
       notes: [],
     });
 
-    const { createCanvasTools } = await import('@/lib/agent/tools');
     let doc: any = emptyDocument('doc-parking-wiring');
     const applied: any[] = [];
     const ctx = {
@@ -192,18 +200,17 @@ describe('pen_generate_variants parking wiring', () => {
     const result = await tool.execute('call-variants', { request: 'a pricing page' }, undefined, undefined, ctx);
 
     // The streamed patch sequence: winner first, then the parking sequence
-    // (add_page → parked sections → active-page restore, because the page-less
-    // doc migrates the winner into implicit "Page 1" and the builder returns
-    // the user there).
+    // (add_page → parked sections; no set_active_page anything — the builder
+    // never touches the active page).
     const patches = result.details.patches as any[];
     expect(Array.isArray(patches)).toBe(true);
     expect(patches[0].op).toBe('add_subtree');
     expect(patches[0].pageName).toBeUndefined(); // winner → active page
     expect(patches[1].op).toBe('add_page');
     expect(patches[1].pageName).toBe('Explorations');
-    expect(patches.slice(2, 4).every((p) => p.op === 'add_subtree' && p.pageName === 'Explorations')).toBe(true);
-    expect(patches[4].op).toBe('set_active_page'); // restore the user's page
-    expect(patches).toHaveLength(5); // winner + add_page + 2 parked sections + restore
+    expect(patches.slice(2).every((p) => p.op === 'add_subtree' && p.pageName === 'Explorations')).toBe(true);
+    expect(patches).toHaveLength(4); // winner + add_page + 2 parked sections
+    expect(patches.every((p) => p.op !== 'set_active_page')).toBe(true);
     // Back-compat: details.patch is still the winner patch.
     expect(result.details.patch).toBe(patches[0]);
     // Local application mirrors the stream (pageId read-back works).

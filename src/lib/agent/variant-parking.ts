@@ -20,10 +20,15 @@
 //     mirroring the applier's findPageIndex).
 //   - `add_subtree` with a `pageName` target inserts into the NAMED page and
 //     leaves the active tree untouched when that page is not the active one.
-//   - `remove` prunes the ACTIVE tree only — so a FIFO prune is bracketed
-//     with set_active_page('Explorations') … set_active_page(<original>)
-//     when the parking page is not already active, and `add_page`'s
-//     active-page switch is undone with a trailing set_active_page restore.
+//   - `remove` honors the same page target: a `pageName` on the patch prunes
+//     from THAT page's children (no active-page switch needed — the FIFO
+//     prune is a plain targeted remove; controller ruling on the Task 4
+//     review).
+//
+// Note: `add_page` switching the active page means the FIRST parking run on a
+// page-less document leaves the viewer on the (freshly parked) Explorations
+// page — accepted per the controller ruling; the chat card (Task 5), not a
+// viewport restore, is the return affordance.
 
 import type { CanvasDocument, CanvasPatch } from '../canvas/types';
 import type { VariantSpec, VariantJudgeResult } from './subagents/variant-generator';
@@ -94,33 +99,6 @@ function hydrateChildren(node: Record<string, unknown>): void {
 }
 
 /**
- * Resolve the page the user was on BEFORE parking, for the trailing
- * `set_active_page` restore. Returns a patch-field selector (pageId when an
- * exact page object exists, pageName for the implicit "Page 1" migration) or
- * null when there is nothing to restore to (page-less + empty doc — after
- * `add_page` the fresh Explorations page simply stays active).
- */
-function resolveOriginalActivePage(doc: CanvasDocument): { pageId?: string; pageName?: string } | null {
-  const pages = doc.pages ?? [];
-  const idx = doc.activePageIndex;
-  if (pages.length > 0 && typeof idx === 'number' && idx >= 0 && idx < pages.length) {
-    const page = pages[idx];
-    if (!page) return null;
-    // Already parked-and-browsing: the active page never moves — no restore.
-    if (typeof page.name === 'string' && page.name.toLowerCase().includes(EXPLORATIONS_PAGE_NAME.toLowerCase())) {
-      return null;
-    }
-    return { pageId: page.id };
-  }
-  // Legacy page-less doc WITH content: `add_page` migrates the tree into an
-  // implicit "Page 1" (deterministic id `<docId>-page-1`) before appending.
-  if (pages.length === 0 && (doc.children?.length ?? 0) > 0) {
-    return doc.id ? { pageId: `${doc.id}-page-1` } : { pageName: 'Page 1' };
-  }
-  return null;
-}
-
-/**
  * Build the parking patch sequence + parked metadata for a successful,
  * judged variant dispatch (spec §4.1/§4.2).
  *
@@ -129,13 +107,10 @@ function resolveOriginalActivePage(doc: CanvasDocument): { pageId?: string; page
  *      (the applier's add_page appends unconditionally).
  *   2. One `add_subtree` per runner-up, targeted at the Explorations page,
  *      wrapping the spec tree in a labeled `section` node with fresh ids.
- *   3. FIFO prune at 5: `{ op: 'remove', shapeIds }` dropping the OLDEST
- *      parked sections once the new set pushes the total past the cap —
- *      bracketed with set_active_page patches when Explorations is not the
- *      active page (the applier's remove prunes the active tree only).
- *   4. `set_active_page` restore so parking never leaves the user on the
- *      Explorations page (the chat card, not the canvas, is the discovery
- *      surface).
+ *   3. FIFO prune at 5: `{ op: 'remove', shapeIds, pageName }` dropping the
+ *      OLDEST parked sections once the new set pushes the total past the
+ *      cap — a page-targeted remove that works regardless of which page is
+ *      active.
  *
  * The fatal path (no judge / invalid winnerIndex) parks NOTHING — parking
  * happens only on a successful judged dispatch.
@@ -209,42 +184,22 @@ export function buildParkingPatches({ doc, variants, judge, winnerIndex }: Build
   // ---- FIFO prune at 5 (spec §4.1) ----------------------------------------
   // Existing parked sections = the Explorations page's `section` children,
   // oldest FIRST (children order). After adding K new sections, drop the
-  // (existing + K) - 5 oldest.
+  // (existing + K) - 5 oldest via a PAGE-TARGETED remove — the applier prunes
+  // that page's children directly (no active-page switch, no restore; the
+  // active tree and its derived `shapes` cache stay untouched).
   const existingSections = createdPage
     ? []
     : (pages[explorationsIdx]?.children ?? []).filter((c) => c.type === 'section');
   const pruneCount = Math.max(0, existingSections.length + parked.length - MAX_PARKED_SECTIONS);
-  const pruneIds = existingSections.slice(0, pruneCount).map((c) => c.id);
-
-  // The applier's `remove` prunes the ACTIVE tree only, and `add_page` (when
-  // it created the page) leaves activePageIndex ON Explorations. Only dance
-  // when a restore target exists — without one we would strand the user.
-  const original = resolveOriginalActivePage(doc);
-  const explorationsActiveAtApply = createdPage || explorationsIdx === doc.activePageIndex;
-  const needsDance = pruneCount > 0 && !explorationsActiveAtApply && original !== null;
-
-  if (needsDance) {
-    patches.push({
-      op: 'set_active_page',
-      pageId: pages[explorationsIdx].id,
-      summary: 'Switched to the Explorations page to prune old parked variants',
-    });
-  }
-  if (pruneCount > 0 && (explorationsActiveAtApply || original !== null)) {
+  if (pruneCount > 0) {
     patches.push({
       op: 'remove',
-      shapeIds: pruneIds,
+      shapeIds: existingSections.slice(0, pruneCount).map((c) => c.id),
+      pageName: EXPLORATIONS_PAGE_NAME,
       summary:
         pruneCount === 1
           ? 'Pruned the oldest parked variant from the Explorations page'
           : `Pruned ${pruneCount} oldest parked variants from the Explorations page`,
-    });
-  }
-  if (needsDance || (createdPage && original !== null)) {
-    patches.push({
-      op: 'set_active_page',
-      ...(original as { pageId?: string; pageName?: string }),
-      summary: 'Returned to the design page',
     });
   }
 

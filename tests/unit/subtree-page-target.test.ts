@@ -123,3 +123,75 @@ describe('bulk_add page target', () => {
     expect(next.children).toHaveLength(1);
   });
 });
+
+// The variant-parking FIFO prune (designer-workflow-parity §4.1, controller
+// ruling extending the Task 3 page target to `remove`): a `remove` carrying
+// pageName/pageId prunes from THAT page's children — the variant parking
+// workflow removes parked sections from the non-active Explorations page
+// without any active-page switching. Removal NEVER auto-creates (an unknown
+// pageName/pageId is a silent no-op — that defense is insert-only).
+describe('remove page target', () => {
+  const parked = (id: string): any => ({ id, type: 'section', name: id, x: 0, y: 0, width: 0, height: 0, children: [] });
+
+  function docWithParkedPages() {
+    const doc = emptyDocument('doc-remove-target');
+    doc.pages = [
+      { id: 'p1', name: 'Page 1', children: [] },
+      { id: 'p2', name: 'Explorations', children: [parked('old0'), parked('old1'), parked('old2')] },
+    ];
+    doc.activePageIndex = 0;
+    return doc as any;
+  }
+
+  it('removes ids from the named non-active page, leaving the active tree untouched', () => {
+    const next = applyPatchToCanvas(docWithParkedPages(), { op: 'remove', shapeIds: ['old0'], pageName: 'Explorations' } as any);
+    expect(next.pages![1].children.map((c) => c.id)).toEqual(['old1', 'old2']);
+    expect(next.children).toHaveLength(0); // active tree untouched
+    expect(next.activePageIndex).toBe(0);
+  });
+
+  it('removes a DEEP id inside a section on the named page (recursive prune)', () => {
+    const doc = docWithParkedPages();
+    (doc.pages[1].children[0] as any).children = [{ id: 'deep1', type: 'frame', name: 'deep', x: 0, y: 0, width: 10, height: 10, children: [] }];
+    const next = applyPatchToCanvas(doc, { op: 'remove', shapeIds: ['deep1'], pageName: 'Explorations' } as any);
+    expect((next.pages![1].children[0] as any).children).toHaveLength(0);
+    expect(next.pages![1].children.map((c) => c.id)).toEqual(['old0', 'old1', 'old2']); // sections stay
+    expect(next.children).toHaveLength(0);
+  });
+
+  it('behaves byte-identically to the legacy remove when no page target is given', () => {
+    const doc = emptyDocument('doc-remove-target');
+    doc.children = [parked('root1'), parked('root2')] as any;
+    const next = applyPatchToCanvas(doc as any, { op: 'remove', shapeIds: ['root1'] } as any);
+    expect(next.children.map((c) => c.id)).toEqual(['root2']);
+  });
+
+  it('behaves byte-identically when the target page IS the active page (D1 write-back sync)', () => {
+    const doc = docWithParkedPages();
+    doc.activePageIndex = 1;
+    doc.children = doc.pages[1].children;
+    const next = applyPatchToCanvas(doc, { op: 'remove', shapeIds: ['old1'], pageName: 'Explorations' } as any);
+    expect(next.children.map((c) => c.id)).toEqual(['old0', 'old2']); // legacy active-tree removal
+    expect(next.pages![1].children.map((c) => c.id)).toEqual(['old0', 'old2']); // write-back in sync
+  });
+
+  it('an unknown pageName is a silent no-op (removal never auto-creates)', () => {
+    const doc = docWithParkedPages();
+    const next = applyPatchToCanvas(doc, { op: 'remove', shapeIds: ['old0'], pageName: 'Nowhere' } as any);
+    expect(next.pages![1].children.map((c) => c.id)).toEqual(['old0', 'old1', 'old2']);
+    expect(next.pages).toHaveLength(2); // no auto-created page
+    expect(next.children).toHaveLength(0);
+  });
+
+  it('an unknown pageId is a silent no-op', () => {
+    const doc = docWithParkedPages();
+    const next = applyPatchToCanvas(doc, { op: 'remove', shapeIds: ['old0'], pageId: 'no-such-page' } as any);
+    expect(next.pages![1].children.map((c) => c.id)).toEqual(['old0', 'old1', 'old2']);
+    expect(next.children).toHaveLength(0);
+  });
+
+  it('an off-page prune never surfaces the parked sections in the derived shapes cache', () => {
+    const next = applyPatchToCanvas(docWithParkedPages(), { op: 'remove', shapeIds: ['old0'], pageName: 'Explorations' } as any);
+    expect(next.shapes).toHaveLength(0); // active tree is empty; parked sections stay off the cache
+  });
+});

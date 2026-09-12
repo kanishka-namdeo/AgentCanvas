@@ -10,7 +10,10 @@
 //   2. Drops target ops (`update` / `update_many` / `remove` / `duplicate`)
 //      that reference shape IDs which don't exist on the canvas — same
 //      reasoning: the applier no-ops, but the patch still fans out to every
-//      viewer and pollutes the diff summary.
+//      viewer and pollutes the diff summary. EXCEPTION (designer-workflow
+//      parity §4.1): a page-targeted `remove` (patch carries pageName/pageId)
+//      is validated against THAT page's subtree — its targets legitimately
+//      live on a non-active page, outside the derived `shapes` cache.
 //   3. Drops `add` / `bulk_add` roots whose EXPLICIT id already exists on
 //      the canvas (the #1 double-apply failure: two nodes with the same id,
 //      previously masked only by the renderer's render-time id dedupe).
@@ -23,6 +26,7 @@
 // catastrophic cases, not to second-guess valid model output.
 
 import type { CanvasDocument, CanvasPatch } from './types';
+import type { PenChild } from '../pen/types';
 
 export interface SanitizePatchResult {
   /// The (possibly cleaned) patch, or null when the patch should be dropped.
@@ -95,6 +99,43 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+}
+
+/// Page lookup for page-targeted patches — mirrors the applier's
+/// `findPageIndex` (pageId exact first, then case-insensitive name substring,
+/// first match). Never auto-creates: this is validation, and removal never
+/// auto-creates a page.
+function findPatchTargetPage(canvas: CanvasDocument, patch: CanvasPatch) {
+  const pages = canvas.pages ?? [];
+  if (patch.pageId) {
+    const byId = pages.find((p) => p.id === patch.pageId);
+    if (byId) return byId;
+  }
+  if (patch.pageName) {
+    const lower = patch.pageName.toLowerCase();
+    const byName = pages.find(
+      (p) => typeof p.name === 'string' && p.name.toLowerCase().includes(lower),
+    );
+    if (byName) return byName;
+  }
+  return null;
+}
+
+/// Every node id in a page's subtree — remove prunes by id anywhere in the
+/// tree, and a page-targeted patch's targets legitimately do not exist in the
+/// ACTIVE tree's derived `shapes` cache.
+function collectSubtreeIds(children: PenChild[]): Set<string> {
+  const ids = new Set<string>();
+  const walk = (nodes: PenChild[]): void => {
+    for (const n of nodes) {
+      if (n && typeof n.id === 'string') ids.add(n.id);
+      if (n && Array.isArray((n as { children?: unknown }).children)) {
+        walk((n as { children: PenChild[] }).children);
+      }
+    }
+  };
+  walk(children);
+  return ids;
 }
 
 /// Sanitize one agent-emitted patch against the CURRENT canvas state.
@@ -228,6 +269,33 @@ export function sanitizeAgentPatch(patch: CanvasPatch, canvas: CanvasDocument): 
 
     case 'remove': {
       const ids = patch.shapeIds ?? (patch.shapeId ? [patch.shapeId] : []);
+      // PAGE TARGET (designer-workflow-parity §4.1): a page-targeted remove
+      // prunes from THAT page's children — its targets legitimately do not
+      // exist in the active tree's derived cache, so existence is validated
+      // against the target page's subtree instead. An unknown page means the
+      // applier would no-op the patch (removal never auto-creates) — drop the
+      // dead patch per this module's no-fanout-of-noops rule.
+      if (patch.pageName || patch.pageId) {
+        const page = findPatchTargetPage(canvas, patch);
+        if (!page) {
+          return {
+            patch: null,
+            warnings: [`remove: page target "${patch.pageId ?? patch.pageName}" matches no page`],
+          };
+        }
+        const pageIds = collectSubtreeIds((page.children ?? []) as PenChild[]);
+        const missingOnPage = ids.filter((id) => !pageIds.has(id));
+        if (ids.length > 0 && missingOnPage.length === ids.length) {
+          return {
+            patch: null,
+            warnings: [`remove: no target exists on page "${page.name}" (${ids.slice(0, 3).join(', ')}…)`],
+          };
+        }
+        if (missingOnPage.length > 0) {
+          warnings.push(`remove: ${missingOnPage.length} target(s) already gone on page "${page.name}" (kept the rest)`);
+        }
+        return { patch, warnings };
+      }
       const missing = ids.filter((id) => !existingIds.has(id));
       if (ids.length > 0 && missing.length === ids.length) {
         // Every target is already gone — a pure no-op; drop the patch.

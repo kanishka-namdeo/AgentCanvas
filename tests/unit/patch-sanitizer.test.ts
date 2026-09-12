@@ -172,3 +172,78 @@ describe('sanitizeAgentPatch — passes through', () => {
     }
   });
 });
+
+// Page-targeted remove (designer-workflow-parity §4.1 — the variant-parking
+// FIFO prune): its targets live on a NON-ACTIVE page, outside the derived
+// `shapes` cache, so existence is validated against the TARGET page's subtree
+// instead of the active tree. Without this, the route would silently drop the
+// parking prune on every run.
+describe('sanitizeAgentPatch — page-targeted remove', () => {
+  function makeDocWithPages(): CanvasDocument {
+    const doc = makeDoc([]) as CanvasDocument;
+    doc.pages = [
+      { id: 'p1', name: 'Page 1', children: [] },
+      {
+        id: 'p2',
+        name: 'Explorations',
+        children: [
+          { id: 'old0', type: 'section', name: 'Old 0', x: 0, y: 0, width: 0, height: 0, children: [{ id: 'deep1', type: 'frame', name: 'deep', x: 0, y: 0, width: 10, height: 10, children: [] }] },
+          { id: 'old1', type: 'section', name: 'Old 1', x: 0, y: 0, width: 0, height: 0, children: [] },
+        ] as never,
+      },
+    ];
+    doc.activePageIndex = 0;
+    return doc;
+  }
+
+  it('keeps a page-targeted remove whose targets live on the non-active page', () => {
+    const res = sanitizeAgentPatch(
+      { op: 'remove', shapeIds: ['old0', 'old1'], pageName: 'Explorations' } as unknown as CanvasPatch,
+      makeDocWithPages(),
+    );
+    expect(res.patch).not.toBeNull(); // would be dropped without page-target awareness
+    expect(res.warnings).toEqual([]);
+  });
+
+  it('validates against DEEP ids inside the target page subtree', () => {
+    const res = sanitizeAgentPatch(
+      { op: 'remove', shapeIds: ['deep1'], pageName: 'Explorations' } as unknown as CanvasPatch,
+      makeDocWithPages(),
+    );
+    expect(res.patch).not.toBeNull();
+  });
+
+  it('drops a page-targeted remove when no target exists on that page', () => {
+    const res = sanitizeAgentPatch(
+      { op: 'remove', shapeIds: ['ghost1', 'ghost2'], pageName: 'Explorations' } as unknown as CanvasPatch,
+      makeDocWithPages(),
+    );
+    expect(res.patch).toBeNull();
+  });
+
+  it('keeps a partial match and warns about the missing ones', () => {
+    const res = sanitizeAgentPatch(
+      { op: 'remove', shapeIds: ['old0', 'ghost'], pageName: 'Explorations' } as unknown as CanvasPatch,
+      makeDocWithPages(),
+    );
+    expect(res.patch).not.toBeNull();
+    expect(res.warnings[0]).toContain('already gone on page "Explorations"');
+  });
+
+  it('drops a page-targeted remove whose page matches nothing (applier would no-op)', () => {
+    const res = sanitizeAgentPatch(
+      { op: 'remove', shapeIds: ['old0'], pageName: 'Nowhere' } as unknown as CanvasPatch,
+      makeDocWithPages(),
+    );
+    expect(res.patch).toBeNull();
+    expect(res.warnings[0]).toContain('matches no page');
+  });
+
+  it('resolves by pageId before name (same precedence as the applier)', () => {
+    const res = sanitizeAgentPatch(
+      { op: 'remove', shapeIds: ['old0'], pageId: 'p2', pageName: 'Nowhere' } as unknown as CanvasPatch,
+      makeDocWithPages(),
+    );
+    expect(res.patch).not.toBeNull(); // pageId wins → Explorations found → target exists
+  });
+});

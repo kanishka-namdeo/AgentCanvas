@@ -326,6 +326,24 @@ export function applyPatchToCanvas(
     }
     case 'remove': {
       const ids = new Set(patch.shapeIds ?? (patch.shapeId ? [patch.shapeId] : []));
+      // PAGE TARGET (designer-workflow-parity spec §4.1): a pageName/pageId on
+      // the patch prunes from THAT page — the variant-parking FIFO removes
+      // parked sections from the non-active Explorations page, leaving the
+      // active tree (and the derived `shapes` cache) untouched. No target, or
+      // the target IS the active page: byte-identical legacy removal from the
+      // active tree. Removal never auto-creates — an unknown pageName/pageId
+      // is a silent no-op (the applier's null-safety convention).
+      const pageTarget = resolvePageRemoveTarget(next, patch);
+      if (pageTarget.kind === 'page') {
+        let sink = pageTarget.children;
+        for (const id of ids) {
+          sink = removeNode(sink, id);
+        }
+        next.pages = next.pages!.map((p, i) => (i === pageTarget.index ? { ...p, children: sink } : p));
+        targetWriteBackIndex = pageTarget.index;
+        break;
+      }
+      if (pageTarget.kind === 'noop') break;
       for (const id of ids) {
         next.children = removeNode(next.children, id);
       }
@@ -1125,34 +1143,43 @@ function findPageIndex(
   return -1;
 }
 
-/// Resolution for a page-targeted tree insert (add_subtree / bulk_add).
+/// Resolution for a page-targeted tree op (add_subtree / bulk_add inserts and
+/// the page-targeted `remove` prune).
 /// - 'active': no page target on the patch, or the target IS the active page —
-///   insert into the active tree, byte-identical to the legacy applier.
-/// - 'page': insert into the resolved NON-active page's children (`index` into
-///   `next.pages`); may be a page JUST auto-created by this resolver.
+///   mutate the active tree, byte-identical to the legacy applier.
+/// - 'page': mutate the resolved NON-active page's children (`index` into
+///   `next.pages`); for inserts may be a page JUST auto-created by this
+///   resolver.
 /// - 'noop': unresolvable target (a pageId that matches no page and no name to
 ///   derive one from) — silent no-op per the applier's null-safe convention.
-type PageInsertResolution =
+type PageTargetResolution =
   | { kind: 'active' }
   | { kind: 'page'; index: number; children: PenChild[] }
   | { kind: 'noop' };
 
 /**
- * Resolve the page a tree-insert op targets. Spec §4.1 (designer-workflow
- * parity): `add_subtree` / `bulk_add` patches may carry `pageName`/`pageId`
- * (the same fields the page ops resolve via `findPageIndex`) to park variants
- * on a non-active page.
+ * Resolve the page a tree op targets. Spec §4.1 (designer-workflow parity):
+ * `add_subtree` / `bulk_add` / `remove` patches may carry `pageName`/`pageId`
+ * (the same fields the page ops resolve via `findPageIndex`) so the variant
+ * parking workflow can park AND prune on a non-active page.
  *
- * The ONLY mutation is to `next.pages` — always immutable (a new array) —
- * when it AUTO-CREATES a page for an unknown `pageName` (deterministic id
- * `page-<lowercased-name-with-hyphens-for-spaces>`, matching the id convention
- * of the implicit "Page 1" migration in `add_page`). Auto-create is a
- * deliberate DEFENSE, never the happy path: the tool layer emits `add_page`
- * before parking variants, and the applier is null-safe by contract (it cannot
- * throw on agent data), so an unknown name lands here instead of hard-erroring.
- * An unknown `pageId` with no name to derive a page from is a silent no-op.
+ * The ONLY mutation is to `next.pages` — always immutable (a new array) — and
+ * only when `autoCreateOnUnknownName` is set AND an unknown `pageName` arrives
+ * (deterministic id `page-<lowercased-name-with-hyphens-for-spaces>`, matching
+ * the id convention of the implicit "Page 1" migration in `add_page`).
+ * Auto-create is a deliberate DEFENSE for inserts, never the happy path: the
+ * tool layer emits `add_page` before parking variants, and the applier is
+ * null-safe by contract (it cannot throw on agent data), so an unknown name
+ * lands here instead of hard-erroring. REMOVAL never auto-creates (creating a
+ * page to remove from it is absurd) — an unknown `pageName`/`pageId` on a
+ * `remove` is a silent no-op. An unknown `pageId` with no name to derive a
+ * page from is a silent no-op for inserts too.
  */
-function resolvePageInsertTarget(next: CanvasDocument, patch: CanvasPatch): PageInsertResolution {
+function resolvePageTarget(
+  next: CanvasDocument,
+  patch: CanvasPatch,
+  opts: { autoCreateOnUnknownName: boolean },
+): PageTargetResolution {
   if (!patch.pageName && !patch.pageId) return { kind: 'active' };
   const pages = next.pages ?? [];
   const idx = findPageIndex(pages, patch);
@@ -1161,7 +1188,7 @@ function resolvePageInsertTarget(next: CanvasDocument, patch: CanvasPatch): Page
     if (idx === next.activePageIndex) return { kind: 'active' };
     return { kind: 'page', index: idx, children: pages[idx].children ?? [] };
   }
-  if (patch.pageName) {
+  if (patch.pageName && opts.autoCreateOnUnknownName) {
     const created: PenPage = {
       id: `page-${patch.pageName.toLowerCase().replace(/\s+/g, '-')}`,
       name: patch.pageName,
@@ -1172,6 +1199,16 @@ function resolvePageInsertTarget(next: CanvasDocument, patch: CanvasPatch): Page
     return { kind: 'page', index: next.pages.length - 1, children: created.children };
   }
   return { kind: 'noop' };
+}
+
+function resolvePageInsertTarget(next: CanvasDocument, patch: CanvasPatch): PageTargetResolution {
+  return resolvePageTarget(next, patch, { autoCreateOnUnknownName: true });
+}
+
+/// Page-target resolution for `remove` — never auto-creates: an unknown
+/// `pageName`/`pageId` is a silent no-op (see resolvePageTarget).
+function resolvePageRemoveTarget(next: CanvasDocument, patch: CanvasPatch): PageTargetResolution {
+  return resolvePageTarget(next, patch, { autoCreateOnUnknownName: false });
 }
 
 /// Insert a node from a patch into the tree. Used by the new Figma ontology
