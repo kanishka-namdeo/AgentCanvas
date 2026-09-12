@@ -44,3 +44,22 @@ if (typeof SVGElement !== 'undefined') {
     proto.getBBox = () => ({ x: 0, y: 0, width: 100, height: 100 });
   }
 }
+
+// IntersectionObserver — motion's whileInView (Magic UI BlurFade etc.) needs
+// it and jsdom doesn't implement it. The stub fires the callback immediately
+// with isIntersecting: true so in-view content renders visible in tests.
+// (Only defined when missing — production code is unaffected.)
+if (!globalThis.IntersectionObserver) {
+  globalThis.IntersectionObserver = class {
+    constructor(private callback: IntersectionObserverCallback) {}
+    observe(target: Element) {
+      const entry = { isIntersecting: true, target } as unknown as IntersectionObserverEntry;
+      this.callback([entry], this as unknown as IntersectionObserver);
+    }
+    unobserve() {}
+    disconnect() {}
+    takeRecords(): IntersectionObserverEntry[] {
+      return [];
+    }
+  } as unknown as typeof IntersectionObserver;
+}
