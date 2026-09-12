@@ -9,7 +9,7 @@ shadcn/ui primitives: Radix UI wrappers styled with `class-variance-authority` a
 - Every file in this folder is a CLI-generated component — either a shadcn/ui component (`bunx shadcn@latest add <component>`) or a Magic UI primitive (`npx shadcn@latest add -y "https://magicui.design/r/<name>.json"`).
 - The component inventory is registered in `components.json`.
 - Owned by the shadcn/ui upstream + the project's `components.json` config. Not owned by any individual feature.
-- The Magic UI primitives (`blur-fade`, `border-beam`, `bento-grid`, `marquee`, `scroll-progress`) depend on `motion` — which is PINNED to the `^12` line as a project decision (the shadcn CLI may try to bump it to latest when re-running Magic UI installs; re-pin with `bun add 'motion@^12.43.0'` afterwards). `marquee` additionally requires the `marquee`/`marquee-vertical` keyframes in `src/app/globals.css` (appended automatically by the CLI).
+- The Magic UI primitives (`blur-fade`, `border-beam`, `bento-grid`, `marquee`, `scroll-progress`) depend on `motion` — which is PINNED to the `^12` line as a project decision (the shadcn CLI may try to bump it to latest when re-running Magic UI installs; re-pin with `bun add 'motion@^12.43.0'` afterwards). `marquee` additionally requires the `marquee`/`marquee-vertical` keyframes in `src/app/globals.css` (appended automatically by the CLI). The CLI may also silently add generic helper deps its registry assumes (`cn`, the `radix-ui` monolith) that these components never import — audit `git diff package.json` after every CLI add and `bun remove` anything unimported (done once post-Task-1: `cn`, `radix-ui`).
 
 ## Local Contracts
 
