@@ -320,7 +320,7 @@ describe('key-repeat coalescer (12-d #12)', () => {
   });
 
   it('wiring: page.tsx routes ⌘Z/⇧Z and arrows through the coalescer with Map lookups at drain time', () => {
-    const page = src('src/app/page.tsx');
+    const page = src('src/app/app/page.tsx');
     expect(page).toContain('keyRepeatCoalescer.queueUndo()');
     expect(page).toContain('keyRepeatCoalescer.queueRedo()');
     expect(page).toContain('keyRepeatCoalescer.queueNudge(dx, dy)');
