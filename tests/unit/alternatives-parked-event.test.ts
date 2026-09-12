@@ -33,8 +33,32 @@ import { join } from 'node:path';
 
 import { useCanvasStore } from '@/lib/canvas/store';
 import { useSessionStore } from '@/lib/sessions';
+import { journalAgentEvent, flushJournal } from '@/lib/agent/event-journal';
+import {
+  runJournalCatchUp,
+  saveWatermark,
+  type JournalRowWire,
+} from '@/lib/canvas/journal-catchup';
 import type { CanvasDocument, Shape, SyncEvent } from '@/lib/canvas/types';
 import type { PenChild } from '@/lib/pen/types';
+
+// Journal write capture (boot-recovery.test.ts vi.mock('@/lib/db') pattern —
+// this DOES reliably intercept event-journal's dynamic import('../db'); see
+// the TEST-STRATEGY WARNING in src/lib/canvas/AGENTS.md).
+const { journalRows } = vi.hoisted(() => ({
+  journalRows: [] as Array<Record<string, unknown>>,
+}));
+vi.mock('@/lib/db', () => ({
+  db: {
+    agentEvent: {
+      findFirst: vi.fn(async () => null),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        journalRows.push(data);
+        return data;
+      }),
+    },
+  },
+}));
 
 const ROOT = process.cwd();
 const readSource = (rel: string) => readFileSync(join(ROOT, 'src', rel), 'utf-8');
@@ -452,5 +476,114 @@ describe('alternatives_parked wiring invariants', () => {
     // Components never emit socket events — promotion goes through the store action.
     expect(src).toContain('promoteAlternative(');
     expect(src).not.toMatch(/emit\('client'.*alternatives/i);
+  });
+});
+
+// ---- 6. journal-side thumbnail strip (controller fix round 1) ------------------
+//
+// Thumbnails are cosmetic; the CARD is the contract. The 65K journal row cap
+// would truncate a thumbnail-bearing payload into invalid JSON, which
+// journal-catchup's replayRow skips — a reconnecting viewer would lose the
+// whole card. The JOURNALED copy therefore drops thumbnails; the LIVE wire
+// event keeps them.
+
+describe('journal-side thumbnail strip (agent:alternatives_parked)', () => {
+  const BIG_THUMB = 'data:image/png;base64,' + 'A'.repeat(200_000);
+
+  beforeEach(() => {
+    journalRows.length = 0;
+  });
+
+  it('the JOURNALED copy drops thumbnails, stays valid + under the 65K cap, keeps the card contract', async () => {
+    const event = {
+      type: 'agent:alternatives_parked',
+      page: 'Explorations',
+      pageId: 'page-abc-123',
+      sections: ['sec-a', 'sec-b'],
+      alternatives: [
+        { id: 'sec-a', label: 'Variant B — 81', score: 81, thumbnail: BIG_THUMB },
+        { id: 'sec-b', label: 'Variant C — 74', score: 74 },
+      ],
+      toolCallId: 'tc-park-1',
+    };
+    journalAgentEvent('doc-journal-strip', { kind: 'agent_event', event } as never);
+    await flushJournal();
+    expect(journalRows).toHaveLength(1);
+    const row = journalRows[0];
+    expect(row.type).toBe('agent:alternatives_parked');
+    expect(row.toolCallId).toBe('tc-park-1');
+    expect(typeof row.payload).toBe('string');
+    expect((row.payload as string).length).toBeLessThan(65_536); // under the row cap
+    expect(row.payload as string).not.toContain(BIG_THUMB);
+    const payload = JSON.parse(row.payload as string); // parses — NOT truncated
+    expect(payload.type).toBe('agent:alternatives_parked');
+    expect(payload.page).toBe('Explorations');
+    expect(payload.pageId).toBe('page-abc-123');
+    expect(payload.sections).toEqual(['sec-a', 'sec-b']); // kept per the ruling
+    expect(payload.toolCallId).toBe('tc-park-1');
+    expect(payload.alternatives).toEqual([
+      { id: 'sec-a', label: 'Variant B — 81', score: 81 }, // thumbnail stripped, rest intact
+      { id: 'sec-b', label: 'Variant C — 74', score: 74 },
+    ]);
+    // The LIVE event object is untouched — the wire stream keeps thumbnails.
+    expect((event.alternatives as Array<{ thumbnail?: string }>)[0].thumbnail).toBe(BIG_THUMB);
+  });
+
+  it('journaled rows without thumbnails pass through byte-identical (no needless clone)', async () => {
+    const event = {
+      type: 'agent:alternatives_parked',
+      page: 'Explorations',
+      alternatives: [{ id: 'sec-a', label: 'Variant B — 81', score: 81 }],
+    };
+    journalAgentEvent('doc-journal-strip', { kind: 'agent_event', event } as never);
+    await flushJournal();
+    expect(JSON.parse(journalRows[0].payload as string)).toEqual(event);
+  });
+
+  it('other journaled types pass through unchanged (the strip never leaks)', async () => {
+    const event = { type: 'agent:plan_proposed', planId: 'p1', title: 'T', summary: 'S', steps: [] };
+    journalAgentEvent('doc-journal-strip', { kind: 'agent_event', event } as never);
+    await flushJournal();
+    expect(journalRows[0].type).toBe('agent:plan_proposed');
+    expect(JSON.parse(journalRows[0].payload as string)).toEqual(event);
+  });
+
+  it('journal-catchup replayRow dispatches the stripped row (a reconnecting viewer gets the card)', async () => {
+    const DOC = 'doc-journal-replay';
+    saveWatermark(DOC, 5);
+    // The row exactly as the journal stores it (thumbnail already stripped).
+    const row: JournalRowWire = {
+      seq: 6,
+      type: 'agent:alternatives_parked',
+      toolCallId: 'tc-park-1',
+      payload: {
+        type: 'agent:alternatives_parked',
+        page: 'Explorations',
+        pageId: 'page-abc-123',
+        sections: ['sec-a'],
+        alternatives: [{ id: 'sec-a', label: 'Variant B — 81', score: 81 }],
+        toolCallId: 'tc-park-1',
+      },
+      createdAt: new Date().toISOString(),
+    };
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL) => {
+      const url = new URL(String(input), 'http://localhost');
+      const afterSeq = url.searchParams.get('afterSeq');
+      if (afterSeq === String(Number.MAX_SAFE_INTEGER)) {
+        return new Response(JSON.stringify({ events: [], lastSeq: 6, count: 0, truncated: false }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ events: [row], lastSeq: 6, count: 1, truncated: false }), { status: 200 });
+    }));
+    const dispatch = vi.fn();
+    await runJournalCatchUp(DOC, { dispatch });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const ev = dispatch.mock.calls[0][0] as {
+      type: string;
+      alternatives: Array<{ thumbnail?: string; label: string; score: number }>;
+    };
+    expect(ev.type).toBe('agent:alternatives_parked'); // row.type === payload.type → dispatched
+    expect(ev.alternatives[0].thumbnail).toBeUndefined(); // the stripped card replays
+    expect(ev.alternatives[0].label).toBe('Variant B — 81');
+    expect(ev.alternatives[0].score).toBe(81);
   });
 });

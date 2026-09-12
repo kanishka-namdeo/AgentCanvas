@@ -64,11 +64,10 @@ const JOURNALED_AGENT_EVENT_TYPES = new Set<string>([
   'agent:critique_skipped',
   // Variant parking (spec §4.3): the promote card MUST be journaled —
   // reconnect catch-up replay rebuilds the AlternativesCard from this row
-  // (journal-catchup auto-dispatches journaled agent:-prefixed rows). Note:
-  // thumbnails ride the payload and the 65K row cap truncates
-  // thumbnail-heavy rows — such rows fail safeParse's type check in
-  // replayRow and are skipped there (the prompting client's own card
-  // persists via the session store, so this only affects foreign viewers).
+  // (journal-catchup auto-dispatches journaled agent:-prefixed rows).
+  // Thumbnails are stripped from the JOURNALED copy (journalPayloadFor —
+  // they would blow the 65K row cap into invalid JSON, which replay skips);
+  // the live wire event keeps them.
   'agent:alternatives_parked',
   'agent:tool_progress',
   'agent:todo_update',
@@ -206,6 +205,32 @@ function boundedJson(value: unknown): string {
   return text;
 }
 
+/// Journal-side payload transform for `agent:alternatives_parked` (spec §4.3,
+/// controller fix round 1): thumbnails are cosmetic (Task 4 emits
+/// ≤150_000-char data URLs per runner-up) and the MAX_PAYLOAD_CHARS row cap
+/// below would truncate the payload into INVALID JSON — which journal-catchup's
+/// replayRow then skips, so a reconnecting viewer would lose the whole promote
+/// card, not just the pictures. The JOURNALED copy therefore drops
+/// `alternatives[].thumbnail` (ids/labels/scores plus page/pageId/sections/
+/// toolCallId stay — the card is the contract); the LIVE wire event keeps
+/// thumbnails. Shallow clone per touched row — the runner's own event object
+/// is never mutated. Every other journaled type passes through unchanged.
+function journalPayloadFor(type: string, event: unknown): unknown {
+  if (type !== 'agent:alternatives_parked' || !event || typeof event !== 'object') return event;
+  const raw = (event as { alternatives?: unknown }).alternatives;
+  if (!Array.isArray(raw)) return event;
+  let touched = false;
+  const alternatives = raw.map((row) => {
+    if (!row || typeof row !== 'object' || !('thumbnail' in row)) return row;
+    touched = true;
+    const clone = { ...(row as Record<string, unknown>) };
+    delete clone.thumbnail;
+    return clone;
+  });
+  if (!touched) return event;
+  return { ...(event as Record<string, unknown>), alternatives };
+}
+
 /// Append one agent stream event to the journal (fire-and-forget, filtered).
 export function journalAgentEvent(documentId: string, ev: AgentStreamEvent): void {
   try {
@@ -220,7 +245,7 @@ export function journalAgentEvent(documentId: string, ev: AgentStreamEvent): voi
     }
     const type = ev.event?.type;
     if (!type || !JOURNALED_AGENT_EVENT_TYPES.has(type)) return;
-    enqueueWrite(documentId, type, (ev.event as { toolCallId?: string }).toolCallId, boundedJson(ev.event));
+    enqueueWrite(documentId, type, (ev.event as { toolCallId?: string }).toolCallId, boundedJson(journalPayloadFor(type, ev.event)));
   } catch {
     // Never throw out of the journal.
   }
