@@ -1720,13 +1720,60 @@ const createShape = defineTool({
         .join('\n');
       const notesText = result.notes.length > 0 ? `\nNotes: ${result.notes.join('; ')}` : '';
 
+      // ---- Park runner-ups on the Explorations page (spec §4.1/§4.2) ------
+      // The winner is applied above; the judged runner-ups are parked as
+      // labeled sections on a dedicated Explorations page (created on first
+      // use, FIFO-pruned at 5) via buildParkingPatches — each patch through
+      // the SAME sink the winner used, with a `summary` so the turn-diff
+      // chips render the parking op. Then agent:alternatives_parked announces
+      // the card payload (thumbnails + section ids — the promote route's key;
+      // the card wiring lands in Task 5). Best-effort: parking must never
+      // fail the tool over thumbnails or any other parking hiccup.
+      let parkedNote = '';
+      const parkingPatches: CanvasPatch[] = [];
+      try {
+        const doc = ctx.getDocument?.();
+        if (doc) {
+          const { buildParkingPatches } = await import('./variant-parking');
+          const plan = buildParkingPatches({
+            doc,
+            variants: result.variants,
+            judge: result.judge,
+            winnerIndex: result.judge.winnerIndex,
+          });
+          parkingPatches.push(...plan.patches);
+          for (const parkingPatch of plan.patches) {
+            ctx.applyPatch(parkingPatch);
+          }
+          if (plan.parked.length > 0) {
+            // Page id as applied (add_page derives its own id at apply time).
+            const docNow = ctx.getDocument?.();
+            const explorationsPage = docNow?.pages?.find(
+              (pg) => typeof pg.name === 'string' && pg.name.toLowerCase().includes('explorations'),
+            );
+            emitEvent({
+              type: 'agent:alternatives_parked',
+              page: 'Explorations',
+              ...(explorationsPage ? { pageId: explorationsPage.id } : {}),
+              sections: plan.parked.map((p) => p.label),
+              alternatives: plan.parked,
+              toolCallId,
+            });
+            const n = plan.parked.length;
+            parkedNote = `\n\n${n} runner-up ${n === 1 ? 'variant' : 'variants'} parked on the Explorations page.`;
+          }
+        }
+      } catch (parkingError) {
+        console.warn('[pen_generate_variants] variant parking failed (non-fatal):', parkingError);
+      }
+
       return {
         content: [{
           type: 'text',
           text:
             `Explored ${result.variants.length} design variant(s) in parallel (${result.generationMs}ms); judge (${result.judge.method}) picked "${winner.direction}".\n` +
             `Reason: ${result.judge.reason}\n\nAll variants:\n${scoreLines}\n\n` +
-            `Applied the winner (${winner.nodeCount} node(s), root id ${winnerRootId}).${manifestText}${warningsNote}${notesText}`,
+            `Applied the winner (${winner.nodeCount} node(s), root id ${winnerRootId}).${manifestText}${warningsNote}${notesText}${parkedNote}`,
         }],
         details: {
           winnerIndex: result.judge.winnerIndex,
@@ -1738,6 +1785,12 @@ const createShape = defineTool({
           generationMs: result.generationMs,
           notes: result.notes,
           patch,
+          // The translator's extractPatchesFromToolResult prefers `patches`
+          // over `patch` — the FULL patch sequence (winner first, then the
+          // parking sequence) must ride here or the parked sections would
+          // apply to the runner's local canvas only and never reach the
+          // client / journal.
+          ...(parkingPatches.length > 0 ? { patches: [patch, ...parkingPatches] } : {}),
         },
       };
     },

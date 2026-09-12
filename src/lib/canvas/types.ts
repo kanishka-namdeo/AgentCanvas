@@ -705,6 +705,14 @@ export type SyncEvent =
   // Fan-out (the deciding client's POST resolves the server-side gate; this
   // event tells every viewer the gate closed and how).
   | { type: 'agent:plan_resolved'; planId: string; decision: 'build' | 'revise' | 'timeout'; feedback?: string }
+  // Variant parking (designer-workflow-parity spec §4.2): pen_generate_variants
+  // parked the judged runner-ups as labeled sections on the Explorations page.
+  // The frontend renders the promote card from this event: each alternative
+  // (thumbnail + name + score + "Use this") plus the applied design as
+  // "In use". `alternatives[].id` is the parked SECTION node id (the promote
+  // route's key). Emitted after the parking patches; journaling rides
+  // JOURNALED_AGENT_EVENT_TYPES (Task 5).
+  | { type: 'agent:alternatives_parked'; page: string; pageId?: string; sections: string[]; alternatives: Array<{ id: string; label: string; score: number; thumbnail?: string }>; toolCallId?: string }
   // Adaptive critique gating (research §4.4): the runner SKIPPED the LLM
   // critics on a small/clean turn — deterministic validation only. The
   // frontend renders a muted "self-review skipped (saved ~N LLM calls)" row
