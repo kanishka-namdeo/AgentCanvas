@@ -54,6 +54,7 @@ import {
   flushJournal,
   type JournalRow,
 } from '../agent/event-journal';
+import { applyVariantPromotePayload, type VariantPromotePayload } from './variant-promote';
 
 /// Tombstone cap — FIFO beyond this (tldraw caps its tombstone list too).
 export const TOMBSTONE_CAP = 2000;
@@ -262,6 +263,23 @@ async function foldTail(
           if (restored) {
             current = restored;
             tombstones.clear();
+            mutations++;
+          }
+        }
+      } else if (row.type === 'variant_promote') {
+        // Spec §4.3: apply the swap payload deterministically. The promoted
+        // section + previous main roots' subtree ids are tombstoned (the
+        // following document_restore row, when present, clears them — both
+        // orders produce correct state: swap→restore is idempotent because
+        // restore loads a snapshot that already reflects the swap).
+        const payload = row.payload as VariantPromotePayload | null;
+        if (payload && typeof payload === 'object') {
+          const swapped = applyVariantPromotePayload(current, payload);
+          if (swapped) {
+            current = swapped;
+            for (const id of payload.removedSectionIds ?? []) {
+              if (typeof id === 'string') tombstones.add(id);
+            }
             mutations++;
           }
         }
