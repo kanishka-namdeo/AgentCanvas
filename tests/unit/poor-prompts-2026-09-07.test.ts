@@ -67,7 +67,7 @@ describe('runner-native — empty-canvas edit guard wiring (source invariants)',
     expect(runnerSrc).toMatch(
       /clarifyOnEmptyCanvas =\s*mode === 'build' &&\s*turnStartShapeIds\.size === 0 &&\s*looksLikeEditReference\(prompt\);/,
     );
-    expect(runnerSrc).toMatch(/import \{ looksLikeEditReference \} from '\.\/prompt-intent';/);
+    expect(runnerSrc).toMatch(/import\s*\{[^}]*looksLikeEditReference[^}]*\}\s*from\s*['"]\.\/prompt-intent['"]/);
   });
 
   it('brief pre-generation stands down on clarify turns (the hallucination accomplice)', () => {

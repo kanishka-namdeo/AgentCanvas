@@ -19,10 +19,9 @@ const read = (rel: string) => readFileSync(join(REPO, rel), 'utf8');
 // ---- (a) source-invariant ---------------------------------------------------
 
 describe('submit_layout_approval source invariant', () => {
-  // Task 9 wires the registration in runner-native.ts. Until then this test
-  // documents the contract: the identifier MUST appear in runner-native.ts.
-  // Skipped in Task 8; Task 9 unskips it.
-  it.skip('runner-native.ts references submitLayoutApprovalTool (Task 9 wires registration)', () => {
+  // Task 9 wires the registration in runner-native.ts. The identifier MUST
+  // appear in runner-native.ts (registered in the allTools catalog).
+  it('runner-native.ts references submitLayoutApprovalTool (Task 9 wires registration)', () => {
     const src = read('lib/agent/runner-native.ts');
     expect(src).toContain('submitLayoutApprovalTool');
   });

@@ -86,7 +86,7 @@ import {
   type Plan,
 } from './skills';
 import { resolveModel, resolveZaiSandboxFallback } from './pi-ai-model-resolver';
-import { looksLikeEditReference } from './prompt-intent';
+import { looksLikeEditReference, shouldOfferStagedFlow } from './prompt-intent';
 import { subscribeAndTranslate, createEventQueue } from './agent-session-translator';
 import { registerActiveSession } from './active-sessions';
 import { dataUrlToImageContent } from './attachments';
@@ -131,6 +131,7 @@ import {
   normalizeDesignCritiqueMode,
   modeToolAllowlist,
   modeSectionFor,
+  stagedFlowSection,
   shouldRunCritics,
   promptRequestsCritique,
   detectMultitaskPrompt,
@@ -138,6 +139,7 @@ import {
 } from './modes';
 import { submitPlanTool, SUBMIT_PLAN_TOOL_NAME } from './plan-tools';
 import { consumeApprovedPlan, hasApprovedPlanSince } from './plan-gate';
+import { submitLayoutApprovalTool, lofiToolNames, SUBMIT_LAYOUT_APPROVAL_TOOL_NAME } from './layout-gate';
 import { hydrateSubtreeChildren, type RawSubtreeNode } from './tools';
 
 // ---- SDK auto-compaction settings (native sessions) -------------------------
@@ -495,6 +497,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // pattern — the plan artifact is the ONLY thing the planning agent
     // "writes"). Filtered out of every other mode by the mode gate below.
     ...(mode === 'plan' ? [submitPlanTool as unknown as ToolDefinition] : []),
+    // Staged design flow (Task 9): the submit_layout_approval tool is
+    // registered unconditionally — the lo-fi toolset assembly below
+    // decides whether it actually reaches the LLM. On non-staged turns
+    // it's filtered out by the toolset intersection.
+    submitLayoutApprovalTool as unknown as ToolDefinition,
   ] as unknown as ToolDefinition[]);
   const pluginToolNames = getEnabledPluginToolNames(settings);
 
@@ -606,6 +613,56 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const filteredTools = allTools.filter((t) =>
     categoryAllowedToolNames.has(t.name) && !aliasNames.has(t.name));
 
+  // ---- Ambiguous-creation detection (multi-variant explorer path) --------
+  //
+  // "a pricing page" / "a profile card" with no palette, style, or
+  // reference pinned: the brief would PRE-DECIDE the palette — exactly the
+  // coin-flip pen_generate_variants exists to settle by exploring 2-3
+  // directions in parallel and judging the renders. Skip the brief for
+  // these turns and nudge the model toward the explorer instead.
+  const isAmbiguousCreation = (() => {
+    const t = prompt.toLowerCase();
+    const trimmed = t.trim();
+
+    // The variant explorer (pen_generate_variants) is a slow (60-300s) sub-agent
+    // that needs its own LLM client and frequently fails silently — producing
+    // ZERO shapes on the canvas. Routing every "design a screen" prompt through
+    // it was the root cause of the agent failing to generate any UI for real-
+    // world design requests (verified via 8-scenario test suite — all produced
+    // 0 shapes). Now we ONLY trigger variant exploration when the user EXPLICITLY
+    // opts in via `/variants` or "explore"/"directions"/"multiple options".
+    const explicitVariantRequest =
+      /^\/variants?\b/i.test(trimmed) ||
+      /\b(variants?|explore|directions?|multiple\s+(options|designs)|go\s+wide|a\s*\/\s*b\s*\/\s*c)\b/i.test(t);
+    if (!explicitVariantRequest) return false;
+
+    const creationVerb = /\b(create|make|build|design|draw|generate|add)\b/.test(t);
+    const wholeThing = /\b(page|card|screen|panel|dashboard|hero|landing|layout|section|profile|form|chart)\b/.test(t);
+    // Pinned-direction signals — ANY of these means NOT ambiguous.
+    const pinned = /(dark\s*mode|light\s*theme|palette\s*of|#[0-9a-f]{6}|colou?rs?:|font:|like\s+(stripe|airbnb|linear|vercel|figma|notion)|in\s+the\s+style|minimalist|neubrutalist|glassmorphism|match\s+the|same\s+(style|colou?r|font)|monochrome|neon|pastel)/.test(t);
+    // Follow-up EDIT turns reference existing content ("make the cards
+    // darker", "add another tier") — not variant-exploration candidates.
+    const isEdit = /\b(darker|lighter|bigger|smaller|move|rename|change|update|align|delete|remove|another|more|also|instead)\b/.test(t) && !/\b(create|build|generate)\b/.test(t);
+    return creationVerb && wholeThing && !pinned && !isEdit;
+  })();
+
+  // ---- Staged-flow detection (Task 9 — spec §3.2) --------------------------
+  //
+  // The staged lo-fi → approval → hi-fi flow is offered on screen-scale
+  // creation requests on an empty canvas. The detection is PURE (no LLM
+  // round-trip) and lives in prompt-intent.ts. The result is bound here
+  // AFTER isAmbiguousCreation (which feeds variantDispatchPlanned) and
+  // BEFORE the one-shot slimming gate (which must skip staged turns — the
+  // staged flow NEEDS ask_user_question to offer the choice). `repeatCount`
+  // defaults to 0 (the history read happens later — the immediate-repeat
+  // exception flips expectsCanvasOutput independently).
+  const stagedFlow: 'lofi' | 'direct' = shouldOfferStagedFlow({
+    prompt,
+    canvasEmpty: turnStartShapeIds.size === 0,
+    mode,
+    variantDispatchPlanned: isAmbiguousCreation,
+  }) ? 'lofi' : 'direct';
+
   // ---- One-shot (empty-canvas build) tool-surface slimming -----------------
   // The default-on plugin tools (ask_user_question, todo_*, memory_*) exist
   // for long-horizon interactive sessions. On the FIRST build turn of an
@@ -638,7 +695,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // still gets the trivial-tier slimming — Ask has only read tools, so the
   // intersection is naturally smaller anyway).
   const tierAllowlist = getTierAllowlist(tier);
-  const oneShotFiltered = isOneShotBuildTurn
+  // Task 9 b2: the one-shot slimming gate strips ask_user_question on empty
+  // canvas build turns — but the staged flow NEEDS ask_user_question to
+  // offer the lo-fi/hi-fi choice. Skip slimming when stagedFlow === 'lofi'.
+  const oneShotFiltered = (isOneShotBuildTurn && stagedFlow !== 'lofi')
     ? filteredTools.filter((t) => !ONE_SHOT_DROP_TOOLS.has(t.name))
     : filteredTools;
   const turnTools = tierAllowlist
@@ -772,39 +832,6 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // user message is assembled (the first point that actually needs it), so
   // classification, tool-set construction and web research all overlap it.
   let preGeneratedBriefPromise: Promise<string | null> | null = null;
-  // ---- Ambiguous-creation detection (multi-variant explorer path) --------
-  //
-  // "a pricing page" / "a profile card" with no palette, style, or
-  // reference pinned: the brief would PRE-DECIDE the palette — exactly the
-  // coin-flip pen_generate_variants exists to settle by exploring 2-3
-  // directions in parallel and judging the renders. Skip the brief for
-  // these turns and nudge the model toward the explorer instead.
-  const isAmbiguousCreation = (() => {
-    const t = prompt.toLowerCase();
-    const trimmed = t.trim();
-
-    // The variant explorer (pen_generate_variants) is a slow (60-300s) sub-agent
-    // that needs its own LLM client and frequently fails silently — producing
-    // ZERO shapes on the canvas. Routing every "design a screen" prompt through
-    // it was the root cause of the agent failing to generate any UI for real-
-    // world design requests (verified via 8-scenario test suite — all produced
-    // 0 shapes). Now we ONLY trigger variant exploration when the user EXPLICITLY
-    // opts in via `/variants` or "explore"/"directions"/"multiple options".
-    const explicitVariantRequest =
-      /^\/variants?\b/i.test(trimmed) ||
-      /\b(variants?|explore|directions?|multiple\s+(options|designs)|go\s+wide|a\s*\/\s*b\s*\/\s*c)\b/i.test(t);
-    if (!explicitVariantRequest) return false;
-
-    const creationVerb = /\b(create|make|build|design|draw|generate|add)\b/.test(t);
-    const wholeThing = /\b(page|card|screen|panel|dashboard|hero|landing|layout|section|profile|form|chart)\b/.test(t);
-    // Pinned-direction signals — ANY of these means NOT ambiguous.
-    const pinned = /(dark\s*mode|light\s*theme|palette\s*of|#[0-9a-f]{6}|colou?rs?:|font:|like\s+(stripe|airbnb|linear|vercel|figma|notion)|in\s+the\s+style|minimalist|neubrutalist|glassmorphism|match\s+the|same\s+(style|colou?r|font)|monochrome|neon|pastel)/.test(t);
-    // Follow-up EDIT turns reference existing content ("make the cards
-    // darker", "add another tier") — not variant-exploration candidates.
-    const isEdit = /\b(darker|lighter|bigger|smaller|move|rename|change|update|align|delete|remove|another|more|also|instead)\b/.test(t) && !/\b(create|build|generate)\b/.test(t);
-    return creationVerb && wholeThing && !pinned && !isEdit;
-  })();
-
   // ---- Tool-calling reliability: "did this turn OWE tool calls?" -----------
   //
   // A build-style design request ("Design a login screen…") is expected to
@@ -1165,14 +1192,54 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       } as unknown as ToolDefinition;
     });
 
+  // ---- Staged-flow lo-fi toolset (Task 9 — spec §3.3) ----------------------
+  //
+  // When the staged flow is offered, the lo-fi phase uses a RESTRICTED
+  // toolset: wireframe generators + structural tools, NO hi-fi styling
+  // composites (palette/typography/variables/shadow/gradient/blur/bulk ops/
+  // find-replace/bake-layout). Plus `ask_user_question` (the choice) and
+  // `submit_layout_approval` (the gate). Same filtering shape as
+  // `buildToolsForPlanMode`: intersect `allTools` against `lofiToolNames()`
+  // minus alias names. The `planCompletionBlocker` wraps the staged tools
+  // exactly like the plan-mode branch — after the layout is approved, the
+  // lo-fi session must stop (the hi-fi session takes over).
+  //
+  // `stagedExecOrderedTools` is the FULL build toolset for the hi-fi pass
+  // (post-approval). NOT wrapped by the blocker — the blocker exists to end
+  // the LO-FI session; the exec session must have unblocked tools.
+  const stagedLoFiTools: ToolDefinition[] | null = stagedFlow === 'lofi'
+    ? planCompletionBlocker(
+        allTools.filter((t) => {
+          const lofiNames = new Set(lofiToolNames());
+          return lofiNames.has(t.name) && !aliasNames.has(t.name);
+        }),
+      )
+    : null;
+  const stagedExecOrderedTools: ToolDefinition[] | null = stagedLoFiTools
+    ? assembleOrderedTools(
+        allTools.filter((t) => {
+          const buildAllowed = new Set<string>([
+            ...getToolNamesForCategory(activeCategory),
+            ...classification.secondaryCategories.flatMap((c: SkillCategory) => getToolNamesForCategory(c)),
+            ...(includePenFileTools ? [...PEN_TOOL_NAMES, ...FIGMA_TOOL_NAMES] : []),
+            ...pluginToolNames,
+          ]);
+          return buildAllowed.has(t.name) && !aliasNames.has(t.name);
+        }),
+      )
+    : null;
+
   // Speed-parity P0.4: escape hatch — if attempt 1 errored with a tool-not-found
   // signature (the model reached for a tool not in its tier-allowlist), widen
   // to the full categoryAllowlist on attempt 2. Tracked via `tierWidened`.
   // Declared outside the attempt loop so attempt N+1 can read attempt N's flag.
   let tierWidened = false;
   // Mutable copy of orderedTools so attempt 2 can swap in a widened set.
+  // Staged flow: the lo-fi session uses the restricted toolset.
   let orderedTools: ToolDefinition[] = assembleOrderedTools(
-    mode === 'plan' ? planCompletionBlocker(filteredTools) : turnTools,
+    stagedLoFiTools
+      ? stagedLoFiTools
+      : mode === 'plan' ? planCompletionBlocker(filteredTools) : turnTools,
   );
   // PLAN mode: the build-toolset session that executes the plan after
   // approval. Assembled NOW (wrappers close over turn-scoped state) so the
@@ -1750,9 +1817,14 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const clarifyGuardSection = clarifyOnEmptyCanvas
     ? `\n\n[EMPTY-CANVAS EDIT GUARD: The canvas is EMPTY — zero layers, zero shapes, nothing to edit, restyle, resize, or recolor. The request above reads as an edit of existing content, but there IS no existing content. Do NOT invent or create any design this turn — a guessed design is a hallucination, not help. Instead, reply with ONE short, friendly clarifying question (a single sentence) asking what the user wants to build, offering a concrete example (e.g. "a login page? a dashboard? a pricing table?"). Then stop — the clarification is the correct and complete output for this turn.]`
     : '';
+  // Staged-flow directive (Task 9 — spec §3.2): when the staged flow is
+  // offered, inject the lo-fi-first instruction into the first user message.
+  // Sits next to variantNudge (mutually exclusive — variant path clears
+  // stagedFlow via the variantDispatchPlanned detection input).
+  const stagedSection = stagedFlow === 'lofi' ? stagedFlowSection('lofi') : '';
   const userMessage = (webResearchSummary
     ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}${clarifyGuardSection}`
-    : `${selectionNote}${prompt}${clarifyGuardSection}`) + modeSection + briefSection + variantNudge + conversationHistorySection + snapshotSection + perTurnSections + promptVersionSection + packReminder;
+    : `${selectionNote}${prompt}${clarifyGuardSection}`) + modeSection + briefSection + variantNudge + stagedSection + conversationHistorySection + snapshotSection + perTurnSections + promptVersionSection + packReminder;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;
@@ -2558,7 +2630,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     }
   }
 
-  // ---- PLAN-mode execution phase (post-approval toolset swap) -----------------
+  // ---- PLAN-mode + staged-flow execution phase (post-approval toolset swap) --
   //
   // Cursor Plan-mode / Claude Code ExitPlanMode handoff: the planning session
   // (read-only tools + submit_plan) ends with the user clicking "Build it" —
@@ -2568,10 +2640,19 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // the brief — hasGeneratedBrief is pre-set so the brief gate no-ops). The
   // critique loop below then runs on the EXECUTION session (adaptive gates
   // apply as on any build turn) because `session` is reassigned here.
-  const approvedPlan = mode === 'plan' && !wasAborted() && !lastPromptError
+  //
+  // Task 9: the staged-flow lo-fi phase uses the SAME approved-plan slot
+  // (discriminated by `kind: 'layout'`). The gate extends to `stagedFlow ===
+  // 'lofi'` so the layout approval also triggers a second session — with a
+  // different first message ("APPROVED LAYOUT — ..." + the hi-fi instruction)
+  // and the full build toolset (stagedExecOrderedTools, NOT wrapped by the
+  // blocker — the blocker exists to end the lo-fi session).
+  const approvedPlan = (mode === 'plan' || stagedFlow === 'lofi') && !wasAborted() && !lastPromptError
     ? consumeApprovedPlan(runStartedAt)
     : null;
-  if (approvedPlan && session && execOrderedTools && execOrderedTools.length > 0) {
+  const isLayoutKind = approvedPlan?.kind === 'layout';
+  const execToolsForApproval = isLayoutKind ? stagedExecOrderedTools : execOrderedTools;
+  if (approvedPlan && session && execToolsForApproval && execToolsForApproval.length > 0) {
     planExecuted = true;
     hasGeneratedBrief = true; // the approved plan supersedes the design brief
 
@@ -2580,14 +2661,16 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       kind: 'agent_event',
       event: {
         type: 'agent:message_delta',
-        text: `\n\n_[Plan approved — switching to Build mode and executing "${approvedPlan.title}" (${approvedPlan.steps.length} steps).]_\n`,
+        text: isLayoutKind
+          ? `\n\n_[Layout approved — switching to hi-fi pass on "${approvedPlan.title}" (${approvedPlan.steps.length} sections).]_\n`
+          : `\n\n_[Plan approved — switching to Build mode and executing "${approvedPlan.title}" (${approvedPlan.steps.length} steps).]_\n`,
       } as any,
     };
     yield { kind: 'agent_event', event: { type: 'agent:message_end' } as any };
 
-    // Dispose the planning session + its steer registration; the execution
-    // session replaces both (the outer finally disposes whatever `session`
-    // points at LAST — exactly one live session at any time).
+    // Dispose the planning/lo-fi session + its steer registration; the
+    // execution session replaces both (the outer finally disposes whatever
+    // `session` points at LAST — exactly one live session at any time).
     try { session.dispose(); } catch {}
     session = undefined;
     if (unregisterSteer) { unregisterSteer(); unregisterSteer = undefined; }
@@ -2599,8 +2682,8 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         modelRuntime: currentModel.modelRuntime,
         thinkingLevel: mapThinkingLevel(thinkingLevel),
         noTools: 'all',
-        customTools: execOrderedTools,
-        tools: execOrderedTools.map((t) => t.name),
+        customTools: execToolsForApproval,
+        tools: execToolsForApproval.map((t) => t.name),
         resourceLoader,
         sessionManager: SessionManager.inMemory(process.cwd()),
         settingsManager: SettingsManager.inMemory({
@@ -2628,19 +2711,34 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         // Capability probe failed — loop stays unbounded.
       }
 
-      const execUserMessage =
-        `${selectionNote}The user APPROVED your plan — execute it now with the full design toolset.\n\n` +
-        `ORIGINAL REQUEST:\n${prompt}\n\n` +
-        `APPROVED PLAN — "${approvedPlan.title}":\n${approvedPlan.summary}\n\n` +
-        `Steps (execute in order, completing each before the next):\n` +
-        approvedPlan.steps.map((s) => `${s.step}. ${s.description}`).join('\n') +
-        (approvedPlan.openQuestions && approvedPlan.openQuestions.length > 0
-          ? `\n\nAssumptions the user accepted:\n${approvedPlan.openQuestions.map((q) => `- ${q}`).join('\n')}`
-          : '') +
-        conversationHistorySection + snapshotSection + memorySection + fileSkillsSection +
-        `\n\nThe plan above is the source of truth for this turn. Build exactly what it describes — do not redesign it. ` +
-        `Use pen_create_subtree (ONE call per screen with a nested tree) so each step lands as a complete screen.` +
-        promptVersionSection + packReminder;
+      // Layout-kind (staged flow) vs plan-kind: different first message,
+      // same second-session plumbing. The layout message tells the builder
+      // to apply the hi-fi pass to the approved skeleton WITHOUT changing
+      // the information architecture / layout / section ordering.
+      const execUserMessage = isLayoutKind
+        ? `${selectionNote}APPROVED LAYOUT — "${approvedPlan.title}":\n${approvedPlan.summary}\n\n` +
+          `Sections (the approved skeleton on the canvas):\n` +
+          approvedPlan.steps.map((s) => `${s.step}. ${s.description}`).join('\n') +
+          (approvedPlan.openQuestions && approvedPlan.openQuestions.length > 0
+            ? `\n\nAssumptions the user accepted:\n${approvedPlan.openQuestions.map((q) => `- ${q}`).join('\n')}`
+            : '') +
+          conversationHistorySection + snapshotSection + memorySection + fileSkillsSection +
+          `\n\nApply the hi-fi pass to this approved structure. Do not change the information architecture, ` +
+          `layout skeleton, or section ordering — upgrade fidelity only (palette, typography, spacing, shadows, ` +
+          `real content, components).` +
+          promptVersionSection + packReminder
+        : `${selectionNote}The user APPROVED your plan — execute it now with the full design toolset.\n\n` +
+          `ORIGINAL REQUEST:\n${prompt}\n\n` +
+          `APPROVED PLAN — "${approvedPlan.title}":\n${approvedPlan.summary}\n\n` +
+          `Steps (execute in order, completing each before the next):\n` +
+          approvedPlan.steps.map((s) => `${s.step}. ${s.description}`).join('\n') +
+          (approvedPlan.openQuestions && approvedPlan.openQuestions.length > 0
+            ? `\n\nAssumptions the user accepted:\n${approvedPlan.openQuestions.map((q) => `- ${q}`).join('\n')}`
+            : '') +
+          conversationHistorySection + snapshotSection + memorySection + fileSkillsSection +
+          `\n\nThe plan above is the source of truth for this turn. Build exactly what it describes — do not redesign it. ` +
+          `Use pen_create_subtree (ONE call per screen with a nested tree) so each step lands as a complete screen.` +
+          promptVersionSection + packReminder;
 
       // Drain the execution session exactly like the main attempt loop:
       // translator queue + event sink + turn_end WITHHELD (the critique loop

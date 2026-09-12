@@ -124,6 +124,46 @@ export function modeSectionFor(mode: AgentMode): string {
   return '';
 }
 
+// ---- Staged-flow prompt section (Task 9 — spec §3.2) -----------------------
+//
+// The staged lo-fi → approval → hi-fi flow is offered on screen-scale
+// creation requests on an empty canvas. When `stagedFlow === 'lofi'`, the
+// runner injects this section into the first user message (next to
+// variantNudge). It instructs the agent to:
+//   1. FIRST call `ask_user_question` with exactly two options:
+//        - "Lo-fi layout first (recommended)"
+//        - "Straight to hi-fi"
+//   2. If the user picks lo-fi: build the gray-box skeleton on the canvas,
+//      then call `submit_layout_approval` with the layout sections as steps.
+//   3. If the user picks hi-fi: proceed as a normal build turn (no staged
+//      flow — the directive's job is done).
+//
+// The fallback line ("if ask_user_question is somehow unavailable…") covers
+// the verified surface gap where the one-shot slimming gate would otherwise
+// strip ask_user_question on staged turns (Task 9 b2 guard).
+
+export type StagedFlowKind = 'lofi';
+
+/// Returns the prompt section for the staged flow, or empty string for
+/// unknown kinds (forward-compat: 'direct' and future kinds need no section).
+export function stagedFlowSection(kind: StagedFlowKind | string): string {
+  if (kind !== 'lofi') return '';
+  return (
+    '\n\n[STAGED DESIGN FLOW — lo-fi first. ' +
+    'BEFORE generating anything on the canvas, call `ask_user_question` with EXACTLY two options: ' +
+    '"Lo-fi layout first (recommended)" and "Straight to hi-fi". ' +
+    'If the user picks "Lo-fi layout first": build ONLY a gray-box skeleton on the canvas ' +
+    '(sections, hierarchy, placement — NO palette, typography, shadow, gradient, or real content), ' +
+    'then call `submit_layout_approval` with the layout sections as steps. ' +
+    'The user will see a Layout approval card: "Apply hi-fi" upgrades the skeleton to the finished ' +
+    'design; "Revise layout" returns their feedback for another lo-fi iteration. ' +
+    'If the user picks "Straight to hi-fi": proceed as a normal build turn — build the full design ' +
+    'directly with the full toolset, no staged flow. ' +
+    'If ask_user_question is somehow unavailable, ask the question in plain text and end your turn; ' +
+    'do not generate before the user replies.]'
+  );
+}
+
 // ---- Design critique invocation mode (2026-09-06) ----------------------------
 //
 // The critique loop previously fired the text + VLM critic subagents
