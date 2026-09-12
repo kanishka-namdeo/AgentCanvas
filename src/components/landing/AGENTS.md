@@ -10,6 +10,7 @@ Shared chrome for the marketing landing page (route `/`, landing-page plan 2026-
 - `BrowserFrame.tsx` — light-chrome browser mockup (`data-testid="browser-frame"`): traffic-light chrome bar + fixed-aspect viewport (default `16 / 10`). All landing screenshots are LIGHT-mode captures on a DARK page, so they are always framed inside this light chrome — never pasted raw. `crop="bottom"` overlays a light fade over the viewport's bottom edge (spec §6: screenshot artifacts are cropped in CSS, never edited out of the source PNGs); pair with `object-cover object-top` on the child image and a NARROWER `aspectRatio` than the source shot.
 - `LandingHeader.tsx` — `'use client'` absolute header over the hero. Exports `LANDING_SECTIONS`, the single source of the five below-hero anchor ids (`magic`, `tool`, `trust`, `how-it-works`, `open-source`) — section components MUST render elements with these ids. Anchor clicks scroll via `lenis` (`useLenis`); without a provider (prefers-reduced-motion) `useLenis()` returns `null` and clicks fall through to native anchor scrolling. CTAs: `header-star` → `REPO_URL`, `header-open` → `/app` (`.ac-brand-gradient` pill).
 - `LandingFooter.tsx` — server-safe (no hooks): logo, AGPL-3.0 line, `footer-github` link → `REPO_URL`. No link farm.
+- `Hero.tsx` — the 100vh cinematic opener (spec §5.1, landing-page plan Task 4): `<section id="top" data-testid="section-hero">`, the page's ONLY h1 ("Design at the speed of thought", wrapped in `Balancer as="h1"`), dual CTAs (`hero-star` → `REPO_URL`, `hero-open` → `/app`), typing prompt via `react-type-animation` (`hero-typing`), tool-call chip `Marquee` (`hero-chips`), gradient glow, and the hero-build screenshot in a `BrowserFrame` with scroll parallax (`useScroll` → transform-only `y`). Reduced-motion / narrow-screen branches (spec §10): static full-prompt text (`hero-typing-static`), static chip row (`hero-chips-static`), no glow keyframes, no parallax.
 
 ## Local Contracts
 
@@ -20,6 +21,7 @@ Shared chrome for the marketing landing page (route `/`, landing-page plan 2026-
 ## Verification
 
 - `bun run test tests/unit/landing-primitives.test.tsx` — 7 tests covering the repo-URL constants, BrowserFrame crop/aspect/className contract, header anchors + CTAs, footer (next/image and lenis/react mocked).
+- `bun run test tests/unit/landing-hero.test.tsx` — 8 tests covering the Hero headline/anchor, dual CTAs, hero-build screenshot dims, chip marquee, typing line, and the three reduced-motion branches (`useReducedMotion` module-mocked controllable; `next/image` mocked to a plain `<img>`).
 
 ## Child DOX Index
 
