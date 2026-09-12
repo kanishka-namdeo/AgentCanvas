@@ -36,6 +36,11 @@ export interface PlanProposalInput {
   steps: PlanStep[];
   /// Open questions the agent resolved with stated assumptions.
   openQuestions?: string[];
+  /// Discriminator for the shared approved-plan slot. 'plan' = submit_plan
+  /// (PLAN mode); 'layout' = submit_layout_approval (staged design flow).
+  /// Task 10 will add `kind` to the SyncEvent payload; for now the runner
+  /// discriminates by reading this field off the consumed proposal.
+  kind?: 'plan' | 'layout';
 }
 
 export interface PlanDecision {
