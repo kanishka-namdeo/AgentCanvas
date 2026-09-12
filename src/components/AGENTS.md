@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Component tree root. Owns the shared ThemeToggle component directly, and indexes the five component subfolders (canvas, sessions, settings, design-systems, ui) that have their own AGENTS.md contracts.
+Component tree root. Owns the shared ThemeToggle component directly, and indexes the six component subfolders (canvas, sessions, settings, design-systems, ui, landing) that have their own AGENTS.md contracts.
 
 ## Ownership
 
@@ -48,3 +48,4 @@ Component tree root. Owns the shared ThemeToggle component directly, and indexes
 | `settings/AGENTS.md` | Settings dialog: 8-section modal (agent, LLM provider, sessions, appearance, data, shortcuts, plugins, MCP servers) |
 | `design-systems/AGENTS.md` | Design-system picker + pack showcase (the Design tab's pack browsing UI) |
 | `ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers, 26-component inventory |
+| `landing/AGENTS.md` | Landing-page shared chrome: repo-url constants, light-chrome BrowserFrame (+ bottom-crop), LandingHeader (anchor nav via lenis + CTAs), LandingFooter |

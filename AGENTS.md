@@ -135,12 +135,13 @@ When the user requests a durable behavior change, record it here or in the relev
 |------|-------|
 | `src/app/AGENTS.md` | Next.js App Router: root layout, main page (tabbed 3-column layout), global styles with `--ac-*` design tokens + `[data-density="compact"]` rules |
 | `src/app/api/AGENTS.md` | API routes (30): `/api/agent` (NDJSON agent run) + answers/pending/client-responses/background/approvals/plans subroutes, `/api/sessions*` (+ search/tags/attachments) server-side session persistence, `/api/documents*` (CRUD + snapshots + events + agent status), `/api/models` (provider/BETA preflight), `/api/design-systems*`, `/api/plugins` + `/api/mcp/[id]`, `/api` health, `/api/pen/import` + `/api/pen/export` |
-| `src/components/AGENTS.md` | Component tree root: ThemeToggle; indexes canvas/sessions/settings/design-systems/ui child docs |
+| `src/components/AGENTS.md` | Component tree root: ThemeToggle; indexes canvas/sessions/settings/design-systems/ui/landing child docs |
 | `src/components/canvas/AGENTS.md` | Canvas UI components: drawing surface, floating toolbar (toolMode + undo/redo), layers, properties, agent chat + PluginUI bundle, command palette, app menu, .pen file menu, keyboard shortcuts dialog |
 | `src/components/sessions/AGENTS.md` | Session management UI: sidebar, header, run history, status badges |
 | `src/components/settings/AGENTS.md` | Settings dialog: 8-section modal (agent, LLM provider + BETA endpoint preset chips, sessions, appearance, data, shortcuts, plugins, MCP servers) |
 | `src/components/design-systems/AGENTS.md` | Design-system UI: pack picker (iframe-isolated preview) + pack showcase |
 | `src/components/ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers (26) + 5 Magic UI motion-backed primitives (marquee, bento-grid, border-beam, blur-fade, scroll-progress); motion pinned ^12 |
+| `src/components/landing/AGENTS.md` | Landing-page shared chrome: repo-url constants, BrowserFrame light-chrome mockup (+ bottom-crop), LandingHeader (lenis anchor nav + CTAs), LandingFooter |
 | `src/lib/AGENTS.md` | Lib tree root: Prisma client singleton (`db.ts`), `cn()` utility; indexes the eight lib child docs |
 | `src/lib/agent/AGENTS.md` | Agent layer: 103-tool production surface (85 tools.ts = 79 base + 6 composites, 8 pen, 10 figma) + 32 plugin tools (subagents default-off), native Pi-SDK runner + legacy test runner, client round-trip registry, classifier/planner, tool-execution-mode + alias policy, UI-quality enforcement loop with real-client-screenshot VLM critique + conversation-history replay; prompt-tuned system prompt (PROMPT_VERSION 2026-08-31.4: scope/content contract, positional fidelity, no-invented-content, resolver-warnings-are-defects, shadow floor — evidence in download/prompt-tuning/) |
 | `src/lib/agent/skills/AGENTS.md` | Skill system: types, registry (7 skills), progressive disclosure levels, eval harness |

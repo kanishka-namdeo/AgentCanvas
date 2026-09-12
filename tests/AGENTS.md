@@ -62,6 +62,7 @@ Two kinds of tests live here:
 | `reusable-elements-ui.test.ts` | The `remove_variable` patch op (`applyPatchToCanvas`, 2026-09-12 reusable-elements-ui plan Task 1 — the data-layer primitive for the Token Editor UI): deletes a variable by `variableKey` (other variables preserved) and is a no-op when the key doesn't exist. |
 | `landing-assets.test.ts` | The landing-page asset + dependency contract (2026-09-13 landing-page plan Task 1): the 6 files in `public/landing/` exist (4 PNGs + 2 MP4s), the 5 landing deps are declared in package.json (`motion`, `lenis`, `react-type-animation`, `@number-flow/react`, `react-wrap-balancer`), `motion` is pinned to the `^12` line, and the 5 Magic UI primitives exist under `src/components/ui/` (`marquee`, `bento-grid`, `border-beam`, `blur-fade`, `scroll-progress`). 9 tests (6 asset `it.each` rows + 3). |
 | `landing-routes.test.ts` | The workspace route-move contract (2026-09-13 landing-page plan Task 2): `src/app/app/page.tsx` exists (the workspace moved off `/` — it 404s until Task 8), is still the verbatim client component with the tabbed 3-column layout (`<LeftPanel` / `<RightToolsPanel` / `<Canvas` / `ResizablePanelGroup` markers), exports no metadata, and the header brand block links back to `/` via `next/link` with the aria-label. 4 tests. |
+| `landing-primitives.test.tsx` | The shared landing-primitives contract (2026-09-13 landing-page plan Task 3): `REPO_URL`/`REPO_CLONE_URL` constants (`src/components/landing/repo-url.ts` — the only place the URL literal appears), `BrowserFrame` (default `16 / 10` aspect, `data-crop` marker, bottom-crop fade with `aria-hidden`, passthrough className), `LandingHeader` + `LANDING_SECTIONS` (the five anchor ids `magic/tool/trust/how-it-works/open-source`, Star link → repo, `/app` CTA), `LandingFooter` (logo, AGPL-3.0 line, GitHub link). `next/image` and `lenis/react` are module-mocked (image → plain `<img>`; `useLenis` → `null` = the reduced-motion fallback path). 7 tests. |
 
 ### Vitest integration tests (`tests/integration/`)
 
@@ -79,6 +80,7 @@ Two kinds of tests live here:
 ### Setup file (`tests/setup.ts`)
 - Registers `@testing-library/jest-dom` matchers.
 - Polyfills `crypto.randomUUID` (for older jsdom), `matchMedia`, `ResizeObserver`, and `SVGElement.prototype.getBBox` — all of which jsdom lacks but our code relies on.
+- `IntersectionObserver` stub (only defined when missing): fires the callback immediately with `isIntersecting: true` so motion's `whileInView` (Magic UI BlurFade etc.) renders its content visible under jsdom.
 
 ### Vitest config (`vitest.config.ts` at repo root)
 - Environment: `jsdom`.
@@ -142,10 +144,10 @@ Each prints a "passed" message on success and exits non-zero on failure.
 
 ## Verification
 
-- `bun run test` — verified 2026-09-13 (landing-page plan Task 1 baseline): **133 test files; 2718 passed | 2 skipped**. Known PRE-EXISTING failures (not regressions): `agent-optimization-2026-09-05.test.ts` (TURN FLOW prompt invariants), `design-consistency-2026-09-06.test.ts` (guide-red token scan + .ac-label overline scan), and `chat-features.test.ts` (fails at import time — it imports `src/lib/agent/followups`, a module deleted from the repo; stale test file). `modes-2026-08-30.test.ts` can flake on worker-contention timeouts under full-suite parallel load — rerun in isolation before treating a failure as real.
+- `bun run test` — verified 2026-09-13 (landing-page plan Task 3): **135 test files; 2728 passed | 2 skipped** (plus 3 known failures). Known PRE-EXISTING failures (not regressions): `agent-optimization-2026-09-05.test.ts` (TURN FLOW prompt invariants), `design-consistency-2026-09-06.test.ts` (guide-red token scan + .ac-label overline scan), and `chat-features.test.ts` (fails at import time — it imports `src/lib/agent/followups`, a module deleted from the repo; stale test file). `modes-2026-08-30.test.ts` and `layout-gate.test.ts` can flake on worker-contention timeouts under full-suite parallel load — rerun in isolation before treating a failure as real.
 - `bash tests/python-runtime-build.sh` — should print "python runtime build tests passed".
 - `bash tests/database-runtime-build.sh` — should print the corresponding pass message.
-- `bunx tsc --noEmit` — typecheck (currently clean; `skills/` is excluded in tsconfig because the z.ai sandbox extracts sandbox-owned skill sources there).
+- `bunx tsc --noEmit` — typecheck (the `skills/` directory is excluded in tsconfig because the z.ai sandbox extracts sandbox-owned skill sources there). Currently reports only PRE-EXISTING errors outside `src/`: the stale `chat-features.test.ts` import (see above) and `scripts/screenshot-*.ts` importing `playwright`, which is not installed (only `playwright-core` is a dependency).
 - CI (`.github/workflows/ci.yml`) is INTENDED to run `bun run lint` + `bun run test` on pushes/PRs to `main` (typecheck is currently disabled — the workflow comment cites ~30 legacy tsc errors that have since been fixed, so it can be re-enabled). **Known bug**: both triggers contain a typo (`branches: ain]` instead of `branches: [main]`), so CI never actually fires. The fix must be made directly on GitHub (the sandbox blocks workflow-trigger edits).
 
 ## Child DOX Index
