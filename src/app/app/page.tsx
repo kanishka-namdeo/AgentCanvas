@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -1105,12 +1106,12 @@ export default function Home() {
               onOpenShortcuts={() => setShortcutsOpen(true)}
               onOpenDesignSystems={() => setDesignSystemsOpen(true)}
             />
-            <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2" aria-label="AgentCanvas home — back to the landing page">
               <div className="w-6 h-6 rounded-md ac-brand-gradient flex items-center justify-center shadow-sm">
                 <PenTool className="h-3.5 w-3.5 text-white" />
               </div>
               <span className="font-semibold text-[13px] tracking-tight ac-text-1 hidden sm:inline">AgentCanvas</span>
-            </div>
+            </Link>
           </div>
           {/* Center: document switcher + active chat title (compact) */}
           <div className="flex-1 min-w-0 flex items-center justify-center">
