@@ -557,7 +557,7 @@ describe('UI hardening: wiring source scans', () => {
   });
 
   it('page.tsx — app-level ErrorBoundary wraps the app', () => {
-    const src = read('app/page.tsx');
+    const src = read('app/app/page.tsx');
     expect(src).toContain('<ErrorBoundary>');
     expect(src).toContain('</ErrorBoundary>');
     // Copy/cut use O(1) Map lookups (selection-bomb fix).
