@@ -7,6 +7,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // SmoothScroll imports 'lenis/dist/lenis.css' (landing-page plan Task 8).
+      // In the vitest pipeline a CSS import pulls the project's Tailwind
+      // PostCSS config into vite:css, which fails to load outside Next — and
+      // jsdom doesn't apply stylesheets anyway. Stub the stylesheet to a plain
+      // module so the import graph stays intact.
+      'lenis/dist/lenis.css': path.resolve(__dirname, './tests/stubs/empty-module.ts'),
     },
   },
   test: {
