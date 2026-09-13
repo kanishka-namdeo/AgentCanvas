@@ -465,10 +465,10 @@ export function AppMenu(props: AppMenuProps) {
           <DropdownMenuItem onClick={() => window.open('https://pen.dev', '_blank')}>
             View .pen spec
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => window.open('https://github.com/kanishka-namdeo/AgentCanvas', '_blank')}>
+          <DropdownMenuItem onClick={() => window.open('https://github.com/kanishka-namdeo/co-canvas', '_blank')}>
             View source on GitHub
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => window.open('https://github.com/kanishka-namdeo/AgentCanvas/issues', '_blank')}>
+          <DropdownMenuItem onClick={() => window.open('https://github.com/kanishka-namdeo/co-canvas/issues', '_blank')}>
             Report an issue
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => toast.message('AgentCanvas · Figma for AI agents · MIT')}>
