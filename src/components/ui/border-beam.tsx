@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, type MotionStyle, type Transition } from "motion/react"
+import { motion, useReducedMotion, type MotionStyle, type Transition } from "motion/react"
 
 import { cn } from "@/lib/utils"
 
@@ -64,6 +64,42 @@ export const BorderBeam = ({
   initialOffset = 0,
   borderWidth = 1,
 }: BorderBeamProps) => {
+  const prefersReducedMotion = useReducedMotion()
+
+  // Reduced motion: same DOM shape (outer mask + inner beam), but rendered
+  // statically with no initial/animate/transition — the beam is purely
+  // decorative, so it stays inert (no gradient painted at a fixed position)
+  // under prefers-reduced-motion (landing spec §10).
+  if (prefersReducedMotion) {
+    return (
+      <div
+        className="pointer-events-none absolute inset-0 rounded-[inherit] border-(length:--border-beam-width) border-transparent mask-[linear-gradient(transparent,transparent),linear-gradient(#000,#000)] mask-intersect [mask-clip:padding-box,border-box]"
+        style={
+          {
+            "--border-beam-width": `${borderWidth}px`,
+          } as React.CSSProperties
+        }
+      >
+        <motion.div
+          className={cn(
+            "absolute aspect-square",
+            "bg-linear-to-l from-(--color-from) via-(--color-to) to-transparent",
+            className
+          )}
+          style={
+            {
+              width: size,
+              offsetPath: `rect(0 auto auto 0 round ${size}px)`,
+              "--color-from": colorFrom,
+              "--color-to": colorTo,
+              ...style,
+            } as MotionStyle
+          }
+        />
+      </div>
+    )
+  }
+
   return (
     <div
       className="pointer-events-none absolute inset-0 rounded-[inherit] border-(length:--border-beam-width) border-transparent mask-[linear-gradient(transparent,transparent),linear-gradient(#000,#000)] mask-intersect [mask-clip:padding-box,border-box]"
