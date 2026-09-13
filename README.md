@@ -169,8 +169,8 @@ Think **Excalidraw + Figma + an AI pair designer**, running locally.
 
 ```bash
 # 1. Clone
-git clone https://github.com/kanishka-namdeo/AgentCanvas.git
-cd AgentCanvas
+git clone https://github.com/kanishka-namdeo/co-canvas.git
+cd co-canvas
 
 # 2. Install dependencies (Bun recommended)
 bun install
