@@ -4,9 +4,9 @@
 //
 // Captures, into download/landing-verify/:
 //   01-desktop-full.png      desktop 1440x900 full page
-//   02..06-desktop-<id>.png  per-section viewport shots (id-anchored)
-//   07-mobile-full.png       mobile 390x844 full page
-//   08-reduced-motion.png    hero under prefers-reduced-motion: reduce
+//   02..07-desktop-<id>.png  per-section viewport shots (6 id-anchored sections)
+//   08-mobile-full.png       mobile 390x844 full page
+//   09-reduced-motion.png    hero under prefers-reduced-motion: reduce
 //
 // Run: bunx tsx scripts/screenshot-landing.ts   (dev server on :3000)
 
