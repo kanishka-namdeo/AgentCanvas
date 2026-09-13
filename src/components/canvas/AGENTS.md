@@ -118,12 +118,12 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
   - Accepts `hideHeader` prop (the compact `SessionHeader` component sits in the top header of the 3-column tabbed layout).
   - Inline Stop button appears next to streaming response when `agentBusy`.
   - Right-click context menus on user messages, assistant messages, and tool-call cards.
-  - The conversation `ScrollArea` sets `viewportClassName="agent-panel-scroll"` so the ⌘↑/⌘↓ handler in `src/app/page.tsx` (`document.querySelector('.agent-panel-scroll').scrollBy(...)`) targets the real Radix scroll viewport, not the non-scrolling `ScrollArea` root (`className` lands on Root).
+  - The conversation `ScrollArea` sets `viewportClassName="agent-panel-scroll"` so the ⌘↑/⌘↓ handler in `src/app/app/page.tsx` (`document.querySelector('.agent-panel-scroll').scrollBy(...)`) targets the real Radix scroll viewport, not the non-scrolling `ScrollArea` root (`className` lands on Root).
 - `AppMenu.tsx` (replaced the deleted `TopMenuBar.tsx` — UI-audit round 2):
   - ONE dropdown button (Figma-UI3 style); sections documented in the Ownership row above.
   - Shared `dropShapeAtCenter` (lib/canvas/drop-shape.ts) places token-colored shapes at viewport center — used by the menu, ⌘K palette, and keyboard chords (UI-audit round 2: the old duplicated helpers hardcoded light-slate hexes that broke dark mode).
   - `zorder` helper emits z-order patches against current selection.
-  - All shortcut hints shown via `<DropdownMenuShortcut>` are wired in `src/app/page.tsx`'s keydown handler (⌘N/⌘O/⌘E included since round 2) and mirrored in the `src/lib/canvas/shortcuts.ts` registry.
+  - All shortcut hints shown via `<DropdownMenuShortcut>` are wired in `src/app/app/page.tsx`'s keydown handler (⌘N/⌘O/⌘E included since round 2) and mirrored in the `src/lib/canvas/shortcuts.ts` registry.
 - `PenFileMenu.tsx`:
   - Reads `document` + `sendPatch` from canvas store.
   - Export: POST to `/api/pen/export`, downloads response as blob.
@@ -145,8 +145,8 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
 
 - When adding a new shape type: update `Canvas.tsx` (rendering), `LayersPanel.tsx` (icon in `TYPE_ICON`), `PropertiesPanel.tsx` (form fields), `tools.ts` (tool schema + `executeTool` case), `prisma/schema.prisma` (comment in the `type` field).
 - When changing the design system: edit `src/app/globals.css` first, then sweep components for hardcoded colors.
-- When adding a new panel: follow the 3-column tabbed layout in `src/app/page.tsx` — do not introduce a new column without restructuring.
-- When adding a new keyboard shortcut: add it to the `SHORTCUTS` registry in `src/lib/canvas/shortcuts.ts` + wire it in `src/app/page.tsx`'s keydown handler + show it as a hint in `AppMenu.tsx` if applicable.
+- When adding a new panel: follow the 3-column tabbed layout in `src/app/app/page.tsx` — do not introduce a new column without restructuring.
+- When adding a new keyboard shortcut: add it to the `SHORTCUTS` registry in `src/lib/canvas/shortcuts.ts` + wire it in `src/app/app/page.tsx`'s keydown handler + show it as a hint in `AppMenu.tsx` if applicable.
 - Capture before/after screenshots to `download/<feature-name>/` for any visual change.
 
 ## Verification

@@ -3,7 +3,7 @@
 //
 // The registry drives BOTH sides of the wiring:
 //   1. the keymap — `matchShortcut(event, def)` is used by the keydown
-//      handlers in src/app/page.tsx (app/layers/structure actions) and
+//      handlers in src/app/app/page.tsx (app/layers/structure actions) and
 //      src/components/canvas/Canvas.tsx (canvas view/zoom/navigation chords);
 //   2. the help — KeyboardShortcutsDialog renders straight from SHORTCUTS,
 //      so the cheat sheet can never drift from the keymap.

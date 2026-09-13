@@ -130,7 +130,7 @@ async function loadChromium(headless: boolean): Promise<any | null> {
 // ---- In-page measurements -------------------------------------------------
 
 /// Inject a synthetic CanvasDocument into the running app. Uses the dev-only
-/// test hook when present (src/app/page.tsx), falling back to driving
+/// test hook when present (src/app/app/page.tsx), falling back to driving
 /// __canvasStore directly (exposed in dev/test builds only since the task-4
 /// perf pass — store.ts gates it on NODE_ENV !== 'production'). Production
 /// CI builds ship neither the test hooks nor the store global; injectDocument
