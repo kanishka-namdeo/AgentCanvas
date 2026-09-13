@@ -44,6 +44,11 @@ describe('landing: MagicSequence', () => {
     expect(screen.getByText('Dashboard complete')).toBeInTheDocument();
   });
 
+  it('types the step-1 prompt with the typing animation (spec §5.2 step 1)', () => {
+    render(<MagicSequence />);
+    expect(screen.getByTestId('magic-typing')).toBeInTheDocument();
+  });
+
   it('crossfade variant renders both screenshots (motion layers stacked in one sticky frame)', () => {
     render(<MagicSequence />);
     const build = screen.getByAltText('AgentCanvas building a hero section live on the canvas');
@@ -73,6 +78,14 @@ describe('landing: MagicSequence', () => {
       expect(screen.getByAltText('Completed dashboard design with the agent task list visible')).toBeInTheDocument();
       expect(screen.queryByTestId('magic-frame-build')).not.toBeInTheDocument();
       expect(screen.queryByTestId('magic-frame-done')).not.toBeInTheDocument();
+    });
+
+    it('renders the full step-1 prompt statically instead of the typing effect', () => {
+      render(<MagicSequence />);
+      expect(screen.getByTestId('magic-typing-static')).toHaveTextContent(
+        'Design a dashboard with KPI cards…',
+      );
+      expect(screen.queryByTestId('magic-typing')).not.toBeInTheDocument();
     });
 
     it('still renders the steps', () => {

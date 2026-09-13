@@ -3,8 +3,11 @@
 import { useRef } from 'react';
 import Image from 'next/image';
 import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react';
+import { TypeAnimation } from 'react-type-animation';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { BrowserFrame } from './BrowserFrame';
+
+const MAGIC_PROMPT = 'Design a dashboard with KPI cards…';
 
 const STEPS = [
   {
@@ -63,6 +66,26 @@ export function MagicSequence() {
                   <h3 className="text-base font-semibold text-white">{step.title}</h3>
                 </div>
                 <p className="mt-2 text-sm text-white/60">{step.body}</p>
+                {step.index === '01' && (
+                  /* Spec §5.2 step 1: the prompt types itself out.
+                      react-type-animation has no reduced-motion handling of
+                      its own → static full-prompt fallback (Hero pattern). */
+                  <p className="mt-3 text-xs text-white/80 [font-family:var(--font-geist-mono),monospace]">
+                    {shouldReduceMotion ? (
+                      <span data-testid="magic-typing-static">{MAGIC_PROMPT}</span>
+                    ) : (
+                      <span data-testid="magic-typing">
+                        <TypeAnimation
+                          sequence={[MAGIC_PROMPT, 2500]}
+                          wrapper="span"
+                          speed={44}
+                          repeat={Infinity}
+                          cursor
+                        />
+                      </span>
+                    )}
+                  </p>
+                )}
                 {step.index === '02' && (
                   <ul className="mt-3 space-y-1.5" aria-label="Agent task list">
                     {['Plan the layout structure', 'Build the components', 'Apply tokens and polish'].map(
