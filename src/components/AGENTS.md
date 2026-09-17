@@ -2,12 +2,13 @@
 
 ## Purpose
 
-Component tree root. Owns the shared ThemeToggle component directly, and indexes the six component subfolders (canvas, sessions, settings, design-systems, ui, landing) that have their own AGENTS.md contracts.
+Component tree root. Owns the shared ThemeToggle + ErrorBoundary components directly, and indexes the seven component subfolders that have their own AGENTS.md contracts (canvas, sessions, settings, design-systems, ui, landing) plus the onboarding folder (owned directly by this doc).
 
 ## Ownership
 
 - `ErrorBoundary.tsx` — app-level React error boundary (2026-09-07 UI hardening; wrapped around the page in `app/page.tsx`). Catches any render-time crash (poisoned persisted settings, malformed store state) that slips past the ingest guards, logs to console, and renders a neutral "Something broke" fallback with a one-click reload — previously ANY render crash unmounted the whole tree (white screen, no boundary existed anywhere in src/).
 - `ThemeToggle.tsx` — header button cycling system → light → dark; writes `themePreference` to the settings store (plus legacy `agentcanvas-theme` localStorage key for pre-settings installs) and toggles the `.dark` class on `<html>`; follows OS `prefers-color-scheme` in system mode. The single UI entry point for theme switching — Settings → Appearance writes the same `themePreference` field, so both controls stay in sync.
+- `onboarding/OnboardingDialog.tsx` — first-time user onboarding flow (2-step modal: welcome + template picker), shown once per browser when `useOnboarding.hasCompleted` is false. Step 1 is a welcome screen with an animated CSS demo; step 2 is a template picker showing 10 curated starters (from `ONBOARDING_TEMPLATES` in `src/lib/onboarding/store.ts`). Selecting a template pre-fills the chat input via the `agentcanvas:composer-prefill` CustomEvent. Mounted in `src/app/app/page.tsx` (lazily via `next/dynamic`, deferred-mount gated on `!hasCompleted`). The "Replay onboarding" ⌘K command (`view.onboarding`) calls `useOnboarding.getState().reset()` to re-trigger.
 
 ## Local Contracts
 
@@ -47,5 +48,5 @@ Component tree root. Owns the shared ThemeToggle component directly, and indexes
 | `sessions/AGENTS.md` | Session UI: sidebar, header (compact), run history panel, run/stop button, status badges |
 | `settings/AGENTS.md` | Settings dialog: 8-section modal (agent, LLM provider, sessions, appearance, data, shortcuts, plugins, MCP servers) |
 | `design-systems/AGENTS.md` | Design-system picker + pack showcase (the Design tab's pack browsing UI) |
-| `ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers, 26-component inventory |
-| `landing/AGENTS.md` | Landing page: SmoothScroll (lenis) + shared chrome (repo-url constants, light-chrome BrowserFrame + bottom-crop, LandingHeader anchor nav via lenis + CTAs, LandingFooter), the Hero section (single h1, dual CTA, typing prompt, chip marquee, parallax mockup, reduced-motion fallbacks), the Magic section (sticky scroll crossfade sequence with task-list steps + reduced-motion static frame), the FeatureGallery section (bento cards + parallax attention-heatmap band), the TrustLoop section (approval-dialog frame + verbatim approval bullets), the HowItWorks section (CSS/flex flow diagram + NumberFlow animated stats + mono dev chips) and the OpenSourceFinale section (verbatim AGPL heading, clone-command block with BorderBeam + copy button, star + final /app CTAs) |
+| `ui/AGENTS.md` | shadcn/ui primitives: 26 Radix UI wrappers + 5 Magic UI primitives (border-beam, blur-fade, scroll-progress are motion-backed; marquee is CSS-keyframe animated, bento-grid imports no motion); motion pinned ^12 |
+| `landing/AGENTS.md` | Landing page: repo-url constants, SmoothScroll (lenis, reduced-motion fallback), BrowserFrame light-chrome mockup (+ bottom-crop), header/footer chrome (LandingHeader anchor nav + CTAs, LandingFooter), and all six section components (Hero, MagicSequence, FeatureGallery, TrustLoop, HowItWorks, OpenSourceFinale) |

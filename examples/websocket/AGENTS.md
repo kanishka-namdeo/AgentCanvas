@@ -17,7 +17,7 @@ Reference z.ai-scaffold Socket.IO chat demo (server + React client). Not wired i
 
 ## Work Guidance
 
-- Treat as read-only reference material; the real service is `mini-services/canvas-sync/`.
+- Treat as read-only reference material; the real service is now the in-process `src/lib/canvas/server.ts` (the standalone `mini-services/canvas-sync/` was deleted, leaving only `.gitkeep`).
 
 ## Verification
 

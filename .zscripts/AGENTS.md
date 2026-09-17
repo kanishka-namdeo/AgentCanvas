@@ -21,7 +21,7 @@ The full sandbox operating runbook (project location, process survival, persiste
 
 - **Boot contract**: the container's `/start.sh` restores `/home/sync/repo.tar` then auto-runs `dev.sh` as user `z` at every restart. If `dev.sh` breaks, the app is dead after restart. Refresh the archive after durable changes: `bash scripts/setup-zai-sandbox.sh --archive`.
 - **Name-collision warning**: `.zscripts/start.sh` is the *production* entrypoint, NOT the sandbox boot script (that is container-root `/start.sh`). Never confuse them.
-- **Port discipline**: dev flow = `next dev` :3000; :3003 is owned by the in-process canvas-sync twin — the standalone mini-service exits 0 on EADDRINUSE (see `mini-services/canvas-sync/AGENTS.md`).
+- **Port discipline**: dev flow = `next dev` :3000; :3003 is owned by the in-process canvas-sync twin — the standalone mini-service exited 0 on EADDRINUSE (see the historical `mini-services/canvas-sync/` — the folder was later deleted, leaving only `.gitkeep`; the real service is now in-process in `src/lib/canvas/server.ts`).
 - **Deploy artifact layout**: `next-service-dist/` + `mini-services-dist/` + optional `python-runtime/` + `db/` + `Caddyfile` + `start.sh` → tar.gz.
 - `build.sh` may self-modify `next.config` (injects `output: "standalone"`, keeps a `.zbak`).
 - Runtime-build scripts are env-driven (`PROJECT_DIR` / `BUILD_DIR`) and are smoke-tested by `tests/*.sh` with fakes.

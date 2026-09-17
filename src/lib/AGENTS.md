@@ -10,6 +10,9 @@ Shared library layer root. Owns the Prisma client singleton and the shared UI ut
 - `utils.ts` — the shadcn `cn()` class-merge helper (clsx + tailwind-merge), the most-imported UI utility in the component tree.
 - `storage/quota-aware.ts` — shared localStorage write wrapper: detects QuotaExceededError (DOMException name/codes 22 + 1014, string fallback), tracks consecutive failures, escalates toast severity (first failure → warning toast + optional emergency callback; 3+ → persistent banner). Non-quota errors re-throw. Consumed by `sessions/store.ts` (throttled persist) + `settings/store.ts` (custom persist storage). SSR-safe (returns false when `window` is absent). Guarded by `tests/unit/quota-aware.test.ts`.
 - `validation/status-enums.ts` — canonical status unions + type guards (`isValidSessionStatus` / `isValidMessageStatus` / `isValidRunStatus` / `isValidToolCallStatus`) mirroring `src/lib/sessions/types.ts`; enforced at the sessions PATCH + messages/runs POST API boundaries (invalid → 400). Guarded by `tests/unit/status-enums.test.ts`.
+- `agent-error.ts` — shared agent-error classification (importable from both server and client with no server-only deps). Exports `classifyAgentError(message)` (maps a raw error string to a stable `AgentErrorClass` with `code`, `retryable`, `title`, `hint`), `classifiedAgentError(message)` (the wire shape for `agent:error` SyncEvents), and `agentErrorClassForCode(code)` (client-side display lookup). No Prisma, no Pi-SDK, no fetch — safe in the browser bundle.
+- `onboarding/store.ts` — Zustand `useOnboarding` store (persisted to `agentcanvas.onboarding.v1`): tracks first-time user onboarding state (`hasCompleted`, `skipped`, `completedAt`, `selectedTemplateId`); `complete()` / `skip()` / `reset()` actions; `ONBOARDING_TEMPLATES` exports the curated starter prompts with tier badges.
+- `icons/` — Lucide icon library runtime: `index.ts` exports `getLucideIcon`, `searchLucideIcons`, `lucidePromptCatalog`, `lucideIconGroupSvg`, `lucideIconInlineSvg` (SVG string emitters for server-side render paths + the agent tool `pen_search_icons`). `lucide-registry.generated.ts` is a GENERATED file (194 curated icons from `lucide-react` `__iconNode` data; do not hand-edit) — regenerate via `npx tsx scripts/generate-lucide-registry.ts` (no package.json script alias; see the script's header + `docs/lucide-icons.md`).
 
 ## Local Contracts
 
@@ -32,7 +35,7 @@ Shared library layer root. Owns the Prisma client singleton and the shared UI ut
 
 | Path | Scope |
 |------|-------|
-| `agent/AGENTS.md` | Agent layer: 103-tool production surface (tools.ts 85 + pen-tools 8 + figma-tools 10), native Pi-SDK runner + legacy test runner, classifier/planner, plugin subsystem, sub-agents |
+| `agent/AGENTS.md` | Agent layer: 104-tool production surface (tools.ts 85 + pen-tools 8 + figma-tools 10 + 1 staged-flow gate), native Pi-SDK runner + legacy test runner, classifier/planner, plugin subsystem, sub-agents |
 | `agent/subagents/AGENTS.md` | Isolated-context sub-agents: web-research, design-critic (+vlm), design-brief, variant-generator, multitask |
 | `agent/skills/AGENTS.md` | Skill system: types, registry (7 skills), progressive disclosure levels |
 | `agent/plugins/AGENTS.md` | Plugin registry + 8 ported plugins (32 tools): ask-user-question, todo, memory, mega-compact, goal-list, background-tasks, mcp-adapter, subagents |

@@ -42,6 +42,7 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - `html-import-mounted.ts` — mounted-iframe HTML import (spec §5.2 v2 path).
 - `render-worker.mjs` — isolated resvg rasterizer worker (off-thread SVG→PNG for render-to-png).
 - `use-is-mobile.ts` — mobile detection hook (P3-8).
+- `variant-promote.ts` — PURE variant-promote swap + fold primitives (spec §4.3). Exports: `VariantPromotePayload` (the journal-row payload shape), `swapVariantWithMain(doc, sectionId)` (called by the promote route — finds the parked section on the Explorations page, replaces the active page's children with the variant root, wraps the previous roots in a "Previous — applied design" section; returns `{ document, payload }` or `null` when the section isn't parked or the doc shape is unexpected), and `applyVariantPromotePayload(doc, payload)` (the deterministic fold primitive called by `journal-fold.ts`; rebuilds the identical document from the payload without re-running search logic so the fold and the route can't drift).
 
 ## Local Contracts
 
