@@ -2,29 +2,18 @@
 //
 // A preset is a one-click (UI) or one-import (script) configuration for a
 // SPECIFIC external OpenAI-compatible endpoint: provider id + base URL +
-// API key + default model. The first preset is BETA — a test endpoint the
-// repo owner configured on 2026-09-07 (qwen3.7-plus behind a pinggy tunnel
-// since the BETA tuning; originally kimi-k2-5). The values are intentionally
-// hardcoded per the owner's
-// directive: "store these somewhere in the app's code as a custom openAI
-// endpoint called BETA".
+// API key + default model.
 //
 // ---- ACCESS RULE (durable — also recorded in the root AGENTS.md) ---------
 //
-// The BETA endpoint must NEVER be invoked directly — no curl, bash, wget,
-// fetch, or any other out-of-app tooling may talk to its base URL. ALL
-// interaction flows through the app's own code and HTTP surface:
+// Endpoint presets must NEVER be invoked directly — no curl, bash, wget,
+// fetch, or any other out-of-app tooling may talk to the preset's base URL.
+// ALL interaction flows through the app's own code and HTTP surface:
 //
 //   - the Settings → LLM provider "Endpoint presets" chips (client store),
 //   - POST /api/models (the app's own endpoint preflight / model listing),
 //   - POST /api/agent (the app's own agent runner — the resolver builds a
 //     synthetic openai-completions Model against the preset base URL).
-//
-// Rationale (owner directive, stated twice): endpoint behavior must be
-// measured exactly the way end users experience it — through the app —
-// never through side-channel probes that could mask or mutate state.
-// Scripts that need the preset (e2e verification) import it from HERE and
-// drive the app's API; they must not embed the URL themselves.
 
 import type { AppSettings } from '@/lib/settings/types';
 
@@ -47,31 +36,17 @@ export interface EndpointPreset {
   /// slash).
   baseURL: string;
   /// API key sent as `Authorization: Bearer <key>`. Baked into app code
-  /// per the owner's directive (placeholder-grade value, not a secret).
+  /// for placeholder-grade presets (not secrets).
   apiKey: string;
   /// Model id the endpoint serves (the agent run needs an explicit model
   /// name on the custom path — see pi-ai-model-resolver.ts).
   defaultModel: string;
 }
 
-/// BETA — the owner-configured test endpoint (2026-09-07). Same shape as
-/// the app's pre-v5 first-run defaults (qwen3.7-plus / pinggy tunnel / key
-/// '123456'), now opt-in as a named preset instead of a silent default.
-export const BETA_ENDPOINT: EndpointPreset = {
-  id: 'beta',
-  label: 'BETA',
-  description:
-    'Owner-configured test endpoint: qwen3.7-plus behind a pinggy tunnel. ' +
-    'Applies provider Custom + base URL + key + model in one click. ' +
-    'Availability is flaky (ephemeral tunnel) — the runner falls back to the z.ai sandbox when it is down.',
-  provider: 'custom',
-  baseURL: 'https://irhnglwoxe.a.pinggy.link/v1',
-  apiKey: '123456',
-  defaultModel: 'qwen3.7-plus',
-};
-
 /// All code-resident endpoint presets, in UI display order.
-export const ENDPOINT_PRESETS: readonly EndpointPreset[] = [BETA_ENDPOINT];
+/// The array may be empty — the Settings UI "Endpoint presets" row renders
+/// nothing when there are no presets defined.
+export const ENDPOINT_PRESETS: readonly EndpointPreset[] = [];
 
 /// Look up a preset by id. Returns undefined for unknown ids.
 export function getEndpointPreset(id: string): EndpointPreset | undefined {

@@ -173,9 +173,9 @@ describe('settings store: poisoned localStorage rehydrates safely (12-c#3)', () 
         temperature: '0.6',
         maxIterations: null,
         apiKey: 123,
-        llmProvider: 'custom',
-        modelName: 'qwen3.7-plus',
-        apiBaseUrl: 'https://irhnglwoxe.a.pinggy.link/v1',
+        llmProvider: 'zai',
+        modelName: 'glm-5.3',
+        apiBaseUrl: '',
       },
       version: 5,
     }));
@@ -192,17 +192,16 @@ describe('settings store: poisoned localStorage rehydrates safely (12-c#3)', () 
     expect(s.apiKey).toBe('');
     // Unknown fields still flow through the merge (default-merge semantics
     // preserved for everything outside the sanitize list).
-    expect(s.modelName).toBe('qwen3.7-plus');
-    expect(s.apiBaseUrl).toBe('https://irhnglwoxe.a.pinggy.link/v1');
+    expect(s.modelName).toBe('glm-5.3');
+    expect(s.apiBaseUrl).toBe('');
   });
 
   it('v5 migration semantics stay intact: v4 old-defaults rewrite still runs', async () => {
     localStorage.setItem('agentcanvas.settings.v1', JSON.stringify({
       state: {
-        // The kimi-k2-5 / pinggy / '123456' old-defaults shape → rewritten to
-        // the CURRENT DEFAULT_SETTINGS (qwen3.7-plus BETA endpoint) by the
-        // v4 → v5 migrate, while the poisoned temperature is sanitized in
-        // the merge afterwards.
+        // Old custom-endpoint defaults (pinggy tunnel URL + placeholder key)
+        // → rewritten to z.ai sandbox by the v4 → v5 migrate, while the
+        // poisoned temperature is sanitized in the merge afterwards.
         llmProvider: 'custom',
         modelName: 'kimi-k2-5',
         apiKey: '123456',
@@ -514,9 +513,10 @@ describe('useModelCatalog: request-sequence token (12-c#6)', () => {
     act(() => { void result.current.refresh(); });
     expect(result.current.loading).toBe(true);
 
-    // … and mid-flight the user applies a different endpoint preset —
+    // … and mid-flight the user applies a different provider setting —
     // invalidate clears the cache AND marks the in-flight response stale.
-    act(() => { useSettings.setState({ llmProvider: 'zai' }); });
+    // Change from default zai to openai to trigger the invalidation.
+    act(() => { useSettings.setState({ llmProvider: 'openai' }); });
     expect(result.current.data).toBeNull();
 
     // The OLD-endpoint response finally resolves — must be DISCARDED (the

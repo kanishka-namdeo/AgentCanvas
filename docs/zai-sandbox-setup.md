@@ -101,10 +101,10 @@ cooperate:
    preflight already swapped, the runner does NOT retry again.
 
 Both layers emit `console.warn('[llm-fallback] …')` server-side when they
-trigger. Verify the fallback fires via `scripts/endpoint-switch-verify.sh`
+trigger. Verify the fallback fires via `scripts/e2e-agent-test-zai.sh`
 (the API-SMOKE step counts `message_delta` + `tool_call_start` events — with
-the fallback in place, the smoke test passes even when the pinggy tunnel is
-dead).
+the fallback in place, the smoke test passes even when a user-configured
+custom endpoint is unreachable).
 
 ---
 

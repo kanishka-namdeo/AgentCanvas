@@ -199,7 +199,7 @@ Results are archived in `download/speed-bench/nightly-<date>/` and `download/vlm
 
 - **Non-determinism:** The agent runs at temperature 0.6 (production default). Single-run numbers are noisy. For any signal that drives a decision, use `--repeats=3` minimum. The eval-harness convention is `--repeats=5` for final validation.
 
-- **Provider variability:** The z.ai sandbox provider has its own latency profile. For provider-agnostic signal, run with `--provider=custom` (BETA endpoint preset) — but per the AGENTS.md `LLM Endpoint Access Policy`, never invoke the BETA endpoint directly outside the app.
+- **Provider variability:** The z.ai sandbox provider has its own latency profile. Users can configure custom endpoints for provider-specific benchmarks — but per the AGENTS.md `LLM Endpoint Access Policy`, never invoke custom endpoints directly outside the app.
 
 - **First-run warm-up:** The first scenario in a bench run pays the cold-cache compile cost (Next.js Turbopack). Subsequent scenarios hit the warm cache. To eliminate this from cross-scenario comparisons, add a warm-up scenario at the top of the bench (e.g. the `trivial-shape` scenario is already the first one — it absorbs the warm-up cost).
 
@@ -213,7 +213,7 @@ Results are archived in `download/speed-bench/nightly-<date>/` and `download/vlm
 
 2. **Multi-turn continuity bench** — `scripts/e2e-design-scenarios.ts` exists but isn't integrated into the speed-bench harness. Need to add multi-turn scenarios that measure per-turn TTFT + T2C across a 5-turn refinement sequence.
 
-3. **Cross-provider comparison** — currently only `zai` provider is benched. Need to run with `--provider=custom` (BETA endpoint) + `--provider=anthropic` (Claude) to isolate provider-side latency.
+3. **Cross-provider comparison** — currently only `zai` provider is benched. Need to run with custom endpoints and `--provider=anthropic` (Claude) to isolate provider-side latency.
 
 4. **Trend dashboard** — the nightly CI job generates JSON results but doesn't yet render a trend chart. Need a `scripts/speed-bench/render-trend.ts` that aggregates nightly JSONs into a markdown chart.
 

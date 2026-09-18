@@ -58,13 +58,13 @@ const CUSTOM_PROVIDER_ID = 'custom';
 
 // ---- Mid-stream transport retry (2026-09-07 complex-scenario r2) -----------
 //
-// Failure mode observed repeatedly on the BETA tunnel (qwen3.7-plus behind
-// pinggy): the HTTP request succeeds, the SSE stream opens, and the server
-// then terminates the round-trip with finish_reason "error" (vLLM-style
-// mid-stream drop) — pi-ai maps that to an `error` event and the whole agent
-// turn stops with a half-built canvas ("The model stopped mid-turn with a
-// provider error"). HTTP-level retries (pi-ai's retryProviderRequest) can't
-// see this; it happens AFTER the response starts streaming.
+// Failure mode observed repeatedly on custom OpenAI-compatible endpoints:
+// the HTTP request succeeds, the SSE stream opens, and the server then
+// terminates the round-trip with finish_reason "error" (vLLM-style mid-stream
+// drop) — pi-ai maps that to an `error` event and the whole agent turn stops
+// with a half-built canvas ("The model stopped mid-turn with a provider error").
+// HTTP-level retries (pi-ai's retryProviderRequest) can't see this; it happens
+// AFTER the response starts streaming.
 //
 // This wrapper adds ONE transparent retry, safe by construction:
 //   - Events are buffered (NOT forwarded) until the first CONTENT event
@@ -256,10 +256,10 @@ async function fetchModels(baseUrl: string, apiKey: string, timeoutMs: number): 
 /// (baseUrl, apiKeyPrefix): 60s for 'ok', 20s for 'down'.
 ///
 /// VLM-exercise Fix 6: the first attempt uses a 4s timeout; on failure it
-/// RETRIES once with 8s after a 500ms pause. Cold tunnels (pinggy) commonly
-/// take >4s for the first TLS handshake and connect fine immediately after —
-/// a single-attempt preflight declared them dead and forced the sandbox
-/// fallback (which was itself rate-limited) for turns that would have worked.
+/// RETRIES once with 8s after a 500ms pause. Some custom endpoints (especially
+/// cold-started ones) commonly take >4s for the first TLS handshake and
+/// connect fine immediately after — a single-attempt preflight declared them
+/// dead and forced the sandbox fallback for turns that would have worked.
 async function preflightEndpoint(baseUrl: string, apiKey: string): Promise<'ok' | 'down'> {
   const cacheKey = `${baseUrl}::${apiKey.slice(0, 12)}`;
   const cached = preflightCache.get(cacheKey);

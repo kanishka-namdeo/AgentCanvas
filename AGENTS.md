@@ -124,21 +124,20 @@ When the user requests a durable behavior change, record it here or in the relev
 
 ## LLM Endpoint Access Policy
 
-- The **BETA endpoint** (owner-configured test endpoint; baseURL + key + model defined in `src/lib/llm/endpoint-presets.ts`) must **never be invoked directly** — no curl, bash, wget, fetch, or any other out-of-app tooling may send requests to its base URL. This is a durable user directive recorded 2026-09-07 and applies to every future event, session, and agent working in this repo.
-- All interaction with BETA flows through the app's own code and HTTP surface only: the Settings → LLM provider "Endpoint presets" chips, `POST /api/models` (the app's own endpoint preflight), and `POST /api/agent` (the app's own runner — the pi-ai resolver builds the synthetic openai-completions Model against the preset base URL).
-- Scripts that verify BETA (e.g. `scripts/verify-beta-endpoint.ts`) must import the preset from `@/lib/llm/endpoint-presets` and drive the app's API — never embed the URL or query the endpoint themselves. Endpoint health is measured exactly the way end users experience it: through the app.
-- The same no-direct-invocation rule applies to any future named endpoint presets added to `endpoint-presets.ts` unless the owner says otherwise.
+- Endpoint presets (defined in `src/lib/llm/endpoint-presets.ts`) must **never be invoked directly** — no curl, bash, wget, fetch, or any other out-of-app tooling may send requests to a preset's base URL. This is a durable user directive recorded 2026-09-07 and applies to every future event, session, and agent working in this repo.
+- All interaction with endpoint presets flows through the app's own code and HTTP surface only: the Settings → LLM provider "Endpoint presets" chips, `POST /api/models` (the app's own endpoint preflight), and `POST /api/agent` (the app's own runner — the pi-ai resolver builds the synthetic openai-completions Model against the preset base URL).
+- Scripts that verify endpoints must import the preset from `@/lib/llm/endpoint-presets` and drive the app's API — never embed the URL or query the endpoint themselves. Endpoint health is measured exactly the way end users experience it: through the app.
 
 ## Child DOX Index
 
 | Path | Scope |
 |------|-------|
 | `src/app/AGENTS.md` | Next.js App Router: root layout, main page (tabbed 3-column layout), global styles with `--ac-*` design tokens + `[data-density="compact"]` rules |
-| `src/app/api/AGENTS.md` | API routes (30): `/api/agent` (NDJSON agent run) + answers/pending/client-responses/background/approvals/plans subroutes, `/api/sessions*` (+ search/tags/attachments) server-side session persistence, `/api/documents*` (CRUD + snapshots + events + agent status), `/api/models` (provider/BETA preflight), `/api/design-systems*`, `/api/plugins` + `/api/mcp/[id]`, `/api` health, `/api/pen/import` + `/api/pen/export` |
+| `src/app/api/AGENTS.md` | API routes (30): `/api/agent` (NDJSON agent run) + answers/pending/client-responses/background/approvals/plans subroutes, `/api/sessions*` (+ search/tags/attachments) server-side session persistence, `/api/documents*` (CRUD + snapshots + events + agent status), `/api/models` (provider preflight), `/api/design-systems*`, `/api/plugins` + `/api/mcp/[id]`, `/api` health, `/api/pen/import` + `/api/pen/export` |
 | `src/components/AGENTS.md` | Component tree root: ThemeToggle; indexes canvas/sessions/settings/design-systems/ui/landing child docs |
 | `src/components/canvas/AGENTS.md` | Canvas UI components: drawing surface, floating toolbar (toolMode + undo/redo), layers, properties, agent chat + PluginUI bundle, command palette, app menu, .pen file menu, keyboard shortcuts dialog |
 | `src/components/sessions/AGENTS.md` | Session management UI: sidebar, header, run history, status badges |
-| `src/components/settings/AGENTS.md` | Settings dialog: 8-section modal (agent, LLM provider + BETA endpoint preset chips, sessions, appearance, data, shortcuts, plugins, MCP servers) |
+| `src/components/settings/AGENTS.md` | Settings dialog: 8-section modal (agent, LLM provider + endpoint preset chips, sessions, appearance, data, shortcuts, plugins, MCP servers) |
 | `src/components/design-systems/AGENTS.md` | Design-system UI: pack picker (iframe-isolated preview) + pack showcase |
 | `src/components/ui/AGENTS.md` | shadcn/ui primitives: Radix UI wrappers (26) + 5 Magic UI primitives (border-beam, blur-fade, scroll-progress are motion-backed; marquee is CSS-keyframe animated, bento-grid imports no motion); motion pinned ^12 |
 | `src/components/landing/AGENTS.md` | Landing page: repo-url constants, SmoothScroll (lenis, reduced-motion fallback), BrowserFrame light-chrome mockup (+ bottom-crop), header/footer chrome (LandingHeader anchor nav + CTAs, LandingFooter), and all six section components (Hero, MagicSequence, FeatureGallery, TrustLoop, HowItWorks, OpenSourceFinale) |
@@ -148,7 +147,7 @@ When the user requests a durable behavior change, record it here or in the relev
 | `src/lib/agent/subagents/AGENTS.md` | 5 isolated-context sub-agents (web-research, design-critic, design-critic-vlm, design-brief, variant-generator) + dispatch/timeout/wall-clock-budget contracts |
 | `src/lib/agent/plugins/AGENTS.md` | Plugin registry + 8 ported plugins (32 tools, gated by `settings.enabledPlugins`): ask-user-question, todo, memory, mega-compact, goal-list, background-tasks, mcp-adapter, subagents |
 | `src/lib/canvas/AGENTS.md` | Canvas state: Zustand store (toolMode, undo/redo, settings injection), types, patches, clipboard + export helpers, gestures hook, Socket.IO service |
-| `src/lib/llm/AGENTS.md` | LLM provider abstraction: 28 providers (26 OpenAI-compatible + 2 native), unified `LLMClient` interface, registry + factories; endpoint presets (`endpoint-presets.ts` — BETA; see LLM Endpoint Access Policy above) |
+| `src/lib/llm/AGENTS.md` | LLM provider abstraction: 28 providers (26 OpenAI-compatible + 2 native), unified `LLMClient` interface, registry + factories; endpoint presets (`endpoint-presets.ts` — see LLM Endpoint Access Policy above) |
 | `src/lib/pen/AGENTS.md` | .pen format layer: canonical schema (v2.17, 20 node types, Pages abstraction), tree resolver (flexbox layout, variable/theme resolution, ref expansion, 10 agent-visible resolver-warning kinds incl. container/text overflow + flow-child coordinate contradictions), document helpers, converters |
 | `src/lib/design-systems/AGENTS.md` | Design-system packs: registry.json (5 packs), loader, token export, agent helper |
 | `src/lib/settings/AGENTS.md` | Settings store: AppSettings + AgentRunSettings types (incl. thinkingLevel, enabledPlugins, mcpServers), Zustand persist, PALETTES |

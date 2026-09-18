@@ -42,8 +42,7 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
 
 - `index.ts` — Barrel export re-exporting all types + registry functions + the endpoint presets.
 
-- `endpoint-presets.ts` — Named OpenAI-compatible endpoint presets baked into app code (NOT registry providers — a preset is a filled-in configuration of the generic `custom` provider). Exports: `EndpointPreset` type, `BETA_ENDPOINT`, `ENDPOINT_PRESETS`, `getEndpointPreset(id)`, `endpointPresetPatch(preset)` (the 4-field `llmProvider`/`apiKey`/`modelName`/`apiBaseUrl` patch, shared shape with both AppSettings and AgentRunSettings), `matchesEndpointPreset(settings, preset)` (active-chip detection). Consumed by SettingsDialog's "Endpoint presets" row and by e2e scripts.
-  - **BETA** (2026-09-07): owner-configured test endpoint — qwen3.7-plus behind a pinggy tunnel (kimi-k2-5 before the BETA tuning), placeholder key baked into code per the owner's directive. Matches the current first-run defaults in `DEFAULT_SETTINGS` (the BETA chip lights on first run); the runner falls back to the z.ai sandbox when the tunnel is down. Qwen3.7 sampling params (temperature 0.6, top_p 0.8, thinking-off) are pinned in `pi-ai-model-resolver.ts`.
+- `endpoint-presets.ts` — Named OpenAI-compatible endpoint presets baked into app code (NOT registry providers — a preset is a filled-in configuration of the generic `custom` provider). Exports: `EndpointPreset` type, `ENDPOINT_PRESETS`, `getEndpointPreset(id)`, `endpointPresetPatch(preset)` (the 4-field `llmProvider`/`apiKey`/`modelName`/`apiBaseUrl` patch, shared shape with both AppSettings and AgentRunSettings), `matchesEndpointPreset(settings, preset)` (active-chip detection). Consumed by SettingsDialog's "Endpoint presets" row. The array may be empty — the UI renders nothing when there are no presets.
 
 ## Local Contracts
 
@@ -66,8 +65,8 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
 
 ### Endpoint Presets & Access Rule (durable)
 - Presets live in `endpoint-presets.ts` only — do NOT duplicate their values elsewhere; other modules (SettingsDialog, e2e scripts) import from here or call `endpointPresetPatch()`.
-- **The BETA endpoint must never be invoked directly** — no curl/bash/fetch from any script, agent tool, or out-of-app process may talk to its base URL. All interaction flows through the app's own code and HTTP API (`POST /api/models`, `POST /api/agent`, the Settings preset chips). Root `AGENTS.md` "LLM Endpoint Access Policy" owns the project-wide version of this rule (owner directive 2026-09-07, applies to all future events).
-- Adding a preset: append an `EndpointPreset` to `ENDPOINT_PRESETS` (provider stays `'custom'` for OpenAI-compatible endpoints). Tests in `tests/unit/endpoint-presets-2026-09-07.test.ts` pin shape + wiring + the no-embed invariant for e2e scripts.
+- **Endpoint presets must never be invoked directly** — no curl/bash/fetch from any script, agent tool, or out-of-app process may talk to a preset's base URL. All interaction flows through the app's own code and HTTP API (`POST /api/models`, `POST /api/agent`, the Settings preset chips). Root `AGENTS.md` "LLM Endpoint Access Policy" owns the project-wide version of this rule (owner directive 2026-09-07, applies to all future events).
+- Adding a preset: append an `EndpointPreset` to `ENDPOINT_PRESETS` (provider stays `'custom'` for OpenAI-compatible endpoints).
 
 ### Error Handling
 - All factories surface HTTP status + first 500 chars of error body.
@@ -85,8 +84,7 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
 ## Verification
 
 - `bunx tsc --noEmit` — typecheck.
-- `bun run test` — `tests/unit/llm-providers.test.ts` tests the registry + factory creation (mocked); `tests/unit/endpoint-presets-2026-09-07.test.ts` pins the BETA preset shape, patch semantics, UI wiring, barrel exports, and the source-scan access-rule invariants.
-- BETA e2e (through the app only — see the access rule): `bun scripts/verify-beta-endpoint.ts` — preflights via `POST /api/models`, runs one agent turn via `POST /api/agent` with the preset run settings, and reports an honest verdict (FULL PASS / RESILIENT PASS via z.ai fallback / FAIL).
+- `bun run test` — `tests/unit/llm-providers.test.ts` tests the registry + factory creation (mocked).
 - Manual: change provider in Settings → LLM provider, send a prompt — verify agent responds.
 - Manual: test `custom` provider with a local Ollama/LM Studio endpoint.
 - `bun run scripts/measure-tool-cost.ts` — measures token cost across providers.

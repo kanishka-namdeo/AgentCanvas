@@ -97,7 +97,7 @@ bun scripts/speed-bench/run.ts \
 
 The bench captures **wall-clock** under realistic conditions: real LLM provider, real network, real SDK, real React rendering. It does NOT isolate model latency from agent-loop overhead. To diagnose a specific bottleneck:
 
-1. **Re-run with `--provider=custom` and the BETA endpoint preset** — if TTFT drops significantly, the bottleneck is provider-side. (Note: per the AGENTS.md `LLM Endpoint Access Policy`, never invoke the BETA endpoint directly outside the app — always drive it through the app's own settings + `/api/agent`.)
+1. **Re-run with a custom provider** — if TTFT drops significantly, the bottleneck is provider-side. (Note: per the AGENTS.md `LLM Endpoint Access Policy`, never invoke custom endpoints directly outside the app — always drive them through the app's own settings + `/api/agent`.)
 
 2. **Run `bun scripts/speed-bench/probe-api-events.ts "<prompt>"`** — dumps the event-type sequence with timestamps. The probe-trivial.log analysis (below) is what surfaced the 7.6s prefill dead zone.
 
@@ -132,7 +132,7 @@ Run: `bun scripts/speed-bench/probe-api-events.ts "Draw a red rounded rectangle,
 
 1. **Flow tier (multi-screen)** — `flow-onboarding` (3-screen mobile flow) is still running. Will be filled in once the bench completes.
 2. **Repeat-variance** — single runs only. Need `--repeats=3` for the complex tier (which shows `turn_cancelled`).
-3. **Custom-provider comparison** — only ran with z.ai. Should run with `--provider=custom` (BETA endpoint) to isolate provider-side latency.
+3. **Custom-provider comparison** — only ran with z.ai. Should run with custom endpoints to isolate provider-side latency.
 4. **VLM-critic cost** — `designCritiqueMode='manual'` so critics didn't fire. Need a separate run with `EVAL_CRITIQUES=2` to measure the critique loop's cost.
 5. **DOM-renderer bench** — `scripts/dom-renderer-bench/run.ts` measures renderer-only latency; not integrated into the speed-bench harness yet.
 

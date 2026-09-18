@@ -28,7 +28,6 @@ export { createOpenAICompatible } from './openai-compatible';
 export { createAnthropicClient } from './anthropic';
 export { createGeminiClient } from './gemini';
 export {
-  BETA_ENDPOINT,
   ENDPOINT_PRESETS,
   endpointPresetPatch,
   getEndpointPreset,

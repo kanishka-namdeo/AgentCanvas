@@ -862,11 +862,9 @@ export const PROVIDERS: Record<string, LLMProviderEntry> = {
       apiKeyEnvVars: [],
       defaultBaseURL: '',
       defaultModel: '',
-      // Suggested in the Settings UI for the custom provider. The BETA
-      // endpoint (qwen3.7-plus) is the app default; this list surfaces a
-      // sensible placeholder when the user picks Custom without loading the
-      // live model list.
-      popularModels: ['qwen3.7-plus'],
+      // Suggested in the Settings UI for the custom provider.
+      // Users can enter any OpenAI-compatible endpoint URL here.
+      popularModels: [],
       openAICompatible: true,
       capabilities: CAPS_TOOLS_OK,
       apiKeyRequired: false,

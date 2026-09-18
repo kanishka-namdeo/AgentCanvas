@@ -19,7 +19,7 @@ Isolated-context sub-agents: single-purpose LLM calls that run OUTSIDE the main 
 ### Shared sub-agent plumbing
 - All sub-agents emit `agent:subagent_dispatch` / `agent:subagent_result` events and retry through `llm-retry.ts` (5s→40s exponential backoff, 5 attempts on 429/transient errors).
 - The sub-agent LLM client is built by `buildSubAgentLLMClient` (`../runner-legacy.ts`) with `timeoutMs: 300_000` (raised from 120s — healthy 80s generations were being aborted under parallel load; threaded through `src/lib/llm/types.ts` + `registry.ts`).
-- Constrained transports (single-connection tunnels like pinggy) starve under simultaneous long calls: sub-agents launch STAGGERED (~15s apart) with sequential retry waves.
+- Constrained transports (single-connection endpoints) can starve under simultaneous long calls: sub-agents launch STAGGERED (~15s apart) with sequential retry waves.
 - Provider-aware client: `getActiveLLM()` (from `plugins/subagents.ts`) exposes the runner-armed client so pen tools can dispatch sub-agents; falls back to `ZAI.create()` sandbox credentials when unset.
 
 ### Variant generator (`dispatchVariantGeneration`)
@@ -50,7 +50,6 @@ Result shape: winner applied via patch; the result embeds the winner's full id-m
 ## Verification
 
 - `bun run test` — variant-generator coverage lives in `tests/unit/todo-batch-variants.test.ts` (coercion, composites, budget races with hanging-LLM mocks; 26 tests).
-- `bun scripts/vlm-inspect/probe-variant-gen.ts` / `probe-variant-dispatch.ts` — live single-dispatch probes (model injected, 300s timeouts). LEGACY: they predate the endpoint-preset access rule and carry a hard-coded kimi-k2-5 model string against the pinggy tunnel — the endpoint now serves qwen3.7-plus (BETA preset), so refresh the model string or route through the app's API before relying on them.
 - Final 14-turn matrix evidence: `download/vlm-exercise/final/` + `REPORT.md` (variant-gen fired on 6/14 creation turns; smoke-variants 8/10 with 0 missing elements).
 
 ## Child DOX Index
