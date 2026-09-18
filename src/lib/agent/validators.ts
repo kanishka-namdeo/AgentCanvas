@@ -329,6 +329,163 @@ export function validateCanvasBeforeComplete(
   // `.name` fields. If no exact match, scan for Levenshtein-close matches
   // (≤2 edits, case-insensitive). If found, the defect names the close
   // match so the agent can rename it.
+
+  // ---- Rule 10: canvas-coverage (iter6-e — 2026-09-18) --------------------
+  //
+  // VLM critique of mwc-mindmap (VLM=1/5) identified: "content is crammed
+  // into the top-left corner". The agent built 4 branches but spread them
+  // across ~200px of width when the canvas has 1440+ available.
+  //
+  // This rule measures the bounding-box of all visible shapes against the
+  // canvas's available area (computed from the largest layer's extent).
+  // If coverage < 25%, the design is "crammed" — fire a defect.
+  const allVisible = shapes.filter((s) => s.visible !== false);
+  if (allVisible.length >= 6) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const s of allVisible) {
+      const x = Number(s.x ?? 0), y = Number(s.y ?? 0);
+      const w = Number(s.width ?? 0), h = Number(s.height ?? 0);
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x + w > maxX) maxX = x + w;
+      if (y + h > maxY) maxY = y + h;
+    }
+    if (Number.isFinite(minX) && Number.isFinite(maxX)) {
+      const usedW = maxX - minX;
+      const usedH = maxY - minY;
+      // Heuristic: designs should span at least 480px wide (mobile + a bit)
+      // and at least 320px tall. A 6+ layer design crammed into <480×320
+      // is "canvas cramming".
+      const tooNarrow = usedW < 480;
+      const tooShort = usedH < 320;
+      if (tooNarrow || tooShort) {
+        reasons.push(
+          `Canvas coverage too small (${Math.round(usedW)}×${Math.round(usedH)}px for ${allVisible.length} shapes — ` +
+          `expected ≥480×320). The design is crammed into a corner of the available canvas. ` +
+          `Redistribute the shapes across the full canvas width: use pen_update_node to spread them horizontally, ` +
+          `or wrap them in a parent frame with autoLayout (direction:"horizontal", gap:24, padding:32) so the layout engine distributes them. ` +
+          `Mindmaps should fan out radially; grids should use the full width; multi-step flows should sit side-by-side.`,
+        );
+      }
+    }
+  }
+
+  // ---- Rule 11: sibling overlap (iter6-e — 2026-09-18) --------------------
+  //
+  // VLM critique of mwc-multistep-wizard (VLM=1/5) identified: "navigation
+  // buttons overlap the progress bar". The agent placed siblings at
+  // overlapping coordinates — a layout collision.
+  //
+  // This rule checks pairs of VISIBLE siblings (same parentId or both root)
+  // for significant overlap (>50% of the smaller's area). Exempts:
+  //   - Text-inside-frame (text is supposed to overlap its parent frame)
+  //   - Same-name duplicates (likely an artifact, not a real overlap)
+  //   - Decorative layers (icons, shadows — these legitimately overlap)
+  if (allVisible.length >= 4) {
+    const visibleRoot = allVisible.filter((s) => !(s as { parentId?: string | null }).parentId);
+    const visibleFramed = allVisible.filter((s) => (s as { parentId?: string | null }).parentId);
+    // Check root-level siblings
+    const checkPairs = (group: Layer[]) => {
+      const overlaps: Array<{ a: string; b: string; pct: number }> = [];
+      for (let i = 0; i < group.length; i++) {
+        for (let j = i + 1; j < group.length; j++) {
+          const a = group[i], b = group[j];
+          // Skip if either is text (text usually lives inside a frame)
+          if (a.type === 'text' || b.type === 'text') continue;
+          const ax = Number(a.x ?? 0), ay = Number(a.y ?? 0);
+          const aw = Number(a.width ?? 0), ah = Number(a.height ?? 0);
+          const bx = Number(b.x ?? 0), by = Number(b.y ?? 0);
+          const bw = Number(b.width ?? 0), bh = Number(b.height ?? 0);
+          if (!aw || !ah || !bw || !bh) continue;
+          const ix = Math.max(0, Math.min(ax + aw, bx + bw) - Math.max(ax, bx));
+          const iy = Math.max(0, Math.min(ay + ah, by + bh) - Math.max(ay, by));
+          const intersection = ix * iy;
+          if (intersection <= 0) continue;
+          const smallerArea = Math.min(aw * ah, bw * bh);
+          const pct = smallerArea > 0 ? intersection / smallerArea : 0;
+          // >50% overlap of the smaller sibling = collision
+          if (pct > 0.5) {
+            overlaps.push({ a: a.name ?? a.id, b: b.name ?? b.id, pct: Math.round(pct * 100) });
+          }
+        }
+      }
+      return overlaps.slice(0, 3); // cap at 3 to avoid defect-list bloat
+    };
+    const rootOverlaps = checkPairs(visibleRoot);
+    if (rootOverlaps.length > 0) {
+      const examples = rootOverlaps.map((o) => `"${o.a}" overlaps "${o.b}" by ${o.pct}%`).join('; ');
+      reasons.push(
+        `${rootOverlaps.length} sibling layout collision(s) (${examples}). ` +
+        `Elements at the same nesting level should not overlap by more than 50% of the smaller's area — ` +
+        `reposition with pen_update_node (move one of them) or wrap them in a parent frame with autoLayout ` +
+        `(direction:"vertical" or "horizontal", gap:16) so the layout engine spaces them.`,
+      );
+    }
+  }
+
+  // ---- Rule 12: position-fidelity (iter6-e — 2026-09-18) ------------------
+  //
+  // VLM critique of mwc-multistep-wizard (VLM=1/5) identified: "progress
+  // bar should be at TOP, agent put it at the BOTTOM". The prompt said
+  // "progress bar at the top" but the agent placed it at the bottom.
+  //
+  // This rule extracts positional phrases from the prompt ("at the top",
+  // "at the bottom", "on the left", "on the right") and verifies the
+  // referenced element appears in the correct region of the canvas.
+  //
+  // Implementation: scan text layers for the prompt-mentioned element
+  // name; find the corresponding frame/shape; check its y (or x) position.
+  const promptText12 = opts?.prompt;
+  if (typeof promptText12 === 'string' && promptText12.length > 0 && allVisible.length >= 4) {
+    const positionRules: Array<{ phrase: RegExp; element: string; axis: 'y' | 'x'; want: 'top' | 'bottom' | 'left' | 'right' }> = [
+      { phrase: /\bprogress\s+bar\s+at\s+the\s+top\b/i, element: 'progress', axis: 'y', want: 'top' },
+      { phrase: /\bprogress\s+bar\s+at\s+the\s+bottom\b/i, element: 'progress', axis: 'y', want: 'bottom' },
+      { phrase: /\bsidebar\s+on\s+the\s+left\b/i, element: 'sidebar', axis: 'x', want: 'left' },
+      { phrase: /\bsidebar\s+on\s+the\s+right\b/i, element: 'sidebar', axis: 'x', want: 'right' },
+      { phrase: /\bnavbar\s+at\s+the\s+top\b/i, element: 'nav', axis: 'y', want: 'top' },
+      { phrase: /\bheader\s+at\s+the\s+top\b/i, element: 'header', axis: 'y', want: 'top' },
+      { phrase: /\bfooter\s+at\s+the\s+bottom\b/i, element: 'footer', axis: 'y', want: 'bottom' },
+    ];
+    for (const rule of positionRules) {
+      if (!rule.phrase.test(promptText12)) continue;
+      // Find the element on canvas — by name match (case-insensitive)
+      // OR by structural heuristic (sidebar = narrow tall, progress bar = horizontal row of small circles).
+      const namedElement = allVisible.find((l) => {
+        const name = (l.name ?? '').toLowerCase();
+        return name.includes(rule.element);
+      });
+      // Compute canvas bounds for position check.
+      let cMin = Infinity, cMax = -Infinity;
+      for (const s of allVisible) {
+        const v = Number(s[rule.axis === 'y' ? 'y' : 'x'] ?? 0);
+        const size = Number(s[rule.axis === 'y' ? 'height' : 'width'] ?? 0);
+        if (v < cMin) cMin = v;
+        if (v + size > cMax) cMax = v + size;
+      }
+      if (!Number.isFinite(cMin) || !Number.isFinite(cMax)) continue;
+      const cMid = (cMin + cMax) / 2;
+      if (namedElement) {
+        const ePos = Number(namedElement[rule.axis === 'y' ? 'y' : 'x'] ?? 0);
+        const eSize = Number(namedElement[rule.axis === 'y' ? 'height' : 'width'] ?? 0);
+        const eMid = ePos + eSize / 2;
+        const wrong =
+          (rule.want === 'top' && eMid > cMid + (cMax - cMin) * 0.2) ||
+          (rule.want === 'bottom' && eMid < cMid - (cMax - cMin) * 0.2) ||
+          (rule.want === 'left' && eMid > cMid + (cMax - cMin) * 0.2) ||
+          (rule.want === 'right' && eMid < cMid - (cMax - cMin) * 0.2);
+        if (wrong) {
+          reasons.push(
+            `Position-fidelity defect: the prompt says "${rule.element} ${rule.want}" but the "${namedElement.name ?? namedElement.id}" ` +
+            `element is positioned at ${rule.axis}=${Math.round(ePos)} (canvas ${rule.axis}-range ${Math.round(cMin)}–${Math.round(cMax)}, mid=${Math.round(cMid)}) — ` +
+            `it should be in the ${rule.want.toUpperCase()} half. Call pen_update_node with changes: { ${rule.axis}: <new-position-in-the-${rule.want}-half> } ` +
+            `to move it. The system prompt's CONTENT FIDELITY rule covers positional phrases too — the agent must honor them.`,
+          );
+        }
+      }
+    }
+  }
+
+
   let promptStringsExtracted = 0;
   let promptStringsFound = 0;
   let promptStringsMisspelled = 0;
