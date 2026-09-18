@@ -601,6 +601,16 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // category filters it out → SDK errors with 'Tool pen_reorder_shape
     // not found' when the agent (correctly) calls it during design work.
     'pen_reorder_shape',
+    // 2026-09-18 iter6-e: ALWAYS include pen_get_screenshot + pen_get_computed.
+    // These are client round-trip tools (live DOM readback + real screenshots)
+    // that the agent uses to self-verify its work — particularly important
+    // after the new deterministic validators (Rule 10/11/12) fire, because
+    // the agent's fix-turn often wants to take a screenshot to verify the
+    // repair landed correctly. Without these in the always-include list,
+    // non-inspect categories filter them out → 'Tool pen_get_screenshot not
+    // found' regressions on dashboard-hifi (iter6-e bench).
+    'pen_get_screenshot',
+    'pen_get_computed',
   ]);
 
   // ---- Mode enforcement (Cursor lesson: restrictions live in the registry) --
