@@ -656,7 +656,16 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // staged flow NEEDS ask_user_question to offer the choice). `repeatCount`
   // defaults to 0 (the history read happens later — the immediate-repeat
   // exception flips expectsCanvasOutput independently).
-  const stagedFlow: 'lofi' | 'direct' = shouldOfferStagedFlow({
+  //
+  // 2026-09-18 tuning: respect an explicit opt-out via env var. The staged
+  // flow is interactive (ask_user_question → wait for the user to pick
+  // lo-fi vs hi-fi). In agentic / eval / batched settings where no human
+  // answers, the flow stalls the turn until the (now 60s) ask timeout
+  // fires. Set AC_DISABLE_STAGED_FLOW=1 to skip the staged flow entirely —
+  // the agent then builds directly with the full toolset.
+  const stagedFlowDisabled = process.env.AC_DISABLE_STAGED_FLOW === '1'
+    || process.env.AC_DISABLE_STAGED_FLOW === 'true';
+  const stagedFlow: 'lofi' | 'direct' = !stagedFlowDisabled && shouldOfferStagedFlow({
     prompt,
     canvasEmpty: turnStartShapeIds.size === 0,
     mode,

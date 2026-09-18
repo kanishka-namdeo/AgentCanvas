@@ -42,6 +42,13 @@ export const TOOL_ALIASES: Record<string, ToolAlias> = {
   },
   // token-era → variable-era
   pen_update_tokens: { target: 'pen_set_variables', deprecatedSince: 'pen-v3' },
+  // 2026-09-18 tuning: the system prompt references `pen_set_variable`
+  // (singular) as the single-variable variant of `pen_set_variables`
+  // (plural). The plural tool handles both single + batch args (one-element
+  // array). agnes-3.0-flash followed the prompt's hint and called the
+  // singular name — without this alias the call failed with "tool not
+  // found" and tanked the dashboard-hifi eval score (1 of 9 assertions).
+  pen_set_variable: { target: 'pen_set_variables', deprecatedSince: 'prompt-hint' },
   pen_list_tokens: { target: 'pen_list_variables', deprecatedSince: 'pen-v3' },
   pen_bind_shape_to_token: { target: 'pen_bind_variable', deprecatedSince: 'pen-v3' },
   pen_unbind_shape: { target: 'pen_unbind_variable', deprecatedSince: 'pen-v3' },
