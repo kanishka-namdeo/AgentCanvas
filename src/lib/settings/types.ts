@@ -231,17 +231,18 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // for container types).
   domCulling: true,
 
-  // Default inference provider: the z.ai sandbox. Inside the z.ai sandbox
-  // environment, `z-ai-web-dev-sdk`'s `ZAI.create()` auto-resolves credentials
-  // from ~/.z-ai-config / /etc/.z-ai-config / sandbox env — no API key needed.
-  // Outside the sandbox, set ZAI_API_KEY in .env. Users can switch to any of
-  // the 28 registered providers in Settings → LLM provider.
-  // The fallback in runner-native.ts retries on z.ai sandbox when custom
-  // endpoints are unreachable.
-  llmProvider: 'zai',
-  apiKey: '',
-  modelName: 'glm-5.3',
-  apiBaseUrl: '',
+  // Default inference provider for this tuning exercise: the Agnes AI gateway
+  // (https://apihub.agnes-ai.com/v1) — an OpenAI-compatible endpoint serving
+  // `agnes-3.0-flash` (33B hybrid-attention model, 1M context, $0.05/$0.15
+  // per 1M tokens, supports text+image input). Override per-session via
+  // Settings → LLM provider. The fallback in runner-native.ts retries on the
+  // z.ai sandbox when custom endpoints are unreachable; for this exercise we
+  // disable the fallback by setting the provider to 'custom' explicitly so
+  // every inference call is attributable to Agnes (cleaner benchmarking).
+  llmProvider: 'custom',
+  apiKey: 'cpk-ajRkpZScOVOm78JloDIH7GryqHY687mWZXHe1fNNbskyT74T',
+  modelName: 'agnes-3.0-flash',
+  apiBaseUrl: 'https://apihub.agnes-ai.com/v1',
 
   snapshotCadence: 'every-turn',
   maxSessionsRetained: 100,
