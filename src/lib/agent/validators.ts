@@ -25,6 +25,10 @@ export interface ValidationResult {
     textShapesWithWeight: number;
     cardShapesWithShadow: number;
     autoLayoutContainers: number;
+    /** 2026-09-18 iter5: brand-string fidelity check (Rule 9). */
+    promptStringsExtracted?: number;
+    promptStringsFound?: number;
+    promptStringsMisspelled?: number;
   };
 }
 
@@ -52,6 +56,15 @@ export interface ValidationResult {
  *      instances"). Only evaluated when the runner threads
  *      `opts.repeatedStructures` AND neither exemption applies — see
  *      `RepeatedStructuresOpts`.
+ *   9. 2026-09-18 iter5: Prompt-string fidelity. Extracts concrete strings
+ *      the user mentioned in the prompt — quoted strings, brand names
+ *      following "called X" / "named X", button labels before "button",
+ *      field labels before "field", "$N" / "N%" numeric values. Each
+ *      extracted string MUST appear verbatim in at least one text layer.
+ *      Close matches (Levenshtein ≤ 2) trigger a "misspelled" defect with
+ *      the close-match name surfaced — catches the agnes-3.0-flash
+ *      "Vaultly" → "Vaultily" tokenization quirk exposed by iter4 VLM
+ *      critique. Only evaluated when the runner threads `opts.prompt`.
  *
  * The thresholds are deliberately set to industry standards (50% / 50% / 1) so the gate
  * catches the wireframe-only failure mode without forcing perfection.
@@ -70,7 +83,12 @@ export interface RepeatedStructuresOpts {
 
 export function validateCanvasBeforeComplete(
   shapes: Layer[],
-  opts?: { relaxMinCount?: boolean; repeatedStructures?: RepeatedStructuresOpts },
+  opts?: {
+    relaxMinCount?: boolean;
+    repeatedStructures?: RepeatedStructuresOpts;
+    /** 2026-09-18 iter5: the user's prompt — Rule 9 extracts + verifies strings. */
+    prompt?: string;
+  },
 ): ValidationResult {
   const reasons: string[] = [];
   const totalShapes = shapes.length;
@@ -291,6 +309,87 @@ export function validateCanvasBeforeComplete(
     }
   }
 
+  // ---- Rule 9: prompt-string fidelity (iter5 — 2026-09-18) -----------------
+  //
+  // Extract concrete strings the user mentioned in the prompt and verify
+  // each appears verbatim in a text layer. Close matches (Levenshtein ≤ 2)
+  // produce a "misspelled" defect with the close-match name surfaced —
+  // catches tokenization quirks like agnes-3.0-flash's "Vaultly" → "Vaultily".
+  //
+  // Extraction patterns (conservative — high-precision, low-recall):
+  //   1. Quoted strings: "X" or 'X' → X
+  //   2. Brand names: "called X" / "named X" / "app X" → X (first token)
+  //   3. Button labels: "X button" → X (e.g. "Sign In button" → "Sign In")
+  //   4. Field labels: "X field" → X (e.g. "email field" → "Email" — capitalized)
+  //   5. Link labels: "X link" → X
+  //   6. Tab labels: "X tab" → X
+  //   7. Numeric values: "$N.NNK" / "N,NNN" / "N.N%" → the literal string
+  //
+  // For each extracted string, scan all text-layer `.text` / `.content` /
+  // `.name` fields. If no exact match, scan for Levenshtein-close matches
+  // (≤2 edits, case-insensitive). If found, the defect names the close
+  // match so the agent can rename it.
+  let promptStringsExtracted = 0;
+  let promptStringsFound = 0;
+  let promptStringsMisspelled = 0;
+  const promptText = opts?.prompt;
+  if (typeof promptText === 'string' && promptText.length > 0 && textShapes.length > 0) {
+    const extracted = extractPromptStrings(promptText);
+    promptStringsExtracted = extracted.length;
+    if (extracted.length > 0 && extracted.length <= 24) {
+      // Cap at 24 to avoid pathological prompts blowing up the defect list.
+      const textLayerContents = textShapes.map((s) => ({
+        id: s.id,
+        text: String((s as { text?: string }).text ?? (s as { content?: string }).content ?? s.name ?? ''),
+      }));
+      const missing: Array<{ expected: string; closeMatch: string | null }> = [];
+      for (const expected of extracted) {
+        const exact = textLayerContents.some((t) => t.text.includes(expected));
+        if (exact) {
+          promptStringsFound++;
+          continue;
+        }
+        // Look for a close match (Levenshtein ≤ 2, case-insensitive, on a
+        // text-layer TOKEN or short content slice — not the whole layer).
+        let closeMatch: string | null = null;
+        const needle = expected.toLowerCase();
+        for (const t of textLayerContents) {
+          const haystack = t.text.toLowerCase();
+          // Check token-level closeness (split on whitespace).
+          const tokens = haystack.split(/\s+/);
+          for (const tok of tokens) {
+            if (Math.abs(tok.length - needle.length) <= 2 && levenshtein(tok, needle) <= 2) {
+              closeMatch = t.text; // surface the original-case text
+              break;
+            }
+          }
+          if (closeMatch) break;
+        }
+        missing.push({ expected, closeMatch });
+        if (closeMatch) promptStringsMisspelled++;
+      }
+      if (missing.length > 0) {
+        const examples = missing
+          .slice(0, 4)
+          .map((m) =>
+            m.closeMatch
+              ? `"${m.expected}" → close match "${m.closeMatch.slice(0, 40)}" (likely misspelled — rename to exact)`
+              : `"${m.expected}" not found in any text layer`,
+          )
+          .join('; ');
+        reasons.push(
+          `${missing.length} prompt-mentioned string(s) missing or misspelled on the canvas (${examples}). ` +
+          `The system prompt's CONTENT FIDELITY rule says user-mentioned strings (brand names, button labels, ` +
+          `field labels, numeric values) MUST appear as text layers, EXACTLY as written — never paraphrased, ` +
+          `never misspelled. Call pen_update_node on the offending text layer(s) with changes: { text: "<exact string>" } ` +
+          `(or pen_create_node with type:"text" if the layer doesn't exist yet). This is the #1 prompt-fidelity defect — ` +
+          `flash models like agnes-3.0-flash occasionally tokenize brand names incorrectly (e.g. "Vaultly" → "Vaultily"); ` +
+          `the deterministic post-build check catches it before the turn completes.`,
+        );
+      }
+    }
+  }
+
   return {
     ok: reasons.length === 0,
     reasons,
@@ -301,8 +400,120 @@ export function validateCanvasBeforeComplete(
       textShapesWithWeight: textShapesWithWeight.length,
       cardShapesWithShadow: cardShapesWithShadow.length,
       autoLayoutContainers: autoLayoutContainers.length,
+      promptStringsExtracted,
+      promptStringsFound,
+      promptStringsMisspelled,
     },
   };
+}
+
+// ---- Rule 9 helpers -------------------------------------------------------
+
+/** Extract concrete strings the user mentioned in the prompt. */
+function extractPromptStrings(prompt: string): string[] {
+  const out = new Set<string>();
+
+  // 1. Quoted strings ("X" or 'X') — strip surrounding quotes, min length 2.
+  const quoted = prompt.match(/["'"]([^"'"\n]{2,40})["'"]/g);
+  if (quoted) {
+    for (const q of quoted) {
+      const stripped = q.replace(/^["'"]/, '').replace(/["'"]$/, '').trim();
+      if (stripped.length >= 2 && !/^\d+$/.test(stripped)) out.add(stripped);
+    }
+  }
+
+  // 2. Brand names: "called X" / "named X" / "app called X"
+  // Take the next 1-3 tokens until sentence punctuation.
+  const brandMatch = prompt.match(/\b(?:called|named)\s+(['"]?)([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\1/g);
+  if (brandMatch) {
+    for (const m of brandMatch) {
+      const name = m.replace(/^.*\b(?:called|named)\s+/, '').replace(/['"]/g, '').trim();
+      if (name.length >= 2) out.add(name);
+    }
+  }
+
+  // 3. Button labels: "X button" → X (1-3 capitalized words before "button")
+  const btnMatch = prompt.match(/\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){0,2})\s+button\b/g);
+  if (btnMatch) {
+    for (const m of btnMatch) {
+      const label = m.replace(/\s+button\b/, '').trim();
+      if (label.length >= 2) out.add(label);
+    }
+  }
+
+  // 4. Field labels: "X field" → X (capitalize first letter)
+  const fieldMatch = prompt.match(/\b([a-zA-Z]+)\s+field\b/g);
+  if (fieldMatch) {
+    for (const m of fieldMatch) {
+      const label = m.replace(/\s+field\b/, '');
+      const capitalized = label.charAt(0).toUpperCase() + label.slice(1);
+      if (capitalized.length >= 2) out.add(capitalized);
+    }
+  }
+
+  // 5. Link labels: "X link" → X (capitalize first letter)
+  const linkMatch = prompt.match(/\b([a-zA-Z]+)\s+link\b/g);
+  if (linkMatch) {
+    for (const m of linkMatch) {
+      const label = m.replace(/\s+link\b/, '');
+      const capitalized = label.charAt(0).toUpperCase() + label.slice(1);
+      if (capitalized.length >= 2) out.add(capitalized);
+    }
+  }
+
+  // 6. Tab labels: "X tab" → X
+  const tabMatch = prompt.match(/\b([a-zA-Z]+)\s+tab\b/g);
+  if (tabMatch) {
+    for (const m of tabMatch) {
+      const label = m.replace(/\s+tab\b/, '');
+      const capitalized = label.charAt(0).toUpperCase() + label.slice(1);
+      if (capitalized.length >= 2) out.add(capitalized);
+    }
+  }
+
+  // 7. Numeric values: "$128.4K" / "8,421" / "2.1%" / "$9" / "$19"
+  const numMatch = prompt.match(/\$?\d[\d,]*\.?\d*\s*(?:K|M|B)?%?/g);
+  if (numMatch) {
+    for (const n of numMatch) {
+      const cleaned = n.trim();
+      if (cleaned.length >= 2 && /\d/.test(cleaned)) out.add(cleaned);
+    }
+  }
+
+  // Filter out generic stopwords that aren't real content.
+  const STOPWORDS = new Set([
+    'Sign', 'Click', 'Get', 'Set', 'Add', 'New', 'Open', 'Close',
+    'Submit', 'Cancel', 'Save', 'Edit', 'Delete', 'Update', 'Create',
+    'Welcome', 'Hello', 'Home', 'Back', 'Next', 'Previous', 'Continue',
+    // The "field" extractor above produces "Email" / "Password" — those
+    // ARE real content (the user said "email field" / "password field").
+    // Don't filter them.
+  ]);
+  return Array.from(out).filter((s) => !STOPWORDS.has(s));
+}
+
+/** Iterative Levenshtein distance (≤ 2 — short-circuit on early threshold). */
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  const al = a.length;
+  const bl = b.length;
+  if (Math.abs(al - bl) > 2) return 99; // bail early — can't be ≤ 2
+  if (al === 0) return bl;
+  if (bl === 0) return al;
+  // Two-row DP — O(al * bl) but bounded by |al - bl| ≤ 2 so it's tight.
+  let prev = new Array(bl + 1);
+  let curr = new Array(bl + 1);
+  for (let j = 0; j <= bl; j++) prev[j] = j;
+  for (let i = 1; i <= al; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= bl; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  const dist = prev[bl];
+  return dist;
 }
 
 // ---- Rule 8: structural signature ------------------------------------------

@@ -1550,12 +1550,12 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
         const { validateCanvasBeforeComplete } = await import('./validators');
         const validation = validateCanvasBeforeComplete(newShapes, {
           relaxMinCount: true,
+          // 2026-09-18 iter5: thread the prompt so Rule 9 can extract +
+          // verify user-mentioned strings (brand names, button labels,
+          // field labels, numeric values).
+          prompt,
           repeatedStructures: {
             usedTemplateGeneration: generatorCallsThisTurn > 0,
-            // Provenance caveat (designer-workflow-parity review ⚠️b): these
-            // shapes were built by multitask sub-agents whose visible toolsets
-            // are NOT proven to mirror the main session's — Rule 8 stays
-            // silent here rather than false-fire on subagent-built shapes.
             componentToolsVisible: false,
           },
         });
@@ -2969,6 +2969,10 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
             const { validateCanvasBeforeComplete } = await import('./validators');
             const editValidation = validateCanvasBeforeComplete(touchedShapes, {
               relaxMinCount: true,
+              // iter5: thread the prompt so Rule 9 applies to edit turns
+              // too — a brand-string misspelling introduced on a follow-up
+              // edit gets caught here.
+              prompt,
               repeatedStructures,
             });
             if (!editValidation.ok && editValidation.reasons.length > 0) {
@@ -3008,6 +3012,11 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       const { validateCanvasBeforeComplete } = await import('./validators');
       const validation = validateCanvasBeforeComplete(newShapesForCritique, {
         relaxMinCount: true,
+        // iter5: thread the prompt so Rule 9 (prompt-string fidelity)
+        // fires as part of the deterministic gate. Catches the
+        // "Vaultly" → "Vaultily" tokenization quirk + similar
+        // brand/label misspellings before the turn completes.
+        prompt,
         repeatedStructures,
       });
 
