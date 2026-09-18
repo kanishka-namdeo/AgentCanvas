@@ -594,6 +594,13 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // call pen_set_variables (plural) instead; the new mwc-* scenarios
     // triggered the singular-form call consistently.
     'pen_set_variable',
+    // 2026-09-18 iter6: ALWAYS include pen_reorder_shape. It's a base
+    // z-order tool, not layout-specific. The system prompt references it
+    // as the precise-z-index variant of pen_bring_to_front / pen_send_to_back
+    // (which ARE in design-gen). Without this, every non-layout/non-multi
+    // category filters it out → SDK errors with 'Tool pen_reorder_shape
+    // not found' when the agent (correctly) calls it during design work.
+    'pen_reorder_shape',
   ]);
 
   // ---- Mode enforcement (Cursor lesson: restrictions live in the registry) --

@@ -414,8 +414,16 @@ const SubtreeInputSchema = {
       anyOf: [{ $ref: '#/$defs/subtreeNode' }, { type: 'string' }],
     },
     nodes: {
-      type: 'array',
-      items: { $ref: '#/$defs/subtreeNode' },
+      // 2026-09-18 iter6: agnes-3.0-flash occasionally passes `nodes` as a
+      // STRINGIFIED JSON array (e.g. `"[{\"type\":\"rectangle\"}]"`) instead
+      // of a real array. TypeBox rejected this with "nodes: must be array"
+      // BEFORE repairArrayArgs could parse it. Fix: accept either a real
+      // array OR a JSON-string; the runner's repairArrayArgs (tool-aliases.ts)
+      // parses the string into a real array before execute() runs.
+      anyOf: [
+        { type: 'array', items: { $ref: '#/$defs/subtreeNode' } },
+        { type: 'string', description: 'Stringified JSON array (e.g. "[{...}, {...}]") — auto-parsed by the runner.' },
+      ],
       description:
         'MULTI-ROOT batch (preferred for several screens/sections): an array of root nodes, each with the same fields as `node` (nested `children` allowed). One call creates them ALL — use this instead of repeated pen_create_subtree calls when creating multiple independent trees at once.',
     },
