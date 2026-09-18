@@ -1,0 +1,634 @@
+{
+  "summary": {
+    "mwc-multistep-wizard": {
+      "n": 1,
+      "vlm_overall_mean": 2,
+      "vlm_overall_stdev": 0,
+      "vlm_overall_min": 2,
+      "vlm_overall_max": 2,
+      "runs": [
+        {
+          "repeat": 1,
+          "overall": 2,
+          "per_criterion": [
+            {
+              "name": "AESTHETICS",
+              "score": 3,
+              "note": "Clean and professional look, but the layout feels disjointed due to overlapping elements and inconsi"
+            },
+            {
+              "name": "LEARNABILITY",
+              "score": 4,
+              "note": "The 5-step progress bar and clear section heading 'Pick a template' are very easy to understand."
+            },
+            {
+              "name": "EFFICIENCY",
+              "score": 4,
+              "note": "The three template options and navigation buttons are laid out logically for quick decision-making."
+            },
+            {
+              "name": "USABILITY",
+              "score": 1,
+              "note": "A severe layout defect is visible: the 'Marketing Site' card overlaps the 'Dashboard' card, causing "
+            },
+            {
+              "name": "OVERALL",
+              "score": 2,
+              "note": "While the content matches the requirements, the implementation fails with overlapping elements and i"
+            }
+          ],
+          "prompt_fidelity_missing": [],
+          "top_fixes": [
+            "Fix the overlapping layout of the 'Marketing Site' card so it aligns properly with the other columns.",
+            "Standardize the background color of the template cards (currently a mix of white and gray).",
+            "Ensure text descriptions for the cards are not clipped by overlapping elements."
+          ],
+          "latency_ms": 5720
+        }
+      ]
+    },
+    "mwc-mindmap": {
+      "n": 1,
+      "vlm_overall_mean": 1,
+      "vlm_overall_stdev": 0,
+      "vlm_overall_min": 1,
+      "vlm_overall_max": 1,
+      "runs": [
+        {
+          "repeat": 1,
+          "overall": 1,
+          "per_criterion": [
+            {
+              "name": "AESTHETICS",
+              "score": 2,
+              "note": "Cluttered appearance with heavy gray container backgrounds that look like glitches. Nodes are fragme"
+            },
+            {
+              "name": "LEARNABILITY",
+              "score": 2,
+              "note": "The visual hierarchy is broken. The child nodes (white boxes) are visually separated from their pare"
+            },
+            {
+              "name": "EFFICIENCY",
+              "score": 1,
+              "note": "Massive wasted space with disconnected elements at the bottom of the canvas. Information is scattere"
+            },
+            {
+              "name": "USABILITY",
+              "score": 3,
+              "note": "Text contrast is generally high. However, the node labels are truncated or cut off ('research', 'ric"
+            },
+            {
+              "name": "OVERALL",
+              "score": 1,
+              "note": "The layout is severely broken with orphaned text and misaligned elements. It does not look like a fu"
+            }
+          ],
+          "prompt_fidelity_missing": [
+            "User Research",
+            "Metrics",
+            "North Star Metric",
+            "Activation Rate",
+            "Churn Cohorts"
+          ],
+          "top_fixes": [
+            "Fix the auto-layout engine to ensure node labels (e.g., 'User Research', 'Metrics') do not get clipped or split into separate text nodes.",
+            "Remove the large gray background rectangles that are obscuring the connection lines and creating visual confusion.",
+            "Group the child nodes tightly with their branch headers so the tree structure is visually cohesive and not scattered."
+          ],
+          "latency_ms": 9341
+        }
+      ]
+    },
+    "login-hifi": {
+      "n": 1,
+      "vlm_overall_mean": 2,
+      "vlm_overall_stdev": 0,
+      "vlm_overall_min": 2,
+      "vlm_overall_max": 2,
+      "runs": [
+        {
+          "repeat": 1,
+          "overall": 2,
+          "per_criterion": [
+            {
+              "name": "AESTHETICS",
+              "score": 2,
+              "note": "Lacks visual hierarchy; the layout feels like a flat list of boxes stacked on top of each other with"
+            },
+            {
+              "name": "LEARNABILITY",
+              "score": 4,
+              "note": "Uses standard patterns (labeled fields with icons, clear primary button) that are instantly recogniz"
+            },
+            {
+              "name": "EFFICIENCY",
+              "score": 3,
+              "note": "Includes standard elements, but the vertical stack is quite dense. The inclusion of a third placehol"
+            },
+            {
+              "name": "USABILITY",
+              "score": 2,
+              "note": "Touch targets for the email and password fields are small and lack clear separation from the 'Forgot"
+            },
+            {
+              "name": "OVERALL",
+              "score": 2,
+              "note": "Functional but amateurish. The background layering (light blue block) and cut-off text detract signi"
+            }
+          ],
+          "prompt_fidelity_missing": [],
+          "top_fixes": [
+            "Remove the light-blue background 'block' behind the fields to create a cleaner, modern white interface.",
+            "Increase padding and visual separation between the form fields and the 'Forgot password?' link to prevent accidental taps and improve clarity.",
+            "Ensure the bottom legal text ('Sign up', Terms, etc.) is fully contained within the frame and not overlapping or cut off."
+          ],
+          "latency_ms": 8696
+        }
+      ]
+    },
+    "dashboard-hifi": {
+      "n": 1,
+      "vlm_overall_mean": 5,
+      "vlm_overall_stdev": 0,
+      "vlm_overall_min": 5,
+      "vlm_overall_max": 5,
+      "runs": [
+        {
+          "repeat": 1,
+          "overall": 5,
+          "per_criterion": [
+            {
+              "name": "AESTHETICS",
+              "score": 5,
+              "note": "The design is exceptionally clean and modern, utilizing a white space-heavy layout that feels profes"
+            },
+            {
+              "name": "LEARNABILITY",
+              "score": 5,
+              "note": "The layout strictly follows standard dashboard patterns. The header with the 'Last 30 days' toggle a"
+            },
+            {
+              "name": "EFFICIENCY",
+              "score": 4,
+              "note": "The information is easy to scan with the large typography on the KPI values. However, the cards cont"
+            },
+            {
+              "name": "USABILITY",
+              "score": 5,
+              "note": "Touch targets (buttons, cards) are appropriately sized. Contrast for the primary text and metric val"
+            },
+            {
+              "name": "OVERALL",
+              "score": 5,
+              "note": "This is a shippable, high-quality design. It hits the balance between 'minimal' and 'informative' pe"
+            }
+          ],
+          "prompt_fidelity_missing": [],
+          "top_fixes": [
+            "Reduce the height of the KPI cards to remove the excessive empty white space at the bottom of each card.",
+            "Tighten the header layout by grouping the time-filter button and notification icons closer to the search bar to improve the use of the middle section.",
+            "Ensure the green 'vs last month' text in the cards meets WCAG AA contrast standards, as the small green text appears faint."
+          ],
+          "latency_ms": 18385
+        }
+      ]
+    },
+    "mwc-stripe-inspired": {
+      "n": 1,
+      "vlm_overall_mean": 1,
+      "vlm_overall_stdev": 0,
+      "vlm_overall_min": 1,
+      "vlm_overall_max": 1,
+      "runs": [
+        {
+          "repeat": 1,
+          "overall": 1,
+          "per_criterion": [
+            {
+              "name": "AESTHETICS",
+              "score": 2,
+              "note": "The design is fundamentally broken. The top-left of the heading is clipped off (shows 'tart building"
+            },
+            {
+              "name": "LEARNABILITY",
+              "score": 2,
+              "note": "The structure is recognizable as a pricing page, but the visual confusion (the floating badge in the"
+            },
+            {
+              "name": "EFFICIENCY",
+              "score": 2,
+              "note": "Significant wasted space and visual noise. The middle column is misaligned with the side columns, cr"
+            },
+            {
+              "name": "USABILITY",
+              "score": 1,
+              "note": "Severe usability failures. The heading is cut off. There is an empty button with no text in the 'Sca"
+            },
+            {
+              "name": "OVERALL",
+              "score": 1,
+              "note": "This is not shippable. It looks like a glitched screenshot or a failed draft. The text clipping and "
+            }
+          ],
+          "prompt_fidelity_missing": [
+            "Heading is partially missing (starts with 'tart')",
+            "Scale card has an empty button box"
+          ],
+          "top_fixes": [
+            "Fix the heading text so it is fully visible and not clipped on the left.",
+            "Align the three pricing cards (Starter, Scale, Enterprise) into a uniform grid with consistent heights and positions.",
+            "Add a label to the empty button in the 'Scale' tier and remove the floating/overlapping grey boxes that break the layout."
+          ],
+          "latency_ms": 7697
+        }
+      ]
+    },
+    "mwc-404-page": {
+      "n": 1,
+      "vlm_overall_mean": 4,
+      "vlm_overall_stdev": 0,
+      "vlm_overall_min": 4,
+      "vlm_overall_max": 4,
+      "runs": [
+        {
+          "repeat": 1,
+          "overall": 4,
+          "per_criterion": [
+            {
+              "name": "AESTHETICS",
+              "score": 4,
+              "note": "The dark theme provides a modern, cohesive look. The large typography for the '404' headline is impa"
+            },
+            {
+              "name": "LEARNABILITY",
+              "score": 5,
+              "note": "The layout strictly follows standard patterns for error pages: headline, explanatory text, search in"
+            },
+            {
+              "name": "EFFICIENCY",
+              "score": 5,
+              "note": "The interface is uncluttered. The 'Go Home' button and search box are the primary actions, and their"
+            },
+            {
+              "name": "USABILITY",
+              "score": 4,
+              "note": "Touch targets are adequately sized. However, the text contrast ratio for the secondary 'Go Home' lin"
+            },
+            {
+              "name": "OVERALL",
+              "score": 4,
+              "note": "A very strong, professional design that effectively communicates the error and offers clear next ste"
+            }
+          ],
+          "prompt_fidelity_missing": [],
+          "top_fixes": [
+            "Increase the contrast ratio of the 'Go Home' text when it appears as a secondary link to ensure it passes accessibility standards.",
+            "Add a more visible focus state (outline or glow) for the search bar and CTA button to improve keyboard navigation usability.",
+            "Increase the vertical whitespace around the 'Go Home' button in the left panel to better separate it from the search input."
+          ],
+          "latency_ms": 5562
+        }
+      ]
+    }
+  },
+  "results": [
+    {
+      "scenarioId": "mwc-multistep-wizard",
+      "repeat": 1,
+      "pngPath": "/home/z/my-project/AgentCanvas/scripts/agent-eval/results/iter6-bench/dumps/png/mwc-multistep-wizard-r1.png",
+      "score": {
+        "per_criterion": [
+          {
+            "name": "AESTHETICS",
+            "score": 3,
+            "note": "Clean and professional look, but the layout feels disjointed due to overlapping elements and inconsistent card backgrounds."
+          },
+          {
+            "name": "LEARNABILITY",
+            "score": 4,
+            "note": "The 5-step progress bar and clear section heading 'Pick a template' are very easy to understand."
+          },
+          {
+            "name": "EFFICIENCY",
+            "score": 4,
+            "note": "The three template options and navigation buttons are laid out logically for quick decision-making."
+          },
+          {
+            "name": "USABILITY",
+            "score": 1,
+            "note": "A severe layout defect is visible: the 'Marketing Site' card overlaps the 'Dashboard' card, causing text and the card's right border to be clipped or obscured, which breaks the UI."
+          },
+          {
+            "name": "OVERALL",
+            "score": 2,
+            "note": "While the content matches the requirements, the implementation fails with overlapping elements and inconsistent background styling (white vs. light gray)."
+          }
+        ],
+        "overall": 2,
+        "prompt_fidelity": {
+          "strings_present": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "Step 3 of 5",
+            "Pick a template",
+            "Blank Project",
+            "Dashboard Starter",
+            "Marketing Site",
+            "Previous",
+            "Continue to Settings"
+          ],
+          "strings_missing": []
+        },
+        "top_3_fixes": [
+          "Fix the overlapping layout of the 'Marketing Site' card so it aligns properly with the other columns.",
+          "Standardize the background color of the template cards (currently a mix of white and gray).",
+          "Ensure text descriptions for the cards are not clipped by overlapping elements."
+        ],
+        "raw_latency_ms": 5720,
+        "raw_content": "{\n  \"per_criterion\": [\n    {\n      \"name\": \"AESTHETICS\",\n      \"score\": 3,\n      \"note\": \"Clean and professional look, but the layout feels disjointed due to overlapping elements and inconsistent card backgrounds.\"\n    },\n    {\n      \"name\": \"LEARNABILITY\",\n      \"score\": 4,\n      \"note\": \"The 5-step progress bar and clear section heading 'Pick a template' are very easy to understand.\"\n    },\n    {\n      \"name\": \"EFFICIENCY\",\n      \"score\": 4,\n      \"note\": \"The three template options and naviga"
+      }
+    },
+    {
+      "scenarioId": "mwc-mindmap",
+      "repeat": 1,
+      "pngPath": "/home/z/my-project/AgentCanvas/scripts/agent-eval/results/iter6-bench/dumps/png/mwc-mindmap-r1.png",
+      "score": {
+        "per_criterion": [
+          {
+            "name": "AESTHETICS",
+            "score": 2,
+            "note": "Cluttered appearance with heavy gray container backgrounds that look like glitches. Nodes are fragmented and disconnected (text 'research' separated from 'User', 'rics' separated from 'Met')."
+          },
+          {
+            "name": "LEARNABILITY",
+            "score": 2,
+            "note": "The visual hierarchy is broken. The child nodes (white boxes) are visually separated from their parent branch headers (colored boxes) by large gaps and gray blocks, making the relationships hard to understand."
+          },
+          {
+            "name": "EFFICIENCY",
+            "score": 1,
+            "note": "Massive wasted space with disconnected elements at the bottom of the canvas. Information is scattered across multiple layers, requiring too much visual effort to parse."
+          },
+          {
+            "name": "USABILITY",
+            "score": 3,
+            "note": "Text contrast is generally high. However, the node labels are truncated or cut off ('research', 'rics'), which significantly hurts usability."
+          },
+          {
+            "name": "OVERALL",
+            "score": 1,
+            "note": "The layout is severely broken with orphaned text and misaligned elements. It does not look like a functional mindmap tool but rather a rendering failure."
+          }
+        ],
+        "overall": 1,
+        "prompt_fidelity": {
+          "strings_present": [
+            "Product Strategy",
+            "Roadmap",
+            "Go-to-Market"
+          ],
+          "strings_missing": [
+            "User Research",
+            "Metrics",
+            "North Star Metric",
+            "Activation Rate",
+            "Churn Cohorts",
+            "Launch PR Plan",
+            "Pricing Model",
+            "Partner Channels"
+          ]
+        },
+        "top_3_fixes": [
+          "Fix the auto-layout engine to ensure node labels (e.g., 'User Research', 'Metrics') do not get clipped or split into separate text nodes.",
+          "Remove the large gray background rectangles that are obscuring the connection lines and creating visual confusion.",
+          "Group the child nodes tightly with their branch headers so the tree structure is visually cohesive and not scattered."
+        ],
+        "raw_latency_ms": 9341,
+        "raw_content": "{\n  \"per_criterion\": [\n    {\"name\": \"AESTHETICS\", \"score\": 2, \"note\": \"Cluttered appearance with heavy gray container backgrounds that look like glitches. Nodes are fragmented and disconnected (text 'research' separated from 'User', 'rics' separated from 'Met').\"},\n    {\"name\": \"LEARNABILITY\", \"score\": 2, \"note\": \"The visual hierarchy is broken. The child nodes (white boxes) are visually separated from their parent branch headers (colored boxes) by large gaps and gray blocks, making the relation"
+      }
+    },
+    {
+      "scenarioId": "login-hifi",
+      "repeat": 1,
+      "pngPath": "/home/z/my-project/AgentCanvas/scripts/agent-eval/results/iter6-bench/dumps/png/login-hifi-r1.png",
+      "score": {
+        "per_criterion": [
+          {
+            "name": "AESTHETICS",
+            "score": 2,
+            "note": "Lacks visual hierarchy; the layout feels like a flat list of boxes stacked on top of each other with insufficient padding, giving it an unfinished, utilitarian look rather than a polished fintech experience."
+          },
+          {
+            "name": "LEARNABILITY",
+            "score": 4,
+            "note": "Uses standard patterns (labeled fields with icons, clear primary button) that are instantly recognizable, but the vertical spacing and alignment make it slightly ambiguous which elements are part of the main form."
+          },
+          {
+            "name": "EFFICIENCY",
+            "score": 3,
+            "note": "Includes standard elements, but the vertical stack is quite dense. The inclusion of a third placeholder for 'or continue with' without any options shown wastes vertical space."
+          },
+          {
+            "name": "USABILITY",
+            "score": 2,
+            "note": "Touch targets for the email and password fields are small and lack clear separation from the 'Forgot password' link. The 'Sign up' link overlaps the background layer, and the bottom text is cut off, which are significant usability failures."
+          },
+          {
+            "name": "OVERALL",
+            "score": 2,
+            "note": "Functional but amateurish. The background layering (light blue block) and cut-off text detract significantly from the 'polished, high-fidelity' requirement."
+          }
+        ],
+        "overall": 2,
+        "prompt_fidelity": {
+          "strings_present": [
+            "Vaultly",
+            "Email",
+            "Password",
+            "Sign In",
+            "Welcome back",
+            "Forgot password?",
+            "or continue with",
+            "Don't have an account?",
+            "Sign up",
+            "Terms of Service",
+            "Privacy Policy"
+          ],
+          "strings_missing": []
+        },
+        "top_3_fixes": [
+          "Remove the light-blue background 'block' behind the fields to create a cleaner, modern white interface.",
+          "Increase padding and visual separation between the form fields and the 'Forgot password?' link to prevent accidental taps and improve clarity.",
+          "Ensure the bottom legal text ('Sign up', Terms, etc.) is fully contained within the frame and not overlapping or cut off."
+        ],
+        "raw_latency_ms": 8696,
+        "raw_content": "{\n  \"per_criterion\": [\n    {\"name\": \"AESTHETICS\", \"score\": 2, \"note\": \"Lacks visual hierarchy; the layout feels like a flat list of boxes stacked on top of each other with insufficient padding, giving it an unfinished, utilitarian look rather than a polished fintech experience.\"},\n    {\"name\": \"LEARNABILITY\", \"score\": 4, \"note\": \"Uses standard patterns (labeled fields with icons, clear primary button) that are instantly recognizable, but the vertical spacing and alignment make it slightly ambigu"
+      }
+    },
+    {
+      "scenarioId": "dashboard-hifi",
+      "repeat": 1,
+      "pngPath": "/home/z/my-project/AgentCanvas/scripts/agent-eval/results/iter6-bench/dumps/png/dashboard-hifi-r1.png",
+      "score": {
+        "per_criterion": [
+          {
+            "name": "AESTHETICS",
+            "score": 5,
+            "note": "The design is exceptionally clean and modern, utilizing a white space-heavy layout that feels professional. The integration of soft pastel colors for the KPI icons (blue, purple, yellow, green) adds visual interest without cluttering the interface. The use of rounded corners and subtle shadows creates a high-fidelity look."
+          },
+          {
+            "name": "LEARNABILITY",
+            "score": 5,
+            "note": "The layout strictly follows standard dashboard patterns. The header with the 'Last 30 days' toggle and the 4-column KPI card grid are instantly recognizable. A user would immediately understand which metrics are being displayed and how to adjust the time frame."
+          },
+          {
+            "name": "EFFICIENCY",
+            "score": 4,
+            "note": "The information is easy to scan with the large typography on the KPI values. However, the cards contain significant amounts of empty vertical space at the bottom, which lowers the information density slightly. The wide gap between the search bar and the time filter in the header also breaks the visual flow slightly."
+          },
+          {
+            "name": "USABILITY",
+            "score": 5,
+            "note": "Touch targets (buttons, cards) are appropriately sized. Contrast for the primary text and metric values is high against the white background. The color-coded icons assist in quick differentiation of the metrics."
+          },
+          {
+            "name": "OVERALL",
+            "score": 5,
+            "note": "This is a shippable, high-quality design. It hits the balance between 'minimal' and 'informative' perfectly for an analytics overview. The styling is consistent and refined."
+          }
+        ],
+        "overall": 5,
+        "prompt_fidelity": {
+          "strings_present": [
+            "Revenue $128.4K",
+            "Active Users 8,421",
+            "Churn 2.1%",
+            "NPS 62"
+          ],
+          "strings_missing": []
+        },
+        "top_3_fixes": [
+          "Reduce the height of the KPI cards to remove the excessive empty white space at the bottom of each card.",
+          "Tighten the header layout by grouping the time-filter button and notification icons closer to the search bar to improve the use of the middle section.",
+          "Ensure the green 'vs last month' text in the cards meets WCAG AA contrast standards, as the small green text appears faint."
+        ],
+        "raw_latency_ms": 18385,
+        "raw_content": "{\n  \"per_criterion\": [\n    {\n      \"name\": \"AESTHETICS\",\n      \"score\": 5,\n      \"note\": \"The design is exceptionally clean and modern, utilizing a white space-heavy layout that feels professional. The integration of soft pastel colors for the KPI icons (blue, purple, yellow, green) adds visual interest without cluttering the interface. The use of rounded corners and subtle shadows creates a high-fidelity look.\"\n    },\n    {\n      \"name\": \"LEARNABILITY\",\n      \"score\": 5,\n      \"note\": \"The layo"
+      }
+    },
+    {
+      "scenarioId": "mwc-stripe-inspired",
+      "repeat": 1,
+      "pngPath": "/home/z/my-project/AgentCanvas/scripts/agent-eval/results/iter6-bench/dumps/png/mwc-stripe-inspired-r1.png",
+      "score": {
+        "per_criterion": [
+          {
+            "name": "AESTHETICS",
+            "score": 2,
+            "note": "The design is fundamentally broken. The top-left of the heading is clipped off (shows 'tart building'). The pricing tiers are misaligned, with the middle card floating above the others. The layout looks like an unstyled wireframe or a rendering bug with grey blocks and awkward spacing."
+          },
+          {
+            "name": "LEARNABILITY",
+            "score": 2,
+            "note": "The structure is recognizable as a pricing page, but the visual confusion (the floating badge in the middle card, the cut-off text) makes it hard to parse the 'Scale' tier clearly. The button inside the middle card is an empty box, making its purpose unclear."
+          },
+          {
+            "name": "EFFICIENCY",
+            "score": 2,
+            "note": "Significant wasted space and visual noise. The middle column is misaligned with the side columns, creating an inefficient grid. The user has to work to figure out which elements belong to which tier due to the layout errors."
+          },
+          {
+            "name": "USABILITY",
+            "score": 1,
+            "note": "Severe usability failures. The heading is cut off. There is an empty button with no text in the 'Scale' card. The 'Starter' card's button overlaps with a floating grey shape. The misalignment of cards makes it hard to associate features with prices."
+          },
+          {
+            "name": "OVERALL",
+            "score": 1,
+            "note": "This is not shippable. It looks like a glitched screenshot or a failed draft. The text clipping and floating elements indicate a lack of basic layout validation."
+          }
+        ],
+        "overall": 1,
+        "prompt_fidelity": {
+          "strings_present": [
+            "Starter",
+            "Scale",
+            "Enterprise",
+            "Get started",
+            "View pricing docs",
+            "Most popular",
+            "Start for free",
+            "Contact sales",
+            "Try Scale free for 14 days"
+          ],
+          "strings_missing": [
+            "Heading is partially missing (starts with 'tart')",
+            "Scale card has an empty button box"
+          ]
+        },
+        "top_3_fixes": [
+          "Fix the heading text so it is fully visible and not clipped on the left.",
+          "Align the three pricing cards (Starter, Scale, Enterprise) into a uniform grid with consistent heights and positions.",
+          "Add a label to the empty button in the 'Scale' tier and remove the floating/overlapping grey boxes that break the layout."
+        ],
+        "raw_latency_ms": 7697,
+        "raw_content": "{\n  \"per_criterion\": [\n    {\n      \"name\": \"AESTHETICS\",\n      \"score\": 2,\n      \"note\": \"The design is fundamentally broken. The top-left of the heading is clipped off (shows 'tart building'). The pricing tiers are misaligned, with the middle card floating above the others. The layout looks like an unstyled wireframe or a rendering bug with grey blocks and awkward spacing.\"\n    },\n    {\n      \"name\": \"LEARNABILITY\",\n      \"score\": 2,\n      \"note\": \"The structure is recognizable as a pricing pag"
+      }
+    },
+    {
+      "scenarioId": "mwc-404-page",
+      "repeat": 1,
+      "pngPath": "/home/z/my-project/AgentCanvas/scripts/agent-eval/results/iter6-bench/dumps/png/mwc-404-page-r1.png",
+      "score": {
+        "per_criterion": [
+          {
+            "name": "AESTHETICS",
+            "score": 4,
+            "note": "The dark theme provides a modern, cohesive look. The large typography for the '404' headline is impactful, and the blue accent color for the CTA creates a clear visual hierarchy."
+          },
+          {
+            "name": "LEARNABILITY",
+            "score": 5,
+            "note": "The layout strictly follows standard patterns for error pages: headline, explanatory text, search input, and a clear call to action. It is instantly understandable."
+          },
+          {
+            "name": "EFFICIENCY",
+            "score": 5,
+            "note": "The interface is uncluttered. The 'Go Home' button and search box are the primary actions, and their placement minimizes the cognitive load on the user."
+          },
+          {
+            "name": "USABILITY",
+            "score": 4,
+            "note": "Touch targets are adequately sized. However, the text contrast ratio for the secondary 'Go Home' link in the right-hand panel and the placeholder text in the search bar is relatively low, which may struggle to meet WCAG AA standards."
+          },
+          {
+            "name": "OVERALL",
+            "score": 4,
+            "note": "A very strong, professional design that effectively communicates the error and offers clear next steps. The inclusion of a secondary navigation (top-right) adds utility without being distracting."
+          }
+        ],
+        "overall": 4,
+        "prompt_fidelity": {
+          "strings_present": [
+            "404",
+            "Oups! The page you are looking for has drifted into the void.",
+            "Search for another page...",
+            "Go Home"
+          ],
+          "strings_missing": []
+        },
+        "top_3_fixes": [
+          "Increase the contrast ratio of the 'Go Home' text when it appears as a secondary link to ensure it passes accessibility standards.",
+          "Add a more visible focus state (outline or glow) for the search bar and CTA button to improve keyboard navigation usability.",
+          "Increase the vertical whitespace around the 'Go Home' button in the left panel to better separate it from the search input."
+        ],
+        "raw_latency_ms": 5562,
+        "raw_content": "{\n  \"per_criterion\": [\n    {\n      \"name\": \"AESTHETICS\",\n      \"score\": 4,\n      \"note\": \"The dark theme provides a modern, cohesive look. The large typography for the '404' headline is impactful, and the blue accent color for the CTA creates a clear visual hierarchy.\"\n    },\n    {\n      \"name\": \"LEARNABILITY\",\n      \"score\": 5,\n      \"note\": \"The layout strictly follows standard patterns for error pages: headline, explanatory text, search input, and a clear call to action. It is instantly under"
+      }
+    }
+  ]
+}
