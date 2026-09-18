@@ -66,21 +66,25 @@ start_server() {
 verify() {
   log_step "verification"
 
+  # NOTE: grep without -q on purpose — with `set -o pipefail`, `grep -q` exits
+  # after the first match, the still-writing `echo` builtin receives SIGPIPE
+  # (exit 141), and the pipeline spuriously fails on large bodies. Full-read
+  # grep with output to /dev/null is deterministic.
   local body
   body="$(curl -s --max-time 30 http://localhost:3000)" \
-    && echo "$body" | grep -q "AgentCanvas" \
+    && echo "$body" | grep "AgentCanvas" >/dev/null \
     && ok "GET / -> 200 with AgentCanvas markup" \
     || bad "GET / did not return the app"
 
   local sess
   sess="$(curl -s --max-time 30 http://localhost:3000/api/sessions)" \
-    && echo "$sess" | grep -q "sessions" \
+    && echo "$sess" | grep "sessions" >/dev/null \
     && ok "GET /api/sessions -> JSON" \
     || bad "GET /api/sessions unhealthy: ${sess:0:120}"
 
   local sio
   sio="$(curl -s --max-time 10 "http://localhost:3003/socket.io/?EIO=4&transport=polling")" \
-    && echo "$sio" | grep -q "sid" \
+    && echo "$sio" | grep "sid" >/dev/null \
     && ok "canvas-sync socket.io handshake on :3003" \
     || bad "canvas-sync handshake failed: ${sio:0:120}"
 
