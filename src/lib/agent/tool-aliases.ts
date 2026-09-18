@@ -22,6 +22,15 @@ export interface ToolAlias {
   deprecatedSince: string;
   /** Extra guidance appended to the deprecation notice. */
   note?: string;
+  /**
+   * 2026-09-18 tuning: when true, this alias is kept in the SDK-registered
+   * tool list (NOT filtered out by the runner's `aliasNames` filter). Used
+   * for permanent aliases that exist because the system prompt or tool
+   * descriptions reference the alias name as a valid tool — i.e. NOT for
+   * backward-compat with deprecated legacy names. Legacy aliases (the
+   * `pen-v3` phase-out batch) leave this unset so they're phased out.
+   */
+  keepInToolList?: boolean;
 }
 
 /** Every legacy → canonical rename from Appendix G §G.3 (26 rows). */
@@ -42,6 +51,18 @@ export const TOOL_ALIASES: Record<string, ToolAlias> = {
   },
   // token-era → variable-era
   pen_update_tokens: { target: 'pen_set_variables', deprecatedSince: 'pen-v3' },
+  // 2026-09-18 tuning: the system prompt references `pen_set_variable`
+  // (singular) as the single-variable variant of `pen_set_variables`
+  // (plural). The plural tool handles both single + batch args (one-element
+  // array). agnes-3.0-flash followed the prompt's hint and called the
+  // singular name — without this alias the call failed with "tool not
+  // found" and tanked the dashboard-hifi eval score (1 of 9 assertions).
+  // `keepInToolList: true` opts this alias out of the runner's filter
+  // (line ~614 of runner-native.ts) that strips deprecated legacy aliases
+  // from the SDK-registered tool list. Permanent aliases — ones that exist
+  // because the system prompt references them, not for backward compat —
+  // must stay registered with the SDK so the LLM can actually call them.
+  pen_set_variable: { target: 'pen_set_variables', deprecatedSince: 'prompt-hint', keepInToolList: true },
   pen_list_tokens: { target: 'pen_list_variables', deprecatedSince: 'pen-v3' },
   pen_bind_shape_to_token: { target: 'pen_bind_variable', deprecatedSince: 'pen-v3' },
   pen_unbind_shape: { target: 'pen_unbind_variable', deprecatedSince: 'pen-v3' },

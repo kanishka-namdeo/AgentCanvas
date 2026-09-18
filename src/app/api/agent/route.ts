@@ -357,13 +357,16 @@ export async function POST(req: NextRequest) {
       // fires — so a client disconnect (HTTP fallback Stop, canvas-sync
       // agent:stop aborting its fetch) actually STOPS token spend server-side
       // instead of burning to completion. The watchdog fires the same
-      // controller after WATCHDOG_MS of zero stream output (bolt.diy
+      // controller after WATCHDOG_MS_LOCAL of zero stream output (bolt.diy
       // StreamRecoveryManager pattern), bounding a hung provider stream.
       const runAbort = new AbortController();
       const onClientAbort = () => runAbort.abort();
       req.signal.addEventListener('abort', onClientAbort, { once: true });
 
-      const WATCHDOG_MS = 120_000;
+      // WATCHDOG_MS_LOCAL is declared below (provider-aware: 240s for custom
+      // endpoints like Agnes agnes-3.0-flash where mid-iteration silence is
+      // legitimate; 120s for first-party providers where 120s is a real stall).
+      const WATCHDOG_MS = 120_000; // legacy fallback constant (now superseded by WATCHDOG_MS_LOCAL above)
       // After runAbort fires (client Stop / disconnect / watchdog), the
       // generator gets a GRACE window to unwind on its own (session.abort()
       // → runner tail events → normal finally). If it is still streaming
@@ -377,6 +380,13 @@ export async function POST(req: NextRequest) {
       const ABORT_GRACE_MS = 30_000;
       let abortedAt: number | undefined;
       let lastActivity = Date.now();
+      // Watchdog budget — 240s for custom OpenAI-compatible endpoints (flash
+      // models like agnes-3.0-flash can sit silently for >2min mid-iteration
+      // when re-processing a large system prompt + tool history). 120s for
+      // first-party providers (z.ai sandbox glm-5.3 etc., where 120s of
+      // silence is a real stall). Tuning exercise 2026-09-18.
+      const isCustomProvider = (settings?.llmProvider ?? 'zai') === 'custom';
+      const WATCHDOG_MS_LOCAL = isCustomProvider ? 240_000 : 120_000;
       const watchdog = setInterval(() => {
         if (closed || turnFinalEmitted) return;
         const now = Date.now();
@@ -395,12 +405,12 @@ export async function POST(req: NextRequest) {
           }
           return;
         }
-        if (now - lastActivity > WATCHDOG_MS) {
+        if (now - lastActivity > WATCHDOG_MS_LOCAL) {
           runAbort.abort();
           const event = {
             type: 'agent:error' as const,
             message:
-              'Agent stream stalled — no output for 2 minutes. The run was closed to avoid hanging; resend the prompt to retry.',
+              `Agent stream stalled — no output for ${Math.round(WATCHDOG_MS_LOCAL / 1000)}s. The run was closed to avoid hanging; resend the prompt to retry.`,
             code: 'timeout',
             retryable: true,
           };

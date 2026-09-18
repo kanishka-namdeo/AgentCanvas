@@ -101,3 +101,8 @@ UI_POSITIONING_EVALUATION.md
 
 # SDD scratch workspaces
 .superpowers/
+scripts/agent-eval/results/
+scripts/agent-eval/scripts/agent-eval/results/
+dev.log
+agnes-proxy-logs/
+.env

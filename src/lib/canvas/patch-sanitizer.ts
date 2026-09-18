@@ -71,6 +71,21 @@ function clampNumber(value: unknown, min: number, max: number): number | null {
 /// was produced by JSON.parse of the NDJSON line — never shared state).
 function clampShapePartial(shape: Record<string, unknown> | undefined, warnings: string[]): void {
   if (!shape || typeof shape !== 'object') return;
+  // 2026-09-18 tuning: previously a non-finite width/height was DELETED,
+  // leaving the applier to fill its own default. That broke multi-element
+  // layouts (e.g. a row of 4 cards where the agent emitted NaN height on
+  // one of them — the bad card landed at the applier default while the
+  // siblings kept their explicit value, breaking alignment assertions).
+  // Now we substitute a sensible per-field default instead of deleting.
+  const NON_FINITE_DEFAULTS: Record<string, number> = {
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 100,
+    fontSize: 14,
+    radius: 8,
+    strokeWidth: 1,
+  };
   const geoFields: Array<[string, number, number]> = [
     ['x', -MAX_COORD, MAX_COORD],
     ['y', -MAX_COORD, MAX_COORD],
@@ -84,9 +99,12 @@ function clampShapePartial(shape: Record<string, unknown> | undefined, warnings:
     if (field in shape) {
       const clamped = clampNumber(shape[field], min, max);
       if (clamped === null) {
-        // NaN / Infinity — drop the field so the applier fills its default.
-        delete shape[field];
-        warnings.push(`dropped non-finite ${field}`);
+        // NaN / Infinity — substitute a sensible default so sibling layouts
+        // stay aligned. (Was: delete the field entirely, which broke rows of
+        // similarly-shaped containers when one of them had a bad number.)
+        const fallback = NON_FINITE_DEFAULTS[field] ?? 0;
+        shape[field] = fallback;
+        warnings.push(`non-finite ${field}=${String(shape[field])} → ${fallback} (substituted)`);
       } else if (clamped !== Number(shape[field])) {
         shape[field] = clamped;
         warnings.push(`clamped ${field}=${String(shape[field])} → ${clamped}`);

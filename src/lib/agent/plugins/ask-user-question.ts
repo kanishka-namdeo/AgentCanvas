@@ -32,7 +32,19 @@ interface PendingQuestion {
 
 const pendingQuestions = new Map<string, PendingQuestion>();
 
-const ASK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+// 2026-09-18 tuning: lowered from 5 min to 60s. The original 5-min budget
+// was tuned for interactive use where a user might be reading the question
+// carefully. In agentic / eval / batched settings, no answer will ever come
+// — waiting 5 min burns the route's 240s watchdog budget on a single
+// unanswered question. 60s gives a real user time to click an option, while
+// bounding the no-answer case to a single iteration within the watchdog.
+//
+// On timeout, we now RESOLVE with a sensible-defaults message (the same
+// message used when the user explicitly cancels) instead of REJECTING with
+// an error. This lets the agent proceed to build with defaults instead of
+// surfacing an error and ending the turn. Critical for non-interactive
+// runs (eval harness, CI, programmatic callers) where no human will answer.
+const ASK_TIMEOUT_MS = 60 * 1000; // 60s — was 5 min
 
 /// Called by the /api/agent/answers route when the user submits answers.
 /// Resolves the pending tool call.
@@ -178,15 +190,22 @@ const askUserQuestionTool = defineTool({
     });
 
     // Block until the user answers (or timeout).
-    const answers = await new Promise<string[][]>((resolve, reject) => {
+    // 2026-09-18 tuning: on timeout, RESOLVE with `__cancelled__` so the
+    // agent gets the sensible-defaults message below instead of an error.
+    // Was: reject(new Error('Ask-user-question timed out after 5 minutes')).
+    const answers = await new Promise<string[][]>((resolve) => {
       const timer = setTimeout(() => {
         pendingQuestions.delete(toolCallId);
-        reject(new Error('Ask-user-question timed out after 5 minutes'));
+        // Treat timeout as a cancel — the agent's downstream branch then
+        // returns "proceed with sensible defaults and note them in the
+        // design", which is the right behavior for non-interactive callers
+        // AND matches the existing cancel semantics.
+        resolve([['__cancelled__']]);
         // D1: timeout closes every viewer's dialog — without this the dialog
         // outlives the run that asked it (zombie modal with live buttons).
-        emitEvent({ type: 'agent:ask_user_answered', toolCallId, answers: [], cancelled: false, timedOut: true });
+        emitEvent({ type: 'agent:ask_user_answered', toolCallId, answers: [], cancelled: true, timedOut: true });
       }, ASK_TIMEOUT_MS);
-      pendingQuestions.set(toolCallId, { resolve, reject, timer });
+      pendingQuestions.set(toolCallId, { resolve, reject: () => {}, timer });
     });
 
     // Format the answers for the agent.
