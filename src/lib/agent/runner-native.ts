@@ -583,6 +583,17 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     ...classification.secondaryCategories.flatMap((c: SkillCategory) => getToolNamesForCategory(c)),
     ...(includePenFileTools ? [...PEN_TOOL_NAMES, ...FIGMA_TOOL_NAMES] : []),
     ...pluginToolNames,
+    // 2026-09-18 iter6: ALWAYS include pen_set_variable (singular). It's a
+    // base variable-setter (handles single + theme-conditional variables),
+    // not wireframe-specific. The system prompt references it as the
+    // single-variable variant of pen_set_variables (plural batch tool).
+    // Without this, every non-wireframe/non-multi category filters it out
+    // → SDK errors with 'Tool pen_set_variable not found' when the agent
+    // (correctly) calls it per the system prompt's instructions.
+    // Dashboard-hifi (iter3+5) dodged this because the agent happened to
+    // call pen_set_variables (plural) instead; the new mwc-* scenarios
+    // triggered the singular-form call consistently.
+    'pen_set_variable',
   ]);
 
   // ---- Mode enforcement (Cursor lesson: restrictions live in the registry) --
