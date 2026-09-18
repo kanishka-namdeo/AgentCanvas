@@ -1,0 +1,83 @@
+[
+  {
+    "url": "https://futureagi.com",
+    "name": "What Is the MT-Bench Conversation Benchmark?",
+    "snippet": "Use MT-Bench for multi-turn LLM evals : 80 prompts, 8 categories, judge-model scoring caveats, and how to read results against task-specific evals.",
+    "host_name": "futureagi.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+    "snippet": "Dec 24, 2023 — MT-bench, a multi-turn question set; strong LLM judges like GPT-4 can match both controlled and crowdsourced human preferences well, LLM judges ...",
+    "host_name": "arxiv.org",
+    "rank": 1,
+    "date": "Dec 24, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alphaxiv.org",
+    "name": "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+    "snippet": "MT - Bench consists of 80 carefully crafted multi - turn questions spanning eight categories : writing, roleplay, extraction, reasoning, mathematics, coding, STEM ...",
+    "host_name": "www.alphaxiv.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.emergentmind.com",
+    "name": "MT-bench: Multi-turn & Multimodal Eval",
+    "snippet": "Jul 24, 2025 — Pairwise Comparison: An LLM judge (typically GPT - 4 ) is presented with two competing model responses and selects a preferred answer or declares a ...",
+    "host_name": "www.emergentmind.com",
+    "rank": 3,
+    "date": "Jul 24, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://aclanthology.org",
+    "name": "MT-Bench-101: A Fine-Grained Benchmark for Evaluating",
+    "snippet": "by G Bai · 2024 · Cited by 380 — MT - Bench -101 encompasses 4208 turns within 1388 multi - turn dialogues. GPT - 4 is the most powerful model for multi - turn dia- logues. GPT - 4 is ... 34 pages",
+    "host_name": "aclanthology.org",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net",
+    "name": "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+    "snippet": "by L Zheng · Cited by 12941 — MT - Bench is definitely an original attempt to evaluate the challenging multi - turn dialogue capabilities of LLMs (though there are some limitations).",
+    "host_name": "openreview.net",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://llmconfigurator.com",
+    "name": "MT-Bench — Evaluation & Benchmarks Dataset",
+    "snippet": "Multi-turn benchmark with 80 challenging questions across 8 domains . Multi-turn benchmark. Uses GPT-4-as-judge to score responses,",
+    "host_name": "llmconfigurator.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://klu.ai",
+    "name": "MT-Bench (Multi-turn Benchmark)",
+    "snippet": "MT- Bench evaluates large language models (LLMs) like GPT-4 on multi-turn dialogues, assessing their ability to maintain context, follow instructions, and reason ...",
+    "host_name": "klu.ai",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net",
+    "name": "MT-Bench-101: A Fine-Grained Benchmark for Evaluating",
+    "snippet": "LLM -as-a- judge approaches can achieve strong alignment with human preferences, as demonstrated by benchmarks such as MT - Bench 101, where carefully prompted ...",
+    "host_name": "www.researchgate.net",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  }
+]

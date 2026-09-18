@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://arxiv.org",
+    "name": "Arena-Hard and BenchBuilder Pipeline",
+    "snippet": "Oct 14, 2024 — Arena-Hard-Auto , a benchmark consisting 500 challenging prompts curated by BenchBuilder. GPT-4-Turbo judge.",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "Oct 14, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "Arena-Hard-Auto: An automatic LLM benchmark.",
+    "snippet": "V2.0 contains 500 fresh, challenging real-world user queries. We employs automatic judges , GPT -4.1. Checkout BenchBuilder folder for code and resources on how ...",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://icml.cc",
+    "name": "From Crowdsourced Data to High-quality Benchmarks",
+    "snippet": "Arena-Hard-Auto , a benchmark consisting 500 challenging prompts curated by BenchBuilder. different judges: GPT4-T",
+    "host_name": "icml.cc",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net",
+    "name": "From Crowdsourced Data to High-quality Benchmarks",
+    "snippet": "by T Li · Cited by 591 — We release Arena-Hard-Auto , a benchmark consisting 500 challenging prompts curated by BenchBuilder. all at a cost of $20.",
+    "host_name": "openreview.net",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.lmsys.org",
+    "name": "From Live Data to High-Quality Benchmarks: The Arena-",
+    "snippet": "Apr 19, 2024 — We then randomly sample 2 prompts per cluster to construct 500 high-quality benchmark prompts , Arena - Hard - Auto -v0.1. This benchmark set contains ... Read more",
+    "host_name": "www.lmsys.org",
+    "rank": 4,
+    "date": "Apr 19, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://raw.githubusercontent.com",
+    "name": "Arena-Hard and Benchbuilder Pipeline - GitHub",
+    "snippet": "by T Li · Cited by 591 — We compare Arena-Hard-Auto (gpt-4-1106-preview as judge) to Chatbot Arena Category Hard Prompt (English) on the same set of top-20 models. By comparing Arena- ... Read more 23 pages",
+    "host_name": "raw.githubusercontent.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://huggingface.co",
+    "name": "source: arxiv:2406.11939 — From Crowdsourced Data to",
+    "snippet": "Jul 2, 2026 — + - \" Arena - Hard - Auto is a STATIC 500 - prompt snapshot mined from a specific window of Arena traffic; the paper pitches BenchBuilder for ... Read more",
+    "host_name": "huggingface.co",
+    "rank": 6,
+    "date": "Jul 2, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://tldr.takara.ai",
+    "name": "From Crowdsourced Data to High-Quality Benchmarks",
+    "snippet": "We release Arena-Hard-Auto , a benchmark consisting 500 challenging prompts curated by BenchBuilder. all at a cost of $20.",
+    "host_name": "tldr.takara.ai",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

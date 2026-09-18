@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://arxiv.org/abs/2410.16232",
+    "name": "Sketch2Code: Evaluating Vision-Language Models for Interactive",
+    "snippet": "Oct 21, 2024 · Sketch2Code, a benchmark that evaluates state-of-the-art Vision Language Models (VLMs) on automating the conversion of rudimentary sketches ...",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aclanthology.org/2025.naacl-long.198",
+    "name": "Sketch2Code: Evaluating Vision-Language Models for Interactive",
+    "snippet": "Sketch2Code, a benchmark that evaluates state-of-the-art Vision Language Models (VLMs) on automating the conversion of rudimentary sketches into webpage ...",
+    "host_name": "aclanthology.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/SALT-NLP/Sketch2Code",
+    "name": "Sketch2Code: Evaluating Vision-Language Models for Interactive",
+    "snippet": "The Sketch2Code benchmark dataset for evaluating Vision-Language Models (VLMs) on automating the conversion of rudimentary sketches to webpage prototypes.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net/publication/392506617_Sketch2Code_Evaluating_Vision-Language_Models_for_Interactive_Web_Design_Prototyping",
+    "name": "Sketch2Code: Evaluating Vision-Language Models for Interactive",
+    "snippet": "Sketch2Code requires an AI agent to generate structured HTML from rough sketches, enhances VLM-based persuasiveness assessment",
+    "host_name": "www.researchgate.net",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://scholar.google.com/citations?user=7LlS58IAAAAJ&hl=zh-CN",
+    "name": "Chenglin Li - Google Scholar",
+    "snippet": "A controllable benchmark for evaluating cognitive abilities in video-language models C Li,",
+    "host_name": "scholar.google.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://huggingface.co/papers/2511.02778",
+    "name": "VCode: a Multimodal Coding Benchmark with SVG as Symbolic",
+    "snippet": "Nov 4, 2025 · VCode introduces a benchmark for generating SVG code from images to preserve symbolic meaning, highlighting gaps in visual-centric coding and ...",
+    "host_name": "huggingface.co",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.research.autodesk.com/app/uploads/2024/10/CAD-VLM.pdf",
+    "name": "[PDF] arXiv:2409.17457v1 [cs.CV] 26 Sep 2024 - Autodesk Research",
+    "snippet": "Sep 26, 2024 · In this paper, we propose CadVLM, an end-to-end vision language model for CAD generation. foundation models to manipulate engineering sketches",
+    "host_name": "www.research.autodesk.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.hooklee.com/ai.asp",
+    "name": "Shujun Li's Collection on AI (Artificial Intelligence) and NLP (Natural",
+    "snippet": "RAID: A Shared Benchmark for Robust Evaluation of Machine-Generated Text Detectors (arXiv Review (Cybersecurity 2024) Benchmark (3CB)",
+    "host_name": "www.hooklee.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

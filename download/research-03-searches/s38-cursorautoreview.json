@@ -1,0 +1,38 @@
+[
+  {
+    "url": "https://alphasignal.ai",
+    "name": "Cursor's Auto-Review Cuts Agent Approval Prompts by 84",
+    "snippet": "May 29, 2026 — Cursor's new Auto - review run mode uses a three- tier gate including a classifier subagent to cut approval prompts without flipping safety off.  ...",
+    "host_name": "alphasignal.ai",
+    "rank": 0,
+    "date": "May 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.totalum.app",
+    "name": "Cursor Auto-review in 2026: What It Does, How to",
+    "snippet": "Aug 4, 2026 — Cursor's Auto-review adds a classifier on top of the allowlist , so calls that do not match a rule still get a model-based judgment instead ... Read more",
+    "host_name": "www.totalum.app",
+    "rank": 1,
+    "date": "Aug 4, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.backslash.security",
+    "name": "The Denylist Delusion: Cursor's Auto-Run Leaves Agentic",
+    "snippet": "Jul 21, 2025 — Cursor deprecates the denylist we recommend that users use the allowlist setting instead and remain vigilant when using the auto -run feature.",
+    "host_name": "www.backslash.security",
+    "rank": 2,
+    "date": "Jul 21, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com",
+    "name": "Auto-review Run Mode - Release Discussions",
+    "snippet": "May 29, 2026 — Auto - review is a new run mode that lets Cursor work for longer with fewer approval prompts, while keeping execution safe. It applies to Shell, ...",
+    "host_name": "forum.cursor.com",
+    "rank": 3,
+    "date": "May 29, 2026",
+    "favicon": ""
+  }
+]

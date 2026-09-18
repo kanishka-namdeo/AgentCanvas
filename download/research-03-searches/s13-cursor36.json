@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://alphasignal.ai",
+    "name": "Cursor's Auto-Review Cuts Agent Approval Prompts by 84",
+    "snippet": "May 29, 2026 — Cursor's new Auto - review run mode uses a three-tier gate including a classifier subagent to cut approval prompts without flipping safety off",
+    "host_name": "alphasignal.ai",
+    "rank": 0,
+    "date": "May 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.totalum.app",
+    "name": "Cursor Auto-review in 2026: What It Does, How to",
+    "snippet": "Aug 4, 2026 — Cursor Auto - review cuts approval prompts ~84% via an allowlist , sandbox, and classifier . How it works, how to configure permissions.json, ...",
+    "host_name": "www.totalum.app",
+    "rank": 1,
+    "date": "Aug 4, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com",
+    "name": "Auto-review Run Mode - Release Discussions",
+    "snippet": "May 29, 2026 — Auto - review is a new run mode that lets Cursor work for longer with fewer approval prompts , while keeping execution safe. It applies to Shell, ... Read more",
+    "host_name": "forum.cursor.com",
+    "rank": 2,
+    "date": "May 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "leaked-system-prompts/cursor-ide-sonnet_20241224.md",
+    "snippet": "Collection of leaked system prompts . You are a powerful agentic AI coding assistant designed by Cursor - You are pair programming with a USER to solve their ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.backslash.security",
+    "name": "The Denylist Delusion: Cursor's Auto-Run Leaves Agentic",
+    "snippet": "Jul 21, 2025 — Cursor deprecates the denylist we recommend that users use the allowlist setting instead and remain vigilant when using the auto -run feature.",
+    "host_name": "www.backslash.security",
+    "rank": 4,
+    "date": "Jul 21, 2025",
+    "favicon": ""
+  }
+]

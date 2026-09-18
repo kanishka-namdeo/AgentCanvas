@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://arxiv.org",
+    "name": "τ-bench: A Benchmark for Tool-Agent-User Interaction in",
+    "snippet": "by S Yao · 2024 · Cited by 1130 — We propose τ- bench , a benchmark emulating dynamic conversations between a user (simulated by language models) and a language agent provided ...",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://sierra.ai",
+    "name": "𝜏-bench",
+    "snippet": "Mar 18, 2025 — Sierra's research team developed τ- bench ( tool - agent -user benchmark ) in June 2024 . Unlike traditional benchmarks , τ- bench doesn't just test ...",
+    "host_name": "sierra.ai",
+    "rank": 1,
+    "date": "Mar 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "sierra-research/tau2-bench: τ-Bench: A Benchmark for Tool",
+    "snippet": "τ - bench is a simulation framework for evaluating customer service agents across multiple domains. It supports text-based half-duplex (turn-based) evaluation",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://evalscope.readthedocs.io",
+    "name": "τ-bench - EvalScope - Read the Docs",
+    "snippet": "τ- bench ( TAU Bench ) is a specialized benchmark framework designed to evaluate the tool utilization capabilities of large language models in dynamic dialogue  ...",
+    "host_name": "evalscope.readthedocs.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.semanticscholar.org",
+    "name": "τ-bench: A Benchmark for Tool-Agent-User Interaction in",
+    "snippet": "The $\\tau^2$-bench provide s a controlled testbed for agents that must both reason effectively and guide",
+    "host_name": "www.semanticscholar.org",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net",
+    "name": "{$\\tau$}-bench: A Benchmark for",
+    "snippet": "by S Yao · Cited by 76 — This paper proposes Tau-Bench , a benchmark for measuring the performance of models on user/agent interactions where the model has the ability to use tools.",
+    "host_name": "openreview.net",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://huggingface.co",
+    "name": "τ-bench: A Benchmark for Tool-Agent-User Interaction in",
+    "snippet": "Jun 17, 2024 — We propose tau-bench , a benchmark emulating dynamic conversations between a user (simulated by language models) and a language agent provided ...",
+    "host_name": "huggingface.co",
+    "rank": 6,
+    "date": "Jun 17, 2024",
+    "favicon": ""
+  }
+]

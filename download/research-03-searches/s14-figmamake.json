@@ -1,0 +1,29 @@
+[
+  {
+    "url": "https://www.figma.com",
+    "name": "Agents, Meet the Figma Canvas | Figma Blog",
+    "snippet": "Mar 24, 2026 — Our new use_figma tool empowers agents to operate on the canvas using your design system, making this a step forward for agent workflows in  ...",
+    "host_name": "www.figma.com",
+    "rank": 0,
+    "date": "Mar 24, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://muz.li",
+    "name": "Figma Just Opened the Canvas to AI Agents",
+    "snippet": "Mar 24, 2026 — AI agents can now work directly on the Figma canvas – not just read your files, but actually create and edit components, apply variables, and ...",
+    "host_name": "muz.li",
+    "rank": 1,
+    "date": "Mar 24, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com",
+    "name": "Work with the Figma agent in design files",
+    "snippet": "Speed up your workflow by running multiple prompts in parallel. Start a prompt on one frame, then move to the next —you don't have to wait for the first to ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  }
+]

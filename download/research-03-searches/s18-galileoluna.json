@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://docs.galileo.ai",
+    "name": "Luna-2 Overview",
+    "snippet": "Galileo's Luna-2 metrics utilize fine-tuned Llama models (3B and 8B variants ) in evaluating generative AI metrics. The technical process involves: Fine-Tuning ... Read more",
+    "host_name": "docs.galileo.ai",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ai.meta.com",
+    "name": "Llama 3.2: Revolutionizing edge AI and vision with open",
+    "snippet": "Sep 25, 2024 — Our evaluation suggests that the Llama 3.2 vision models are competitive with leading foundation models, Claude 3 Haiku and GPT4o-mini on image ... Read more",
+    "host_name": "ai.meta.com",
+    "rank": 1,
+    "date": "Sep 25, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.splunk.com",
+    "name": "Luna Evaluation Models Cloud Observability",
+    "snippet": "Luna is a family of purpose-built small language models for evaluation . Grade and guard 100% of agent traffic in real time, for about $0.15 per million ...",
+    "host_name": "www.splunk.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.gopenai.com",
+    "name": "Llama 3.2 — A Deep Dive - GoPenAI",
+    "snippet": "Sep 26, 2024 — Llama 3.2 includes small (11B) and medium-sized (90B) vision LLMs, integrating image understanding capabilities into the models. The ... Read more",
+    "host_name": "blog.gopenai.com",
+    "rank": 3,
+    "date": "Sep 26, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.together.ai",
+    "name": "Fine-tuning Llama-3 to get 90% of GPT-4's performance at",
+    "snippet": "Jul 12, 2024 — This step-by-step guide demonstrates how a fine - tuned Llama - 3 8B model went from 47% accuracy on the base model to 65% accuracy, even surpassing ... Read more",
+    "host_name": "www.together.ai",
+    "rank": 4,
+    "date": "Jul 12, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://huggingface.co",
+    "name": "meta-llama/Meta-Llama-3-8B",
+    "snippet": "Apr 18, 2024 — Fine-tuning, annotation, and evaluation were also performed on third-party cloud compute. Carbon Footprint Pretraining utilized a cumulative ... Read more",
+    "host_name": "huggingface.co",
+    "rank": 5,
+    "date": "Apr 18, 2024",
+    "favicon": ""
+  }
+]

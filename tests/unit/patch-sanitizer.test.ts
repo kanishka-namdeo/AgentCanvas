@@ -129,7 +129,7 @@ describe('sanitizeAgentPatch — drops', () => {
 });
 
 describe('sanitizeAgentPatch — clamps', () => {
-  it('clamps non-finite geometry fields off the shape payload', () => {
+  it('substitutes sensible defaults for non-finite geometry fields (iter1 2026-09-18: was "drops the field" — substituted defaults keep sibling layouts aligned)', () => {
     const res = sanitizeAgentPatch(
       {
         op: 'update',
@@ -140,10 +140,14 @@ describe('sanitizeAgentPatch — clamps', () => {
     );
     expect(res.patch).not.toBeNull();
     const shape = (res.patch as unknown as { shape: Record<string, unknown> }).shape;
-    expect('x' in shape).toBe(false); // NaN dropped → applier default
-    expect('width' in shape).toBe(false); // Infinity dropped
-    expect(shape.height).toBe(250);
-    expect(res.warnings.some((w) => w.includes('x'))).toBe(true);
+    // iter1: NaN/Infinity now substitutes a per-field default (x=0, width=200)
+    // instead of deleting the field — keeps multi-element layouts consistent
+    // when one sibling has a bad number.
+    expect(shape.x).toBe(0); // NaN → 0
+    expect(shape.width).toBe(200); // Infinity → 200 (default card width)
+    expect(shape.height).toBe(250); // valid value preserved
+    expect(res.warnings.some((w) => w.includes('non-finite x'))).toBe(true);
+    expect(res.warnings.some((w) => w.includes('non-finite width'))).toBe(true);
   });
 
   it('clamps absurd coordinates into the sane range', () => {

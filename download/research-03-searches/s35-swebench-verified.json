@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.swebench.com",
+    "name": "SWE-bench Verified",
+    "snippet": "A human - validated subset of 500 SWE - bench instances for reliable evaluation of coding agents and language models. This guide shows how to run the evaluation ...",
+    "host_name": "www.swebench.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openai.com",
+    "name": "Introducing SWE-bench Verified",
+    "snippet": "Aug 13, 2024 — We're releasing a human-validated subset of SWE-bench that more reliably evaluates AI models' ability to solve real-world software issues. Read more",
+    "host_name": "openai.com",
+    "rank": 1,
+    "date": "Aug 13, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://epoch.ai",
+    "name": "SWE-bench Verified",
+    "snippet": "SWE-bench Verified is a human-validated subset of the original SWE-bench dataset, consisting of 500 samples that evaluate AI models' ability to solve ... Read more",
+    "host_name": "epoch.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "The SWE-Bench Illusion: When State-of-the-Art LLMs",
+    "snippet": "Aug 6, 2025 — Models consistently achieve their highest accuracy on the curated SWE - Bench - Verified subset (60-76%), with a noticeable decline on the broader ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 3,
+    "date": "Aug 6, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://llm-stats.com",
+    "name": "SWE-Bench Verified Leaderboard",
+    "snippet": "SWE-Bench Verified is a text benchmark evaluating models on reasoning, frontend development, and code tasks. LLM Stats tracks 116 models on this benchmark, ... Read more",
+    "host_name": "llm-stats.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.verdent.ai",
+    "name": "What Is SWE-bench? - Verdent Guides",
+    "snippet": "Jul 14, 2026 — SWE-bench Verified is a human-validated subset of 500 instances intended to reduce ambiguous or unsolvable tasks.",
+    "host_name": "www.verdent.ai",
+    "rank": 5,
+    "date": "Jul 14, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to",
+    "name": "SWE-bench Scores and Leaderboard Explained (2026)",
+    "snippet": "Apr 11, 2026 — SWE - bench Verified is a human - validated subset of 500 tasks designed to remove ambiguous or unsolvable problems. leads SWE - bench Verified at 80 ...",
+    "host_name": "dev.to",
+    "rank": 6,
+    "date": "Apr 11, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mindstudio.ai",
+    "name": "From 80% to 93.9%: Why the Claude Mythos SWE-Bench",
+    "snippet": "Apr 9, 2026 — Human developer performance on SWE - Bench Verified is typically estimated around 67–70% when given a reasonable time budget per task. So yes, the ... Read more",
+    "host_name": "www.mindstudio.ai",
+    "rank": 7,
+    "date": "Apr 9, 2026",
+    "favicon": ""
+  }
+]

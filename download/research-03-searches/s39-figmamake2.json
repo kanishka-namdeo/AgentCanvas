@@ -1,0 +1,29 @@
+[
+  {
+    "url": "https://www.figma.com",
+    "name": "Schema 2025: Design Systems For A New Era",
+    "snippet": "Oct 28, 2025 — To give you context on your design system architecture while you author new variables , we're making a change that will show you all of your ... Read more",
+    "host_name": "www.figma.com",
+    "rank": 0,
+    "date": "Oct 28, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.figma.com",
+    "name": "Work with the Figma agent in design files",
+    "snippet": "With a library connected, type @ to reference specific components, variables , and styles directly in your prompts. This helps the agent use your design system ... Read more",
+    "host_name": "help.figma.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://muz.li",
+    "name": "Figma Just Opened the Canvas to AI Agents",
+    "snippet": "Mar 24, 2026 — Figma announced today that AI agents can now work directly on the Figma canvas – not just read your files, but actually create and edit ... Read more",
+    "host_name": "muz.li",
+    "rank": 2,
+    "date": "Mar 24, 2026",
+    "favicon": ""
+  }
+]

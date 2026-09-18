@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://arxiv.org/abs/2407.10941",
+    "name": "[2407.10941] Benchmarking Quantum Computers: Towards a  - arXiv",
+    "snippet": "Jul 15, 2024 · Abstract page for arXiv paper 2407.10941: Benchmarking Quantum Computers: Towards a Standard Performance Evaluation Approach.",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2603.01083v1",
+    "name": "Can Vision–Language Models Assess Graphic Design Aesthetics",
+    "snippet": "Mar 1, 2026 · We investigate whether VLMs can evaluate design aesthetics in ways comparable to humans. Prior work faces three key limitations: benchmarks ...",
+    "host_name": "arxiv.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2406.09397v1",
+    "name": "Aligning Vision Models with Human Aesthetics in Retrieval - arXiv",
+    "snippet": "Jun 13, 2024 · In this paper, we target the realm of visual aesthetics and aim to align vision models with human aesthetic standards in a retrieval system.",
+    "host_name": "arxiv.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aclanthology.org/2025.acl-long.1066.pdf",
+    "name": "[PDF] The K-Viscuit Benchmark with Human-VLM Collaboration",
+    "snippet": "Jul 27, 2025 · To create culturally inclusive vision-language models (VLMs), developing a benchmark that tests their ability to address culturally relevant.",
+    "host_name": "aclanthology.org",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aman.ai/primers/ai/benchmarks",
+    "name": "Primers • LLM/VLM Benchmarks - aman.ai",
+    "snippet": "Requires models to answer questions about images, testing both visual comprehension and language processing.",
+    "host_name": "aman.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2603.24578v2",
+    "name": "Evaluating Vision-Language Models for Image Quality Assessment",
+    "snippet": "Sep 5, 2026 · This paper investigates whether Vision-Language Models (VLMs) can assist in assessing perceived image appearance and quality.",
+    "host_name": "arxiv.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://research.nvidia.com/publication/2026-04_qcaleval-benchmarking-vision-language-models-quantum-calibration-plot",
+    "name": "QCalEval: Benchmarking Vision-Language Models for Quantum",
+    "snippet": "Apr 14, 2026 · We introduce QCalEval, the first VLM benchmark for quantum calibration plots: 243 samples across 87 scenario types from 22 experiment families, ...",
+    "host_name": "research.nvidia.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12137860",
+    "name": "Rethinking VLMs and LLMs for image classification - PMC - NIH",
+    "snippet": "VLMs outperform VLM+LLMs depending on datasets. VLM+LLMs are less performant than VLMs on object and scene recognition, while being superior on reasoning and ...",
+    "host_name": "pmc.ncbi.nlm.nih.gov",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2502.15563v1",
+    "name": "Bridging vision language model (VLM) evaluation gaps with  - arXiv",
+    "snippet": "Feb 21, 2025 · While existing VLM benchmarks provide general insights into model capabilities, their heterogeneous designs and limited focus on a few imaging ...",
+    "host_name": "arxiv.org",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://bdtechtalks.substack.com/p/what-do-vision-language-models-really",
+    "name": "What do vision language models really \"see\"? - TechTalks",
+    "snippet": "Aug 2, 2024 · Vision-language models (VLMs) score high on competitive multi-modal benchmarks but fail on basic visual acuity tests, according to a new study.",
+    "host_name": "bdtechtalks.substack.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -51,18 +51,19 @@ export const TOOL_ALIASES: Record<string, ToolAlias> = {
   },
   // token-era → variable-era
   pen_update_tokens: { target: 'pen_set_variables', deprecatedSince: 'pen-v3' },
-  // 2026-09-18 tuning: the system prompt references `pen_set_variable`
-  // (singular) as the single-variable variant of `pen_set_variables`
-  // (plural). The plural tool handles both single + batch args (one-element
-  // array). agnes-3.0-flash followed the prompt's hint and called the
-  // singular name — without this alias the call failed with "tool not
-  // found" and tanked the dashboard-hifi eval score (1 of 9 assertions).
-  // `keepInToolList: true` opts this alias out of the runner's filter
-  // (line ~614 of runner-native.ts) that strips deprecated legacy aliases
-  // from the SDK-registered tool list. Permanent aliases — ones that exist
-  // because the system prompt references them, not for backward compat —
-  // must stay registered with the SDK so the LLM can actually call them.
-  pen_set_variable: { target: 'pen_set_variables', deprecatedSince: 'prompt-hint', keepInToolList: true },
+  // 2026-09-18 iter5 correction: in iter2/iter3 I added `pen_set_variable`
+  // as an alias of `pen_set_variables` (plural). That was WRONG —
+  // `pen_set_variable` is already a real canonical tool defined in
+  // pen-tools.ts (handles single + theme-conditional variables, while
+  // `pen_set_variables` handles batch). The iter3 dashboard-hifi failure
+  // ("Tool pen_set_variable not found") was because the runner's filter
+  // at line ~614 was stripping `pen_set_variable` (treating it as an
+  // alias name). The right fix was the `keepInToolList` flag (also added
+  // in iter3) which opts permanent aliases out of the filter — but since
+  // `pen_set_variable` is a CANONICAL tool, not an alias, the right fix
+  // here is to REMOVE this entry from TOOL_ALIASES entirely. The
+  // `keepInToolList` infrastructure stays in place for future permanent
+  // aliases; this entry was the only one that needed it.
   pen_list_tokens: { target: 'pen_list_variables', deprecatedSince: 'pen-v3' },
   pen_bind_shape_to_token: { target: 'pen_bind_variable', deprecatedSince: 'pen-v3' },
   pen_unbind_shape: { target: 'pen_unbind_variable', deprecatedSince: 'pen-v3' },

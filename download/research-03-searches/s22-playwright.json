@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://bug0.com",
+    "name": "Playwright Visual Regression Testing: Built-In Guide 2026",
+    "snippet": "Mar 24, 2026 — toHaveScreenshot() captures screenshots, compares them pixel-by-pixel using pixelmatch , and fails your test when something looks wrong. No third ... Read more",
+    "host_name": "bug0.com",
+    "rank": 0,
+    "date": "Mar 24, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://app.thetestingacademy.com",
+    "name": "Playwright Visual Testing: Screenshot Comparison Done",
+    "snippet": "Jul 8, 2026 — Playwright visual testing is a screenshot-comparison feature built directly into the test runner: you capture a baseline image once, then every ... Read more",
+    "host_name": "app.thetestingacademy.com",
+    "rank": 1,
+    "date": "Jul 8, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://qaskills.sh",
+    "name": "Playwright Visual Regression Testing: The Complete 2026",
+    "snippet": "Jun 16, 2026 — This guide is a complete, practical walkthrough of visual regression testing with Playwright . We cover the toHaveScreenshot and anti-aliasing, ...",
+    "host_name": "qaskills.sh",
+    "rank": 2,
+    "date": "Jun 16, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://playwright.dev",
+    "name": "Visual comparisons",
+    "snippet": "Playwright Test includes the ability to produce and visually compare screenshots using await expect(page). toHaveScreenshot () .",
+    "host_name": "playwright.dev",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://oneuptime.com",
+    "name": "How to Implement Playwright Visual Testing",
+    "snippet": "Jan 27, 2026 — A practical guide to implementing visual regression testing with Playwright , covering screenshot comparison, snapshot configuration, dynamic ...",
+    "host_name": "oneuptime.com",
+    "rank": 4,
+    "date": "Jan 27, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://testdino.com",
+    "name": "Playwright Visual Testing: Screenshots, CI Diffs & Baselines",
+    "snippet": "Sep 2, 2026 — Playwright visual testing is a form of snapshot testing that compares a screenshot of your UI against a saved baseline image. Dynamic content  ...",
+    "host_name": "testdino.com",
+    "rank": 5,
+    "date": "Sep 2, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "playwright-skill/core/visual-regression.md at main",
+    "snippet": "Playwright compares a screenshot taken during the test against a stored baseline (golden) image. On first run, the baseline is created. On subsequent runs, ... Read more",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

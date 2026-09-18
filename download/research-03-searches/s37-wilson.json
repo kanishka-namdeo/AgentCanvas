@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://stats.stackexchange.com",
+    "name": "How to compute a confidence interval with an inaccurate",
+    "snippet": "Dec 11, 2024 — Let's consider the following prompt for an LLM:  System prompt: You are an expert in Python language. Your role is to answer to any Python related question. ...",
+    "host_name": "stats.stackexchange.com",
+    "rank": 0,
+    "date": "Dec 11, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "Spark-LLM-Eval: A Distributed Framework for Statistically",
+    "snippet": "Wilson score intervals , which handle edge cases near 0 and 1 better than the Wald interval. producing confidence intervals for all metrics",
+    "host_name": "arxiv.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://latenteval.ai",
+    "name": "Chance That All k Runs Pass | LatentEval",
+    "snippet": "Turn an eval pass rate (k of n) into a defensible confidence interval: Wilson score , Clopper-Pearson exact, and Wald normal bounds side by side.",
+    "host_name": "latenteval.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.aievals.co",
+    "name": "Confidence intervals: Wilson and Clopper-Pearson",
+    "snippet": "May 28, 2026 — The Wilson interval is the inversion of the score test under the binomial likelihood . It does not collapse at the boundaries, it has good ...",
+    "host_name": "www.aievals.co",
+    "rank": 3,
+    "date": "May 28, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://desirivanova.com",
+    "name": "Towards more rigorous evaluations of language models",
+    "snippet": "Dec 29, 2024 — 95% Wilson score confidence intervals for the point estimates of p 8K m (red dots), along with the average (over 50 datasets) point estimate of p ... Read more",
+    "host_name": "desirivanova.com",
+    "rank": 4,
+    "date": "Dec 29, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://metricgate.com",
+    "name": "Wilson Score Interval Calculator",
+    "snippet": "Mar 31, 2026 — Compute a confidence interval for a binomial proportion that maintains accurate coverage even with small samples or extreme proportions.",
+    "host_name": "metricgate.com",
+    "rank": 5,
+    "date": "Mar 31, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://corplingstats.wordpress.com",
+    "name": "Re-evaluating continuity correction for Wilson intervals",
+    "snippet": "May 19, 2024 — The Wilson score interval ( Wilson 1927) is a method for computing confidence intervals on observed Binomial proportions. The Wilson score ...",
+    "host_name": "corplingstats.wordpress.com",
+    "rank": 6,
+    "date": "May 19, 2024",
+    "favicon": ""
+  }
+]

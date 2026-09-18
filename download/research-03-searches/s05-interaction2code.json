@@ -1,0 +1,83 @@
+[
+  {
+    "url": "https://www.alphaxiv.org",
+    "name": "Interaction2Code: Benchmarking MLLM-based Interactive",
+    "snippet": "Mar 1, 2026 — Specifically, we formulate the Interaction-to-Code task and establish the Interaction2Code benchmark , encompassing 127 unique webpages and 374 ... Read more",
+    "host_name": "www.alphaxiv.org",
+    "rank": 0,
+    "date": "Mar 1, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://ieeexplore.ieee.org",
+    "name": "Benchmarking MLLM-based Interactive Webpage Code",
+    "snippet": "by J Xiao · 2025 · Cited by 43 — Interaction2Code benchmark , encompassing 127 unique webpages and 374 distinct interactions across 15 webpage types and 31 interaction categories. ten types of  ...",
+    "host_name": "ieeexplore.ieee.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "Interaction2Code: Benchmarking MLLM-based Interactive",
+    "snippet": "Mar 1, 2026 — Specifically, we formulate the Interaction-to-Code task and establish the Interaction2Code benchmark , encompassing 127 unique webpages and 374 ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 2,
+    "date": "Mar 1, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://webpai.github.io",
+    "name": "Interaction2Code",
+    "snippet": "Interaction2Code benchmark , encompassing 127 unique webpages and 374 distinct interactions across 15 webpage types and 31 interaction categories. prone to ten  ...",
+    "host_name": "webpai.github.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "Interaction2Code: Benchmarking MLLM-based Interactive",
+    "snippet": "Interaction2Code benchmark , encompassing 127 unique webpages and 374 distinct interactions across 15 webpage types and 31 interaction categories.",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://conf.researchr.org",
+    "name": "Interaction2Code: Benchmarking MLLM-based Interactive",
+    "snippet": "Interaction2Code benchmark , encompassing 127 unique webpages and 374 distinct interactions across 15 webpage types and 31 interaction categories. ten types of  ...",
+    "host_name": "conf.researchr.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.semanticscholar.org",
+    "name": "Benchmarking MLLM-based Interactive Webpage Code",
+    "snippet": "Four enhancement strategies are proposed: Interactive Element Highlighting, Failure -aware Prompting, Failure -aware Prompting, Visual Saliency Enhancement, ...",
+    "host_name": "www.semanticscholar.org",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net",
+    "name": "Benchmarking MLLM-based Web Understanding",
+    "snippet": "by J Liu · Cited by 4 — The benchmark is constructed from 729 websites and contains 3799 question–answer pairs that probe multi-step inference over page structure, text ... Read more",
+    "host_name": "openreview.net",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net",
+    "name": "Benchmarking Multimodal LLMs on Code Generation for",
+    "snippet": "Jul 29, 2026 — To address these limitations, we introduce WebIGBench, the first benchmark designed to evaluate code generation for interactive webpages with ... Read more",
+    "host_name": "www.researchgate.net",
+    "rank": 8,
+    "date": "Jul 29, 2026",
+    "favicon": ""
+  }
+]

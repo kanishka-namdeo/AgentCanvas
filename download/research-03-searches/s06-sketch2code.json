@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://arxiv.org",
+    "name": "Sketch2Code: Evaluating Vision-Language Models for",
+    "snippet": "Oct 21, 2024 — In this paper, we present Sketch2Code , a first-of-its-kind framework to access VLMs' capability of implementing web UI from user sketches, where ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "Oct 21, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://azure.microsoft.com",
+    "name": "Turn your whiteboard sketches to working code in seconds",
+    "snippet": "Aug 27, 2018 — Introducing Sketch2Code , a web based solution that uses AI to transform a handwritten user interface design from a picture to a valid HTML ... Read more",
+    "host_name": "azure.microsoft.com",
+    "rank": 1,
+    "date": "Aug 27, 2018",
+    "favicon": ""
+  },
+  {
+    "url": "https://aclanthology.org",
+    "name": "Sketch2Code: Evaluating Vision-Language Models for",
+    "snippet": "by R Li · 2025 · Cited by 47 — In this paper, we present Sketch2Code , a first-of-its-kind framework to access VLMs' capability of imple- menting web UI from user sketches, ... Read more 35 pages",
+    "host_name": "aclanthology.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "Sketch2Code: Evaluating Vision-Language Models for",
+    "snippet": "The Sketch2Code benchmark dataset for evaluating Vision-Language Models (VLMs) on automating the conversion of rudimentary sketches to webpage prototypes.",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.itlize.com",
+    "name": "Sketch2code at Microsoft AI Lab",
+    "snippet": "Jan 22, 2020 — Sketch2code is a solution that is used to convert handwritten user interface design (Sketch) to a working HTML prototype.",
+    "host_name": "www.itlize.com",
+    "rank": 4,
+    "date": "Jan 22, 2020",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com",
+    "name": "How to Use Sketch2Code: A Generative AI Tool",
+    "snippet": "Mar 9, 2023 — Learn how to use Sketch2Code, a web-based tool that converts your sketches into HTML code using computer vision and deep learning.",
+    "host_name": "www.linkedin.com",
+    "rank": 5,
+    "date": "Mar 9, 2023",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alphaxiv.org",
+    "name": "Sketch2Code: Evaluating Vision-Language Models for",
+    "snippet": "Sketch2Code establishes the first comprehensive benchmark for evaluating VLMs on low-fidelity UI generation, addressing a critical gap between high-fidelity ... Read more",
+    "host_name": "www.alphaxiv.org",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

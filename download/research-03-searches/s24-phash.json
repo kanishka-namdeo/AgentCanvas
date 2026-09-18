@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://www.sciencedirect.com",
+    "name": "Analysis of Perceptual Hashing Algorithms in Image",
+    "snippet": "by P Samanta · 2021 · Cited by 66 — In this work, a review and performance analysis of several perceptual hashing algorithms against two such datasets is presented. Results show less than ideal ...",
+    "host_name": "www.sciencedirect.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gist.github.com",
+    "name": "Detecting similar and identical images using perseptual",
+    "snippet": "For nearly identical images (Original Vs Exposure compensated) both imgseek and pHash gave a much better similarity score (~0.88) than Average hash (0.814).",
+    "host_name": "gist.github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.joshooaj.com",
+    "name": "Image Comparison - JoshooaJ",
+    "snippet": "Mar 24, 2024 — In contrast, a perceptual hash like dHash will, by design , produce the same or similar hash when given two images that are nearly identical.",
+    "host_name": "www.joshooaj.com",
+    "rank": 2,
+    "date": "Mar 24, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://ssojet.com",
+    "name": "Fast-Hash vs pHash | Compare Leading Cryptographic",
+    "snippet": "Oct 28, 2025 — Compare Fast-Hash and pHash for image similarity . Learn which perceptual hashing algorithm is best for your developer needs.",
+    "host_name": "ssojet.com",
+    "rank": 3,
+    "date": "Oct 28, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mdpi.com",
+    "name": "Comparative Evaluation of Perceptual Hashing and Deep",
+    "snippet": "by MF Mahmud · 2026 · Cited by 1 — A smaller Hamming distance indicates greater similarity between images . This comparison method is standard for perceptual hash fingerprints [19]. PHash exhibits ...",
+    "host_name": "www.mdpi.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mojoauth.com",
+    "name": "pHash vs LSH | Compare Top Cryptographic Hashing",
+    "snippet": "Sep 25, 2025 — Welcome to our comprehensive guide on pHash vs LSH , two powerful techniques used for image and data similarity detection.",
+    "host_name": "mojoauth.com",
+    "rank": 5,
+    "date": "Sep 25, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to",
+    "name": "Introduction to Perceptual Hashes: Measuring Similarity",
+    "snippet": "Jul 12, 2022 — pHashes allows the comparison of two images by looking at the number of different bits between the input and the image it is being compared ...",
+    "host_name": "dev.to",
+    "rank": 6,
+    "date": "Jul 12, 2022",
+    "favicon": ""
+  }
+]

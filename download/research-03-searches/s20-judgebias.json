@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://arxiv.org",
+    "name": "A Systematic Study of Position Bias in LLM-as-a-Judge",
+    "snippet": "Nov 11, 2025 — This exploratory study evaluates position bias in LLM judges across pairwise and list-wise comparison settings, introducing three metrics: ...",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "Nov 11, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://wandb.ai",
+    "name": "Exploring LLM-as-a-Judge",
+    "snippet": "They exhibit position bias (preferring first or second responses regardless of quality), verbosity bias (favoring longer outputs), and self-enhancement bias ( ...",
+    "host_name": "wandb.ai",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mbrenndoerfer.com",
+    "name": "Position Bias in LLM Judges: Measurement and Mitigation",
+    "snippet": "Mar 11, 2026 — Explains how position bias , verbosity bias , and sycophancy distort LLM evaluation. Measure swap consistency, detect length effects.",
+    "host_name": "mbrenndoerfer.com",
+    "rank": 2,
+    "date": "Mar 11, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://aclanthology.org",
+    "name": "A Systematic Study of Position Bias in LLM-as-a-Judge",
+    "snippet": "by L Shi · 2025 · Cited by 363 — The findings confirm that position bias is not due to random chance and varies significantly across judges and tasks. While position bias is weakly influ- enced ... 23 pages",
+    "host_name": "aclanthology.org",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tianpan.co",
+    "name": "Your LLM Judge Has a Length Bias, a Position",
+    "snippet": "Apr 27, 2026 — LLM-as-judge has length, position, and format biases . Length (verbosity) bias. LLM judges prefer longer responses. see 20–40% of verdicts flip ...",
+    "host_name": "tianpan.co",
+    "rank": 4,
+    "date": "Apr 27, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.emergentmind.com",
+    "name": "LLM-as-a-Judge: Bias Metrics in Evaluation",
+    "snippet": "Sep 2, 2025 — LLM-as-a-Judge evaluates NLG outputs by quantifying position bias via robust metrics to enhance fairness in automated evaluations.",
+    "host_name": "www.emergentmind.com",
+    "rank": 5,
+    "date": "Sep 2, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://ui.adsabs.harvard.edu",
+    "name": "Judging the Judges: A Systematic Evaluation of Bias",
+    "snippet": "by S Kabir Soumik · 2026 — LLM judges exhibit systematic biases that compromise evaluation reliability. Verbosity bias is heterogeneous when measured length -aware:",
+    "host_name": "ui.adsabs.harvard.edu",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "A Systematic Evaluation of Bias Mitigation Strategies in",
+    "snippet": "LLM judges have systematic biases : they prefer responses in certain positions, favor longer responses, and show preference for outputs from their own model ...",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ai-tldr.dev",
+    "name": "LLM Judge Biases: Position, Verbosity, Self-Preference",
+    "snippet": "Jun 12, 2026 — LLM judges favor the first answer, longer answers, and their own outputs . Learn the major judge biases and the tricks that neutralize each ...",
+    "host_name": "ai-tldr.dev",
+    "rank": 8,
+    "date": "Jun 12, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.sebastiansigl.com",
+    "name": "The 5 Biases That Can Silently Kill Your LLM Evaluations",
+    "snippet": "Sep 19, 2025 — LLM judges are not impartial ; they have inherent biases like positional, verbosity, self-enhancement, authority, and moderation bias. These ...",
+    "host_name": "www.sebastiansigl.com",
+    "rank": 9,
+    "date": "Sep 19, 2025",
+    "favicon": ""
+  }
+]

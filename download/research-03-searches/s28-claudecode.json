@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://news.ycombinator.com",
+    "name": "The unreasonable effectiveness of an LLM agent loop with",
+    "snippet": "May 15, 2025 — It is indeed astonishing how well a loop with an LLM that can call tools works for all kinds of tasks now getting that last 10% of reliability, ...",
+    "host_name": "news.ycombinator.com",
+    "rank": 0,
+    "date": "May 15, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://arize.com",
+    "name": "Coding agent tracing and evaluation: An open source tool",
+    "snippet": "We're releasing an open-source tracing tool that lets developers inspect and evaluate coding- agent workflows across Claude Code , Cursor, Codex, Copilot, and ... Read more",
+    "host_name": "arize.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.langchain.com",
+    "name": "The Agent Improvement Loop Starts with a Trace",
+    "snippet": "The loop requires enriching traces with evals and human feedback, identifying failure patterns, making targeted changes, and validating before shipping.",
+    "host_name": "www.langchain.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.braintrust.dev",
+    "name": "Agentic eval development with the Braintrust CLI - Blog",
+    "snippet": "Apr 8, 2026 — Use coding agents and the Braintrust CLI to debug failing evals, iterate on prompts, and close the loop between observability and code.",
+    "host_name": "www.braintrust.dev",
+    "rank": 3,
+    "date": "Apr 8, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://cc.bruniaux.com",
+    "name": "Iterative Refinement - Claude Code Guide - Florian BRUNIAUX",
+    "snippet": "Sep 9, 2026 — Agent Evaluation Measure quality, behavior, and regressions across runs. prevents the agent from chasing multiple failures at once.",
+    "host_name": "cc.bruniaux.com",
+    "rank": 4,
+    "date": "Sep 9, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mindstudio.ai",
+    "name": "What Is the Iterative Refinement Loop? How Claude",
+    "snippet": "May 3, 2026 — The iterative refinement loop is a workflow pattern where an AI generates an output, a human (or another agent ) reviews it and provides ... Read more",
+    "host_name": "www.mindstudio.ai",
+    "rank": 5,
+    "date": "May 3, 2026",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://neurips.cc",
+    "name": "InfiBench: Evaluating the Question-Answering Capabilities",
+    "snippet": "Dec 9, 2024 — We conduct a systematic evaluation for over 100 latest code LLMs on InfiBench, leading to a series of novel and insightful findings. Our ... Read more",
+    "host_name": "neurips.cc",
+    "rank": 0,
+    "date": "Dec 9, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net",
+    "name": "Web2Code: A Large-scale Webpage-to-Code Dataset and",
+    "snippet": "Nov 13, 2024 — This paper proposes multiple training datasets and evaluation benchmarks to improve the performance of MLLMs in understanding webpage ... Read more",
+    "host_name": "openreview.net",
+    "rank": 1,
+    "date": "Nov 13, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://papers.nips.cc",
+    "name": "Web2Code: A Large-scale Webpage-to-Code Dataset and",
+    "snippet": "by S Yun · 2024 · Cited by 115 — To evaluate model performance in these tasks, we develop an evaluation framework for testing MLLMs' abilities in webpage understanding and web-to-code ... Read more",
+    "host_name": "papers.nips.cc",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "Web2Code: A Large-scale Webpage-to-Code Dataset and",
+    "snippet": "Jun 28, 2024 — To evaluate the MLLM's success at webpage understanding and HTML parsing, we propose the Webpage Understanding Benchmark (WUB) and Webpage Code ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 3,
+    "date": "Jun 28, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://mbzuai.ac.ae",
+    "name": "Web2Code: A new dataset to enhance multimodal LLM",
+    "snippet": "Dec 16, 2024 — A team from MBZUAI used instruction tuning to help multimodal LLMs generate HTML code and answer questions about screenshots of web pages.",
+    "host_name": "mbzuai.ac.ae",
+    "rank": 4,
+    "date": "Dec 16, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://proceedings.neurips.cc",
+    "name": "Web2Code: A Large-scale Webpage-to-Code Dataset and",
+    "snippet": "by S Yun · 2024 · Cited by 115 — To evaluate the MLLM's success at webpage understanding and HTML parsing, we propose the Webpage Understanding Benchmark (WUB) and Webpage Code ... Read more 24 pages",
+    "host_name": "proceedings.neurips.cc",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "Web2Code: A Large-scale Webpage-to-Code Dataset and",
+    "snippet": "Jun 27, 2024 — Explore our comprehensive benchmarks for evaluating webpage-related tasks . Webpage Code Generation Benchmark. Set up your environment, generate ... Read more",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "Jun 27, 2024",
+    "favicon": ""
+  }
+]
