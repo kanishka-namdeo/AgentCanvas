@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://github.com",
+    "name": "v0-system-prompt(updated 22-11-2024)",
+    "snippet": "Nov 22, 2024 — v0 is an advanced AI coding assistant created by Vercel. v0 prefers Lucide React for icons, and shadcn/ui for components. shadcn/ui library, ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "Nov 22, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://handsontable.com",
+    "name": "Handsontable with shadcn/ui",
+    "snippet": "This tutorial shows you how to integrate Handsontable into a Next.js app that uses shadcn /ui, registering a custom theme that maps shadcn CSS variables and ... Read more",
+    "host_name": "handsontable.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://vercel.com",
+    "name": "UI with v0 | Vercel Academy",
+    "snippet": "Learn how Vercel v0 accelerates UI development for AI features. Generate React components (using Shadcn UI & Tailwind) directly from text prompts .",
+    "host_name": "vercel.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.shadcn.io",
+    "name": "Free Lucide Icons for React",
+    "snippet": "Lucide Icons for shadcn/ui 1,655 free React icons. Copy the component, download SVG / PNG / ICO / WebP, or install any of them with the shadcn MCP in seconds.  ...",
+    "host_name": "www.shadcn.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://v0.app",
+    "name": "Design systems | v0 Docs",
+    "snippet": "You can set up a custom design system to use with Tailwind and shadcn /ui for high-fidelity UIs that match your brand. This is the legacy registry-based design ... Read more",
+    "host_name": "v0.app",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

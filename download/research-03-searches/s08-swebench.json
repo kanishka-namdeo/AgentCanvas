@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.swebench.com",
+    "name": "Can Language Models Resolve Real-world Github Issues?",
+    "snippet": "SWE - bench evaluation works as follows. Per task instance, an AI system is given the issue text. The AI system should then modify the codebase in order to ... Read more",
+    "host_name": "www.swebench.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openai.com",
+    "name": "Introducing SWE-bench Verified",
+    "snippet": "Aug 13, 2024 — We're releasing a human-validated subset of SWE - bench that more reliably evaluates AI models' ability to solve real-world software issues. Read more",
+    "host_name": "openai.com",
+    "rank": 1,
+    "date": "Aug 13, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "SWE-Bench++: A Framework for the Scalable Generation",
+    "snippet": "Dec 19, 2025 — SWE-Bench ++ provides a scalable, multilingual benchmark for evaluating and improving repository-level code generation.",
+    "host_name": "arxiv.org",
+    "rank": 2,
+    "date": "Dec 19, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://epoch.ai",
+    "name": "SWE-bench Verified",
+    "snippet": "Methodology . There are five parts to our SWE - bench Verified evaluation methodology : Prompts and other information to direct the model. Scaffold and tools ... Read more",
+    "host_name": "epoch.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "SWE-bench: Can Language Models Resolve Real-world",
+    "snippet": "SWE-bench is a benchmark for evaluating large language models on real world software issues collected from GitHub. Given a codebase and an issue, a language ... Read more",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://klu.ai",
+    "name": "SWE-bench Benchmark",
+    "snippet": "Aug 21, 2026 — The SWE - bench benchmark is an end-to-end evaluation framework designed to assess the software engineering capabilities of large language models ...",
+    "host_name": "klu.ai",
+    "rank": 5,
+    "date": "Aug 21, 2026",
+    "favicon": ""
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://applitools.com",
+    "name": "Applitools vs Chromatic | Comparing Visual Testing Tools",
+    "snippet": "How does baseline management differ between the two? Applitools stores baselines independent of git history . Chromatic's baseline lookup depends on git ... Read more",
+    "host_name": "applitools.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://crosscheck.cloud",
+    "name": "Percy vs Applitools vs Chromatic: 2026 Tool Comparison",
+    "snippet": "Jan 5, 2026 — The differences sit in baseline management — Chromatic's Git-aware baselines handle branch-heavy workflows cleanest , while Percy and Applitools ...",
+    "host_name": "crosscheck.cloud",
+    "rank": 1,
+    "date": "Jan 5, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://qaskills.sh",
+    "name": "Percy vs Applitools vs Chromatic: Visual Regression Tools",
+    "snippet": "Aug 28, 2026 — Percy focuses on screenshot diffs for web apps , Applitools focuses on AI-assisted visual validation across apps and browsers, and Chromatic ...",
+    "host_name": "qaskills.sh",
+    "rank": 2,
+    "date": "Aug 28, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.susatest.com",
+    "name": "Visual Diff Tools Compared: Applitools vs Percy vs Chromatic",
+    "snippet": "Robust baseline management : The UI for reviewing and approving visual changes is intuitive and efficient, making it easy for teams to collaborate on visual ... Read more",
+    "host_name": "www.susatest.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://percy.io",
+    "name": "Comparing The 10 Best Visual Regression Testing Tools",
+    "snippet": "Chromatic is a visual regression and UI review platform : Captures and compares UI states with baseline history. Scalable Baseline Management: Branch-aware ...",
+    "host_name": "percy.io",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://argos-ci.com",
+    "name": "Percy vs Chromatic vs Argos: 2026 Visual Testing Comparison",
+    "snippet": "Jul 16, 2026 — Percy uploads your DOM and re-renders it in BrowserStack's cloud, Chromatic renders and captures your UI in its own cloud infrastructure, and ... Read more",
+    "host_name": "argos-ci.com",
+    "rank": 5,
+    "date": "Jul 16, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://delta-qa.com",
+    "name": "Applitools vs Percy 2026: Pricing, Diffs & Playwright Fit",
+    "snippet": "Apr 16, 2026 — Applitools uses a proprietary AI approach that analyzes the visual structure of the page , not individual pixels. Percy uses an improved pixel-by ... Read more",
+    "host_name": "delta-qa.com",
+    "rank": 6,
+    "date": "Apr 16, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.chromatic.com",
+    "name": "FAQ | How is Chromatic different from visual testing tools",
+    "snippet": "Chromatic is a faster, easier to use, and cost-effective alternative to Applitools or Percy that is built for UI components and component libraries. Our ... Read more",
+    "host_name": "www.chromatic.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

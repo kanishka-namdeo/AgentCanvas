@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://github.com",
+    "name": "Arena-Hard-Auto: An automatic LLM benchmark.",
+    "snippet": "Arena-Hard-Auto is an automatic evaluation tool for instruction-tuned LLMs. Arena-Hard-Auto employs automatic judge as a cheaper and faster approximator to ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.lmsys.org",
+    "name": "Does style matter? Disentangling style and substance in",
+    "snippet": "Aug 29, 2024 — Hard Prompt category ranking vs Hard Prompt category ranking where answer length, markdown header count, markdown bold count, and markdown list ... Read more",
+    "host_name": "www.lmsys.org",
+    "rank": 1,
+    "date": "Aug 29, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "Arena-Hard and BenchBuilder Pipeline",
+    "snippet": "Oct 14, 2024 — We release Arena-Hard-Auto , a benchmark consisting 500 challenging prompts curated by BenchBuilder. Arena-Hard-Auto provides 3x higher ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 2,
+    "date": "Oct 14, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.technolynx.com",
+    "name": "Using LLM Arena Scores in a Model-Risk Review",
+    "snippet": "Jul 11, 2026 — Arena-Hard-Auto is an automatic, LLM-judged benchmark that ranks candidate models on hard prompts against a baseline. That makes it a genuinely ...",
+    "host_name": "www.technolynx.com",
+    "rank": 3,
+    "date": "Jul 11, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://llm-stats.com",
+    "name": "Arena Hard Leaderboard",
+    "snippet": "Jun 17, 2024 — Arena-Hard-Auto is an automatic evaluation benchmark for instruction-tuned LLMs consisting of 500 challenging real-world prompts curated by ... Read more",
+    "host_name": "llm-stats.com",
+    "rank": 4,
+    "date": "Jun 17, 2024",
+    "favicon": ""
+  }
+]

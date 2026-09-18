@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://arxiv.org",
+    "name": "UI2Code^\"N\": A Visual Language Model for Test-Time",
+    "snippet": "Web2Code (Yun et al., 2024) : this benchmark comprises 1,198 webpage screenshot images to evaluate the ability of HTML code generation for a multi model. Read more",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alphaxiv.org",
+    "name": "Design2Code: Benchmarking Multimodal Code Generation",
+    "snippet": "Feb 9, 2025 — Unlocking the conversion of web screenshots into html code with the websight dataset. Preprint, arXiv:2403.09029. Learning ui-to-code ... Read more",
+    "host_name": "www.alphaxiv.org",
+    "rank": 1,
+    "date": "Feb 9, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://salt-nlp.github.io",
+    "name": "Design2Code: How Far Are We From Automating Front-",
+    "snippet": "In this work, we provide the first systematic study on this visual design to code implementation task (dubbed as Design2Code ). We manually curate a benchmark of ... Read more",
+    "host_name": "salt-nlp.github.io",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "NoviScl/Design2Code",
+    "snippet": "The Design2Code benchmark dataset for the task of converting visual design ( screenshot ) into code implementation, which consists of 484 real-world webpages ... Read more",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://saltlab.stanford.edu",
+    "name": "Design2Code: Benchmarking Multimodal Code Generation",
+    "snippet": "Jan 21, 2025 — Design2Code : Benchmarking Multimodal Code Generation for Automated Front-End Engineering | Stanford SALT Lab … the free, open source website ...",
+    "host_name": "saltlab.stanford.edu",
+    "rank": 4,
+    "date": "Jan 21, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.semanticscholar.org",
+    "name": "Design2Code: Benchmarking Multimodal Code Generation",
+    "snippet": "Unlocking the conversion of Web Screenshots into HTML Code with the WebSight Dataset · Hugo LaurençonLéo TronchonVictor Sanh. Computer Science. ArXiv . 2024. Read more",
+    "host_name": "www.semanticscholar.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

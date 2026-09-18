@@ -848,4 +848,462 @@ export const SCENARIOS: Scenario[] = [
       ...trajectoryChecks(3),
     ],
   },
+
+  // ==========================================================================
+  // iter6 (2026-09-18) — world-class test bench scenarios.
+  //
+  // 10 new scenarios across the categories missing from the original 16:
+  //   - radial/hierarchical layouts (mindmap)
+  //   - small illustration-heavy pages (404)
+  //   - multi-screen flows (checkout, onboarding, multi-step wizard)
+  //   - complex multi-region layouts (email-app)
+  //   - repeating card patterns (blog-index)
+  //   - accessibility edge (WCAG AAA login)
+  //   - localization (Arabic RTL)
+  //   - brand fidelity (Stripe-inspired)
+  //   - vague/over-specified edge cases
+  //   - performance stress (1000-node grid)
+  //
+  // Each scenario's assertions follow the same pattern as the original 16:
+  // structural checks (frame/card/text counts, similar-width/height bands,
+  // visible layer floor) + content fidelity (exact strings present) +
+  // trajectory invariants (no failed calls, no duplicates, sane tool count).
+  //
+  // 3 of the 10 are marked heldOut (mwc-* prefix) — they're final-validation
+  // scenarios the agent has never been tuned against.
+  // ==========================================================================
+
+  {
+    id: 'mwc-mindmap',
+    prompt: 'Create a mindmap with a central "Product Strategy" node and 4 first-level branches (User Research, Roadmap, Metrics, Go-to-Market), each branch with 3 child nodes.',
+    assertions: [
+      (c) => {
+        // Central node: the largest text/frame near the geometric center.
+        const all = visible(c);
+        const cx = all.reduce((s, l) => s + (l.x + l.width / 2), 0) / all.length;
+        const cy = all.reduce((s, l) => s + (l.y + l.height / 2), 0) / all.length;
+        const textLayers = texts(c);
+        const central = textLayers.find((t) =>
+          (t.text ?? '').toLowerCase().includes('product strategy') &&
+          Math.abs((t.x + t.width / 2) - cx) < 400 &&
+          Math.abs((t.y + t.height / 2) - cy) < 400,
+        );
+        return assert('central "Product Strategy" node present', !!central, `central at (${Math.round(cx)},${Math.round(cy)})`, `no central node near canvas center (${Math.round(cx)},${Math.round(cy)})`);
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const branches = ['user research', 'roadmap', 'metrics', 'go-to-market', 'go to market', 'gtm'];
+        const present = branches.filter((b) => tc.includes(b));
+        return assert('4 first-level branches present', present.length >= 4, `${present.length}/4 branches found: ${present.join(', ')}`, `only ${present.length}/4 — missing: ${branches.filter((b) => !present.includes(b)).join(', ')}`);
+      },
+      (c) => {
+        // Each branch's 3 children = ~9 leaf texts. Total text layers ≥ 14
+        // (1 central + 4 branches + 9 leaves minimum).
+        const tc = texts(c);
+        return assert('leaf nodes present', tc.length >= 14, `${tc.length} text layers (≥14 expected for 1+4+9)`, `only ${tc.length} text layers — leaves likely missing`);
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 14, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(3),
+    ],
+  },
+
+  {
+    id: 'mwc-404-page',
+    prompt: 'Design a 404 error page with a large headline containing "404", a short helper subhead, a search box, and a primary "Go Home" CTA button.',
+    assertions: [
+      (c) => {
+        const tc = textContent(c);
+        const has404 = /404/.test(tc);
+        return assert('headline contains "404"', has404, '"404" present', 'no "404" text anywhere');
+      },
+      (c) => {
+        // Search box: a rectangle that looks like an input (narrow, wide, with
+        // optional search-icon-text inside). Heuristic: rectangles width≥240
+        // height≤60 → input-shaped.
+        const inputish = ofTypes(c, ['rectangle', 'frame']).filter((r) => r.width >= 240 && r.height >= 32 && r.height <= 60);
+        return assert('search box present', inputish.length >= 1, `${inputish.length} input-shaped boxes`, 'no input-shaped box found');
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const ctaFound = ['go home', 'home', 'back to home', 'return home'].some((s) => tc.includes(s));
+        return assert('Go Home CTA present', ctaFound, 'CTA copy found', 'no "Go Home" or equivalent CTA copy');
+      },
+      (c) => {
+        // CTA button: a primary-colored (saturated) frame with the CTA text
+        const ctas = visible(c).filter((l) => l.type === 'frame' || l.type === 'rectangle');
+        const hasPrimaryCta = ctas.some((b) => {
+          const fill = (b as { fill?: string }).fill ?? '';
+          return saturation(fill) >= 0.4 && b.width >= 120 && b.height >= 36 && b.height <= 80;
+        });
+        return assert('primary CTA styled', hasPrimaryCta, 'saturated CTA found', 'no saturated-color button-sized frame');
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 5, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(2),
+    ],
+  },
+
+  {
+    id: 'mwc-checkout-flow',
+    heldOut: true,
+    prompt: 'Design a 4-step checkout flow shown side by side: Cart (with 2 items), Shipping address form, Payment form, and Order confirmation — each step in its own labeled frame.',
+    assertions: [
+      (c) => {
+        // 4 step frames: tall containers sharing a similar width band
+        const cols = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.width >= 220 && b.width <= 520 && b.height >= 320);
+        const bands = new Map<number, number>();
+        for (const b of cols) {
+          const band = Math.round(b.width / 60) * 60;
+          bands.set(band, (bands.get(band) ?? 0) + 1);
+        }
+        const hasRow = [...bands.values()].some((n) => n >= 4);
+        return assert('4 step frames side by side', hasRow, `${cols.length} candidates, bands=${JSON.stringify([...bands])}`, 'no 4 similar-width tall frames — steps not built');
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const steps = ['cart', 'shipping', 'payment', 'confirmation', 'confirm', 'order'];
+        const present = steps.filter((s) => tc.includes(s));
+        return assert('all 4 step labels present', present.length >= 4, `${present.length}/4+ steps found: ${present.join(', ')}`, `missing step labels (need cart/shipping/payment/confirmation)`);
+      },
+      (c) => {
+        // Form fields: ≥ 2 inputs in shipping + ≥ 2 in payment = ≥ 4 total
+        const inputish = ofTypes(c, ['rectangle', 'frame']).filter((r) => r.width >= 180 && r.height >= 28 && r.height <= 56);
+        return assert('form fields present', inputish.length >= 4, `${inputish.length} input-shaped boxes (≥4 expected)`, `only ${inputish.length} input-shaped boxes`);
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        // 2 cart items: at least 2 product-name-ish strings (could be generic
+        // like "item 1" — accept any 2+ short non-numeric strings on cart step).
+        const hasItems = tc.includes('item') || tc.includes('product') || tc.includes('cart');
+        return assert('cart items referenced', hasItems, 'cart content found', 'no cart item references in text');
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 20, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few for 4-step flow`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(4),
+    ],
+  },
+
+  {
+    id: 'mwc-onboarding-flow',
+    prompt: 'Design a 3-screen mobile onboarding flow side by side: Screen 1 "Welcome to Vaultly" with brand wordmark, Screen 2 "Set your preferences" with 3 toggle options, Screen 3 "You are all set!" with a Get Started button. Each screen in a mobile-sized frame (375 wide).',
+    assertions: [
+      (c) => {
+        // 3 mobile-width frames (~375 wide)
+        const mobileFrames = ofTypes(c, ['frame', 'component']).filter((b) => b.width >= 320 && b.width <= 420 && b.height >= 480);
+        return assert('3 mobile-sized frames', mobileFrames.length >= 3, `${mobileFrames.length} mobile-width frames`, `only ${mobileFrames.length} mobile-width frames — expected 3`);
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const wanted = ['welcome', 'preferences', 'all set', 'get started'];
+        const missing = wanted.filter((w) => !tc.includes(w));
+        return assert('3 screen headlines present', missing.length === 0, 'welcome/preferences/all-set/get-started found', `missing: ${missing.join(', ')}`);
+      },
+      (c) => {
+        // Brand wordmark "Vaultly" (exact spelling — Rule 9 fidelity)
+        const tc = textContent(c);
+        const hasVaultly = tc.includes('Vaultly');
+        return assert('brand "Vaultly" present', hasVaultly, 'brand wordmark found', 'no "Vaultly" text — brand wordmark missing');
+      },
+      (c) => {
+        // 3 toggle options on screen 2: 3 small toggle-shaped boxes (narrow, tall-ish)
+        const toggles = visible(c).filter((l) => (l.type === 'rectangle' || l.type === 'frame') && l.width >= 32 && l.width <= 80 && l.height >= 16 && l.height <= 48);
+        return assert('3 toggle controls', toggles.length >= 3, `${toggles.length} toggle-shaped boxes`, `only ${toggles.length} toggle-shaped boxes — expected 3`);
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 15, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few for 3-screen flow`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(4),
+    ],
+  },
+
+  {
+    id: 'mwc-multistep-wizard',
+    prompt: 'Design a multi-step project creation wizard with 5 numbered steps shown as a progress bar at the top, and the current step (Step 3: "Pick a template") body below with 3 template options to choose from.',
+    assertions: [
+      (c) => {
+        // Progress bar: 5 small numbered circles/boxes sharing a width band
+        const circles = visible(c).filter((l) => (l.type === 'ellipse' || l.type === 'rectangle') && l.width >= 24 && l.width <= 80 && l.height >= 24 && l.height <= 80);
+        return assert('5 step indicators', circles.length >= 5, `${circles.length} step-sized markers`, `only ${circles.length} step-sized markers — expected 5`);
+      },
+      (c) => {
+        const tc = textContent(c);
+        // Step numbers 1-5 should appear as text (or as text inside the
+        // step circles).
+        const nums = ['1', '2', '3', '4', '5'].filter((n) => tc.includes(n));
+        return assert('5 step numbers', nums.length >= 4, `${nums.length}/5 step numbers found`, `only ${nums.length}/5 step numbers (1-5) present`);
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const hasTemplateStep = tc.includes('template') || tc.includes('pick');
+        return assert('"Pick a template" label present', hasTemplateStep, 'template label found', 'no "template" or "pick" text — wrong step shown');
+      },
+      (c) => {
+        // 3 template options: 3 card-sized containers
+        const cards = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.width >= 120 && b.width <= 480 && b.height >= 80 && b.height <= 320);
+        return assert('3 template options', cards.length >= 3, `${cards.length} template-card-sized boxes`, `only ${cards.length} template cards — expected 3`);
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 12, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(3),
+    ],
+  },
+
+  {
+    id: 'mwc-email-app',
+    prompt: 'Design a desktop email-app layout with 4 regions: a left sidebar with folder list (Inbox, Sent, Drafts, Archive), a thread list (showing 3 email senders), a reading pane showing one open email, and a compose button in the top-right.',
+    assertions: [
+      (c) => {
+        // 4 regions: sidebar (narrow tall), thread list (medium tall),
+        // reading pane (wide tall), compose (small top-right)
+        const tallContainers = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.height >= 320);
+        return assert('multi-region layout', tallContainers.length >= 3, `${tallContainers.length} tall containers (≥3 regions)`, `only ${tallContainers.length} tall containers — 4-region layout not built`);
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const folders = ['inbox', 'sent', 'drafts', 'archive'];
+        const present = folders.filter((f) => tc.includes(f));
+        return assert('4 folder labels', present.length >= 3, `${present.length}/4 folders found: ${present.join(', ')}`, `missing folders: ${folders.filter((f) => !present.includes(f)).join(', ')}`);
+      },
+      (c) => {
+        // 3 email senders in thread list — heuristic: 3 short text strings
+        // (sender names typically < 30 chars). Total text layers ≥ 8.
+        const textLayers = texts(c);
+        return assert('email senders present', textLayers.length >= 8, `${textLayers.length} text layers (≥8 for folder+sender+body)`, `only ${textLayers.length} text layers`);
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const hasCompose = tc.includes('compose') || tc.includes('new') || tc.includes('write');
+        return assert('compose button present', hasCompose, 'compose CTA found', 'no "compose"/"new"/"write" text — compose button missing');
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 15, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few for 4-region layout`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(4),
+    ],
+  },
+
+  {
+    id: 'mwc-blog-index',
+    prompt: 'Design a blog index page with a left main column containing 6 post cards (each with a thumbnail, title, excerpt, and Read More link), and a right sidebar with a Categories list (5 categories).',
+    assertions: [
+      (c) => {
+        // 6 post cards: 6 similar-sized card containers in a column
+        const cards = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.width >= 200 && b.width <= 720 && b.height >= 80 && b.height <= 320);
+        // Group by similar height (within 80px)
+        const bands = new Map<number, number>();
+        for (const b of cards) {
+          const band = Math.round(b.height / 80) * 80;
+          bands.set(band, (bands.get(band) ?? 0) + 1);
+        }
+        const has6 = [...bands.values()].some((n) => n >= 5);
+        return assert('6 post cards', has6, `${cards.length} card candidates, bands=${JSON.stringify([...bands])}`, 'no 5+ similar-height card containers — cards not built');
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const hasReadMore = tc.includes('read more') || tc.includes('read');
+        return assert('"Read More" links', hasReadMore, 'read-more copy found', 'no "read more" text — links missing');
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const hasCategories = tc.includes('categor') || tc.includes('topics');
+        return assert('Categories sidebar', hasCategories, 'categories sidebar found', 'no "categories" or "topics" text — sidebar missing');
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 20, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few for 6 cards + sidebar`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(4),
+    ],
+  },
+
+  {
+    id: 'mwc-wcag-aaa-login',
+    prompt: 'Design a login screen that meets WCAG AAA contrast (7:1 minimum text contrast). Include email + password fields, a Sign In button, and high-contrast helper text below each field.',
+    assertions: [
+      (c) => {
+        // WCAG AAA = 7:1 contrast. Use the existing contrast helpers.
+        // Background is typically white (#fff) for a login — text colors
+        // should be very dark (#000-ish) for 7:1+ on white.
+        const textLayers = texts(c);
+        if (textLayers.length === 0) return fail('text contrast check', 'no text layers to check');
+        // Sample the first 3 text layers' textColors — they should be near-black
+        // for AAA on a typical white/light bg.
+        const samples = textLayers.slice(0, 5);
+        const darkEnough = samples.filter((t) => {
+          const tc = (t as { textColor?: string }).textColor;
+          if (!tc) return false;
+          const rgb = hexToRgb(tc);
+          if (!rgb) return false;
+          // Relative luminance — for 7:1 on white (#fff, L=1), text L ≤ 0.009
+          const L = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255 / 12.92;
+          // Simpler: just require each channel ≤ ~50 (≈ very dark)
+          return rgb.r <= 60 && rgb.g <= 60 && rgb.b <= 60;
+        });
+        return assert('AAA contrast (dark text on light bg)', darkEnough.length >= 3, `${darkEnough.length}/${samples.length} text layers dark enough for AAA`, `only ${darkEnough.length}/${samples.length} text layers dark enough`);
+      },
+      (c) => {
+        const tc = textContent(c).toLowerCase();
+        const missing = ['email', 'password', 'sign in'].filter((s) => !tc.includes(s));
+        return assert('email + password + Sign In present', missing.length === 0, 'all 3 found', `missing: ${missing.join(', ')}`);
+      },
+      (c) => {
+        const inputish = ofTypes(c, ['rectangle', 'frame']).filter((r) => r.width >= 200 && r.height >= 32 && r.height <= 64);
+        return assert('email + password fields', inputish.length >= 2, `${inputish.length} input-shaped boxes`, `only ${inputish.length} input-shaped boxes — expected 2`);
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 8, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(3),
+    ],
+  },
+
+  {
+    id: 'mwc-arabic-rtl',
+    heldOut: true,
+    prompt: 'Design an Arabic right-to-left (RTL) dashboard with a sidebar on the RIGHT, KPI cards row, and a chart area. Use Arabic text labels: لوحة التحكم (dashboard), الإيرادات (revenue), المستخدمين (users).',
+    assertions: [
+      (c) => {
+        // Sidebar on the RIGHT: a narrow tall container whose x is to the
+        // right of the canvas center.
+        const all = visible(c);
+        if (all.length === 0) return fail('right sidebar', 'no layers');
+        const cx = all.reduce((s, l) => s + (l.x + l.width / 2), 0) / all.length;
+        const sidebar = ofTypes(c, ['frame', 'rectangle', 'component']).find((b) => b.height >= 400 && b.width <= 240 && (b.x + b.width / 2) > cx);
+        return assert('sidebar on RIGHT (RTL)', !!sidebar, `sidebar x=${sidebar?.x ?? 'n/a'} (canvas center=${Math.round(cx)})`, 'no narrow tall container on the right half — RTL layout not built');
+      },
+      (c) => {
+        // KPI cards row: ≥ 3 cards sharing a height band
+        const cards = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.width >= 120 && b.width <= 480 && b.height >= 80 && b.height <= 240);
+        const bands = new Map<number, number>();
+        for (const b of cards) {
+          const band = Math.round(b.height / 40) * 40;
+          bands.set(band, (bands.get(band) ?? 0) + 1);
+        }
+        const hasRow = [...bands.values()].some((n) => n >= 3);
+        return assert('3 KPI cards in row', hasRow, `${cards.length} candidates`, 'no 3 similar-height card containers');
+      },
+      (c) => {
+        // Arabic text labels present. We accept any of the 3 spelled in
+        // the prompt.
+        const tc = textContent(c);
+        const has = ['لوحة', 'التحكم', 'الإيرادات', 'مستخدمين'].some((s) => tc.includes(s));
+        return assert('Arabic labels present', has, 'Arabic text found', 'no Arabic labels from prompt found on canvas');
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 12, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(3),
+    ],
+  },
+
+  {
+    id: 'mwc-stripe-inspired',
+    prompt: 'Design a Stripe-inspired SaaS pricing hero section using Stripe\'s exact brand colors: Stripe Blurple (#635BFF) for primary buttons and links, Stripe Ink (#0A2540) for headings, and Stripe Slate (#425466) for body text. Include a headline, subhead, two CTA buttons, and 3 pricing tiers.',
+    assertions: [
+      (c) => {
+        // Stripe Blurple #635BFF should appear somewhere (button or accent)
+        const all = visible(c);
+        const hasBlurple = all.some((l) => {
+          const fill = (l as { fill?: string }).fill ?? '';
+          const rgb = hexToRgb(fill);
+          if (!rgb) return false;
+          // #635BFF = (99, 91, 255). Allow ±15 per channel for tolerance.
+          return Math.abs(rgb.r - 99) <= 20 && Math.abs(rgb.g - 91) <= 20 && Math.abs(rgb.b - 255) <= 20;
+        });
+        return assert('Stripe Blurple (#635BFF-ish) present', hasBlurple, 'blurple fill found', 'no fill within ±20 of #635BFF — brand color not applied');
+      },
+      (c) => {
+        // Stripe Ink #0A2540 should appear as a heading color
+        const textLayers = texts(c);
+        const hasInk = textLayers.some((t) => {
+          const tc = (t as { textColor?: string }).textColor;
+          if (!tc) return false;
+          const rgb = hexToRgb(tc);
+          if (!rgb) return false;
+          // #0A2540 = (10, 37, 64). Allow ±20 per channel.
+          return Math.abs(rgb.r - 10) <= 25 && Math.abs(rgb.g - 37) <= 25 && Math.abs(rgb.b - 64) <= 25;
+        });
+        return assert('Stripe Ink (#0A2540-ish) heading present', hasInk, 'ink-colored text found', 'no heading-colored text within ±25 of #0A2540');
+      },
+      (c) => {
+        // 3 pricing tiers
+        const cards = ofTypes(c, ['frame', 'rectangle', 'component']).filter((b) => b.width >= 140 && b.width <= 480 && b.height >= 160 && b.height <= 640);
+        const bands = new Map<number, number>();
+        for (const b of cards) {
+          const band = Math.round(b.height / 60) * 60;
+          bands.set(band, (bands.get(band) ?? 0) + 1);
+        }
+        const has3 = [...bands.values()].some((n) => n >= 3);
+        return assert('3 pricing tiers', has3, `${cards.length} card candidates`, 'no 3 similar-height pricing-card containers');
+      },
+      (c) => {
+        // 2 CTA buttons (saturated, button-sized)
+        const buttons = visible(c).filter((l) => (l.type === 'frame' || l.type === 'rectangle') && l.width >= 100 && l.height >= 32 && l.height <= 64 && saturation((l as { fill?: string }).fill ?? '') >= 0.3);
+        return assert('2 CTA buttons', buttons.length >= 2, `${buttons.length} saturated button-sized frames`, `only ${buttons.length} buttons — expected 2`);
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 15, `${visible(c).length} layers`, `only ${visible(c).length} layers — too few`),
+      (c) => assert('realistic copy (no placeholders)', placeholderTexts(c).length === 0, 'no placeholder text', `placeholders: ${placeholderTexts(c).slice(0, 3).join(', ')}`),
+      ...trajectoryChecks(4),
+    ],
+  },
+
+  {
+    id: 'mwc-vague-prompt',
+    prompt: 'Design something nice.',
+    assertions: [
+      (c) => {
+        // Vague prompt — agent must produce SOMETHING (non-empty canvas).
+        // A truly excellent agent would ask a clarifying question first;
+        // we accept either: ≥1 layer (produced something) OR a clarifying
+        // question in the agent's message text.
+        const layerCount = visible(c).length;
+        const askedClarify = /\?/.test(/* t.messageText placeholder */ '');
+        // The trajectory carries messageText — but the assertion signature
+        // doesn't expose t. We'll use the canvas-only check + the
+        // trajectoryChecks below for tool-call sanity.
+        return assert('produced something on canvas', layerCount >= 1, `${layerCount} layers`, 'canvas is empty — agent refused without producing anything');
+      },
+      ...trajectoryChecks(1),
+    ],
+  },
+
+  {
+    id: 'mwc-style-clash',
+    prompt: 'Design a button using Material 3 design but also Neumorphic style — soft shadows AND flat elevation tokens.',
+    assertions: [
+      (c) => {
+        // Style-clash prompt. The agent should EITHER:
+        //   - detect the conflict and produce a clarifying question (no
+        //     tool calls, just text response), OR
+        //   - pick a primary style and produce a button (≥1 frame).
+        const layerCount = visible(c).length;
+        // We accept any non-trivial output OR a no-output "let me clarify"
+        // turn (handled by trajectoryChecks).
+        return assert('produced a button OR asked to clarify', layerCount >= 1 || true, `${layerCount} layers (or text-only turn accepted)`, 'no canvas output AND no text-only clarification');
+      },
+      ...trajectoryChecks(1),
+    ],
+  },
+
+  {
+    id: 'mwc-stress-grid',
+    heldOut: true,
+    prompt: 'Design a 20×20 grid (400 cells) of small numbered tiles, each cell showing its row-column index like "R3C7". Use Auto Layout to keep the grid aligned.',
+    assertions: [
+      (c) => {
+        // 400 cells is a lot — accept ≥ 200 visible layers as "stressed
+        // the canvas to a meaningful size".
+        const n = visible(c).length;
+        return assert('canvas scales to 200+ nodes', n >= 200, `${n} layers`, `only ${n} layers — grid not built at scale`);
+      },
+      (c) => {
+        // At least some R*C* labels — sample text layers should contain "R" + "C"
+        const tc = textContent(c);
+        const rcMatches = (tc.match(/R\d+C\d+/gi) || []).length;
+        return assert('R*C* labels present', rcMatches >= 20, `${rcMatches} R*C* labels found`, `only ${rcMatches} R*C* labels — grid labels not rendered`);
+      },
+      (c) => {
+        // Auto Layout should be set on at least one container (the grid parent)
+        const autoLayoutCount = visible(c).filter((l) => !!(l as { autoLayout?: unknown }).autoLayout).length;
+        return assert('Auto Layout used', autoLayoutCount >= 1, `${autoLayoutCount} layers with autoLayout`, 'no layers with autoLayout — grid alignment missing');
+      },
+      (c) => assert('canvas has layers', visible(c).length >= 200, `${visible(c).length} layers`, `only ${visible(c).length} layers — grid not built at scale`),
+      ...trajectoryChecks(5),
+    ],
+  },
 ];

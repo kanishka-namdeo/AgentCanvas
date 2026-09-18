@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://tetrate.io",
+    "name": "LLM Temperature Settings: A Complete Guide for Developers",
+    "snippet": "For creative applications, use moderate-to-high temperature ( 0.7 - 1.0 ) with high top-p (0.9-0.95). For consistent applications, use low temperature ( 0.0 - 0.3 ) ... Read more",
+    "host_name": "tetrate.io",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "Min-𝑝 Sampling for Creative and Coherent LLM Outputs",
+    "snippet": "Nov 20, 2025 — We tested three temperature settings ( τ = 1.0 , 2.0 , 3.0 \\tau= 1.0 ,2.0,3.0 ) and two diversity levels: low (top- p = 0.1 p=0.1 , min- p = 0.2 p ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 1,
+    "date": "Nov 20, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://machinelearningplus.com",
+    "name": "LLM Temperature, Top-P, and Top-K Explained",
+    "snippet": "Start with 0.0 (off) and only increase if you see repetition problems. Typical values: 0.3 - 0.7 for frequency_penalty, 0.0 -0.5 for presence_penalty. Read more",
+    "host_name": "machinelearningplus.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net",
+    "name": "Min-p Sampling for Creative and Coherent LLM Outputs",
+    "snippet": "by NN Minh · Cited by 174 — Low Temperatures (< 1.0 ): Min-p sampling performs slightly better than ... ( 0.3 - 0.7 ) across the same temperature range ( 0.7 -3.0). The lower results in ... Read more",
+    "host_name": "openreview.net",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.citrusx.ai",
+    "name": "LLM Temperature: A Complete Guide to Understanding This",
+    "snippet": "Temperature is measured on a scale from 0 to 2 or higher, where lower values (e.g., 0– 0.3 ) increase predictability, and higher values (e.g., 0.8–1.2+) introduce ... Read more",
+    "host_name": "www.citrusx.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.cognativ.com",
+    "name": "What is Temperature in LLMs and Its Impact on Output Quality",
+    "snippet": "Oct 2, 2025 — This guide explains how temperature works mathematically, how different temperature settings affect behavior, and how to choose, test, and ... Read more",
+    "host_name": "www.cognativ.com",
+    "rank": 5,
+    "date": "Oct 2, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://localaimaster.com",
+    "name": "LLM Sampling Parameters: Temperature, top-p, DRY, XTC",
+    "snippet": "May 1, 2026 — Temperature 0 is not the same as \"best quality .\" It is the most likely single token at every step, but greedy decoding accumulates errors over ... Read more",
+    "host_name": "localaimaster.com",
+    "rank": 6,
+    "date": "May 1, 2026",
+    "favicon": ""
+  }
+]

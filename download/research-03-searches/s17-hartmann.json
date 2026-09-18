@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://arxiv.org",
+    "name": "[2601.22759] Qualitative Evaluation of LLM-Designed GUI",
+    "snippet": "by B Sawicki · 2026 — This study investigates the usability and adaptability of LLM -generated interfaces by analysing their ability to meet diverse user needs. The ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.nngroup.com",
+    "name": "The Aesthetic-Usability Effect",
+    "snippet": "Feb 3, 2024 — The aesthetic-usability effect refers to users' tendency to perceive attractive products as more usable .",
+    "host_name": "www.nngroup.com",
+    "rank": 1,
+    "date": "Feb 3, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net",
+    "name": "(PDF) Towards a theory of user judgment of aesthetics and",
+    "snippet": "The article introduces a framework for users' design quality judgments based on Adaptive Decision Making theory. The framework describes judgment on quality ... Read more",
+    "host_name": "www.researchgate.net",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://journal.stekom.ac.id",
+    "name": "LLM-as-Design-Critic: Aligning AI-Generated UI Feedback",
+    "snippet": "by Y Li · 2025 · Cited by 36 — Each row includes ratings for aesthetics , learnability, efficiency, usability , and overall design quality, plus natural-language comments and ... Read more",
+    "host_name": "journal.stekom.ac.id",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.academia.edu",
+    "name": "Empirical Studies in Aesthetic Computing",
+    "snippet": "Expressive aesthetics significantly correlate with perceived usability but do not conclusively affect performance. Research reveals three primary questions ... Read more",
+    "host_name": "www.academia.edu",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.semanticscholar.org",
+    "name": "Towards a theory of user judgment of aesthetics and",
+    "snippet": "A framework for users' design quality judgments based on Adaptive Decision Making theory is introduced, which describes judgment on quality attributes ... Read more",
+    "host_name": "www.semanticscholar.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lawsofux.com",
+    "name": "Aesthetic-Usability Effect",
+    "snippet": "Takeaways. An aesthetically pleasing design creates a positive response in people's brains and leads them to believe the design actually works better. Read more",
+    "host_name": "lawsofux.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

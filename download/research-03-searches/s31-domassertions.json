@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.levelaccess.com",
+    "name": "ARIA Roles Explained: A Practical Guide for Web Developers",
+    "snippet": "ARIA roles help assistive technologies understand the structure and purpose of HTML elements on a web page. Learn how to use ARIA roles correctly.",
+    "host_name": "www.levelaccess.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.mozilla.org",
+    "name": "ARIA: landmark role - MDN Web Docs - Mozilla",
+    "snippet": "Oct 13, 2025 — To create a landmark role , define the purpose of the content by using a semantic element ・ or adding an ARIA role ・ semantic HTML if possible.",
+    "host_name": "developer.mozilla.org",
+    "rank": 1,
+    "date": "Oct 13, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.grizzlypeaksoftware.com",
+    "name": "Web Accessibility: ARIA and Semantic HTML - Library",
+    "snippet": "Feb 14, 2026 — This article covers the full landscape of web accessibility: WCAG compliance levels, semantic HTML elements, ARIA roles and attributes, keyboard ... Read more",
+    "host_name": "www.grizzlypeaksoftware.com",
+    "rank": 2,
+    "date": "Feb 14, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://primer.style",
+    "name": "Semantic HTML and ARIA",
+    "snippet": "Landmark roles . These roles are used to define overall areas of the page such as the main content, the header and footer, sidebar, etc.",
+    "host_name": "primer.style",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to",
+    "name": "Why It Matters for Accessibility and Automated Testing",
+    "snippet": "Mar 5, 2026 — Semantic elements map to roles and landmarks . Users can jump by landmark (\"go to main content\") or by heading level. Using semantic HTML ...",
+    "host_name": "dev.to",
+    "rank": 4,
+    "date": "Mar 5, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://accesstive.com",
+    "name": "ARIA Basics: When and How to Use ARIA",
+    "snippet": "Feb 10, 2026 — Learn ARIA basics and best practices . Discover when and how to use ARIA with practical HTML code examples for better web accessibility.",
+    "host_name": "accesstive.com",
+    "rank": 5,
+    "date": "Feb 10, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.w3.org",
+    "name": "ARIA required context role[proposed] | ACT Rule | WAI",
+    "snippet": "This rule checks that an element with an explicit semantic role exists inside its required context. Each test target is the child",
+    "host_name": "www.w3.org",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://maestro.dev",
+    "name": "Best Practices for Accessibility Testing in Mobile Frameworks",
+    "snippet": "Mar 26, 2026 — Android requires a minimum touch target of 48×48 dp, while iOS sets this at 44×44 points. Flutter simplifies this process with its Guideline API ... Read more",
+    "host_name": "maestro.dev",
+    "rank": 7,
+    "date": "Mar 26, 2026",
+    "favicon": ""
+  }
+]

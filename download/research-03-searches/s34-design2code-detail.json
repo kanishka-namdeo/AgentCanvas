@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://saltlab.stanford.edu",
+    "name": "Design2Code: Benchmarking Multimodal Code Generation",
+    "snippet": "Jan 21, 2025 — Design2Code: Benchmarking Multimodal Code Generation for Automated Front-End Engineering | Stanford SALT Lab … the free, open source website ...",
+    "host_name": "saltlab.stanford.edu",
+    "rank": 0,
+    "date": "Jan 21, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://salt-nlp.github.io",
+    "name": "Design2Code: How Far Are We From Automating Front-",
+    "snippet": "We manually curate a benchmark of 484 real-world webpages as test cases and develop a set of automatic evaluation metrics to assess how well current multimodal ... Read more",
+    "host_name": "salt-nlp.github.io",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alphaxiv.org",
+    "name": "Design2Code: Benchmarking Multimodal Code Generation",
+    "snippet": "Feb 9, 2025 — Design2Code introduces the first real-world benchmark for multimodal code generation , curate 484 diverse real-world webpages as test cases and ...",
+    "host_name": "www.alphaxiv.org",
+    "rank": 2,
+    "date": "Feb 9, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "NoviScl/Design2Code",
+    "snippet": "The Design2Code benchmark dataset for the task of converting visual design (screenshot) into code implementation, which consists of 484 real-world webpages ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "Design2Code: Benchmarking Multimodal Code Generation",
+    "snippet": "In this work, we construct Design2Code – the first real-world benchmark for this task. Specifically, we manually curate 484 diverse real-world webpages as ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aclanthology.org",
+    "name": "Design2Code: Benchmarking Multimodal Code Generation",
+    "snippet": "by C Si · 2025 · Cited by 262 — In this work, we construct Design2Code – the first real-world benchmark for this task. Specifically, we manually curate 484 diverse real-world webpages as ... Read more",
+    "host_name": "aclanthology.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://liner.com",
+    "name": "Design2Code: Benchmarking Multimodal Code Generation",
+    "snippet": "Mar 5, 2024 — We introduce Design2Code , the first real-world benchmark for multimodal code generation, comprising 484 manually curated, diverse webpages from ... Read more",
+    "host_name": "liner.com",
+    "rank": 6,
+    "date": "Mar 5, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.semanticscholar.org",
+    "name": "Design2Code: Benchmarking Multimodal Code Generation",
+    "snippet": "This work manually curate 484 diverse real-world webpages as test cases and develops a set of automatic evaluation metrics to assess how well current ...",
+    "host_name": "www.semanticscholar.org",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

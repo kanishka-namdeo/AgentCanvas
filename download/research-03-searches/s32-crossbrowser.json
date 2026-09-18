@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://playwright.dev",
+    "name": "Emulation",
+    "snippet": "Simply configure the devices you would like to emulate and Playwright will simulate the browser behavior such as \"userAgent\" , \"screenSize\" , \"viewport\" and if ... Read more",
+    "host_name": "playwright.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://thinksys.com",
+    "name": "Cross-Browser Testing with Playwright in 2026",
+    "snippet": "Run cross-browser tests in Playwright across Chromium, WebKit & Firefox. Setup, debugging, mobile emulation, plus how to keep coverage stable at scale.",
+    "host_name": "thinksys.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://hyperping.com",
+    "name": "Mobile Emulation and Device Testing in Playwright",
+    "snippet": "Learn how Playwright emulates mobile devices with the devices registry, viewports, touch, geolocation, locale, and dark mode, and where emulation stops. Read more",
+    "host_name": "hyperping.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://allscreenshots.com",
+    "name": "Playwright Cross-Browser Testing: A Practical Guide",
+    "snippet": "Jun 20, 2026 — This guide focuses on how to build a Playwright cross-browser setup that gives useful coverage without turning every pull request into a slow  ...",
+    "host_name": "allscreenshots.com",
+    "rank": 3,
+    "date": "Jun 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.mergify.com",
+    "name": "Mastering Playwright for Mobile Testing - Continuously Merging",
+    "snippet": "Aug 2, 2025 — It lets you emulate mobile browsers like Chrome for Android and Mobile Safari right out of the box. This makes testing responsive designs and ...",
+    "host_name": "blog.mergify.com",
+    "rank": 4,
+    "date": "Aug 2, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://bug0.com",
+    "name": "Playwright: Visual, Mobile, and AI-Driven Testing Guide",
+    "snippet": "Feb 13, 2026 — Playwright supports visual regression testing, mobile device emulation , and accessibility scanning — but each adds significant complexity, ...",
+    "host_name": "bug0.com",
+    "rank": 5,
+    "date": "Feb 13, 2026",
+    "favicon": ""
+  }
+]

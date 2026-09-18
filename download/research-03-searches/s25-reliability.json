@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://engineering.indeedblog.com",
+    "name": "Bootstrap Confidence Intervals for LLM Evaluation",
+    "snippet": "Jul 8, 2026 — We'll judge the methods based on whether their coverage matches our intended coverage, and whether they can do so with narrow confidence ... Read more",
+    "host_name": "engineering.indeedblog.com",
+    "rank": 0,
+    "date": "Jul 8, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://desirivanova.com",
+    "name": "Towards more rigorous evaluations of language models",
+    "snippet": "Dec 29, 2024 — 95% Wilson score confidence intervals for the point estimates of p 8K m (red dots), along with the average (over 50 datasets) point estimate of p ... Read more",
+    "host_name": "desirivanova.com",
+    "rank": 1,
+    "date": "Dec 29, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "Spark-LLM-Eval: A Distributed Framework for Statistically",
+    "snippet": "A statistical methodology integrated throughout the framework, providing bootstrap confidence intervals for all metrics and appropriate significance tests for ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://statsforevals.com",
+    "name": "Which Method? — Stats for LLM Evals",
+    "snippet": "Use Wilson for binary point-estimate CIs . It is fast, closed-form, and lands on-target in both synthetic and real eval data simulations. Read more",
+    "host_name": "statsforevals.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to",
+    "name": "Bootstrap confidence intervals for your LLM eval metrics",
+    "snippet": "Jun 24, 2026 — A 95% bootstrap interval of [81.0%, 87.1%] means that across thousands of resamples of your data, 95% of the recomputed scores fell in that band ... Read more",
+    "host_name": "dev.to",
+    "rank": 4,
+    "date": "Jun 24, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.towardsai.net",
+    "name": "Data-Driven LLM Evaluation with Statistical Testing",
+    "snippet": "Apr 15, 2025 — Bootstrap testing is a reliable way to estimate confidence intervals , and it can also be used to estimate p-values. However, a more robust ... Read more",
+    "host_name": "pub.towardsai.net",
+    "rank": 5,
+    "date": "Apr 15, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://latenteval.ai",
+    "name": "LLM Eval A/B Comparator: Paired Difference with Bootstrap CIs",
+    "snippet": "Run an LLM eval A/B test on paired graded scores: mean score difference with a bootstrap confidence interval , paired effect size, and win/tie/loss evidence. Read more",
+    "host_name": "latenteval.ai",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

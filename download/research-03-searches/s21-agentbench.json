@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://sierra.ai",
+    "name": "𝜏-bench",
+    "snippet": "Mar 18, 2025 — τ- bench has become a cornerstone of AI agent evaluation , cited in academic research as a critical step toward more realistic, multi - turn agent ...",
+    "host_name": "sierra.ai",
+    "rank": 0,
+    "date": "Mar 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "Benchmark Test-Time Scaling of General LLM Agents",
+    "snippet": "Feb 22, 2026 — We introduce General AgentBench, a benchmark that provides such a unified framework for evaluating general LLM agents across search, coding, ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 1,
+    "date": "Feb 22, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.morphllm.com",
+    "name": "AI Agent Evaluation (2026): The Metrics, the Frameworks, and",
+    "snippet": "Jun 20, 2026 — Multi-turn tool use against API tools and policy guidelines ; checks the final answer AND the resulting database state, not just tool-call",
+    "host_name": "www.morphllm.com",
+    "rank": 2,
+    "date": "Jun 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://prefactor.tech",
+    "name": "Agent Benchmarks: tau-bench, SWE-bench, GAIA & pass^k",
+    "snippet": "Aug 7, 2026 — An agent benchmark is a standardised set of tasks and scoring rules used to compare how well AI agents perform, on tool use , coding, reasoning ... Read more",
+    "host_name": "prefactor.tech",
+    "rank": 3,
+    "date": "Aug 7, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://qaskills.sh",
+    "name": "τ-bench (tau-bench) Agent Evaluation Guide (2026)",
+    "snippet": "Jun 15, 2026 — Use tau-bench when you're building or evaluating an agent that acts — calls tools, mutates real systems, and must respect business rules over a ... Read more",
+    "host_name": "qaskills.sh",
+    "rank": 4,
+    "date": "Jun 15, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://arize.com",
+    "name": "What Is AgentBench",
+    "snippet": "AgentBench evaluates models as agents across several interactive environments , scoring task completion over multiple turns rather than the quality of a single ... Read more",
+    "host_name": "arize.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "THUDM/AgentBench: A Comprehensive Benchmark to",
+    "snippet": "AgentBench is the first benchmark designed to evaluate LLM-as-Agent across a diverse spectrum of different environments. It encompasses 8 distinct environments",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://evalscope.readthedocs.io",
+    "name": "τ-bench | EvalScope - Read the Docs",
+    "snippet": "Key features of this benchmark include: Dynamic Interaction: Simulates multi-turn dialogues between real users and AI agents . Tool Integration: Agents must ... Read more",
+    "host_name": "evalscope.readthedocs.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

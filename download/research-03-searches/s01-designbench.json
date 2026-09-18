@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://arxiv.org",
+    "name": "DesignBench: A Comprehensive Benchmark for MLLM-",
+    "snippet": "Jun 6, 2025 — The benchmark contains 900 webpage samples spanning more than 11 topics , 9 edit types , and 6 issue categories , enabling detailed analysis of ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "Jun 6, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://ui.adsabs.harvard.edu",
+    "name": "A Comprehensive Benchmark for MLLM-based Front-end",
+    "snippet": "DesignBench contains 900 webpage samples spanning over 11 topics, 9 edit types, and 6 issue categories, enabling detailed analysis of MLLM performance across ... Read more",
+    "host_name": "ui.adsabs.harvard.edu",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net",
+    "name": "A Comprehensive Benchmark for MLLM-based Front-end",
+    "snippet": "Jun 6, 2025 — DesignBench contains 900 webpage samples spanning over 11 topics, 9 edit types, and 6 issue categories, enabling detailed analysis of MLLM ...",
+    "host_name": "www.researchgate.net",
+    "rank": 2,
+    "date": "Jun 6, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "DesignBench: Exploring and Benchmarking MLLMs in",
+    "snippet": "DesignBench contains 900 webpage samples spanning over 11 topics, 9 edit types, and 6 issue categories, enabling detailed analysis of MLLM performance across ... Read more",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://text-to-app.com",
+    "name": "DesignBench A Comprehensive Benchmark for MLLM-based",
+    "snippet": "DesignBench utilizes 900 real-world webpage samples across 11 topics, 9 edit types, and 6 issue categories, meticulously curated from GitHub projects, top- ...",
+    "host_name": "text-to-app.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.scribd.com",
+    "name": "DesignBench: Benchmarking MLLM Code Generation | PDF",
+    "snippet": "Jun 6, 2025 — The benchmark contains 900 webpage samples design concepts into a functional application through cod- spanning more than 11 topics , 9 edit ...",
+    "host_name": "www.scribd.com",
+    "rank": 5,
+    "date": "Jun 6, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.semanticscholar.org",
+    "name": "A Comprehensive Benchmark for MLLM-based Front-end",
+    "snippet": "DesignBench is introduced, a multi-framework, multi-task evaluation benchmark for assessing MLLMs'capabilities in automated front-end engineering,",
+    "host_name": "www.semanticscholar.org",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ojs.aaai.org",
+    "name": "CANVAS: A Benchmark for Vision-Language Models on",
+    "snippet": "by D Jeong · 2026 · Cited by 5 — To address this, we introduce CANVAS, a benchmark for VLMs on tool-based user interface design . Our benchmark contains 598 tool-based design tasks paired with ... Read more",
+    "host_name": "ojs.aaai.org",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

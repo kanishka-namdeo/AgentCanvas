@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://arxiv.org",
+    "name": "Enhancing Automated Design Evaluation with a UI Critique",
+    "snippet": "Jul 15, 2024 — The rubric first breaks down design quality into aesthetics and usability , which is modeled from the framework developed",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "Jul 15, 2024",
+    "favicon": ""
+  },
+  {
+    "url": "https://dl.acm.org",
+    "name": "Enhancing Automated Design Evaluation with a UI Critique",
+    "snippet": "by P Duan · 2024 · Cited by 63 — The rubric first breaks down design quality into aesthetics and usability , which is modeled from the framework developed by [15] that separates design ...",
+    "host_name": "dl.acm.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://galtea.ai",
+    "name": "LLM as a Judge prompts: templates, rubrics, and best",
+    "snippet": "May 18, 2026 — A single prompt that scores faithfulness, relevance, fluency, and format compliance in one pass produces correlated, unreliable scores .",
+    "host_name": "galtea.ai",
+    "rank": 2,
+    "date": "May 18, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net",
+    "name": "Enhancing Automated Design Evaluation with a UI Critique",
+    "snippet": "LLMs are increasingly used not only to generate code and interface mockups but also to review existing interfaces, diagnose usability problems, and propose ...",
+    "host_name": "www.researchgate.net",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://journal.stekom.ac.id",
+    "name": "LLM-as-Design-Critic: Aligning AI-Generated UI Feedback",
+    "snippet": "by Y Li · 2025 · Cited by 36 — Each row includes ratings for aesthetics , learnability, efficiency, usability , and overall design quality, plus natural-language comments and ...",
+    "host_name": "journal.stekom.ac.id",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aiuxplayground.com",
+    "name": "Heuristic UX Review · UX design AI Prompt",
+    "snippet": "Jan 6, 2026 — Review UI designs using UX best practices and common usability heuristics. Best for ux design workflows. Includes copy-paste prompt text and ...",
+    "host_name": "aiuxplayground.com",
+    "rank": 5,
+    "date": "Jan 6, 2026",
+    "favicon": ""
+  }
+]

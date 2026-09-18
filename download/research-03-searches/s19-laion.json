@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://laion.ai",
+    "name": "LAION-Aesthetics",
+    "snippet": "Aug 16, 2022 — To create LAION - Aesthetics we trained several lightweight models that predict the rating people gave when they were asked “How much do you ... Read more",
+    "host_name": "laion.ai",
+    "rank": 0,
+    "date": "Aug 16, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com",
+    "name": "LAION-AI/aesthetic-predictor: A linear estimator on top",
+    "snippet": "A linear estimator on top of clip to predict the aesthetic quality of pictures - LAION-AI/aesthetic-predictor.",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org",
+    "name": "An Audit and Ethnography of the LAION-Aesthetics",
+    "snippet": "Jan 14, 2026 — LAP is a multi-layer perceptron model with linear layers trained to predict the aesthetic score of an image based on a CLIP embedding.",
+    "host_name": "arxiv.org",
+    "rank": 2,
+    "date": "Jan 14, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://dl.acm.org",
+    "name": "An Audit and Trace Ethnography of the LAION-Aesthetics",
+    "snippet": "Jun 25, 2026 — In this work, we study an aesthetic evaluation model—the LAION-Aesthetics Predictor (LAP)—that is widely used to curate datasets to train visual ... Read more",
+    "host_name": "dl.acm.org",
+    "rank": 3,
+    "date": "Jun 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.kaggle.com",
+    "name": "[Research] Aesthetic Model",
+    "snippet": "This model provides a score for the image on a scale from 0 to 10. At the core is CLIP , used to extract embeddings from the images, and a simple linear layer  ...",
+    "host_name": "www.kaggle.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ui.adsabs.harvard.edu",
+    "name": "An Audit and Trace Ethnography of the LAION-Aesthetics",
+    "snippet": "by J Taylor · 2026 · Cited by 4 — In this work, we study an aesthetic evaluation model -- LAION - Aesthetics Predictor (LAP)--that is widely used to curate datasets to train visual generative image ... Read more",
+    "host_name": "ui.adsabs.harvard.edu",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://comfy.icu",
+    "name": "Aesthetic Score (LAION) - ComfyUI Cloud",
+    "snippet": "Sep 5, 2026 — Aesthetic Score gives you a number from 1 to 10 for \"how aesthetically pleasing is this image\" - computed locally, no API, no second model ... Read more",
+    "host_name": "comfy.icu",
+    "rank": 6,
+    "date": "Sep 5, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://huggingface.co",
+    "name": "CompVis/stable-diffusion-v1-4 · #",
+    "snippet": "Jun 25, 2023 — The watermark estimate is from the [ LAION -5B](https:// laion .ai/blog/ laion -5b/) metadata, the aesthetics score is estimated using the [ LAION - ... Read more",
+    "host_name": "huggingface.co",
+    "rank": 7,
+    "date": "Jun 25, 2023",
+    "favicon": ""
+  }
+]

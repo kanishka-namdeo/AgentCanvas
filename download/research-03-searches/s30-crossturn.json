@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://arxiv.org",
+    "name": "Evaluating LLM-based Agents for Multi-Turn Conversations",
+    "snippet": "Mar 28, 2025 — This survey examines evaluation methods for large language model ( LLM )-based agents in multi- turn conversational settings.",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "Mar 28, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://deepeval.com",
+    "name": "Multi-Turn Evaluation Metrics",
+    "snippet": "Sep 2, 2026 — Multi-turn evaluation metrics are purpose-built measurements that assess how well LLM systems perform across extended conversations. Read more",
+    "host_name": "deepeval.com",
+    "rank": 1,
+    "date": "Sep 2, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.confident-ai.com",
+    "name": "Multi-Turn LLM Evaluation in 2026: What You Need to Know",
+    "snippet": "Mar 22, 2026 — Key multi- turn metrics include conversation relevancy, knowledge retention, role adherence, conversation completeness, and task completion. Read more",
+    "host_name": "www.confident-ai.com",
+    "rank": 2,
+    "date": "Mar 22, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.qualifire.ai",
+    "name": "LLM Evaluation Frameworks, Metrics & Methods Explained",
+    "snippet": "May 30, 2025 — This guide breaks down key LLM evaluation methods—including automatic metrics , model responses in order of preference, or providing qualitative ...",
+    "host_name": "www.qualifire.ai",
+    "rank": 3,
+    "date": "May 30, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.ragas.io",
+    "name": "Evaluating Multi-turn Conversations",
+    "snippet": "When evaluating with LLM -based metrics , each metric may involve one or more calls to the LLM . The traces of evaluation can provide insights for understanding ... Read more",
+    "host_name": "docs.ragas.io",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://labelstud.io",
+    "name": "Evaluating Multi-Turn LLM Chat Conversations Using",
+    "snippet": "Jan 21, 2025 — Evaluate multi- turn conversations with Label Studio to identify gaps and improve response accuracy, enhancing your virtual assistant's ...",
+    "host_name": "labelstud.io",
+    "rank": 5,
+    "date": "Jan 21, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://learn.microsoft.com",
+    "name": "A list of metrics for evaluating LLM-generated content",
+    "snippet": "Jun 24, 2024 — Entailment-based metrics are designed as a classification task with labels “ consistent ” or “inconsistent”. Factuality, QA and QG-based metrics . Read more",
+    "host_name": "learn.microsoft.com",
+    "rank": 6,
+    "date": "Jun 24, 2024",
+    "favicon": ""
+  }
+]

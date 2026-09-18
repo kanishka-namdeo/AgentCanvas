@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://arxiv.org/html/2505.17123v1",
+    "name": "A Comprehensive Benchmark for Multi-Turn Reasoning Evaluation",
+    "snippet": "May 21, 2025 · Comprising 4 classes, 40 tasks, and 3600 instances, MTR-Bench covers diverse reasoning capabilities, fine-grained difficulty granularity, and ...",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.emergentmind.com/topics/mt-bench-benchmarks",
+    "name": "MT-bench: Multi-Turn AI Evaluation - Emergent Mind",
+    "snippet": "Feb 12, 2026 · MT-bench Benchmarks are a suite of high-fidelity evaluation protocols that assess multi-turn, context-sensitive, and multimodal capabilities ...",
+    "host_name": "www.emergentmind.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net/publication/384215139_MT-Bench-101_A_Fine-Grained_Benchmark_for_Evaluating_Large_Language_Models_in_Multi-Turn_Dialogues",
+    "name": "MT-Bench-101: A Fine-Grained Benchmark for Evaluating Large",
+    "snippet": "MT-Bench and MT-Bench-101 evaluate multi-turn chat and instruction-following behavior, extends this setting to multi-turn and multilingual conversations",
+    "host_name": "www.researchgate.net",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/KwanWaiChung/MT-Eval",
+    "name": "MT-Eval: A Multi-Turn Capabilities Evaluation Benchmark for Large",
+    "snippet": "To address this gap, we introduce MT-Eval, a comprehensive benchmark designed to evaluate multi-turn conversational abilities. By analyzing human-LLM ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aclanthology.org/2024.acl-long.401.pdf",
+    "name": "[PDF] MT-Bench-101: A Fine-Grained Benchmark for Evaluating Large",
+    "snippet": "Aug 11, 2024 · MT-Bench- 101, specifically range of abilities is considered better in multi-turn scenarios. mainly focus on two-turn dialogues and coarse- ...",
+    "host_name": "aclanthology.org",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://thesequence.substack.com/p/the-sequence-knowledge-555-not-all",
+    "name": "Not All Benchmark are that Simple: An Intro to Multiturn Benchmarks",
+    "snippet": "Jun 3, 2025 · MT-Bench constructs structured multi-turn conversations that span diverse categories such as math, reasoning, role-play, and in difficulty and ...",
+    "host_name": "thesequence.substack.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alphaxiv.org/abs/2402.14762",
+    "name": "MT-Bench-101: A Fine-Grained Benchmark for Evaluating Large",
+    "snippet": "MT-Bench-101, the first comprehensive benchmark designed to evaluate LLMs across 13 distinct multi-turn dialogue tasks",
+    "host_name": "www.alphaxiv.org",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://llm-stats.com/benchmarks/mm-mt-bench",
+    "name": "MM-MT-Bench Leaderboard - LLM Stats",
+    "snippet": "MM-MT-Bench is a multimodal benchmark evaluating models on chat, multimodal, and communication tasks. The current average is 9.8, with the leader at 84.9.",
+    "host_name": "llm-stats.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://openreview.net/forum?id=66v0c2oOHK",
+    "name": "KnowMT-Bench: Benchmarking Knowledge-Intensive Long-Form",
+    "snippet": "Sep 10, 2025 · This paper introduces KnowMT-Bench, a benchmark designed to evaluate Multi-Turn Long-Form Question Answering (MT-LFQA) in domains such as ...",
+    "host_name": "openreview.net",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://klu.ai/glossary/mt-bench-eval",
+    "name": "MT-Bench (Multi-turn Benchmark) - Klu.ai",
+    "snippet": "MT-Bench is a challenging multi-turn benchmark that measures the ability of large language models (LLMs) to engage in coherent, informative, and engaging ...",
+    "host_name": "klu.ai",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
