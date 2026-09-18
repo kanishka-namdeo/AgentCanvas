@@ -45,7 +45,7 @@ Live VLM-inspection of the agent (`scripts/vlm-inspect/`, baseline pass) measure
 **Pattern**: R1 pattern 9 — Figma "design directions" / tldraw Fairies. On ambiguous creation prompts (no direction pinned), explore K=3 whole-design directions in parallel and let a vision judge pick, instead of committing to the first guess.
 
 **Flow** (`subagents/variant-generator.ts`, behind the `pen_generate_variants` tool):
-1. K=3 staggered-parallel spec generations with SEEDED directions (`DEFAULT_VARIANT_DIRECTIONS`: Minimal Light / Bold Vibrant / Dark Premium) — stagger + sequential retry waves because single-connection tunnels (pinggy) starve under simultaneous long calls.
+1. K=3 staggered-parallel spec generations with SEEDED directions (`DEFAULT_VARIANT_DIRECTIONS`: Minimal Light / Bold Vibrant / Dark Premium) — stagger + sequential retry waves because single-connection endpoints starve under simultaneous long calls.
 2. Throwaway off-canvas renders → one composite image (`compositeVariantPngs`).
 3. ONE VLM-judge call on the composite (A/B/C labeled) — heuristic judge fallback when no render is available.
 4. Only the winner is applied; the result embeds the winner's id-manifest + all scores + resolver warnings inline (no read-back).

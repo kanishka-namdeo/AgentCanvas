@@ -53,7 +53,7 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 - When a script fails: read the error, edit the script, re-run. Do not delete + rewrite unless the change is pervasive.
 
 ### LLM endpoint access rule (durable — root AGENTS.md "LLM Endpoint Access Policy")
-- Scripts must NEVER invoke the BETA endpoint (or any future `endpoint-presets.ts` preset) directly — no curl/bash/fetch against its base URL. Endpoint-touching scripts import the preset from `@/lib/llm/endpoint-presets` and drive the app's own HTTP API (`POST /api/models`, `POST /api/agent`) exclusively. The former reference implementation `verify-beta-endpoint.ts` was deleted (2026-09) when the BETA preset stopped being the app default; `tests/unit/endpoint-presets-2026-09-07.test.ts` (if it still exists) enforces the no-embed invariant.
+- Scripts must NEVER invoke custom endpoints (or any `endpoint-presets.ts` preset) directly — no curl/bash/fetch against their base URLs. Endpoint-touching scripts import the preset from `@/lib/llm/endpoint-presets` and drive the app's own HTTP API (`POST /api/models`, `POST /api/agent`) exclusively. The app defaults to the z.ai sandbox (provider `zai`, model `glm-5.3`).
 
 ## Verification
 

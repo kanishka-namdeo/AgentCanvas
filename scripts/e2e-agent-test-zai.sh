@@ -2,8 +2,7 @@
 # e2e-agent-test-zai.sh — tool-calling reliability verification (Task 3).
 #
 # Runs the login-screen design turn against POST /api/agent with EXPLICIT
-# z.ai sandbox settings (provider 'zai' → glm-5.3, skipping the dead pinggy
-# tunnel entirely), then summarizes the NDJSON stream:
+# z.ai sandbox settings (provider 'zai' → glm-5.3), then summarizes the NDJSON stream:
 #   - event-type counts (patches, tool calls, errors)
 #   - terminal status (turn_final / turn_end)
 #   - persisted shape count for document 'demo-zai'
