@@ -841,7 +841,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // silent-failure guard below, so we retry/error exactly the turns that
   // should have drawn — and never harass legit prose answers.
   //
-  // Observed live failure this enables recovery for: the pinggy tunnel
+  // Observed live failure this enables recovery for: a flaky custom endpoint
   // closed the SSE stream mid-output (turn died at exactly 500 output
   // tokens, right after the model's preamble, with ZERO tool calls). The
   // old guards only handled "zero output at all" (sawActivity=false), so a
@@ -990,7 +990,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     //
     // The complex-scenario eval measured the #1 one-shot latency sink as the
     // post-build verification LOOP: pen_get_metadata ×10-18 (inspecting node
-    // by node), each a full LLM round trip on the BETA tunnel. Prompt rules
+    // by node), each a full LLM round trip on the custom endpoint. Prompt rules
     // ("VERIFY DISCIPLINE ... HARD CAP 3") decay under warning pressure, so
     // this wrapper enforces the cap architecturally — after 4 metadata reads
     // on a one-shot build turn the tool returns a terminal "verify budget

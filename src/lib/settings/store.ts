@@ -118,15 +118,15 @@ export const useSettings = create<SettingsStore>()(
       //     the value preserved.
       //   v4 → v5: the default inference provider moved to the z.ai sandbox
       //     (zai / glm-5.3 / no key / no base URL). Browsers that still hold
-      //     any OLD custom-endpoint defaults (provider 'custom' + the pinggy
-      //     base URL + placeholder key '123456') are rewritten to the CURRENT
-      //     DEFAULT_SETTINGS values. Any user customization — different provider,
-      //     different model, a real API key, or a different base URL — is
-      //     preserved untouched. v5-era z.ai-sandbox blobs are NOT rewritten.
+      //     any OLD custom-endpoint defaults (provider 'custom' + a legacy
+      //     tunnel base URL + placeholder key '123456') are rewritten to the
+      //     CURRENT DEFAULT_SETTINGS values. Any user customization — different
+      //     provider, different model, a real API key, or a different base URL —
+      //     is preserved untouched. v5-era z.ai-sandbox blobs are NOT rewritten.
       migrate: (persisted, _version) => {
         const s = (persisted ?? {}) as Partial<AppSettings> & { maxSnapshotsPerSession?: number };
         // v4 → v5: old-defaults custom-endpoint rewrite.
-        // Detect ANY old custom-endpoint defaults (the pinggy tunnel URL with
+        // Detect ANY old custom-endpoint defaults (a legacy tunnel URL with
         // the placeholder key) and rewrite to z.ai sandbox. This covers both
         // the kimi-k2-5 and qwen3.7-plus era defaults. Any user customization
         // — different provider, different model, a real API key, or a different

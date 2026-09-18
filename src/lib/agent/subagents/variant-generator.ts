@@ -350,7 +350,7 @@ export async function dispatchVariantGeneration(
   // fast path still wins; on constrained transports (single SSH tunnels,
   // per-connection limits) un-staggered parallel big generations starve
   // each other past idle-timeout limits (live finding: 3 un-staggered
-  // calls through one pinggy tunnel — 1 completed at ~80s, 2 died at
+  // calls through one flaky endpoint — 1 completed at ~80s, 2 died at
   // ~110s). Callers that fail the first wave get ONE sequential retry in
   // step 1b (empty wire, no contention).
   const generateOne = async (label: string, seed: string, timeoutMs = GEN_TIMEOUT_MS) => {

@@ -673,7 +673,7 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
       auth: { apiKey: envApiKeyAuth('Custom endpoint API key', ['CUSTOM_API_KEY']) },
       models: [customModel],
       // 2026-09-07 r2: wrapped with a single mid-stream-error retry — the
-      // BETA tunnel intermittently terminates streams with finish_reason
+      // custom endpoint intermittently terminates streams with finish_reason
       // "error" BEFORE any content; one replay completes the round-trip
       // transparently (see withMidStreamRetry above for the safety argument).
       api: withMidStreamRetry(openAICompletionsApi()),

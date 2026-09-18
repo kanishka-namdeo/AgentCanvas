@@ -372,7 +372,7 @@ export async function POST(req: NextRequest) {
       // journaled, the run registry is freed, and the wire closes. Without
       // this the whole teardown used to hang at `await iterator.return()`
       // and the run stayed in_progress in the DB forever (observed live:
-      // the pinggy tunnel half-died mid-SSE; session.abort() was a no-op
+      // a flaky custom endpoint half-died mid-SSE; session.abort() was a no-op
       // against the dead socket; the run never finalized).
       const ABORT_GRACE_MS = 30_000;
       let abortedAt: number | undefined;
