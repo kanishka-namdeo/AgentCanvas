@@ -374,7 +374,7 @@ describe('2026-09-05: system prompt optimization', () => {
 describe('2026-09-05: temperature reaches the custom endpoint model', () => {
   it('buildCustomEndpointModel declares samplingParams and the resolver passes settings.temperature', () => {
     const resolverSrc = readFileSync(join(process.cwd(), 'src/lib/agent/pi-ai-model-resolver.ts'), 'utf-8');
-    // 2026-09-07 (Qwen3.7 BETA tuning): samplingParams now carries the
+    // 2026-09-07: samplingParams now carries the
     // recommended Qwen3.7 shape — temperature + top_p 0.8 + thinking-off
     // (both via the field and chat_template_kwargs).
     expect(resolverSrc).toContain(

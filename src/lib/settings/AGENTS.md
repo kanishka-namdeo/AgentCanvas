@@ -25,7 +25,7 @@ This is the single source of truth for every setting the user can change in the 
 | `approvalMode` | `'destructive' \| 'review' \| 'off'` | `'destructive'` | 1 — Agent behavior (gate for pen_clear / pen_delete_shape / figma_delete_page / pen_clear_pattern_memory) |
 | `alwaysAllowTools` | `string[]` (tools allowed via "Always allow" checkbox) | `[]` | 1 |
 | `agentMode` | `'build' \| 'ask' \| 'plan'` | `'build'` | 1 — Agent mode (Cursor-style; enforced at tool-registry assembly) |
-| `designCritiqueMode` | `'manual' \| 'auto' \| 'off'` | `'manual'` | 1 — Agent behavior (2026-09-06: critics fire only when the user asks) |
+| `designCritiqueMode` | `'manual' \| 'auto' \| 'off'` | `'off'` | 1 — Agent behavior (2026-09-06: critics are off by default; users opt in via /critique or Settings) |
 | `enabledPlugins` | `string[]` (plugin ids; absent = each plugin's `defaultEnabled` flag) | (3 default-enabled plugins providing 11 tools) | 5 — Plugins |
 | `mcpServers` | `McpServerConfig[]` | `[]` | 5 — MCP |
 | `themePreference` | `'system' \| 'light' \| 'dark'` | `'system'` | 1 — Appearance |

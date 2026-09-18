@@ -199,13 +199,13 @@ describe('settings store: poisoned localStorage rehydrates safely (12-c#3)', () 
   it('v5 migration semantics stay intact: v4 old-defaults rewrite still runs', async () => {
     localStorage.setItem('agentcanvas.settings.v1', JSON.stringify({
       state: {
-        // Old custom-endpoint defaults (pinggy tunnel URL + placeholder key)
+        // Old custom-endpoint defaults (placeholder key)
         // → rewritten to z.ai sandbox by the v4 → v5 migrate, while the
         // poisoned temperature is sanitized in the merge afterwards.
         llmProvider: 'custom',
         modelName: 'kimi-k2-5',
         apiKey: '123456',
-        apiBaseUrl: 'https://irhnglwoxe.a.pinggy.link/v1',
+        apiBaseUrl: 'https://example.com/v1',
         temperature: 'bogus',
       },
       version: 4,
