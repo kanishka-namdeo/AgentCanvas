@@ -155,9 +155,17 @@ function aggregateByScenario(results: ScenarioResult[], heldOutIds: Set<string>)
 }
 
 async function runScenario(sc: Scenario, runLabel = '1'): Promise<ScenarioResult> {
+  // 2026-09-18 tuning: append a per-run suffix (timestamp + runLabel) to
+  // the documentId. The route handler persists runs keyed by documentId
+  // and replays them as conversation history; a stable ID across runs
+  // meant every consecutive eval run of the same scenario accumulated
+  // prior attempts as history — the runner's repeat-prompt guard then
+  // fired and the agent asked clarifying questions instead of building.
+  // A fresh documentId per run guarantees a clean history.
+  const runStamp = `${Date.now().toString(36)}-r${runLabel}`;
   let canvas: CanvasDocument = sc.seed
     ? normalizeCanvas(sc.seed)
-    : createEmptyCanvasDocument(`eval-${sc.id}`, `Eval ${sc.id}`);
+    : createEmptyCanvasDocument(`eval-${sc.id}-${runStamp}`, `Eval ${sc.id} (run ${runLabel})`);
 
   const traj: Trajectory = {
     toolCalls: [],

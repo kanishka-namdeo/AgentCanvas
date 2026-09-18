@@ -609,7 +609,16 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // model that hallucinates a deprecated name gets a standard unknown-tool
   // error it self-corrects from (the deprecation window has been open for
   // many sessions; new contexts never teach the old spellings).
-  const aliasNames = new Set(Object.keys(TOOL_ALIASES));
+  // 2026-09-18 tuning: aliases with `keepInToolList: true` are intentionally
+  // kept in the SDK-registered tool list (the system prompt references them
+  // as valid tool names). They are NOT phase-out candidates. The legacy
+  // `pen-v3` aliases (the rename phase-out batch) have no `keepInToolList`
+  // flag and continue to be filtered out as before.
+  const aliasNames = new Set(
+    Object.entries(TOOL_ALIASES)
+      .filter(([, alias]) => !alias.keepInToolList)
+      .map(([name]) => name),
+  );
   const filteredTools = allTools.filter((t) =>
     categoryAllowedToolNames.has(t.name) && !aliasNames.has(t.name));
 
