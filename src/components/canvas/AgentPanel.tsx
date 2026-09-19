@@ -82,7 +82,7 @@ import {
   RotateCcw, TriangleAlert, Copy, Camera, BoxSelect, GitCompareArrows,
   ThumbsUp, ThumbsDown, Pencil, Brain, ListChecks, AtSign, ListPlus, Circle,
   BadgeCheck, Bot as BotIcon, Hammer, MessageCircleQuestion, ClipboardList,
-  MessageSquareMore, Zap, ChevronDown, Play,
+  MessageSquareMore, Zap, ChevronDown, Play, Search,
 } from 'lucide-react';
 import {
   AGENT_MODES,
@@ -2953,8 +2953,128 @@ function ToolCallsCluster({ toolCalls: rawToolCalls }: { toolCalls: AgentToolCal
       </button>
       {expanded !== 'collapsed' && (
         <div className="space-y-1">
+          {(() => {
+            // 2026-09-19 (competitor-research round 3 — Cline pattern 5.2):
+            // Low-stakes tool grouping — consecutive read-only tools collapse
+            // into one expandable card to keep the chat scannable when the
+            // agent reads 5+ shapes/nodes in a row. The grouping is UI-only;
+            // the underlying toolCalls array is unchanged so the diff card
+            // and the turn-diff summary still see every call.
+            const items = groupLowStakesTools(toolCalls);
+            return items.map((item, idx) => {
+              if (Array.isArray(item)) {
+                return (
+                  <LowStakesToolGroup key={`group-${idx}`} toolCalls={item} semi={expanded === 'semi'} />
+                );
+              }
+              return <ToolCallEntry key={item.id} tc={item} semi={expanded === 'semi'} />;
+            });
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Low-stakes tool grouping (Cline pattern 5.2) -------------------------
+//
+// Read-only tool calls (pen_get_*, pen_list_*, pen_audit_*) are visually
+// noisy when the agent runs 5+ in a row during exploration. Cline collapses
+// these into a single expandable "Read N tools" card. We mirror that here.
+// The grouping is PURE UI — the underlying toolCalls array is unchanged so
+// the turn-diff summary and the cluster's prose summary still see every call.
+//
+// Threshold: 2+ consecutive low-stakes tools fold into a group. A single
+// low-stakes call between two mutating calls renders as a normal entry.
+
+/// Set of tool-name prefixes that count as "low-stakes" (read-only, fast,
+/// non-mutating). The agent's exploratory bursts typically hit pen_get_*,
+/// pen_list_*, and pen_audit_* in sequence — these are the calls that
+/// drown out the meaningful mutations in the chat scroll.
+const LOW_STAKES_PREFIXES = [
+  'pen_get_',
+  'pen_list_',
+  'pen_audit_',
+  'pen_describe_',
+  'pen_search_',
+];
+
+function isLowStakesTool(name: string): boolean {
+  return LOW_STAKES_PREFIXES.some((p) => name.startsWith(p));
+}
+
+/// Walk a list of tool calls and return either a single tool call or a
+/// group of consecutive low-stakes calls. Single low-stakes calls between
+/// mutating calls pass through as normal entries — only 2+ consecutive
+/// low-stakes calls fold into a group. This matches Cline's
+/// `groupLowStakesTools` semantics.
+function groupLowStakesTools(toolCalls: AgentToolCallEntry[]): Array<AgentToolCallEntry | AgentToolCallEntry[]> {
+  const out: Array<AgentToolCallEntry | AgentToolCallEntry[]> = [];
+  let run: AgentToolCallEntry[] = [];
+  const flushRun = () => {
+    if (run.length >= 2) {
+      out.push(run);
+    } else {
+      out.push(...run);
+    }
+    run = [];
+  };
+  for (const tc of toolCalls) {
+    if (isLowStakesTool(tc.name)) {
+      run.push(tc);
+    } else {
+      flushRun();
+      out.push(tc);
+    }
+  }
+  flushRun();
+  return out;
+}
+
+function LowStakesToolGroup({ toolCalls, semi }: { toolCalls: AgentToolCallEntry[]; semi?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const count = toolCalls.length;
+  const anyPending = toolCalls.some((tc) => tc.success === undefined);
+  const failCount = toolCalls.filter((tc) => tc.success === false).length;
+  // Build a short summary: first 3 tool names + "+N more".
+  const names = toolCalls.map((tc) => tc.name.replace(/^pen_/, '').replace(/_/g, ' '));
+  const summary = names.length > 3
+    ? `${names.slice(0, 3).join(', ')} +${names.length - 3} more`
+    : names.join(', ');
+
+  return (
+    <div className="rounded-md border ac-border-subtle ac-surface-1">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        title={expanded ? `Collapse ${count} read-only tools` : `Expand ${count} read-only tools`}
+        className="w-full flex items-center gap-1.5 text-[11px] font-medium ac-text-2 text-left ac-transition hover:ac-surface-1 px-2 py-1"
+      >
+        <Search className="h-3 w-3 ac-text-4 flex-shrink-0" />
+        <span className="text-[10px] ac-text-3 font-normal truncate flex-1 min-w-0">
+          Read {count} <span className="ac-text-4">·</span> {summary}
+        </span>
+        <span className="ml-auto flex items-center gap-1 flex-shrink-0">
+          {failCount > 0 && (
+            <span className="ac-text-danger flex items-center gap-0.5" title={`${failCount} failed`}>
+              <XCircle className="h-3 w-3" />
+              {failCount}
+            </span>
+          )}
+          {anyPending ? (
+            <Loader2 className="h-3 w-3 animate-spin ac-text-4" />
+          ) : (
+            <CheckCircle2 className="h-3 w-3 ac-text-success" />
+          )}
+          <ChevronRight
+            className={`h-2.5 w-2.5 ac-text-4 flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          />
+        </span>
+      </button>
+      {expanded && (
+        <div className="space-y-1 px-2 pb-1.5">
           {toolCalls.map((tc) => (
-            <ToolCallEntry key={tc.id} tc={tc} semi={expanded === 'semi'} />
+            <ToolCallEntry key={tc.id} tc={tc} semi={semi} />
           ))}
         </div>
       )}
