@@ -1,0 +1,82 @@
+{
+  "scenario": "tooling-tour",
+  "title": "Command palette, layers panel, properties edits, ruler guide",
+  "description": "Shapes drop fast → ⌘K palette opens, searches and runs \"Insert ellipse\" → Layers tab selects a row and drag-reorders it → Properties tab resizes and recolors the rectangle → rulers enabled via the app menu, a red guide drags out from the top ruler → a panel drags across the guide.",
+  "baseUrl": "http://127.0.0.1:3100",
+  "mode": "video",
+  "fps": null,
+  "takes": 3,
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "deviceScaleFactor": 2,
+  "theme": "light",
+  "timestamp": "2026-09-19T07:07:05.217Z",
+  "gitSha": "eb7b7ebd71a101ce98a9d939c55eea13a71367a9",
+  "browserChannel": null,
+  "choreography": "store-injection: window.__canvasStore.getState().sendPatch(patch) via page.evaluate — the app's own mutation surface (stamping + undo + optimistic apply). Socket.IO ghost-collaborator replay is NOT viable on a direct-port dev server: the client connects same-origin (?XTransformPort=3003 gateway routing) and /socket.io 404s without Caddy, so the browser socket never connects and Node-side socket emission would never reach the UI.",
+  "seeding": "POST /api/documents {id} before navigation — a fresh document per take (?doc=<id>) guarantees an empty canvas without localStorage/socket persistence dependencies.",
+  "results": [
+    {
+      "index": 1,
+      "dir": "download/landing-capture/multi/tooling-tour/take-01",
+      "mp4": "download/landing-capture/multi/tooling-tour/take-01/video.mp4",
+      "poster": "download/landing-capture/multi/tooling-tour/take-01/poster.png",
+      "webm": "download/landing-capture/multi/tooling-tour/take-01/raw/page@527556bd1e73a23fac990454d2b4eb73.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 31.16,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 1853051,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 34
+    },
+    {
+      "index": 2,
+      "dir": "download/landing-capture/multi/tooling-tour/take-02",
+      "mp4": "download/landing-capture/multi/tooling-tour/take-02/video.mp4",
+      "poster": "download/landing-capture/multi/tooling-tour/take-02/poster.png",
+      "webm": "download/landing-capture/multi/tooling-tour/take-02/raw/page@fd8a2b9a9ab01980f7c2ce3c90248b22.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 30.8,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 1840692,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 34
+    },
+    {
+      "index": 3,
+      "dir": "download/landing-capture/multi/tooling-tour/take-03",
+      "mp4": "download/landing-capture/multi/tooling-tour/take-03/video.mp4",
+      "poster": "download/landing-capture/multi/tooling-tour/take-03/poster.png",
+      "webm": "download/landing-capture/multi/tooling-tour/take-03/raw/page@fb5e7a80c95df9b268e9e37db87f8d8d.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 30.92,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 1784321,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 34
+    }
+  ]
+}

@@ -19,9 +19,22 @@ vi.mock('next/image', () => ({
     height?: number;
     className?: string;
     priority?: boolean;
+    fetchPriority?: string;
+    sizes?: string;
   }) => {
     const src = typeof props.src === 'string' ? props.src : props.src.src;
-    return <img src={src} alt={props.alt} width={props.width} height={props.height} className={props.className} />;
+    return (
+      <img
+        src={src}
+        alt={props.alt}
+        width={props.width}
+        height={props.height}
+        className={props.className}
+        data-sizes={props.sizes}
+        data-priority={props.priority ? 'true' : undefined}
+        data-fetch-priority={props.fetchPriority}
+      />
+    );
   },
 }));
 
@@ -50,12 +63,65 @@ describe('landing: Hero', () => {
     expect(screen.getByTestId('hero-open')).toHaveAttribute('href', '/app');
   });
 
-  it('shows the hero-build screenshot with alt text at the real 3840x2400 dims', () => {
+  it('renders the above-the-fold proof row (AGPL + hard product numbers)', () => {
     render(<Hero />);
-    const img = screen.getByAltText('AgentCanvas building a hero section live on the canvas');
-    expect(img).toHaveAttribute('src', '/landing/hero-build.png');
-    expect(img).toHaveAttribute('width', '3840');
-    expect(img).toHaveAttribute('height', '2400');
+    const proof = screen.getByTestId('hero-proof-row');
+    expect(proof).toHaveTextContent('AGPL-3.0');
+    expect(proof).toHaveTextContent('60+ tools');
+    expect(proof).toHaveTextContent('28 providers');
+    // No star segment when the server fetch failed — never a fabricated count.
+    expect(screen.queryByTestId('github-stars')).not.toBeInTheDocument();
+  });
+
+  it('includes the live star count in the proof row when provided', () => {
+    render(<Hero stars={1234} />);
+    expect(screen.getByTestId('hero-proof-row')).toHaveTextContent('1,234');
+    expect(screen.getByTestId('github-stars')).toBeInTheDocument();
+  });
+
+  it('shows the build-reveal poster still with alt text at the real 1600x1000 dims', () => {
+    render(<Hero />);
+    const img = screen.getByAltText('AgentCanvas building an analytics dashboard live on the canvas');
+    expect(img).toHaveAttribute('src', '/landing/build-reveal-poster.png');
+    expect(img).toHaveAttribute('width', '1600');
+    expect(img).toHaveAttribute('height', '1000');
+  });
+
+  it('marks the hero image as priority with a bounded sizes hint (LCP diet)', () => {
+    render(<Hero />);
+    const img = screen.getByAltText('AgentCanvas building an analytics dashboard live on the canvas');
+    expect(img.getAttribute('data-priority')).toBe('true');
+    expect(img.getAttribute('data-fetch-priority')).toBe('high');
+    expect(img.getAttribute('data-sizes')).toBe('(max-width: 767px) 100vw, 896px');
+  });
+
+  // 2026-09-19 video pass: the build-reveal cut is layered over the SAME 16/10
+  // viewport as the hero-build screenshot. NOTE React sets `muted` as a DOM
+  // property (never an attribute), so that one is asserted on the element.
+  it('overlays the looping build-reveal video on the hero frame', () => {
+    render(<Hero />);
+    const video = screen.getByTestId('hero-video') as HTMLVideoElement;
+    expect(video).toHaveAttribute('src', '/landing/build-reveal.mp4');
+    expect(video).toHaveAttribute('poster', '/landing/build-reveal-poster.png');
+    expect(video).toHaveAttribute('preload', 'metadata');
+    expect(video).toHaveAttribute('playsinline');
+    expect(video).toHaveAttribute('loop');
+    expect(video).toHaveAttribute('aria-hidden', 'true');
+    expect(video).toHaveAttribute('tabindex', '-1');
+    expect(video.muted).toBe(true);
+  });
+
+  it('keeps the video as an absolute layer inside the frame viewport (zero crop)', () => {
+    render(<Hero />);
+    const video = screen.getByTestId('hero-video');
+    expect(video.className).toContain('absolute inset-0');
+    expect(video.className).toContain('object-cover');
+    // The BrowserFrame viewport is the `relative` positioning context.
+    expect(video.parentElement).toHaveClass('relative');
+    // The LCP image stays mounted underneath as the no-JS fallback.
+    expect(
+      screen.getByAltText('AgentCanvas building an analytics dashboard live on the canvas'),
+    ).toBeInTheDocument();
   });
 
   it('renders the tool-call chip marquee', () => {
@@ -64,6 +130,11 @@ describe('landing: Hero', () => {
     // The Magic UI marquee repeats its children (repeat=4) for the seamless
     // loop, so the chip text matches multiple times — assert on the first.
     expect(screen.getAllByText('pen_create_frame()')[0]).toBeInTheDocument();
+    // The duplicated loop copies are decorative — hidden from the a11y tree,
+    // with the accessible list provided by the sr-only paragraph.
+    const marquee = screen.getByTestId('hero-chips').querySelector('[aria-hidden="true"]');
+    expect(marquee).not.toBeNull();
+    expect(screen.getByText(/Tool calls the agent runs live/)).toBeInTheDocument();
   });
 
   it('renders the typing prompt line', () => {
@@ -78,8 +149,10 @@ describe('landing: Hero', () => {
 
     it('renders the full prompt statically instead of the typing effect', () => {
       render(<Hero />);
+      // The same prompt the hero footage types (the build-reveal capture):
+      // the reduced-motion still, the video, and the typed line tell one story.
       expect(screen.getByTestId('hero-typing-static')).toHaveTextContent(
-        'Design a mobile login screen with social sign-in…',
+        'Build a modern analytics dashboard with a dark sidebar',
       );
       expect(screen.queryByTestId('hero-typing')).not.toBeInTheDocument();
     });
@@ -93,9 +166,14 @@ describe('landing: Hero', () => {
 
     it('still renders the screenshot and both CTAs', () => {
       render(<Hero />);
-      expect(screen.getByAltText('AgentCanvas building a hero section live on the canvas')).toBeInTheDocument();
+      expect(screen.getByAltText('AgentCanvas building an analytics dashboard live on the canvas')).toBeInTheDocument();
       expect(screen.getByTestId('hero-star')).toHaveAttribute('href', REPO_URL);
       expect(screen.getByTestId('hero-open')).toHaveAttribute('href', '/app');
+    });
+
+    it('renders no hero video at all (the static screenshot is the fallback)', () => {
+      render(<Hero />);
+      expect(screen.queryByTestId('hero-video')).not.toBeInTheDocument();
     });
   });
 });

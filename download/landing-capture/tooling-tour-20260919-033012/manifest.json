@@ -1,0 +1,42 @@
+{
+  "scenario": "tooling-tour",
+  "title": "Command palette, layers panel, properties edits, ruler guide",
+  "description": "Shapes drop fast → ⌘K palette opens, searches and runs \"Insert ellipse\" → Layers tab selects a row and drag-reorders it → Properties tab resizes and recolors the rectangle → rulers enabled via the app menu, a red guide drags out from the top ruler → a panel drags across the guide.",
+  "baseUrl": "http://127.0.0.1:3100",
+  "mode": "video",
+  "fps": null,
+  "takes": 1,
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "deviceScaleFactor": 2,
+  "theme": "light",
+  "timestamp": "2026-09-18T23:30:52.252Z",
+  "gitSha": "eb7b7ebd71a101ce98a9d939c55eea13a71367a9",
+  "browserChannel": null,
+  "choreography": "store-injection: window.__canvasStore.getState().sendPatch(patch) via page.evaluate — the app's own mutation surface (stamping + undo + optimistic apply). Socket.IO ghost-collaborator replay is NOT viable on a direct-port dev server: the client connects same-origin (?XTransformPort=3003 gateway routing) and /socket.io 404s without Caddy, so the browser socket never connects and Node-side socket emission would never reach the UI.",
+  "seeding": "POST /api/documents {id} before navigation — a fresh document per take (?doc=<id>) guarantees an empty canvas without localStorage/socket persistence dependencies.",
+  "results": [
+    {
+      "index": 1,
+      "dir": "download/landing-capture/tooling-tour-20260919-033012/take-01",
+      "mp4": "download/landing-capture/tooling-tour-20260919-033012/take-01/video.mp4",
+      "poster": "download/landing-capture/tooling-tour-20260919-033012/take-01/poster.png",
+      "webm": "download/landing-capture/tooling-tour-20260919-033012/take-01/raw/page@c8a4da34daaa1d8506702ca959dc7f34.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 29.88,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 1737939,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 33
+    }
+  ]
+}

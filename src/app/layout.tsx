@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
+import { SITE_URL } from "@/components/landing/repo-url";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,16 +30,24 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  // metadataBase (2026-09-19 landing-uplift P0): without it, OG/Twitter image
+  // URLs resolve against the request host — behind a proxy or on localhost
+  // they render as `http://localhost:…/opengraph-image` and share previews
+  // break. NEXT_PUBLIC_SITE_URL can override for a future real domain.
+  metadataBase: new URL(SITE_URL),
   title: "AgentCanvas — Figma for AI agents",
   description:
     "A Figma-like design canvas where the primary user is an AI agent (powered by the Pi Agent SDK). The agent sees the canvas state and manipulates it through tools.",
   keywords: ["Pi Agent SDK", "Figma", "AI agent", "canvas", "design tool", "Next.js"],
   authors: [{ name: "AgentCanvas" }],
-  icons: {
-    // Local copy of the logo (public/logo.svg — identical to the CDN asset)
-    // so the favicon doesn't depend on a cross-origin request at startup.
-    icon: "/logo.svg",
-  },
+  // Favicons come from the file conventions (src/app/icon.svg +
+  // src/app/apple-icon.png, both generated from public/logo.svg) — an
+  // explicit `icons` entry here would override those conventions.
+};
+
+// Mobile browser chrome follows the landing's dark ground (audit #15).
+export const viewport: Viewport = {
+  themeColor: "#0a0a0f",
 };
 
 export default function RootLayout({

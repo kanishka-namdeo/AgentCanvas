@@ -1,0 +1,42 @@
+{
+  "scenario": "smoke-canvas",
+  "title": "Toolbar smoke: rectangle + freehand stroke + undo/redo + selection",
+  "description": "Empty canvas → add a rectangle from the floating toolbar → choreographed freehand stroke (path shape streamed over the store surface while the pointer sweeps) → Ctrl+Z / Ctrl+Shift+Z walk the stroke back and replay it → click the rectangle so selection handles render.",
+  "baseUrl": "http://127.0.0.1:3100",
+  "mode": "video",
+  "fps": null,
+  "takes": 1,
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "deviceScaleFactor": 2,
+  "theme": "light",
+  "timestamp": "2026-09-18T23:09:31.485Z",
+  "gitSha": "eb7b7ebd71a101ce98a9d939c55eea13a71367a9",
+  "browserChannel": null,
+  "choreography": "store-injection: window.__canvasStore.getState().sendPatch(patch) via page.evaluate — the app's own mutation surface (stamping + undo + optimistic apply). Socket.IO ghost-collaborator replay is NOT viable on a direct-port dev server: the client connects same-origin (?XTransformPort=3003 gateway routing) and /socket.io 404s without Caddy, so the browser socket never connects and Node-side socket emission would never reach the UI.",
+  "seeding": "POST /api/documents {id} before navigation — a fresh document per take (?doc=<id>) guarantees an empty canvas without localStorage/socket persistence dependencies.",
+  "results": [
+    {
+      "index": 1,
+      "dir": "download/landing-capture/smoke-canvas-20260919-030907/take-01",
+      "mp4": "download/landing-capture/smoke-canvas-20260919-030907/take-01/video.mp4",
+      "poster": "download/landing-capture/smoke-canvas-20260919-030907/take-01/poster.png",
+      "webm": "download/landing-capture/smoke-canvas-20260919-030907/take-01/raw/page@aafd3cd0c1a4dff351e621c8d0541af5.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 16.72,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 797533,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 17
+    }
+  ]
+}

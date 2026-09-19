@@ -46,13 +46,17 @@ export function TrustLoop() {
 
         <div className="mt-12 grid items-center gap-12 md:grid-cols-5">
           <BlurFade inView delay={0.1} className="md:col-span-3">
+            {/* The dialog occupies ~25% of the source screenshot (audit #16):
+                a 2× CSS zoom on the centered image makes the Deny/Allow modal
+                the hero of the frame. CSS-only — source PNG untouched (§6). */}
             <BrowserFrame>
               <Image
                 src="/landing/approval-dialog.png"
                 alt="Approve destructive operation dialog with Deny and Allow actions"
                 width={1600}
                 height={1000}
-                className="h-auto w-full object-cover"
+                sizes="(max-width: 767px) 100vw, 660px"
+                className="h-auto w-full scale-[2] object-cover object-center"
               />
             </BrowserFrame>
           </BlurFade>

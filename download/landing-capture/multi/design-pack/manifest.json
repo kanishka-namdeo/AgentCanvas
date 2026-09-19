@@ -1,0 +1,82 @@
+{
+  "scenario": "design-pack",
+  "title": "Design-system pack swap restyles a token-bound hero card",
+  "description": "shadcn pack seeded before load → a hero card built from var(--color-*) tokens assembles → the Design Systems picker swaps to Vercel Geist (corners square off, palette goes monochrome) → swaps to Mantine (warm accents) → zoom-to-fit.",
+  "baseUrl": "http://127.0.0.1:3100",
+  "mode": "video",
+  "fps": null,
+  "takes": 3,
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "deviceScaleFactor": 2,
+  "theme": "light",
+  "timestamp": "2026-09-19T07:08:54.134Z",
+  "gitSha": "eb7b7ebd71a101ce98a9d939c55eea13a71367a9",
+  "browserChannel": null,
+  "choreography": "store-injection: window.__canvasStore.getState().sendPatch(patch) via page.evaluate — the app's own mutation surface (stamping + undo + optimistic apply). Socket.IO ghost-collaborator replay is NOT viable on a direct-port dev server: the client connects same-origin (?XTransformPort=3003 gateway routing) and /socket.io 404s without Caddy, so the browser socket never connects and Node-side socket emission would never reach the UI.",
+  "seeding": "POST /api/documents {id} before navigation — a fresh document per take (?doc=<id>) guarantees an empty canvas without localStorage/socket persistence dependencies.",
+  "results": [
+    {
+      "index": 1,
+      "dir": "download/landing-capture/multi/design-pack/take-01",
+      "mp4": "download/landing-capture/multi/design-pack/take-01/video.mp4",
+      "poster": "download/landing-capture/multi/design-pack/take-01/poster.png",
+      "webm": "download/landing-capture/multi/design-pack/take-01/raw/page@34b0501b0767fd9b4d5d3364547ecf95.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 25.68,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 2327069,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 24
+    },
+    {
+      "index": 2,
+      "dir": "download/landing-capture/multi/design-pack/take-02",
+      "mp4": "download/landing-capture/multi/design-pack/take-02/video.mp4",
+      "poster": "download/landing-capture/multi/design-pack/take-02/poster.png",
+      "webm": "download/landing-capture/multi/design-pack/take-02/raw/page@e5922a76dca21d326a2272b710f8f8c3.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 25.6,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 2596434,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 24
+    },
+    {
+      "index": 3,
+      "dir": "download/landing-capture/multi/design-pack/take-03",
+      "mp4": "download/landing-capture/multi/design-pack/take-03/video.mp4",
+      "poster": "download/landing-capture/multi/design-pack/take-03/poster.png",
+      "webm": "download/landing-capture/multi/design-pack/take-03/raw/page@1b2f4371def4034c5c5af195e27b6b13.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 25.52,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 2532476,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 24
+    }
+  ]
+}

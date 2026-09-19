@@ -17,7 +17,7 @@ import * as path from 'path';
 // Output relative to the repo root (scripts/AGENTS.md rule) — NOT the
 // hardcoded sandbox path the older screenshot script uses.
 const OUT_DIR = path.resolve(process.cwd(), 'download/landing-verify');
-const BASE_URL = 'http://127.0.0.1:3000/';
+const BASE_URL = process.env.LANDING_BASE_URL ?? 'http://127.0.0.1:3000/';
 
 const SECTION_IDS = ['top', 'magic', 'tool', 'trust', 'how-it-works', 'open-source'];
 

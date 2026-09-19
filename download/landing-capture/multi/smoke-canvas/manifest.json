@@ -1,0 +1,62 @@
+{
+  "scenario": "smoke-canvas",
+  "title": "Toolbar smoke: rectangle + freehand stroke + undo/redo + selection",
+  "description": "Empty canvas → add a rectangle from the floating toolbar → choreographed freehand stroke (path shape streamed over the store surface while the pointer sweeps) → Ctrl+Z / Ctrl+Shift+Z walk the stroke back and replay it → click the rectangle so selection handles render.",
+  "baseUrl": "http://127.0.0.1:3100",
+  "mode": "video",
+  "fps": null,
+  "takes": 2,
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "deviceScaleFactor": 2,
+  "theme": "light",
+  "timestamp": "2026-09-19T07:11:10.104Z",
+  "gitSha": "eb7b7ebd71a101ce98a9d939c55eea13a71367a9",
+  "browserChannel": null,
+  "choreography": "store-injection: window.__canvasStore.getState().sendPatch(patch) via page.evaluate — the app's own mutation surface (stamping + undo + optimistic apply). Socket.IO ghost-collaborator replay is NOT viable on a direct-port dev server: the client connects same-origin (?XTransformPort=3003 gateway routing) and /socket.io 404s without Caddy, so the browser socket never connects and Node-side socket emission would never reach the UI.",
+  "seeding": "POST /api/documents {id} before navigation — a fresh document per take (?doc=<id>) guarantees an empty canvas without localStorage/socket persistence dependencies.",
+  "results": [
+    {
+      "index": 1,
+      "dir": "download/landing-capture/multi/smoke-canvas/take-01",
+      "mp4": "download/landing-capture/multi/smoke-canvas/take-01/video.mp4",
+      "poster": "download/landing-capture/multi/smoke-canvas/take-01/poster.png",
+      "webm": "download/landing-capture/multi/smoke-canvas/take-01/raw/page@d11631ea83828749df25f5fe1ba21506.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 22.68,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 1030252,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 21
+    },
+    {
+      "index": 2,
+      "dir": "download/landing-capture/multi/smoke-canvas/take-02",
+      "mp4": "download/landing-capture/multi/smoke-canvas/take-02/video.mp4",
+      "poster": "download/landing-capture/multi/smoke-canvas/take-02/poster.png",
+      "webm": "download/landing-capture/multi/smoke-canvas/take-02/raw/page@e68e626d671682077c3b2e7f418c753e.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 22,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 1032619,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 21
+    }
+  ]
+}

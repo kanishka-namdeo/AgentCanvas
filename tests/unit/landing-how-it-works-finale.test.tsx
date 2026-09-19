@@ -1,7 +1,11 @@
 // Task 7 of the landing-page plan — HowItWorks (§5.5) + OpenSourceFinale (§5.6).
+// The 2026-09-19 uplift changed the stats contract: SSR/no-JS render the FINAL
+// values (no "0 typed tools" flash, audit #6); the count-up is a client
+// enhancement gated on useInView.
 
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { useInView, useReducedMotion } from 'motion/react';
 import { REPO_URL } from '@/components/landing/repo-url';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { OpenSourceFinale } from '@/components/landing/OpenSourceFinale';
@@ -16,6 +20,23 @@ vi.mock('@number-flow/react', () => ({
     </span>
   ),
 }));
+
+vi.mock('motion/react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('motion/react')>();
+  return {
+    ...actual,
+    useReducedMotion: vi.fn(() => false),
+    useInView: vi.fn(() => false),
+  };
+});
+
+const useReducedMotionMock = vi.mocked(useReducedMotion);
+const useInViewMock = vi.mocked(useInView);
+
+beforeEach(() => {
+  useReducedMotionMock.mockReturnValue(false);
+  useInViewMock.mockReturnValue(false);
+});
 
 describe('landing: HowItWorks', () => {
   it('renders the section anchor and heading', () => {
@@ -32,27 +53,29 @@ describe('landing: HowItWorks', () => {
     expect(screen.getByTestId('flow-canvas')).toHaveTextContent('Canvas');
   });
 
-  it('animates the stats to the final values (60+ tools, 28 providers)', async () => {
-    vi.useFakeTimers();
-    try {
-      render(<HowItWorks />);
-      // Values start at 0 and count up after the mount delay.
-      expect(screen.getByTestId('stat-tools')).toHaveTextContent('0+');
-      expect(screen.getByTestId('stat-providers')).toHaveTextContent('0');
-      // Vitest 5 fakes setInterval too, so waitFor cannot poll under fake
-      // timers — flush the 300ms mount timer inside act, then restore real
-      // timers so waitFor (and later tests) run on the real clock.
-      await act(async () => {
-        vi.advanceTimersByTime(500);
-      });
-      vi.useRealTimers();
-      await waitFor(() => {
-        expect(screen.getByTestId('stat-tools')).toHaveTextContent('60+');
-        expect(screen.getByTestId('stat-providers')).toHaveTextContent('28');
-      });
-    } finally {
-      vi.useRealTimers();
-    }
+  it('ships the FINAL stat values in the initial (SSR) render — no zero flash', () => {
+    render(<HowItWorks />);
+    expect(screen.getByTestId('stat-tools')).toHaveTextContent('60+');
+    expect(screen.getByTestId('stat-providers')).toHaveTextContent('28');
+  });
+
+  it('counts up 0 → final when the stats scroll into view (motion allowed)', async () => {
+    const { rerender } = render(<HowItWorks />);
+    // Entering the viewport flips the counters into count-up mode: they
+    // remount at 0 and the mount timer animates them back to the finals.
+    useInViewMock.mockReturnValue(true);
+    rerender(<HowItWorks />);
+    await waitFor(() => {
+      expect(screen.getByTestId('stat-tools')).toHaveTextContent('60+');
+      expect(screen.getByTestId('stat-providers')).toHaveTextContent('28');
+    });
+  });
+
+  it('keeps the final values statically under reduced motion', () => {
+    useReducedMotionMock.mockReturnValue(true);
+    render(<HowItWorks />);
+    expect(screen.getByTestId('stat-tools')).toHaveTextContent('60+');
+    expect(screen.getByTestId('stat-providers')).toHaveTextContent('28');
   });
 
   it('renders the remaining developer-depth chips', () => {
@@ -74,7 +97,7 @@ describe('landing: OpenSourceFinale', () => {
   it('renders the clone command from the shared REPO_URL constant', () => {
     render(<OpenSourceFinale />);
     expect(screen.getByTestId('clone-command')).toHaveTextContent(
-      'git clone https://github.com/kanishka-namdeo/co-canvas.git',
+      'git clone https://github.com/kanishka-namdeo/AgentCanvas.git',
     );
   });
 
@@ -89,7 +112,7 @@ describe('landing: OpenSourceFinale', () => {
       const button = screen.getByTestId('copy-clone');
       expect(button.getAttribute('data-copied')).toBe('false');
       fireEvent.click(button);
-      expect(writeText).toHaveBeenCalledWith('git clone https://github.com/kanishka-namdeo/co-canvas.git');
+      expect(writeText).toHaveBeenCalledWith('git clone https://github.com/kanishka-namdeo/AgentCanvas.git');
       await waitFor(() => {
         expect(button.getAttribute('data-copied')).toBe('true');
       });
@@ -99,9 +122,12 @@ describe('landing: OpenSourceFinale', () => {
     }
   });
 
-  it('renders the star button and the final /app CTA', () => {
-    render(<OpenSourceFinale />);
+  it('renders the star button (with the live count when provided) and the final /app CTA', () => {
+    const { rerender } = render(<OpenSourceFinale />);
     expect(screen.getByTestId('finale-star')).toHaveAttribute('href', REPO_URL);
+    expect(screen.getByTestId('finale-star')).toHaveTextContent('Star on GitHub');
     expect(screen.getByTestId('finale-open')).toHaveAttribute('href', '/app');
+    rerender(<OpenSourceFinale stars={1234} />);
+    expect(screen.getByTestId('finale-star')).toHaveTextContent('1,234');
   });
 });

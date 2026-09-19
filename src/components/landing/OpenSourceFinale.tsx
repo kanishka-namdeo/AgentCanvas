@@ -6,12 +6,15 @@ import { ArrowRight, Check, Copy, Star } from 'lucide-react';
 import { BorderBeam } from '@/components/ui/border-beam';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { REPO_URL, REPO_CLONE_URL } from './repo-url';
+import { formatStarCount, hasStars } from './GitHubStars';
 
 const CLONE_COMMAND = `git clone ${REPO_CLONE_URL}`;
 
 /** Open-source finale — the conversion (spec §5.6). Plain styled <pre>,
- * no syntax-highlighting library; copy button via navigator.clipboard. */
-export function OpenSourceFinale() {
+ * no syntax-highlighting library; copy button via navigator.clipboard.
+ * `stars` comes from the server fetch (GitHubStars contract) — the CTA keeps
+ * its label and gains the live count only when the fetch succeeded. */
+export function OpenSourceFinale({ stars }: { stars?: number | null }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -81,10 +84,13 @@ export function OpenSourceFinale() {
             target="_blank"
             rel="noopener noreferrer"
             data-testid="finale-star"
-            className="ac-brand-gradient inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg"
+            className="ac-brand-gradient ac-cta-gradient inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg"
           >
             <Star className="h-4 w-4" aria-hidden="true" />
             Star on GitHub
+            {hasStars(stars) && (
+              <span className="opacity-90">· ★ {formatStarCount(stars)}</span>
+            )}
           </a>
           <Link
             href="/app"

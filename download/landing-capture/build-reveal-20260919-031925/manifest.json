@@ -1,0 +1,42 @@
+{
+  "scenario": "build-reveal",
+  "title": "Dashboard assembles block-by-block while a prompt is typed",
+  "description": "Fresh document → prompt typed into the agent composer (NEVER sent — LLM-free) → dashboard blocks (frame, sidebar, header, 3 KPI cards, revenue chart, activity table) stream in as choreographed add_subtree patches through the app store → zoom-to-fit.",
+  "baseUrl": "http://127.0.0.1:3100",
+  "mode": "video",
+  "fps": null,
+  "takes": 1,
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "deviceScaleFactor": 2,
+  "theme": "light",
+  "timestamp": "2026-09-18T23:20:11.565Z",
+  "gitSha": "eb7b7ebd71a101ce98a9d939c55eea13a71367a9",
+  "browserChannel": null,
+  "choreography": "store-injection: window.__canvasStore.getState().sendPatch(patch) via page.evaluate — the app's own mutation surface (stamping + undo + optimistic apply). Socket.IO ghost-collaborator replay is NOT viable on a direct-port dev server: the client connects same-origin (?XTransformPort=3003 gateway routing) and /socket.io 404s without Caddy, so the browser socket never connects and Node-side socket emission would never reach the UI.",
+  "seeding": "POST /api/documents {id} before navigation — a fresh document per take (?doc=<id>) guarantees an empty canvas without localStorage/socket persistence dependencies.",
+  "results": [
+    {
+      "index": 1,
+      "dir": "download/landing-capture/build-reveal-20260919-031925/take-01",
+      "mp4": "download/landing-capture/build-reveal-20260919-031925/take-01/video.mp4",
+      "poster": "download/landing-capture/build-reveal-20260919-031925/take-01/poster.png",
+      "webm": "download/landing-capture/build-reveal-20260919-031925/take-01/raw/page@def01c4387eddd1e2483a28f5443453c.webm",
+      "framesDir": null,
+      "frameCount": null,
+      "durationS": 35.16,
+      "dimensions": {
+        "width": 1600,
+        "height": 1000
+      },
+      "bytes": 1319092,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "verdict": "PASS",
+      "failure": null,
+      "actionsExecuted": 8
+    }
+  ]
+}

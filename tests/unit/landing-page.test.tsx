@@ -2,10 +2,19 @@
 // lenis is mocked (jsdom has no real layout for a smooth-scroll engine);
 // every other piece is the real component tree composed through next/dynamic
 // (dynamic chunks resolve async → assertions use findBy*).
+// 2026-09-19 uplift: the page fetches GitHub proof stats inside a Suspense
+// boundary — global fetch is mocked here so the unit test stays offline and
+// deterministic.
 
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeAll, afterEach, afterAll } from 'vitest';
+import { render, screen, configure } from '@testing-library/react';
 import { metadata, default as LandingPage } from '@/app/page';
+
+// The below-fold sections resolve through real next/dynamic chunks and the
+// hero/gallery videos mount effects on top; under full-suite parallel load
+// that can exceed RTL's 1s async default (observed flake: section-magic not
+// yet mounted). 5s keeps the assertion meaningful while being load-proof.
+configure({ asyncUtilTimeout: 5000 });
 
 vi.mock('lenis/react', () => ({
   ReactLenis: ({ children }: { children: React.ReactNode }) => (
@@ -37,6 +46,22 @@ vi.mock('@number-flow/react', () => ({
   ),
 }));
 
+const realFetch = global.fetch;
+beforeAll(() => {
+  // GitHub repo API mock — the page must degrade gracefully without it too
+  // (all star segments just disappear), but the happy path exercises wiring.
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ stargazers_count: 1234, forks_count: 21, open_issues_count: 7 }),
+  }) as unknown as typeof fetch;
+});
+afterEach(() => {
+  vi.clearAllMocks();
+});
+afterAll(() => {
+  global.fetch = realFetch;
+});
+
 describe('landing: page metadata', () => {
   it('exports the landing title and description', () => {
     expect(metadata.title).toBe('AgentCanvas — Figma for AI agents');
@@ -49,9 +74,16 @@ describe('landing: page metadata', () => {
     // property of every variant), so assert via toHaveProperty.
     expect(metadata.twitter).toHaveProperty('card', 'summary_large_image');
   });
+
+  it('ships the absolute-URL metadata pack (canonical + OG, 2026-09-19 uplift)', () => {
+    expect(metadata.alternates?.canonical).toBe('/');
+    expect(metadata.openGraph).toMatchObject({ type: 'website', url: '/', siteName: 'AgentCanvas' });
+  });
 });
 
-describe('landing: page composition', () => {
+// 20s test budget: the six findBy* waits above can serialize to >5s (vitest
+// default) when the suite saturates every worker.
+describe('landing: page composition', { timeout: 20000 }, () => {
   it('renders all six sections with their stable ids', async () => {
     render(<LandingPage />);
     expect(await screen.findByTestId('section-hero')).toHaveAttribute('id', 'top');
