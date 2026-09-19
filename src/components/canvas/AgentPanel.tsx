@@ -2866,20 +2866,67 @@ function ToolCallsCluster({ toolCalls: rawToolCalls }: { toolCalls: AgentToolCal
     return deduped;
   }, [rawToolCalls]);
   const anyPending = toolCalls.some((tc) => tc.success === undefined);
-  // `null` = no user override → follow the pending state (expanded while
-  // running, collapsed when done). A click pins the opposite.
-  const [override, setOverride] = useState<boolean | null>(null);
-  const expanded = override ?? anyPending;
+  // 2026-09-19 (competitor-research round 2 — lobe-chat WorkflowCollapse
+  // pattern): 3-tier expand level instead of 2-tier boolean.
+  //   - 'full'      : all tool cards expanded with args + summaries
+  //   - 'semi'      : tool name + 1-line summary per card (compact rows)
+  //   - 'collapsed' : single prose-sentence summary of the whole turn
+  // Default behavior: full while any tool is pending, collapsed when all
+  // done. A click cycles: collapsed → semi → full → collapsed.
+  // `null` = no user override → follow the pending-state default.
+  type ExpandLevel = 'collapsed' | 'semi' | 'full';
+  const [override, setOverride] = useState<ExpandLevel | null>(null);
+  const expanded: ExpandLevel = override ?? (anyPending ? 'full' : 'collapsed');
   const failCount = toolCalls.filter((tc) => tc.success === false).length;
-  // ChatGPT-style activity label: the most recent tool summary.
-  const lastWithSummary = [...toolCalls].reverse().find((tc) => tc.summary);
+  const successCount = toolCalls.filter((tc) => tc.success === true).length;
+
+  // Click handler: cycle collapsed → semi → full → collapsed.
+  // Pins the override; resets to null (auto) only via a separate "auto"
+  // action — currently we let the user just cycle and not auto-reset, since
+  // once they've chosen a level they usually want to keep it for this turn.
+  const cycleExpand = () => {
+    const order: ExpandLevel[] = ['collapsed', 'semi', 'full'];
+    const idx = order.indexOf(expanded);
+    setOverride(order[(idx + 1) % order.length]);
+  };
+
+  // Build a prose-sentence summary of all completed tools (lobe-chat's
+  // "Inspector collapsed-row reads as <action> <keyword>" pattern).
+  // Examples:
+  //   "Created rectangle + 3 more"           (1 named + count)
+  //   "Created rectangle, ellipse, text"    (≤3 named)
+  //   "Ran 5 tools (4 ok, 1 failed)"        (when no summaries available)
+  const proseSummary = useMemo(() => {
+    if (toolCalls.length === 0) return '';
+    const withSummary = toolCalls.filter((tc) => tc.summary);
+    if (withSummary.length === 0) {
+      // No summaries — show count + status.
+      const parts: string[] = [`Ran ${toolCalls.length} tool${toolCalls.length === 1 ? '' : 's'}`];
+      if (successCount > 0) parts.push(`${successCount} ok`);
+      if (failCount > 0) parts.push(`${failCount} failed`);
+      return parts.join(' (') + (parts.length > 1 ? ')' : '');
+    }
+    // Use tool name + first 2-3 words of summary.
+    const shortNames = withSummary.slice(0, 3).map((tc) => {
+      const summary = (tc.summary ?? '').split(' ').slice(0, 3).join(' ');
+      return summary || tc.name;
+    });
+    if (withSummary.length > 3) {
+      return `${shortNames.join(', ')} + ${withSummary.length - 3} more`;
+    }
+    return shortNames.join(', ');
+  }, [toolCalls, successCount, failCount]);
 
   return (
     <div className="space-y-1">
       <button
-        onClick={() => setOverride(!expanded)}
-        aria-expanded={expanded}
-        title={expanded ? 'Collapse tool activity' : 'Expand tool activity'}
+        onClick={cycleExpand}
+        aria-expanded={expanded !== 'collapsed'}
+        title={
+          expanded === 'collapsed' ? 'Show compact tool list' :
+          expanded === 'semi' ? 'Show full tool details' :
+          'Collapse to summary'
+        }
         className="w-full flex flex-wrap items-center gap-x-1.5 gap-y-1 px-1.5 py-1 rounded-md text-[10px] ac-text-3 hover:ac-surface-1 ac-transition ac-focus-ring"
       >
         <Wrench className="h-3 w-3 ac-text-4 flex-shrink-0" />
@@ -2894,20 +2941,20 @@ function ToolCallsCluster({ toolCalls: rawToolCalls }: { toolCalls: AgentToolCal
         {anyPending ? (
           <Loader2 className="h-2.5 w-2.5 animate-spin ac-text-4 flex-shrink-0" />
         ) : (
-          !expanded && lastWithSummary?.summary && (
+          expanded === 'collapsed' && (
             <span className="text-[10px] ac-text-4 truncate flex-1 min-w-0">
-              {lastWithSummary.summary}
+              {proseSummary}
             </span>
           )
         )}
         <ChevronRight
-          className={`h-3 w-3 ac-text-4 ml-auto flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          className={`h-3 w-3 ac-text-4 ml-auto flex-shrink-0 transition-transform ${expanded === 'full' ? 'rotate-90' : expanded === 'semi' ? 'rotate-45' : ''}`}
         />
       </button>
-      {expanded && (
+      {expanded !== 'collapsed' && (
         <div className="space-y-1">
           {toolCalls.map((tc) => (
-            <ToolCallEntry key={tc.id} tc={tc} />
+            <ToolCallEntry key={tc.id} tc={tc} semi={expanded === 'semi'} />
           ))}
         </div>
       )}
@@ -2915,15 +2962,18 @@ function ToolCallsCluster({ toolCalls: rawToolCalls }: { toolCalls: AgentToolCal
   );
 }
 
-function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
+function ToolCallEntry({ tc, semi = false }: { tc: AgentToolCallEntry; semi?: boolean }) {
   const success = tc.success;
   const pending = success === undefined;
   // Color-code by tool category for quick visual scanning.
   const category = toolCategory(tc.name);
   // Card-level disclosure: one line by default; args + full summary expand
   // on click. Pending calls stay open (live feedback while executing).
+  // In `semi` mode (parent cluster is showing compact rows), the entry
+  // forces expanded=false unless the user explicitly opens it — keeps the
+  // cluster readable as a list of "name + 1-line summary".
   const [override, setOverride] = useState<boolean | null>(null);
-  const expanded = override ?? pending;
+  const expanded = semi ? (override ?? false) : (override ?? pending);
   // Pretty-print args when the preview is complete JSON (the translator now
   // sends up to 2K chars — most tool args fit; truncated ones fall back to
   // the raw string). Cursor-style tool cards show real, readable arguments.

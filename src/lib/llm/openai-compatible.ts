@@ -108,9 +108,7 @@ export function createOpenAICompatible(opts: OpenAICompatibleClientOptions): LLM
 
             if (!res.ok) {
               const text = await res.text().catch(() => '');
-              throw new Error(
-                `LLM error ${res.status} from ${baseURL}: ${text.slice(0, 500)}`,
-              );
+              throw new Error(parseLLMErrorMessage(res.status, baseURL, text));
             }
 
             return (await res.json()) as LLMResponse;
@@ -121,4 +119,59 @@ export function createOpenAICompatible(opts: OpenAICompatibleClientOptions): LLM
       },
     },
   };
+}
+
+/**
+ * Parse a friendly error message from an OpenAI-compatible endpoint's
+ * error response. Most providers follow the OpenAI shape
+ * `{"error":{"message":"...","type":"...","code":"..."}}` and we surface
+ * the human-readable bits. For Agnes (Sapiens AI) — which uses a non-
+ * standard `type: "AgnesAI_error"` — we map known `code` values to
+ * actionable hints so the user knows what to do.
+ *
+ * 2026-09-19 (competitor-research round 2): Agnes has documented quirks:
+ *   - `code: "model_not_found"` — model id wrong, or routing infra issue
+ *   - `code: "invalid_request"` — bad params (e.g. max_tokens > 65536)
+ *   - `code` absent — generic error, surface message verbatim
+ *
+ * See worklog.md Task 0-research for the full Agnes quirk list.
+ */
+export function parseLLMErrorMessage(
+  status: number,
+  baseURL: string,
+  bodyText: string,
+): string {
+  let parsed: { error?: { message?: string; type?: string; code?: string } } = {};
+  try {
+    parsed = JSON.parse(bodyText);
+  } catch {
+    // Not JSON — surface raw text (truncated).
+    return `LLM error ${status} from ${baseURL}: ${bodyText.slice(0, 500)}`;
+  }
+
+  const err = parsed.error ?? {};
+  const message = err.message ?? bodyText.slice(0, 200);
+  const code = err.code ?? '';
+  const type = err.type ?? '';
+
+  // Agnes (Sapiens AI) — known error codes mapped to actionable hints.
+  if (type === 'AgnesAI_error' || /apihub\.agnes-ai\.com/.test(baseURL)) {
+    const agnesHints: Record<string, string> = {
+      model_not_found:
+        'Model not found. Verify the model name in Settings — currently agnes-3.0-flash is the only served model.',
+      invalid_request:
+        'Invalid request. Common causes: max_tokens > 65536 (hard cap on Agnes), or unsupported parameter.',
+      rate_limit_exceeded:
+        'Rate limit exceeded. Wait a few seconds and retry, or switch provider in Settings.',
+      insufficient_quota:
+        'Insufficient quota on Agnes API key. Top up at apihub.agnes-ai.com or switch provider.',
+    };
+    const hint = agnesHints[code] ?? '';
+    return `Agnes API error ${status} (${code || type}): ${message}${hint ? ` — ${hint}` : ''}`;
+  }
+
+  // Generic OpenAI-compatible error — surface code + type if present.
+  const codeSuffix = code ? ` [code=${code}]` : '';
+  const typeSuffix = type && type !== 'invalid_request_error' ? ` [type=${type}]` : '';
+  return `LLM error ${status} from ${baseURL}: ${message}${codeSuffix}${typeSuffix}`;
 }
