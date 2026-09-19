@@ -90,6 +90,20 @@ HARD RULES:
 - `bun run test` — unit tests in `tests/unit/` exercise this layer directly via `figma-ontology-contract.test.ts` (enum freeze guard), `pen-normalize.test.ts` (full G.2 alias matrix + dual-carry), `pen-migration.test.ts` (every G.1 row + idempotence + round-trip + resolver equivalence), `resolve-v3.test.ts` (dual-field Layer output), `resolve-tree.test.ts` (resolver-warning contract: placeholder_size, container_overflow worst-escape reporting, text_overflow FIXED-width clipping + tolerance band, flow_child_absolute_coords intent-vs-reality contradictions), and indirectly via patch/tools/store tests.
 - Manual: import a 2.17 .pen file via the UI — verify it loads (migrated on read), renders identically, and re-exports as `version: '3.0'` with legacy fields still present.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that every pen-tree mutation goes through the pure helpers (`insertNode` / `updateNode` / `removeNode`) — in-place mutation of a node or its `children` array goes UNNOTICED by the WeakMap resolve caches and serves stale shapes.
+- Check the resolve engine hot path stays O(1) — a naive `PEN_NODE_TYPES.includes(String(...))` per node added ~2s to the 4k-node audit test; use a `Set` lookup or a presence guard instead.
+- Check `applyV3Mirrors` runs whenever you add a new field to the v3 dual-carry window — forgetting it leaves the v3 projection stale even when the legacy field is populated.
+
+### Lessons Learned
+
+- Migrate-on-read, export v3 — `penToCanvas` upgrades 2.x docs forever, `canvasToPen` stamps `'3.0'`; this keeps the legacy reader path working while the v3 form is what new code writes.
+- Treat resolver warnings as defects — a turn is not done while any `container_overflow` / `text_overflow` / `flow_child_absolute_coords` warning remains; the system prompt's VERIFY step names each kind's fix.
+- Keep the v3 dual-carry field window additive — never remove a legacy field READ during the window; Phase 6 part 2 is the gate that migrates consumers, not the moment to drop reads.
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. This folder is flat: `types.ts`, `figma-ontology.ts`, `normalize.ts`, `migrate.ts`, `resolve.ts`, `document.ts`, `converters.ts`.

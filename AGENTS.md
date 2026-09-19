@@ -127,4 +127,21 @@ When the user requests a durable behavior change, record it here or in the relev
 
 ## Child DOX Index
 
-This project is not yet indexed. Before continuing you must scan the project, build the DOX tree and replace this message with the actual index. Go deep and scan files recursively to properly evaluate complexity and create nested DOX files where needed.
+Direct children of the root. Deeper nodes are reachable by walking each parent's own Child DOX Index — DOX convention is "direct children only" per parent.
+
+| Path | Scope |
+|------|-------|
+| `src/app/AGENTS.md` | Next.js App Router: root layout, landing page (`/`), workspace page (`/app`), opengraph image, `--ac-*` design tokens in `globals.css`. Indexes 6 child docs under `src/app/api/`. |
+| `src/components/AGENTS.md` | Component tree root: shared ThemeToggle + ErrorBoundary; indexes 7 child docs (canvas, sessions, settings, design-systems, ui, landing, onboarding). |
+| `src/lib/AGENTS.md` | Lib tree root: Prisma client singleton (`db.ts`), `cn()` utility; indexes 9 child docs (agent, canvas, design-systems, llm, pen, sessions, settings, web, icons). |
+| `.zscripts/AGENTS.md` | Sandbox boot/build runtime: `dev.sh` boot flow (auto-run at container start), deploy artifact pipeline, `start.sh` production entrypoint. |
+| `docs/AGENTS.md` | Durable docs: z.ai sandbox runbook, phase design docs (design-systems, agentic-workflows, agent-performance, html-dom-renderer spec), menu-specs trackers, superpowers plans/specs. |
+| `examples/websocket/AGENTS.md` | Reference Socket.IO demo (read-only; gateway routing pattern; port-collision warning with the in-process canvas-sync on :3003). |
+| `mini-services/AGENTS.md` | Reserved deploy-target boundary for standalone microservices (currently empty — historical `canvas-sync` retired on :3003 collision with its in-process twin in `src/lib/canvas/server.ts`). |
+| `prisma/AGENTS.md` | Prisma schema: `Document`, `Shape`, `AgentEvent` (live journal), `MutationClock`, `Session`, `SessionRun`, `DocumentSnapshot` (document-scoped canvas timeline, shared-canvas model). |
+| `research/AGENTS.md` | Read-only research: 7 web-research JSON surveys, gap-analysis + spec-compliance + shared-canvas-spec reports, `specs/` API snapshot cache (~74 refs) + `specs/llm-providers/` (29 provider snapshots) + `best-practices/` (18 perf research snapshots). |
+| `research-context/AGENTS.md` | Read-only UX research context JSON: competing-tool UI snapshots + project UX probes (Cline / OpenCode / Claude Code / cursor-ui / chat-attach / model-selector / vision-badges / pd-* probes). Reference-only, not imported by app code. |
+| `scripts/AGENTS.md` | Dev scripts: dev-server + sandbox one-shot bring-up launchers, screenshot automation, intent classifier eval, token cost measurement, DOM-renderer bench corpus generator, agent-eval scenario suite, VLM output-inspection harness (vlm-inspect). |
+| `tests/AGENTS.md` | Test suite: Vitest 5 unit/integration tests, shell smoke tests, CI notes. |
+
+Root-owned files (no child doc — owned by this root): `README.md`, `LICENSE`, root tool/config files (`package.json`, `bun.lock`, `tsconfig.json`, `next.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `vitest.config.ts`, `prisma.config.ts`, `components.json`, `instrumentation.ts`, `Caddyfile`, `.env.example`, `.gitignore`), `public/` static assets (logo.svg, robots.txt, `public/landing/` marketing media). Session artifacts (`worklog.md`, `TEST_RESULTS_WORKLOG.md`, `test-results-*.json`, `tool-results/`) are transient and gitignored — do not commit them.

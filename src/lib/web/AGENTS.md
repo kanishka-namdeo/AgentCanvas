@@ -67,6 +67,18 @@ The web search + web fetch subsystem: a zero-config, no-API-key fallback chain f
 - Manual: use the agent with a prompt requiring web fetch — verify readable markdown returns.
 - `bun run scripts/eval-agent.ts` — includes web_research skill eval prompts.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that a zero-result page from the FIRST provider actually tries the next — silently returning `{ provider: 'none', results: [] }` while three providers were reachable is a chain-wiring bug, not an outage.
+- Check `dev.log` for the full provider error chain when search/fetch returns nothing — the error string concatenates every attempted provider so the diagnosis is one grep away; do not guess.
+
+### Lessons Learned
+
+- Keep the provider chain order fixed (z.ai → DuckDuckGo → Startpage → Jina) — reordering breaks the "best quality first, most reliable public second" contract; a custom reorder is a parent-level decision.
+- Do NOT add API keys to this module — it is explicitly zero-config; the z.ai sandbox auto-resolves credentials and the public scrapers are the fallback. Adding a key spreads secrets into a layer that was designed to be credential-free.
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. This folder is flat: `search.ts`, `fetch.ts`, `types.ts`.

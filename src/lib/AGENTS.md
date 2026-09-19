@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Shared library layer root. Owns the Prisma client singleton and the shared UI utility directly, and indexes the eight lib subfolders that have their own AGENTS.md contracts (plus the nested agent/skills, agent/plugins, agent/subagents child docs).
+Shared library layer root. Owns the Prisma client singleton and the shared UI utility directly, and indexes the nine lib subfolders that have their own AGENTS.md contracts (agent, canvas, design-systems, llm, pen, sessions, settings, web, icons) plus the nested agent/skills, agent/plugins, agent/subagents child docs.
 
 ## Ownership
 
@@ -31,6 +31,18 @@ Shared library layer root. Owns the Prisma client singleton and the shared UI ut
 - `bun run db:push` — schema in sync (uses the same client config).
 - Manual: `curl http://localhost:3000/api/sessions` returns session JSON — proves the db singleton initializes inside a route.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check the Child DOX Index here against the actual subfolder list before relying on it — a new durable subfolder with no row here is invisible to the DOX reader.
+- Check that single-file utility folders (`storage/`, `validation/`, `onboarding/`, `icons/`) are still owned from this root before adding a child doc — promoting too early fragments contracts that fit a single Ownership bullet.
+
+### Lessons Learned
+
+- Add a child doc only when a folder grows its own contracts/workflow/quality standards; the parent's Ownership row stays the cheaper home for a single-file folder.
+- Do not duplicate the Prisma client or `cn()` helper elsewhere — `db.ts` and `utils.ts` are intentionally the single owners; reach for an existing subfolder's contract before creating a new top-level module.
+
 ## Child DOX Index
 
 | Path | Scope |
@@ -40,9 +52,10 @@ Shared library layer root. Owns the Prisma client singleton and the shared UI ut
 | `agent/skills/AGENTS.md` | Skill system: types, registry (7 skills), progressive disclosure levels |
 | `agent/plugins/AGENTS.md` | Plugin registry + 8 ported plugins (32 tools): ask-user-question, todo, memory, mega-compact, goal-list, background-tasks, mcp-adapter, subagents |
 | `canvas/AGENTS.md` | Canvas state: Zustand store, types/patches, clipboard, export utilities, gestures hook, Socket.IO service |
-| `llm/AGENTS.md` | LLM provider abstraction: 28 providers (26 OpenAI-compatible + 2 native), unified `LLMClient`, registry + factories |
+| `llm/AGENTS.md` | LLM provider abstraction: 29 providers (28 named + 1 generic `custom`), unified `LLMClient`, registry + factories |
 | `pen/AGENTS.md` | .pen format layer: canonical schema (v2.17), tree resolver, document helpers, converters, Pages abstraction |
 | `design-systems/AGENTS.md` | Design-system packs: registry, loader, token export, agent helper (5 packs: shadcn-default, radix-themes, vercel-geist, tailwind-catalyst, mantine-default) |
 | `sessions/AGENTS.md` | Session persistence: Zustand localStorage store + server-sync bridge, fork/restore, sweep/enforce |
 | `settings/AGENTS.md` | Settings store: AppSettings + AgentRunSettings types, defaults, PALETTES |
 | `web/AGENTS.md` | Web search + fetch: 4-provider search chain, 3-backend fetch pipeline, quality gates |
+| `icons/AGENTS.md` | Lucide icon library runtime: registry + index helpers (generated catalog + semantic search) |

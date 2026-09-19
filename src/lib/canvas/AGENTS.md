@@ -175,6 +175,20 @@ The store intentionally has no direct dependency on the Pi Agent SDK — the age
 - Reload the page — the document's newest local snapshot should restore the shared canvas (remote placeholders are skipped at boot).
 - `window.__canvasStore.getState().document.shapes.length` should match the visible shape count.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check all Zustand selectors for `?? {}` / `?? []` patterns — they return a fresh object every render and trigger an infinite re-render loop. Replace with stable constants hoisted to module scope.
+- Check that a new `SyncEvent` kind also adds the API route forwarding case — server→client REQUEST events ride the fan-out unfiltered, but every other kind needs a case in `app/api/agent/route.ts`.
+- Check `window.__canvasStore.getState()` when "the canvas didn't update" — the store is the source of truth, not the DOM; a stale DOM means the patch never reached the store.
+
+### Lessons Learned
+
+- Never mutate a `Shape` after emit — the emit cache shares `Shape` objects across resolves on cache hits; in-place mutation breaks identity reuse and produces stale geometry.
+- The canvas Document is the shared artifact (Figma/Cursor model) — never swap the document on chat switch; rebuild only the transcript.
+- The store is intentionally free of any Pi Agent SDK dependency — keep it that way; agent-side concerns live in `src/lib/agent/`.
+
 ## Child DOX Index
 
 No child AGENTS.md files in this folder.

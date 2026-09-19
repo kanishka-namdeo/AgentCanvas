@@ -52,6 +52,20 @@ Result shape: winner applied via patch; the result embeds the winner's full id-m
 - `bun run test` — variant-generator coverage lives in `tests/unit/todo-batch-variants.test.ts` (coercion, composites, budget races with hanging-LLM mocks; 26 tests).
 - Final 14-turn matrix evidence: `download/vlm-exercise/final/` + `REPORT.md` (variant-gen fired on 6/14 creation turns; smoke-variants 8/10 with 0 missing elements).
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check the variant generator schema defense — models invent alternative JSON shapes under long prompts; the `SPEC_SYSTEM_PROMPT` + `coerceNodeTree` + `REPAIR_SYSTEM_PROMPT` three-layer defense is what keeps the result parseable.
+- Check that any new long-running dispatch carries a wall-clock budget with per-phase races — the variant generator's `300s × retry attempts × sequential retry wave × repair round-trips` stalled ONE tool call past 19 minutes before the budget was added.
+- Check that sub-agents never import the Zustand store or emit patches directly — they receive a snapshot argument and return ONE winner patch through the tool layer; going around this breaks context isolation.
+
+### Lessons Learned
+
+- Three-layer schema defense for LLM JSON output: prevention (system prompt embeds the exact schema + a forbidden-keys list) → coercion (`coerceNodeTree` maps near-miss containers, `stripDescriptorFields` drops descriptor keys) → repair (a temp-0.1 transcription round-trip). Never throw on unparseable JSON — salvage what parses.
+- Stagger sub-agent launches ~15s apart on constrained transports — simultaneous long calls on a single-connection endpoint starve each other; the stagger + sequential retry waves absorb the burst.
+- Parked runner-up variants persist on the Explorations page with stable section node ids — the `id` is the stable promote key for `agent:alternatives_parked`; do not regenerate ids across resolves (the expansion cache relies on identity reuse).
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. This folder is flat.

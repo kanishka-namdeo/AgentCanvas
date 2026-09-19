@@ -182,6 +182,36 @@ On EMPTY-canvas one-shot turns the route additionally runs the one-shot polish p
 - Manual: `curl http://127.0.0.1:3000/api/plugins` — should return plugin manifests.
 - In the browser: open the app, type a prompt, verify the agent panel streams tokens + tool calls; open Settings → Plugins, verify the plugin list loads.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check `Content-Length ≤ 32MB` BEFORE `req.json()` on `/api/agent` — an oversized POST parsed eagerly would OOM the route handler.
+- Call `tryRegisterActiveRun(documentId)` BEFORE the user_message journal row + BEFORE the stream starts — two overlapping runs on the same document interleave journal rows (breaks `user_message → turn_final` pairing for every later turn's history replay) and double-spend tokens.
+- Validate every `status` field on sessions/messages/runs writes against the canonical unions in `src/lib/validation/status-enums.ts` — an invalid enum value written to the DB crashes the UI on the next render.
+- Validate that `document` is an object before `JSON.stringify` on snapshot POST — large or non-object payloads would 500 mid-write.
+- Map P2025 (Prisma "record not found") on PATCH → 404 and on DELETE → idempotent success — bubbling these as 500s breaks the client's auto-heal retries.
+- Check that the NDJSON stream sets `Content-Type: application/x-ndjson`, `Cache-Control: no-cache, no-transform`, AND `X-Accel-Buffering: no` before the first write — missing any of these lets an upstream proxy buffer the whole run, breaking the live token stream.
+- Do not bubble a runner exception as a 500 mid-stream — the client is already reading; emit an `agent_event` with `{ type: 'agent:error', message }` and close the stream instead.
+
+### Lessons Learned
+
+- Do POST upserts (with `runId` / `messageId`) instead of separate create-then-update — the server may have missed the initial create during a reconnect (this was previously an unhandled P2025 500).
+- Do idempotent POST on `/api/sessions` (existing client-supplied id returns the existing row) — replays after reconnect must not duplicate rows, and child writes (messages/runs) would FK-fail if the parent row was missing.
+- Do cursor pagination (`?cursor=<ISO lastOpenedAt>`) on session list GET — a legacy DB of empty shells flooded the client merge under the previous 50-row cap with no way to page past.
+- Do document-scoped snapshots (sessionId is a provenance column with no FK) — deleting a chat MUST NOT delete its snapshots; the shared-canvas model means canvas history survives its chat. (The legacy `/api/sessions/[id]/snapshots` route was DELETED for this reason.)
+- Do client-supplied id alignment on POST `/api/sessions` — without it, client and server rows diverge and child writes FK-fail silently.
+- Do auto-heal on `/api/sessions/[id]/{messages,runs}` POST (accept `documentId` and create the missing parent session shell) — pre-fix localStorage sessions errored on their next write instead of healing.
+- Do single-run claim + Content-Length cap + field caps + canvasState > 20k shapes rejection on `/api/agent` — the gateway's opaque ~24k-token prompt-length rejection used to surface as a confusing 500 mid-stream; honest 400s at the door are cheaper.
+
 ## Child DOX Index
 
-No child `AGENTS.md` files. This folder contains: `agent/route.ts`, `agent/answers/route.ts`, `agent/approvals/route.ts`, `agent/background/[id]/route.ts`, `agent/client-responses/route.ts`, `agent/pending/route.ts`, `agent/plans/route.ts`, `models/route.ts`, `plugins/route.ts`, `sessions/route.ts`, `sessions/search/route.ts`, `sessions/ensure-session.ts`, `sessions/[id]/route.ts`, `sessions/[id]/messages/route.ts`, `sessions/[id]/runs/route.ts`, `sessions/[id]/tags/route.ts`, `sessions/[id]/attachments/route.ts`, `documents/route.ts`, `documents/[documentId]/route.ts`, `documents/[documentId]/agent/status/route.ts`, `documents/[documentId]/events/route.ts`, `documents/[documentId]/snapshots/route.ts`, `documents/[documentId]/snapshots/[id]/route.ts`, `documents/[documentId]/variants/promote/route.ts`, `design-systems/route.ts`, `design-systems/[name]/route.ts`, `design-systems/[name]/tokens/route.ts`, `mcp/[id]/route.ts`, `route.ts`, `pen/import/route.ts`, `pen/export/route.ts`.
+| Path | Scope |
+|------|-------|
+| `agent/AGENTS.md` | `/api/agent` NDJSON run endpoint + plugin/approval round-trip subroutes (`answers`, `pending`, `background/[id]`, `plans`, `approvals`, `client-responses`) |
+| `sessions/AGENTS.md` | `/api/sessions*` server-side session persistence (Prisma) — CRUD, search, cursor pagination, tags, attachments, messages, runs, ensure-session helper |
+| `documents/AGENTS.md` | `/api/documents*` family — document CRUD, agent-run status, event journal, document-scoped snapshot timeline, variant promote |
+| `design-systems/AGENTS.md` | `/api/design-systems*` pack registry — list packs, fetch one pack's metadata + tokens.css |
+| `pen/AGENTS.md` | `/api/pen/import` + `/api/pen/export` — `.pen` ↔ `CanvasDocument` conversion |
+
+*Routes without their own AGENTS.md (owned here): `route.ts` (root health check), `models/route.ts`, `plugins/route.ts`, `mcp/[id]/route.ts`. These are single-file routes with no subroutes; their contracts are documented in the Local Contracts section above.*

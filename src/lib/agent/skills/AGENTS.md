@@ -47,10 +47,31 @@ For 'multi', returns ALL_TOOL_NAMES (the full 94-tool flat list — fallback; ex
 4. Update the eval harness (`scripts/eval-agent.ts`) with test prompts
 5. Run `bun run scripts/eval-agent.ts` — must stay ≥80% accuracy
 
+## Work Guidance
+
+- Skill descriptions (Level 1 metadata) must say WHAT + WHEN; the intent classifier sees only these ~100-token blurbs, so a vague description costs more than a missing keyword.
+- Skill bodies (Level 2) live <5k tokens; keep the tool-selection guide, argument rules, and completion criteria focused on this skill's scope.
+- Stamp both skill bodies and the `SYSTEM_PROMPT_TEMPLATE` with the same `PROMPT_VERSION` rev when either changes — drift goes unnoticed without a shared rev.
+- The VERIFY step in each body must name every resolver-warning kind with its fix (`container_overflow` / `text_overflow` / `flow_child_absolute_coords` / unresolved `$vars`); a warning that survives a turn is a defect.
+- Use word-boundary matching for short keywords (≤3 chars) — naive `includes('ui')` matches `build` and misroutes the prompt.
+
 ## Verification
 
 - `bun run scripts/eval-agent.ts` — 20-prompt intent classifier eval (currently 95% accuracy; gate is ≥80%)
 - Manual: test via Agent Browser with prompts from each skill category
+
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that a new skill is also added to `ALL_TOOL_NAMES` (when it ships new tools) AND the eval harness — a skill registered without eval coverage drifts silently because the classifier accuracy gate never sees it.
+- Check that the `PROMPT_VERSION` rev is bumped when `formatShapeLine` vocabulary or a skill body changes — drift between the SYSTEM_PROMPT_TEMPLATE and the skill bodies breaks the design-quality contract without a visible signal.
+- Check that the always-loaded figma tools (10) are excluded from `ALL_TOOL_NAMES` — including them would inflate every multi-category turn's tool list by 10 entries.
+
+### Lessons Learned
+- `getToolNamesForCategory('multi')` returns the full flat list as the fallback — do not special-case it; a new skill should widen its own category's allowlist, not the multi fallback.
+- Progressive disclosure Level 3 is intentionally unused at our scale (7 skills, each self-contained); adding Level 3 complexity without ≥20 skills is premature.
+- The legacy shape-era tool spellings still dispatch via `../tool-aliases.ts` but are NOT advertised in `ALL_TOOL_NAMES` — keep that asymmetry intentional so the LLM-visible catalog stays small while stale transcripts still resolve.
 
 ## Child DOX Index
 

@@ -120,6 +120,21 @@ All of these fields are optional in the TypeScript type, so the Prisma model sti
 - `bun run db:push` — should apply schema to SQLite.
 - Use `bunx prisma studio` to inspect the database visually. (The `sqlite3` CLI is not available on Windows by default.)
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that `prisma/schema.prisma` `Shape` fields are in sync with `src/lib/canvas/types.ts` `Shape` fields before adding readers, because the two are currently DRIFTED (extended fields like `autoLayout`, `tokenBinding`, `points`, `gradient`, `shadow`, `maskId` exist only on the TS side).
+- Check that `prisma.config.ts` exists at the repo root before running any `prisma` CLI command, because Prisma 7 expects it there and the datasource `url` is no longer read from `schema.prisma`.
+- Check that any new `Shape` column is optional (`?`) or nullable before pushing to a populated SQLite DB, because required additions force a destructive `--force-reset`.
+
+### Lessons Learned
+
+- Allocate `AgentEvent.seq` by re-reading the journal head with collision retry on `@@unique([documentId, seq])`, not via an in-memory counter, because `instrumentation.ts` (socket bundle) and route handlers run in SEPARATE Next.js module graphs whose cached counters silently collide and drop rows.
+- Use `prisma db push --force-reset` to add required columns to populated SQLite tables, because SQLite ALTER TABLE refuses them silently — only do this in dev where data loss is acceptable.
+- Treat `DocumentSnapshot` provenance columns (`sessionId` / `messageId` / `runId`) as plain strings, not FKs, because deleting a chat must never delete canvas history (the old `@@index([sessionId])` FK cascade was wrong and was dropped).
+- Do not write to the deprecated `AgentAction` model — it has zero writers since 2026-08-28 and exists only for schema archaeology; the live journal is `AgentEvent`.
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. This folder is flat: `schema.prisma`. (No `migrations/` folder yet.)

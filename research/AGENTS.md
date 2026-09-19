@@ -53,6 +53,18 @@ Cached snapshot trees:
 - No automated verification — these are reference-only JSON files.
 - If a file becomes invalid JSON (should not happen — they are never edited), restore from git history.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that you are not importing from this folder in `src/` or `mini-services/` code, because these are reference-only JSON snapshots and importing them creates silent coupling to research artifacts.
+- Check that research is added as a new file rather than appended to an existing one, because the provenance of each snapshot matters and edits erase the original record.
+
+### Lessons Learned
+
+- Treat this folder as read-only reference material (do not edit, rename, or delete), because the research informed the architecture and downstream decisions trace back to specific entries — modifying the originals breaks the audit trail.
+- If research is outdated, add a new file with a note explaining what superseded it, because deleting or rewriting the original loses the historical reasoning.
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. Subfolders `specs/`, `specs/llm-providers/`, and `best-practices/` are cached snapshot content, not contract boundaries.

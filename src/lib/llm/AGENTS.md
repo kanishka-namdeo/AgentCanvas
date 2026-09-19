@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The LLM provider abstraction layer: a unified interface (`LLMClient`) that normalizes 28 providers (27 named + 1 generic `custom`) into a single OpenAI-shaped `chat.completions.create` contract. The agent runner consumes this interface exclusively — it has zero provider-specific code. The registry (`registry.ts`) is the single source of truth for provider metadata (UI labels, docs URLs, default models, capability flags) and factories.
+The LLM provider abstraction layer: a unified interface (`LLMClient`) that normalizes 29 providers (28 named + 1 generic `custom`) into a single OpenAI-shaped `chat.completions.create` contract. The agent runner consumes this interface exclusively — it has zero provider-specific code. The registry (`registry.ts`) is the single source of truth for provider metadata (UI labels, docs URLs, default models, capability flags) and factories.
 
 ## Ownership
 
@@ -18,8 +18,8 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
   - `LLMProviderConfig` — user config: `providerId`, `apiKey`, `model`, `baseURL`.
   - `LLMProviderEntry` — `{ metadata, factory }`.
 
-- `registry.ts` — The `PROVIDERS` Map (28 entries). Exports: `getProvider(id)`, `getProviderMetadata(id)`, `listProviderIds()`, `listProviders()`, `createLLMClient(config)`, `registerProvider(id, entry)`.
-  - **26 OpenAI-compatible providers** share `openAICompatibleFactory` (delegates to `createOpenAICompatible`): zai, openai, mistral, cohere, groq, together, deepseek, openrouter, fireworks, xai, perplexity, huggingface, novita, hyperbolic, chutes, sambanova, cerebras, deepinfra, siliconflow, aimlapi, atoma, inception, ollama, lmstudio, vllm, custom.
+- `registry.ts` — The `PROVIDERS` Map (29 entries). Exports: `getProvider(id)`, `getProviderMetadata(id)`, `listProviderIds()`, `listProviders()`, `createLLMClient(config)`, `registerProvider(id, entry)`.
+  - **27 OpenAI-compatible providers** share `openAICompatibleFactory` (delegates to `createOpenAICompatible`): zai, openai, mistral, cohere, groq, together, deepseek, openrouter, fireworks, xai, perplexity, huggingface, novita, hyperbolic, chutes, sambanova, cerebras, deepinfra, siliconflow, aimlapi, atoma, inception, ollama, lmstudio, vllm, agnes, custom. The `agnes` entry is the 2026-09-19 default (see `src/lib/settings/AGENTS.md`) — its `apiKeyEnvVars` list `AGNES_API_KEY` so the runner resolves credentials from `.env` without a UI prompt.
   - **2 native adapters**: Anthropic (`createAnthropicClient`), Google Gemini (`createGeminiClient`). (z.ai uses the OpenAI-compatible factory; sandbox auto-credentials are resolved upstream in `pi-ai-model-resolver.ts` / the legacy runner's `ZAI.create()`, not in the registry.)
   - Capability presets: `CAPS_FULL` (tools+streaming+vision), `CAPS_TOOLS_OK` (tools+streaming), `CAPS_NO_VISION`, `CAPS_NO_TOOLS` (streaming only).
   - `wrapNoTools(inner)` — strips `tools`/`tool_choice` from requests for providers lacking function calling.
@@ -88,6 +88,19 @@ The LLM provider abstraction layer: a unified interface (`LLMClient`) that norma
 - Manual: change provider in Settings → LLM provider, send a prompt — verify agent responds.
 - Manual: test `custom` provider with a local Ollama/LM Studio endpoint.
 - `bun run scripts/measure-tool-cost.ts` — measures token cost across providers.
+
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check `apiKeyEnvVars` is non-empty for any non-zai provider — without an env-var list, the factory throws `Provider "<id>" needs an API key` even when the key is sitting in `.env`. The pre-2026-09-19 path leaked this for the agnes provider (fixed in commit `27ddcd1`).
+- Check the `LLMClient` interface stays frozen — do not add methods; if the runner needs new behavior, extend `LLMGenerateParams` / `LLMResponse` and update all three native adapters + the OpenAI-compatible factory together.
+- Check that all 3 native adapters + the OpenAI-compatible factory are updated whenever `LLMMessage` / `LLMToolSpec` / `LLMResponse` shapes change — drift across adapters produces per-provider runtime errors that look like model bugs.
+
+### Lessons Learned
+- Surface HTTP status + first 500 chars of the error body in every factory — provider error bodies (not just the status code) carry the diagnosis; the agnes `AgnesAI_error` JSON shape + the Gemini `finishReason` field both live there.
+- Endpoint presets must never be invoked directly by curl/bash/fetch — every interaction flows through the app's own code + HTTP API. The root `AGENTS.md` "LLM Endpoint Access Policy" owns the project-wide version of this rule.
+- Parse `AgnesAI_error.code` for friendly error mapping — `model_not_found` / `invalid_request` / `rate_limit_exceeded` / `insufficient_quota` map to actionable UI hints (commit `20c8344`).
 
 ## Child DOX Index
 

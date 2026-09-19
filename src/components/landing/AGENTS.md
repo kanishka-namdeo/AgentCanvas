@@ -24,6 +24,14 @@ Everything behind the marketing landing page (route `/`, landing-page plan 2026-
 - Header anchors and section ids both derive from `LANDING_SECTIONS` — a new below-hero section is added there AND rendered with the matching id by its section component.
 - Components here are landing-only; shared app chrome stays out (root `src/components/AGENTS.md` owns ThemeToggle/ErrorBoundary).
 
+## Work Guidance
+
+- When adding a new below-hero section: register its id in `LANDING_SECTIONS` (`LandingHeader.tsx`), render the section component with the matching id, and add a unit test asserting the anchor + heading + reduced-motion branch.
+- When adding a new screenshot: place it inside a `BrowserFrame` (light chrome), pair `object-cover object-top` with `crop="bottom"` if the source has a bottom-edge artifact, and use the real source dimensions in the test.
+- When changing the header anchor set: edit `LANDING_SECTIONS` in ONE place — `LandingHeader.tsx`'s nav and the section components' ids both derive from it.
+- When adding motion: ship a `prefers-reduced-motion` static fallback in the same component (spec §10) and assert it in the test (`useReducedMotion` module-mocked controllable).
+- Mock `next/image` to a plain `<img>` in unit tests so the Next image optimizer does not enter the vitest transform pipeline.
+
 ## Verification
 
 - `bun run test tests/unit/landing-primitives.test.tsx` — 7 tests covering the repo-URL constants, BrowserFrame crop/aspect/className contract, header anchors + CTAs, footer (next/image and lenis/react mocked).
@@ -31,6 +39,25 @@ Everything behind the marketing landing page (route `/`, landing-page plan 2026-
 - `bun run test tests/unit/landing-magic-sequence.test.tsx` — 8 tests covering the `#magic` anchor + heading, the three steps in order, the step-1 typing line + its reduced-motion static prompt, both crossfade layers with their screenshot sources, the 4/3 + `data-crop="bottom"` viewport, and the reduced-motion branches (same mock pattern as landing-hero).
 - `bun run test tests/unit/landing-gallery-trust.test.tsx` — 8 tests covering the `#tool` anchor + heading, both bento cards' names + descriptions, the attention-heatmap band (source + real 1280×577 dims), the `#trust` anchor + heading, the approval-dialog screenshot (source + real 1600×1000 dims), the four verbatim trust bullets, and the reduced-motion variants of both sections (same mock pattern as landing-hero).
 - `bun run test tests/unit/landing-how-it-works-finale.test.tsx` — 8 tests covering the `#how-it-works` anchor + heading, the four flow boxes in order, the animated stats (0 → 60+/28 after the 300ms mount timer), the four dev chips, the `#open-source` anchor + verbatim heading, the clone command built from `REPO_CLONE_URL`, the copy button (`data-copied` flip with clipboard mocked via `Object.defineProperty` on `window.navigator` + cleanup), and the star + `/app` CTAs. `@number-flow/react` is module-mocked to a span carrying value+suffix; NOTE the fake-timer test wraps `vi.advanceTimersByTime` in `act` and restores real timers BEFORE `waitFor` (vitest 5 fakes `setInterval`, so RTL `waitFor` cannot poll under fake timers).
+
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that `lenis/dist/lenis.css` stays aliased to `tests/stubs/empty-module.ts` in `vitest.config.ts` before adding any landing test — a real CSS import drags the Next/Tailwind PostCSS config into the vitest transform pipeline, which fails there.
+- Check that every motion-driven section ships a `prefers-reduced-motion` static fallback — spec §10 requires a static fallback for every motion behavior; landing-hero/magic-sequence/gallery-trust/how-it-works-finale tests all assert the fallback branch.
+- Check that landing screenshots sit inside a `BrowserFrame` (light chrome) and never appear raw on the dark page — the contrast contract is non-negotiable.
+- Check that any new below-hero section id is added to `LANDING_SECTIONS` in `LandingHeader.tsx` AND rendered with the matching id by the section component — anchor nav and section ids both derive from this single source.
+- Check that `object-cover object-top` + `crop="bottom"` are paired when a screenshot's bottom edge carries an artifact (toast, scrollbar) — crop in CSS per spec §6, never edit the source PNG.
+- Check that `NumberFlow`'s fake-timer test wraps `vi.advanceTimersByTime` in `act` and restores real timers BEFORE `waitFor` — vitest 5 fakes `setInterval`, so RTL `waitFor` cannot poll under fake timers.
+
+### Lessons Learned
+
+- Do not re-type the repo URL anywhere — import from `repo-url.ts`; a single edit must propagate to header Star, footer GitHub, OpenSourceFinale CTA, and the clone command.
+- Do not paraphrase the spec's verbatim copy — `OpenSourceFinale` heading and the four `TrustLoop` bullets must match spec §5.4/§5.6 word-for-word; tests assert the strings.
+- Do not import shared app chrome into landing components — landing is route `/` only; the workspace app at `/app` must not import from here.
+- Do not use a syntax-highlighting library for the clone command — a plain styled `<pre>` keeps the bundle small; spec decision.
+- Do not edit screenshot PNGs to crop artifacts — crop in CSS via `BrowserFrame`'s `crop="bottom"` + `object-cover object-top`.
 
 ## Child DOX Index
 

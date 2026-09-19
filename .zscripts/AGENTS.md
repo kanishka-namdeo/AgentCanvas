@@ -39,6 +39,20 @@ The full sandbox operating runbook (project location, process survival, persiste
 - `bash tests/python-runtime-build.sh` + `bash tests/database-runtime-build.sh` — smoke-test two of these scripts.
 - End-to-end: a container restart brings up `:3000` + `:3003` (see `scripts/setup-zai-sandbox.sh --verify`).
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check whether `dev.sh` runs cleanly before archiving `/home/sync/repo.tar`, because a broken boot script kills the app on every container restart.
+- Check that `next.config` carries `output: "standalone"` (or that `build.sh` will self-heal it) before assuming `next-service-dist/server.js` exists in the deploy artifact.
+- Check whether you are editing `.zscripts/start.sh` (production entrypoint) vs the container-root `/start.sh` (sandbox boot) — they share a name but operate on different lifecycles.
+
+### Lessons Learned
+
+- Do not rename `dev.sh`, because the container's `/start.sh` hardcodes the path and a rename silently bricks the sandbox boot.
+- Refresh the persistence archive (`bash scripts/setup-zai-sandbox.sh --archive`) after durable `dev.sh` changes, because the container restores from `/home/sync/repo.tar` on every restart and un-archived edits are lost.
+- Treat the deleted `mini-services/canvas-sync/` standalone service as a cautionary tale: an in-process twin plus a standalone one collided on `:3003` with no EADDRINUSE handler, so the standalone was retired to `.gitkeep` and the in-process twin in `src/lib/canvas/server.ts` owns the port now.
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. This folder is flat.

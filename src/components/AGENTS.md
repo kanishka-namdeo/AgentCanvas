@@ -40,6 +40,23 @@ Component tree root. Owns the shared ThemeToggle + ErrorBoundary components dire
 - `bun run lint` — ESLint.
 - Manual: click the theme toggle through system → light → dark; reload — preference persists; verify Settings → Appearance shows the same value.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check for raw hex/oklch/hsl literals in component chrome before merging a UI change — they break dark-mode adaptation (canvas CONTENT fills are exempt).
+- Check that any new busy-gated control routes through `runPhase` in the canvas store, not a parallel boolean, before wiring it — vocabulary drift is silent.
+- Check that `<kbd>`, section labels, and brand gradients use the shared recipes (`ac-kbd`, `ac-label`, `ac-brand-gradient`) rather than recomposed Tailwind classes.
+- Check that 8px font sizes never slip back in — the dense-UI floor is 9px.
+
+### Lessons Learned
+
+- Do not hardcode shape property access without `?.` and `?? 0` — the LLM emits patches referencing deleted shapes and the UI must not crash on the missing lookup.
+- Do not pass selection/hover/zoom as props to `DomNode` — they belong to `DomChrome`; the memoized world tree must only see stable layer identities.
+- Selection lookups must use a memoized `Map<id, shape>`, never `selectedIds.map(id => shapes.find(...))` — `⌘A` on a 20k-node canvas hit O(selection × canvas) and stalled the UI.
+- Do not introduce a second design-token system alongside `--ac-*` — extend `--ac-*` in `globals.css` instead.
+- Do not hardcode the repo URL or guide-red hex — route through `landing/repo-url.ts` and `canvas/dom/Guides.tsx`'s `DEFAULT_GUIDE_COLOR` so a single edit propagates.
+
 ## Child DOX Index
 
 | Path | Scope |
@@ -47,6 +64,7 @@ Component tree root. Owns the shared ThemeToggle + ErrorBoundary components dire
 | `canvas/AGENTS.md` | Canvas UI: drawing surface, floating toolbar (+ undo/redo), command palette, layers panel, properties inspector, agent chat + PluginUI bundle, app menu, .pen file menu, shortcuts dialog |
 | `sessions/AGENTS.md` | Session UI: sidebar, header (compact), run history panel, run/stop button, status badges |
 | `settings/AGENTS.md` | Settings dialog: 8-section modal (agent, LLM provider, sessions, appearance, data, shortcuts, plugins, MCP servers) |
-| `design-systems/AGENTS.md` | Design-system picker + pack showcase (the Design tab's pack browsing UI) |
+| `design-systems/AGENTS.md` | Design-system picker + pack showcase (the Design tab's pack browsing UI); iframe-isolated pack previews |
 | `ui/AGENTS.md` | shadcn/ui primitives: 26 Radix UI wrappers + 5 Magic UI primitives (border-beam, blur-fade, scroll-progress are motion-backed; marquee is CSS-keyframe animated, bento-grid imports no motion); motion pinned ^12 |
-| `landing/AGENTS.md` | Landing page: repo-url constants, SmoothScroll (lenis, reduced-motion fallback), BrowserFrame light-chrome mockup (+ bottom-crop), header/footer chrome (LandingHeader anchor nav + CTAs, LandingFooter), and all six section components (Hero, MagicSequence, FeatureGallery, TrustLoop, HowItWorks, OpenSourceFinale) |
+| `landing/AGENTS.md` | Landing page: repo-url constants, SmoothScroll (lenis, reduced-motion fallback), BrowserFrame light-chrome mockup (+ bottom-crop), header/footer chrome, and all six section components (Hero, MagicSequence, FeatureGallery, TrustLoop, HowItWorks, OpenSourceFinale) |
+| `onboarding/AGENTS.md` | First-run onboarding: 2-step modal (welcome + template picker) mounted in `/app`, dispatches `agentcanvas:composer-prefill` CustomEvent |

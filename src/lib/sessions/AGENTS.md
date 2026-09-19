@@ -107,6 +107,20 @@ State transitions are append-only: a `completed` run cannot go back to `in_progr
 - Manual: restore a snapshot — a new 'restore' snapshot should appear in the document timeline, the shared canvas should revert, and other viewers should follow.
 - Check `localStorage['agentcanvas.sessions.v1']` in the browser console — should be a single JSON blob with the full store shape.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that `createServerSession` passes the client's localStorage session id — a server-generated cuid orphans every downstream run/message/snapshot write with `ForeignKeyConstraintViolation` (2,733 orphaned rows discovered at the original bug fix).
+- Check `mutateQueue` is used for every post-`await` queue mutation — writing back a queue snapshot captured before an `await` clobbers sibling entries' state (the stale-snapshot race).
+- Check that the hydration merge uses `fetchServerSessionsStrict` (returns `null` on unreachable) — plain `fetchServerSessions` collapses unreachable to an empty page and cannot drive the ghost-session sweep; rows deleted on the server then linger in the sidebar forever.
+
+### Lessons Learned
+
+- Do the FK-via-shared-id contract up front — pass the client's localStorage session id through `createServerSession`, never let the server generate its own cuid, so all child writes resolve on the same key.
+- Use a strict variant (null vs authoritative empty) for any fetch whose result drives DELETION decisions — the fetch-on-reachable path must be distinguishable from the unreachable path, or you sweep rows that should be preserved.
+- Every post-`await` mutation of a localStorage-backed queue must go through a fresh read-modify-write (the `mutateQueue` helper) — never write back a snapshot captured before the await.
+
 ## Child DOX Index
 
 No child AGENTS.md files in this folder.

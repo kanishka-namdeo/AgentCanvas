@@ -41,6 +41,20 @@ Durable written documentation: the z.ai sandbox runbook, phase design docs (incl
 - Menu-specs status counts match shipped features.
 - `zai-sandbox-setup.md` commands match `scripts/setup-zai-sandbox.sh` subcommands.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that a new design doc carries the front-matter block (Status / Spec source / Code touchpoints / Test coverage) before merging it, because docs without it lose traceability to the code that implements them.
+- Check menu-specs status counts against shipped features after implementing an item, because stale `stubbed`/`deferred` rows mislead triage.
+- Check `zai-sandbox-setup.md` subcommands against `scripts/setup-zai-sandbox.sh` subcommands when either file changes, because the two have drifted before and produced conflicting runbooks.
+
+### Lessons Learned
+
+- Mirror `zai-sandbox-setup.md` changes into the root AGENTS.md "z.ai Sandbox Operations" section (and vice versa) in the same commit, because the two files describe the same runbook and have drifted apart silently.
+- Update a spec's menu-specs status line in the same commit that ships the feature, because stale status rows have leaked into triage before.
+- Treat `superpowers/specs/` entries as historical design records and `superpowers/plans/` entries as living documents — keep them in sync but do not rewrite the spec when the plan adjusts, because the spec is the decision-of-record.
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. `menu-specs/` is spec content, not a contract boundary.

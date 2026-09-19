@@ -38,6 +38,20 @@ The agent plugin subsystem: a registry of 8 ported pi-agent plugins exposing up 
 - Manual: Settings → Plugins → toggle a plugin → run a prompt that uses it (e.g. ask the agent to "plan with todos") → TodoOverlay updates live.
 - Manual: agent asks a question → `AskUserQuestionDialog` appears → answer → run continues; reload mid-question → dialog recovers via `/api/agent/pending`.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that the runner imports plugin tools ONLY through `getEnabledPluginTools(settings)` — bypassing the choke point skips the `enabledPlugins` gate and ships plugin tools the user disabled.
+- Check that a new plugin tool name does not collide with `pen_*` / `figma_` / `web_*` prefixes — collisions silently shadow the core tool.
+- Check that every mutation tool that emits a UI event goes through `event-bus.ts`'s `emitEvent()` — direct socket/store writes from a plugin tool bypass the runner's fan-out and leave viewers out of sync.
+
+### Lessons Learned
+
+- `todo_update` accepts a BATCH of 1-20 transitions in one call — never one call per transition. WIP=1 auto-advance marks the previous step complete, so no separate "completed" call is needed; the single-step schema is normalized into a 1-element batch for stale tests (noise fix 2026-08-28 dropped todo share from ~13/31 calls to 0.9%).
+- Plugin per-session state lives in module-level Maps keyed by session/toolCall id (no DB) — `/api/agent/pending` exists exactly so a reload can recover unanswered questions after a server restart.
+- The subagents plugin is default-OFF because the runner's critique loop is the single critique authority; `subagent_worker` was success theater. Default-OFF preserves the contract without breaking the plugin contract.
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. This folder is flat.
