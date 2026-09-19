@@ -90,6 +90,10 @@ import {
   MODE_METADATA,
   type AgentMode,
 } from '@/lib/agent/modes';
+// impl-mode-tags-and-action-replacement (round 3 follow-up): the singleton
+// tracker is the cross-call handoff channel between this UI (producer,
+// records mode switches) and the runner (consumer, prepends <mode_notice>).
+import { modeSwitchTracker } from '@/lib/agent/mode-tags';
 import {
   activeMentionToken, applyMention, matchMentions, extractMentionedLayerIds,
   mentionableLayers,
@@ -1095,7 +1099,18 @@ export function AgentPanel() {
   // Sticky agent mode (Cursor-style) — persisted in settings, threaded to the
   // runner via agentRunSettings().mode on every prompt.
   const agentMode = useSettings((s) => s.agentMode) ?? 'build';
-  const setAgentMode = (m: AgentMode) => setSetting('agentMode', m);
+  // impl-mode-tags-and-action-replacement (round 3 follow-up): wrap
+  // setAgentMode so the mode-switch tracker records every transition. The
+  // runner consumes any pending <mode_notice> via modeSwitchTracker.consume()
+  // and prepends it to the next user message. Round-trips (build→ask→build
+  // before sending) cancel the notice via the tracker. Only the producer
+  // side lives here — the consumer side is in runner-native.ts.
+  const setAgentMode = (m: AgentMode) => {
+    if (m !== agentMode) {
+      modeSwitchTracker.record(agentMode, m);
+    }
+    setSetting('agentMode', m);
+  };
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
   // Prompt-history navigation cursor (-1 = live input, not navigating).
