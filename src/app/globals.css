@@ -11,6 +11,11 @@
 @source not "../../download";
 @source not "../../scripts";
 @source not "../../tests";
+@source not "../../repos";
+@source not "../../research";
+@source not "../../research-context";
+@source not "../../docs";
+@source not "../../examples";
 
 @custom-variant dark (&:is(.dark *));
 
