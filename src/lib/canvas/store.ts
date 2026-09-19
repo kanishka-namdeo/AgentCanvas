@@ -766,7 +766,7 @@ export function __resetPresenceForTests(): void {
   localParticipantIdentity = makeLocalParticipant();
 }
 
-// ---- Streaming delta batching (R9b) -------------------------------------------
+// ---- Streaming delta batching (R9b + RAF coalescer) -------------------------
 //
 // `agent:message_delta` fires once per token chunk — dozens per second. The
 // old handler ran TWO set() calls per delta (canvas turns + session-store
@@ -775,18 +775,35 @@ export function __resetPresenceForTests(): void {
 // and a zustand-persist serialization of the WHOLE sessions dataset. The
 // server already batches the WIRE at 16ms; this is the client-side mirror:
 // deltas accumulate in a module buffer and land as ONE set() per flush
-// window (~32ms — two frames; imperceptible next to token latency).
+// window.
+//
+// DUAL-FLUSH STRATEGY (OpenHands `createStreamingDeltaBatcher` pattern 5.2):
+//   - LOWER BOUND: `requestAnimationFrame` coalescer — fires once per browser
+//     frame (~16ms). When multiple deltas land inside the SAME frame, they
+//     collapse into a single flush + a single `setState` + a single React
+//     re-render. Without this, a 32ms timer can fire MID-frame, then the next
+//     timer fires at the start of the NEXT frame, causing two renders for one
+//     visual update. The RAF coalescer guarantees ≤ 1 commit per frame.
+//   - UPPER BOUND: 32ms `setTimeout` — covers the worst case where RAF is
+//     unavailable (test env, server-side render, tab backgrounded by the
+//     browser's task switcher — RAF throttles to ~1s when backgrounded, the
+//     timer keeps it at 32ms).
+//   - Whichever fires first runs `flushAssistantDeltas()` and CANCELS the
+//     other. There is never a double-flush: the timer clears the RAF handle
+//     and the RAF clears the timer handle.
 //
 // Ordering safety: the buffer is flushed synchronously at the start of every
 // non-delta `_onSync` event, at promptAgent start, and at turn terminal
 // events — a terminal (message_end / turn_end / error) can never run before
 // the text it terminates, and buffered text can never attach to a newer
-// turn. Under NODE_ENV==='test' the flush is synchronous (the
-// enqueuePatch precedent) so existing store tests keep their
+// turn. Under NODE_ENV==='test' the flush is synchronous (RAF is skipped
+// because jsdom's RAF polyfill is unreliable under vitest fake timers; the
+// enqueuePatch precedent applies) so existing store tests keep their
 // dispatch-then-assert contract.
 let pendingAssistantDeltas = '';
 let pendingThinkingDeltas = '';
 let assistantDeltaTimer: ReturnType<typeof setTimeout> | null = null;
+let assistantDeltaRaf: number | null = null;
 const ASSISTANT_DELTA_FLUSH_MS = 32;
 
 function flushAssistantDeltas() {
@@ -794,6 +811,12 @@ function flushAssistantDeltas() {
     clearTimeout(assistantDeltaTimer);
     assistantDeltaTimer = null;
   }
+  // Cancel any pending RAF — the timer beat it to the flush, so the frame
+  // coalescer must not double-flush on the next frame.
+  if (assistantDeltaRaf !== null && typeof cancelAnimationFrame === 'function') {
+    cancelAnimationFrame(assistantDeltaRaf);
+  }
+  assistantDeltaRaf = null;
   const text = pendingAssistantDeltas;
   const thinking = pendingThinkingDeltas;
   if (!text && !thinking) return;
@@ -841,8 +864,32 @@ function flushAssistantDeltas() {
 }
 
 function scheduleAssistantDeltaFlush() {
-  if (assistantDeltaTimer) return;
-  assistantDeltaTimer = setTimeout(flushAssistantDeltas, ASSISTANT_DELTA_FLUSH_MS);
+  // UPPER BOUND: 32ms setTimeout — always scheduled. If RAF is unavailable
+  // or does not fire (backgrounded tab), this guarantees the buffer lands
+  // within 32ms instead of growing unbounded across the whole turn.
+  if (!assistantDeltaTimer) {
+    assistantDeltaTimer = setTimeout(flushAssistantDeltas, ASSISTANT_DELTA_FLUSH_MS);
+  }
+  // LOWER BOUND: requestAnimationFrame — schedules AT MOST ONE flush per
+  // frame. Whichever fires first wins; the other is cancelled inside
+  // flushAssistantDeltas(). In NODE_ENV==='test' (or when RAF is missing —
+  // SSR / non-DOM envs), skip the RAF entirely: tests rely on the
+  // synchronous `__flushAssistantDeltasForTests()` hook and on the 32ms
+  // timer path, and jsdom's RAF polyfill is unreliable under vitest fake
+  // timers (see the enqueuePatch precedent at the top of this file).
+  if (
+    assistantDeltaRaf === null &&
+    process.env.NODE_ENV !== 'test' &&
+    typeof requestAnimationFrame === 'function'
+  ) {
+    assistantDeltaRaf = requestAnimationFrame(() => {
+      // Clear the handle BEFORE flushing — flushAssistantDeltas() will
+      // also try to cancelAnimationFrame(this handle), and we don't want
+      // it to fight with itself. Setting null here makes that a no-op.
+      assistantDeltaRaf = null;
+      flushAssistantDeltas();
+    });
+  }
 }
 
 /// Test hook: synchronously land any buffered streaming text.
@@ -1949,6 +1996,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         clearTimeout(assistantDeltaTimer);
         assistantDeltaTimer = null;
       }
+      // RAF coalescer (R9b+RAF): cancel any in-flight frame flush too — the
+      // 32ms timer above is cancelled, but the RAF could still fire on the
+      // next frame and land the OLD document's buffered text on the NEW doc.
+      if (assistantDeltaRaf !== null && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(assistantDeltaRaf);
+      }
+      assistantDeltaRaf = null;
       pendingAssistantDeltas = '';
       pendingThinkingDeltas = '';
       if (presenceApplyTimer) {

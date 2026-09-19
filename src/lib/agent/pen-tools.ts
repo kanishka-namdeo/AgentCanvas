@@ -625,6 +625,10 @@ export function createPenTools(ctx: CanvasToolContext) {
       'Use this to see what variables and collections exist before editing them.',
       'Returns collections (collection → modes) and variables (key → type + value).',
     ],
+    // Cline pattern 5.3 — read-only inspect: no ctx mutation, no patch
+    // emission. Safe to batch with other pen_get_* / pen_list_* reads in
+    // one assistant message; the SDK dispatches the batch via Promise.all.
+    executionMode: 'parallel' as const,
     parameters: Type.Object({}),
     async execute(_toolCallId, _params, _signal, _onUpdate, _ctx) {
       const doc = ctx.getDocument?.() ?? ({} as any);

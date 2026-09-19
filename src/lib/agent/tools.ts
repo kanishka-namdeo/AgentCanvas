@@ -3661,6 +3661,10 @@ const createShape = defineTool({
     label: 'List Variables',
     description: 'List all variables (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before pen_bind_variable to see available variable keys.',
     promptSnippet: 'List all variables (colors + text styles).',
+    // Cline pattern 5.3 — pure read, no ctx mutation, no patch emission:
+    // safe to batch with other pen_get_* / pen_list_* reads in one
+    // assistant message and run via Promise.all.
+    executionMode: 'parallel' as const,
     parameters: Type.Object({}),
     async execute(toolCallId) {
       const tokens = ctx.getTokens();
@@ -4373,6 +4377,13 @@ const createShape = defineTool({
       'its direct children sparse — use it to expand a node the delta snapshot collapsed. ' +
       'Without nodeId (or unknown id): the page list (id + name). Always call this before heavier reads.',
     promptSnippet: 'Navigate the canvas: page list by default, sparse subtree tree with a nodeId, full field line with detail:true.',
+    // Cline pattern 5.3 — read-only, race-free: explicit parallel so the
+    // SDK's executeToolCalls dispatch can batch consecutive reads into one
+    // Promise.all when the model emits several pen_get_metadata calls in
+    // one assistant message. Also surfaced in PARALLEL_SAFE_TOOL_NAMES
+    // (tool-execution-mode.ts) so applyExecutionModes never overrides this
+    // back to 'sequential'.
+    executionMode: 'parallel' as const,
     parameters: Type.Object({
       nodeId: Type.Optional(Type.String({ description: 'Node id (or page id) to read. Omit for the page list.' })),
       detail: Type.Optional(Type.Boolean({

@@ -48,6 +48,7 @@ import { toast } from 'sonner';
 import { PluginUI } from './PluginUI';
 import { MarkdownMessage } from './Markdown';
 import { ModelSwitcher } from './ModelSwitcher';
+import { ToolVisualizerBody } from './agent-tools';
 import { StatusBadge } from '@/components/sessions/StatusBadge';
 import { RUN_PHASE_LABEL, BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import {
@@ -3171,6 +3172,13 @@ function ToolCallEntry({ tc, semi = false }: { tc: AgentToolCallEntry; semi?: bo
                   {prettyArgs}
                 </pre>
               )}
+              {/* Tool visualizer registry (OpenHands pattern 5.1). Additive —
+                  sits between the args pre-block and the summary. Renders
+                  `null` for unregistered tools, so unknown tools keep the
+                  existing default JSON dump unchanged. New per-tool
+                  visualizers register via `defineToolVisualizer` and are
+                  picked up without touching this component. */}
+              <ToolVisualizerBody tc={tc} />
               {tc.summary && (
                 <div className="mt-1 text-[10px] ac-text-3">{tc.summary}</div>
               )}

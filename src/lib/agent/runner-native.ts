@@ -137,6 +137,14 @@ import {
   detectMultitaskPrompt,
   CRITIC_PATH_ESTIMATED_LLM_CALLS,
 } from './modes';
+// Cline-style mode-tagged user messages + switch notices (competitor-research
+// round 3, Cline pattern 5.5). Wraps the raw user prompt as
+// `<user_input mode="build|ask|plan">…</user_input>` and prepends a
+// `<mode_notice>…</mode_notice>` marker when the user flipped modes since
+// the previous send. The singleton tracker is the cross-call handoff
+// channel between the UI (producer: calls record() on mode change) and
+// the runner (consumer: calls consume() at prompt-send time).
+import { formatUserInputBlock, modeSwitchTracker } from './mode-tags';
 import { submitPlanTool, SUBMIT_PLAN_TOOL_NAME } from './plan-tools';
 import { consumeApprovedPlan, hasApprovedPlanSince } from './plan-gate';
 import { submitLayoutApprovalTool, lofiToolNames, SUBMIT_LAYOUT_APPROVAL_TOOL_NAME } from './layout-gate';
@@ -1868,9 +1876,26 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // Sits next to variantNudge (mutually exclusive — variant path clears
   // stagedFlow via the variantDispatchPlanned detection input).
   const stagedSection = stagedFlow === 'lofi' ? stagedFlowSection('lofi') : '';
-  const userMessage = (webResearchSummary
-    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}${clarifyGuardSection}`
-    : `${selectionNote}${prompt}${clarifyGuardSection}`) + modeSection + briefSection + variantNudge + stagedSection + conversationHistorySection + snapshotSection + perTurnSections + promptVersionSection + packReminder;
+  // Cline pattern 5.5 — mode-tagged user messages + switch notices:
+  //   1. Consume any pending mode-switch notice. The UI calls
+  //      modeSwitchTracker.record(from, to) on every mode change; the
+  //      runner consumes at prompt-send time so the model sees a
+  //      transcript-visible `<mode_notice>` marker on the first post-switch
+  //      message. Round-trips (build→ask→build before sending) cancel via
+  //      the tracker (it stores only the last `to`; a record(to→from) match
+  //      clears the pending pair). Null when no switch is pending.
+  //   2. Wrap the RAW user prompt as `<user_input mode="…">…</user_input>`
+  //      so the model sees the active mode in every turn's transcript —
+  //      complementary to the per-turn `[MODE: ASK — read-only. …]`
+  //      section below (modeSection), which is the full behavioral contract.
+  //      The wrap is on the raw prompt only; the selection note + clarify
+  //      guard + research summary + mode section + per-turn sections ride
+  //      OUTSIDE the wrap (they are agent context, not user input).
+  const modeSwitchNotice = modeSwitchTracker.consume();
+  const taggedPrompt = formatUserInputBlock(prompt, mode);
+  const userMessage = (modeSwitchNotice ? `${modeSwitchNotice}\n\n` : '') + (webResearchSummary
+    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${taggedPrompt}${clarifyGuardSection}`
+    : `${selectionNote}${taggedPrompt}${clarifyGuardSection}`) + modeSection + briefSection + variantNudge + stagedSection + conversationHistorySection + snapshotSection + perTurnSections + promptVersionSection + packReminder;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;

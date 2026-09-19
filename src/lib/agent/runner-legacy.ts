@@ -469,6 +469,17 @@ PARALLEL TOOL EMISSION RULE (CRITICAL — each round trip costs ~10s):
   You MUST wait for a tool's result ONLY when the next call needs data it produces (an id from
   a creation result, a search result's icon name, a warning to fix).
 
+PARALLEL READ-ONLY EXECUTION (Cline pattern 5.3): the runtime marks the read-only tools
+  pen_get_metadata, pen_list_shapes, pen_list_themes, pen_list_variables, pen_list_collections,
+  pen_describe_node, pen_search_shapes (plus pen_find_nodes, pen_get_computed, pen_search_icons,
+  pen_audit_design, pen_export_*) with executionMode:"parallel". When you emit any of these
+  TOGETHER in one response, the runtime batches them into one Promise.all — they all run at the
+  same time and land in one batch result. Do NOT split independent reads, searches, or audits
+  across separate turns: emit them together in one response for genuine parallel execution.
+  (Mutation tools — pen_create_subtree, pen_update_node, pen_set_variable, etc. — stay
+  sequential inside a batch, so a turn that interleaves reads and mutations keeps the
+  ordering the LLM emitted.)
+
 CALL BUDGET RULE: aim for ≤ 12 tool calls per design request (brief + 1-3 subtree calls +
 targeted fixes + verification). Exceeding it means you are assembling node-by-node — stop,
 and switch to pen_create_subtree (whole trees), pen_duplicate_nodes (repetitions), or
