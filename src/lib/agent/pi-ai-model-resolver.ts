@@ -542,6 +542,25 @@ export async function resolveModel(settings: AgentRunSettings | undefined): Prom
   }
 
   if (!effectiveApiKey && !sandboxOverride) {
+    // 2026-09-19 (competitor-research round 2): for non-zai providers, fall
+    // back to the provider's declared env vars (meta.apiKeyEnvVars) before
+    // throwing. This mirrors what openAICompatibleFactory does in
+    // registry.ts, but the model-resolver path was bypassing it. Without
+    // this fix, the agnes provider (default for this exercise) couldn't
+    // pick up AGNES_API_KEY from .env unless the user typed the key into
+    // the Settings UI — defeating the purpose of having an .env file.
+    if (providerId !== 'zai' && meta?.apiKeyEnvVars && meta.apiKeyEnvVars.length > 0) {
+      for (const envVar of meta.apiKeyEnvVars) {
+        const val = process.env[envVar];
+        if (val) {
+          effectiveApiKey = val;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!effectiveApiKey && !sandboxOverride) {
     const envVars = meta?.apiKeyEnvVars?.join(' or ') ?? `${providerId.toUpperCase()}_API_KEY`;
     throw new Error(
       `No API key configured for provider "${providerId}". ` +

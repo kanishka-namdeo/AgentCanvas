@@ -116,7 +116,23 @@ export async function dispatchDesignCriticVlmSubAgent(
   let toolCallCount = 0;
 
   try {
-    const llm: LLMClient = params.llm ?? ((await ZAI.create()) as unknown as LLMClient);
+    // 2026-09-19 (competitor-research round 2): previously this always fell
+    // back to ZAI.create() when params.llm was not provided (the pen_design_critic_vlm
+    // tool path — see src/lib/agent/tools.ts — does not pass llm through the
+    // CanvasToolContext, so the critic silently hit z.ai regardless of the
+    // user's configured provider). Now we resolve the configured provider's
+    // client from env vars first; only fall back to ZAI.create() when no
+    // provider env vars are set.
+    //
+    // The runner-native.ts path already passes `subAgentLLM` (the configured
+    // provider's client), so this change is a no-op there. This fix is for
+    // the tool-call dispatch path.
+    let llm: LLMClient;
+    if (params.llm) {
+      llm = params.llm as LLMClient;
+    } else {
+      llm = await resolveVlmClientFromEnv();
+    }
 
     // Render the canvas to PNG at 1440×900 (desktop dashboard size).
     const shapes: Layer[] = params.canvas.shapes ?? [];
@@ -288,6 +304,40 @@ Critique this rendered canvas screenshot. Return ONLY the JSON per the system pr
 }
 
 // ---- Helpers ---------------------------------------------------------------
+
+/**
+ * Resolve an LLM client for the VLM critic from environment variables.
+ *
+ * Tries the Agnes (Sapiens AI) endpoint first (AGNES_API_KEY env var) —
+ * the configured default for this exercise. Falls back to ZAI.create()
+ * (z.ai sandbox) only when no AGNES_API_KEY is set, preserving the original
+ * behavior for non-agnes deployments.
+ *
+ * This is invoked ONLY when `params.llm` is not provided — i.e. the
+ * pen_design_critic_vlm tool path that doesn't have access to the runner's
+ * configured LLM client. The runner-native.ts path always passes `llm`
+ * through `subAgentLLM`.
+ */
+async function resolveVlmClientFromEnv(): Promise<LLMClient> {
+  // 1. Agnes (default for this exercise) — agnes-3.0-flash supports
+  //    image_url content parts (verified via live API test).
+  const agnesKey = process.env.AGNES_API_KEY;
+  if (agnesKey) {
+    const agnesBase = (process.env.AGNES_BASE_URL || 'https://apihub.agnes-ai.com/v1').trim();
+    const agnesModel = (process.env.AGNES_MODEL || 'agnes-3.0-flash').trim();
+    const { createOpenAICompatible } = await import('../../llm/openai-compatible');
+    console.log('[design-critic-vlm] using Agnes provider for VLM (agnes-3.0-flash supports image_url)');
+    return createOpenAICompatible({
+      apiKey: agnesKey,
+      baseURL: agnesBase,
+      model: agnesModel,
+      timeoutMs: 90_000, // VLM critique can be slow on large canvases
+    });
+  }
+  // 2. Fallback to z.ai sandbox (auto-credentials inside the z.ai sandbox).
+  console.log('[design-critic-vlm] no AGNES_API_KEY set — falling back to z.ai sandbox for VLM');
+  return (await ZAI.create()) as unknown as LLMClient;
+}
 
 /**
  * Parse a VlmCritique out of the LLM's JSON response.

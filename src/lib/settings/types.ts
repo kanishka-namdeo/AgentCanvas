@@ -236,26 +236,22 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // for container types).
   domCulling: true,
 
-  // Default inference provider: the z.ai sandbox (provider 'zai', model
-  // 'glm-5.3', no API key, no base URL). Inside the z.ai sandbox,
-  // z-ai-web-dev-sdk's ZAI.create() auto-resolves credentials from
-  // ~/.z-ai-config / /etc/.z-ai-config / sandbox env — zero configuration
-  // for a fresh clone. Outside the sandbox, set ZAI_API_KEY in .env or pick
-  // any other provider in Settings → LLM provider.
+  // Default inference provider: Agnes (Sapiens AI) — agnes-3.0-flash.
+  // 33B hybrid-attention multimodal model with native tool calling,
+  // streaming, vision (image_url), 1M-token context. Cheap ($0.05/$0.15
+  // per 1M tokens). The API key resolves from `AGNES_API_KEY` in `.env`
+  // (see .env.example) — never baked into source. Override any time in
+  // Settings → LLM provider. The z.ai sandbox (`zai` provider) remains
+  // selectable as an automatic fallback (see runner-native.ts).
   //
-  // 2026-09-19 fix (competitor-research round): the previous default pointed
-  // at a developer-only logging proxy (http://127.0.0.1:3199/v1,
-  // scripts/agnes-proxy.ts — a local tuning tool that is NOT running on any
-  // fresh install) with a hardcoded third-party gateway key committed in
-  // source. Out of the box every first turn then: (a) failed the 4s preflight
-  // against the dead proxy, (b) paid the reactive z.ai fallback retry (~10s
-  // extra latency), and (c) shipped a credential it shouldn't. Defaulting to
-  // 'zai' restores the README-documented behavior and removes the key. The
-  // Agnes gateway remains selectable as a custom provider in Settings.
-  llmProvider: 'zai',
+  // 2026-09-19 (competitor-research round 2): switched the default from
+  // `zai` to `agnes` per the exercise brief. The previous default
+  // (zai/glm-5.3) is still selectable and remains the reactive fallback
+  // when agnes returns 5xx / network error / empty-body responses.
+  llmProvider: 'agnes',
   apiKey: '',
-  modelName: 'glm-5.3',
-  apiBaseUrl: '',
+  modelName: 'agnes-3.0-flash',
+  apiBaseUrl: 'https://apihub.agnes-ai.com/v1',
 
   snapshotCadence: 'every-turn',
   maxSessionsRetained: 100,

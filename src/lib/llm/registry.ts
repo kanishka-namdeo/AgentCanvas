@@ -854,6 +854,37 @@ export const PROVIDERS: Record<string, LLMProviderEntry> = {
     }),
   },
 
+  // Agnes (Sapiens AI) — OpenAI-compatible endpoint at apihub.agnes-ai.com.
+  // 33B hybrid-attention multimodal model with native tool calling,
+  // streaming, vision (image_url), JSON mode, and 1M-token context.
+  // See research notes in worklog.md (Task 0-research) for full capability
+  // matrix and integration quirks (invisible ~80-token injected system
+  // prompt, inline reasoning in `content`, `AgnesAI_error` type).
+  agnes: {
+    metadata: {
+      id: 'agnes', label: 'Agnes (Sapiens AI)',
+      description: 'agnes-3.0-flash — 33B multimodal model with native tool calling, streaming, vision. 1M context, $0.05/$0.15 per 1M tokens. Set AGNES_API_KEY in .env or below.',
+      docsUrl: 'https://wiki.agnes-ai.com',
+      apiKeyEnvVars: ['AGNES_API_KEY'],
+      defaultBaseURL: 'https://apihub.agnes-ai.com/v1',
+      defaultModel: 'agnes-3.0-flash',
+      popularModels: ['agnes-3.0-flash'],
+      openAICompatible: true,
+      capabilities: CAPS_FULL,
+      apiKeyRequired: true,
+    },
+    factory: openAICompatibleFactory({
+      id: 'agnes', label: 'Agnes', description: '', docsUrl: '',
+      apiKeyEnvVars: ['AGNES_API_KEY'],
+      defaultBaseURL: 'https://apihub.agnes-ai.com/v1',
+      defaultModel: 'agnes-3.0-flash',
+      popularModels: ['agnes-3.0-flash'],
+      openAICompatible: true,
+      capabilities: CAPS_FULL,
+      apiKeyRequired: true,
+    }),
+  },
+
   custom: {
     metadata: {
       id: 'custom', label: 'Custom (OpenAI-compatible)',
