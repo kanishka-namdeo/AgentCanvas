@@ -69,6 +69,12 @@ export const PARALLEL_SAFE_TOOL_NAMES: ReadonlySet<string> = new Set([
   'pen_generate_design_brief',
   'pen_self_critique',
   'pen_visual_critique',
+  // impl-canvas-ui-tool: pen_canvas_ui_control emits an
+  // agent:canvas_ui_action SyncEvent and returns an ack — it does NOT mutate
+  // the document tree (no ctx.applyPatch). The client-side dispatcher
+  // performs the UI side-effects asynchronously. Safe to batch in parallel
+  // (e.g. focus_shape + zoom_to_selection emitted together).
+  'pen_canvas_ui_control',
 ]);
 
 /// Minimal shape of a pi ToolDefinition this helper needs (the real

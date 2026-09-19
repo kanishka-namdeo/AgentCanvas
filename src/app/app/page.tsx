@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RightToolsPanel } from '@/components/canvas/RightToolsPanel';
+import { CanvasUIActionListener } from '@/components/canvas/CanvasUIActionListener';
 import { toast } from 'sonner';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -473,6 +474,30 @@ export default function Home() {
   useEffect(() => {
     if (!chatPanelCollapsed) setHasUnreadChat(false);
   }, [chatPanelCollapsed]);
+
+  // impl-canvas-ui-tool: OpenHands canvas_ui_control pattern — bridge the
+  // page-level React state to the dispatcher's window CustomEvents. The
+  // dispatcher module (src/lib/canvas/canvas-ui-dispatcher.ts) performs the
+  // direct store calls (selection, viewport zoom) and emits the events the
+  // <CanvasUIActionListener /> component subscribes to. Wrapped in
+  // useCallback so the listener's useEffect deps stay stable across renders
+  // (the listener re-subscribes only when these callbacks change, which is
+  // never — they're closures over stable refs + setters).
+  const handleAgentSetRightTab = useCallback((tab: RightTab) => {
+    // Flip userPickedTabRef so the page's auto-flip-to-properties-on-select
+    // effect (line ~457) doesn't fight the agent's explicit tab choice. The
+    // ref resets when the selection clears, so the next fresh user-driven
+    // selection still auto-surfaces Properties.
+    userPickedTabRef.current = true;
+    setRightTab(tab);
+  }, []);
+  const handleAgentExpandChatPanel = useCallback(() => {
+    // Same toggle helper the agent-busy auto-expand effect uses (line ~422).
+    // Idempotent: a no-op when the panel is already expanded.
+    if (chatPanelCollapsedRef.current) {
+      toggle(chatPanelRef, chatPanelCollapsedRef.current, setChatPanelCollapsed);
+    }
+  }, []);
 
   // Zen mode — collapse all peripheral panels for a focused canvas view.
   // Shortcut: ⌘\ (Cmd/Ctrl + Backslash). Toggle again to restore.
@@ -1384,6 +1409,18 @@ export default function Home() {
           }
         />
       )}
+
+      {/* impl-canvas-ui-tool: headless subscriber that bridges the
+          canvas-ui-dispatcher's window CustomEvents to this page's local
+          React state (right-tab + chat-panel expand). The agent's
+          `pen_canvas_ui_control` tool emits `agent:canvas_ui_action`
+          SyncEvents; the dispatcher fans them out to direct store calls
+          (selection, viewport) + these window events for state only the
+          page owns. Renders null — pure side-effect subscriber. */}
+      <CanvasUIActionListener
+        onSetRightTab={handleAgentSetRightTab}
+        onExpandChatPanel={handleAgentExpandChatPanel}
+      />
       </TooltipProvider>
     </ErrorBoundary>
   );

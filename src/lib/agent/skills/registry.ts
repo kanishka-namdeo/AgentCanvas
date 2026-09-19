@@ -777,6 +777,12 @@ export const ALL_TOOL_NAMES = [
   'pen_upload_image', 'pen_search_icons', 'pen_generate_image',
   // Web research
   'web_search', 'web_fetch',
+  // impl-canvas-ui-tool: OpenHands canvas_ui_control pattern — drives the
+  // workspace UI itself (focus shape, show chat, show history, show layers,
+  // zoom_to_selection). Always-included (cross-cutting UI nudge, see
+  // runner-native.ts categoryAllowedToolNames), but listed here so the
+  // 'multi' fallback (which returns ALL_TOOL_NAMES verbatim) advertises it.
+  'pen_canvas_ui_control',
 ] as const;
 
 // ---- Format skill metadata for the system prompt --------------------------

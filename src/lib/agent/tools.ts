@@ -71,6 +71,13 @@ import { getLucideIcon, searchLucideIcons, lucidePromptCatalog } from '@/lib/ico
 import { formatShapeLine } from './shape-line';
 import { notFoundResult } from './tool-errors';
 import { emitEvent, hasSink } from './plugins/event-bus';
+// pen_canvas_ui_control — the OpenHands canvas_ui_control pattern (task
+// impl-canvas-ui-tool): drives the workspace UI itself (focus shape, switch
+// right-sidebar tab, expand chat, open history, zoom-to-fit). Defined in a
+// separate module because it has no ctx closure dependencies; appended to
+// the createCanvasTools return array below so it shares the same
+// registration path as the other pen_* tools.
+import { canvasUIControlTool } from './canvas-ui-tool';
 import {
   aliasToolEntries,
   deprecationNotice,
@@ -7064,6 +7071,12 @@ const createShape = defineTool({
     createCardGrid,         // product/pricing/feature/KPI card grids in one call
     createLandingPage,      // navbar/hero/features/CTA/footer landing page in one call
     applyTypography,        // batch typography roles on text layers
+    // impl-canvas-ui-tool: OpenHands canvas_ui_control pattern — drives the
+    // workspace UI itself (focus shape, show chat, show history, show layers,
+    // zoom_to_selection). Emits agent:canvas_ui_action events; the client
+    // dispatcher (src/lib/canvas/canvas-ui-dispatcher.ts) performs the side
+    // effects. Always-included regardless of skill (cross-cutting UI nudge).
+    canvasUIControlTool,
   ];
 }
 

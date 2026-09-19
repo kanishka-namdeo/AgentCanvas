@@ -98,13 +98,15 @@ describe('tool-registry: alias targets exist + snapshot', () => {
     }
   });
 
-  it('snapshots the sorted canonical names (freeze guard — 103 registered tools: 97 + the 3 audit-2026-08-30 composite tools pen_apply_design_system / pen_create_chart / pen_apply_typography + the 3 oneshot-2026-09-07 composite tools pen_create_card_grid / pen_create_landing_page / pen_create_table)', () => {
+  it('snapshots the sorted canonical names (freeze guard — 104 registered tools: 97 + the 3 audit-2026-08-30 composite tools pen_apply_design_system / pen_create_chart / pen_apply_typography + the 3 oneshot-2026-09-07 composite tools pen_create_card_grid / pen_create_landing_page / pen_create_table + the impl-canvas-ui-tool pen_canvas_ui_control)', () => {
     const names = allTools().map((t) => (t as any).name).sort();
     expect(names).toEqual([
       'pen_add_variant', 'pen_align_shapes', 'pen_apply_auto_layout', 'pen_apply_design_system',
       'pen_apply_palette', 'pen_apply_typography', 'pen_apply_variable', 'pen_audit_design',
       'pen_bake_layout', 'pen_bind_variable',
-      'pen_boolean_op', 'pen_bring_to_front', 'pen_bulk_update_by_filter', 'pen_clear',
+      'pen_boolean_op', 'pen_bring_to_front', 'pen_bulk_update_by_filter',
+      'pen_canvas_ui_control',
+      'pen_clear',
       'pen_clear_pattern_memory', 'pen_combine_as_variants', 'pen_convert_to_component',
       'pen_copy_as_code', 'pen_create_card_grid', 'pen_create_chart', 'pen_create_component', 'pen_create_component_set',
       'pen_create_landing_page',

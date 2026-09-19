@@ -4680,6 +4680,29 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         }));
         break;
       }
+      case 'agent:canvas_ui_action': {
+        // impl-canvas-ui-tool: OpenHands canvas_ui_control pattern. The
+        // agent called `pen_canvas_ui_control` to drive the workspace UI
+        // itself; the tool emitted this event with a `CanvasUIAction`
+        // payload. The dispatcher module is the single side-effect
+        // boundary (it calls store.select directly + emits window
+        // CustomEvents the page subscribes to). Wrapped in try/catch so a
+        // malformed action never takes the sync handler down — UI nudges
+        // are best-effort, not turn-critical.
+        //
+        // SSR safety: the dispatcher short-circuits on the server (no
+        // window); calling it from a non-browser path is a no-op.
+        try {
+          const { dispatchCanvasUIAction } = require('./canvas-ui-dispatcher') as
+            typeof import('./canvas-ui-dispatcher');
+          dispatchCanvasUIAction(event.action);
+        } catch (err) {
+          if (typeof console !== 'undefined') {
+            console.warn('[canvas-sync] failed to dispatch canvas_ui_action:', err);
+          }
+        }
+        break;
+      }
       default: {
         // Ignore unknown event types.
       }
