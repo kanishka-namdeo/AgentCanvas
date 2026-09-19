@@ -51,6 +51,24 @@ The world root carries `data-ac-world`; the chrome root carries `data-ac-chrome`
 - `bun run lint` + `bunx tsc --noEmit`.
 - Manual: open the app; shapes, selection, drag, resize, context menu, zoom, undo/redo all work. The DOM renderer is always mounted — there's no renderer toggle in Settings.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that `DomNode` receives only stable props (layers, numbers, stable callbacks) before adding a new prop — selection/hover/highlight/zoom must NEVER become `DomNode` props; they belong to `DomChrome`.
+- Check that the culling effect's inputs (`rootRects`, `immuneIds`) are memoized BEFORE wiring a new effect dep — every wheel/mousemove tick (60-120Hz) used to synchronously rebuild the rects array + immune Set + filtered array, dropping a 100k-root canvas to 5-10fps.
+- Check that the world div is registered on the store via `setWorldElement` and cleared on unmount BEFORE relying on screen↔canvas-space conversion or html-to-image capture.
+- Check that `styleFor.ts` is the single CSS vocabulary for any new LayerType — type-specific CSS belongs there, not in `DomNode` or `islands`.
+- Check the data-attribute contract (`data-node-id`, `data-node-type`, `data-instance-of`, `data-ac-world`, `data-ac-chrome`, `data-chrome-handle`, `data-chrome-selection`) still holds after a structural change — `tests/unit/dom-node.test.tsx` + `tests/integration/renderer-dom.test.tsx` cover it.
+
+### Lessons Learned
+
+- Do not compute geometry in the renderer — geometry comes ONLY from `document.shapes` (resolver-computed absolute x/y/w/h); the DOM is a projection, not a layout engine.
+- Do not unmount hidden subtrees — DOM mode keeps them mounted (Figma-correct: hidden parents hide children) so measurement/nesting stays stable; SVG mode unmounts and that is the documented divergence.
+- Do not paint chrome inside the world tree — badges, outlines, handles, highlight pulses are overlay-only (`DomChrome`); chrome inside the world tree breaks pan/zoom isolation.
+- Do not run the O(roots) immune filter inside the input handler — run it INSIDE the rAF-throttled `run()`; effect deps ride the memoized identities.
+- Do not let `parentX`/`parentY` arrive as an object — pass them as numbers so `DomNode`'s `React.memo` shallow-compare stays effective.
+
 ## Child DOX Index
 
 No child AGENTS.md files in this folder.

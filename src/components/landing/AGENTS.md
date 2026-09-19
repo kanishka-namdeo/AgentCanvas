@@ -32,6 +32,14 @@ Everything behind the marketing landing page (route `/`, landing-page plan 2026-
 - **Video assets (2026-09-19)**: `public/landing/` serves three verified cuts under stable names — `build-reveal.mp4` + `build-reveal-poster.png` (Hero), `tooling-tour.mp4`/`-poster.png` and `design-pack.mp4`/`-poster.png` (FeatureGallery). All 1600×1000 (exactly the frames' default 16/10 viewport → zero crop) except `design-pack.mp4`, which is re-encoded to 1280×800 CRF 24 (tile weight ≤700 KB). `smoke-canvas.mp4` stays unused in `download/landing-uplift/selected/`; the legacy `core-agent-chat.mp4` / `core-trust-loop.mp4` b-roll is deleted and `tests/unit/landing-assets.test.ts` guards both facts plus the byte budgets. Provenance + trim rationale: `download/landing-uplift/capture-selection.md`.
 - **Video playback contract**: every decorative clip is `muted loop playsInline aria-hidden tabIndex={-1}` and decodes only while on screen (`useInView` → `setVideoPlaying`). Under `prefers-reduced-motion` NO `<video>` is rendered at all — the static screenshot/poster is the fallback (and the no-JS visual). Autoplay is Hero-only; the gallery clips are `preload="none"` and start on in-view.
 
+## Work Guidance
+
+- When adding a new below-hero section: register its id in `LANDING_SECTIONS` (`LandingHeader.tsx`), render the section component with the matching id, and add a unit test asserting the anchor + heading + reduced-motion branch.
+- When adding a new screenshot: place it inside a `BrowserFrame` (light chrome), pair `object-cover object-top` with `crop="bottom"` if the source has a bottom-edge artifact, and use the real source dimensions in the test.
+- When changing the header anchor set: edit `LANDING_SECTIONS` in ONE place — `LandingHeader.tsx`'s nav and the section components' ids both derive from it.
+- When adding motion: ship a `prefers-reduced-motion` static fallback in the same component (spec §10) and assert it in the test (`useReducedMotion` module-mocked controllable).
+- Mock `next/image` to a plain `<img>` in unit tests so the Next image optimizer does not enter the vitest transform pipeline.
+
 ## Verification
 
 - `bun run test tests/unit/landing-primitives.test.tsx` — 16 tests covering the repo-URL constants (+ canonical `AgentCanvas` name, `SITE_URL`), `fetchGitHubStats` (URL from `REPO_URL`, ISR option, null on non-OK/network/bad payload), `GitHubStars`/`hasStars` (renders the count, renders nothing for null/undefined/ZERO), BrowserFrame crop/aspect/className contract, header anchors + CTAs, footer (next/image and lenis/react mocked).
@@ -41,6 +49,25 @@ Everything behind the marketing landing page (route `/`, landing-page plan 2026-
 - `bun run test tests/unit/landing-how-it-works-finale.test.tsx` — 10 tests covering the `#how-it-works` anchor + heading, the four flow boxes in order, the stats (final values in the initial SSR render, the 0 → 60+/28 count-up once in view with motion allowed, final values under reduced motion), the four dev chips, the `#open-source` anchor + verbatim heading, the clone command built from `REPO_CLONE_URL`, the copy button (`data-copied` flip with clipboard mocked via `Object.defineProperty` on `window.navigator` + cleanup), and the star + `/app` CTAs. `@number-flow/react` is module-mocked to a span carrying value+suffix; NOTE the fake-timer test wraps `vi.advanceTimersByTime` in `act` and restores real timers BEFORE `waitFor` (vitest 5 fakes `setInterval`, so RTL `waitFor` cannot poll under fake timers).
 - `bun run test tests/unit/landing-` — the whole landing set (10 files, 101 tests incl. `landing-assets.test.ts`, `landing-og-image.test.ts`, `landing-routes.test.ts`, `landing-social-proof.test.tsx`). `landing-page.test.tsx` resolves six `next/dynamic` chunks through `findBy*`: RTL's async default is raised to 5s (`configure({ asyncUtilTimeout: 5000 })`) and the composition describe gets a 20s budget, because the 1s default timed out for `section-magic` under full-suite parallel load (fixed 2026-09-19; it is no longer in the flake class).
 - Browser verification (2026-09-19 video pass): `LANDING_BASE_URL=http://127.0.0.1:3100 bunx tsx scripts/screenshot-landing.ts` → `download/landing-verify/`; the hero plays the real cut in-view and pauses offscreen, both gallery clips play in-view and pause together out of view, and the reduced-motion pass renders no `<video>` while the posters come back as optimized `next/image` stills. `bunx tsx scripts/probe-landing-videos.ts` is the machine-checkable half: it asserts the video elements/playback state, that the streamed stats promise resolved into the SocialProof band, and that the console stayed clean.
+
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that `lenis/dist/lenis.css` stays aliased to `tests/stubs/empty-module.ts` in `vitest.config.ts` before adding any landing test — a real CSS import drags the Next/Tailwind PostCSS config into the vitest transform pipeline, which fails there.
+- Check that every motion-driven section ships a `prefers-reduced-motion` static fallback — spec §10 requires a static fallback for every motion behavior; landing-hero/magic-sequence/gallery-trust/how-it-works-finale tests all assert the fallback branch.
+- Check that landing screenshots sit inside a `BrowserFrame` (light chrome) and never appear raw on the dark page — the contrast contract is non-negotiable.
+- Check that any new below-hero section id is added to `LANDING_SECTIONS` in `LandingHeader.tsx` AND rendered with the matching id by the section component — anchor nav and section ids both derive from this single source.
+- Check that `object-cover object-top` + `crop="bottom"` are paired when a screenshot's bottom edge carries an artifact (toast, scrollbar) — crop in CSS per spec §6, never edit the source PNG.
+- Check that `NumberFlow`'s fake-timer test wraps `vi.advanceTimersByTime` in `act` and restores real timers BEFORE `waitFor` — vitest 5 fakes `setInterval`, so RTL `waitFor` cannot poll under fake timers.
+
+### Lessons Learned
+
+- Do not re-type the repo URL anywhere — import from `repo-url.ts`; a single edit must propagate to header Star, footer GitHub, OpenSourceFinale CTA, and the clone command.
+- Do not paraphrase the spec's verbatim copy — `OpenSourceFinale` heading and the four `TrustLoop` bullets must match spec §5.4/§5.6 word-for-word; tests assert the strings.
+- Do not import shared app chrome into landing components — landing is route `/` only; the workspace app at `/app` must not import from here.
+- Do not use a syntax-highlighting library for the clone command — a plain styled `<pre>` keeps the bundle small; spec decision.
+- Do not edit screenshot PNGs to crop artifacts — crop in CSS via `BrowserFrame`'s `crop="bottom"` + `object-cover object-top`.
 
 ## Child DOX Index
 

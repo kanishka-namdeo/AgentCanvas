@@ -236,28 +236,22 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // for container types).
   domCulling: true,
 
-  // Default inference provider for this tuning exercise: the Agnes AI gateway
-  // (https://apihub.agnes-ai.com/v1) — an OpenAI-compatible endpoint serving
-  // `agnes-3.0-flash` (33B hybrid-attention model, 1M context, $0.05/$0.15
-  // per 1M tokens, supports text+image input). Override per-session via
-  // Settings → LLM provider. The fallback in runner-native.ts retries on the
-  // z.ai sandbox when custom endpoints are unreachable; for this exercise we
-  // disable the fallback by setting the provider to 'custom' explicitly so
-  // every inference call is attributable to Agnes (cleaner benchmarking).
+  // Default inference provider: Agnes (Sapiens AI) — agnes-3.0-flash.
+  // 33B hybrid-attention multimodal model with native tool calling,
+  // streaming, vision (image_url), 1M-token context. Cheap ($0.05/$0.15
+  // per 1M tokens). The API key resolves from `AGNES_API_KEY` in `.env`
+  // (see .env.example) — never baked into source. Override any time in
+  // Settings → LLM provider. The z.ai sandbox (`zai` provider) remains
+  // selectable as an automatic fallback (see runner-native.ts).
   //
-  // Tuning 2026-09-18: routed through a local logging proxy at
-  // http://127.0.0.1:3199/v1 (scripts/agnes-proxy.ts). The proxy:
-  //   1. Logs every outgoing request body + every incoming SSE chunk for
-  //      diagnosis (see scripts/agnes-proxy-logs/).
-  //   2. Injects SSE keepalive comments (`: proxy-keepalive`) when upstream
-  //      is silent >5s — keeps the pi-ai SDK's reader from blocking and
-  //      surfaces true stalls quickly.
-  //   3. Synthesizes an error event after 30s of upstream silence so pi-ai's
-  //      mid-stream retry can replay the turn on a fresh connection.
-  llmProvider: 'custom',
-  apiKey: 'cpk-ajRkpZScOVOm78JloDIH7GryqHY687mWZXHe1fNNbskyT74T',
+  // 2026-09-19 (competitor-research round 2): switched the default from
+  // `zai` to `agnes` per the exercise brief. The previous default
+  // (zai/glm-5.3) is still selectable and remains the reactive fallback
+  // when agnes returns 5xx / network error / empty-body responses.
+  llmProvider: 'agnes',
+  apiKey: '',
   modelName: 'agnes-3.0-flash',
-  apiBaseUrl: 'http://127.0.0.1:3199/v1',
+  apiBaseUrl: 'https://apihub.agnes-ai.com/v1',
 
   snapshotCadence: 'every-turn',
   maxSessionsRetained: 100,

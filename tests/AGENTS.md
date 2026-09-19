@@ -256,6 +256,21 @@ Each prints a "passed" message on success and exits non-zero on failure.
 - `bunx tsc --noEmit` — typecheck (the `skills/` directory is excluded in tsconfig because the z.ai sandbox extracts sandbox-owned skill sources there). Currently reports only PRE-EXISTING errors outside `src/`: the stale `chat-features.test.ts` import (see above) and `scripts/screenshot-*.ts` importing `playwright`, which is not installed (only `playwright-core` is a dependency).
 - CI (`.github/workflows/ci.yml`) is INTENDED to run `bun run lint` + `bun run test` on pushes/PRs to `main` (typecheck is currently disabled — the workflow comment cites ~30 legacy tsc errors that have since been fixed, so it can be re-enabled). **Known bug**: both triggers contain a typo (`branches: ain]` instead of `branches: [main]`), so CI never actually fires. The fix must be made directly on GitHub (the sandbox blocks workflow-trigger edits).
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check whether a failing test was deleted-module import (e.g. `chat-features.test.ts` importing `src/lib/agent/followups`) before treating the failure as a regression, because stale test files have shown up as red signal for weeks.
+- Check whether a `layout-gate.test.ts` or `modes-2026-08-30.test.ts` failure reproduces in isolation before treating it as real, because they flake on worker-contention timeouts under full-suite parallel load.
+- Check the `.github/workflows/ci.yml` trigger spelling (`branches: [main]`, not `branches: ain]`) before assuming CI is green, because the typo silently disables CI and the sandbox blocks the fix.
+
+### Lessons Learned
+
+- Delete test files in the same commit that deletes the module they import (e.g. `endpoint-presets-2026-09-07.test.ts` was deleted alongside `scripts/verify-beta-endpoint.ts`), because stale test imports have lingered and masqueraded as regressions.
+- Re-enable typecheck in CI when the legacy tsc error count drops to zero, because the workflow comment citing ~30 errors is now stale and the gate has been silently missing real type regressions.
+- Fix CI workflow-trigger edits directly on GitHub, because the sandbox blocks workflow-trigger edits and the typo (`branches: ain]`) survived precisely because no sandbox-side edit could land.
+- Treat held-out agent-eval scenarios as single-use and rotate them after each grading run, because teaching to them invalidates the battery (cross-referenced in `scripts/AGENTS.md`).
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. This folder is flat.

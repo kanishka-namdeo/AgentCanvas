@@ -119,10 +119,31 @@ The Next.js App Router entry point: the marketing landing page at `/` (2026-09-1
 - Manual: open `http://127.0.0.1:3000/` (the landing — all six section ids `top/magic/tool/trust/how-it-works/open-source` render in the HTML, single h1) and `http://127.0.0.1:3000/app` (the workspace), verify the 3-column tabbed layout renders, no console errors, no layout shift.
 - `bunx tsx scripts/screenshot-ui-after.ts` — captures the initial state.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that BOTH `<Toaster />` (shadcn `useToast`) AND `<SonnerToaster />` (sonner `toast()`) are mounted in `layout.tsx` before adding a new `toast()` call — without the second toaster, sonner calls are silently dropped.
+- Check that `useDefaultLayout` (react-resizable-panels v4) is given a `noopStorage` on first render — `localStorage` access during SSR crashes hydration.
+- Check that the inline theme-FOUC `<script>` in `<head>` runs BEFORE first paint — a missing or deferred script flashes white for dark-mode users on every load.
+- Check that `imperativePanelHandle.isCollapsed()` is called on mount — `useDefaultLayout`'s restore does NOT fire `onResize`, so the collapsed-panel edge tab won't appear until the next resize.
+- Check that `data-density` is reactively subscribed in `page.tsx` (via `useSettings`) — a static read at module scope misses live density changes from SettingsDialog.
+- Check `globals.css` for a `@custom-variant dark (&:is(.dark *))` declaration before adding dark-mode rules — Tailwind 4 dark variants depend on it; `[data-theme="dark"]` does not work.
+- Check that every `next/dynamic` call in `page.tsx` (the server component) uses default SSR — `ssr: false` is forbidden in a server component and breaks the build silently.
+
+### Lessons Learned
+
+- Do NOT add a `next-themes` Provider to `layout.tsx`; `ThemeToggle` manages the `.dark` class directly via `localStorage` (the dep is installed but unused — wrapping it causes a double-theme flash on load).
+- Do NOT introduce a parallel design-token system; extend `--ac-*` in `globals.css` and add a `.ac-*` utility class if reused across ≥2 components.
+- Map selection ids to shapes ONCE into a `Map<id, shape>` instead of `findShape` per selected id — `findShape` is O(canvas) per call, so `⌘A + ⌘C` on a 10k-node canvas used to block the main thread for seconds.
+- Route ⌘Z/⌘⇧Z + arrow-nudge keydowns through `lib/canvas/key-repeat-coalescer.ts`, not directly to the store — without coalescing, undo key spam fires one store undo per keydown (intent gets dropped under load), and nudges fire one `update_many` per keypress.
+- Use a `<ErrorBoundary>` wrapper around the entire workspace — without it, any render-time crash in a panel produced a permanent white screen with no recovery affordance.
+- Pin the workspace `page.tsx` as a client component (`'use client'`) and keep `page.tsx` (landing) as a server component — mixing server-only lazy loading with client state breaks the Next 16 build.
+
 ## Child DOX Index
 
 | Path | Scope |
 |------|-------|
-| `api/AGENTS.md` | API routes: `/api/agent` (NDJSON agent run endpoint) + `answers`/`pending`/`background/[id]` plugin-support subroutes, `/api/sessions*` server-side session persistence (Prisma), `/api/plugins` + `/api/mcp/[id]` settings support, `/api` (health check), `/api/pen/import` + `/api/pen/export` (.pen file conversion) |
+| `api/AGENTS.md` | All HTTP Route Handlers under `/api/` — agent run loop, sessions CRUD, documents + snapshots, design-systems registry, plugins, models, MCP, `.pen` import/export, and the root health check |
 
-*Note: `src/lib/` has its own `AGENTS.md` (owns `db.ts` + `utils.ts` and indexes the lib subfolders); `src/components/` has its own `AGENTS.md` (owns `ThemeToggle.tsx` and indexes the component subfolders).*
+*Note: `src/lib/` has its own `AGENTS.md` (owns `db.ts` + `utils.ts` and indexes the lib subfolders); `src/components/` has its own `AGENTS.md` (owns `ThemeToggle.tsx` and indexes the component subfolders). These are siblings of `src/app/`, not children.*

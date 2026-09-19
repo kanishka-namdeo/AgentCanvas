@@ -53,6 +53,22 @@ These `src/components/ui/` files were hand-edited to absorb breaking changes fro
 - `bun run lint` — ESLint.
 - Manual: any feature using the primitive should render without console errors.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that `motion` is still on `^12` after every shadcn/Magic UI CLI add — the CLI bumps it to latest; re-pin with `bun add 'motion@^12.43.0'`.
+- Check that `blur-fade` and `border-beam` still carry their `useReducedMotion()` short-circuit patch after any upstream re-sync — re-installing via the Magic UI CLI drops it silently.
+- Check `git diff package.json` after every CLI add and `bun remove` anything unimported — the CLI adds generic deps its registry assumes (`cn`, `radix-ui` monolith) that the components never import.
+- Check that the `marquee`/`marquee-vertical` keyframes still exist in `src/app/globals.css` before relying on `marquee` — the CLI appends them automatically but a manual revert drops them.
+
+### Lessons Learned
+
+- Do not hand-edit these primitives for project-wide style — extend `--ac-*` in `globals.css` instead; a hand-edit silently breaks future CLI re-syncs.
+- Do not fork a primitive to add a variant — add the variant to the primitive's `cva` and document it in this file (counted as a project-wide override).
+- Do not keep zero-import primitives around "just in case" — the 2026-09 dependency-hygiene pass deleted 20 unused primitives + their orphaned backing deps; re-add via `bunx shadcn@latest add <name>` when a feature actually needs one.
+- Do preserve `table.tsx` and `avatar.tsx` even if zero component imports — `src/lib/design-systems/registry.json`'s `importMap` string-references them and the showcase breaks at build time without them.
+
 ## Child DOX Index
 
 No child AGENTS.md files in this folder.

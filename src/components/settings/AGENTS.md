@@ -54,6 +54,21 @@ Settings UI: the `SettingsDialog` component — a modal dialog with a left verti
 - Manual: change theme to "dark" via Settings → verify ThemeToggle icon updates (no desync).
 - Manual: change density to "compact" → verify `data-density="compact"` on root div + smaller fonts.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that the Export All Data JSON redacts `apiKey` to `''` before any download — leaked keys via a settings export are a real incident.
+- Check that the Sessions localStorage blob is wrapped in try/catch before the Export button runs `JSON.parse` — a corrupted blob used to make the whole Export button throw.
+- Check that the danger-zone buttons still use `confirm()` — known anti-pattern (B1 in the UI audit); replace with `AlertDialog` when revisiting, but do not silently drop the gate.
+- Check that a new settings field is added to `AppSettings` in `src/lib/settings/types.ts` BEFORE the UI control — UI-first additions leak `undefined` into the persisted store.
+
+### Lessons Learned
+
+- Do not let a corrupted sessions localStorage blob kill the Export button — wrap the parse in try/catch and surface an honest toast instead of throwing.
+- Do not ship `apiKey` in the exported settings JSON — redact to `''` and make the copy say so.
+- Do not gate "Save" behind a button — settings apply immediately via `useSettings`; a Save button creates a false diff signal.
+
 ## Child DOX Index
 
 No child AGENTS.md files in this folder.

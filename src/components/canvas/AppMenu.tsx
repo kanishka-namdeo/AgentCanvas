@@ -19,7 +19,7 @@
 //     dark mode).
 //   - ⌘N / ⌘O / ⌘E shortcut hints are honest — page.tsx wires all three.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useCanvasStore, findShape } from '@/lib/canvas/store';
 import { BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
@@ -104,6 +104,20 @@ export function AppMenu(props: AppMenuProps) {
     const def = SHORTCUTS_BY_ACTION.get(action);
     return def ? chordFor(def, platform) : undefined;
   };
+
+  // impl-canvas-ui-tool: the agent's `pen_canvas_ui_control` tool with
+  // command 'show_history' emits an `agentcanvas:open-version-history`
+  // window CustomEvent (the dispatcher module is the emitter, the page's
+  // <CanvasUIActionListener /> handles the other commands). The Version
+  // History dialog open state lives HERE in AppMenu, so AppMenu subscribes
+  // directly. Same additive pattern as the page's
+  // `agentcanvas:open-settings` subscription.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onOpen = () => setVersionHistoryOpen(true);
+    window.addEventListener('agentcanvas:open-version-history', onOpen);
+    return () => window.removeEventListener('agentcanvas:open-version-history', onOpen);
+  }, []);
 
   // Zoom routes through the Canvas shell (viewport state is shell-local).
   const zoomTo = (kind: 'fit' | 'selection' | '100' | 'in' | 'out') =>

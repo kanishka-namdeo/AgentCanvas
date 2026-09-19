@@ -137,10 +137,34 @@ import {
   detectMultitaskPrompt,
   CRITIC_PATH_ESTIMATED_LLM_CALLS,
 } from './modes';
+// Cline-style mode-tagged user messages + switch notices (competitor-research
+// round 3, Cline pattern 5.5). Wraps the raw user prompt as
+// `<user_input mode="build|ask|plan">…</user_input>` and prepends a
+// `<mode_notice>…</mode_notice>` marker when the user flipped modes since
+// the previous send. The singleton tracker is the cross-call handoff
+// channel between the UI (producer: calls record() on mode change) and
+// the runner (consumer: calls consume() at prompt-send time).
+import { formatUserInputBlock, modeSwitchTracker } from './mode-tags';
 import { submitPlanTool, SUBMIT_PLAN_TOOL_NAME } from './plan-tools';
 import { consumeApprovedPlan, hasApprovedPlanSince } from './plan-gate';
 import { submitLayoutApprovalTool, lofiToolNames, SUBMIT_LAYOUT_APPROVAL_TOOL_NAME } from './layout-gate';
 import { hydrateSubtreeChildren, type RawSubtreeNode } from './tools';
+// tldraw pattern 6.4 — three-tier AI context (focused shapes + peripheral
+// clusters + viewport screenshot). A second, simpler prompt section the
+// model sees alongside the existing CANVAS SNAPSHOT. Skipped for canvases
+// > 500 shapes (perf guard in buildAIThreeTierContext).
+import {
+  buildAIThreeTierContext,
+  renderThreeTierContextSection,
+} from './ai-context';
+// tldraw pattern 6.5 — centralized sanitizeAction pass. The 60+ pen_* tools
+// ARE the typed actions (schema = action schema, execute = applyAction);
+// what was missing was a centralized pre-execution sanitizer that catches
+// recurring LLM drift (stringified numbers, unknown fields, stale shapeId
+// references) before the tool body sees them. Pure function; wired in as
+// the first wrapper layer in assembleOrderedTools so every tool-call goes
+// through it before any other gate (brief / approval / verify-budget).
+import { sanitizeToolInput } from './sanitize-tool-input';
 
 // ---- SDK auto-compaction settings (native sessions) -------------------------
 //
@@ -594,6 +618,33 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
     // call pen_set_variables (plural) instead; the new mwc-* scenarios
     // triggered the singular-form call consistently.
     'pen_set_variable',
+    // 2026-09-18 iter6: ALWAYS include pen_reorder_shape. It's a base
+    // z-order tool, not layout-specific. The system prompt references it
+    // as the precise-z-index variant of pen_bring_to_front / pen_send_to_back
+    // (which ARE in design-gen). Without this, every non-layout/non-multi
+    // category filters it out → SDK errors with 'Tool pen_reorder_shape
+    // not found' when the agent (correctly) calls it during design work.
+    'pen_reorder_shape',
+    // 2026-09-18 iter6-e: ALWAYS include pen_get_screenshot + pen_get_computed.
+    // These are client round-trip tools (live DOM readback + real screenshots)
+    // that the agent uses to self-verify its work — particularly important
+    // after the new deterministic validators (Rule 10/11/12) fire, because
+    // the agent's fix-turn often wants to take a screenshot to verify the
+    // repair landed correctly. Without these in the always-include list,
+    // non-inspect categories filter them out → 'Tool pen_get_screenshot not
+    // found' regressions on dashboard-hifi (iter6-e bench).
+    'pen_get_screenshot',
+    'pen_get_computed',
+    // impl-canvas-ui-tool: ALWAYS include pen_canvas_ui_control (OpenHands
+    // canvas_ui_control pattern). The tool drives the workspace UI itself —
+    // focus a shape, expand the chat panel, switch the right sidebar tab,
+    // open the snapshots timeline, zoom-to-fit the selection. It's a
+    // cross-cutting UI nudge the agent should reach for in EVERY skill
+    // after creating / updating a shape, not a wireframe-only or layout-only
+    // affordance. Without this, narrow skills (vector / styling) would filter
+    // it out → 'Tool pen_canvas_ui_control not found' mid-turn when the
+    // agent (correctly) calls it per the system prompt's instructions.
+    'pen_canvas_ui_control',
   ]);
 
   // ---- Mode enforcement (Cursor lesson: restrictions live in the registry) --
@@ -970,8 +1021,70 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // sort), different base filter. Ask/Plan mode filtering already happened
   // upstream (categoryAllowedToolNames), so the chain itself is mode-blind.
   const assembleOrderedTools = (baseTools: ToolDefinition[]): ToolDefinition[] => {
+    // ---- tldraw pattern 6.5 — sanitizeAction wrapper (outermost layer) -------
+    //
+    // Every typed tool action goes through `sanitizeToolInput` BEFORE the
+    // brief gate / approval gate / verify-budget / alias-normalization
+    // wrappers see the args. Catches:
+    //   • stringified numbers (width: "200" → width: 200)
+    //   • unknown top-level fields (hallucinated deprecated names) for tools
+    //     whitelisted in TOOL_FIELD_WHITELIST
+    //   • empty-string fields (fill: "" → dropped, treated as "absent")
+    //   • shapeId references to non-existent canvas nodes → returns a
+    //     structured error result to the LLM, surfacing the corrective
+    //     tool (pen_get_metadata / pen_find_nodes) instead of letting the
+    //     tool body emit its own ad-hoc "not found" message (the #1 cause
+    //     of the stuck-loop class the OpenHands stuck-detector was added
+    //     to break out of — pre-empt the loop instead of detecting it).
+    //
+    // The wrapper is mode-blind: it applies in Build / Ask / Plan / Exec
+    // sessions alike (Ask/Plan go through assembleOrderedTools with a
+    // read-only filter — read tools still benefit from numeric coercion
+    // + id-existence pre-checks so the model's verify reads resolve to
+    // real nodes). The `existingShapeIds` lookup is lazy — the Set is
+    // rebuilt from the live canvas only when an id-bearing tool call
+    // arrives (most calls don't reference a shape id, so the lookup cost
+    // is amortized away).
+    const sanitizerWrapped: ToolDefinition[] = baseTools.map((t) => {
+      const toolAny = t as any;
+      const origExecute = toolAny.execute;
+      if (typeof origExecute !== 'function') return t;
+      return {
+        ...t,
+        execute: async (toolCallId: string, params: any, signal: any, onUpdate: any, ctx: any) => {
+          const sanitized = sanitizeToolInput(t.name, params, {
+            existingShapeIds: () => {
+              // Live shape-id set — refreshed on every call (the canvas
+              // mutates mid-turn, so a cached Set would go stale after
+              // the first mutation tool in the same turn).
+              try {
+                const ids = (canvas.shapes ?? []).map((s) => s.id);
+                return new Set<string>(ids);
+              } catch {
+                return undefined;
+              }
+            },
+          });
+          if (!sanitized.ok) {
+            return {
+              content: [{
+                type: 'text' as const,
+                text: `ERROR: ${sanitized.error}`,
+              }],
+              details: { error: 'sanitize_failed', toolName: t.name },
+              isError: true as any,
+            };
+          }
+          // Non-fatal warnings (stripped fields, coerced numerics) are
+          // NOT surfaced to the model — they're bookkeeping noise. The
+          // tool body sees the cleaned args + proceeds normally.
+          return origExecute(toolCallId, sanitized.args, signal, onUpdate, ctx);
+        },
+      } as unknown as ToolDefinition;
+    });
+
     const enforcementWrapped: ToolDefinition[] = shouldEnforceBrief
-      ? baseTools.map((t) => {
+      ? sanitizerWrapped.map((t) => {
         const toolAny = t as any;
         const origExecute = toolAny.execute;
         if (typeof origExecute !== 'function') return t;
@@ -1013,7 +1126,7 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
 
         return t;
       })
-      : baseTools;
+      : sanitizerWrapped;
 
     // ---- One-shot verify-budget guard (2026-09-07 complex-scenario round) ---
     //
@@ -1815,6 +1928,41 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   const snapshotSection = delta
     ? `\n\nCURRENT CANVAS SNAPSHOT — DELTA since the last turn (unchanged subtrees are collapsed; call pen_get_metadata with a nodeId — detail:true — to expand any node's full fields):\n${canvasSnapshotDelta(canvas, delta)}`
     : `\n\nCURRENT CANVAS SNAPSHOT (at turn start — call pen_get_metadata for live state):\n${canvasSnapshot(canvas)}`;
+  // ---- tldraw pattern 6.4 — three-tier AI context (focused / peripheral /
+  //      viewport screenshot) ----------------------------------------------
+  //
+  // Built ONCE at the start of the agent run (per task constraint: minimal
+  // change — don't rip out the existing CANVAS SNAPSHOT). The three-tier
+  // context rides the user message as an ADDITIONAL section right after
+  // `snapshotSection`. The screenshot (when the render succeeds) is pushed
+  // onto `promptImages` so vision-capable models receive it as an image_url
+  // content part (text-only models still see the focused-shape JSON +
+  // peripheral-cluster text — the screenshot is the only vision-only piece).
+  //
+  // Performance guard: buildAIThreeTierContext sets `fallback: true` when the
+  // canvas has > 500 shapes (the clusterer is O(n²) — capping at 500 keeps
+  // the per-turn prompt budget intact for large canvases). When fallback
+  // fires, the section text is empty (renderThreeTierContextSection returns
+  // '' when ctx.fallback) and no screenshot is attached — the existing
+  // single-tier CANVAS SNAPSHOT carries the turn alone.
+  let aiThreeTierSection = '';
+  let aiThreeTierScreenshotDataUrl: string | null = null;
+  try {
+    const aiThreeTier = await buildAIThreeTierContext(canvas);
+    aiThreeTierSection = renderThreeTierContextSection(aiThreeTier);
+    aiThreeTierScreenshotDataUrl = aiThreeTier.screenshotDataUrl;
+    if (aiThreeTier.fallback) {
+      // Already logged inside buildAIThreeTierContext — no double-log.
+    }
+  } catch (err) {
+    // The three-tier context is additive — a failure here MUST NOT break the
+    // turn. The existing CANVAS SNAPSHOT still rides the prompt; the model
+    // loses only the focused/peripheral/screenshot context for this turn.
+    console.warn(
+      '[runner-native] three-tier context build failed — proceeding without it:',
+      err instanceof Error ? err.message : err,
+    );
+  }
   // Prompt versioning (make-real MIGRATION_VERSION pattern): stamped on the
   // first user message (NOT the system prompt — that would invalidate the
   // byte-stable cacheable prefix) so every run record / eval log / journal
@@ -1851,9 +1999,26 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
   // Sits next to variantNudge (mutually exclusive — variant path clears
   // stagedFlow via the variantDispatchPlanned detection input).
   const stagedSection = stagedFlow === 'lofi' ? stagedFlowSection('lofi') : '';
-  const userMessage = (webResearchSummary
-    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${prompt}${clarifyGuardSection}`
-    : `${selectionNote}${prompt}${clarifyGuardSection}`) + modeSection + briefSection + variantNudge + stagedSection + conversationHistorySection + snapshotSection + perTurnSections + promptVersionSection + packReminder;
+  // Cline pattern 5.5 — mode-tagged user messages + switch notices:
+  //   1. Consume any pending mode-switch notice. The UI calls
+  //      modeSwitchTracker.record(from, to) on every mode change; the
+  //      runner consumes at prompt-send time so the model sees a
+  //      transcript-visible `<mode_notice>` marker on the first post-switch
+  //      message. Round-trips (build→ask→build before sending) cancel via
+  //      the tracker (it stores only the last `to`; a record(to→from) match
+  //      clears the pending pair). Null when no switch is pending.
+  //   2. Wrap the RAW user prompt as `<user_input mode="…">…</user_input>`
+  //      so the model sees the active mode in every turn's transcript —
+  //      complementary to the per-turn `[MODE: ASK — read-only. …]`
+  //      section below (modeSection), which is the full behavioral contract.
+  //      The wrap is on the raw prompt only; the selection note + clarify
+  //      guard + research summary + mode section + per-turn sections ride
+  //      OUTSIDE the wrap (they are agent context, not user input).
+  const modeSwitchNotice = modeSwitchTracker.consume();
+  const taggedPrompt = formatUserInputBlock(prompt, mode);
+  const userMessage = (modeSwitchNotice ? `${modeSwitchNotice}\n\n` : '') + (webResearchSummary
+    ? `WEB RESEARCH SUMMARY (from sub-agent):\n${webResearchSummary}\n\n---\nNow use this information to complete the original request:\n${selectionNote}${taggedPrompt}${clarifyGuardSection}`
+    : `${selectionNote}${taggedPrompt}${clarifyGuardSection}`) + modeSection + briefSection + variantNudge + stagedSection + conversationHistorySection + snapshotSection + aiThreeTierSection + perTurnSections + promptVersionSection + packReminder;
   // The message actually sent to session.prompt() — the user message with
   // an attachment note appended when images ride along (see below).
   let userMessageWithAttachments = userMessage;
@@ -1876,6 +2041,22 @@ export async function* runAgentNative(opts: AgentRunOptions): AsyncGenerator<Age
       .slice(0, promptImages.length)
       .join(', ');
     userMessageWithAttachments = `${userMessage}\n\n[${promptImages.length} image${promptImages.length === 1 ? '' : 's'} attached: ${names}]`;
+  }
+  // tldraw pattern 6.4 — viewport screenshot (vision-only tier). When the
+  // three-tier context produced a screenshot, push it onto the same
+  // `promptImages` array the user's image attachments ride — vision-capable
+  // models receive it as an additional image_url content part alongside
+  // any user-attached images. Text-only models still see the focused-shape
+  // JSON + peripheral-cluster text from `aiThreeTierSection` above; only the
+  // screenshot is vision-only. dataUrlToImageContent returns null for any
+  // malformed data URL — the screenshot is always well-formed (we just
+  // built it), but the filter keeps the type system honest.
+  if (aiThreeTierScreenshotDataUrl) {
+    const screenshotContent = dataUrlToImageContent(aiThreeTierScreenshotDataUrl);
+    if (screenshotContent) {
+      promptImages.push(screenshotContent);
+      userMessageWithAttachments = `${userMessageWithAttachments}\n\n[1 viewport screenshot attached — see AI THREE-TIER CONTEXT section]`;
+    }
   }
 
   const sessionId = opts.documentId ?? `session-${Date.now()}`;

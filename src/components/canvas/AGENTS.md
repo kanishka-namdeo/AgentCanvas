@@ -157,6 +157,26 @@ Canvas UI components: the drawing surface, the floating toolbar, the command pal
 - Manual: open the app, verify all panels render, shapes are selectable, properties form edits dispatch updates, agent chat streams, menu bar items work, ⌘K palette opens, ⌘/ shortcuts dialog opens, .pen export/import works.
 - `bunx tsx scripts/screenshot-ui-after.ts` — captures 5 states to `download/ui-polish-after/`.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that selection lookups go through a memoized `Map<id, shape>` before changing any selection-driven UI — the old `selectedIds.map(id => shapes.find(...))` was O(selection × canvas) and stalled `⌘A` on 20k-node canvases.
+- Check that shape property reads are null-safe (`shape?.x ?? 0`) — the LLM emits patches referencing deleted shapes and the UI must not crash.
+- Check that numeric fields used in `toFixed` / `Math.round` are coerced via `Number()` first — string ids/coords from the wire would otherwise produce `NaN`-laden outputs.
+- Check that a new keyboard shortcut lands in BOTH `src/lib/canvas/shortcuts.ts` AND the `page.tsx` keydown handler AND (if menu-shown) `AppMenu.tsx` — drift between the reference card and the keymap is silent.
+- Check that any new panel follows the 3-column tabbed layout — a 4th column requires restructuring `src/app/app/page.tsx`.
+- Check that `submit()` mirrors the server's `MAX_PROMPT_CHARS` cap BEFORE the composer clears — an oversized prompt used to lose its text to a post-hoc server rejection.
+
+### Lessons Learned
+
+- Do not pass selection/hover/zoom/highlight as props to `DomNode` — they belong to `DomChrome`; the memoized world tree must only see stable layer identities or it re-renders on every pointer move.
+- Do not use inline `?? { colors: [], textStyles: [] }` for the token selector — it creates a new object every render and triggers an infinite re-render loop; use a module-level `EMPTY_TOKENS` constant.
+- Do not re-type `#f24822` (guide red) or `from-violet-500 to-fuchsia-500` (brand gradient) — use `DEFAULT_GUIDE_COLOR` and `ac-brand-gradient` so a single edit propagates.
+- Do not let the failed-turn Retry button show for validation-class errors (`isValidationRejection`) — re-sending the identical cap-rejected prompt was a dead-end loop.
+- Do not introduce parallel tab implementations in another component when changing tab styling — change it ONCE in `RunHistoryPanel`.
+- Do not use `disabled:opacity-*` for busy affordances — use the `.ac-busy` class with an aria-disabled + tooltip stating WHY ("Stop the agent first").
+
 ## Child DOX Index
 
 | Path | Scope |

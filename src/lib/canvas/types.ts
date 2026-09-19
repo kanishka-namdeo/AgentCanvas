@@ -743,7 +743,50 @@ export type SyncEvent =
   // assistant turn — its handler finalizes that turn honestly instead of
   // hanging; other viewers are untouched (agent:error broadcast would
   // falsely mark the RUNNING turn errored on their screens). Never journaled.
-  | { type: 'agent:prompt_rejected'; reason: string };
+  | { type: 'agent:prompt_rejected'; reason: string }
+  // ---- Canvas UI client tool (OpenHands canvas_ui_control pattern, task
+  // impl-canvas-ui-tool) --------------------------------------------------
+  // Emitted by the pen_canvas_ui_control tool when the agent wants to drive
+  // the workspace UI itself — focus a shape, switch the right sidebar tab,
+  // surface the chat panel, open the snapshots timeline, or zoom-to-fit the
+  // current selection. The server only acks; the action is intercepted and
+  // dispatched LOCALLY (the dispatcher module is the single side-effect
+  // boundary, see src/lib/canvas/canvas-ui-dispatcher.ts).
+  //
+  // Why a dedicated event (rather than reusing agent:tool_call_end / a patch)?
+  // UI side-effects (selection highlight, right-tab switch, panel expand,
+  // dialog open, viewport zoom) are NOT document mutations — they're ephemeral
+  // per-viewer nudges. A patch would be journaled (timeline pollution + replay
+  // would re-fire them on reconnect, which is wrong: the agent's "show me what
+  // I made" intent is one-shot). Riding agent:tool_call_end would couple the
+  // UI nudge to tool execution telemetry. A dedicated event is the
+  // OpenHands canvas_ui_control pattern (research §5.4) and keeps the action
+  // strictly out-of-band. Never journaled, ephemeral, fan-out to every viewer.
+  | { type: 'agent:canvas_ui_action'; action: CanvasUIAction; toolCallId?: string };
+
+/// One UI nudge the agent can fire against the workspace shell. Mirrors the
+/// OpenHands `canvas_ui_control` tool's command set, adapted to AgentCanvas's
+/// 3-pane layout (left sidebar = Sessions, center = canvas + chat, right
+/// sidebar = Layers / Properties / Design Systems / Assets tabs).
+///
+/// Commands:
+///   - `focus_shape`       — select the shape AND switch the right sidebar to
+///                            the Properties (Design) tab so its inspector is
+///                            visible. `shapeId` is required.
+///   - `show_chat`         — expand the chat panel (where the agent's message
+///                            streams) so the user sees the streaming reply.
+///   - `show_history`      — open the Version History dialog (the snapshots
+///                            timeline; AgentCanvas has no History tab in the
+///                            right sidebar, so the dialog is the analog).
+///   - `show_layers`       — switch the right sidebar to the Layers tab.
+///   - `zoom_to_selection` — fit the viewport to the currently-selected shape
+///                            (or the shape named by `shapeId`, when provided).
+export type CanvasUIAction =
+  | { command: 'focus_shape'; shapeId: string }
+  | { command: 'show_chat' }
+  | { command: 'show_history' }
+  | { command: 'show_layers' }
+  | { command: 'zoom_to_selection'; shapeId?: string };
 
 /// One parked alternative in the agent:alternatives_parked promote card
 /// (spec §4.3). `id` is the parked SECTION node id — the stable promote key

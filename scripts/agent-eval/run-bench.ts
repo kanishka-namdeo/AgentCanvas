@@ -51,12 +51,12 @@ const VLM_OUT = join(OUT, 'vlm-scores.json');
 mkdirSync(join(REPO, DUMPS), { recursive: true });
 mkdirSync(join(REPO, EVAL_OUT.split('/').slice(0, -1).join('/')), { recursive: true });
 
-function runBun(file: string, extraArgs: string[]): { code: number; stdout: string; stderr: string } {
+function runBun(file: string, extraArgs: string[], timeoutMs = 60_000): { code: number; stdout: string; stderr: string } {
   const result = spawnSync('bun', [file, ...extraArgs], {
     cwd: REPO,
     encoding: 'utf-8',
-    timeout: 600_000,
-    maxBuffer: 50 * 1024 * 1024,
+    timeout: timeoutMs,
+    maxBuffer: 100 * 1024 * 1024,
   });
   return { code: result.status ?? -1, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
 }
@@ -93,6 +93,10 @@ function main() {
   console.log(`VLM layer: ${skipVlm ? 'SKIPPED' : 'enabled'}`);
   console.log('');
 
+  // ---- Optional --skip-l1 flag: skip the L1 re-run (use existing results)
+  const skipL1 = args.includes('--skip-l1');
+  if (skipL1) console.log('L1: SKIPPED (--skip-l1 set, using existing eval results)');
+
   // ---- Layer 1: deterministic structural assertions ----------------------
   // Reuse run-eval.ts with --dump-canvas so we get the canvas JSONs for L5.
   const evalArgs = [
@@ -103,40 +107,76 @@ function main() {
     '--include-heldout',  // bench runs ALL scenarios incl held-out (final validation)
   ];
   console.log('L1: running deterministic eval via run-eval.ts...');
-  const evalRes = runBun('scripts/agent-eval/run-eval.ts', evalArgs);
-  if (evalRes.code !== 0) {
-    console.error('L1 eval failed:');
+  // 30 min cap — 6 scenarios × up to 6 min each + cooldowns.
+  // SKIPPED when --skip-l1 is set (the eval results already exist on disk
+  // from a previous run).
+  const evalRes = skipL1
+    ? { code: 0, stdout: '(skipped)', stderr: '' }
+    : runBun('scripts/agent-eval/run-eval.ts', evalArgs, 30 * 60_000);
+  // run-eval.ts exits with code 1 if ANY scenario failed (intentional —
+  // signals "L1 layer has regressions"). Code 2 = real crash. Code 0 =
+  // all passed. Treat code 1 as "L1 ran with some failures" (continue —
+  // the per-scenario pass_rate captures the failures) and only bail on
+  // code 2 (real error) or stdout parsing failure.
+  if (evalRes.code === 2 || (evalRes.code !== 0 && evalRes.code !== 1)) {
+    console.error(`L1 eval crashed (exit code ${evalRes.code}):`);
     console.error(evalRes.stderr.slice(0, 500));
     process.exit(1);
   }
-  console.log(evalRes.stdout.split('\n').slice(-10).join('\n'));
+  console.log(evalRes.stdout.split('\n').slice(-15).join('\n'));
 
-  // Parse eval results — the harness has a path bug that writes to a
-  // nested scripts/agent-eval/scripts/agent-eval/results/ dir.
-  // The actual file is at scripts/agent-eval/scripts/agent-eval/results/<basename>.json
+  // Parse eval results — run-eval.ts has a path bug that writes to a
+  // nested scripts/agent-eval/scripts/agent-eval/results/ dir. The actual
+  // result file is at <nested_dir>/<EVAL_OUT basename>.json. When EVAL_OUT
+  // contains a trailing /eval (i.e. bench sets out=iter6-bench/eval), the
+  // file is at <nested_dir>/iter6-bench/eval.json. Otherwise it's at
+  // <nested_dir>/<basename>.json.
   const evalResultsDir = join(REPO, 'scripts/agent-eval/scripts/agent-eval/results');
-  const benchName = EVAL_OUT.split('/').pop()!;
-  const evalJsonPath = join(evalResultsDir, `${benchName}.json`);
+  const evalOutRelative = EVAL_OUT.replace(/^scripts\/agent-eval\/results\//, '');
+  let evalJsonPath = join(evalResultsDir, `${evalOutRelative}.json`);
   if (!existsSync(evalJsonPath)) {
-    console.error(`Couldn't find eval results at ${evalJsonPath}`);
-    process.exit(1);
+    // Fallback: try just the basename
+    const fallback = join(evalResultsDir, `${EVAL_OUT.split('/').pop()!}.json`);
+    if (existsSync(fallback)) {
+      evalJsonPath = fallback;
+    } else {
+      console.error(`Couldn't find eval results at ${evalJsonPath} or ${fallback}`);
+      console.error(`Available files in ${evalResultsDir}:`);
+      const files = readdirSync(evalResultsDir);
+      console.error(`  ${files.join('\n  ')}`);
+      process.exit(1);
+    }
   }
   const evalResults = JSON.parse(readFileSync(evalJsonPath, 'utf-8'));
 
   // ---- Layer 5: VLM-as-judge via agnes-3.0-flash -----------------------
   let vlmSummary: any = null;
-  if (!skipVlm) {
+  // --skip-vlm-run skips the actual VLM call but tries to read existing
+  // scores.json (so the aggregator still joins VLM data when present).
+  const skipVlmRun = args.includes('--skip-vlm-run');
+  if (!skipVlm && !skipVlmRun) {
     console.log('\nL5: scoring rendered canvases via agnes-3.0-flash VLM...');
+    // 10 min cap — VLM scoring 6 canvases × ~15s each = 90s, plenty of room.
     const vlmRes = runBun('scripts/agent-eval/vlm-score-agnes.ts', [
       `--dumps=${join(REPO, DUMPS)}`,
       `--out=${join(REPO, VLM_OUT)}`,
-    ]);
+    ], 10 * 60_000);
     if (vlmRes.code !== 0) {
       console.error('L5 VLM scoring failed (continuing without VLM):');
       console.error(vlmRes.stderr.slice(0, 500));
     } else {
       console.log(vlmRes.stdout.split('\n').slice(-10).join('\n'));
+    }
+  }
+  // Always try to load VLM scores if present (whether we ran it now or
+  // a previous run did). If the file is missing, vlmSummary stays null
+  // and the aggregator falls back to the L1-only AQS formula.
+  if (existsSync(join(REPO, VLM_OUT))) {
+    try {
       vlmSummary = JSON.parse(readFileSync(join(REPO, VLM_OUT), 'utf-8')).summary;
+      console.log(`Loaded VLM scores from ${VLM_OUT}`);
+    } catch (err: any) {
+      console.log(`Failed to parse VLM scores: ${err.message}`);
     }
   }
 

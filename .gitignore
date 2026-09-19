@@ -106,3 +106,6 @@ scripts/agent-eval/scripts/agent-eval/results/
 dev.log
 agnes-proxy-logs/
 .env
+
+# ---- Competitor research clones (2026-09-19) ----
+/competitors/

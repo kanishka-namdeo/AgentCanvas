@@ -23,6 +23,35 @@ describe('shouldOfferStagedFlow', () => {
     expect(shouldOfferStagedFlow({ ...base, prompt })).toBe(false);
   });
 
+  // 2026-09-19 (competitor-research round): component counter-signal — a
+  // screen-scale word modifying a component head-noun ("login CARD",
+  // "checkout MODAL") names a COMPONENT, not a screen. Fully specified
+  // component prompts build immediately instead of opening the lo-fi/hi-fi
+  // question (live-measured cost of the question: one wasted turn, 16s +
+  // 86K tokens, zero canvas output). Quoted strings are content, not
+  // structure — a button labeled 'Log in' is not screen-scale vocabulary.
+  it.each([
+    ['a login form'],
+    ['a checkout modal with email and password fields'],
+    ['a sign-in button with an apple logo'],
+    ['a settings row with a label and a toggle'],
+    ['Create a login card: rounded rectangle card with title \'Sign in\', an email input field, a password field, and a full-width primary button labeled \'Log in\''],
+  ])('does not fire on component-scale prompts: %s', (prompt) => {
+    expect(shouldOfferStagedFlow({ ...base, prompt })).toBe(false);
+  });
+
+  // The component counter-signal must NOT swallow genuine screen-scale
+  // prompts that happen to mention components: the remaining structural
+  // evidence (a bare screen word, or IA structure) still qualifies.
+  it.each([
+    ['a login screen for the vaultly app'],
+    ['a login page with an email input field and a password field'],
+    ['design a settings page with a profile section'],
+    ['a checkout page with a login card widget'],
+  ])('still fires when screen evidence survives the component strip: %s', (prompt) => {
+    expect(shouldOfferStagedFlow({ ...base, prompt })).toBe(true);
+  });
+
   it('does not fire on non-empty canvases without explicit new-screen intent', () => {
     expect(shouldOfferStagedFlow({ ...base, canvasEmpty: false, prompt: 'build me a dashboard' })).toBe(false);
     expect(shouldOfferStagedFlow({ ...base, canvasEmpty: false, prompt: 'add a new dashboard screen' })).toBe(true);

@@ -48,6 +48,7 @@ import { toast } from 'sonner';
 import { PluginUI } from './PluginUI';
 import { MarkdownMessage } from './Markdown';
 import { ModelSwitcher } from './ModelSwitcher';
+import { ToolVisualizerBody } from './agent-tools';
 import { StatusBadge } from '@/components/sessions/StatusBadge';
 import { RUN_PHASE_LABEL, BUSY_LOCK_HINT } from '@/lib/canvas/run-phase';
 import {
@@ -82,13 +83,17 @@ import {
   RotateCcw, TriangleAlert, Copy, Camera, BoxSelect, GitCompareArrows,
   ThumbsUp, ThumbsDown, Pencil, Brain, ListChecks, AtSign, ListPlus, Circle,
   BadgeCheck, Bot as BotIcon, Hammer, MessageCircleQuestion, ClipboardList,
-  MessageSquareMore, Zap, ChevronDown, Play,
+  MessageSquareMore, Zap, ChevronDown, Play, Search,
 } from 'lucide-react';
 import {
   AGENT_MODES,
   MODE_METADATA,
   type AgentMode,
 } from '@/lib/agent/modes';
+// impl-mode-tags-and-action-replacement (round 3 follow-up): the singleton
+// tracker is the cross-call handoff channel between this UI (producer,
+// records mode switches) and the runner (consumer, prepends <mode_notice>).
+import { modeSwitchTracker } from '@/lib/agent/mode-tags';
 import {
   activeMentionToken, applyMention, matchMentions, extractMentionedLayerIds,
   mentionableLayers,
@@ -1094,7 +1099,18 @@ export function AgentPanel() {
   // Sticky agent mode (Cursor-style) — persisted in settings, threaded to the
   // runner via agentRunSettings().mode on every prompt.
   const agentMode = useSettings((s) => s.agentMode) ?? 'build';
-  const setAgentMode = (m: AgentMode) => setSetting('agentMode', m);
+  // impl-mode-tags-and-action-replacement (round 3 follow-up): wrap
+  // setAgentMode so the mode-switch tracker records every transition. The
+  // runner consumes any pending <mode_notice> via modeSwitchTracker.consume()
+  // and prepends it to the next user message. Round-trips (build→ask→build
+  // before sending) cancel the notice via the tracker. Only the producer
+  // side lives here — the consumer side is in runner-native.ts.
+  const setAgentMode = (m: AgentMode) => {
+    if (m !== agentMode) {
+      modeSwitchTracker.record(agentMode, m);
+    }
+    setSetting('agentMode', m);
+  };
   const [input, setInput] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('wireframes');
   // Prompt-history navigation cursor (-1 = live input, not navigating).
@@ -2866,20 +2882,67 @@ function ToolCallsCluster({ toolCalls: rawToolCalls }: { toolCalls: AgentToolCal
     return deduped;
   }, [rawToolCalls]);
   const anyPending = toolCalls.some((tc) => tc.success === undefined);
-  // `null` = no user override → follow the pending state (expanded while
-  // running, collapsed when done). A click pins the opposite.
-  const [override, setOverride] = useState<boolean | null>(null);
-  const expanded = override ?? anyPending;
+  // 2026-09-19 (competitor-research round 2 — lobe-chat WorkflowCollapse
+  // pattern): 3-tier expand level instead of 2-tier boolean.
+  //   - 'full'      : all tool cards expanded with args + summaries
+  //   - 'semi'      : tool name + 1-line summary per card (compact rows)
+  //   - 'collapsed' : single prose-sentence summary of the whole turn
+  // Default behavior: full while any tool is pending, collapsed when all
+  // done. A click cycles: collapsed → semi → full → collapsed.
+  // `null` = no user override → follow the pending-state default.
+  type ExpandLevel = 'collapsed' | 'semi' | 'full';
+  const [override, setOverride] = useState<ExpandLevel | null>(null);
+  const expanded: ExpandLevel = override ?? (anyPending ? 'full' : 'collapsed');
   const failCount = toolCalls.filter((tc) => tc.success === false).length;
-  // ChatGPT-style activity label: the most recent tool summary.
-  const lastWithSummary = [...toolCalls].reverse().find((tc) => tc.summary);
+  const successCount = toolCalls.filter((tc) => tc.success === true).length;
+
+  // Click handler: cycle collapsed → semi → full → collapsed.
+  // Pins the override; resets to null (auto) only via a separate "auto"
+  // action — currently we let the user just cycle and not auto-reset, since
+  // once they've chosen a level they usually want to keep it for this turn.
+  const cycleExpand = () => {
+    const order: ExpandLevel[] = ['collapsed', 'semi', 'full'];
+    const idx = order.indexOf(expanded);
+    setOverride(order[(idx + 1) % order.length]);
+  };
+
+  // Build a prose-sentence summary of all completed tools (lobe-chat's
+  // "Inspector collapsed-row reads as <action> <keyword>" pattern).
+  // Examples:
+  //   "Created rectangle + 3 more"           (1 named + count)
+  //   "Created rectangle, ellipse, text"    (≤3 named)
+  //   "Ran 5 tools (4 ok, 1 failed)"        (when no summaries available)
+  const proseSummary = useMemo(() => {
+    if (toolCalls.length === 0) return '';
+    const withSummary = toolCalls.filter((tc) => tc.summary);
+    if (withSummary.length === 0) {
+      // No summaries — show count + status.
+      const parts: string[] = [`Ran ${toolCalls.length} tool${toolCalls.length === 1 ? '' : 's'}`];
+      if (successCount > 0) parts.push(`${successCount} ok`);
+      if (failCount > 0) parts.push(`${failCount} failed`);
+      return parts.join(' (') + (parts.length > 1 ? ')' : '');
+    }
+    // Use tool name + first 2-3 words of summary.
+    const shortNames = withSummary.slice(0, 3).map((tc) => {
+      const summary = (tc.summary ?? '').split(' ').slice(0, 3).join(' ');
+      return summary || tc.name;
+    });
+    if (withSummary.length > 3) {
+      return `${shortNames.join(', ')} + ${withSummary.length - 3} more`;
+    }
+    return shortNames.join(', ');
+  }, [toolCalls, successCount, failCount]);
 
   return (
     <div className="space-y-1">
       <button
-        onClick={() => setOverride(!expanded)}
-        aria-expanded={expanded}
-        title={expanded ? 'Collapse tool activity' : 'Expand tool activity'}
+        onClick={cycleExpand}
+        aria-expanded={expanded !== 'collapsed'}
+        title={
+          expanded === 'collapsed' ? 'Show compact tool list' :
+          expanded === 'semi' ? 'Show full tool details' :
+          'Collapse to summary'
+        }
         className="w-full flex flex-wrap items-center gap-x-1.5 gap-y-1 px-1.5 py-1 rounded-md text-[10px] ac-text-3 hover:ac-surface-1 ac-transition ac-focus-ring"
       >
         <Wrench className="h-3 w-3 ac-text-4 flex-shrink-0" />
@@ -2894,20 +2957,140 @@ function ToolCallsCluster({ toolCalls: rawToolCalls }: { toolCalls: AgentToolCal
         {anyPending ? (
           <Loader2 className="h-2.5 w-2.5 animate-spin ac-text-4 flex-shrink-0" />
         ) : (
-          !expanded && lastWithSummary?.summary && (
+          expanded === 'collapsed' && (
             <span className="text-[10px] ac-text-4 truncate flex-1 min-w-0">
-              {lastWithSummary.summary}
+              {proseSummary}
             </span>
           )
         )}
         <ChevronRight
-          className={`h-3 w-3 ac-text-4 ml-auto flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          className={`h-3 w-3 ac-text-4 ml-auto flex-shrink-0 transition-transform ${expanded === 'full' ? 'rotate-90' : expanded === 'semi' ? 'rotate-45' : ''}`}
         />
       </button>
-      {expanded && (
+      {expanded !== 'collapsed' && (
         <div className="space-y-1">
+          {(() => {
+            // 2026-09-19 (competitor-research round 3 — Cline pattern 5.2):
+            // Low-stakes tool grouping — consecutive read-only tools collapse
+            // into one expandable card to keep the chat scannable when the
+            // agent reads 5+ shapes/nodes in a row. The grouping is UI-only;
+            // the underlying toolCalls array is unchanged so the diff card
+            // and the turn-diff summary still see every call.
+            const items = groupLowStakesTools(toolCalls);
+            return items.map((item, idx) => {
+              if (Array.isArray(item)) {
+                return (
+                  <LowStakesToolGroup key={`group-${idx}`} toolCalls={item} semi={expanded === 'semi'} />
+                );
+              }
+              return <ToolCallEntry key={item.id} tc={item} semi={expanded === 'semi'} />;
+            });
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Low-stakes tool grouping (Cline pattern 5.2) -------------------------
+//
+// Read-only tool calls (pen_get_*, pen_list_*, pen_audit_*) are visually
+// noisy when the agent runs 5+ in a row during exploration. Cline collapses
+// these into a single expandable "Read N tools" card. We mirror that here.
+// The grouping is PURE UI — the underlying toolCalls array is unchanged so
+// the turn-diff summary and the cluster's prose summary still see every call.
+//
+// Threshold: 2+ consecutive low-stakes tools fold into a group. A single
+// low-stakes call between two mutating calls renders as a normal entry.
+
+/// Set of tool-name prefixes that count as "low-stakes" (read-only, fast,
+/// non-mutating). The agent's exploratory bursts typically hit pen_get_*,
+/// pen_list_*, and pen_audit_* in sequence — these are the calls that
+/// drown out the meaningful mutations in the chat scroll.
+const LOW_STAKES_PREFIXES = [
+  'pen_get_',
+  'pen_list_',
+  'pen_audit_',
+  'pen_describe_',
+  'pen_search_',
+];
+
+function isLowStakesTool(name: string): boolean {
+  return LOW_STAKES_PREFIXES.some((p) => name.startsWith(p));
+}
+
+/// Walk a list of tool calls and return either a single tool call or a
+/// group of consecutive low-stakes calls. Single low-stakes calls between
+/// mutating calls pass through as normal entries — only 2+ consecutive
+/// low-stakes calls fold into a group. This matches Cline's
+/// `groupLowStakesTools` semantics.
+function groupLowStakesTools(toolCalls: AgentToolCallEntry[]): Array<AgentToolCallEntry | AgentToolCallEntry[]> {
+  const out: Array<AgentToolCallEntry | AgentToolCallEntry[]> = [];
+  let run: AgentToolCallEntry[] = [];
+  const flushRun = () => {
+    if (run.length >= 2) {
+      out.push(run);
+    } else {
+      out.push(...run);
+    }
+    run = [];
+  };
+  for (const tc of toolCalls) {
+    if (isLowStakesTool(tc.name)) {
+      run.push(tc);
+    } else {
+      flushRun();
+      out.push(tc);
+    }
+  }
+  flushRun();
+  return out;
+}
+
+function LowStakesToolGroup({ toolCalls, semi }: { toolCalls: AgentToolCallEntry[]; semi?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const count = toolCalls.length;
+  const anyPending = toolCalls.some((tc) => tc.success === undefined);
+  const failCount = toolCalls.filter((tc) => tc.success === false).length;
+  // Build a short summary: first 3 tool names + "+N more".
+  const names = toolCalls.map((tc) => tc.name.replace(/^pen_/, '').replace(/_/g, ' '));
+  const summary = names.length > 3
+    ? `${names.slice(0, 3).join(', ')} +${names.length - 3} more`
+    : names.join(', ');
+
+  return (
+    <div className="rounded-md border ac-border-subtle ac-surface-1">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        title={expanded ? `Collapse ${count} read-only tools` : `Expand ${count} read-only tools`}
+        className="w-full flex items-center gap-1.5 text-[11px] font-medium ac-text-2 text-left ac-transition hover:ac-surface-1 px-2 py-1"
+      >
+        <Search className="h-3 w-3 ac-text-4 flex-shrink-0" />
+        <span className="text-[10px] ac-text-3 font-normal truncate flex-1 min-w-0">
+          Read {count} <span className="ac-text-4">·</span> {summary}
+        </span>
+        <span className="ml-auto flex items-center gap-1 flex-shrink-0">
+          {failCount > 0 && (
+            <span className="ac-text-danger flex items-center gap-0.5" title={`${failCount} failed`}>
+              <XCircle className="h-3 w-3" />
+              {failCount}
+            </span>
+          )}
+          {anyPending ? (
+            <Loader2 className="h-3 w-3 animate-spin ac-text-4" />
+          ) : (
+            <CheckCircle2 className="h-3 w-3 ac-text-success" />
+          )}
+          <ChevronRight
+            className={`h-2.5 w-2.5 ac-text-4 flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          />
+        </span>
+      </button>
+      {expanded && (
+        <div className="space-y-1 px-2 pb-1.5">
           {toolCalls.map((tc) => (
-            <ToolCallEntry key={tc.id} tc={tc} />
+            <ToolCallEntry key={tc.id} tc={tc} semi={semi} />
           ))}
         </div>
       )}
@@ -2915,15 +3098,18 @@ function ToolCallsCluster({ toolCalls: rawToolCalls }: { toolCalls: AgentToolCal
   );
 }
 
-function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
+function ToolCallEntry({ tc, semi = false }: { tc: AgentToolCallEntry; semi?: boolean }) {
   const success = tc.success;
   const pending = success === undefined;
   // Color-code by tool category for quick visual scanning.
   const category = toolCategory(tc.name);
   // Card-level disclosure: one line by default; args + full summary expand
   // on click. Pending calls stay open (live feedback while executing).
+  // In `semi` mode (parent cluster is showing compact rows), the entry
+  // forces expanded=false unless the user explicitly opens it — keeps the
+  // cluster readable as a list of "name + 1-line summary".
   const [override, setOverride] = useState<boolean | null>(null);
-  const expanded = override ?? pending;
+  const expanded = semi ? (override ?? false) : (override ?? pending);
   // Pretty-print args when the preview is complete JSON (the translator now
   // sends up to 2K chars — most tool args fit; truncated ones fall back to
   // the raw string). Cursor-style tool cards show real, readable arguments.
@@ -3001,6 +3187,13 @@ function ToolCallEntry({ tc }: { tc: AgentToolCallEntry }) {
                   {prettyArgs}
                 </pre>
               )}
+              {/* Tool visualizer registry (OpenHands pattern 5.1). Additive —
+                  sits between the args pre-block and the summary. Renders
+                  `null` for unregistered tools, so unknown tools keep the
+                  existing default JSON dump unchanged. New per-tool
+                  visualizers register via `defineToolVisualizer` and are
+                  picked up without touching this component. */}
+              <ToolVisualizerBody tc={tc} />
               {tc.summary && (
                 <div className="mt-1 text-[10px] ac-text-3">{tc.summary}</div>
               )}

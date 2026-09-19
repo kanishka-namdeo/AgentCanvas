@@ -71,6 +71,13 @@ import { getLucideIcon, searchLucideIcons, lucidePromptCatalog } from '@/lib/ico
 import { formatShapeLine } from './shape-line';
 import { notFoundResult } from './tool-errors';
 import { emitEvent, hasSink } from './plugins/event-bus';
+// pen_canvas_ui_control — the OpenHands canvas_ui_control pattern (task
+// impl-canvas-ui-tool): drives the workspace UI itself (focus shape, switch
+// right-sidebar tab, expand chat, open history, zoom-to-fit). Defined in a
+// separate module because it has no ctx closure dependencies; appended to
+// the createCanvasTools return array below so it shares the same
+// registration path as the other pen_* tools.
+import { canvasUIControlTool } from './canvas-ui-tool';
 import {
   aliasToolEntries,
   deprecationNotice,
@@ -414,8 +421,16 @@ const SubtreeInputSchema = {
       anyOf: [{ $ref: '#/$defs/subtreeNode' }, { type: 'string' }],
     },
     nodes: {
-      type: 'array',
-      items: { $ref: '#/$defs/subtreeNode' },
+      // 2026-09-18 iter6: agnes-3.0-flash occasionally passes `nodes` as a
+      // STRINGIFIED JSON array (e.g. `"[{\"type\":\"rectangle\"}]"`) instead
+      // of a real array. TypeBox rejected this with "nodes: must be array"
+      // BEFORE repairArrayArgs could parse it. Fix: accept either a real
+      // array OR a JSON-string; the runner's repairArrayArgs (tool-aliases.ts)
+      // parses the string into a real array before execute() runs.
+      anyOf: [
+        { type: 'array', items: { $ref: '#/$defs/subtreeNode' } },
+        { type: 'string', description: 'Stringified JSON array (e.g. "[{...}, {...}]") — auto-parsed by the runner.' },
+      ],
       description:
         'MULTI-ROOT batch (preferred for several screens/sections): an array of root nodes, each with the same fields as `node` (nested `children` allowed). One call creates them ALL — use this instead of repeated pen_create_subtree calls when creating multiple independent trees at once.',
     },
@@ -3653,6 +3668,10 @@ const createShape = defineTool({
     label: 'List Variables',
     description: 'List all variables (colors + text styles) currently defined on the canvas. Read-only — does not modify the canvas. Use this before pen_bind_variable to see available variable keys.',
     promptSnippet: 'List all variables (colors + text styles).',
+    // Cline pattern 5.3 — pure read, no ctx mutation, no patch emission:
+    // safe to batch with other pen_get_* / pen_list_* reads in one
+    // assistant message and run via Promise.all.
+    executionMode: 'parallel' as const,
     parameters: Type.Object({}),
     async execute(toolCallId) {
       const tokens = ctx.getTokens();
@@ -4365,6 +4384,13 @@ const createShape = defineTool({
       'its direct children sparse — use it to expand a node the delta snapshot collapsed. ' +
       'Without nodeId (or unknown id): the page list (id + name). Always call this before heavier reads.',
     promptSnippet: 'Navigate the canvas: page list by default, sparse subtree tree with a nodeId, full field line with detail:true.',
+    // Cline pattern 5.3 — read-only, race-free: explicit parallel so the
+    // SDK's executeToolCalls dispatch can batch consecutive reads into one
+    // Promise.all when the model emits several pen_get_metadata calls in
+    // one assistant message. Also surfaced in PARALLEL_SAFE_TOOL_NAMES
+    // (tool-execution-mode.ts) so applyExecutionModes never overrides this
+    // back to 'sequential'.
+    executionMode: 'parallel' as const,
     parameters: Type.Object({
       nodeId: Type.Optional(Type.String({ description: 'Node id (or page id) to read. Omit for the page list.' })),
       detail: Type.Optional(Type.Boolean({
@@ -7045,6 +7071,12 @@ const createShape = defineTool({
     createCardGrid,         // product/pricing/feature/KPI card grids in one call
     createLandingPage,      // navbar/hero/features/CTA/footer landing page in one call
     applyTypography,        // batch typography roles on text layers
+    // impl-canvas-ui-tool: OpenHands canvas_ui_control pattern — drives the
+    // workspace UI itself (focus shape, show chat, show history, show layers,
+    // zoom_to_selection). Emits agent:canvas_ui_action events; the client
+    // dispatcher (src/lib/canvas/canvas-ui-dispatcher.ts) performs the side
+    // effects. Always-included regardless of skill (cross-cutting UI nudge).
+    canvasUIControlTool,
   ];
 }
 

@@ -68,6 +68,23 @@ Utility scripts for development, screenshots, watchdogs, eval, and measurement. 
 
 > **Windows note**: These shell scripts use Linux-only utilities (`setsid`, `ss`, `pkill`, `tail`) and won't run on Windows PowerShell. On Windows, use `bun run dev` directly.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that any LLM-endpoint-touching script imports presets from `@/lib/llm/endpoint-presets` and drives the app's HTTP API (`POST /api/models`, `POST /api/agent`), not direct `curl`/`fetch` against base URLs, because direct calls bypass the resolver and leak keys.
+- Check `set -e` (or `set -euo pipefail`) is at the top of new shell scripts — or that its omission is justified for a watchdog respawn loop that must survive non-zero child exits.
+- Check that a TS script is launched via `bunx tsx scripts/<name>.ts` (not `node` or `ts-node`), because the project has no global Playwright install and `tsx` resolves it.
+- Check that output paths are relative to the repo root under `download/` and named with a 2-digit prefix, because screenshot sort order has been broken by unprefixed names before.
+
+### Lessons Learned
+
+- Save generation scripts longer than ~10 lines to `scripts/` before execution (no inline `python -c`, `bash -c`, or heredoc pipes), because the sandbox host kills child processes when the tool call ends and an inline script cannot be re-edited + re-run.
+- Start shell scripts with `cd "$(dirname "$0")/.."`, because the caller's CWD is not guaranteed and relative paths have silently written files to wrong directories before.
+- For watchdog-style respawn loops, omit `set -e` and use `|| true` per non-zero child exit, because `set -e` would terminate the loop on the first child failure.
+- Treat held-out agent-eval scenarios as single-use: once one is used to grade a change, write a new held-out scenario, because re-using it teaches to it and invalidates the battery.
+- Checkpoint long multi-turn abuse battery turns to disk (`/tmp/abuse-repeat-ckpt.json`) after every turn, because the 4-turn chain outlives the sandbox's ~10-min child-process reaper and must be resumable.
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. This folder is flat.

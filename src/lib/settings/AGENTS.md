@@ -32,10 +32,10 @@ This is the single source of truth for every setting the user can change in the 
 | `renderer` | `'dom'` (optional — only `'dom'` is a live value; legacy persisted `'svg'` is silently coerced to `'dom'` by the store's migrate function) | `'dom'` | 1 — Appearance (post-Phase-5 cleanup: the SVG renderer was deleted; the Settings UI no longer exposes a renderer picker. Kept on the type for forward compat with persisted blobs.) |
 | `canvasLayoutMode` | `'parity' \| 'native'` (optional — absent = `'parity'`) | `'parity'` | 1 — Appearance (DOM renderer layout strategy, spec Phase 2: `parity` uses resolver geometry; `native` uses browser CSS flexbox layout + measured-bounds readback) |
 | `domCulling` | `boolean` (optional — absent = `true`) | `true` | 1 — Appearance (Phase 4 scale hardening: L4 CSS containment + L5 mount culling when ≥2k nodes; toggle in Settings → Appearance → “DOM Culling Switch”) |
-| `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'zai'` | 2 — LLM provider |
+| `llmProvider` | any registry provider id (`src/lib/llm`) + legacy values | `'agnes'` | 2 — LLM provider (2026-09-19: switched from `'zai'` to `'agnes'` per the exercise brief; `zai` remains the reactive fallback) |
 | `apiKey` | `string` | `''` | 2 |
-| `modelName` | `string` | `'glm-5.3'` | 2 |
-| `apiBaseUrl` | `string` | `''` | 2 |
+| `modelName` | `string` | `'agnes-3.0-flash'` | 2 |
+| `apiBaseUrl` | `string` | `'https://apihub.agnes-ai.com/v1'` | 2 |
 | `snapshotCadence` | `'every-turn' \| 'every-3-turns' \| 'every-5-turns' \| 'manual'` | `'every-turn'` | 2 — Sessions |
 | `maxSessionsRetained` | `number` | `100` | 2 |
 | `maxSnapshotsPerCanvas` | `number` | `50` | 2 |
@@ -47,7 +47,7 @@ This is the single source of truth for every setting the user can change in the 
 
 `maxSnapshotsPerCanvas` (persist v4 rename of `maxSnapshotsPerSession`) is the per-document snapshot cap under the shared-canvas model — snapshots are document-scoped, and the oldest non-bookmarked ones are auto-deleted when the cap is exceeded.
 
-**Default LLM**: `llmProvider='zai'` + `modelName='glm-5.3'` + `apiKey=''` + `apiBaseUrl=''` — the z.ai sandbox (inside the z.ai sandbox, `ZAI.create()` auto-resolves credentials from `~/.z-ai-config` / `/etc/.z-ai-config` / sandbox env). An empty `modelName` falls back to the registry default (`glm-5.3` for `zai`). Legacy `glm-4.6` settings map to `glm-4.7` (zai catalog path). Users can switch to any of the 28 registered providers in Settings → LLM provider.
+**Default LLM (2026-09-19)**: `llmProvider='agnes'` + `modelName='agnes-3.0-flash'` + `apiKey=''` + `apiBaseUrl='https://apihub.agnes-ai.com/v1'`. The Agnes API key resolves from `AGNES_API_KEY` in `.env` (see `.env.example`) via the `agnes` provider's `apiKeyEnvVars`; the user does not have to type a key in Settings. The legacy `zai` provider (`glm-5.3`, sandbox auto-credentials) remains selectable in Settings and is the reactive fallback inside `runner-native.ts` when agnes returns 5xx / network error / empty body. Legacy `glm-4.6` settings map to `glm-4.7` (zai catalog path). Users can switch to any of the 29 registered providers in Settings → LLM provider.
 
 ### Agent-run subset (`AgentRunSettings`)
 
@@ -61,7 +61,7 @@ The canvas store's `promptAgent()` calls `agentRunSettings(useSettings.getState(
 
 ### Persistence
 - `persist` middleware with `localStorage` key `agentcanvas.settings.v1`. The persist storage is a custom `createJSONStorage` wrapper (2026-09-11) whose `setItem` routes through `quotaAwareSetItem` (`../storage/quota-aware.ts`) — a quota failure shows a toast instead of silently dropping the write.
-- Schema version is `5`. v4 → v5 (default-provider migration): stored blobs that still look like OLD custom-endpoint defaults (`custom` + a legacy tunnel URL + `123456` placeholder key) are rewritten to the CURRENT `DEFAULT_SETTINGS` values (z.ai sandbox: `zai` + `glm-5.3` + empty key + empty URL); anything user-customized is preserved untouched, and blobs holding the v5-era z.ai-sandbox defaults are also preserved. Earlier migrations (v1→v2 endpoint swap, v2→v3 SVG-renderer coerce, v3→v4 snapshot cap rename) are kept in the migrate chain for history. Bump + add `migrate` if the shape changes again.
+- Schema version is `5`. v4 → v5 (default-provider migration): stored blobs that still look like OLD custom-endpoint defaults (`custom` + a legacy tunnel URL + `123456` placeholder key) are rewritten to the CURRENT `DEFAULT_SETTINGS` values; anything user-customized is preserved untouched, and blobs holding the v5-era z.ai-sandbox defaults are also preserved. Earlier migrations (v1→v2 endpoint swap, v2→v3 SVG-renderer coerce, v3→v4 snapshot cap rename) are kept in the migrate chain for history. The 2026-09-19 default-provider swap (`zai` → `agnes`) was made by editing `DEFAULT_SETTINGS` directly, NOT by bumping the persist schema — existing localStorage blobs keep whatever provider the user had, only new users see agnes. Bump + add `migrate` if the shape changes again.
 - `partialize` strips the setter functions (`set`, `patch`, `reset`, `replaceAll`) so only data is persisted.
 - The `apiKey` field is stored in localStorage (client-side only). It is NEVER written to disk on the server. For production multi-user deployments, swap the storage adapter to a server-side secrets manager.
 
@@ -82,6 +82,19 @@ The canvas store's `promptAgent()` calls `agentRunSettings(useSettings.getState(
 - Manual: change a setting in the Settings dialog, reload the page — the setting persists.
 - Manual: change `temperature` to 0.8, send a prompt — the agent should produce more creative output.
 - Check `localStorage['agentcanvas.settings.v1']` in the browser console — should be a single JSON blob with `state.temperature`, etc.
+
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that a poisoned localStorage blob still loads — a `null`/string `temperature` used to crash `SettingsDialog` (`temperature.toFixed(1)`) with no error boundary. The custom persist `merge` runs `sanitizePersistedSettings` over rehydrated state.
+- Check that `apiKeyEnvVars` is non-empty for any provider requiring a key — non-zai providers without an env var list throw instead of resolving credentials.
+
+### Lessons Learned
+
+- Bump the persist version + write a `migrate` whenever the `AppSettings` shape changes; do not rely on type narrowing at runtime.
+- Default-provider migration must preserve user-customized blobs (v4→v5: only rewrite blobs that look like the OLD custom-endpoint defaults). Treat any blob that does not match the legacy signature as user-owned.
+- When the default LLM provider changes (2026-09-19: `zai`/`glm-5.3` → `agnes`/`agnes-3.0-flash`), update the doc reference here AND in `src/lib/agent/AGENTS.md` and `src/lib/llm/AGENTS.md` in the same DOX pass — drift between the three docs confuses the next reader.
 
 ## Child DOX Index
 

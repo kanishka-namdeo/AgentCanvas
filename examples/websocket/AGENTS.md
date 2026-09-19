@@ -23,6 +23,17 @@ Reference z.ai-scaffold Socket.IO chat demo (server + React client). Not wired i
 
 - None — reference only. (Do NOT start it; see port collision warning.)
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check that port `:3003` is free (and that the real app is not running) before starting this demo, because it hardcodes the same port the in-process canvas-sync service uses and has no EADDRINUSE handler.
+
+### Lessons Learned
+
+- Do not run this demo alongside the app, because the standalone `mini-services/canvas-sync/` service was deleted for exactly this collision and the in-process twin in `src/lib/canvas/server.ts` now owns `:3003`.
+- Treat this folder as read-only reference for the gateway `XTransformPort` routing pattern; do not lift its code into `src/`, because `eslint.config.mjs` deliberately ignores `examples/**`.
+
 ## Child DOX Index
 
 No child `AGENTS.md` files. This folder is flat.

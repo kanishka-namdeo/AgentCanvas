@@ -17,6 +17,15 @@ import { useMemo } from 'react';
 import type { Layer, Shape } from '@/lib/canvas/types';
 import { cursorForHandle, handlePosition, type ResizeHandle } from '../handleMath';
 import { MeasureOverlay } from './MeasureOverlay';
+// impl-tldraw-overlay-registry (round 3 follow-up): the OverlayLayer
+// renders all registered overlay utils (tldraw pattern 6.2). Mounted at
+// the end of DomChrome so registered overlays paint above the built-in
+// selection outlines / handles / measure / guides. Empty registry =
+// renders null (zero overhead).
+import { OverlayLayer } from './OverlayLayer';
+// Side-effect import — registers the bundled example overlay
+// (agent-activity pulse on highlightIds). To disable: comment this line.
+import './overlays';
 
 export interface DomChromeProps {
   /// Flat layer list (deduped) — the lookup table for selected/highlighted ids.
@@ -311,6 +320,22 @@ export function DomChrome({
           zoom={zoom}
         />
       )}
+
+      {/* impl-tldraw-overlay-registry (round 3 follow-up): registered
+          overlay utils render last (highest zIndex per util). Empty
+          registry = null. This is the tldraw OverlayUtil pattern 6.2
+          adapted to AgentCanvas — plugins can register overlays without
+          editing this file. */}
+      <OverlayLayer
+        layers={layers}
+        selectedIds={selectedIds}
+        highlightIds={highlightIds}
+        hoveredId={hoveredId}
+        viewport={viewport}
+        pointerCanvas={pointerCanvas}
+        measureMode={measureMode}
+        focusedId={focusedId}
+      />
     </div>
   );
 }

@@ -96,6 +96,22 @@ Shared-canvas model: the sidebar lists CONVERSATION CONTEXTS on one canvas ("Cha
 - Manual: create a chat, run the agent, reload (chat persists), switch chats (chat + tool calls restore; the shared canvas is untouched), fork (copies the message prefix onto the same canvas), restore a snapshot (new 'restore' snapshot appears in the canvas timeline).
 - `bunx tsx scripts/screenshot-ui-after.ts` — captures the runs-expanded and snapshots-tab states.
 
+## Mistakes & Lessons
+
+### Failure Modes
+
+- Check `/api/documents/{id}/agent/status` BEFORE allowing a non-active document delete — a live server-side run kept writing into its journal while the client's `agentBusy` had reset (mid-run switch), so the old guard made the doc deletable mid-run.
+- Check that `useSessionStore((s) => s.getStats(id))` is NEVER used as a selector — it returns a new object every render and triggers infinite re-render loops.
+- Check that a "New chat" affordance stays busy-guarded — a new chat abandons the running transcript silently.
+- Check that snapshot cards' "Fork from this snapshot" action is NOT re-added — Restore supersedes it; both together confuse users.
+
+### Lessons Learned
+
+- Do not trust the client's `agentBusy` reset alone for document deletion — go through the server-side `/agent/status` check; the client reset is a mid-run-switch hazard.
+- Do not use `Object.values(sessions)` inline — use `sessionsArray` (memoized sorted array from the store) so the list order is stable across renders.
+- Do not toast on Pin/Star — they are silent state toggles; Archive/Delete/Fork/Duplicate/Export/Copy-prompt toast.
+- Do not let a create-failure masquerade as an id collision — surface the server's JSON error body so a 400 name-cap is honest.
+
 ## Child DOX Index
 
 No child AGENTS.md files in this folder.
