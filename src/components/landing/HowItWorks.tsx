@@ -17,7 +17,7 @@ const TOOL_COUNT = 60;
 const PROVIDER_COUNT = 28;
 
 const DEV_CHIPS = [
-  '.pen file format',
+  'Portable canvas format',
   'Sessions + snapshots',
   'Socket.IO realtime',
   'Copy as HTML / React / Tailwind',

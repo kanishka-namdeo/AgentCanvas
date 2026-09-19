@@ -64,7 +64,7 @@ afterAll(() => {
 
 describe('landing: page metadata', () => {
   it('exports the landing title and description', () => {
-    expect(metadata.title).toBe('AgentCanvas — Figma for AI agents');
+    expect(metadata.title).toBe('AgentCanvas — Design that draws itself.');
     expect(typeof metadata.description).toBe('string');
     expect(metadata.description).toContain('AI agents');
   });
@@ -116,6 +116,6 @@ describe('landing: page composition', { timeout: 20000 }, () => {
     await screen.findByTestId('section-open-source');
     const headings = await screen.findAllByRole('heading', { level: 1 });
     expect(headings).toHaveLength(1);
-    expect(headings[0]).toHaveTextContent('Design at the speed of thought');
+    expect(headings[0]).toHaveTextContent('Describe. Direct. Refine.');
   });
 });

@@ -80,7 +80,7 @@ describe('landing: HowItWorks', () => {
 
   it('renders the remaining developer-depth chips', () => {
     render(<HowItWorks />);
-    expect(screen.getByText('.pen file format')).toBeInTheDocument();
+    expect(screen.getByText('Portable canvas format')).toBeInTheDocument();
     expect(screen.getByText('Sessions + snapshots')).toBeInTheDocument();
     expect(screen.getByText('Socket.IO realtime')).toBeInTheDocument();
     expect(screen.getByText('Copy as HTML / React / Tailwind')).toBeInTheDocument();

@@ -50,18 +50,17 @@ describe('landing: FeatureGallery', () => {
   it('renders the section anchor and verbatim heading', () => {
     render(<FeatureGallery />);
     expect(screen.getByTestId('section-tool')).toHaveAttribute('id', 'tool');
-    expect(screen.getByRole('heading', { name: 'Not a toy — a Figma-grade tool.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Not a chat demo. A real design surface.' })).toBeInTheDocument();
   });
 
   it('renders all five bento tiles with their copy', () => {
     render(<FeatureGallery />);
-    expect(screen.getByText('Figma-grade tooling')).toBeInTheDocument();
-    expect(screen.getByText(/Layers, properties, components, auto layout, variables, and gradients/)).toBeInTheDocument();
+    expect(screen.getByText('Live design tools')).toBeInTheDocument();
     expect(screen.getByText('One-shot generators')).toBeInTheDocument();
     expect(screen.getByText(/Flows, wireframes, and mindmaps appear from a single prompt/)).toBeInTheDocument();
     expect(screen.getByText('Design systems built in')).toBeInTheDocument();
     expect(screen.getByText(/Five production token packs ship in the box/)).toBeInTheDocument();
-    expect(screen.getByText('.pen file format')).toBeInTheDocument();
+    expect(screen.getByText('Portable canvas format')).toBeInTheDocument();
     expect(screen.getByText(/20 node types, diffable and restorable/)).toBeInTheDocument();
     expect(screen.getByText('Sessions & snapshots')).toBeInTheDocument();
     expect(screen.getByText(/every approved change is a restorable snapshot/)).toBeInTheDocument();
@@ -140,7 +139,7 @@ describe('landing: FeatureGallery', () => {
 
     it('still renders all content statically', () => {
       render(<FeatureGallery />);
-      expect(screen.getByText('Figma-grade tooling')).toBeInTheDocument();
+      expect(screen.getByText('Live design tools')).toBeInTheDocument();
       expect(screen.getByAltText('Attention heatmap overlay over a zoomed-out AgentCanvas board')).toBeInTheDocument();
     });
 

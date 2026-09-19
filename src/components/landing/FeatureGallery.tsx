@@ -16,7 +16,7 @@ import { setVideoPlaying } from './video-playback';
  * visual) that sits behind the copy — BentoCard renders it absolutely. */
 const BENTO_CARDS = [
   {
-    name: 'Figma-grade tooling',
+    name: 'Live design tools',
     Icon: Layers,
     className: 'md:col-span-2',
     description:
@@ -55,11 +55,11 @@ const BENTO_CARDS = [
     ),
   },
   {
-    name: '.pen file format',
+    name: 'Portable canvas format',
     Icon: Braces,
     className: 'col-span-1',
     description:
-      'Every canvas is a portable .pen document — 20 node types, diffable and restorable, never locked in a black box.',
+      'Every canvas is a portable document — 20 node types, diffable and restorable, never locked in.',
     background: (
       <pre
         aria-hidden="true"
@@ -139,7 +139,7 @@ export function FeatureGallery() {
       <div className="mx-auto max-w-6xl">
         <BlurFade inView>
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-white md:text-4xl">
-            Not a toy — a Figma-grade tool.
+            Not a chat demo. A real design surface.
           </h2>
           <p className="mt-3 max-w-2xl text-white/60">
             Everything a designer expects from a real canvas, built by conversation.

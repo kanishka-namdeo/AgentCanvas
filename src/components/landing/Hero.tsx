@@ -102,12 +102,14 @@ export function Hero({ stars }: { stars?: number | null }) {
       </div>
 
       <p className="mb-4 text-sm font-medium uppercase tracking-widest text-white/50">
-        AgentCanvas — Figma for AI agents
+        AgentCanvas — Design that draws itself.
       </p>
 
-      {/* The page's single h1, balanced with react-wrap-balancer. */}
+      {/* The page's single h1, balanced with react-wrap-balancer. The sub-tagline
+          carries the workflow rhythm (research report Angle 3): describe the
+          screen, direct the agent, refine the result. */}
       <Balancer as="h1" className="max-w-3xl text-balance text-5xl font-semibold tracking-tight text-white md:text-6xl">
-        Design at the speed of thought
+        Describe. Direct. Refine.
       </Balancer>
 
       <p className="mt-5 max-w-2xl text-lg text-white/70">

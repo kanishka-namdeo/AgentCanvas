@@ -52,7 +52,7 @@ beforeEach(() => {
 describe('landing: Hero', () => {
   it('renders the headline, subline, and section anchor', () => {
     render(<Hero />);
-    expect(screen.getByRole('heading', { level: 1, name: 'Design at the speed of thought' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Describe. Direct. Refine.' })).toBeInTheDocument();
     expect(screen.getByText(/The open-source canvas where the AI agents do the drawing/)).toBeInTheDocument();
     expect(screen.getByTestId('section-hero')).toHaveAttribute('id', 'top');
   });

@@ -9,9 +9,9 @@ const LANDING_DESCRIPTION =
   'The open-source canvas where AI agents do the drawing and you direct. 60+ typed tools, human-approved destructive steps, 28 LLM providers — AGPL-3.0 and free forever.';
 
 export const metadata: Metadata = {
-  title: 'AgentCanvas — Figma for AI agents',
+  title: 'AgentCanvas — Design that draws itself.',
   description: LANDING_DESCRIPTION,
-  keywords: ['AgentCanvas', 'AI agents', 'design canvas', 'Figma', 'open source', 'AGPL-3.0'],
+  keywords: ['AgentCanvas', 'AI agents', 'design canvas', 'open source', 'AGPL-3.0'],
   alternates: {
     canonical: '/',
   },
@@ -19,12 +19,12 @@ export const metadata: Metadata = {
     type: 'website',
     url: '/',
     siteName: 'AgentCanvas',
-    title: 'AgentCanvas — Figma for AI agents',
+    title: 'AgentCanvas — Design that draws itself.',
     description: LANDING_DESCRIPTION,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AgentCanvas — Figma for AI agents',
+    title: 'AgentCanvas — Design that draws itself.',
     description: LANDING_DESCRIPTION,
   },
 };

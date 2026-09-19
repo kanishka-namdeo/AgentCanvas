@@ -34,6 +34,10 @@ const MagicSequence = dynamic(
   () => import('./MagicSequence').then((m) => m.MagicSequence),
   { loading: SectionSkeleton },
 );
+const ScrollCanvas = dynamic(
+  () => import('./ScrollCanvas').then((m) => m.ScrollCanvas),
+  { loading: SectionSkeleton },
+);
 const FeatureGallery = dynamic(
   () => import('./FeatureGallery').then((m) => m.FeatureGallery),
   { loading: SectionSkeleton },
@@ -62,6 +66,7 @@ export function LandingTree({ statsPromise }: { statsPromise: Promise<GitHubStat
       <LandingHeader stars={stats?.stars} />
       <main>
         <Hero stars={stats?.stars} />
+        <ScrollCanvas />
         <MagicSequence />
         <FeatureGallery />
         <TrustLoop />
