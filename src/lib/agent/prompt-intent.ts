@@ -130,6 +130,18 @@ const INHERENTLY_SCREEN_SCALE =
 const IA_WORD =
   /\b(?:sidebar|topbar|nav|table|chart|hero|grid|cards)\b/i;
 
+/**
+ * Component head-nouns — when a screen-scale word merely MODIFIES one of
+ * these ("login card", "checkout modal", "sign-in button", "onboarding
+ * form"), the prompt names a COMPONENT, not a full screen. Such prompts are
+ * fully specified by their field/label enumeration and should build
+ * immediately (FIDELITY POLICY already defaults to HIGH), not open the
+ * staged lo-fi/hi-fi question. Mirrors the existing 'pricing' exclusion
+ * ("a pricing card is a component, not a screen").
+ */
+const COMPONENT_HEAD_NOUN =
+  /\b(?:dashboard|landing|screen|page|home|settings|profile|onboarding|checkout|login|sign-?in|inbox|pricing)\s+(?:card|form|button|btn|input|field|modal|dialog|widget|banner|chip|badge|row|cell|bar|header|footer|tab|item|list|dropdown|menu|toolbar|toggle|link|label|section)\b/gi;
+
 /** Opt-out: the user explicitly asked to skip the staged flow. */
 const OPT_OUT =
   /\b(?:don'?t ask|no questions|directly|straight to (?:hi-?fi|design)|just build|skip the wireframe)\b/i;
@@ -141,9 +153,31 @@ const OPT_OUT =
  * section-scale words (pricing) require an IA-structure word.
  */
 function isScreenScalePrompt(prompt: string): boolean {
-  if (!SCREEN_SCALE.test(prompt)) return false;
-  if (INHERENTLY_SCREEN_SCALE.test(prompt)) return true;
-  return IA_WORD.test(prompt);
+  // 2026-09-19 (competitor-research round): two counter-signals, learned from
+  // tldraw's agent kit / bolt.diy / v0 — all of them BUILD IMMEDIATELY on
+  // fully-specified prompts; a lo-fi/hi-fi question before any canvas output
+  // burns a full turn (measured live: 16s + 86K tokens, zero shapes) for
+  // information the FIDELITY POLICY already answers (default HIGH).
+  //
+  // Counter-signal 1 — quoted content is TEXT, not structure. A button label
+  // like 'Log in' or a headline "Sign in" must not count as screen-scale
+  // vocabulary ("Create a login card … a button labeled 'Log in'" was
+  // misdetected as a screen-scale prompt by the word "Log in" alone).
+  const structural = prompt.replace(/"[^"]*"|'[^']*'/g, ' ');
+  // Counter-signal 2 — component head-noun. "login CARD", "checkout MODAL",
+  // "sign-in BUTTON" name a COMPONENT, not a screen — the same precedent the
+  // 'pricing' exclusion documents ("a pricing card is a component, not a
+  // screen"). When a screen-scale word merely modifies a component noun, the
+  // scale verdict must come from the REMAINING structural evidence.
+  const stripped = structural.replace(COMPONENT_HEAD_NOUN, ' ');
+  if (stripped !== structural) {
+    if (!SCREEN_SCALE.test(stripped)) return false;
+    if (INHERENTLY_SCREEN_SCALE.test(stripped)) return true;
+    return IA_WORD.test(stripped);
+  }
+  if (!SCREEN_SCALE.test(structural)) return false;
+  if (INHERENTLY_SCREEN_SCALE.test(structural)) return true;
+  return IA_WORD.test(structural);
 }
 
 /**
